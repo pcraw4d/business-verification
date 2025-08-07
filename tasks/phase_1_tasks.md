@@ -42,6 +42,8 @@
 - `internal/database/factory.go` - Database factory for instantiation
 - `internal/database/models_test.go` - Database model tests
 - `internal/database/migrations/001_initial_schema.sql` - Initial database schema
+- `internal/auth/service.go` - Authentication service implementation
+- `internal/auth/service_test.go` - Unit tests for authentication service
 - `cmd/api/main.go` - Main API gateway entry point for the KYB platform
 - `cmd/api/main_test.go` - Unit tests for API gateway
 - `internal/auth/service.go` - Authentication service implementation
@@ -114,6 +116,14 @@
 - [x] Implement database connection management
 - [x] Add transaction support
 - [x] Create database tests
+
+**1.6 Implement Authentication Service**
+
+- [x] Create JWT-based authentication with access and refresh tokens
+- [x] Implement user registration and login functionality
+- [x] Add password hashing with bcrypt
+- [x] Include account lockout after failed login attempts
+- [x] Add comprehensive test coverage for all auth components
 
 **Acceptance Criteria:**
 
