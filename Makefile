@@ -2,10 +2,10 @@
 # Common development commands and build targets
 
 # Variables
-BINARY_NAME=kyb-tool
+BINARY_NAME=business-verification
 BUILD_DIR=build
 MAIN_PATH=cmd/api/main.go
-DOCKER_IMAGE=kyb-tool
+DOCKER_IMAGE=business-verification
 DOCKER_TAG=latest
 
 # Go parameters

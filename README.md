@@ -48,8 +48,8 @@ The project follows Clean Architecture principles with clear separation of conce
 ### 1. Clone the Repository
 
 ```bash
-git clone <repository-url>
-cd kyb-tool
+git clone https://github.com/pcraw4d/business-verification.git
+cd business-verification
 ```
 
 ### 2. Install Dependencies
@@ -125,6 +125,7 @@ go test ./internal/auth/...
 ## API Documentation
 
 Once the application is running, visit:
+
 - Swagger UI: `http://localhost:8080/docs`
 - API Documentation: `http://localhost:8080/api/docs`
 
