@@ -16,7 +16,7 @@
 
 ## Relevant Files
 
-- `go.mod` - Go module definition with Go 1.24+
+- `go.mod` - Go module definition with Go 1.24+ (github.com/pcraw4d/business-verification)
 - `go.work` - Go workspace configuration
 - `README.md` - Project overview and setup instructions
 - `.gitignore` - Git ignore patterns for Go projects
