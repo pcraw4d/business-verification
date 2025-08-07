@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"strconv"
@@ -190,6 +191,9 @@ type FeatureFlags struct {
 
 // Load loads configuration from environment variables
 func Load() (*Config, error) {
+	// Load .env file if it exists
+	loadEnvFile()
+
 	config := &Config{
 		Environment:      getEnvironment(),
 		Server:           getServerConfig(),
@@ -206,6 +210,35 @@ func Load() (*Config, error) {
 	}
 
 	return config, nil
+}
+
+// loadEnvFile loads environment variables from .env file
+func loadEnvFile() {
+	file, err := os.Open(".env")
+	if err != nil {
+		// .env file doesn't exist, which is fine
+		return
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) == 2 {
+			key := strings.TrimSpace(parts[0])
+			value := strings.TrimSpace(parts[1])
+			// Remove quotes if present
+			if len(value) > 1 && (value[0] == '"' && value[len(value)-1] == '"') {
+				value = value[1 : len(value)-1]
+			}
+			os.Setenv(key, value)
+		}
+	}
 }
 
 // Validate validates the configuration
