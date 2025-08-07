@@ -14,6 +14,9 @@
 
 ## Relevant Files
 
+- `go.mod` - Go module definition with Go 1.24+
+- `README.md` - Project overview and setup instructions
+- `.gitignore` - Git ignore patterns for Go projects
 - `cmd/api/main.go` - Main API gateway entry point for the KYB platform
 - `cmd/api/main_test.go` - Unit tests for API gateway
 - `internal/auth/service.go` - Authentication service implementation
@@ -48,11 +51,11 @@
 #### Sub-tasks:
 
 **1.1 Initialize Go Module and Project Structure**
-- [ ] Create `go.mod` file with Go 1.22+ and proper module name
-- [ ] Set up project directory structure following Clean Architecture
-- [ ] Create initial `README.md` with project overview and setup instructions
-- [ ] Set up `.gitignore` for Go projects
-- [ ] Initialize Git repository with initial commit
+- [x] Create `go.mod` file with Go 1.22+ and proper module name
+- [x] Set up project directory structure following Clean Architecture
+- [x] Create initial `README.md` with project overview and setup instructions
+- [x] Set up `.gitignore` for Go projects
+- [x] Initialize Git repository with initial commit
 
 **1.2 Configure Development Environment**
 - [ ] Set up Go workspace with proper GOPATH configuration
