@@ -26,6 +26,11 @@
 - `.vscode/settings.json` - VS Code development settings
 - `.vscode/extensions.json` - VS Code extension recommendations
 - `.git/hooks/pre-commit` - Pre-commit code quality checks
+- `env.example` - Example environment variables template
+- `configs/development.env` - Development environment configuration
+- `configs/production.env` - Production environment configuration
+- `internal/config/config.go` - Configuration management system
+- `internal/config/config_test.go` - Configuration system tests
 - `cmd/api/main.go` - Main API gateway entry point for the KYB platform
 - `cmd/api/main_test.go` - Unit tests for API gateway
 - `internal/auth/service.go` - Authentication service implementation
@@ -40,7 +45,6 @@
 - `internal/database/migrations/` - Database migration files
 - `internal/api/handlers/` - HTTP handlers for all endpoints
 - `internal/api/middleware/` - Middleware components (auth, logging, rate limiting)
-- `internal/config/config.go` - Configuration management
 - `internal/observability/` - Logging, metrics, and tracing setup
 - `pkg/validators/` - Input validation utilities
 - `pkg/encryption/` - Encryption utilities for sensitive data
@@ -78,11 +82,11 @@
 
 **1.3 Implement Configuration Management**
 
-- [ ] Create `internal/config/config.go` with environment-based configuration
-- [ ] Implement configuration validation and default values
-- [ ] Set up environment variable management for different environments
-- [ ] Create configuration structs for all services
-- [ ] Add configuration tests
+- [x] Create `internal/config/config.go` with environment-based configuration
+- [x] Implement configuration validation and default values
+- [x] Set up environment variable management for different environments
+- [x] Create configuration structs for all services
+- [x] Add configuration tests
 
 **1.4 Set Up Observability Foundation**
 

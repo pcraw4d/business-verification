@@ -10,7 +10,7 @@ func TestLoad(t *testing.T) {
 	// Set required environment variables for testing
 	os.Setenv("JWT_SECRET", "test-secret-for-testing")
 	defer os.Unsetenv("JWT_SECRET")
-	
+
 	// Test with default values
 	config, err := Load()
 	if err != nil {
@@ -263,7 +263,7 @@ func TestFeatureFlags(t *testing.T) {
 	// Set required environment variables for testing
 	os.Setenv("JWT_SECRET", "test-secret-for-testing")
 	defer os.Unsetenv("JWT_SECRET")
-	
+
 	// Test default feature flags
 	config, err := Load()
 	if err != nil {
@@ -296,7 +296,7 @@ func TestServerConfig(t *testing.T) {
 	// Set required environment variables for testing
 	os.Setenv("JWT_SECRET", "test-secret-for-testing")
 	defer os.Unsetenv("JWT_SECRET")
-	
+
 	config, err := Load()
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
@@ -334,7 +334,7 @@ func TestDatabaseConfig(t *testing.T) {
 	// Set required environment variables for testing
 	os.Setenv("JWT_SECRET", "test-secret-for-testing")
 	defer os.Unsetenv("JWT_SECRET")
-	
+
 	config, err := Load()
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
@@ -366,7 +366,7 @@ func TestAuthConfig(t *testing.T) {
 	// Set required environment variables for testing
 	os.Setenv("JWT_SECRET", "test-secret-for-testing")
 	defer os.Unsetenv("JWT_SECRET")
-	
+
 	config, err := Load()
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
@@ -406,7 +406,7 @@ func TestObservabilityConfig(t *testing.T) {
 	// Set required environment variables for testing
 	os.Setenv("JWT_SECRET", "test-secret-for-testing")
 	defer os.Unsetenv("JWT_SECRET")
-	
+
 	config, err := Load()
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
