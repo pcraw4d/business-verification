@@ -36,6 +36,56 @@ func TestNewClassificationService(t *testing.T) {
 	if service.config != cfg {
 		t.Error("Expected config to match input config")
 	}
+
+	if service.industryData != nil {
+		t.Error("Expected industry data to be nil for basic constructor")
+	}
+}
+
+func TestNewClassificationServiceWithData(t *testing.T) {
+	cfg := &config.ExternalServicesConfig{
+		BusinessDataAPI: config.BusinessDataAPIConfig{
+			Enabled: true,
+			BaseURL: "https://api.example.com",
+			APIKey:  "test-key",
+			Timeout: 30 * time.Second,
+		},
+	}
+
+	// Create mock dependencies
+	logger := observability.NewLogger(&config.ObservabilityConfig{
+		LogLevel:  "info",
+		LogFormat: "json",
+	})
+	metrics, _ := observability.NewMetrics(&config.ObservabilityConfig{
+		MetricsEnabled: true,
+	})
+
+	// Create mock industry data
+	industryData := &IndustryCodeData{
+		NAICS: map[string]string{
+			"541511": "Custom Computer Programming Services",
+		},
+		MCC: map[string]string{
+			"5045": "Computers, Computer Peripheral Equipment, Software",
+		},
+		SIC: map[string]string{
+			"C-35-357-3571": "Electronic Computers",
+		},
+	}
+
+	service := NewClassificationServiceWithData(cfg, nil, logger, metrics, industryData)
+	if service == nil {
+		t.Fatal("Expected classification service to be created")
+	}
+
+	if service.config != cfg {
+		t.Error("Expected config to match input config")
+	}
+
+	if service.industryData != industryData {
+		t.Error("Expected industry data to match input data")
+	}
 }
 
 func TestClassificationRequest(t *testing.T) {

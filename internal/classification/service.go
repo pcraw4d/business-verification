@@ -13,19 +13,32 @@ import (
 
 // ClassificationService provides business classification functionality
 type ClassificationService struct {
-	config  *config.ExternalServicesConfig
-	db      database.Database
-	logger  *observability.Logger
-	metrics *observability.Metrics
+	config       *config.ExternalServicesConfig
+	db           database.Database
+	logger       *observability.Logger
+	metrics      *observability.Metrics
+	industryData *IndustryCodeData
 }
 
 // NewClassificationService creates a new business classification service
 func NewClassificationService(cfg *config.ExternalServicesConfig, db database.Database, logger *observability.Logger, metrics *observability.Metrics) *ClassificationService {
 	return &ClassificationService{
-		config:  cfg,
-		db:      db,
-		logger:  logger,
-		metrics: metrics,
+		config:       cfg,
+		db:           db,
+		logger:       logger,
+		metrics:      metrics,
+		industryData: nil, // Will be loaded separately
+	}
+}
+
+// NewClassificationServiceWithData creates a new business classification service with industry data
+func NewClassificationServiceWithData(cfg *config.ExternalServicesConfig, db database.Database, logger *observability.Logger, metrics *observability.Metrics, industryData *IndustryCodeData) *ClassificationService {
+	return &ClassificationService{
+		config:       cfg,
+		db:           db,
+		logger:       logger,
+		metrics:      metrics,
+		industryData: industryData,
 	}
 }
 
@@ -281,33 +294,72 @@ func (c *ClassificationService) performClassification(ctx context.Context, req *
 func (c *ClassificationService) classifyByKeywords(req *ClassificationRequest) []IndustryClassification {
 	var classifications []IndustryClassification
 
-	// Define keyword mappings to industry codes
-	keywordMappings := map[string][]string{
-		"software":       {"541511", "541512", "541519"},
-		"technology":     {"541511", "541512", "541519", "541715"},
-		"consulting":     {"541611", "541612", "541618", "541690"},
-		"financial":      {"522110", "522120", "522130", "522190", "523150"},
-		"healthcare":     {"621111", "621112", "621210", "621310", "621320"},
-		"retail":         {"441110", "442110", "443141", "444110", "445110"},
-		"manufacturing":  {"332996", "332999", "333415", "334110", "335110"},
-		"construction":   {"236115", "236116", "236117", "236118", "236220"},
-		"transportation": {"484110", "484121", "484122", "484210", "485110"},
-		"education":      {"611110", "611210", "611310", "611410", "611420"},
-	}
-
 	// Check keywords in business name and description
 	textToSearch := strings.ToLower(req.BusinessName + " " + req.Description + " " + req.Keywords)
 
-	for keyword, industryCodes := range keywordMappings {
-		if strings.Contains(textToSearch, keyword) {
-			for _, code := range industryCodes {
-				classifications = append(classifications, IndustryClassification{
-					IndustryCode:         code,
-					IndustryName:         c.getIndustryName(code),
-					ConfidenceScore:      0.7,
-					ClassificationMethod: "keyword_based",
-					Keywords:             []string{keyword},
-				})
+	// Use real industry data if available
+	if c.industryData != nil {
+		// Search NAICS codes by keywords
+		naicsCodes := c.industryData.SearchNAICSByKeyword(textToSearch)
+		for _, code := range naicsCodes {
+			classifications = append(classifications, IndustryClassification{
+				IndustryCode:         code,
+				IndustryName:         c.industryData.GetNAICSName(code),
+				ConfidenceScore:      0.7,
+				ClassificationMethod: "keyword_based_naics",
+				Keywords:             []string{textToSearch},
+			})
+		}
+
+		// Search MCC codes by keywords
+		mccCodes := c.industryData.SearchMCCByKeyword(textToSearch)
+		for _, code := range mccCodes {
+			classifications = append(classifications, IndustryClassification{
+				IndustryCode:         code,
+				IndustryName:         c.industryData.GetMCCDescription(code),
+				ConfidenceScore:      0.6,
+				ClassificationMethod: "keyword_based_mcc",
+				Keywords:             []string{textToSearch},
+			})
+		}
+
+		// Search SIC codes by keywords
+		sicCodes := c.industryData.SearchSICByKeyword(textToSearch)
+		for _, code := range sicCodes {
+			classifications = append(classifications, IndustryClassification{
+				IndustryCode:         code,
+				IndustryName:         c.industryData.GetSICDescription(code),
+				ConfidenceScore:      0.5,
+				ClassificationMethod: "keyword_based_sic",
+				Keywords:             []string{textToSearch},
+			})
+		}
+	} else {
+		// Fallback to hardcoded mappings if no industry data available
+		keywordMappings := map[string][]string{
+			"software":       {"541511", "541512", "541519"},
+			"technology":     {"541511", "541512", "541519", "541715"},
+			"consulting":     {"541611", "541612", "541618", "541690"},
+			"financial":      {"522110", "522120", "522130", "522190", "523150"},
+			"healthcare":     {"621111", "621112", "621210", "621310", "621320"},
+			"retail":         {"441110", "442110", "443141", "444110", "445110"},
+			"manufacturing":  {"332996", "332999", "333415", "334110", "335110"},
+			"construction":   {"236115", "236116", "236117", "236118", "236220"},
+			"transportation": {"484110", "484121", "484122", "484210", "485110"},
+			"education":      {"611110", "611210", "611310", "611410", "611420"},
+		}
+
+		for keyword, industryCodes := range keywordMappings {
+			if strings.Contains(textToSearch, keyword) {
+				for _, code := range industryCodes {
+					classifications = append(classifications, IndustryClassification{
+						IndustryCode:         code,
+						IndustryName:         c.getIndustryName(code),
+						ConfidenceScore:      0.7,
+						ClassificationMethod: "keyword_based",
+						Keywords:             []string{keyword},
+					})
+				}
 			}
 		}
 	}
@@ -477,6 +529,12 @@ func (c *ClassificationService) calculateOverallConfidence(classifications []Ind
 
 // getIndustryName returns the industry name for a given NAICS code
 func (c *ClassificationService) getIndustryName(code string) string {
+	// Use real industry data if available
+	if c.industryData != nil {
+		return c.industryData.GetNAICSName(code)
+	}
+
+	// Fallback to hardcoded mappings
 	industryNames := map[string]string{
 		"541511": "Custom Computer Programming Services",
 		"541512": "Computer Systems Design Services",

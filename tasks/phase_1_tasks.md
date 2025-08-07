@@ -44,6 +44,8 @@
 - `internal/database/migrations/001_initial_schema.sql` - Initial database schema
 - `internal/auth/service.go` - Authentication service implementation
 - `internal/auth/service_test.go` - Unit tests for authentication service
+- `internal/classification/service.go` - Business classification service implementation
+- `internal/classification/service_test.go` - Unit tests for classification service
 - `cmd/api/main.go` - Main API gateway entry point for the KYB platform
 - `cmd/api/main_test.go` - Unit tests for API gateway
 - `internal/auth/service.go` - Authentication service implementation
@@ -124,6 +126,14 @@
 - [x] Add password hashing with bcrypt
 - [x] Include account lockout after failed login attempts
 - [x] Add comprehensive test coverage for all auth components
+
+**1.7 Implement Business Classification Service**
+
+- [x] Create hybrid classification engine with multiple methods
+- [x] Implement keyword, business type, industry, and name-based classification
+- [x] Add NAICS code mapping with comprehensive industry names
+- [x] Support batch processing for multiple businesses
+- [x] Include confidence scoring and primary classification selection
 
 **Acceptance Criteria:**
 
