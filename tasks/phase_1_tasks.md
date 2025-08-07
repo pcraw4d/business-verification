@@ -37,6 +37,11 @@
 - `internal/observability/health.go` - Health check endpoints
 - `internal/observability/request_id.go` - Request ID propagation
 - `internal/observability/tracing.go.disabled` - OpenTelemetry tracing (temporarily disabled)
+- `internal/database/models.go` - Database models and schemas
+- `internal/database/postgres.go` - PostgreSQL database implementation
+- `internal/database/factory.go` - Database factory for instantiation
+- `internal/database/models_test.go` - Database model tests
+- `internal/database/migrations/001_initial_schema.sql` - Initial database schema
 - `cmd/api/main.go` - Main API gateway entry point for the KYB platform
 - `cmd/api/main_test.go` - Unit tests for API gateway
 - `internal/auth/service.go` - Authentication service implementation
@@ -101,6 +106,14 @@
 - [x] Configure metrics collection with Prometheus
 - [x] Create health check endpoints
 - [x] Implement request ID propagation
+
+**1.5 Implement Database Layer**
+
+- [x] Create database models for all entities
+- [x] Set up PostgreSQL database with migrations
+- [x] Implement database connection management
+- [x] Add transaction support
+- [x] Create database tests
 
 **Acceptance Criteria:**
 
