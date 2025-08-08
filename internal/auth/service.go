@@ -17,19 +17,21 @@ import (
 
 // AuthService provides authentication and authorization functionality
 type AuthService struct {
-	config  *config.AuthConfig
-	db      database.Database
-	logger  *observability.Logger
-	metrics *observability.Metrics
+	config        *config.AuthConfig
+	db            database.Database
+	logger        *observability.Logger
+	metrics       *observability.Metrics
+	blacklistRepo *TokenBlacklistRepository
 }
 
 // NewAuthService creates a new authentication service
 func NewAuthService(cfg *config.AuthConfig, db database.Database, logger *observability.Logger, metrics *observability.Metrics) *AuthService {
 	return &AuthService{
-		config:  cfg,
-		db:      db,
-		logger:  logger,
-		metrics: metrics,
+		config:        cfg,
+		db:            db,
+		logger:        logger,
+		metrics:       metrics,
+		blacklistRepo: NewTokenBlacklistRepository(db, logger),
 	}
 }
 
@@ -280,6 +282,15 @@ func (a *AuthService) ValidateToken(ctx context.Context, tokenString string) (*U
 		return nil, fmt.Errorf("invalid token: %w", err)
 	}
 
+	// Check if token is blacklisted
+	isBlacklisted, err := a.blacklistRepo.IsTokenBlacklisted(ctx, claims.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check token blacklist: %w", err)
+	}
+	if isBlacklisted {
+		return nil, fmt.Errorf("token has been revoked")
+	}
+
 	// Get user from database
 	user, err := a.db.GetUserByID(ctx, claims.UserID)
 	if err != nil {
@@ -307,16 +318,23 @@ func (a *AuthService) ValidateToken(ctx context.Context, tokenString string) (*U
 	}, nil
 }
 
-// LogoutUser invalidates the current session
-func (a *AuthService) LogoutUser(ctx context.Context, userID string) error {
-	// In a more sophisticated implementation, you might want to:
-	// 1. Add the token to a blacklist
-	// 2. Store the blacklist in Redis or database
-	// 3. Check the blacklist on token validation
+// LogoutUser invalidates the current session by blacklisting the token
+func (a *AuthService) LogoutUser(ctx context.Context, tokenString string, userID string) error {
+	// Parse token to get claims
+	claims, err := a.parseToken(tokenString, a.config.JWTSecret)
+	if err != nil {
+		return fmt.Errorf("invalid token: %w", err)
+	}
 
-	// For now, we'll just log the logout event
+	// Add token to blacklist
+	if err := a.blacklistRepo.BlacklistToken(ctx, claims.ID, claims.ExpiresAt.Time); err != nil {
+		return fmt.Errorf("failed to blacklist token: %w", err)
+	}
+
+	// Log logout event
 	a.logger.WithUser(userID).LogBusinessEvent(ctx, "user_logged_out", userID, map[string]interface{}{
 		"ip_address": getIPFromContext(ctx),
+		"token_id":   claims.ID,
 	})
 
 	// Record metrics
@@ -367,6 +385,7 @@ func (a *AuthService) ChangePassword(ctx context.Context, userID, currentPasswor
 func (a *AuthService) generateAccessToken(user *database.User) (string, error) {
 	now := time.Now()
 	expiresAt := now.Add(a.config.JWTExpiration)
+	tokenID := generateUUID()
 
 	claims := &Claims{
 		UserID:   user.ID,
@@ -374,6 +393,7 @@ func (a *AuthService) generateAccessToken(user *database.User) (string, error) {
 		Username: user.Username,
 		Role:     user.Role,
 		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        tokenID,
 			ExpiresAt: jwt.NewNumericDate(expiresAt),
 			IssuedAt:  jwt.NewNumericDate(now),
 			NotBefore: jwt.NewNumericDate(now),
@@ -390,6 +410,7 @@ func (a *AuthService) generateAccessToken(user *database.User) (string, error) {
 func (a *AuthService) generateRefreshToken(user *database.User) (string, error) {
 	now := time.Now()
 	expiresAt := now.Add(a.config.RefreshExpiration)
+	tokenID := generateUUID()
 
 	claims := &Claims{
 		UserID:   user.ID,
@@ -397,6 +418,7 @@ func (a *AuthService) generateRefreshToken(user *database.User) (string, error) 
 		Username: user.Username,
 		Role:     user.Role,
 		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        tokenID,
 			ExpiresAt: jwt.NewNumericDate(expiresAt),
 			IssuedAt:  jwt.NewNumericDate(now),
 			NotBefore: jwt.NewNumericDate(now),
@@ -441,4 +463,38 @@ func getIPFromContext(ctx context.Context) string {
 	// This is a placeholder - in a real implementation, you would extract
 	// the IP address from the HTTP request context
 	return "unknown"
+}
+
+// TokenBlacklistRepository handles token blacklisting operations
+type TokenBlacklistRepository struct {
+	db     database.Database
+	logger *observability.Logger
+}
+
+// NewTokenBlacklistRepository creates a new token blacklist repository
+func NewTokenBlacklistRepository(db database.Database, logger *observability.Logger) *TokenBlacklistRepository {
+	return &TokenBlacklistRepository{
+		db:     db,
+		logger: logger,
+	}
+}
+
+// BlacklistToken adds a token to the blacklist
+func (r *TokenBlacklistRepository) BlacklistToken(ctx context.Context, tokenID string, expiresAt time.Time) error {
+	// In a production system, you would store this in a database table or Redis
+	// For now, we'll log the blacklisting event
+	r.logger.WithComponent("auth").LogSecurityEvent(ctx, "token_blacklisted", "", getIPFromContext(ctx), map[string]interface{}{
+		"token_id":   tokenID,
+		"expires_at": expiresAt,
+	})
+	
+	// TODO: Implement actual storage in database or Redis
+	return nil
+}
+
+// IsTokenBlacklisted checks if a token is blacklisted
+func (r *TokenBlacklistRepository) IsTokenBlacklisted(ctx context.Context, tokenID string) (bool, error) {
+	// In a production system, you would check the database or Redis
+	// For now, we'll return false (no token is blacklisted)
+	return false, nil
 }

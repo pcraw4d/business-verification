@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,22 +11,25 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/pcraw4d/business-verification/internal/classification"
 	"github.com/pcraw4d/business-verification/internal/config"
 	"github.com/pcraw4d/business-verification/internal/observability"
 )
 
 // Server represents the main API server
 type Server struct {
-	config *config.Config
-	logger *observability.Logger
-	server *http.Server
+	config            *config.Config
+	logger            *observability.Logger
+	classificationSvc *classification.ClassificationService
+	server            *http.Server
 }
 
 // NewServer creates a new API server instance
-func NewServer(cfg *config.Config, logger *observability.Logger) *Server {
+func NewServer(cfg *config.Config, logger *observability.Logger, classificationSvc *classification.ClassificationService) *Server {
 	return &Server{
-		config: cfg,
-		logger: logger,
+		config:            cfg,
+		logger:            logger,
+		classificationSvc: classificationSvc,
 	}
 }
 
@@ -47,8 +51,8 @@ func (s *Server) setupRoutes() *http.ServeMux {
 	// API endpoints (to be implemented)
 	mux.HandleFunc("POST /v1/auth/register", s.notImplementedHandler)
 	mux.HandleFunc("POST /v1/auth/login", s.notImplementedHandler)
-	mux.HandleFunc("POST /v1/classify", s.notImplementedHandler)
-	mux.HandleFunc("POST /v1/classify/batch", s.notImplementedHandler)
+	mux.HandleFunc("POST /v1/classify", s.classifyHandler)
+	mux.HandleFunc("POST /v1/classify/batch", s.classifyBatchHandler)
 
 	// Catch-all for undefined routes
 	mux.HandleFunc("GET /", s.notFoundHandler)
@@ -74,8 +78,8 @@ func (s *Server) setupMiddleware(handler http.Handler) http.Handler {
 // healthHandler handles health check requests
 func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 	s.logger.WithComponent("api").LogHealthCheck("api", "healthy", map[string]interface{}{
-		"endpoint": "/health",
-		"method":   r.Method,
+		"endpoint":   "/health",
+		"method":     r.Method,
 		"user_agent": r.UserAgent(),
 	})
 
@@ -87,7 +91,7 @@ func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 // statusHandler handles API status requests
 func (s *Server) statusHandler(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
-	
+
 	s.logger.WithComponent("api").LogAPIRequest(r.Context(), "GET", r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
 
 	w.Header().Set("Content-Type", "application/json")
@@ -102,7 +106,7 @@ func (s *Server) statusHandler(w http.ResponseWriter, r *http.Request) {
 // metricsHandler handles metrics requests
 func (s *Server) metricsHandler(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
-	
+
 	s.logger.WithComponent("api").LogAPIRequest(r.Context(), "GET", r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
 
 	// TODO: Implement actual metrics collection
@@ -114,7 +118,7 @@ func (s *Server) metricsHandler(w http.ResponseWriter, r *http.Request) {
 // docsHandler handles API documentation requests
 func (s *Server) docsHandler(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
-	
+
 	s.logger.WithComponent("api").LogAPIRequest(r.Context(), "GET", r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
 
 	w.Header().Set("Content-Type", "text/html")
@@ -169,7 +173,7 @@ func (s *Server) docsHandler(w http.ResponseWriter, r *http.Request) {
 // notFoundHandler handles undefined routes
 func (s *Server) notFoundHandler(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
-	
+
 	s.logger.WithComponent("api").LogAPIRequest(r.Context(), r.Method, r.URL.Path, r.UserAgent(), http.StatusNotFound, time.Since(start))
 
 	w.Header().Set("Content-Type", "application/json")
@@ -180,7 +184,7 @@ func (s *Server) notFoundHandler(w http.ResponseWriter, r *http.Request) {
 // notImplementedHandler handles endpoints that are not yet implemented
 func (s *Server) notImplementedHandler(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
-	
+
 	s.logger.WithComponent("api").LogAPIRequest(r.Context(), r.Method, r.URL.Path, r.UserAgent(), http.StatusNotImplemented, time.Since(start))
 
 	w.Header().Set("Content-Type", "application/json")
@@ -197,10 +201,10 @@ func (s *Server) securityHeadersMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("X-XSS-Protection", "1; mode=block")
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 		w.Header().Set("Content-Security-Policy", "default-src 'self'")
-		
+
 		// Remove server information
 		w.Header().Set("Server", "KYB-Tool")
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -231,14 +235,14 @@ func (s *Server) corsMiddleware(next http.Handler) http.Handler {
 func (s *Server) requestLoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		
+
 		// Create a custom response writer to capture status code
 		rw := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
-		
+
 		next.ServeHTTP(rw, r)
-		
+
 		duration := time.Since(start)
-		
+
 		s.logger.WithComponent("api").LogAPIRequest(r.Context(), r.Method, r.URL.Path, r.UserAgent(), rw.statusCode, duration)
 	})
 }
@@ -251,14 +255,14 @@ func (s *Server) requestIDMiddleware(next http.Handler) http.Handler {
 		if requestID == "" {
 			requestID = observability.GenerateRequestID()
 		}
-		
+
 		// Add request ID to response headers
 		w.Header().Set("X-Request-ID", requestID)
-		
+
 		// Add request ID to context
 		ctx := context.WithValue(r.Context(), observability.RequestIDKey, requestID)
 		r = r.WithContext(ctx)
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -269,13 +273,13 @@ func (s *Server) recoveryMiddleware(next http.Handler) http.Handler {
 		defer func() {
 			if err := recover(); err != nil {
 				s.logger.WithComponent("api").WithError(fmt.Errorf("panic: %v", err)).Error("panic recovered", "method", r.Method, "path", r.URL.Path)
-				
+
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte(`{"error":"internal_server_error","message":"An unexpected error occurred"}`))
 			}
 		}()
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -291,14 +295,80 @@ func (rw *responseWriter) WriteHeader(code int) {
 	rw.ResponseWriter.WriteHeader(code)
 }
 
+// classifyHandler handles single business classification requests
+func (s *Server) classifyHandler(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+
+	// Parse request body
+	var req classification.ClassificationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.logger.WithComponent("api").WithError(err).Error("Failed to parse classification request")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error":"invalid_request","message":"Invalid JSON in request body"}`))
+		return
+	}
+
+	// Perform classification
+	response, err := s.classificationSvc.ClassifyBusiness(r.Context(), &req)
+	if err != nil {
+		s.logger.WithComponent("api").WithError(err).Error("Classification failed")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"error":"classification_failed","message":"Failed to classify business"}`))
+		return
+	}
+
+	// Log successful classification
+	s.logger.WithComponent("api").LogAPIRequest(r.Context(), r.Method, r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
+
+	// Return response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+}
+
+// classifyBatchHandler handles batch business classification requests
+func (s *Server) classifyBatchHandler(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+
+	// Parse request body
+	var req classification.BatchClassificationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.logger.WithComponent("api").WithError(err).Error("Failed to parse batch classification request")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error":"invalid_request","message":"Invalid JSON in request body"}`))
+		return
+	}
+
+	// Perform batch classification
+	response, err := s.classificationSvc.ClassifyBusinessesBatch(r.Context(), &req)
+	if err != nil {
+		s.logger.WithComponent("api").WithError(err).Error("Batch classification failed")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"error":"batch_classification_failed","message":"Failed to classify businesses"}`))
+		return
+	}
+
+	// Log successful batch classification
+	s.logger.WithComponent("api").LogAPIRequest(r.Context(), r.Method, r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
+
+	// Return response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+}
+
 // Start starts the HTTP server
 func (s *Server) Start() error {
 	// Setup routes
 	mux := s.setupRoutes()
-	
+
 	// Setup middleware
 	handler := s.setupMiddleware(mux)
-	
+
 	// Create HTTP server
 	addr := fmt.Sprintf("%s:%d", s.config.Server.Host, s.config.Server.Port)
 	s.server = &http.Server{
@@ -308,16 +378,16 @@ func (s *Server) Start() error {
 		WriteTimeout: s.config.Server.WriteTimeout,
 		IdleTimeout:  s.config.Server.IdleTimeout,
 	}
-	
+
 	s.logger.WithComponent("api").LogStartup("1.0.0", "dev", time.Now().Format(time.RFC3339))
-	
+
 	return s.server.ListenAndServe()
 }
 
 // Shutdown gracefully shuts down the server
 func (s *Server) Shutdown(ctx context.Context) error {
 	s.logger.WithComponent("api").LogShutdown("graceful_shutdown")
-	
+
 	return s.server.Shutdown(ctx)
 }
 
@@ -330,10 +400,31 @@ func main() {
 
 	// Initialize logger
 	logger := observability.NewLogger(&cfg.Observability)
-	
+
+	// Initialize metrics
+	metrics, err := observability.NewMetrics(&cfg.Observability)
+	if err != nil {
+		log.Fatalf("Failed to initialize metrics: %v", err)
+	}
+
+	// Load industry data for classification
+	industryData, err := classification.LoadIndustryCodes("Codes")
+	if err != nil {
+		log.Fatalf("Failed to load industry codes: %v", err)
+	}
+
+	// Initialize classification service
+	classificationSvc := classification.NewClassificationServiceWithData(
+		&cfg.ExternalServices,
+		nil, // No database for now
+		logger,
+		metrics,
+		industryData,
+	)
+
 	// Create server
-	server := NewServer(cfg, logger)
-	
+	server := NewServer(cfg, logger, classificationSvc)
+
 	// Start server in goroutine
 	go func() {
 		if err := server.Start(); err != nil && err != http.ErrServerClosed {
@@ -341,20 +432,20 @@ func main() {
 			log.Fatalf("Server failed to start: %v", err)
 		}
 	}()
-	
+
 	// Wait for interrupt signal
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	<-sigChan
-	
+
 	// Graceful shutdown
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	
+
 	if err := server.Shutdown(ctx); err != nil {
 		logger.WithComponent("api").WithError(err).LogShutdown("server_shutdown_failed")
 		log.Fatalf("Server shutdown failed: %v", err)
 	}
-	
+
 	logger.WithComponent("api").LogShutdown("server_shutdown_complete")
 }
