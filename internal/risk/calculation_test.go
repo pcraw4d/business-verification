@@ -477,12 +477,12 @@ func TestRiskFactorCalculator_NormalizeWithThresholds(t *testing.T) {
 		RiskLevelCritical: 0.5,
 	}
 
-		// Test score below lowest threshold (critical risk)
+	// Test score below lowest threshold (critical risk)
 	score := calculator.normalizeWithThresholds(0.3, thresholds)
 	if score != 100.0 {
 		t.Errorf("Expected score 100.0 for value below lowest threshold, got %f", score)
 	}
-	
+
 	// Test score above highest threshold (low risk)
 	score = calculator.normalizeWithThresholds(3.0, thresholds)
 	if score != 25.0 {

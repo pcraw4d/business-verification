@@ -1,6 +1,7 @@
 package risk
 
 import (
+	"fmt"
 	"math"
 	"sort"
 	"time"
@@ -636,4 +637,285 @@ func (c *CompositeScoringAlgorithm) CalculateConfidence(factors []RiskFactor, da
 	}
 
 	return totalConfidence / totalWeight
+}
+
+// RiskPredictionAlgorithm implements risk prediction models
+type RiskPredictionAlgorithm struct {
+	trendAnalyzer *TrendAnalysisAlgorithm
+}
+
+// NewRiskPredictionAlgorithm creates a new risk prediction algorithm
+func NewRiskPredictionAlgorithm() *RiskPredictionAlgorithm {
+	return &RiskPredictionAlgorithm{
+		trendAnalyzer: NewTrendAnalysisAlgorithm(),
+	}
+}
+
+// PredictRiskScore predicts future risk scores based on historical data
+func (p *RiskPredictionAlgorithm) PredictRiskScore(
+	historicalTrends []RiskTrend,
+	horizon time.Duration,
+	confidenceThreshold float64,
+) (*RiskPrediction, error) {
+	if len(historicalTrends) < 3 {
+		return nil, fmt.Errorf("insufficient historical data for prediction (minimum 3 data points required)")
+	}
+
+	// Analyze trend to get base prediction
+	predictedScore, confidence, err := p.trendAnalyzer.AnalyzeTrend(historicalTrends, horizon)
+	if err != nil {
+		return nil, fmt.Errorf("failed to analyze trend: %w", err)
+	}
+
+	// Apply confidence threshold
+	if confidence < confidenceThreshold {
+		confidence = confidenceThreshold * 0.5 // Reduce confidence for low-quality predictions
+	}
+
+	// Determine predicted risk level
+	level := p.determinePredictedLevel(predictedScore)
+
+	// Calculate contributing factors
+	factors := p.identifyContributingFactors(historicalTrends, predictedScore)
+
+	// Generate prediction ID
+	predictionID := fmt.Sprintf("prediction_%d", time.Now().UnixNano())
+
+	prediction := &RiskPrediction{
+		ID:             predictionID,
+		BusinessID:     historicalTrends[0].BusinessID,
+		FactorID:       "composite_risk",
+		PredictedScore: predictedScore,
+		PredictedLevel: level,
+		Confidence:     confidence,
+		Horizon:        p.formatHorizon(horizon),
+		PredictedAt:    time.Now(),
+		Factors:        factors,
+	}
+
+	return prediction, nil
+}
+
+// PredictMultipleHorizons predicts risk scores for multiple time horizons
+func (p *RiskPredictionAlgorithm) PredictMultipleHorizons(
+	historicalTrends []RiskTrend,
+	horizons []time.Duration,
+) ([]RiskPrediction, error) {
+	var predictions []RiskPrediction
+
+	for _, horizon := range horizons {
+		prediction, err := p.PredictRiskScore(historicalTrends, horizon, 0.7)
+		if err != nil {
+			continue // Skip predictions that can't be calculated
+		}
+		predictions = append(predictions, *prediction)
+	}
+
+	return predictions, nil
+}
+
+// determinePredictedLevel determines the risk level for a predicted score
+func (p *RiskPredictionAlgorithm) determinePredictedLevel(score float64) RiskLevel {
+	switch {
+	case score < 25:
+		return RiskLevelLow
+	case score < 50:
+		return RiskLevelMedium
+	case score < 75:
+		return RiskLevelHigh
+	default:
+		return RiskLevelCritical
+	}
+}
+
+// identifyContributingFactors identifies the main factors contributing to the prediction
+func (p *RiskPredictionAlgorithm) identifyContributingFactors(trends []RiskTrend, predictedScore float64) []string {
+	var factors []string
+
+	// Analyze recent trends to identify contributing factors
+	if len(trends) >= 2 {
+		recentChange := trends[len(trends)-1].Score - trends[len(trends)-2].Score
+		
+		if recentChange > 10 {
+			factors = append(factors, "accelerating_risk_trend")
+		} else if recentChange < -10 {
+			factors = append(factors, "improving_risk_profile")
+		}
+
+		// Identify category-specific factors
+		categoryCounts := make(map[RiskCategory]int)
+		for _, trend := range trends {
+			categoryCounts[trend.Category]++
+		}
+
+		// Find dominant category
+		var dominantCategory RiskCategory
+		maxCount := 0
+		for category, count := range categoryCounts {
+			if count > maxCount {
+				maxCount = count
+				dominantCategory = category
+			}
+		}
+
+		if maxCount > 0 {
+			factors = append(factors, string(dominantCategory)+"_dominant")
+		}
+	}
+
+	// Add prediction confidence factor
+	if predictedScore > 80 {
+		factors = append(factors, "high_risk_prediction")
+	} else if predictedScore < 20 {
+		factors = append(factors, "low_risk_prediction")
+	}
+
+	return factors
+}
+
+// formatHorizon formats the prediction horizon as a string
+func (p *RiskPredictionAlgorithm) formatHorizon(horizon time.Duration) string {
+	days := int(horizon.Hours() / 24)
+	
+	switch {
+	case days <= 30:
+		return "1month"
+	case days <= 90:
+		return "3months"
+	case days <= 180:
+		return "6months"
+	case days <= 365:
+		return "1year"
+	default:
+		return fmt.Sprintf("%dmonths", days/30)
+	}
+}
+
+// ConfidenceInterval represents the confidence interval for a risk prediction
+type ConfidenceInterval struct {
+	LowerBound float64 `json:"lower_bound"`
+	UpperBound float64 `json:"upper_bound"`
+	Confidence float64 `json:"confidence"` // e.g., 0.95 for 95% confidence interval
+}
+
+// PredictRiskScoreWithConfidenceInterval predicts future risk scores with confidence intervals
+func (p *RiskPredictionAlgorithm) PredictRiskScoreWithConfidenceInterval(
+	historicalTrends []RiskTrend,
+	horizon time.Duration,
+	confidenceLevel float64, // e.g., 0.95 for 95% confidence interval
+) (*RiskPrediction, *ConfidenceInterval, error) {
+	if len(historicalTrends) < 3 {
+		return nil, nil, fmt.Errorf("insufficient historical data for prediction (minimum 3 data points required)")
+	}
+
+	// Calculate base prediction
+	prediction, err := p.PredictRiskScore(historicalTrends, horizon, 0.7)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Calculate confidence interval
+	interval, err := p.calculateConfidenceInterval(historicalTrends, prediction.PredictedScore, confidenceLevel)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to calculate confidence interval: %w", err)
+	}
+
+	return prediction, interval, nil
+}
+
+// calculateConfidenceInterval calculates the confidence interval for a prediction
+func (p *RiskPredictionAlgorithm) calculateConfidenceInterval(
+	trends []RiskTrend,
+	predictedScore float64,
+	confidenceLevel float64,
+) (*ConfidenceInterval, error) {
+	if len(trends) < 3 {
+		return nil, fmt.Errorf("insufficient data for confidence interval calculation")
+	}
+
+	// Calculate standard deviation of historical scores
+	var scores []float64
+	for _, trend := range trends {
+		scores = append(scores, trend.Score)
+	}
+
+	mean := p.calculateMean(scores)
+	stdDev := p.calculateStandardDeviation(scores, mean)
+
+	// Calculate margin of error using t-distribution approximation
+	// For small samples, we use a simplified approach
+	marginOfError := p.calculateMarginOfError(stdDev, len(scores), confidenceLevel)
+
+	// Calculate bounds
+	lowerBound := predictedScore - marginOfError
+	upperBound := predictedScore + marginOfError
+
+	// Ensure bounds are within valid range (0-100)
+	if lowerBound < 0 {
+		lowerBound = 0
+	}
+	if upperBound > 100 {
+		upperBound = 100
+	}
+
+	return &ConfidenceInterval{
+		LowerBound: lowerBound,
+		UpperBound: upperBound,
+		Confidence: confidenceLevel,
+	}, nil
+}
+
+// calculateMean calculates the mean of a slice of float64 values
+func (p *RiskPredictionAlgorithm) calculateMean(values []float64) float64 {
+	if len(values) == 0 {
+		return 0.0
+	}
+
+	sum := 0.0
+	for _, value := range values {
+		sum += value
+	}
+	return sum / float64(len(values))
+}
+
+// calculateStandardDeviation calculates the standard deviation of a slice of float64 values
+func (p *RiskPredictionAlgorithm) calculateStandardDeviation(values []float64, mean float64) float64 {
+	if len(values) < 2 {
+		return 0.0
+	}
+
+	sumSquaredDiff := 0.0
+	for _, value := range values {
+		diff := value - mean
+		sumSquaredDiff += diff * diff
+	}
+
+	variance := sumSquaredDiff / float64(len(values)-1)
+	return math.Sqrt(variance)
+}
+
+// calculateMarginOfError calculates the margin of error for a confidence interval
+func (p *RiskPredictionAlgorithm) calculateMarginOfError(stdDev float64, sampleSize int, confidenceLevel float64) float64 {
+	// Simplified t-distribution approximation
+	// For 95% confidence level, use 2.0 as the critical value
+	// For 90% confidence level, use 1.645
+	// For 99% confidence level, use 2.576
+	
+	var criticalValue float64
+	switch {
+	case confidenceLevel >= 0.99:
+		criticalValue = 2.576
+	case confidenceLevel >= 0.95:
+		criticalValue = 2.0
+	case confidenceLevel >= 0.90:
+		criticalValue = 1.645
+	default:
+		criticalValue = 1.96 // Default to 95% confidence
+	}
+
+	// Standard error = standard deviation / sqrt(sample size)
+	standardError := stdDev / math.Sqrt(float64(sampleSize))
+	
+	// Margin of error = critical value * standard error
+	return criticalValue * standardError
 }

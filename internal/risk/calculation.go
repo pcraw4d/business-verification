@@ -568,13 +568,13 @@ func (c *RiskFactorCalculator) normalizeScore(rawScore float64, factorDef *RiskF
 func (c *RiskFactorCalculator) normalizeWithThresholds(rawScore float64, thresholds map[RiskLevel]float64) float64 {
 	// For cash flow coverage, higher is better (lower risk)
 	// So we need to invert the logic - higher raw score = lower risk score
-	
+
 	// Find the appropriate threshold range for the raw score
 	var lowThreshold, highThreshold float64
 	var lowLevel, highLevel RiskLevel
-	
+
 	levels := []RiskLevel{RiskLevelLow, RiskLevelMedium, RiskLevelHigh, RiskLevelCritical}
-	
+
 	for i, level := range levels {
 		if threshold, exists := thresholds[level]; exists {
 			if rawScore >= threshold {
@@ -591,12 +591,12 @@ func (c *RiskFactorCalculator) normalizeWithThresholds(rawScore float64, thresho
 			}
 		}
 	}
-	
+
 	// If we didn't find a range, the score is below all thresholds (Critical risk)
 	if lowThreshold == 0 {
 		return 100
 	}
-	
+
 	// Interpolate between the two levels
 	levelScores := map[RiskLevel]float64{
 		RiskLevelLow:      25,
@@ -604,14 +604,14 @@ func (c *RiskFactorCalculator) normalizeWithThresholds(rawScore float64, thresho
 		RiskLevelHigh:     75,
 		RiskLevelCritical: 100,
 	}
-	
+
 	lowScore := levelScores[lowLevel]
 	highScore := levelScores[highLevel]
-	
+
 	// Linear interpolation (inverted for cash flow coverage)
 	ratio := (rawScore - lowThreshold) / (highThreshold - lowThreshold)
 	normalizedScore := lowScore + ratio*(highScore-lowScore)
-	
+
 	return math.Max(0, math.Min(100, normalizedScore))
 }
 

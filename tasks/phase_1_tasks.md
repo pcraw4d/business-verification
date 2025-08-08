@@ -339,10 +339,10 @@ All Task 4 subtasks completed.
 **5.2 Implement Risk Calculation Engine**
 
 - [x] Create risk factor calculation logic
-- [ ] Implement weighted risk scoring
-- [ ] Set up risk trend analysis
-- [ ] Create risk prediction models
-- [ ] Implement risk confidence intervals
+- [x] Implement weighted risk scoring
+- [x] Set up risk trend analysis
+- [x] Create risk prediction models
+- [x] Implement risk confidence intervals
 
 **5.3 Build Risk Assessment API**
 
