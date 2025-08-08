@@ -9,21 +9,21 @@ import (
 
 // ThresholdConfig represents a risk threshold configuration
 type ThresholdConfig struct {
-	ID              string                 `json:"id"`
-	Name            string                 `json:"name"`
-	Description     string                 `json:"description"`
-	Category        RiskCategory           `json:"category"`
-	IndustryCode    string                 `json:"industry_code,omitempty"`
-	BusinessType    string                 `json:"business_type,omitempty"`
-	RiskLevels      map[RiskLevel]float64 `json:"risk_levels"`
-	IsDefault       bool                   `json:"is_default"`
-	IsActive        bool                   `json:"is_active"`
-	Priority        int                    `json:"priority"`
-	Metadata        map[string]interface{} `json:"metadata,omitempty"`
-	CreatedAt       time.Time              `json:"created_at"`
-	UpdatedAt       time.Time              `json:"updated_at"`
-	CreatedBy       string                 `json:"created_by"`
-	LastModifiedBy  string                 `json:"last_modified_by"`
+	ID             string                 `json:"id"`
+	Name           string                 `json:"name"`
+	Description    string                 `json:"description"`
+	Category       RiskCategory           `json:"category"`
+	IndustryCode   string                 `json:"industry_code,omitempty"`
+	BusinessType   string                 `json:"business_type,omitempty"`
+	RiskLevels     map[RiskLevel]float64  `json:"risk_levels"`
+	IsDefault      bool                   `json:"is_default"`
+	IsActive       bool                   `json:"is_active"`
+	Priority       int                    `json:"priority"`
+	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	CreatedAt      time.Time              `json:"created_at"`
+	UpdatedAt      time.Time              `json:"updated_at"`
+	CreatedBy      string                 `json:"created_by"`
+	LastModifiedBy string                 `json:"last_modified_by"`
 }
 
 // ThresholdManager manages risk threshold configurations
@@ -43,20 +43,20 @@ func NewThresholdManager() *ThresholdManager {
 func (tm *ThresholdManager) RegisterConfig(config *ThresholdConfig) error {
 	tm.mutex.Lock()
 	defer tm.mutex.Unlock()
-	
+
 	if config.ID == "" {
 		return fmt.Errorf("threshold config ID cannot be empty")
 	}
-	
+
 	if len(config.RiskLevels) == 0 {
 		return fmt.Errorf("threshold config must have at least one risk level")
 	}
-	
+
 	// Validate risk level progression
 	if err := tm.validateRiskLevelProgression(config.RiskLevels); err != nil {
 		return fmt.Errorf("invalid risk level progression: %w", err)
 	}
-	
+
 	config.UpdatedAt = time.Now()
 	tm.configs[config.ID] = config
 	return nil
@@ -66,7 +66,7 @@ func (tm *ThresholdManager) RegisterConfig(config *ThresholdConfig) error {
 func (tm *ThresholdManager) GetConfig(id string) (*ThresholdConfig, bool) {
 	tm.mutex.RLock()
 	defer tm.mutex.RUnlock()
-	
+
 	config, exists := tm.configs[id]
 	return config, exists
 }
@@ -75,7 +75,7 @@ func (tm *ThresholdManager) GetConfig(id string) (*ThresholdConfig, bool) {
 func (tm *ThresholdManager) GetConfigsByCategory(category RiskCategory) []*ThresholdConfig {
 	tm.mutex.RLock()
 	defer tm.mutex.RUnlock()
-	
+
 	var configs []*ThresholdConfig
 	for _, config := range tm.configs {
 		if config.Category == category && config.IsActive {
@@ -89,7 +89,7 @@ func (tm *ThresholdManager) GetConfigsByCategory(category RiskCategory) []*Thres
 func (tm *ThresholdManager) GetConfigsByIndustry(industryCode string) []*ThresholdConfig {
 	tm.mutex.RLock()
 	defer tm.mutex.RUnlock()
-	
+
 	var configs []*ThresholdConfig
 	for _, config := range tm.configs {
 		if config.IndustryCode == industryCode && config.IsActive {
@@ -103,7 +103,7 @@ func (tm *ThresholdManager) GetConfigsByIndustry(industryCode string) []*Thresho
 func (tm *ThresholdManager) GetDefaultConfig(category RiskCategory) (*ThresholdConfig, bool) {
 	tm.mutex.RLock()
 	defer tm.mutex.RUnlock()
-	
+
 	for _, config := range tm.configs {
 		if config.Category == category && config.IsDefault && config.IsActive {
 			return config, true
@@ -116,51 +116,51 @@ func (tm *ThresholdManager) GetDefaultConfig(category RiskCategory) (*ThresholdC
 func (tm *ThresholdManager) GetBestMatchConfig(category RiskCategory, industryCode string, businessType string) *ThresholdConfig {
 	tm.mutex.RLock()
 	defer tm.mutex.RUnlock()
-	
+
 	var bestMatch *ThresholdConfig
 	var bestScore int
-	
+
 	for _, config := range tm.configs {
 		if !config.IsActive {
 			continue
 		}
-		
+
 		if config.Category != category {
 			continue
 		}
-		
+
 		score := 0
-		
+
 		// Exact industry match gets highest score
 		if config.IndustryCode == industryCode {
 			score += 100
 		} else if config.IndustryCode != "" {
 			// Partial industry match
-			if len(industryCode) >= len(config.IndustryCode) && 
-			   industryCode[:len(config.IndustryCode)] == config.IndustryCode {
+			if len(industryCode) >= len(config.IndustryCode) &&
+				industryCode[:len(config.IndustryCode)] == config.IndustryCode {
 				score += 50
 			}
 		}
-		
+
 		// Business type match
 		if config.BusinessType == businessType {
 			score += 25
 		}
-		
+
 		// Default config gets base score
 		if config.IsDefault {
 			score += 10
 		}
-		
+
 		// Higher priority configs get bonus
 		score += config.Priority
-		
+
 		if score > bestScore {
 			bestScore = score
 			bestMatch = config
 		}
 	}
-	
+
 	return bestMatch
 }
 
@@ -168,44 +168,44 @@ func (tm *ThresholdManager) GetBestMatchConfig(category RiskCategory, industryCo
 func (tm *ThresholdManager) UpdateConfig(id string, updates map[string]interface{}) error {
 	tm.mutex.Lock()
 	defer tm.mutex.Unlock()
-	
+
 	config, exists := tm.configs[id]
 	if !exists {
 		return fmt.Errorf("threshold config with ID %s not found", id)
 	}
-	
+
 	// Update fields based on the updates map
 	if name, ok := updates["name"].(string); ok {
 		config.Name = name
 	}
-	
+
 	if description, ok := updates["description"].(string); ok {
 		config.Description = description
 	}
-	
+
 	if riskLevels, ok := updates["risk_levels"].(map[RiskLevel]float64); ok {
 		if err := tm.validateRiskLevelProgression(riskLevels); err != nil {
 			return fmt.Errorf("invalid risk level progression: %w", err)
 		}
 		config.RiskLevels = riskLevels
 	}
-	
+
 	if isActive, ok := updates["is_active"].(bool); ok {
 		config.IsActive = isActive
 	}
-	
+
 	if priority, ok := updates["priority"].(int); ok {
 		config.Priority = priority
 	}
-	
+
 	if metadata, ok := updates["metadata"].(map[string]interface{}); ok {
 		config.Metadata = metadata
 	}
-	
+
 	if modifiedBy, ok := updates["last_modified_by"].(string); ok {
 		config.LastModifiedBy = modifiedBy
 	}
-	
+
 	config.UpdatedAt = time.Now()
 	return nil
 }
@@ -214,11 +214,11 @@ func (tm *ThresholdManager) UpdateConfig(id string, updates map[string]interface
 func (tm *ThresholdManager) DeleteConfig(id string) error {
 	tm.mutex.Lock()
 	defer tm.mutex.Unlock()
-	
+
 	if _, exists := tm.configs[id]; !exists {
 		return fmt.Errorf("threshold config with ID %s not found", id)
 	}
-	
+
 	delete(tm.configs, id)
 	return nil
 }
@@ -227,7 +227,7 @@ func (tm *ThresholdManager) DeleteConfig(id string) error {
 func (tm *ThresholdManager) ListConfigs() []*ThresholdConfig {
 	tm.mutex.RLock()
 	defer tm.mutex.RUnlock()
-	
+
 	configs := make([]*ThresholdConfig, 0, len(tm.configs))
 	for _, config := range tm.configs {
 		configs = append(configs, config)
@@ -244,32 +244,32 @@ func (tm *ThresholdManager) validateRiskLevelProgression(levels map[RiskLevel]fl
 			return fmt.Errorf("missing required risk level: %s", level)
 		}
 	}
-	
+
 	// Validate progression: Low < Medium < High < Critical
 	if levels[RiskLevelLow] >= levels[RiskLevelMedium] {
 		return fmt.Errorf("low risk threshold must be less than medium risk threshold")
 	}
-	
+
 	if levels[RiskLevelMedium] >= levels[RiskLevelHigh] {
 		return fmt.Errorf("medium risk threshold must be less than high risk threshold")
 	}
-	
+
 	if levels[RiskLevelHigh] >= levels[RiskLevelCritical] {
 		return fmt.Errorf("high risk threshold must be less than critical risk threshold")
 	}
-	
+
 	// Validate ranges
 	if levels[RiskLevelLow] < 0 || levels[RiskLevelCritical] > 100 {
 		return fmt.Errorf("risk thresholds must be between 0 and 100")
 	}
-	
+
 	return nil
 }
 
 // CreateDefaultThresholds creates default threshold configurations
 func CreateDefaultThresholds() *ThresholdManager {
 	manager := NewThresholdManager()
-	
+
 	// Default configurations for each category
 	defaultConfigs := []*ThresholdConfig{
 		{
@@ -368,14 +368,14 @@ func CreateDefaultThresholds() *ThresholdManager {
 			LastModifiedBy: "system",
 		},
 	}
-	
+
 	// Industry-specific configurations
 	industryConfigs := []*ThresholdConfig{
 		{
-			ID:          "financial_industry_52",
-			Name:        "Financial Industry Risk Thresholds",
-			Description: "Specialized risk thresholds for financial services industry",
-			Category:    RiskCategoryFinancial,
+			ID:           "financial_industry_52",
+			Name:         "Financial Industry Risk Thresholds",
+			Description:  "Specialized risk thresholds for financial services industry",
+			Category:     RiskCategoryFinancial,
 			IndustryCode: "52",
 			RiskLevels: map[RiskLevel]float64{
 				RiskLevelLow:      30.0,
@@ -392,10 +392,10 @@ func CreateDefaultThresholds() *ThresholdManager {
 			LastModifiedBy: "system",
 		},
 		{
-			ID:          "regulatory_financial_52",
-			Name:        "Financial Industry Regulatory Thresholds",
-			Description: "Specialized regulatory risk thresholds for financial services",
-			Category:    RiskCategoryRegulatory,
+			ID:           "regulatory_financial_52",
+			Name:         "Financial Industry Regulatory Thresholds",
+			Description:  "Specialized regulatory risk thresholds for financial services",
+			Category:     RiskCategoryRegulatory,
 			IndustryCode: "52",
 			RiskLevels: map[RiskLevel]float64{
 				RiskLevelLow:      35.0,
@@ -412,10 +412,10 @@ func CreateDefaultThresholds() *ThresholdManager {
 			LastModifiedBy: "system",
 		},
 		{
-			ID:          "cybersecurity_tech_54",
-			Name:        "Technology Industry Cybersecurity Thresholds",
-			Description: "Specialized cybersecurity risk thresholds for technology industry",
-			Category:    RiskCategoryCybersecurity,
+			ID:           "cybersecurity_tech_54",
+			Name:         "Technology Industry Cybersecurity Thresholds",
+			Description:  "Specialized cybersecurity risk thresholds for technology industry",
+			Category:     RiskCategoryCybersecurity,
 			IndustryCode: "54",
 			RiskLevels: map[RiskLevel]float64{
 				RiskLevelLow:      10.0,
@@ -432,10 +432,10 @@ func CreateDefaultThresholds() *ThresholdManager {
 			LastModifiedBy: "system",
 		},
 		{
-			ID:          "regulatory_healthcare_62",
-			Name:        "Healthcare Industry Regulatory Thresholds",
-			Description: "Specialized regulatory risk thresholds for healthcare industry",
-			Category:    RiskCategoryRegulatory,
+			ID:           "regulatory_healthcare_62",
+			Name:         "Healthcare Industry Regulatory Thresholds",
+			Description:  "Specialized regulatory risk thresholds for healthcare industry",
+			Category:     RiskCategoryRegulatory,
 			IndustryCode: "62",
 			RiskLevels: map[RiskLevel]float64{
 				RiskLevelLow:      40.0,
@@ -452,16 +452,16 @@ func CreateDefaultThresholds() *ThresholdManager {
 			LastModifiedBy: "system",
 		},
 	}
-	
+
 	// Register all configurations
 	for _, config := range defaultConfigs {
 		manager.RegisterConfig(config)
 	}
-	
+
 	for _, config := range industryConfigs {
 		manager.RegisterConfig(config)
 	}
-	
+
 	return manager
 }
 
@@ -483,13 +483,13 @@ func (tcs *ThresholdConfigService) GetThresholdsForAssessment(category RiskCateg
 	if config != nil {
 		return config.RiskLevels
 	}
-	
+
 	// Fall back to default configuration
 	defaultConfig, exists := tcs.manager.GetDefaultConfig(category)
 	if exists {
 		return defaultConfig.RiskLevels
 	}
-	
+
 	// Ultimate fallback to hardcoded defaults
 	return map[RiskLevel]float64{
 		RiskLevelLow:      25.0,
@@ -508,25 +508,25 @@ func (tcs *ThresholdConfigService) ValidateThresholds(thresholds map[RiskLevel]f
 			return fmt.Errorf("missing required risk level: %s", level)
 		}
 	}
-	
+
 	// Validate progression
 	if thresholds[RiskLevelLow] >= thresholds[RiskLevelMedium] {
 		return fmt.Errorf("low risk threshold must be less than medium risk threshold")
 	}
-	
+
 	if thresholds[RiskLevelMedium] >= thresholds[RiskLevelHigh] {
 		return fmt.Errorf("medium risk threshold must be less than high risk threshold")
 	}
-	
+
 	if thresholds[RiskLevelHigh] >= thresholds[RiskLevelCritical] {
 		return fmt.Errorf("high risk threshold must be less than critical risk threshold")
 	}
-	
+
 	// Validate ranges
 	if thresholds[RiskLevelLow] < 0 || thresholds[RiskLevelCritical] > 100 {
 		return fmt.Errorf("risk thresholds must be between 0 and 100")
 	}
-	
+
 	return nil
 }
 
@@ -542,13 +542,13 @@ func (tcs *ThresholdConfigService) ImportThresholds(data []byte) error {
 	if err := json.Unmarshal(data, &configs); err != nil {
 		return fmt.Errorf("failed to unmarshal threshold configs: %w", err)
 	}
-	
+
 	for _, config := range configs {
 		if err := tcs.manager.RegisterConfig(config); err != nil {
 			return fmt.Errorf("failed to register config %s: %w", config.ID, err)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -560,7 +560,7 @@ type ThresholdConfigRequest struct {
 	Category     RiskCategory           `json:"category" validate:"required"`
 	IndustryCode string                 `json:"industry_code,omitempty"`
 	BusinessType string                 `json:"business_type,omitempty"`
-	RiskLevels   map[RiskLevel]float64 `json:"risk_levels" validate:"required"`
+	RiskLevels   map[RiskLevel]float64  `json:"risk_levels" validate:"required"`
 	IsDefault    bool                   `json:"is_default"`
 	IsActive     bool                   `json:"is_active"`
 	Priority     int                    `json:"priority"`
