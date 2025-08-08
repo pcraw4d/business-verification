@@ -534,7 +534,7 @@ func (t *TrendAnalysisAlgorithm) AnalyzeTrend(trends []RiskTrend, horizon time.D
 	lastScore := trends[len(trends)-1].Score
 	timeSteps := horizon.Hours() / 24.0 // Convert to days
 	predictedScore := lastScore + (slope * timeSteps)
-	
+
 	// Cap predicted score between 0 and 100
 	if predictedScore < 0 {
 		predictedScore = 0
