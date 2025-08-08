@@ -56,6 +56,9 @@ type ServerConfig struct {
 
 	// Rate limiting
 	RateLimit RateLimitConfig `json:"rate_limit" yaml:"rate_limit"`
+
+	// Request validation
+	Validation ValidationConfig `json:"validation" yaml:"validation"`
 }
 
 // CORSConfig holds CORS-related configuration
@@ -73,6 +76,13 @@ type RateLimitConfig struct {
 	RequestsPer int  `json:"requests_per" yaml:"requests_per"`
 	WindowSize  int  `json:"window_size" yaml:"window_size"`
 	BurstSize   int  `json:"burst_size" yaml:"burst_size"`
+}
+
+// ValidationConfig holds request validation configuration
+type ValidationConfig struct {
+	Enabled       bool     `json:"enabled" yaml:"enabled"`
+	MaxBodySize   int64    `json:"max_body_size" yaml:"max_body_size"`
+	RequiredPaths []string `json:"required_paths" yaml:"required_paths"`
 }
 
 // DatabaseConfig holds database-related configuration
@@ -311,6 +321,11 @@ func getServerConfig() ServerConfig {
 			WindowSize:  getEnvAsInt("RATE_LIMIT_WINDOW_SIZE", 60),
 			BurstSize:   getEnvAsInt("RATE_LIMIT_BURST_SIZE", 200),
 		},
+		Validation: ValidationConfig{
+			Enabled:       getEnvAsBool("VALIDATION_ENABLED", true),
+			MaxBodySize:   getEnvAsInt64("VALIDATION_MAX_BODY_SIZE", 10*1024*1024), // 10MB
+			RequiredPaths: getEnvAsStringSlice("VALIDATION_REQUIRED_PATHS", []string{"/v1/"}),
+		},
 	}
 }
 
@@ -442,6 +457,15 @@ func getEnvAsDuration(key string, defaultValue time.Duration) time.Duration {
 func getEnvAsStringSlice(key string, defaultValue []string) []string {
 	if value := os.Getenv(key); value != "" {
 		return strings.Split(value, ",")
+	}
+	return defaultValue
+}
+
+func getEnvAsInt64(key string, defaultValue int64) int64 {
+	if value := os.Getenv(key); value != "" {
+		if intValue, err := strconv.ParseInt(value, 10, 64); err == nil {
+			return intValue
+		}
 	}
 	return defaultValue
 }

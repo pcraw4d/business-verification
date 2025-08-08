@@ -24,22 +24,28 @@ import (
 type Server struct {
 	config            *config.Config
 	logger            *observability.Logger
+	metrics           *observability.Metrics
 	classificationSvc *classification.ClassificationService
 	authService       *auth.AuthService
 	authHandler       *handlers.AuthHandler
 	authMiddleware    *middleware.AuthMiddleware
+	rateLimiter       *middleware.RateLimiter
+	validator         *middleware.Validator
 	server            *http.Server
 }
 
 // NewServer creates a new API server instance
-func NewServer(cfg *config.Config, logger *observability.Logger, classificationSvc *classification.ClassificationService, authService *auth.AuthService, authHandler *handlers.AuthHandler, authMiddleware *middleware.AuthMiddleware) *Server {
+func NewServer(cfg *config.Config, logger *observability.Logger, metrics *observability.Metrics, classificationSvc *classification.ClassificationService, authService *auth.AuthService, authHandler *handlers.AuthHandler, authMiddleware *middleware.AuthMiddleware, rateLimiter *middleware.RateLimiter, validator *middleware.Validator) *Server {
 	return &Server{
 		config:            cfg,
 		logger:            logger,
+		metrics:           metrics,
 		classificationSvc: classificationSvc,
 		authService:       authService,
 		authHandler:       authHandler,
 		authMiddleware:    authMiddleware,
+		rateLimiter:       rateLimiter,
+		validator:         validator,
 	}
 }
 
@@ -89,6 +95,8 @@ func (s *Server) setupMiddleware(handler http.Handler) http.Handler {
 	// Apply middleware in order (last middleware is applied first)
 	handler = s.securityHeadersMiddleware(handler)
 	handler = s.corsMiddleware(handler)
+	handler = s.validator.Middleware(handler)
+	handler = s.rateLimiter.Middleware(handler)
 	handler = s.requestLoggingMiddleware(handler)
 	handler = s.requestIDMiddleware(handler)
 	handler = s.recoveryMiddleware(handler)
@@ -130,10 +138,8 @@ func (s *Server) metricsHandler(w http.ResponseWriter, r *http.Request) {
 
 	s.logger.WithComponent("api").LogAPIRequest(r.Context(), "GET", r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
 
-	// TODO: Implement actual metrics collection
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("# KYB Tool Metrics\n# This endpoint will be implemented with Prometheus metrics\n"))
+	// Serve Prometheus metrics
+	s.metrics.ServeHTTP(w, r)
 }
 
 // docsHandler handles API documentation requests
@@ -453,8 +459,24 @@ func main() {
 	authHandler := handlers.NewAuthHandler(authService, logger, metrics)
 	authMiddleware := middleware.NewAuthMiddleware(authService, logger)
 
+	// Initialize rate limiting middleware
+	rateLimitConfig := &middleware.RateLimitConfig{
+		RequestsPerMinute: cfg.Server.RateLimit.RequestsPer,
+		BurstSize:         cfg.Server.RateLimit.BurstSize,
+		Enabled:           cfg.Server.RateLimit.Enabled,
+	}
+	rateLimiter := middleware.NewRateLimiter(rateLimitConfig, logger)
+
+	// Initialize validation middleware
+	validationConfig := &middleware.ValidationConfig{
+		MaxBodySize:   cfg.Server.Validation.MaxBodySize,
+		RequiredPaths: cfg.Server.Validation.RequiredPaths,
+		Enabled:       cfg.Server.Validation.Enabled,
+	}
+	validator := middleware.NewValidator(validationConfig, logger)
+
 	// Create server
-	server := NewServer(cfg, logger, classificationSvc, authService, authHandler, authMiddleware)
+	server := NewServer(cfg, logger, metrics, classificationSvc, authService, authHandler, authMiddleware, rateLimiter, validator)
 
 	// Start server in goroutine
 	go func() {

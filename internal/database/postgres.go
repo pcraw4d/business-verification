@@ -617,7 +617,7 @@ func (p *PostgresDB) GetEmailVerificationToken(ctx context.Context, token string
 	err := p.getDB().QueryRowContext(ctx, query, token).Scan(
 		&verificationToken.ID, &verificationToken.UserID, &verificationToken.Token,
 		&verificationToken.ExpiresAt, &verificationToken.UsedAt, &verificationToken.CreatedAt)
-	
+
 	if err != nil {
 		return nil, err
 	}
@@ -664,7 +664,7 @@ func (p *PostgresDB) GetPasswordResetToken(ctx context.Context, token string) (*
 	err := p.getDB().QueryRowContext(ctx, query, token).Scan(
 		&resetToken.ID, &resetToken.UserID, &resetToken.Token,
 		&resetToken.ExpiresAt, &resetToken.UsedAt, &resetToken.CreatedAt)
-	
+
 	if err != nil {
 		return nil, err
 	}

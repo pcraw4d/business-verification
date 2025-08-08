@@ -40,7 +40,7 @@ func (h *AuthHandler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := h.authService.RegisterUser(ctx, &req)
 	if err != nil {
 		h.logger.WithComponent("auth").Error("User registration failed", "error", err, "email", req.Email)
-		
+
 		// Handle different error types
 		if err.Error() == "email already exists" || err.Error() == "username already exists" {
 			http.Error(w, err.Error(), http.StatusConflict)
@@ -59,7 +59,7 @@ func (h *AuthHandler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Response
 	response := map[string]interface{}{
-		"user": user,
+		"user":    user,
 		"message": "Registration successful. Please check your email for verification instructions.",
 	}
 
@@ -91,7 +91,7 @@ func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	tokenResponse, err := h.authService.LoginUser(ctx, &req)
 	if err != nil {
 		h.logger.WithComponent("auth").Error("User login failed", "error", err, "email", req.Email)
-		
+
 		// Handle different error types
 		if err.Error() == "invalid credentials" {
 			http.Error(w, "Invalid email or password", http.StatusUnauthorized)
@@ -105,7 +105,7 @@ func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Response
 	response := map[string]interface{}{
-		"tokens": tokenResponse,
+		"tokens":  tokenResponse,
 		"message": "Login successful",
 	}
 
@@ -187,7 +187,7 @@ func (h *AuthHandler) RefreshTokenHandler(w http.ResponseWriter, r *http.Request
 
 	// Response
 	response := map[string]interface{}{
-		"tokens": tokenResponse,
+		"tokens":  tokenResponse,
 		"message": "Token refreshed successfully",
 	}
 
@@ -212,7 +212,7 @@ func (h *AuthHandler) VerifyEmailHandler(w http.ResponseWriter, r *http.Request)
 	// Verify email
 	if err := h.authService.VerifyEmail(ctx, token); err != nil {
 		h.logger.WithComponent("auth").Error("Email verification failed", "error", err, "token", token)
-		
+
 		// Handle different error types
 		if err.Error() == "verification token has expired" {
 			http.Error(w, "Verification token has expired", http.StatusGone)
@@ -291,7 +291,7 @@ func (h *AuthHandler) ResetPasswordHandler(w http.ResponseWriter, r *http.Reques
 	// Reset password
 	if err := h.authService.ResetPassword(ctx, req.Token, req.NewPassword); err != nil {
 		h.logger.WithComponent("auth").Error("Password reset failed", "error", err, "token", req.Token)
-		
+
 		// Handle different error types
 		if err.Error() == "reset token has expired" {
 			http.Error(w, "Reset token has expired", http.StatusGone)
@@ -340,7 +340,7 @@ func (h *AuthHandler) ChangePasswordHandler(w http.ResponseWriter, r *http.Reque
 	// Change password
 	if err := h.authService.ChangePassword(ctx, userID, req.CurrentPassword, req.NewPassword); err != nil {
 		h.logger.WithComponent("auth").Error("Password change failed", "error", err, "user_id", userID)
-		
+
 		if err.Error() == "current password is incorrect" {
 			http.Error(w, "Current password is incorrect", http.StatusBadRequest)
 		} else {

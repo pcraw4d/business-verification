@@ -499,7 +499,7 @@ func (r *TokenBlacklistRepository) BlacklistToken(ctx context.Context, tokenID s
 		"token_id":   tokenID,
 		"expires_at": expiresAt,
 	})
-	
+
 	return nil
 }
 
