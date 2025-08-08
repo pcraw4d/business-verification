@@ -180,6 +180,36 @@ type WebhookEvent struct {
 	CreatedAt    time.Time  `json:"created_at" db:"created_at"`
 }
 
+// EmailVerificationToken represents an email verification token
+type EmailVerificationToken struct {
+	ID        string     `json:"id" db:"id"`
+	UserID    string     `json:"user_id" db:"user_id"`
+	Token     string     `json:"token" db:"token"`
+	ExpiresAt time.Time  `json:"expires_at" db:"expires_at"`
+	UsedAt    *time.Time `json:"used_at" db:"used_at"`
+	CreatedAt time.Time  `json:"created_at" db:"created_at"`
+}
+
+// PasswordResetToken represents a password reset token
+type PasswordResetToken struct {
+	ID        string     `json:"id" db:"id"`
+	UserID    string     `json:"user_id" db:"user_id"`
+	Token     string     `json:"token" db:"token"`
+	ExpiresAt time.Time  `json:"expires_at" db:"expires_at"`
+	UsedAt    *time.Time `json:"used_at" db:"used_at"`
+	CreatedAt time.Time  `json:"created_at" db:"created_at"`
+}
+
+// TokenBlacklist represents a blacklisted JWT token
+type TokenBlacklist struct {
+	ID            string    `json:"id" db:"id"`
+	TokenID       string    `json:"token_id" db:"token_id"`
+	UserID        *string   `json:"user_id" db:"user_id"`
+	ExpiresAt     time.Time `json:"expires_at" db:"expires_at"`
+	BlacklistedAt time.Time `json:"blacklisted_at" db:"blacklisted_at"`
+	Reason        string    `json:"reason" db:"reason"`
+}
+
 // Database represents the database interface
 type Database interface {
 	// Connection management
@@ -194,6 +224,23 @@ type Database interface {
 	UpdateUser(ctx context.Context, user *User) error
 	DeleteUser(ctx context.Context, id string) error
 	ListUsers(ctx context.Context, limit, offset int) ([]*User, error)
+
+	// Email verification management
+	CreateEmailVerificationToken(ctx context.Context, token *EmailVerificationToken) error
+	GetEmailVerificationToken(ctx context.Context, token string) (*EmailVerificationToken, error)
+	MarkEmailVerificationTokenUsed(ctx context.Context, token string) error
+	DeleteExpiredEmailVerificationTokens(ctx context.Context) error
+
+	// Password reset management
+	CreatePasswordResetToken(ctx context.Context, token *PasswordResetToken) error
+	GetPasswordResetToken(ctx context.Context, token string) (*PasswordResetToken, error)
+	MarkPasswordResetTokenUsed(ctx context.Context, token string) error
+	DeleteExpiredPasswordResetTokens(ctx context.Context) error
+
+	// Token blacklist management
+	CreateTokenBlacklist(ctx context.Context, blacklist *TokenBlacklist) error
+	IsTokenBlacklisted(ctx context.Context, tokenID string) (bool, error)
+	DeleteExpiredTokenBlacklist(ctx context.Context) error
 
 	// Business management
 	CreateBusiness(ctx context.Context, business *Business) error

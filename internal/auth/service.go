@@ -481,20 +481,214 @@ func NewTokenBlacklistRepository(db database.Database, logger *observability.Log
 
 // BlacklistToken adds a token to the blacklist
 func (r *TokenBlacklistRepository) BlacklistToken(ctx context.Context, tokenID string, expiresAt time.Time) error {
-	// In a production system, you would store this in a database table or Redis
-	// For now, we'll log the blacklisting event
+	// Create blacklist entry
+	blacklist := &database.TokenBlacklist{
+		ID:        generateUUID(),
+		TokenID:   tokenID,
+		ExpiresAt: expiresAt,
+		Reason:    "logout",
+	}
+
+	// Store in database
+	if err := r.db.CreateTokenBlacklist(ctx, blacklist); err != nil {
+		return fmt.Errorf("failed to blacklist token: %w", err)
+	}
+
+	// Log the blacklisting event
 	r.logger.WithComponent("auth").LogSecurityEvent(ctx, "token_blacklisted", "", getIPFromContext(ctx), map[string]interface{}{
 		"token_id":   tokenID,
 		"expires_at": expiresAt,
 	})
 	
-	// TODO: Implement actual storage in database or Redis
 	return nil
 }
 
 // IsTokenBlacklisted checks if a token is blacklisted
 func (r *TokenBlacklistRepository) IsTokenBlacklisted(ctx context.Context, tokenID string) (bool, error) {
-	// In a production system, you would check the database or Redis
-	// For now, we'll return false (no token is blacklisted)
-	return false, nil
+	// Check database for blacklisted token
+	return r.db.IsTokenBlacklisted(ctx, tokenID)
+}
+
+// CreateEmailVerificationToken creates a new email verification token
+func (a *AuthService) CreateEmailVerificationToken(ctx context.Context, userID string) (*database.EmailVerificationToken, error) {
+	token := generateRandomToken()
+	expiresAt := time.Now().Add(24 * time.Hour) // Token expires in 24 hours
+
+	verificationToken := &database.EmailVerificationToken{
+		ID:        generateUUID(),
+		UserID:    userID,
+		Token:     token,
+		ExpiresAt: expiresAt,
+		CreatedAt: time.Now(),
+	}
+
+	if err := a.db.CreateEmailVerificationToken(ctx, verificationToken); err != nil {
+		return nil, fmt.Errorf("failed to create email verification token: %w", err)
+	}
+
+	// Log token creation
+	a.logger.WithUser(userID).LogBusinessEvent(ctx, "email_verification_token_created", userID, map[string]interface{}{
+		"token_expires_at": expiresAt,
+	})
+
+	return verificationToken, nil
+}
+
+// VerifyEmail verifies a user's email using the provided token
+func (a *AuthService) VerifyEmail(ctx context.Context, token string) error {
+	// Get verification token
+	verificationToken, err := a.db.GetEmailVerificationToken(ctx, token)
+	if err != nil {
+		return fmt.Errorf("invalid verification token")
+	}
+
+	// Check if token is already used
+	if verificationToken.UsedAt != nil {
+		return fmt.Errorf("verification token has already been used")
+	}
+
+	// Check if token is expired
+	if time.Now().After(verificationToken.ExpiresAt) {
+		return fmt.Errorf("verification token has expired")
+	}
+
+	// Get user
+	user, err := a.db.GetUserByID(ctx, verificationToken.UserID)
+	if err != nil {
+		return fmt.Errorf("user not found")
+	}
+
+	// Update user email verification status
+	user.EmailVerified = true
+	user.UpdatedAt = time.Now()
+
+	if err := a.db.UpdateUser(ctx, user); err != nil {
+		return fmt.Errorf("failed to update user verification status: %w", err)
+	}
+
+	// Mark token as used
+	if err := a.db.MarkEmailVerificationTokenUsed(ctx, token); err != nil {
+		return fmt.Errorf("failed to mark token as used: %w", err)
+	}
+
+	// Log email verification
+	a.logger.WithUser(user.ID).LogBusinessEvent(ctx, "email_verified", user.ID, map[string]interface{}{
+		"email": user.Email,
+	})
+
+	return nil
+}
+
+// CreatePasswordResetToken creates a new password reset token
+func (a *AuthService) CreatePasswordResetToken(ctx context.Context, email string) (*database.PasswordResetToken, error) {
+	// Get user by email
+	user, err := a.db.GetUserByEmail(ctx, email)
+	if err != nil {
+		return nil, fmt.Errorf("user not found")
+	}
+
+	token := generateRandomToken()
+	expiresAt := time.Now().Add(1 * time.Hour) // Token expires in 1 hour
+
+	resetToken := &database.PasswordResetToken{
+		ID:        generateUUID(),
+		UserID:    user.ID,
+		Token:     token,
+		ExpiresAt: expiresAt,
+		CreatedAt: time.Now(),
+	}
+
+	if err := a.db.CreatePasswordResetToken(ctx, resetToken); err != nil {
+		return nil, fmt.Errorf("failed to create password reset token: %w", err)
+	}
+
+	// Log token creation
+	a.logger.WithUser(user.ID).LogSecurityEvent(ctx, "password_reset_token_created", user.ID, getIPFromContext(ctx), map[string]interface{}{
+		"email":            user.Email,
+		"token_expires_at": expiresAt,
+	})
+
+	return resetToken, nil
+}
+
+// ResetPassword resets a user's password using the provided token
+func (a *AuthService) ResetPassword(ctx context.Context, token, newPassword string) error {
+	// Get reset token
+	resetToken, err := a.db.GetPasswordResetToken(ctx, token)
+	if err != nil {
+		return fmt.Errorf("invalid reset token")
+	}
+
+	// Check if token is already used
+	if resetToken.UsedAt != nil {
+		return fmt.Errorf("reset token has already been used")
+	}
+
+	// Check if token is expired
+	if time.Now().After(resetToken.ExpiresAt) {
+		return fmt.Errorf("reset token has expired")
+	}
+
+	// Get user
+	user, err := a.db.GetUserByID(ctx, resetToken.UserID)
+	if err != nil {
+		return fmt.Errorf("user not found")
+	}
+
+	// Hash new password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	// Update user password
+	user.PasswordHash = string(hashedPassword)
+	user.UpdatedAt = time.Now()
+
+	if err := a.db.UpdateUser(ctx, user); err != nil {
+		return fmt.Errorf("failed to update password: %w", err)
+	}
+
+	// Mark token as used
+	if err := a.db.MarkPasswordResetTokenUsed(ctx, token); err != nil {
+		return fmt.Errorf("failed to mark token as used: %w", err)
+	}
+
+	// Log password reset
+	a.logger.WithUser(user.ID).LogSecurityEvent(ctx, "password_reset", user.ID, getIPFromContext(ctx), map[string]interface{}{
+		"email": user.Email,
+	})
+
+	return nil
+}
+
+// GetUserByID gets a user by ID
+func (a *AuthService) GetUserByID(ctx context.Context, userID string) (*UserResponse, error) {
+	// Get user from database
+	user, err := a.db.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("user not found")
+	}
+
+	return &UserResponse{
+		ID:            user.ID,
+		Email:         user.Email,
+		Username:      user.Username,
+		FirstName:     user.FirstName,
+		LastName:      user.LastName,
+		Company:       user.Company,
+		Role:          user.Role,
+		Status:        user.Status,
+		EmailVerified: user.EmailVerified,
+		LastLoginAt:   user.LastLoginAt,
+		CreatedAt:     user.CreatedAt,
+		UpdatedAt:     user.UpdatedAt,
+	}, nil
+}
+
+// generateRandomToken generates a secure random token
+func generateRandomToken() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return hex.EncodeToString(b)
 }

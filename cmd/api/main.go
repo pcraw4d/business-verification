@@ -11,8 +11,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/pcraw4d/business-verification/internal/api/handlers"
+	"github.com/pcraw4d/business-verification/internal/api/middleware"
+	"github.com/pcraw4d/business-verification/internal/auth"
 	"github.com/pcraw4d/business-verification/internal/classification"
 	"github.com/pcraw4d/business-verification/internal/config"
+	"github.com/pcraw4d/business-verification/internal/database"
 	"github.com/pcraw4d/business-verification/internal/observability"
 )
 
@@ -21,15 +25,21 @@ type Server struct {
 	config            *config.Config
 	logger            *observability.Logger
 	classificationSvc *classification.ClassificationService
+	authService       *auth.AuthService
+	authHandler       *handlers.AuthHandler
+	authMiddleware    *middleware.AuthMiddleware
 	server            *http.Server
 }
 
 // NewServer creates a new API server instance
-func NewServer(cfg *config.Config, logger *observability.Logger, classificationSvc *classification.ClassificationService) *Server {
+func NewServer(cfg *config.Config, logger *observability.Logger, classificationSvc *classification.ClassificationService, authService *auth.AuthService, authHandler *handlers.AuthHandler, authMiddleware *middleware.AuthMiddleware) *Server {
 	return &Server{
 		config:            cfg,
 		logger:            logger,
 		classificationSvc: classificationSvc,
+		authService:       authService,
+		authHandler:       authHandler,
+		authMiddleware:    authMiddleware,
 	}
 }
 
@@ -48,9 +58,20 @@ func (s *Server) setupRoutes() *http.ServeMux {
 	mux.HandleFunc("GET /docs", s.docsHandler)
 	mux.HandleFunc("GET /docs/", s.docsHandler)
 
-	// API endpoints (to be implemented)
-	mux.HandleFunc("POST /v1/auth/register", s.notImplementedHandler)
-	mux.HandleFunc("POST /v1/auth/login", s.notImplementedHandler)
+	// Authentication endpoints (public)
+	mux.HandleFunc("POST /v1/auth/register", s.authHandler.RegisterHandler)
+	mux.HandleFunc("POST /v1/auth/login", s.authHandler.LoginHandler)
+	mux.HandleFunc("POST /v1/auth/refresh", s.authHandler.RefreshTokenHandler)
+	mux.HandleFunc("GET /v1/auth/verify-email", s.authHandler.VerifyEmailHandler)
+	mux.HandleFunc("POST /v1/auth/request-password-reset", s.authHandler.RequestPasswordResetHandler)
+	mux.HandleFunc("POST /v1/auth/reset-password", s.authHandler.ResetPasswordHandler)
+
+	// Protected authentication endpoints
+	mux.Handle("POST /v1/auth/logout", s.authMiddleware.RequireAuth(http.HandlerFunc(s.authHandler.LogoutHandler)))
+	mux.Handle("POST /v1/auth/change-password", s.authMiddleware.RequireAuth(http.HandlerFunc(s.authHandler.ChangePasswordHandler)))
+	mux.Handle("GET /v1/auth/profile", s.authMiddleware.RequireAuth(http.HandlerFunc(s.authHandler.ProfileHandler)))
+
+	// Classification endpoints (public for now, can be protected later)
 	mux.HandleFunc("POST /v1/classify", s.classifyHandler)
 	mux.HandleFunc("POST /v1/classify/batch", s.classifyBatchHandler)
 
@@ -413,17 +434,27 @@ func main() {
 		log.Fatalf("Failed to load industry codes: %v", err)
 	}
 
+	// Initialize database (for now, nil - will implement later)
+	var db database.Database = nil
+
 	// Initialize classification service
 	classificationSvc := classification.NewClassificationServiceWithData(
 		&cfg.ExternalServices,
-		nil, // No database for now
+		db,
 		logger,
 		metrics,
 		industryData,
 	)
 
+	// Initialize authentication service
+	authService := auth.NewAuthService(&cfg.Auth, db, logger, metrics)
+
+	// Initialize authentication handlers and middleware
+	authHandler := handlers.NewAuthHandler(authService, logger, metrics)
+	authMiddleware := middleware.NewAuthMiddleware(authService, logger)
+
 	// Create server
-	server := NewServer(cfg, logger, classificationSvc)
+	server := NewServer(cfg, logger, classificationSvc, authService, authHandler, authMiddleware)
 
 	// Start server in goroutine
 	go func() {

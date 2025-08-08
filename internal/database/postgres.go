@@ -595,3 +595,130 @@ func (p *PostgresDB) DeleteWebhookEvent(ctx context.Context, id string) error {
 	// TODO: Implement
 	return fmt.Errorf("not implemented")
 }
+
+// Email verification token methods
+func (p *PostgresDB) CreateEmailVerificationToken(ctx context.Context, token *EmailVerificationToken) error {
+	query := `
+		INSERT INTO email_verification_tokens (id, user_id, token, expires_at, created_at)
+		VALUES ($1, $2, $3, $4, $5)
+	`
+	_, err := p.getDB().ExecContext(ctx, query,
+		token.ID, token.UserID, token.Token, token.ExpiresAt, token.CreatedAt)
+	return err
+}
+
+func (p *PostgresDB) GetEmailVerificationToken(ctx context.Context, token string) (*EmailVerificationToken, error) {
+	query := `
+		SELECT id, user_id, token, expires_at, used_at, created_at
+		FROM email_verification_tokens
+		WHERE token = $1
+	`
+	var verificationToken EmailVerificationToken
+	err := p.getDB().QueryRowContext(ctx, query, token).Scan(
+		&verificationToken.ID, &verificationToken.UserID, &verificationToken.Token,
+		&verificationToken.ExpiresAt, &verificationToken.UsedAt, &verificationToken.CreatedAt)
+	
+	if err != nil {
+		return nil, err
+	}
+	return &verificationToken, nil
+}
+
+func (p *PostgresDB) MarkEmailVerificationTokenUsed(ctx context.Context, token string) error {
+	query := `
+		UPDATE email_verification_tokens
+		SET used_at = CURRENT_TIMESTAMP
+		WHERE token = $1
+	`
+	_, err := p.getDB().ExecContext(ctx, query, token)
+	return err
+}
+
+func (p *PostgresDB) DeleteExpiredEmailVerificationTokens(ctx context.Context) error {
+	query := `
+		DELETE FROM email_verification_tokens
+		WHERE expires_at < CURRENT_TIMESTAMP
+	`
+	_, err := p.getDB().ExecContext(ctx, query)
+	return err
+}
+
+// Password reset token methods
+func (p *PostgresDB) CreatePasswordResetToken(ctx context.Context, token *PasswordResetToken) error {
+	query := `
+		INSERT INTO password_reset_tokens (id, user_id, token, expires_at, created_at)
+		VALUES ($1, $2, $3, $4, $5)
+	`
+	_, err := p.getDB().ExecContext(ctx, query,
+		token.ID, token.UserID, token.Token, token.ExpiresAt, token.CreatedAt)
+	return err
+}
+
+func (p *PostgresDB) GetPasswordResetToken(ctx context.Context, token string) (*PasswordResetToken, error) {
+	query := `
+		SELECT id, user_id, token, expires_at, used_at, created_at
+		FROM password_reset_tokens
+		WHERE token = $1
+	`
+	var resetToken PasswordResetToken
+	err := p.getDB().QueryRowContext(ctx, query, token).Scan(
+		&resetToken.ID, &resetToken.UserID, &resetToken.Token,
+		&resetToken.ExpiresAt, &resetToken.UsedAt, &resetToken.CreatedAt)
+	
+	if err != nil {
+		return nil, err
+	}
+	return &resetToken, nil
+}
+
+func (p *PostgresDB) MarkPasswordResetTokenUsed(ctx context.Context, token string) error {
+	query := `
+		UPDATE password_reset_tokens
+		SET used_at = CURRENT_TIMESTAMP
+		WHERE token = $1
+	`
+	_, err := p.getDB().ExecContext(ctx, query, token)
+	return err
+}
+
+func (p *PostgresDB) DeleteExpiredPasswordResetTokens(ctx context.Context) error {
+	query := `
+		DELETE FROM password_reset_tokens
+		WHERE expires_at < CURRENT_TIMESTAMP
+	`
+	_, err := p.getDB().ExecContext(ctx, query)
+	return err
+}
+
+// Token blacklist methods
+func (p *PostgresDB) CreateTokenBlacklist(ctx context.Context, blacklist *TokenBlacklist) error {
+	query := `
+		INSERT INTO token_blacklist (id, token_id, user_id, expires_at, blacklisted_at, reason)
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`
+	_, err := p.getDB().ExecContext(ctx, query,
+		blacklist.ID, blacklist.TokenID, blacklist.UserID,
+		blacklist.ExpiresAt, blacklist.BlacklistedAt, blacklist.Reason)
+	return err
+}
+
+func (p *PostgresDB) IsTokenBlacklisted(ctx context.Context, tokenID string) (bool, error) {
+	query := `
+		SELECT EXISTS(
+			SELECT 1 FROM token_blacklist
+			WHERE token_id = $1 AND expires_at > CURRENT_TIMESTAMP
+		)
+	`
+	var exists bool
+	err := p.getDB().QueryRowContext(ctx, query, tokenID).Scan(&exists)
+	return exists, err
+}
+
+func (p *PostgresDB) DeleteExpiredTokenBlacklist(ctx context.Context) error {
+	query := `
+		DELETE FROM token_blacklist
+		WHERE expires_at < CURRENT_TIMESTAMP
+	`
+	_, err := p.getDB().ExecContext(ctx, query)
+	return err
+}

@@ -250,3 +250,48 @@ CREATE TRIGGER update_api_keys_updated_at BEFORE UPDATE ON api_keys
 
 CREATE TRIGGER update_webhooks_updated_at BEFORE UPDATE ON webhooks
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Email verification tokens table
+CREATE TABLE email_verification_tokens (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token VARCHAR(255) UNIQUE NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    used_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create indexes for email verification tokens
+CREATE INDEX idx_email_verification_tokens_user_id ON email_verification_tokens(user_id);
+CREATE INDEX idx_email_verification_tokens_token ON email_verification_tokens(token);
+CREATE INDEX idx_email_verification_tokens_expires_at ON email_verification_tokens(expires_at);
+
+-- Password reset tokens table
+CREATE TABLE password_reset_tokens (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token VARCHAR(255) UNIQUE NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    used_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create indexes for password reset tokens
+CREATE INDEX idx_password_reset_tokens_user_id ON password_reset_tokens(user_id);
+CREATE INDEX idx_password_reset_tokens_token ON password_reset_tokens(token);
+CREATE INDEX idx_password_reset_tokens_expires_at ON password_reset_tokens(expires_at);
+
+-- Token blacklist table for JWT tokens
+CREATE TABLE token_blacklist (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    token_id VARCHAR(255) UNIQUE NOT NULL,
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    expires_at TIMESTAMP NOT NULL,
+    blacklisted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    reason VARCHAR(255) DEFAULT 'logout'
+);
+
+-- Create indexes for token blacklist
+CREATE INDEX idx_token_blacklist_token_id ON token_blacklist(token_id);
+CREATE INDEX idx_token_blacklist_user_id ON token_blacklist(user_id);
+CREATE INDEX idx_token_blacklist_expires_at ON token_blacklist(expires_at);
