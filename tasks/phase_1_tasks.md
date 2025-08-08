@@ -66,6 +66,8 @@
 - `internal/risk/thresholds_test.go` - Unit tests for threshold configuration system
 - `internal/risk/categories.go` - Risk category definitions and registry
 - `internal/risk/categories_test.go` - Unit tests for risk category definitions
+- `internal/risk/calculation.go` - Risk factor calculation logic and algorithms
+- `internal/risk/calculation_test.go` - Unit tests for risk factor calculation
 - `internal/risk/service.go` - Risk assessment service
 - `internal/risk/service_test.go` - Unit tests for risk assessment service
 - `internal/compliance/service.go` - Compliance service
@@ -336,7 +338,7 @@ All Task 4 subtasks completed.
 
 **5.2 Implement Risk Calculation Engine**
 
-- [ ] Create risk factor calculation logic
+- [x] Create risk factor calculation logic
 - [ ] Implement weighted risk scoring
 - [ ] Set up risk trend analysis
 - [ ] Create risk prediction models
