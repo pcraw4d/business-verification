@@ -46,6 +46,10 @@
 - `internal/auth/service_test.go` - Unit tests for authentication service
 - `internal/classification/service.go` - Business classification service implementation
 - `internal/classification/service_test.go` - Unit tests for classification service
+- `internal/classification/normalize.go` - Text normalization and tokenization utilities for classification
+- `internal/classification/data_loader.go` - Industry code datasets loader and search helpers (keyword and fuzzy)
+- `internal/classification/fuzzy.go` - Levenshtein-based fuzzy similarity and token/full-text helpers
+- `internal/classification/mapping.go` - Industry code mapping and crosswalk logic (NAICS ↔ MCC/SIC)
 - `cmd/api/main.go` - Main API gateway entry point for the KYB platform
 - `cmd/api/main_test.go` - Unit tests for API gateway
 - `internal/auth/service.go` - Authentication service implementation
@@ -64,6 +68,7 @@
 - `pkg/validators/` - Input validation utilities
 - `pkg/encryption/` - Encryption utilities for sensitive data
 - `docs/api/` - API documentation
+- `docs/task4_completion_summary.md` - Summary of all implementations for Task 4 with developer guide
 - `deployments/` - Docker and deployment configurations
 - `scripts/` - Build and deployment scripts
 
@@ -244,7 +249,7 @@
 
 ---
 
-### Task 4: Business Classification Engine
+### Task 4: Business Classification Engine ✅
 
 **Priority**: Critical
 **Duration**: 4 weeks
@@ -254,43 +259,45 @@
 
 **4.1 Design Classification Data Models**
 
-- [ ] Create business entity data structures
-- [ ] Design industry classification schemas
-- [ ] Implement NAICS code mapping system
-- [ ] Set up business type categorization
-- [ ] Create confidence scoring models
+- [x] Create business entity data structures
+- [x] Design industry classification schemas
+- [x] Implement NAICS code mapping system
+- [x] Set up business type categorization
+- [x] Create confidence scoring models
 
-**4.2 Implement Core Classification Logic**
+**4.2 Implement Core Classification Logic ✅**
 
-- [ ] Create business name parsing and normalization
-- [ ] Implement keyword-based classification
-- [ ] Set up fuzzy matching algorithms
-- [ ] Create industry code mapping logic
-- [ ] Implement confidence score calculation
+- [x] Create business name parsing and normalization
+- [x] Implement keyword-based classification
+- [x] Set up fuzzy matching algorithms
+- [x] Create industry code mapping logic
+- [x] Implement confidence score calculation
 
 **4.3 Build Classification API Endpoints**
 
-- [ ] Create `/v1/classify` endpoint for single business classification
-- [ ] Implement batch classification endpoint
-- [ ] Set up classification history tracking
-- [ ] Create classification confidence reporting
-- [ ] Implement classification result caching
+- [x] Create `/v1/classify` endpoint for single business classification
+- [x] Implement batch classification endpoint
+- [x] Set up classification history tracking
+- [x] Create classification confidence reporting
+- [x] Implement classification result caching
 
 **4.4 Integrate External Data Sources**
 
-- [ ] Set up business database connections
-- [ ] Implement data source abstraction layer
-- [ ] Create data validation and cleaning
-- [ ] Set up fallback classification methods
-- [ ] Implement data source health monitoring
+- [x] Set up business database connections
+- [x] Implement data source abstraction layer
+- [x] Create data validation and cleaning
+- [x] Set up fallback classification methods
+- [x] Implement data source health monitoring
 
 **4.5 Performance Optimization**
 
-- [ ] Implement classification result caching
-- [ ] Set up database indexing for fast queries
-- [ ] Create connection pooling for external APIs
-- [ ] Implement request batching for efficiency
-- [ ] Set up performance monitoring and alerting
+- [x] Implement classification result caching (completed in 4.3.5; verified with tests)
+- [x] Set up database indexing for fast queries
+- [x] Create connection pooling for external APIs
+- [x] Implement request batching for efficiency
+- [x] Set up performance monitoring and alerting
+
+All Task 4 subtasks completed.
 
 **Acceptance Criteria:**
 

@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -102,6 +104,9 @@ func (s *Server) setupRoutes() *http.ServeMux {
 	// Classification endpoints (public for now, can be protected later)
 	mux.HandleFunc("POST /v1/classify", s.classifyHandler)
 	mux.HandleFunc("POST /v1/classify/batch", s.classifyBatchHandler)
+	mux.HandleFunc("POST /v1/classify/confidence-report", s.classificationConfidenceHandler)
+	mux.HandleFunc("GET /v1/classify/history/{business_id}", s.classificationHistoryHandler)
+	mux.HandleFunc("GET /v1/datasources/health", s.dataSourcesHealthHandler)
 
 	// Admin endpoints (protected)
 	mux.Handle("POST /v1/admin/users", s.authMiddleware.RequireAuth(http.HandlerFunc(s.adminHandler.CreateUser)))
@@ -299,11 +304,23 @@ func (s *Server) requestLoggingMiddleware(next http.Handler) http.Handler {
 		// Create a custom response writer to capture status code
 		rw := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 
+		// Metrics: in-flight
+		s.metrics.RecordHTTPRequestStart(r.Method, r.URL.Path)
+
 		next.ServeHTTP(rw, r)
 
 		duration := time.Since(start)
 
+		// Metrics: request duration and totals
+		s.metrics.RecordHTTPRequest(r.Method, r.URL.Path, rw.statusCode, duration)
+		s.metrics.RecordHTTPRequestEnd(r.Method, r.URL.Path)
+
+		// Logging
 		s.logger.WithComponent("api").LogAPIRequest(r.Context(), r.Method, r.URL.Path, r.UserAgent(), rw.statusCode, duration)
+		// Simple local alerting for slow requests
+		if duration > s.config.Observability.SlowRequestThreshold {
+			s.logger.WithComponent("api").Warn("slow_request", "method", r.Method, "path", r.URL.Path, "duration_ms", duration.Milliseconds())
+		}
 	})
 }
 
@@ -374,8 +391,13 @@ func (s *Server) classifyHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.logger.WithComponent("api").WithError(err).Error("Classification failed")
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":"classification_failed","message":"Failed to classify business"}`))
+		if strings.Contains(strings.ToLower(err.Error()), "invalid request") {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(`{"error":"invalid_request","message":"Invalid classification request"}`))
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{"error":"classification_failed","message":"Failed to classify business"}`))
+		}
 		return
 	}
 
@@ -402,13 +424,26 @@ func (s *Server) classifyBatchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Basic validation: at least one business
+	if len(req.Businesses) == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error":"invalid_request","message":"At least one business is required"}`))
+		return
+	}
+
 	// Perform batch classification
 	response, err := s.classificationSvc.ClassifyBusinessesBatch(r.Context(), &req)
 	if err != nil {
 		s.logger.WithComponent("api").WithError(err).Error("Batch classification failed")
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":"batch_classification_failed","message":"Failed to classify businesses"}`))
+		if strings.Contains(strings.ToLower(err.Error()), "batch size") {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(`{"error":"invalid_request","message":"Batch size exceeds limit"}`))
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{"error":"batch_classification_failed","message":"Failed to classify businesses"}`))
+		}
 		return
 	}
 
@@ -419,6 +454,133 @@ func (s *Server) classifyBatchHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
+}
+
+// classificationHistoryHandler returns a paginated classification history for a business
+func (s *Server) classificationHistoryHandler(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	businessID := r.PathValue("business_id")
+	if businessID == "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error":"invalid_request","message":"business_id is required"}`))
+		return
+	}
+
+	// Parse pagination
+	limit := 50
+	offset := 0
+	if v := r.URL.Query().Get("limit"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= 200 {
+			limit = n
+		}
+	}
+	if v := r.URL.Query().Get("offset"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n >= 0 {
+			offset = n
+		}
+	}
+
+	history, err := s.classificationSvc.GetClassificationHistory(r.Context(), businessID, limit, offset)
+	if err != nil {
+		s.logger.WithComponent("api").WithError(err).Error("Failed to fetch classification history")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"error":"internal_error","message":"Failed to retrieve classification history"}`))
+		return
+	}
+
+	s.logger.WithComponent("api").LogAPIRequest(r.Context(), r.Method, r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"business_id": businessID,
+		"count":       len(history),
+		"results":     history,
+		"limit":       limit,
+		"offset":      offset,
+	})
+}
+
+// classificationConfidenceHandler accepts a classification response payload and summarizes confidence metrics
+func (s *Server) classificationConfidenceHandler(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	var resp classification.ClassificationResponse
+	if err := json.NewDecoder(r.Body).Decode(&resp); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error":"invalid_request","message":"Invalid JSON in request body"}`))
+		return
+	}
+
+	// If client only sends classifications array, primary may be nil; compute a quick summary
+	total := len(resp.Classifications)
+	if total == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error":"invalid_request","message":"classifications array required"}`))
+		return
+	}
+
+	// Aggregate stats
+	sum := 0.0
+	maxScore := -1.0
+	var top classification.IndustryClassification
+	methodCounts := make(map[string]int)
+	codeCounts := make(map[string]int)
+	for _, cl := range resp.Classifications {
+		sum += cl.ConfidenceScore
+		methodCounts[cl.ClassificationMethod]++
+		codeCounts[cl.IndustryCode]++
+		if cl.ConfidenceScore > maxScore {
+			maxScore = cl.ConfidenceScore
+			top = cl
+		}
+	}
+	avg := sum / float64(total)
+
+	s.logger.WithComponent("api").LogAPIRequest(r.Context(), r.Method, r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"total":                total,
+		"average_confidence":   avg,
+		"top_industry_code":    top.IndustryCode,
+		"top_industry_name":    top.IndustryName,
+		"top_confidence_score": top.ConfidenceScore,
+		"method_counts":        methodCounts,
+		"code_agreement":       codeCounts,
+	})
+}
+
+// dataSourcesHealthHandler returns the current health status of all configured data sources
+func (s *Server) dataSourcesHealthHandler(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	// reach into classification svc enricher for health; if nil, return empty
+	var statuses []map[string]interface{}
+	if s.classificationSvc != nil {
+		ctx, cancel := context.WithTimeout(r.Context(), 1500*time.Millisecond)
+		defer cancel()
+		hs := s.classificationSvc.DataSourcesHealth(ctx)
+		statuses = make([]map[string]interface{}, 0, len(hs))
+		for _, h := range hs {
+			statuses = append(statuses, map[string]interface{}{
+				"source_name": h.SourceName,
+				"healthy":     h.Healthy,
+				"checked_at":  h.CheckedAt,
+				"latency_ms":  h.Latency.Milliseconds(),
+				"error":       h.Error,
+			})
+		}
+	}
+	s.logger.WithComponent("api").LogAPIRequest(r.Context(), r.Method, r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"data_sources": statuses,
+		"count":        len(statuses),
+		"timestamp":    time.Now().UTC().Format(time.RFC3339),
+	})
 }
 
 // Start starts the HTTP server
@@ -473,8 +635,14 @@ func main() {
 		log.Fatalf("Failed to load industry codes: %v", err)
 	}
 
-	// Initialize database (for now, nil - will implement later)
-	var db database.Database = nil
+	// Initialize database connection
+	dbCtx, dbCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer dbCancel()
+	db, err := database.NewDatabaseWithConnection(dbCtx, &cfg.Database)
+	if err != nil {
+		logger.WithComponent("api").WithError(err).Error("Failed to connect to database")
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
 
 	// Initialize classification service
 	classificationSvc := classification.NewClassificationServiceWithData(
@@ -560,6 +728,12 @@ func main() {
 	if err := server.Shutdown(ctx); err != nil {
 		logger.WithComponent("api").WithError(err).LogShutdown("server_shutdown_failed")
 		log.Fatalf("Server shutdown failed: %v", err)
+	}
+	// Close database connection
+	if db != nil {
+		if err := db.Close(); err != nil {
+			logger.WithComponent("api").WithError(err).LogShutdown("database_close_failed")
+		}
 	}
 
 	logger.WithComponent("api").LogShutdown("server_shutdown_complete")

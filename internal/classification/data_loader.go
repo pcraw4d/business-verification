@@ -180,6 +180,21 @@ func (d *IndustryCodeData) SearchNAICSByKeyword(keyword string) []string {
 	return results
 }
 
+// SearchNAICSByFuzzy returns NAICS codes whose titles are similar to the query above the threshold
+// threshold in [0,1]; typical values: 0.72-0.85
+func (d *IndustryCodeData) SearchNAICSByFuzzy(query string, threshold float64) []string {
+	var results []string
+	if query == "" {
+		return results
+	}
+	for code, title := range d.NAICS {
+		if tokenMaxSimilarity(query, title) >= threshold {
+			results = append(results, code)
+		}
+	}
+	return results
+}
+
 // SearchMCCByKeyword searches MCC codes by keyword in description
 func (d *IndustryCodeData) SearchMCCByKeyword(keyword string) []string {
 	var results []string
@@ -194,6 +209,20 @@ func (d *IndustryCodeData) SearchMCCByKeyword(keyword string) []string {
 	return results
 }
 
+// SearchMCCByFuzzy returns MCC codes whose descriptions are similar to the query above the threshold
+func (d *IndustryCodeData) SearchMCCByFuzzy(query string, threshold float64) []string {
+	var results []string
+	if query == "" {
+		return results
+	}
+	for code, desc := range d.MCC {
+		if tokenMaxSimilarity(query, desc) >= threshold {
+			results = append(results, code)
+		}
+	}
+	return results
+}
+
 // SearchSICByKeyword searches SIC codes by keyword in description
 func (d *IndustryCodeData) SearchSICByKeyword(keyword string) []string {
 	var results []string
@@ -205,6 +234,20 @@ func (d *IndustryCodeData) SearchSICByKeyword(keyword string) []string {
 		}
 	}
 
+	return results
+}
+
+// SearchSICByFuzzy returns SIC codes whose descriptions are similar to the query above the threshold
+func (d *IndustryCodeData) SearchSICByFuzzy(query string, threshold float64) []string {
+	var results []string
+	if query == "" {
+		return results
+	}
+	for code, desc := range d.SIC {
+		if tokenMaxSimilarity(query, desc) >= threshold {
+			results = append(results, code)
+		}
+	}
 	return results
 }
 

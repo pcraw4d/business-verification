@@ -27,6 +27,7 @@ type Metrics struct {
 
 	// Business metrics
 	businessClassificationsTotal *prometheus.CounterVec
+	classificationDuration       *prometheus.HistogramVec
 	riskAssessmentsTotal         *prometheus.CounterVec
 	complianceChecksTotal        *prometheus.CounterVec
 
@@ -118,6 +119,15 @@ func NewMetrics(cfg *config.ObservabilityConfig) (*Metrics, error) {
 		[]string{"status", "confidence_level"},
 	)
 
+	metrics.classificationDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "classification_duration_seconds",
+			Help:    "Duration of classification operations in seconds",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"type"}, // single|batch
+	)
+
 	metrics.riskAssessmentsTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "risk_assessments_total",
@@ -186,6 +196,7 @@ func NewMetrics(cfg *config.ObservabilityConfig) (*Metrics, error) {
 		metrics.dbOperationDuration,
 		metrics.dbConnectionsActive,
 		metrics.businessClassificationsTotal,
+		metrics.classificationDuration,
 		metrics.riskAssessmentsTotal,
 		metrics.complianceChecksTotal,
 		metrics.externalServiceCallsTotal,
@@ -258,6 +269,14 @@ func (m *Metrics) RecordBusinessClassification(status, confidenceLevel string) {
 	}
 
 	m.businessClassificationsTotal.WithLabelValues(status, confidenceLevel).Inc()
+}
+
+// RecordClassificationDuration records the duration of a classification operation
+func (m *Metrics) RecordClassificationDuration(opType string, duration time.Duration) {
+	if !m.config.MetricsEnabled {
+		return
+	}
+	m.classificationDuration.WithLabelValues(opType).Observe(duration.Seconds())
 }
 
 // RecordRiskAssessment records a risk assessment

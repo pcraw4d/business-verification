@@ -174,6 +174,10 @@ type ObservabilityConfig struct {
 
 	// Health checks
 	HealthCheckPath string `json:"health_check_path" yaml:"health_check_path"`
+
+	// Performance thresholds
+	SlowRequestThreshold        time.Duration `json:"slow_request_threshold" yaml:"slow_request_threshold"`
+	SlowClassificationThreshold time.Duration `json:"slow_classification_threshold" yaml:"slow_classification_threshold"`
 }
 
 // ExternalServicesConfig holds external service configurations
@@ -186,6 +190,20 @@ type ExternalServicesConfig struct {
 
 	// Compliance services
 	ComplianceAPI ComplianceAPIConfig `json:"compliance_api" yaml:"compliance_api"`
+
+	// Classification cache configuration (kept here for minimal wiring with existing service ctor)
+	ClassificationCache ClassificationCacheConfig `json:"classification_cache" yaml:"classification_cache"`
+
+	// Shared HTTP client pool settings for external services
+	HTTPClient HTTPClientConfig `json:"http_client" yaml:"http_client"`
+}
+
+// ClassificationCacheConfig controls in-memory caching for classification results
+type ClassificationCacheConfig struct {
+	Enabled         bool          `json:"enabled" yaml:"enabled"`
+	TTL             time.Duration `json:"ttl" yaml:"ttl"`
+	MaxEntries      int           `json:"max_entries" yaml:"max_entries"`
+	JanitorInterval time.Duration `json:"janitor_interval" yaml:"janitor_interval"`
 }
 
 // BusinessDataAPIConfig holds business data API configuration
@@ -195,6 +213,16 @@ type BusinessDataAPIConfig struct {
 	APIKey     string        `json:"api_key" yaml:"api_key"`
 	Timeout    time.Duration `json:"timeout" yaml:"timeout"`
 	MaxRetries int           `json:"max_retries" yaml:"max_retries"`
+}
+
+// HTTPClientConfig controls connection pooling for external HTTP calls
+type HTTPClientConfig struct {
+	MaxIdleConns          int           `json:"max_idle_conns" yaml:"max_idle_conns"`
+	MaxIdleConnsPerHost   int           `json:"max_idle_conns_per_host" yaml:"max_idle_conns_per_host"`
+	IdleConnTimeout       time.Duration `json:"idle_conn_timeout" yaml:"idle_conn_timeout"`
+	TLSHandshakeTimeout   time.Duration `json:"tls_handshake_timeout" yaml:"tls_handshake_timeout"`
+	ExpectContinueTimeout time.Duration `json:"expect_continue_timeout" yaml:"expect_continue_timeout"`
+	RequestTimeout        time.Duration `json:"request_timeout" yaml:"request_timeout"`
 }
 
 // RiskAssessmentAPIConfig holds risk assessment API configuration
@@ -423,14 +451,16 @@ func getAuthConfig() AuthConfig {
 // getObservabilityConfig returns observability configuration from environment variables
 func getObservabilityConfig() ObservabilityConfig {
 	return ObservabilityConfig{
-		LogLevel:        getEnvAsString("LOG_LEVEL", "info"),
-		LogFormat:       getEnvAsString("LOG_FORMAT", "json"),
-		MetricsEnabled:  getEnvAsBool("METRICS_ENABLED", true),
-		MetricsPort:     getEnvAsInt("METRICS_PORT", 9090),
-		MetricsPath:     getEnvAsString("METRICS_PATH", "/metrics"),
-		TracingEnabled:  getEnvAsBool("TRACING_ENABLED", true),
-		TracingURL:      getEnvAsString("TRACING_URL", "http://localhost:14268/api/traces"),
-		HealthCheckPath: getEnvAsString("HEALTH_CHECK_PATH", "/health"),
+		LogLevel:                    getEnvAsString("LOG_LEVEL", "info"),
+		LogFormat:                   getEnvAsString("LOG_FORMAT", "json"),
+		MetricsEnabled:              getEnvAsBool("METRICS_ENABLED", true),
+		MetricsPort:                 getEnvAsInt("METRICS_PORT", 9090),
+		MetricsPath:                 getEnvAsString("METRICS_PATH", "/metrics"),
+		TracingEnabled:              getEnvAsBool("TRACING_ENABLED", true),
+		TracingURL:                  getEnvAsString("TRACING_URL", "http://localhost:14268/api/traces"),
+		HealthCheckPath:             getEnvAsString("HEALTH_CHECK_PATH", "/health"),
+		SlowRequestThreshold:        getEnvAsDuration("SLOW_REQUEST_THRESHOLD", 300*time.Millisecond),
+		SlowClassificationThreshold: getEnvAsDuration("SLOW_CLASSIFICATION_THRESHOLD", 300*time.Millisecond),
 	}
 }
 
@@ -457,6 +487,20 @@ func getExternalServicesConfig() ExternalServicesConfig {
 			APIKey:     getEnvAsString("COMPLIANCE_API_KEY", ""),
 			Timeout:    getEnvAsDuration("COMPLIANCE_API_TIMEOUT", 30*time.Second),
 			MaxRetries: getEnvAsInt("COMPLIANCE_API_MAX_RETRIES", 3),
+		},
+		ClassificationCache: ClassificationCacheConfig{
+			Enabled:         getEnvAsBool("CLASSIFICATION_CACHE_ENABLED", true),
+			TTL:             getEnvAsDuration("CLASSIFICATION_CACHE_TTL", 10*time.Minute),
+			MaxEntries:      getEnvAsInt("CLASSIFICATION_CACHE_MAX_ENTRIES", 10000),
+			JanitorInterval: getEnvAsDuration("CLASSIFICATION_CACHE_JANITOR_INTERVAL", 1*time.Minute),
+		},
+		HTTPClient: HTTPClientConfig{
+			MaxIdleConns:          getEnvAsInt("EXT_HTTP_MAX_IDLE_CONNS", 256),
+			MaxIdleConnsPerHost:   getEnvAsInt("EXT_HTTP_MAX_IDLE_CONNS_PER_HOST", 64),
+			IdleConnTimeout:       getEnvAsDuration("EXT_HTTP_IDLE_CONN_TIMEOUT", 90*time.Second),
+			TLSHandshakeTimeout:   getEnvAsDuration("EXT_HTTP_TLS_HANDSHAKE_TIMEOUT", 10*time.Second),
+			ExpectContinueTimeout: getEnvAsDuration("EXT_HTTP_EXPECT_CONTINUE_TIMEOUT", 1*time.Second),
+			RequestTimeout:        getEnvAsDuration("EXT_HTTP_REQUEST_TIMEOUT", 30*time.Second),
 		},
 	}
 }

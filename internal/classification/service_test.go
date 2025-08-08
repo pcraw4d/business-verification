@@ -1,6 +1,7 @@
 package classification
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
@@ -483,6 +484,59 @@ func TestClassifyByName(t *testing.T) {
 	}
 }
 
+func TestClassifyByFuzzy(t *testing.T) {
+	// Build minimal industry dataset
+	industryData := &IndustryCodeData{
+		NAICS: map[string]string{
+			"541611": "Administrative Management and General Management Consulting Services",
+			"541511": "Custom Computer Programming Services",
+			"441110": "New Car Dealers",
+		},
+		MCC: map[string]string{
+			"5812": "Eating places and restaurants",
+		},
+		SIC: map[string]string{
+			"D-50-504-5045": "Computers, Peripheral Equipment, and Software",
+		},
+	}
+
+	logger := observability.NewLogger(&config.ObservabilityConfig{LogLevel: "error"})
+	metrics, _ := observability.NewMetrics(&config.ObservabilityConfig{})
+	svc := NewClassificationServiceWithData(&config.ExternalServicesConfig{}, nil, logger, metrics, industryData)
+
+	// Slightly misspelled to trigger fuzzy rather than exact keyword match
+	req := &ClassificationRequest{
+		BusinessName: "Acme Sofware Solutons",
+		Description:  "custom programing and managment consultng",
+	}
+
+	got := svc.classifyByFuzzy(req)
+	if len(got) == 0 {
+		t.Fatal("expected fuzzy classification results, got none")
+	}
+}
+
+func TestIndustryCodeMappingCrosswalk(t *testing.T) {
+	industryData := &IndustryCodeData{
+		NAICS: map[string]string{
+			"541611": "Administrative Management and General Management Consulting Services",
+			"541511": "Custom Computer Programming Services",
+		},
+		MCC: map[string]string{
+			"7392": "Management, Consulting, and Public Relations",
+			"5732": "Electronic Sales",
+		},
+		SIC: map[string]string{
+			"I-73-739-7392": "Management Consulting Services",
+		},
+	}
+
+	mcc, sic := crosswalkFromNAICS("541611", industryData)
+	if len(mcc) == 0 && len(sic) == 0 {
+		t.Fatal("expected crosswalk to produce related MCC or SIC codes")
+	}
+}
+
 func TestDeterminePrimaryClassification(t *testing.T) {
 	service := &ClassificationService{}
 
@@ -549,6 +603,76 @@ func TestCalculateOverallConfidence(t *testing.T) {
 	confidence = service.calculateOverallConfidence(emptyClassifications)
 	if confidence != 0.0 {
 		t.Errorf("Expected confidence 0.0 for empty classifications, got %f", confidence)
+	}
+}
+
+func TestPostProcessConfidence(t *testing.T) {
+	svc := &ClassificationService{}
+	in := []IndustryClassification{
+		{IndustryCode: "541611", ConfidenceScore: 0.6, ClassificationMethod: "keyword_based"},
+		{IndustryCode: "541611", ConfidenceScore: 0.55, ClassificationMethod: "name_pattern_based"},
+		{IndustryCode: "541511", ConfidenceScore: 0.7, ClassificationMethod: "keyword_based_naics"},
+	}
+	out := svc.postProcessConfidence(in)
+	if len(out) != 2 {
+		t.Fatalf("expected 2 unique codes, got %d", len(out))
+	}
+	// Ensure the agreed code 541611 received a boost and is preserved once
+	found541611 := false
+	for _, cl := range out {
+		if cl.IndustryCode == "541611" {
+			found541611 = true
+			if cl.ConfidenceScore <= 0.6 {
+				t.Errorf("expected boosted score for 541611, got %f", cl.ConfidenceScore)
+			}
+		}
+	}
+	if !found541611 {
+		t.Error("expected 541611 to be present after dedup")
+	}
+}
+
+func TestClassificationCaching(t *testing.T) {
+	// Prepare minimal industry data for deterministic result
+	industryData := &IndustryCodeData{
+		NAICS: map[string]string{
+			"541511": "Custom Computer Programming Services",
+			"541611": "Administrative Management and General Management Consulting Services",
+		},
+	}
+
+	logger := observability.NewLogger(&config.ObservabilityConfig{LogLevel: "error"})
+	metrics, _ := observability.NewMetrics(&config.ObservabilityConfig{})
+	cfg := &config.ExternalServicesConfig{
+		ClassificationCache: config.ClassificationCacheConfig{
+			Enabled:    true,
+			TTL:        time.Minute,
+			MaxEntries: 100,
+		},
+	}
+	svc := NewClassificationServiceWithData(cfg, nil, logger, metrics, industryData)
+
+	req := &ClassificationRequest{BusinessName: "Acme Software"}
+
+	// First call: cache miss
+	resp1, err := svc.ClassifyBusiness(context.Background(), req)
+	if err != nil {
+		t.Fatalf("unexpected error on first classify: %v", err)
+	}
+	if resp1 == nil || resp1.PrimaryClassification == nil {
+		t.Fatal("expected primary classification on first call")
+	}
+
+	// Second call: should be cache hit with same classifications but new business ID
+	resp2, err := svc.ClassifyBusiness(context.Background(), req)
+	if err != nil {
+		t.Fatalf("unexpected error on second classify: %v", err)
+	}
+	if resp2.BusinessID == resp1.BusinessID {
+		t.Error("expected different business IDs across requests even when cached")
+	}
+	if len(resp2.Classifications) != len(resp1.Classifications) {
+		t.Error("expected cached classifications to match in length")
 	}
 }
 
