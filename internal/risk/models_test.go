@@ -79,14 +79,14 @@ func TestRiskFactorCreation(t *testing.T) {
 func TestRiskScoreCalculation(t *testing.T) {
 	now := time.Now()
 	score := RiskScore{
-		FactorID:    "financial-stability",
-		FactorName:  "Financial Stability",
-		Category:    RiskCategoryFinancial,
-		Score:       65.5,
-		Level:       RiskLevelHigh,
-		Confidence:  0.85,
-		Explanation: "Business shows signs of financial stress",
-		Evidence:    []string{"Declining revenue", "High debt ratio"},
+		FactorID:     "financial-stability",
+		FactorName:   "Financial Stability",
+		Category:     RiskCategoryFinancial,
+		Score:        65.5,
+		Level:        RiskLevelHigh,
+		Confidence:   0.85,
+		Explanation:  "Business shows signs of financial stress",
+		Evidence:     []string{"Declining revenue", "High debt ratio"},
 		CalculatedAt: now,
 	}
 
@@ -195,14 +195,14 @@ func TestRiskThresholdValidation(t *testing.T) {
 func TestRiskAlertCreation(t *testing.T) {
 	now := time.Now()
 	alert := RiskAlert{
-		ID:          "alert-1",
-		BusinessID:  "business-123",
-		RiskFactor:  "financial-stability",
-		Level:       RiskLevelHigh,
-		Message:     "Financial stability score exceeded threshold",
-		Score:       85.0,
-		Threshold:   75.0,
-		TriggeredAt: now,
+		ID:           "alert-1",
+		BusinessID:   "business-123",
+		RiskFactor:   "financial-stability",
+		Level:        RiskLevelHigh,
+		Message:      "Financial stability score exceeded threshold",
+		Score:        85.0,
+		Threshold:    75.0,
+		TriggeredAt:  now,
 		Acknowledged: false,
 	}
 
@@ -220,14 +220,14 @@ func TestRiskDataValidation(t *testing.T) {
 	expiresAt := now.Add(24 * time.Hour)
 
 	data := RiskData{
-		ID:          "data-1",
-		BusinessID:  "business-123",
-		Source:      "financial_api",
-		DataType:    "financial_metrics",
+		ID:         "data-1",
+		BusinessID: "business-123",
+		Source:     "financial_api",
+		DataType:   "financial_metrics",
 		Data: map[string]interface{}{
-			"revenue":     1000000.0,
-			"debt_ratio":  0.6,
-			"cash_flow":   -50000.0,
+			"revenue":    1000000.0,
+			"debt_ratio": 0.6,
+			"cash_flow":  -50000.0,
 		},
 		Reliability: 0.9,
 		CollectedAt: now,
@@ -245,11 +245,11 @@ func TestRiskDataValidation(t *testing.T) {
 
 func TestRiskAssessmentRequestValidation(t *testing.T) {
 	request := RiskAssessmentRequest{
-		BusinessID:        "business-123",
-		BusinessName:      "Test Company",
-		Categories:        []RiskCategory{RiskCategoryFinancial, RiskCategoryOperational},
-		Factors:           []string{"cash-flow", "operational-efficiency"},
-		IncludeHistory:    true,
+		BusinessID:         "business-123",
+		BusinessName:       "Test Company",
+		Categories:         []RiskCategory{RiskCategoryFinancial, RiskCategoryOperational},
+		Factors:            []string{"cash-flow", "operational-efficiency"},
+		IncludeHistory:     true,
 		IncludePredictions: true,
 		Metadata: map[string]interface{}{
 			"assessment_type": "comprehensive",

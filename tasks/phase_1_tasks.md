@@ -58,6 +58,8 @@
 - `internal/classification/service_test.go` - Unit tests for classification service
 - `internal/risk/models.go` - Risk factor data structures and models
 - `internal/risk/models_test.go` - Unit tests for risk data models
+- `internal/risk/scoring.go` - Risk scoring algorithms and calculation logic
+- `internal/risk/scoring_test.go` - Unit tests for risk scoring algorithms
 - `internal/risk/service.go` - Risk assessment service
 - `internal/risk/service_test.go` - Unit tests for risk assessment service
 - `internal/compliance/service.go` - Compliance service
@@ -321,7 +323,7 @@ All Task 4 subtasks completed.
 **5.1 Design Risk Assessment Models**
 
 - [x] Create risk factor data structures
-- [ ] Design risk scoring algorithms
+- [x] Design risk scoring algorithms
 - [ ] Implement industry-specific risk models
 - [ ] Set up risk threshold configurations
 - [ ] Create risk category definitions
