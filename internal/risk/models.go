@@ -160,3 +160,69 @@ type RiskAssessmentResponse struct {
 	Alerts      []RiskAlert      `json:"alerts,omitempty"`
 	GeneratedAt time.Time        `json:"generated_at"`
 }
+
+// ExportFormat represents the format for data export
+type ExportFormat string
+
+const (
+	ExportFormatJSON ExportFormat = "json"
+	ExportFormatCSV  ExportFormat = "csv"
+	ExportFormatXML  ExportFormat = "xml"
+	ExportFormatPDF  ExportFormat = "pdf"
+	ExportFormatXLSX ExportFormat = "xlsx"
+)
+
+// ExportType represents the type of data to export
+type ExportType string
+
+const (
+	ExportTypeAssessments ExportType = "assessments"
+	ExportTypeFactors     ExportType = "factors"
+	ExportTypeTrends      ExportType = "trends"
+	ExportTypeAlerts      ExportType = "alerts"
+	ExportTypeReports     ExportType = "reports"
+	ExportTypeAll         ExportType = "all"
+)
+
+// ExportRequest represents a request to export risk data
+type ExportRequest struct {
+	BusinessID    string                 `json:"business_id"`
+	ExportType    ExportType             `json:"export_type"`
+	Format        ExportFormat           `json:"format"`
+	DateRange     *DateRange             `json:"date_range,omitempty"`
+	Categories    []RiskCategory         `json:"categories,omitempty"`
+	IncludeCharts bool                   `json:"include_charts"`
+	IncludeTrends bool                   `json:"include_trends"`
+	Metadata      map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// ExportResponse represents the response from a data export request
+type ExportResponse struct {
+	ExportID    string                 `json:"export_id"`
+	BusinessID  string                 `json:"business_id"`
+	ExportType  ExportType             `json:"export_type"`
+	Format      ExportFormat           `json:"format"`
+	Data        interface{}            `json:"data"`
+	RecordCount int                    `json:"record_count"`
+	FileSize    int64                  `json:"file_size,omitempty"`
+	DownloadURL string                 `json:"download_url,omitempty"`
+	GeneratedAt time.Time              `json:"generated_at"`
+	ExpiresAt   time.Time              `json:"expires_at"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// ExportJob represents a background export job
+type ExportJob struct {
+	ID          string                 `json:"id"`
+	BusinessID  string                 `json:"business_id"`
+	ExportType  ExportType             `json:"export_type"`
+	Format      ExportFormat           `json:"format"`
+	Status      string                 `json:"status"`   // "pending", "processing", "completed", "failed"
+	Progress    int                    `json:"progress"` // 0-100
+	CreatedAt   time.Time              `json:"created_at"`
+	StartedAt   *time.Time             `json:"started_at,omitempty"`
+	CompletedAt *time.Time             `json:"completed_at,omitempty"`
+	Error       string                 `json:"error,omitempty"`
+	Result      *ExportResponse        `json:"result,omitempty"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+}

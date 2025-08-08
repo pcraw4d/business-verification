@@ -742,6 +742,9 @@ func main() {
 	// Initialize report service
 	reportService := risk.NewReportService(logger, riskHistoryService, alertService)
 
+	// Initialize export service
+	exportService := risk.NewExportService(logger, riskHistoryService, alertService, reportService)
+
 	// Initialize risk service
 	riskService := risk.NewRiskService(
 		logger,
@@ -754,6 +757,7 @@ func main() {
 		riskHistoryService,
 		alertService,
 		reportService,
+		exportService,
 	)
 
 	// Initialize risk handler

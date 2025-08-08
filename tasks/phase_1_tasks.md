@@ -350,7 +350,7 @@ All Task 4 subtasks completed.
 - [x] Implement risk history tracking
 - [x] Set up risk alert generation
 - [x] Create risk report generation
-- [ ] Implement risk data export functionality
+- [x] Implement risk data export functionality
 
 **5.4 Integrate Risk Data Sources**
 

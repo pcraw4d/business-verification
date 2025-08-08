@@ -882,6 +882,226 @@ func (h *RiskHandler) AcknowledgeRiskAlertHandler(w http.ResponseWriter, r *http
 }
 
 // GenerateRiskReportHandler handles POST /v1/risk/reports/generate requests
+// ExportRiskDataHandler handles POST /v1/risk/export requests
+func (h *RiskHandler) ExportRiskDataHandler(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	requestID := r.Context().Value("request_id").(string)
+
+	h.logger.Info("Export risk data request received",
+		"request_id", requestID,
+		"method", r.Method,
+		"path", r.URL.Path,
+		"user_agent", r.UserAgent(),
+	)
+
+	// Parse request body
+	var request risk.ExportRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		h.logger.Error("Failed to decode export request",
+			"request_id", requestID,
+			"error", err.Error(),
+		)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Validate request
+	if request.BusinessID == "" {
+		h.logger.Error("Missing business ID in export request",
+			"request_id", requestID,
+		)
+		http.Error(w, "Business ID is required", http.StatusBadRequest)
+		return
+	}
+
+	if request.ExportType == "" {
+		request.ExportType = risk.ExportTypeAssessments // Default to assessments
+	}
+
+	if request.Format == "" {
+		request.Format = risk.ExportFormatJSON // Default to JSON
+	}
+
+	// Export data
+	ctx := context.WithValue(r.Context(), "request_id", requestID)
+	response, err := h.riskService.ExportRiskData(ctx, request)
+	if err != nil {
+		h.logger.Error("Failed to export risk data",
+			"request_id", requestID,
+			"business_id", request.BusinessID,
+			"error", err.Error(),
+		)
+		http.Error(w, "Failed to export data", http.StatusInternalServerError)
+		return
+	}
+
+	// Set response headers
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Request-ID", requestID)
+
+	// Encode response
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		h.logger.Error("Failed to encode export response",
+			"request_id", requestID,
+			"error", err.Error(),
+		)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+
+	duration := time.Since(startTime)
+	h.logger.Info("Export risk data request completed",
+		"request_id", requestID,
+		"business_id", request.BusinessID,
+		"export_type", request.ExportType,
+		"format", request.Format,
+		"record_count", response.RecordCount,
+		"duration_ms", duration.Milliseconds(),
+		"status_code", http.StatusOK,
+	)
+}
+
+// CreateExportJobHandler handles POST /v1/risk/export/job requests
+func (h *RiskHandler) CreateExportJobHandler(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	requestID := r.Context().Value("request_id").(string)
+
+	h.logger.Info("Create export job request received",
+		"request_id", requestID,
+		"method", r.Method,
+		"path", r.URL.Path,
+		"user_agent", r.UserAgent(),
+	)
+
+	// Parse request body
+	var request risk.ExportRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		h.logger.Error("Failed to decode export job request",
+			"request_id", requestID,
+			"error", err.Error(),
+		)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Validate request
+	if request.BusinessID == "" {
+		h.logger.Error("Missing business ID in export job request",
+			"request_id", requestID,
+		)
+		http.Error(w, "Business ID is required", http.StatusBadRequest)
+		return
+	}
+
+	if request.ExportType == "" {
+		request.ExportType = risk.ExportTypeAssessments // Default to assessments
+	}
+
+	if request.Format == "" {
+		request.Format = risk.ExportFormatJSON // Default to JSON
+	}
+
+	// Create export job
+	ctx := context.WithValue(r.Context(), "request_id", requestID)
+	job, err := h.riskService.CreateExportJob(ctx, request)
+	if err != nil {
+		h.logger.Error("Failed to create export job",
+			"request_id", requestID,
+			"business_id", request.BusinessID,
+			"error", err.Error(),
+		)
+		http.Error(w, "Failed to create export job", http.StatusInternalServerError)
+		return
+	}
+
+	// Set response headers
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Request-ID", requestID)
+
+	// Encode response
+	if err := json.NewEncoder(w).Encode(job); err != nil {
+		h.logger.Error("Failed to encode export job response",
+			"request_id", requestID,
+			"error", err.Error(),
+		)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+
+	duration := time.Since(startTime)
+	h.logger.Info("Create export job request completed",
+		"request_id", requestID,
+		"business_id", request.BusinessID,
+		"job_id", job.ID,
+		"export_type", request.ExportType,
+		"format", request.Format,
+		"duration_ms", duration.Milliseconds(),
+		"status_code", http.StatusOK,
+	)
+}
+
+// GetExportJobHandler handles GET /v1/risk/export/job/{jobID} requests
+func (h *RiskHandler) GetExportJobHandler(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	requestID := r.Context().Value("request_id").(string)
+
+	h.logger.Info("Get export job request received",
+		"request_id", requestID,
+		"method", r.Method,
+		"path", r.URL.Path,
+		"user_agent", r.UserAgent(),
+	)
+
+	// Extract job ID from URL
+	pathParts := strings.Split(r.URL.Path, "/")
+	if len(pathParts) < 5 {
+		h.logger.Error("Invalid export job URL",
+			"request_id", requestID,
+			"path", r.URL.Path,
+		)
+		http.Error(w, "Invalid job ID", http.StatusBadRequest)
+		return
+	}
+	jobID := pathParts[len(pathParts)-1]
+
+	// Get export job
+	ctx := context.WithValue(r.Context(), "request_id", requestID)
+	job, err := h.riskService.GetExportJob(ctx, jobID)
+	if err != nil {
+		h.logger.Error("Failed to get export job",
+			"request_id", requestID,
+			"job_id", jobID,
+			"error", err.Error(),
+		)
+		http.Error(w, "Failed to get export job", http.StatusInternalServerError)
+		return
+	}
+
+	// Set response headers
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Request-ID", requestID)
+
+	// Encode response
+	if err := json.NewEncoder(w).Encode(job); err != nil {
+		h.logger.Error("Failed to encode export job response",
+			"request_id", requestID,
+			"error", err.Error(),
+		)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+
+	duration := time.Since(startTime)
+	h.logger.Info("Get export job request completed",
+		"request_id", requestID,
+		"job_id", jobID,
+		"status", job.Status,
+		"progress", job.Progress,
+		"duration_ms", duration.Milliseconds(),
+		"status_code", http.StatusOK,
+	)
+}
+
 func (h *RiskHandler) GenerateRiskReportHandler(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 	requestID := r.Context().Value("request_id").(string)

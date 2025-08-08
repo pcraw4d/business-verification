@@ -387,6 +387,51 @@ func (s *AlertService) GetAlertRules() ([]*AlertRule, error) {
 	return s.getDefaultAlertRules(), nil
 }
 
+// GetAlerts retrieves alerts for a business
+func (s *AlertService) GetAlerts(ctx context.Context, businessID string) ([]RiskAlert, error) {
+	requestID := ctx.Value("request_id").(string)
+
+	s.logger.Info("Retrieving alerts for business",
+		"request_id", requestID,
+		"business_id", businessID,
+	)
+
+	// In a real implementation, this would query the database
+	// For now, return mock alerts
+	alerts := []RiskAlert{
+		{
+			ID:           fmt.Sprintf("alert_%s_1", businessID),
+			BusinessID:   businessID,
+			RiskFactor:   "financial_stability",
+			Level:        RiskLevelCritical,
+			Message:      "Critical financial stability risk detected",
+			Score:        85.0,
+			Threshold:    80.0,
+			TriggeredAt:  time.Now().Add(-2 * time.Hour),
+			Acknowledged: false,
+		},
+		{
+			ID:           fmt.Sprintf("alert_%s_2", businessID),
+			BusinessID:   businessID,
+			RiskFactor:   "operational_efficiency",
+			Level:        RiskLevelHigh,
+			Message:      "High operational efficiency risk detected",
+			Score:        75.0,
+			Threshold:    70.0,
+			TriggeredAt:  time.Now().Add(-1 * time.Hour),
+			Acknowledged: false,
+		},
+	}
+
+	s.logger.Info("Retrieved alerts for business",
+		"request_id", requestID,
+		"business_id", businessID,
+		"alert_count", len(alerts),
+	)
+
+	return alerts, nil
+}
+
 // getDefaultAlertRules returns default alert rules
 func (s *AlertService) getDefaultAlertRules() []*AlertRule {
 	return []*AlertRule{

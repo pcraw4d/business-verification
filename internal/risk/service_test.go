@@ -39,6 +39,7 @@ func TestRiskService_GenerateRiskReport(t *testing.T) {
 		historyService,
 		alertService,
 		reportService,
+		nil, // No export service for this test
 	)
 
 	// Create test request
@@ -151,6 +152,7 @@ func TestRiskService_GenerateRiskReport_Detailed(t *testing.T) {
 		historyService,
 		alertService,
 		reportService,
+		nil, // No export service for this test
 	)
 
 	// Create test request for detailed report
@@ -229,7 +231,7 @@ func TestRiskService_GenerateRiskReport_NoReportService(t *testing.T) {
 	historyService := NewRiskHistoryService(logger, nil) // nil DB for testing
 	alertService := NewAlertService(logger, thresholdManager)
 
-	// Create risk service WITHOUT report service
+	// Create risk service WITHOUT report service and export service
 	service := NewRiskService(
 		logger,
 		calculator,
@@ -241,6 +243,7 @@ func TestRiskService_GenerateRiskReport_NoReportService(t *testing.T) {
 		historyService,
 		alertService,
 		nil, // No report service
+		nil, // No export service
 	)
 
 	// Create test request

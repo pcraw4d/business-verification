@@ -20,6 +20,7 @@ type RiskService struct {
 	historyService        *RiskHistoryService
 	alertService          *AlertService
 	reportService         *ReportService
+	exportService         *ExportService
 }
 
 // NewRiskService creates a new risk service
@@ -34,6 +35,7 @@ func NewRiskService(
 	historyService *RiskHistoryService,
 	alertService *AlertService,
 	reportService *ReportService,
+	exportService *ExportService,
 ) *RiskService {
 	return &RiskService{
 		logger:                logger,
@@ -46,6 +48,7 @@ func NewRiskService(
 		historyService:        historyService,
 		alertService:          alertService,
 		reportService:         reportService,
+		exportService:         exportService,
 	}
 }
 
@@ -521,4 +524,110 @@ func (s *RiskService) GenerateRiskReport(ctx context.Context, request ReportRequ
 	)
 
 	return report, nil
+}
+
+// ExportRiskData exports risk data in the specified format
+func (s *RiskService) ExportRiskData(ctx context.Context, request ExportRequest) (*ExportResponse, error) {
+	requestID := ctx.Value("request_id").(string)
+
+	s.logger.Info("Exporting risk data",
+		"request_id", requestID,
+		"business_id", request.BusinessID,
+		"export_type", request.ExportType,
+		"format", request.Format,
+	)
+
+	// Use the export service to export data
+	if s.exportService == nil {
+		return nil, fmt.Errorf("export service not available")
+	}
+
+	response, err := s.exportService.ExportRiskData(ctx, request)
+	if err != nil {
+		s.logger.Error("Failed to export risk data",
+			"request_id", requestID,
+			"business_id", request.BusinessID,
+			"error", err.Error(),
+		)
+		return nil, fmt.Errorf("failed to export risk data: %w", err)
+	}
+
+	s.logger.Info("Risk data export completed",
+		"request_id", requestID,
+		"business_id", request.BusinessID,
+		"export_type", request.ExportType,
+		"format", request.Format,
+		"record_count", response.RecordCount,
+	)
+
+	return response, nil
+}
+
+// CreateExportJob creates a background export job for large datasets
+func (s *RiskService) CreateExportJob(ctx context.Context, request ExportRequest) (*ExportJob, error) {
+	requestID := ctx.Value("request_id").(string)
+
+	s.logger.Info("Creating export job",
+		"request_id", requestID,
+		"business_id", request.BusinessID,
+		"export_type", request.ExportType,
+		"format", request.Format,
+	)
+
+	// Use the export service to create job
+	if s.exportService == nil {
+		return nil, fmt.Errorf("export service not available")
+	}
+
+	job, err := s.exportService.CreateExportJob(ctx, request)
+	if err != nil {
+		s.logger.Error("Failed to create export job",
+			"request_id", requestID,
+			"business_id", request.BusinessID,
+			"error", err.Error(),
+		)
+		return nil, fmt.Errorf("failed to create export job: %w", err)
+	}
+
+	s.logger.Info("Export job created",
+		"request_id", requestID,
+		"job_id", job.ID,
+		"business_id", request.BusinessID,
+	)
+
+	return job, nil
+}
+
+// GetExportJob retrieves the status of an export job
+func (s *RiskService) GetExportJob(ctx context.Context, jobID string) (*ExportJob, error) {
+	requestID := ctx.Value("request_id").(string)
+
+	s.logger.Info("Retrieving export job",
+		"request_id", requestID,
+		"job_id", jobID,
+	)
+
+	// Use the export service to get job status
+	if s.exportService == nil {
+		return nil, fmt.Errorf("export service not available")
+	}
+
+	job, err := s.exportService.GetExportJob(ctx, jobID)
+	if err != nil {
+		s.logger.Error("Failed to retrieve export job",
+			"request_id", requestID,
+			"job_id", jobID,
+			"error", err.Error(),
+		)
+		return nil, fmt.Errorf("failed to retrieve export job: %w", err)
+	}
+
+	s.logger.Info("Export job retrieved",
+		"request_id", requestID,
+		"job_id", jobID,
+		"status", job.Status,
+		"progress", job.Progress,
+	)
+
+	return job, nil
 }

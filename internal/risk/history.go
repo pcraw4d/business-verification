@@ -232,14 +232,25 @@ func (s *RiskHistoryService) GetRiskTrends(ctx context.Context, businessID strin
 	)
 
 	// Get risk assessments for trend analysis
-	dbAssessments, err := s.database.GetRiskAssessmentTrends(ctx, businessID, days)
-	if err != nil {
-		s.logger.Error("Failed to retrieve risk trends",
+	var dbAssessments []*database.RiskAssessment
+	var err error
+	
+	if s.database != nil {
+		dbAssessments, err = s.database.GetRiskAssessmentTrends(ctx, businessID, days)
+		if err != nil {
+			s.logger.Error("Failed to retrieve risk trends",
+				"request_id", requestID,
+				"business_id", businessID,
+				"error", err.Error(),
+			)
+			return nil, fmt.Errorf("failed to retrieve risk trends: %w", err)
+		}
+	} else {
+		s.logger.Info("Database not available, returning empty risk trends",
 			"request_id", requestID,
 			"business_id", businessID,
-			"error", err.Error(),
 		)
-		return nil, fmt.Errorf("failed to retrieve risk trends: %w", err)
+		dbAssessments = []*database.RiskAssessment{}
 	}
 
 	// Convert to risk assessment models
@@ -599,10 +610,17 @@ func (s *RiskHistoryService) getBusinessName(assessments []*RiskAssessment) stri
 
 func (s *RiskHistoryService) analyzeTrends(assessments []*RiskAssessment, days int) *RiskTrendAnalysis {
 	analysis := &RiskTrendAnalysis{
-		BusinessID:  assessments[0].BusinessID,
 		Period:      fmt.Sprintf("%dmonths", days/30),
 		GeneratedAt: time.Now(),
 	}
+
+	if len(assessments) == 0 {
+		analysis.ScoreTrend = "insufficient_data"
+		analysis.LevelTrend = "insufficient_data"
+		return analysis
+	}
+
+	analysis.BusinessID = assessments[0].BusinessID
 
 	if len(assessments) < 2 {
 		analysis.ScoreTrend = "insufficient_data"
