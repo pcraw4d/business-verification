@@ -238,14 +238,15 @@ func TestComplianceCheckModel(t *testing.T) {
 
 func TestAPIKeyModel(t *testing.T) {
 	now := time.Now()
-	permissions := []string{"read", "write", "admin"}
+	permissionsJSON := `{"read","write","admin"}`
 
+	// Database model stores permissions as JSON string
 	apiKey := &APIKey{
 		ID:          "key-123",
 		UserID:      "user-123",
 		Name:        "Test API Key",
 		KeyHash:     "hashed_key_value",
-		Permissions: permissions,
+		Permissions: permissionsJSON,
 		Status:      "active",
 		LastUsedAt:  &now,
 		ExpiresAt:   nil,
@@ -269,8 +270,8 @@ func TestAPIKeyModel(t *testing.T) {
 		t.Errorf("Expected status 'active', got %s", apiKey.Status)
 	}
 
-	if len(apiKey.Permissions) != 3 {
-		t.Errorf("Expected 3 permissions, got %d", len(apiKey.Permissions))
+	if apiKey.Permissions != permissionsJSON {
+		t.Errorf("Expected permissions JSON %s, got %s", permissionsJSON, apiKey.Permissions)
 	}
 }
 

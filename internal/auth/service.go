@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -133,6 +134,13 @@ func (a *AuthService) RegisterUser(ctx context.Context, req *RegisterRequest) (*
 		"ip_address": getIPFromContext(ctx),
 	})
 
+	// Audit log
+	a.auditAuthEvent(ctx, user.ID, "user_registered", map[string]interface{}{
+		"email":    user.Email,
+		"username": user.Username,
+		"company":  user.Company,
+	})
+
 	// Record metrics
 	a.metrics.RecordBusinessClassification("success", "registration")
 
@@ -189,6 +197,12 @@ func (a *AuthService) LoginUser(ctx context.Context, req *LoginRequest) (*TokenR
 			"failed_attempts": user.FailedLoginAttempts,
 		})
 
+		// Audit log
+		a.auditAuthEvent(ctx, user.ID, "login_failed", map[string]interface{}{
+			"email":           user.Email,
+			"failed_attempts": user.FailedLoginAttempts,
+		})
+
 		return nil, fmt.Errorf("invalid credentials")
 	}
 
@@ -218,6 +232,11 @@ func (a *AuthService) LoginUser(ctx context.Context, req *LoginRequest) (*TokenR
 	a.logger.WithUser(user.ID).LogBusinessEvent(ctx, "user_logged_in", user.ID, map[string]interface{}{
 		"email":      user.Email,
 		"ip_address": getIPFromContext(ctx),
+	})
+
+	// Audit log
+	a.auditAuthEvent(ctx, user.ID, "user_logged_in", map[string]interface{}{
+		"email": user.Email,
 	})
 
 	// Record metrics
@@ -265,6 +284,9 @@ func (a *AuthService) RefreshToken(ctx context.Context, refreshToken string) (*T
 	a.logger.WithUser(user.ID).LogBusinessEvent(ctx, "token_refreshed", user.ID, map[string]interface{}{
 		"ip_address": getIPFromContext(ctx),
 	})
+
+	// Audit log
+	a.auditAuthEvent(ctx, user.ID, "token_refreshed", map[string]interface{}{})
 
 	return &TokenResponse{
 		AccessToken:  accessToken,
@@ -337,6 +359,11 @@ func (a *AuthService) LogoutUser(ctx context.Context, tokenString string, userID
 		"token_id":   claims.ID,
 	})
 
+	// Audit log
+	a.auditAuthEvent(ctx, userID, "user_logged_out", map[string]interface{}{
+		"token_id": claims.ID,
+	})
+
 	// Record metrics
 	a.metrics.RecordBusinessClassification("success", "logout")
 
@@ -374,6 +401,9 @@ func (a *AuthService) ChangePassword(ctx context.Context, userID, currentPasswor
 	a.logger.WithUser(user.ID).LogSecurityEvent(ctx, "password_changed", user.ID, getIPFromContext(ctx), map[string]interface{}{
 		"ip_address": getIPFromContext(ctx),
 	})
+
+	// Audit log
+	a.auditAuthEvent(ctx, user.ID, "password_changed", map[string]interface{}{})
 
 	// Record metrics
 	a.metrics.RecordBusinessClassification("success", "password_change")
@@ -576,6 +606,11 @@ func (a *AuthService) VerifyEmail(ctx context.Context, token string) error {
 		"email": user.Email,
 	})
 
+	// Audit log
+	a.auditAuthEvent(ctx, user.ID, "email_verified", map[string]interface{}{
+		"email": user.Email,
+	})
+
 	return nil
 }
 
@@ -604,6 +639,12 @@ func (a *AuthService) CreatePasswordResetToken(ctx context.Context, email string
 
 	// Log token creation
 	a.logger.WithUser(user.ID).LogSecurityEvent(ctx, "password_reset_token_created", user.ID, getIPFromContext(ctx), map[string]interface{}{
+		"email":            user.Email,
+		"token_expires_at": expiresAt,
+	})
+
+	// Audit log
+	a.auditAuthEvent(ctx, user.ID, "password_reset_token_created", map[string]interface{}{
 		"email":            user.Email,
 		"token_expires_at": expiresAt,
 	})
@@ -659,6 +700,11 @@ func (a *AuthService) ResetPassword(ctx context.Context, token, newPassword stri
 		"email": user.Email,
 	})
 
+	// Audit log
+	a.auditAuthEvent(ctx, user.ID, "password_reset", map[string]interface{}{
+		"email": user.Email,
+	})
+
 	return nil
 }
 
@@ -691,4 +737,35 @@ func generateRandomToken() string {
 	b := make([]byte, 32)
 	rand.Read(b)
 	return hex.EncodeToString(b)
+}
+
+// auditAuthEvent persists an audit log entry for authentication-related actions.
+func (a *AuthService) auditAuthEvent(ctx context.Context, userID, action string, details map[string]interface{}) {
+	if a.db == nil {
+		return
+	}
+
+	var detailsStr string
+	if len(details) > 0 {
+		if b, err := json.Marshal(details); err == nil {
+			detailsStr = string(b)
+		}
+	}
+
+	logEntry := &database.AuditLog{
+		ID:           generateUUID(),
+		UserID:       userID,
+		Action:       action,
+		ResourceType: "user",
+		ResourceID:   userID,
+		Details:      detailsStr,
+		IPAddress:    getIPFromContext(ctx),
+		UserAgent:    "",
+		RequestID:    observability.GetRequestID(ctx),
+		CreatedAt:    time.Now(),
+	}
+
+	if err := a.db.CreateAuditLog(ctx, logEntry); err != nil {
+		a.logger.WithComponent("audit").WithError(err).Warn("Failed to persist audit log")
+	}
 }

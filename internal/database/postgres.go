@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	_ "github.com/lib/pq"
 )
@@ -720,5 +721,170 @@ func (p *PostgresDB) DeleteExpiredTokenBlacklist(ctx context.Context) error {
 		WHERE expires_at < CURRENT_TIMESTAMP
 	`
 	_, err := p.getDB().ExecContext(ctx, query)
+	return err
+}
+
+// Role assignment methods
+func (p *PostgresDB) CreateRoleAssignment(ctx context.Context, assignment *RoleAssignment) error {
+	query := `
+		INSERT INTO role_assignments (id, user_id, role, assigned_by, assigned_at, expires_at, is_active, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+	`
+	_, err := p.getDB().ExecContext(ctx, query,
+		assignment.ID, assignment.UserID, assignment.Role, assignment.AssignedBy,
+		assignment.AssignedAt, assignment.ExpiresAt, assignment.IsActive,
+		assignment.CreatedAt, assignment.UpdatedAt)
+	return err
+}
+
+func (p *PostgresDB) GetRoleAssignmentByID(ctx context.Context, id string) (*RoleAssignment, error) {
+	query := `
+		SELECT id, user_id, role, assigned_by, assigned_at, expires_at, is_active, created_at, updated_at
+		FROM role_assignments
+		WHERE id = $1
+	`
+	var assignment RoleAssignment
+	err := p.getDB().QueryRowContext(ctx, query, id).Scan(
+		&assignment.ID, &assignment.UserID, &assignment.Role, &assignment.AssignedBy,
+		&assignment.AssignedAt, &assignment.ExpiresAt, &assignment.IsActive,
+		&assignment.CreatedAt, &assignment.UpdatedAt)
+
+	if err != nil {
+		return nil, err
+	}
+	return &assignment, nil
+}
+
+func (p *PostgresDB) GetActiveRoleAssignmentByUserID(ctx context.Context, userID string) (*RoleAssignment, error) {
+	query := `
+		SELECT id, user_id, role, assigned_by, assigned_at, expires_at, is_active, created_at, updated_at
+		FROM role_assignments
+		WHERE user_id = $1 AND is_active = true 
+		AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+		ORDER BY created_at DESC
+		LIMIT 1
+	`
+	var assignment RoleAssignment
+	err := p.getDB().QueryRowContext(ctx, query, userID).Scan(
+		&assignment.ID, &assignment.UserID, &assignment.Role, &assignment.AssignedBy,
+		&assignment.AssignedAt, &assignment.ExpiresAt, &assignment.IsActive,
+		&assignment.CreatedAt, &assignment.UpdatedAt)
+
+	if err != nil {
+		return nil, err
+	}
+	return &assignment, nil
+}
+
+func (p *PostgresDB) GetRoleAssignmentsByUserID(ctx context.Context, userID string) ([]*RoleAssignment, error) {
+	query := `
+		SELECT id, user_id, role, assigned_by, assigned_at, expires_at, is_active, created_at, updated_at
+		FROM role_assignments
+		WHERE user_id = $1
+		ORDER BY created_at DESC
+	`
+	rows, err := p.getDB().QueryContext(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var assignments []*RoleAssignment
+	for rows.Next() {
+		var assignment RoleAssignment
+		err := rows.Scan(
+			&assignment.ID, &assignment.UserID, &assignment.Role, &assignment.AssignedBy,
+			&assignment.AssignedAt, &assignment.ExpiresAt, &assignment.IsActive,
+			&assignment.CreatedAt, &assignment.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		assignments = append(assignments, &assignment)
+	}
+
+	return assignments, rows.Err()
+}
+
+func (p *PostgresDB) UpdateRoleAssignment(ctx context.Context, assignment *RoleAssignment) error {
+	query := `
+		UPDATE role_assignments
+		SET role = $2, assigned_by = $3, assigned_at = $4, expires_at = $5, 
+		    is_active = $6, updated_at = $7
+		WHERE id = $1
+	`
+	_, err := p.getDB().ExecContext(ctx, query,
+		assignment.ID, assignment.Role, assignment.AssignedBy, assignment.AssignedAt,
+		assignment.ExpiresAt, assignment.IsActive, assignment.UpdatedAt)
+	return err
+}
+
+func (p *PostgresDB) DeactivateRoleAssignment(ctx context.Context, id string) error {
+	query := `
+		UPDATE role_assignments
+		SET is_active = false, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1
+	`
+	_, err := p.getDB().ExecContext(ctx, query, id)
+	return err
+}
+
+func (p *PostgresDB) DeleteExpiredRoleAssignments(ctx context.Context) error {
+	query := `
+		UPDATE role_assignments
+		SET is_active = false, updated_at = CURRENT_TIMESTAMP
+		WHERE expires_at < CURRENT_TIMESTAMP AND is_active = true
+	`
+	_, err := p.getDB().ExecContext(ctx, query)
+	return err
+}
+
+// Enhanced API key management with RBAC
+func (p *PostgresDB) UpdateAPIKeyLastUsed(ctx context.Context, id string, lastUsed time.Time) error {
+	query := `
+		UPDATE api_keys
+		SET last_used_at = $2, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1
+	`
+	_, err := p.getDB().ExecContext(ctx, query, id, lastUsed)
+	return err
+}
+
+func (p *PostgresDB) GetActiveAPIKeysByRole(ctx context.Context, role string) ([]*APIKey, error) {
+	query := `
+		SELECT id, user_id, name, key_hash, role, permissions, status, last_used_at, expires_at, created_at, updated_at
+		FROM api_keys
+		WHERE role = $1 AND status = 'active' 
+		AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+		ORDER BY created_at DESC
+	`
+	rows, err := p.getDB().QueryContext(ctx, query, role)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var apiKeys []*APIKey
+	for rows.Next() {
+		var apiKey APIKey
+		err := rows.Scan(
+			&apiKey.ID, &apiKey.UserID, &apiKey.Name, &apiKey.KeyHash,
+			&apiKey.Role, &apiKey.Permissions, &apiKey.Status,
+			&apiKey.LastUsedAt, &apiKey.ExpiresAt, &apiKey.CreatedAt, &apiKey.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		apiKeys = append(apiKeys, &apiKey)
+	}
+
+	return apiKeys, rows.Err()
+}
+
+func (p *PostgresDB) DeactivateAPIKey(ctx context.Context, id string) error {
+	query := `
+		UPDATE api_keys
+		SET status = 'inactive', updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1
+	`
+	_, err := p.getDB().ExecContext(ctx, query, id)
 	return err
 }

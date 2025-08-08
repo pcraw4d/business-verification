@@ -29,22 +29,44 @@ type Server struct {
 	authService       *auth.AuthService
 	authHandler       *handlers.AuthHandler
 	authMiddleware    *middleware.AuthMiddleware
+	adminService      *auth.AdminService
+	adminHandler      *handlers.AdminHandler
 	rateLimiter       *middleware.RateLimiter
+	authRateLimiter   *middleware.AuthRateLimiter
+	ipBlocker         *middleware.IPBlocker
 	validator         *middleware.Validator
 	server            *http.Server
 }
 
-// NewServer creates a new API server instance
-func NewServer(cfg *config.Config, logger *observability.Logger, metrics *observability.Metrics, classificationSvc *classification.ClassificationService, authService *auth.AuthService, authHandler *handlers.AuthHandler, authMiddleware *middleware.AuthMiddleware, rateLimiter *middleware.RateLimiter, validator *middleware.Validator) *Server {
+// NewServer creates a new server instance
+func NewServer(
+	config *config.Config,
+	logger *observability.Logger,
+	metrics *observability.Metrics,
+	classificationSvc *classification.ClassificationService,
+	authService *auth.AuthService,
+	authHandler *handlers.AuthHandler,
+	authMiddleware *middleware.AuthMiddleware,
+	adminService *auth.AdminService,
+	adminHandler *handlers.AdminHandler,
+	rateLimiter *middleware.RateLimiter,
+	authRateLimiter *middleware.AuthRateLimiter,
+	ipBlocker *middleware.IPBlocker,
+	validator *middleware.Validator,
+) *Server {
 	return &Server{
-		config:            cfg,
+		config:            config,
 		logger:            logger,
 		metrics:           metrics,
 		classificationSvc: classificationSvc,
 		authService:       authService,
 		authHandler:       authHandler,
 		authMiddleware:    authMiddleware,
+		adminService:      adminService,
+		adminHandler:      adminHandler,
 		rateLimiter:       rateLimiter,
+		authRateLimiter:   authRateLimiter,
+		ipBlocker:         ipBlocker,
 		validator:         validator,
 	}
 }
@@ -81,6 +103,15 @@ func (s *Server) setupRoutes() *http.ServeMux {
 	mux.HandleFunc("POST /v1/classify", s.classifyHandler)
 	mux.HandleFunc("POST /v1/classify/batch", s.classifyBatchHandler)
 
+	// Admin endpoints (protected)
+	mux.Handle("POST /v1/admin/users", s.authMiddleware.RequireAuth(http.HandlerFunc(s.adminHandler.CreateUser)))
+	mux.Handle("PUT /v1/admin/users/{id}", s.authMiddleware.RequireAuth(http.HandlerFunc(s.adminHandler.UpdateUser)))
+	mux.Handle("DELETE /v1/admin/users/{id}", s.authMiddleware.RequireAuth(http.HandlerFunc(s.adminHandler.DeleteUser)))
+	mux.Handle("POST /v1/admin/users/{id}/activate", s.authMiddleware.RequireAuth(http.HandlerFunc(s.adminHandler.ActivateUser)))
+	mux.Handle("POST /v1/admin/users/{id}/deactivate", s.authMiddleware.RequireAuth(http.HandlerFunc(s.adminHandler.DeactivateUser)))
+	mux.Handle("GET /v1/admin/users", s.authMiddleware.RequireAuth(http.HandlerFunc(s.adminHandler.ListUsers)))
+	mux.Handle("GET /v1/admin/stats", s.authMiddleware.RequireAuth(http.HandlerFunc(s.adminHandler.GetSystemStats)))
+
 	// Catch-all for undefined routes
 	mux.HandleFunc("GET /", s.notFoundHandler)
 	mux.HandleFunc("POST /", s.notFoundHandler)
@@ -96,7 +127,9 @@ func (s *Server) setupMiddleware(handler http.Handler) http.Handler {
 	handler = s.securityHeadersMiddleware(handler)
 	handler = s.corsMiddleware(handler)
 	handler = s.validator.Middleware(handler)
-	handler = s.rateLimiter.Middleware(handler)
+	handler = s.authRateLimiter.Middleware(handler) // Auth-specific rate limiting
+	handler = s.rateLimiter.Middleware(handler)     // General rate limiting
+	handler = s.ipBlocker.Middleware(handler)       // IP-based blocking
 	handler = s.requestLoggingMiddleware(handler)
 	handler = s.requestIDMiddleware(handler)
 	handler = s.recoveryMiddleware(handler)
@@ -456,8 +489,15 @@ func main() {
 	authService := auth.NewAuthService(&cfg.Auth, db, logger, metrics)
 
 	// Initialize authentication handlers and middleware
-	authHandler := handlers.NewAuthHandler(authService, logger, metrics)
+	authHandler := handlers.NewAuthHandler(authService, logger, metrics, cfg)
 	authMiddleware := middleware.NewAuthMiddleware(authService, logger)
+
+	// Initialize admin service and handlers
+	rbacService := auth.NewRBACService(authService)
+	roleService := auth.NewRoleService(db, logger, rbacService)
+	apiKeyService := auth.NewAPIKeyService(db, logger)
+	adminService := auth.NewAdminService(db, logger, authService, roleService, apiKeyService)
+	adminHandler := handlers.NewAdminHandler(adminService, logger)
 
 	// Initialize rate limiting middleware
 	rateLimitConfig := &middleware.RateLimitConfig{
@@ -466,6 +506,28 @@ func main() {
 		Enabled:           cfg.Server.RateLimit.Enabled,
 	}
 	rateLimiter := middleware.NewRateLimiter(rateLimitConfig, logger)
+
+	// Initialize auth-specific rate limiting middleware
+	authRateLimitConfig := &middleware.AuthRateLimitConfig{
+		Enabled:                  cfg.Server.AuthRateLimit.Enabled,
+		LoginAttemptsPer:         cfg.Server.AuthRateLimit.LoginAttemptsPer,
+		RegisterAttemptsPer:      cfg.Server.AuthRateLimit.RegisterAttemptsPer,
+		PasswordResetAttemptsPer: cfg.Server.AuthRateLimit.PasswordResetAttemptsPer,
+		WindowSize:               cfg.Server.AuthRateLimit.WindowSize,
+		LockoutDuration:          cfg.Server.AuthRateLimit.LockoutDuration,
+	}
+	authRateLimiter := middleware.NewAuthRateLimiter(authRateLimitConfig, logger)
+
+	// Initialize IP blocker middleware
+	ipBlocker := middleware.NewIPBlocker(
+		cfg.Server.IPBlock.Enabled,
+		cfg.Server.IPBlock.Threshold,
+		cfg.Server.IPBlock.Window,
+		cfg.Server.IPBlock.BlockDuration,
+		cfg.Server.IPBlock.Whitelist,
+		cfg.Server.IPBlock.Blacklist,
+		logger,
+	)
 
 	// Initialize validation middleware
 	validationConfig := &middleware.ValidationConfig{
@@ -476,7 +538,7 @@ func main() {
 	validator := middleware.NewValidator(validationConfig, logger)
 
 	// Create server
-	server := NewServer(cfg, logger, metrics, classificationSvc, authService, authHandler, authMiddleware, rateLimiter, validator)
+	server := NewServer(cfg, logger, metrics, classificationSvc, authService, authHandler, authMiddleware, adminService, adminHandler, rateLimiter, authRateLimiter, ipBlocker, validator)
 
 	// Start server in goroutine
 	go func() {

@@ -57,8 +57,24 @@ type ServerConfig struct {
 	// Rate limiting
 	RateLimit RateLimitConfig `json:"rate_limit" yaml:"rate_limit"`
 
+	// Auth-specific rate limiting
+	AuthRateLimit AuthRateLimitConfig `json:"auth_rate_limit" yaml:"auth_rate_limit"`
+
+	// IP-based blocking
+	IPBlock IPBlockConfig `json:"ip_block" yaml:"ip_block"`
+
 	// Request validation
 	Validation ValidationConfig `json:"validation" yaml:"validation"`
+}
+
+// IPBlockConfig holds settings for IP-based blocking
+type IPBlockConfig struct {
+	Enabled       bool          `json:"enabled" yaml:"enabled"`
+	Threshold     int           `json:"threshold" yaml:"threshold"`           // number of offending responses in window
+	Window        time.Duration `json:"window" yaml:"window"`                 // sliding window duration
+	BlockDuration time.Duration `json:"block_duration" yaml:"block_duration"` // how long to block the IP
+	Whitelist     []string      `json:"whitelist" yaml:"whitelist"`
+	Blacklist     []string      `json:"blacklist" yaml:"blacklist"`
 }
 
 // CORSConfig holds CORS-related configuration
@@ -76,6 +92,16 @@ type RateLimitConfig struct {
 	RequestsPer int  `json:"requests_per" yaml:"requests_per"`
 	WindowSize  int  `json:"window_size" yaml:"window_size"`
 	BurstSize   int  `json:"burst_size" yaml:"burst_size"`
+}
+
+// AuthRateLimitConfig holds authentication-specific rate limiting configuration
+type AuthRateLimitConfig struct {
+	Enabled                  bool          `json:"enabled" yaml:"enabled"`
+	LoginAttemptsPer         int           `json:"login_attempts_per" yaml:"login_attempts_per"`
+	RegisterAttemptsPer      int           `json:"register_attempts_per" yaml:"register_attempts_per"`
+	PasswordResetAttemptsPer int           `json:"password_reset_attempts_per" yaml:"password_reset_attempts_per"`
+	WindowSize               time.Duration `json:"window_size" yaml:"window_size"`
+	LockoutDuration          time.Duration `json:"lockout_duration" yaml:"lockout_duration"`
 }
 
 // ValidationConfig holds request validation configuration
@@ -121,6 +147,14 @@ type AuthConfig struct {
 	// Account lockout
 	MaxLoginAttempts int           `json:"max_login_attempts" yaml:"max_login_attempts"`
 	LockoutDuration  time.Duration `json:"lockout_duration" yaml:"lockout_duration"`
+
+	// Session & cookie settings
+	RefreshCookieName string `json:"refresh_cookie_name" yaml:"refresh_cookie_name"`
+	CSRFCookieName    string `json:"csrf_cookie_name" yaml:"csrf_cookie_name"`
+	CookieDomain      string `json:"cookie_domain" yaml:"cookie_domain"`
+	CookiePath        string `json:"cookie_path" yaml:"cookie_path"`
+	CookieSecure      bool   `json:"cookie_secure" yaml:"cookie_secure"`
+	CookieSameSite    string `json:"cookie_same_site" yaml:"cookie_same_site"` // Strict|Lax|None
 }
 
 // ObservabilityConfig holds observability-related configuration
@@ -321,6 +355,22 @@ func getServerConfig() ServerConfig {
 			WindowSize:  getEnvAsInt("RATE_LIMIT_WINDOW_SIZE", 60),
 			BurstSize:   getEnvAsInt("RATE_LIMIT_BURST_SIZE", 200),
 		},
+		AuthRateLimit: AuthRateLimitConfig{
+			Enabled:                  getEnvAsBool("AUTH_RATE_LIMIT_ENABLED", true),
+			LoginAttemptsPer:         getEnvAsInt("AUTH_RATE_LIMIT_LOGIN_ATTEMPTS_PER", 10),
+			RegisterAttemptsPer:      getEnvAsInt("AUTH_RATE_LIMIT_REGISTER_ATTEMPTS_PER", 10),
+			PasswordResetAttemptsPer: getEnvAsInt("AUTH_RATE_LIMIT_PASSWORD_RESET_ATTEMPTS_PER", 10),
+			WindowSize:               getEnvAsDuration("AUTH_RATE_LIMIT_WINDOW_SIZE", 60*time.Second),
+			LockoutDuration:          getEnvAsDuration("AUTH_RATE_LIMIT_LOCKOUT_DURATION", 15*time.Minute),
+		},
+		IPBlock: IPBlockConfig{
+			Enabled:       getEnvAsBool("IP_BLOCK_ENABLED", true),
+			Threshold:     getEnvAsInt("IP_BLOCK_THRESHOLD", 20),
+			Window:        getEnvAsDuration("IP_BLOCK_WINDOW", 5*time.Minute),
+			BlockDuration: getEnvAsDuration("IP_BLOCK_DURATION", 30*time.Minute),
+			Whitelist:     getEnvAsStringSlice("IP_BLOCK_WHITELIST", []string{}),
+			Blacklist:     getEnvAsStringSlice("IP_BLOCK_BLACKLIST", []string{}),
+		},
 		Validation: ValidationConfig{
 			Enabled:       getEnvAsBool("VALIDATION_ENABLED", true),
 			MaxBodySize:   getEnvAsInt64("VALIDATION_MAX_BODY_SIZE", 10*1024*1024), // 10MB
@@ -359,6 +409,14 @@ func getAuthConfig() AuthConfig {
 		RequireSpecial:    getEnvAsBool("REQUIRE_SPECIAL", true),
 		MaxLoginAttempts:  getEnvAsInt("MAX_LOGIN_ATTEMPTS", 5),
 		LockoutDuration:   getEnvAsDuration("LOCKOUT_DURATION", 15*time.Minute),
+
+		// Cookies / session
+		RefreshCookieName: getEnvAsString("REFRESH_COOKIE_NAME", "refresh_token"),
+		CSRFCookieName:    getEnvAsString("CSRF_COOKIE_NAME", "XSRF-TOKEN"),
+		CookieDomain:      getEnvAsString("COOKIE_DOMAIN", ""),
+		CookiePath:        getEnvAsString("COOKIE_PATH", "/"),
+		CookieSecure:      getEnvAsBool("COOKIE_SECURE", true),
+		CookieSameSite:    getEnvAsString("COOKIE_SAMESITE", "Lax"),
 	}
 }
 

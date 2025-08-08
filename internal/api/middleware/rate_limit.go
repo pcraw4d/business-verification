@@ -26,11 +26,11 @@ type RateLimiter struct {
 
 // bucket represents a token bucket for a specific client
 type bucket struct {
-	tokens    int
-	maxTokens int
+	tokens     int
+	maxTokens  int
 	refillRate time.Duration
 	lastRefill time.Time
-	mu        sync.Mutex
+	mu         sync.Mutex
 }
 
 // NewRateLimiter creates a new rate limiting middleware
@@ -57,13 +57,13 @@ func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 		}
 
 		clientIP := rl.getClientIP(r)
-		
+
 		if !rl.allow(clientIP) {
-			rl.logger.WithComponent("rate_limiter").Warn("Rate limit exceeded", 
-				"client_ip", clientIP, 
-				"path", r.URL.Path, 
+			rl.logger.WithComponent("rate_limiter").Warn("Rate limit exceeded",
+				"client_ip", clientIP,
+				"path", r.URL.Path,
 				"method", r.Method)
-			
+
 			w.Header().Set("X-RateLimit-Limit", string(rune(rl.config.RequestsPerMinute)))
 			w.Header().Set("X-RateLimit-Remaining", "0")
 			w.Header().Set("Retry-After", "60")
@@ -101,7 +101,7 @@ func (rl *RateLimiter) allow(clientIP string) bool {
 
 	now := time.Now()
 	elapsed := now.Sub(b.lastRefill)
-	
+
 	// Refill tokens based on elapsed time
 	tokensToAdd := int(elapsed / b.refillRate)
 	if tokensToAdd > 0 {
@@ -140,12 +140,12 @@ func (rl *RateLimiter) getClientIP(r *http.Request) string {
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
 		return xff
 	}
-	
+
 	// Check X-Real-IP header
 	if xri := r.Header.Get("X-Real-IP"); xri != "" {
 		return xri
 	}
-	
+
 	// Fall back to RemoteAddr
 	return r.RemoteAddr
 }

@@ -1,10 +1,15 @@
 package handlers
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/pcraw4d/business-verification/internal/auth"
+	"github.com/pcraw4d/business-verification/internal/config"
 	"github.com/pcraw4d/business-verification/internal/observability"
 )
 
@@ -13,15 +18,81 @@ type AuthHandler struct {
 	authService *auth.AuthService
 	logger      *observability.Logger
 	metrics     *observability.Metrics
+	config      *config.Config
 }
 
 // NewAuthHandler creates a new authentication handler
-func NewAuthHandler(authService *auth.AuthService, logger *observability.Logger, metrics *observability.Metrics) *AuthHandler {
+func NewAuthHandler(authService *auth.AuthService, logger *observability.Logger, metrics *observability.Metrics, cfg *config.Config) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,
 		logger:      logger,
 		metrics:     metrics,
+		config:      cfg,
 	}
+}
+
+func (h *AuthHandler) sameSite() http.SameSite {
+	switch strings.ToLower(h.config.Auth.CookieSameSite) {
+	case "strict":
+		return http.SameSiteStrictMode
+	case "none":
+		return http.SameSiteNoneMode
+	default:
+		return http.SameSiteLaxMode
+	}
+}
+
+func (h *AuthHandler) setRefreshCookie(w http.ResponseWriter, token string, expiresInSeconds int64) {
+	if token == "" {
+		return
+	}
+	expireAt := time.Now().Add(time.Duration(expiresInSeconds) * time.Second)
+	cookie := &http.Cookie{
+		Name:     h.config.Auth.RefreshCookieName,
+		Value:    token,
+		Path:     h.config.Auth.CookiePath,
+		Domain:   h.config.Auth.CookieDomain,
+		Expires:  expireAt,
+		HttpOnly: true,
+		Secure:   h.config.Auth.CookieSecure,
+		SameSite: h.sameSite(),
+	}
+	http.SetCookie(w, cookie)
+}
+
+func (h *AuthHandler) clearCookie(w http.ResponseWriter, name string) {
+	cookie := &http.Cookie{
+		Name:     name,
+		Value:    "",
+		Path:     h.config.Auth.CookiePath,
+		Domain:   h.config.Auth.CookieDomain,
+		Expires:  time.Unix(0, 0),
+		MaxAge:   -1,
+		HttpOnly: name == h.config.Auth.RefreshCookieName,
+		Secure:   h.config.Auth.CookieSecure,
+		SameSite: h.sameSite(),
+	}
+	http.SetCookie(w, cookie)
+}
+
+func (h *AuthHandler) generateCSRFToken() string {
+	b := make([]byte, 32)
+	_, _ = rand.Read(b)
+	return hex.EncodeToString(b)
+}
+
+func (h *AuthHandler) setCSRFCookie(w http.ResponseWriter, token string) {
+	cookie := &http.Cookie{
+		Name:     h.config.Auth.CSRFCookieName,
+		Value:    token,
+		Path:     h.config.Auth.CookiePath,
+		Domain:   h.config.Auth.CookieDomain,
+		Expires:  time.Now().Add(24 * time.Hour),
+		HttpOnly: false, // must be readable by JS to set header
+		Secure:   h.config.Auth.CookieSecure,
+		SameSite: h.sameSite(),
+	}
+	http.SetCookie(w, cookie)
 }
 
 // RegisterHandler handles user registration requests
@@ -103,7 +174,12 @@ func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Response
+	// Set secure cookies for session (refresh token) and CSRF token
+	h.setRefreshCookie(w, tokenResponse.RefreshToken, tokenResponse.ExpiresIn)
+	csrf := h.generateCSRFToken()
+	h.setCSRFCookie(w, csrf)
+
+	// Response (still returns tokens for API clients; browsers use cookies)
 	response := map[string]interface{}{
 		"tokens":  tokenResponse,
 		"message": "Login successful",
@@ -151,6 +227,10 @@ func (h *AuthHandler) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Clear cookies
+	h.clearCookie(w, h.config.Auth.RefreshCookieName)
+	h.clearCookie(w, h.config.Auth.CSRFCookieName)
+
 	// Response
 	response := map[string]interface{}{
 		"message": "Logout successful",
@@ -167,13 +247,26 @@ func (h *AuthHandler) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) RefreshTokenHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	// Parse request body
+	// CSRF validation: require header X-CSRF-Token to match CSRF cookie
+	csrfHeader := r.Header.Get("X-CSRF-Token")
+	csrfCookie, _ := r.Cookie(h.config.Auth.CSRFCookieName)
+	if csrfCookie == nil || csrfHeader == "" || !strings.EqualFold(csrfCookie.Value, csrfHeader) {
+		http.Error(w, "CSRF validation failed", http.StatusForbidden)
+		return
+	}
+
+	// Try to read refresh token from cookie first; fallback to body for non-browser clients
 	var req struct {
 		RefreshToken string `json:"refresh_token"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.logger.WithComponent("auth").Error("Failed to decode refresh token request", "error", err)
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	if req.RefreshToken == "" {
+		if c, err := r.Cookie(h.config.Auth.RefreshCookieName); err == nil {
+			req.RefreshToken = c.Value
+		}
+	}
+	if req.RefreshToken == "" {
+		http.Error(w, "refresh token required", http.StatusUnauthorized)
 		return
 	}
 
@@ -184,6 +277,10 @@ func (h *AuthHandler) RefreshTokenHandler(w http.ResponseWriter, r *http.Request
 		http.Error(w, "Token refresh failed", http.StatusUnauthorized)
 		return
 	}
+
+	// Rotate cookies: set new refresh cookie and rotate CSRF token
+	h.setRefreshCookie(w, tokenResponse.RefreshToken, tokenResponse.ExpiresIn)
+	h.setCSRFCookie(w, h.generateCSRFToken())
 
 	// Response
 	response := map[string]interface{}{

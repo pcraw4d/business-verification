@@ -14,7 +14,7 @@ import (
 
 // ValidationConfig holds validation configuration
 type ValidationConfig struct {
-	MaxBodySize   int64 // Maximum request body size in bytes
+	MaxBodySize   int64    // Maximum request body size in bytes
 	RequiredPaths []string // Paths that require validation
 	Enabled       bool
 }
@@ -50,34 +50,34 @@ func (v *Validator) Middleware(next http.Handler) http.Handler {
 		// Validate content type for POST/PUT requests
 		if r.Method == "POST" || r.Method == "PUT" || r.Method == "PATCH" {
 			if err := v.validateContentType(r); err != nil {
-				v.logger.WithComponent("validator").Warn("Invalid content type", 
-					"error", err, 
-					"path", r.URL.Path, 
+				v.logger.WithComponent("validator").Warn("Invalid content type",
+					"error", err,
+					"path", r.URL.Path,
 					"method", r.Method,
 					"content_type", r.Header.Get("Content-Type"))
-				
+
 				http.Error(w, fmt.Sprintf("Invalid content type: %v", err), http.StatusBadRequest)
 				return
 			}
 
 			// Validate request body size
 			if err := v.validateBodySize(r); err != nil {
-				v.logger.WithComponent("validator").Warn("Request body too large", 
-					"error", err, 
-					"path", r.URL.Path, 
+				v.logger.WithComponent("validator").Warn("Request body too large",
+					"error", err,
+					"path", r.URL.Path,
 					"method", r.Method)
-				
+
 				http.Error(w, fmt.Sprintf("Request body too large: %v", err), http.StatusRequestEntityTooLarge)
 				return
 			}
 
 			// Validate JSON structure
 			if err := v.validateJSON(r); err != nil {
-				v.logger.WithComponent("validator").Warn("Invalid JSON", 
-					"error", err, 
-					"path", r.URL.Path, 
+				v.logger.WithComponent("validator").Warn("Invalid JSON",
+					"error", err,
+					"path", r.URL.Path,
 					"method", r.Method)
-				
+
 				http.Error(w, fmt.Sprintf("Invalid JSON: %v", err), http.StatusBadRequest)
 				return
 			}
@@ -85,11 +85,11 @@ func (v *Validator) Middleware(next http.Handler) http.Handler {
 
 		// Validate query parameters
 		if err := v.validateQueryParams(r); err != nil {
-			v.logger.WithComponent("validator").Warn("Invalid query parameters", 
-				"error", err, 
-				"path", r.URL.Path, 
+			v.logger.WithComponent("validator").Warn("Invalid query parameters",
+				"error", err,
+				"path", r.URL.Path,
 				"method", r.Method)
-			
+
 			http.Error(w, fmt.Sprintf("Invalid query parameters: %v", err), http.StatusBadRequest)
 			return
 		}
@@ -104,14 +104,14 @@ func (v *Validator) shouldValidate(path, method string) bool {
 	if strings.HasPrefix(path, "/v1/") {
 		return true
 	}
-	
+
 	// Check specific paths
 	for _, reqPath := range v.config.RequiredPaths {
 		if strings.HasPrefix(path, reqPath) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -141,7 +141,7 @@ func (v *Validator) validateContentType(r *http.Request) error {
 // validateBodySize checks if the request body size is within limits
 func (v *Validator) validateBodySize(r *http.Request) error {
 	if r.ContentLength > v.config.MaxBodySize {
-		return fmt.Errorf("request body size %d exceeds maximum %d bytes", 
+		return fmt.Errorf("request body size %d exceeds maximum %d bytes",
 			r.ContentLength, v.config.MaxBodySize)
 	}
 	return nil
@@ -281,13 +281,13 @@ func (v *Validator) validateClassificationRequest(obj map[string]interface{}) er
 // validateRegistrationRequest validates user registration requests
 func (v *Validator) validateRegistrationRequest(obj map[string]interface{}) error {
 	requiredFields := []string{"username", "email", "password"}
-	
+
 	for _, field := range requiredFields {
 		value, exists := obj[field]
 		if !exists || value == nil {
 			return fmt.Errorf("missing required field: %s", field)
 		}
-		
+
 		if str, ok := value.(string); !ok || strings.TrimSpace(str) == "" {
 			return fmt.Errorf("%s must be a non-empty string", field)
 		}
@@ -306,13 +306,13 @@ func (v *Validator) validateRegistrationRequest(obj map[string]interface{}) erro
 // validateLoginRequest validates user login requests
 func (v *Validator) validateLoginRequest(obj map[string]interface{}) error {
 	requiredFields := []string{"email", "password"}
-	
+
 	for _, field := range requiredFields {
 		value, exists := obj[field]
 		if !exists || value == nil {
 			return fmt.Errorf("missing required field: %s", field)
 		}
-		
+
 		if str, ok := value.(string); !ok || strings.TrimSpace(str) == "" {
 			return fmt.Errorf("%s must be a non-empty string", field)
 		}
@@ -324,7 +324,7 @@ func (v *Validator) validateLoginRequest(obj map[string]interface{}) error {
 // validateQueryParams validates query parameters
 func (v *Validator) validateQueryParams(r *http.Request) error {
 	queryParams := r.URL.Query()
-	
+
 	// Check for suspicious patterns
 	for key, values := range queryParams {
 		for _, value := range values {
@@ -332,11 +332,11 @@ func (v *Validator) validateQueryParams(r *http.Request) error {
 			if len(value) > 1000 {
 				return fmt.Errorf("query parameter '%s' too long: %d characters (max 1000)", key, len(value))
 			}
-			
+
 			// Check for suspicious characters that might indicate injection attempts
 			if strings.ContainsAny(value, "<>\"'&") {
-				v.logger.WithComponent("validator").Info("Suspicious query parameter detected", 
-					"key", key, 
+				v.logger.WithComponent("validator").Info("Suspicious query parameter detected",
+					"key", key,
 					"value", value,
 					"path", r.URL.Path)
 			}
@@ -364,7 +364,7 @@ func (v *Validator) ValidateStruct(s interface{}) error {
 	for i := 0; i < val.NumField(); i++ {
 		field := val.Field(i)
 		fieldType := typ.Field(i)
-		
+
 		// Check for required tag
 		if tag := fieldType.Tag.Get("validate"); tag == "required" {
 			if v.isZeroValue(field) {

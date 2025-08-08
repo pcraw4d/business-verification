@@ -2,9 +2,19 @@ package database
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/pcraw4d/business-verification/internal/config"
+)
+
+// Common database errors
+var (
+	ErrUserNotFound           = errors.New("user not found")
+	ErrRoleAssignmentNotFound = errors.New("role assignment not found")
+	ErrAPIKeyNotFound         = errors.New("api key not found")
+	ErrDuplicateUser          = errors.New("user already exists")
+	ErrInvalidCredentials     = errors.New("invalid credentials")
 )
 
 // User represents a user in the system
@@ -114,12 +124,26 @@ type APIKey struct {
 	UserID      string     `json:"user_id" db:"user_id"`
 	Name        string     `json:"name" db:"name"`
 	KeyHash     string     `json:"-" db:"key_hash"`
-	Permissions []string   `json:"permissions" db:"permissions"`
+	Role        string     `json:"role" db:"role"`
+	Permissions string     `json:"permissions" db:"permissions"` // JSON array as string
 	Status      string     `json:"status" db:"status"`
 	LastUsedAt  *time.Time `json:"last_used_at" db:"last_used_at"`
 	ExpiresAt   *time.Time `json:"expires_at" db:"expires_at"`
 	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// RoleAssignment represents a user's role assignment with audit trail
+type RoleAssignment struct {
+	ID         string     `json:"id" db:"id"`
+	UserID     string     `json:"user_id" db:"user_id"`
+	Role       string     `json:"role" db:"role"`
+	AssignedBy string     `json:"assigned_by" db:"assigned_by"` // User ID who assigned the role
+	AssignedAt time.Time  `json:"assigned_at" db:"assigned_at"`
+	ExpiresAt  *time.Time `json:"expires_at" db:"expires_at"` // Optional role expiration
+	IsActive   bool       `json:"is_active" db:"is_active"`
+	CreatedAt  time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt  time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 // AuditLog represents an audit log entry
@@ -303,6 +327,20 @@ type Database interface {
 	GetWebhookEventsByWebhookID(ctx context.Context, webhookID string, limit, offset int) ([]*WebhookEvent, error)
 	UpdateWebhookEvent(ctx context.Context, event *WebhookEvent) error
 	DeleteWebhookEvent(ctx context.Context, id string) error
+
+	// Role assignment management
+	CreateRoleAssignment(ctx context.Context, assignment *RoleAssignment) error
+	GetRoleAssignmentByID(ctx context.Context, id string) (*RoleAssignment, error)
+	GetActiveRoleAssignmentByUserID(ctx context.Context, userID string) (*RoleAssignment, error)
+	GetRoleAssignmentsByUserID(ctx context.Context, userID string) ([]*RoleAssignment, error)
+	UpdateRoleAssignment(ctx context.Context, assignment *RoleAssignment) error
+	DeactivateRoleAssignment(ctx context.Context, id string) error
+	DeleteExpiredRoleAssignments(ctx context.Context) error
+
+	// Enhanced API key management with RBAC
+	UpdateAPIKeyLastUsed(ctx context.Context, id string, lastUsed time.Time) error
+	GetActiveAPIKeysByRole(ctx context.Context, role string) ([]*APIKey, error)
+	DeactivateAPIKey(ctx context.Context, id string) error
 
 	// Transaction support
 	BeginTx(ctx context.Context) (Database, error)
