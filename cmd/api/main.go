@@ -25,22 +25,23 @@ import (
 
 // Server represents the main API server
 type Server struct {
-	config            *config.Config
-	logger            *observability.Logger
-	metrics           *observability.Metrics
-	classificationSvc *classification.ClassificationService
-	riskService       *risk.RiskService
-	riskHandler       *handlers.RiskHandler
-	authService       *auth.AuthService
-	authHandler       *handlers.AuthHandler
-	authMiddleware    *middleware.AuthMiddleware
-	adminService      *auth.AdminService
-	adminHandler      *handlers.AdminHandler
-	rateLimiter       *middleware.RateLimiter
-	authRateLimiter   *middleware.AuthRateLimiter
-	ipBlocker         *middleware.IPBlocker
-	validator         *middleware.Validator
-	server            *http.Server
+	config             *config.Config
+	logger             *observability.Logger
+	metrics            *observability.Metrics
+	classificationSvc  *classification.ClassificationService
+	riskService        *risk.RiskService
+	riskHistoryService *risk.RiskHistoryService
+	riskHandler        *handlers.RiskHandler
+	authService        *auth.AuthService
+	authHandler        *handlers.AuthHandler
+	authMiddleware     *middleware.AuthMiddleware
+	adminService       *auth.AdminService
+	adminHandler       *handlers.AdminHandler
+	rateLimiter        *middleware.RateLimiter
+	authRateLimiter    *middleware.AuthRateLimiter
+	ipBlocker          *middleware.IPBlocker
+	validator          *middleware.Validator
+	server             *http.Server
 }
 
 // NewServer creates a new server instance
@@ -50,6 +51,7 @@ func NewServer(
 	metrics *observability.Metrics,
 	classificationSvc *classification.ClassificationService,
 	riskService *risk.RiskService,
+	riskHistoryService *risk.RiskHistoryService,
 	riskHandler *handlers.RiskHandler,
 	authService *auth.AuthService,
 	authHandler *handlers.AuthHandler,
@@ -62,21 +64,22 @@ func NewServer(
 	validator *middleware.Validator,
 ) *Server {
 	return &Server{
-		config:            config,
-		logger:            logger,
-		metrics:           metrics,
-		classificationSvc: classificationSvc,
-		riskService:       riskService,
-		riskHandler:       riskHandler,
-		authService:       authService,
-		authHandler:       authHandler,
-		authMiddleware:    authMiddleware,
-		adminService:      adminService,
-		adminHandler:      adminHandler,
-		rateLimiter:       rateLimiter,
-		authRateLimiter:   authRateLimiter,
-		ipBlocker:         ipBlocker,
-		validator:         validator,
+		config:             config,
+		logger:             logger,
+		metrics:            metrics,
+		classificationSvc:  classificationSvc,
+		riskService:        riskService,
+		riskHistoryService: riskHistoryService,
+		riskHandler:        riskHandler,
+		authService:        authService,
+		authHandler:        authHandler,
+		authMiddleware:     authMiddleware,
+		adminService:       adminService,
+		adminHandler:       adminHandler,
+		rateLimiter:        rateLimiter,
+		authRateLimiter:    authRateLimiter,
+		ipBlocker:          ipBlocker,
+		validator:          validator,
 	}
 }
 
@@ -120,6 +123,16 @@ func (s *Server) setupRoutes() *http.ServeMux {
 	mux.HandleFunc("GET /v1/risk/categories", s.riskHandler.GetRiskCategoriesHandler)
 	mux.HandleFunc("GET /v1/risk/factors", s.riskHandler.GetRiskFactorsHandler)
 	mux.HandleFunc("GET /v1/risk/thresholds", s.riskHandler.GetRiskThresholdsHandler)
+
+	// Risk history endpoints
+	mux.HandleFunc("GET /v1/risk/history/{business_id}", s.riskHandler.GetRiskHistoryHandler)
+	mux.HandleFunc("GET /v1/risk/trends/{business_id}", s.riskHandler.GetRiskTrendsHandler)
+	mux.HandleFunc("GET /v1/risk/history/{business_id}/range", s.riskHandler.GetRiskHistoryByDateRangeHandler)
+
+	// Risk alert endpoints
+	mux.HandleFunc("GET /v1/risk/alerts/{business_id}", s.riskHandler.GetRiskAlertsHandler)
+	mux.HandleFunc("GET /v1/risk/alert-rules", s.riskHandler.GetRiskAlertRulesHandler)
+	mux.HandleFunc("POST /v1/risk/alerts/{alert_id}/acknowledge", s.riskHandler.AcknowledgeRiskAlertHandler)
 
 	// Admin endpoints (protected)
 	mux.Handle("POST /v1/admin/users", s.authMiddleware.RequireAuth(http.HandlerFunc(s.adminHandler.CreateUser)))
@@ -714,12 +727,21 @@ func main() {
 	categoryRegistry := risk.CreateDefaultRiskCategories()
 	thresholdManager := risk.CreateDefaultThresholds()
 	industryModelRegistry := risk.CreateDefaultIndustryModels()
-	
+
 	// Initialize risk calculation components
 	calculator := risk.NewRiskFactorCalculator(categoryRegistry)
 	scoringAlgorithm := risk.NewWeightedScoringAlgorithm()
 	predictionAlgorithm := risk.NewRiskPredictionAlgorithm()
-	
+
+	// Initialize risk history service
+	riskHistoryService := risk.NewRiskHistoryService(logger, db)
+
+	// Initialize alert service
+	alertService := risk.NewAlertService(logger, thresholdManager)
+
+	// Initialize report service
+	reportService := risk.NewReportService(logger, riskHistoryService, alertService)
+
 	// Initialize risk service
 	riskService := risk.NewRiskService(
 		logger,
@@ -729,10 +751,13 @@ func main() {
 		thresholdManager,
 		categoryRegistry,
 		industryModelRegistry,
+		riskHistoryService,
+		alertService,
+		reportService,
 	)
-	
+
 	// Initialize risk handler
-	riskHandler := handlers.NewRiskHandler(logger, riskService)
+	riskHandler := handlers.NewRiskHandler(logger, riskService, riskHistoryService)
 
 	// Initialize validation middleware
 	validationConfig := &middleware.ValidationConfig{
@@ -743,7 +768,7 @@ func main() {
 	validator := middleware.NewValidator(validationConfig, logger)
 
 	// Create server
-	server := NewServer(cfg, logger, metrics, classificationSvc, riskService, riskHandler, authService, authHandler, authMiddleware, adminService, adminHandler, rateLimiter, authRateLimiter, ipBlocker, validator)
+	server := NewServer(cfg, logger, metrics, classificationSvc, riskService, riskHistoryService, riskHandler, authService, authHandler, authMiddleware, adminService, adminHandler, rateLimiter, authRateLimiter, ipBlocker, validator)
 
 	// Start server in goroutine
 	go func() {

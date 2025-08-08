@@ -28,6 +28,15 @@ func TestRiskHandler_AssessRiskHandler(t *testing.T) {
 	scoringAlgorithm := risk.NewWeightedScoringAlgorithm()
 	predictionAlgorithm := risk.NewRiskPredictionAlgorithm()
 
+	// Create risk history service
+	riskHistoryService := risk.NewRiskHistoryService(logger, nil)
+
+	// Create alert service
+	alertService := risk.NewAlertService(logger, thresholdManager)
+
+	// Create report service
+	reportService := risk.NewReportService(logger, riskHistoryService, alertService)
+
 	// Create risk service
 	riskService := risk.NewRiskService(
 		logger,
@@ -37,10 +46,13 @@ func TestRiskHandler_AssessRiskHandler(t *testing.T) {
 		thresholdManager,
 		categoryRegistry,
 		industryModelRegistry,
+		riskHistoryService,
+		alertService,
+		reportService,
 	)
 
 	// Create risk handler
-	handler := NewRiskHandler(logger, riskService)
+	handler := NewRiskHandler(logger, riskService, riskHistoryService)
 
 	tests := []struct {
 		name           string
@@ -210,6 +222,15 @@ func TestRiskHandler_GetRiskCategoriesHandler(t *testing.T) {
 	scoringAlgorithm := risk.NewWeightedScoringAlgorithm()
 	predictionAlgorithm := risk.NewRiskPredictionAlgorithm()
 
+	// Create risk history service
+	riskHistoryService := risk.NewRiskHistoryService(logger, nil)
+
+	// Create alert service
+	alertService := risk.NewAlertService(logger, thresholdManager)
+
+	// Create report service
+	reportService := risk.NewReportService(logger, riskHistoryService, alertService)
+
 	// Create risk service
 	riskService := risk.NewRiskService(
 		logger,
@@ -219,10 +240,13 @@ func TestRiskHandler_GetRiskCategoriesHandler(t *testing.T) {
 		thresholdManager,
 		categoryRegistry,
 		industryModelRegistry,
+		riskHistoryService,
+		alertService,
+		reportService,
 	)
 
 	// Create risk handler
-	handler := NewRiskHandler(logger, riskService)
+	handler := NewRiskHandler(logger, riskService, riskHistoryService)
 
 	// Create request
 	req, err := http.NewRequest("GET", "/v1/risk/categories", nil)
@@ -277,6 +301,15 @@ func TestRiskHandler_GetRiskFactorsHandler(t *testing.T) {
 	scoringAlgorithm := risk.NewWeightedScoringAlgorithm()
 	predictionAlgorithm := risk.NewRiskPredictionAlgorithm()
 
+	// Create risk history service
+	riskHistoryService := risk.NewRiskHistoryService(logger, nil)
+
+	// Create alert service
+	alertService := risk.NewAlertService(logger, thresholdManager)
+
+	// Create report service
+	reportService := risk.NewReportService(logger, riskHistoryService, alertService)
+
 	// Create risk service
 	riskService := risk.NewRiskService(
 		logger,
@@ -286,10 +319,13 @@ func TestRiskHandler_GetRiskFactorsHandler(t *testing.T) {
 		thresholdManager,
 		categoryRegistry,
 		industryModelRegistry,
+		riskHistoryService,
+		alertService,
+		reportService,
 	)
 
 	// Create risk handler
-	handler := NewRiskHandler(logger, riskService)
+	handler := NewRiskHandler(logger, riskService, riskHistoryService)
 
 	tests := []struct {
 		name           string
@@ -396,6 +432,15 @@ func TestRiskHandler_GetRiskThresholdsHandler(t *testing.T) {
 	scoringAlgorithm := risk.NewWeightedScoringAlgorithm()
 	predictionAlgorithm := risk.NewRiskPredictionAlgorithm()
 
+	// Create risk history service
+	riskHistoryService := risk.NewRiskHistoryService(logger, nil)
+
+	// Create alert service
+	alertService := risk.NewAlertService(logger, thresholdManager)
+
+	// Create report service
+	reportService := risk.NewReportService(logger, riskHistoryService, alertService)
+
 	// Create risk service
 	riskService := risk.NewRiskService(
 		logger,
@@ -405,10 +450,13 @@ func TestRiskHandler_GetRiskThresholdsHandler(t *testing.T) {
 		thresholdManager,
 		categoryRegistry,
 		industryModelRegistry,
+		riskHistoryService,
+		alertService,
+		reportService,
 	)
 
 	// Create risk handler
-	handler := NewRiskHandler(logger, riskService)
+	handler := NewRiskHandler(logger, riskService, riskHistoryService)
 
 	tests := []struct {
 		name           string

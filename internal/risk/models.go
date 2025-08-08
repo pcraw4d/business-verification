@@ -61,6 +61,7 @@ type RiskAssessment struct {
 	CategoryScores  map[RiskCategory]RiskScore `json:"category_scores"`
 	FactorScores    []RiskScore                `json:"factor_scores"`
 	Recommendations []RiskRecommendation       `json:"recommendations"`
+	Alerts          []RiskAlert                `json:"alerts,omitempty"`
 	AlertLevel      RiskLevel                  `json:"alert_level"`
 	AssessedAt      time.Time                  `json:"assessed_at"`
 	ValidUntil      time.Time                  `json:"valid_until"`

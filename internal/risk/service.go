@@ -17,6 +17,9 @@ type RiskService struct {
 	thresholdManager      *ThresholdManager
 	categoryRegistry      *RiskCategoryRegistry
 	industryModelRegistry *IndustryModelRegistry
+	historyService        *RiskHistoryService
+	alertService          *AlertService
+	reportService         *ReportService
 }
 
 // NewRiskService creates a new risk service
@@ -28,6 +31,9 @@ func NewRiskService(
 	thresholdManager *ThresholdManager,
 	categoryRegistry *RiskCategoryRegistry,
 	industryModelRegistry *IndustryModelRegistry,
+	historyService *RiskHistoryService,
+	alertService *AlertService,
+	reportService *ReportService,
 ) *RiskService {
 	return &RiskService{
 		logger:                logger,
@@ -37,6 +43,9 @@ func NewRiskService(
 		thresholdManager:      thresholdManager,
 		categoryRegistry:      categoryRegistry,
 		industryModelRegistry: industryModelRegistry,
+		historyService:        historyService,
+		alertService:          alertService,
+		reportService:         reportService,
 	}
 }
 
@@ -88,13 +97,28 @@ func (s *RiskService) AssessRisk(ctx context.Context, request RiskAssessmentRequ
 	}
 
 	// Generate alerts based on assessment
-	alerts, err := s.generateAlerts(ctx, assessment)
-	if err != nil {
-		s.logger.Warn("Failed to generate alerts",
-			"request_id", requestID,
-			"error", err.Error(),
-		)
-		// Don't fail the entire assessment if alerts fail
+	var alerts []RiskAlert
+	if s.alertService != nil {
+		alerts, err = s.alertService.GenerateAlerts(ctx, assessment)
+		if err != nil {
+			s.logger.Warn("Failed to generate alerts",
+				"request_id", requestID,
+				"error", err.Error(),
+			)
+			// Don't fail the entire assessment if alerts fail
+		}
+	}
+
+	// Store assessment in history
+	if s.historyService != nil {
+		if err := s.historyService.StoreRiskAssessment(ctx, assessment); err != nil {
+			s.logger.Warn("Failed to store risk assessment in history",
+				"request_id", requestID,
+				"business_id", request.BusinessID,
+				"error", err.Error(),
+			)
+			// Don't fail the entire assessment if history storage fails
+		}
 	}
 
 	// Create response
@@ -453,47 +477,6 @@ func (s *RiskService) generatePredictions(ctx context.Context, request RiskAsses
 	return s.predictionAlgorithm.PredictMultipleHorizons(historicalTrends, horizons)
 }
 
-// generateAlerts generates risk alerts based on assessment results
-func (s *RiskService) generateAlerts(ctx context.Context, assessment *RiskAssessment) ([]RiskAlert, error) {
-	var alerts []RiskAlert
-
-	// Check for high-risk factors
-	for _, factorScore := range assessment.FactorScores {
-		if factorScore.Level == RiskLevelHigh || factorScore.Level == RiskLevelCritical {
-			alert := RiskAlert{
-				ID:           fmt.Sprintf("alert_%s_%s", assessment.ID, factorScore.FactorID),
-				BusinessID:   assessment.BusinessID,
-				RiskFactor:   factorScore.FactorID,
-				Level:        factorScore.Level,
-				Message:      fmt.Sprintf("High risk detected in %s: %.1f", factorScore.FactorName, factorScore.Score),
-				Score:        factorScore.Score,
-				Threshold:    75.0, // Default threshold
-				TriggeredAt:  time.Now(),
-				Acknowledged: false,
-			}
-			alerts = append(alerts, alert)
-		}
-	}
-
-	// Check for overall high risk
-	if assessment.OverallLevel == RiskLevelHigh || assessment.OverallLevel == RiskLevelCritical {
-		alert := RiskAlert{
-			ID:           fmt.Sprintf("alert_%s_overall", assessment.ID),
-			BusinessID:   assessment.BusinessID,
-			RiskFactor:   "overall_risk",
-			Level:        assessment.OverallLevel,
-			Message:      fmt.Sprintf("Overall risk level is %s: %.1f", assessment.OverallLevel, assessment.OverallScore),
-			Score:        assessment.OverallScore,
-			Threshold:    75.0,
-			TriggeredAt:  time.Now(),
-			Acknowledged: false,
-		}
-		alerts = append(alerts, alert)
-	}
-
-	return alerts, nil
-}
-
 // GetCategoryRegistry returns the category registry
 func (s *RiskService) GetCategoryRegistry() *RiskCategoryRegistry {
 	return s.categoryRegistry
@@ -502,4 +485,40 @@ func (s *RiskService) GetCategoryRegistry() *RiskCategoryRegistry {
 // GetThresholdManager returns the threshold manager
 func (s *RiskService) GetThresholdManager() *ThresholdManager {
 	return s.thresholdManager
+}
+
+// GenerateRiskReport generates a comprehensive risk report for a business
+func (s *RiskService) GenerateRiskReport(ctx context.Context, request ReportRequest) (*RiskReport, error) {
+	requestID := ctx.Value("request_id").(string)
+
+	s.logger.Info("Generating risk report",
+		"request_id", requestID,
+		"business_id", request.BusinessID,
+		"report_type", request.ReportType,
+		"format", request.Format,
+	)
+
+	// Use the report service to generate the report
+	if s.reportService == nil {
+		return nil, fmt.Errorf("report service not available")
+	}
+
+	report, err := s.reportService.GenerateReport(ctx, request)
+	if err != nil {
+		s.logger.Error("Failed to generate risk report",
+			"request_id", requestID,
+			"business_id", request.BusinessID,
+			"error", err.Error(),
+		)
+		return nil, fmt.Errorf("failed to generate risk report: %w", err)
+	}
+
+	s.logger.Info("Risk report generated successfully",
+		"request_id", requestID,
+		"business_id", request.BusinessID,
+		"report_type", request.ReportType,
+		"format", request.Format,
+	)
+
+	return report, nil
 }

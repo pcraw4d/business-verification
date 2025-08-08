@@ -347,9 +347,9 @@ All Task 4 subtasks completed.
 **5.3 Build Risk Assessment API**
 
 - [x] Create `/v1/risk/assess` endpoint
-- [ ] Implement risk history tracking
-- [ ] Set up risk alert generation
-- [ ] Create risk report generation
+- [x] Implement risk history tracking
+- [x] Set up risk alert generation
+- [x] Create risk report generation
 - [ ] Implement risk data export functionality
 
 **5.4 Integrate Risk Data Sources**

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"encoding/json"
+
 	_ "github.com/lib/pq"
 )
 
@@ -887,4 +889,519 @@ func (p *PostgresDB) DeactivateAPIKey(ctx context.Context, id string) error {
 	`
 	_, err := p.getDB().ExecContext(ctx, query, id)
 	return err
+}
+
+// GetRiskAssessmentHistory retrieves risk assessment history for a business
+func (p *PostgresDB) GetRiskAssessmentHistory(ctx context.Context, businessID string, limit, offset int) ([]*RiskAssessment, error) {
+	query := `
+		SELECT id, business_id, business_name, overall_score, overall_level, 
+		       category_scores, factor_scores, recommendations, predictions, alerts,
+		       assessment_method, source, metadata, assessed_at, valid_until, 
+		       created_at, updated_at
+		FROM risk_assessments 
+		WHERE business_id = $1 
+		ORDER BY assessed_at DESC 
+		LIMIT $2 OFFSET $3
+	`
+
+	rows, err := p.getDB().QueryContext(ctx, query, businessID, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query risk assessment history: %w", err)
+	}
+	defer rows.Close()
+
+	var assessments []*RiskAssessment
+	for rows.Next() {
+		assessment := &RiskAssessment{}
+		var categoryScoresStr, factorScoresStr, recommendationsStr, predictionsStr, alertsStr, metadataStr string
+
+		err := rows.Scan(
+			&assessment.ID,
+			&assessment.BusinessID,
+			&assessment.BusinessName,
+			&assessment.OverallScore,
+			&assessment.OverallLevel,
+			&categoryScoresStr,
+			&factorScoresStr,
+			&recommendationsStr,
+			&predictionsStr,
+			&alertsStr,
+			&assessment.AssessmentMethod,
+			&assessment.Source,
+			&metadataStr,
+			&assessment.AssessedAt,
+			&assessment.ValidUntil,
+			&assessment.CreatedAt,
+			&assessment.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan risk assessment: %w", err)
+		}
+
+		// Parse JSON fields
+		if err := json.Unmarshal([]byte(categoryScoresStr), &assessment.CategoryScores); err != nil {
+			assessment.CategoryScores = make(map[string]interface{})
+		}
+		if err := json.Unmarshal([]byte(factorScoresStr), &assessment.FactorScores); err != nil {
+			assessment.FactorScores = []string{}
+		}
+		if err := json.Unmarshal([]byte(recommendationsStr), &assessment.Recommendations); err != nil {
+			assessment.Recommendations = []string{}
+		}
+		if err := json.Unmarshal([]byte(predictionsStr), &assessment.Predictions); err != nil {
+			assessment.Predictions = []string{}
+		}
+		if err := json.Unmarshal([]byte(alertsStr), &assessment.Alerts); err != nil {
+			assessment.Alerts = []string{}
+		}
+		if err := json.Unmarshal([]byte(metadataStr), &assessment.Metadata); err != nil {
+			assessment.Metadata = make(map[string]interface{})
+		}
+
+		assessments = append(assessments, assessment)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating risk assessment history: %w", err)
+	}
+
+	return assessments, nil
+}
+
+// GetRiskAssessmentHistoryByDateRange retrieves risk assessment history within a date range
+func (p *PostgresDB) GetRiskAssessmentHistoryByDateRange(ctx context.Context, businessID string, startDate, endDate time.Time) ([]*RiskAssessment, error) {
+	query := `
+		SELECT id, business_id, business_name, overall_score, overall_level, 
+		       category_scores, factor_scores, recommendations, predictions, alerts,
+		       assessment_method, source, metadata, assessed_at, valid_until, 
+		       created_at, updated_at
+		FROM risk_assessments 
+		WHERE business_id = $1 AND assessed_at >= $2 AND assessed_at <= $3
+		ORDER BY assessed_at DESC
+	`
+
+	rows, err := p.getDB().QueryContext(ctx, query, businessID, startDate, endDate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query risk assessment history by date range: %w", err)
+	}
+	defer rows.Close()
+
+	var assessments []*RiskAssessment
+	for rows.Next() {
+		assessment := &RiskAssessment{}
+		var categoryScoresStr, factorScoresStr, recommendationsStr, predictionsStr, alertsStr, metadataStr string
+
+		err := rows.Scan(
+			&assessment.ID,
+			&assessment.BusinessID,
+			&assessment.BusinessName,
+			&assessment.OverallScore,
+			&assessment.OverallLevel,
+			&categoryScoresStr,
+			&factorScoresStr,
+			&recommendationsStr,
+			&predictionsStr,
+			&alertsStr,
+			&assessment.AssessmentMethod,
+			&assessment.Source,
+			&metadataStr,
+			&assessment.AssessedAt,
+			&assessment.ValidUntil,
+			&assessment.CreatedAt,
+			&assessment.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan risk assessment: %w", err)
+		}
+
+		// Parse JSON fields
+		if err := json.Unmarshal([]byte(categoryScoresStr), &assessment.CategoryScores); err != nil {
+			assessment.CategoryScores = make(map[string]interface{})
+		}
+		if err := json.Unmarshal([]byte(factorScoresStr), &assessment.FactorScores); err != nil {
+			assessment.FactorScores = []string{}
+		}
+		if err := json.Unmarshal([]byte(recommendationsStr), &assessment.Recommendations); err != nil {
+			assessment.Recommendations = []string{}
+		}
+		if err := json.Unmarshal([]byte(predictionsStr), &assessment.Predictions); err != nil {
+			assessment.Predictions = []string{}
+		}
+		if err := json.Unmarshal([]byte(alertsStr), &assessment.Alerts); err != nil {
+			assessment.Alerts = []string{}
+		}
+		if err := json.Unmarshal([]byte(metadataStr), &assessment.Metadata); err != nil {
+			assessment.Metadata = make(map[string]interface{})
+		}
+
+		assessments = append(assessments, assessment)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating risk assessment history by date range: %w", err)
+	}
+
+	return assessments, nil
+}
+
+// GetLatestRiskAssessment retrieves the most recent risk assessment for a business
+func (p *PostgresDB) GetLatestRiskAssessment(ctx context.Context, businessID string) (*RiskAssessment, error) {
+	query := `
+		SELECT id, business_id, business_name, overall_score, overall_level, 
+		       category_scores, factor_scores, recommendations, predictions, alerts,
+		       assessment_method, source, metadata, assessed_at, valid_until, 
+		       created_at, updated_at
+		FROM risk_assessments 
+		WHERE business_id = $1 
+		ORDER BY assessed_at DESC 
+		LIMIT 1
+	`
+
+	row := p.getDB().QueryRowContext(ctx, query, businessID)
+
+	assessment := &RiskAssessment{}
+	var categoryScoresStr, factorScoresStr, recommendationsStr, predictionsStr, alertsStr, metadataStr string
+
+	err := row.Scan(
+		&assessment.ID,
+		&assessment.BusinessID,
+		&assessment.BusinessName,
+		&assessment.OverallScore,
+		&assessment.OverallLevel,
+		&categoryScoresStr,
+		&factorScoresStr,
+		&recommendationsStr,
+		&predictionsStr,
+		&alertsStr,
+		&assessment.AssessmentMethod,
+		&assessment.Source,
+		&metadataStr,
+		&assessment.AssessedAt,
+		&assessment.ValidUntil,
+		&assessment.CreatedAt,
+		&assessment.UpdatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // No assessment found
+		}
+		return nil, fmt.Errorf("failed to scan latest risk assessment: %w", err)
+	}
+
+	// Parse JSON fields
+	if err := json.Unmarshal([]byte(categoryScoresStr), &assessment.CategoryScores); err != nil {
+		assessment.CategoryScores = make(map[string]interface{})
+	}
+	if err := json.Unmarshal([]byte(factorScoresStr), &assessment.FactorScores); err != nil {
+		assessment.FactorScores = []string{}
+	}
+	if err := json.Unmarshal([]byte(recommendationsStr), &assessment.Recommendations); err != nil {
+		assessment.Recommendations = []string{}
+	}
+	if err := json.Unmarshal([]byte(predictionsStr), &assessment.Predictions); err != nil {
+		assessment.Predictions = []string{}
+	}
+	if err := json.Unmarshal([]byte(alertsStr), &assessment.Alerts); err != nil {
+		assessment.Alerts = []string{}
+	}
+	if err := json.Unmarshal([]byte(metadataStr), &assessment.Metadata); err != nil {
+		assessment.Metadata = make(map[string]interface{})
+	}
+
+	return assessment, nil
+}
+
+// GetRiskAssessmentTrends retrieves risk assessment trends for a business
+func (p *PostgresDB) GetRiskAssessmentTrends(ctx context.Context, businessID string, days int) ([]*RiskAssessment, error) {
+	query := `
+		SELECT id, business_id, business_name, overall_score, overall_level, 
+		       category_scores, factor_scores, recommendations, predictions, alerts,
+		       assessment_method, source, metadata, assessed_at, valid_until, 
+		       created_at, updated_at
+		FROM risk_assessments 
+		WHERE business_id = $1 AND assessed_at >= NOW() - INTERVAL '1 day' * $2
+		ORDER BY assessed_at DESC
+	`
+
+	rows, err := p.getDB().QueryContext(ctx, query, businessID, days)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query risk assessment trends: %w", err)
+	}
+	defer rows.Close()
+
+	var assessments []*RiskAssessment
+	for rows.Next() {
+		assessment := &RiskAssessment{}
+		var categoryScoresStr, factorScoresStr, recommendationsStr, predictionsStr, alertsStr, metadataStr string
+
+		err := rows.Scan(
+			&assessment.ID,
+			&assessment.BusinessID,
+			&assessment.BusinessName,
+			&assessment.OverallScore,
+			&assessment.OverallLevel,
+			&categoryScoresStr,
+			&factorScoresStr,
+			&recommendationsStr,
+			&predictionsStr,
+			&alertsStr,
+			&assessment.AssessmentMethod,
+			&assessment.Source,
+			&metadataStr,
+			&assessment.AssessedAt,
+			&assessment.ValidUntil,
+			&assessment.CreatedAt,
+			&assessment.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan risk assessment trend: %w", err)
+		}
+
+		// Parse JSON fields
+		if err := json.Unmarshal([]byte(categoryScoresStr), &assessment.CategoryScores); err != nil {
+			assessment.CategoryScores = make(map[string]interface{})
+		}
+		if err := json.Unmarshal([]byte(factorScoresStr), &assessment.FactorScores); err != nil {
+			assessment.FactorScores = []string{}
+		}
+		if err := json.Unmarshal([]byte(recommendationsStr), &assessment.Recommendations); err != nil {
+			assessment.Recommendations = []string{}
+		}
+		if err := json.Unmarshal([]byte(predictionsStr), &assessment.Predictions); err != nil {
+			assessment.Predictions = []string{}
+		}
+		if err := json.Unmarshal([]byte(alertsStr), &assessment.Alerts); err != nil {
+			assessment.Alerts = []string{}
+		}
+		if err := json.Unmarshal([]byte(metadataStr), &assessment.Metadata); err != nil {
+			assessment.Metadata = make(map[string]interface{})
+		}
+
+		assessments = append(assessments, assessment)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating risk assessment trends: %w", err)
+	}
+
+	return assessments, nil
+}
+
+// GetRiskAssessmentsByLevel retrieves risk assessments by risk level
+func (p *PostgresDB) GetRiskAssessmentsByLevel(ctx context.Context, businessID string, riskLevel string) ([]*RiskAssessment, error) {
+	query := `
+		SELECT id, business_id, business_name, overall_score, overall_level, 
+		       category_scores, factor_scores, recommendations, predictions, alerts,
+		       assessment_method, source, metadata, assessed_at, valid_until, 
+		       created_at, updated_at
+		FROM risk_assessments 
+		WHERE business_id = $1 AND overall_level = $2
+		ORDER BY assessed_at DESC
+	`
+
+	rows, err := p.getDB().QueryContext(ctx, query, businessID, riskLevel)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query risk assessments by level: %w", err)
+	}
+	defer rows.Close()
+
+	var assessments []*RiskAssessment
+	for rows.Next() {
+		assessment := &RiskAssessment{}
+		var categoryScoresStr, factorScoresStr, recommendationsStr, predictionsStr, alertsStr, metadataStr string
+
+		err := rows.Scan(
+			&assessment.ID,
+			&assessment.BusinessID,
+			&assessment.BusinessName,
+			&assessment.OverallScore,
+			&assessment.OverallLevel,
+			&categoryScoresStr,
+			&factorScoresStr,
+			&recommendationsStr,
+			&predictionsStr,
+			&alertsStr,
+			&assessment.AssessmentMethod,
+			&assessment.Source,
+			&metadataStr,
+			&assessment.AssessedAt,
+			&assessment.ValidUntil,
+			&assessment.CreatedAt,
+			&assessment.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan risk assessment by level: %w", err)
+		}
+
+		// Parse JSON fields
+		if err := json.Unmarshal([]byte(categoryScoresStr), &assessment.CategoryScores); err != nil {
+			assessment.CategoryScores = make(map[string]interface{})
+		}
+		if err := json.Unmarshal([]byte(factorScoresStr), &assessment.FactorScores); err != nil {
+			assessment.FactorScores = []string{}
+		}
+		if err := json.Unmarshal([]byte(recommendationsStr), &assessment.Recommendations); err != nil {
+			assessment.Recommendations = []string{}
+		}
+		if err := json.Unmarshal([]byte(predictionsStr), &assessment.Predictions); err != nil {
+			assessment.Predictions = []string{}
+		}
+		if err := json.Unmarshal([]byte(alertsStr), &assessment.Alerts); err != nil {
+			assessment.Alerts = []string{}
+		}
+		if err := json.Unmarshal([]byte(metadataStr), &assessment.Metadata); err != nil {
+			assessment.Metadata = make(map[string]interface{})
+		}
+
+		assessments = append(assessments, assessment)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating risk assessments by level: %w", err)
+	}
+
+	return assessments, nil
+}
+
+// GetRiskAssessmentsByScoreRange retrieves risk assessments by score range
+func (p *PostgresDB) GetRiskAssessmentsByScoreRange(ctx context.Context, businessID string, minScore, maxScore float64) ([]*RiskAssessment, error) {
+	query := `
+		SELECT id, business_id, business_name, overall_score, overall_level, 
+		       category_scores, factor_scores, recommendations, predictions, alerts,
+		       assessment_method, source, metadata, assessed_at, valid_until, 
+		       created_at, updated_at
+		FROM risk_assessments 
+		WHERE business_id = $1 AND overall_score >= $2 AND overall_score <= $3
+		ORDER BY assessed_at DESC
+	`
+
+	rows, err := p.getDB().QueryContext(ctx, query, businessID, minScore, maxScore)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query risk assessments by score range: %w", err)
+	}
+	defer rows.Close()
+
+	var assessments []*RiskAssessment
+	for rows.Next() {
+		assessment := &RiskAssessment{}
+		var categoryScoresStr, factorScoresStr, recommendationsStr, predictionsStr, alertsStr, metadataStr string
+
+		err := rows.Scan(
+			&assessment.ID,
+			&assessment.BusinessID,
+			&assessment.BusinessName,
+			&assessment.OverallScore,
+			&assessment.OverallLevel,
+			&categoryScoresStr,
+			&factorScoresStr,
+			&recommendationsStr,
+			&predictionsStr,
+			&alertsStr,
+			&assessment.AssessmentMethod,
+			&assessment.Source,
+			&metadataStr,
+			&assessment.AssessedAt,
+			&assessment.ValidUntil,
+			&assessment.CreatedAt,
+			&assessment.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan risk assessment by score range: %w", err)
+		}
+
+		// Parse JSON fields
+		if err := json.Unmarshal([]byte(categoryScoresStr), &assessment.CategoryScores); err != nil {
+			assessment.CategoryScores = make(map[string]interface{})
+		}
+		if err := json.Unmarshal([]byte(factorScoresStr), &assessment.FactorScores); err != nil {
+			assessment.FactorScores = []string{}
+		}
+		if err := json.Unmarshal([]byte(recommendationsStr), &assessment.Recommendations); err != nil {
+			assessment.Recommendations = []string{}
+		}
+		if err := json.Unmarshal([]byte(predictionsStr), &assessment.Predictions); err != nil {
+			assessment.Predictions = []string{}
+		}
+		if err := json.Unmarshal([]byte(alertsStr), &assessment.Alerts); err != nil {
+			assessment.Alerts = []string{}
+		}
+		if err := json.Unmarshal([]byte(metadataStr), &assessment.Metadata); err != nil {
+			assessment.Metadata = make(map[string]interface{})
+		}
+
+		assessments = append(assessments, assessment)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating risk assessments by score range: %w", err)
+	}
+
+	return assessments, nil
+}
+
+// GetRiskAssessmentStatistics retrieves risk assessment statistics for a business
+func (p *PostgresDB) GetRiskAssessmentStatistics(ctx context.Context, businessID string) (map[string]interface{}, error) {
+	query := `
+		SELECT 
+			COUNT(*) as total_assessments,
+			AVG(overall_score) as average_score,
+			MIN(overall_score) as min_score,
+			MAX(overall_score) as max_score,
+			COUNT(CASE WHEN overall_level = 'low' THEN 1 END) as low_count,
+			COUNT(CASE WHEN overall_level = 'medium' THEN 1 END) as medium_count,
+			COUNT(CASE WHEN overall_level = 'high' THEN 1 END) as high_count,
+			COUNT(CASE WHEN overall_level = 'critical' THEN 1 END) as critical_count,
+			MIN(assessed_at) as first_assessment,
+			MAX(assessed_at) as last_assessment
+		FROM risk_assessments 
+		WHERE business_id = $1
+	`
+
+	row := p.getDB().QueryRowContext(ctx, query, businessID)
+
+	var stats struct {
+		TotalAssessments int       `db:"total_assessments"`
+		AverageScore     float64   `db:"average_score"`
+		MinScore         float64   `db:"min_score"`
+		MaxScore         float64   `db:"max_score"`
+		LowCount         int       `db:"low_count"`
+		MediumCount      int       `db:"medium_count"`
+		HighCount        int       `db:"high_count"`
+		CriticalCount    int       `db:"critical_count"`
+		FirstAssessment  time.Time `db:"first_assessment"`
+		LastAssessment   time.Time `db:"last_assessment"`
+	}
+
+	err := row.Scan(
+		&stats.TotalAssessments,
+		&stats.AverageScore,
+		&stats.MinScore,
+		&stats.MaxScore,
+		&stats.LowCount,
+		&stats.MediumCount,
+		&stats.HighCount,
+		&stats.CriticalCount,
+		&stats.FirstAssessment,
+		&stats.LastAssessment,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to scan risk assessment statistics: %w", err)
+	}
+
+	result := map[string]interface{}{
+		"total_assessments": stats.TotalAssessments,
+		"average_score":     stats.AverageScore,
+		"min_score":         stats.MinScore,
+		"max_score":         stats.MaxScore,
+		"level_distribution": map[string]int{
+			"low":      stats.LowCount,
+			"medium":   stats.MediumCount,
+			"high":     stats.HighCount,
+			"critical": stats.CriticalCount,
+		},
+		"first_assessment": stats.FirstAssessment,
+		"last_assessment":  stats.LastAssessment,
+	}
+
+	return result, nil
 }

@@ -91,17 +91,25 @@ type BusinessClassification struct {
 	CreatedAt            time.Time `json:"created_at" db:"created_at"`
 }
 
-// RiskAssessment represents a risk assessment result
+// RiskAssessment represents a comprehensive risk assessment result
 type RiskAssessment struct {
-	ID               string    `json:"id" db:"id"`
-	BusinessID       string    `json:"business_id" db:"business_id"`
-	RiskLevel        string    `json:"risk_level" db:"risk_level"`
-	RiskScore        float64   `json:"risk_score" db:"risk_score"`
-	RiskFactors      []string  `json:"risk_factors" db:"risk_factors"`
-	AssessmentMethod string    `json:"assessment_method" db:"assessment_method"`
-	Source           string    `json:"source" db:"source"`
-	RawData          string    `json:"raw_data" db:"raw_data"`
-	CreatedAt        time.Time `json:"created_at" db:"created_at"`
+	ID               string                 `json:"id" db:"id"`
+	BusinessID       string                 `json:"business_id" db:"business_id"`
+	BusinessName     string                 `json:"business_name" db:"business_name"`
+	OverallScore     float64                `json:"overall_score" db:"overall_score"`
+	OverallLevel     string                 `json:"overall_level" db:"overall_level"`
+	CategoryScores   map[string]interface{} `json:"category_scores" db:"category_scores"` // JSON
+	FactorScores     []string               `json:"factor_scores" db:"factor_scores"`     // JSON array
+	Recommendations  []string               `json:"recommendations" db:"recommendations"` // JSON array
+	Predictions      []string               `json:"predictions" db:"predictions"`         // JSON array
+	Alerts           []string               `json:"alerts" db:"alerts"`                   // JSON array
+	AssessmentMethod string                 `json:"assessment_method" db:"assessment_method"`
+	Source           string                 `json:"source" db:"source"`
+	Metadata         map[string]interface{} `json:"metadata" db:"metadata"` // JSON
+	AssessedAt       time.Time              `json:"assessed_at" db:"assessed_at"`
+	ValidUntil       time.Time              `json:"valid_until" db:"valid_until"`
+	CreatedAt        time.Time              `json:"created_at" db:"created_at"`
+	UpdatedAt        time.Time              `json:"updated_at" db:"updated_at"`
 }
 
 // ComplianceCheck represents a compliance check result
@@ -288,6 +296,15 @@ type Database interface {
 	GetRiskAssessmentsByBusinessID(ctx context.Context, businessID string) ([]*RiskAssessment, error)
 	UpdateRiskAssessment(ctx context.Context, assessment *RiskAssessment) error
 	DeleteRiskAssessment(ctx context.Context, id string) error
+
+	// Enhanced risk history tracking
+	GetRiskAssessmentHistory(ctx context.Context, businessID string, limit, offset int) ([]*RiskAssessment, error)
+	GetRiskAssessmentHistoryByDateRange(ctx context.Context, businessID string, startDate, endDate time.Time) ([]*RiskAssessment, error)
+	GetLatestRiskAssessment(ctx context.Context, businessID string) (*RiskAssessment, error)
+	GetRiskAssessmentTrends(ctx context.Context, businessID string, days int) ([]*RiskAssessment, error)
+	GetRiskAssessmentsByLevel(ctx context.Context, businessID string, riskLevel string) ([]*RiskAssessment, error)
+	GetRiskAssessmentsByScoreRange(ctx context.Context, businessID string, minScore, maxScore float64) ([]*RiskAssessment, error)
+	GetRiskAssessmentStatistics(ctx context.Context, businessID string) (map[string]interface{}, error)
 
 	// Compliance management
 	CreateComplianceCheck(ctx context.Context, check *ComplianceCheck) error
