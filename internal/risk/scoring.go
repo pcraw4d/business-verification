@@ -735,7 +735,7 @@ func (p *RiskPredictionAlgorithm) identifyContributingFactors(trends []RiskTrend
 	// Analyze recent trends to identify contributing factors
 	if len(trends) >= 2 {
 		recentChange := trends[len(trends)-1].Score - trends[len(trends)-2].Score
-		
+
 		if recentChange > 10 {
 			factors = append(factors, "accelerating_risk_trend")
 		} else if recentChange < -10 {
@@ -776,7 +776,7 @@ func (p *RiskPredictionAlgorithm) identifyContributingFactors(trends []RiskTrend
 // formatHorizon formats the prediction horizon as a string
 func (p *RiskPredictionAlgorithm) formatHorizon(horizon time.Duration) string {
 	days := int(horizon.Hours() / 24)
-	
+
 	switch {
 	case days <= 30:
 		return "1month"
@@ -900,7 +900,7 @@ func (p *RiskPredictionAlgorithm) calculateMarginOfError(stdDev float64, sampleS
 	// For 95% confidence level, use 2.0 as the critical value
 	// For 90% confidence level, use 1.645
 	// For 99% confidence level, use 2.576
-	
+
 	var criticalValue float64
 	switch {
 	case confidenceLevel >= 0.99:
@@ -915,7 +915,7 @@ func (p *RiskPredictionAlgorithm) calculateMarginOfError(stdDev float64, sampleS
 
 	// Standard error = standard deviation / sqrt(sample size)
 	standardError := stdDev / math.Sqrt(float64(sampleSize))
-	
+
 	// Margin of error = critical value * standard error
 	return criticalValue * standardError
 }

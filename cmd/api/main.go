@@ -20,6 +20,7 @@ import (
 	"github.com/pcraw4d/business-verification/internal/config"
 	"github.com/pcraw4d/business-verification/internal/database"
 	"github.com/pcraw4d/business-verification/internal/observability"
+	"github.com/pcraw4d/business-verification/internal/risk"
 )
 
 // Server represents the main API server
@@ -28,6 +29,8 @@ type Server struct {
 	logger            *observability.Logger
 	metrics           *observability.Metrics
 	classificationSvc *classification.ClassificationService
+	riskService       *risk.RiskService
+	riskHandler       *handlers.RiskHandler
 	authService       *auth.AuthService
 	authHandler       *handlers.AuthHandler
 	authMiddleware    *middleware.AuthMiddleware
@@ -46,6 +49,8 @@ func NewServer(
 	logger *observability.Logger,
 	metrics *observability.Metrics,
 	classificationSvc *classification.ClassificationService,
+	riskService *risk.RiskService,
+	riskHandler *handlers.RiskHandler,
 	authService *auth.AuthService,
 	authHandler *handlers.AuthHandler,
 	authMiddleware *middleware.AuthMiddleware,
@@ -61,6 +66,8 @@ func NewServer(
 		logger:            logger,
 		metrics:           metrics,
 		classificationSvc: classificationSvc,
+		riskService:       riskService,
+		riskHandler:       riskHandler,
 		authService:       authService,
 		authHandler:       authHandler,
 		authMiddleware:    authMiddleware,
@@ -107,6 +114,12 @@ func (s *Server) setupRoutes() *http.ServeMux {
 	mux.HandleFunc("POST /v1/classify/confidence-report", s.classificationConfidenceHandler)
 	mux.HandleFunc("GET /v1/classify/history/{business_id}", s.classificationHistoryHandler)
 	mux.HandleFunc("GET /v1/datasources/health", s.dataSourcesHealthHandler)
+
+	// Risk assessment endpoints (public for now, can be protected later)
+	mux.HandleFunc("POST /v1/risk/assess", s.riskHandler.AssessRiskHandler)
+	mux.HandleFunc("GET /v1/risk/categories", s.riskHandler.GetRiskCategoriesHandler)
+	mux.HandleFunc("GET /v1/risk/factors", s.riskHandler.GetRiskFactorsHandler)
+	mux.HandleFunc("GET /v1/risk/thresholds", s.riskHandler.GetRiskThresholdsHandler)
 
 	// Admin endpoints (protected)
 	mux.Handle("POST /v1/admin/users", s.authMiddleware.RequireAuth(http.HandlerFunc(s.adminHandler.CreateUser)))
@@ -697,6 +710,30 @@ func main() {
 		logger,
 	)
 
+	// Initialize risk assessment components
+	categoryRegistry := risk.CreateDefaultRiskCategories()
+	thresholdManager := risk.CreateDefaultThresholds()
+	industryModelRegistry := risk.CreateDefaultIndustryModels()
+	
+	// Initialize risk calculation components
+	calculator := risk.NewRiskFactorCalculator(categoryRegistry)
+	scoringAlgorithm := risk.NewWeightedScoringAlgorithm()
+	predictionAlgorithm := risk.NewRiskPredictionAlgorithm()
+	
+	// Initialize risk service
+	riskService := risk.NewRiskService(
+		logger,
+		calculator,
+		scoringAlgorithm,
+		predictionAlgorithm,
+		thresholdManager,
+		categoryRegistry,
+		industryModelRegistry,
+	)
+	
+	// Initialize risk handler
+	riskHandler := handlers.NewRiskHandler(logger, riskService)
+
 	// Initialize validation middleware
 	validationConfig := &middleware.ValidationConfig{
 		MaxBodySize:   cfg.Server.Validation.MaxBodySize,
@@ -706,7 +743,7 @@ func main() {
 	validator := middleware.NewValidator(validationConfig, logger)
 
 	// Create server
-	server := NewServer(cfg, logger, metrics, classificationSvc, authService, authHandler, authMiddleware, adminService, adminHandler, rateLimiter, authRateLimiter, ipBlocker, validator)
+	server := NewServer(cfg, logger, metrics, classificationSvc, riskService, riskHandler, authService, authHandler, authMiddleware, adminService, adminHandler, rateLimiter, authRateLimiter, ipBlocker, validator)
 
 	// Start server in goroutine
 	go func() {

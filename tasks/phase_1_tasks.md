@@ -336,7 +336,7 @@ All Task 4 subtasks completed.
 - [x] Set up risk threshold configurations
 - [x] Create risk category definitions
 
-**5.2 Implement Risk Calculation Engine**
+**5.2 Implement Risk Calculation Engine** ✅
 
 - [x] Create risk factor calculation logic
 - [x] Implement weighted risk scoring
@@ -346,7 +346,7 @@ All Task 4 subtasks completed.
 
 **5.3 Build Risk Assessment API**
 
-- [ ] Create `/v1/risk/assess` endpoint
+- [x] Create `/v1/risk/assess` endpoint
 - [ ] Implement risk history tracking
 - [ ] Set up risk alert generation
 - [ ] Create risk report generation

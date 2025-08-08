@@ -806,7 +806,7 @@ func TestRiskPredictionAlgorithm_IdentifyContributingFactors(t *testing.T) {
 	}
 
 	factors := algorithm.identifyContributingFactors(trends, 85.0)
-	
+
 	if len(factors) == 0 {
 		t.Error("Should identify contributing factors")
 	}
@@ -838,8 +838,8 @@ func TestRiskPredictionAlgorithm_FormatHorizon(t *testing.T) {
 	algorithm := NewRiskPredictionAlgorithm()
 
 	testCases := []struct {
-		horizon   time.Duration
-		expected  string
+		horizon  time.Duration
+		expected string
 	}{
 		{15 * 24 * time.Hour, "1month"},
 		{30 * 24 * time.Hour, "1month"},
@@ -926,13 +926,13 @@ func TestRiskPredictionAlgorithm_PredictRiskScoreWithConfidenceInterval(t *testi
 
 	// Validate that predicted score is within the confidence interval
 	if prediction.PredictedScore < interval.LowerBound || prediction.PredictedScore > interval.UpperBound {
-		t.Errorf("Predicted score %f should be within confidence interval [%f, %f]", 
+		t.Errorf("Predicted score %f should be within confidence interval [%f, %f]",
 			prediction.PredictedScore, interval.LowerBound, interval.UpperBound)
 	}
 
-	t.Logf("Prediction: Score=%f, Level=%s, Confidence=%f", 
+	t.Logf("Prediction: Score=%f, Level=%s, Confidence=%f",
 		prediction.PredictedScore, prediction.PredictedLevel, prediction.Confidence)
-	t.Logf("Confidence Interval: [%f, %f] at %f%% confidence", 
+	t.Logf("Confidence Interval: [%f, %f] at %f%% confidence",
 		interval.LowerBound, interval.UpperBound, interval.Confidence*100)
 }
 
@@ -987,12 +987,12 @@ func TestRiskPredictionAlgorithm_CalculateConfidenceInterval(t *testing.T) {
 
 		// Higher confidence levels should result in wider intervals
 		if confidenceLevel == 0.95 && interval.UpperBound-interval.LowerBound < 5 {
-			t.Logf("Warning: Confidence interval for 95%% level seems narrow: [%f, %f]", 
+			t.Logf("Warning: Confidence interval for 95%% level seems narrow: [%f, %f]",
 				interval.LowerBound, interval.UpperBound)
 		}
 	}
 
-	t.Logf("Confidence interval: [%f, %f] at %f%% confidence", 
+	t.Logf("Confidence interval: [%f, %f] at %f%% confidence",
 		interval.LowerBound, interval.UpperBound, interval.Confidence*100)
 }
 
@@ -1000,7 +1000,7 @@ func TestRiskPredictionAlgorithm_CalculateMean(t *testing.T) {
 	algorithm := NewRiskPredictionAlgorithm()
 
 	testCases := []struct {
-		values  []float64
+		values   []float64
 		expected float64
 	}{
 		{[]float64{1, 2, 3, 4, 5}, 3.0},
@@ -1022,7 +1022,7 @@ func TestRiskPredictionAlgorithm_CalculateStandardDeviation(t *testing.T) {
 	algorithm := NewRiskPredictionAlgorithm()
 
 	testCases := []struct {
-		values  []float64
+		values   []float64
 		expected float64
 	}{
 		{[]float64{1, 2, 3, 4, 5}, 1.5811388300841898},
@@ -1050,14 +1050,14 @@ func TestRiskPredictionAlgorithm_CalculateMarginOfError(t *testing.T) {
 	algorithm := NewRiskPredictionAlgorithm()
 
 	testCases := []struct {
-		stdDev         float64
-		sampleSize     int
+		stdDev          float64
+		sampleSize      int
 		confidenceLevel float64
-		expectedRange  [2]float64 // [min, max] expected range
+		expectedRange   [2]float64 // [min, max] expected range
 	}{
-		{10.0, 10, 0.95, [2]float64{5.0, 8.0}},   // Should be around 6.32
-		{5.0, 20, 0.90, [2]float64{1.5, 3.0}},    // Should be around 1.84
-		{15.0, 5, 0.99, [2]float64{15.0, 25.0}},  // Should be around 17.28
+		{10.0, 10, 0.95, [2]float64{5.0, 8.0}},  // Should be around 6.32
+		{5.0, 20, 0.90, [2]float64{1.5, 3.0}},   // Should be around 1.84
+		{15.0, 5, 0.99, [2]float64{15.0, 25.0}}, // Should be around 17.28
 	}
 
 	for _, tc := range testCases {
