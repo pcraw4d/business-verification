@@ -6,7 +6,7 @@ import (
 
 func TestIndustryModelRegistry_RegisterModel(t *testing.T) {
 	registry := NewIndustryModelRegistry()
-	
+
 	// Test valid model registration
 	model := &IndustryModel{
 		IndustryCode: "52",
@@ -22,31 +22,31 @@ func TestIndustryModelRegistry_RegisterModel(t *testing.T) {
 		ModelVersion: "1.0",
 		LastUpdated:  "2024-01-01",
 	}
-	
+
 	err := registry.RegisterModel(model)
 	if err != nil {
 		t.Errorf("Expected no error when registering valid model, got %v", err)
 	}
-	
+
 	// Test invalid model (empty industry code)
 	invalidModel := &IndustryModel{
 		IndustryCode: "",
 		IndustryName: "Invalid Model",
 		RiskFactors:  []RiskFactor{},
 	}
-	
+
 	err = registry.RegisterModel(invalidModel)
 	if err == nil {
 		t.Error("Expected error when registering model with empty industry code")
 	}
-	
+
 	// Test invalid model (no risk factors)
 	invalidModel2 := &IndustryModel{
 		IndustryCode: "99",
 		IndustryName: "Invalid Model",
 		RiskFactors:  []RiskFactor{},
 	}
-	
+
 	err = registry.RegisterModel(invalidModel2)
 	if err == nil {
 		t.Error("Expected error when registering model with no risk factors")
@@ -55,7 +55,7 @@ func TestIndustryModelRegistry_RegisterModel(t *testing.T) {
 
 func TestIndustryModelRegistry_GetModel(t *testing.T) {
 	registry := NewIndustryModelRegistry()
-	
+
 	// Register a test model
 	model := &IndustryModel{
 		IndustryCode: "52",
@@ -72,7 +72,7 @@ func TestIndustryModelRegistry_GetModel(t *testing.T) {
 		LastUpdated:  "2024-01-01",
 	}
 	registry.RegisterModel(model)
-	
+
 	// Test exact match
 	retrievedModel, exists := registry.GetModel("52")
 	if !exists {
@@ -81,7 +81,7 @@ func TestIndustryModelRegistry_GetModel(t *testing.T) {
 	if retrievedModel.IndustryCode != "52" {
 		t.Errorf("Expected industry code 52, got %s", retrievedModel.IndustryCode)
 	}
-	
+
 	// Test non-existent model
 	_, exists = registry.GetModel("99")
 	if exists {
@@ -91,7 +91,7 @@ func TestIndustryModelRegistry_GetModel(t *testing.T) {
 
 func TestIndustryModelRegistry_GetModelByNAICS(t *testing.T) {
 	registry := NewIndustryModelRegistry()
-	
+
 	// Register models with different NAICS codes
 	models := []*IndustryModel{
 		{
@@ -109,11 +109,11 @@ func TestIndustryModelRegistry_GetModelByNAICS(t *testing.T) {
 			},
 		},
 	}
-	
+
 	for _, model := range models {
 		registry.RegisterModel(model)
 	}
-	
+
 	// Test exact match
 	model, exists := registry.GetModelByNAICS("52")
 	if !exists {
@@ -122,7 +122,7 @@ func TestIndustryModelRegistry_GetModelByNAICS(t *testing.T) {
 	if model.IndustryCode != "52" {
 		t.Errorf("Expected industry code 52, got %s", model.IndustryCode)
 	}
-	
+
 	// Test partial match
 	model, exists = registry.GetModelByNAICS("541511")
 	if !exists {
@@ -131,7 +131,7 @@ func TestIndustryModelRegistry_GetModelByNAICS(t *testing.T) {
 	if model.IndustryCode != "5415" {
 		t.Errorf("Expected industry code 5415, got %s", model.IndustryCode)
 	}
-	
+
 	// Test no match
 	_, exists = registry.GetModelByNAICS("99")
 	if exists {
@@ -141,7 +141,7 @@ func TestIndustryModelRegistry_GetModelByNAICS(t *testing.T) {
 
 func TestIndustryModelRegistry_ListModels(t *testing.T) {
 	registry := NewIndustryModelRegistry()
-	
+
 	// Register multiple models
 	models := []*IndustryModel{
 		{
@@ -159,23 +159,23 @@ func TestIndustryModelRegistry_ListModels(t *testing.T) {
 			},
 		},
 	}
-	
+
 	for _, model := range models {
 		registry.RegisterModel(model)
 	}
-	
+
 	// Test listing models
 	listedModels := registry.ListModels()
 	if len(listedModels) != 2 {
 		t.Errorf("Expected 2 models, got %d", len(listedModels))
 	}
-	
+
 	// Verify all models are present
 	codes := make(map[string]bool)
 	for _, model := range listedModels {
 		codes[model.IndustryCode] = true
 	}
-	
+
 	if !codes["52"] || !codes["54"] {
 		t.Error("Expected both industry codes to be present in listed models")
 	}
@@ -184,7 +184,7 @@ func TestIndustryModelRegistry_ListModels(t *testing.T) {
 func TestIndustrySpecificScoringAlgorithm_CalculateScore(t *testing.T) {
 	registry := CreateDefaultIndustryModels()
 	algorithm := NewIndustrySpecificScoringAlgorithm(registry)
-	
+
 	// Test with financial industry data
 	data := map[string]interface{}{
 		"industry_code": "52",
@@ -194,9 +194,9 @@ func TestIndustrySpecificScoringAlgorithm_CalculateScore(t *testing.T) {
 			"license_status":        "active",
 		},
 		"financial_stability": map[string]interface{}{
-			"revenue":      1000000.0,
-			"debt_ratio":   0.4,
-			"cash_flow":    100000.0,
+			"revenue":       1000000.0,
+			"debt_ratio":    0.4,
+			"cash_flow":     100000.0,
 			"profit_margin": 0.15,
 		},
 		"cybersecurity": map[string]interface{}{
@@ -205,27 +205,27 @@ func TestIndustrySpecificScoringAlgorithm_CalculateScore(t *testing.T) {
 			"security_maturity":  3.5,
 		},
 	}
-	
+
 	score, confidence, err := algorithm.CalculateScore([]RiskFactor{}, data)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
-	
+
 	if score < 0 || score > 100 {
 		t.Errorf("Score should be between 0 and 100, got %f", score)
 	}
-	
+
 	if confidence < 0 || confidence > 1 {
 		t.Errorf("Confidence should be between 0 and 1, got %f", confidence)
 	}
-	
+
 	t.Logf("Financial industry score: %f, confidence: %f", score, confidence)
 }
 
 func TestIndustrySpecificScoringAlgorithm_CalculateScore_Technology(t *testing.T) {
 	registry := CreateDefaultIndustryModels()
 	algorithm := NewIndustrySpecificScoringAlgorithm(registry)
-	
+
 	// Test with technology industry data
 	data := map[string]interface{}{
 		"industry_code": "5415",
@@ -235,38 +235,38 @@ func TestIndustrySpecificScoringAlgorithm_CalculateScore_Technology(t *testing.T
 			"security_maturity":  4.0,
 		},
 		"operational_efficiency": map[string]interface{}{
-			"employee_turnover":     0.15,
+			"employee_turnover":      0.15,
 			"operational_efficiency": 0.8,
-			"process_maturity":      3.5,
+			"process_maturity":       3.5,
 		},
 		"financial_stability": map[string]interface{}{
-			"revenue":      2000000.0,
-			"debt_ratio":   0.3,
-			"cash_flow":    200000.0,
+			"revenue":       2000000.0,
+			"debt_ratio":    0.3,
+			"cash_flow":     200000.0,
 			"profit_margin": 0.2,
 		},
 	}
-	
+
 	score, confidence, err := algorithm.CalculateScore([]RiskFactor{}, data)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
-	
+
 	if score < 0 || score > 100 {
 		t.Errorf("Score should be between 0 and 100, got %f", score)
 	}
-	
+
 	if confidence < 0 || confidence > 1 {
 		t.Errorf("Confidence should be between 0 and 1, got %f", confidence)
 	}
-	
+
 	t.Logf("Technology industry score: %f, confidence: %f", score, confidence)
 }
 
 func TestIndustrySpecificScoringAlgorithm_CalculateScore_Healthcare(t *testing.T) {
 	registry := CreateDefaultIndustryModels()
 	algorithm := NewIndustrySpecificScoringAlgorithm(registry)
-	
+
 	// Test with healthcare industry data
 	data := map[string]interface{}{
 		"industry_code": "62",
@@ -281,93 +281,93 @@ func TestIndustrySpecificScoringAlgorithm_CalculateScore_Healthcare(t *testing.T
 			"security_maturity":  4.5,
 		},
 		"operational_efficiency": map[string]interface{}{
-			"employee_turnover":     0.1,
+			"employee_turnover":      0.1,
 			"operational_efficiency": 0.85,
-			"process_maturity":      4.0,
+			"process_maturity":       4.0,
 		},
 	}
-	
+
 	score, confidence, err := algorithm.CalculateScore([]RiskFactor{}, data)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
-	
+
 	if score < 0 || score > 100 {
 		t.Errorf("Score should be between 0 and 100, got %f", score)
 	}
-	
+
 	if confidence < 0 || confidence > 1 {
 		t.Errorf("Confidence should be between 0 and 1, got %f", confidence)
 	}
-	
+
 	t.Logf("Healthcare industry score: %f, confidence: %f", score, confidence)
 }
 
 func TestIndustrySpecificScoringAlgorithm_CalculateScore_NoIndustryCode(t *testing.T) {
 	registry := CreateDefaultIndustryModels()
 	algorithm := NewIndustrySpecificScoringAlgorithm(registry)
-	
+
 	// Test with no industry code (should fall back to base algorithm)
 	data := map[string]interface{}{
 		"financial_stability": map[string]interface{}{
-			"revenue":      1000000.0,
-			"debt_ratio":   0.4,
-			"cash_flow":    100000.0,
+			"revenue":       1000000.0,
+			"debt_ratio":    0.4,
+			"cash_flow":     100000.0,
 			"profit_margin": 0.15,
 		},
 	}
-	
+
 	score, confidence, err := algorithm.CalculateScore([]RiskFactor{}, data)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
-	
+
 	if score < 0 || score > 100 {
 		t.Errorf("Score should be between 0 and 100, got %f", score)
 	}
-	
+
 	if confidence < 0 || confidence > 1 {
 		t.Errorf("Confidence should be between 0 and 1, got %f", confidence)
 	}
-	
+
 	t.Logf("No industry code score: %f, confidence: %f", score, confidence)
 }
 
 func TestIndustrySpecificScoringAlgorithm_CalculateScore_UnknownIndustry(t *testing.T) {
 	registry := CreateDefaultIndustryModels()
 	algorithm := NewIndustrySpecificScoringAlgorithm(registry)
-	
+
 	// Test with unknown industry code (should fall back to base algorithm)
 	data := map[string]interface{}{
 		"industry_code": "99",
 		"financial_stability": map[string]interface{}{
-			"revenue":      1000000.0,
-			"debt_ratio":   0.4,
-			"cash_flow":    100000.0,
+			"revenue":       1000000.0,
+			"debt_ratio":    0.4,
+			"cash_flow":     100000.0,
 			"profit_margin": 0.15,
 		},
 	}
-	
+
 	score, confidence, err := algorithm.CalculateScore([]RiskFactor{}, data)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
-	
+
 	if score < 0 || score > 100 {
 		t.Errorf("Score should be between 0 and 100, got %f", score)
 	}
-	
+
 	if confidence < 0 || confidence > 1 {
 		t.Errorf("Confidence should be between 0 and 1, got %f", confidence)
 	}
-	
+
 	t.Logf("Unknown industry score: %f, confidence: %f", score, confidence)
 }
 
 func TestIndustrySpecificScoringAlgorithm_CalculateLevel(t *testing.T) {
 	registry := CreateDefaultIndustryModels()
 	algorithm := NewIndustrySpecificScoringAlgorithm(registry)
-	
+
 	// Test with custom thresholds
 	customThresholds := map[RiskLevel]float64{
 		RiskLevelLow:      20.0,
@@ -375,7 +375,7 @@ func TestIndustrySpecificScoringAlgorithm_CalculateLevel(t *testing.T) {
 		RiskLevelHigh:     75.0,
 		RiskLevelCritical: 90.0,
 	}
-	
+
 	testCases := []struct {
 		score    float64
 		expected RiskLevel
@@ -386,7 +386,7 @@ func TestIndustrySpecificScoringAlgorithm_CalculateLevel(t *testing.T) {
 		{85.0, RiskLevelHigh},
 		{95.0, RiskLevelCritical},
 	}
-	
+
 	for i, tc := range testCases {
 		result := algorithm.CalculateLevel(tc.score, customThresholds)
 		if result != tc.expected {
@@ -398,7 +398,7 @@ func TestIndustrySpecificScoringAlgorithm_CalculateLevel(t *testing.T) {
 func TestIndustrySpecificScoringAlgorithm_CalculateConfidence(t *testing.T) {
 	registry := CreateDefaultIndustryModels()
 	algorithm := NewIndustrySpecificScoringAlgorithm(registry)
-	
+
 	// Test with financial industry data
 	data := map[string]interface{}{
 		"industry_code": "52",
@@ -410,21 +410,21 @@ func TestIndustrySpecificScoringAlgorithm_CalculateConfidence(t *testing.T) {
 		},
 		// Missing cybersecurity data
 	}
-	
+
 	confidence := algorithm.CalculateConfidence([]RiskFactor{}, data)
 	if confidence < 0 || confidence > 1 {
 		t.Errorf("Confidence should be between 0 and 1, got %f", confidence)
 	}
-	
+
 	t.Logf("Industry-specific confidence: %f", confidence)
 }
 
 func TestCreateDefaultIndustryModels(t *testing.T) {
 	registry := CreateDefaultIndustryModels()
-	
+
 	// Test that all expected models are created
 	expectedModels := []string{"52", "54", "62", "31", "44"}
-	
+
 	for _, expectedCode := range expectedModels {
 		model, exists := registry.GetModel(expectedCode)
 		if !exists {
@@ -434,21 +434,21 @@ func TestCreateDefaultIndustryModels(t *testing.T) {
 			t.Errorf("Expected industry code %s, got %s", expectedCode, model.IndustryCode)
 		}
 	}
-	
+
 	// Test model properties
 	financialModel, exists := registry.GetModel("52")
 	if !exists {
 		t.Fatal("Financial model should exist")
 	}
-	
+
 	if financialModel.IndustryName != "Finance and Insurance" {
 		t.Errorf("Expected industry name 'Finance and Insurance', got %s", financialModel.IndustryName)
 	}
-	
+
 	if len(financialModel.RiskFactors) != 3 {
 		t.Errorf("Expected 3 risk factors, got %d", len(financialModel.RiskFactors))
 	}
-	
+
 	// Test special factors
 	if specialFactors, exists := financialModel.SpecialFactors["regulatory_compliance"]; !exists {
 		t.Error("Expected special factors for regulatory compliance")
@@ -479,32 +479,32 @@ func TestIndustryModel_Validation(t *testing.T) {
 		ModelVersion: "1.0",
 		LastUpdated:  "2024-01-01",
 	}
-	
+
 	registry := NewIndustryModelRegistry()
 	err := registry.RegisterModel(validModel)
 	if err != nil {
 		t.Errorf("Expected no error for valid model, got %v", err)
 	}
-	
+
 	// Test model with empty industry code
 	invalidModel := &IndustryModel{
 		IndustryCode: "",
 		IndustryName: "Invalid Model",
 		RiskFactors:  []RiskFactor{},
 	}
-	
+
 	err = registry.RegisterModel(invalidModel)
 	if err == nil {
 		t.Error("Expected error for model with empty industry code")
 	}
-	
+
 	// Test model with no risk factors
 	invalidModel2 := &IndustryModel{
 		IndustryCode: "99",
 		IndustryName: "Invalid Model",
 		RiskFactors:  []RiskFactor{},
 	}
-	
+
 	err = registry.RegisterModel(invalidModel2)
 	if err == nil {
 		t.Error("Expected error for model with no risk factors")
@@ -514,23 +514,23 @@ func TestIndustryModel_Validation(t *testing.T) {
 func TestIndustrySpecificScoringAlgorithm_Performance(t *testing.T) {
 	registry := CreateDefaultIndustryModels()
 	algorithm := NewIndustrySpecificScoringAlgorithm(registry)
-	
+
 	// Create test data for all industries
 	industries := []string{"52", "54", "62", "31", "44"}
-	
+
 	for _, industryCode := range industries {
 		data := map[string]interface{}{
 			"industry_code": industryCode,
 			"financial_stability": map[string]interface{}{
-				"revenue":      1000000.0,
-				"debt_ratio":   0.4,
-				"cash_flow":    100000.0,
+				"revenue":       1000000.0,
+				"debt_ratio":    0.4,
+				"cash_flow":     100000.0,
 				"profit_margin": 0.15,
 			},
 			"operational_efficiency": map[string]interface{}{
-				"employee_turnover":     0.15,
+				"employee_turnover":      0.15,
 				"operational_efficiency": 0.8,
-				"process_maturity":      3.5,
+				"process_maturity":       3.5,
 			},
 			"regulatory_compliance": map[string]interface{}{
 				"compliance_violations": 1.0,
@@ -543,20 +543,20 @@ func TestIndustrySpecificScoringAlgorithm_Performance(t *testing.T) {
 				"security_maturity":  3.5,
 			},
 		}
-		
+
 		score, confidence, err := algorithm.CalculateScore([]RiskFactor{}, data)
 		if err != nil {
 			t.Errorf("Expected no error for industry %s, got %v", industryCode, err)
 		}
-		
+
 		if score < 0 || score > 100 {
 			t.Errorf("Score should be between 0 and 100 for industry %s, got %f", industryCode, score)
 		}
-		
+
 		if confidence < 0 || confidence > 1 {
 			t.Errorf("Confidence should be between 0 and 1 for industry %s, got %f", industryCode, confidence)
 		}
-		
+
 		t.Logf("Industry %s score: %f, confidence: %f", industryCode, score, confidence)
 	}
 }

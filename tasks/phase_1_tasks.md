@@ -62,6 +62,8 @@
 - `internal/risk/scoring_test.go` - Unit tests for risk scoring algorithms
 - `internal/risk/industry_models.go` - Industry-specific risk models and registry
 - `internal/risk/industry_models_test.go` - Unit tests for industry-specific risk models
+- `internal/risk/thresholds.go` - Risk threshold configuration management
+- `internal/risk/thresholds_test.go` - Unit tests for threshold configuration system
 - `internal/risk/service.go` - Risk assessment service
 - `internal/risk/service_test.go` - Unit tests for risk assessment service
 - `internal/compliance/service.go` - Compliance service
@@ -327,7 +329,7 @@ All Task 4 subtasks completed.
 - [x] Create risk factor data structures
 - [x] Design risk scoring algorithms
 - [x] Implement industry-specific risk models
-- [ ] Set up risk threshold configurations
+- [x] Set up risk threshold configurations
 - [ ] Create risk category definitions
 
 **5.2 Implement Risk Calculation Engine**
