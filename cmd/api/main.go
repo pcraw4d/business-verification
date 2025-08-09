@@ -42,6 +42,7 @@ type Server struct {
 	complianceHandler  *handlers.ComplianceHandler
 	soc2Handler        *handlers.SOC2Handler
 	pciHandler         *handlers.PCIDSSHandler
+	gdprHandler        *handlers.GDPRHandler
 	rateLimiter        *middleware.RateLimiter
 	authRateLimiter    *middleware.AuthRateLimiter
 	ipBlocker          *middleware.IPBlocker
@@ -67,6 +68,7 @@ func NewServer(
 	complianceHandler *handlers.ComplianceHandler,
 	soc2Handler *handlers.SOC2Handler,
 	pciHandler *handlers.PCIDSSHandler,
+	gdprHandler *handlers.GDPRHandler,
 	rateLimiter *middleware.RateLimiter,
 	authRateLimiter *middleware.AuthRateLimiter,
 	ipBlocker *middleware.IPBlocker,
@@ -159,6 +161,18 @@ func (s *Server) setupRoutes() *http.ServeMux {
 	mux.HandleFunc("GET /v1/pci-dss/report/{business_id}", s.pciHandler.GetPCIDSSReportHandler)
 	mux.HandleFunc("GET /v1/pci-dss/categories", s.pciHandler.GetPCIDSSCategoriesHandler)
 	mux.HandleFunc("GET /v1/pci-dss/requirements", s.pciHandler.GetPCIDSSRequirementsHandler)
+
+	// GDPR compliance endpoints
+	mux.HandleFunc("POST /v1/gdpr/initialize", s.gdprHandler.InitializeGDPRTrackingHandler)
+	mux.HandleFunc("GET /v1/gdpr/status/{business_id}", s.gdprHandler.GetGDPRStatusHandler)
+	mux.HandleFunc("PUT /v1/gdpr/requirements/{business_id}/{requirement_id}", s.gdprHandler.UpdateGDPRRequirementHandler)
+	mux.HandleFunc("PUT /v1/gdpr/principles/{business_id}/{principle_id}", s.gdprHandler.UpdateGDPRPrincipleHandler)
+	mux.HandleFunc("PUT /v1/gdpr/rights/{business_id}/{right_id}", s.gdprHandler.UpdateGDPRDataSubjectRightHandler)
+	mux.HandleFunc("POST /v1/gdpr/assess/{business_id}", s.gdprHandler.AssessGDPRComplianceHandler)
+	mux.HandleFunc("GET /v1/gdpr/report/{business_id}", s.gdprHandler.GetGDPRReportHandler)
+	mux.HandleFunc("GET /v1/gdpr/principles", s.gdprHandler.GetGDPRPrinciplesHandler)
+	mux.HandleFunc("GET /v1/gdpr/rights", s.gdprHandler.GetGDPRDataSubjectRightsHandler)
+	mux.HandleFunc("GET /v1/gdpr/requirements", s.gdprHandler.GetGDPRRequirementsHandler)
 
 	// Authentication endpoints (public)
 	mux.HandleFunc("POST /v1/auth/register", s.authHandler.RegisterHandler)
@@ -786,6 +800,9 @@ func main() {
 	// Initialize PCI DSS tracking service
 	pciTrackingService := compliance.NewPCIDSSTrackingService(logger, statusSystem, mappingSystem)
 
+	// Initialize GDPR tracking service
+	gdprTrackingService := compliance.NewGDPRTrackingService(logger, statusSystem, mappingSystem)
+
 	// Initialize compliance handler
 	complianceHandler := handlers.NewComplianceHandler(logger, checkEngine, statusSystem, complianceReportService, complianceAlertSystem, complianceExportSystem)
 
@@ -794,6 +811,9 @@ func main() {
 
 	// Initialize PCI DSS handler
 	pciHandler := handlers.NewPCIDSSHandler(logger, pciTrackingService, statusSystem, complianceReportService)
+
+	// Initialize GDPR handler
+	gdprHandler := handlers.NewGDPRHandler(logger, gdprTrackingService, statusSystem, complianceReportService)
 
 	// Initialize rate limiting middleware
 	rateLimitConfig := &middleware.RateLimitConfig{
@@ -919,7 +939,7 @@ func main() {
 	validator := middleware.NewValidator(validationConfig, logger)
 
 	// Create server
-	server := NewServer(cfg, logger, metrics, classificationSvc, riskService, riskHistoryService, riskHandler, dashboardHandler, authService, authHandler, authMiddleware, adminService, adminHandler, complianceHandler, soc2Handler, pciHandler, rateLimiter, authRateLimiter, ipBlocker, validator)
+	server := NewServer(cfg, logger, metrics, classificationSvc, riskService, riskHistoryService, riskHandler, dashboardHandler, authService, authHandler, authMiddleware, adminService, adminHandler, complianceHandler, soc2Handler, pciHandler, gdprHandler, rateLimiter, authRateLimiter, ipBlocker, validator)
 
 	// Start server in goroutine
 	go func() {

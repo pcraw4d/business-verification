@@ -66,13 +66,13 @@ func (h *PCIDSSHandler) InitializePCIDSSTrackingHandler(w http.ResponseWriter, r
 	}
 
 	response := map[string]interface{}{
-		"message":         "PCI DSS tracking initialized successfully",
-		"business_id":     req.BusinessID,
-		"merchant_level":  req.MerchantLevel,
+		"message":          "PCI DSS tracking initialized successfully",
+		"business_id":      req.BusinessID,
+		"merchant_level":   req.MerchantLevel,
 		"service_provider": req.ServiceProvider,
-		"framework":       compliance.FrameworkPCIDSS,
-		"version":         compliance.PCIDSSVersion4,
-		"timestamp":       time.Now(),
+		"framework":        compliance.FrameworkPCIDSS,
+		"version":          compliance.PCIDSSVersion4,
+		"timestamp":        time.Now(),
 	}
 
 	h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
