@@ -56,7 +56,12 @@ func setupComplianceTest(t *testing.T) (*ComplianceHandler, *compliance.Complian
 		logger: logger,
 	}
 
-	handler := NewComplianceHandler(logger, checkEngine, statusSystem)
+	// Create mock services for testing
+	reportService := &compliance.ReportGenerationService{}
+	alertSystem := &compliance.AlertSystem{}
+	exportSystem := &compliance.ExportSystem{}
+
+	handler := NewComplianceHandler(logger, checkEngine, statusSystem, reportService, alertSystem, exportSystem)
 
 	// Initialize test business status
 	ctx := context.WithValue(context.Background(), "request_id", "test-request-id")

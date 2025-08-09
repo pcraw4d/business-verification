@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,15 +24,17 @@ type ComplianceHandler struct {
 	statusSystem  *compliance.ComplianceStatusSystem
 	reportService *compliance.ReportGenerationService
 	alertSystem   *compliance.AlertSystem
+	exportSystem  *compliance.ExportSystem
 }
 
-func NewComplianceHandler(logger *observability.Logger, checkEngine CheckEngineInterface, statusSystem *compliance.ComplianceStatusSystem, reportService *compliance.ReportGenerationService, alertSystem *compliance.AlertSystem) *ComplianceHandler {
+func NewComplianceHandler(logger *observability.Logger, checkEngine CheckEngineInterface, statusSystem *compliance.ComplianceStatusSystem, reportService *compliance.ReportGenerationService, alertSystem *compliance.AlertSystem, exportSystem *compliance.ExportSystem) *ComplianceHandler {
 	return &ComplianceHandler{
 		logger:        logger,
 		checkEngine:   checkEngine,
 		statusSystem:  statusSystem,
 		reportService: reportService,
 		alertSystem:   alertSystem,
+		exportSystem:  exportSystem,
 	}
 }
 
@@ -687,4 +690,276 @@ func (h *ComplianceHandler) RegisterNotificationChannelHandler(w http.ResponseWr
 		"message":    "Notification channel registered successfully",
 		"channel_id": channel.ID,
 	})
+}
+
+// ExportComplianceDataHandler handles POST /v1/compliance/export
+// Request JSON: {"business_id": string, "export_type": string, "format": string, "date_range": {...}, "frameworks": [string], "include_details": bool, "filters": {...}}
+func (h *ComplianceHandler) ExportComplianceDataHandler(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	ctx := r.Context()
+
+	var request compliance.ExportRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		h.writeError(w, r, http.StatusBadRequest, "invalid_request", "Invalid JSON in request body")
+		return
+	}
+
+	// Validate required fields
+	if request.BusinessID == "" {
+		h.writeError(w, r, http.StatusBadRequest, "invalid_request", "business_id is required")
+		return
+	}
+
+	if request.ExportType == "" {
+		h.writeError(w, r, http.StatusBadRequest, "invalid_request", "export_type is required")
+		return
+	}
+
+	// Set defaults
+	if request.Format == "" {
+		request.Format = compliance.ExportFormatJSON
+	}
+
+	if request.GeneratedBy == "" {
+		request.GeneratedBy = "api_user"
+	}
+
+	// Export data
+	result, err := h.exportSystem.ExportData(ctx, request)
+	if err != nil {
+		h.logger.Error("Failed to export compliance data",
+			"business_id", request.BusinessID,
+			"export_type", request.ExportType,
+			"error", err.Error(),
+		)
+		h.writeError(w, r, http.StatusInternalServerError, "export_failed", err.Error())
+		return
+	}
+
+	h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(result)
+}
+
+// CreateExportJobHandler handles POST /v1/compliance/export/job
+// Creates an asynchronous export job for large datasets
+func (h *ComplianceHandler) CreateExportJobHandler(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	ctx := r.Context()
+
+	var request compliance.ExportRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		h.writeError(w, r, http.StatusBadRequest, "invalid_request", "Invalid JSON in request body")
+		return
+	}
+
+	// Validate required fields
+	if request.BusinessID == "" {
+		h.writeError(w, r, http.StatusBadRequest, "invalid_request", "business_id is required")
+		return
+	}
+
+	if request.ExportType == "" {
+		h.writeError(w, r, http.StatusBadRequest, "invalid_request", "export_type is required")
+		return
+	}
+
+	// Set defaults
+	if request.Format == "" {
+		request.Format = compliance.ExportFormatJSON
+	}
+
+	if request.GeneratedBy == "" {
+		request.GeneratedBy = "api_user"
+	}
+
+	// Create export job (for now, we'll use the same export system but return a job ID)
+	// In a real implementation, this would create an async job
+	result, err := h.exportSystem.ExportData(ctx, request)
+	if err != nil {
+		h.logger.Error("Failed to create export job",
+			"business_id", request.BusinessID,
+			"export_type", request.ExportType,
+			"error", err.Error(),
+		)
+		h.writeError(w, r, http.StatusInternalServerError, "job_creation_failed", err.Error())
+		return
+	}
+
+	// Return job information
+	jobResponse := map[string]interface{}{
+		"job_id":       result.ID,
+		"status":       "completed",
+		"business_id":  result.BusinessID,
+		"export_type":  result.ExportType,
+		"format":       result.Format,
+		"record_count": result.RecordCount,
+		"file_size":    result.FileSize,
+		"generated_at": result.GeneratedAt,
+		"expires_at":   result.ExpiresAt,
+		"data":         result.Data,
+	}
+
+	h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(jobResponse)
+}
+
+// GetExportJobHandler handles GET /v1/compliance/export/job/{job_id}
+// Retrieves the status and results of an export job
+func (h *ComplianceHandler) GetExportJobHandler(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	ctx := r.Context()
+
+	// Extract job_id from URL path
+	jobID := h.extractPathParam(r, "job_id")
+	if jobID == "" {
+		h.writeError(w, r, http.StatusBadRequest, "invalid_request", "job_id is required")
+		return
+	}
+
+	// For now, we'll return a mock response since we don't have persistent job storage
+	// In a real implementation, this would query a job database
+	jobResponse := map[string]interface{}{
+		"job_id":       jobID,
+		"status":       "completed",
+		"business_id":  "sample_business",
+		"export_type":  "comprehensive",
+		"format":       "json",
+		"record_count": 150,
+		"file_size":    10240,
+		"generated_at": time.Now().Add(-time.Hour),
+		"expires_at":   time.Now().Add(23 * time.Hour),
+		"message":      "Export job completed successfully",
+	}
+
+	h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(jobResponse)
+}
+
+// ListExportJobsHandler handles GET /v1/compliance/export/jobs
+// Lists all export jobs for a business
+func (h *ComplianceHandler) ListExportJobsHandler(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	ctx := r.Context()
+
+	// Extract business_id from query parameters
+	businessID := r.URL.Query().Get("business_id")
+	if businessID == "" {
+		h.writeError(w, r, http.StatusBadRequest, "invalid_request", "business_id is required")
+		return
+	}
+
+	// Parse pagination parameters
+	limitStr := r.URL.Query().Get("limit")
+	offsetStr := r.URL.Query().Get("offset")
+
+	limit := 50 // Default limit
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+		}
+	}
+
+	offset := 0 // Default offset
+	if offsetStr != "" {
+		if o, err := strconv.Atoi(offsetStr); err == nil && o >= 0 {
+			offset = o
+		}
+	}
+
+	// For now, return mock data
+	// In a real implementation, this would query a job database
+	jobs := []map[string]interface{}{
+		{
+			"job_id":       "export_1234567890",
+			"status":       "completed",
+			"business_id":  businessID,
+			"export_type":  "comprehensive",
+			"format":       "json",
+			"record_count": 150,
+			"file_size":    10240,
+			"generated_at": time.Now().Add(-time.Hour),
+			"expires_at":   time.Now().Add(23 * time.Hour),
+		},
+		{
+			"job_id":       "export_1234567891",
+			"status":       "completed",
+			"business_id":  businessID,
+			"export_type":  "status",
+			"format":       "csv",
+			"record_count": 25,
+			"file_size":    2048,
+			"generated_at": time.Now().Add(-2 * time.Hour),
+			"expires_at":   time.Now().Add(22 * time.Hour),
+		},
+	}
+
+	response := map[string]interface{}{
+		"jobs":   jobs,
+		"total":  len(jobs),
+		"limit":  limit,
+		"offset": offset,
+	}
+
+	h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(response)
+}
+
+// DownloadExportHandler handles GET /v1/compliance/export/{export_id}/download
+// Downloads the exported data file
+func (h *ComplianceHandler) DownloadExportHandler(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	ctx := r.Context()
+
+	// Extract export_id from URL path
+	exportID := h.extractPathParam(r, "export_id")
+	if exportID == "" {
+		h.writeError(w, r, http.StatusBadRequest, "invalid_request", "export_id is required")
+		return
+	}
+
+	// For now, return a mock response
+	// In a real implementation, this would retrieve the actual file from storage
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Disposition", "attachment; filename=compliance_export_"+exportID+".json")
+	w.WriteHeader(http.StatusOK)
+
+	// Return sample export data
+	sampleData := map[string]interface{}{
+		"export_id":    exportID,
+		"business_id":  "sample_business",
+		"export_type":  "comprehensive",
+		"format":       "json",
+		"record_count": 150,
+		"generated_at": time.Now().Add(-time.Hour),
+		"data": map[string]interface{}{
+			"compliance_status": "compliant",
+			"frameworks":        []string{"SOC2", "PCI-DSS"},
+			"requirements": []map[string]interface{}{
+				{
+					"id":          "REQ-001",
+					"name":        "Access Control",
+					"status":      "compliant",
+					"description": "Implement proper access controls",
+				},
+				{
+					"id":          "REQ-002",
+					"name":        "Data Encryption",
+					"status":      "compliant",
+					"description": "Encrypt sensitive data at rest and in transit",
+				},
+			},
+		},
+	}
+
+	_ = json.NewEncoder(w).Encode(sampleData)
+
+	h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
 }

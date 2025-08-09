@@ -129,6 +129,13 @@ func (s *Server) setupRoutes() *http.ServeMux {
 	mux.HandleFunc("POST /v1/compliance/alerts/escalations", s.complianceHandler.RegisterEscalationPolicyHandler)
 	mux.HandleFunc("POST /v1/compliance/alerts/notifications", s.complianceHandler.RegisterNotificationChannelHandler)
 
+	// Compliance export endpoints
+	mux.HandleFunc("POST /v1/compliance/export", s.complianceHandler.ExportComplianceDataHandler)
+	mux.HandleFunc("POST /v1/compliance/export/job", s.complianceHandler.CreateExportJobHandler)
+	mux.HandleFunc("GET /v1/compliance/export/job/{job_id}", s.complianceHandler.GetExportJobHandler)
+	mux.HandleFunc("GET /v1/compliance/export/jobs", s.complianceHandler.ListExportJobsHandler)
+	mux.HandleFunc("GET /v1/compliance/export/{export_id}/download", s.complianceHandler.DownloadExportHandler)
+
 	// Authentication endpoints (public)
 	mux.HandleFunc("POST /v1/auth/register", s.authHandler.RegisterHandler)
 	mux.HandleFunc("POST /v1/auth/login", s.authHandler.LoginHandler)
@@ -746,8 +753,11 @@ func main() {
 	// Initialize compliance alert system
 	complianceAlertSystem := compliance.NewAlertSystem(logger, statusSystem, checkEngine)
 
+	// Initialize compliance export system
+	complianceExportSystem := compliance.NewExportSystem(logger, statusSystem, complianceReportService, complianceAlertSystem)
+
 	// Initialize compliance handler
-	complianceHandler := handlers.NewComplianceHandler(logger, checkEngine, statusSystem, complianceReportService, complianceAlertSystem)
+	complianceHandler := handlers.NewComplianceHandler(logger, checkEngine, statusSystem, complianceReportService, complianceAlertSystem, complianceExportSystem)
 
 	// Initialize rate limiting middleware
 	rateLimitConfig := &middleware.RateLimitConfig{
