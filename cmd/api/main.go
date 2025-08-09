@@ -41,6 +41,7 @@ type Server struct {
 	adminHandler       *handlers.AdminHandler
 	complianceHandler  *handlers.ComplianceHandler
 	soc2Handler        *handlers.SOC2Handler
+	pciHandler         *handlers.PCIDSSHandler
 	rateLimiter        *middleware.RateLimiter
 	authRateLimiter    *middleware.AuthRateLimiter
 	ipBlocker          *middleware.IPBlocker
@@ -65,6 +66,7 @@ func NewServer(
 	adminHandler *handlers.AdminHandler,
 	complianceHandler *handlers.ComplianceHandler,
 	soc2Handler *handlers.SOC2Handler,
+	pciHandler *handlers.PCIDSSHandler,
 	rateLimiter *middleware.RateLimiter,
 	authRateLimiter *middleware.AuthRateLimiter,
 	ipBlocker *middleware.IPBlocker,
@@ -147,6 +149,16 @@ func (s *Server) setupRoutes() *http.ServeMux {
 	mux.HandleFunc("GET /v1/soc2/report/{business_id}", s.soc2Handler.GetSOC2ReportHandler)
 	mux.HandleFunc("GET /v1/soc2/criteria", s.soc2Handler.GetSOC2CriteriaHandler)
 	mux.HandleFunc("GET /v1/soc2/requirements", s.soc2Handler.GetSOC2RequirementsHandler)
+
+	// PCI DSS compliance endpoints
+	mux.HandleFunc("POST /v1/pci-dss/initialize", s.pciHandler.InitializePCIDSSTrackingHandler)
+	mux.HandleFunc("GET /v1/pci-dss/status/{business_id}", s.pciHandler.GetPCIDSSStatusHandler)
+	mux.HandleFunc("PUT /v1/pci-dss/requirements/{business_id}/{requirement_id}", s.pciHandler.UpdatePCIDSSRequirementHandler)
+	mux.HandleFunc("PUT /v1/pci-dss/categories/{business_id}/{category_id}", s.pciHandler.UpdatePCIDSSCategoryHandler)
+	mux.HandleFunc("POST /v1/pci-dss/assess/{business_id}", s.pciHandler.AssessPCIDSSComplianceHandler)
+	mux.HandleFunc("GET /v1/pci-dss/report/{business_id}", s.pciHandler.GetPCIDSSReportHandler)
+	mux.HandleFunc("GET /v1/pci-dss/categories", s.pciHandler.GetPCIDSSCategoriesHandler)
+	mux.HandleFunc("GET /v1/pci-dss/requirements", s.pciHandler.GetPCIDSSRequirementsHandler)
 
 	// Authentication endpoints (public)
 	mux.HandleFunc("POST /v1/auth/register", s.authHandler.RegisterHandler)
@@ -771,11 +783,17 @@ func main() {
 	// Initialize SOC 2 tracking service
 	soc2TrackingService := compliance.NewSOC2TrackingService(logger, statusSystem, mappingSystem)
 
+	// Initialize PCI DSS tracking service
+	pciTrackingService := compliance.NewPCIDSSTrackingService(logger, statusSystem, mappingSystem)
+
 	// Initialize compliance handler
 	complianceHandler := handlers.NewComplianceHandler(logger, checkEngine, statusSystem, complianceReportService, complianceAlertSystem, complianceExportSystem)
 
 	// Initialize SOC 2 handler
 	soc2Handler := handlers.NewSOC2Handler(logger, soc2TrackingService, statusSystem, complianceReportService)
+
+	// Initialize PCI DSS handler
+	pciHandler := handlers.NewPCIDSSHandler(logger, pciTrackingService, statusSystem, complianceReportService)
 
 	// Initialize rate limiting middleware
 	rateLimitConfig := &middleware.RateLimitConfig{
@@ -901,7 +919,7 @@ func main() {
 	validator := middleware.NewValidator(validationConfig, logger)
 
 	// Create server
-	server := NewServer(cfg, logger, metrics, classificationSvc, riskService, riskHistoryService, riskHandler, dashboardHandler, authService, authHandler, authMiddleware, adminService, adminHandler, complianceHandler, soc2Handler, rateLimiter, authRateLimiter, ipBlocker, validator)
+	server := NewServer(cfg, logger, metrics, classificationSvc, riskService, riskHistoryService, riskHandler, dashboardHandler, authService, authHandler, authMiddleware, adminService, adminHandler, complianceHandler, soc2Handler, pciHandler, rateLimiter, authRateLimiter, ipBlocker, validator)
 
 	// Start server in goroutine
 	go func() {
