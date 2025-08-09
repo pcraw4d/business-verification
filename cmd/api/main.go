@@ -40,6 +40,7 @@ type Server struct {
 	adminService       *auth.AdminService
 	adminHandler       *handlers.AdminHandler
 	complianceHandler  *handlers.ComplianceHandler
+	soc2Handler        *handlers.SOC2Handler
 	rateLimiter        *middleware.RateLimiter
 	authRateLimiter    *middleware.AuthRateLimiter
 	ipBlocker          *middleware.IPBlocker
@@ -63,6 +64,7 @@ func NewServer(
 	adminService *auth.AdminService,
 	adminHandler *handlers.AdminHandler,
 	complianceHandler *handlers.ComplianceHandler,
+	soc2Handler *handlers.SOC2Handler,
 	rateLimiter *middleware.RateLimiter,
 	authRateLimiter *middleware.AuthRateLimiter,
 	ipBlocker *middleware.IPBlocker,
@@ -135,6 +137,16 @@ func (s *Server) setupRoutes() *http.ServeMux {
 	mux.HandleFunc("GET /v1/compliance/export/job/{job_id}", s.complianceHandler.GetExportJobHandler)
 	mux.HandleFunc("GET /v1/compliance/export/jobs", s.complianceHandler.ListExportJobsHandler)
 	mux.HandleFunc("GET /v1/compliance/export/{export_id}/download", s.complianceHandler.DownloadExportHandler)
+
+	// SOC 2 compliance endpoints
+	mux.HandleFunc("POST /v1/soc2/initialize", s.soc2Handler.InitializeSOC2TrackingHandler)
+	mux.HandleFunc("GET /v1/soc2/status/{business_id}", s.soc2Handler.GetSOC2StatusHandler)
+	mux.HandleFunc("PUT /v1/soc2/requirements/{business_id}/{requirement_id}", s.soc2Handler.UpdateSOC2RequirementHandler)
+	mux.HandleFunc("PUT /v1/soc2/criteria/{business_id}/{criteria_id}", s.soc2Handler.UpdateSOC2CriteriaHandler)
+	mux.HandleFunc("POST /v1/soc2/assess/{business_id}", s.soc2Handler.AssessSOC2ComplianceHandler)
+	mux.HandleFunc("GET /v1/soc2/report/{business_id}", s.soc2Handler.GetSOC2ReportHandler)
+	mux.HandleFunc("GET /v1/soc2/criteria", s.soc2Handler.GetSOC2CriteriaHandler)
+	mux.HandleFunc("GET /v1/soc2/requirements", s.soc2Handler.GetSOC2RequirementsHandler)
 
 	// Authentication endpoints (public)
 	mux.HandleFunc("POST /v1/auth/register", s.authHandler.RegisterHandler)
@@ -756,8 +768,14 @@ func main() {
 	// Initialize compliance export system
 	complianceExportSystem := compliance.NewExportSystem(logger, statusSystem, complianceReportService, complianceAlertSystem)
 
+	// Initialize SOC 2 tracking service
+	soc2TrackingService := compliance.NewSOC2TrackingService(logger, statusSystem, mappingSystem)
+
 	// Initialize compliance handler
 	complianceHandler := handlers.NewComplianceHandler(logger, checkEngine, statusSystem, complianceReportService, complianceAlertSystem, complianceExportSystem)
+
+	// Initialize SOC 2 handler
+	soc2Handler := handlers.NewSOC2Handler(logger, soc2TrackingService, statusSystem, complianceReportService)
 
 	// Initialize rate limiting middleware
 	rateLimitConfig := &middleware.RateLimitConfig{
@@ -883,7 +901,7 @@ func main() {
 	validator := middleware.NewValidator(validationConfig, logger)
 
 	// Create server
-	server := NewServer(cfg, logger, metrics, classificationSvc, riskService, riskHistoryService, riskHandler, dashboardHandler, authService, authHandler, authMiddleware, adminService, adminHandler, complianceHandler, rateLimiter, authRateLimiter, ipBlocker, validator)
+	server := NewServer(cfg, logger, metrics, classificationSvc, riskService, riskHistoryService, riskHandler, dashboardHandler, authService, authHandler, authMiddleware, adminService, adminHandler, complianceHandler, soc2Handler, rateLimiter, authRateLimiter, ipBlocker, validator)
 
 	// Start server in goroutine
 	go func() {
