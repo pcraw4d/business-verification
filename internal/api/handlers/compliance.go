@@ -18,18 +18,20 @@ type CheckEngineInterface interface {
 
 // ComplianceHandler handles compliance endpoints
 type ComplianceHandler struct {
-	logger       *observability.Logger
-	checkEngine  CheckEngineInterface
-	statusSystem *compliance.ComplianceStatusSystem
+	logger        *observability.Logger
+	checkEngine   CheckEngineInterface
+	statusSystem  *compliance.ComplianceStatusSystem
 	reportService *compliance.ReportGenerationService
+	alertSystem   *compliance.AlertSystem
 }
 
-func NewComplianceHandler(logger *observability.Logger, checkEngine CheckEngineInterface, statusSystem *compliance.ComplianceStatusSystem, reportService *compliance.ReportGenerationService) *ComplianceHandler {
+func NewComplianceHandler(logger *observability.Logger, checkEngine CheckEngineInterface, statusSystem *compliance.ComplianceStatusSystem, reportService *compliance.ReportGenerationService, alertSystem *compliance.AlertSystem) *ComplianceHandler {
 	return &ComplianceHandler{
 		logger:        logger,
 		checkEngine:   checkEngine,
 		statusSystem:  statusSystem,
 		reportService: reportService,
+		alertSystem:   alertSystem,
 	}
 }
 
@@ -379,9 +381,17 @@ func (h *ComplianceHandler) extractPathParam(r *http.Request, paramName string) 
 		if len(parts) >= 4 && parts[0] == "v1" && parts[1] == "compliance" && parts[2] == "status" {
 			return parts[3]
 		}
+		// Also handle business_id in alerts/analytics path
+		if len(parts) >= 5 && parts[0] == "v1" && parts[1] == "compliance" && parts[2] == "alerts" && parts[3] == "analytics" {
+			return parts[4]
+		}
 	case "alert_id":
 		if len(parts) >= 6 && parts[0] == "v1" && parts[1] == "compliance" && parts[2] == "status" && parts[4] == "alerts" {
 			return parts[5]
+		}
+	case "rule_id":
+		if len(parts) >= 5 && parts[0] == "v1" && parts[1] == "compliance" && parts[2] == "alerts" && parts[3] == "rules" {
+			return parts[4]
 		}
 	}
 
@@ -395,5 +405,286 @@ func (h *ComplianceHandler) writeError(w http.ResponseWriter, r *http.Request, s
 	_ = json.NewEncoder(w).Encode(map[string]string{
 		"error":   code,
 		"message": message,
+	})
+}
+
+// Alert System Endpoints
+
+// RegisterAlertRuleHandler handles POST /v1/compliance/alerts/rules
+func (h *ComplianceHandler) RegisterAlertRuleHandler(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	ctx := r.Context()
+
+	var rule compliance.AlertRule
+	if err := json.NewDecoder(r.Body).Decode(&rule); err != nil {
+		h.writeError(w, r, http.StatusBadRequest, "invalid_request", "Invalid JSON in request body")
+		return
+	}
+
+	if rule.ID == "" {
+		h.writeError(w, r, http.StatusBadRequest, "invalid_request", "rule ID is required")
+		return
+	}
+
+	if rule.Name == "" {
+		h.writeError(w, r, http.StatusBadRequest, "invalid_request", "rule name is required")
+		return
+	}
+
+	err := h.alertSystem.RegisterAlertRule(ctx, &rule)
+	if err != nil {
+		h.writeError(w, r, http.StatusInternalServerError, "rule_registration_failed", err.Error())
+		return
+	}
+
+	h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"message": "Alert rule registered successfully",
+		"rule_id": rule.ID,
+	})
+}
+
+// UpdateAlertRuleHandler handles PUT /v1/compliance/alerts/rules/{rule_id}
+func (h *ComplianceHandler) UpdateAlertRuleHandler(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	ctx := r.Context()
+
+	// Extract rule_id from URL path
+	ruleID := h.extractPathParam(r, "rule_id")
+	if ruleID == "" {
+		h.writeError(w, r, http.StatusBadRequest, "invalid_request", "rule_id is required")
+		return
+	}
+
+	var updates map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&updates); err != nil {
+		h.writeError(w, r, http.StatusBadRequest, "invalid_request", "Invalid JSON in request body")
+		return
+	}
+
+	err := h.alertSystem.UpdateAlertRule(ctx, ruleID, updates)
+	if err != nil {
+		h.writeError(w, r, http.StatusInternalServerError, "rule_update_failed", err.Error())
+		return
+	}
+
+	h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"message": "Alert rule updated successfully",
+	})
+}
+
+// DeleteAlertRuleHandler handles DELETE /v1/compliance/alerts/rules/{rule_id}
+func (h *ComplianceHandler) DeleteAlertRuleHandler(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	ctx := r.Context()
+
+	// Extract rule_id from URL path
+	ruleID := h.extractPathParam(r, "rule_id")
+	if ruleID == "" {
+		h.writeError(w, r, http.StatusBadRequest, "invalid_request", "rule_id is required")
+		return
+	}
+
+	err := h.alertSystem.DeleteAlertRule(ctx, ruleID)
+	if err != nil {
+		h.writeError(w, r, http.StatusInternalServerError, "rule_deletion_failed", err.Error())
+		return
+	}
+
+	h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"message": "Alert rule deleted successfully",
+	})
+}
+
+// GetAlertRuleHandler handles GET /v1/compliance/alerts/rules/{rule_id}
+func (h *ComplianceHandler) GetAlertRuleHandler(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	ctx := r.Context()
+
+	// Extract rule_id from URL path
+	ruleID := h.extractPathParam(r, "rule_id")
+	if ruleID == "" {
+		h.writeError(w, r, http.StatusBadRequest, "invalid_request", "rule_id is required")
+		return
+	}
+
+	rule, err := h.alertSystem.GetAlertRule(ctx, ruleID)
+	if err != nil {
+		h.writeError(w, r, http.StatusNotFound, "rule_not_found", err.Error())
+		return
+	}
+
+	h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(rule)
+}
+
+// ListAlertRulesHandler handles GET /v1/compliance/alerts/rules
+func (h *ComplianceHandler) ListAlertRulesHandler(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	ctx := r.Context()
+
+	rules, err := h.alertSystem.ListAlertRules(ctx)
+	if err != nil {
+		h.writeError(w, r, http.StatusInternalServerError, "rules_listing_failed", err.Error())
+		return
+	}
+
+	h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"rules": rules,
+		"count": len(rules),
+	})
+}
+
+// EvaluateAlertsHandler handles POST /v1/compliance/alerts/evaluate
+func (h *ComplianceHandler) EvaluateAlertsHandler(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	ctx := r.Context()
+
+	var req struct {
+		BusinessID string `json:"business_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeError(w, r, http.StatusBadRequest, "invalid_request", "Invalid JSON in request body")
+		return
+	}
+
+	if req.BusinessID == "" {
+		h.writeError(w, r, http.StatusBadRequest, "invalid_request", "business_id is required")
+		return
+	}
+
+	evaluations, err := h.alertSystem.EvaluateAlerts(ctx, req.BusinessID)
+	if err != nil {
+		h.writeError(w, r, http.StatusInternalServerError, "alert_evaluation_failed", err.Error())
+		return
+	}
+
+	h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"business_id":      req.BusinessID,
+		"evaluations":      evaluations,
+		"evaluation_count": len(evaluations),
+	})
+}
+
+// GetAlertAnalyticsHandler handles GET /v1/compliance/alerts/analytics/{business_id}
+func (h *ComplianceHandler) GetAlertAnalyticsHandler(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	ctx := r.Context()
+
+	// Extract business_id from URL path
+	businessID := h.extractPathParam(r, "business_id")
+	if businessID == "" {
+		h.writeError(w, r, http.StatusBadRequest, "invalid_request", "business_id is required")
+		return
+	}
+
+	// Parse query parameter for period
+	period := r.URL.Query().Get("period")
+	if period == "" {
+		period = "7d" // Default to 7 days
+	}
+
+	analytics, err := h.alertSystem.GetAlertAnalytics(ctx, businessID, period)
+	if err != nil {
+		h.writeError(w, r, http.StatusInternalServerError, "analytics_generation_failed", err.Error())
+		return
+	}
+
+	h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(analytics)
+}
+
+// RegisterEscalationPolicyHandler handles POST /v1/compliance/alerts/escalations
+func (h *ComplianceHandler) RegisterEscalationPolicyHandler(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	ctx := r.Context()
+
+	var policy compliance.EscalationPolicy
+	if err := json.NewDecoder(r.Body).Decode(&policy); err != nil {
+		h.writeError(w, r, http.StatusBadRequest, "invalid_request", "Invalid JSON in request body")
+		return
+	}
+
+	if policy.ID == "" {
+		h.writeError(w, r, http.StatusBadRequest, "invalid_request", "policy ID is required")
+		return
+	}
+
+	if policy.Name == "" {
+		h.writeError(w, r, http.StatusBadRequest, "invalid_request", "policy name is required")
+		return
+	}
+
+	err := h.alertSystem.RegisterEscalationPolicy(ctx, &policy)
+	if err != nil {
+		h.writeError(w, r, http.StatusInternalServerError, "policy_registration_failed", err.Error())
+		return
+	}
+
+	h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"message":   "Escalation policy registered successfully",
+		"policy_id": policy.ID,
+	})
+}
+
+// RegisterNotificationChannelHandler handles POST /v1/compliance/alerts/notifications
+func (h *ComplianceHandler) RegisterNotificationChannelHandler(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	ctx := r.Context()
+
+	var channel compliance.NotificationChannel
+	if err := json.NewDecoder(r.Body).Decode(&channel); err != nil {
+		h.writeError(w, r, http.StatusBadRequest, "invalid_request", "Invalid JSON in request body")
+		return
+	}
+
+	if channel.ID == "" {
+		h.writeError(w, r, http.StatusBadRequest, "invalid_request", "channel ID is required")
+		return
+	}
+
+	if channel.Name == "" {
+		h.writeError(w, r, http.StatusBadRequest, "invalid_request", "channel name is required")
+		return
+	}
+
+	if channel.Type == "" {
+		h.writeError(w, r, http.StatusBadRequest, "invalid_request", "channel type is required")
+		return
+	}
+
+	err := h.alertSystem.RegisterNotificationChannel(ctx, &channel)
+	if err != nil {
+		h.writeError(w, r, http.StatusInternalServerError, "channel_registration_failed", err.Error())
+		return
+	}
+
+	h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"message":    "Notification channel registered successfully",
+		"channel_id": channel.ID,
 	})
 }

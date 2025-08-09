@@ -118,6 +118,17 @@ func (s *Server) setupRoutes() *http.ServeMux {
 	mux.HandleFunc("POST /v1/compliance/status/{business_id}/report", s.complianceHandler.GenerateStatusReportHandler)
 	mux.HandleFunc("POST /v1/compliance/status/{business_id}/initialize", s.complianceHandler.InitializeBusinessStatusHandler)
 
+	// Compliance alert system endpoints
+	mux.HandleFunc("POST /v1/compliance/alerts/rules", s.complianceHandler.RegisterAlertRuleHandler)
+	mux.HandleFunc("PUT /v1/compliance/alerts/rules/{rule_id}", s.complianceHandler.UpdateAlertRuleHandler)
+	mux.HandleFunc("DELETE /v1/compliance/alerts/rules/{rule_id}", s.complianceHandler.DeleteAlertRuleHandler)
+	mux.HandleFunc("GET /v1/compliance/alerts/rules/{rule_id}", s.complianceHandler.GetAlertRuleHandler)
+	mux.HandleFunc("GET /v1/compliance/alerts/rules", s.complianceHandler.ListAlertRulesHandler)
+	mux.HandleFunc("POST /v1/compliance/alerts/evaluate", s.complianceHandler.EvaluateAlertsHandler)
+	mux.HandleFunc("GET /v1/compliance/alerts/analytics/{business_id}", s.complianceHandler.GetAlertAnalyticsHandler)
+	mux.HandleFunc("POST /v1/compliance/alerts/escalations", s.complianceHandler.RegisterEscalationPolicyHandler)
+	mux.HandleFunc("POST /v1/compliance/alerts/notifications", s.complianceHandler.RegisterNotificationChannelHandler)
+
 	// Authentication endpoints (public)
 	mux.HandleFunc("POST /v1/auth/register", s.authHandler.RegisterHandler)
 	mux.HandleFunc("POST /v1/auth/login", s.authHandler.LoginHandler)
@@ -732,8 +743,11 @@ func main() {
 	recommendations := compliance.NewRecommendationEngine(logger, scoringEngine, gapAnalyzer)
 	complianceReportService := compliance.NewReportGenerationService(logger, checkEngine, trackingSystem, gapAnalyzer, recommendations)
 
+	// Initialize compliance alert system
+	complianceAlertSystem := compliance.NewAlertSystem(logger, statusSystem, checkEngine)
+
 	// Initialize compliance handler
-	complianceHandler := handlers.NewComplianceHandler(logger, checkEngine, statusSystem, complianceReportService)
+	complianceHandler := handlers.NewComplianceHandler(logger, checkEngine, statusSystem, complianceReportService, complianceAlertSystem)
 
 	// Initialize rate limiting middleware
 	rateLimitConfig := &middleware.RateLimitConfig{
