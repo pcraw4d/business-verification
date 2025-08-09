@@ -107,7 +107,8 @@ func (s *Server) setupRoutes() *http.ServeMux {
 
 	// Compliance endpoints (protected in future; currently public)
 	mux.HandleFunc("POST /v1/compliance/check", s.complianceHandler.CheckComplianceHandler)
-	
+	mux.HandleFunc("POST /v1/compliance/report", s.complianceHandler.GenerateComplianceReportHandler)
+
 	// Compliance status tracking endpoints
 	mux.HandleFunc("GET /v1/compliance/status/{business_id}", s.complianceHandler.GetComplianceStatusHandler)
 	mux.HandleFunc("GET /v1/compliance/status/{business_id}/history", s.complianceHandler.GetStatusHistoryHandler)
@@ -726,9 +727,13 @@ func main() {
 	ruleEngine := compliance.NewRuleEngine(logger)
 	checkEngine := compliance.NewCheckEngine(logger, ruleEngine, trackingSystem, mappingSystem)
 	statusSystem := compliance.NewComplianceStatusSystem(logger)
+	gapAnalyzer := compliance.NewGapAnalyzer(logger, trackingSystem, mappingSystem)
+	scoringEngine := compliance.NewScoringEngine(logger, compliance.ScoreWeights{})
+	recommendations := compliance.NewRecommendationEngine(logger, scoringEngine, gapAnalyzer)
+	complianceReportService := compliance.NewReportGenerationService(logger, checkEngine, trackingSystem, gapAnalyzer, recommendations)
 
 	// Initialize compliance handler
-	complianceHandler := handlers.NewComplianceHandler(logger, checkEngine, statusSystem)
+	complianceHandler := handlers.NewComplianceHandler(logger, checkEngine, statusSystem, complianceReportService)
 
 	// Initialize rate limiting middleware
 	rateLimitConfig := &middleware.RateLimitConfig{

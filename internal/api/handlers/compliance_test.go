@@ -37,8 +37,8 @@ func (m *MockCheckEngine) Check(ctx context.Context, req compliance.CheckRequest
 				},
 			},
 		},
-		Passed:  8,
-		Failed:  2,
+		Passed: 8,
+		Failed: 2,
 	}, nil
 }
 
@@ -50,7 +50,7 @@ func setupComplianceTest(t *testing.T) (*ComplianceHandler, *compliance.Complian
 	}
 	logger := observability.NewLogger(obsConfig)
 	statusSystem := compliance.NewComplianceStatusSystem(logger)
-	
+
 	// Create a mock check engine that returns a valid response
 	checkEngine := &MockCheckEngine{
 		logger: logger,

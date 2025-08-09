@@ -21,13 +21,15 @@ type ComplianceHandler struct {
 	logger       *observability.Logger
 	checkEngine  CheckEngineInterface
 	statusSystem *compliance.ComplianceStatusSystem
+	reportService *compliance.ReportGenerationService
 }
 
-func NewComplianceHandler(logger *observability.Logger, checkEngine CheckEngineInterface, statusSystem *compliance.ComplianceStatusSystem) *ComplianceHandler {
+func NewComplianceHandler(logger *observability.Logger, checkEngine CheckEngineInterface, statusSystem *compliance.ComplianceStatusSystem, reportService *compliance.ReportGenerationService) *ComplianceHandler {
 	return &ComplianceHandler{
-		logger:       logger,
-		checkEngine:  checkEngine,
-		statusSystem: statusSystem,
+		logger:        logger,
+		checkEngine:   checkEngine,
+		statusSystem:  statusSystem,
+		reportService: reportService,
 	}
 }
 
@@ -284,6 +286,42 @@ func (h *ComplianceHandler) GenerateStatusReportHandler(w http.ResponseWriter, r
 	}
 
 	report, err := h.statusSystem.GenerateStatusReport(ctx, businessID, req.ReportType)
+	if err != nil {
+		h.writeError(w, r, http.StatusInternalServerError, "report_generation_failed", err.Error())
+		return
+	}
+
+	h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(report)
+}
+
+// GenerateComplianceReportHandler handles POST /v1/compliance/report
+func (h *ComplianceHandler) GenerateComplianceReportHandler(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	ctx := r.Context()
+
+	var req compliance.ReportRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeError(w, r, http.StatusBadRequest, "invalid_request", "Invalid JSON in request body")
+		return
+	}
+
+	if req.BusinessID == "" {
+		h.writeError(w, r, http.StatusBadRequest, "invalid_request", "business_id is required")
+		return
+	}
+
+	if req.ReportType == "" {
+		req.ReportType = compliance.ReportTypeStatus // Default to status report
+	}
+
+	if req.Format == "" {
+		req.Format = compliance.ReportFormatJSON // Default to JSON
+	}
+
+	report, err := h.reportService.GenerateComplianceReport(ctx, req)
 	if err != nil {
 		h.writeError(w, r, http.StatusInternalServerError, "report_generation_failed", err.Error())
 		return
