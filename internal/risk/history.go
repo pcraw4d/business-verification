@@ -234,7 +234,7 @@ func (s *RiskHistoryService) GetRiskTrends(ctx context.Context, businessID strin
 	// Get risk assessments for trend analysis
 	var dbAssessments []*database.RiskAssessment
 	var err error
-	
+
 	if s.database != nil {
 		dbAssessments, err = s.database.GetRiskAssessmentTrends(ctx, businessID, days)
 		if err != nil {

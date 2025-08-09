@@ -1446,3 +1446,249 @@ func (h *RiskHandler) GetRiskReportHistoryHandler(w http.ResponseWriter, r *http
 		"status_code", http.StatusOK,
 	)
 }
+
+// GetCompanyFinancialsHandler handles GET /v1/risk/financials/{businessID} requests
+func (h *RiskHandler) GetCompanyFinancialsHandler(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	requestID := r.Context().Value("request_id").(string)
+
+	h.logger.Info("Get company financials request received",
+		"request_id", requestID,
+		"method", r.Method,
+		"path", r.URL.Path,
+		"user_agent", r.UserAgent(),
+	)
+
+	// Extract business ID from URL
+	pathParts := strings.Split(r.URL.Path, "/")
+	if len(pathParts) < 4 {
+		h.logger.Error("Invalid financials URL",
+			"request_id", requestID,
+			"path", r.URL.Path,
+		)
+		http.Error(w, "Invalid business ID", http.StatusBadRequest)
+		return
+	}
+	businessID := pathParts[len(pathParts)-1]
+
+	// Get company financials
+	ctx := context.WithValue(r.Context(), "request_id", requestID)
+	financials, err := h.riskService.GetCompanyFinancials(ctx, businessID)
+	if err != nil {
+		h.logger.Error("Failed to get company financials",
+			"request_id", requestID,
+			"business_id", businessID,
+			"error", err.Error(),
+		)
+		http.Error(w, "Failed to get company financials", http.StatusInternalServerError)
+		return
+	}
+
+	// Set response headers
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Request-ID", requestID)
+
+	// Encode response
+	if err := json.NewEncoder(w).Encode(financials); err != nil {
+		h.logger.Error("Failed to encode financials response",
+			"request_id", requestID,
+			"error", err.Error(),
+		)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+
+	duration := time.Since(startTime)
+	h.logger.Info("Get company financials request completed",
+		"request_id", requestID,
+		"business_id", businessID,
+		"provider", financials.Provider,
+		"duration_ms", duration.Milliseconds(),
+		"status_code", http.StatusOK,
+	)
+}
+
+// GetCreditScoreHandler handles GET /v1/risk/credit-score/{businessID} requests
+func (h *RiskHandler) GetCreditScoreHandler(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	requestID := r.Context().Value("request_id").(string)
+
+	h.logger.Info("Get credit score request received",
+		"request_id", requestID,
+		"method", r.Method,
+		"path", r.URL.Path,
+		"user_agent", r.UserAgent(),
+	)
+
+	// Extract business ID from URL
+	pathParts := strings.Split(r.URL.Path, "/")
+	if len(pathParts) < 4 {
+		h.logger.Error("Invalid credit score URL",
+			"request_id", requestID,
+			"path", r.URL.Path,
+		)
+		http.Error(w, "Invalid business ID", http.StatusBadRequest)
+		return
+	}
+	businessID := pathParts[len(pathParts)-1]
+
+	// Get credit score
+	ctx := context.WithValue(r.Context(), "request_id", requestID)
+	creditScore, err := h.riskService.GetCreditScore(ctx, businessID)
+	if err != nil {
+		h.logger.Error("Failed to get credit score",
+			"request_id", requestID,
+			"business_id", businessID,
+			"error", err.Error(),
+		)
+		http.Error(w, "Failed to get credit score", http.StatusInternalServerError)
+		return
+	}
+
+	// Set response headers
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Request-ID", requestID)
+
+	// Encode response
+	if err := json.NewEncoder(w).Encode(creditScore); err != nil {
+		h.logger.Error("Failed to encode credit score response",
+			"request_id", requestID,
+			"error", err.Error(),
+		)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+
+	duration := time.Since(startTime)
+	h.logger.Info("Get credit score request completed",
+		"request_id", requestID,
+		"business_id", businessID,
+		"provider", creditScore.Provider,
+		"score", creditScore.Score,
+		"duration_ms", duration.Milliseconds(),
+		"status_code", http.StatusOK,
+	)
+}
+
+// GetPaymentHistoryHandler handles GET /v1/risk/payment-history/{businessID} requests
+func (h *RiskHandler) GetPaymentHistoryHandler(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	requestID := r.Context().Value("request_id").(string)
+
+	h.logger.Info("Get payment history request received",
+		"request_id", requestID,
+		"method", r.Method,
+		"path", r.URL.Path,
+		"user_agent", r.UserAgent(),
+	)
+
+	// Extract business ID from URL
+	pathParts := strings.Split(r.URL.Path, "/")
+	if len(pathParts) < 4 {
+		h.logger.Error("Invalid payment history URL",
+			"request_id", requestID,
+			"path", r.URL.Path,
+		)
+		http.Error(w, "Invalid business ID", http.StatusBadRequest)
+		return
+	}
+	businessID := pathParts[len(pathParts)-1]
+
+	// Get payment history
+	ctx := context.WithValue(r.Context(), "request_id", requestID)
+	paymentHistory, err := h.riskService.GetPaymentHistory(ctx, businessID)
+	if err != nil {
+		h.logger.Error("Failed to get payment history",
+			"request_id", requestID,
+			"business_id", businessID,
+			"error", err.Error(),
+		)
+		http.Error(w, "Failed to get payment history", http.StatusInternalServerError)
+		return
+	}
+
+	// Set response headers
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Request-ID", requestID)
+
+	// Encode response
+	if err := json.NewEncoder(w).Encode(paymentHistory); err != nil {
+		h.logger.Error("Failed to encode payment history response",
+			"request_id", requestID,
+			"error", err.Error(),
+		)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+
+	duration := time.Since(startTime)
+	h.logger.Info("Get payment history request completed",
+		"request_id", requestID,
+		"business_id", businessID,
+		"provider", paymentHistory.Provider,
+		"payment_rate", paymentHistory.PaymentRate,
+		"duration_ms", duration.Milliseconds(),
+		"status_code", http.StatusOK,
+	)
+}
+
+// GetIndustryBenchmarksHandler handles GET /v1/risk/industry-benchmarks/{industry} requests
+func (h *RiskHandler) GetIndustryBenchmarksHandler(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	requestID := r.Context().Value("request_id").(string)
+
+	h.logger.Info("Get industry benchmarks request received",
+		"request_id", requestID,
+		"method", r.Method,
+		"path", r.URL.Path,
+		"user_agent", r.UserAgent(),
+	)
+
+	// Extract industry from URL
+	pathParts := strings.Split(r.URL.Path, "/")
+	if len(pathParts) < 4 {
+		h.logger.Error("Invalid industry benchmarks URL",
+			"request_id", requestID,
+			"path", r.URL.Path,
+		)
+		http.Error(w, "Invalid industry", http.StatusBadRequest)
+		return
+	}
+	industry := pathParts[len(pathParts)-1]
+
+	// Get industry benchmarks
+	ctx := context.WithValue(r.Context(), "request_id", requestID)
+	benchmarks, err := h.riskService.GetIndustryBenchmarks(ctx, industry)
+	if err != nil {
+		h.logger.Error("Failed to get industry benchmarks",
+			"request_id", requestID,
+			"industry", industry,
+			"error", err.Error(),
+		)
+		http.Error(w, "Failed to get industry benchmarks", http.StatusInternalServerError)
+		return
+	}
+
+	// Set response headers
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Request-ID", requestID)
+
+	// Encode response
+	if err := json.NewEncoder(w).Encode(benchmarks); err != nil {
+		h.logger.Error("Failed to encode industry benchmarks response",
+			"request_id", requestID,
+			"error", err.Error(),
+		)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+
+	duration := time.Since(startTime)
+	h.logger.Info("Get industry benchmarks request completed",
+		"request_id", requestID,
+		"industry", industry,
+		"provider", benchmarks.Provider,
+		"duration_ms", duration.Milliseconds(),
+		"status_code", http.StatusOK,
+	)
+}

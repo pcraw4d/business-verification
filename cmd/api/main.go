@@ -17,6 +17,7 @@ import (
 	"github.com/pcraw4d/business-verification/internal/api/middleware"
 	"github.com/pcraw4d/business-verification/internal/auth"
 	"github.com/pcraw4d/business-verification/internal/classification"
+	"github.com/pcraw4d/business-verification/internal/compliance"
 	"github.com/pcraw4d/business-verification/internal/config"
 	"github.com/pcraw4d/business-verification/internal/database"
 	"github.com/pcraw4d/business-verification/internal/observability"
@@ -32,11 +33,13 @@ type Server struct {
 	riskService        *risk.RiskService
 	riskHistoryService *risk.RiskHistoryService
 	riskHandler        *handlers.RiskHandler
+	dashboardHandler   *handlers.DashboardHandler
 	authService        *auth.AuthService
 	authHandler        *handlers.AuthHandler
 	authMiddleware     *middleware.AuthMiddleware
 	adminService       *auth.AdminService
 	adminHandler       *handlers.AdminHandler
+	complianceHandler  *handlers.ComplianceHandler
 	rateLimiter        *middleware.RateLimiter
 	authRateLimiter    *middleware.AuthRateLimiter
 	ipBlocker          *middleware.IPBlocker
@@ -53,11 +56,13 @@ func NewServer(
 	riskService *risk.RiskService,
 	riskHistoryService *risk.RiskHistoryService,
 	riskHandler *handlers.RiskHandler,
+	dashboardHandler *handlers.DashboardHandler,
 	authService *auth.AuthService,
 	authHandler *handlers.AuthHandler,
 	authMiddleware *middleware.AuthMiddleware,
 	adminService *auth.AdminService,
 	adminHandler *handlers.AdminHandler,
+	complianceHandler *handlers.ComplianceHandler,
 	rateLimiter *middleware.RateLimiter,
 	authRateLimiter *middleware.AuthRateLimiter,
 	ipBlocker *middleware.IPBlocker,
@@ -71,11 +76,13 @@ func NewServer(
 		riskService:        riskService,
 		riskHistoryService: riskHistoryService,
 		riskHandler:        riskHandler,
+		dashboardHandler:   dashboardHandler,
 		authService:        authService,
 		authHandler:        authHandler,
 		authMiddleware:     authMiddleware,
 		adminService:       adminService,
 		adminHandler:       adminHandler,
+		complianceHandler:  complianceHandler,
 		rateLimiter:        rateLimiter,
 		authRateLimiter:    authRateLimiter,
 		ipBlocker:          ipBlocker,
@@ -97,6 +104,18 @@ func (s *Server) setupRoutes() *http.ServeMux {
 	// API documentation
 	mux.HandleFunc("GET /docs", s.docsHandler)
 	mux.HandleFunc("GET /docs/", s.docsHandler)
+
+	// Compliance endpoints (protected in future; currently public)
+	mux.HandleFunc("POST /v1/compliance/check", s.complianceHandler.CheckComplianceHandler)
+	
+	// Compliance status tracking endpoints
+	mux.HandleFunc("GET /v1/compliance/status/{business_id}", s.complianceHandler.GetComplianceStatusHandler)
+	mux.HandleFunc("GET /v1/compliance/status/{business_id}/history", s.complianceHandler.GetStatusHistoryHandler)
+	mux.HandleFunc("GET /v1/compliance/status/{business_id}/alerts", s.complianceHandler.GetStatusAlertsHandler)
+	mux.HandleFunc("POST /v1/compliance/status/{business_id}/alerts/{alert_id}/acknowledge", s.complianceHandler.AcknowledgeAlertHandler)
+	mux.HandleFunc("POST /v1/compliance/status/{business_id}/alerts/{alert_id}/resolve", s.complianceHandler.ResolveAlertHandler)
+	mux.HandleFunc("POST /v1/compliance/status/{business_id}/report", s.complianceHandler.GenerateStatusReportHandler)
+	mux.HandleFunc("POST /v1/compliance/status/{business_id}/initialize", s.complianceHandler.InitializeBusinessStatusHandler)
 
 	// Authentication endpoints (public)
 	mux.HandleFunc("POST /v1/auth/register", s.authHandler.RegisterHandler)
@@ -133,6 +152,14 @@ func (s *Server) setupRoutes() *http.ServeMux {
 	mux.HandleFunc("GET /v1/risk/alerts/{business_id}", s.riskHandler.GetRiskAlertsHandler)
 	mux.HandleFunc("GET /v1/risk/alert-rules", s.riskHandler.GetRiskAlertRulesHandler)
 	mux.HandleFunc("POST /v1/risk/alerts/{alert_id}/acknowledge", s.riskHandler.AcknowledgeRiskAlertHandler)
+
+	// Dashboard endpoints
+	mux.HandleFunc("GET /v1/dashboard/overview", s.dashboardHandler.GetDashboardOverviewHandler)
+	mux.HandleFunc("GET /v1/dashboard/business/{business_id}", s.dashboardHandler.GetDashboardBusinessHandler)
+	mux.HandleFunc("GET /v1/dashboard/analytics", s.dashboardHandler.GetDashboardAnalyticsHandler)
+	mux.HandleFunc("GET /v1/dashboard/alerts", s.dashboardHandler.GetDashboardAlertsHandler)
+	mux.HandleFunc("GET /v1/dashboard/monitoring", s.dashboardHandler.GetDashboardMonitoringHandler)
+	mux.HandleFunc("GET /v1/dashboard/thresholds", s.dashboardHandler.GetDashboardThresholdsHandler)
 
 	// Admin endpoints (protected)
 	mux.Handle("POST /v1/admin/users", s.authMiddleware.RequireAuth(http.HandlerFunc(s.adminHandler.CreateUser)))
@@ -693,6 +720,16 @@ func main() {
 	adminService := auth.NewAdminService(db, logger, authService, roleService, apiKeyService)
 	adminHandler := handlers.NewAdminHandler(adminService, logger)
 
+	// Initialize compliance engines
+	mappingSystem := compliance.NewFrameworkMappingSystem(logger)
+	trackingSystem := compliance.NewTrackingSystem(logger)
+	ruleEngine := compliance.NewRuleEngine(logger)
+	checkEngine := compliance.NewCheckEngine(logger, ruleEngine, trackingSystem, mappingSystem)
+	statusSystem := compliance.NewComplianceStatusSystem(logger)
+
+	// Initialize compliance handler
+	complianceHandler := handlers.NewComplianceHandler(logger, checkEngine, statusSystem)
+
 	// Initialize rate limiting middleware
 	rateLimitConfig := &middleware.RateLimitConfig{
 		RequestsPerMinute: cfg.Server.RateLimit.RequestsPer,
@@ -745,6 +782,39 @@ func main() {
 	// Initialize export service
 	exportService := risk.NewExportService(logger, riskHistoryService, alertService, reportService)
 
+	// Initialize financial provider manager
+	financialProviderManager := risk.NewFinancialProviderManager(logger)
+
+	// Register mock providers for testing
+	mockProvider := risk.NewMockFinancialProvider("mock_provider")
+	backupProvider := risk.NewMockFinancialProvider("backup_provider")
+	financialProviderManager.RegisterProvider("mock_provider", mockProvider)
+	financialProviderManager.RegisterProvider("backup_provider", backupProvider)
+
+	// Initialize regulatory provider manager
+	regulatoryProviderManager := risk.NewRegulatoryProviderManager(logger)
+
+	// Initialize media provider manager
+	mediaProviderManager := risk.NewMediaProviderManager(logger)
+
+	// Initialize market data provider manager
+	marketDataProviderManager := risk.NewMarketDataProviderManager(logger)
+
+	// Initialize data validation manager
+	dataValidationManager := risk.NewDataValidationManager(logger)
+
+	// Initialize threshold monitoring manager
+	thresholdMonitoringManager := risk.NewThresholdMonitoringManager(logger)
+
+	// Initialize automated alert service
+	automatedAlertService := risk.NewAutomatedAlertService(logger)
+
+	// Initialize trend analysis service
+	trendAnalysisService := risk.NewTrendAnalysisService(logger)
+
+	// Initialize reporting system
+	reportingSystem := risk.NewReportingSystem(logger, reportService, trendAnalysisService, riskHistoryService, alertService)
+
 	// Initialize risk service
 	riskService := risk.NewRiskService(
 		logger,
@@ -758,10 +828,22 @@ func main() {
 		alertService,
 		reportService,
 		exportService,
+		financialProviderManager,
+		regulatoryProviderManager,
+		mediaProviderManager,
+		marketDataProviderManager,
+		dataValidationManager,
+		thresholdMonitoringManager,
+		automatedAlertService,
+		trendAnalysisService,
+		reportingSystem,
 	)
 
 	// Initialize risk handler
 	riskHandler := handlers.NewRiskHandler(logger, riskService, riskHistoryService)
+
+	// Initialize dashboard handler
+	dashboardHandler := handlers.NewDashboardHandler(logger, riskService)
 
 	// Initialize validation middleware
 	validationConfig := &middleware.ValidationConfig{
@@ -772,7 +854,7 @@ func main() {
 	validator := middleware.NewValidator(validationConfig, logger)
 
 	// Create server
-	server := NewServer(cfg, logger, metrics, classificationSvc, riskService, riskHistoryService, riskHandler, authService, authHandler, authMiddleware, adminService, adminHandler, rateLimiter, authRateLimiter, ipBlocker, validator)
+	server := NewServer(cfg, logger, metrics, classificationSvc, riskService, riskHistoryService, riskHandler, dashboardHandler, authService, authHandler, authMiddleware, adminService, adminHandler, complianceHandler, rateLimiter, authRateLimiter, ipBlocker, validator)
 
 	// Start server in goroutine
 	go func() {
