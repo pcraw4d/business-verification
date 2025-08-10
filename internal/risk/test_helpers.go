@@ -124,77 +124,6 @@ func (m *MockRiskService) AssessRisk(ctx context.Context, request RiskAssessment
 		}
 	}
 
-	// Create mock category scores
-	mockCategoryScores := make(map[RiskCategory]RiskScore)
-	for _, category := range request.Categories {
-		mockCategoryScores[category] = RiskScore{
-			FactorID:     "factor-" + string(category),
-			FactorName:   string(category) + " risk",
-			Category:     category,
-			Score:        75.0,
-			Level:        "medium",
-			Confidence:   0.85,
-			Explanation:  "Mock risk score for " + string(category),
-			Evidence:     []string{"factor1", "factor2"},
-			CalculatedAt: time.Now(),
-		}
-	}
-
-	// Create mock factor scores
-	mockFactorScores := []RiskScore{
-		{
-			FactorID:     "financial-001",
-			FactorName:   "Financial Risk",
-			Category:     "financial",
-			Score:        80.0,
-			Level:        "medium",
-			Confidence:   0.90,
-			Explanation:  "Mock financial risk score",
-			Evidence:     []string{"cash_flow", "debt_ratio"},
-			CalculatedAt: time.Now(),
-		},
-		{
-			FactorID:     "operational-001",
-			FactorName:   "Operational Risk",
-			Category:     "operational",
-			Score:        70.0,
-			Level:        "medium",
-			Confidence:   0.85,
-			Explanation:  "Mock operational risk score",
-			Evidence:     []string{"efficiency", "processes"},
-			CalculatedAt: time.Now(),
-		},
-	}
-
-	// Create the assessment
-	assessment := &RiskAssessment{
-		ID:             "assessment-123",
-		BusinessID:     request.BusinessID,
-		BusinessName:   request.BusinessName,
-		OverallScore:   75.0,
-		OverallLevel:   "medium",
-		CategoryScores: mockCategoryScores,
-		FactorScores:   mockFactorScores,
-		Recommendations: []RiskRecommendation{
-			{
-				ID:          "rec-001",
-				RiskFactor:  "financial",
-				Title:       "Improve Financial Management",
-				Description: "Consider implementing better financial controls",
-				Priority:    "medium",
-				Action:      "Review financial processes",
-				Impact:      "Reduce financial risk",
-				Timeline:    "3 months",
-				CreatedAt:   time.Now(),
-			},
-		},
-		Alerts:     []RiskAlert{},
-		AlertLevel: "medium",
-		AssessedAt: time.Now(),
-		ValidUntil: time.Now().AddDate(0, 1, 0),
-		Metadata:   request.Metadata,
-	}
-
 	return &RiskAssessmentResponse{
 		Assessment:  assessment,
 		Trends:      []RiskTrend{},
@@ -217,8 +146,8 @@ func (m *MockRiskService) GetThresholdManager() *ThresholdManager {
 // GenerateRiskReport provides a mock implementation
 func (m *MockRiskService) GenerateRiskReport(ctx context.Context, request ReportRequest) (*RiskReport, error) {
 	return &RiskReport{
-		ID:          "report-123",
-		BusinessID:  request.BusinessID,
+		ID:           "report-123",
+		BusinessID:   request.BusinessID,
 		BusinessName: "Mock Business",
 		ReportType:   request.ReportType,
 		Format:       request.Format,
@@ -244,7 +173,7 @@ func (m *MockRiskService) ExportRiskData(ctx context.Context, request ExportRequ
 // CreateExportJob provides a mock implementation
 func (m *MockRiskService) CreateExportJob(ctx context.Context, request ExportRequest) (*ExportJob, error) {
 	return &ExportJob{
-		ID:        "job-123",
+		ID:         "job-123",
 		BusinessID: request.BusinessID,
 		ExportType: request.ExportType,
 		Format:     request.Format,
@@ -257,13 +186,13 @@ func (m *MockRiskService) CreateExportJob(ctx context.Context, request ExportReq
 // GetExportJob provides a mock implementation
 func (m *MockRiskService) GetExportJob(ctx context.Context, jobID string) (*ExportJob, error) {
 	return &ExportJob{
-		ID:        jobID,
-		BusinessID: "mock-business",
-		ExportType: "assessments",
-		Format:     "json",
-		Status:     "completed",
-		Progress:   100,
-		CreatedAt:  time.Now(),
+		ID:          jobID,
+		BusinessID:  "mock-business",
+		ExportType:  "assessments",
+		Format:      "json",
+		Status:      "completed",
+		Progress:    100,
+		CreatedAt:   time.Now(),
 		CompletedAt: &time.Time{},
 	}, nil
 }
@@ -272,226 +201,421 @@ func (m *MockRiskService) GetExportJob(ctx context.Context, jobID string) (*Expo
 func (m *MockRiskService) GetCompanyFinancials(ctx context.Context, businessID string) (*FinancialData, error) {
 	return &FinancialData{
 		BusinessID:  businessID,
-		Revenue:     1000000,
-		Profit:      100000,
-		Assets:      2000000,
-		Liabilities: 500000,
-		CreatedAt:   time.Now(),
+		Provider:    "mock",
+		LastUpdated: time.Now(),
+		Revenue: &RevenueData{
+			TotalRevenue:           1000000,
+			GrossRevenue:           1000000,
+			NetRevenue:             950000,
+			RevenueGrowth:          5.0,
+			RevenueStability:       85.0,
+			RevenueDiversification: 70.0,
+			Currency:               "USD",
+			Period:                 "yearly",
+		},
+		Profitability: &ProfitabilityData{
+			GrossProfitMargin:  25.0,
+			NetProfitMargin:    15.0,
+			OperatingMargin:    20.0,
+			EBITDAMargin:       22.0,
+			ReturnOnAssets:     12.0,
+			ReturnOnEquity:     18.0,
+			ReturnOnInvestment: 15.0,
+		},
+		Assets: &AssetsData{
+			TotalAssets:      2000000,
+			CurrentAssets:    800000,
+			FixedAssets:      1200000,
+			IntangibleAssets: 100000,
+			AssetUtilization: 75.0,
+		},
+		Liabilities: &LiabilitiesData{
+			TotalLiabilities:      500000,
+			CurrentLiabilities:    300000,
+			LongTermLiabilities:   200000,
+			ContingentLiabilities: 0,
+		},
 	}, nil
 }
 
 func (m *MockRiskService) GetCreditScore(ctx context.Context, businessID string) (*CreditScore, error) {
 	return &CreditScore{
-		BusinessID: businessID,
-		Score:      750,
-		Provider:   "mock",
-		CreatedAt:  time.Now(),
+		BusinessID:  businessID,
+		Provider:    "mock",
+		Score:       750,
+		ScoreRange:  "good",
+		LastUpdated: time.Now(),
+		Trend:       "stable",
+		RiskLevel:   RiskLevelMedium,
 	}, nil
 }
 
 func (m *MockRiskService) GetSanctionsData(ctx context.Context, businessID string) (*SanctionsData, error) {
 	return &SanctionsData{
-		BusinessID:   businessID,
-		IsSanctioned: false,
-		Matches:      []string{},
-		CreatedAt:    time.Now(),
+		BusinessID:     businessID,
+		Provider:       "mock",
+		LastUpdated:    time.Now(),
+		HasSanctions:   false,
+		SanctionsList:  []SanctionsMatch{},
+		RiskLevel:      RiskLevelLow,
+		Confidence:     0.95,
+		ScreeningLists: []string{"OFAC", "UN", "EU"},
 	}, nil
 }
 
 func (m *MockRiskService) GetLicenseData(ctx context.Context, businessID string) (*LicenseData, error) {
 	return &LicenseData{
-		BusinessID: businessID,
-		Licenses:   []string{"business_license"},
-		Status:     "active",
-		CreatedAt:  time.Now(),
+		BusinessID:    businessID,
+		Provider:      "mock",
+		LastUpdated:   time.Now(),
+		Licenses:      []BusinessLicense{},
+		OverallStatus: "active",
+		RiskLevel:     RiskLevelLow,
 	}, nil
 }
 
 func (m *MockRiskService) GetComplianceData(ctx context.Context, businessID string) (*ComplianceData, error) {
 	return &ComplianceData{
-		BusinessID: businessID,
-		Status:     "compliant",
-		Score:      85.0,
-		CreatedAt:  time.Now(),
+		BusinessID:           businessID,
+		Provider:             "mock",
+		LastUpdated:          time.Now(),
+		OverallScore:         85.0,
+		ComplianceFrameworks: []ComplianceFramework{},
+		RiskLevel:            RiskLevelLow,
 	}, nil
 }
 
 func (m *MockRiskService) GetRegulatoryViolations(ctx context.Context, businessID string) (*RegulatoryViolations, error) {
 	return &RegulatoryViolations{
-		BusinessID: businessID,
-		Violations: []string{},
-		Count:      0,
-		CreatedAt:  time.Now(),
+		BusinessID:         businessID,
+		Provider:           "mock",
+		LastUpdated:        time.Now(),
+		TotalViolations:    0,
+		ActiveViolations:   0,
+		ResolvedViolations: 0,
+		Violations:         []RegulatoryViolation{},
+		TotalFines:         0.0,
+		RiskLevel:          RiskLevelLow,
 	}, nil
 }
 
 func (m *MockRiskService) GetTaxComplianceData(ctx context.Context, businessID string) (*TaxComplianceData, error) {
 	return &TaxComplianceData{
-		BusinessID: businessID,
-		Status:     "compliant",
-		LastFiling: time.Now().AddDate(0, -1, 0),
-		CreatedAt:  time.Now(),
+		BusinessID:        businessID,
+		Provider:          "mock",
+		LastUpdated:       time.Now(),
+		TaxID:             "123456789",
+		TaxIDStatus:       "valid",
+		TaxLienCount:      0,
+		TaxLienAmount:     0.0,
+		TaxLiens:          []TaxLien{},
+		ComplianceHistory: []TaxComplianceEvent{},
+		RiskLevel:         RiskLevelLow,
 	}, nil
 }
 
 func (m *MockRiskService) GetDataProtectionCompliance(ctx context.Context, businessID string) (*DataProtectionCompliance, error) {
 	return &DataProtectionCompliance{
-		BusinessID: businessID,
-		Status:     "compliant",
-		Framework:  "GDPR",
-		CreatedAt:  time.Now(),
+		BusinessID:          businessID,
+		Provider:            "mock",
+		LastUpdated:         time.Now(),
+		OverallScore:        85.0,
+		Frameworks:          []DataProtectionFramework{},
+		DataBreaches:        []DataBreach{},
+		PrivacyPolicyStatus: "active",
+		DataHandlingScore:   80.0,
+		RiskLevel:           RiskLevelLow,
 	}, nil
 }
 
 func (m *MockRiskService) GetNewsArticles(ctx context.Context, businessID string, query NewsQuery) (*NewsResult, error) {
 	return &NewsResult{
-		BusinessID: businessID,
-		Articles:   []string{},
-		Count:      0,
-		CreatedAt:  time.Now(),
+		BusinessID:       businessID,
+		Provider:         "mock",
+		LastUpdated:      time.Now(),
+		TotalArticles:    0,
+		PositiveCount:    0,
+		NegativeCount:    0,
+		NeutralCount:     0,
+		Articles:         []NewsArticle{},
+		RiskLevel:        RiskLevelLow,
+		OverallSentiment: 0.5,
 	}, nil
 }
 
 func (m *MockRiskService) GetSocialMediaMentions(ctx context.Context, businessID string, query SocialMediaQuery) (*SocialMediaResult, error) {
 	return &SocialMediaResult{
-		BusinessID: businessID,
-		Mentions:   []string{},
-		Count:      0,
-		CreatedAt:  time.Now(),
+		BusinessID:       businessID,
+		Provider:         "mock",
+		LastUpdated:      time.Now(),
+		TotalMentions:    0,
+		PositiveCount:    0,
+		NegativeCount:    0,
+		NeutralCount:     0,
+		Mentions:         []SocialMediaMention{},
+		RiskLevel:        RiskLevelLow,
+		OverallSentiment: 0.5,
 	}, nil
 }
 
 func (m *MockRiskService) GetMediaSentiment(ctx context.Context, businessID string) (*SentimentResult, error) {
 	return &SentimentResult{
-		BusinessID: businessID,
-		Sentiment:  "neutral",
-		Score:      0.5,
-		CreatedAt:  time.Now(),
+		BusinessID:    businessID,
+		Provider:      "mock",
+		LastUpdated:   time.Now(),
+		OverallScore:  0.5,
+		PositiveScore: 0.3,
+		NegativeScore: 0.2,
+		NeutralScore:  0.5,
+		Confidence:    0.8,
+		RiskLevel:     RiskLevelLow,
+		Trend:         "stable",
 	}, nil
 }
 
 func (m *MockRiskService) GetReputationScore(ctx context.Context, businessID string) (*ReputationScore, error) {
 	return &ReputationScore{
-		BusinessID: businessID,
-		Score:      75.0,
-		Provider:   "mock",
-		CreatedAt:  time.Now(),
+		BusinessID:   businessID,
+		Provider:     "mock",
+		LastUpdated:  time.Now(),
+		OverallScore: 75.0,
+		NewsScore:    70.0,
+		SocialScore:  80.0,
+		ReviewScore:  75.0,
+		RiskLevel:    RiskLevelLow,
+		Trend:        "stable",
+		Confidence:   0.8,
 	}, nil
 }
 
 func (m *MockRiskService) GetMediaAlerts(ctx context.Context, businessID string) (*MediaAlerts, error) {
 	return &MediaAlerts{
-		BusinessID: businessID,
-		Alerts:     []string{},
-		Count:      0,
-		CreatedAt:  time.Now(),
+		BusinessID:     businessID,
+		Provider:       "mock",
+		LastUpdated:    time.Now(),
+		TotalAlerts:    0,
+		HighPriority:   0,
+		MediumPriority: 0,
+		LowPriority:    0,
+		Alerts:         []MediaAlert{},
+		RiskLevel:      RiskLevelLow,
 	}, nil
 }
 
 func (m *MockRiskService) GetEconomicIndicators(ctx context.Context, country string) (*EconomicIndicators, error) {
 	return &EconomicIndicators{
-		Country:      country,
-		GDP:          2000000000000,
-		Inflation:    2.5,
-		Unemployment: 5.0,
-		CreatedAt:    time.Now(),
+		Country:     country,
+		Provider:    "mock",
+		LastUpdated: time.Now(),
+		GDP: &GDPData{
+			CurrentGDP:   2000000000000,
+			GDPGrowth:    2.5,
+			GDPPerCapita: 60000,
+			GDPForecast:  2.8,
+			LastUpdated:  time.Now(),
+		},
+		Inflation: &InflationData{
+			CurrentInflation:  2.5,
+			CoreInflation:     2.2,
+			InflationTrend:    "stable",
+			InflationForecast: 2.3,
+			LastUpdated:       time.Now(),
+		},
+		Unemployment: &UnemploymentData{
+			UnemploymentRate:   5.0,
+			EmploymentGrowth:   1.5,
+			LaborParticipation: 62.5,
+			LastUpdated:        time.Now(),
+		},
+		RiskLevel: RiskLevelLow,
 	}, nil
 }
 
 func (m *MockRiskService) GetMarketIndustryBenchmarks(ctx context.Context, industry string, region string) (*MarketIndustryBenchmarks, error) {
 	return &MarketIndustryBenchmarks{
-		Industry:   industry,
-		Region:     region,
-		Benchmarks: map[string]float64{"revenue_growth": 5.0},
-		CreatedAt:  time.Now(),
+		Industry:    industry,
+		Region:      region,
+		Provider:    "mock",
+		LastUpdated: time.Now(),
+		RevenueMetrics: &RevenueMetrics{
+			MedianRevenue:    1000000,
+			AverageRevenue:   1200000,
+			RevenueGrowth:    5.0,
+			RevenueStability: 85.0,
+			RevenueVariance:  15.0,
+		},
+		ProfitabilityMetrics: &ProfitabilityMetrics{
+			MedianGrossMargin: 25.0,
+			MedianNetMargin:   15.0,
+			MedianROA:         12.0,
+			MedianROE:         18.0,
+			EBITDAMargin:      22.0,
+		},
+		RiskLevel: RiskLevelLow,
 	}, nil
 }
 
 func (m *MockRiskService) GetMarketRiskFactors(ctx context.Context, sector string) (*MarketRiskFactors, error) {
 	return &MarketRiskFactors{
-		Sector:    sector,
-		Factors:   []string{"market_volatility"},
-		RiskLevel: "medium",
-		CreatedAt: time.Now(),
+		Sector:      sector,
+		Provider:    "mock",
+		LastUpdated: time.Now(),
+		MarketVolatility: &MarketVolatility{
+			VIXIndex:         20.0,
+			SectorVolatility: 15.0,
+			BetaCoefficient:  1.0,
+			VolatilityTrend:  "stable",
+		},
+		RiskLevel: RiskLevelLow,
 	}, nil
 }
 
 func (m *MockRiskService) GetCommodityPrices(ctx context.Context, commodities []string) (*CommodityPrices, error) {
+	commodityPrices := make([]CommodityPrice, len(commodities))
+	for i, commodity := range commodities {
+		commodityPrices[i] = CommodityPrice{
+			CommodityName:      commodity,
+			CurrentPrice:       100.0,
+			PriceChange:        2.0,
+			PriceChangePercent: 2.0,
+			Currency:           "USD",
+			LastUpdated:        time.Now(),
+		}
+	}
+
 	return &CommodityPrices{
-		Commodities: commodities,
-		Prices:      map[string]float64{"oil": 75.0},
-		CreatedAt:   time.Now(),
+		Provider:    "mock",
+		LastUpdated: time.Now(),
+		Commodities: commodityPrices,
+		RiskLevel:   RiskLevelLow,
 	}, nil
 }
 
 func (m *MockRiskService) GetCurrencyRates(ctx context.Context, baseCurrency string) (*CurrencyRates, error) {
 	return &CurrencyRates{
 		BaseCurrency: baseCurrency,
-		Rates:        map[string]float64{"USD": 1.0},
-		CreatedAt:    time.Now(),
+		Provider:     "mock",
+		LastUpdated:  time.Now(),
+		Rates:        []CurrencyRate{},
+		RiskLevel:    RiskLevelLow,
 	}, nil
 }
 
 func (m *MockRiskService) GetMarketTrends(ctx context.Context, market string) (*MarketTrends, error) {
 	return &MarketTrends{
-		Market:    market,
-		Trend:     "stable",
-		Direction: "neutral",
-		CreatedAt: time.Now(),
+		Market:      market,
+		Provider:    "mock",
+		LastUpdated: time.Now(),
+		Trends:      []MarketTrend{},
+		RiskLevel:   RiskLevelLow,
 	}, nil
 }
 
 func (m *MockRiskService) ValidateFinancialData(ctx context.Context, data *FinancialData) (*ValidationResult, error) {
 	return &ValidationResult{
-		IsValid:   true,
-		Score:     95.0,
-		Issues:    []string{},
-		CreatedAt: time.Now(),
+		DataID:            "mock-validation",
+		DataType:          "financial",
+		Provider:          "mock",
+		ValidatedAt:       time.Now(),
+		OverallScore:      0.95,
+		QualityScore:      0.9,
+		CompletenessScore: 0.95,
+		ReliabilityScore:  0.9,
+		ConsistencyScore:  0.95,
+		IsValid:           true,
+		Warnings:          []ValidationWarning{},
+		Errors:            []ValidationError{},
+		Recommendations:   []ValidationRecommendation{},
 	}, nil
 }
 
 func (m *MockRiskService) ValidateRegulatoryData(ctx context.Context, data *RegulatoryViolations) (*ValidationResult, error) {
 	return &ValidationResult{
-		IsValid:   true,
-		Score:     90.0,
-		Issues:    []string{},
-		CreatedAt: time.Now(),
+		DataID:            "mock-validation",
+		DataType:          "regulatory",
+		Provider:          "mock",
+		ValidatedAt:       time.Now(),
+		OverallScore:      0.9,
+		QualityScore:      0.85,
+		CompletenessScore: 0.9,
+		ReliabilityScore:  0.9,
+		ConsistencyScore:  0.9,
+		IsValid:           true,
+		Warnings:          []ValidationWarning{},
+		Errors:            []ValidationError{},
+		Recommendations:   []ValidationRecommendation{},
 	}, nil
 }
 
 func (m *MockRiskService) ValidateMediaData(ctx context.Context, data *NewsResult) (*ValidationResult, error) {
 	return &ValidationResult{
-		IsValid:   true,
-		Score:     85.0,
-		Issues:    []string{},
-		CreatedAt: time.Now(),
+		DataID:            "mock-validation",
+		DataType:          "media",
+		Provider:          "mock",
+		ValidatedAt:       time.Now(),
+		OverallScore:      0.85,
+		QualityScore:      0.8,
+		CompletenessScore: 0.85,
+		ReliabilityScore:  0.8,
+		ConsistencyScore:  0.85,
+		IsValid:           true,
+		Warnings:          []ValidationWarning{},
+		Errors:            []ValidationError{},
+		Recommendations:   []ValidationRecommendation{},
 	}, nil
 }
 
 func (m *MockRiskService) ValidateMarketData(ctx context.Context, data *EconomicIndicators) (*ValidationResult, error) {
 	return &ValidationResult{
-		IsValid:   true,
-		Score:     92.0,
-		Issues:    []string{},
-		CreatedAt: time.Now(),
+		DataID:            "mock-validation",
+		DataType:          "market",
+		Provider:          "mock",
+		ValidatedAt:       time.Now(),
+		OverallScore:      0.92,
+		QualityScore:      0.9,
+		CompletenessScore: 0.92,
+		ReliabilityScore:  0.9,
+		ConsistencyScore:  0.92,
+		IsValid:           true,
+		Warnings:          []ValidationWarning{},
+		Errors:            []ValidationError{},
+		Recommendations:   []ValidationRecommendation{},
 	}, nil
 }
 
 func (m *MockRiskService) ValidateRiskAssessment(ctx context.Context, assessment *RiskAssessment) (*ValidationResult, error) {
 	return &ValidationResult{
-		IsValid:   true,
-		Score:     88.0,
-		Issues:    []string{},
-		CreatedAt: time.Now(),
+		DataID:            "mock-validation",
+		DataType:          "risk_assessment",
+		Provider:          "mock",
+		ValidatedAt:       time.Now(),
+		OverallScore:      0.88,
+		QualityScore:      0.85,
+		CompletenessScore: 0.88,
+		ReliabilityScore:  0.85,
+		ConsistencyScore:  0.88,
+		IsValid:           true,
+		Warnings:          []ValidationWarning{},
+		Errors:            []ValidationError{},
+		Recommendations:   []ValidationRecommendation{},
 	}, nil
 }
 
 func (m *MockRiskService) ValidateRiskFactor(ctx context.Context, factor *RiskFactorResult) (*ValidationResult, error) {
 	return &ValidationResult{
-		IsValid:   true,
-		Score:     87.0,
-		Issues:    []string{},
-		CreatedAt: time.Now(),
+		DataID:            "mock-validation",
+		DataType:          "risk_factor",
+		Provider:          "mock",
+		ValidatedAt:       time.Now(),
+		OverallScore:      0.87,
+		QualityScore:      0.85,
+		CompletenessScore: 0.87,
+		ReliabilityScore:  0.85,
+		ConsistencyScore:  0.87,
+		IsValid:           true,
+		Warnings:          []ValidationWarning{},
+		Errors:            []ValidationError{},
+		Recommendations:   []ValidationRecommendation{},
 	}, nil
 }
 
@@ -501,11 +625,19 @@ func (m *MockRiskService) MonitorThresholds(ctx context.Context, assessment *Ris
 
 func (m *MockRiskService) GetThresholdConfig(ctx context.Context, category RiskCategory) (*ThresholdMonitoringConfig, error) {
 	return &ThresholdMonitoringConfig{
-		Category:     category,
-		MinThreshold: 0.0,
-		MaxThreshold: 100.0,
-		Enabled:      true,
-		CreatedAt:    time.Now(),
+		Category:             category,
+		WarningThreshold:     70.0,
+		CriticalThreshold:    90.0,
+		ApproachingThreshold: 60.0,
+		TrendingThreshold:    5.0,
+		VolatilityThreshold:  10.0,
+		AnomalyThreshold:     15.0,
+		ImprovementThreshold: -5.0,
+		Enabled:              true,
+		AlertChannels:        []string{"email", "dashboard"},
+		NotificationRules:    []NotificationRule{},
+		CreatedAt:            time.Now(),
+		UpdatedAt:            time.Now(),
 	}, nil
 }
 
@@ -515,10 +647,14 @@ func (m *MockRiskService) UpdateThresholdConfig(ctx context.Context, category Ri
 
 func (m *MockRiskService) GetMonitoringStatus(ctx context.Context) (*MonitoringStatus, error) {
 	return &MonitoringStatus{
-		Active:    true,
-		Alerts:    0,
-		LastCheck: time.Now(),
-		CreatedAt: time.Now(),
+		ActiveMonitors:   5,
+		TotalAlerts:      0,
+		CriticalAlerts:   0,
+		WarningAlerts:    0,
+		LastAlertTime:    nil,
+		MonitoringHealth: "healthy",
+		Uptime:           time.Hour * 24,
+		Metadata:         map[string]interface{}{},
 	}, nil
 }
 
@@ -552,28 +688,78 @@ func (m *MockRiskService) RegisterNotificationProvider(ctx context.Context, chan
 
 func (m *MockRiskService) GetPaymentHistory(ctx context.Context, businessID string) (*PaymentHistory, error) {
 	return &PaymentHistory{
-		BusinessID: businessID,
-		Payments:   []Payment{},
-		Count:      0,
-		CreatedAt:  time.Now(),
+		BusinessID:        businessID,
+		Provider:          "mock",
+		TotalPayments:     100,
+		OnTimePayments:    95,
+		LatePayments:      3,
+		DefaultedPayments: 2,
+		PaymentRate:       95.0,
+		AverageDaysLate:   5.0,
+		LastPaymentDate:   time.Now().AddDate(0, 0, -5),
+		PaymentTrend:      "improving",
+		RiskLevel:         RiskLevelLow,
 	}, nil
 }
 
 func (m *MockRiskService) GetIndustryBenchmarks(ctx context.Context, industry string) (*IndustryBenchmarks, error) {
 	return &IndustryBenchmarks{
-		Industry:   industry,
-		Benchmarks: map[string]float64{"revenue_growth": 5.0},
-		CreatedAt:  time.Now(),
+		Industry:    industry,
+		Provider:    "mock",
+		LastUpdated: time.Now(),
+		RevenueBenchmarks: &RevenueBenchmarks{
+			MedianRevenue:    1000000,
+			AverageRevenue:   1200000,
+			RevenueGrowth:    5.0,
+			RevenueStability: 85.0,
+		},
+		ProfitabilityBenchmarks: &ProfitabilityBenchmarks{
+			MedianGrossMargin: 25.0,
+			MedianNetMargin:   15.0,
+			MedianROA:         12.0,
+			MedianROE:         18.0,
+		},
+		LiquidityBenchmarks: &LiquidityBenchmarks{
+			MedianCurrentRatio: 2.0,
+			MedianQuickRatio:   1.5,
+			MedianCashRatio:    0.5,
+		},
+		SolvencyBenchmarks: &SolvencyBenchmarks{
+			MedianDebtToEquity:     0.5,
+			MedianDebtToAssets:     0.3,
+			MedianInterestCoverage: 5.0,
+		},
+		Metadata: map[string]interface{}{},
 	}, nil
 }
 
 func (m *MockRiskService) AnalyzeRiskTrends(ctx context.Context, businessID string, period string) (*TrendAnalysisResult, error) {
 	return &TrendAnalysisResult{
-		BusinessID: businessID,
-		Period:     period,
-		Trend:      "stable",
-		Direction:  "neutral",
-		CreatedAt:  time.Now(),
+		BusinessID:           businessID,
+		AnalysisPeriod:       period,
+		OverallTrend:         TrendDirectionStable,
+		OverallTrendStrength: 0.5,
+		CategoryTrends:       map[string]TrendData{},
+		FactorTrends:         map[string]TrendData{},
+		Seasonality: SeasonalityAnalysis{
+			HasSeasonality: false,
+			Pattern:        "",
+			Strength:       0.0,
+			PeakPeriods:    []time.Time{},
+			TroughPeriods:  []time.Time{},
+			SeasonalData:   map[string]float64{},
+		},
+		Volatility: VolatilityAnalysis{
+			OverallVolatility:     0.1,
+			VolatilityTrend:       TrendDirectionStable,
+			HighVolatilityPeriods: []time.Time{},
+			LowVolatilityPeriods:  []time.Time{},
+			VolatilityByCategory:  map[string]float64{},
+		},
+		Predictions:     []TrendPrediction{},
+		Anomalies:       []TrendAnomaly{},
+		Recommendations: []TrendRecommendation{},
+		GeneratedAt:     time.Now(),
 	}, nil
 }
 
@@ -587,9 +773,20 @@ func (m *MockRiskService) GetTrendAnomalies(ctx context.Context, businessID stri
 
 func (m *MockRiskService) GenerateAdvancedReport(ctx context.Context, request AdvancedReportRequest) (*AdvancedRiskReport, error) {
 	return &AdvancedRiskReport{
-		ID:         "advanced-report-123",
-		BusinessID: request.BusinessID,
-		Content:    "Mock advanced report content",
-		CreatedAt:  time.Now(),
+		ID:              "advanced-report-123",
+		BusinessID:      request.BusinessID,
+		BusinessName:    "Mock Business",
+		ReportType:      request.ReportType,
+		Format:          request.Format,
+		GeneratedAt:     time.Now(),
+		ValidUntil:      time.Now().AddDate(0, 1, 0),
+		Summary:         &AdvancedReportSummary{},
+		Analytics:       &ReportAnalytics{},
+		Trends:          &AdvancedReportTrends{},
+		Alerts:          []RiskAlert{},
+		Recommendations: []RiskRecommendation{},
+		Charts:          []ReportChart{},
+		Tables:          []ReportTable{},
+		Metadata:        map[string]interface{}{},
 	}, nil
 }

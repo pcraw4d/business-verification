@@ -1,0 +1,1436 @@
+openapi: 3.1.0
+info:
+  title: KYB Platform API
+  description: |
+    Enterprise-Grade Know Your Business Platform API
+    
+    This API provides comprehensive business classification, risk assessment, and compliance checking capabilities.
+    
+    ## Features
+    - **Business Classification**: Accurate industry classification using NAICS, MCC, and SIC codes
+    - **Risk Assessment**: Multi-factor risk analysis with industry-specific models
+    - **Compliance Checking**: SOC 2, PCI DSS, GDPR, and regional compliance frameworks
+    - **User Management**: Secure authentication and authorization
+    - **Monitoring**: Health checks and performance metrics
+    
+    ## Authentication
+    All API endpoints require authentication using JWT Bearer tokens. Include the token in the Authorization header:
+    ```
+    Authorization: Bearer <your_jwt_token>
+    ```
+    
+    ## Rate Limiting
+    - Authenticated users: 100 requests per minute
+    - Unauthenticated users: 10 requests per minute
+    
+    ## Support
+    For support and documentation, contact support@kybplatform.com
+  version: 1.0.0
+  contact:
+    name: KYB Platform Support
+    email: support@kybplatform.com
+    url: https://docs.kybplatform.com
+  license:
+    name: Proprietary
+    url: https://kybplatform.com/license
+
+servers:
+  - url: http://localhost:8080
+    description: Development server
+  - url: https://api.kybplatform.com
+    description: Production server
+
+security:
+  - BearerAuth: []
+
+paths:
+  # Authentication Endpoints
+  /v1/auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Create a new user account with email verification
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistrationRequest'
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserRegistrationResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Authenticate user
+      description: Login with email and password to receive access and refresh tokens
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too many login attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      description: Use refresh token to get a new access token
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshTokenResponse'
+        '401':
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout user
+      description: Invalidate the current access token
+      operationId: logoutUser
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutResponse'
+        '401':
+          description: Invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Business Classification Endpoints
+  /v1/classify:
+    post:
+      tags:
+        - Classification
+      summary: Classify a single business
+      description: Classify a business using multiple methods and return industry codes
+      operationId: classifyBusiness
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClassificationRequest'
+      responses:
+        '200':
+          description: Classification successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassificationResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/classify/batch:
+    post:
+      tags:
+        - Classification
+      summary: Classify multiple businesses
+      description: Classify multiple businesses in a single request with deduplication
+      operationId: classifyBusinessesBatch
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchClassificationRequest'
+      responses:
+        '200':
+          description: Batch classification successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchClassificationResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '413':
+          description: Request too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/classify/history/{business_name}:
+    get:
+      tags:
+        - Classification
+      summary: Get classification history
+      description: Retrieve historical classification results for a business
+      operationId: getClassificationHistory
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: business_name
+          in: path
+          required: true
+          description: URL-encoded business name
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Maximum number of results to return
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          description: Number of results to skip
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+      responses:
+        '200':
+          description: History retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassificationHistoryResponse'
+        '404':
+          description: No history found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/classify/confidence-report:
+    post:
+      tags:
+        - Classification
+      summary: Generate confidence report
+      description: Analyze confidence scores across multiple classification results
+      operationId: generateConfidenceReport
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfidenceReportRequest'
+      responses:
+        '200':
+          description: Confidence report generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfidenceReportResponse'
+
+  # Risk Assessment Endpoints
+  /v1/risk/assess:
+    post:
+      tags:
+        - Risk Assessment
+      summary: Assess business risk
+      description: Perform comprehensive risk assessment across multiple categories
+      operationId: assessRisk
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RiskAssessmentRequest'
+      responses:
+        '200':
+          description: Risk assessment completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskAssessmentResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/risk/categories:
+    get:
+      tags:
+        - Risk Assessment
+      summary: Get risk categories
+      description: Retrieve available risk categories and their factors
+      operationId: getRiskCategories
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Risk categories retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskCategoriesResponse'
+
+  /v1/risk/factors:
+    get:
+      tags:
+        - Risk Assessment
+      summary: Get risk factors
+      description: Retrieve risk factors, optionally filtered by category
+      operationId: getRiskFactors
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: category
+          in: query
+          description: Filter factors by category
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Risk factors retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskFactorsResponse'
+
+  /v1/risk/thresholds:
+    get:
+      tags:
+        - Risk Assessment
+      summary: Get risk thresholds
+      description: Retrieve risk threshold configurations
+      operationId: getRiskThresholds
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: category
+          in: query
+          description: Filter thresholds by category
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Risk thresholds retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskThresholdsResponse'
+
+  # Compliance Endpoints
+  /v1/compliance/check:
+    post:
+      tags:
+        - Compliance
+      summary: Check compliance status
+      description: Perform compliance check against specified frameworks
+      operationId: checkCompliance
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplianceCheckRequest'
+      responses:
+        '200':
+          description: Compliance check completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceCheckResponse'
+
+  /v1/compliance/status/{business_id}:
+    get:
+      tags:
+        - Compliance
+      summary: Get compliance status
+      description: Retrieve current compliance status for a business
+      operationId: getComplianceStatus
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: business_id
+          in: path
+          required: true
+          description: Business identifier
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Compliance status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceStatusResponse'
+        '404':
+          description: Business not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/compliance/status/{business_id}/history:
+    get:
+      tags:
+        - Compliance
+      summary: Get compliance history
+      description: Retrieve compliance status history for a business
+      operationId: getComplianceHistory
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: business_id
+          in: path
+          required: true
+          description: Business identifier
+          schema:
+            type: string
+        - name: start_date
+          in: query
+          description: Start date for history (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          description: End date for history (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Compliance history retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceHistoryResponse'
+
+  /v1/compliance/status/{business_id}/report:
+    post:
+      tags:
+        - Compliance
+      summary: Generate compliance report
+      description: Generate detailed compliance report for a business
+      operationId: generateComplianceReport
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: business_id
+          in: path
+          required: true
+          description: Business identifier
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplianceReportRequest'
+      responses:
+        '200':
+          description: Compliance report generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceReportResponse'
+
+  # User Management Endpoints
+  /v1/users/profile:
+    get:
+      tags:
+        - User Management
+      summary: Get user profile
+      description: Retrieve current user's profile information
+      operationId: getUserProfile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - User Management
+      summary: Update user profile
+      description: Update current user's profile information
+      operationId: updateUserProfile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProfileUpdateRequest'
+      responses:
+        '200':
+          description: User profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/users/change-password:
+    post:
+      tags:
+        - User Management
+      summary: Change password
+      description: Change current user's password
+      operationId: changePassword
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChangePasswordResponse'
+        '400':
+          description: Invalid current password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Health and Monitoring Endpoints
+  /v1/health:
+    get:
+      tags:
+        - Health & Monitoring
+      summary: Health check
+      description: Check the health status of the API and its dependencies
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /v1/metrics:
+    get:
+      tags:
+        - Health & Monitoring
+      summary: Get metrics
+      description: Retrieve system metrics and performance data
+      operationId: getMetrics
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Metrics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricsResponse'
+
+  /v1/datasources/health:
+    get:
+      tags:
+        - Health & Monitoring
+      summary: Get data source health
+      description: Check the health status of external data sources
+      operationId: getDataSourceHealth
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Data source health retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataSourceHealthResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for API authentication
+
+  schemas:
+    # Authentication Schemas
+    UserRegistrationRequest:
+      type: object
+      required:
+        - email
+        - password
+        - first_name
+        - last_name
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address
+        password:
+          type: string
+          minLength: 8
+          description: User's password (minimum 8 characters)
+        first_name:
+          type: string
+          description: User's first name
+        last_name:
+          type: string
+          description: User's last name
+        company:
+          type: string
+          description: User's company name
+
+    UserRegistrationResponse:
+      type: object
+      properties:
+        user_id:
+          type: string
+          description: Unique user identifier
+        email:
+          type: string
+          format: email
+        status:
+          type: string
+          enum: [pending_verification, active, suspended]
+        message:
+          type: string
+          description: Status message
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    LoginResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: JWT access token
+        refresh_token:
+          type: string
+          description: JWT refresh token
+        expires_in:
+          type: integer
+          description: Token expiration time in seconds
+        token_type:
+          type: string
+          default: Bearer
+        user:
+          $ref: '#/components/schemas/User'
+
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refresh_token
+      properties:
+        refresh_token:
+          type: string
+          description: JWT refresh token
+
+    RefreshTokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        expires_in:
+          type: integer
+        token_type:
+          type: string
+          default: Bearer
+
+    LogoutResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          default: Logout successful
+
+    # Classification Schemas
+    ClassificationRequest:
+      type: object
+      required:
+        - business_name
+      properties:
+        business_name:
+          type: string
+          description: Name of the business to classify
+        business_type:
+          type: string
+          description: Type of business entity
+        industry:
+          type: string
+          description: Industry description
+        description:
+          type: string
+          description: Business description
+        keywords:
+          type: array
+          items:
+            type: string
+          description: Keywords related to the business
+
+    ClassificationResponse:
+      type: object
+      properties:
+        classification_id:
+          type: string
+        business_name:
+          type: string
+        primary_classification:
+          $ref: '#/components/schemas/IndustryClassification'
+        secondary_classifications:
+          type: array
+          items:
+            $ref: '#/components/schemas/IndustryClassification'
+        crosswalk_codes:
+          $ref: '#/components/schemas/CrosswalkCodes'
+        confidence_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        classification_methods:
+          type: array
+          items:
+            type: string
+        processing_time_ms:
+          type: integer
+
+    IndustryClassification:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Industry classification code
+        name:
+          type: string
+          description: Industry classification name
+        type:
+          type: string
+          enum: [NAICS, MCC, SIC]
+        confidence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+
+    CrosswalkCodes:
+      type: object
+      properties:
+        mcc:
+          type: array
+          items:
+            type: string
+        sic:
+          type: array
+          items:
+            type: string
+
+    BatchClassificationRequest:
+      type: object
+      required:
+        - businesses
+      properties:
+        businesses:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClassificationRequest'
+          maxItems: 1000
+
+    BatchClassificationResponse:
+      type: object
+      properties:
+        batch_id:
+          type: string
+        total_businesses:
+          type: integer
+        processed_count:
+          type: integer
+        success_count:
+          type: integer
+        failed_count:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClassificationResponse'
+        processing_time_ms:
+          type: integer
+
+    ClassificationHistoryResponse:
+      type: object
+      properties:
+        business_name:
+          type: string
+        total_classifications:
+          type: integer
+        classifications:
+          type: array
+          items:
+            type: object
+            properties:
+              classification_id:
+                type: string
+              timestamp:
+                type: string
+                format: date-time
+              primary_classification:
+                $ref: '#/components/schemas/IndustryClassification'
+
+    ConfidenceReportRequest:
+      type: object
+      required:
+        - businesses
+      properties:
+        businesses:
+          type: array
+          items:
+            type: object
+            properties:
+              business_name:
+                type: string
+
+    ConfidenceReportResponse:
+      type: object
+      properties:
+        report_id:
+          type: string
+        total_businesses:
+          type: integer
+        average_confidence:
+          type: number
+          format: float
+        confidence_distribution:
+          type: object
+          properties:
+            high:
+              type: integer
+            medium:
+              type: integer
+            low:
+              type: integer
+        classification_methods_summary:
+          type: object
+          additionalProperties:
+            type: integer
+
+    # Risk Assessment Schemas
+    RiskAssessmentRequest:
+      type: object
+      required:
+        - business_id
+        - business_name
+      properties:
+        business_id:
+          type: string
+        business_name:
+          type: string
+        categories:
+          type: array
+          items:
+            type: string
+            enum: [financial, operational, regulatory, reputational, cybersecurity]
+        industry:
+          type: string
+        business_type:
+          type: string
+        annual_revenue:
+          type: number
+        employee_count:
+          type: integer
+        years_in_business:
+          type: integer
+
+    RiskAssessmentResponse:
+      type: object
+      properties:
+        assessment_id:
+          type: string
+        business_id:
+          type: string
+        business_name:
+          type: string
+        overall_risk_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        risk_level:
+          type: string
+          enum: [low, medium, high, critical]
+        assessment_date:
+          type: string
+          format: date-time
+        categories:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/RiskCategory'
+        recommendations:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskRecommendation'
+
+    RiskCategory:
+      type: object
+      properties:
+        score:
+          type: number
+          format: float
+        level:
+          type: string
+          enum: [low, medium, high, critical]
+        factors:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskFactor'
+
+    RiskFactor:
+      type: object
+      properties:
+        factor:
+          type: string
+        score:
+          type: number
+          format: float
+        description:
+          type: string
+
+    RiskRecommendation:
+      type: object
+      properties:
+        category:
+          type: string
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+        description:
+          type: string
+        impact:
+          type: string
+
+    RiskCategoriesResponse:
+      type: object
+      properties:
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskCategoryDefinition'
+        total:
+          type: integer
+
+    RiskCategoryDefinition:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        factors:
+          type: array
+          items:
+            type: string
+
+    RiskFactorsResponse:
+      type: object
+      properties:
+        factors:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskFactorDefinition'
+        total:
+          type: integer
+        category:
+          type: string
+
+    RiskFactorDefinition:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+        description:
+          type: string
+        weight:
+          type: number
+          format: float
+        calculation_method:
+          type: string
+
+    RiskThresholdsResponse:
+      type: object
+      properties:
+        thresholds:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskThreshold'
+        total:
+          type: integer
+        category:
+          type: string
+
+    RiskThreshold:
+      type: object
+      properties:
+        id:
+          type: string
+        category:
+          type: string
+        name:
+          type: string
+        low_threshold:
+          type: number
+          format: float
+        medium_threshold:
+          type: number
+          format: float
+        high_threshold:
+          type: number
+          format: float
+
+    # Compliance Schemas
+    ComplianceCheckRequest:
+      type: object
+      required:
+        - business_id
+      properties:
+        business_id:
+          type: string
+        frameworks:
+          type: array
+          items:
+            type: string
+            enum: [SOC2, PCI_DSS, GDPR, HIPAA, SOX]
+        include_details:
+          type: boolean
+          default: false
+
+    ComplianceCheckResponse:
+      type: object
+      properties:
+        check_id:
+          type: string
+        business_id:
+          type: string
+        overall_status:
+          type: string
+          enum: [compliant, partially_compliant, non_compliant]
+        compliance_score:
+          type: number
+          format: float
+        frameworks:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/FrameworkStatus'
+        recommendations:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComplianceRecommendation'
+
+    FrameworkStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [compliant, partially_compliant, non_compliant]
+        score:
+          type: number
+          format: float
+        requirements_met:
+          type: integer
+        total_requirements:
+          type: integer
+        last_assessment:
+          type: string
+          format: date-time
+
+    ComplianceRecommendation:
+      type: object
+      properties:
+        framework:
+          type: string
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+        description:
+          type: string
+        impact:
+          type: string
+
+    ComplianceStatusResponse:
+      type: object
+      properties:
+        business_id:
+          type: string
+        overall_status:
+          type: string
+        compliance_score:
+          type: number
+          format: float
+        frameworks:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/FrameworkStatus'
+        last_updated:
+          type: string
+          format: date-time
+
+    ComplianceHistoryResponse:
+      type: object
+      properties:
+        business_id:
+          type: string
+        history:
+          type: array
+          items:
+            type: object
+            properties:
+              timestamp:
+                type: string
+                format: date-time
+              status:
+                type: string
+              score:
+                type: number
+                format: float
+
+    ComplianceReportRequest:
+      type: object
+      properties:
+        report_type:
+          type: string
+          enum: [summary, detailed]
+          default: summary
+        frameworks:
+          type: array
+          items:
+            type: string
+        include_recommendations:
+          type: boolean
+          default: true
+
+    ComplianceReportResponse:
+      type: object
+      properties:
+        report_id:
+          type: string
+        business_id:
+          type: string
+        report_type:
+          type: string
+        content:
+          type: object
+        generated_at:
+          type: string
+          format: date-time
+
+    # User Management Schemas
+    User:
+      type: object
+      properties:
+        user_id:
+          type: string
+        email:
+          type: string
+          format: email
+        first_name:
+          type: string
+        last_name:
+          type: string
+        company:
+          type: string
+        role:
+          type: string
+          enum: [user, admin, manager]
+
+    UserProfileResponse:
+      type: object
+      properties:
+        user_id:
+          type: string
+        email:
+          type: string
+          format: email
+        first_name:
+          type: string
+        last_name:
+          type: string
+        company:
+          type: string
+        role:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        last_login:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [active, inactive, suspended]
+
+    UserProfileUpdateRequest:
+      type: object
+      properties:
+        first_name:
+          type: string
+        last_name:
+          type: string
+        company:
+          type: string
+
+    ChangePasswordRequest:
+      type: object
+      required:
+        - current_password
+        - new_password
+      properties:
+        current_password:
+          type: string
+        new_password:
+          type: string
+          minLength: 8
+
+    ChangePasswordResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          default: Password changed successfully
+
+    # Health and Monitoring Schemas
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        timestamp:
+          type: string
+          format: date-time
+        version:
+          type: string
+        services:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ServiceHealth'
+
+    ServiceHealth:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        response_time_ms:
+          type: integer
+
+    MetricsResponse:
+      type: object
+      properties:
+        api_requests_total:
+          type: integer
+        api_requests_duration_seconds:
+          type: number
+          format: float
+        classification_requests_total:
+          type: integer
+        classification_accuracy:
+          type: number
+          format: float
+        risk_assessments_total:
+          type: integer
+        compliance_checks_total:
+          type: integer
+        active_users:
+          type: integer
+        system_uptime_seconds:
+          type: integer
+
+    DataSourceHealthResponse:
+      type: object
+      properties:
+        overall_status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        timestamp:
+          type: string
+          format: date-time
+        sources:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/DataSourceStatus'
+
+    DataSourceStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        response_time_ms:
+          type: integer
+        last_check:
+          type: string
+          format: date-time
+        error:
+          type: string
+
+    # Error Response Schema
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error type identifier
+        message:
+          type: string
+          description: Human-readable error message
+        status_code:
+          type: integer
+          description: HTTP status code
+        timestamp:
+          type: string
+          format: date-time
+        details:
+          type: object
+          description: Additional error details
+        retry_after:
+          type: integer
+          description: Seconds to wait before retrying (for rate limiting)
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization endpoints
+  - name: Classification
+    description: Business classification and industry code mapping
+  - name: Risk Assessment
+    description: Business risk assessment and analysis
+  - name: Compliance
+    description: Compliance checking and reporting
+  - name: User Management
+    description: User profile and account management
+  - name: Health & Monitoring
+    description: System health checks and monitoring

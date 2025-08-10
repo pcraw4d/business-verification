@@ -13,18 +13,76 @@ import (
 	"github.com/pcraw4d/business-verification/internal/risk"
 )
 
-func TestRiskHandler_AssessRiskHandler(t *testing.T) {
-	// Create mock logger
+// createTestRiskService creates a test risk service with all required components
+func createTestRiskService(t *testing.T) *risk.RiskService {
 	logger := observability.NewLogger(&config.ObservabilityConfig{
-		LogLevel:  "debug",
+		LogLevel:  "info",
 		LogFormat: "text",
 	})
 
-	// Create mock risk service for testing
-	riskService := risk.NewMockRiskService(logger)
+	// Create test components
+	categoryRegistry := risk.CreateDefaultRiskCategories()
+	thresholdManager := risk.CreateDefaultThresholds()
+	industryModelRegistry := risk.CreateDefaultIndustryModels()
+	calculator := risk.NewRiskFactorCalculator(categoryRegistry)
+	scoringAlgorithm := risk.NewWeightedScoringAlgorithm()
+	predictionAlgorithm := risk.NewRiskPredictionAlgorithm()
+	historyService := risk.NewRiskHistoryService(logger, nil) // nil DB for testing
+	alertService := risk.NewAlertService(logger, thresholdManager)
+	reportService := risk.NewReportService(logger, historyService, alertService)
+
+	// Create additional required components
+	exportService := risk.NewExportService(logger, historyService, alertService, reportService)
+	financialProviderManager := risk.NewFinancialProviderManager(logger)
+	regulatoryProviderManager := risk.NewRegulatoryProviderManager(logger)
+	mediaProviderManager := risk.NewMediaProviderManager(logger)
+	marketDataProviderManager := risk.NewMarketDataProviderManager(logger)
+	dataValidationManager := risk.NewDataValidationManager(logger)
+	thresholdMonitoringManager := risk.NewThresholdMonitoringManager(logger)
+	automatedAlertService := risk.NewAutomatedAlertService(logger)
+	trendAnalysisService := risk.NewTrendAnalysisService(logger)
+	reportingSystem := risk.NewReportingSystem(logger, reportService, trendAnalysisService, historyService, alertService)
+
+	// Create and return risk service
+	return risk.NewRiskService(
+		logger,
+		calculator,
+		scoringAlgorithm,
+		predictionAlgorithm,
+		thresholdManager,
+		categoryRegistry,
+		industryModelRegistry,
+		historyService,
+		alertService,
+		reportService,
+		exportService,
+		financialProviderManager,
+		regulatoryProviderManager,
+		mediaProviderManager,
+		marketDataProviderManager,
+		dataValidationManager,
+		thresholdMonitoringManager,
+		automatedAlertService,
+		trendAnalysisService,
+		reportingSystem,
+	)
+}
+
+func TestRiskHandler_AssessRiskHandler(t *testing.T) {
+	// Create test risk service
+	riskService := createTestRiskService(t)
+
+	// Create logger for handler
+	logger := observability.NewLogger(&config.ObservabilityConfig{
+		LogLevel:  "info",
+		LogFormat: "text",
+	})
+
+	// Create history service for handler
+	historyService := risk.NewRiskHistoryService(logger, nil)
 
 	// Create risk handler
-	handler := NewRiskHandler(logger, riskService, nil)
+	handler := NewRiskHandler(logger, riskService, historyService)
 
 	tests := []struct {
 		name           string
@@ -179,43 +237,140 @@ func TestRiskHandler_AssessRiskHandler(t *testing.T) {
 	}
 }
 
-func TestRiskHandler_GetRiskCategoriesHandler(t *testing.T) {
-	// Create mock logger
+func TestRiskHandler_AssessRiskHandler_EdgeCases(t *testing.T) {
+	// Create test risk service
+	riskService := createTestRiskService(t)
+	
+	// Create logger for handler
 	logger := observability.NewLogger(&config.ObservabilityConfig{
-		LogLevel:  "debug",
+		LogLevel:  "info",
 		LogFormat: "text",
 	})
 
-	// Create mock risk service components
-	categoryRegistry := risk.CreateDefaultRiskCategories()
-	thresholdManager := risk.CreateDefaultThresholds()
-	industryModelRegistry := risk.CreateDefaultIndustryModels()
-	calculator := risk.NewRiskFactorCalculator(categoryRegistry)
-	scoringAlgorithm := risk.NewWeightedScoringAlgorithm()
-	predictionAlgorithm := risk.NewRiskPredictionAlgorithm()
+	// Create history service for handler
+	historyService := risk.NewRiskHistoryService(logger, nil)
 
-	// Create risk history service
+	// Create risk handler
+	handler := NewRiskHandler(logger, riskService, historyService)
+
+	tests := []struct {
+		name           string
+		requestBody    string
+		expectedStatus int
+		checkResponse  func(*testing.T, *httptest.ResponseRecorder)
+	}{
+		{
+			name: "Large business name",
+			requestBody: `{
+				"business_id": "test-123",
+				"business_name": "This is a very long business name that exceeds normal limits and should be handled gracefully by the system",
+				"categories": ["financial"]
+			}`,
+			expectedStatus: http.StatusOK,
+			checkResponse: func(t *testing.T, rr *httptest.ResponseRecorder) {
+				if rr.Code != http.StatusOK {
+					t.Errorf("Expected status %d, got %d", http.StatusOK, rr.Code)
+				}
+			},
+		},
+		{
+			name: "Special characters in business name",
+			requestBody: `{
+				"business_id": "test-123",
+				"business_name": "Test & Company (LLC) - Special Characters!@#$%",
+				"categories": ["financial"]
+			}`,
+			expectedStatus: http.StatusOK,
+			checkResponse: func(t *testing.T, rr *httptest.ResponseRecorder) {
+				if rr.Code != http.StatusOK {
+					t.Errorf("Expected status %d, got %d", http.StatusOK, rr.Code)
+				}
+			},
+		},
+		{
+			name: "All risk categories",
+			requestBody: `{
+				"business_id": "test-123",
+				"business_name": "Test Company",
+				"categories": ["financial", "operational", "regulatory", "reputational", "cybersecurity"]
+			}`,
+			expectedStatus: http.StatusOK,
+			checkResponse: func(t *testing.T, rr *httptest.ResponseRecorder) {
+				if rr.Code != http.StatusOK {
+					t.Errorf("Expected status %d, got %d", http.StatusOK, rr.Code)
+				}
+			},
+		},
+		{
+			name: "Invalid category",
+			requestBody: `{
+				"business_id": "test-123",
+				"business_name": "Test Company",
+				"categories": ["invalid_category"]
+			}`,
+			expectedStatus: http.StatusBadRequest,
+			checkResponse: func(t *testing.T, rr *httptest.ResponseRecorder) {
+				if rr.Code != http.StatusBadRequest {
+					t.Errorf("Expected status %d, got %d", http.StatusBadRequest, rr.Code)
+				}
+			},
+		},
+		{
+			name: "Empty request body",
+			requestBody: "",
+			expectedStatus: http.StatusBadRequest,
+			checkResponse: func(t *testing.T, rr *httptest.ResponseRecorder) {
+				if rr.Code != http.StatusBadRequest {
+					t.Errorf("Expected status %d, got %d", http.StatusBadRequest, rr.Code)
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create request
+			req, err := http.NewRequest("POST", "/v1/risk/assess", bytes.NewBufferString(tt.requestBody))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// Add request ID to context
+			ctx := req.Context()
+			ctx = context.WithValue(ctx, "request_id", "test-request-id")
+			req = req.WithContext(ctx)
+
+			// Create response recorder
+			rr := httptest.NewRecorder()
+
+			// Call handler
+			handler.AssessRiskHandler(rr, req)
+
+			// Check status code
+			if status := rr.Code; status != tt.expectedStatus {
+				t.Errorf("handler returned wrong status code: got %v want %v", status, tt.expectedStatus)
+			}
+
+			// Check response
+			if tt.checkResponse != nil {
+				tt.checkResponse(t, rr)
+			}
+		})
+	}
+}
+
+func TestRiskHandler_GetRiskCategoriesHandler(t *testing.T) {
+	// Create test risk service
+	riskService := createTestRiskService(t)
+
+	// Create logger for handler
+	logger := observability.NewLogger(&config.ObservabilityConfig{
+		LogLevel:  "info",
+		LogFormat: "text",
+	})
+
+	// Create history service for handler
 	riskHistoryService := risk.NewRiskHistoryService(logger, nil)
-
-	// Create alert service
-	alertService := risk.NewAlertService(logger, thresholdManager)
-
-	// Create report service
-	reportService := risk.NewReportService(logger, riskHistoryService, alertService)
-
-	// Create risk service
-	riskService := risk.NewRiskService(
-		logger,
-		calculator,
-		scoringAlgorithm,
-		predictionAlgorithm,
-		thresholdManager,
-		categoryRegistry,
-		industryModelRegistry,
-		riskHistoryService,
-		alertService,
-		reportService,
-	)
 
 	// Create risk handler
 	handler := NewRiskHandler(logger, riskService, riskHistoryService)
@@ -259,42 +414,17 @@ func TestRiskHandler_GetRiskCategoriesHandler(t *testing.T) {
 }
 
 func TestRiskHandler_GetRiskFactorsHandler(t *testing.T) {
-	// Create mock logger
+	// Create test risk service
+	riskService := createTestRiskService(t)
+	
+	// Create logger for handler
 	logger := observability.NewLogger(&config.ObservabilityConfig{
-		LogLevel:  "debug",
+		LogLevel:  "info",
 		LogFormat: "text",
 	})
 
-	// Create mock risk service components
-	categoryRegistry := risk.CreateDefaultRiskCategories()
-	thresholdManager := risk.CreateDefaultThresholds()
-	industryModelRegistry := risk.CreateDefaultIndustryModels()
-	calculator := risk.NewRiskFactorCalculator(categoryRegistry)
-	scoringAlgorithm := risk.NewWeightedScoringAlgorithm()
-	predictionAlgorithm := risk.NewRiskPredictionAlgorithm()
-
-	// Create risk history service
+	// Create history service for handler
 	riskHistoryService := risk.NewRiskHistoryService(logger, nil)
-
-	// Create alert service
-	alertService := risk.NewAlertService(logger, thresholdManager)
-
-	// Create report service
-	reportService := risk.NewReportService(logger, riskHistoryService, alertService)
-
-	// Create risk service
-	riskService := risk.NewRiskService(
-		logger,
-		calculator,
-		scoringAlgorithm,
-		predictionAlgorithm,
-		thresholdManager,
-		categoryRegistry,
-		industryModelRegistry,
-		riskHistoryService,
-		alertService,
-		reportService,
-	)
 
 	// Create risk handler
 	handler := NewRiskHandler(logger, riskService, riskHistoryService)
@@ -390,42 +520,17 @@ func TestRiskHandler_GetRiskFactorsHandler(t *testing.T) {
 }
 
 func TestRiskHandler_GetRiskThresholdsHandler(t *testing.T) {
-	// Create mock logger
+	// Create test risk service
+	riskService := createTestRiskService(t)
+	
+	// Create logger for handler
 	logger := observability.NewLogger(&config.ObservabilityConfig{
-		LogLevel:  "debug",
+		LogLevel:  "info",
 		LogFormat: "text",
 	})
 
-	// Create mock risk service components
-	categoryRegistry := risk.CreateDefaultRiskCategories()
-	thresholdManager := risk.CreateDefaultThresholds()
-	industryModelRegistry := risk.CreateDefaultIndustryModels()
-	calculator := risk.NewRiskFactorCalculator(categoryRegistry)
-	scoringAlgorithm := risk.NewWeightedScoringAlgorithm()
-	predictionAlgorithm := risk.NewRiskPredictionAlgorithm()
-
-	// Create risk history service
+	// Create history service for handler
 	riskHistoryService := risk.NewRiskHistoryService(logger, nil)
-
-	// Create alert service
-	alertService := risk.NewAlertService(logger, thresholdManager)
-
-	// Create report service
-	reportService := risk.NewReportService(logger, riskHistoryService, alertService)
-
-	// Create risk service
-	riskService := risk.NewRiskService(
-		logger,
-		calculator,
-		scoringAlgorithm,
-		predictionAlgorithm,
-		thresholdManager,
-		categoryRegistry,
-		industryModelRegistry,
-		riskHistoryService,
-		alertService,
-		reportService,
-	)
 
 	// Create risk handler
 	handler := NewRiskHandler(logger, riskService, riskHistoryService)

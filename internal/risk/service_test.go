@@ -27,6 +27,18 @@ func TestRiskService_GenerateRiskReport(t *testing.T) {
 	alertService := NewAlertService(logger, thresholdManager)
 	reportService := NewReportService(logger, historyService, alertService)
 
+	// Create additional required components
+	exportService := NewExportService(logger, historyService, alertService, reportService)
+	financialProviderManager := NewFinancialProviderManager(logger)
+	regulatoryProviderManager := NewRegulatoryProviderManager(logger)
+	mediaProviderManager := NewMediaProviderManager(logger)
+	marketDataProviderManager := NewMarketDataProviderManager(logger)
+	dataValidationManager := NewDataValidationManager(logger)
+	thresholdMonitoringManager := NewThresholdMonitoringManager(logger)
+	automatedAlertService := NewAutomatedAlertService(logger)
+	trendAnalysisService := NewTrendAnalysisService(logger)
+	reportingSystem := NewReportingSystem(logger, reportService, trendAnalysisService, historyService, alertService)
+
 	// Create risk service
 	service := NewRiskService(
 		logger,
@@ -39,7 +51,16 @@ func TestRiskService_GenerateRiskReport(t *testing.T) {
 		historyService,
 		alertService,
 		reportService,
-		nil, // No export service for this test
+		exportService,
+		financialProviderManager,
+		regulatoryProviderManager,
+		mediaProviderManager,
+		marketDataProviderManager,
+		dataValidationManager,
+		thresholdMonitoringManager,
+		automatedAlertService,
+		trendAnalysisService,
+		reportingSystem,
 	)
 
 	// Create test request
@@ -140,6 +161,18 @@ func TestRiskService_GenerateRiskReport_Detailed(t *testing.T) {
 	alertService := NewAlertService(logger, thresholdManager)
 	reportService := NewReportService(logger, historyService, alertService)
 
+	// Create additional required components
+	exportService := NewExportService(logger, historyService, alertService, reportService)
+	financialProviderManager := NewFinancialProviderManager(logger)
+	regulatoryProviderManager := NewRegulatoryProviderManager(logger)
+	mediaProviderManager := NewMediaProviderManager(logger)
+	marketDataProviderManager := NewMarketDataProviderManager(logger)
+	dataValidationManager := NewDataValidationManager(logger)
+	thresholdMonitoringManager := NewThresholdMonitoringManager(logger)
+	automatedAlertService := NewAutomatedAlertService(logger)
+	trendAnalysisService := NewTrendAnalysisService(logger)
+	reportingSystem := NewReportingSystem(logger, reportService, trendAnalysisService, historyService, alertService)
+
 	// Create risk service
 	service := NewRiskService(
 		logger,
@@ -152,7 +185,16 @@ func TestRiskService_GenerateRiskReport_Detailed(t *testing.T) {
 		historyService,
 		alertService,
 		reportService,
-		nil, // No export service for this test
+		exportService,
+		financialProviderManager,
+		regulatoryProviderManager,
+		mediaProviderManager,
+		marketDataProviderManager,
+		dataValidationManager,
+		thresholdMonitoringManager,
+		automatedAlertService,
+		trendAnalysisService,
+		reportingSystem,
 	)
 
 	// Create test request for detailed report
@@ -231,6 +273,18 @@ func TestRiskService_GenerateRiskReport_NoReportService(t *testing.T) {
 	historyService := NewRiskHistoryService(logger, nil) // nil DB for testing
 	alertService := NewAlertService(logger, thresholdManager)
 
+	// Create additional required components (with nil services where appropriate)
+	exportService := NewExportService(logger, historyService, alertService, nil)
+	financialProviderManager := NewFinancialProviderManager(logger)
+	regulatoryProviderManager := NewRegulatoryProviderManager(logger)
+	mediaProviderManager := NewMediaProviderManager(logger)
+	marketDataProviderManager := NewMarketDataProviderManager(logger)
+	dataValidationManager := NewDataValidationManager(logger)
+	thresholdMonitoringManager := NewThresholdMonitoringManager(logger)
+	automatedAlertService := NewAutomatedAlertService(logger)
+	trendAnalysisService := NewTrendAnalysisService(logger)
+	reportingSystem := NewReportingSystem(logger, nil, trendAnalysisService, historyService, alertService)
+
 	// Create risk service WITHOUT report service and export service
 	service := NewRiskService(
 		logger,
@@ -243,7 +297,16 @@ func TestRiskService_GenerateRiskReport_NoReportService(t *testing.T) {
 		historyService,
 		alertService,
 		nil, // No report service
-		nil, // No export service
+		exportService,
+		financialProviderManager,
+		regulatoryProviderManager,
+		mediaProviderManager,
+		marketDataProviderManager,
+		dataValidationManager,
+		thresholdMonitoringManager,
+		automatedAlertService,
+		trendAnalysisService,
+		reportingSystem,
 	)
 
 	// Create test request

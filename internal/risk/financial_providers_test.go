@@ -10,12 +10,13 @@ import (
 	"github.com/pcraw4d/business-verification/internal/observability"
 )
 
-// createTestLogger creates a logger for testing
-func createTestLogger() *observability.Logger {
-	return observability.NewLogger(&config.ObservabilityConfig{
-		LogLevel:  "debug",
+// createFinancialTestLogger creates a logger for testing
+func createFinancialTestLogger() *observability.Logger {
+	cfg := &config.ObservabilityConfig{
+		LogLevel:  "info",
 		LogFormat: "json",
-	})
+	}
+	return observability.NewLogger(cfg)
 }
 
 func TestRealFinancialProvider_GetCompanyFinancials(t *testing.T) {
@@ -54,7 +55,7 @@ func TestRealFinancialProvider_GetCompanyFinancials(t *testing.T) {
 	defer server.Close()
 
 	// Create logger
-	logger := createTestLogger()
+	logger := createFinancialTestLogger()
 
 	// Create provider
 	provider := NewRealFinancialProvider("test_provider", "test-api-key", server.URL, logger)
@@ -108,7 +109,7 @@ func TestRealFinancialProvider_GetCreditScore(t *testing.T) {
 	}))
 	defer server.Close()
 
-	logger := createTestLogger()
+	logger := createFinancialTestLogger()
 	provider := NewRealFinancialProvider("test_provider", "test-api-key", server.URL, logger)
 
 	ctx := context.WithValue(context.Background(), "request_id", "test-request-123")
@@ -161,7 +162,7 @@ func TestRealFinancialProvider_GetPaymentHistory(t *testing.T) {
 	}))
 	defer server.Close()
 
-	logger := observability.NewLogger("test", "debug")
+	logger := createFinancialTestLogger()
 	provider := NewRealFinancialProvider("test_provider", "test-api-key", server.URL, logger)
 
 	ctx := context.WithValue(context.Background(), "request_id", "test-request-123")
@@ -207,7 +208,7 @@ func TestRealFinancialProvider_GetBankruptcyInfo(t *testing.T) {
 	}))
 	defer server.Close()
 
-	logger := observability.NewLogger("test", "debug")
+	logger := createFinancialTestLogger()
 	provider := NewRealFinancialProvider("test_provider", "test-api-key", server.URL, logger)
 
 	ctx := context.WithValue(context.Background(), "request_id", "test-request-123")
@@ -262,7 +263,7 @@ func TestRealFinancialProvider_GetLegalActions(t *testing.T) {
 	}))
 	defer server.Close()
 
-	logger := observability.NewLogger("test", "debug")
+	logger := createFinancialTestLogger()
 	provider := NewRealFinancialProvider("test_provider", "test-api-key", server.URL, logger)
 
 	ctx := context.WithValue(context.Background(), "request_id", "test-request-123")
@@ -323,7 +324,7 @@ func TestRealFinancialProvider_GetIndustryBenchmarks(t *testing.T) {
 	}))
 	defer server.Close()
 
-	logger := observability.NewLogger("test", "debug")
+	logger := createFinancialTestLogger()
 	provider := NewRealFinancialProvider("test_provider", "test-api-key", server.URL, logger)
 
 	ctx := context.WithValue(context.Background(), "request_id", "test-request-123")
@@ -361,7 +362,7 @@ func TestRealFinancialProvider_ErrorHandling(t *testing.T) {
 	}))
 	defer server.Close()
 
-	logger := observability.NewLogger("test", "debug")
+	logger := createFinancialTestLogger()
 	provider := NewRealFinancialProvider("test_provider", "test-api-key", server.URL, logger)
 
 	ctx := context.WithValue(context.Background(), "request_id", "test-request-123")
@@ -383,7 +384,7 @@ func TestRealFinancialProvider_Unauthorized(t *testing.T) {
 	}))
 	defer server.Close()
 
-	logger := observability.NewLogger("test", "debug")
+	logger := createFinancialTestLogger()
 	provider := NewRealFinancialProvider("test_provider", "invalid-key", server.URL, logger)
 
 	ctx := context.WithValue(context.Background(), "request_id", "test-request-123")
@@ -399,7 +400,7 @@ func TestRealFinancialProvider_Unauthorized(t *testing.T) {
 }
 
 func TestRealFinancialProvider_NetworkError(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createFinancialTestLogger()
 	provider := NewRealFinancialProvider("test_provider", "test-api-key", "http://invalid-url", logger)
 
 	ctx := context.WithValue(context.Background(), "request_id", "test-request-123")
@@ -431,7 +432,7 @@ func TestCreditBureauProvider(t *testing.T) {
 	}))
 	defer server.Close()
 
-	logger := observability.NewLogger("test", "debug")
+	logger := createFinancialTestLogger()
 	provider := NewCreditBureauProvider("test-api-key", server.URL, logger)
 
 	ctx := context.WithValue(context.Background(), "request_id", "test-request-123")
@@ -467,7 +468,7 @@ func TestFinancialDataProvider(t *testing.T) {
 	}))
 	defer server.Close()
 
-	logger := observability.NewLogger("test", "debug")
+	logger := createFinancialTestLogger()
 	provider := NewFinancialDataProvider("test-api-key", server.URL, logger)
 
 	ctx := context.WithValue(context.Background(), "request_id", "test-request-123")
@@ -499,7 +500,7 @@ func TestRegulatoryDataProvider(t *testing.T) {
 	}))
 	defer server.Close()
 
-	logger := observability.NewLogger("test", "debug")
+	logger := createFinancialTestLogger()
 	provider := NewRegulatoryDataProvider("test-api-key", server.URL, logger)
 
 	ctx := context.WithValue(context.Background(), "request_id", "test-request-123")
@@ -519,7 +520,7 @@ func TestRegulatoryDataProvider(t *testing.T) {
 }
 
 func TestRealFinancialProvider_Availability(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createFinancialTestLogger()
 	provider := NewRealFinancialProvider("test_provider", "test-api-key", "http://example.com", logger)
 
 	// Test default availability
@@ -540,7 +541,7 @@ func TestRealFinancialProvider_Availability(t *testing.T) {
 }
 
 func TestRealFinancialProvider_ProviderName(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createFinancialTestLogger()
 	provider := NewRealFinancialProvider("test_provider", "test-api-key", "http://example.com", logger)
 
 	if provider.GetProviderName() != "test_provider" {

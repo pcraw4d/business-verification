@@ -48,6 +48,7 @@ type Server struct {
 	authRateLimiter    *middleware.AuthRateLimiter
 	ipBlocker          *middleware.IPBlocker
 	validator          *middleware.Validator
+	docsHandlerSvc     *handlers.DocsHandler
 	server             *http.Server
 }
 
@@ -76,6 +77,19 @@ func NewServer(
 	ipBlocker *middleware.IPBlocker,
 	validator *middleware.Validator,
 ) *Server {
+	// Read OpenAPI specification
+	openAPISpec, err := os.ReadFile("docs/api/openapi.yaml")
+	if err != nil {
+		logger.Error("Failed to read OpenAPI specification", "error", err)
+		// Use a minimal spec if file is not found
+		openAPISpec = []byte(`openapi: 3.1.0
+info:
+  title: KYB Platform API
+  version: 1.0.0`)
+	}
+
+	docsHandler := handlers.NewDocsHandler(openAPISpec)
+
 	return &Server{
 		config:             config,
 		logger:             logger,
@@ -99,6 +113,7 @@ func NewServer(
 		authRateLimiter:    authRateLimiter,
 		ipBlocker:          ipBlocker,
 		validator:          validator,
+		docsHandlerSvc:     docsHandler,
 	}
 }
 
@@ -114,8 +129,9 @@ func (s *Server) setupRoutes() *http.ServeMux {
 	mux.HandleFunc("GET /v1/metrics", s.metricsHandler)
 
 	// API documentation
-	mux.HandleFunc("GET /docs", s.docsHandler)
-	mux.HandleFunc("GET /docs/", s.docsHandler)
+	mux.HandleFunc("GET /docs", s.docsHandlerSvc.ServeDocs)
+	mux.HandleFunc("GET /docs/", s.docsHandlerSvc.ServeDocs)
+	mux.HandleFunc("GET /docs/openapi.yaml", s.docsHandlerSvc.ServeDocs)
 
 	// Compliance endpoints (protected in future; currently public)
 	mux.HandleFunc("POST /v1/compliance/check", s.complianceHandler.CheckComplianceHandler)
