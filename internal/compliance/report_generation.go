@@ -58,7 +58,10 @@ const (
 
 // GenerateComplianceReport generates a comprehensive compliance report
 func (s *ReportGenerationService) GenerateComplianceReport(ctx context.Context, request ReportRequest) (*ComplianceReport, error) {
-	requestID := ctx.Value("request_id").(string)
+	requestID := ""
+	if ctx.Value("request_id") != nil {
+		requestID = ctx.Value("request_id").(string)
+	}
 
 	s.logger.Info("Generating compliance report",
 		"request_id", requestID,

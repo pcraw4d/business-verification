@@ -125,6 +125,27 @@ func (m *MockAPIKeyDatabase) UpdateRiskAssessment(ctx context.Context, assessmen
 	return nil
 }
 func (m *MockAPIKeyDatabase) DeleteRiskAssessment(ctx context.Context, id string) error { return nil }
+func (m *MockAPIKeyDatabase) GetRiskAssessmentHistory(ctx context.Context, businessID string, limit, offset int) ([]*database.RiskAssessment, error) {
+	return nil, nil
+}
+func (m *MockAPIKeyDatabase) GetRiskAssessmentHistoryByDateRange(ctx context.Context, businessID string, startDate, endDate time.Time) ([]*database.RiskAssessment, error) {
+	return nil, nil
+}
+func (m *MockAPIKeyDatabase) GetLatestRiskAssessment(ctx context.Context, businessID string) (*database.RiskAssessment, error) {
+	return nil, nil
+}
+func (m *MockAPIKeyDatabase) GetRiskAssessmentTrends(ctx context.Context, businessID string, days int) ([]*database.RiskAssessment, error) {
+	return nil, nil
+}
+func (m *MockAPIKeyDatabase) GetRiskAssessmentsByLevel(ctx context.Context, businessID string, riskLevel string) ([]*database.RiskAssessment, error) {
+	return nil, nil
+}
+func (m *MockAPIKeyDatabase) GetRiskAssessmentsByScoreRange(ctx context.Context, businessID string, minScore, maxScore float64) ([]*database.RiskAssessment, error) {
+	return nil, nil
+}
+func (m *MockAPIKeyDatabase) GetRiskAssessmentStatistics(ctx context.Context, businessID string) (map[string]interface{}, error) {
+	return nil, nil
+}
 func (m *MockAPIKeyDatabase) CreateComplianceCheck(ctx context.Context, check *database.ComplianceCheck) error {
 	return nil
 }

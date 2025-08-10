@@ -600,3 +600,141 @@ func TestCheckComplianceHandler(t *testing.T) {
 		})
 	}
 }
+
+func TestGenerateComplianceReportHandler_Validation(t *testing.T) {
+	handler, _ := setupComplianceTest(t)
+
+	tests := []struct {
+		name           string
+		requestBody    interface{}
+		expectedStatus int
+		expectedFields []string
+	}{
+		{
+			name: "Missing business_id",
+			requestBody: map[string]interface{}{
+				"report_type":  "status",
+				"format":       "json",
+				"generated_by": "test-user",
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedFields: []string{"error", "message"},
+		},
+		{
+			name: "Empty business_id",
+			requestBody: map[string]interface{}{
+				"business_id":  "",
+				"report_type":  "status",
+				"format":       "json",
+				"generated_by": "test-user",
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedFields: []string{"error", "message"},
+		},
+		{
+			name:           "Invalid JSON",
+			requestBody:    "invalid json",
+			expectedStatus: http.StatusBadRequest,
+			expectedFields: []string{"error", "message"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var body []byte
+			var err error
+
+			if str, ok := tt.requestBody.(string); ok {
+				body = []byte(str)
+			} else {
+				body, err = json.Marshal(tt.requestBody)
+				if err != nil {
+					t.Fatalf("Failed to marshal request body: %v", err)
+				}
+			}
+
+			req := httptest.NewRequest("POST", "/v1/compliance/report", bytes.NewBuffer(body))
+			req.Header.Set("Content-Type", "application/json")
+			ctx := context.WithValue(req.Context(), "request_id", "test-request-id")
+			req = req.WithContext(ctx)
+
+			w := httptest.NewRecorder()
+			handler.GenerateComplianceReportHandler(w, req)
+
+			if w.Code != tt.expectedStatus {
+				t.Errorf("Expected status %d, got %d", tt.expectedStatus, w.Code)
+			}
+
+			var response map[string]interface{}
+			if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+				t.Fatalf("Failed to unmarshal response: %v", err)
+			}
+
+			// Check that expected fields are present
+			for _, field := range tt.expectedFields {
+				if _, exists := response[field]; !exists {
+					t.Errorf("Expected field '%s' in response, but it was not found", field)
+				}
+			}
+		})
+	}
+}
+
+func TestGenerateComplianceReportHandler_WithDateRange(t *testing.T) {
+	handler, _ := setupComplianceTest(t)
+
+	requestBody := map[string]interface{}{
+		"business_id":  "test-business-123",
+		"report_type":  "status",
+		"format":       "json",
+		"generated_by": "test-user",
+		"date_range": map[string]interface{}{
+			"start_date": "2024-01-01T00:00:00Z",
+			"end_date":   "2024-12-31T23:59:59Z",
+		},
+		"include_details": true,
+		"metadata": map[string]interface{}{
+			"custom_field": "custom_value",
+		},
+	}
+
+	body, err := json.Marshal(requestBody)
+	if err != nil {
+		t.Fatalf("Failed to marshal request body: %v", err)
+	}
+
+	req := httptest.NewRequest("POST", "/v1/compliance/report", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(req.Context(), "request_id", "test-request-id")
+	req = req.WithContext(ctx)
+
+	w := httptest.NewRecorder()
+	handler.GenerateComplianceReportHandler(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+		t.Fatalf("Failed to unmarshal response: %v", err)
+	}
+
+	// Verify that the response contains the expected fields
+	expectedFields := []string{"id", "business_id", "report_type", "overall_status", "compliance_score", "generated_at"}
+	for _, field := range expectedFields {
+		if _, exists := response[field]; !exists {
+			t.Errorf("Expected field '%s' in response, but it was not found", field)
+		}
+	}
+
+	// Verify business_id matches
+	if businessID, ok := response["business_id"].(string); !ok || businessID != "test-business-123" {
+		t.Errorf("Expected business_id 'test-business-123', got '%s'", businessID)
+	}
+
+	// Verify report_type matches
+	if reportType, ok := response["report_type"].(string); !ok || reportType != "status" {
+		t.Errorf("Expected report_type 'status', got '%s'", reportType)
+	}
+}

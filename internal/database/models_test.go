@@ -164,13 +164,17 @@ func TestRiskAssessmentModel(t *testing.T) {
 	assessment := &RiskAssessment{
 		ID:               "assessment-123",
 		BusinessID:       "business-123",
-		RiskLevel:        "medium",
-		RiskScore:        0.65,
-		RiskFactors:      riskFactors,
+		BusinessName:     "Test Business",
+		OverallScore:     0.65,
+		OverallLevel:     "medium",
+		FactorScores:     riskFactors,
 		AssessmentMethod: "rule_based",
 		Source:           "internal_assessor",
-		RawData:          `{"factors": ["new_business", "high_revenue"], "score": 0.65}`,
+		Metadata:         map[string]interface{}{"factors": riskFactors, "score": 0.65},
+		AssessedAt:       now,
+		ValidUntil:       now.AddDate(0, 1, 0), // Valid for 1 month
 		CreatedAt:        now,
+		UpdatedAt:        now,
 	}
 
 	if assessment.ID != "assessment-123" {
@@ -181,16 +185,16 @@ func TestRiskAssessmentModel(t *testing.T) {
 		t.Errorf("Expected business ID 'business-123', got %s", assessment.BusinessID)
 	}
 
-	if assessment.RiskLevel != "medium" {
-		t.Errorf("Expected risk level 'medium', got %s", assessment.RiskLevel)
+	if assessment.OverallLevel != "medium" {
+		t.Errorf("Expected risk level 'medium', got %s", assessment.OverallLevel)
 	}
 
-	if assessment.RiskScore != 0.65 {
-		t.Errorf("Expected risk score 0.65, got %f", assessment.RiskScore)
+	if assessment.OverallScore != 0.65 {
+		t.Errorf("Expected risk score 0.65, got %f", assessment.OverallScore)
 	}
 
-	if len(assessment.RiskFactors) != 3 {
-		t.Errorf("Expected 3 risk factors, got %d", len(assessment.RiskFactors))
+	if len(assessment.FactorScores) != 3 {
+		t.Errorf("Expected 3 risk factors, got %d", len(assessment.FactorScores))
 	}
 }
 

@@ -247,7 +247,10 @@ func NewComplianceAuditSystem(logger *observability.Logger) *ComplianceAuditSyst
 
 // RecordAuditEvent records a compliance audit event
 func (s *ComplianceAuditSystem) RecordAuditEvent(ctx context.Context, event *AuditEvent) error {
-	requestID := ctx.Value("request_id").(string)
+	requestID := ""
+	if ctx.Value("request_id") != nil {
+		requestID = ctx.Value("request_id").(string)
+	}
 
 	s.logger.Info("Recording compliance audit event",
 		"request_id", requestID,
@@ -314,7 +317,10 @@ func (s *ComplianceAuditSystem) RecordAuditEvent(ctx context.Context, event *Aud
 
 // GetAuditEvents gets audit events for a business with optional filtering
 func (s *ComplianceAuditSystem) GetAuditEvents(ctx context.Context, businessID string, filter *AuditFilter) ([]AuditEvent, error) {
-	requestID := ctx.Value("request_id").(string)
+	requestID := ""
+	if ctx.Value("request_id") != nil {
+		requestID = ctx.Value("request_id").(string)
+	}
 
 	s.logger.Info("Getting audit events",
 		"request_id", requestID,
@@ -463,7 +469,10 @@ func (s *ComplianceAuditSystem) GenerateAuditReport(ctx context.Context, busines
 
 // GetAuditMetrics gets audit metrics for a business
 func (s *ComplianceAuditSystem) GetAuditMetrics(ctx context.Context, businessID string) (*AuditMetrics, error) {
-	requestID := ctx.Value("request_id").(string)
+	requestID := ""
+	if ctx.Value("request_id") != nil {
+		requestID = ctx.Value("request_id").(string)
+	}
 
 	s.logger.Info("Getting audit metrics",
 		"request_id", requestID,
@@ -475,7 +484,25 @@ func (s *ComplianceAuditSystem) GetAuditMetrics(ctx context.Context, businessID 
 
 	metrics, exists := s.auditMetrics[businessID]
 	if !exists {
-		return nil, fmt.Errorf("no audit metrics found for business %s", businessID)
+		// Return empty metrics instead of error
+		return &AuditMetrics{
+			BusinessID:      businessID,
+			TotalEvents:     0,
+			EventCounts:     make(map[string]int),
+			CategoryCounts:  make(map[string]int),
+			EntityCounts:    make(map[string]int),
+			ActionCounts:    make(map[string]int),
+			UserCounts:      make(map[string]int),
+			SeverityCounts:  make(map[string]int),
+			ImpactCounts:    make(map[string]int),
+			SuccessRate:     0.0,
+			ErrorRate:       0.0,
+			AverageDuration: 0,
+			TotalDuration:   0,
+			TrendData:       make([]TrendPoint, 0),
+			AnomalyCount:    0,
+			LastCalculated:  time.Now(),
+		}, nil
 	}
 
 	return metrics, nil
@@ -483,7 +510,10 @@ func (s *ComplianceAuditSystem) GetAuditMetrics(ctx context.Context, businessID 
 
 // UpdateAuditMetrics updates audit metrics for a business
 func (s *ComplianceAuditSystem) UpdateAuditMetrics(ctx context.Context, businessID string) error {
-	requestID := ctx.Value("request_id").(string)
+	requestID := ""
+	if ctx.Value("request_id") != nil {
+		requestID = ctx.Value("request_id").(string)
+	}
 
 	s.logger.Info("Updating audit metrics",
 		"request_id", requestID,

@@ -20,39 +20,11 @@ func TestRiskHandler_AssessRiskHandler(t *testing.T) {
 		LogFormat: "text",
 	})
 
-	// Create mock risk service components
-	categoryRegistry := risk.CreateDefaultRiskCategories()
-	thresholdManager := risk.CreateDefaultThresholds()
-	industryModelRegistry := risk.CreateDefaultIndustryModels()
-	calculator := risk.NewRiskFactorCalculator(categoryRegistry)
-	scoringAlgorithm := risk.NewWeightedScoringAlgorithm()
-	predictionAlgorithm := risk.NewRiskPredictionAlgorithm()
-
-	// Create risk history service
-	riskHistoryService := risk.NewRiskHistoryService(logger, nil)
-
-	// Create alert service
-	alertService := risk.NewAlertService(logger, thresholdManager)
-
-	// Create report service
-	reportService := risk.NewReportService(logger, riskHistoryService, alertService)
-
-	// Create risk service
-	riskService := risk.NewRiskService(
-		logger,
-		calculator,
-		scoringAlgorithm,
-		predictionAlgorithm,
-		thresholdManager,
-		categoryRegistry,
-		industryModelRegistry,
-		riskHistoryService,
-		alertService,
-		reportService,
-	)
+	// Create mock risk service for testing
+	riskService := risk.NewMockRiskService(logger)
 
 	// Create risk handler
-	handler := NewRiskHandler(logger, riskService, riskHistoryService)
+	handler := NewRiskHandler(logger, riskService, nil)
 
 	tests := []struct {
 		name           string

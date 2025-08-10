@@ -1,0 +1,173 @@
+# Test Configuration for KYB Tool
+# This file contains configuration for running tests
+
+# Test Environment Settings
+test:
+  # Test database configuration
+  database:
+    driver: "postgres"
+    host: "localhost"
+    port: 5432
+    username: "test_user"
+    password: "test_password"
+    database: "kyb_test"
+    ssl_mode: "disable"
+    max_open_conns: 10
+    max_idle_conns: 5
+    conn_max_lifetime: "1h"
+  
+  # Test logging configuration
+  logging:
+    level: "debug"
+    format: "json"
+    include_timestamps: true
+  
+  # Test timeout settings
+  timeouts:
+    test_timeout: "30s"
+    database_timeout: "10s"
+    http_timeout: "5s"
+  
+  # Test data settings
+  data:
+    # Number of test records to generate
+    num_test_businesses: 100
+    num_test_users: 50
+    num_test_classifications: 200
+    
+    # Test data file paths
+    business_data_file: "testdata/businesses.json"
+    user_data_file: "testdata/users.json"
+    classification_data_file: "testdata/classifications.json"
+  
+  # Mock service settings
+  mocks:
+    # Enable mock external services
+    enable_external_services: true
+    
+    # Mock service responses
+    external_services:
+      business_data_api:
+        base_url: "http://localhost:8081"
+        timeout: "2s"
+        mock_responses: true
+      
+      risk_assessment_api:
+        base_url: "http://localhost:8082"
+        timeout: "2s"
+        mock_responses: true
+      
+      compliance_api:
+        base_url: "http://localhost:8083"
+        timeout: "2s"
+        mock_responses: true
+  
+  # Performance test settings
+  performance:
+    # Load test settings
+    load_test:
+      concurrent_users: 10
+      duration: "30s"
+      ramp_up_time: "5s"
+    
+    # Benchmark settings
+    benchmark:
+      iterations: 1000
+      timeout: "60s"
+  
+  # Integration test settings
+  integration:
+    # External service endpoints for integration tests
+    endpoints:
+      api_base_url: "http://localhost:8080"
+      health_check_url: "http://localhost:8080/health"
+      metrics_url: "http://localhost:8080/metrics"
+    
+    # Test user credentials
+    credentials:
+      admin_user:
+        email: "admin@test.com"
+        password: "admin123"
+        role: "admin"
+      
+      regular_user:
+        email: "user@test.com"
+        password: "user123"
+        role: "user"
+      
+      api_key:
+        key: "test-api-key-123"
+        permissions: ["read", "write"]
+  
+  # Coverage settings
+  coverage:
+    # Minimum coverage thresholds
+    thresholds:
+      statements: 80
+      branches: 70
+      functions: 80
+      lines: 80
+    
+    # Coverage exclusions
+    exclusions:
+      - "cmd/api/main.go"
+      - "test/"
+      - "docs/"
+      - "deployments/"
+      - "scripts/"
+  
+  # Test categories
+  categories:
+    unit:
+      enabled: true
+      timeout: "30s"
+      parallel: true
+    
+    integration:
+      enabled: true
+      timeout: "60s"
+      parallel: false
+      requires_database: true
+    
+    performance:
+      enabled: true
+      timeout: "300s"
+      parallel: false
+    
+    e2e:
+      enabled: false
+      timeout: "600s"
+      parallel: false
+      requires_full_stack: true
+  
+  # Test reporting
+  reporting:
+    # Output formats
+    formats:
+      - "text"
+      - "json"
+      - "junit"
+    
+    # Report locations
+    output_dir: "test/reports"
+    coverage_dir: "test/coverage"
+    
+    # JUnit report settings
+    junit:
+      output_file: "test/reports/junit.xml"
+      include_system_out: true
+      include_system_err: true
+  
+  # Test cleanup
+  cleanup:
+    # Cleanup test data after tests
+    cleanup_test_data: true
+    
+    # Cleanup test database
+    cleanup_database: true
+    
+    # Cleanup test files
+    cleanup_files: true
+    
+    # Cleanup test containers
+    cleanup_containers: true

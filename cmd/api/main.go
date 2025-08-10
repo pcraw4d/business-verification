@@ -43,6 +43,7 @@ type Server struct {
 	soc2Handler        *handlers.SOC2Handler
 	pciHandler         *handlers.PCIDSSHandler
 	gdprHandler        *handlers.GDPRHandler
+	auditHandler       *handlers.AuditHandler
 	rateLimiter        *middleware.RateLimiter
 	authRateLimiter    *middleware.AuthRateLimiter
 	ipBlocker          *middleware.IPBlocker
@@ -69,6 +70,7 @@ func NewServer(
 	soc2Handler *handlers.SOC2Handler,
 	pciHandler *handlers.PCIDSSHandler,
 	gdprHandler *handlers.GDPRHandler,
+	auditHandler *handlers.AuditHandler,
 	rateLimiter *middleware.RateLimiter,
 	authRateLimiter *middleware.AuthRateLimiter,
 	ipBlocker *middleware.IPBlocker,
@@ -89,6 +91,10 @@ func NewServer(
 		adminService:       adminService,
 		adminHandler:       adminHandler,
 		complianceHandler:  complianceHandler,
+		soc2Handler:        soc2Handler,
+		pciHandler:         pciHandler,
+		gdprHandler:        gdprHandler,
+		auditHandler:       auditHandler,
 		rateLimiter:        rateLimiter,
 		authRateLimiter:    authRateLimiter,
 		ipBlocker:          ipBlocker,
@@ -142,6 +148,15 @@ func (s *Server) setupRoutes() *http.ServeMux {
 	mux.HandleFunc("GET /v1/compliance/export/jobs", s.complianceHandler.ListExportJobsHandler)
 	mux.HandleFunc("GET /v1/compliance/export/{export_id}/download", s.complianceHandler.DownloadExportHandler)
 
+	// Compliance data retention endpoints
+	mux.HandleFunc("POST /v1/compliance/retention/policies", s.complianceHandler.RegisterRetentionPolicyHandler)
+	mux.HandleFunc("PUT /v1/compliance/retention/policies/{policy_id}", s.complianceHandler.UpdateRetentionPolicyHandler)
+	mux.HandleFunc("DELETE /v1/compliance/retention/policies/{policy_id}", s.complianceHandler.DeleteRetentionPolicyHandler)
+	mux.HandleFunc("GET /v1/compliance/retention/policies/{policy_id}", s.complianceHandler.GetRetentionPolicyHandler)
+	mux.HandleFunc("GET /v1/compliance/retention/policies", s.complianceHandler.ListRetentionPoliciesHandler)
+	mux.HandleFunc("POST /v1/compliance/retention/jobs", s.complianceHandler.ExecuteRetentionJobHandler)
+	mux.HandleFunc("GET /v1/compliance/retention/analytics", s.complianceHandler.GetRetentionAnalyticsHandler)
+
 	// SOC 2 compliance endpoints
 	mux.HandleFunc("POST /v1/soc2/initialize", s.soc2Handler.InitializeSOC2TrackingHandler)
 	mux.HandleFunc("GET /v1/soc2/status/{business_id}", s.soc2Handler.GetSOC2StatusHandler)
@@ -173,6 +188,14 @@ func (s *Server) setupRoutes() *http.ServeMux {
 	mux.HandleFunc("GET /v1/gdpr/principles", s.gdprHandler.GetGDPRPrinciplesHandler)
 	mux.HandleFunc("GET /v1/gdpr/rights", s.gdprHandler.GetGDPRDataSubjectRightsHandler)
 	mux.HandleFunc("GET /v1/gdpr/requirements", s.gdprHandler.GetGDPRRequirementsHandler)
+
+	// Compliance audit endpoints
+	mux.HandleFunc("POST /v1/audit/events", s.auditHandler.RecordAuditEvent)
+	mux.HandleFunc("GET /v1/audit/events", s.auditHandler.GetAuditEvents)
+	mux.HandleFunc("GET /v1/audit/trail/{business_id}", s.auditHandler.GetAuditTrail)
+	mux.HandleFunc("POST /v1/audit/reports", s.auditHandler.GenerateAuditReport)
+	mux.HandleFunc("GET /v1/audit/metrics/{business_id}", s.auditHandler.GetAuditMetrics)
+	mux.HandleFunc("PUT /v1/audit/metrics/{business_id}", s.auditHandler.UpdateAuditMetrics)
 
 	// Authentication endpoints (public)
 	mux.HandleFunc("POST /v1/auth/register", s.authHandler.RegisterHandler)
@@ -217,6 +240,11 @@ func (s *Server) setupRoutes() *http.ServeMux {
 	mux.HandleFunc("GET /v1/dashboard/alerts", s.dashboardHandler.GetDashboardAlertsHandler)
 	mux.HandleFunc("GET /v1/dashboard/monitoring", s.dashboardHandler.GetDashboardMonitoringHandler)
 	mux.HandleFunc("GET /v1/dashboard/thresholds", s.dashboardHandler.GetDashboardThresholdsHandler)
+
+	// Compliance dashboard endpoints
+	mux.HandleFunc("GET /v1/dashboard/compliance/overview", s.dashboardHandler.GetDashboardComplianceOverviewHandler)
+	mux.HandleFunc("GET /v1/dashboard/compliance/business/{business_id}", s.dashboardHandler.GetDashboardComplianceBusinessHandler)
+	mux.HandleFunc("GET /v1/dashboard/compliance/analytics", s.dashboardHandler.GetDashboardComplianceAnalyticsHandler)
 
 	// Admin endpoints (protected)
 	mux.Handle("POST /v1/admin/users", s.authMiddleware.RequireAuth(http.HandlerFunc(s.adminHandler.CreateUser)))
@@ -938,8 +966,12 @@ func main() {
 	}
 	validator := middleware.NewValidator(validationConfig, logger)
 
+	// Initialize audit system
+	auditSystem := compliance.NewComplianceAuditSystem(logger)
+	auditHandler := handlers.NewAuditHandler(auditSystem, logger)
+
 	// Create server
-	server := NewServer(cfg, logger, metrics, classificationSvc, riskService, riskHistoryService, riskHandler, dashboardHandler, authService, authHandler, authMiddleware, adminService, adminHandler, complianceHandler, soc2Handler, pciHandler, gdprHandler, rateLimiter, authRateLimiter, ipBlocker, validator)
+	server := NewServer(cfg, logger, metrics, classificationSvc, riskService, riskHistoryService, riskHandler, dashboardHandler, authService, authHandler, authMiddleware, adminService, adminHandler, complianceHandler, soc2Handler, pciHandler, gdprHandler, auditHandler, rateLimiter, authRateLimiter, ipBlocker, validator)
 
 	// Start server in goroutine
 	go func() {

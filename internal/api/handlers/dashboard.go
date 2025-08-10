@@ -119,6 +119,159 @@ type IndustryRiskData struct {
 	CriticalCount int     `json:"critical_count"`
 }
 
+// DashboardComplianceOverview represents compliance dashboard overview data
+type DashboardComplianceOverview struct {
+	TotalBusinesses        int                   `json:"total_businesses"`
+	CompliantBusinesses    int                   `json:"compliant_businesses"`
+	NonCompliantBusinesses int                   `json:"non_compliant_businesses"`
+	InProgressBusinesses   int                   `json:"in_progress_businesses"`
+	ActiveAlerts           int                   `json:"active_alerts"`
+	CriticalAlerts         int                   `json:"critical_alerts"`
+	AverageComplianceScore float64               `json:"average_compliance_score"`
+	FrameworkDistribution  map[string]int        `json:"framework_distribution"`
+	RecentComplianceEvents []ComplianceEventData `json:"recent_compliance_events"`
+	UpcomingReviews        []UpcomingReviewData  `json:"upcoming_reviews"`
+	LastUpdated            time.Time             `json:"last_updated"`
+}
+
+// DashboardComplianceBusiness represents business-specific compliance dashboard data
+type DashboardComplianceBusiness struct {
+	BusinessID             string                     `json:"business_id"`
+	BusinessName           string                     `json:"business_name"`
+	OverallComplianceScore float64                    `json:"overall_compliance_score"`
+	OverallStatus          string                     `json:"overall_status"`
+	FrameworkScores        map[string]float64         `json:"framework_scores"`
+	FrameworkStatuses      map[string]string          `json:"framework_statuses"`
+	RecentAlerts           []ComplianceAlertData      `json:"recent_alerts"`
+	RecentAssessments      []ComplianceAssessmentData `json:"recent_assessments"`
+	UpcomingReviews        []UpcomingReviewData       `json:"upcoming_reviews"`
+	ComplianceTrends       []ComplianceTrendData      `json:"compliance_trends"`
+	LastUpdated            time.Time                  `json:"last_updated"`
+}
+
+// DashboardComplianceAnalytics represents compliance analytics data
+type DashboardComplianceAnalytics struct {
+	ComplianceScoreDistribution map[string]int                  `json:"compliance_score_distribution"`
+	FrameworkComplianceAverages map[string]float64              `json:"framework_compliance_averages"`
+	AlertTrends                 []ComplianceAlertTrendData      `json:"alert_trends"`
+	AssessmentTrends            []ComplianceAssessmentTrendData `json:"assessment_trends"`
+	TopComplianceIssues         []ComplianceIssueData           `json:"top_compliance_issues"`
+	GeographicComplianceData    []GeographicComplianceData      `json:"geographic_compliance_data"`
+	IndustryComplianceData      []IndustryComplianceData        `json:"industry_compliance_data"`
+	TimeRange                   string                          `json:"time_range"`
+	LastUpdated                 time.Time                       `json:"last_updated"`
+}
+
+// ComplianceEventData represents compliance event data
+type ComplianceEventData struct {
+	EventID      string    `json:"event_id"`
+	BusinessID   string    `json:"business_id"`
+	BusinessName string    `json:"business_name"`
+	EventType    string    `json:"event_type"`
+	Framework    string    `json:"framework"`
+	Description  string    `json:"description"`
+	Severity     string    `json:"severity"`
+	Timestamp    time.Time `json:"timestamp"`
+}
+
+// UpcomingReviewData represents upcoming review data
+type UpcomingReviewData struct {
+	BusinessID   string    `json:"business_id"`
+	BusinessName string    `json:"business_name"`
+	Framework    string    `json:"framework"`
+	ReviewType   string    `json:"review_type"`
+	DueDate      time.Time `json:"due_date"`
+	DaysUntilDue int       `json:"days_until_due"`
+	Priority     string    `json:"priority"`
+}
+
+// ComplianceAlertData represents compliance alert data
+type ComplianceAlertData struct {
+	AlertID      string     `json:"alert_id"`
+	BusinessID   string     `json:"business_id"`
+	BusinessName string     `json:"business_name"`
+	AlertType    string     `json:"alert_type"`
+	Framework    string     `json:"framework"`
+	Severity     string     `json:"severity"`
+	Message      string     `json:"message"`
+	Status       string     `json:"status"`
+	CreatedAt    time.Time  `json:"created_at"`
+	ResolvedAt   *time.Time `json:"resolved_at,omitempty"`
+}
+
+// ComplianceAssessmentData represents compliance assessment data
+type ComplianceAssessmentData struct {
+	AssessmentID string    `json:"assessment_id"`
+	BusinessID   string    `json:"business_id"`
+	Framework    string    `json:"framework"`
+	Score        float64   `json:"score"`
+	Status       string    `json:"status"`
+	AssessedBy   string    `json:"assessed_by"`
+	AssessedAt   time.Time `json:"assessed_at"`
+}
+
+// ComplianceTrendData represents compliance trend data
+type ComplianceTrendData struct {
+	Date         time.Time `json:"date"`
+	Framework    string    `json:"framework"`
+	Score        float64   `json:"score"`
+	Status       string    `json:"status"`
+	Requirements int       `json:"requirements"`
+	Compliant    int       `json:"compliant"`
+	NonCompliant int       `json:"non_compliant"`
+}
+
+// ComplianceAlertTrendData represents compliance alert trend data
+type ComplianceAlertTrendData struct {
+	Date        time.Time `json:"date"`
+	TotalAlerts int       `json:"total_alerts"`
+	Critical    int       `json:"critical"`
+	High        int       `json:"high"`
+	Medium      int       `json:"medium"`
+	Low         int       `json:"low"`
+}
+
+// ComplianceAssessmentTrendData represents compliance assessment trend data
+type ComplianceAssessmentTrendData struct {
+	Date              time.Time `json:"date"`
+	TotalAssessments  int       `json:"total_assessments"`
+	AverageScore      float64   `json:"average_score"`
+	CompliantCount    int       `json:"compliant_count"`
+	NonCompliantCount int       `json:"non_compliant_count"`
+}
+
+// ComplianceIssueData represents compliance issue data
+type ComplianceIssueData struct {
+	IssueID      string  `json:"issue_id"`
+	IssueName    string  `json:"issue_name"`
+	Framework    string  `json:"framework"`
+	Category     string  `json:"category"`
+	Occurrences  int     `json:"occurrences"`
+	Severity     string  `json:"severity"`
+	AverageScore float64 `json:"average_score"`
+}
+
+// GeographicComplianceData represents geographic compliance data
+type GeographicComplianceData struct {
+	Region         string  `json:"region"`
+	Country        string  `json:"country"`
+	State          string  `json:"state"`
+	City           string  `json:"city"`
+	BusinessCount  int     `json:"business_count"`
+	AverageScore   float64 `json:"average_score"`
+	CompliantCount int     `json:"compliant_count"`
+}
+
+// IndustryComplianceData represents industry compliance data
+type IndustryComplianceData struct {
+	IndustryCode      string  `json:"industry_code"`
+	IndustryName      string  `json:"industry_name"`
+	BusinessCount     int     `json:"business_count"`
+	AverageScore      float64 `json:"average_score"`
+	CompliantCount    int     `json:"compliant_count"`
+	NonCompliantCount int     `json:"non_compliant_count"`
+}
+
 // GetDashboardOverviewHandler handles GET /v1/dashboard/overview requests
 func (h *DashboardHandler) GetDashboardOverviewHandler(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
@@ -921,5 +1074,375 @@ func (h *DashboardHandler) GetDashboardThresholdsHandler(w http.ResponseWriter, 
 		"threshold_count", len(thresholds),
 		"duration_ms", duration.Milliseconds(),
 		"status_code", http.StatusOK,
+	)
+}
+
+// GetDashboardComplianceOverviewHandler handles GET /v1/dashboard/compliance/overview requests
+func (h *DashboardHandler) GetDashboardComplianceOverviewHandler(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	ctx := r.Context()
+
+	h.logger.Info("Compliance dashboard overview request received",
+		"request_id", ctx.Value("request_id"),
+		"user_agent", r.UserAgent(),
+		"remote_addr", r.RemoteAddr,
+	)
+
+	// Parse query parameters
+	timeRange := r.URL.Query().Get("time_range")
+	if timeRange == "" {
+		timeRange = "30d" // Default to 30 days
+	}
+
+	// Create mock compliance dashboard overview data
+	overview := &DashboardComplianceOverview{
+		TotalBusinesses:        1250,
+		CompliantBusinesses:    890,
+		NonCompliantBusinesses: 245,
+		InProgressBusinesses:   115,
+		ActiveAlerts:           45,
+		CriticalAlerts:         12,
+		AverageComplianceScore: 78.5,
+		FrameworkDistribution: map[string]int{
+			"SOC2":     450,
+			"PCIDSS":   320,
+			"GDPR":     280,
+			"ISO27001": 200,
+		},
+		RecentComplianceEvents: []ComplianceEventData{
+			{
+				EventID:      "event-001",
+				BusinessID:   "business-123",
+				BusinessName: "Acme Corp",
+				EventType:    "compliance_assessment",
+				Framework:    "SOC2",
+				Description:  "SOC 2 Type 2 assessment completed",
+				Severity:     "medium",
+				Timestamp:    time.Now().Add(-2 * time.Hour),
+			},
+			{
+				EventID:      "event-002",
+				BusinessID:   "business-456",
+				BusinessName: "TechStart Inc",
+				EventType:    "compliance_alert",
+				Framework:    "PCIDSS",
+				Description:  "PCI DSS requirement violation detected",
+				Severity:     "high",
+				Timestamp:    time.Now().Add(-4 * time.Hour),
+			},
+		},
+		UpcomingReviews: []UpcomingReviewData{
+			{
+				BusinessID:   "business-789",
+				BusinessName: "Global Finance Ltd",
+				Framework:    "SOC2",
+				ReviewType:   "annual_review",
+				DueDate:      time.Now().Add(7 * 24 * time.Hour),
+				DaysUntilDue: 7,
+				Priority:     "high",
+			},
+			{
+				BusinessID:   "business-101",
+				BusinessName: "HealthTech Solutions",
+				Framework:    "GDPR",
+				ReviewType:   "quarterly_review",
+				DueDate:      time.Now().Add(14 * 24 * time.Hour),
+				DaysUntilDue: 14,
+				Priority:     "medium",
+			},
+		},
+		LastUpdated: time.Now(),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	if err := json.NewEncoder(w).Encode(overview); err != nil {
+		h.logger.Error("Failed to encode compliance dashboard overview response",
+			"request_id", ctx.Value("request_id"),
+			"error", err.Error(),
+		)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	h.logger.Info("Compliance dashboard overview request completed",
+		"request_id", ctx.Value("request_id"),
+		"duration", time.Since(start),
+		"status", http.StatusOK,
+	)
+}
+
+// GetDashboardComplianceBusinessHandler handles GET /v1/dashboard/compliance/business/{businessID} requests
+func (h *DashboardHandler) GetDashboardComplianceBusinessHandler(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	ctx := r.Context()
+
+	// Extract business ID from URL path
+	pathParts := strings.Split(r.URL.Path, "/")
+	if len(pathParts) < 6 {
+		http.Error(w, "business_id is required", http.StatusBadRequest)
+		return
+	}
+	businessID := pathParts[5]
+	if businessID == "" {
+		http.Error(w, "business_id is required", http.StatusBadRequest)
+		return
+	}
+
+	h.logger.Info("Compliance dashboard business request received",
+		"request_id", ctx.Value("request_id"),
+		"business_id", businessID,
+		"user_agent", r.UserAgent(),
+		"remote_addr", r.RemoteAddr,
+	)
+
+	// Parse query parameters
+	timeRange := r.URL.Query().Get("time_range")
+	if timeRange == "" {
+		timeRange = "30d" // Default to 30 days
+	}
+
+	// Create mock business compliance dashboard data
+	businessData := &DashboardComplianceBusiness{
+		BusinessID:             businessID,
+		BusinessName:           "Acme Corporation",
+		OverallComplianceScore: 85.2,
+		OverallStatus:          "compliant",
+		FrameworkScores: map[string]float64{
+			"SOC2":     92.5,
+			"PCIDSS":   78.3,
+			"GDPR":     88.7,
+			"ISO27001": 81.2,
+		},
+		FrameworkStatuses: map[string]string{
+			"SOC2":     "compliant",
+			"PCIDSS":   "in_progress",
+			"GDPR":     "compliant",
+			"ISO27001": "compliant",
+		},
+		RecentAlerts: []ComplianceAlertData{
+			{
+				AlertID:      "alert-001",
+				BusinessID:   businessID,
+				BusinessName: "Acme Corporation",
+				AlertType:    "requirement_violation",
+				Framework:    "PCIDSS",
+				Severity:     "medium",
+				Message:      "PCI DSS requirement 3.4 needs attention",
+				Status:       "open",
+				CreatedAt:    time.Now().Add(-24 * time.Hour),
+			},
+		},
+		RecentAssessments: []ComplianceAssessmentData{
+			{
+				AssessmentID: "assessment-001",
+				BusinessID:   businessID,
+				Framework:    "SOC2",
+				Score:        92.5,
+				Status:       "passed",
+				AssessedBy:   "auditor-john",
+				AssessedAt:   time.Now().Add(-7 * 24 * time.Hour),
+			},
+		},
+		UpcomingReviews: []UpcomingReviewData{
+			{
+				BusinessID:   businessID,
+				BusinessName: "Acme Corporation",
+				Framework:    "PCIDSS",
+				ReviewType:   "quarterly_review",
+				DueDate:      time.Now().Add(5 * 24 * time.Hour),
+				DaysUntilDue: 5,
+				Priority:     "high",
+			},
+		},
+		ComplianceTrends: []ComplianceTrendData{
+			{
+				Date:         time.Now().Add(-30 * 24 * time.Hour),
+				Framework:    "SOC2",
+				Score:        88.5,
+				Status:       "compliant",
+				Requirements: 45,
+				Compliant:    42,
+				NonCompliant: 3,
+			},
+			{
+				Date:         time.Now(),
+				Framework:    "SOC2",
+				Score:        92.5,
+				Status:       "compliant",
+				Requirements: 45,
+				Compliant:    44,
+				NonCompliant: 1,
+			},
+		},
+		LastUpdated: time.Now(),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	if err := json.NewEncoder(w).Encode(businessData); err != nil {
+		h.logger.Error("Failed to encode compliance dashboard business response",
+			"request_id", ctx.Value("request_id"),
+			"business_id", businessID,
+			"error", err.Error(),
+		)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	h.logger.Info("Compliance dashboard business request completed",
+		"request_id", ctx.Value("request_id"),
+		"business_id", businessID,
+		"duration", time.Since(start),
+		"status", http.StatusOK,
+	)
+}
+
+// GetDashboardComplianceAnalyticsHandler handles GET /v1/dashboard/compliance/analytics requests
+func (h *DashboardHandler) GetDashboardComplianceAnalyticsHandler(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	ctx := r.Context()
+
+	h.logger.Info("Compliance dashboard analytics request received",
+		"request_id", ctx.Value("request_id"),
+		"user_agent", r.UserAgent(),
+		"remote_addr", r.RemoteAddr,
+	)
+
+	// Parse query parameters
+	timeRange := r.URL.Query().Get("time_range")
+	if timeRange == "" {
+		timeRange = "30d" // Default to 30 days
+	}
+
+	// Create mock compliance analytics data
+	analytics := &DashboardComplianceAnalytics{
+		ComplianceScoreDistribution: map[string]int{
+			"90-100": 450,
+			"80-89":  320,
+			"70-79":  280,
+			"60-69":  150,
+			"0-59":   50,
+		},
+		FrameworkComplianceAverages: map[string]float64{
+			"SOC2":     85.2,
+			"PCIDSS":   78.5,
+			"GDPR":     82.1,
+			"ISO27001": 79.8,
+		},
+		AlertTrends: []ComplianceAlertTrendData{
+			{
+				Date:        time.Now().Add(-7 * 24 * time.Hour),
+				TotalAlerts: 45,
+				Critical:    8,
+				High:        12,
+				Medium:      15,
+				Low:         10,
+			},
+			{
+				Date:        time.Now(),
+				TotalAlerts: 38,
+				Critical:    5,
+				High:        10,
+				Medium:      13,
+				Low:         10,
+			},
+		},
+		AssessmentTrends: []ComplianceAssessmentTrendData{
+			{
+				Date:              time.Now().Add(-7 * 24 * time.Hour),
+				TotalAssessments:  25,
+				AverageScore:      82.3,
+				CompliantCount:    18,
+				NonCompliantCount: 7,
+			},
+			{
+				Date:              time.Now(),
+				TotalAssessments:  30,
+				AverageScore:      85.7,
+				CompliantCount:    24,
+				NonCompliantCount: 6,
+			},
+		},
+		TopComplianceIssues: []ComplianceIssueData{
+			{
+				IssueID:      "issue-001",
+				IssueName:    "Data Encryption at Rest",
+				Framework:    "PCIDSS",
+				Category:     "Security",
+				Occurrences:  45,
+				Severity:     "high",
+				AverageScore: 65.2,
+			},
+			{
+				IssueID:      "issue-002",
+				IssueName:    "Access Control Policies",
+				Framework:    "SOC2",
+				Category:     "Access Management",
+				Occurrences:  38,
+				Severity:     "medium",
+				AverageScore: 72.8,
+			},
+		},
+		GeographicComplianceData: []GeographicComplianceData{
+			{
+				Region:         "North America",
+				Country:        "United States",
+				State:          "California",
+				City:           "San Francisco",
+				BusinessCount:  125,
+				AverageScore:   85.2,
+				CompliantCount: 98,
+			},
+			{
+				Region:         "Europe",
+				Country:        "United Kingdom",
+				State:          "England",
+				City:           "London",
+				BusinessCount:  89,
+				AverageScore:   82.7,
+				CompliantCount: 72,
+			},
+		},
+		IndustryComplianceData: []IndustryComplianceData{
+			{
+				IndustryCode:      "541511",
+				IndustryName:      "Custom Computer Programming Services",
+				BusinessCount:     156,
+				AverageScore:      87.3,
+				CompliantCount:    142,
+				NonCompliantCount: 14,
+			},
+			{
+				IndustryCode:      "522110",
+				IndustryName:      "Commercial Banking",
+				BusinessCount:     89,
+				AverageScore:      91.8,
+				CompliantCount:    85,
+				NonCompliantCount: 4,
+			},
+		},
+		TimeRange:   timeRange,
+		LastUpdated: time.Now(),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	if err := json.NewEncoder(w).Encode(analytics); err != nil {
+		h.logger.Error("Failed to encode compliance dashboard analytics response",
+			"request_id", ctx.Value("request_id"),
+			"error", err.Error(),
+		)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	h.logger.Info("Compliance dashboard analytics request completed",
+		"request_id", ctx.Value("request_id"),
+		"duration", time.Since(start),
+		"status", http.StatusOK,
 	)
 }
