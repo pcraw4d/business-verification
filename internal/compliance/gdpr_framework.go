@@ -7,36 +7,36 @@ import (
 // GDPRFramework defines the GDPR compliance framework
 const (
 	FrameworkGDPR = "GDPR"
-	
+
 	// GDPR Versions
 	GDPRVersion2018 = "2018"
 	GDPRVersion2016 = "2016"
-	
+
 	// GDPR Principles
-	GDPRPrincipleLawfulness = "Lawfulness, Fairness and Transparency"
-	GDPRPrinciplePurpose    = "Purpose Limitation"
-	GDPRPrincipleMinimization = "Data Minimization"
-	GDPRPrincipleAccuracy   = "Accuracy"
-	GDPRPrincipleStorage    = "Storage Limitation"
-	GDPRPrincipleIntegrity  = "Integrity and Confidentiality"
+	GDPRPrincipleLawfulness     = "Lawfulness, Fairness and Transparency"
+	GDPRPrinciplePurpose        = "Purpose Limitation"
+	GDPRPrincipleMinimization   = "Data Minimization"
+	GDPRPrincipleAccuracy       = "Accuracy"
+	GDPRPrincipleStorage        = "Storage Limitation"
+	GDPRPrincipleIntegrity      = "Integrity and Confidentiality"
 	GDPRPrincipleAccountability = "Accountability"
-	
+
 	// GDPR Data Subject Rights
-	GDPRRightAccess = "Right of Access"
+	GDPRRightAccess        = "Right of Access"
 	GDPRRightRectification = "Right to Rectification"
-	GDPRRightErasure = "Right to Erasure"
-	GDPRRightPortability = "Right to Data Portability"
-	GDPRRightObjection = "Right to Object"
-	GDPRRightRestriction = "Right to Restriction of Processing"
-	GDPRRightAutomated = "Right to Automated Decision Making"
-	GDPRRightCompensation = "Right to Compensation"
-	
+	GDPRRightErasure       = "Right to Erasure"
+	GDPRRightPortability   = "Right to Data Portability"
+	GDPRRightObjection     = "Right to Object"
+	GDPRRightRestriction   = "Right to Restriction of Processing"
+	GDPRRightAutomated     = "Right to Automated Decision Making"
+	GDPRRightCompensation  = "Right to Compensation"
+
 	// GDPR Legal Bases
-	GDPRLegalBasisConsent = "Consent"
-	GDPRLegalBasisContract = "Contract"
-	GDPRLegalBasisLegalObligation = "Legal Obligation"
-	GDPRLegalBasisVitalInterests = "Vital Interests"
-	GDPRLegalBasisPublicTask = "Public Task"
+	GDPRLegalBasisConsent             = "Consent"
+	GDPRLegalBasisContract            = "Contract"
+	GDPRLegalBasisLegalObligation     = "Legal Obligation"
+	GDPRLegalBasisVitalInterests      = "Vital Interests"
+	GDPRLegalBasisPublicTask          = "Public Task"
 	GDPRLegalBasisLegitimateInterests = "Legitimate Interests"
 )
 
@@ -71,22 +71,22 @@ type GDPRRequirement struct {
 
 // GDPRFrameworkDefinition represents the complete GDPR framework
 type GDPRFrameworkDefinition struct {
-	ID              string                 `json:"id"`
-	Name            string                 `json:"name"`
-	Version         string                 `json:"version"`
-	Description     string                 `json:"description"`
-	Type            FrameworkType          `json:"type"`
-	Jurisdiction    string                 `json:"jurisdiction"`
-	GeographicScope []string               `json:"geographic_scope"`
-	IndustryScope   []string               `json:"industry_scope"`
-	EffectiveDate   time.Time              `json:"effective_date"`
-	LastUpdated     time.Time              `json:"last_updated"`
-	NextReviewDate  time.Time              `json:"next_review_date"`
-	Requirements    []GDPRRequirement      `json:"requirements"`
-	Principles      []GDPRPrinciple        `json:"principles"`
+	ID                string                 `json:"id"`
+	Name              string                 `json:"name"`
+	Version           string                 `json:"version"`
+	Description       string                 `json:"description"`
+	Type              FrameworkType          `json:"type"`
+	Jurisdiction      string                 `json:"jurisdiction"`
+	GeographicScope   []string               `json:"geographic_scope"`
+	IndustryScope     []string               `json:"industry_scope"`
+	EffectiveDate     time.Time              `json:"effective_date"`
+	LastUpdated       time.Time              `json:"last_updated"`
+	NextReviewDate    time.Time              `json:"next_review_date"`
+	Requirements      []GDPRRequirement      `json:"requirements"`
+	Principles        []GDPRPrinciple        `json:"principles"`
 	DataSubjectRights []GDPRDataSubjectRight `json:"data_subject_rights"`
-	MappingRules    []FrameworkMapping     `json:"mapping_rules"`
-	Metadata        map[string]interface{} `json:"metadata,omitempty"`
+	MappingRules      []FrameworkMapping     `json:"mapping_rules"`
+	Metadata          map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // GDPRPrinciple represents a GDPR principle
@@ -119,62 +119,62 @@ type GDPRDataSubjectRight struct {
 
 // GDPRComplianceStatus represents GDPR specific compliance status
 type GDPRComplianceStatus struct {
-	BusinessID          string                           `json:"business_id"`
-	Framework           string                           `json:"framework"`
-	Version             string                           `json:"version"`
-	DataController      bool                             `json:"data_controller"`
-	DataProcessor       bool                             `json:"data_processor"`
-	DataProtectionOfficer string                         `json:"data_protection_officer"`
-	OverallStatus       ComplianceStatus                 `json:"overall_status"`
-	ComplianceScore     float64                          `json:"compliance_score"`
-	PrincipleStatus     map[string]PrincipleStatus       `json:"principle_status"`
-	RightsStatus        map[string]DataSubjectRightStatus `json:"rights_status"`
-	RequirementsStatus  map[string]GDPRRequirementStatus `json:"requirements_status"`
-	LastAssessment      time.Time                        `json:"last_assessment"`
-	NextAssessment      time.Time                        `json:"next_assessment"`
-	AssessmentFrequency string                           `json:"assessment_frequency"`
-	ComplianceOfficer   string                           `json:"compliance_officer"`
-	SupervisoryAuthority string                          `json:"supervisory_authority,omitempty"`
-	CertificationDate   *time.Time                       `json:"certification_date,omitempty"`
-	CertificationExpiry *time.Time                       `json:"certification_expiry,omitempty"`
-	CertificationBody   string                           `json:"certification_body,omitempty"`
-	CertificationNumber string                           `json:"certification_number,omitempty"`
-	Notes               string                           `json:"notes"`
-	Metadata            map[string]interface{}           `json:"metadata,omitempty"`
+	BusinessID            string                            `json:"business_id"`
+	Framework             string                            `json:"framework"`
+	Version               string                            `json:"version"`
+	DataController        bool                              `json:"data_controller"`
+	DataProcessor         bool                              `json:"data_processor"`
+	DataProtectionOfficer string                            `json:"data_protection_officer"`
+	OverallStatus         ComplianceStatus                  `json:"overall_status"`
+	ComplianceScore       float64                           `json:"compliance_score"`
+	PrincipleStatus       map[string]PrincipleStatus        `json:"principle_status"`
+	RightsStatus          map[string]DataSubjectRightStatus `json:"rights_status"`
+	RequirementsStatus    map[string]GDPRRequirementStatus  `json:"requirements_status"`
+	LastAssessment        time.Time                         `json:"last_assessment"`
+	NextAssessment        time.Time                         `json:"next_assessment"`
+	AssessmentFrequency   string                            `json:"assessment_frequency"`
+	ComplianceOfficer     string                            `json:"compliance_officer"`
+	SupervisoryAuthority  string                            `json:"supervisory_authority,omitempty"`
+	CertificationDate     *time.Time                        `json:"certification_date,omitempty"`
+	CertificationExpiry   *time.Time                        `json:"certification_expiry,omitempty"`
+	CertificationBody     string                            `json:"certification_body,omitempty"`
+	CertificationNumber   string                            `json:"certification_number,omitempty"`
+	Notes                 string                            `json:"notes"`
+	Metadata              map[string]interface{}            `json:"metadata,omitempty"`
 }
 
 // PrincipleStatus represents status for a specific GDPR principle
 type PrincipleStatus struct {
-	PrincipleID        string           `json:"principle_id"`
-	PrincipleName      string           `json:"principle_name"`
-	Status             ComplianceStatus `json:"status"`
-	Score              float64          `json:"score"`
-	RequirementCount   int              `json:"requirement_count"`
-	ImplementedCount   int              `json:"implemented_count"`
-	VerifiedCount      int              `json:"verified_count"`
-	NonCompliantCount  int              `json:"non_compliant_count"`
-	ExemptCount        int              `json:"exempt_count"`
-	LastReviewed       time.Time        `json:"last_reviewed"`
-	NextReview         time.Time        `json:"next_review"`
-	Reviewer           string           `json:"reviewer"`
-	Notes              string           `json:"notes"`
+	PrincipleID       string           `json:"principle_id"`
+	PrincipleName     string           `json:"principle_name"`
+	Status            ComplianceStatus `json:"status"`
+	Score             float64          `json:"score"`
+	RequirementCount  int              `json:"requirement_count"`
+	ImplementedCount  int              `json:"implemented_count"`
+	VerifiedCount     int              `json:"verified_count"`
+	NonCompliantCount int              `json:"non_compliant_count"`
+	ExemptCount       int              `json:"exempt_count"`
+	LastReviewed      time.Time        `json:"last_reviewed"`
+	NextReview        time.Time        `json:"next_review"`
+	Reviewer          string           `json:"reviewer"`
+	Notes             string           `json:"notes"`
 }
 
 // DataSubjectRightStatus represents status for a specific GDPR data subject right
 type DataSubjectRightStatus struct {
-	RightID            string           `json:"right_id"`
-	RightName          string           `json:"right_name"`
-	Status             ComplianceStatus `json:"status"`
-	Score              float64          `json:"score"`
-	RequirementCount   int              `json:"requirement_count"`
-	ImplementedCount   int              `json:"implemented_count"`
-	VerifiedCount      int              `json:"verified_count"`
-	NonCompliantCount  int              `json:"non_compliant_count"`
-	ExemptCount        int              `json:"exempt_count"`
-	LastReviewed       time.Time        `json:"last_reviewed"`
-	NextReview         time.Time        `json:"next_review"`
-	Reviewer           string           `json:"reviewer"`
-	Notes              string           `json:"notes"`
+	RightID           string           `json:"right_id"`
+	RightName         string           `json:"right_name"`
+	Status            ComplianceStatus `json:"status"`
+	Score             float64          `json:"score"`
+	RequirementCount  int              `json:"requirement_count"`
+	ImplementedCount  int              `json:"implemented_count"`
+	VerifiedCount     int              `json:"verified_count"`
+	NonCompliantCount int              `json:"non_compliant_count"`
+	ExemptCount       int              `json:"exempt_count"`
+	LastReviewed      time.Time        `json:"last_reviewed"`
+	NextReview        time.Time        `json:"next_review"`
+	Reviewer          string           `json:"reviewer"`
+	Notes             string           `json:"notes"`
 }
 
 // GDPRRequirementStatus represents status for a specific GDPR requirement
@@ -202,21 +202,21 @@ type GDPRRequirementStatus struct {
 // NewGDPRFramework creates a new GDPR framework definition
 func NewGDPRFramework() *GDPRFrameworkDefinition {
 	return &GDPRFrameworkDefinition{
-		ID:              FrameworkGDPR,
-		Name:            "General Data Protection Regulation",
-		Version:         GDPRVersion2018,
-		Description:     "The GDPR is a regulation in EU law on data protection and privacy in the European Union and the European Economic Area",
-		Type:            FrameworkTypePrivacy,
-		Jurisdiction:    "European Union",
-		GeographicScope: []string{"European Union", "European Economic Area"},
-		IndustryScope:   []string{"All Industries"},
-		EffectiveDate:   time.Date(2018, 5, 25, 0, 0, 0, 0, time.UTC),
-		LastUpdated:     time.Now(),
-		NextReviewDate:  time.Now().AddDate(1, 0, 0),
-		Requirements:    getGDPRRequirements(),
-		Principles:      getGDPRPrinciples(),
+		ID:                FrameworkGDPR,
+		Name:              "General Data Protection Regulation",
+		Version:           GDPRVersion2018,
+		Description:       "The GDPR is a regulation in EU law on data protection and privacy in the European Union and the European Economic Area",
+		Type:              FrameworkTypePrivacy,
+		Jurisdiction:      "European Union",
+		GeographicScope:   []string{"European Union", "European Economic Area"},
+		IndustryScope:     []string{"All Industries"},
+		EffectiveDate:     time.Date(2018, 5, 25, 0, 0, 0, 0, time.UTC),
+		LastUpdated:       time.Now(),
+		NextReviewDate:    time.Now().AddDate(1, 0, 0),
+		Requirements:      getGDPRRequirements(),
+		Principles:        getGDPRPrinciples(),
 		DataSubjectRights: getGDPRDataSubjectRights(),
-		Metadata:        make(map[string]interface{}),
+		Metadata:          make(map[string]interface{}),
 	}
 }
 
@@ -224,66 +224,66 @@ func NewGDPRFramework() *GDPRFrameworkDefinition {
 func getGDPRPrinciples() []GDPRPrinciple {
 	return []GDPRPrinciple{
 		{
-			ID:          GDPRPrincipleLawfulness,
-			Name:        "Lawfulness, Fairness and Transparency",
-			Code:        "Art.5(1)(a)",
-			Description: "Personal data shall be processed lawfully, fairly and in a transparent manner",
-			RiskLevel:   ComplianceRiskLevelHigh,
-			Priority:    CompliancePriorityHigh,
+			ID:           GDPRPrincipleLawfulness,
+			Name:         "Lawfulness, Fairness and Transparency",
+			Code:         "Art.5(1)(a)",
+			Description:  "Personal data shall be processed lawfully, fairly and in a transparent manner",
+			RiskLevel:    ComplianceRiskLevelHigh,
+			Priority:     CompliancePriorityHigh,
 			Requirements: []string{"Art.5.1.a", "Art.6", "Art.7", "Art.8", "Art.9"},
 		},
 		{
-			ID:          GDPRPrinciplePurpose,
-			Name:        "Purpose Limitation",
-			Code:        "Art.5(1)(b)",
-			Description: "Personal data shall be collected for specified, explicit and legitimate purposes",
-			RiskLevel:   ComplianceRiskLevelHigh,
-			Priority:    CompliancePriorityHigh,
+			ID:           GDPRPrinciplePurpose,
+			Name:         "Purpose Limitation",
+			Code:         "Art.5(1)(b)",
+			Description:  "Personal data shall be collected for specified, explicit and legitimate purposes",
+			RiskLevel:    ComplianceRiskLevelHigh,
+			Priority:     CompliancePriorityHigh,
 			Requirements: []string{"Art.5.1.b", "Art.6.4"},
 		},
 		{
-			ID:          GDPRPrincipleMinimization,
-			Name:        "Data Minimization",
-			Code:        "Art.5(1)(c)",
-			Description: "Personal data shall be adequate, relevant and limited to what is necessary",
-			RiskLevel:   ComplianceRiskLevelHigh,
-			Priority:    CompliancePriorityHigh,
+			ID:           GDPRPrincipleMinimization,
+			Name:         "Data Minimization",
+			Code:         "Art.5(1)(c)",
+			Description:  "Personal data shall be adequate, relevant and limited to what is necessary",
+			RiskLevel:    ComplianceRiskLevelHigh,
+			Priority:     CompliancePriorityHigh,
 			Requirements: []string{"Art.5.1.c", "Art.25"},
 		},
 		{
-			ID:          GDPRPrincipleAccuracy,
-			Name:        "Accuracy",
-			Code:        "Art.5(1)(d)",
-			Description: "Personal data shall be accurate and, where necessary, kept up to date",
-			RiskLevel:   ComplianceRiskLevelMedium,
-			Priority:    CompliancePriorityMedium,
+			ID:           GDPRPrincipleAccuracy,
+			Name:         "Accuracy",
+			Code:         "Art.5(1)(d)",
+			Description:  "Personal data shall be accurate and, where necessary, kept up to date",
+			RiskLevel:    ComplianceRiskLevelMedium,
+			Priority:     CompliancePriorityMedium,
 			Requirements: []string{"Art.5.1.d", "Art.16"},
 		},
 		{
-			ID:          GDPRPrincipleStorage,
-			Name:        "Storage Limitation",
-			Code:        "Art.5(1)(e)",
-			Description: "Personal data shall be kept in a form which permits identification for no longer than necessary",
-			RiskLevel:   ComplianceRiskLevelMedium,
-			Priority:    CompliancePriorityMedium,
+			ID:           GDPRPrincipleStorage,
+			Name:         "Storage Limitation",
+			Code:         "Art.5(1)(e)",
+			Description:  "Personal data shall be kept in a form which permits identification for no longer than necessary",
+			RiskLevel:    ComplianceRiskLevelMedium,
+			Priority:     CompliancePriorityMedium,
 			Requirements: []string{"Art.5.1.e", "Art.17"},
 		},
 		{
-			ID:          GDPRPrincipleIntegrity,
-			Name:        "Integrity and Confidentiality",
-			Code:        "Art.5(1)(f)",
-			Description: "Personal data shall be processed in a manner that ensures appropriate security",
-			RiskLevel:   ComplianceRiskLevelHigh,
-			Priority:    CompliancePriorityHigh,
+			ID:           GDPRPrincipleIntegrity,
+			Name:         "Integrity and Confidentiality",
+			Code:         "Art.5(1)(f)",
+			Description:  "Personal data shall be processed in a manner that ensures appropriate security",
+			RiskLevel:    ComplianceRiskLevelHigh,
+			Priority:     CompliancePriorityHigh,
 			Requirements: []string{"Art.5.1.f", "Art.32"},
 		},
 		{
-			ID:          GDPRPrincipleAccountability,
-			Name:        "Accountability",
-			Code:        "Art.5(2)",
-			Description: "The controller shall be responsible for, and be able to demonstrate compliance",
-			RiskLevel:   ComplianceRiskLevelHigh,
-			Priority:    CompliancePriorityHigh,
+			ID:           GDPRPrincipleAccountability,
+			Name:         "Accountability",
+			Code:         "Art.5(2)",
+			Description:  "The controller shall be responsible for, and be able to demonstrate compliance",
+			RiskLevel:    ComplianceRiskLevelHigh,
+			Priority:     CompliancePriorityHigh,
 			Requirements: []string{"Art.5.2", "Art.24", "Art.25", "Art.30", "Art.33", "Art.34"},
 		},
 	}
@@ -293,75 +293,75 @@ func getGDPRPrinciples() []GDPRPrinciple {
 func getGDPRDataSubjectRights() []GDPRDataSubjectRight {
 	return []GDPRDataSubjectRight{
 		{
-			ID:          GDPRRightAccess,
-			Name:        "Right of Access",
-			Code:        "Art.15",
-			Description: "Data subjects have the right to obtain confirmation and access to their personal data",
-			RiskLevel:   ComplianceRiskLevelHigh,
-			Priority:    CompliancePriorityHigh,
+			ID:           GDPRRightAccess,
+			Name:         "Right of Access",
+			Code:         "Art.15",
+			Description:  "Data subjects have the right to obtain confirmation and access to their personal data",
+			RiskLevel:    ComplianceRiskLevelHigh,
+			Priority:     CompliancePriorityHigh,
 			Requirements: []string{"Art.15", "Art.12"},
 		},
 		{
-			ID:          GDPRRightRectification,
-			Name:        "Right to Rectification",
-			Code:        "Art.16",
-			Description: "Data subjects have the right to have inaccurate personal data rectified",
-			RiskLevel:   ComplianceRiskLevelMedium,
-			Priority:    CompliancePriorityMedium,
+			ID:           GDPRRightRectification,
+			Name:         "Right to Rectification",
+			Code:         "Art.16",
+			Description:  "Data subjects have the right to have inaccurate personal data rectified",
+			RiskLevel:    ComplianceRiskLevelMedium,
+			Priority:     CompliancePriorityMedium,
 			Requirements: []string{"Art.16", "Art.12"},
 		},
 		{
-			ID:          GDPRRightErasure,
-			Name:        "Right to Erasure",
-			Code:        "Art.17",
-			Description: "Data subjects have the right to have their personal data erased",
-			RiskLevel:   ComplianceRiskLevelHigh,
-			Priority:    CompliancePriorityHigh,
+			ID:           GDPRRightErasure,
+			Name:         "Right to Erasure",
+			Code:         "Art.17",
+			Description:  "Data subjects have the right to have their personal data erased",
+			RiskLevel:    ComplianceRiskLevelHigh,
+			Priority:     CompliancePriorityHigh,
 			Requirements: []string{"Art.17", "Art.12"},
 		},
 		{
-			ID:          GDPRRightPortability,
-			Name:        "Right to Data Portability",
-			Code:        "Art.20",
-			Description: "Data subjects have the right to receive their personal data in a structured format",
-			RiskLevel:   ComplianceRiskLevelMedium,
-			Priority:    CompliancePriorityMedium,
+			ID:           GDPRRightPortability,
+			Name:         "Right to Data Portability",
+			Code:         "Art.20",
+			Description:  "Data subjects have the right to receive their personal data in a structured format",
+			RiskLevel:    ComplianceRiskLevelMedium,
+			Priority:     CompliancePriorityMedium,
 			Requirements: []string{"Art.20", "Art.12"},
 		},
 		{
-			ID:          GDPRRightObjection,
-			Name:        "Right to Object",
-			Code:        "Art.21",
-			Description: "Data subjects have the right to object to processing of their personal data",
-			RiskLevel:   ComplianceRiskLevelMedium,
-			Priority:    CompliancePriorityMedium,
+			ID:           GDPRRightObjection,
+			Name:         "Right to Object",
+			Code:         "Art.21",
+			Description:  "Data subjects have the right to object to processing of their personal data",
+			RiskLevel:    ComplianceRiskLevelMedium,
+			Priority:     CompliancePriorityMedium,
 			Requirements: []string{"Art.21", "Art.12"},
 		},
 		{
-			ID:          GDPRRightRestriction,
-			Name:        "Right to Restriction of Processing",
-			Code:        "Art.18",
-			Description: "Data subjects have the right to restrict processing of their personal data",
-			RiskLevel:   ComplianceRiskLevelMedium,
-			Priority:    CompliancePriorityMedium,
+			ID:           GDPRRightRestriction,
+			Name:         "Right to Restriction of Processing",
+			Code:         "Art.18",
+			Description:  "Data subjects have the right to restrict processing of their personal data",
+			RiskLevel:    ComplianceRiskLevelMedium,
+			Priority:     CompliancePriorityMedium,
 			Requirements: []string{"Art.18", "Art.12"},
 		},
 		{
-			ID:          GDPRRightAutomated,
-			Name:        "Right to Automated Decision Making",
-			Code:        "Art.22",
-			Description: "Data subjects have the right not to be subject to automated decision-making",
-			RiskLevel:   ComplianceRiskLevelHigh,
-			Priority:    CompliancePriorityHigh,
+			ID:           GDPRRightAutomated,
+			Name:         "Right to Automated Decision Making",
+			Code:         "Art.22",
+			Description:  "Data subjects have the right not to be subject to automated decision-making",
+			RiskLevel:    ComplianceRiskLevelHigh,
+			Priority:     CompliancePriorityHigh,
 			Requirements: []string{"Art.22", "Art.12"},
 		},
 		{
-			ID:          GDPRRightCompensation,
-			Name:        "Right to Compensation",
-			Code:        "Art.82",
-			Description: "Data subjects have the right to compensation for material or non-material damage",
-			RiskLevel:   ComplianceRiskLevelLow,
-			Priority:    CompliancePriorityLow,
+			ID:           GDPRRightCompensation,
+			Name:         "Right to Compensation",
+			Code:         "Art.82",
+			Description:  "Data subjects have the right to compensation for material or non-material damage",
+			RiskLevel:    ComplianceRiskLevelLow,
+			Priority:     CompliancePriorityLow,
 			Requirements: []string{"Art.82"},
 		},
 	}
@@ -417,7 +417,7 @@ func getGDPRRequirements() []GDPRRequirement {
 			ReviewFrequency:      "semi-annually",
 			Tags:                 []string{"legal-basis", "lawfulness", "consent", "legitimate-interests"},
 		},
-		
+
 		// Purpose Limitation
 		{
 			ID:                   "Art.5.1.b",
@@ -442,7 +442,7 @@ func getGDPRRequirements() []GDPRRequirement {
 			ReviewFrequency:      "semi-annually",
 			Tags:                 []string{"purpose-limitation", "data-collection", "processing-purposes"},
 		},
-		
+
 		// Data Minimization
 		{
 			ID:                   "Art.5.1.c",
@@ -467,7 +467,7 @@ func getGDPRRequirements() []GDPRRequirement {
 			ReviewFrequency:      "semi-annually",
 			Tags:                 []string{"data-minimization", "adequacy", "relevance", "necessity"},
 		},
-		
+
 		// Accuracy
 		{
 			ID:                   "Art.5.1.d",
@@ -492,7 +492,7 @@ func getGDPRRequirements() []GDPRRequirement {
 			ReviewFrequency:      "semi-annually",
 			Tags:                 []string{"accuracy", "data-quality", "updates", "rectification"},
 		},
-		
+
 		// Storage Limitation
 		{
 			ID:                   "Art.5.1.e",
@@ -517,7 +517,7 @@ func getGDPRRequirements() []GDPRRequirement {
 			ReviewFrequency:      "semi-annually",
 			Tags:                 []string{"storage-limitation", "retention", "deletion", "identification"},
 		},
-		
+
 		// Integrity and Confidentiality
 		{
 			ID:                   "Art.5.1.f",
@@ -542,7 +542,7 @@ func getGDPRRequirements() []GDPRRequirement {
 			ReviewFrequency:      "semi-annually",
 			Tags:                 []string{"integrity", "confidentiality", "security", "protection"},
 		},
-		
+
 		// Accountability
 		{
 			ID:                   "Art.5.2",
@@ -567,7 +567,7 @@ func getGDPRRequirements() []GDPRRequirement {
 			ReviewFrequency:      "semi-annually",
 			Tags:                 []string{"accountability", "compliance", "demonstration", "governance"},
 		},
-		
+
 		// Data Subject Rights
 		{
 			ID:                   "Art.15",
