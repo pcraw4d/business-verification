@@ -1,0 +1,629 @@
+name: Blue-Green Deployment
+
+on:
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy to"
+        required: true
+        default: "staging"
+        type: choice
+        options:
+          - staging
+          - production
+      deployment_strategy:
+        description: "Blue-green deployment strategy"
+        required: true
+        default: "automatic"
+        type: choice
+        options:
+          - automatic
+          - manual_switch
+          - canary
+      health_check_timeout:
+        description: "Health check timeout in minutes"
+        required: false
+        default: "10"
+        type: string
+      auto_switch_traffic:
+        description: "Automatically switch traffic after health checks"
+        required: false
+        default: true
+        type: boolean
+
+env:
+  GO_VERSION: "1.24"
+  DOCKER_REGISTRY: "ghcr.io"
+  IMAGE_NAME: "kyb-platform"
+  AWS_REGION: "us-east-1"
+
+jobs:
+  # Pre-deployment validation
+  validate-blue-green:
+    name: Validate Blue-Green Deployment
+    runs-on: ubuntu-latest
+    outputs:
+      can_deploy: ${{ steps.validate.outputs.can_deploy }}
+      deployment_version: ${{ steps.validate.outputs.deployment_version }}
+      current_environment: ${{ steps.validate.outputs.current_environment }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Validate blue-green deployment conditions
+        id: validate
+        run: |
+          echo "Validating blue-green deployment conditions..."
+
+          ENVIRONMENT="${{ github.event.inputs.environment || 'staging' }}"
+          DEPLOYMENT_STRATEGY="${{ github.event.inputs.deployment_strategy || 'automatic' }}"
+
+          # Determine deployment version
+          VERSION="${{ github.sha }}"
+          echo "deployment_version=$VERSION" >> $GITHUB_OUTPUT
+
+          # Determine current environment (blue or green)
+          CLUSTER_NAME="kyb-platform-$ENVIRONMENT"
+
+          # Check which environment is currently active
+          BLUE_ACTIVE=$(aws elbv2 describe-target-groups \
+            --names "kyb-platform-$ENVIRONMENT-blue" \
+            --query 'TargetGroups[0].TargetGroupArn' \
+            --output text 2>/dev/null || echo "")
+
+          GREEN_ACTIVE=$(aws elbv2 describe-target-groups \
+            --names "kyb-platform-$ENVIRONMENT-green" \
+            --query 'TargetGroups[0].TargetGroupArn' \
+            --output text 2>/dev/null || echo "")
+
+          # Determine current active environment
+          if [ -n "$BLUE_ACTIVE" ] && [ "$BLUE_ACTIVE" != "None" ]; then
+            CURRENT_ENV="blue"
+          elif [ -n "$GREEN_ACTIVE" ] && [ "$GREEN_ACTIVE" != "None" ]; then
+            CURRENT_ENV="green"
+          else
+            CURRENT_ENV="blue"  # Default to blue if no environment is active
+          fi
+
+          echo "current_environment=$CURRENT_ENV" >> $GITHUB_OUTPUT
+          echo "Current active environment: $CURRENT_ENV"
+
+          # Check if we can deploy
+          CAN_DEPLOY="true"
+
+          # Validate environment
+          if [ "$ENVIRONMENT" != "staging" ] && [ "$ENVIRONMENT" != "production" ]; then
+            echo "❌ Invalid environment: $ENVIRONMENT"
+            CAN_DEPLOY="false"
+          fi
+
+          # Validate deployment strategy
+          if [ "$DEPLOYMENT_STRATEGY" != "automatic" ] && [ "$DEPLOYMENT_STRATEGY" != "manual_switch" ] && [ "$DEPLOYMENT_STRATEGY" != "canary" ]; then
+            echo "❌ Invalid deployment strategy: $DEPLOYMENT_STRATEGY"
+            CAN_DEPLOY="false"
+          fi
+
+          echo "can_deploy=$CAN_DEPLOY" >> $GITHUB_OUTPUT
+
+          if [ "$CAN_DEPLOY" = "true" ]; then
+            echo "✅ Blue-green deployment validation successful"
+            echo "Environment: $ENVIRONMENT"
+            echo "Strategy: $DEPLOYMENT_STRATEGY"
+            echo "Version: $VERSION"
+            echo "Current Environment: $CURRENT_ENV"
+          else
+            echo "❌ Blue-green deployment validation failed"
+          fi
+
+  # Build and push Docker image
+  build-blue-green:
+    name: Build and Push Image
+    runs-on: ubuntu-latest
+    needs: validate-blue-green
+    if: needs.validate-blue-green.outputs.can_deploy == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_REGISTRY }}/${{ github.repository }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ needs.validate-blue-green.outputs.deployment_version }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+            VERSION=${{ needs.validate-blue-green.outputs.deployment_version }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+
+      - name: Output image info
+        run: |
+          echo "Built image: ${{ steps.meta.outputs.tags }}"
+          echo "Version: ${{ needs.validate-blue-green.outputs.deployment_version }}"
+
+  # Deploy to inactive environment (green if blue is active, blue if green is active)
+  deploy-inactive-environment:
+    name: Deploy to Inactive Environment
+    runs-on: ubuntu-latest
+    needs: [validate-blue-green, build-blue-green]
+    if: needs.validate-blue-green.outputs.can_deploy == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy to inactive environment
+        run: |
+          echo "Deploying to inactive environment..."
+
+          ENVIRONMENT="${{ github.event.inputs.environment || 'staging' }}"
+          CURRENT_ENV="${{ needs.validate-blue-green.outputs.current_environment }}"
+          VERSION="${{ needs.validate-blue-green.outputs.deployment_version }}"
+
+          # Determine inactive environment
+          if [ "$CURRENT_ENV" = "blue" ]; then
+            INACTIVE_ENV="green"
+          else
+            INACTIVE_ENV="blue"
+          fi
+
+          echo "Current active environment: $CURRENT_ENV"
+          echo "Deploying to inactive environment: $INACTIVE_ENV"
+          echo "Version: $VERSION"
+
+          # Create or update ECS service for inactive environment
+          CLUSTER_NAME="kyb-platform-$ENVIRONMENT"
+          SERVICE_NAME="kyb-platform-api-$INACTIVE_ENV"
+
+          # Update service with new image
+          aws ecs update-service \
+            --cluster "$CLUSTER_NAME" \
+            --service "$SERVICE_NAME" \
+            --force-new-deployment
+
+          # Wait for deployment to complete
+          echo "Waiting for deployment to complete..."
+          aws ecs wait services-stable \
+            --cluster "$CLUSTER_NAME" \
+            --services "$SERVICE_NAME"
+
+          echo "Deployment to $INACTIVE_ENV environment completed"
+
+      - name: Run health checks on inactive environment
+        run: |
+          echo "Running health checks on inactive environment..."
+
+          ENVIRONMENT="${{ github.event.inputs.environment || 'staging' }}"
+          CURRENT_ENV="${{ needs.validate-blue-green.outputs.current_environment }}"
+
+          # Determine inactive environment
+          if [ "$CURRENT_ENV" = "blue" ]; then
+            INACTIVE_ENV="green"
+            HEALTH_URL="http://green.$ENVIRONMENT.kybplatform.com/health"
+          else
+            INACTIVE_ENV="blue"
+            HEALTH_URL="http://blue.$ENVIRONMENT.kybplatform.com/health"
+          fi
+
+          echo "Health check URL: $HEALTH_URL"
+
+          # Wait for service to be ready
+          sleep 60
+
+          # Run health checks
+          MAX_ATTEMPTS=20
+          ATTEMPT=1
+
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo "Health check attempt $ATTEMPT/$MAX_ATTEMPTS"
+            
+            if curl -f "$HEALTH_URL" > /dev/null 2>&1; then
+              echo "✅ Health check passed for $INACTIVE_ENV environment"
+              break
+            else
+              echo "❌ Health check failed (attempt $ATTEMPT/$MAX_ATTEMPTS)"
+              if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+                echo "❌ Health check failed after $MAX_ATTEMPTS attempts"
+                exit 1
+              fi
+              sleep 30
+              ATTEMPT=$((ATTEMPT + 1))
+            fi
+          done
+
+      - name: Run smoke tests on inactive environment
+        run: |
+          echo "Running smoke tests on inactive environment..."
+
+          ENVIRONMENT="${{ github.event.inputs.environment || 'staging' }}"
+          CURRENT_ENV="${{ needs.validate-blue-green.outputs.current_environment }}"
+
+          # Determine inactive environment
+          if [ "$CURRENT_ENV" = "blue" ]; then
+            INACTIVE_ENV="green"
+            BASE_URL="http://green.$ENVIRONMENT.kybplatform.com"
+          else
+            INACTIVE_ENV="blue"
+            BASE_URL="http://blue.$ENVIRONMENT.kybplatform.com"
+          fi
+
+          echo "Testing $INACTIVE_ENV environment at: $BASE_URL"
+
+          # Test health endpoint
+          curl -f "$BASE_URL/health" || {
+            echo "❌ Health endpoint test failed"
+            exit 1
+          }
+
+          # Test status endpoint
+          curl -f "$BASE_URL/status" || {
+            echo "❌ Status endpoint test failed"
+            exit 1
+          }
+
+          # Test metrics endpoint
+          curl -f "$BASE_URL/metrics" || {
+            echo "❌ Metrics endpoint test failed"
+            exit 1
+          }
+
+          # Test API functionality
+          curl -f "$BASE_URL/v1/classify" \
+            -H "Content-Type: application/json" \
+            -d '{"business_name": "Test Corp"}' || {
+            echo "❌ API functionality test failed"
+            exit 1
+          }
+
+          echo "✅ Smoke tests passed for $INACTIVE_ENV environment"
+
+  # Switch traffic to new environment
+  switch-traffic:
+    name: Switch Traffic
+    runs-on: ubuntu-latest
+    needs: [validate-blue-green, deploy-inactive-environment]
+    if: |
+      needs.validate-blue-green.outputs.can_deploy == 'true' && 
+      github.event.inputs.auto_switch_traffic != 'false'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Switch traffic to new environment
+        run: |
+          echo "Switching traffic to new environment..."
+
+          ENVIRONMENT="${{ github.event.inputs.environment || 'staging' }}"
+          CURRENT_ENV="${{ needs.validate-blue-green.outputs.current_environment }}"
+
+          # Determine new active environment
+          if [ "$CURRENT_ENV" = "blue" ]; then
+            NEW_ACTIVE_ENV="green"
+            OLD_TARGET_GROUP="kyb-platform-$ENVIRONMENT-blue"
+            NEW_TARGET_GROUP="kyb-platform-$ENVIRONMENT-green"
+          else
+            NEW_ACTIVE_ENV="blue"
+            OLD_TARGET_GROUP="kyb-platform-$ENVIRONMENT-green"
+            NEW_TARGET_GROUP="kyb-platform-$ENVIRONMENT-blue"
+          fi
+
+          echo "Switching from $CURRENT_ENV to $NEW_ACTIVE_ENV"
+          echo "Old target group: $OLD_TARGET_GROUP"
+          echo "New target group: $NEW_TARGET_GROUP"
+
+          # Get load balancer ARN
+          LB_ARN=$(aws elbv2 describe-load-balancers \
+            --names "kyb-platform-$ENVIRONMENT" \
+            --query 'LoadBalancers[0].LoadBalancerArn' \
+            --output text)
+
+          # Get listener ARN
+          LISTENER_ARN=$(aws elbv2 describe-listeners \
+            --load-balancer-arn "$LB_ARN" \
+            --query 'Listeners[0].ListenerArn' \
+            --output text)
+
+          # Get target group ARNs
+          OLD_TG_ARN=$(aws elbv2 describe-target-groups \
+            --names "$OLD_TARGET_GROUP" \
+            --query 'TargetGroups[0].TargetGroupArn' \
+            --output text)
+
+          NEW_TG_ARN=$(aws elbv2 describe-target-groups \
+            --names "$NEW_TARGET_GROUP" \
+            --query 'TargetGroups[0].TargetGroupArn' \
+            --output text)
+
+          # Update listener rule to point to new target group
+          aws elbv2 modify-listener \
+            --listener-arn "$LISTENER_ARN" \
+            --default-actions Type=forward,TargetGroupArn="$NEW_TG_ARN"
+
+          echo "Traffic switched to $NEW_ACTIVE_ENV environment"
+
+      - name: Verify traffic switch
+        run: |
+          echo "Verifying traffic switch..."
+
+          ENVIRONMENT="${{ github.event.inputs.environment || 'staging' }}"
+          CURRENT_ENV="${{ needs.validate-blue-green.outputs.current_environment }}"
+
+          # Determine new active environment
+          if [ "$CURRENT_ENV" = "blue" ]; then
+            NEW_ACTIVE_ENV="green"
+            HEALTH_URL="https://$ENVIRONMENT.kybplatform.com/health"
+          else
+            NEW_ACTIVE_ENV="blue"
+            HEALTH_URL="https://$ENVIRONMENT.kybplatform.com/health"
+          fi
+
+          echo "Verifying traffic to $NEW_ACTIVE_ENV environment"
+          echo "Health check URL: $HEALTH_URL"
+
+          # Wait for traffic switch to propagate
+          sleep 30
+
+          # Verify health check
+          MAX_ATTEMPTS=10
+          ATTEMPT=1
+
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo "Verification attempt $ATTEMPT/$MAX_ATTEMPTS"
+            
+            if curl -f "$HEALTH_URL" > /dev/null 2>&1; then
+              echo "✅ Traffic switch verification successful"
+              break
+            else
+              echo "❌ Traffic switch verification failed (attempt $ATTEMPT/$MAX_ATTEMPTS)"
+              if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+                echo "❌ Traffic switch verification failed after $MAX_ATTEMPTS attempts"
+                exit 1
+              fi
+              sleep 30
+              ATTEMPT=$((ATTEMPT + 1))
+            fi
+          done
+
+  # Run post-switch tests
+  post-switch-tests:
+    name: Post-Switch Tests
+    runs-on: ubuntu-latest
+    needs: [validate-blue-green, switch-traffic]
+    if: |
+      needs.validate-blue-green.outputs.can_deploy == 'true' && 
+      github.event.inputs.auto_switch_traffic != 'false'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run comprehensive tests
+        run: |
+          echo "Running comprehensive post-switch tests..."
+
+          ENVIRONMENT="${{ github.event.inputs.environment || 'staging' }}"
+          BASE_URL="https://$ENVIRONMENT.kybplatform.com"
+
+          echo "Testing production traffic at: $BASE_URL"
+
+          # Test all endpoints
+          ENDPOINTS=("health" "status" "metrics" "v1/classify" "v1/auth/login" "v1/risk/assess")
+
+          for endpoint in "${ENDPOINTS[@]}"; do
+            echo "Testing endpoint: $endpoint"
+            
+            if [ "$endpoint" = "v1/classify" ]; then
+              curl -f "$BASE_URL/$endpoint" \
+                -H "Content-Type: application/json" \
+                -d '{"business_name": "Test Corp"}' || {
+                echo "❌ $endpoint test failed"
+                exit 1
+              }
+            elif [ "$endpoint" = "v1/auth/login" ]; then
+              curl -f "$BASE_URL/$endpoint" \
+                -H "Content-Type: application/json" \
+                -d '{"email": "test@example.com", "password": "testpass"}' || {
+                echo "❌ $endpoint test failed"
+                exit 1
+              }
+            elif [ "$endpoint" = "v1/risk/assess" ]; then
+              curl -f "$BASE_URL/$endpoint" \
+                -H "Content-Type: application/json" \
+                -d '{"business_id": "test-123"}' || {
+                echo "❌ $endpoint test failed"
+                exit 1
+              }
+            else
+              curl -f "$BASE_URL/$endpoint" || {
+                echo "❌ $endpoint test failed"
+                exit 1
+              }
+            fi
+            
+            echo "✅ $endpoint test passed"
+          done
+
+          echo "✅ All post-switch tests passed"
+
+  # Cleanup old environment
+  cleanup-old-environment:
+    name: Cleanup Old Environment
+    runs-on: ubuntu-latest
+    needs: [validate-blue-green, post-switch-tests]
+    if: |
+      needs.validate-blue-green.outputs.can_deploy == 'true' && 
+      github.event.inputs.auto_switch_traffic != 'false'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Cleanup old environment
+        run: |
+          echo "Cleaning up old environment..."
+
+          ENVIRONMENT="${{ github.event.inputs.environment || 'staging' }}"
+          OLD_ENV="${{ needs.validate-blue-green.outputs.current_environment }}"
+
+          echo "Cleaning up old $OLD_ENV environment"
+
+          CLUSTER_NAME="kyb-platform-$ENVIRONMENT"
+          SERVICE_NAME="kyb-platform-api-$OLD_ENV"
+
+          # Scale down old service to 0 instances
+          aws ecs update-service \
+            --cluster "$CLUSTER_NAME" \
+            --service "$SERVICE_NAME" \
+            --desired-count 0
+
+          # Wait for service to scale down
+          aws ecs wait services-stable \
+            --cluster "$CLUSTER_NAME" \
+            --services "$SERVICE_NAME"
+
+          echo "Old $OLD_ENV environment scaled down"
+
+  # Blue-green deployment summary
+  blue-green-summary:
+    name: Blue-Green Deployment Summary
+    runs-on: ubuntu-latest
+    needs:
+      [
+        validate-blue-green,
+        deploy-inactive-environment,
+        switch-traffic,
+        post-switch-tests,
+        cleanup-old-environment,
+      ]
+    if: always()
+
+    steps:
+      - name: Generate blue-green deployment summary
+        run: |
+          echo "## 🔄 Blue-Green Deployment Summary" > blue-green-summary.md
+          echo "**Timestamp**: $(date)" >> blue-green-summary.md
+          echo "**Environment**: ${{ github.event.inputs.environment || 'staging' }}" >> blue-green-summary.md
+          echo "**Strategy**: ${{ github.event.inputs.deployment_strategy || 'automatic' }}" >> blue-green-summary.md
+          echo "**Version**: ${{ needs.validate-blue-green.outputs.deployment_version }}" >> blue-green-summary.md
+          echo "**Triggered by**: ${{ github.actor }}" >> blue-green-summary.md
+          echo "" >> blue-green-summary.md
+
+          echo "### Deployment Details" >> blue-green-summary.md
+          echo "- **From Environment**: ${{ needs.validate-blue-green.outputs.current_environment }}" >> blue-green-summary.md
+          echo "- **To Environment**: ${{ needs.validate-blue-green.outputs.current_environment == 'blue' && 'green' || 'blue' }}" >> blue-green-summary.md
+          echo "- **Auto Switch**: ${{ github.event.inputs.auto_switch_traffic != 'false' && 'Yes' || 'No' }}" >> blue-green-summary.md
+          echo "" >> blue-green-summary.md
+
+          echo "### Job Status" >> blue-green-summary.md
+          echo "- **Validation**: ${{ needs.validate-blue-green.result }}" >> blue-green-summary.md
+          echo "- **Build**: ${{ needs.build-blue-green.result }}" >> blue-green-summary.md
+          echo "- **Deploy**: ${{ needs.deploy-inactive-environment.result }}" >> blue-green-summary.md
+          echo "- **Switch**: ${{ needs.switch-traffic.result }}" >> blue-green-summary.md
+          echo "- **Tests**: ${{ needs.post-switch-tests.result }}" >> blue-green-summary.md
+          echo "- **Cleanup**: ${{ needs.cleanup-old-environment.result }}" >> blue-green-summary.md
+          echo "" >> blue-green-summary.md
+
+          echo "### Next Steps" >> blue-green-summary.md
+          if [ "${{ needs.post-switch-tests.result }}" = "success" ]; then
+            echo "- ✅ Blue-green deployment successful" >> blue-green-summary.md
+            echo "- 📊 Monitor application performance" >> blue-green-summary.md
+            echo "- 🔍 Watch for any issues" >> blue-green-summary.md
+          else
+            echo "- ❌ Blue-green deployment failed" >> blue-green-summary.md
+            echo "- 🔄 Consider rollback if needed" >> blue-green-summary.md
+            echo "- 🔍 Investigate failure cause" >> blue-green-summary.md
+          fi
+
+      - name: Upload blue-green deployment summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: blue-green-deployment-summary
+          path: blue-green-summary.md
+          retention-days: 30
+
+      - name: Comment blue-green deployment summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            let comment = '## 🔄 Blue-Green Deployment Summary\n\n';
+            comment += `**Environment**: ${{ github.event.inputs.environment || 'staging' }}\n`;
+            comment += `**Strategy**: ${{ github.event.inputs.deployment_strategy || 'automatic' }}\n`;
+            comment += `**Version**: ${{ needs.validate-blue-green.outputs.deployment_version }}\n`;
+            comment += `**Status**: ${{ needs.post-switch-tests.result === 'success' ? '✅ Success' : '❌ Failed' }}\n\n`;
+
+            if (fs.existsSync('blue-green-summary.md')) {
+              const summary = fs.readFileSync('blue-green-summary.md', 'utf8');
+              comment += summary;
+            }
+
+            comment += `\n🔗 [View Deployment](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`;
+
+            // Create issue for deployment tracking
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Blue-Green Deployment: ${{ github.event.inputs.environment || 'staging' }} - ${{ needs.validate-blue-green.outputs.deployment_version }}`,
+              body: comment,
+              labels: ['blue-green', 'deployment', '${{ github.event.inputs.environment || 'staging' }}']
+            });

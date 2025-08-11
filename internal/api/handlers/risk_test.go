@@ -240,7 +240,7 @@ func TestRiskHandler_AssessRiskHandler(t *testing.T) {
 func TestRiskHandler_AssessRiskHandler_EdgeCases(t *testing.T) {
 	// Create test risk service
 	riskService := createTestRiskService(t)
-	
+
 	// Create logger for handler
 	logger := observability.NewLogger(&config.ObservabilityConfig{
 		LogLevel:  "info",
@@ -316,8 +316,8 @@ func TestRiskHandler_AssessRiskHandler_EdgeCases(t *testing.T) {
 			},
 		},
 		{
-			name: "Empty request body",
-			requestBody: "",
+			name:           "Empty request body",
+			requestBody:    "",
 			expectedStatus: http.StatusBadRequest,
 			checkResponse: func(t *testing.T, rr *httptest.ResponseRecorder) {
 				if rr.Code != http.StatusBadRequest {
@@ -416,7 +416,7 @@ func TestRiskHandler_GetRiskCategoriesHandler(t *testing.T) {
 func TestRiskHandler_GetRiskFactorsHandler(t *testing.T) {
 	// Create test risk service
 	riskService := createTestRiskService(t)
-	
+
 	// Create logger for handler
 	logger := observability.NewLogger(&config.ObservabilityConfig{
 		LogLevel:  "info",
@@ -522,7 +522,7 @@ func TestRiskHandler_GetRiskFactorsHandler(t *testing.T) {
 func TestRiskHandler_GetRiskThresholdsHandler(t *testing.T) {
 	// Create test risk service
 	riskService := createTestRiskService(t)
-	
+
 	// Create logger for handler
 	logger := observability.NewLogger(&config.ObservabilityConfig{
 		LogLevel:  "info",

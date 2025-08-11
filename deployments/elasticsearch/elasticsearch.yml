@@ -1,0 +1,247 @@
+# Elasticsearch configuration for KYB Platform log aggregation
+
+# Cluster settings
+cluster.name: kyb-platform-logs
+node.name: kyb-logs-node-1
+node.roles: [ master, data, ingest ]
+
+# Network settings
+network.host: 0.0.0.0
+http.port: 9200
+transport.port: 9300
+
+# Discovery settings
+discovery.seed_hosts: ["kyb-logs-node-1", "kyb-logs-node-2", "kyb-logs-node-3"]
+cluster.initial_master_nodes: ["kyb-logs-node-1", "kyb-logs-node-2", "kyb-logs-node-3"]
+
+# Path settings
+path.data: /usr/share/elasticsearch/data
+path.logs: /usr/share/elasticsearch/logs
+
+# Memory settings
+bootstrap.memory_lock: true
+indices.memory.index_buffer_size: 30%
+
+# Index settings
+action.auto_create_index: false
+action.destructive_requires_name: true
+
+# Security settings
+xpack.security.enabled: true
+xpack.security.transport.ssl.enabled: true
+xpack.security.transport.ssl.verification_mode: certificate
+xpack.security.transport.ssl.keystore.path: elastic-certificates.p12
+xpack.security.transport.ssl.truststore.path: elastic-certificates.p12
+
+# Monitoring settings
+xpack.monitoring.enabled: true
+xpack.monitoring.collection.enabled: true
+
+# Logging settings
+logger.level: INFO
+logger.org.elasticsearch.transport: DEBUG
+logger.org.elasticsearch.cluster.service: DEBUG
+
+# Index lifecycle management
+xpack.ilm.enabled: true
+
+# Snapshot settings
+path.repo: /usr/share/elasticsearch/snapshots
+
+# Thread pool settings
+thread_pool.write.size: 32
+thread_pool.write.queue_size: 1000
+thread_pool.search.size: 32
+thread_pool.search.queue_size: 1000
+
+# Circuit breaker settings
+indices.breaker.total.limit: 70%
+indices.breaker.fielddata.limit: 40%
+indices.breaker.request.limit: 60%
+
+# Recovery settings
+cluster.routing.allocation.disk.threshold_enabled: true
+cluster.routing.allocation.disk.watermark.low: 85%
+cluster.routing.allocation.disk.watermark.high: 90%
+cluster.routing.allocation.disk.watermark.flood_stage: 95%
+
+# Cross-cluster search settings
+search.remote.connect: false
+
+# Watcher settings
+xpack.watcher.enabled: true
+
+# Machine learning settings
+xpack.ml.enabled: true
+xpack.ml.max_open_jobs: 20
+
+# Transform settings
+xpack.transform.enabled: true
+
+# Graph settings
+xpack.graph.enabled: true
+
+# Reporting settings
+xpack.reporting.enabled: true
+
+# SQL settings
+xpack.sql.enabled: true
+
+# Rollup settings
+xpack.rollup.enabled: true
+
+# EQL settings
+xpack.eql.enabled: true
+
+# Vector tile settings
+xpack.vectortile.enabled: true
+
+# Spatial settings
+xpack.spatial.enabled: true
+
+# Analytics settings
+xpack.analytics.enabled: true
+
+# Snapshot lifecycle management
+xpack.slm.enabled: true
+
+# Cross-cluster replication settings
+xpack.ccr.enabled: true
+
+# Cross-cluster search settings
+xpack.ccs.enabled: true
+
+# Authentication settings
+xpack.security.authc.enabled: true
+
+# Authorization settings
+xpack.security.authz.enabled: true
+
+# Audit settings
+xpack.security.audit.enabled: true
+
+# HTTP SSL settings
+xpack.security.http.ssl.enabled: true
+
+# Encryption settings
+xpack.security.encryption.enabled: true
+
+# FIPS settings
+xpack.security.fips.enabled: false
+
+# SAML settings
+xpack.security.authc.realms.saml.enabled: true
+
+# OIDC settings
+xpack.security.authc.realms.oidc.enabled: true
+
+# Kerberos settings
+xpack.security.authc.realms.kerberos.enabled: true
+
+# PKI settings
+xpack.security.authc.realms.pki.enabled: true
+
+# Native settings
+xpack.security.authc.realms.native.enabled: true
+
+# File settings
+xpack.security.authc.realms.file.enabled: true
+
+# LDAP settings
+xpack.security.authc.realms.ldap.enabled: true
+
+# Active Directory settings
+xpack.security.authc.realms.ad.enabled: true
+
+# Anonymous settings
+xpack.security.authc.realms.anonymous.enabled: true
+
+# Custom settings
+xpack.security.authc.realms.custom.enabled: true
+
+# Reserved settings
+xpack.security.authc.realms.reserved.enabled: true
+
+# Token settings
+xpack.security.authc.token.enabled: true
+
+# API key settings
+xpack.security.authc.api_key.enabled: true
+
+# Service account settings
+xpack.security.authc.service_account.enabled: true
+
+# Role mapping settings
+xpack.security.authz.role_mapping.enabled: true
+
+# Role settings
+xpack.security.authz.roles.enabled: true
+
+# Privilege settings
+xpack.security.authz.privileges.enabled: true
+
+# Permission settings
+xpack.security.authz.permissions.enabled: true
+
+# Field level security settings
+xpack.security.authz.field_level_security.enabled: true
+
+# Document level security settings
+xpack.security.authz.document_level_security.enabled: true
+
+# Audit log settings
+xpack.security.audit.log.enabled: true
+
+# Audit index settings
+xpack.security.audit.index.enabled: true
+
+# Audit events settings
+xpack.security.audit.events.enabled: true
+
+# Audit request settings
+xpack.security.audit.request.enabled: true
+
+# Audit response settings
+xpack.security.audit.response.enabled: true
+
+# Audit authentication settings
+xpack.security.audit.authentication.enabled: true
+
+# Audit authorization settings
+xpack.security.audit.authorization.enabled: true
+
+# Audit access denied settings
+xpack.security.audit.access_denied.enabled: true
+
+# Audit access granted settings
+xpack.security.audit.access_granted.enabled: true
+
+# Audit run as settings
+xpack.security.audit.run_as.enabled: true
+
+# Audit run as denied settings
+xpack.security.audit.run_as_denied.enabled: true
+
+# Audit run as granted settings
+xpack.security.audit.run_as_granted.enabled: true
+
+# Audit system access settings
+xpack.security.audit.system_access.enabled: true
+
+# Audit system access denied settings
+xpack.security.audit.system_access_denied.enabled: true
+
+# Audit system access granted settings
+xpack.security.audit.system_access_granted.enabled: true
+
+# Audit authentication failure settings
+xpack.security.audit.authentication_failure.enabled: true
+
+# Audit authentication success settings
+xpack.security.audit.authentication_success.enabled: true
+
+# Audit authorization failure settings
+xpack.security.audit.authorization_failure.enabled: true
+
+# Audit authorization success settings
+xpack.security.audit.authorization_success.enabled: true

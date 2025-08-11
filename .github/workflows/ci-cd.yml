@@ -1,0 +1,511 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop, feature/*]
+  pull_request:
+    branches: [main, develop]
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy to"
+        required: true
+        default: "staging"
+        type: choice
+        options:
+          - staging
+          - production
+      force_deploy:
+        description: "Force deployment even if tests fail"
+        required: false
+        default: false
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Build and Test Stage
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+      test-results: ${{ steps.test.outputs.results }}
+      coverage: ${{ steps.coverage.outputs.coverage }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.24"
+          cache: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.title=KYB Platform
+            org.opencontainers.image.description=Enterprise-Grade Know Your Business Platform
+            org.opencontainers.image.vendor=KYB Platform Team
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+            VERSION=${{ github.sha }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+
+      - name: Run unit tests
+        id: test
+        run: |
+          echo "Running unit tests..."
+          go test -v -race -coverprofile=coverage.out ./...
+          go test -v -race -coverprofile=coverage.out ./internal/...
+
+          # Generate test report
+          go tool cover -html=coverage.out -o coverage.html
+          go tool cover -func=coverage.out > coverage.txt
+
+          # Extract coverage percentage
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+          echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
+          echo "results=coverage.html" >> $GITHUB_OUTPUT
+
+          echo "Test coverage: $COVERAGE%"
+
+      - name: Run integration tests
+        run: |
+          echo "Running integration tests..."
+          # Start test database
+          docker-compose -f docker-compose.test.yml up -d postgres redis
+
+          # Wait for services to be ready
+          sleep 30
+
+          # Run integration tests
+          go test -v -tags=integration ./test/...
+
+          # Cleanup
+          docker-compose -f docker-compose.test.yml down
+
+      - name: Run performance tests
+        run: |
+          echo "Running performance tests..."
+          go test -v -bench=. -benchmem ./internal/... > benchmark-results.txt
+
+          # Check for performance regressions
+          if grep -q "ns/op" benchmark-results.txt; then
+            echo "Performance benchmarks completed"
+          else
+            echo "No performance benchmarks found"
+          fi
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            coverage.html
+            coverage.txt
+            benchmark-results.txt
+          retention-days: 30
+
+      - name: Comment PR with test results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            let comment = '## 🧪 Test Results\n\n';
+
+            // Add coverage information
+            if (fs.existsSync('coverage.txt')) {
+              const coverageData = fs.readFileSync('coverage.txt', 'utf8');
+              const totalLine = coverageData.split('\n').find(line => line.includes('total:'));
+              if (totalLine) {
+                const coverage = totalLine.split('\t')[2].replace('%', '');
+                comment += `### 📊 Code Coverage\n`;
+                comment += `- **Coverage**: ${coverage}%\n`;
+                if (parseFloat(coverage) >= 90) {
+                  comment += `- **Status**: ✅ Excellent coverage\n`;
+                } else if (parseFloat(coverage) >= 80) {
+                  comment += `- **Status**: ⚠️ Good coverage (target: 90%)\n`;
+                } else {
+                  comment += `- **Status**: ❌ Low coverage (target: 90%)\n`;
+                }
+                comment += '\n';
+              }
+            }
+
+            // Add performance results
+            if (fs.existsSync('benchmark-results.txt')) {
+              comment += `### ⚡ Performance Benchmarks\n`;
+              comment += `- **Status**: ✅ Performance tests completed\n`;
+              comment += `- **Report**: Available in artifacts\n\n`;
+            }
+
+            comment += `📋 **Full test reports available in the workflow artifacts.**\n\n`;
+            comment += `🔗 [View Test Results](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  # Security Scan Stage
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image for scanning
+        run: |
+          docker build -t kyb-platform:security-scan .
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "kyb-platform:security-scan"
+          format: "sarif"
+          output: "trivy-results.sarif"
+          severity: "CRITICAL,HIGH"
+
+      - name: Run Snyk security scan
+        uses: snyk/actions/docker@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: kyb-platform:security-scan
+          args: --severity-threshold=high
+
+      - name: Run Go security check
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./... > govulncheck-results.txt || true
+
+      - name: Upload security scan results
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-scan-results
+          path: |
+            trivy-results.sarif
+            govulncheck-results.txt
+          retention-days: 30
+
+  # Code Quality Stage
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.24"
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v4
+        with:
+          version: latest
+          args: --timeout=5m
+
+      - name: Run go vet
+        run: |
+          go vet ./...
+
+      - name: Run go fmt check
+        run: |
+          if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
+            echo "Code is not formatted. Please run 'go fmt ./...'"
+            gofmt -s -l .
+            exit 1
+          fi
+
+      - name: Run static analysis
+        run: |
+          # Install staticcheck
+          go install honnef.co/go/tools/cmd/staticcheck@latest
+          staticcheck ./...
+
+  # Staging Deployment
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build-and-test, security-scan, code-quality]
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    environment: staging
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Deploy to staging
+        run: |
+          echo "Deploying to staging environment..."
+
+          # Update ECS service with new image
+          aws ecs update-service \
+            --cluster kyb-platform-staging \
+            --service kyb-platform-api \
+            --force-new-deployment
+
+          # Wait for deployment to complete
+          aws ecs wait services-stable \
+            --cluster kyb-platform-staging \
+            --services kyb-platform-api
+
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests..."
+
+          # Wait for service to be ready
+          sleep 60
+
+          # Run basic health checks
+          curl -f http://staging.kybplatform.com/health || exit 1
+          curl -f http://staging.kybplatform.com/status || exit 1
+
+      - name: Notify deployment status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ job.status }}';
+            const environment = 'staging';
+
+            let message = `## 🚀 Deployment to ${environment}\n\n`;
+            message += `**Status**: ${status === 'success' ? '✅ Success' : '❌ Failed'}\n`;
+            message += `**Environment**: ${environment}\n`;
+            message += `**Commit**: ${context.sha}\n`;
+            message += `**Triggered by**: ${context.actor}\n\n`;
+            message += `🔗 [View Deployment](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`;
+
+            // Send notification (could be Slack, Teams, etc.)
+            console.log(message);
+
+  # Production Deployment
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build-and-test, security-scan, code-quality]
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Deploy to production
+        run: |
+          echo "Deploying to production environment..."
+
+          # Update ECS service with new image
+          aws ecs update-service \
+            --cluster kyb-platform-production \
+            --service kyb-platform-api \
+            --force-new-deployment
+
+          # Wait for deployment to complete
+          aws ecs wait services-stable \
+            --cluster kyb-platform-production \
+            --services kyb-platform-api
+
+      - name: Run production health checks
+        run: |
+          echo "Running production health checks..."
+
+          # Wait for service to be ready
+          sleep 120
+
+          # Run comprehensive health checks
+          curl -f https://api.kybplatform.com/health || exit 1
+          curl -f https://api.kybplatform.com/status || exit 1
+          curl -f https://api.kybplatform.com/metrics || exit 1
+
+      - name: Run post-deployment tests
+        run: |
+          echo "Running post-deployment tests..."
+
+          # Run API tests against production
+          go test -v -tags=production ./test/api/...
+
+      - name: Create release
+        if: github.ref == 'refs/heads/main'
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }}
+          release_name: Release v${{ github.run_number }}
+          body: |
+            ## 🚀 Production Release v${{ github.run_number }}
+
+            **Deployed**: ${{ github.event.head_commit.timestamp }}
+            **Commit**: ${{ github.sha }}
+            **Author**: ${{ github.actor }}
+
+            ### Changes
+            - Automated deployment from main branch
+            - All tests passed
+            - Security scans completed
+            - Code quality checks passed
+
+            ### Health Status
+            - ✅ API Health Check: PASSED
+            - ✅ Status Endpoint: PASSED
+            - ✅ Metrics Endpoint: PASSED
+
+            ### Rollback
+            If issues are detected, rollback can be initiated via the GitHub Actions interface.
+          draft: false
+          prerelease: false
+
+      - name: Notify production deployment
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ job.status }}';
+            const environment = 'production';
+
+            let message = `## 🚀 Production Deployment\n\n`;
+            message += `**Status**: ${status === 'success' ? '✅ Success' : '❌ Failed'}\n`;
+            message += `**Environment**: ${environment}\n`;
+            message += `**Release**: v${{ github.run_number }}\n`;
+            message += `**Commit**: ${context.sha}\n`;
+            message += `**Triggered by**: ${context.actor}\n\n`;
+            message += `🔗 [View Deployment](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`;
+
+            // Send notification to production team
+            console.log(message);
+
+  # Rollback Job
+  rollback:
+    name: Rollback Deployment
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.rollback == 'true'
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Rollback to previous version
+        run: |
+          echo "Rolling back deployment..."
+
+          # Get previous task definition
+          PREVIOUS_TASK_DEF=$(aws ecs describe-services \
+            --cluster kyb-platform-production \
+            --services kyb-platform-api \
+            --query 'services[0].taskDefinition' \
+            --output text)
+
+          # Rollback to previous version
+          aws ecs update-service \
+            --cluster kyb-platform-production \
+            --service kyb-platform-api \
+            --task-definition $PREVIOUS_TASK_DEF \
+            --force-new-deployment
+
+          # Wait for rollback to complete
+          aws ecs wait services-stable \
+            --cluster kyb-platform-production \
+            --services kyb-platform-api
+
+      - name: Verify rollback
+        run: |
+          echo "Verifying rollback..."
+          sleep 60
+
+          # Check health after rollback
+          curl -f https://api.kybplatform.com/health || exit 1
+
+      - name: Notify rollback
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ job.status }}';
+
+            let message = `## 🔄 Production Rollback\n\n`;
+            message += `**Status**: ${status === 'success' ? '✅ Success' : '❌ Failed'}\n`;
+            message += `**Triggered by**: ${context.actor}\n`;
+            message += `**Time**: ${new Date().toISOString()}\n\n`;
+            message += `🔗 [View Rollback](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`;
+
+            console.log(message);

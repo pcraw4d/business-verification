@@ -1,0 +1,562 @@
+global:
+  # SMTP configuration for email notifications
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'alerts@kybplatform.com'
+  smtp_auth_username: 'alerts@kybplatform.com'
+  smtp_auth_password: 'password'
+  
+  # Slack webhook configuration
+  slack_api_url: 'https://hooks.slack.com/services/xxx/yyy/zzz'
+  
+  # PagerDuty configuration
+  pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
+  
+  # Webhook configuration
+  webhook_url: 'https://api.kybplatform.com/webhooks/alerts'
+  
+  # Resolve timeout
+  resolve_timeout: 5m
+  
+  # HTTP client configuration
+  http_config:
+    timeout: 30s
+    tls_config:
+      insecure_skip_verify: false
+
+# Route configuration
+route:
+  # Root route - all alerts start here
+  group_by: ['alertname', 'severity', 'category', 'service']
+  
+  # Group wait time - wait for more alerts before sending
+  group_wait: 30s
+  
+  # Group interval - send new alerts after this time
+  group_interval: 5m
+  
+  # Repeat interval - resend alerts after this time
+  repeat_interval: 4h
+  
+  # Default receiver
+  receiver: 'kyb-platform-team'
+  
+  # Route by severity
+  routes:
+    # Critical alerts - immediate notification
+    - match:
+        severity: critical
+      receiver: 'kyb-critical-alerts'
+      group_wait: 10s
+      group_interval: 1m
+      repeat_interval: 1h
+      continue: true
+    
+    # Warning alerts - standard notification
+    - match:
+        severity: warning
+      receiver: 'kyb-warning-alerts'
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      continue: true
+    
+    # Info alerts - low priority notification
+    - match:
+        severity: info
+      receiver: 'kyb-info-alerts'
+      group_wait: 1m
+      group_interval: 10m
+      repeat_interval: 8h
+      continue: true
+    
+    # Route by category
+    - match:
+        category: security
+      receiver: 'kyb-security-team'
+      group_wait: 15s
+      group_interval: 2m
+      repeat_interval: 2h
+      continue: true
+    
+    - match:
+        category: infrastructure
+      receiver: 'kyb-infrastructure-team'
+      group_wait: 20s
+      group_interval: 3m
+      repeat_interval: 3h
+      continue: true
+    
+    - match:
+        category: business
+      receiver: 'kyb-business-team'
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      continue: true
+    
+    - match:
+        category: performance
+      receiver: 'kyb-platform-team'
+      group_wait: 25s
+      group_interval: 4m
+      repeat_interval: 3h
+      continue: true
+
+# Inhibition rules
+inhibit_rules:
+  # Inhibit warning alerts when critical alerts are firing
+  - source_match:
+      severity: critical
+    target_match:
+      severity: warning
+    equal: ['alertname', 'service']
+  
+  # Inhibit info alerts when warning or critical alerts are firing
+  - source_match:
+      severity: warning
+    target_match:
+      severity: info
+    equal: ['alertname', 'service']
+  
+  # Inhibit database alerts when infrastructure alerts are firing
+  - source_match:
+      category: infrastructure
+    target_match:
+      category: database
+    equal: ['service']
+
+# Time-based inhibition (business hours)
+time_intervals:
+  - name: business_hours
+    time_intervals:
+      - weekdays: ['monday:friday']
+        times:
+          - start_time: 09:00
+            end_time: 17:00
+        location: 'America/New_York'
+  
+  - name: after_hours
+    time_intervals:
+      - weekdays: ['monday:friday']
+        times:
+          - start_time: 17:00
+            end_time: 09:00
+        location: 'America/New_York'
+      - weekdays: ['saturday', 'sunday']
+        times:
+          - start_time: 00:00
+            end_time: 23:59
+        location: 'America/New_York'
+
+# Receiver configurations
+receivers:
+  # KYB Platform Team - default receiver
+  - name: 'kyb-platform-team'
+    email_configs:
+      - to: 'platform-team@kybplatform.com'
+        subject: 'KYB Platform Alert - {{ .GroupLabels.alertname }}'
+        html: |
+          <h2>KYB Platform Alert</h2>
+          <p><strong>Alert:</strong> {{ .GroupLabels.alertname }}</p>
+          <p><strong>Severity:</strong> {{ .GroupLabels.severity }}</p>
+          <p><strong>Category:</strong> {{ .GroupLabels.category }}</p>
+          <p><strong>Service:</strong> {{ .GroupLabels.service }}</p>
+          <p><strong>Summary:</strong> {{ .CommonAnnotations.summary }}</p>
+          <p><strong>Description:</strong> {{ .CommonAnnotations.description }}</p>
+          <p><strong>Runbook:</strong> <a href="{{ .CommonAnnotations.runbook_url }}">View Runbook</a></p>
+          <hr>
+          <h3>Alerts:</h3>
+          {{ range .Alerts }}
+          <p><strong>Instance:</strong> {{ .Labels.instance }}</p>
+          <p><strong>Value:</strong> {{ .Annotations.value }}</p>
+          <p><strong>Started:</strong> {{ .StartsAt }}</p>
+          {{ end }}
+        send_resolved: true
+    
+    slack_configs:
+      - channel: '#kyb-platform-alerts'
+        username: 'KYB Platform Alerts'
+        icon_emoji: ':warning:'
+        title: 'KYB Platform Alert - {{ .GroupLabels.alertname }}'
+        text: |
+          *Alert:* {{ .GroupLabels.alertname }}
+          *Severity:* {{ .GroupLabels.severity }}
+          *Category:* {{ .GroupLabels.category }}
+          *Service:* {{ .GroupLabels.service }}
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+          *Runbook:* {{ .CommonAnnotations.runbook_url }}
+          
+          {{ range .Alerts }}
+          *Instance:* {{ .Labels.instance }}
+          *Value:* {{ .Annotations.value }}
+          *Started:* {{ .StartsAt }}
+          {{ end }}
+        send_resolved: true
+    
+    webhook_configs:
+      - url: 'https://api.kybplatform.com/webhooks/alerts'
+        send_resolved: true
+        http_config:
+          timeout: 30s
+        headers:
+          Content-Type: application/json
+        body: |
+          {
+            "alerts": [
+              {{ range .Alerts }}
+              {
+                "alertname": "{{ .Labels.alertname }}",
+                "severity": "{{ .Labels.severity }}",
+                "category": "{{ .Labels.category }}",
+                "service": "{{ .Labels.service }}",
+                "instance": "{{ .Labels.instance }}",
+                "summary": "{{ .Annotations.summary }}",
+                "description": "{{ .Annotations.description }}",
+                "runbook_url": "{{ .Annotations.runbook_url }}",
+                "value": "{{ .Annotations.value }}",
+                "starts_at": "{{ .StartsAt }}",
+                "ends_at": "{{ .EndsAt }}"
+              }{{ if not .IsLast }},{{ end }}
+              {{ end }}
+            ]
+          }
+
+  # Critical Alerts - immediate notification
+  - name: 'kyb-critical-alerts'
+    email_configs:
+      - to: 'oncall@kybplatform.com'
+        subject: '🚨 CRITICAL: KYB Platform Alert - {{ .GroupLabels.alertname }}'
+        html: |
+          <h2 style="color: red;">🚨 CRITICAL KYB Platform Alert</h2>
+          <p><strong>Alert:</strong> {{ .GroupLabels.alertname }}</p>
+          <p><strong>Severity:</strong> {{ .GroupLabels.severity }}</p>
+          <p><strong>Category:</strong> {{ .GroupLabels.category }}</p>
+          <p><strong>Service:</strong> {{ .GroupLabels.service }}</p>
+          <p><strong>Summary:</strong> {{ .CommonAnnotations.summary }}</p>
+          <p><strong>Description:</strong> {{ .CommonAnnotations.description }}</p>
+          <p><strong>Runbook:</strong> <a href="{{ .CommonAnnotations.runbook_url }}">View Runbook</a></p>
+          <hr>
+          <h3>Alerts:</h3>
+          {{ range .Alerts }}
+          <p><strong>Instance:</strong> {{ .Labels.instance }}</p>
+          <p><strong>Value:</strong> {{ .Annotations.value }}</p>
+          <p><strong>Started:</strong> {{ .StartsAt }}</p>
+          {{ end }}
+        send_resolved: true
+    
+    slack_configs:
+      - channel: '#kyb-critical-alerts'
+        username: 'KYB Platform Critical Alerts'
+        icon_emoji: ':rotating_light:'
+        title: '🚨 CRITICAL: KYB Platform Alert - {{ .GroupLabels.alertname }}'
+        text: |
+          *🚨 CRITICAL ALERT*
+          *Alert:* {{ .GroupLabels.alertname }}
+          *Severity:* {{ .GroupLabels.severity }}
+          *Category:* {{ .GroupLabels.category }}
+          *Service:* {{ .GroupLabels.service }}
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+          *Runbook:* {{ .CommonAnnotations.runbook_url }}
+          
+          {{ range .Alerts }}
+          *Instance:* {{ .Labels.instance }}
+          *Value:* {{ .Annotations.value }}
+          *Started:* {{ .StartsAt }}
+          {{ end }}
+        send_resolved: true
+    
+    pagerduty_configs:
+      - service_key: 'service_key_here'
+        description: 'KYB Platform Critical Alert: {{ .GroupLabels.alertname }}'
+        severity: 'critical'
+        client: 'KYB Platform AlertManager'
+        client_url: 'https://grafana.kybplatform.com'
+        details:
+          alertname: '{{ .GroupLabels.alertname }}'
+          severity: '{{ .GroupLabels.severity }}'
+          category: '{{ .GroupLabels.category }}'
+          service: '{{ .GroupLabels.service }}'
+          summary: '{{ .CommonAnnotations.summary }}'
+          description: '{{ .CommonAnnotations.description }}'
+          runbook_url: '{{ .CommonAnnotations.runbook_url }}'
+        send_resolved: true
+
+  # Warning Alerts - standard notification
+  - name: 'kyb-warning-alerts'
+    email_configs:
+      - to: 'platform-team@kybplatform.com'
+        subject: '⚠️ WARNING: KYB Platform Alert - {{ .GroupLabels.alertname }}'
+        html: |
+          <h2 style="color: orange;">⚠️ WARNING KYB Platform Alert</h2>
+          <p><strong>Alert:</strong> {{ .GroupLabels.alertname }}</p>
+          <p><strong>Severity:</strong> {{ .GroupLabels.severity }}</p>
+          <p><strong>Category:</strong> {{ .GroupLabels.category }}</p>
+          <p><strong>Service:</strong> {{ .GroupLabels.service }}</p>
+          <p><strong>Summary:</strong> {{ .CommonAnnotations.summary }}</p>
+          <p><strong>Description:</strong> {{ .CommonAnnotations.description }}</p>
+          <p><strong>Runbook:</strong> <a href="{{ .CommonAnnotations.runbook_url }}">View Runbook</a></p>
+          <hr>
+          <h3>Alerts:</h3>
+          {{ range .Alerts }}
+          <p><strong>Instance:</strong> {{ .Labels.instance }}</p>
+          <p><strong>Value:</strong> {{ .Annotations.value }}</p>
+          <p><strong>Started:</strong> {{ .StartsAt }}</p>
+          {{ end }}
+        send_resolved: true
+    
+    slack_configs:
+      - channel: '#kyb-platform-alerts'
+        username: 'KYB Platform Alerts'
+        icon_emoji: ':warning:'
+        title: '⚠️ WARNING: KYB Platform Alert - {{ .GroupLabels.alertname }}'
+        text: |
+          *⚠️ WARNING ALERT*
+          *Alert:* {{ .GroupLabels.alertname }}
+          *Severity:* {{ .GroupLabels.severity }}
+          *Category:* {{ .GroupLabels.category }}
+          *Service:* {{ .GroupLabels.service }}
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+          *Runbook:* {{ .CommonAnnotations.runbook_url }}
+          
+          {{ range .Alerts }}
+          *Instance:* {{ .Labels.instance }}
+          *Value:* {{ .Annotations.value }}
+          *Started:* {{ .StartsAt }}
+          {{ end }}
+        send_resolved: true
+
+  # Info Alerts - low priority notification
+  - name: 'kyb-info-alerts'
+    email_configs:
+      - to: 'platform-team@kybplatform.com'
+        subject: 'ℹ️ INFO: KYB Platform Alert - {{ .GroupLabels.alertname }}'
+        html: |
+          <h2 style="color: blue;">ℹ️ INFO KYB Platform Alert</h2>
+          <p><strong>Alert:</strong> {{ .GroupLabels.alertname }}</p>
+          <p><strong>Severity:</strong> {{ .GroupLabels.severity }}</p>
+          <p><strong>Category:</strong> {{ .GroupLabels.category }}</p>
+          <p><strong>Service:</strong> {{ .GroupLabels.service }}</p>
+          <p><strong>Summary:</strong> {{ .CommonAnnotations.summary }}</p>
+          <p><strong>Description:</strong> {{ .CommonAnnotations.description }}</p>
+          <p><strong>Runbook:</strong> <a href="{{ .CommonAnnotations.runbook_url }}">View Runbook</a></p>
+          <hr>
+          <h3>Alerts:</h3>
+          {{ range .Alerts }}
+          <p><strong>Instance:</strong> {{ .Labels.instance }}</p>
+          <p><strong>Value:</strong> {{ .Annotations.value }}</p>
+          <p><strong>Started:</strong> {{ .StartsAt }}</p>
+          {{ end }}
+        send_resolved: true
+    
+    slack_configs:
+      - channel: '#kyb-platform-info'
+        username: 'KYB Platform Info'
+        icon_emoji: ':information_source:'
+        title: 'ℹ️ INFO: KYB Platform Alert - {{ .GroupLabels.alertname }}'
+        text: |
+          *ℹ️ INFO ALERT*
+          *Alert:* {{ .GroupLabels.alertname }}
+          *Severity:* {{ .GroupLabels.severity }}
+          *Category:* {{ .GroupLabels.category }}
+          *Service:* {{ .GroupLabels.service }}
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+          *Runbook:* {{ .CommonAnnotations.runbook_url }}
+          
+          {{ range .Alerts }}
+          *Instance:* {{ .Labels.instance }}
+          *Value:* {{ .Annotations.value }}
+          *Started:* {{ .StartsAt }}
+          {{ end }}
+        send_resolved: true
+
+  # Security Team - security-specific alerts
+  - name: 'kyb-security-team'
+    email_configs:
+      - to: 'security-team@kybplatform.com'
+        subject: '🔒 SECURITY: KYB Platform Alert - {{ .GroupLabels.alertname }}'
+        html: |
+          <h2 style="color: red;">🔒 SECURITY KYB Platform Alert</h2>
+          <p><strong>Alert:</strong> {{ .GroupLabels.alertname }}</p>
+          <p><strong>Severity:</strong> {{ .GroupLabels.severity }}</p>
+          <p><strong>Category:</strong> {{ .GroupLabels.category }}</p>
+          <p><strong>Service:</strong> {{ .GroupLabels.service }}</p>
+          <p><strong>Summary:</strong> {{ .CommonAnnotations.summary }}</p>
+          <p><strong>Description:</strong> {{ .CommonAnnotations.description }}</p>
+          <p><strong>Runbook:</strong> <a href="{{ .CommonAnnotations.runbook_url }}">View Runbook</a></p>
+          <hr>
+          <h3>Alerts:</h3>
+          {{ range .Alerts }}
+          <p><strong>Instance:</strong> {{ .Labels.instance }}</p>
+          <p><strong>Value:</strong> {{ .Annotations.value }}</p>
+          <p><strong>Started:</strong> {{ .StartsAt }}</p>
+          {{ end }}
+        send_resolved: true
+    
+    slack_configs:
+      - channel: '#kyb-security-alerts'
+        username: 'KYB Security Alerts'
+        icon_emoji: ':lock:'
+        title: '🔒 SECURITY: KYB Platform Alert - {{ .GroupLabels.alertname }}'
+        text: |
+          *🔒 SECURITY ALERT*
+          *Alert:* {{ .GroupLabels.alertname }}
+          *Severity:* {{ .GroupLabels.severity }}
+          *Category:* {{ .GroupLabels.category }}
+          *Service:* {{ .GroupLabels.service }}
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+          *Runbook:* {{ .CommonAnnotations.runbook_url }}
+          
+          {{ range .Alerts }}
+          *Instance:* {{ .Labels.instance }}
+          *Value:* {{ .Annotations.value }}
+          *Started:* {{ .StartsAt }}
+          {{ end }}
+        send_resolved: true
+
+  # Infrastructure Team - infrastructure-specific alerts
+  - name: 'kyb-infrastructure-team'
+    email_configs:
+      - to: 'infrastructure-team@kybplatform.com'
+        subject: '🏗️ INFRASTRUCTURE: KYB Platform Alert - {{ .GroupLabels.alertname }}'
+        html: |
+          <h2 style="color: orange;">🏗️ INFRASTRUCTURE KYB Platform Alert</h2>
+          <p><strong>Alert:</strong> {{ .GroupLabels.alertname }}</p>
+          <p><strong>Severity:</strong> {{ .GroupLabels.severity }}</p>
+          <p><strong>Category:</strong> {{ .GroupLabels.category }}</p>
+          <p><strong>Service:</strong> {{ .GroupLabels.service }}</p>
+          <p><strong>Summary:</strong> {{ .CommonAnnotations.summary }}</p>
+          <p><strong>Description:</strong> {{ .CommonAnnotations.description }}</p>
+          <p><strong>Runbook:</strong> <a href="{{ .CommonAnnotations.runbook_url }}">View Runbook</a></p>
+          <hr>
+          <h3>Alerts:</h3>
+          {{ range .Alerts }}
+          <p><strong>Instance:</strong> {{ .Labels.instance }}</p>
+          <p><strong>Value:</strong> {{ .Annotations.value }}</p>
+          <p><strong>Started:</strong> {{ .StartsAt }}</p>
+          {{ end }}
+        send_resolved: true
+    
+    slack_configs:
+      - channel: '#kyb-infrastructure-alerts'
+        username: 'KYB Infrastructure Alerts'
+        icon_emoji: ':construction:'
+        title: '🏗️ INFRASTRUCTURE: KYB Platform Alert - {{ .GroupLabels.alertname }}'
+        text: |
+          *🏗️ INFRASTRUCTURE ALERT*
+          *Alert:* {{ .GroupLabels.alertname }}
+          *Severity:* {{ .GroupLabels.severity }}
+          *Category:* {{ .GroupLabels.category }}
+          *Service:* {{ .GroupLabels.service }}
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+          *Runbook:* {{ .CommonAnnotations.runbook_url }}
+          
+          {{ range .Alerts }}
+          *Instance:* {{ .Labels.instance }}
+          *Value:* {{ .Annotations.value }}
+          *Started:* {{ .StartsAt }}
+          {{ end }}
+        send_resolved: true
+
+  # Business Team - business-specific alerts
+  - name: 'kyb-business-team'
+    email_configs:
+      - to: 'business-team@kybplatform.com'
+        subject: '💼 BUSINESS: KYB Platform Alert - {{ .GroupLabels.alertname }}'
+        html: |
+          <h2 style="color: blue;">💼 BUSINESS KYB Platform Alert</h2>
+          <p><strong>Alert:</strong> {{ .GroupLabels.alertname }}</p>
+          <p><strong>Severity:</strong> {{ .GroupLabels.severity }}</p>
+          <p><strong>Category:</strong> {{ .GroupLabels.category }}</p>
+          <p><strong>Service:</strong> {{ .GroupLabels.service }}</p>
+          <p><strong>Summary:</strong> {{ .CommonAnnotations.summary }}</p>
+          <p><strong>Description:</strong> {{ .CommonAnnotations.description }}</p>
+          <p><strong>Runbook:</strong> <a href="{{ .CommonAnnotations.runbook_url }}">View Runbook</a></p>
+          <hr>
+          <h3>Alerts:</h3>
+          {{ range .Alerts }}
+          <p><strong>Instance:</strong> {{ .Labels.instance }}</p>
+          <p><strong>Value:</strong> {{ .Annotations.value }}</p>
+          <p><strong>Started:</strong> {{ .StartsAt }}</p>
+          {{ end }}
+        send_resolved: true
+    
+    slack_configs:
+      - channel: '#kyb-business-alerts'
+        username: 'KYB Business Alerts'
+        icon_emoji: ':briefcase:'
+        title: '💼 BUSINESS: KYB Platform Alert - {{ .GroupLabels.alertname }}'
+        text: |
+          *💼 BUSINESS ALERT*
+          *Alert:* {{ .GroupLabels.alertname }}
+          *Severity:* {{ .GroupLabels.severity }}
+          *Category:* {{ .GroupLabels.category }}
+          *Service:* {{ .GroupLabels.service }}
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+          *Runbook:* {{ .CommonAnnotations.runbook_url }}
+          
+          {{ range .Alerts }}
+          *Instance:* {{ .Labels.instance }}
+          *Value:* {{ .Annotations.value }}
+          *Started:* {{ .StartsAt }}
+          {{ end }}
+        send_resolved: true
+
+# Templates for notification formatting
+templates:
+  - '/etc/alertmanager/template/*.tmpl'
+
+# Global HTTP client configuration
+http_config:
+  timeout: 30s
+  tls_config:
+    insecure_skip_verify: false
+  proxy_url: ''
+  follow_redirects: true
+
+# AlertManager configuration
+alertmanager_config:
+  # Storage configuration
+  storage:
+    path: /var/lib/alertmanager
+    retention: 120h
+  
+  # Logging configuration
+  log:
+    level: info
+    format: json
+  
+  # Metrics configuration
+  metrics:
+    path: /metrics
+    port: 9093
+  
+  # Cluster configuration (for high availability)
+  cluster:
+    listen_address: 0.0.0.0:9094
+    advertise_address: alertmanager:9094
+    peer_id: alertmanager-1
+    peer_url: http://alertmanager:9094
+    peers:
+      - alertmanager-1:9094
+      - alertmanager-2:9094
+      - alertmanager-3:9094
+  
+  # External URL for web interface
+  external_url: 'https://alertmanager.kybplatform.com'
+  
+  # Webhook configuration for external integrations
+  webhook_configs:
+    - url: 'https://api.kybplatform.com/webhooks/alertmanager'
+      send_resolved: true
+      http_config:
+        timeout: 30s
+      headers:
+        Content-Type: application/json
+        Authorization: 'Bearer webhook_token_here'

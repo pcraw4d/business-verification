@@ -1,0 +1,577 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "KYB Platform - Business Dashboard",
+    "tags": ["kyb-platform", "business", "monitoring"],
+    "style": "dark",
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Classification Requests",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(kyb_classification_requests_total[5m])",
+            "legendFormat": "{{method}} - {{confidence_level}}"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "yAxes": [
+          {
+            "label": "Requests per second",
+            "min": 0
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Classification Accuracy",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "kyb_classification_accuracy",
+            "legendFormat": "Accuracy"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 12,
+          "y": 0
+        },
+        "thresholds": [
+          {
+            "color": "red",
+            "value": null
+          },
+          {
+            "color": "yellow",
+            "value": 0.9
+          },
+          {
+            "color": "green",
+            "value": 0.95
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Classification Duration",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(kyb_classification_duration_seconds_bucket[5m]))",
+            "legendFormat": "P95 Duration"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 18,
+          "y": 0
+        },
+        "yAxes": [
+          {
+            "label": "Duration (seconds)",
+            "min": 0
+          }
+        ],
+        "thresholds": [
+          {
+            "colorMode": "critical",
+            "fill": true,
+            "line": true,
+            "op": "gt",
+            "value": 1.0,
+            "yaxis": "left"
+          },
+          {
+            "colorMode": "warning",
+            "fill": true,
+            "line": true,
+            "op": "gt",
+            "value": 0.5,
+            "yaxis": "left"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Risk Assessment Requests",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(kyb_risk_assessment_requests_total[5m])",
+            "legendFormat": "Risk Assessments/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        },
+        "yAxes": [
+          {
+            "label": "Requests per second",
+            "min": 0
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Risk Assessment Duration",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(kyb_risk_assessment_duration_seconds_bucket[5m]))",
+            "legendFormat": "P95 Duration"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        },
+        "yAxes": [
+          {
+            "label": "Duration (seconds)",
+            "min": 0
+          }
+        ],
+        "thresholds": [
+          {
+            "colorMode": "critical",
+            "fill": true,
+            "line": true,
+            "op": "gt",
+            "value": 2.0,
+            "yaxis": "left"
+          },
+          {
+            "colorMode": "warning",
+            "fill": true,
+            "line": true,
+            "op": "gt",
+            "value": 1.0,
+            "yaxis": "left"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Compliance Check Requests",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(kyb_compliance_check_requests_total[5m])",
+            "legendFormat": "{{framework}} - {{status}}"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 16
+        },
+        "yAxes": [
+          {
+            "label": "Requests per second",
+            "min": 0
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Compliance Check Duration",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(kyb_compliance_check_duration_seconds_bucket[5m]))",
+            "legendFormat": "P95 Duration"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 16
+        },
+        "yAxes": [
+          {
+            "label": "Duration (seconds)",
+            "min": 0
+          }
+        ],
+        "thresholds": [
+          {
+            "colorMode": "critical",
+            "fill": true,
+            "line": true,
+            "op": "gt",
+            "value": 3.0,
+            "yaxis": "left"
+          },
+          {
+            "colorMode": "warning",
+            "fill": true,
+            "line": true,
+            "op": "gt",
+            "value": 1.5,
+            "yaxis": "left"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Active Users",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "kyb_active_users",
+            "legendFormat": "Active Users"
+          }
+        ],
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 0,
+          "y": 24
+        },
+        "thresholds": [
+          {
+            "color": "green",
+            "value": null
+          },
+          {
+            "color": "yellow",
+            "value": 50
+          },
+          {
+            "color": "red",
+            "value": 100
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "API Key Usage",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(kyb_api_key_usage_total[5m]) * 60",
+            "legendFormat": "API Key Usage/min"
+          }
+        ],
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 6,
+          "y": 24
+        }
+      },
+      {
+        "id": 10,
+        "title": "Total Requests Today",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "increase(kyb_http_requests_total[24h])",
+            "legendFormat": "Total Requests (24h)"
+          }
+        ],
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 12,
+          "y": 24
+        }
+      },
+      {
+        "id": 11,
+        "title": "Success Rate",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "(1 - (rate(kyb_http_requests_total{status_code=~\"5..\"}[5m]) / rate(kyb_http_requests_total[5m]))) * 100",
+            "legendFormat": "Success Rate (%)"
+          }
+        ],
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 18,
+          "y": 24
+        },
+        "thresholds": [
+          {
+            "color": "red",
+            "value": null
+          },
+          {
+            "color": "yellow",
+            "value": 95
+          },
+          {
+            "color": "green",
+            "value": 99
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Business Events by Type",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "rate(kyb_classification_requests_total[5m])",
+            "legendFormat": "Classification"
+          },
+          {
+            "expr": "rate(kyb_risk_assessment_requests_total[5m])",
+            "legendFormat": "Risk Assessment"
+          },
+          {
+            "expr": "rate(kyb_compliance_check_requests_total[5m])",
+            "legendFormat": "Compliance Check"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 28
+        }
+      },
+      {
+        "id": 13,
+        "title": "Top Endpoints by Usage",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "topk(10, rate(kyb_http_requests_total[5m]))",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 28
+        },
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true,
+                "__name__": true,
+                "job": true,
+                "instance": true
+              },
+              "indexByName": {},
+              "renameByName": {
+                "endpoint": "Endpoint",
+                "method": "Method",
+                "Value": "Requests/sec"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 14,
+        "title": "Classification Accuracy Trend",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "kyb_classification_accuracy",
+            "legendFormat": "Accuracy"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 36
+        },
+        "yAxes": [
+          {
+            "label": "Accuracy",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        "thresholds": [
+          {
+            "colorMode": "critical",
+            "fill": true,
+            "line": true,
+            "op": "lt",
+            "value": 0.9,
+            "yaxis": "left"
+          },
+          {
+            "colorMode": "warning",
+            "fill": true,
+            "line": true,
+            "op": "lt",
+            "value": 0.95,
+            "yaxis": "left"
+          }
+        ]
+      },
+      {
+        "id": 15,
+        "title": "User Activity Heatmap",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "sum(rate(kyb_http_requests_total[5m])) by (endpoint) (offset 1h)",
+            "format": "heatmap",
+            "legendFormat": "{{endpoint}}"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 36
+        }
+      },
+      {
+        "id": 16,
+        "title": "Business Metrics Summary",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "increase(kyb_classification_requests_total[1h])",
+            "legendFormat": "Classifications (1h)"
+          },
+          {
+            "expr": "increase(kyb_risk_assessment_requests_total[1h])",
+            "legendFormat": "Risk Assessments (1h)"
+          },
+          {
+            "expr": "increase(kyb_compliance_check_requests_total[1h])",
+            "legendFormat": "Compliance Checks (1h)"
+          }
+        ],
+        "gridPos": {
+          "h": 4,
+          "w": 24,
+          "x": 0,
+          "y": 44
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "textMode": "auto"
+        }
+      }
+    ],
+    "time": {
+      "from": "now-24h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": [
+        "5s",
+        "10s",
+        "30s",
+        "1m",
+        "5m",
+        "15m",
+        "30m",
+        "1h",
+        "2h",
+        "1d"
+      ]
+    },
+    "templating": {
+      "list": [
+        {
+          "name": "confidence_level",
+          "type": "query",
+          "query": "label_values(kyb_classification_requests_total, confidence_level)",
+          "refresh": 2,
+          "includeAll": true,
+          "multi": true
+        },
+        {
+          "name": "framework",
+          "type": "query",
+          "query": "label_values(kyb_compliance_check_requests_total, framework)",
+          "refresh": 2,
+          "includeAll": true,
+          "multi": true
+        },
+        {
+          "name": "status",
+          "type": "query",
+          "query": "label_values(kyb_compliance_check_requests_total, status)",
+          "refresh": 2,
+          "includeAll": true,
+          "multi": true
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "name": "Business Events",
+          "datasource": "Prometheus",
+          "expr": "changes(kyb_classification_requests_total[1m]) > 0",
+          "iconColor": "rgba(0, 255, 0, 1)",
+          "titleFormat": "Classification Event",
+          "textFormat": "New classification requests detected"
+        },
+        {
+          "name": "Accuracy Drops",
+          "datasource": "Prometheus",
+          "expr": "kyb_classification_accuracy < 0.9",
+          "iconColor": "rgba(255, 0, 0, 1)",
+          "titleFormat": "Low Accuracy Alert",
+          "textFormat": "Classification accuracy dropped below 90%"
+        }
+      ]
+    },
+    "refresh": "30s",
+    "schemaVersion": 16,
+    "version": 1,
+    "links": [
+      {
+        "title": "KYB Platform Documentation",
+        "url": "https://docs.kybplatform.com",
+        "targetBlank": true
+      },
+      {
+        "title": "Business Intelligence",
+        "url": "/grafana/d/business/kyb-business-intelligence",
+        "targetBlank": false
+      },
+      {
+        "title": "Performance Dashboard",
+        "url": "/grafana/d/performance/kyb-performance-dashboard",
+        "targetBlank": false
+      }
+    ]
+  }
+}

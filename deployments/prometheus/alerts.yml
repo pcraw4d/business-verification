@@ -1,0 +1,730 @@
+groups:
+  - name: kyb-platform-alerts
+    rules:
+      # High HTTP error rate
+      - alert: HighHTTPErrorRate
+        expr: rate(kyb_http_requests_total{status_code=~"5.."}[5m]) / rate(kyb_http_requests_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+          category: performance
+        annotations:
+          summary: "High HTTP error rate detected"
+          description: "HTTP error rate is {{ $value | humanizePercentage }} for the last 5 minutes"
+          runbook_url: "https://runbook.kybplatform.com/high-http-error-rate"
+
+      # High response time
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(kyb_http_request_duration_seconds_bucket[5m])) > 1.0
+        for: 2m
+        labels:
+          severity: warning
+          team: platform
+          category: performance
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is {{ $value }}s for the last 5 minutes"
+          runbook_url: "https://runbook.kybplatform.com/high-response-time"
+
+      # Critical response time
+      - alert: CriticalResponseTime
+        expr: histogram_quantile(0.95, rate(kyb_http_request_duration_seconds_bucket[5m])) > 5.0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+          category: performance
+        annotations:
+          summary: "Critical response time detected"
+          description: "95th percentile response time is {{ $value }}s for the last 5 minutes"
+          runbook_url: "https://runbook.kybplatform.com/critical-response-time"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: kyb_system_memory_usage_bytes{type="alloc"} / kyb_system_memory_usage_bytes{type="sys"} > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+          category: infrastructure
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbook.kybplatform.com/high-memory-usage"
+
+      # Critical memory usage
+      - alert: CriticalMemoryUsage
+        expr: kyb_system_memory_usage_bytes{type="alloc"} / kyb_system_memory_usage_bytes{type="sys"} > 0.9
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+          category: infrastructure
+        annotations:
+          summary: "Critical memory usage detected"
+          description: "Memory usage is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbook.kybplatform.com/critical-memory-usage"
+
+      # High goroutine count
+      - alert: HighGoroutineCount
+        expr: kyb_system_goroutines > 1000
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+          category: infrastructure
+        annotations:
+          summary: "High goroutine count detected"
+          description: "Goroutine count is {{ $value }}"
+          runbook_url: "https://runbook.kybplatform.com/high-goroutine-count"
+
+      # Critical goroutine count
+      - alert: CriticalGoroutineCount
+        expr: kyb_system_goroutines > 5000
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+          category: infrastructure
+        annotations:
+          summary: "Critical goroutine count detected"
+          description: "Goroutine count is {{ $value }}"
+          runbook_url: "https://runbook.kybplatform.com/critical-goroutine-count"
+
+      # Database connection issues
+      - alert: DatabaseConnectionIssues
+        expr: kyb_database_connections < 1
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+          category: infrastructure
+        annotations:
+          summary: "Database connection issues detected"
+          description: "No active database connections"
+          runbook_url: "https://runbook.kybplatform.com/database-connection-issues"
+
+      # High database error rate
+      - alert: HighDatabaseErrorRate
+        expr: rate(kyb_database_errors_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          team: platform
+          category: infrastructure
+        annotations:
+          summary: "High database error rate detected"
+          description: "Database error rate is {{ $value }} errors per second"
+          runbook_url: "https://runbook.kybplatform.com/high-database-error-rate"
+
+      # External API issues
+      - alert: ExternalAPIErrors
+        expr: rate(kyb_external_api_errors_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          team: platform
+          category: infrastructure
+        annotations:
+          summary: "External API errors detected"
+          description: "External API error rate is {{ $value }} errors per second"
+          runbook_url: "https://runbook.kybplatform.com/external-api-errors"
+
+      # High external API error rate
+      - alert: HighExternalAPIErrorRate
+        expr: rate(kyb_external_api_errors_total[5m]) > 1.0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+          category: infrastructure
+        annotations:
+          summary: "High external API error rate detected"
+          description: "External API error rate is {{ $value }} errors per second"
+          runbook_url: "https://runbook.kybplatform.com/high-external-api-error-rate"
+
+      # Authentication failures
+      - alert: AuthenticationFailures
+        expr: rate(kyb_authentication_events_total{status="failed"}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          team: platform
+          category: security
+        annotations:
+          summary: "Authentication failures detected"
+          description: "Authentication failure rate is {{ $value }} failures per second"
+          runbook_url: "https://runbook.kybplatform.com/authentication-failures"
+
+      # High authentication failure rate
+      - alert: HighAuthenticationFailureRate
+        expr: rate(kyb_authentication_events_total{status="failed"}[5m]) > 1.0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+          category: security
+        annotations:
+          summary: "High authentication failure rate detected"
+          description: "Authentication failure rate is {{ $value }} failures per second"
+          runbook_url: "https://runbook.kybplatform.com/high-authentication-failure-rate"
+
+      # Rate limit hits
+      - alert: RateLimitHits
+        expr: rate(kyb_rate_limit_hits_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          team: platform
+          category: security
+        annotations:
+          summary: "Rate limit hits detected"
+          description: "Rate limit hit rate is {{ $value }} hits per second"
+          runbook_url: "https://runbook.kybplatform.com/rate-limit-hits"
+
+      # High rate limit hits
+      - alert: HighRateLimitHits
+        expr: rate(kyb_rate_limit_hits_total[5m]) > 1.0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+          category: security
+        annotations:
+          summary: "High rate limit hits detected"
+          description: "Rate limit hit rate is {{ $value }} hits per second"
+          runbook_url: "https://runbook.kybplatform.com/high-rate-limit-hits"
+
+      # Health check failures
+      - alert: HealthCheckFailures
+        expr: kyb_health_check_status < 1
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+          category: infrastructure
+        annotations:
+          summary: "Health check failures detected"
+          description: "One or more health checks are failing"
+          runbook_url: "https://runbook.kybplatform.com/health-check-failures"
+
+      # Low classification accuracy
+      - alert: LowClassificationAccuracy
+        expr: kyb_classification_accuracy < 0.9
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+          category: business
+        annotations:
+          summary: "Low classification accuracy detected"
+          description: "Classification accuracy is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbook.kybplatform.com/low-classification-accuracy"
+
+      # Critical classification accuracy
+      - alert: CriticalClassificationAccuracy
+        expr: kyb_classification_accuracy < 0.8
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+          category: business
+        annotations:
+          summary: "Critical classification accuracy detected"
+          description: "Classification accuracy is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbook.kybplatform.com/critical-classification-accuracy"
+
+      # High request volume
+      - alert: HighRequestVolume
+        expr: rate(kyb_http_requests_total[5m]) > 1000
+        for: 2m
+        labels:
+          severity: warning
+          team: platform
+          category: performance
+        annotations:
+          summary: "High request volume detected"
+          description: "Request rate is {{ $value }} requests per second"
+          runbook_url: "https://runbook.kybplatform.com/high-request-volume"
+
+      # Critical request volume
+      - alert: CriticalRequestVolume
+        expr: rate(kyb_http_requests_total[5m]) > 5000
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+          category: performance
+        annotations:
+          summary: "Critical request volume detected"
+          description: "Request rate is {{ $value }} requests per second"
+          runbook_url: "https://runbook.kybplatform.com/critical-request-volume"
+
+      # Service unavailable
+      - alert: ServiceUnavailable
+        expr: up{job="kyb-platform-api"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          team: platform
+          category: infrastructure
+        annotations:
+          summary: "KYB Platform service unavailable"
+          description: "KYB Platform API service is down"
+          runbook_url: "https://runbook.kybplatform.com/service-unavailable"
+
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: kyb_system_cpu_usage_percent > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+          category: infrastructure
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value }}%"
+          runbook_url: "https://runbook.kybplatform.com/high-cpu-usage"
+
+      # Critical CPU usage
+      - alert: CriticalCPUUsage
+        expr: kyb_system_cpu_usage_percent > 90
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+          category: infrastructure
+        annotations:
+          summary: "Critical CPU usage detected"
+          description: "CPU usage is {{ $value }}%"
+          runbook_url: "https://runbook.kybplatform.com/critical-cpu-usage"
+
+      # High heap allocation
+      - alert: HighHeapAllocation
+        expr: kyb_system_heap_alloc_bytes > 1e9
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+          category: infrastructure
+        annotations:
+          summary: "High heap allocation detected"
+          description: "Heap allocation is {{ $value | humanize }}B"
+          runbook_url: "https://runbook.kybplatform.com/high-heap-allocation"
+
+      # Critical heap allocation
+      - alert: CriticalHeapAllocation
+        expr: kyb_system_heap_alloc_bytes > 2e9
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+          category: infrastructure
+        annotations:
+          summary: "Critical heap allocation detected"
+          description: "Heap allocation is {{ $value | humanize }}B"
+          runbook_url: "https://runbook.kybplatform.com/critical-heap-allocation"
+
+      # Low active users
+      - alert: LowActiveUsers
+        expr: kyb_active_users < 10
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+          category: business
+        annotations:
+          summary: "Low active users detected"
+          description: "Active users count is {{ $value }}"
+          runbook_url: "https://runbook.kybplatform.com/low-active-users"
+
+      # No active users
+      - alert: NoActiveUsers
+        expr: kyb_active_users == 0
+        for: 5m
+        labels:
+          severity: critical
+          team: platform
+          category: business
+        annotations:
+          summary: "No active users detected"
+          description: "No active users for the last 5 minutes"
+          runbook_url: "https://runbook.kybplatform.com/no-active-users"
+
+      # High classification duration
+      - alert: HighClassificationDuration
+        expr: histogram_quantile(0.95, rate(kyb_classification_duration_seconds_bucket[5m])) > 2.0
+        for: 2m
+        labels:
+          severity: warning
+          team: platform
+          category: performance
+        annotations:
+          summary: "High classification duration detected"
+          description: "95th percentile classification duration is {{ $value }}s"
+          runbook_url: "https://runbook.kybplatform.com/high-classification-duration"
+
+      # Critical classification duration
+      - alert: CriticalClassificationDuration
+        expr: histogram_quantile(0.95, rate(kyb_classification_duration_seconds_bucket[5m])) > 5.0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+          category: performance
+        annotations:
+          summary: "Critical classification duration detected"
+          description: "95th percentile classification duration is {{ $value }}s"
+          runbook_url: "https://runbook.kybplatform.com/critical-classification-duration"
+
+      # High risk assessment duration
+      - alert: HighRiskAssessmentDuration
+        expr: histogram_quantile(0.95, rate(kyb_risk_assessment_duration_seconds_bucket[5m])) > 3.0
+        for: 2m
+        labels:
+          severity: warning
+          team: platform
+          category: performance
+        annotations:
+          summary: "High risk assessment duration detected"
+          description: "95th percentile risk assessment duration is {{ $value }}s"
+          runbook_url: "https://runbook.kybplatform.com/high-risk-assessment-duration"
+
+      # Critical risk assessment duration
+      - alert: CriticalRiskAssessmentDuration
+        expr: histogram_quantile(0.95, rate(kyb_risk_assessment_duration_seconds_bucket[5m])) > 10.0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+          category: performance
+        annotations:
+          summary: "Critical risk assessment duration detected"
+          description: "95th percentile risk assessment duration is {{ $value }}s"
+          runbook_url: "https://runbook.kybplatform.com/critical-risk-assessment-duration"
+
+      # High compliance check duration
+      - alert: HighComplianceCheckDuration
+        expr: histogram_quantile(0.95, rate(kyb_compliance_check_duration_seconds_bucket[5m])) > 5.0
+        for: 2m
+        labels:
+          severity: warning
+          team: platform
+          category: performance
+        annotations:
+          summary: "High compliance check duration detected"
+          description: "95th percentile compliance check duration is {{ $value }}s"
+          runbook_url: "https://runbook.kybplatform.com/high-compliance-check-duration"
+
+      # Critical compliance check duration
+      - alert: CriticalComplianceCheckDuration
+        expr: histogram_quantile(0.95, rate(kyb_compliance_check_duration_seconds_bucket[5m])) > 15.0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+          category: performance
+        annotations:
+          summary: "Critical compliance check duration detected"
+          description: "95th percentile compliance check duration is {{ $value }}s"
+          runbook_url: "https://runbook.kybplatform.com/critical-compliance-check-duration"
+
+      # High database query duration
+      - alert: HighDatabaseQueryDuration
+        expr: histogram_quantile(0.95, rate(kyb_database_query_duration_seconds_bucket[5m])) > 1.0
+        for: 2m
+        labels:
+          severity: warning
+          team: platform
+          category: infrastructure
+        annotations:
+          summary: "High database query duration detected"
+          description: "95th percentile database query duration is {{ $value }}s"
+          runbook_url: "https://runbook.kybplatform.com/high-database-query-duration"
+
+      # Critical database query duration
+      - alert: CriticalDatabaseQueryDuration
+        expr: histogram_quantile(0.95, rate(kyb_database_query_duration_seconds_bucket[5m])) > 5.0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+          category: infrastructure
+        annotations:
+          summary: "Critical database query duration detected"
+          description: "95th percentile database query duration is {{ $value }}s"
+          runbook_url: "https://runbook.kybplatform.com/critical-database-query-duration"
+
+      # High external API duration
+      - alert: HighExternalAPIDuration
+        expr: histogram_quantile(0.95, rate(kyb_external_api_duration_seconds_bucket[5m])) > 2.0
+        for: 2m
+        labels:
+          severity: warning
+          team: platform
+          category: infrastructure
+        annotations:
+          summary: "High external API duration detected"
+          description: "95th percentile external API duration is {{ $value }}s"
+          runbook_url: "https://runbook.kybplatform.com/high-external-api-duration"
+
+      # Critical external API duration
+      - alert: CriticalExternalAPIDuration
+        expr: histogram_quantile(0.95, rate(kyb_external_api_duration_seconds_bucket[5m])) > 10.0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+          category: infrastructure
+        annotations:
+          summary: "Critical external API duration detected"
+          description: "95th percentile external API duration is {{ $value }}s"
+          runbook_url: "https://runbook.kybplatform.com/critical-external-api-duration"
+
+      # High API key usage
+      - alert: HighAPIKeyUsage
+        expr: rate(kyb_api_key_usage_total[5m]) > 100
+        for: 2m
+        labels:
+          severity: warning
+          team: platform
+          category: security
+        annotations:
+          summary: "High API key usage detected"
+          description: "API key usage rate is {{ $value }} requests per second"
+          runbook_url: "https://runbook.kybplatform.com/high-api-key-usage"
+
+      # Critical API key usage
+      - alert: CriticalAPIKeyUsage
+        expr: rate(kyb_api_key_usage_total[5m]) > 500
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+          category: security
+        annotations:
+          summary: "Critical API key usage detected"
+          description: "API key usage rate is {{ $value }} requests per second"
+          runbook_url: "https://runbook.kybplatform.com/critical-api-key-usage"
+
+      # Low classification confidence
+      - alert: LowClassificationConfidence
+        expr: kyb_classification_confidence < 0.7
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+          category: business
+        annotations:
+          summary: "Low classification confidence detected"
+          description: "Classification confidence is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbook.kybplatform.com/low-classification-confidence"
+
+      # Critical classification confidence
+      - alert: CriticalClassificationConfidence
+        expr: kyb_classification_confidence < 0.5
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+          category: business
+        annotations:
+          summary: "Critical classification confidence detected"
+          description: "Classification confidence is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbook.kybplatform.com/critical-classification-confidence"
+
+      # High risk score
+      - alert: HighRiskScore
+        expr: kyb_risk_score > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+          category: business
+        annotations:
+          summary: "High risk score detected"
+          description: "Risk score is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbook.kybplatform.com/high-risk-score"
+
+      # Critical risk score
+      - alert: CriticalRiskScore
+        expr: kyb_risk_score > 0.9
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+          category: business
+        annotations:
+          summary: "Critical risk score detected"
+          description: "Risk score is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbook.kybplatform.com/critical-risk-score"
+
+      # Compliance violations
+      - alert: ComplianceViolations
+        expr: kyb_compliance_violations_total > 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+          category: compliance
+        annotations:
+          summary: "Compliance violations detected"
+          description: "{{ $value }} compliance violations detected"
+          runbook_url: "https://runbook.kybplatform.com/compliance-violations"
+
+      # High compliance violations
+      - alert: HighComplianceViolations
+        expr: rate(kyb_compliance_violations_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+          category: compliance
+        annotations:
+          summary: "High compliance violations detected"
+          description: "Compliance violation rate is {{ $value }} violations per second"
+          runbook_url: "https://runbook.kybplatform.com/high-compliance-violations"
+
+      # Security incidents
+      - alert: SecurityIncidents
+        expr: kyb_security_incidents_total > 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+          category: security
+        annotations:
+          summary: "Security incidents detected"
+          description: "{{ $value }} security incidents detected"
+          runbook_url: "https://runbook.kybplatform.com/security-incidents"
+
+      # High security incidents
+      - alert: HighSecurityIncidents
+        expr: rate(kyb_security_incidents_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+          category: security
+        annotations:
+          summary: "High security incidents detected"
+          description: "Security incident rate is {{ $value }} incidents per second"
+          runbook_url: "https://runbook.kybplatform.com/high-security-incidents"
+
+      # Data quality issues
+      - alert: DataQualityIssues
+        expr: kyb_data_quality_issues_total > 0
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+          category: business
+        annotations:
+          summary: "Data quality issues detected"
+          description: "{{ $value }} data quality issues detected"
+          runbook_url: "https://runbook.kybplatform.com/data-quality-issues"
+
+      # High data quality issues
+      - alert: HighDataQualityIssues
+        expr: rate(kyb_data_quality_issues_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+          category: business
+        annotations:
+          summary: "High data quality issues detected"
+          description: "Data quality issue rate is {{ $value }} issues per second"
+          runbook_url: "https://runbook.kybplatform.com/high-data-quality-issues"
+
+      # Backup failures
+      - alert: BackupFailures
+        expr: kyb_backup_status < 1
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+          category: infrastructure
+        annotations:
+          summary: "Backup failures detected"
+          description: "Database backup is failing"
+          runbook_url: "https://runbook.kybplatform.com/backup-failures"
+
+      # High backup duration
+      - alert: HighBackupDuration
+        expr: kyb_backup_duration_seconds > 3600
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+          category: infrastructure
+        annotations:
+          summary: "High backup duration detected"
+          description: "Backup duration is {{ $value }} seconds"
+          runbook_url: "https://runbook.kybplatform.com/high-backup-duration"
+
+      # Disk space usage
+      - alert: HighDiskUsage
+        expr: kyb_disk_usage_percent > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+          category: infrastructure
+        annotations:
+          summary: "High disk usage detected"
+          description: "Disk usage is {{ $value }}%"
+          runbook_url: "https://runbook.kybplatform.com/high-disk-usage"
+
+      # Critical disk usage
+      - alert: CriticalDiskUsage
+        expr: kyb_disk_usage_percent > 90
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+          category: infrastructure
+        annotations:
+          summary: "Critical disk usage detected"
+          description: "Disk usage is {{ $value }}%"
+          runbook_url: "https://runbook.kybplatform.com/critical-disk-usage"
+
+      # Network connectivity issues
+      - alert: NetworkConnectivityIssues
+        expr: kyb_network_connectivity_status < 1
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+          category: infrastructure
+        annotations:
+          summary: "Network connectivity issues detected"
+          description: "Network connectivity is failing"
+          runbook_url: "https://runbook.kybplatform.com/network-connectivity-issues"
+
+      # High network latency
+      - alert: HighNetworkLatency
+        expr: kyb_network_latency_seconds > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          team: platform
+          category: infrastructure
+        annotations:
+          summary: "High network latency detected"
+          description: "Network latency is {{ $value }} seconds"
+          runbook_url: "https://runbook.kybplatform.com/high-network-latency"
+
+      # Critical network latency
+      - alert: CriticalNetworkLatency
+        expr: kyb_network_latency_seconds > 0.5
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+          category: infrastructure
+        annotations:
+          summary: "Critical network latency detected"
+          description: "Network latency is {{ $value }} seconds"
+          runbook_url: "https://runbook.kybplatform.com/critical-network-latency"

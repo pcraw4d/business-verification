@@ -1,0 +1,622 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "KYB Platform - Performance Dashboard",
+    "tags": ["kyb-platform", "performance", "monitoring"],
+    "style": "dark",
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(kyb_http_requests_total[5m])",
+            "legendFormat": "{{method}} {{endpoint}}"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "yAxes": [
+          {
+            "label": "Requests per second",
+            "min": 0
+          }
+        ],
+        "thresholds": [
+          {
+            "colorMode": "critical",
+            "fill": true,
+            "line": true,
+            "op": "gt",
+            "value": 1000,
+            "yaxis": "left"
+          },
+          {
+            "colorMode": "warning",
+            "fill": true,
+            "line": true,
+            "op": "gt",
+            "value": 500,
+            "yaxis": "left"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Response Time Percentiles",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(kyb_http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "P50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(kyb_http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "P95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(kyb_http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "P99"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        },
+        "yAxes": [
+          {
+            "label": "Response Time (seconds)",
+            "min": 0
+          }
+        ],
+        "thresholds": [
+          {
+            "colorMode": "critical",
+            "fill": true,
+            "line": true,
+            "op": "gt",
+            "value": 1.0,
+            "yaxis": "left"
+          },
+          {
+            "colorMode": "warning",
+            "fill": true,
+            "line": true,
+            "op": "gt",
+            "value": 0.5,
+            "yaxis": "left"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Error Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(kyb_http_requests_total{status_code=~\"5..\"}[5m]) / rate(kyb_http_requests_total[5m]) * 100",
+            "legendFormat": "5xx Error Rate"
+          },
+          {
+            "expr": "rate(kyb_http_requests_total{status_code=~\"4..\"}[5m]) / rate(kyb_http_requests_total[5m]) * 100",
+            "legendFormat": "4xx Error Rate"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        },
+        "yAxes": [
+          {
+            "label": "Error Rate (%)",
+            "min": 0,
+            "max": 100
+          }
+        ],
+        "thresholds": [
+          {
+            "colorMode": "critical",
+            "fill": true,
+            "line": true,
+            "op": "gt",
+            "value": 5,
+            "yaxis": "left"
+          },
+          {
+            "colorMode": "warning",
+            "fill": true,
+            "line": true,
+            "op": "gt",
+            "value": 1,
+            "yaxis": "left"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Active Connections",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "kyb_http_requests_in_flight",
+            "legendFormat": "Active Requests"
+          }
+        ],
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 12,
+          "y": 8
+        },
+        "thresholds": [
+          {
+            "color": "green",
+            "value": null
+          },
+          {
+            "color": "yellow",
+            "value": 50
+          },
+          {
+            "color": "red",
+            "value": 100
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Throughput",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(kyb_http_requests_total[5m]) * 60",
+            "legendFormat": "Requests per minute"
+          }
+        ],
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 18,
+          "y": 8
+        },
+        "thresholds": [
+          {
+            "color": "green",
+            "value": null
+          },
+          {
+            "color": "yellow",
+            "value": 30000
+          },
+          {
+            "color": "red",
+            "value": 60000
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "CPU Usage",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "kyb_system_cpu_usage",
+            "legendFormat": "CPU Usage"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 0,
+          "y": 16
+        },
+        "thresholds": [
+          {
+            "color": "green",
+            "value": null
+          },
+          {
+            "color": "yellow",
+            "value": 70
+          },
+          {
+            "color": "red",
+            "value": 85
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Memory Usage",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "kyb_system_memory_usage",
+            "legendFormat": "Memory Usage"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 6,
+          "y": 16
+        },
+        "thresholds": [
+          {
+            "color": "green",
+            "value": null
+          },
+          {
+            "color": "yellow",
+            "value": 70
+          },
+          {
+            "color": "red",
+            "value": 85
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Goroutines",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "kyb_system_goroutines",
+            "legendFormat": "Active Goroutines"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 12,
+          "y": 16
+        },
+        "thresholds": [
+          {
+            "color": "green",
+            "value": null
+          },
+          {
+            "color": "yellow",
+            "value": 500
+          },
+          {
+            "color": "red",
+            "value": 1000
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Heap Memory",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "kyb_system_heap_alloc / 1024 / 1024",
+            "legendFormat": "Heap Allocated (MB)"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 18,
+          "y": 16
+        },
+        "thresholds": [
+          {
+            "color": "green",
+            "value": null
+          },
+          {
+            "color": "yellow",
+            "value": 500
+          },
+          {
+            "color": "red",
+            "value": 800
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Database Query Duration",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(kyb_database_query_duration_seconds_bucket[5m]))",
+            "legendFormat": "P95 Query Duration"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 24
+        },
+        "yAxes": [
+          {
+            "label": "Query Duration (seconds)",
+            "min": 0
+          }
+        ],
+        "thresholds": [
+          {
+            "colorMode": "critical",
+            "fill": true,
+            "line": true,
+            "op": "gt",
+            "value": 1.0,
+            "yaxis": "left"
+          },
+          {
+            "colorMode": "warning",
+            "fill": true,
+            "line": true,
+            "op": "gt",
+            "value": 0.1,
+            "yaxis": "left"
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "External API Latency",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(kyb_external_api_duration_seconds_bucket[5m]))",
+            "legendFormat": "P95 API Latency"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 24
+        },
+        "yAxes": [
+          {
+            "label": "API Latency (seconds)",
+            "min": 0
+          }
+        ],
+        "thresholds": [
+          {
+            "colorMode": "critical",
+            "fill": true,
+            "line": true,
+            "op": "gt",
+            "value": 2.0,
+            "yaxis": "left"
+          },
+          {
+            "colorMode": "warning",
+            "fill": true,
+            "line": true,
+            "op": "gt",
+            "value": 1.0,
+            "yaxis": "left"
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Business Classification Requests",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(kyb_classification_requests_total[5m])",
+            "legendFormat": "Classification Requests/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 32
+        },
+        "yAxes": [
+          {
+            "label": "Requests per second",
+            "min": 0
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "title": "Classification Accuracy",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "kyb_classification_accuracy",
+            "legendFormat": "Classification Accuracy"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 12,
+          "y": 32
+        },
+        "thresholds": [
+          {
+            "color": "red",
+            "value": null
+          },
+          {
+            "color": "yellow",
+            "value": 0.9
+          },
+          {
+            "color": "green",
+            "value": 0.95
+          }
+        ]
+      },
+      {
+        "id": 14,
+        "title": "Risk Assessment Requests",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(kyb_risk_assessment_requests_total[5m]) * 60",
+            "legendFormat": "Risk Assessments/min"
+          }
+        ],
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 18,
+          "y": 32
+        }
+      },
+      {
+        "id": 15,
+        "title": "Authentication Events",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(kyb_authentication_events_total[5m])",
+            "legendFormat": "Auth Events/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 40
+        },
+        "yAxes": [
+          {
+            "label": "Events per second",
+            "min": 0
+          }
+        ]
+      },
+      {
+        "id": 16,
+        "title": "Rate Limit Hits",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(kyb_rate_limit_hits_total[5m]) * 60",
+            "legendFormat": "Rate Limit Hits/min"
+          }
+        ],
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 12,
+          "y": 40
+        },
+        "thresholds": [
+          {
+            "color": "green",
+            "value": null
+          },
+          {
+            "color": "yellow",
+            "value": 10
+          },
+          {
+            "color": "red",
+            "value": 50
+          }
+        ]
+      },
+      {
+        "id": 17,
+        "title": "API Key Usage",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(kyb_api_key_usage_total[5m]) * 60",
+            "legendFormat": "API Key Usage/min"
+          }
+        ],
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 18,
+          "y": 40
+        }
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": [
+        "5s",
+        "10s",
+        "30s",
+        "1m",
+        "5m",
+        "15m",
+        "30m",
+        "1h",
+        "2h",
+        "1d"
+      ]
+    },
+    "templating": {
+      "list": [
+        {
+          "name": "endpoint",
+          "type": "query",
+          "query": "label_values(kyb_http_requests_total, endpoint)",
+          "refresh": 2,
+          "includeAll": true,
+          "multi": true
+        },
+        {
+          "name": "method",
+          "type": "query",
+          "query": "label_values(kyb_http_requests_total, method)",
+          "refresh": 2,
+          "includeAll": true,
+          "multi": true
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "name": "Deployments",
+          "datasource": "Prometheus",
+          "expr": "changes(kyb_system_version[1m]) > 0",
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "titleFormat": "Deployment",
+          "textFormat": "Version: {{value}}"
+        }
+      ]
+    },
+    "refresh": "30s",
+    "schemaVersion": 16,
+    "version": 1,
+    "links": [
+      {
+        "title": "KYB Platform Documentation",
+        "url": "https://docs.kybplatform.com",
+        "targetBlank": true
+      },
+      {
+        "title": "Alerting Rules",
+        "url": "/grafana/d/alerting/kyb-alerts",
+        "targetBlank": false
+      }
+    ]
+  }
+}

@@ -1,0 +1,257 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kyb-platform-api
+  namespace: kyb-platform
+  labels:
+    app: kyb-platform-api
+    version: latest
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: kyb-platform-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: kyb-platform-api
+        version: latest
+    spec:
+      containers:
+      - name: kyb-platform-api
+        image: ghcr.io/REPOSITORY/kyb-platform:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: ENVIRONMENT
+          value: "production"
+        - name: LOG_LEVEL
+          value: "info"
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: kyb-platform-config
+              key: db_host
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: kyb-platform-config
+              key: db_port
+        - name: DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: kyb-platform-config
+              key: db_name
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: kyb-platform-config
+              key: redis_host
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: kyb-platform-config
+              key: redis_port
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: kyb-platform-secrets
+              key: db_user
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: kyb-platform-secrets
+              key: db_password
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: kyb-platform-secrets
+              key: jwt_secret
+        - name: API_KEY_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: kyb-platform-secrets
+              key: api_key_secret
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+      securityContext:
+        fsGroup: 1000
+      imagePullSecrets:
+      - name: ghcr-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kyb-platform-api-service
+  namespace: kyb-platform
+  labels:
+    app: kyb-platform-api
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: kyb-platform-api
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kyb-platform-ingress
+  namespace: kyb-platform
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+spec:
+  tls:
+  - hosts:
+    - api.kybplatform.com
+    secretName: kyb-platform-tls
+  rules:
+  - host: api.kybplatform.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: kyb-platform-api-service
+            port:
+              number: 80
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: kyb-platform-api-hpa
+  namespace: kyb-platform
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: kyb-platform-api
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kyb-platform-config
+  namespace: kyb-platform
+data:
+  db_host: "kyb-platform-db.cluster-xyz.us-east-1.rds.amazonaws.com"
+  db_port: "5432"
+  db_name: "kyb_platform"
+  redis_host: "kyb-platform-redis.xyz.cache.amazonaws.com"
+  redis_port: "6379"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kyb-platform-secrets
+  namespace: kyb-platform
+type: Opaque
+data:
+  db_user: <base64-encoded-db-user>
+  db_password: <base64-encoded-db-password>
+  jwt_secret: <base64-encoded-jwt-secret>
+  api_key_secret: <base64-encoded-api-key-secret>
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kyb-platform-sa
+  namespace: kyb-platform
+  labels:
+    app: kyb-platform-api
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kyb-platform-role
+  namespace: kyb-platform
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "endpoints"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kyb-platform-rolebinding
+  namespace: kyb-platform
+subjects:
+- kind: ServiceAccount
+  name: kyb-platform-sa
+  namespace: kyb-platform
+roleRef:
+  kind: Role
+  name: kyb-platform-role
+  apiGroup: rbac.authorization.k8s.io

@@ -4,385 +4,481 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"time"
+
+	"github.com/pcraw4d/business-verification/internal/observability"
 )
 
-// BackupConfig represents backup configuration
+// BackupConfig holds configuration for database backups
 type BackupConfig struct {
-	BackupDir      string        `json:"backup_dir"`
-	RetentionDays  int           `json:"retention_days"`
-	CompressBackup bool          `json:"compress_backup"`
-	BackupInterval time.Duration `json:"backup_interval"`
+	Enabled           bool
+	BackupDir         string
+	RetentionDays     int
+	Compression       bool
+	Encryption        bool
+	EncryptionKey     string
+	CrossRegion       bool
+	CrossRegionBucket string
+	Schedule          string
 }
 
-// BackupInfo represents backup information
-type BackupInfo struct {
-	ID        string    `json:"id"`
-	Filename  string    `json:"filename"`
-	Size      int64     `json:"size"`
-	CreatedAt time.Time `json:"created_at"`
-	Status    string    `json:"status"`
-	Error     string    `json:"error,omitempty"`
-	Checksum  string    `json:"checksum,omitempty"`
+// BackupService handles database backup operations
+type BackupService struct {
+	db     *sql.DB
+	config BackupConfig
+	logger *observability.Logger
 }
 
-// BackupSystem handles database backups
-type BackupSystem struct {
-	db           *sql.DB
-	config       *DatabaseConfig
-	backupConfig *BackupConfig
+// BackupResult represents the result of a backup operation
+type BackupResult struct {
+	BackupID    string
+	Filename    string
+	Size        int64
+	Checksum    string
+	StartTime   time.Time
+	EndTime     time.Time
+	Duration    time.Duration
+	Success     bool
+	Error       error
+	Compressed  bool
+	Encrypted   bool
+	CrossRegion bool
 }
 
-// NewBackupSystem creates a new backup system
-func NewBackupSystem(db *sql.DB, config *DatabaseConfig, backupConfig *BackupConfig) *BackupSystem {
-	return &BackupSystem{
-		db:           db,
-		config:       config,
-		backupConfig: backupConfig,
+// NewBackupService creates a new backup service
+func NewBackupService(db *sql.DB, config BackupConfig, logger *observability.Logger) *BackupService {
+	return &BackupService{
+		db:     db,
+		config: config,
+		logger: logger,
 	}
 }
 
-// CreateBackup creates a database backup
-func (b *BackupSystem) CreateBackup(ctx context.Context) (*BackupInfo, error) {
-	// Generate backup filename
-	timestamp := time.Now().Format("2006-01-02_15-04-05")
-	backupID := fmt.Sprintf("backup_%s", timestamp)
-	filename := fmt.Sprintf("%s.sql", backupID)
-	filepath := filepath.Join(b.backupConfig.BackupDir, filename)
+// CreateBackup creates a full database backup
+func (bs *BackupService) CreateBackup(ctx context.Context) (*BackupResult, error) {
+	startTime := time.Now()
+	backupID := fmt.Sprintf("backup-%s", startTime.Format("20060102-150405"))
 
-	// Ensure backup directory exists
-	if err := os.MkdirAll(b.backupConfig.BackupDir, 0755); err != nil {
+	bs.logger.Info("Starting database backup", "backup_id", backupID)
+
+	// Create backup directory if it doesn't exist
+	if err := os.MkdirAll(bs.config.BackupDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create backup directory: %w", err)
 	}
 
-	// Create backup info
-	backupInfo := &BackupInfo{
-		ID:        backupID,
-		Filename:  filename,
-		CreatedAt: time.Now(),
-		Status:    "in_progress",
-	}
+	// Generate backup filename
+	filename := filepath.Join(bs.config.BackupDir, fmt.Sprintf("%s.sql", backupID))
 
-	// Execute pg_dump command
+	// Create backup using pg_dump
 	cmd := exec.CommandContext(ctx, "pg_dump",
-		"-h", b.config.Host,
-		"-p", fmt.Sprintf("%d", b.config.Port),
-		"-U", b.config.Username,
-		"-d", b.config.Database,
-		"-f", filepath,
-		"--no-password", // Use environment variable for password
+		"--host="+os.Getenv("DB_HOST"),
+		"--port="+os.Getenv("DB_PORT"),
+		"--username="+os.Getenv("DB_USER"),
+		"--dbname="+os.Getenv("DB_NAME"),
+		"--verbose",
+		"--no-password",
+		"--file="+filename,
 	)
 
-	// Set environment variables
-	cmd.Env = append(os.Environ(), fmt.Sprintf("PGPASSWORD=%s", b.config.Password))
+	// Set environment variables for authentication
+	cmd.Env = append(os.Environ(),
+		"PGPASSWORD="+os.Getenv("DB_PASSWORD"),
+	)
 
-	// Execute backup
+	// Execute backup command
 	if err := cmd.Run(); err != nil {
-		backupInfo.Status = "failed"
-		backupInfo.Error = err.Error()
-		return backupInfo, fmt.Errorf("failed to create backup: %w", err)
+		bs.logger.Error("Backup command failed", "error", err, "backup_id", backupID)
+		return &BackupResult{
+			BackupID:  backupID,
+			StartTime: startTime,
+			EndTime:   time.Now(),
+			Success:   false,
+			Error:     err,
+		}, err
 	}
 
 	// Get file info
-	fileInfo, err := os.Stat(filepath)
+	fileInfo, err := os.Stat(filename)
 	if err != nil {
-		backupInfo.Status = "failed"
-		backupInfo.Error = err.Error()
-		return backupInfo, fmt.Errorf("failed to get backup file info: %w", err)
+		return nil, fmt.Errorf("failed to get backup file info: %w", err)
 	}
 
-	backupInfo.Size = fileInfo.Size()
-	backupInfo.Status = "completed"
+	// Calculate checksum
+	checksum, err := bs.calculateChecksum(filename)
+	if err != nil {
+		bs.logger.Warn("Failed to calculate checksum", "error", err, "backup_id", backupID)
+	}
 
-	// Compress backup if configured
-	if b.backupConfig.CompressBackup {
-		if err := b.compressBackup(filepath); err != nil {
-			log.Printf("Warning: failed to compress backup %s: %v", backupID, err)
+	endTime := time.Now()
+	duration := endTime.Sub(startTime)
+
+	result := &BackupResult{
+		BackupID:    backupID,
+		Filename:    filename,
+		Size:        fileInfo.Size(),
+		Checksum:    checksum,
+		StartTime:   startTime,
+		EndTime:     endTime,
+		Duration:    duration,
+		Success:     true,
+		Compressed:  bs.config.Compression,
+		Encrypted:   bs.config.Encryption,
+		CrossRegion: bs.config.CrossRegion,
+	}
+
+	bs.logger.Info("Database backup completed successfully",
+		"backup_id", backupID,
+		"filename", filename,
+		"size", fileInfo.Size(),
+		"duration", duration,
+	)
+
+	// Compress backup if enabled
+	if bs.config.Compression {
+		if err := bs.compressBackup(filename); err != nil {
+			bs.logger.Warn("Failed to compress backup", "error", err, "backup_id", backupID)
+		} else {
+			result.Filename = filename + ".gz"
+			if fileInfo, err := os.Stat(result.Filename); err == nil {
+				result.Size = fileInfo.Size()
+			}
 		}
 	}
 
-	log.Printf("Backup created successfully: %s (%d bytes)", backupID, backupInfo.Size)
-	return backupInfo, nil
+	// Encrypt backup if enabled
+	if bs.config.Encryption {
+		if err := bs.encryptBackup(result.Filename); err != nil {
+			bs.logger.Warn("Failed to encrypt backup", "error", err, "backup_id", backupID)
+		} else {
+			result.Filename = result.Filename + ".enc"
+			if fileInfo, err := os.Stat(result.Filename); err == nil {
+				result.Size = fileInfo.Size()
+			}
+		}
+	}
+
+	// Upload to cross-region if enabled
+	if bs.config.CrossRegion && bs.config.CrossRegionBucket != "" {
+		if err := bs.uploadToCrossRegion(result.Filename, backupID); err != nil {
+			bs.logger.Warn("Failed to upload to cross-region", "error", err, "backup_id", backupID)
+		}
+	}
+
+	// Store backup metadata in database
+	if err := bs.storeBackupMetadata(ctx, result); err != nil {
+		bs.logger.Warn("Failed to store backup metadata", "error", err, "backup_id", backupID)
+	}
+
+	return result, nil
 }
 
 // RestoreBackup restores a database from backup
-func (b *BackupSystem) RestoreBackup(ctx context.Context, backupID string) error {
-	// Find backup file
-	backupFile := b.findBackupFile(backupID)
-	if backupFile == "" {
-		return fmt.Errorf("backup file not found for ID: %s", backupID)
+func (bs *BackupService) RestoreBackup(ctx context.Context, backupID string) error {
+	bs.logger.Info("Starting database restore", "backup_id", backupID)
+
+	// Get backup metadata
+	metadata, err := bs.getBackupMetadata(ctx, backupID)
+	if err != nil {
+		return fmt.Errorf("failed to get backup metadata: %w", err)
 	}
 
-	// Check if file exists
-	if _, err := os.Stat(backupFile); os.IsNotExist(err) {
-		return fmt.Errorf("backup file does not exist: %s", backupFile)
+	// Check if backup file exists
+	if _, err := os.Stat(metadata.Filename); os.IsNotExist(err) {
+		return fmt.Errorf("backup file not found: %s", metadata.Filename)
 	}
 
-	// Execute psql command to restore
+	// Decrypt backup if it was encrypted
+	filename := metadata.Filename
+	if metadata.Encrypted {
+		if err := bs.decryptBackup(filename); err != nil {
+			return fmt.Errorf("failed to decrypt backup: %w", err)
+		}
+		filename = filename[:len(filename)-4] // Remove .enc extension
+	}
+
+	// Decompress backup if it was compressed
+	if metadata.Compressed {
+		if err := bs.decompressBackup(filename); err != nil {
+			return fmt.Errorf("failed to decompress backup: %w", err)
+		}
+		filename = filename[:len(filename)-3] // Remove .gz extension
+	}
+
+	// Restore database using psql
 	cmd := exec.CommandContext(ctx, "psql",
-		"-h", b.config.Host,
-		"-p", fmt.Sprintf("%d", b.config.Port),
-		"-U", b.config.Username,
-		"-d", b.config.Database,
-		"-f", backupFile,
-		"--no-password", // Use environment variable for password
+		"--host="+os.Getenv("DB_HOST"),
+		"--port="+os.Getenv("DB_PORT"),
+		"--username="+os.Getenv("DB_USER"),
+		"--dbname="+os.Getenv("DB_NAME"),
+		"--verbose",
+		"--no-password",
+		"--file="+filename,
 	)
 
-	// Set environment variables
-	cmd.Env = append(os.Environ(), fmt.Sprintf("PGPASSWORD=%s", b.config.Password))
+	// Set environment variables for authentication
+	cmd.Env = append(os.Environ(),
+		"PGPASSWORD="+os.Getenv("DB_PASSWORD"),
+	)
 
-	// Execute restore
+	// Execute restore command
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to restore backup: %w", err)
+		bs.logger.Error("Restore command failed", "error", err, "backup_id", backupID)
+		return err
 	}
 
-	log.Printf("Backup restored successfully: %s", backupID)
+	bs.logger.Info("Database restore completed successfully", "backup_id", backupID)
 	return nil
 }
 
-// ListBackups lists all available backups
-func (b *BackupSystem) ListBackups() ([]*BackupInfo, error) {
-	var backups []*BackupInfo
+// ListBackups returns a list of available backups
+func (bs *BackupService) ListBackups(ctx context.Context) ([]*BackupResult, error) {
+	query := `
+		SELECT backup_id, filename, size, checksum, start_time, end_time, 
+		       duration_ms, success, compressed, encrypted, cross_region
+		FROM backup_metadata 
+		ORDER BY start_time DESC
+	`
 
-	// Read backup directory
-	files, err := os.ReadDir(b.backupConfig.BackupDir)
+	rows, err := bs.db.QueryContext(ctx, query)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return backups, nil // No backups directory yet
-		}
-		return nil, fmt.Errorf("failed to read backup directory: %w", err)
+		return nil, fmt.Errorf("failed to query backup metadata: %w", err)
 	}
+	defer rows.Close()
 
-	for _, file := range files {
-		if file.IsDir() {
-			continue
-		}
+	var backups []*BackupResult
+	for rows.Next() {
+		var backup BackupResult
+		var durationMs int64
+		var success bool
 
-		// Parse backup info from filename
-		backupInfo, err := b.parseBackupInfo(file.Name())
+		err := rows.Scan(
+			&backup.BackupID,
+			&backup.Filename,
+			&backup.Size,
+			&backup.Checksum,
+			&backup.StartTime,
+			&backup.EndTime,
+			&durationMs,
+			&success,
+			&backup.Compressed,
+			&backup.Encrypted,
+			&backup.CrossRegion,
+		)
 		if err != nil {
-			log.Printf("Warning: failed to parse backup info for %s: %v", file.Name(), err)
-			continue
+			return nil, fmt.Errorf("failed to scan backup metadata: %w", err)
 		}
 
-		// Get file info
-		fileInfo, err := file.Info()
-		if err != nil {
-			log.Printf("Warning: failed to get file info for %s: %v", file.Name(), err)
-			continue
-		}
-
-		backupInfo.Size = fileInfo.Size()
-		backupInfo.CreatedAt = fileInfo.ModTime()
-		backupInfo.Status = "completed"
-
-		backups = append(backups, backupInfo)
+		backup.Duration = time.Duration(durationMs) * time.Millisecond
+		backup.Success = success
+		backups = append(backups, &backup)
 	}
 
 	return backups, nil
 }
 
-// DeleteBackup deletes a specific backup
-func (b *BackupSystem) DeleteBackup(backupID string) error {
-	backupFile := b.findBackupFile(backupID)
-	if backupFile == "" {
-		return fmt.Errorf("backup file not found for ID: %s", backupID)
-	}
+// CleanupOldBackups removes backups older than the retention period
+func (bs *BackupService) CleanupOldBackups(ctx context.Context) error {
+	bs.logger.Info("Starting cleanup of old backups", "retention_days", bs.config.RetentionDays)
 
-	if err := os.Remove(backupFile); err != nil {
-		return fmt.Errorf("failed to delete backup file: %w", err)
-	}
+	cutoffDate := time.Now().AddDate(0, 0, -bs.config.RetentionDays)
 
-	log.Printf("Backup deleted successfully: %s", backupID)
-	return nil
-}
+	// Get old backups
+	query := `
+		SELECT backup_id, filename 
+		FROM backup_metadata 
+		WHERE start_time < $1 AND success = true
+	`
 
-// CleanupOldBackups removes backups older than retention period
-func (b *BackupSystem) CleanupOldBackups() error {
-	backups, err := b.ListBackups()
+	rows, err := bs.db.QueryContext(ctx, query, cutoffDate)
 	if err != nil {
-		return fmt.Errorf("failed to list backups: %w", err)
+		return fmt.Errorf("failed to query old backups: %w", err)
 	}
+	defer rows.Close()
 
-	cutoffTime := time.Now().AddDate(0, 0, -b.backupConfig.RetentionDays)
-	deletedCount := 0
-
-	for _, backup := range backups {
-		if backup.CreatedAt.Before(cutoffTime) {
-			if err := b.DeleteBackup(backup.ID); err != nil {
-				log.Printf("Warning: failed to delete old backup %s: %v", backup.ID, err)
-			} else {
-				deletedCount++
-			}
+	var deletedCount int
+	for rows.Next() {
+		var backupID, filename string
+		if err := rows.Scan(&backupID, &filename); err != nil {
+			bs.logger.Warn("Failed to scan backup record", "error", err)
+			continue
 		}
+
+		// Delete backup file
+		if err := os.Remove(filename); err != nil {
+			bs.logger.Warn("Failed to delete backup file", "error", err, "filename", filename)
+			continue
+		}
+
+		// Delete metadata
+		if _, err := bs.db.ExecContext(ctx, "DELETE FROM backup_metadata WHERE backup_id = $1", backupID); err != nil {
+			bs.logger.Warn("Failed to delete backup metadata", "error", err, "backup_id", backupID)
+			continue
+		}
+
+		deletedCount++
+		bs.logger.Info("Deleted old backup", "backup_id", backupID, "filename", filename)
 	}
 
-	if deletedCount > 0 {
-		log.Printf("Cleaned up %d old backups", deletedCount)
-	}
-
+	bs.logger.Info("Backup cleanup completed", "deleted_count", deletedCount)
 	return nil
 }
 
-// GetBackupStatus returns the status of a specific backup
-func (b *BackupSystem) GetBackupStatus(backupID string) (*BackupInfo, error) {
-	backups, err := b.ListBackups()
+// ValidateBackup validates the integrity of a backup
+func (bs *BackupService) ValidateBackup(ctx context.Context, backupID string) error {
+	bs.logger.Info("Validating backup", "backup_id", backupID)
+
+	// Get backup metadata
+	metadata, err := bs.getBackupMetadata(ctx, backupID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list backups: %w", err)
+		return fmt.Errorf("failed to get backup metadata: %w", err)
 	}
 
-	for _, backup := range backups {
-		if backup.ID == backupID {
-			return backup, nil
-		}
+	// Check if backup file exists
+	if _, err := os.Stat(metadata.Filename); os.IsNotExist(err) {
+		return fmt.Errorf("backup file not found: %s", metadata.Filename)
 	}
 
-	return nil, fmt.Errorf("backup not found: %s", backupID)
-}
-
-// findBackupFile finds the backup file for a given backup ID
-func (b *BackupSystem) findBackupFile(backupID string) string {
-	// Try different file extensions
-	extensions := []string{".sql", ".sql.gz", ".sql.bz2"}
-
-	for _, ext := range extensions {
-		filename := backupID + ext
-		filepath := filepath.Join(b.backupConfig.BackupDir, filename)
-
-		if _, err := os.Stat(filepath); err == nil {
-			return filepath
-		}
-	}
-
-	return ""
-}
-
-// parseBackupInfo parses backup information from filename
-func (b *BackupSystem) parseBackupInfo(filename string) (*BackupInfo, error) {
-	// Expected format: backup_YYYY-MM-DD_HH-MM-SS.sql
-	if len(filename) < 20 {
-		return nil, fmt.Errorf("invalid backup filename format: %s", filename)
-	}
-
-	// Extract backup ID (remove extension)
-	backupID := filename
-	if ext := filepath.Ext(filename); ext != "" {
-		backupID = filename[:len(filename)-len(ext)]
-	}
-
-	// Validate backup ID format
-	if len(backupID) < 20 {
-		return nil, fmt.Errorf("invalid backup ID format: %s", backupID)
-	}
-
-	return &BackupInfo{
-		ID:       backupID,
-		Filename: filename,
-		Status:   "unknown",
-	}, nil
-}
-
-// compressBackup compresses a backup file
-func (b *BackupSystem) compressBackup(filepath string) error {
-	// Use gzip to compress the backup file
-	cmd := exec.Command("gzip", filepath)
-
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to compress backup: %w", err)
-	}
-
-	return nil
-}
-
-// decompressBackup decompresses a backup file
-func (b *BackupSystem) decompressBackup(filepath string) error {
-	// Use gunzip to decompress the backup file
-	cmd := exec.Command("gunzip", filepath)
-
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to decompress backup: %w", err)
-	}
-
-	return nil
-}
-
-// ValidateBackup validates a backup file
-func (b *BackupSystem) ValidateBackup(backupID string) error {
-	backupFile := b.findBackupFile(backupID)
-	if backupFile == "" {
-		return fmt.Errorf("backup file not found for ID: %s", backupID)
-	}
-
-	// Check if file is compressed
-	isCompressed := filepath.Ext(backupFile) == ".gz"
-
-	// For compressed files, we can only check if they can be decompressed
-	if isCompressed {
-		cmd := exec.Command("gunzip", "-t", backupFile)
-		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("backup file is corrupted or invalid: %w", err)
-		}
-	} else {
-		// For uncompressed files, we can try to parse the SQL
-		// This is a basic validation - in production you might want more sophisticated validation
-		file, err := os.Open(backupFile)
-		if err != nil {
-			return fmt.Errorf("failed to open backup file: %w", err)
-		}
-		defer file.Close()
-
-		// Read first few bytes to check if it looks like SQL
-		buffer := make([]byte, 100)
-		n, err := file.Read(buffer)
-		if err != nil {
-			return fmt.Errorf("failed to read backup file: %w", err)
-		}
-
-		content := string(buffer[:n])
-		if len(content) < 10 {
-			return fmt.Errorf("backup file appears to be empty or too small")
-		}
-	}
-
-	return nil
-}
-
-// GetBackupStats returns backup statistics
-func (b *BackupSystem) GetBackupStats() (map[string]interface{}, error) {
-	backups, err := b.ListBackups()
+	// Calculate current checksum
+	currentChecksum, err := bs.calculateChecksum(metadata.Filename)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list backups: %w", err)
+		return fmt.Errorf("failed to calculate current checksum: %w", err)
 	}
 
-	totalSize := int64(0)
-	oldestBackup := time.Now()
-	newestBackup := time.Time{}
-
-	for _, backup := range backups {
-		totalSize += backup.Size
-
-		if backup.CreatedAt.Before(oldestBackup) {
-			oldestBackup = backup.CreatedAt
-		}
-
-		if backup.CreatedAt.After(newestBackup) {
-			newestBackup = backup.CreatedAt
-		}
+	// Compare checksums
+	if currentChecksum != metadata.Checksum {
+		return fmt.Errorf("checksum mismatch: expected %s, got %s", metadata.Checksum, currentChecksum)
 	}
 
-	stats := map[string]interface{}{
-		"total_backups":    len(backups),
-		"total_size_bytes": totalSize,
-		"total_size_mb":    float64(totalSize) / (1024 * 1024),
-		"oldest_backup":    oldestBackup,
-		"newest_backup":    newestBackup,
-		"retention_days":   b.backupConfig.RetentionDays,
-		"backup_dir":       b.backupConfig.BackupDir,
+	bs.logger.Info("Backup validation completed successfully", "backup_id", backupID)
+	return nil
+}
+
+// Helper methods
+
+func (bs *BackupService) calculateChecksum(filename string) (string, error) {
+	cmd := exec.Command("sha256sum", filename)
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
 	}
 
-	return stats, nil
+	// Extract checksum from output (format: "checksum filename")
+	checksum := string(output[:64])
+	return checksum, nil
+}
+
+func (bs *BackupService) compressBackup(filename string) error {
+	cmd := exec.Command("gzip", filename)
+	return cmd.Run()
+}
+
+func (bs *BackupService) decompressBackup(filename string) error {
+	cmd := exec.Command("gunzip", filename)
+	return cmd.Run()
+}
+
+func (bs *BackupService) encryptBackup(filename string) error {
+	// Simple encryption using openssl
+	cmd := exec.Command("openssl", "enc", "-aes-256-cbc", "-salt", "-in", filename, "-out", filename+".enc", "-k", bs.config.EncryptionKey)
+	return cmd.Run()
+}
+
+func (bs *BackupService) decryptBackup(filename string) error {
+	// Simple decryption using openssl
+	cmd := exec.Command("openssl", "enc", "-d", "-aes-256-cbc", "-in", filename, "-out", filename[:len(filename)-4], "-k", bs.config.EncryptionKey)
+	return cmd.Run()
+}
+
+func (bs *BackupService) uploadToCrossRegion(filename, backupID string) error {
+	// Upload to S3 using AWS CLI
+	cmd := exec.Command("aws", "s3", "cp", filename, fmt.Sprintf("s3://%s/backups/%s", bs.config.CrossRegionBucket, backupID))
+	return cmd.Run()
+}
+
+func (bs *BackupService) storeBackupMetadata(ctx context.Context, result *BackupResult) error {
+	query := `
+		INSERT INTO backup_metadata (
+			backup_id, filename, size, checksum, start_time, end_time, 
+			duration_ms, success, compressed, encrypted, cross_region
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+	`
+
+	_, err := bs.db.ExecContext(ctx, query,
+		result.BackupID,
+		result.Filename,
+		result.Size,
+		result.Checksum,
+		result.StartTime,
+		result.EndTime,
+		result.Duration.Milliseconds(),
+		result.Success,
+		result.Compressed,
+		result.Encrypted,
+		result.CrossRegion,
+	)
+
+	return err
+}
+
+func (bs *BackupService) getBackupMetadata(ctx context.Context, backupID string) (*BackupResult, error) {
+	query := `
+		SELECT backup_id, filename, size, checksum, start_time, end_time, 
+		       duration_ms, success, compressed, encrypted, cross_region
+		FROM backup_metadata 
+		WHERE backup_id = $1
+	`
+
+	var backup BackupResult
+	var durationMs int64
+	var success bool
+
+	err := bs.db.QueryRowContext(ctx, query, backupID).Scan(
+		&backup.BackupID,
+		&backup.Filename,
+		&backup.Size,
+		&backup.Checksum,
+		&backup.StartTime,
+		&backup.EndTime,
+		&durationMs,
+		&success,
+		&backup.Compressed,
+		&backup.Encrypted,
+		&backup.CrossRegion,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	backup.Duration = time.Duration(durationMs) * time.Millisecond
+	backup.Success = success
+
+	return &backup, nil
+}
+
+// CreateBackupTable creates the backup metadata table
+func (bs *BackupService) CreateBackupTable(ctx context.Context) error {
+	query := `
+		CREATE TABLE IF NOT EXISTS backup_metadata (
+			id SERIAL PRIMARY KEY,
+			backup_id VARCHAR(50) UNIQUE NOT NULL,
+			filename VARCHAR(500) NOT NULL,
+			size BIGINT NOT NULL,
+			checksum VARCHAR(64),
+			start_time TIMESTAMP NOT NULL,
+			end_time TIMESTAMP NOT NULL,
+			duration_ms BIGINT NOT NULL,
+			success BOOLEAN NOT NULL,
+			compressed BOOLEAN DEFAULT FALSE,
+			encrypted BOOLEAN DEFAULT FALSE,
+			cross_region BOOLEAN DEFAULT FALSE,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)
+	`
+
+	_, err := bs.db.ExecContext(ctx, query)
+	return err
 }

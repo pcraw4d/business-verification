@@ -1,0 +1,286 @@
+name: Security Scanning
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: "0 2 * * *"
+
+env:
+  GO_VERSION: "1.22"
+  SCAN_OUTPUT_DIR: "./security-reports"
+
+jobs:
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for secret scanning
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Install security tools
+        run: |
+          # Install Go security tools
+          go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+
+          # Install Trivy
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.48.0
+
+          # Install Python security tools
+          pip install bandit safety
+
+          # Verify installations
+          gosec --version
+          govulncheck --version
+          trivy --version
+          bandit --version
+          safety --version
+
+      - name: Create output directory
+        run: mkdir -p ${{ env.SCAN_OUTPUT_DIR }}
+
+      - name: Run comprehensive security scan
+        run: |
+          chmod +x scripts/security-scan.sh
+          ./scripts/security-scan.sh \
+            --scan-dir . \
+            --output-dir ${{ env.SCAN_OUTPUT_DIR }} \
+            --scan-type all \
+            --fail-on-critical true
+        continue-on-error: true
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-reports-${{ github.run_id }}
+          path: ${{ env.SCAN_OUTPUT_DIR }}/
+          retention-days: 30
+
+      - name: Parse scan results
+        id: parse-results
+        run: |
+          # Parse gosec results
+          if [ -f "${{ env.SCAN_OUTPUT_DIR }}/code-security-scan.json" ]; then
+            CRITICAL_COUNT=$(jq '[.Issues[] | select(.severity == "HIGH")] | length' "${{ env.SCAN_OUTPUT_DIR }}/code-security-scan.json" 2>/dev/null || echo "0")
+            HIGH_COUNT=$(jq '[.Issues[] | select(.severity == "MEDIUM")] | length' "${{ env.SCAN_OUTPUT_DIR }}/code-security-scan.json" 2>/dev/null || echo "0")
+            echo "critical_count=$CRITICAL_COUNT" >> $GITHUB_OUTPUT
+            echo "high_count=$HIGH_COUNT" >> $GITHUB_OUTPUT
+          else
+            echo "critical_count=0" >> $GITHUB_OUTPUT
+            echo "high_count=0" >> $GITHUB_OUTPUT
+          fi
+
+          # Check for any scan failures
+          if [ -f "${{ env.SCAN_OUTPUT_DIR }}/security-scan.log" ]; then
+            if grep -q "ERROR\|CRITICAL" "${{ env.SCAN_OUTPUT_DIR }}/security-scan.log"; then
+              echo "has_critical_issues=true" >> $GITHUB_OUTPUT
+            else
+              echo "has_critical_issues=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "has_critical_issues=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Security scan summary
+        if: always()
+        run: |
+          echo "## Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Scan completed:** $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Issues Found:" >> $GITHUB_STEP_SUMMARY
+          echo "- Critical: ${{ steps.parse-results.outputs.critical_count }}" >> $GITHUB_STEP_SUMMARY
+          echo "- High: ${{ steps.parse-results.outputs.high_count }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.parse-results.outputs.has_critical_issues }}" = "true" ]; then
+            echo "⚠️ **Critical security issues detected!**" >> $GITHUB_STEP_SUMMARY
+            echo "Please review the security reports and address issues immediately." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ **No critical security issues detected**" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📋 **Reports available:** Security reports have been uploaded as artifacts." >> $GITHUB_STEP_SUMMARY
+
+      - name: Fail on critical issues
+        if: steps.parse-results.outputs.has_critical_issues == 'true'
+        run: |
+          echo "🚨 Critical security issues detected. Build failed."
+          echo "Please review and fix security issues before proceeding."
+          exit 1
+
+  dependency-scan:
+    name: Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Install Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          trivy-version: "0.48.0"
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "sarif"
+          output: "trivy-results.sarif"
+          severity: "CRITICAL,HIGH"
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-results.sarif"
+
+      - name: Run Go vulnerability check
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./... > govulncheck-results.txt 2>&1 || true
+
+          # Check for critical vulnerabilities
+          if grep -q "CRITICAL\|HIGH" govulncheck-results.txt; then
+            echo "🚨 Critical or high severity vulnerabilities found in Go dependencies"
+            cat govulncheck-results.txt
+            exit 1
+          else
+            echo "✅ No critical or high severity vulnerabilities found in Go dependencies"
+          fi
+
+  secret-scan:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for secret scanning
+
+      - name: Run TruffleHog secret scanner
+        uses: trufflesecurity/trufflehog@main
+        with:
+          args: --only-verified --fail --no-update
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run GitGuardian secret scanner
+        uses: GitGuardian/ggshield-action@main
+        with:
+          command: scan path . --recursive --exit-zero
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  container-scan:
+    name: Container Security Scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: |
+          docker build -t kyb-tool:latest .
+
+      - name: Run Trivy container scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "kyb-tool:latest"
+          format: "sarif"
+          output: "trivy-container-results.sarif"
+          severity: "CRITICAL,HIGH"
+
+      - name: Upload container scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-container-results.sarif"
+
+  compliance-check:
+    name: Compliance Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run compliance checks
+        run: |
+          # Check for hardcoded secrets
+          echo "Checking for hardcoded secrets..."
+          if grep -r -i "password\|secret\|key\|token" . --exclude-dir=.git --exclude-dir=vendor --exclude-dir=node_modules | grep -v "example\|test\|mock"; then
+            echo "🚨 Potential hardcoded secrets found!"
+            exit 1
+          fi
+
+          # Check for proper TLS configuration
+          echo "Checking TLS configuration..."
+          if grep -r "http://" . --include="*.go" --exclude-dir=vendor --exclude-dir=test; then
+            echo "⚠️  HTTP URLs found in Go code"
+          fi
+
+          # Check for proper error handling
+          echo "Checking error handling..."
+          if grep -r "if err != nil" . --include="*.go" --exclude-dir=vendor | wc -l | grep -q "^0$"; then
+            echo "⚠️  No error handling patterns found"
+          fi
+
+          echo "✅ Basic compliance checks passed"
+
+  security-notification:
+    name: Security Notification
+    runs-on: ubuntu-latest
+    needs: [security-scan, dependency-scan, secret-scan]
+    if: always() && (needs.security-scan.result == 'failure' || needs.dependency-scan.result == 'failure' || needs.secret-scan.result == 'failure')
+
+    steps:
+      - name: Send security alert
+        run: |
+          echo "🚨 Security scan failed!"
+          echo "Please review the security reports and address issues immediately."
+          echo "Failed jobs:"
+          echo "- Security Scan: ${{ needs.security-scan.result }}"
+          echo "- Dependency Scan: ${{ needs.dependency-scan.result }}"
+          echo "- Secret Scan: ${{ needs.secret-scan.result }}"
+
+          # In a real implementation, this would send notifications via:
+          # - Slack webhook
+          # - Email
+          # - PagerDuty
+          # - Security team dashboard
