@@ -93,11 +93,11 @@
 
 **1.4 Business-Website Connection Verification**
 
-- [ ] Create business name matching algorithms
-- [ ] Implement address and contact information verification
-- [ ] Set up business registration data cross-reference
-- [ ] Create ownership evidence scoring system
-- [ ] Implement connection confidence assessment
+- [x] Create business name matching algorithms
+- [x] Implement address and contact information verification
+- [x] Set up business registration data cross-reference
+- [x] Create ownership evidence scoring system
+- [x] Implement connection confidence assessment
 
 **1.5 Web Search Integration**
 
