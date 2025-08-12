@@ -284,7 +284,11 @@ func TestGetErrorsBySeverity(t *testing.T) {
 
 	logger := zap.NewNop()
 	monitoring := NewMonitoringSystem(logger)
-	logAggregation := NewLogAggregationSystem(config, logger)
+	logAggregationConfig := &LogAggregationConfig{EnableConsole: true, EnableFile: false, EnableElastic: false, BatchSize: 100, BatchTimeout: 5 * time.Second, BufferSize: 1000, FlushInterval: 10 * time.Second}
+	logAggregation, err := NewLogAggregationSystem(logAggregationConfig)
+	if err != nil {
+		t.Fatalf("Failed to create log aggregation system: %v", err)
+	}
 
 	ets := NewErrorTrackingSystem(monitoring, logAggregation, config, logger)
 
@@ -334,7 +338,11 @@ func TestGetErrorsByCategory(t *testing.T) {
 
 	logger := zap.NewNop()
 	monitoring := NewMonitoringSystem(logger)
-	logAggregation := NewLogAggregationSystem(config, logger)
+	logAggregationConfig := &LogAggregationConfig{EnableConsole: true, EnableFile: false, EnableElastic: false, BatchSize: 100, BatchTimeout: 5 * time.Second, BufferSize: 1000, FlushInterval: 10 * time.Second}
+	logAggregation, err := NewLogAggregationSystem(logAggregationConfig)
+	if err != nil {
+		t.Fatalf("Failed to create log aggregation system: %v", err)
+	}
 
 	ets := NewErrorTrackingSystem(monitoring, logAggregation, config, logger)
 
@@ -384,7 +392,11 @@ func TestUpdateErrorStatus(t *testing.T) {
 
 	logger := zap.NewNop()
 	monitoring := NewMonitoringSystem(logger)
-	logAggregation := NewLogAggregationSystem(config, logger)
+	logAggregationConfig := &LogAggregationConfig{EnableConsole: true, EnableFile: false, EnableElastic: false, BatchSize: 100, BatchTimeout: 5 * time.Second, BufferSize: 1000, FlushInterval: 10 * time.Second}
+	logAggregation, err := NewLogAggregationSystem(logAggregationConfig)
+	if err != nil {
+		t.Fatalf("Failed to create log aggregation system: %v", err)
+	}
 
 	ets := NewErrorTrackingSystem(monitoring, logAggregation, config, logger)
 
@@ -430,7 +442,11 @@ func TestErrorTrackingHandler_GetErrors(t *testing.T) {
 
 	logger := zap.NewNop()
 	monitoring := NewMonitoringSystem(logger)
-	logAggregation := NewLogAggregationSystem(config, logger)
+	logAggregationConfig := &LogAggregationConfig{EnableConsole: true, EnableFile: false, EnableElastic: false, BatchSize: 100, BatchTimeout: 5 * time.Second, BufferSize: 1000, FlushInterval: 10 * time.Second}
+	logAggregation, err := NewLogAggregationSystem(logAggregationConfig)
+	if err != nil {
+		t.Fatalf("Failed to create log aggregation system: %v", err)
+	}
 
 	ets := NewErrorTrackingSystem(monitoring, logAggregation, config, logger)
 
@@ -469,7 +485,7 @@ func TestErrorTrackingHandler_GetErrors(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var response map[string]interface{}
-	err := json.Unmarshal(w.Body.Bytes(), &response)
+	err2 := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 
 	assert.Contains(t, response, "errors")
@@ -513,7 +529,11 @@ func TestErrorTrackingHandler_CreateError(t *testing.T) {
 
 	logger := zap.NewNop()
 	monitoring := NewMonitoringSystem(logger)
-	logAggregation := NewLogAggregationSystem(config, logger)
+	logAggregationConfig := &LogAggregationConfig{EnableConsole: true, EnableFile: false, EnableElastic: false, BatchSize: 100, BatchTimeout: 5 * time.Second, BufferSize: 1000, FlushInterval: 10 * time.Second}
+	logAggregation, err := NewLogAggregationSystem(logAggregationConfig)
+	if err != nil {
+		t.Fatalf("Failed to create log aggregation system: %v", err)
+	}
 
 	ets := NewErrorTrackingSystem(monitoring, logAggregation, config, logger)
 
@@ -558,7 +578,11 @@ func TestErrorTrackingHandler_UpdateError(t *testing.T) {
 
 	logger := zap.NewNop()
 	monitoring := NewMonitoringSystem(logger)
-	logAggregation := NewLogAggregationSystem(config, logger)
+	logAggregationConfig := &LogAggregationConfig{EnableConsole: true, EnableFile: false, EnableElastic: false, BatchSize: 100, BatchTimeout: 5 * time.Second, BufferSize: 1000, FlushInterval: 10 * time.Second}
+	logAggregation, err := NewLogAggregationSystem(logAggregationConfig)
+	if err != nil {
+		t.Fatalf("Failed to create log aggregation system: %v", err)
+	}
 
 	ets := NewErrorTrackingSystem(monitoring, logAggregation, config, logger)
 
@@ -608,7 +632,11 @@ func TestErrorPatternDetection(t *testing.T) {
 
 	logger := zap.NewNop()
 	monitoring := NewMonitoringSystem(logger)
-	logAggregation := NewLogAggregationSystem(config, logger)
+	logAggregationConfig := &LogAggregationConfig{EnableConsole: true, EnableFile: false, EnableElastic: false, BatchSize: 100, BatchTimeout: 5 * time.Second, BufferSize: 1000, FlushInterval: 10 * time.Second}
+	logAggregation, err := NewLogAggregationSystem(logAggregationConfig)
+	if err != nil {
+		t.Fatalf("Failed to create log aggregation system: %v", err)
+	}
 
 	ets := NewErrorTrackingSystem(monitoring, logAggregation, config, logger)
 
@@ -645,7 +673,11 @@ func TestErrorCorrelation(t *testing.T) {
 
 	logger := zap.NewNop()
 	monitoring := NewMonitoringSystem(logger)
-	logAggregation := NewLogAggregationSystem(config, logger)
+	logAggregationConfig := &LogAggregationConfig{EnableConsole: true, EnableFile: false, EnableElastic: false, BatchSize: 100, BatchTimeout: 5 * time.Second, BufferSize: 1000, FlushInterval: 10 * time.Second}
+	logAggregation, err := NewLogAggregationSystem(logAggregationConfig)
+	if err != nil {
+		t.Fatalf("Failed to create log aggregation system: %v", err)
+	}
 
 	ets := NewErrorTrackingSystem(monitoring, logAggregation, config, logger)
 
@@ -673,7 +705,11 @@ func TestCleanupOldErrors(t *testing.T) {
 
 	logger := zap.NewNop()
 	monitoring := NewMonitoringSystem(logger)
-	logAggregation := NewLogAggregationSystem(config, logger)
+	logAggregationConfig := &LogAggregationConfig{EnableConsole: true, EnableFile: false, EnableElastic: false, BatchSize: 100, BatchTimeout: 5 * time.Second, BufferSize: 1000, FlushInterval: 10 * time.Second}
+	logAggregation, err := NewLogAggregationSystem(logAggregationConfig)
+	if err != nil {
+		t.Fatalf("Failed to create log aggregation system: %v", err)
+	}
 
 	ets := NewErrorTrackingSystem(monitoring, logAggregation, config, logger)
 
@@ -708,7 +744,11 @@ func TestErrorTrackingDisabled(t *testing.T) {
 
 	logger := zap.NewNop()
 	monitoring := NewMonitoringSystem(logger)
-	logAggregation := NewLogAggregationSystem(config, logger)
+	logAggregationConfig := &LogAggregationConfig{EnableConsole: true, EnableFile: false, EnableElastic: false, BatchSize: 100, BatchTimeout: 5 * time.Second, BufferSize: 1000, FlushInterval: 10 * time.Second}
+	logAggregation, err := NewLogAggregationSystem(logAggregationConfig)
+	if err != nil {
+		t.Fatalf("Failed to create log aggregation system: %v", err)
+	}
 
 	ets := NewErrorTrackingSystem(monitoring, logAggregation, config, logger)
 

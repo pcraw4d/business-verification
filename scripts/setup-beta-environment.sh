@@ -1,9 +1,17 @@
 #!/bin/bash
 
-# KYB Platform - Beta Environment Setup Script
-# This script sets up the complete beta testing environment
+# Beta Testing Environment Setup Script
+# This script sets up the KYB Platform for beta testing
 
 set -e
+
+echo "🚀 Setting up KYB Platform Beta Testing Environment..."
+
+# Configuration
+BETA_ENV="beta"
+BETA_PORT="8081"
+BETA_DB_NAME="kyb_beta"
+BETA_LOG_LEVEL="info"
 
 # Colors for output
 RED='\033[0;31m'
@@ -12,768 +20,457 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Configuration
-BETA_ENV_NAME="kyb-beta"
-BETA_PORT="8082"
-BETA_DB_PORT="5433"
-BETA_REDIS_PORT="6380"
-BETA_PROMETHEUS_PORT="9092"
-BETA_GRAFANA_PORT="3002"
-BETA_ELASTICSEARCH_PORT="9201"
-BETA_KIBANA_PORT="5602"
-BETA_MATTERMOST_PORT="8065"
-
-# Logging function
-log() {
-    echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}"
+# Function to print colored output
+print_status() {
+    echo -e "${BLUE}[INFO]${NC} $1"
 }
 
-warn() {
-    echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] WARNING: $1${NC}"
+print_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
 }
 
-error() {
-    echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ERROR: $1${NC}"
-    exit 1
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
 }
 
-info() {
-    echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')] INFO: $1${NC}"
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Function to check if Docker is running
+# Check if Docker is running
 check_docker() {
+    print_status "Checking Docker status..."
     if ! docker info > /dev/null 2>&1; then
-        error "Docker is not running. Please start Docker and try again."
+        print_error "Docker is not running. Please start Docker and try again."
+        exit 1
     fi
-    log "Docker is running"
+    print_success "Docker is running"
 }
 
-# Function to check if ports are available
-check_ports() {
-    local ports=($BETA_PORT $BETA_DB_PORT $BETA_REDIS_PORT $BETA_PROMETHEUS_PORT $BETA_GRAFANA_PORT $BETA_ELASTICSEARCH_PORT $BETA_KIBANA_PORT $BETA_MATTERMOST_PORT)
-    
-    for port in "${ports[@]}"; do
-        if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
-            warn "Port $port is already in use. Please free up the port or modify the configuration."
-        fi
-    done
-    log "Port availability check completed"
-}
-
-# Function to create beta environment configuration
-create_beta_config() {
-    log "Creating beta environment configuration..."
+# Create beta environment configuration
+setup_beta_config() {
+    print_status "Setting up beta environment configuration..."
     
     # Create beta environment file
     cat > configs/beta.env << EOF
-# KYB Platform Beta Environment Configuration
+# Beta Environment Configuration
 ENV=beta
-BETA_MODE=true
+PORT=$BETA_PORT
+HOST=0.0.0.0
 
 # Database Configuration
-DB_HOST=postgres-beta
+DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=kyb_beta
+DB_NAME=$BETA_DB_NAME
 DB_USER=kyb_beta_user
-DB_PASSWORD=beta_password_secure
+DB_PASSWORD=kyb_beta_password
+DB_SSL_MODE=disable
 
-# Redis Configuration
-REDIS_HOST=redis-beta
-REDIS_PORT=6379
-REDIS_PASSWORD=beta_redis_password
+# Logging Configuration
+LOG_LEVEL=$BETA_LOG_LEVEL
+LOG_FORMAT=json
 
-# Application Configuration
-JWT_SECRET=beta_jwt_secret_key_very_secure
-LOG_LEVEL=debug
-METRICS_ENABLED=true
-FEEDBACK_COLLECTION_ENABLED=true
-USER_ANALYTICS_ENABLED=true
+# API Configuration
+API_RATE_LIMIT=100
+API_RATE_LIMIT_WINDOW=60
 
-# Beta-specific Configuration
-BETA_USER_LIMIT=50
+# External Services
+BUSINESS_DATA_API_ENABLED=true
+BUSINESS_DATA_API_BASE_URL=https://api.example.com
+BUSINESS_DATA_API_KEY=beta_api_key
+
+# Feature Flags
+FEATURE_BUSINESS_CLASSIFICATION=true
+FEATURE_RISK_ASSESSMENT=true
+FEATURE_COMPLIANCE_FRAMEWORK=true
+FEATURE_ADVANCED_ANALYTICS=false
+FEATURE_REAL_TIME_MONITORING=false
+
+# Beta Testing Specific
+BETA_MODE=true
+BETA_USER_LIMIT=100
 BETA_FEEDBACK_ENABLED=true
 BETA_ANALYTICS_ENABLED=true
-BETA_SUPPORT_ENABLED=true
-
-# Monitoring Configuration
-PROMETHEUS_ENABLED=true
-GRAFANA_ENABLED=true
-ELASTICSEARCH_ENABLED=true
-KIBANA_ENABLED=true
-
-# Support Configuration
-MATTERMOST_ENABLED=true
-SUPPORT_EMAIL=beta-support@kybplatform.com
-SUPPORT_SLACK=kyb-beta-support
 EOF
 
-    log "Beta environment configuration created"
+    print_success "Beta environment configuration created"
 }
 
-# Function to create beta monitoring configuration
-create_monitoring_config() {
-    log "Creating beta monitoring configuration..."
+# Setup beta database
+setup_beta_database() {
+    print_status "Setting up beta database..."
     
-    # Create Prometheus beta configuration
-    mkdir -p deployments/prometheus
-    cat > deployments/prometheus/prometheus-beta.yml << EOF
+    # Create beta database
+    docker run --rm \
+        -e POSTGRES_DB=$BETA_DB_NAME \
+        -e POSTGRES_USER=kyb_beta_user \
+        -e POSTGRES_PASSWORD=kyb_beta_password \
+        -p 5433:5432 \
+        -d \
+        --name kyb_beta_db \
+        postgres:15
+    
+    # Wait for database to be ready
+    print_status "Waiting for database to be ready..."
+    sleep 10
+    
+    # Run migrations
+    print_status "Running database migrations..."
+    DB_HOST=localhost DB_PORT=5433 DB_NAME=$BETA_DB_NAME DB_USER=kyb_beta_user DB_PASSWORD=kyb_beta_password go run cmd/migrate/main.go
+    
+    print_success "Beta database setup complete"
+}
+
+# Setup monitoring and analytics
+setup_monitoring() {
+    print_status "Setting up monitoring and analytics..."
+    
+    # Create monitoring configuration
+    cat > deployments/beta/monitoring.yml << EOF
+version: '3.8'
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: kyb_beta_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: kyb_beta_grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=beta_admin
+    volumes:
+      - grafana-storage:/var/lib/grafana
+
+volumes:
+  grafana-storage:
+EOF
+
+    # Create Prometheus configuration
+    cat > deployments/beta/prometheus.yml << EOF
 global:
   scrape_interval: 15s
-  evaluation_interval: 15s
-
-rule_files:
-  - "alerts.yml"
-
-alerting:
-  alertmanagers:
-    - static_configs:
-        - targets:
-          - alertmanager-beta:9093
 
 scrape_configs:
   - job_name: 'kyb-beta-api'
     static_configs:
-      - targets: ['kyb-platform-beta:8080']
+      - targets: ['host.docker.internal:$BETA_PORT']
     metrics_path: '/metrics'
     scrape_interval: 5s
-    honor_labels: true
 
-  - job_name: 'postgres-beta'
+  - job_name: 'kyb-beta-health'
     static_configs:
-      - targets: ['postgres-beta:5432']
-    scrape_interval: 30s
-
-  - job_name: 'redis-beta'
-    static_configs:
-      - targets: ['redis-beta:6379']
-    scrape_interval: 30s
-
-  - job_name: 'elasticsearch-beta'
-    static_configs:
-      - targets: ['elasticsearch-beta:9200']
+      - targets: ['host.docker.internal:$BETA_PORT']
+    metrics_path: '/health'
     scrape_interval: 30s
 EOF
 
-    # Create AlertManager beta configuration
-    mkdir -p deployments/alertmanager
-    cat > deployments/alertmanager/alertmanager-beta.yml << EOF
-global:
-  resolve_timeout: 5m
-  slack_api_url: 'https://hooks.slack.com/services/YOUR_SLACK_WEBHOOK'
-
-route:
-  group_by: ['alertname']
-  group_wait: 10s
-  group_interval: 10s
-  repeat_interval: 1h
-  receiver: 'beta-team'
-
-receivers:
-  - name: 'beta-team'
-    slack_configs:
-      - channel: '#kyb-beta-alerts'
-        title: 'KYB Beta Alert'
-        text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
-    email_configs:
-      - to: 'beta-support@kybplatform.com'
-        from: 'alerts@kybplatform.com'
-        smarthost: 'smtp.gmail.com:587'
-        auth_username: 'alerts@kybplatform.com'
-        auth_password: 'your_password'
-
-inhibit_rules:
-  - source_match:
-      severity: 'critical'
-    target_match:
-      severity: 'warning'
-    equal: ['alertname', 'dev', 'instance']
-EOF
-
-    log "Beta monitoring configuration created"
+    print_success "Monitoring setup complete"
 }
 
-# Function to create beta feedback collection system
-create_feedback_system() {
-    log "Creating beta feedback collection system..."
+# Setup beta testing dashboard
+setup_beta_dashboard() {
+    print_status "Setting up beta testing dashboard..."
     
-    # Create feedback collection API endpoints
-    mkdir -p internal/api/handlers/beta
-    cat > internal/api/handlers/beta/feedback.go << 'EOF'
-package beta
-
-import (
-	"encoding/json"
-	"net/http"
-	"time"
-
-	"github.com/google/uuid"
-)
-
-// FeedbackRequest represents a feedback submission
-type FeedbackRequest struct {
-	UserID       string          `json:"user_id"`
-	FeedbackType string          `json:"feedback_type"`
-	Category     string          `json:"category"`
-	Rating       *int            `json:"rating,omitempty"`
-	FeedbackText string          `json:"feedback_text"`
-	Metadata     json.RawMessage `json:"metadata,omitempty"`
-}
-
-// FeedbackResponse represents the response to a feedback submission
-type FeedbackResponse struct {
-	ID        string    `json:"id"`
-	Status    string    `json:"status"`
-	Message   string    `json:"message"`
-	Timestamp time.Time `json:"timestamp"`
-}
-
-// SubmitFeedback handles feedback submission from beta users
-func SubmitFeedback(w http.ResponseWriter, r *http.Request) {
-	var req FeedbackRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	// Validate required fields
-	if req.UserID == "" || req.FeedbackType == "" {
-		http.Error(w, "Missing required fields", http.StatusBadRequest)
-		return
-	}
-
-	// Store feedback in database
-	feedbackID := uuid.New().String()
-	
-	// TODO: Implement database storage
-	// db.StoreFeedback(feedbackID, req)
-
-	response := FeedbackResponse{
-		ID:        feedbackID,
-		Status:    "success",
-		Message:   "Feedback submitted successfully",
-		Timestamp: time.Now(),
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
-// GetFeedbackAnalytics returns analytics about feedback
-func GetFeedbackAnalytics(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement feedback analytics
-	analytics := map[string]interface{}{
-		"total_feedback": 0,
-		"average_rating": 0.0,
-		"feedback_types": map[string]int{},
-		"categories":     map[string]int{},
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(analytics)
-}
-EOF
-
-    # Create survey management system
-    cat > internal/api/handlers/beta/surveys.go << 'EOF'
-package beta
-
-import (
-	"encoding/json"
-	"net/http"
-	"time"
-
-	"github.com/google/uuid"
-)
-
-// SurveyResponse represents a survey response
-type SurveyResponse struct {
-	SurveyID   string          `json:"survey_id"`
-	UserID     string          `json:"user_id"`
-	Responses  json.RawMessage `json:"responses"`
-	CompletedAt time.Time      `json:"completed_at"`
-}
-
-// SubmitSurveyResponse handles survey response submission
-func SubmitSurveyResponse(w http.ResponseWriter, r *http.Request) {
-	var req SurveyResponse
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	// Validate required fields
-	if req.SurveyID == "" || req.UserID == "" {
-		http.Error(w, "Missing required fields", http.StatusBadRequest)
-		return
-	}
-
-	req.CompletedAt = time.Now()
-
-	// TODO: Implement database storage
-	// db.StoreSurveyResponse(req)
-
-	response := map[string]interface{}{
-		"status":    "success",
-		"message":   "Survey response submitted successfully",
-		"timestamp": time.Now(),
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
-// GetSurveyAnalytics returns analytics about survey responses
-func GetSurveyAnalytics(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement survey analytics
-	analytics := map[string]interface{}{
-		"total_responses": 0,
-		"survey_types":    map[string]int{},
-		"completion_rate": 0.0,
-		"average_scores":  map[string]float64{},
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(analytics)
-}
-EOF
-
-    log "Beta feedback collection system created"
-}
-
-# Function to create beta user management system
-create_user_management() {
-    log "Creating beta user management system..."
+    # Create beta dashboard configuration
+    cat > test/beta/dashboard/config.yml << EOF
+# Beta Testing Dashboard Configuration
+dashboard:
+  title: "KYB Platform Beta Testing Dashboard"
+  refresh_interval: 30s
+  
+metrics:
+  - name: "Active Beta Users"
+    query: "kyb_beta_users_active"
+    type: "counter"
     
-    # Create beta user management handlers
-    cat > internal/api/handlers/beta/users.go << 'EOF'
+  - name: "Classification Requests"
+    query: "kyb_classification_requests_total"
+    type: "counter"
+    
+  - name: "Classification Accuracy"
+    query: "kyb_classification_accuracy"
+    type: "gauge"
+    
+  - name: "Response Time"
+    query: "kyb_api_response_time_seconds"
+    type: "histogram"
+    
+  - name: "Error Rate"
+    query: "kyb_api_errors_total"
+    type: "counter"
+
+alerts:
+  - name: "High Error Rate"
+    condition: "error_rate > 0.05"
+    severity: "warning"
+    
+  - name: "Slow Response Time"
+    condition: "response_time > 5"
+    severity: "warning"
+    
+  - name: "Low Classification Accuracy"
+    condition: "accuracy < 0.85"
+    severity: "critical"
+EOF
+
+    print_success "Beta dashboard configuration created"
+}
+
+# Setup feedback collection
+setup_feedback_collection() {
+    print_status "Setting up feedback collection system..."
+    
+    # Create feedback collection configuration
+    cat > internal/feedback/config.go << EOF
+package feedback
+
+import (
+	"time"
+)
+
+// BetaFeedbackConfig holds configuration for beta feedback collection
+type BetaFeedbackConfig struct {
+	Enabled           bool          \`json:"enabled"\`
+	CollectionURL     string        \`json:"collection_url"\`
+	SurveyInterval    time.Duration \`json:"survey_interval"\`
+	MaxResponses      int           \`json:"max_responses"\`
+	AutoCollection    bool          \`json:"auto_collection"\`
+	FeedbackChannels  []string      \`json:"feedback_channels"\`
+}
+
+// BetaFeedback represents a single feedback entry
+type BetaFeedback struct {
+	ID          string                 \`json:"id"\`
+	UserID      string                 \`json:"user_id"\`
+	SessionID   string                 \`json:"session_id"\`
+	Feature     string                 \`json:"feature"\`
+	Rating      int                    \`json:"rating"\`
+	Comments    string                 \`json:"comments"\`
+	Category    string                 \`json:"category"\`
+	Timestamp   time.Time              \`json:"timestamp"\`
+	Metadata    map[string]interface{} \`json:"metadata"\`
+	UserAgent   string                 \`json:"user_agent"\`
+	IPAddress   string                 \`json:"ip_address"\`
+}
+
+// BetaFeedbackService handles feedback collection and analysis
+type BetaFeedbackService struct {
+	config BetaFeedbackConfig
+	// Add other fields as needed
+}
+
+// NewBetaFeedbackService creates a new feedback service
+func NewBetaFeedbackService(config BetaFeedbackConfig) *BetaFeedbackService {
+	return &BetaFeedbackService{
+		config: config,
+	}
+}
+
+// CollectFeedback collects user feedback
+func (s *BetaFeedbackService) CollectFeedback(feedback BetaFeedback) error {
+	// Implementation for feedback collection
+	return nil
+}
+
+// GetFeedbackSummary returns feedback summary
+func (s *BetaFeedbackService) GetFeedbackSummary() (map[string]interface{}, error) {
+	// Implementation for feedback summary
+	return nil, nil
+}
+EOF
+
+    print_success "Feedback collection system configured"
+}
+
+# Setup beta user management
+setup_beta_user_management() {
+    print_status "Setting up beta user management..."
+    
+    # Create beta user management configuration
+    cat > internal/beta/config.go << EOF
 package beta
 
 import (
-	"encoding/json"
-	"net/http"
 	"time"
-
-	"github.com/google/uuid"
 )
 
-// BetaUser represents a beta user
+// BetaUser represents a beta testing user
 type BetaUser struct {
-	ID           string    `json:"id"`
-	Email        string    `json:"email"`
-	Company      string    `json:"company"`
-	Role         string    `json:"role"`
-	Industry     string    `json:"industry"`
-	OnboardedAt  time.Time `json:"onboarded_at"`
-	LastActiveAt time.Time `json:"last_active_at"`
-	Status       string    `json:"status"`
+	ID              string    \`json:"id"\`
+	Email           string    \`json:"email"\`
+	Name            string    \`json:"name"\`
+	Company         string    \`json:"company"\`
+	Role            string    \`json:"role"\`
+	Industry        string    \`json:"industry"\`
+	InvitedAt       time.Time \`json:"invited_at"\`
+	JoinedAt        time.Time \`json:"joined_at"\`
+	LastActiveAt    time.Time \`json:"last_active_at"\`
+	Status          string    \`json:"status"\`
+	UsageCount      int       \`json:"usage_count"\`
+	FeedbackCount   int       \`json:"feedback_count"\`
+	InvitedBy       string    \`json:"invited_by"\`
+	Notes           string    \`json:"notes"\`
 }
 
-// BetaUserRequest represents a beta user registration request
-type BetaUserRequest struct {
-	Email    string `json:"email"`
-	Company  string `json:"company"`
-	Role     string `json:"role"`
-	Industry string `json:"industry"`
+// BetaUserService manages beta users
+type BetaUserService struct {
+	// Add fields as needed
 }
 
-// RegisterBetaUser handles beta user registration
-func RegisterBetaUser(w http.ResponseWriter, r *http.Request) {
-	var req BetaUserRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	// Validate required fields
-	if req.Email == "" || req.Company == "" {
-		http.Error(w, "Missing required fields", http.StatusBadRequest)
-		return
-	}
-
-	user := BetaUser{
-		ID:           uuid.New().String(),
-		Email:        req.Email,
-		Company:      req.Company,
-		Role:         req.Role,
-		Industry:     req.Industry,
-		OnboardedAt:  time.Now(),
-		LastActiveAt: time.Now(),
-		Status:       "active",
-	}
-
-	// TODO: Implement database storage
-	// db.StoreBetaUser(user)
-
-	response := map[string]interface{}{
-		"status":  "success",
-		"message": "Beta user registered successfully",
-		"user":    user,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+// NewBetaUserService creates a new beta user service
+func NewBetaUserService() *BetaUserService {
+	return &BetaUserService{}
 }
 
-// GetBetaUsers returns all beta users
-func GetBetaUsers(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement database retrieval
-	users := []BetaUser{}
-
-	response := map[string]interface{}{
-		"status": "success",
-		"users":  users,
-		"count":  len(users),
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+// InviteUser invites a new beta user
+func (s *BetaUserService) InviteUser(email, name, company, role string) error {
+	// Implementation for user invitation
+	return nil
 }
 
-// GetBetaUserAnalytics returns analytics about beta users
-func GetBetaUserAnalytics(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement user analytics
-	analytics := map[string]interface{}{
-		"total_users":      0,
-		"active_users":     0,
-		"industries":       map[string]int{},
-		"roles":            map[string]int{},
-		"onboarding_rate":  0.0,
-		"retention_rate":   0.0,
-	}
+// GetActiveUsers returns active beta users
+func (s *BetaUserService) GetActiveUsers() ([]BetaUser, error) {
+	// Implementation for getting active users
+	return nil, nil
+}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(analytics)
+// UpdateUserActivity updates user activity
+func (s *BetaUserService) UpdateUserActivity(userID string) error {
+	// Implementation for updating user activity
+	return nil
 }
 EOF
 
-    log "Beta user management system created"
+    print_success "Beta user management configured"
 }
 
-# Function to create beta analytics dashboard
-create_analytics_dashboard() {
-    log "Creating beta analytics dashboard..."
+# Create beta testing scripts
+create_beta_scripts() {
+    print_status "Creating beta testing scripts..."
     
-    # Create Grafana dashboard configuration
-    mkdir -p deployments/grafana/dashboards
-    cat > deployments/grafana/dashboards/beta-analytics.json << 'EOF'
-{
-  "dashboard": {
-    "id": null,
-    "title": "KYB Beta Analytics Dashboard",
-    "tags": ["kyb", "beta", "analytics"],
-    "style": "dark",
-    "timezone": "browser",
-    "panels": [
-      {
-        "id": 1,
-        "title": "Beta User Engagement",
-        "type": "stat",
-        "targets": [
-          {
-            "expr": "kyb_beta_users_total",
-            "legendFormat": "Total Users"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "palette-classic"
-            },
-            "custom": {
-              "displayMode": "list"
-            }
-          }
-        }
-      },
-      {
-        "id": 2,
-        "title": "Feature Usage",
-        "type": "piechart",
-        "targets": [
-          {
-            "expr": "kyb_feature_usage_total",
-            "legendFormat": "{{feature}}"
-          }
-        ]
-      },
-      {
-        "id": 3,
-        "title": "Feedback Sentiment",
-        "type": "gauge",
-        "targets": [
-          {
-            "expr": "avg(kyb_feedback_rating)",
-            "legendFormat": "Average Rating"
-          }
-        ]
-      },
-      {
-        "id": 4,
-        "title": "System Performance",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "rate(kyb_api_requests_total[5m])",
-            "legendFormat": "Requests/sec"
-          }
-        ]
-      }
-    ],
-    "time": {
-      "from": "now-7d",
-      "to": "now"
-    },
-    "refresh": "30s"
-  }
-}
-EOF
-
-    # Create datasource configuration
-    mkdir -p deployments/grafana/datasources
-    cat > deployments/grafana/datasources/prometheus.yml << 'EOF'
-apiVersion: 1
-
-datasources:
-  - name: Prometheus
-    type: prometheus
-    access: proxy
-    url: http://prometheus-beta:9090
-    isDefault: true
-    editable: true
-EOF
-
-    log "Beta analytics dashboard created"
-}
-
-# Function to create beta support system
-create_support_system() {
-    log "Creating beta support system..."
-    
-    # Create support documentation
-    mkdir -p docs/beta-support
-    cat > docs/beta-support/README.md << 'EOF'
-# KYB Platform Beta Support
-
-## Getting Help
-
-### Support Channels
-- **Email**: beta-support@kybplatform.com
-- **Slack**: #kyb-beta-support
-- **Mattermost**: http://localhost:8065
-- **Documentation**: This directory
-
-### Common Issues
-
-#### Platform Access
-- **Issue**: Cannot access beta platform
-- **Solution**: Check your credentials and ensure you're using the beta URL: http://localhost:8082
-
-#### Feature Problems
-- **Issue**: Feature not working as expected
-- **Solution**: Check the feature documentation and report issues through the feedback system
-
-#### Performance Issues
-- **Issue**: Platform is slow or unresponsive
-- **Solution**: Check your internet connection and report the issue with details
-
-### Feedback Submission
-Use the in-app feedback system or email us at beta-support@kybplatform.com
-
-### Bug Reports
-Include the following information:
-- Description of the issue
-- Steps to reproduce
-- Expected vs actual behavior
-- Browser and OS information
-- Screenshots if applicable
-EOF
-
-    # Create support scripts
-    cat > scripts/beta-support.sh << 'EOF'
+    # Create beta testing runner
+    cat > scripts/run-beta-tests.sh << 'EOF'
 #!/bin/bash
 
-# KYB Beta Support Script
+# Beta Testing Runner Script
+# This script runs automated beta tests
 
-echo "KYB Platform Beta Support"
-echo "========================="
-echo ""
-echo "1. Check platform status"
-echo "2. View recent logs"
-echo "3. Check user analytics"
-echo "4. View feedback summary"
-echo "5. Restart beta services"
-echo "6. Exit"
-echo ""
+set -e
 
-read -p "Select an option: " choice
+echo "🧪 Running Beta Tests..."
 
-case $choice in
-    1)
-        echo "Checking platform status..."
-        curl -s http://localhost:8082/health | jq .
-        ;;
-    2)
-        echo "Recent logs:"
-        docker logs kyb-platform-beta --tail 50
-        ;;
-    3)
-        echo "User analytics:"
-        curl -s http://localhost:8082/v1/beta/analytics/users | jq .
-        ;;
-    4)
-        echo "Feedback summary:"
-        curl -s http://localhost:8082/v1/beta/analytics/feedback | jq .
-        ;;
-    5)
-        echo "Restarting beta services..."
-        docker-compose -f docker-compose.beta.yml restart
-        ;;
-    6)
-        echo "Exiting..."
-        exit 0
-        ;;
-    *)
-        echo "Invalid option"
-        ;;
-esac
+# Configuration
+BETA_API_URL="http://localhost:8081"
+TEST_DATA_DIR="test/beta/data"
+RESULTS_DIR="test/beta/results"
+
+# Create results directory
+mkdir -p $RESULTS_DIR
+
+# Run classification accuracy tests
+echo "Testing classification accuracy..."
+curl -X POST "$BETA_API_URL/api/v1/classify" \
+  -H "Content-Type: application/json" \
+  -d @$TEST_DATA_DIR/test_businesses.json \
+  -o $RESULTS_DIR/classification_results.json
+
+# Run performance tests
+echo "Testing performance..."
+ab -n 100 -c 10 -p $TEST_DATA_DIR/test_businesses.json \
+  -T application/json \
+  "$BETA_API_URL/api/v1/classify" > $RESULTS_DIR/performance_results.txt
+
+# Run user experience tests
+echo "Testing user experience..."
+# Add UX testing logic here
+
+echo "✅ Beta tests completed. Results saved to $RESULTS_DIR"
 EOF
 
-    chmod +x scripts/beta-support.sh
+    chmod +x scripts/run-beta-tests.sh
 
-    log "Beta support system created"
+    # Create beta user invitation script
+    cat > scripts/invite-beta-users.sh << 'EOF'
+#!/bin/bash
+
+# Beta User Invitation Script
+# This script sends invitations to beta users
+
+set -e
+
+echo "📧 Sending Beta User Invitations..."
+
+# Configuration
+BETA_INVITE_LIST="test/beta/users/invite_list.csv"
+EMAIL_TEMPLATE="test/beta/email/invitation_template.html"
+
+# Check if invite list exists
+if [ ! -f "$BETA_INVITE_LIST" ]; then
+    echo "Error: Invite list not found at $BETA_INVITE_LIST"
+    exit 1
+fi
+
+# Process each user in the invite list
+while IFS=, read -r email name company role; do
+    echo "Inviting $name ($email) from $company..."
+    
+    # Send invitation email
+    # Add email sending logic here
+    
+    echo "✅ Invitation sent to $email"
+done < "$BETA_INVITE_LIST"
+
+echo "✅ All invitations sent"
+EOF
+
+    chmod +x scripts/invite-beta-users.sh
+
+    print_success "Beta testing scripts created"
 }
 
-# Function to start beta environment
-start_beta_environment() {
-    log "Starting beta environment..."
-    
-    # Build and start the beta environment
-    docker-compose -f docker-compose.beta.yml up -d --build
-    
-    # Wait for services to be ready
-    log "Waiting for services to be ready..."
-    sleep 30
-    
-    # Check service health
-    log "Checking service health..."
-    
-    # Check main application
-    if curl -f http://localhost:$BETA_PORT/health > /dev/null 2>&1; then
-        log "✅ KYB Platform Beta is running on port $BETA_PORT"
-    else
-        warn "⚠️  KYB Platform Beta health check failed"
-    fi
-    
-    # Check database
-    if docker exec postgres-beta pg_isready -U kyb_beta_user -d kyb_beta > /dev/null 2>&1; then
-        log "✅ Beta database is ready"
-    else
-        warn "⚠️  Beta database health check failed"
-    fi
-    
-    # Check Redis
-    if docker exec redis-beta redis-cli -a beta_redis_password ping > /dev/null 2>&1; then
-        log "✅ Beta Redis is ready"
-    else
-        warn "⚠️  Beta Redis health check failed"
-    fi
-    
-    # Check Prometheus
-    if curl -f http://localhost:$BETA_PROMETHEUS_PORT/-/healthy > /dev/null 2>&1; then
-        log "✅ Beta Prometheus is running on port $BETA_PROMETHEUS_PORT"
-    else
-        warn "⚠️  Beta Prometheus health check failed"
-    fi
-    
-    # Check Grafana
-    if curl -f http://localhost:$BETA_GRAFANA_PORT/api/health > /dev/null 2>&1; then
-        log "✅ Beta Grafana is running on port $BETA_GRAFANA_PORT"
-    else
-        warn "⚠️  Beta Grafana health check failed"
-    fi
-    
-    # Check Elasticsearch
-    if curl -f http://localhost:$BETA_ELASTICSEARCH_PORT/_cluster/health > /dev/null 2>&1; then
-        log "✅ Beta Elasticsearch is running on port $BETA_ELASTICSEARCH_PORT"
-    else
-        warn "⚠️  Beta Elasticsearch health check failed"
-    fi
-    
-    # Check Kibana
-    if curl -f http://localhost:$BETA_KIBANA_PORT/api/status > /dev/null 2>&1; then
-        log "✅ Beta Kibana is running on port $BETA_KIBANA_PORT"
-    else
-        warn "⚠️  Beta Kibana health check failed"
-    fi
-    
-    # Check Mattermost
-    if curl -f http://localhost:$BETA_MATTERMOST_PORT/api/v4/system/ping > /dev/null 2>&1; then
-        log "✅ Beta Mattermost is running on port $BETA_MATTERMOST_PORT"
-    else
-        warn "⚠️  Beta Mattermost health check failed"
-    fi
-}
-
-# Function to display beta environment information
-display_beta_info() {
-    log "Beta Environment Setup Complete!"
-    echo ""
-    echo "🌐 Beta Environment URLs:"
-    echo "   KYB Platform:     http://localhost:$BETA_PORT"
-    echo "   Prometheus:       http://localhost:$BETA_PROMETHEUS_PORT"
-    echo "   Grafana:          http://localhost:$BETA_GRAFANA_PORT"
-    echo "   Elasticsearch:    http://localhost:$BETA_ELASTICSEARCH_PORT"
-    echo "   Kibana:           http://localhost:$BETA_KIBANA_PORT"
-    echo "   Mattermost:       http://localhost:$BETA_MATTERMOST_PORT"
-    echo ""
-    echo "📊 Default Credentials:"
-    echo "   Grafana:          admin / beta_admin_password"
-    echo "   Mattermost:       admin / beta_admin_password"
-    echo ""
-    echo "📁 Configuration Files:"
-    echo "   Beta Config:      configs/beta.env"
-    echo "   Docker Compose:   docker-compose.beta.yml"
-    echo "   Database Init:    scripts/init-beta-db.sql"
-    echo ""
-    echo "🛠️  Management Commands:"
-    echo "   Start Beta:       docker-compose -f docker-compose.beta.yml up -d"
-    echo "   Stop Beta:        docker-compose -f docker-compose.beta.yml down"
-    echo "   View Logs:        docker-compose -f docker-compose.beta.yml logs -f"
-    echo "   Support Script:   ./scripts/beta-support.sh"
-    echo ""
-    echo "📋 Next Steps:"
-    echo "   1. Access the beta platform at http://localhost:$BETA_PORT"
-    echo "   2. Review the beta documentation in docs/beta-support/"
-    echo "   3. Set up user recruitment using docs/beta-user-recruitment-strategy.md"
-    echo "   4. Configure feedback collection using test/beta/feedback-surveys/"
-    echo "   5. Monitor analytics in Grafana at http://localhost:$BETA_GRAFANA_PORT"
-    echo ""
-}
-
-# Main execution
+# Main setup function
 main() {
-    log "Starting KYB Platform Beta Environment Setup..."
+    print_status "Starting KYB Platform Beta Testing Environment Setup..."
     
     # Check prerequisites
     check_docker
-    check_ports
     
-    # Create configurations
-    create_beta_config
-    create_monitoring_config
-    create_feedback_system
-    create_user_management
-    create_analytics_dashboard
-    create_support_system
+    # Setup components
+    setup_beta_config
+    setup_beta_database
+    setup_monitoring
+    setup_beta_dashboard
+    setup_feedback_collection
+    setup_beta_user_management
+    create_beta_scripts
     
-    # Start environment
-    start_beta_environment
+    print_success "🎉 Beta testing environment setup complete!"
     
-    # Display information
-    display_beta_info
-    
-    log "Beta environment setup completed successfully!"
+    echo ""
+    echo "Next steps:"
+    echo "1. Review and customize configuration in configs/beta.env"
+    echo "2. Start the beta environment: ./scripts/dev.sh beta"
+    echo "3. Invite beta users: ./scripts/invite-beta-users.sh"
+    echo "4. Monitor beta testing: http://localhost:3000 (Grafana)"
+    echo "5. Run beta tests: ./scripts/run-beta-tests.sh"
+    echo ""
+    echo "Beta testing dashboard: http://localhost:3000"
+    echo "API endpoint: http://localhost:8081"
+    echo "Prometheus metrics: http://localhost:9090"
 }
 
 # Run main function

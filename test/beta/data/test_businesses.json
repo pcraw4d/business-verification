@@ -1,0 +1,233 @@
+{
+  "test_businesses": [
+    {
+      "id": "test_001",
+      "business_name": "Acme Corporation",
+      "website_url": "https://www.acme.com",
+      "description": "Global manufacturing and technology company",
+      "expected_industries": ["Manufacturing", "Technology", "Engineering"],
+      "test_type": "url_based"
+    },
+    {
+      "id": "test_002",
+      "business_name": "TechStart Solutions",
+      "website_url": "https://techstart.io",
+      "description": "Software development and consulting services",
+      "expected_industries": ["Software Development", "Technology", "Consulting"],
+      "test_type": "url_based"
+    },
+    {
+      "id": "test_003",
+      "business_name": "Green Energy Co",
+      "website_url": "https://greenenergy.com",
+      "description": "Renewable energy solutions and solar panel installation",
+      "expected_industries": ["Renewable Energy", "Construction", "Environmental Services"],
+      "test_type": "url_based"
+    },
+    {
+      "id": "test_004",
+      "business_name": "Financial Services Inc",
+      "website_url": "https://financialservices.com",
+      "description": "Investment banking and wealth management",
+      "expected_industries": ["Financial Services", "Investment Banking", "Wealth Management"],
+      "test_type": "url_based"
+    },
+    {
+      "id": "test_005",
+      "business_name": "Healthcare Partners",
+      "website_url": "https://healthcarepartners.org",
+      "description": "Medical practice management and healthcare consulting",
+      "expected_industries": ["Healthcare", "Medical Services", "Consulting"],
+      "test_type": "url_based"
+    },
+    {
+      "id": "test_006",
+      "business_name": "E-commerce Express",
+      "website_url": "https://ecommerce-express.com",
+      "description": "Online retail and digital marketplace",
+      "expected_industries": ["E-commerce", "Retail", "Digital Marketing"],
+      "test_type": "url_based"
+    },
+    {
+      "id": "test_007",
+      "business_name": "Construction Dynamics",
+      "website_url": "https://constructiondynamics.com",
+      "description": "Commercial construction and project management",
+      "expected_industries": ["Construction", "Project Management", "Real Estate"],
+      "test_type": "url_based"
+    },
+    {
+      "id": "test_008",
+      "business_name": "Legal Associates",
+      "website_url": "https://legalassociates.com",
+      "description": "Corporate law and legal consulting services",
+      "expected_industries": ["Legal Services", "Consulting", "Professional Services"],
+      "test_type": "url_based"
+    },
+    {
+      "id": "test_009",
+      "business_name": "Marketing Masters",
+      "website_url": "https://marketingmasters.com",
+      "description": "Digital marketing and advertising agency",
+      "expected_industries": ["Marketing", "Advertising", "Digital Media"],
+      "test_type": "url_based"
+    },
+    {
+      "id": "test_010",
+      "business_name": "Transport Solutions",
+      "website_url": "https://transportsolutions.com",
+      "description": "Logistics and transportation services",
+      "expected_industries": ["Transportation", "Logistics", "Supply Chain"],
+      "test_type": "url_based"
+    },
+    {
+      "id": "test_011",
+      "business_name": "Restaurant Innovations",
+      "website_url": "https://restaurantinnovations.com",
+      "description": "Restaurant technology and point-of-sale systems",
+      "expected_industries": ["Restaurant Technology", "Software", "Hospitality"],
+      "test_type": "url_based"
+    },
+    {
+      "id": "test_012",
+      "business_name": "Education First",
+      "website_url": "https://educationfirst.edu",
+      "description": "Online education and training platform",
+      "expected_industries": ["Education", "E-learning", "Training"],
+      "test_type": "url_based"
+    },
+    {
+      "id": "test_013",
+      "business_name": "Insurance Partners",
+      "website_url": "https://insurancepartners.com",
+      "description": "Insurance brokerage and risk management",
+      "expected_industries": ["Insurance", "Risk Management", "Financial Services"],
+      "test_type": "url_based"
+    },
+    {
+      "id": "test_014",
+      "business_name": "Real Estate Pro",
+      "website_url": "https://realestatepro.com",
+      "description": "Commercial real estate and property management",
+      "expected_industries": ["Real Estate", "Property Management", "Commercial Services"],
+      "test_type": "url_based"
+    },
+    {
+      "id": "test_015",
+      "business_name": "Manufacturing Plus",
+      "website_url": "https://manufacturingplus.com",
+      "description": "Advanced manufacturing and automation solutions",
+      "expected_industries": ["Manufacturing", "Automation", "Industrial Technology"],
+      "test_type": "url_based"
+    },
+    {
+      "id": "test_016",
+      "business_name": "Pharmaceutical Research",
+      "website_url": "https://pharmaresearch.com",
+      "description": "Pharmaceutical research and drug development",
+      "expected_industries": ["Pharmaceuticals", "Research", "Healthcare"],
+      "test_type": "url_based"
+    },
+    {
+      "id": "test_017",
+      "business_name": "Cybersecurity Solutions",
+      "website_url": "https://cybersecuritysolutions.com",
+      "description": "Cybersecurity consulting and threat detection",
+      "expected_industries": ["Cybersecurity", "Technology", "Consulting"],
+      "test_type": "url_based"
+    },
+    {
+      "id": "test_018",
+      "business_name": "Environmental Services",
+      "website_url": "https://environmentalservices.com",
+      "description": "Environmental consulting and sustainability solutions",
+      "expected_industries": ["Environmental Services", "Consulting", "Sustainability"],
+      "test_type": "url_based"
+    },
+    {
+      "id": "test_019",
+      "business_name": "Entertainment Media",
+      "website_url": "https://entertainmentmedia.com",
+      "description": "Entertainment production and media distribution",
+      "expected_industries": ["Entertainment", "Media", "Production"],
+      "test_type": "url_based"
+    },
+    {
+      "id": "test_020",
+      "business_name": "Agricultural Tech",
+      "website_url": "https://agriculturaltech.com",
+      "description": "Agricultural technology and precision farming",
+      "expected_industries": ["Agriculture", "Technology", "Precision Farming"],
+      "test_type": "url_based"
+    },
+    {
+      "id": "test_021",
+      "business_name": "Unknown Business 1",
+      "description": "Test business without website URL",
+      "expected_industries": ["Unknown"],
+      "test_type": "web_search"
+    },
+    {
+      "id": "test_022",
+      "business_name": "Unknown Business 2",
+      "description": "Another test business without website URL",
+      "expected_industries": ["Unknown"],
+      "test_type": "web_search"
+    },
+    {
+      "id": "test_023",
+      "business_name": "Test Company Alpha",
+      "description": "Test company for web search classification",
+      "expected_industries": ["Unknown"],
+      "test_type": "web_search"
+    },
+    {
+      "id": "test_024",
+      "business_name": "Beta Testing Corp",
+      "description": "Beta testing company for classification validation",
+      "expected_industries": ["Unknown"],
+      "test_type": "web_search"
+    },
+    {
+      "id": "test_025",
+      "business_name": "Sample Business XYZ",
+      "description": "Sample business for testing web search functionality",
+      "expected_industries": ["Unknown"],
+      "test_type": "web_search"
+    }
+  ],
+  "test_scenarios": [
+    {
+      "scenario": "high_confidence_classification",
+      "description": "Businesses with clear industry indicators",
+      "business_ids": ["test_001", "test_002", "test_004", "test_005"]
+    },
+    {
+      "scenario": "multi_industry_classification",
+      "description": "Businesses that span multiple industries",
+      "business_ids": ["test_001", "test_003", "test_007", "test_015"]
+    },
+    {
+      "scenario": "web_search_classification",
+      "description": "Businesses requiring web search for classification",
+      "business_ids": ["test_021", "test_022", "test_023", "test_024", "test_025"]
+    },
+    {
+      "scenario": "edge_cases",
+      "description": "Businesses with unusual or complex classifications",
+      "business_ids": ["test_011", "test_016", "test_017", "test_020"]
+    }
+  ],
+  "performance_test_data": {
+    "batch_size": 10,
+    "concurrent_requests": 5,
+    "total_requests": 100,
+    "expected_response_time_ms": 5000
+  },
+  "accuracy_benchmarks": {
+    "minimum_accuracy": 0.85,
+    "target_accuracy": 0.90,
+    "excellent_accuracy": 0.95,
+    "confidence_threshold": 0.70
+  }
+}

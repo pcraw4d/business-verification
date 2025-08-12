@@ -3,6 +3,7 @@ package classification
 import (
 	"context"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -37,9 +38,12 @@ type MultiIndustryService struct {
 
 	// Top-3 selection engine
 	top3SelectionEngine *Top3SelectionEngine
-	
+
 	// Confidence scoring engine
 	confidenceScoringEngine *ConfidenceScoringEngine
+
+	// Accuracy validation engine
+	accuracyValidationEngine *AccuracyValidationEngine
 }
 
 // NewMultiIndustryService creates a new multi-industry classification service
@@ -65,9 +69,12 @@ func NewMultiIndustryService(baseService *ClassificationService, logger *observa
 
 		// Top-3 selection engine
 		top3SelectionEngine: NewTop3SelectionEngine(logger, metrics),
-		
+
 		// Confidence scoring engine
 		confidenceScoringEngine: NewConfidenceScoringEngine(logger, metrics),
+
+		// Accuracy validation engine
+		accuracyValidationEngine: NewAccuracyValidationEngine(logger, metrics),
 	}
 }
 
@@ -120,6 +127,19 @@ func (m *MultiIndustryService) ClassifyBusinessMultiIndustry(ctx context.Context
 		result.ValidationScore = top3Result.SelectionMetrics.SelectionQuality
 	} else {
 		result.ValidationScore = m.calculateValidationScore(result)
+	}
+
+	// Perform accuracy validation on primary classification
+	if m.accuracyValidationEngine != nil {
+		validationResult := m.accuracyValidationEngine.ValidateClassification(ctx, result.PrimaryIndustry, req.BusinessName)
+		if validationResult != nil {
+			// Update validation score based on accuracy validation
+			if validationResult.IsAccurate {
+				result.ValidationScore = math.Max(result.ValidationScore, validationResult.AccuracyScore)
+			} else {
+				result.ValidationScore = math.Min(result.ValidationScore, validationResult.AccuracyScore)
+			}
+		}
 	}
 
 	// Log completion
@@ -433,20 +453,20 @@ func (m *MultiIndustryService) calculateMethodDiversity(classifications []Indust
 // applyEnhancedConfidenceScoring applies enhanced confidence scoring to classifications
 func (m *MultiIndustryService) applyEnhancedConfidenceScoring(ctx context.Context, req *ClassificationRequest, classifications []IndustryClassification, allClassifications []IndustryClassification) []IndustryClassification {
 	enhanced := make([]IndustryClassification, len(classifications))
-	
+
 	for i, classification := range classifications {
 		enhanced[i] = classification
-		
+
 		// Calculate enhanced confidence score
 		confidenceScore := m.confidenceScoringEngine.CalculateConfidenceScore(ctx, classification, req, allClassifications)
-		
+
 		// Update the classification with enhanced confidence score
 		enhanced[i].ConfidenceScore = confidenceScore.OverallScore
-		
+
 		// Add confidence score details to the classification if needed
 		// This could be extended to store the full confidence score breakdown
 	}
-	
+
 	return enhanced
 }
 

@@ -50,7 +50,7 @@ func loadNAICSCodes(dataPath string, data *IndustryCodeData) error {
 	}
 
 	filePath := filepath.Join(cleanDataPath, "NAICS-2022-Codes_industries.csv")
-	
+
 	// Validate file path
 	cleanFilePath := filepath.Clean(filePath)
 	if strings.Contains(cleanFilePath, "..") {
@@ -95,7 +95,7 @@ func loadMCCCodes(dataPath string, data *IndustryCodeData) error {
 	}
 
 	filePath := filepath.Join(cleanDataPath, "mcc_codes.csv")
-	
+
 	// Validate file path
 	cleanFilePath := filepath.Clean(filePath)
 	if strings.Contains(cleanFilePath, "..") {
@@ -140,7 +140,7 @@ func loadSICCodes(dataPath string, data *IndustryCodeData) error {
 	}
 
 	filePath := filepath.Join(cleanDataPath, "sic-codes.csv")
-	
+
 	// Validate file path
 	cleanFilePath := filepath.Clean(filePath)
 	if strings.Contains(cleanFilePath, "..") {

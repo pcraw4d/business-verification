@@ -99,19 +99,9 @@ func (h *MultiIndustryClassificationHandler) HandleMultiIndustryClassification(w
 		return
 	}
 
-	// Create response
-	response := &MultiIndustryClassificationResponse{
-		Success:              true,
-		Classifications:      result.Classifications,
-		PrimaryIndustry:      result.PrimaryIndustry,
-		SecondaryIndustry:    result.SecondaryIndustry,
-		TertiaryIndustry:     result.TertiaryIndustry,
-		OverallConfidence:    result.OverallConfidence,
-		ValidationScore:      result.ValidationScore,
-		ClassificationMethod: result.ClassificationMethod,
-		ProcessingTime:       result.ProcessingTime,
-		Timestamp:            time.Now(),
-	}
+	// Create enhanced result presentation
+	presentationEngine := classification.NewResultPresentationEngine(h.logger, h.metrics)
+	enhancedResult := presentationEngine.PresentMultiIndustryResult(ctx, result, internalReq)
 
 	// Log successful completion
 	h.logger.WithComponent("multi_industry_classification_handler").LogBusinessEvent(ctx, "multi_industry_classification_request_completed", "", map[string]interface{}{
@@ -128,11 +118,11 @@ func (h *MultiIndustryClassificationHandler) HandleMultiIndustryClassification(w
 	// Record metrics
 	h.metrics.RecordBusinessClassification("multi_industry_api_success", "1")
 
-	// Send response
+	// Send enhanced response
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	if err := json.NewEncoder(w).Encode(response); err != nil {
+	if err := json.NewEncoder(w).Encode(enhancedResult); err != nil {
 		h.logger.WithComponent("multi_industry_classification_handler").LogBusinessEvent(ctx, "multi_industry_classification_response_encoding_error", "", map[string]interface{}{
 			"error": err.Error(),
 		})

@@ -472,6 +472,16 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("minimum password length must be at least 6")
 	}
 
+	// Validate external services configuration
+	if c.ExternalServices.BusinessDataAPI.Enabled {
+		if c.ExternalServices.BusinessDataAPI.BaseURL == "" {
+			return fmt.Errorf("business data API base URL is required when enabled")
+		}
+		if c.ExternalServices.BusinessDataAPI.APIKey == "" {
+			return fmt.Errorf("business data API key is required when enabled")
+		}
+	}
+
 	return nil
 }
 

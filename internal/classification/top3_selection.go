@@ -72,7 +72,7 @@ func (t *Top3SelectionEngine) SelectTop3Classifications(ctx context.Context, cla
 		ProcessingTime:     time.Since(start),
 		SelectionMethod:    "enhanced_top3_selection",
 	}
-	
+
 	// Set primary, secondary, and tertiary industries if available
 	if len(finalSelection) > 0 {
 		result.PrimaryIndustry = finalSelection[0]
@@ -86,13 +86,13 @@ func (t *Top3SelectionEngine) SelectTop3Classifications(ctx context.Context, cla
 			"processing_time_ms":   time.Since(start).Milliseconds(),
 			"selection_confidence": metrics.OverallConfidence,
 		}
-		
+
 		if len(finalSelection) > 0 {
 			logData["primary_industry"] = result.PrimaryIndustry.IndustryCode
 			logData["secondary_industry"] = t.getIndustryCode(result.SecondaryIndustry)
 			logData["tertiary_industry"] = t.getIndustryCode(result.TertiaryIndustry)
 		}
-		
+
 		t.logger.WithComponent("top3_selection").LogBusinessEvent(ctx, "top3_selection_completed", "", logData)
 	}
 
@@ -352,7 +352,7 @@ func (t *Top3SelectionEngine) calculateSelectionMetrics(selected []IndustryClass
 			categories[category] = true
 		}
 	}
-	
+
 	// Convert map keys to slice
 	for category := range categories {
 		metrics.IndustryCategories = append(metrics.IndustryCategories, category)

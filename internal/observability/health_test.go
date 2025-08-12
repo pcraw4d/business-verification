@@ -88,7 +88,7 @@ func TestHealthChecker_DatabaseHealthCheck_NoDB(t *testing.T) {
 }
 
 func TestHealthChecker_RedisHealthCheck_NoRedis(t *testing.T) {
-	logger := NewLogger("test", "debug", "json")
+	logger := NewLogger(&config.ObservabilityConfig{LogLevel: "debug", LogFormat: "json"})
 	hc := NewHealthChecker(nil, nil, logger, "1.0.0")
 
 	ctx := context.Background()
@@ -104,7 +104,7 @@ func TestHealthChecker_RedisHealthCheck_NoRedis(t *testing.T) {
 }
 
 func TestHealthChecker_CheckHealth(t *testing.T) {
-	logger := NewLogger("test", "debug", "json")
+	logger := NewLogger(&config.ObservabilityConfig{LogLevel: "debug", LogFormat: "json"})
 	hc := NewHealthChecker(nil, nil, logger, "1.0.0")
 
 	ctx := context.Background()
@@ -137,7 +137,7 @@ func TestHealthChecker_CheckHealth(t *testing.T) {
 }
 
 func TestHealthChecker_HealthHandler(t *testing.T) {
-	logger := NewLogger("test", "debug", "json")
+	logger := NewLogger(&config.ObservabilityConfig{LogLevel: "debug", LogFormat: "json"})
 	hc := NewHealthChecker(nil, nil, logger, "1.0.0")
 
 	req := httptest.NewRequest("GET", "/health", nil)
@@ -169,7 +169,7 @@ func TestHealthChecker_HealthHandler(t *testing.T) {
 }
 
 func TestHealthChecker_LivenessHandler(t *testing.T) {
-	logger := NewLogger("test", "debug", "json")
+	logger := NewLogger(&config.ObservabilityConfig{LogLevel: "debug", LogFormat: "json"})
 	hc := NewHealthChecker(nil, nil, logger, "1.0.0")
 
 	req := httptest.NewRequest("GET", "/live", nil)
@@ -192,7 +192,7 @@ func TestHealthChecker_LivenessHandler(t *testing.T) {
 }
 
 func TestHealthChecker_ReadinessHandler(t *testing.T) {
-	logger := NewLogger("test", "debug", "json")
+	logger := NewLogger(&config.ObservabilityConfig{LogLevel: "debug", LogFormat: "json"})
 	hc := NewHealthChecker(nil, nil, logger, "1.0.0")
 
 	req := httptest.NewRequest("GET", "/ready", nil)
@@ -228,7 +228,7 @@ func TestHealthChecker_ReadinessHandler(t *testing.T) {
 }
 
 func TestHealthChecker_RegisterCheck(t *testing.T) {
-	logger := NewLogger("test", "debug", "json")
+	logger := NewLogger(&config.ObservabilityConfig{LogLevel: "debug", LogFormat: "json"})
 	hc := NewHealthChecker(nil, nil, logger, "1.0.0")
 
 	// Register a custom check
@@ -261,7 +261,7 @@ func TestHealthChecker_RegisterCheck(t *testing.T) {
 }
 
 func TestHealthChecker_Timeout(t *testing.T) {
-	logger := NewLogger("test", "debug", "json")
+	logger := NewLogger(&config.ObservabilityConfig{LogLevel: "debug", LogFormat: "json"})
 	hc := NewHealthChecker(nil, nil, logger, "1.0.0")
 
 	// Register a slow check
@@ -307,7 +307,7 @@ func TestHealthChecker_Timeout(t *testing.T) {
 }
 
 func TestHealthChecker_ConcurrentChecks(t *testing.T) {
-	logger := NewLogger("test", "debug", "json")
+	logger := NewLogger(&config.ObservabilityConfig{LogLevel: "debug", LogFormat: "json"})
 	hc := NewHealthChecker(nil, nil, logger, "1.0.0")
 
 	// Register multiple checks that take time
@@ -364,7 +364,7 @@ func TestHealthStatus_String(t *testing.T) {
 }
 
 func TestHealthChecker_SummaryCalculation(t *testing.T) {
-	logger := NewLogger("test", "debug", "json")
+	logger := NewLogger(&config.ObservabilityConfig{LogLevel: "debug", LogFormat: "json"})
 	hc := NewHealthChecker(nil, nil, logger, "1.0.0")
 
 	// Register checks with different statuses

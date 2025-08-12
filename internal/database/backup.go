@@ -506,7 +506,7 @@ func validateEnvironmentVariable(name, value string) error {
 	if value == "" {
 		return fmt.Errorf("environment variable %s is empty", name)
 	}
-	
+
 	// Check for potentially dangerous characters
 	dangerousChars := []string{";", "&", "|", "`", "$(", ")", ">", "<", "\"", "'"}
 	for _, char := range dangerousChars {
@@ -514,14 +514,14 @@ func validateEnvironmentVariable(name, value string) error {
 			return fmt.Errorf("environment variable %s contains dangerous character: %s", name, char)
 		}
 	}
-	
+
 	// Check for command injection patterns
-	if strings.Contains(strings.ToLower(value), "exec") || 
-	   strings.Contains(strings.ToLower(value), "system") ||
-	   strings.Contains(strings.ToLower(value), "eval") {
+	if strings.Contains(strings.ToLower(value), "exec") ||
+		strings.Contains(strings.ToLower(value), "system") ||
+		strings.Contains(strings.ToLower(value), "eval") {
 		return fmt.Errorf("environment variable %s contains potentially dangerous content", name)
 	}
-	
+
 	return nil
 }
 
@@ -534,12 +534,12 @@ func (bs *BackupService) validateDatabaseConfig() error {
 		"DB_NAME":     os.Getenv("DB_NAME"),
 		"DB_PASSWORD": os.Getenv("DB_PASSWORD"),
 	}
-	
+
 	for name, value := range requiredVars {
 		if err := validateEnvironmentVariable(name, value); err != nil {
 			return fmt.Errorf("database configuration validation failed: %w", err)
 		}
 	}
-	
+
 	return nil
 }
