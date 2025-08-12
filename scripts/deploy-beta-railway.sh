@@ -11,6 +11,11 @@ echo "🚀 Quick Beta Deployment using Railway..."
 PROJECT_NAME="${PROJECT_NAME:-kyb-platform-beta}"
 RAILWAY_TOKEN="${RAILWAY_TOKEN}"
 
+# Supabase Configuration (optional)
+SUPABASE_URL="${SUPABASE_URL}"
+SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY}"
+SUPABASE_SERVICE_ROLE_KEY="${SUPABASE_SERVICE_ROLE_KEY}"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -137,6 +142,16 @@ deploy_to_railway() {
     railway variables set BETA_MODE=true
     railway variables set ANALYTICS_ENABLED=true
     railway variables set FEEDBACK_COLLECTION=true
+    
+    # Supabase integration (if using external Supabase)
+    if [[ -n "$SUPABASE_URL" ]]; then
+        railway variables set SUPABASE_URL="$SUPABASE_URL"
+        railway variables set SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
+        railway variables set SUPABASE_SERVICE_ROLE_KEY="$SUPABASE_SERVICE_ROLE_KEY"
+        print_status "Supabase integration configured"
+    else
+        print_warning "Supabase credentials not provided - using Railway PostgreSQL"
+    fi
     
     # Deploy
     railway up
