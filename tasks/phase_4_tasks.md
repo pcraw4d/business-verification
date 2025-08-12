@@ -34,6 +34,8 @@
 - `internal/webanalysis/intelligent_page_discovery_test.go` - Unit tests for intelligent page discovery
 - `internal/webanalysis/page_relevance_scoring.go` - Comprehensive page relevance scoring system
 - `internal/webanalysis/page_relevance_scoring_test.go` - Unit tests for page relevance scoring
+- `internal/webanalysis/priority_scraping_queue.go` - Priority-based scraping queue system
+- `internal/webanalysis/priority_scraping_queue_test.go` - Unit tests for priority scraping queue
 - `internal/webanalysis/poc_test.go` - POC validation tests for web analysis
 - `internal/webvalidation/service.go` - Website validation and verification service
 - `internal/webvalidation/service_test.go` - Unit tests for web validation service
@@ -115,7 +117,7 @@
 
 - [x] Create intelligent page discovery algorithm
 - [x] Implement page relevance scoring system
-- [ ] Set up priority-based scraping queue
+- [x] Set up priority-based scraping queue
 - [ ] Create "about us", "mission", "products", "services" page detection
 - [ ] Implement page content quality assessment
 - [ ] Create dynamic scraping depth based on page relevance
