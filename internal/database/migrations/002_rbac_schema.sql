@@ -4,10 +4,10 @@
 
 -- Add role assignments table for audit trail and expiration support
 CREATE TABLE IF NOT EXISTS role_assignments (
-    id VARCHAR(255) PRIMARY KEY,
-    user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     role VARCHAR(50) NOT NULL CHECK (role IN ('guest', 'user', 'analyst', 'manager', 'admin', 'system')),
-    assigned_by VARCHAR(255) NOT NULL REFERENCES users(id),
+    assigned_by UUID NOT NULL REFERENCES users(id),
     assigned_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMP WITH TIME ZONE NULL,
     is_active BOOLEAN NOT NULL DEFAULT true,
@@ -23,9 +23,10 @@ CREATE INDEX IF NOT EXISTS idx_role_assignments_expires_at ON role_assignments(e
 CREATE INDEX IF NOT EXISTS idx_role_assignments_assigned_by ON role_assignments(assigned_by);
 
 -- Add unique constraint for active role assignments per user
+-- Note: Using a simpler index since CURRENT_TIMESTAMP is not immutable
 CREATE UNIQUE INDEX IF NOT EXISTS idx_role_assignments_user_active 
 ON role_assignments(user_id) 
-WHERE is_active = true AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP);
+WHERE is_active = true;
 
 -- Enhance API keys table with role and better permissions structure
 ALTER TABLE api_keys 

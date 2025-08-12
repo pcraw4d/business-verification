@@ -130,12 +130,18 @@ func (m *MigrationSystem) LoadMigrationFiles() ([]*Migration, error) {
 
 // loadMigrationFile loads a single migration file
 func (m *MigrationSystem) loadMigrationFile(filePath string) (*Migration, error) {
-	content, err := ioutil.ReadFile(filePath)
+	// Validate path to prevent path traversal attacks
+	cleanPath := filepath.Clean(filePath)
+	if strings.Contains(cleanPath, "..") {
+		return nil, fmt.Errorf("invalid path: potential path traversal detected")
+	}
+
+	content, err := ioutil.ReadFile(cleanPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read migration file: %w", err)
 	}
 
-	filename := filepath.Base(filePath)
+	filename := filepath.Base(cleanPath)
 	// Extract migration ID from filename (e.g., "001_initial_schema.sql" -> "001")
 	parts := strings.Split(filename, "_")
 	if len(parts) < 2 {

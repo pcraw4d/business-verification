@@ -117,6 +117,11 @@ func (p *PostgresDB) getDB() interface {
 	return p.db
 }
 
+// GetDB returns the underlying *sql.DB for migration purposes
+func (p *PostgresDB) GetDB() *sql.DB {
+	return p.db
+}
+
 // CreateUser creates a new user
 func (p *PostgresDB) CreateUser(ctx context.Context, user *User) error {
 	query := `

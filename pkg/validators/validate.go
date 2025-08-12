@@ -33,6 +33,11 @@ func (e ValidationErrors) Error() string {
 	return strings.Join(messages, "; ")
 }
 
+// Common validation errors
+var (
+	ErrInvalidPath = fmt.Errorf("invalid path: potential path traversal detected")
+)
+
 // Validator provides validation functionality
 type Validator struct {
 	errors ValidationErrors

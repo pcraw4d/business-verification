@@ -26,7 +26,7 @@ func TestLoad(t *testing.T) {
 		t.Errorf("Expected default database driver 'postgres', got %s", config.Database.Driver)
 	}
 
-	if config.Environment != Development {
+	if config.Environment != string(Development) {
 		t.Errorf("Expected default environment 'development', got %s", config.Environment)
 	}
 }
@@ -63,7 +63,7 @@ func TestLoadWithEnvironmentVariables(t *testing.T) {
 		t.Errorf("Expected JWT secret 'test-secret', got %s", config.Auth.JWTSecret)
 	}
 
-	if config.Environment != Production {
+	if config.Environment != string(Production) {
 		t.Errorf("Expected environment 'production', got %s", config.Environment)
 	}
 }
@@ -316,17 +316,17 @@ func TestServerConfig(t *testing.T) {
 	}
 
 	// Test CORS defaults
-	if len(config.Server.CORS.AllowedOrigins) != 1 || config.Server.CORS.AllowedOrigins[0] != "*" {
-		t.Errorf("Expected default CORS allowed origins ['*'], got %v", config.Server.CORS.AllowedOrigins)
+	if len(config.CORS.AllowedOrigins) != 1 || config.CORS.AllowedOrigins[0] != "*" {
+		t.Errorf("Expected default CORS allowed origins ['*'], got %v", config.CORS.AllowedOrigins)
 	}
 
 	// Test rate limiting defaults
-	if !config.Server.RateLimit.Enabled {
+	if !config.RateLimit.Enabled {
 		t.Error("Expected rate limiting to be enabled by default")
 	}
 
-	if config.Server.RateLimit.RequestsPer != 100 {
-		t.Errorf("Expected default requests per window 100, got %d", config.Server.RateLimit.RequestsPer)
+	if config.RateLimit.RequestsPer != 100 {
+		t.Errorf("Expected default requests per window 100, got %d", config.RateLimit.RequestsPer)
 	}
 }
 

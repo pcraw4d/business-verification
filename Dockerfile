@@ -2,7 +2,7 @@
 # Supports development, testing, and production environments
 
 # Base stage for shared dependencies
-FROM golang:1.22-alpine AS base
+FROM golang:1.24-alpine AS base
 
 # Install common dependencies
 RUN apk add --no-cache \
@@ -28,7 +28,7 @@ FROM base AS development
 RUN apk add --no-cache \
     gcc \
     musl-dev \
-    && go install github.com/cosmtrek/air@latest
+    && go install github.com/air-verse/air@latest
 
 # Copy source code
 COPY . .
@@ -60,8 +60,9 @@ FROM base AS builder
 COPY . .
 
 # Build the application with optimizations
+# Use fallback values if git is not available
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
-    -ldflags="-w -s -X main.version=$(git describe --tags --always --dirty) -X main.buildTime=$(date -u '+%Y-%m-%d_%H:%M:%S')" \
+    -ldflags="-w -s -X main.version=dev-$(date +%Y%m%d-%H%M%S) -X main.buildTime=$(date -u '+%Y-%m-%d_%H:%M:%S')" \
     -o /app/kyb-platform \
     ./cmd/api
 
@@ -73,7 +74,7 @@ COPY . .
 
 # Build with debug information
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
-    -ldflags="-X main.version=$(git describe --tags --always --dirty) -X main.buildTime=$(date -u '+%Y-%m-%d_%H:%M:%S')" \
+    -ldflags="-X main.version=$(git describe --tags --always --dirty 2>/dev/null || echo 'dev-$(date +%Y%m%d-%H%M%S)') -X main.buildTime=$(date -u '+%Y-%m-%d_%H:%M:%S')" \
     -gcflags="all=-N -l" \
     -o /app/kyb-platform-debug \
     ./cmd/api
@@ -96,13 +97,13 @@ WORKDIR /app
 # Copy binary from builder stage
 COPY --from=builder /app/kyb-platform .
 
+# Create necessary directories
+RUN mkdir -p /app/logs /app/data /app/tmp /app/docs/api \
+    && chown -R kyb:kyb /app
+
 # Copy configuration files
 COPY --from=builder /app/configs/ ./configs/
-COPY --from=builder /app/docs/api/openapi.yaml ./docs/api/
-
-# Create necessary directories
-RUN mkdir -p /app/logs /app/data /app/tmp \
-    && chown -R kyb:kyb /app
+COPY --from=builder /app/Codes/ ./Codes/
 
 # Switch to non-root user
 USER kyb

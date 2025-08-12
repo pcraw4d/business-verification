@@ -40,9 +40,9 @@ func NewAPITestSuite(t *testing.T) *APITestSuite {
 	})
 
 	// Setup services
-	authService := auth.NewService(db, logger)
-	classificationService := classification.NewService(db, logger)
-	riskService := risk.NewService(db, logger)
+	authService := auth.NewAuthService(&config.AuthConfig{}, db, logger, nil)
+	classificationService := classification.NewClassificationService(nil, db, logger, nil)
+	riskService := risk.NewService(nil, logger)
 
 	// Setup handlers
 	authHandler := handlers.NewAuthHandler(authService, logger)

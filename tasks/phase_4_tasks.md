@@ -30,6 +30,8 @@
 - `internal/webanalysis/service_test.go` - Unit tests for web analysis service
 - `internal/webanalysis/proxy_manager.go` - Proxy infrastructure and management
 - `internal/webanalysis/scraper.go` - Web scraping engine with intelligent features
+- `internal/webanalysis/intelligent_page_discovery.go` - Intelligent page discovery and prioritization algorithm
+- `internal/webanalysis/intelligent_page_discovery_test.go` - Unit tests for intelligent page discovery
 - `internal/webanalysis/poc_test.go` - POC validation tests for web analysis
 - `internal/webvalidation/service.go` - Website validation and verification service
 - `internal/webvalidation/service_test.go` - Unit tests for web validation service
@@ -101,15 +103,15 @@
 
 **1.5 Web Search Integration**
 
-- [ ] Integrate Google Custom Search API
-- [ ] Implement Bing Search API integration
-- [ ] Create search result filtering and ranking
-- [ ] Set up search result validation
-- [ ] Implement search quota management
+- [x] Integrate Google Custom Search API
+- [x] Implement Bing Search API integration
+- [x] Create search result filtering and ranking
+- [x] Set up search result validation
+- [x] Implement search quota management
 
 **1.6 Intelligent Web Scraping and Page Prioritization**
 
-- [ ] Create intelligent page discovery algorithm
+- [x] Create intelligent page discovery algorithm
 - [ ] Implement page relevance scoring system
 - [ ] Set up priority-based scraping queue
 - [ ] Create "about us", "mission", "products", "services" page detection

@@ -1,7 +1,6 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  # KYB Platform Application
   kyb-platform:
     build:
       context: .
@@ -11,34 +10,31 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - GO_ENV=development
-      - GIN_MODE=debug
-      - PORT=8080
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USER=kyb_user
-      - DB_PASSWORD=kyb_password
-      - DB_NAME=kyb_platform
-      - DB_SSLMODE=disable
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=
-      - REDIS_DB=0
+      - ENV=development
+      - PROVIDER_DATABASE=supabase
+      - PROVIDER_AUTH=supabase
+      - PROVIDER_CACHE=supabase
+      - PROVIDER_STORAGE=supabase
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_API_KEY=${SUPABASE_API_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_SSL_MODE=${DB_SSL_MODE}
       - JWT_SECRET=dev-jwt-secret-key-change-in-production
-      - REFRESH_SECRET=dev-refresh-secret-key-change-in-production
       - LOG_LEVEL=debug
-      - LOG_FORMAT=json
+      - METRICS_ENABLED=true
+      - TRACING_ENABLED=true
     volumes:
       - .:/app
       - /app/vendor
       - /app/.git
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - kyb-dev-network
+      - ./configs:/app/configs
+    depends_on: []
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
@@ -47,66 +43,50 @@ services:
       retries: 3
       start_period: 40s
 
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15-alpine
-    container_name: kyb-postgres-dev
+  # Monitoring stack for development
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: kyb-prometheus-dev
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deployments/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./deployments/prometheus/alerts.yml:/etc/prometheus/alerts.yml
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--storage.tsdb.retention.time=200h"
+      - "--web.enable-lifecycle"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: kyb-grafana-dev
+    ports:
+      - "3000:3000"
     environment:
-      - POSTGRES_DB=kyb_platform
-      - POSTGRES_USER=kyb_user
-      - POSTGRES_PASSWORD=kyb_password
-      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
-    ports:
-      - "5432:5432"
+      - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
-      - postgres_dev_data:/var/lib/postgresql/data
-      - ./internal/database/migrations:/docker-entrypoint-initdb.d
-    networks:
-      - kyb-dev-network
+      - grafana_data:/var/lib/grafana
+      - ./deployments/grafana/dashboards:/etc/grafana/provisioning/dashboards
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kyb_user -d kyb_platform"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+    depends_on:
+      - prometheus
 
-  # Redis Cache
-  redis:
-    image: redis:7-alpine
-    container_name: kyb-redis-dev
-    command: redis-server --appendonly yes --requirepass ""
+  # Jaeger Tracing for development
+  jaeger:
+    image: jaegertracing/all-in-one:1.47
+    container_name: kyb-jaeger-dev
     ports:
-      - "6379:6379"
-    volumes:
-      - redis_dev_data:/data
-    networks:
-      - kyb-dev-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-
-  # Mailhog (for email testing)
-  mailhog:
-    image: mailhog/mailhog:latest
-    container_name: kyb-mailhog-dev
-    ports:
-      - "1025:1025"  # SMTP
-      - "8025:8025"  # Web UI
-    networks:
-      - kyb-dev-network
+      - "16686:16686"
+      - "14268:14268"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
     restart: unless-stopped
 
 volumes:
-  postgres_dev_data:
-    driver: local
-  redis_dev_data:
-    driver: local
-
-networks:
-  kyb-dev-network:
-    driver: bridge
+  prometheus_data:
+  grafana_data:

@@ -383,8 +383,9 @@ func (m *Metrics) StartMetricsServer(ctx context.Context) error {
 	mux.Handle(m.config.MetricsPath, m)
 
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", m.config.MetricsPort),
-		Handler: mux,
+		Addr:              fmt.Sprintf(":%d", m.config.MetricsPort),
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second, // Prevent Slowloris attacks
 	}
 
 	go func() {

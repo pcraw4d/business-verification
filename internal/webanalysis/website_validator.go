@@ -26,35 +26,35 @@ type WebsiteValidator struct {
 
 // ValidatorConfig holds configuration for website validation
 type ValidatorConfig struct {
-	EnableAuthenticityCheck    bool          `json:"enable_authenticity_check"`
-	EnableTrafficAnalysis      bool          `json:"enable_traffic_analysis"`
-	EnableDomainReputation     bool          `json:"enable_domain_reputation"`
-	EnableSSLValidation        bool          `json:"enable_ssl_validation"`
-	EnableContentQualityCheck  bool          `json:"enable_content_quality_check"`
-	Timeout                    time.Duration `json:"timeout"`
-	MaxRedirects               int           `json:"max_redirects"`
-	UserAgent                  string        `json:"user_agent"`
-	FollowRedirects            bool          `json:"follow_redirects"`
-	CheckDNS                   bool          `json:"check_dns"`
-	CheckWHOIS                 bool          `json:"check_whois"`
-	MinContentLength           int           `json:"min_content_length"`
-	MaxContentLength           int           `json:"max_content_length"`
+	EnableAuthenticityCheck   bool          `json:"enable_authenticity_check"`
+	EnableTrafficAnalysis     bool          `json:"enable_traffic_analysis"`
+	EnableDomainReputation    bool          `json:"enable_domain_reputation"`
+	EnableSSLValidation       bool          `json:"enable_ssl_validation"`
+	EnableContentQualityCheck bool          `json:"enable_content_quality_check"`
+	Timeout                   time.Duration `json:"timeout"`
+	MaxRedirects              int           `json:"max_redirects"`
+	UserAgent                 string        `json:"user_agent"`
+	FollowRedirects           bool          `json:"follow_redirects"`
+	CheckDNS                  bool          `json:"check_dns"`
+	CheckWHOIS                bool          `json:"check_whois"`
+	MinContentLength          int           `json:"min_content_length"`
+	MaxContentLength          int           `json:"max_content_length"`
 }
 
 // WebsiteValidationResult represents the result of website validation
 type WebsiteValidationResult struct {
-	URL                     string                    `json:"url"`
-	IsValid                 bool                      `json:"is_valid"`
-	AuthenticityScore       float64                   `json:"authenticity_score"`
-	TrafficAnalysis         *TrafficAnalysisResult    `json:"traffic_analysis"`
-	DomainReputation        *DomainReputationResult   `json:"domain_reputation"`
-	SSLValidation           *SSLValidationResult      `json:"ssl_validation"`
-	ContentQuality          *ContentQualityResult     `json:"content_quality"`
-	OverallScore            float64                   `json:"overall_score"`
-	Warnings                []string                  `json:"warnings"`
-	Errors                  []string                  `json:"errors"`
-	ValidationTime          time.Duration             `json:"validation_time"`
-	LastChecked             time.Time                 `json:"last_checked"`
+	URL               string                  `json:"url"`
+	IsValid           bool                    `json:"is_valid"`
+	AuthenticityScore float64                 `json:"authenticity_score"`
+	TrafficAnalysis   *TrafficAnalysisResult  `json:"traffic_analysis"`
+	DomainReputation  *DomainReputationResult `json:"domain_reputation"`
+	SSLValidation     *SSLValidationResult    `json:"ssl_validation"`
+	ContentQuality    *ContentQualityResult   `json:"content_quality"`
+	OverallScore      float64                 `json:"overall_score"`
+	Warnings          []string                `json:"warnings"`
+	Errors            []string                `json:"errors"`
+	ValidationTime    time.Duration           `json:"validation_time"`
+	LastChecked       time.Time               `json:"last_checked"`
 }
 
 // AuthenticityChecker validates website authenticity
@@ -68,48 +68,48 @@ type AuthenticityChecker struct {
 
 // TrafficAnalyzer analyzes website traffic patterns
 type TrafficAnalyzer struct {
-	botPatterns     []*regexp.Regexp
-	humanPatterns   []*regexp.Regexp
-	suspiciousIPs   map[string]bool
-	geographicData  map[string]string
-	mu              sync.RWMutex
+	botPatterns    []*regexp.Regexp
+	humanPatterns  []*regexp.Regexp
+	suspiciousIPs  map[string]bool
+	geographicData map[string]string
+	mu             sync.RWMutex
 }
 
 // TrafficAnalysisResult represents traffic analysis results
 type TrafficAnalysisResult struct {
-	IsBotTraffic           bool    `json:"is_bot_traffic"`
-	HumanTrafficPercentage float64 `json:"human_traffic_percentage"`
-	SuspiciousActivity     bool    `json:"suspicious_activity"`
+	IsBotTraffic           bool               `json:"is_bot_traffic"`
+	HumanTrafficPercentage float64            `json:"human_traffic_percentage"`
+	SuspiciousActivity     bool               `json:"suspicious_activity"`
 	GeographicDistribution map[string]float64 `json:"geographic_distribution"`
-	TrafficVolume          string  `json:"traffic_volume"` // low, medium, high
-	ResponseTime           float64 `json:"response_time"`
-	Uptime                 float64 `json:"uptime"`
+	TrafficVolume          string             `json:"traffic_volume"` // low, medium, high
+	ResponseTime           float64            `json:"response_time"`
+	Uptime                 float64            `json:"uptime"`
 }
 
 // DomainReputationChecker checks domain reputation
 type DomainReputationChecker struct {
-	reputationAPIs    map[string]ReputationAPI
-	blacklistSources  []string
-	whitelistSources  []string
-	reputationCache   map[string]DomainReputationResult
-	cacheExpiry       time.Duration
-	mu                sync.RWMutex
+	reputationAPIs   map[string]ReputationAPI
+	blacklistSources []string
+	whitelistSources []string
+	reputationCache  map[string]DomainReputationResult
+	cacheExpiry      time.Duration
+	mu               sync.RWMutex
 }
 
 // DomainReputationResult represents domain reputation results
 type DomainReputationResult struct {
-	Domain              string    `json:"domain"`
-	Age                 int       `json:"age_days"`
-	ReputationScore     float64   `json:"reputation_score"`
-	IsBlacklisted       bool      `json:"is_blacklisted"`
-	IsWhitelisted       bool      `json:"is_whitelisted"`
-	BlacklistSources    []string  `json:"blacklist_sources"`
-	WhitelistSources    []string  `json:"whitelist_sources"`
-	RegistrationDate    time.Time `json:"registration_date"`
-	ExpirationDate      time.Time `json:"expiration_date"`
-	Registrar           string    `json:"registrar"`
-	Country             string    `json:"country"`
-	LastChecked         time.Time `json:"last_checked"`
+	Domain           string    `json:"domain"`
+	Age              int       `json:"age_days"`
+	ReputationScore  float64   `json:"reputation_score"`
+	IsBlacklisted    bool      `json:"is_blacklisted"`
+	IsWhitelisted    bool      `json:"is_whitelisted"`
+	BlacklistSources []string  `json:"blacklist_sources"`
+	WhitelistSources []string  `json:"whitelist_sources"`
+	RegistrationDate time.Time `json:"registration_date"`
+	ExpirationDate   time.Time `json:"expiration_date"`
+	Registrar        string    `json:"registrar"`
+	Country          string    `json:"country"`
+	LastChecked      time.Time `json:"last_checked"`
 }
 
 // ReputationAPI represents a reputation checking API
@@ -122,53 +122,53 @@ type ReputationAPI struct {
 
 // SSLValidator validates SSL certificates
 type SSLValidator struct {
-	trustedCAs     *x509.CertPool
-	sslConfig      *tls.Config
+	trustedCAs      *x509.CertPool
+	sslConfig       *tls.Config
 	checkRevocation bool
-	mu             sync.RWMutex
+	mu              sync.RWMutex
 }
 
 // SSLValidationResult represents SSL validation results
 type SSLValidationResult struct {
-	IsValid           bool      `json:"is_valid"`
-	CertificateValid  bool      `json:"certificate_valid"`
-	ChainValid        bool      `json:"chain_valid"`
-	RevocationValid   bool      `json:"revocation_valid"`
-	Issuer            string    `json:"issuer"`
-	Subject           string    `json:"subject"`
-	ValidFrom         time.Time `json:"valid_from"`
-	ValidUntil        time.Time `json:"valid_until"`
-	SerialNumber      string    `json:"serial_number"`
-	SignatureAlgorithm string   `json:"signature_algorithm"`
-	KeyUsage          []string  `json:"key_usage"`
-	ExtendedKeyUsage  []string  `json:"extended_key_usage"`
-	Warnings          []string  `json:"warnings"`
-	Errors            []string  `json:"errors"`
+	IsValid            bool      `json:"is_valid"`
+	CertificateValid   bool      `json:"certificate_valid"`
+	ChainValid         bool      `json:"chain_valid"`
+	RevocationValid    bool      `json:"revocation_valid"`
+	Issuer             string    `json:"issuer"`
+	Subject            string    `json:"subject"`
+	ValidFrom          time.Time `json:"valid_from"`
+	ValidUntil         time.Time `json:"valid_until"`
+	SerialNumber       string    `json:"serial_number"`
+	SignatureAlgorithm string    `json:"signature_algorithm"`
+	KeyUsage           []string  `json:"key_usage"`
+	ExtendedKeyUsage   []string  `json:"extended_key_usage"`
+	Warnings           []string  `json:"warnings"`
+	Errors             []string  `json:"errors"`
 }
 
 // ContentQualityAssessor assesses website content quality
 type ContentQualityAssessor struct {
-	qualityMetrics   map[string]QualityMetric
-	spamPatterns     []*regexp.Regexp
+	qualityMetrics    map[string]QualityMetric
+	spamPatterns      []*regexp.Regexp
 	legitimateContent []*regexp.Regexp
-	mu               sync.RWMutex
+	mu                sync.RWMutex
 }
 
 // ContentQualityResult represents content quality assessment results
 type ContentQualityResult struct {
-	OverallScore      float64            `json:"overall_score"`
-	ReadabilityScore  float64            `json:"readability_score"`
-	SpamScore         float64            `json:"spam_score"`
-	ContentLength     int                `json:"content_length"`
-	WordCount         int                `json:"word_count"`
-	UniqueWords       int                `json:"unique_words"`
-	GrammarErrors     int                `json:"grammar_errors"`
-	SpellingErrors    int                `json:"spelling_errors"`
-	LinkCount         int                `json:"link_count"`
-	ImageCount        int                `json:"image_count"`
-	IsSpam            bool               `json:"is_spam"`
-	QualityMetrics    map[string]float64 `json:"quality_metrics"`
-	Warnings          []string           `json:"warnings"`
+	OverallScore     float64            `json:"overall_score"`
+	ReadabilityScore float64            `json:"readability_score"`
+	SpamScore        float64            `json:"spam_score"`
+	ContentLength    int                `json:"content_length"`
+	WordCount        int                `json:"word_count"`
+	UniqueWords      int                `json:"unique_words"`
+	GrammarErrors    int                `json:"grammar_errors"`
+	SpellingErrors   int                `json:"spelling_errors"`
+	LinkCount        int                `json:"link_count"`
+	ImageCount       int                `json:"image_count"`
+	IsSpam           bool               `json:"is_spam"`
+	QualityMetrics   map[string]float64 `json:"quality_metrics"`
+	Warnings         []string           `json:"warnings"`
 }
 
 // QualityMetric represents a content quality metric
@@ -470,8 +470,8 @@ func (drc *DomainReputationChecker) CheckReputation(domain string) (DomainReputa
 	}
 
 	result := DomainReputationResult{
-		Domain:       domain,
-		LastChecked:  time.Now(),
+		Domain:           domain,
+		LastChecked:      time.Now(),
 		BlacklistSources: []string{},
 		WhitelistSources: []string{},
 	}
@@ -761,13 +761,13 @@ func calculateReadability(content string) float64 {
 	// Simple readability calculation
 	words := strings.Fields(content)
 	sentences := strings.Split(content, ".")
-	
+
 	if len(sentences) == 0 || len(words) == 0 {
 		return 0.0
 	}
-	
+
 	avgWordsPerSentence := float64(len(words)) / float64(len(sentences))
-	
+
 	// Flesch Reading Ease approximation
 	if avgWordsPerSentence <= 10 {
 		return 1.0
@@ -801,14 +801,14 @@ func calculateSpamScore(content string) float64 {
 		regexp.MustCompile(`(?i)click\s*here|free\s*money|earn\s*money`),
 		regexp.MustCompile(`(?i)urgent|immediate|instant`),
 	}
-	
+
 	spamCount := 0
 	for _, pattern := range spamPatterns {
 		if pattern.MatchString(content) {
 			spamCount++
 		}
 	}
-	
+
 	if spamCount == 0 {
 		return 1.0
 	} else if spamCount == 1 {
@@ -826,7 +826,7 @@ func calculateGrammarScore(content string) float64 {
 	if len(words) == 0 {
 		return 0.0
 	}
-	
+
 	// Simulate grammar score based on content length and structure
 	if len(words) > 50 {
 		return 0.9

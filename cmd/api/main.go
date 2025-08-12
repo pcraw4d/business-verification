@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/pcraw4d/business-verification/internal/api/handlers"
 	"github.com/pcraw4d/business-verification/internal/api/middleware"
 	"github.com/pcraw4d/business-verification/internal/auth"
@@ -162,7 +163,7 @@ func (s *Server) setupRoutes() *http.ServeMux {
 	mux.HandleFunc("POST /v1/compliance/export/job", s.complianceHandler.CreateExportJobHandler)
 	mux.HandleFunc("GET /v1/compliance/export/job/{job_id}", s.complianceHandler.GetExportJobHandler)
 	mux.HandleFunc("GET /v1/compliance/export/jobs", s.complianceHandler.ListExportJobsHandler)
-	mux.HandleFunc("GET /v1/compliance/export/{export_id}/download", s.complianceHandler.DownloadExportHandler)
+	mux.HandleFunc("GET /v1/compliance/export/download/{export_id}", s.complianceHandler.DownloadExportHandler)
 
 	// Compliance data retention endpoints
 	mux.HandleFunc("POST /v1/compliance/retention/policies", s.complianceHandler.RegisterRetentionPolicyHandler)
@@ -472,7 +473,7 @@ func (s *Server) requestLoggingMiddleware(next http.Handler) http.Handler {
 		// Logging
 		s.logger.WithComponent("api").LogAPIRequest(r.Context(), r.Method, r.URL.Path, r.UserAgent(), rw.statusCode, duration)
 		// Simple local alerting for slow requests
-		if duration > s.config.Observability.SlowRequestThreshold {
+		if duration > 300*time.Millisecond { // Default threshold
 			s.logger.WithComponent("api").Warn("slow_request", "method", r.Method, "path", r.URL.Path, "duration_ms", duration.Milliseconds())
 		}
 	})
@@ -768,6 +769,11 @@ func (s *Server) Shutdown(ctx context.Context) error {
 }
 
 func main() {
+	// Load environment variables from .env file
+	if err := godotenv.Load(); err != nil {
+		log.Printf("Failed to load .env file: %v", err)
+	}
+
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
@@ -861,31 +867,31 @@ func main() {
 
 	// Initialize rate limiting middleware
 	rateLimitConfig := &middleware.RateLimitConfig{
-		RequestsPerMinute: cfg.Server.RateLimit.RequestsPer,
-		BurstSize:         cfg.Server.RateLimit.BurstSize,
-		Enabled:           cfg.Server.RateLimit.Enabled,
+		RequestsPerMinute: cfg.RateLimit.RequestsPer,
+		BurstSize:         cfg.RateLimit.BurstSize,
+		Enabled:           cfg.RateLimit.Enabled,
 	}
 	rateLimiter := middleware.NewRateLimiter(rateLimitConfig, logger)
 
 	// Initialize auth-specific rate limiting middleware
 	authRateLimitConfig := &middleware.AuthRateLimitConfig{
-		Enabled:                  cfg.Server.AuthRateLimit.Enabled,
-		LoginAttemptsPer:         cfg.Server.AuthRateLimit.LoginAttemptsPer,
-		RegisterAttemptsPer:      cfg.Server.AuthRateLimit.RegisterAttemptsPer,
-		PasswordResetAttemptsPer: cfg.Server.AuthRateLimit.PasswordResetAttemptsPer,
-		WindowSize:               cfg.Server.AuthRateLimit.WindowSize,
-		LockoutDuration:          cfg.Server.AuthRateLimit.LockoutDuration,
+		Enabled:                  true, // Default to enabled
+		LoginAttemptsPer:         5,    // Default values
+		RegisterAttemptsPer:      3,
+		PasswordResetAttemptsPer: 3,
+		WindowSize:               60 * time.Second,
+		LockoutDuration:          15 * time.Minute,
 	}
 	authRateLimiter := middleware.NewAuthRateLimiter(authRateLimitConfig, logger)
 
 	// Initialize IP blocker middleware
 	ipBlocker := middleware.NewIPBlocker(
-		cfg.Server.IPBlock.Enabled,
-		cfg.Server.IPBlock.Threshold,
-		cfg.Server.IPBlock.Window,
-		cfg.Server.IPBlock.BlockDuration,
-		cfg.Server.IPBlock.Whitelist,
-		cfg.Server.IPBlock.Blacklist,
+		true,           // Default to enabled
+		20,             // Default threshold
+		5*time.Minute,  // Default window
+		30*time.Minute, // Default block duration
+		[]string{},     // Default whitelist
+		[]string{},     // Default blacklist
 		logger,
 	)
 
@@ -976,9 +982,9 @@ func main() {
 
 	// Initialize validation middleware
 	validationConfig := &middleware.ValidationConfig{
-		MaxBodySize:   cfg.Server.Validation.MaxBodySize,
-		RequiredPaths: cfg.Server.Validation.RequiredPaths,
-		Enabled:       cfg.Server.Validation.Enabled,
+		MaxBodySize:   10 * 1024 * 1024, // 10MB default
+		RequiredPaths: []string{"/v1/"},
+		Enabled:       true,
 	}
 	validator := middleware.NewValidator(validationConfig, logger)
 

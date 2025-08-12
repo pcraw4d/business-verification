@@ -80,10 +80,10 @@ func BenchmarkBatchClassification(b *testing.B) {
 
 	// Create batch of test businesses
 	batchSize := 100
-	businesses := make([]*classification.ClassificationRequest, batchSize)
+	businesses := make([]classification.ClassificationRequest, batchSize)
 
 	for i := 0; i < batchSize; i++ {
-		businesses[i] = &classification.ClassificationRequest{
+		businesses[i] = classification.ClassificationRequest{
 			BusinessName: "Test Business " + string(rune(i+'A')),
 			BusinessType: "Corporation",
 			Industry:     "Technology",

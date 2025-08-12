@@ -188,19 +188,10 @@ func (c *ClassificationService) initEnrichment(db database.Database) {
 	// For now only DB source; easily extended with external APIs later
 	src := datasource.NewDBSource(db)
 	aggr := datasource.NewAggregator([]datasource.DataSource{src}, 1500*time.Millisecond)
-	// Install pooled HTTP client for any HTTP-capable sources (future-proof)
-	if c.config != nil {
-		hc := c.config.HTTPClient
-		client := datasource.NewPooledHTTPClient(
-			hc.MaxIdleConns,
-			hc.MaxIdleConnsPerHost,
-			hc.IdleConnTimeout,
-			hc.TLSHandshakeTimeout,
-			hc.ExpectContinueTimeout,
-			hc.RequestTimeout,
-		)
-		aggr.SetHTTPClient(client)
-	}
+
+	// Note: HTTP client configuration removed as it's not needed for MVP
+	// External data sources can be added later when needed
+
 	c.enricher = aggr
 }
 

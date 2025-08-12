@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/pcraw4d/business-verification/internal/observability"
+	"github.com/pcraw4d/business-verification/pkg/validators"
 )
 
 // AuditLoggingSystem provides comprehensive audit logging capabilities
@@ -645,25 +646,39 @@ func (als *AuditLoggingSystem) calculateRiskScore(event AuditEvent) float64 {
 
 // NewAuditFileLogger creates a new file-based audit logger
 func NewAuditFileLogger(logger *observability.Logger, config AuditLoggingConfig) *AuditFileLogger {
-	// Create log directory if it doesn't exist
-	if err := os.MkdirAll(config.LogDirectory, 0755); err != nil {
+	// Validate log directory
+	validDir, err := validators.ValidateDirectoryPath(config.LogDirectory, "")
+	if err != nil {
+		logger.Error("Invalid log directory", "error", err)
+		return nil
+	}
+
+	// Create log directory if it doesn't exist with secure permissions
+	if err := os.MkdirAll(validDir, 0750); err != nil {
 		logger.Error("Failed to create audit log directory", "error", err)
 		return nil
 	}
 
-	// Generate log file path
-	timestamp := time.Now().Format("2006-01-02")
+	// Generate initial file path
+	timestamp := time.Now().Format("2006-01-02-15-04-05")
 	fileName := fmt.Sprintf("audit-%s.log", timestamp)
-	filePath := filepath.Join(config.LogDirectory, fileName)
+	filePath := filepath.Join(validDir, fileName)
 
-	// Open log file
-	file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	// Validate file path
+	validFilePath, err := validators.ValidateFilePath(filePath, validDir)
+	if err != nil {
+		logger.Error("Invalid file path", "error", err)
+		return nil
+	}
+
+	// Open log file with secure permissions (owner read/write only)
+	file, err := os.OpenFile(validFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		logger.Error("Failed to open audit log file", "error", err)
 		return nil
 	}
 
-	// Get file info for size
+	// Get file info for size tracking
 	fileInfo, err := file.Stat()
 	if err != nil {
 		logger.Error("Failed to get file info", "error", err)
@@ -675,7 +690,7 @@ func NewAuditFileLogger(logger *observability.Logger, config AuditLoggingConfig)
 		logger:    logger,
 		config:    config,
 		file:      file,
-		filePath:  filePath,
+		filePath:  validFilePath,
 		encoder:   json.NewEncoder(file),
 		fileSize:  fileInfo.Size(),
 		fileCount: 1,
@@ -717,19 +732,31 @@ func (afl *AuditFileLogger) rotateFile() error {
 		return err
 	}
 
+	// Validate log directory
+	validDir, err := validators.ValidateDirectoryPath(afl.config.LogDirectory, "")
+	if err != nil {
+		return fmt.Errorf("invalid log directory: %w", err)
+	}
+
 	// Generate new file path
 	timestamp := time.Now().Format("2006-01-02-15-04-05")
 	fileName := fmt.Sprintf("audit-%s.log", timestamp)
-	filePath := filepath.Join(afl.config.LogDirectory, fileName)
+	filePath := filepath.Join(validDir, fileName)
 
-	// Open new file
-	file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	// Validate file path
+	validFilePath, err := validators.ValidateFilePath(filePath, validDir)
+	if err != nil {
+		return fmt.Errorf("invalid file path: %w", err)
+	}
+
+	// Open new file with secure permissions (owner read/write only)
+	file, err := os.OpenFile(validFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		return err
 	}
 
 	afl.file = file
-	afl.filePath = filePath
+	afl.filePath = validFilePath
 	afl.encoder = json.NewEncoder(file)
 	afl.fileSize = 0
 	afl.fileCount++

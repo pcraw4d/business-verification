@@ -461,7 +461,7 @@ func TestEventHandlers(t *testing.T) {
 	os.RemoveAll("/tmp/audit-logs")
 }
 
-func TestExportAuditLogs(t *testing.T) {
+func TestExportAuditLogsFromAuditLogger(t *testing.T) {
 	logger := observability.NewLogger("test", "debug")
 	config := AuditLoggingConfig{
 		Enabled:              true,

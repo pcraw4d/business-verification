@@ -58,10 +58,10 @@ const (
 	PermissionManageRoles Permission = "users:manage_roles"
 
 	// API key management permissions
-	PermissionViewAPIKeys   Permission = "api_keys:view"      // #nosec G101 -- Permission identifier, not credentials
-	PermissionCreateAPIKey  Permission = "api_keys:create"    // #nosec G101 -- Permission identifier, not credentials
-	PermissionRevokeAPIKey  Permission = "api_keys:revoke"    // #nosec G101 -- Permission identifier, not credentials
-	PermissionManageAPIKeys Permission = "api_keys:manage"    // #nosec G101 -- Permission identifier, not credentials
+	PermissionViewAPIKeys   Permission = "api_keys:view"   // #nosec G101 -- Permission identifier, not credentials
+	PermissionCreateAPIKey  Permission = "api_keys:create" // #nosec G101 -- Permission identifier, not credentials
+	PermissionRevokeAPIKey  Permission = "api_keys:revoke" // #nosec G101 -- Permission identifier, not credentials
+	PermissionManageAPIKeys Permission = "api_keys:manage" // #nosec G101 -- Permission identifier, not credentials
 
 	// System administration permissions
 	PermissionViewMetrics         Permission = "system:metrics"

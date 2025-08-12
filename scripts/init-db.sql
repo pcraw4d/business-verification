@@ -8,6 +8,12 @@ CREATE EXTENSION IF NOT EXISTS "pg_stat_statements";
 -- Set timezone
 SET timezone = 'UTC';
 
+-- Run migrations in order
+\i /docker-entrypoint-initdb.d/migrations/001_initial_schema.sql
+\i /docker-entrypoint-initdb.d/migrations/002_rbac_schema.sql
+\i /docker-entrypoint-initdb.d/migrations/003_performance_indexes.sql
+\i /docker-entrypoint-initdb.d/migrations/004_supabase_optimizations.sql
+
 -- Create initial admin user (password: admin123)
 INSERT INTO users (
     id, 

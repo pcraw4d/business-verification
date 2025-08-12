@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/pcraw4d/business-verification/internal/observability"
@@ -62,17 +63,34 @@ func (bs *BackupService) CreateBackup(ctx context.Context) (*BackupResult, error
 	startTime := time.Now()
 	backupID := fmt.Sprintf("backup-%s", startTime.Format("20060102-150405"))
 
-	bs.logger.Info("Starting database backup", "backup_id", backupID)
+	// Validate database configuration before executing commands
+	if err := bs.validateDatabaseConfig(); err != nil {
+		bs.logger.Error("Database configuration validation failed", "error", err, "backup_id", backupID)
+		return &BackupResult{
+			BackupID:  backupID,
+			StartTime: startTime,
+			EndTime:   time.Now(),
+			Success:   false,
+			Error:     err,
+		}, err
+	}
 
-	// Create backup directory if it doesn't exist
-	if err := os.MkdirAll(bs.config.BackupDir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create backup directory: %w", err)
+	// Validate backup directory with secure permissions
+	if err := os.MkdirAll(bs.config.BackupDir, 0750); err != nil {
+		bs.logger.Error("Failed to create backup directory", "error", err, "backup_id", backupID)
+		return &BackupResult{
+			BackupID:  backupID,
+			StartTime: startTime,
+			EndTime:   time.Now(),
+			Success:   false,
+			Error:     err,
+		}, err
 	}
 
 	// Generate backup filename
 	filename := filepath.Join(bs.config.BackupDir, fmt.Sprintf("%s.sql", backupID))
 
-	// Create backup using pg_dump
+	// Create backup using pg_dump with validated environment variables
 	cmd := exec.CommandContext(ctx, "pg_dump",
 		"--host="+os.Getenv("DB_HOST"),
 		"--port="+os.Getenv("DB_PORT"),
@@ -481,4 +499,47 @@ func (bs *BackupService) CreateBackupTable(ctx context.Context) error {
 
 	_, err := bs.db.ExecContext(ctx, query)
 	return err
+}
+
+// validateEnvironmentVariable validates that an environment variable is safe for use in commands
+func validateEnvironmentVariable(name, value string) error {
+	if value == "" {
+		return fmt.Errorf("environment variable %s is empty", name)
+	}
+	
+	// Check for potentially dangerous characters
+	dangerousChars := []string{";", "&", "|", "`", "$(", ")", ">", "<", "\"", "'"}
+	for _, char := range dangerousChars {
+		if strings.Contains(value, char) {
+			return fmt.Errorf("environment variable %s contains dangerous character: %s", name, char)
+		}
+	}
+	
+	// Check for command injection patterns
+	if strings.Contains(strings.ToLower(value), "exec") || 
+	   strings.Contains(strings.ToLower(value), "system") ||
+	   strings.Contains(strings.ToLower(value), "eval") {
+		return fmt.Errorf("environment variable %s contains potentially dangerous content", name)
+	}
+	
+	return nil
+}
+
+// validateDatabaseConfig validates database configuration for backup operations
+func (bs *BackupService) validateDatabaseConfig() error {
+	requiredVars := map[string]string{
+		"DB_HOST":     os.Getenv("DB_HOST"),
+		"DB_PORT":     os.Getenv("DB_PORT"),
+		"DB_USER":     os.Getenv("DB_USER"),
+		"DB_NAME":     os.Getenv("DB_NAME"),
+		"DB_PASSWORD": os.Getenv("DB_PASSWORD"),
+	}
+	
+	for name, value := range requiredVars {
+		if err := validateEnvironmentVariable(name, value); err != nil {
+			return fmt.Errorf("database configuration validation failed: %w", err)
+		}
+	}
+	
+	return nil
 }

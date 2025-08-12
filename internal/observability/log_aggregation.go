@@ -134,7 +134,7 @@ func (las *LogAggregationSystem) initializeLogger() error {
 
 	// File output
 	if las.config.EnableFile {
-		file, err := os.OpenFile(las.config.LogFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		file, err := os.OpenFile(las.config.LogFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 		if err != nil {
 			return fmt.Errorf("failed to open log file: %w", err)
 		}

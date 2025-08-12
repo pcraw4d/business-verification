@@ -1,0 +1,1540 @@
+{
+	"Golang errors": {
+		"": [
+			{
+				"line": 0,
+				"column": 0,
+				"error": "# command-line-arguments\ntest/testdata/factory.go:210:16: cannot use f.randomChoice([]risk.RiskCategory{…}) (value of type string) as risk.RiskCategory value in struct literal\ntest/testdata/factory.go:210:31: cannot use []risk.RiskCategory{…} (value of type []risk.RiskCategory) as []string value in argument to f.randomChoice\ntest/testdata/factory.go:231:17: cannot use f.randomChoice([]risk.RiskCategory{…}) (value of type string) as risk.RiskCategory value in struct literal\ntest/testdata/factory.go:231:32: cannot use []risk.RiskCategory{…} (value of type []risk.RiskCategory) as []string value in argument to f.randomChoice\ntest/testdata/factory.go:233:17: cannot use f.randomChoice([]risk.RiskLevel{…}) (value of type string) as risk.RiskLevel value in struct literal\ntest/testdata/factory.go:233:32: cannot use []risk.RiskLevel{…} (value of type []risk.RiskLevel) as []string value in argument to f.randomChoice"
+			}
+		],
+		"/Users/petercrawford/New tool/test/testdata/factory.go": [
+			{
+				"line": 210,
+				"column": 16,
+				"error": "cannot use f.randomChoice([]risk.RiskCategory{…}) (value of type string) as risk.RiskCategory value in struct literal"
+			},
+			{
+				"line": 210,
+				"column": 31,
+				"error": "cannot use []risk.RiskCategory{…} (value of type []risk.RiskCategory) as []string value in argument to f.randomChoice"
+			},
+			{
+				"line": 231,
+				"column": 17,
+				"error": "cannot use f.randomChoice([]risk.RiskCategory{…}) (value of type string) as risk.RiskCategory value in struct literal"
+			},
+			{
+				"line": 231,
+				"column": 32,
+				"error": "cannot use []risk.RiskCategory{…} (value of type []risk.RiskCategory) as []string value in argument to f.randomChoice"
+			},
+			{
+				"line": 233,
+				"column": 17,
+				"error": "cannot use f.randomChoice([]risk.RiskLevel{…}) (value of type string) as risk.RiskLevel value in struct literal"
+			},
+			{
+				"line": 233,
+				"column": 32,
+				"error": "cannot use []risk.RiskLevel{…} (value of type []risk.RiskLevel) as []string value in argument to f.randomChoice"
+			}
+		]
+	},
+	"Issues": [
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "78",
+				"url": "https://cwe.mitre.org/data/definitions/78.html"
+			},
+			"rule_id": "G204",
+			"details": "Subprocess launched with a potential tainted input or cmd arguments",
+			"file": "/Users/petercrawford/New tool/internal/database/backup.go",
+			"code": "414: \t// Upload to S3 using AWS CLI\n415: \tcmd := exec.Command(\"aws\", \"s3\", \"cp\", filename, fmt.Sprintf(\"s3://%s/backups/%s\", bs.config.CrossRegionBucket, backupID))\n416: \treturn cmd.Run()\n",
+			"line": "415",
+			"column": "9",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "78",
+				"url": "https://cwe.mitre.org/data/definitions/78.html"
+			},
+			"rule_id": "G204",
+			"details": "Subprocess launched with a potential tainted input or cmd arguments",
+			"file": "/Users/petercrawford/New tool/internal/database/backup.go",
+			"code": "408: \t// Simple decryption using openssl\n409: \tcmd := exec.Command(\"openssl\", \"enc\", \"-d\", \"-aes-256-cbc\", \"-in\", filename, \"-out\", filename[:len(filename)-4], \"-k\", bs.config.EncryptionKey)\n410: \treturn cmd.Run()\n",
+			"line": "409",
+			"column": "9",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "78",
+				"url": "https://cwe.mitre.org/data/definitions/78.html"
+			},
+			"rule_id": "G204",
+			"details": "Subprocess launched with a potential tainted input or cmd arguments",
+			"file": "/Users/petercrawford/New tool/internal/database/backup.go",
+			"code": "402: \t// Simple encryption using openssl\n403: \tcmd := exec.Command(\"openssl\", \"enc\", \"-aes-256-cbc\", \"-salt\", \"-in\", filename, \"-out\", filename+\".enc\", \"-k\", bs.config.EncryptionKey)\n404: \treturn cmd.Run()\n",
+			"line": "403",
+			"column": "9",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "78",
+				"url": "https://cwe.mitre.org/data/definitions/78.html"
+			},
+			"rule_id": "G204",
+			"details": "Subprocess launched with a potential tainted input or cmd arguments",
+			"file": "/Users/petercrawford/New tool/internal/database/backup.go",
+			"code": "228: \t// Restore database using psql\n229: \tcmd := exec.CommandContext(ctx, \"psql\",\n230: \t\t\"--host=\"+os.Getenv(\"DB_HOST\"),\n231: \t\t\"--port=\"+os.Getenv(\"DB_PORT\"),\n232: \t\t\"--username=\"+os.Getenv(\"DB_USER\"),\n233: \t\t\"--dbname=\"+os.Getenv(\"DB_NAME\"),\n234: \t\t\"--verbose\",\n235: \t\t\"--no-password\",\n236: \t\t\"--file=\"+filename,\n237: \t)\n238: \n",
+			"line": "229-237",
+			"column": "9",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "78",
+				"url": "https://cwe.mitre.org/data/definitions/78.html"
+			},
+			"rule_id": "G204",
+			"details": "Subprocess launched with a potential tainted input or cmd arguments",
+			"file": "/Users/petercrawford/New tool/internal/database/backup.go",
+			"code": "93: \t// Create backup using pg_dump with validated environment variables\n94: \tcmd := exec.CommandContext(ctx, \"pg_dump\",\n95: \t\t\"--host=\"+os.Getenv(\"DB_HOST\"),\n96: \t\t\"--port=\"+os.Getenv(\"DB_PORT\"),\n97: \t\t\"--username=\"+os.Getenv(\"DB_USER\"),\n98: \t\t\"--dbname=\"+os.Getenv(\"DB_NAME\"),\n99: \t\t\"--verbose\",\n100: \t\t\"--no-password\",\n101: \t\t\"--file=\"+filename,\n102: \t)\n103: \n",
+			"line": "94-102",
+			"column": "9",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "22",
+				"url": "https://cwe.mitre.org/data/definitions/22.html"
+			},
+			"rule_id": "G304",
+			"details": "Potential file inclusion via variable",
+			"file": "/Users/petercrawford/New tool/internal/security/audit_logging.go",
+			"code": "752: \t// Open new file with secure permissions (owner read/write only)\n753: \tfile, err := os.OpenFile(validFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)\n754: \tif err != nil {\n",
+			"line": "753",
+			"column": "15",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "22",
+				"url": "https://cwe.mitre.org/data/definitions/22.html"
+			},
+			"rule_id": "G304",
+			"details": "Potential file inclusion via variable",
+			"file": "/Users/petercrawford/New tool/internal/security/audit_logging.go",
+			"code": "674: \t// Open log file with secure permissions (owner read/write only)\n675: \tfile, err := os.OpenFile(validFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)\n676: \tif err != nil {\n",
+			"line": "675",
+			"column": "15",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "276",
+				"url": "https://cwe.mitre.org/data/definitions/276.html"
+			},
+			"rule_id": "G306",
+			"details": "Expect WriteFile permissions to be 0600 or less",
+			"file": "/Users/petercrawford/New tool/internal/database/migrations.go",
+			"code": "430: \t// Write migration file\n431: \terr = ioutil.WriteFile(filepath, []byte(content), 0644)\n432: \tif err != nil {\n",
+			"line": "431",
+			"column": "8",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/test/testdata/factory.go",
+			"code": "317: \tbytes := make([]byte, 32)\n318: \trand.Read(bytes)\n319: \treturn hex.EncodeToString(bytes)\n",
+			"line": "318",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/test/testdata/factory.go",
+			"code": "244: \tbytes := make([]byte, 8)\n245: \trand.Read(bytes)\n246: \treturn fmt.Sprintf(\"%s-%s\", prefix, hex.EncodeToString(bytes))\n",
+			"line": "245",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/test/test_config.go",
+			"code": "247: \tos.Setenv(\"ENV\", \"test\")\n248: \tos.Setenv(\"LOG_LEVEL\", \"debug\")\n249: }\n",
+			"line": "248",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/test/test_config.go",
+			"code": "246: \t// Set test-specific configurations\n247: \tos.Setenv(\"ENV\", \"test\")\n248: \tos.Setenv(\"LOG_LEVEL\", \"debug\")\n",
+			"line": "247",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/test/test_config.go",
+			"code": "106: \tif os.Getenv(\"TEST_DB_NAME\") == \"\" {\n107: \t\tos.Setenv(\"TEST_DB_NAME\", \"kyb_test\")\n108: \t}\n",
+			"line": "107",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/test/test_config.go",
+			"code": "103: \tif os.Getenv(\"TEST_DB_PASSWORD\") == \"\" {\n104: \t\tos.Setenv(\"TEST_DB_PASSWORD\", \"test_password\")\n105: \t}\n",
+			"line": "104",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/test/test_config.go",
+			"code": "100: \tif os.Getenv(\"TEST_DB_USER\") == \"\" {\n101: \t\tos.Setenv(\"TEST_DB_USER\", \"test_user\")\n102: \t}\n",
+			"line": "101",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/test/test_config.go",
+			"code": "97: \tif os.Getenv(\"TEST_DB_PORT\") == \"\" {\n98: \t\tos.Setenv(\"TEST_DB_PORT\", \"5432\")\n99: \t}\n",
+			"line": "98",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/test/test_config.go",
+			"code": "94: \tif os.Getenv(\"TEST_DB_HOST\") == \"\" {\n95: \t\tos.Setenv(\"TEST_DB_HOST\", \"localhost\")\n96: \t}\n",
+			"line": "95",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/test/test_config.go",
+			"code": "78: \t\tif db != nil {\n79: \t\t\tdb.Close()\n80: \t\t}\n",
+			"line": "79",
+			"column": "4",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/security/audit_logging.go",
+			"code": "684: \t\tlogger.Error(\"Failed to get file info\", \"error\", err)\n685: \t\tfile.Close()\n686: \t\treturn nil\n",
+			"line": "685",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/risk/thresholds.go",
+			"code": "461: \tfor _, config := range industryConfigs {\n462: \t\tmanager.RegisterConfig(config)\n463: \t}\n",
+			"line": "462",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/risk/thresholds.go",
+			"code": "457: \tfor _, config := range defaultConfigs {\n458: \t\tmanager.RegisterConfig(config)\n459: \t}\n",
+			"line": "458",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/risk/industry_models.go",
+			"code": "484: \t}\n485: \tregistry.RegisterModel(retailModel)\n486: \n",
+			"line": "485",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/risk/industry_models.go",
+			"code": "435: \t}\n436: \tregistry.RegisterModel(manufacturingModel)\n437: \n",
+			"line": "436",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/risk/industry_models.go",
+			"code": "386: \t}\n387: \tregistry.RegisterModel(healthcareModel)\n388: \n",
+			"line": "387",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/risk/industry_models.go",
+			"code": "337: \t}\n338: \tregistry.RegisterModel(techModel)\n339: \n",
+			"line": "338",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/risk/industry_models.go",
+			"code": "288: \t}\n289: \tregistry.RegisterModel(financialModel)\n290: \n",
+			"line": "289",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/observability/monitoring.go",
+			"code": "442: \t\t\tw.WriteHeader(http.StatusServiceUnavailable)\n443: \t\t\tw.Write([]byte(`{\"status\": \"unhealthy\", \"timestamp\": \"` + time.Now().UTC().Format(time.RFC3339) + `\"}`))\n444: \t\t}\n",
+			"line": "443",
+			"column": "4",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/observability/monitoring.go",
+			"code": "439: \t\t\tw.WriteHeader(http.StatusOK)\n440: \t\t\tw.Write([]byte(`{\"status\": \"healthy\", \"timestamp\": \"` + time.Now().UTC().Format(time.RFC3339) + `\"}`))\n441: \t\t} else {\n",
+			"line": "440",
+			"column": "4",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/observability/log_aggregation.go",
+			"code": "314: \tif las.logger != nil {\n315: \t\tlas.logger.Sync()\n316: \t}\n",
+			"line": "315",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/observability/error_tracking.go",
+			"code": "891: \tw.Header().Set(\"Content-Type\", \"application/json\")\n892: \tjson.NewEncoder(w).Encode(map[string]string{\"status\": \"updated\"})\n893: }\n",
+			"line": "892",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/observability/error_tracking.go",
+			"code": "859: \tw.WriteHeader(http.StatusCreated)\n860: \tjson.NewEncoder(w).Encode(errorEvent)\n861: }\n",
+			"line": "860",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/observability/error_tracking.go",
+			"code": "813: \tw.Header().Set(\"Content-Type\", \"application/json\")\n814: \tjson.NewEncoder(w).Encode(map[string]interface{}{\n815: \t\t\"errors\": errors,\n816: \t\t\"count\":  len(errors),\n817: \t})\n818: }\n",
+			"line": "814-817",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/observability/alerting.go",
+			"code": "923: \n924: \tjson.NewEncoder(w).Encode(rule)\n925: }\n",
+			"line": "924",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/observability/alerting.go",
+			"code": "901: \tw.WriteHeader(http.StatusCreated)\n902: \tjson.NewEncoder(w).Encode(rule)\n903: }\n",
+			"line": "902",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/config/config.go",
+			"code": "310: \t\t\t}\n311: \t\t\tos.Setenv(key, value)\n312: \t\t}\n",
+			"line": "311",
+			"column": "4",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/compliance/export_system.go",
+			"code": "641: \t\tfor key, value := range dataMap {\n642: \t\t\twriter.Write([]string{key, fmt.Sprintf(\"%v\", value)})\n643: \t\t}\n",
+			"line": "642",
+			"column": "4",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/compliance/export_system.go",
+			"code": "637: \t\t// Write header\n638: \t\twriter.Write([]string{\"Key\", \"Value\"})\n639: \n",
+			"line": "638",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/auth/service.go",
+			"code": "737: \tb := make([]byte, 32)\n738: \trand.Read(b)\n739: \treturn hex.EncodeToString(b)\n",
+			"line": "738",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/auth/service.go",
+			"code": "486: \tb := make([]byte, 16)\n487: \trand.Read(b)\n488: \treturn hex.EncodeToString(b)\n",
+			"line": "487",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/auth/service.go",
+			"code": "191: \n192: \t\ta.db.UpdateUser(ctx, user)\n193: \n",
+			"line": "192",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/vulnerability.go",
+			"code": "566: \tw.Header().Set(\"Content-Type\", \"application/json\")\n567: \tjson.NewEncoder(w).Encode(response)\n568: }\n",
+			"line": "567",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/vulnerability.go",
+			"code": "516: \tw.Header().Set(\"Content-Disposition\", \"attachment; filename=workflows.json\")\n517: \tw.Write(exported)\n518: }\n",
+			"line": "517",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/vulnerability.go",
+			"code": "492: \tw.Header().Set(\"Content-Disposition\", \"attachment; filename=vulnerabilities.json\")\n493: \tw.Write(exported)\n494: }\n",
+			"line": "493",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/vulnerability.go",
+			"code": "456: \tw.Header().Set(\"Content-Type\", \"application/json\")\n457: \tjson.NewEncoder(w).Encode(response)\n458: }\n",
+			"line": "457",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/vulnerability.go",
+			"code": "386: \tw.Header().Set(\"Content-Type\", \"application/json\")\n387: \tjson.NewEncoder(w).Encode(workflows)\n388: }\n",
+			"line": "387",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/vulnerability.go",
+			"code": "317: \tw.Header().Set(\"Content-Type\", \"application/json\")\n318: \tjson.NewEncoder(w).Encode(response)\n319: }\n",
+			"line": "318",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/vulnerability.go",
+			"code": "257: \tw.WriteHeader(http.StatusCreated)\n258: \tjson.NewEncoder(w).Encode(response)\n259: }\n",
+			"line": "258",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/vulnerability.go",
+			"code": "201: \tw.WriteHeader(http.StatusCreated)\n202: \tjson.NewEncoder(w).Encode(response)\n203: }\n",
+			"line": "202",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/docs.go",
+			"code": "167: \tw.Header().Set(\"Cache-Control\", \"public, max-age=3600\") // Cache for 1 hour\n168: \tw.Write(h.openAPISpec)\n169: }\n",
+			"line": "168",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/auth.go",
+			"code": "481: \tw.Header().Set(\"Content-Type\", \"application/json\")\n482: \tjson.NewEncoder(w).Encode(user)\n483: }\n",
+			"line": "482",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/auth.go",
+			"code": "454: \tw.Header().Set(\"Content-Type\", \"application/json\")\n455: \tjson.NewEncoder(w).Encode(response)\n456: \n",
+			"line": "455",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/auth.go",
+			"code": "408: \tw.Header().Set(\"Content-Type\", \"application/json\")\n409: \tjson.NewEncoder(w).Encode(response)\n410: \n",
+			"line": "409",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/auth.go",
+			"code": "366: \tw.Header().Set(\"Content-Type\", \"application/json\")\n367: \tjson.NewEncoder(w).Encode(response)\n368: \n",
+			"line": "367",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/auth.go",
+			"code": "329: \tw.Header().Set(\"Content-Type\", \"application/json\")\n330: \tjson.NewEncoder(w).Encode(response)\n331: \n",
+			"line": "330",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/auth.go",
+			"code": "291: \tw.Header().Set(\"Content-Type\", \"application/json\")\n292: \tjson.NewEncoder(w).Encode(response)\n293: \n",
+			"line": "292",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/auth.go",
+			"code": "239: \tw.Header().Set(\"Content-Type\", \"application/json\")\n240: \tjson.NewEncoder(w).Encode(response)\n241: \n",
+			"line": "240",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/auth.go",
+			"code": "188: \tw.Header().Set(\"Content-Type\", \"application/json\")\n189: \tjson.NewEncoder(w).Encode(response)\n190: \n",
+			"line": "189",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/auth.go",
+			"code": "142: \tw.WriteHeader(http.StatusCreated)\n143: \tjson.NewEncoder(w).Encode(response)\n144: \n",
+			"line": "143",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/audit.go",
+			"code": "560: \tw.WriteHeader(http.StatusOK)\n561: \tjson.NewEncoder(w).Encode(map[string]interface{}{\n562: \t\t\"success\": true,\n563: \t\t\"message\": \"Audit metrics updated successfully\",\n564: \t})\n565: \n",
+			"line": "561-564",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/audit.go",
+			"code": "526: \tw.Header().Set(\"Content-Type\", \"application/json\")\n527: \tjson.NewEncoder(w).Encode(response)\n528: \n",
+			"line": "527",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/audit.go",
+			"code": "488: \tw.WriteHeader(http.StatusCreated)\n489: \tjson.NewEncoder(w).Encode(response)\n490: \n",
+			"line": "489",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/audit.go",
+			"code": "438: \tw.Header().Set(\"Content-Type\", \"application/json\")\n439: \tjson.NewEncoder(w).Encode(response)\n440: \n",
+			"line": "439",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/audit.go",
+			"code": "362: \tw.Header().Set(\"Content-Type\", \"application/json\")\n363: \tjson.NewEncoder(w).Encode(response)\n364: \n",
+			"line": "363",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/audit.go",
+			"code": "208: \tw.WriteHeader(http.StatusCreated)\n209: \tjson.NewEncoder(w).Encode(response)\n210: \n",
+			"line": "209",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/admin.go",
+			"code": "289: \tw.WriteHeader(http.StatusOK)\n290: \tjson.NewEncoder(w).Encode(stats)\n291: }\n",
+			"line": "290",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/admin.go",
+			"code": "264: \tw.WriteHeader(http.StatusOK)\n265: \tjson.NewEncoder(w).Encode(response)\n266: }\n",
+			"line": "265",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/admin.go",
+			"code": "207: \tw.WriteHeader(http.StatusOK)\n208: \tjson.NewEncoder(w).Encode(response)\n209: }\n",
+			"line": "208",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/admin.go",
+			"code": "168: \tw.WriteHeader(http.StatusOK)\n169: \tjson.NewEncoder(w).Encode(response)\n170: }\n",
+			"line": "169",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/admin.go",
+			"code": "129: \tw.WriteHeader(http.StatusOK)\n130: \tjson.NewEncoder(w).Encode(response)\n131: }\n",
+			"line": "130",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/admin.go",
+			"code": "90: \tw.WriteHeader(http.StatusOK)\n91: \tjson.NewEncoder(w).Encode(response)\n92: }\n",
+			"line": "91",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/internal/api/handlers/admin.go",
+			"code": "53: \tw.WriteHeader(http.StatusCreated)\n54: \tjson.NewEncoder(w).Encode(response)\n55: }\n",
+			"line": "54",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/cmd/api/main.go",
+			"code": "732: \tw.WriteHeader(http.StatusOK)\n733: \tjson.NewEncoder(w).Encode(map[string]interface{}{\n734: \t\t\"data_sources\": statuses,\n735: \t\t\"count\":        len(statuses),\n736: \t\t\"timestamp\":    time.Now().UTC().Format(time.RFC3339),\n737: \t})\n738: }\n",
+			"line": "733-737",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/cmd/api/main.go",
+			"code": "698: \tw.WriteHeader(http.StatusOK)\n699: \tjson.NewEncoder(w).Encode(map[string]interface{}{\n700: \t\t\"total\":                total,\n701: \t\t\"average_confidence\":   avg,\n702: \t\t\"top_industry_code\":    top.IndustryCode,\n703: \t\t\"top_industry_name\":    top.IndustryName,\n704: \t\t\"top_confidence_score\": top.ConfidenceScore,\n705: \t\t\"method_counts\":        methodCounts,\n706: \t\t\"code_agreement\":       codeCounts,\n707: \t})\n708: }\n",
+			"line": "699-707",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/cmd/api/main.go",
+			"code": "674: \t\tw.WriteHeader(http.StatusBadRequest)\n675: \t\tw.Write([]byte(`{\"error\":\"invalid_request\",\"message\":\"classifications array required\"}`))\n676: \t\treturn\n",
+			"line": "675",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/cmd/api/main.go",
+			"code": "665: \t\tw.WriteHeader(http.StatusBadRequest)\n666: \t\tw.Write([]byte(`{\"error\":\"invalid_request\",\"message\":\"Invalid JSON in request body\"}`))\n667: \t\treturn\n",
+			"line": "666",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/cmd/api/main.go",
+			"code": "649: \tw.WriteHeader(http.StatusOK)\n650: \tjson.NewEncoder(w).Encode(map[string]interface{}{\n651: \t\t\"business_id\": businessID,\n652: \t\t\"count\":       len(history),\n653: \t\t\"results\":     history,\n654: \t\t\"limit\":       limit,\n655: \t\t\"offset\":      offset,\n656: \t})\n657: }\n",
+			"line": "650-656",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/cmd/api/main.go",
+			"code": "642: \t\tw.WriteHeader(http.StatusInternalServerError)\n643: \t\tw.Write([]byte(`{\"error\":\"internal_error\",\"message\":\"Failed to retrieve classification history\"}`))\n644: \t\treturn\n",
+			"line": "643",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/cmd/api/main.go",
+			"code": "619: \t\tw.WriteHeader(http.StatusBadRequest)\n620: \t\tw.Write([]byte(`{\"error\":\"invalid_request\",\"message\":\"business_id is required\"}`))\n621: \t\treturn\n",
+			"line": "620",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/cmd/api/main.go",
+			"code": "609: \tw.WriteHeader(http.StatusOK)\n610: \tjson.NewEncoder(w).Encode(response)\n611: }\n",
+			"line": "610",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/cmd/api/main.go",
+			"code": "598: \t\t\tw.WriteHeader(http.StatusInternalServerError)\n599: \t\t\tw.Write([]byte(`{\"error\":\"batch_classification_failed\",\"message\":\"Failed to classify businesses\"}`))\n600: \t\t}\n",
+			"line": "599",
+			"column": "4",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/cmd/api/main.go",
+			"code": "595: \t\t\tw.WriteHeader(http.StatusBadRequest)\n596: \t\t\tw.Write([]byte(`{\"error\":\"invalid_request\",\"message\":\"Batch size exceeds limit\"}`))\n597: \t\t} else {\n",
+			"line": "596",
+			"column": "4",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/cmd/api/main.go",
+			"code": "584: \t\tw.WriteHeader(http.StatusBadRequest)\n585: \t\tw.Write([]byte(`{\"error\":\"invalid_request\",\"message\":\"At least one business is required\"}`))\n586: \t\treturn\n",
+			"line": "585",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/cmd/api/main.go",
+			"code": "576: \t\tw.WriteHeader(http.StatusBadRequest)\n577: \t\tw.Write([]byte(`{\"error\":\"invalid_request\",\"message\":\"Invalid JSON in request body\"}`))\n578: \t\treturn\n",
+			"line": "577",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/cmd/api/main.go",
+			"code": "563: \tw.WriteHeader(http.StatusOK)\n564: \tjson.NewEncoder(w).Encode(response)\n565: }\n",
+			"line": "564",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/cmd/api/main.go",
+			"code": "552: \t\t\tw.WriteHeader(http.StatusInternalServerError)\n553: \t\t\tw.Write([]byte(`{\"error\":\"classification_failed\",\"message\":\"Failed to classify business\"}`))\n554: \t\t}\n",
+			"line": "553",
+			"column": "4",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/cmd/api/main.go",
+			"code": "549: \t\t\tw.WriteHeader(http.StatusBadRequest)\n550: \t\t\tw.Write([]byte(`{\"error\":\"invalid_request\",\"message\":\"Invalid classification request\"}`))\n551: \t\t} else {\n",
+			"line": "550",
+			"column": "4",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/cmd/api/main.go",
+			"code": "538: \t\tw.WriteHeader(http.StatusBadRequest)\n539: \t\tw.Write([]byte(`{\"error\":\"invalid_request\",\"message\":\"Invalid JSON in request body\"}`))\n540: \t\treturn\n",
+			"line": "539",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/cmd/api/main.go",
+			"code": "509: \t\t\t\tw.WriteHeader(http.StatusInternalServerError)\n510: \t\t\t\tw.Write([]byte(`{\"error\":\"internal_server_error\",\"message\":\"An unexpected error occurred\"}`))\n511: \t\t\t}\n",
+			"line": "510",
+			"column": "5",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/cmd/api/main.go",
+			"code": "410: \tw.WriteHeader(http.StatusNotImplemented)\n411: \tw.Write([]byte(`{\"error\":\"not_implemented\",\"message\":\"This endpoint is not yet implemented\",\"path\":\"` + r.URL.Path + `\"}`))\n412: }\n",
+			"line": "411",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/cmd/api/main.go",
+			"code": "399: \tw.WriteHeader(http.StatusNotFound)\n400: \tw.Write([]byte(`{\"error\":\"not_found\",\"message\":\"The requested endpoint does not exist\",\"path\":\"` + r.URL.Path + `\"}`))\n401: }\n",
+			"line": "400",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/cmd/api/main.go",
+			"code": "344: \tw.WriteHeader(http.StatusOK)\n345: \tw.Write([]byte(`\u003c!DOCTYPE html\u003e\n346: \u003chtml\u003e\n347: \u003chead\u003e\n348:     \u003ctitle\u003eKYB Tool API Documentation\u003c/title\u003e\n349:     \u003cstyle\u003e\n350:         body { font-family: Arial, sans-serif; margin: 40px; }\n351:         .endpoint { margin: 20px 0; padding: 10px; border-left: 4px solid #007cba; }\n352:         .method { font-weight: bold; color: #007cba; }\n353:     \u003c/style\u003e\n354: \u003c/head\u003e\n355: \u003cbody\u003e\n356:     \u003ch1\u003eKYB Tool API Documentation\u003c/h1\u003e\n357:     \u003cp\u003eWelcome to the KYB Tool API. This documentation will be enhanced with OpenAPI/Swagger specification.\u003c/p\u003e\n358:     \n359:     \u003ch2\u003eAvailable Endpoints\u003c/h2\u003e\n360:     \n361:     \u003cdiv class=\"endpoint\"\u003e\n362:         \u003cspan class=\"method\"\u003eGET\u003c/span\u003e /health - Health check endpoint\n363:     \u003c/div\u003e\n364:     \n365:     \u003cdiv class=\"endpoint\"\u003e\n366:         \u003cspan class=\"method\"\u003eGET\u003c/span\u003e /v1/status - API status information\n367:     \u003c/div\u003e\n368:     \n369:     \u003cdiv class=\"endpoint\"\u003e\n370:         \u003cspan class=\"method\"\u003eGET\u003c/span\u003e /v1/metrics - Prometheus metrics endpoint\n371:     \u003c/div\u003e\n372:     \n373:     \u003cdiv class=\"endpoint\"\u003e\n374:         \u003cspan class=\"method\"\u003ePOST\u003c/span\u003e /v1/auth/register - User registration (coming soon)\n375:     \u003c/div\u003e\n376:     \n377:     \u003cdiv class=\"endpoint\"\u003e\n378:         \u003cspan class=\"method\"\u003ePOST\u003c/span\u003e /v1/auth/login - User login (coming soon)\n379:     \u003c/div\u003e\n380:     \n381:     \u003cdiv class=\"endpoint\"\u003e\n382:         \u003cspan class=\"method\"\u003ePOST\u003c/span\u003e /v1/classify - Business classification (coming soon)\n383:     \u003c/div\u003e\n384:     \n385:     \u003cdiv class=\"endpoint\"\u003e\n386:         \u003cspan class=\"method\"\u003ePOST\u003c/span\u003e /v1/classify/batch - Batch business classification (coming soon)\n387:     \u003c/div\u003e\n388: \u003c/body\u003e\n389: \u003c/html\u003e`))\n390: }\n",
+			"line": "345-389",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/cmd/api/main.go",
+			"code": "319: \tw.WriteHeader(http.StatusOK)\n320: \tw.Write([]byte(`{\n321: \t\t\"status\":\"operational\",\n322: \t\t\"version\":\"1.0.0\",\n323: \t\t\"timestamp\":\"` + time.Now().UTC().Format(time.RFC3339) + `\"\n324: \t}`))\n325: }\n",
+			"line": "320-324",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "/Users/petercrawford/New tool/cmd/api/main.go",
+			"code": "308: \tw.WriteHeader(http.StatusOK)\n309: \tw.Write([]byte(`{\"status\":\"healthy\",\"timestamp\":\"` + time.Now().UTC().Format(time.RFC3339) + `\"}`))\n310: }\n",
+			"line": "309",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		}
+	],
+	"Stats": {
+		"files": 110,
+		"lines": 65603,
+		"nosec": 4,
+		"found": 93
+	},
+	"GosecVersion": "dev"
+}

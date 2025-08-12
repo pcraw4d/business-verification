@@ -43,8 +43,21 @@ func LoadIndustryCodes(dataPath string) (*IndustryCodeData, error) {
 
 // loadNAICSCodes loads NAICS codes from CSV file
 func loadNAICSCodes(dataPath string, data *IndustryCodeData) error {
-	filePath := filepath.Join(dataPath, "NAICS-2022-Codes_industries.csv")
-	file, err := os.Open(filePath)
+	// Validate data path
+	cleanDataPath := filepath.Clean(dataPath)
+	if strings.Contains(cleanDataPath, "..") {
+		return fmt.Errorf("invalid data path: potential path traversal detected")
+	}
+
+	filePath := filepath.Join(cleanDataPath, "NAICS-2022-Codes_industries.csv")
+	
+	// Validate file path
+	cleanFilePath := filepath.Clean(filePath)
+	if strings.Contains(cleanFilePath, "..") {
+		return fmt.Errorf("invalid file path: potential path traversal detected")
+	}
+
+	file, err := os.Open(cleanFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to open NAICS file: %w", err)
 	}
@@ -75,8 +88,21 @@ func loadNAICSCodes(dataPath string, data *IndustryCodeData) error {
 
 // loadMCCCodes loads MCC codes from CSV file
 func loadMCCCodes(dataPath string, data *IndustryCodeData) error {
-	filePath := filepath.Join(dataPath, "mcc_codes.csv")
-	file, err := os.Open(filePath)
+	// Validate data path
+	cleanDataPath := filepath.Clean(dataPath)
+	if strings.Contains(cleanDataPath, "..") {
+		return fmt.Errorf("invalid data path: potential path traversal detected")
+	}
+
+	filePath := filepath.Join(cleanDataPath, "mcc_codes.csv")
+	
+	// Validate file path
+	cleanFilePath := filepath.Clean(filePath)
+	if strings.Contains(cleanFilePath, "..") {
+		return fmt.Errorf("invalid file path: potential path traversal detected")
+	}
+
+	file, err := os.Open(cleanFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to open MCC file: %w", err)
 	}
@@ -107,8 +133,21 @@ func loadMCCCodes(dataPath string, data *IndustryCodeData) error {
 
 // loadSICCodes loads SIC codes from CSV file
 func loadSICCodes(dataPath string, data *IndustryCodeData) error {
-	filePath := filepath.Join(dataPath, "sic-codes.csv")
-	file, err := os.Open(filePath)
+	// Validate data path
+	cleanDataPath := filepath.Clean(dataPath)
+	if strings.Contains(cleanDataPath, "..") {
+		return fmt.Errorf("invalid data path: potential path traversal detected")
+	}
+
+	filePath := filepath.Join(cleanDataPath, "sic-codes.csv")
+	
+	// Validate file path
+	cleanFilePath := filepath.Clean(filePath)
+	if strings.Contains(cleanFilePath, "..") {
+		return fmt.Errorf("invalid file path: potential path traversal detected")
+	}
+
+	file, err := os.Open(cleanFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to open SIC file: %w", err)
 	}

@@ -36,16 +36,16 @@ type EvasionConfig struct {
 
 // FingerprintManager manages browser fingerprint randomization
 type FingerprintManager struct {
-	userAgents     []string
-	screenResolutions []string
-	colorDepths    []int
-	timezones      []string
-	languages      []string
-	platforms      []string
-	plugins        []string
+	userAgents         []string
+	screenResolutions  []string
+	colorDepths        []int
+	timezones          []string
+	languages          []string
+	platforms          []string
+	plugins            []string
 	canvasFingerprints []string
 	webglFingerprints  []string
-	mu             sync.RWMutex
+	mu                 sync.RWMutex
 }
 
 // RequestRandomizer manages request pattern randomization
@@ -58,13 +58,13 @@ type RequestRandomizer struct {
 
 // RequestPattern represents a randomized request pattern
 type RequestPattern struct {
-	Headers     map[string]string
-	Cookies     map[string]string
-	UserAgent   string
-	Accept      string
-	AcceptLang  string
-	AcceptEnc   string
-	Connection  string
+	Headers         map[string]string
+	Cookies         map[string]string
+	UserAgent       string
+	Accept          string
+	AcceptLang      string
+	AcceptEnc       string
+	Connection      string
 	UpgradeInsecure string
 }
 
@@ -85,11 +85,11 @@ type CAPTCHASolver struct {
 
 // BehaviorSimulator simulates human-like browsing behavior
 type BehaviorSimulator struct {
-	mouseMovements    []MouseMovement
-	keyboardPatterns  []KeyboardPattern
-	scrollPatterns    []ScrollPattern
-	clickPatterns     []ClickPattern
-	mu                sync.RWMutex
+	mouseMovements   []MouseMovement
+	keyboardPatterns []KeyboardPattern
+	scrollPatterns   []ScrollPattern
+	clickPatterns    []ClickPattern
+	mu               sync.RWMutex
 }
 
 // MouseMovement represents mouse movement simulation
@@ -102,9 +102,9 @@ type MouseMovement struct {
 
 // KeyboardPattern represents keyboard input simulation
 type KeyboardPattern struct {
-	Text     string
-	Delay    time.Duration
-	Typos    float64 // probability of typos
+	Text        string
+	Delay       time.Duration
+	Typos       float64 // probability of typos
 	Corrections bool
 }
 
@@ -118,9 +118,9 @@ type ScrollPattern struct {
 
 // ClickPattern represents click behavior simulation
 type ClickPattern struct {
-	Element   string
-	Position  string // center, random, specific
-	Delay     time.Duration
+	Element     string
+	Position    string // center, random, specific
+	Delay       time.Duration
 	DoubleClick bool
 }
 
@@ -220,10 +220,10 @@ func NewRequestRandomizer() *RequestRandomizer {
 		requestPatterns: []RequestPattern{
 			{
 				Headers: map[string]string{
-					"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-					"Accept-Language": "en-US,en;q=0.9",
-					"Accept-Encoding": "gzip, deflate, br",
-					"Connection": "keep-alive",
+					"Accept":                    "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+					"Accept-Language":           "en-US,en;q=0.9",
+					"Accept-Encoding":           "gzip, deflate, br",
+					"Connection":                "keep-alive",
 					"Upgrade-Insecure-Requests": "1",
 				},
 			},
@@ -369,7 +369,7 @@ func (bde *BotDetectionEvasion) DetectCAPTCHA(resp *http.Response) bool {
 	}
 
 	content := strings.ToLower(string(buffer[:n]))
-	
+
 	for _, pattern := range bde.captchaDetector.captchaPatterns {
 		if strings.Contains(content, pattern) {
 			return true
@@ -383,7 +383,7 @@ func (bde *BotDetectionEvasion) DetectCAPTCHA(resp *http.Response) bool {
 func (bde *BotDetectionEvasion) HandleCAPTCHA(resp *http.Response) (*http.Response, error) {
 	// This is a placeholder for CAPTCHA solving logic
 	// In a real implementation, this would integrate with CAPTCHA solving services
-	
+
 	// For now, return the original response
 	return resp, nil
 }
@@ -453,14 +453,14 @@ func (rr *RequestRandomizer) getRandomVariation(variations []string) string {
 
 func (rr *RequestRandomizer) generateRandomCookies() map[string]string {
 	cookies := make(map[string]string)
-	
+
 	// Add some random cookies
 	for name, variations := range rr.cookieVariations {
 		if len(variations) > 0 {
 			cookies[name] = variations[rr.randomIndex(len(variations))]
 		}
 	}
-	
+
 	return cookies
 }
 
@@ -470,7 +470,7 @@ func (rr *RequestRandomizer) generateRandomQueryParams() string {
 		fmt.Sprintf("_=%d", time.Now().Unix()),
 		fmt.Sprintf("v=%d", rr.randomInt(1, 100)),
 	}
-	
+
 	return strings.Join(params, "&")
 }
 
@@ -479,12 +479,12 @@ func (rr *RequestRandomizer) randomInt(min, max int) int {
 	if delta <= 0 {
 		return min
 	}
-	
+
 	n, err := rand.Int(rand.Reader, big.NewInt(int64(delta)))
 	if err != nil {
 		return min
 	}
-	
+
 	return min + int(n.Int64())
 }
 
@@ -520,12 +520,12 @@ func (bde *BotDetectionEvasion) randomInt(min, max int) int {
 	if delta <= 0 {
 		return min
 	}
-	
+
 	n, err := rand.Int(rand.Reader, big.NewInt(int64(delta)))
 	if err != nil {
 		return min
 	}
-	
+
 	return min + int(n.Int64())
 }
 
@@ -533,12 +533,12 @@ func (fm *FingerprintManager) randomIndex(length int) int {
 	if length <= 0 {
 		return 0
 	}
-	
+
 	n, err := rand.Int(rand.Reader, big.NewInt(int64(length)))
 	if err != nil {
 		return 0
 	}
-	
+
 	return int(n.Int64())
 }
 
@@ -546,12 +546,12 @@ func (rr *RequestRandomizer) randomIndex(length int) int {
 	if length <= 0 {
 		return 0
 	}
-	
+
 	n, err := rand.Int(rand.Reader, big.NewInt(int64(length)))
 	if err != nil {
 		return 0
 	}
-	
+
 	return int(n.Int64())
 }
 
@@ -560,11 +560,11 @@ func (bs *BehaviorSimulator) randomInt(min, max int) int {
 	if delta <= 0 {
 		return min
 	}
-	
+
 	n, err := rand.Int(rand.Reader, big.NewInt(int64(delta)))
 	if err != nil {
 		return min
 	}
-	
+
 	return min + int(n.Int64())
 }

@@ -79,8 +79,8 @@ func TestTrackError(t *testing.T) {
 	ets := NewErrorTrackingSystem(monitoring, logAggregation, config, logger)
 
 	// Test basic error tracking
-	err := fmt.Errorf("test error")
-	errorEvent := ets.TrackError(context.Background(), err)
+	testErr := fmt.Errorf("test error")
+	errorEvent := ets.TrackError(context.Background(), testErr)
 
 	assert.NotNil(t, errorEvent)
 	assert.NotEmpty(t, errorEvent.ID)
@@ -92,7 +92,7 @@ func TestTrackError(t *testing.T) {
 	assert.NotEmpty(t, errorEvent.StackTrace)
 
 	// Test error with options
-	errorEvent2 := ets.TrackError(context.Background(), err,
+	errorEvent2 := ets.TrackError(context.Background(), testErr,
 		WithSeverity(SeverityCritical),
 		WithCategory(CategoryDatabase),
 		WithComponent("test-component"),
@@ -149,8 +149,8 @@ func TestTrackErrorWithContext(t *testing.T) {
 	ctx = context.WithValue(ctx, "trace_id", "trace789")
 	ctx = context.WithValue(ctx, "span_id", "span101")
 
-	err := fmt.Errorf("context test error")
-	errorEvent := ets.TrackError(ctx, err)
+	contextErr := fmt.Errorf("context test error")
+	errorEvent := ets.TrackError(ctx, contextErr)
 
 	assert.NotNil(t, errorEvent)
 	assert.Equal(t, "req123", errorEvent.RequestID)
@@ -235,12 +235,12 @@ func TestStoreError(t *testing.T) {
 	ets := NewErrorTrackingSystem(monitoring, logAggregation, config, logger)
 
 	// Test storing new error
-	err := fmt.Errorf("unique error")
+	testErr := fmt.Errorf("unique error")
 	errorEvent := &ErrorEvent{
 		ID:           "test-id-1",
 		Timestamp:    time.Now(),
 		ErrorType:    "*errors.errorString",
-		ErrorMessage: err.Error(),
+		ErrorMessage: testErr.Error(),
 		Severity:     SeverityMedium,
 		Category:     CategoryApplication,
 		Component:    "test",

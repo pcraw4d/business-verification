@@ -1,0 +1,206 @@
+version: "3.8"
+
+services:
+  # Beta Application
+  kyb-platform-beta:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: kyb-platform-beta
+    ports:
+      - "8082:8080" # Beta port
+    environment:
+      - ENV=beta
+      - DB_HOST=postgres-beta
+      - DB_PORT=5432
+      - DB_NAME=kyb_beta
+      - DB_USER=kyb_beta_user
+      - DB_PASSWORD=beta_password_secure
+      - REDIS_HOST=redis-beta
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=beta_redis_password
+      - JWT_SECRET=beta_jwt_secret_key_very_secure
+      - LOG_LEVEL=debug
+      - METRICS_ENABLED=true
+      - BETA_MODE=true
+      - FEEDBACK_COLLECTION_ENABLED=true
+      - USER_ANALYTICS_ENABLED=true
+    volumes:
+      - ./configs:/app/configs
+      - ./Codes:/app/Codes
+      - ./logs:/app/logs
+      - beta_data:/app/data
+    depends_on:
+      - postgres-beta
+      - redis-beta
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - beta-network
+
+  # Beta Database
+  postgres-beta:
+    image: postgres:15-alpine
+    container_name: postgres-beta
+    environment:
+      - POSTGRES_DB=kyb_beta
+      - POSTGRES_USER=kyb_beta_user
+      - POSTGRES_PASSWORD=beta_password_secure
+    volumes:
+      - postgres_beta_data:/var/lib/postgresql/data
+      - ./internal/database/migrations:/docker-entrypoint-initdb.d
+      - ./scripts/init-beta-db.sql:/docker-entrypoint-initdb.d/init-beta.sql
+    ports:
+      - "5433:5432" # Beta database port
+    networks:
+      - beta-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kyb_beta_user -d kyb_beta"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Beta Redis Cache
+  redis-beta:
+    image: redis:7-alpine
+    container_name: redis-beta
+    command: redis-server --requirepass beta_redis_password --maxmemory 512mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6380:6379" # Beta Redis port
+    volumes:
+      - redis_beta_data:/data
+    networks:
+      - beta-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "beta_redis_password", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Beta Monitoring - Prometheus
+  prometheus-beta:
+    image: prom/prometheus:latest
+    container_name: prometheus-beta
+    ports:
+      - "9092:9090" # Beta Prometheus port
+    volumes:
+      - ./deployments/prometheus/prometheus-beta.yml:/etc/prometheus/prometheus.yml
+      - prometheus_beta_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--storage.tsdb.retention.time=200h"
+      - "--web.enable-lifecycle"
+    networks:
+      - beta-network
+
+  # Beta Monitoring - Grafana
+  grafana-beta:
+    image: grafana/grafana:latest
+    container_name: grafana-beta
+    ports:
+      - "3002:3000" # Beta Grafana port
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=beta_admin_password
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_beta_data:/var/lib/grafana
+      - ./deployments/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./deployments/grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - beta-network
+
+  # Beta Alert Manager
+  alertmanager-beta:
+    image: prom/alertmanager:latest
+    container_name: alertmanager-beta
+    ports:
+      - "9095:9093" # Beta AlertManager port
+    volumes:
+      - ./deployments/alertmanager/alertmanager-beta.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager_beta_data:/alertmanager
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+    networks:
+      - beta-network
+
+  # Beta Analytics - Elasticsearch
+  elasticsearch-beta:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.8.0
+    container_name: elasticsearch-beta
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9201:9200" # Beta Elasticsearch port
+    volumes:
+      - elasticsearch_beta_data:/usr/share/elasticsearch/data
+    networks:
+      - beta-network
+
+  # Beta Analytics - Kibana
+  kibana-beta:
+    image: docker.elastic.co/kibana/kibana:8.8.0
+    container_name: kibana-beta
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch-beta:9200
+    ports:
+      - "5602:5601" # Beta Kibana port
+    depends_on:
+      - elasticsearch-beta
+    networks:
+      - beta-network
+
+  # Beta Feedback Collection - Nginx
+  nginx-beta:
+    image: nginx:alpine
+    container_name: nginx-beta
+    ports:
+      - "8083:80" # Beta Nginx port
+    volumes:
+      - ./deployments/nginx/nginx-beta.conf:/etc/nginx/nginx.conf
+      - ./deployments/nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - kyb-platform-beta
+    networks:
+      - beta-network
+
+  # Beta Support System - Mattermost
+  mattermost-beta:
+    image: mattermost/mattermost-team-edition:latest
+    container_name: mattermost-beta
+    ports:
+      - "8065:8065" # Beta Mattermost port
+    environment:
+      - MM_SQLSETTINGS_DRIVERNAME=postgres
+      - MM_SQLSETTINGS_DATASOURCE=postgres://kyb_beta_user:beta_password_secure@postgres-beta:5432/mattermost_beta?sslmode=disable&connect_timeout=10&migration_timeout=30
+    volumes:
+      - mattermost_beta_data:/mattermost
+    depends_on:
+      - postgres-beta
+    networks:
+      - beta-network
+
+volumes:
+  postgres_beta_data:
+  redis_beta_data:
+  prometheus_beta_data:
+  grafana_beta_data:
+  alertmanager_beta_data:
+  elasticsearch_beta_data:
+  mattermost_beta_data:
+  beta_data:
+
+networks:
+  beta-network:
+    driver: bridge
