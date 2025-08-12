@@ -42,14 +42,14 @@ type ScrapingContext struct {
 
 // ScrapingResult represents the result of a scraping job
 type ScrapingResult struct {
-	Job             *PriorityScrapingJob `json:"job"`
-	Content         *ScrapedContent      `json:"content"`
-	RelevanceScore  *PageRelevanceScore  `json:"relevance_score"`
-	ProcessingTime  time.Duration        `json:"processing_time"`
-	Success         bool                 `json:"success"`
-	Error           string               `json:"error,omitempty"`
-	CompletedAt     time.Time            `json:"completed_at"`
-	DiscoveredLinks []string             `json:"discovered_links,omitempty"`
+	Job             *PriorityScrapingJob   `json:"job"`
+	Content         *ScrapedContent        `json:"content"`
+	RelevanceScore  *PageRelevanceScore    `json:"relevance_score"`
+	ProcessingTime  time.Duration          `json:"processing_time"`
+	Success         bool                   `json:"success"`
+	Error           string                 `json:"error,omitempty"`
+	CompletedAt     time.Time              `json:"completed_at"`
+	DiscoveredLinks []string               `json:"discovered_links,omitempty"`
 	NextJobs        []*PriorityScrapingJob `json:"next_jobs,omitempty"`
 }
 

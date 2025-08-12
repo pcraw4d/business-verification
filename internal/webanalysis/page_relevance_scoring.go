@@ -187,7 +187,7 @@ func (prs *PageRelevanceScorer) ScorePage(content *ScrapedContent, business stri
 	score.BusinessRelevance = prs.calculateBusinessRelevance(content, business, context)
 
 	// Calculate content relevance
-	score.ContentRelevance = prs.calculateContentRelevance(content, context)
+	score.ContentRelevance = prs.calculateContentRelevance(content, business, context)
 
 	// Calculate technical relevance
 	score.TechnicalRelevance = prs.calculateTechnicalRelevance(content, context)
@@ -238,13 +238,27 @@ func (prs *PageRelevanceScorer) calculateBusinessRelevance(content *ScrapedConte
 }
 
 // calculateContentRelevance calculates content-specific relevance metrics
-func (prs *PageRelevanceScorer) calculateContentRelevance(content *ScrapedContent, context *ScoringContext) ContentRelevance {
+func (prs *PageRelevanceScorer) calculateContentRelevance(content *ScrapedContent, business string, context *ScoringContext) ContentRelevance {
 	relevance := ContentRelevance{
 		ContentTopics: []string{},
 	}
 
-	// Content quality
-	relevance.ContentQuality = prs.contentAnalyzer.readabilityAnalyzer.CalculateQuality(content.Text)
+	// Enhanced content quality assessment using the new quality assessor
+	qualityConfig := ContentQualityConfig{
+		Weights: map[string]float64{
+			"readability":       0.2,
+			"structure":         0.2,
+			"completeness":      0.2,
+			"business_content":  0.2,
+			"technical_content": 0.2,
+		},
+	}
+
+	qualityAssessor := NewPageContentQualityAssessor(qualityConfig)
+	contentQuality := qualityAssessor.AssessContentQuality(content, business)
+
+	// Use the comprehensive content quality assessment
+	relevance.ContentQuality = contentQuality.OverallQuality
 
 	// Content length
 	relevance.ContentLength = len(content.Text)
@@ -252,11 +266,11 @@ func (prs *PageRelevanceScorer) calculateContentRelevance(content *ScrapedConten
 	// Content freshness
 	relevance.ContentFreshness = prs.calculateContentFreshness(content, context)
 
-	// Content structure
-	relevance.ContentStructure = prs.calculateContentStructure(content.HTML)
+	// Content structure (enhanced with quality assessment)
+	relevance.ContentStructure = contentQuality.StructureMetrics.StructureScore
 
-	// Content readability
-	relevance.ContentReadability = prs.contentAnalyzer.readabilityAnalyzer.CalculateReadability(content.Text)
+	// Content readability (enhanced with quality assessment)
+	relevance.ContentReadability = contentQuality.ReadabilityMetrics.ReadabilityScore
 
 	// Content topics
 	relevance.ContentTopics = prs.contentAnalyzer.topicAnalyzer.ExtractTopics(content.Text)
@@ -264,8 +278,8 @@ func (prs *PageRelevanceScorer) calculateContentRelevance(content *ScrapedConten
 	// Content sentiment
 	relevance.ContentSentiment = prs.contentAnalyzer.sentimentAnalyzer.AnalyzeSentiment(content.Text)
 
-	// Content credibility
-	relevance.ContentCredibility = prs.contentAnalyzer.credibilityAnalyzer.CalculateCredibility(content)
+	// Content credibility (enhanced with quality assessment)
+	relevance.ContentCredibility = contentQuality.BusinessMetrics.BusinessScore
 
 	return relevance
 }

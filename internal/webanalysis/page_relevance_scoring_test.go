@@ -121,7 +121,7 @@ func TestCalculateContentRelevance(t *testing.T) {
 
 	context := &ScoringContext{}
 
-	relevance := scorer.calculateContentRelevance(content, context)
+	relevance := scorer.calculateContentRelevance(content, "Test Business", context)
 
 	// Test content quality
 	if relevance.ContentQuality <= 0 {
