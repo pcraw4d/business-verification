@@ -34,6 +34,9 @@ type MultiIndustryService struct {
 
 	// Enhanced ranking engine
 	rankingEngine *ConfidenceRankingEngine
+
+	// Top-3 selection engine
+	top3SelectionEngine *Top3SelectionEngine
 }
 
 // NewMultiIndustryService creates a new multi-industry classification service
@@ -56,6 +59,9 @@ func NewMultiIndustryService(baseService *ClassificationService, logger *observa
 
 		// Enhanced ranking engine
 		rankingEngine: NewConfidenceRankingEngine(),
+
+		// Top-3 selection engine
+		top3SelectionEngine: NewTop3SelectionEngine(logger, metrics),
 	}
 }
 
@@ -82,8 +88,9 @@ func (m *MultiIndustryService) ClassifyBusinessMultiIndustry(ctx context.Context
 	// Apply enhanced confidence-based ranking and filtering
 	rankedClassifications := m.rankAndFilterClassifications(allClassifications)
 
-	// Select top-3 classifications
-	topClassifications := m.selectTopClassifications(rankedClassifications)
+	// Select top-3 classifications using enhanced selection engine
+	top3Result := m.top3SelectionEngine.SelectTop3Classifications(ctx, rankedClassifications)
+	topClassifications := top3Result.AllClassifications
 
 	// Calculate overall confidence
 	overallConfidence := m.calculateOverallConfidence(topClassifications)
@@ -91,22 +98,20 @@ func (m *MultiIndustryService) ClassifyBusinessMultiIndustry(ctx context.Context
 	// Create multi-industry response
 	result := &MultiIndustryClassification{
 		Classifications:      topClassifications,
-		PrimaryIndustry:      topClassifications[0],
+		PrimaryIndustry:      top3Result.PrimaryIndustry,
+		SecondaryIndustry:    top3Result.SecondaryIndustry,
+		TertiaryIndustry:     top3Result.TertiaryIndustry,
 		OverallConfidence:    overallConfidence,
 		ClassificationMethod: "multi_industry_enhanced",
 		ProcessingTime:       time.Since(start),
 	}
 
-	// Add secondary and tertiary industries if available
-	if len(topClassifications) > 1 {
-		result.SecondaryIndustry = &topClassifications[1]
+	// Calculate validation score using top-3 selection metrics
+	if top3Result.SelectionMetrics != nil {
+		result.ValidationScore = top3Result.SelectionMetrics.SelectionQuality
+	} else {
+		result.ValidationScore = m.calculateValidationScore(result)
 	}
-	if len(topClassifications) > 2 {
-		result.TertiaryIndustry = &topClassifications[2]
-	}
-
-	// Calculate validation score
-	result.ValidationScore = m.calculateValidationScore(result)
 
 	// Log completion
 	m.logger.WithComponent("multi_industry_classification").LogBusinessEvent(ctx, "multi_industry_classification_completed", baseResponse.BusinessID, map[string]interface{}{
