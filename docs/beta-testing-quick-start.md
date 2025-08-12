@@ -35,11 +35,24 @@ This script will:
 ```
 
 The beta environment will be available at:
+- **Web Interface**: http://localhost:8080 (User-friendly dashboard)
 - **API Endpoint**: http://localhost:8081
+- **API Documentation**: http://localhost:8081/docs (Interactive Swagger docs)
 - **Monitoring Dashboard**: http://localhost:3000 (Grafana)
 - **Metrics**: http://localhost:9090 (Prometheus)
 
-### 3. Test the Complete Platform API
+### 3. Test the Complete Platform
+
+#### Option A: Web Interface (Recommended for Non-Technical Users)
+1. **Open your browser** and navigate to: http://localhost:8080
+2. **Register/Login** using the web interface
+3. **Use the dashboard** to:
+   - Classify businesses using the simple form
+   - View risk assessments and compliance status
+   - Generate reports and export data
+   - Manage your account and preferences
+
+#### Option B: API Integration (For Technical Users)
 
 ```bash
 # Test authentication
@@ -166,6 +179,17 @@ Expected classification response:
 - Interactive API documentation
 - Consistent error handling
 
+### 6. Web User Interface
+
+#### User-Friendly Dashboard
+- Login/Registration: Secure user authentication
+- Business Classification Form: Simple form for business information input
+- Results Dashboard: Visual display of classification results
+- Risk Assessment View: Interactive risk scoring and analysis
+- Compliance Status: Real-time compliance tracking and reporting
+- User Profile: Account management and preferences
+- Help & Support: Built-in documentation and support chat
+
 ### 3. API Endpoints
 
 #### Authentication API
@@ -211,18 +235,45 @@ GET /api/v1/status
 GET /api/v1/docs
 ```
 
+## Interface Options for Beta Testing
+
+### Dual Interface Approach
+
+The beta testing program provides two interface options to accommodate different user types:
+
+#### Web Interface (Recommended for Non-Technical Users)
+- **Access**: http://localhost:8080
+- **No Technical Knowledge Required**: Point-and-click interface
+- **Guided Workflows**: Step-by-step processes
+- **Visual Reports**: Interactive charts and graphs
+- **User Management**: Account creation and profile management
+
+#### API Integration (For Technical Users)
+- **Access**: http://localhost:8081
+- **Documentation**: http://localhost:8081/docs
+- **Programmatic Testing**: Direct API calls
+- **SDK Support**: Client libraries available
+- **Webhook Support**: Real-time notifications
+
+### Choosing Your Interface
+
+- **Business Users** (Compliance Officers, Risk Managers): Use Web Interface
+- **Developers** (Integration Specialists): Use API Integration
+- **Analysts** (Business Analysts, Researchers): Use Both Interfaces
+
 ## Testing Scenarios
 
 ### Scenario 1: Financial Institution End-to-End Testing
 
 **Use Case**: Complete KYB workflow for loan applications
+**Recommended Interface**: Web Interface (Primary), API Integration (Secondary)
 
 **Test Cases**:
-1. **Authentication**: User registration, login, and role assignment
-2. **Business Classification**: Classify 50+ businesses using multiple methods
-3. **Risk Assessment**: Generate comprehensive risk scores and reports
-4. **Compliance Checking**: Verify regulatory compliance requirements
-5. **Integration**: Test complete workflow from classification to decision
+1. **Authentication**: User registration, login, and role assignment via web interface
+2. **Business Classification**: Classify 50+ businesses using web form and API
+3. **Risk Assessment**: Generate comprehensive risk scores and reports via dashboard
+4. **Compliance Checking**: Verify regulatory compliance requirements through web interface
+5. **Integration**: Test complete workflow from classification to decision using both interfaces
 
 **Sample Test Workflow**:
 ```json

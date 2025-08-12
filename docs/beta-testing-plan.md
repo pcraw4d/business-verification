@@ -90,42 +90,89 @@ This document outlines the beta testing strategy for the KYB Platform MVP, a com
 - **API Documentation**: Interactive OpenAPI/Swagger documentation
 - **Error Handling**: Consistent error responses and status codes
 
-#### 6. Database & Data Management
+#### 6. Web User Interface
+- **Dashboard Interface**: User-friendly web interface for non-technical users
+- **Business Classification Form**: Easy-to-use classification interface
+- **Risk Assessment Dashboard**: Visual risk scoring and reporting
+- **Compliance Status View**: Compliance tracking and gap analysis
+- **User Management**: Account management and role assignment
+- **Report Generation**: Interactive report creation and export
+
+#### 7. Database & Data Management
 - **PostgreSQL Database**: Robust data storage with migrations
 - **Data Validation**: Comprehensive input validation and sanitization
 - **Connection Pooling**: Optimized database performance
 - **Data Backup**: Automated backup and recovery procedures
 - **Data Integrity**: Transaction support and data consistency
 
-#### 7. Observability & Monitoring
+#### 8. Observability & Monitoring
 - **Structured Logging**: Comprehensive application logging
 - **Metrics Collection**: Prometheus-based metrics and monitoring
 - **Health Checks**: Application and service health monitoring
 - **Performance Monitoring**: Response time and throughput tracking
 - **Error Tracking**: Automated error detection and alerting
 
-#### 8. Security & Compliance
+#### 9. Security & Compliance
 - **Input Validation**: Comprehensive security validation
 - **Encryption**: Sensitive data encryption and protection
 - **Rate Limiting**: Abuse prevention and fair usage policies
 - **Security Headers**: Web security best practices
 - **Vulnerability Management**: Security scanning and monitoring
 
+## Beta User Interface Options
+
+### Dual Interface Approach
+
+The beta testing program provides two interface options to accommodate different user types and testing scenarios:
+
+#### 1. Web User Interface (Primary for Non-Technical Users)
+- **Dashboard Access**: User-friendly web interface at `https://beta.kybplatform.com`
+- **No Technical Knowledge Required**: Point-and-click interface for business users
+- **Guided Workflows**: Step-by-step processes for classification, risk assessment, and compliance
+- **Visual Reports**: Interactive charts and graphs for results
+- **User Management**: Account creation, role assignment, and profile management
+
+#### 2. API Integration (Primary for Technical Users)
+- **RESTful API Access**: Complete API ecosystem for developers and integrators
+- **Programmatic Testing**: Direct API calls for automated testing and integration
+- **SDK Support**: Client libraries for popular programming languages
+- **Webhook Support**: Real-time notifications and event handling
+- **Documentation**: Comprehensive API documentation and examples
+
+### User Interface Features
+
+#### Web Interface Components
+- **Login/Registration**: Secure user authentication
+- **Business Classification Form**: Simple form for business information input
+- **Results Dashboard**: Visual display of classification results
+- **Risk Assessment View**: Interactive risk scoring and analysis
+- **Compliance Status**: Real-time compliance tracking and reporting
+- **User Profile**: Account management and preferences
+- **Help & Support**: Built-in documentation and support chat
+
+#### API Interface Components
+- **Authentication Endpoints**: JWT token management
+- **Classification API**: Business classification endpoints
+- **Risk Assessment API**: Risk calculation and reporting
+- **Compliance API**: Compliance checking and tracking
+- **User Management API**: Account and role management
+- **Webhook API**: Event notifications and callbacks
+
 ## Beta User Recruitment
 
 ### Target User Segments
 
 #### Primary Users (60%)
-- **Compliance Officers**: Financial institutions, fintech companies
-- **Risk Managers**: Banks, insurance companies
-- **Business Analysts**: Consulting firms, research companies
-- **KYC/KYB Specialists**: Regulated industries
+- **Compliance Officers**: Financial institutions, fintech companies (Web Interface)
+- **Risk Managers**: Banks, insurance companies (Web Interface)
+- **Business Analysts**: Consulting firms, research companies (Both Interfaces)
+- **KYC/KYB Specialists**: Regulated industries (Both Interfaces)
 
 #### Secondary Users (40%)
-- **Business Owners**: Small to medium businesses
-- **Entrepreneurs**: Startups and new ventures
-- **Researchers**: Academic and market research
-- **Developers**: Integration partners
+- **Business Owners**: Small to medium businesses (Web Interface)
+- **Entrepreneurs**: Startups and new ventures (Web Interface)
+- **Researchers**: Academic and market research (Both Interfaces)
+- **Developers**: Integration partners (API Interface)
 
 ### Recruitment Strategy
 1. **Direct Outreach**: LinkedIn, industry events, conferences
@@ -139,62 +186,69 @@ This document outlines the beta testing strategy for the KYB Platform MVP, a com
 ### Scenario 1: Financial Institution End-to-End Testing
 **User Type**: Compliance Officer at Regional Bank
 **Use Case**: Complete KYB workflow for loan applications
+**Interface**: Web Interface (Primary), API Integration (Secondary)
 **Test Cases**:
-- **Authentication**: User registration, login, and role assignment
-- **Business Classification**: Classify 50+ businesses using multiple methods
-- **Risk Assessment**: Generate comprehensive risk scores and reports
-- **Compliance Checking**: Verify regulatory compliance requirements
-- **Integration**: Test complete workflow from classification to decision
+- **Authentication**: User registration, login, and role assignment via web interface
+- **Business Classification**: Classify 50+ businesses using web form and API
+- **Risk Assessment**: Generate comprehensive risk scores and reports via dashboard
+- **Compliance Checking**: Verify regulatory compliance requirements through web interface
+- **Integration**: Test complete workflow from classification to decision using both interfaces
 
 ### Scenario 2: Risk Management & Assessment
 **User Type**: Risk Manager at Insurance Company
 **Use Case**: Comprehensive risk assessment and monitoring
+**Interface**: Web Interface (Primary), API Integration (Secondary)
 **Test Cases**:
-- **Risk Scoring**: Test multi-factor risk calculation algorithms
-- **Industry Models**: Validate industry-specific risk assessments
-- **Trend Analysis**: Analyze historical risk trends and predictions
-- **Alerting**: Test automated risk alerts and notifications
-- **Reporting**: Generate detailed risk assessment reports
+- **Risk Scoring**: Test multi-factor risk calculation algorithms via dashboard
+- **Industry Models**: Validate industry-specific risk assessments using web interface
+- **Trend Analysis**: Analyze historical risk trends and predictions through visual charts
+- **Alerting**: Test automated risk alerts and notifications via web and API
+- **Reporting**: Generate detailed risk assessment reports using both interfaces
 
 ### Scenario 3: Compliance & Regulatory Testing
 **User Type**: Compliance Officer at Financial Institution
 **Use Case**: Regulatory compliance and audit preparation
+**Interface**: Web Interface (Primary), API Integration (Secondary)
 **Test Cases**:
-- **Compliance Framework**: Test SOC 2, PCI DSS, GDPR compliance tracking
-- **Audit Trails**: Verify complete audit logging and reporting
-- **Gap Analysis**: Identify compliance gaps and generate recommendations
-- **Reporting**: Generate compliance reports for regulatory submissions
-- **Monitoring**: Set up compliance alerts and monitoring
+- **Compliance Framework**: Test SOC 2, PCI DSS, GDPR compliance tracking via web dashboard
+- **Audit Trails**: Verify complete audit logging and reporting through web interface
+- **Gap Analysis**: Identify compliance gaps and generate recommendations using visual tools
+- **Reporting**: Generate compliance reports for regulatory submissions via web and API
+- **Monitoring**: Set up compliance alerts and monitoring through both interfaces
 
 ### Scenario 4: API Integration & Development
 **User Type**: Developer/Integration Specialist
 **Use Case**: Third-party system integration
+**Interface**: API Integration (Primary), Web Interface (Secondary for testing)
 **Test Cases**:
 - **API Authentication**: Test JWT tokens and API key management
 - **Rate Limiting**: Verify fair usage policies and limits
 - **Batch Processing**: Test efficient processing of multiple requests
 - **Error Handling**: Validate consistent error responses
 - **Performance**: Test API response times and throughput
+- **Web Interface Testing**: Use web interface to validate API responses and functionality
 
 ### Scenario 5: Business Research & Analysis
 **User Type**: Business Analyst at Consulting Firm
 **Use Case**: Market research and competitive analysis
+**Interface**: Both Interfaces (Equal Priority)
 **Test Cases**:
-- **Multi-Method Classification**: Test all classification approaches
-- **Data Export**: Validate data export and reporting capabilities
-- **Batch Analysis**: Process large datasets efficiently
-- **Integration**: Test API integration with existing tools
-- **Reporting**: Generate comprehensive business analysis reports
+- **Multi-Method Classification**: Test all classification approaches via web interface and API
+- **Data Export**: Validate data export and reporting capabilities through both interfaces
+- **Batch Analysis**: Process large datasets efficiently using API with web interface for results
+- **Integration**: Test API integration with existing tools while using web interface for validation
+- **Reporting**: Generate comprehensive business analysis reports using both interfaces
 
 ### Scenario 6: Security & Compliance Validation
 **User Type**: Security Officer
 **Use Case**: Security validation and compliance verification
+**Interface**: Both Interfaces (Equal Priority)
 **Test Cases**:
-- **Authentication Security**: Test JWT validation and token management
-- **Authorization**: Verify RBAC and permission enforcement
-- **Input Validation**: Test security validation and sanitization
-- **Audit Logging**: Verify complete audit trail generation
-- **Compliance Features**: Test regulatory compliance tracking
+- **Authentication Security**: Test JWT validation and token management via both interfaces
+- **Authorization**: Verify RBAC and permission enforcement through web interface and API
+- **Input Validation**: Test security validation and sanitization on both interfaces
+- **Audit Logging**: Verify complete audit trail generation across both interfaces
+- **Compliance Features**: Test regulatory compliance tracking through web dashboard and API
 
 ## Feedback Collection
 
