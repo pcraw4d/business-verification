@@ -2,7 +2,7 @@
 
 ## 🚀 Getting Started with KYB Platform Beta Testing
 
-This guide will help you quickly set up and start beta testing the KYB Platform's website classification MVP.
+This guide will help you quickly set up and start beta testing the KYB Platform MVP, a comprehensive enterprise-grade Know Your Business platform.
 
 ## Prerequisites
 
@@ -39,20 +39,47 @@ The beta environment will be available at:
 - **Monitoring Dashboard**: http://localhost:3000 (Grafana)
 - **Metrics**: http://localhost:9090 (Prometheus)
 
-### 3. Test the Classification API
+### 3. Test the Complete Platform API
 
 ```bash
-# Test a simple classification
+# Test authentication
+curl -X POST http://localhost:8081/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "password": "password123"
+  }'
+
+# Test business classification
 curl -X POST http://localhost:8081/api/v1/classify \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
     "business_name": "Acme Corporation",
     "website_url": "https://www.acme.com",
     "description": "Global manufacturing and technology company"
   }'
+
+# Test risk assessment
+curl -X POST http://localhost:8081/api/v1/risk/assess \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "business_id": "business_123",
+    "risk_factors": ["industry_risk", "financial_risk", "compliance_risk"]
+  }'
+
+# Test compliance checking
+curl -X POST http://localhost:8081/api/v1/compliance/check \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "business_id": "business_123",
+    "compliance_frameworks": ["SOC2", "PCI_DSS", "GDPR"]
+  }'
 ```
 
-Expected response:
+Expected classification response:
 ```json
 {
   "success": true,
@@ -75,7 +102,7 @@ Expected response:
       }
     ],
     "classification_metadata": {
-      "method_used": "url_based",
+      "method_used": "multi_method",
       "processing_time_ms": 1200,
       "accuracy_validation": {
         "is_accurate": true,
@@ -88,54 +115,92 @@ Expected response:
 
 ## Beta Testing Features
 
-### 1. Website Classification
+### 1. Business Classification Engine
 
-#### URL-Based Classification
-- Direct website analysis and scraping
-- Industry classification from website content
-- Business information extraction
+#### Multi-Method Classification
+- Keyword, business type, industry, and name-based classification
+- NAICS code mapping with comprehensive industry names
+- Confidence scoring for all classification methods
+- Batch processing for multiple businesses
+- Result caching for performance optimization
 
-#### Web Search Classification
-- Business name search when no URL provided
-- Search result analysis and classification
-- Fallback mechanism for unknown businesses
-
-#### Dual Flow Selection
-- Automatic routing between URL and search-based flows
-- Intelligent fallback mechanisms
-- Unified result format
-
-### 2. Classification Results
-
-#### Top-3 Industry Results
+#### Classification Results
 - Primary industry with highest confidence
 - Secondary industries for comprehensive coverage
 - Confidence scoring for each classification
+- Real-time accuracy assessment and validation
 
-#### Accuracy Validation
-- Real-time accuracy assessment
-- Benchmark comparison
-- Quality indicators
+### 2. Risk Assessment Engine
 
-#### Result Presentation
-- User-friendly output format
-- Detailed confidence breakdown
-- Processing metadata
+#### Multi-Factor Risk Scoring
+- Comprehensive risk calculation algorithms
+- Industry-specific risk models
+- Risk trend analysis and prediction
+- Automated risk alerts and monitoring
+- Detailed risk assessment reports
+
+### 3. Compliance Framework
+
+#### Regulatory Compliance
+- SOC 2, PCI DSS, GDPR compliance tracking
+- Automated compliance requirement checking
+- Compliance gap analysis and recommendations
+- Complete audit trail generation
+- Automated compliance report generation
+
+### 4. Authentication & Authorization System
+
+#### JWT-based Authentication
+- Secure token-based authentication
+- Role-Based Access Control (RBAC)
+- API key management for integrations
+- Complete user lifecycle management
+- Security hardening with rate limiting and audit logging
+
+### 5. API Gateway & Ecosystem
+
+#### Complete API Ecosystem
+- RESTful API with versioning
+- Comprehensive middleware stack
+- Health monitoring and metrics
+- Interactive API documentation
+- Consistent error handling
 
 ### 3. API Endpoints
+
+#### Authentication API
+```
+POST /api/v1/auth/register
+POST /api/v1/auth/login
+POST /api/v1/auth/logout
+POST /api/v1/auth/refresh
+GET /api/v1/auth/profile
+```
 
 #### Classification API
 ```
 POST /api/v1/classify
 POST /api/v1/classify/batch
 GET /api/v1/classify/{id}
+GET /api/v1/classify/history
 ```
 
-#### Accuracy Validation API
+#### Risk Assessment API
 ```
-POST /api/v1/accuracy/validate
-GET /api/v1/accuracy/metrics
-POST /api/v1/accuracy/feedback
+POST /api/v1/risk/assess
+GET /api/v1/risk/{id}
+GET /api/v1/risk/history
+POST /api/v1/risk/alerts
+GET /api/v1/risk/reports
+```
+
+#### Compliance API
+```
+POST /api/v1/compliance/check
+GET /api/v1/compliance/{id}
+GET /api/v1/compliance/status
+POST /api/v1/compliance/reports
+GET /api/v1/compliance/audit
 ```
 
 #### Health and Monitoring
@@ -143,48 +208,67 @@ POST /api/v1/accuracy/feedback
 GET /health
 GET /metrics
 GET /api/v1/status
+GET /api/v1/docs
 ```
 
 ## Testing Scenarios
 
-### Scenario 1: Financial Institution Testing
+### Scenario 1: Financial Institution End-to-End Testing
 
-**Use Case**: Verify business classification for loan applications
+**Use Case**: Complete KYB workflow for loan applications
 
 **Test Cases**:
-1. Classify 50+ business websites
-2. Validate industry accuracy against known data
-3. Test batch processing capabilities
-4. Assess integration with existing systems
+1. **Authentication**: User registration, login, and role assignment
+2. **Business Classification**: Classify 50+ businesses using multiple methods
+3. **Risk Assessment**: Generate comprehensive risk scores and reports
+4. **Compliance Checking**: Verify regulatory compliance requirements
+5. **Integration**: Test complete workflow from classification to decision
 
-**Sample Test Data**:
+**Sample Test Workflow**:
 ```json
 {
-  "business_name": "Financial Services Inc",
-  "website_url": "https://financialservices.com",
-  "description": "Investment banking and wealth management"
+  "workflow": {
+    "step1": "User authentication and authorization",
+    "step2": "Business classification with confidence scoring",
+    "step3": "Risk assessment with industry-specific models",
+    "step4": "Compliance verification and gap analysis",
+    "step5": "Report generation and decision support"
+  }
 }
 ```
 
-### Scenario 2: Risk Assessment Testing
+### Scenario 2: Risk Management & Assessment Testing
 
-**Use Case**: Assess business risk based on industry classification
-
-**Test Cases**:
-1. Classify high-risk industries
-2. Validate risk scoring accuracy
-3. Test real-time classification
-4. Assess reporting capabilities
-
-### Scenario 3: Business Research Testing
-
-**Use Case**: Market research and competitive analysis
+**Use Case**: Comprehensive risk assessment and monitoring
 
 **Test Cases**:
-1. Classify competitors and market players
-2. Validate classification consistency
-3. Test data export functionality
-4. Assess API integration
+1. **Risk Scoring**: Test multi-factor risk calculation algorithms
+2. **Industry Models**: Validate industry-specific risk assessments
+3. **Trend Analysis**: Analyze historical risk trends and predictions
+4. **Alerting**: Test automated risk alerts and notifications
+5. **Reporting**: Generate detailed risk assessment reports
+
+### Scenario 3: Compliance & Regulatory Testing
+
+**Use Case**: Regulatory compliance and audit preparation
+
+**Test Cases**:
+1. **Compliance Framework**: Test SOC 2, PCI DSS, GDPR compliance tracking
+2. **Audit Trails**: Verify complete audit logging and reporting
+3. **Gap Analysis**: Identify compliance gaps and generate recommendations
+4. **Reporting**: Generate compliance reports for regulatory submissions
+5. **Monitoring**: Set up compliance alerts and monitoring
+
+### Scenario 4: API Integration & Development Testing
+
+**Use Case**: Third-party system integration
+
+**Test Cases**:
+1. **API Authentication**: Test JWT tokens and API key management
+2. **Rate Limiting**: Verify fair usage policies and limits
+3. **Batch Processing**: Test efficient processing of multiple requests
+4. **Error Handling**: Validate consistent error responses
+5. **Performance**: Test API response times and throughput
 
 ## Performance Testing
 

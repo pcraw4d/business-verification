@@ -213,6 +213,16 @@
       "business_ids": ["test_021", "test_022", "test_023", "test_024", "test_025"]
     },
     {
+      "scenario": "high_risk_industries",
+      "description": "Businesses in high-risk industries for risk assessment testing",
+      "business_ids": ["test_004", "test_013", "test_016", "test_017"]
+    },
+    {
+      "scenario": "compliance_focused",
+      "description": "Businesses requiring comprehensive compliance checking",
+      "business_ids": ["test_004", "test_005", "test_008", "test_013"]
+    },
+    {
       "scenario": "edge_cases",
       "description": "Businesses with unusual or complex classifications",
       "business_ids": ["test_011", "test_016", "test_017", "test_020"]
@@ -229,5 +239,71 @@
     "target_accuracy": 0.90,
     "excellent_accuracy": 0.95,
     "confidence_threshold": 0.70
+  },
+  "risk_assessment_data": {
+    "risk_factors": [
+      "industry_risk",
+      "financial_risk", 
+      "compliance_risk",
+      "operational_risk",
+      "reputational_risk"
+    ],
+    "risk_thresholds": {
+      "low_risk": 0.0,
+      "medium_risk": 0.3,
+      "high_risk": 0.7,
+      "critical_risk": 0.9
+    }
+  },
+  "compliance_frameworks": [
+    "SOC2",
+    "PCI_DSS", 
+    "GDPR",
+    "SOX",
+    "ISO_27001"
+  ],
+  "authentication_test_data": {
+    "test_users": [
+      {
+        "email": "compliance_officer@bank.com",
+        "role": "compliance_officer",
+        "permissions": ["read", "write", "compliance_check"]
+      },
+      {
+        "email": "risk_manager@insurance.com", 
+        "role": "risk_manager",
+        "permissions": ["read", "write", "risk_assessment"]
+      },
+      {
+        "email": "business_analyst@consulting.com",
+        "role": "business_analyst", 
+        "permissions": ["read", "classification"]
+      }
+    ]
+  },
+  "api_test_scenarios": {
+    "authentication_flow": [
+      "user_registration",
+      "user_login", 
+      "token_refresh",
+      "user_logout"
+    ],
+    "classification_flow": [
+      "single_classification",
+      "batch_classification",
+      "classification_history"
+    ],
+    "risk_assessment_flow": [
+      "risk_calculation",
+      "risk_history",
+      "risk_alerts",
+      "risk_reports"
+    ],
+    "compliance_flow": [
+      "compliance_check",
+      "compliance_status",
+      "compliance_reports",
+      "audit_trails"
+    ]
   }
 }

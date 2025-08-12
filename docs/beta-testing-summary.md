@@ -2,7 +2,7 @@
 
 ## Overview
 
-The KYB Platform website classification MVP beta testing program is a comprehensive 12-week initiative designed to validate the dual-classification flow (URL-based and web search-based) and gather user feedback for product-market fit.
+The KYB Platform MVP beta testing program is a comprehensive 12-week initiative designed to validate all core features of the enterprise-grade Know Your Business platform. The program tests business classification, risk assessment, compliance framework, authentication, and the complete API ecosystem to gather user feedback for product-market fit.
 
 ## Program Structure
 
@@ -32,11 +32,14 @@ The KYB Platform website classification MVP beta testing program is a comprehens
 ## Success Metrics
 
 ### 🎯 **Primary KPIs**
-- **Classification Accuracy**: >90% on real business data
+- **Platform Accuracy**: >90% across all core features (classification, risk assessment, compliance)
 - **User Satisfaction**: >8/10 average rating
-- **Feature Adoption**: >70% active usage
-- **Performance**: <5 second response time
+- **Feature Adoption**: >70% of users actively use multiple platform features
+- **Performance**: <5 second average response time for all API requests
 - **Retention**: >80% user return rate
+- **Security**: Zero security incidents during beta testing
+- **Compliance**: All compliance features working correctly
+- **API Reliability**: >99.9% uptime for all endpoints
 
 ### 📈 **Secondary KPIs**
 - User engagement (daily active users)
