@@ -3,7 +3,6 @@ package classification
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
@@ -12,14 +11,14 @@ import (
 
 // MultiIndustryClassification represents a top-3 industry classification result
 type MultiIndustryClassification struct {
-	Classifications []IndustryClassification `json:"classifications"`
-	PrimaryIndustry IndustryClassification   `json:"primary_industry"`
-	SecondaryIndustry *IndustryClassification `json:"secondary_industry,omitempty"`
-	TertiaryIndustry  *IndustryClassification `json:"tertiary_industry,omitempty"`
-	OverallConfidence float64                `json:"overall_confidence"`
-	ClassificationMethod string              `json:"classification_method"`
-	ProcessingTime     time.Duration         `json:"processing_time"`
-	ValidationScore    float64               `json:"validation_score,omitempty"`
+	Classifications      []IndustryClassification `json:"classifications"`
+	PrimaryIndustry      IndustryClassification   `json:"primary_industry"`
+	SecondaryIndustry    *IndustryClassification  `json:"secondary_industry,omitempty"`
+	TertiaryIndustry     *IndustryClassification  `json:"tertiary_industry,omitempty"`
+	OverallConfidence    float64                  `json:"overall_confidence"`
+	ClassificationMethod string                   `json:"classification_method"`
+	ProcessingTime       time.Duration            `json:"processing_time"`
+	ValidationScore      float64                  `json:"validation_score,omitempty"`
 }
 
 // MultiIndustryService provides enhanced multi-industry classification functionality
@@ -27,11 +26,14 @@ type MultiIndustryService struct {
 	baseService *ClassificationService
 	logger      *observability.Logger
 	metrics     *observability.Metrics
-	
+
 	// Configuration
 	minConfidenceThreshold float64
 	maxClassifications     int
 	confidenceWeighting    map[string]float64
+
+	// Enhanced ranking engine
+	rankingEngine *ConfidenceRankingEngine
 }
 
 // NewMultiIndustryService creates a new multi-industry classification service
@@ -40,7 +42,7 @@ func NewMultiIndustryService(baseService *ClassificationService, logger *observa
 		baseService: baseService,
 		logger:      logger,
 		metrics:     metrics,
-		
+
 		// Configuration
 		minConfidenceThreshold: 0.1, // Minimum confidence to include in results
 		maxClassifications:     3,   // Maximum number of classifications to return
@@ -51,13 +53,16 @@ func NewMultiIndustryService(baseService *ClassificationService, logger *observa
 			"industry_hint":     0.15,
 			"fuzzy_match":       0.1,
 		},
+
+		// Enhanced ranking engine
+		rankingEngine: NewConfidenceRankingEngine(),
 	}
 }
 
 // ClassifyBusinessMultiIndustry performs multi-industry classification with top-3 results
 func (m *MultiIndustryService) ClassifyBusinessMultiIndustry(ctx context.Context, req *ClassificationRequest) (*MultiIndustryClassification, error) {
 	start := time.Now()
-	
+
 	// Log multi-industry classification start
 	m.logger.WithComponent("multi_industry_classification").LogBusinessEvent(ctx, "multi_industry_classification_started", "", map[string]interface{}{
 		"business_name": req.BusinessName,
@@ -74,7 +79,7 @@ func (m *MultiIndustryService) ClassifyBusinessMultiIndustry(ctx context.Context
 	// Generate additional classifications using different methods
 	allClassifications := m.generateMultiIndustryClassifications(ctx, req, baseResponse)
 
-	// Apply confidence-based ranking and filtering
+	// Apply enhanced confidence-based ranking and filtering
 	rankedClassifications := m.rankAndFilterClassifications(allClassifications)
 
 	// Select top-3 classifications
@@ -85,11 +90,11 @@ func (m *MultiIndustryService) ClassifyBusinessMultiIndustry(ctx context.Context
 
 	// Create multi-industry response
 	result := &MultiIndustryClassification{
-		Classifications:       topClassifications,
-		PrimaryIndustry:       topClassifications[0],
-		OverallConfidence:     overallConfidence,
-		ClassificationMethod:  "multi_industry_enhanced",
-		ProcessingTime:        time.Since(start),
+		Classifications:      topClassifications,
+		PrimaryIndustry:      topClassifications[0],
+		OverallConfidence:    overallConfidence,
+		ClassificationMethod: "multi_industry_enhanced",
+		ProcessingTime:       time.Since(start),
 	}
 
 	// Add secondary and tertiary industries if available
@@ -105,13 +110,13 @@ func (m *MultiIndustryService) ClassifyBusinessMultiIndustry(ctx context.Context
 
 	// Log completion
 	m.logger.WithComponent("multi_industry_classification").LogBusinessEvent(ctx, "multi_industry_classification_completed", baseResponse.BusinessID, map[string]interface{}{
-		"business_name":           req.BusinessName,
-		"primary_industry_code":   result.PrimaryIndustry.IndustryCode,
-		"primary_industry_name":   result.PrimaryIndustry.IndustryName,
-		"overall_confidence":      overallConfidence,
-		"processing_time_ms":      time.Since(start).Milliseconds(),
-		"total_classifications":   len(topClassifications),
-		"validation_score":        result.ValidationScore,
+		"business_name":         req.BusinessName,
+		"primary_industry_code": result.PrimaryIndustry.IndustryCode,
+		"primary_industry_name": result.PrimaryIndustry.IndustryName,
+		"overall_confidence":    overallConfidence,
+		"processing_time_ms":    time.Since(start).Milliseconds(),
+		"total_classifications": len(topClassifications),
+		"validation_score":      result.ValidationScore,
 	})
 
 	// Record metrics
@@ -193,7 +198,7 @@ func (m *MultiIndustryService) generateDescriptionBasedClassifications(req *Clas
 
 	// Extract key terms from description
 	terms := m.extractKeyTerms(req.Description)
-	
+
 	for _, term := range terms {
 		matchedIndustries := m.findIndustriesByKeyword(term)
 		for _, industry := range matchedIndustries {
@@ -222,7 +227,7 @@ func (m *MultiIndustryService) generateBusinessTypeClassifications(req *Classifi
 
 	// Map business types to likely industries
 	businessTypeIndustries := m.mapBusinessTypeToIndustries(req.BusinessType)
-	
+
 	for _, industry := range businessTypeIndustries {
 		classification := IndustryClassification{
 			IndustryCode:         industry.Code,
@@ -248,7 +253,7 @@ func (m *MultiIndustryService) generateIndustryHintClassifications(req *Classifi
 
 	// Find industries that match the provided industry hint
 	matchedIndustries := m.findIndustriesByKeyword(req.Industry)
-	
+
 	for _, industry := range matchedIndustries {
 		classification := IndustryClassification{
 			IndustryCode:         industry.Code,
@@ -270,7 +275,7 @@ func (m *MultiIndustryService) generateFuzzyMatchClassifications(req *Classifica
 
 	// Use fuzzy matching on business name
 	matchedIndustries := m.findIndustriesByFuzzyMatch(req.BusinessName)
-	
+
 	for _, industry := range matchedIndustries {
 		classification := IndustryClassification{
 			IndustryCode:         industry.Code,
@@ -286,7 +291,7 @@ func (m *MultiIndustryService) generateFuzzyMatchClassifications(req *Classifica
 	return classifications
 }
 
-// rankAndFilterClassifications ranks and filters classifications by confidence
+// rankAndFilterClassifications ranks and filters classifications using enhanced confidence ranking
 func (m *MultiIndustryService) rankAndFilterClassifications(classifications []IndustryClassification) []IndustryClassification {
 	// Filter by minimum confidence threshold
 	var filtered []IndustryClassification
@@ -296,23 +301,10 @@ func (m *MultiIndustryService) rankAndFilterClassifications(classifications []In
 		}
 	}
 
-	// Sort by confidence score (descending)
-	sort.Slice(filtered, func(i, j int) bool {
-		return filtered[i].ConfidenceScore > filtered[j].ConfidenceScore
-	})
+	// Use enhanced confidence ranking engine
+	rankedClassifications := m.rankingEngine.RankClassifications(filtered)
 
-	// Remove duplicates (same industry code)
-	var unique []IndustryClassification
-	seen := make(map[string]bool)
-	
-	for _, classification := range filtered {
-		if !seen[classification.IndustryCode] {
-			seen[classification.IndustryCode] = true
-			unique = append(unique, classification)
-		}
-	}
-
-	return unique
+	return rankedClassifications
 }
 
 // selectTopClassifications selects the top N classifications
@@ -337,7 +329,7 @@ func (m *MultiIndustryService) calculateOverallConfidence(classifications []Indu
 	// Calculate weighted average
 	totalWeight := 0.0
 	totalScore := 0.0
-	
+
 	for i, classification := range classifications {
 		weight := 1.0 / float64(i+1) // Decreasing weight for each position
 		totalWeight += weight
