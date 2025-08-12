@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KYB Platform - Beta Testing</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-hover {
+            transition: transform 0.2s ease-in-out;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-xl font-bold text-gray-900">KYB Platform</h1>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded">BETA</span>
+                    <button id="loginBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">Login</button>
+                    <button id="registerBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium">Register</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="gradient-bg">
+        <div class="max-w-7xl mx-auto py-16 px-4 sm:py-24 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h1 class="text-4xl font-extrabold tracking-tight text-white sm:text-5xl md:text-6xl">
+                    KYB Platform
+                </h1>
+                <p class="mt-6 max-w-2xl mx-auto text-xl text-gray-300">
+                    Enterprise-Grade Know Your Business Platform - Beta Testing
+                </p>
+                <div class="mt-10">
+                    <button id="startTestingBtn" class="bg-white text-blue-600 px-8 py-3 rounded-md text-lg font-medium hover:bg-gray-100">
+                        Start Testing Now
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h2 class="text-3xl font-extrabold text-gray-900 sm:text-4xl">
+                    Platform Features
+                </h2>
+                <p class="mt-4 text-lg text-gray-600">
+                    Test all the core features of our comprehensive KYB platform
+                </p>
+            </div>
+            <div class="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+                <!-- Business Classification -->
+                <div class="card-hover bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <div class="text-center">
+                        <i class="fas fa-search text-4xl text-blue-600 mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-900">Business Classification</h3>
+                        <p class="mt-2 text-sm text-gray-600">Multi-method business classification with confidence scoring</p>
+                    </div>
+                </div>
+
+                <!-- Risk Assessment -->
+                <div class="card-hover bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <div class="text-center">
+                        <i class="fas fa-shield-alt text-4xl text-red-600 mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-900">Risk Assessment</h3>
+                        <p class="mt-2 text-sm text-gray-600">Comprehensive risk scoring with industry-specific models</p>
+                    </div>
+                </div>
+
+                <!-- Compliance -->
+                <div class="card-hover bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <div class="text-center">
+                        <i class="fas fa-check-circle text-4xl text-green-600 mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-900">Compliance</h3>
+                        <p class="mt-2 text-sm text-gray-600">SOC 2, PCI DSS, GDPR compliance tracking and reporting</p>
+                    </div>
+                </div>
+
+                <!-- API Integration -->
+                <div class="card-hover bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <div class="text-center">
+                        <i class="fas fa-code text-4xl text-purple-600 mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-900">API Integration</h3>
+                        <p class="mt-2 text-sm text-gray-600">RESTful API with comprehensive documentation</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Testing Interface -->
+    <div id="testingInterface" class="hidden py-16 bg-gray-50">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">Business Classification Test</h2>
+                
+                <!-- Test Form -->
+                <form id="classificationForm" class="space-y-6">
+                    <div>
+                        <label for="businessName" class="block text-sm font-medium text-gray-700">Business Name</label>
+                        <input type="text" id="businessName" name="businessName" required
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="Enter business name">
+                    </div>
+                    
+                    <div>
+                        <label for="websiteUrl" class="block text-sm font-medium text-gray-700">Website URL (Optional)</label>
+                        <input type="url" id="websiteUrl" name="websiteUrl"
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="https://example.com">
+                    </div>
+                    
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700">Business Description</label>
+                        <textarea id="description" name="description" rows="3"
+                                  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                  placeholder="Describe the business activities"></textarea>
+                    </div>
+                    
+                    <div class="flex justify-end">
+                        <button type="submit" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md text-sm font-medium">
+                            Classify Business
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Results Section -->
+                <div id="resultsSection" class="hidden mt-8">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Classification Results</h3>
+                    <div id="resultsContent" class="bg-gray-50 rounded-lg p-4">
+                        <!-- Results will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Loading Spinner -->
+                <div id="loadingSpinner" class="hidden mt-8 text-center">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <p class="mt-2 text-sm text-gray-600">Processing classification...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Section -->
+    <div class="py-16 bg-white">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h2 class="text-3xl font-extrabold text-gray-900">Beta Testing Feedback</h2>
+                <p class="mt-4 text-lg text-gray-600">
+                    Help us improve the platform by providing your feedback
+                </p>
+            </div>
+            <div class="mt-8">
+                <form id="feedbackForm" class="space-y-6">
+                    <div>
+                        <label for="feedbackType" class="block text-sm font-medium text-gray-700">Feedback Type</label>
+                        <select id="feedbackType" name="feedbackType" required
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Select feedback type</option>
+                            <option value="bug">Bug Report</option>
+                            <option value="feature">Feature Request</option>
+                            <option value="improvement">Improvement Suggestion</option>
+                            <option value="general">General Feedback</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label for="feedbackMessage" class="block text-sm font-medium text-gray-700">Your Feedback</label>
+                        <textarea id="feedbackMessage" name="feedbackMessage" rows="4" required
+                                  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                  placeholder="Please describe your feedback in detail"></textarea>
+                    </div>
+                    
+                    <div class="flex justify-end">
+                        <button type="submit" 
+                                class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md text-sm font-medium">
+                            Submit Feedback
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800">
+        <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <p class="text-gray-400">&copy; 2024 KYB Platform. Beta Testing Environment.</p>
+                <p class="mt-2 text-sm text-gray-500">
+                    This is a beta testing environment. Data may be reset periodically.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modals -->
+    <!-- Login Modal -->
+    <div id="loginModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Login</h3>
+                <form id="loginForm" class="space-y-4">
+                    <div>
+                        <label for="loginEmail" class="block text-sm font-medium text-gray-700">Email</label>
+                        <input type="email" id="loginEmail" required
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label for="loginPassword" class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" id="loginPassword" required
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" id="closeLoginModal" 
+                                class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md text-sm font-medium">
+                            Cancel
+                        </button>
+                        <button type="submit" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                            Login
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div id="registerModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Register</h3>
+                <form id="registerForm" class="space-y-4">
+                    <div>
+                        <label for="registerName" class="block text-sm font-medium text-gray-700">Full Name</label>
+                        <input type="text" id="registerName" required
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label for="registerEmail" class="block text-sm font-medium text-gray-700">Email</label>
+                        <input type="email" id="registerEmail" required
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label for="registerPassword" class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" id="registerPassword" required
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label for="registerRole" class="block text-sm font-medium text-gray-700">Role</label>
+                        <select id="registerRole" required
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Select your role</option>
+                            <option value="compliance_officer">Compliance Officer</option>
+                            <option value="risk_manager">Risk Manager</option>
+                            <option value="business_analyst">Business Analyst</option>
+                            <option value="developer">Developer</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" id="closeRegisterModal" 
+                                class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md text-sm font-medium">
+                            Cancel
+                        </button>
+                        <button type="submit" 
+                                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                            Register
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API Base URL - Update this with your actual API URL
+        const API_BASE_URL = window.location.origin + '/api/v1';
+        
+        // DOM Elements
+        const startTestingBtn = document.getElementById('startTestingBtn');
+        const testingInterface = document.getElementById('testingInterface');
+        const classificationForm = document.getElementById('classificationForm');
+        const resultsSection = document.getElementById('resultsSection');
+        const resultsContent = document.getElementById('resultsContent');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const feedbackForm = document.getElementById('feedbackForm');
+        const loginBtn = document.getElementById('loginBtn');
+        const registerBtn = document.getElementById('registerBtn');
+        const loginModal = document.getElementById('loginModal');
+        const registerModal = document.getElementById('registerModal');
+        const closeLoginModal = document.getElementById('closeLoginModal');
+        const closeRegisterModal = document.getElementById('closeRegisterModal');
+
+        // Event Listeners
+        startTestingBtn.addEventListener('click', () => {
+            testingInterface.classList.remove('hidden');
+            startTestingBtn.scrollIntoView({ behavior: 'smooth' });
+        });
+
+        // Modal controls
+        loginBtn.addEventListener('click', () => loginModal.classList.remove('hidden'));
+        registerBtn.addEventListener('click', () => registerModal.classList.remove('hidden'));
+        closeLoginModal.addEventListener('click', () => loginModal.classList.add('hidden'));
+        closeRegisterModal.addEventListener('click', () => registerModal.classList.add('hidden'));
+
+        // Close modals when clicking outside
+        window.addEventListener('click', (e) => {
+            if (e.target === loginModal) loginModal.classList.add('hidden');
+            if (e.target === registerModal) registerModal.classList.add('hidden');
+        });
+
+        // Classification Form Submission
+        classificationForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(classificationForm);
+            const data = {
+                business_name: formData.get('businessName'),
+                website_url: formData.get('websiteUrl') || '',
+                description: formData.get('description') || ''
+            };
+
+            // Show loading spinner
+            loadingSpinner.classList.remove('hidden');
+            resultsSection.classList.add('hidden');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/classify`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                
+                // Hide loading spinner
+                loadingSpinner.classList.add('hidden');
+                
+                // Display results
+                displayResults(result);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                loadingSpinner.classList.add('hidden');
+                displayError('An error occurred while processing the classification. Please try again.');
+            }
+        });
+
+        // Display classification results
+        function displayResults(result) {
+            resultsSection.classList.remove('hidden');
+            
+            if (result.success && result.data) {
+                const primary = result.data.primary_industry;
+                const secondary = result.data.secondary_industries || [];
+                
+                resultsContent.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <h4 class="font-medium text-blue-900">Primary Industry</h4>
+                            <p class="text-blue-800">${primary.industry_name} (${primary.industry_code})</p>
+                            <p class="text-sm text-blue-600">Confidence: ${Math.round(primary.confidence_score * 100)}%</p>
+                        </div>
+                        
+                        ${secondary.length > 0 ? `
+                            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                <h4 class="font-medium text-gray-900">Secondary Industries</h4>
+                                <div class="space-y-2">
+                                    ${secondary.map(industry => `
+                                        <div class="flex justify-between">
+                                            <span>${industry.industry_name} (${industry.industry_code})</span>
+                                            <span class="text-sm text-gray-600">${Math.round(industry.confidence_score * 100)}%</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <h4 class="font-medium text-green-900">Processing Information</h4>
+                            <p class="text-sm text-green-700">Method: ${result.data.classification_metadata?.method_used || 'Unknown'}</p>
+                            <p class="text-sm text-green-700">Processing Time: ${result.data.classification_metadata?.processing_time_ms || 0}ms</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                displayError('Classification failed. Please try again.');
+            }
+        }
+
+        // Display error message
+        function displayError(message) {
+            resultsSection.classList.remove('hidden');
+            resultsContent.innerHTML = `
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <h4 class="font-medium text-red-900">Error</h4>
+                    <p class="text-red-700">${message}</p>
+                </div>
+            `;
+        }
+
+        // Feedback Form Submission
+        feedbackForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(feedbackForm);
+            const data = {
+                type: formData.get('feedbackType'),
+                message: formData.get('feedbackMessage'),
+                timestamp: new Date().toISOString()
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/feedback`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    alert('Thank you for your feedback!');
+                    feedbackForm.reset();
+                } else {
+                    alert('Failed to submit feedback. Please try again.');
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to submit feedback. Please try again.');
+            }
+        });
+
+        // Login Form Submission
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    localStorage.setItem('authToken', result.data.token);
+                    alert('Login successful!');
+                    loginModal.classList.add('hidden');
+                    updateAuthStatus();
+                } else {
+                    alert('Login failed: ' + (result.message || 'Invalid credentials'));
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Login failed. Please try again.');
+            }
+        });
+
+        // Register Form Submission
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const role = document.getElementById('registerRole').value;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name, email, password, role })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Registration successful! Please check your email for verification.');
+                    registerModal.classList.add('hidden');
+                } else {
+                    alert('Registration failed: ' + (result.message || 'Please try again'));
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Registration failed. Please try again.');
+            }
+        });
+
+        // Update authentication status
+        function updateAuthStatus() {
+            const token = localStorage.getItem('authToken');
+            if (token) {
+                loginBtn.style.display = 'none';
+                registerBtn.style.display = 'none';
+                // Add logout button or user profile
+            }
+        }
+
+        // Initialize
+        updateAuthStatus();
+    </script>
+</body>
+</html>
