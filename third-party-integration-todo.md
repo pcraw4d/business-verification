@@ -120,6 +120,22 @@ This document lists all third-party integrations that need to be set up for the 
   - ISO membership or data access
   - Code mapping implementation
 
+### Multi-Industry Classification APIs
+- **Providers**:
+  - Google Cloud Natural Language API
+  - AWS Comprehend
+  - Azure Text Analytics
+  - IBM Watson Natural Language Understanding
+- **Purpose**: Enhanced multi-industry classification with confidence scoring
+- **Gating Requirements**: Required for advanced multi-industry classification features
+- **Setup Required**:
+  - Cloud service account registration
+  - API credentials and authentication
+  - Rate limiting configuration
+  - Model training and fine-tuning
+  - Industry-specific keyword mapping
+  - Confidence scoring calibration
+
 ## Communication Services
 
 ### Email Service
@@ -334,3 +350,91 @@ For each integration, track the following:
 - Compliance requirements should be verified for each integration
 - Security best practices should be followed for all third-party integrations
 - Regular reviews should be conducted to ensure integrations remain current and secure
+
+## Risk Activity Detection and Analysis
+
+### Risk Intelligence APIs
+- **Providers**:
+  - Thomson Reuters World-Check
+  - Refinitiv Enhanced Due Diligence
+  - Dow Jones Risk & Compliance
+  - LexisNexis Risk Solutions
+- **Purpose**: Access to global risk intelligence data, sanctions lists, PEP databases, adverse media
+- **Gating Requirements**: Required for comprehensive risk activity detection
+- **Setup Required**:
+  - Business account registration
+  - API credentials and authentication
+  - Data usage agreements
+  - Compliance certifications
+  - Rate limiting configuration
+
+### Adverse Media Monitoring
+- **Providers**:
+  - Factiva (Dow Jones)
+  - LexisNexis News
+  - Thomson Reuters News
+  - NewsAPI
+  - GDELT Project
+- **Purpose**: Real-time monitoring of negative news and media coverage
+- **Gating Requirements**: Required for media-based risk detection
+- **Setup Required**:
+  - Service subscriptions
+  - API integration
+  - Content filtering configuration
+  - Alert setup
+
+### Regulatory Compliance Databases
+- **Providers**:
+  - OFAC (US Treasury)
+  - UN Sanctions List
+  - EU Sanctions List
+  - UK Sanctions List
+  - Regional regulatory bodies
+- **Purpose**: Access to official sanctions and regulatory compliance data
+- **Gating Requirements**: Required for regulatory compliance features
+- **Setup Required**:
+  - Government API access
+  - Data update frequency configuration
+  - Compliance documentation
+  - Audit trail setup
+
+### Financial Crime Detection
+- **Providers**:
+  - FICO Falcon Fraud Manager
+  - SAS Fraud Management
+  - IBM Safer Payments
+  - Featurespace ARIC
+- **Purpose**: Advanced fraud detection and financial crime prevention
+- **Gating Requirements**: Required for sophisticated risk detection
+- **Setup Required**:
+  - Enterprise service subscriptions
+  - Model training and configuration
+  - Integration with existing systems
+  - Performance monitoring setup
+
+### Cryptocurrency Risk Intelligence
+- **Providers**:
+  - Chainalysis
+  - Elliptic
+  - CipherTrace
+  - TRM Labs
+- **Purpose**: Cryptocurrency transaction monitoring and risk assessment
+- **Gating Requirements**: Required for crypto-related risk detection
+- **Setup Required**:
+  - Service subscriptions
+  - API integration
+  - Blockchain data access
+  - Risk scoring configuration
+
+### Trade Finance Risk
+- **Providers**:
+  - Trade Finance Global
+  - ICC Trade Finance
+  - Swift Trade Finance
+- **Purpose**: Trade-based money laundering detection and trade finance risk assessment
+- **Gating Requirements**: Required for trade finance risk features
+- **Setup Required**:
+  - Industry partnerships
+  - Data sharing agreements
+  - Trade pattern analysis setup
+  - Risk scoring models

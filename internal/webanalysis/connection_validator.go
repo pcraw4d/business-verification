@@ -357,71 +357,71 @@ type NoClearConnectionResult struct {
 
 // ConnectionValidationDashboard provides dashboard and reporting capabilities for connection validation
 type ConnectionValidationDashboard struct {
-	results     []*ConnectionValidationResult
-	statistics  *ConnectionValidationStatistics
-	config      DashboardConfig
-	mu          sync.RWMutex
+	results    []*ConnectionValidationResult
+	statistics *ConnectionValidationStatistics
+	config     DashboardConfig
+	mu         sync.RWMutex
 }
 
 // DashboardConfig holds configuration for the dashboard
 type DashboardConfig struct {
-	MaxResultsStored    int           `json:"max_results_stored"`
-	StatisticsInterval  time.Duration `json:"statistics_interval"`
-	EnableRealTimeStats bool          `json:"enable_real_time_stats"`
-	EnableAlerts        bool          `json:"enable_alerts"`
+	MaxResultsStored    int             `json:"max_results_stored"`
+	StatisticsInterval  time.Duration   `json:"statistics_interval"`
+	EnableRealTimeStats bool            `json:"enable_real_time_stats"`
+	EnableAlerts        bool            `json:"enable_alerts"`
 	AlertThresholds     AlertThresholds `json:"alert_thresholds"`
 }
 
 // AlertThresholds defines thresholds for dashboard alerts
 type AlertThresholds struct {
-	LowConfidenceRate    float64 `json:"low_confidence_rate"`    // Alert if > X% of results have low confidence
-	NoConnectionRate     float64 `json:"no_connection_rate"`     // Alert if > X% of results show no connection
-	HighRiskRate         float64 `json:"high_risk_rate"`         // Alert if > X% of results are high risk
-	AverageConfidence    float64 `json:"average_confidence"`     // Alert if average confidence < X
-	ProcessingTime       float64 `json:"processing_time"`        // Alert if average processing time > X seconds
+	LowConfidenceRate float64 `json:"low_confidence_rate"` // Alert if > X% of results have low confidence
+	NoConnectionRate  float64 `json:"no_connection_rate"`  // Alert if > X% of results show no connection
+	HighRiskRate      float64 `json:"high_risk_rate"`      // Alert if > X% of results are high risk
+	AverageConfidence float64 `json:"average_confidence"`  // Alert if average confidence < X
+	ProcessingTime    float64 `json:"processing_time"`     // Alert if average processing time > X seconds
 }
 
 // ConnectionValidationStatistics holds statistical information about validation results
 type ConnectionValidationStatistics struct {
-	TotalValidations     int     `json:"total_validations"`
-	SuccessfulConnections int     `json:"successful_connections"`
-	FailedConnections    int     `json:"failed_connections"`
-	NoClearConnections   int     `json:"no_clear_connections"`
-	AverageConfidence    float64 `json:"average_confidence"`
-	AverageProcessingTime float64 `json:"average_processing_time"`
-	ConfidenceDistribution map[string]int `json:"confidence_distribution"`
-	RiskLevelDistribution  map[string]int `json:"risk_level_distribution"`
+	TotalValidations               int            `json:"total_validations"`
+	SuccessfulConnections          int            `json:"successful_connections"`
+	FailedConnections              int            `json:"failed_connections"`
+	NoClearConnections             int            `json:"no_clear_connections"`
+	AverageConfidence              float64        `json:"average_confidence"`
+	AverageProcessingTime          float64        `json:"average_processing_time"`
+	ConfidenceDistribution         map[string]int `json:"confidence_distribution"`
+	RiskLevelDistribution          map[string]int `json:"risk_level_distribution"`
 	ConnectionStrengthDistribution map[string]int `json:"connection_strength_distribution"`
-	LastUpdated          time.Time `json:"last_updated"`
+	LastUpdated                    time.Time      `json:"last_updated"`
 }
 
 // DashboardReport represents a comprehensive dashboard report
 type DashboardReport struct {
-	Statistics          *ConnectionValidationStatistics `json:"statistics"`
-	RecentResults       []*ConnectionValidationResult   `json:"recent_results"`
-	Alerts              []DashboardAlert                `json:"alerts"`
-	Trends              []TrendData                     `json:"trends"`
-	Recommendations     []string                        `json:"recommendations"`
-	GeneratedAt         time.Time                       `json:"generated_at"`
+	Statistics      *ConnectionValidationStatistics `json:"statistics"`
+	RecentResults   []*ConnectionValidationResult   `json:"recent_results"`
+	Alerts          []DashboardAlert                `json:"alerts"`
+	Trends          []TrendData                     `json:"trends"`
+	Recommendations []string                        `json:"recommendations"`
+	GeneratedAt     time.Time                       `json:"generated_at"`
 }
 
 // DashboardAlert represents an alert from the dashboard
 type DashboardAlert struct {
-	Type        string    `json:"type"`        // confidence, connection, risk, performance
-	Severity    string    `json:"severity"`    // low, medium, high, critical
-	Message     string    `json:"message"`
-	Threshold   float64   `json:"threshold"`
-	CurrentValue float64  `json:"current_value"`
-	Timestamp   time.Time `json:"timestamp"`
+	Type         string    `json:"type"`     // confidence, connection, risk, performance
+	Severity     string    `json:"severity"` // low, medium, high, critical
+	Message      string    `json:"message"`
+	Threshold    float64   `json:"threshold"`
+	CurrentValue float64   `json:"current_value"`
+	Timestamp    time.Time `json:"timestamp"`
 }
 
 // TrendData represents trend information for the dashboard
 type TrendData struct {
-	Metric      string    `json:"metric"`
-	Value       float64   `json:"value"`
-	Change      float64   `json:"change"`      // Percentage change from previous period
-	Direction   string    `json:"direction"`   // increasing, decreasing, stable
-	Timestamp   time.Time `json:"timestamp"`
+	Metric    string    `json:"metric"`
+	Value     float64   `json:"value"`
+	Change    float64   `json:"change"`    // Percentage change from previous period
+	Direction string    `json:"direction"` // increasing, decreasing, stable
+	Timestamp time.Time `json:"timestamp"`
 }
 
 // NewConnectionValidator creates a new connection validator
@@ -1137,13 +1137,13 @@ func (cv *ConnectionValidator) determineConnectionStrength(confidence float64) s
 func calculateLevenshteinDistance(s1, s2 string) float64 {
 	// Calculate Levenshtein distance between two strings
 	len1, len2 := len(s1), len(s2)
-	
+
 	// Create a 2D slice to store distances
 	matrix := make([][]int, len1+1)
 	for i := range matrix {
 		matrix[i] = make([]int, len2+1)
 	}
-	
+
 	// Initialize first row and column
 	for i := 0; i <= len1; i++ {
 		matrix[i][0] = i
@@ -1151,7 +1151,7 @@ func calculateLevenshteinDistance(s1, s2 string) float64 {
 	for j := 0; j <= len2; j++ {
 		matrix[0][j] = j
 	}
-	
+
 	// Fill the matrix
 	for i := 1; i <= len1; i++ {
 		for j := 1; j <= len2; j++ {
@@ -1160,21 +1160,21 @@ func calculateLevenshteinDistance(s1, s2 string) float64 {
 				cost = 1
 			}
 			matrix[i][j] = min(
-				matrix[i-1][j]+1,    // deletion
+				matrix[i-1][j]+1, // deletion
 				min(
-					matrix[i][j-1]+1, // insertion
+					matrix[i][j-1]+1,      // insertion
 					matrix[i-1][j-1]+cost, // substitution
 				),
 			)
 		}
 	}
-	
+
 	distance := matrix[len1][len2]
 	maxLen := max(len1, len2)
 	if maxLen == 0 {
 		return 1.0 // Both strings are empty, perfect match
 	}
-	
+
 	// Return similarity score (1 - normalized distance)
 	return 1.0 - float64(distance)/float64(maxLen)
 }
@@ -1184,27 +1184,27 @@ func calculateJaroWinklerSimilarity(s1, s2 string) float64 {
 	if s1 == s2 {
 		return 1.0
 	}
-	
+
 	len1, len2 := len(s1), len(s2)
 	if len1 == 0 || len2 == 0 {
 		return 0.0
 	}
-	
+
 	// Calculate matching window
 	matchWindow := max(len1, len2)/2 - 1
 	if matchWindow < 0 {
 		matchWindow = 0
 	}
-	
+
 	// Find matching characters
 	s1Matches := make([]bool, len1)
 	s2Matches := make([]bool, len2)
 	matches := 0
-	
+
 	for i := 0; i < len1; i++ {
 		start := max(0, i-matchWindow)
 		end := min(len2, i+matchWindow+1)
-		
+
 		for j := start; j < end; j++ {
 			if !s2Matches[j] && s1[i] == s2[j] {
 				s1Matches[i] = true
@@ -1214,11 +1214,11 @@ func calculateJaroWinklerSimilarity(s1, s2 string) float64 {
 			}
 		}
 	}
-	
+
 	if matches == 0 {
 		return 0.0
 	}
-	
+
 	// Calculate transpositions
 	transpositions := 0
 	k := 0
@@ -1233,12 +1233,12 @@ func calculateJaroWinklerSimilarity(s1, s2 string) float64 {
 			k++
 		}
 	}
-	
+
 	// Calculate Jaro similarity
-	jaro := (float64(matches)/float64(len1) + 
-		float64(matches)/float64(len2) + 
+	jaro := (float64(matches)/float64(len1) +
+		float64(matches)/float64(len2) +
 		float64(matches-transpositions/2)/float64(matches)) / 3.0
-	
+
 	// Calculate Jaro-Winkler similarity
 	prefix := 0
 	for i := 0; i < min(4, min(len1, len2)); i++ {
@@ -1248,7 +1248,7 @@ func calculateJaroWinklerSimilarity(s1, s2 string) float64 {
 			break
 		}
 	}
-	
+
 	winkler := jaro + 0.1*float64(prefix)*(1.0-jaro)
 	if winkler > 1.0 {
 		return 1.0
@@ -1261,24 +1261,24 @@ func calculateCosineSimilarity(s1, s2 string) float64 {
 	// Convert strings to character frequency vectors
 	freq1 := make(map[rune]int)
 	freq2 := make(map[rune]int)
-	
+
 	for _, r := range strings.ToLower(s1) {
 		if unicode.IsLetter(r) || unicode.IsDigit(r) {
 			freq1[r]++
 		}
 	}
-	
+
 	for _, r := range strings.ToLower(s2) {
 		if unicode.IsLetter(r) || unicode.IsDigit(r) {
 			freq2[r]++
 		}
 	}
-	
+
 	// Calculate dot product and magnitudes
 	dotProduct := 0.0
 	mag1 := 0.0
 	mag2 := 0.0
-	
+
 	// Get all unique characters
 	allChars := make(map[rune]bool)
 	for r := range freq1 {
@@ -1287,7 +1287,7 @@ func calculateCosineSimilarity(s1, s2 string) float64 {
 	for r := range freq2 {
 		allChars[r] = true
 	}
-	
+
 	for r := range allChars {
 		count1 := freq1[r]
 		count2 := freq2[r]
@@ -1295,14 +1295,14 @@ func calculateCosineSimilarity(s1, s2 string) float64 {
 		mag1 += float64(count1 * count1)
 		mag2 += float64(count2 * count2)
 	}
-	
+
 	mag1 = sqrt(mag1)
 	mag2 = sqrt(mag2)
-	
+
 	if mag1 == 0 || mag2 == 0 {
 		return 0.0
 	}
-	
+
 	return dotProduct / (mag1 * mag2)
 }
 
@@ -1367,22 +1367,22 @@ func validateAddressMatch(evidence string) bool {
 func (nccd *NoClearConnectionDetector) DetectNoClearConnection(result *ConnectionValidationResult) *NoClearConnectionResult {
 	nccd.mu.RLock()
 	defer nccd.mu.RUnlock()
-	
+
 	detectionResult := &NoClearConnectionResult{
 		Reasons:         []string{},
 		Evidence:        []string{},
 		Recommendations: []string{},
 	}
-	
+
 	// Check overall confidence
 	if result.OverallConfidence < nccd.config.MinConfidenceThreshold {
-		detectionResult.Reasons = append(detectionResult.Reasons, 
-			fmt.Sprintf("Overall confidence (%.2f) below threshold (%.2f)", 
+		detectionResult.Reasons = append(detectionResult.Reasons,
+			fmt.Sprintf("Overall confidence (%.2f) below threshold (%.2f)",
 				result.OverallConfidence, nccd.config.MinConfidenceThreshold))
-		detectionResult.Evidence = append(detectionResult.Evidence, 
+		detectionResult.Evidence = append(detectionResult.Evidence,
 			fmt.Sprintf("Low confidence score: %.2f", result.OverallConfidence))
 	}
-	
+
 	// Check name matching
 	if result.NameMatchResult != nil {
 		if result.NameMatchResult.SimilarityScore < nccd.config.MaxNameSimilarity {
@@ -1390,14 +1390,14 @@ func (nccd *NoClearConnectionDetector) DetectNoClearConnection(result *Connectio
 				fmt.Sprintf("Business name similarity (%.2f) below threshold (%.2f)",
 					result.NameMatchResult.SimilarityScore, nccd.config.MaxNameSimilarity))
 			detectionResult.Evidence = append(detectionResult.Evidence,
-				fmt.Sprintf("Business name: '%s' vs Website: '%s'", 
+				fmt.Sprintf("Business name: '%s' vs Website: '%s'",
 					result.NameMatchResult.OriginalName, result.NameMatchResult.MatchedName))
 		}
 	} else {
 		detectionResult.Reasons = append(detectionResult.Reasons, "No business name matching performed")
 		detectionResult.Evidence = append(detectionResult.Evidence, "Missing name match result")
 	}
-	
+
 	// Check address matching
 	if result.AddressMatchResult != nil {
 		if result.AddressMatchResult.Confidence < nccd.config.MaxAddressSimilarity {
@@ -1411,7 +1411,7 @@ func (nccd *NoClearConnectionDetector) DetectNoClearConnection(result *Connectio
 		detectionResult.Reasons = append(detectionResult.Reasons, "No address matching performed")
 		detectionResult.Evidence = append(detectionResult.Evidence, "Missing address match result")
 	}
-	
+
 	// Check contact matching
 	if result.ContactMatchResult != nil {
 		if result.ContactMatchResult.OverallConfidence < nccd.config.MaxContactSimilarity {
@@ -1425,7 +1425,7 @@ func (nccd *NoClearConnectionDetector) DetectNoClearConnection(result *Connectio
 		detectionResult.Reasons = append(detectionResult.Reasons, "No contact matching performed")
 		detectionResult.Evidence = append(detectionResult.Evidence, "Missing contact match result")
 	}
-	
+
 	// Check if multiple matches are required
 	if nccd.config.RequireMultipleMatches {
 		matchCount := 0
@@ -1441,7 +1441,7 @@ func (nccd *NoClearConnectionDetector) DetectNoClearConnection(result *Connectio
 		if result.RegistrationMatchResult != nil && result.RegistrationMatchResult.IsMatch {
 			matchCount++
 		}
-		
+
 		if matchCount < 2 {
 			detectionResult.Reasons = append(detectionResult.Reasons,
 				fmt.Sprintf("Only %d matching criteria met, minimum 2 required", matchCount))
@@ -1449,24 +1449,24 @@ func (nccd *NoClearConnectionDetector) DetectNoClearConnection(result *Connectio
 				fmt.Sprintf("Match count: %d", matchCount))
 		}
 	}
-	
+
 	// Apply heuristics if enabled
 	if nccd.config.EnableHeuristics {
 		nccd.applyHeuristics(result, detectionResult)
 	}
-	
+
 	// Determine if there's no clear connection
 	detectionResult.NoClearConnection = len(detectionResult.Reasons) > 0
-	
+
 	// Calculate confidence based on number and severity of reasons
 	detectionResult.Confidence = nccd.calculateDetectionConfidence(detectionResult.Reasons, result.OverallConfidence)
-	
+
 	// Determine risk level
 	detectionResult.RiskLevel = nccd.determineRiskLevel(detectionResult.Confidence, len(detectionResult.Reasons))
-	
+
 	// Generate recommendations
 	detectionResult.Recommendations = nccd.generateRecommendations(detectionResult)
-	
+
 	return detectionResult
 }
 
@@ -1478,14 +1478,14 @@ func (nccd *NoClearConnectionDetector) applyHeuristics(result *ConnectionValidat
 		genericDomains := []string{"example.com", "test.com", "placeholder.com", "demo.com"}
 		for _, domain := range genericDomains {
 			if strings.Contains(result.WebsiteURL, domain) {
-				detectionResult.Reasons = append(detectionResult.Reasons, 
+				detectionResult.Reasons = append(detectionResult.Reasons,
 					"Website uses generic/placeholder domain")
 				detectionResult.Evidence = append(detectionResult.Evidence,
 					fmt.Sprintf("Generic domain detected: %s", domain))
 				break
 			}
 		}
-		
+
 		// Check for very short domain names (potential fake sites)
 		urlParts := strings.Split(result.WebsiteURL, "/")
 		if len(urlParts) > 2 {
@@ -1498,7 +1498,7 @@ func (nccd *NoClearConnectionDetector) applyHeuristics(result *ConnectionValidat
 			}
 		}
 	}
-	
+
 	// Check for missing critical information
 	if result.NameMatchResult == nil || !result.NameMatchResult.IsMatch {
 		detectionResult.Reasons = append(detectionResult.Reasons,
@@ -1506,7 +1506,7 @@ func (nccd *NoClearConnectionDetector) applyHeuristics(result *ConnectionValidat
 		detectionResult.Evidence = append(detectionResult.Evidence,
 			"No business name match detected")
 	}
-	
+
 	// Check for low ownership score
 	if result.OwnershipScore < 0.3 {
 		detectionResult.Reasons = append(detectionResult.Reasons,
@@ -1521,14 +1521,14 @@ func (nccd *NoClearConnectionDetector) calculateDetectionConfidence(reasons []st
 	// Base confidence on number of reasons and overall confidence
 	reasonWeight := float64(len(reasons)) * 0.2
 	confidenceWeight := (1.0 - overallConfidence) * 0.8
-	
+
 	totalConfidence := reasonWeight + confidenceWeight
-	
+
 	// Cap at 1.0
 	if totalConfidence > 1.0 {
 		return 1.0
 	}
-	
+
 	return totalConfidence
 }
 
@@ -1548,16 +1548,16 @@ func (nccd *NoClearConnectionDetector) determineRiskLevel(confidence float64, re
 // generateRecommendations generates recommendations based on detection results
 func (nccd *NoClearConnectionDetector) generateRecommendations(result *NoClearConnectionResult) []string {
 	recommendations := []string{}
-	
+
 	if result.NoClearConnection {
-		recommendations = append(recommendations, 
+		recommendations = append(recommendations,
 			"Manual review required - insufficient evidence of business-website connection")
-		
+
 		if result.RiskLevel == "critical" || result.RiskLevel == "high" {
 			recommendations = append(recommendations,
 				"High risk detected - consider additional verification steps")
 		}
-		
+
 		// Add specific recommendations based on reasons
 		for _, reason := range result.Reasons {
 			if strings.Contains(reason, "name similarity") {
@@ -1581,7 +1581,7 @@ func (nccd *NoClearConnectionDetector) generateRecommendations(result *NoClearCo
 		recommendations = append(recommendations,
 			"Connection appears valid - proceed with standard verification")
 	}
-	
+
 	return recommendations
 }
 
@@ -1590,18 +1590,18 @@ func NewConnectionValidationDashboard(config DashboardConfig) *ConnectionValidat
 	dashboard := &ConnectionValidationDashboard{
 		results: []*ConnectionValidationResult{},
 		statistics: &ConnectionValidationStatistics{
-			ConfidenceDistribution: make(map[string]int),
-			RiskLevelDistribution:  make(map[string]int),
+			ConfidenceDistribution:         make(map[string]int),
+			RiskLevelDistribution:          make(map[string]int),
 			ConnectionStrengthDistribution: make(map[string]int),
 		},
 		config: config,
 	}
-	
+
 	// Start statistics update if real-time stats are enabled
 	if config.EnableRealTimeStats {
 		go dashboard.updateStatisticsPeriodically()
 	}
-	
+
 	return dashboard
 }
 
@@ -1609,18 +1609,18 @@ func NewConnectionValidationDashboard(config DashboardConfig) *ConnectionValidat
 func (cvd *ConnectionValidationDashboard) AddResult(result *ConnectionValidationResult) {
 	cvd.mu.Lock()
 	defer cvd.mu.Unlock()
-	
+
 	// Add result to the list
 	cvd.results = append(cvd.results, result)
-	
+
 	// Maintain max results limit
 	if len(cvd.results) > cvd.config.MaxResultsStored {
 		cvd.results = cvd.results[1:] // Remove oldest result
 	}
-	
+
 	// Update statistics
 	cvd.updateStatistics()
-	
+
 	// Check for alerts if enabled
 	if cvd.config.EnableAlerts {
 		cvd.checkAlerts()
@@ -1631,7 +1631,7 @@ func (cvd *ConnectionValidationDashboard) AddResult(result *ConnectionValidation
 func (cvd *ConnectionValidationDashboard) GetDashboardReport() *DashboardReport {
 	cvd.mu.RLock()
 	defer cvd.mu.RUnlock()
-	
+
 	report := &DashboardReport{
 		Statistics:      cvd.statistics,
 		RecentResults:   cvd.getRecentResults(10), // Last 10 results
@@ -1640,7 +1640,7 @@ func (cvd *ConnectionValidationDashboard) GetDashboardReport() *DashboardReport 
 		Recommendations: cvd.generateRecommendations(),
 		GeneratedAt:     time.Now(),
 	}
-	
+
 	return report
 }
 
@@ -1648,7 +1648,7 @@ func (cvd *ConnectionValidationDashboard) GetDashboardReport() *DashboardReport 
 func (cvd *ConnectionValidationDashboard) GetStatistics() *ConnectionValidationStatistics {
 	cvd.mu.RLock()
 	defer cvd.mu.RUnlock()
-	
+
 	return cvd.statistics
 }
 
@@ -1656,7 +1656,7 @@ func (cvd *ConnectionValidationDashboard) GetStatistics() *ConnectionValidationS
 func (cvd *ConnectionValidationDashboard) GetRecentResults(count int) []*ConnectionValidationResult {
 	cvd.mu.RLock()
 	defer cvd.mu.RUnlock()
-	
+
 	return cvd.getRecentResults(count)
 }
 
@@ -1664,22 +1664,22 @@ func (cvd *ConnectionValidationDashboard) GetRecentResults(count int) []*Connect
 func (cvd *ConnectionValidationDashboard) updateStatistics() {
 	stats := cvd.statistics
 	stats.TotalValidations = len(cvd.results)
-	
+
 	// Reset counters
 	stats.SuccessfulConnections = 0
 	stats.FailedConnections = 0
 	stats.NoClearConnections = 0
 	stats.AverageConfidence = 0.0
 	stats.AverageProcessingTime = 0.0
-	
+
 	// Clear distributions
 	stats.ConfidenceDistribution = make(map[string]int)
 	stats.RiskLevelDistribution = make(map[string]int)
 	stats.ConnectionStrengthDistribution = make(map[string]int)
-	
+
 	totalConfidence := 0.0
 	totalProcessingTime := 0.0
-	
+
 	for _, result := range cvd.results {
 		// Count connections
 		if result.IsConnected {
@@ -1687,26 +1687,26 @@ func (cvd *ConnectionValidationDashboard) updateStatistics() {
 		} else {
 			stats.FailedConnections++
 		}
-		
+
 		// Count no clear connections
 		if result.ConnectionStrength == "none" {
 			stats.NoClearConnections++
 		}
-		
+
 		// Accumulate confidence and processing time
 		totalConfidence += result.OverallConfidence
 		totalProcessingTime += float64(result.ValidationTime.Milliseconds()) / 1000.0
-		
+
 		// Update distributions
 		cvd.updateDistributions(result, stats)
 	}
-	
+
 	// Calculate averages
 	if stats.TotalValidations > 0 {
 		stats.AverageConfidence = totalConfidence / float64(stats.TotalValidations)
 		stats.AverageProcessingTime = totalProcessingTime / float64(stats.TotalValidations)
 	}
-	
+
 	stats.LastUpdated = time.Now()
 }
 
@@ -1715,10 +1715,10 @@ func (cvd *ConnectionValidationDashboard) updateDistributions(result *Connection
 	// Confidence distribution
 	confidenceLevel := cvd.getConfidenceLevel(result.OverallConfidence)
 	stats.ConfidenceDistribution[confidenceLevel]++
-	
+
 	// Connection strength distribution
 	stats.ConnectionStrengthDistribution[result.ConnectionStrength]++
-	
+
 	// Risk level distribution (if available from no clear connection detection)
 	// This would be populated if we integrate the NoClearConnectionDetector
 }
@@ -1741,7 +1741,7 @@ func (cvd *ConnectionValidationDashboard) getRecentResults(count int) []*Connect
 	if count > len(cvd.results) {
 		count = len(cvd.results)
 	}
-	
+
 	start := len(cvd.results) - count
 	return cvd.results[start:]
 }
@@ -1750,20 +1750,20 @@ func (cvd *ConnectionValidationDashboard) getRecentResults(count int) []*Connect
 func (cvd *ConnectionValidationDashboard) checkAlerts() {
 	stats := cvd.statistics
 	thresholds := cvd.config.AlertThresholds
-	
+
 	// Check low confidence rate
 	if stats.TotalValidations > 0 {
 		lowConfidenceCount := stats.ConfidenceDistribution["poor"] + stats.ConfidenceDistribution["fair"]
 		lowConfidenceRate := float64(lowConfidenceCount) / float64(stats.TotalValidations)
-		
+
 		if lowConfidenceRate > thresholds.LowConfidenceRate {
-			cvd.createAlert("confidence", "high", 
-				fmt.Sprintf("Low confidence rate: %.2f%% (threshold: %.2f%%)", 
+			cvd.createAlert("confidence", "high",
+				fmt.Sprintf("Low confidence rate: %.2f%% (threshold: %.2f%%)",
 					lowConfidenceRate*100, thresholds.LowConfidenceRate*100),
 				thresholds.LowConfidenceRate, lowConfidenceRate)
 		}
 	}
-	
+
 	// Check no connection rate
 	if stats.TotalValidations > 0 {
 		noConnectionRate := float64(stats.NoClearConnections) / float64(stats.TotalValidations)
@@ -1774,7 +1774,7 @@ func (cvd *ConnectionValidationDashboard) checkAlerts() {
 				thresholds.NoConnectionRate, noConnectionRate)
 		}
 	}
-	
+
 	// Check average confidence
 	if stats.AverageConfidence < thresholds.AverageConfidence {
 		cvd.createAlert("confidence", "medium",
@@ -1782,7 +1782,7 @@ func (cvd *ConnectionValidationDashboard) checkAlerts() {
 				stats.AverageConfidence, thresholds.AverageConfidence),
 			thresholds.AverageConfidence, stats.AverageConfidence)
 	}
-	
+
 	// Check processing time
 	if stats.AverageProcessingTime > thresholds.ProcessingTime {
 		cvd.createAlert("performance", "medium",
@@ -1817,42 +1817,42 @@ func (cvd *ConnectionValidationDashboard) calculateTrends() []TrendData {
 func (cvd *ConnectionValidationDashboard) generateRecommendations() []string {
 	recommendations := []string{}
 	stats := cvd.statistics
-	
+
 	if stats.TotalValidations == 0 {
 		return []string{"No validation data available yet"}
 	}
-	
+
 	// Check confidence levels
 	if stats.AverageConfidence < 0.7 {
 		recommendations = append(recommendations,
 			"Average confidence is low - consider improving validation algorithms")
 	}
-	
+
 	// Check connection success rate
 	successRate := float64(stats.SuccessfulConnections) / float64(stats.TotalValidations)
 	if successRate < 0.8 {
 		recommendations = append(recommendations,
 			"Connection success rate is low - review validation criteria")
 	}
-	
+
 	// Check processing time
 	if stats.AverageProcessingTime > 5.0 {
 		recommendations = append(recommendations,
 			"Average processing time is high - consider performance optimization")
 	}
-	
+
 	// Check no clear connection rate
 	noConnectionRate := float64(stats.NoClearConnections) / float64(stats.TotalValidations)
 	if noConnectionRate > 0.3 {
 		recommendations = append(recommendations,
 			"High rate of no clear connections - review detection criteria")
 	}
-	
+
 	if len(recommendations) == 0 {
 		recommendations = append(recommendations,
 			"All metrics are within acceptable ranges")
 	}
-	
+
 	return recommendations
 }
 
@@ -1860,7 +1860,7 @@ func (cvd *ConnectionValidationDashboard) generateRecommendations() []string {
 func (cvd *ConnectionValidationDashboard) updateStatisticsPeriodically() {
 	ticker := time.NewTicker(cvd.config.StatisticsInterval)
 	defer ticker.Stop()
-	
+
 	for range ticker.C {
 		cvd.mu.Lock()
 		cvd.updateStatistics()
