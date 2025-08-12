@@ -32,6 +32,8 @@
 - `internal/webanalysis/scraper.go` - Web scraping engine with intelligent features
 - `internal/webanalysis/intelligent_page_discovery.go` - Intelligent page discovery and prioritization algorithm
 - `internal/webanalysis/intelligent_page_discovery_test.go` - Unit tests for intelligent page discovery
+- `internal/webanalysis/page_relevance_scoring.go` - Comprehensive page relevance scoring system
+- `internal/webanalysis/page_relevance_scoring_test.go` - Unit tests for page relevance scoring
 - `internal/webanalysis/poc_test.go` - POC validation tests for web analysis
 - `internal/webvalidation/service.go` - Website validation and verification service
 - `internal/webvalidation/service_test.go` - Unit tests for web validation service
@@ -112,7 +114,7 @@
 **1.6 Intelligent Web Scraping and Page Prioritization**
 
 - [x] Create intelligent page discovery algorithm
-- [ ] Implement page relevance scoring system
+- [x] Implement page relevance scoring system
 - [ ] Set up priority-based scraping queue
 - [ ] Create "about us", "mission", "products", "services" page detection
 - [ ] Implement page content quality assessment
