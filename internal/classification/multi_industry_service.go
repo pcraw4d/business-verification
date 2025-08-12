@@ -37,6 +37,9 @@ type MultiIndustryService struct {
 
 	// Top-3 selection engine
 	top3SelectionEngine *Top3SelectionEngine
+	
+	// Confidence scoring engine
+	confidenceScoringEngine *ConfidenceScoringEngine
 }
 
 // NewMultiIndustryService creates a new multi-industry classification service
@@ -62,6 +65,9 @@ func NewMultiIndustryService(baseService *ClassificationService, logger *observa
 
 		// Top-3 selection engine
 		top3SelectionEngine: NewTop3SelectionEngine(logger, metrics),
+		
+		// Confidence scoring engine
+		confidenceScoringEngine: NewConfidenceScoringEngine(logger, metrics),
 	}
 }
 
@@ -92,15 +98,18 @@ func (m *MultiIndustryService) ClassifyBusinessMultiIndustry(ctx context.Context
 	top3Result := m.top3SelectionEngine.SelectTop3Classifications(ctx, rankedClassifications)
 	topClassifications := top3Result.AllClassifications
 
-	// Calculate overall confidence
-	overallConfidence := m.calculateOverallConfidence(topClassifications)
+	// Apply enhanced confidence scoring to each classification
+	enhancedClassifications := m.applyEnhancedConfidenceScoring(ctx, req, topClassifications, allClassifications)
+
+	// Calculate overall confidence using enhanced scoring
+	overallConfidence := m.calculateEnhancedOverallConfidence(enhancedClassifications)
 
 	// Create multi-industry response
 	result := &MultiIndustryClassification{
-		Classifications:      topClassifications,
-		PrimaryIndustry:      top3Result.PrimaryIndustry,
-		SecondaryIndustry:    top3Result.SecondaryIndustry,
-		TertiaryIndustry:     top3Result.TertiaryIndustry,
+		Classifications:      enhancedClassifications,
+		PrimaryIndustry:      enhancedClassifications[0],
+		SecondaryIndustry:    m.getSecondaryIndustry(enhancedClassifications),
+		TertiaryIndustry:     m.getTertiaryIndustry(enhancedClassifications),
 		OverallConfidence:    overallConfidence,
 		ClassificationMethod: "multi_industry_enhanced",
 		ProcessingTime:       time.Since(start),
@@ -419,6 +428,61 @@ func (m *MultiIndustryService) calculateMethodDiversity(classifications []Indust
 
 	// More diverse methods = higher score
 	return float64(len(methods)) / float64(len(classifications))
+}
+
+// applyEnhancedConfidenceScoring applies enhanced confidence scoring to classifications
+func (m *MultiIndustryService) applyEnhancedConfidenceScoring(ctx context.Context, req *ClassificationRequest, classifications []IndustryClassification, allClassifications []IndustryClassification) []IndustryClassification {
+	enhanced := make([]IndustryClassification, len(classifications))
+	
+	for i, classification := range classifications {
+		enhanced[i] = classification
+		
+		// Calculate enhanced confidence score
+		confidenceScore := m.confidenceScoringEngine.CalculateConfidenceScore(ctx, classification, req, allClassifications)
+		
+		// Update the classification with enhanced confidence score
+		enhanced[i].ConfidenceScore = confidenceScore.OverallScore
+		
+		// Add confidence score details to the classification if needed
+		// This could be extended to store the full confidence score breakdown
+	}
+	
+	return enhanced
+}
+
+// calculateEnhancedOverallConfidence calculates overall confidence using enhanced scoring
+func (m *MultiIndustryService) calculateEnhancedOverallConfidence(classifications []IndustryClassification) float64 {
+	if len(classifications) == 0 {
+		return 0.0
+	}
+
+	// Use weighted average based on enhanced confidence scores
+	totalWeight := 0.0
+	totalScore := 0.0
+
+	for i, classification := range classifications {
+		weight := 1.0 / float64(i+1) // Decreasing weight for each position
+		totalWeight += weight
+		totalScore += classification.ConfidenceScore * weight
+	}
+
+	return totalScore / totalWeight
+}
+
+// getSecondaryIndustry gets the secondary industry if available
+func (m *MultiIndustryService) getSecondaryIndustry(classifications []IndustryClassification) *IndustryClassification {
+	if len(classifications) > 1 {
+		return &classifications[1]
+	}
+	return nil
+}
+
+// getTertiaryIndustry gets the tertiary industry if available
+func (m *MultiIndustryService) getTertiaryIndustry(classifications []IndustryClassification) *IndustryClassification {
+	if len(classifications) > 2 {
+		return &classifications[2]
+	}
+	return nil
 }
 
 // Helper methods (to be implemented based on existing classification logic)
