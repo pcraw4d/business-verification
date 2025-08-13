@@ -10,15 +10,10 @@ import (
 )
 
 // NewDatabase creates a new database instance based on provider configuration
-func NewDatabase(cfg *config.Config) (database.Database, error) {
+func NewDatabase(cfg *config.Config, logger *observability.Logger) (database.Database, error) {
 	switch cfg.Provider.Database {
 	case "supabase":
-		// For now, use the existing PostgreSQL implementation with Supabase connection
-		// The Supabase implementation will be completed in a future update
-		dbConfig := &database.DatabaseConfig{
-			DatabaseConfig: &cfg.Database,
-		}
-		return database.NewPostgresDB(dbConfig), nil
+		return database.NewSupabaseClient(&cfg.Supabase, logger)
 	case "aws":
 		// TODO: Implement AWS RDS database
 		return nil, fmt.Errorf("AWS database provider not yet implemented")
