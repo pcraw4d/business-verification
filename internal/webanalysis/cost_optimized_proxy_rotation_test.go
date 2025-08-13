@@ -7,22 +7,22 @@ import (
 
 func TestNewCostOptimizedProxyRotationSystem(t *testing.T) {
 	config := CostOptimizedProxyConfig{
-		GeographicRegions:      []string{"us-east", "us-west", "eu-west"},
-		MaxProxiesPerRegion:    50,
-		HealthCheckInterval:    5 * time.Minute,
-		MaxFailures:            3,
-		FailoverThreshold:      0.8,
-		AutoFailover:           true,
-		MinLatency:             50 * time.Millisecond,
-		MaxLatency:             2 * time.Second,
-		LoadBalancingStrategy:  "round-robin",
+		GeographicRegions:       []string{"us-east", "us-west", "eu-west"},
+		MaxProxiesPerRegion:     50,
+		HealthCheckInterval:     5 * time.Minute,
+		MaxFailures:             3,
+		FailoverThreshold:       0.8,
+		AutoFailover:            true,
+		MinLatency:              50 * time.Millisecond,
+		MaxLatency:              2 * time.Second,
+		LoadBalancingStrategy:   "round-robin",
 		CostOptimizationEnabled: true,
-		MaxCostPerRequest:      0.01,
-		BudgetLimit:            100.0,
-		ResidentialProxyRatio:  0.3,
-		RotationStrategies:     []string{"round-robin", "load-based", "time-based"},
-		RotationInterval:       30 * time.Second,
-		StickySessionDuration:  5 * time.Minute,
+		MaxCostPerRequest:       0.01,
+		BudgetLimit:             100.0,
+		ResidentialProxyRatio:   0.3,
+		RotationStrategies:      []string{"round-robin", "load-based", "time-based"},
+		RotationInterval:        30 * time.Second,
+		StickySessionDuration:   5 * time.Minute,
 		ProxyAuthentication:     true,
 		SSLVerification:         true,
 		BotDetectionEvasion:     true,
@@ -241,7 +241,7 @@ func TestGetProxyNoAvailablePools(t *testing.T) {
 
 func TestCalculateProxyScore(t *testing.T) {
 	config := CostOptimizedProxyConfig{
-		MaxLatency:       2 * time.Second,
+		MaxLatency:        2 * time.Second,
 		MaxCostPerRequest: 0.01,
 	}
 	system := NewCostOptimizedProxyRotationSystem(config)
@@ -675,7 +675,7 @@ func TestCostOptimizationFeatures(t *testing.T) {
 		ResidentialProxyRatio:   0.3,
 		CostTracking:            true,
 	}
-	
+
 	system := NewCostOptimizedProxyRotationSystem(config)
 
 	// Test cost optimization is enabled
@@ -701,10 +701,10 @@ func TestCostOptimizationFeatures(t *testing.T) {
 
 func TestGeographicDistributionFeatures(t *testing.T) {
 	config := CostOptimizedProxyConfig{
-		GeographicRegions: []string{"us-east", "us-west", "eu-west", "asia-east"},
+		GeographicRegions:   []string{"us-east", "us-west", "eu-west", "asia-east"},
 		MaxProxiesPerRegion: 25,
 	}
-	
+
 	system := NewCostOptimizedProxyRotationSystem(config)
 
 	// Test geographic regions are set
@@ -734,14 +734,14 @@ func TestGeographicDistributionFeatures(t *testing.T) {
 
 func TestLoadBalancingStrategies(t *testing.T) {
 	strategies := []string{"round-robin", "least-connections", "geographic", "cost-based"}
-	
+
 	for _, strategy := range strategies {
 		config := CostOptimizedProxyConfig{
 			LoadBalancingStrategy: strategy,
 		}
-		
+
 		system := NewCostOptimizedProxyRotationSystem(config)
-		
+
 		if system.loadBalancer.strategy != strategy {
 			t.Errorf("Expected load balancing strategy to be '%s', got '%s'", strategy, system.loadBalancer.strategy)
 		}
@@ -753,7 +753,7 @@ func TestRotationStrategies(t *testing.T) {
 		RotationStrategies: []string{"round-robin", "load-based", "time-based"},
 		RotationInterval:   30 * time.Second,
 	}
-	
+
 	system := NewCostOptimizedProxyRotationSystem(config)
 
 	// Test rotation strategies are set
@@ -779,7 +779,7 @@ func TestSecurityFeatures(t *testing.T) {
 		SSLVerification:     true,
 		BotDetectionEvasion: true,
 	}
-	
+
 	system := NewCostOptimizedProxyRotationSystem(config)
 
 	// Test security features are enabled
@@ -802,7 +802,7 @@ func TestMonitoringFeatures(t *testing.T) {
 		CostTracking:        true,
 		AnalyticsEnabled:    true,
 	}
-	
+
 	system := NewCostOptimizedProxyRotationSystem(config)
 
 	// Test monitoring features are enabled
