@@ -58,45 +58,14 @@ CREATE TABLE IF NOT EXISTS public.feedback (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Enable Row Level Security (RLS)
+-- Enable Row Level Security (RLS) after all tables are created
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.business_classifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.risk_assessments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.compliance_checks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
 
--- Create RLS policies
-CREATE POLICY IF NOT EXISTS "Users can view own profile" ON public.profiles
-    FOR SELECT USING (auth.uid() = id);
-
-CREATE POLICY IF NOT EXISTS "Users can update own profile" ON public.profiles
-    FOR UPDATE USING (auth.uid() = id);
-
-CREATE POLICY IF NOT EXISTS "Users can view own classifications" ON public.business_classifications
-    FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY IF NOT EXISTS "Users can insert own classifications" ON public.business_classifications
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY IF NOT EXISTS "Users can view own risk assessments" ON public.risk_assessments
-    FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY IF NOT EXISTS "Users can insert own risk assessments" ON public.risk_assessments
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY IF NOT EXISTS "Users can view own compliance checks" ON public.compliance_checks
-    FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY IF NOT EXISTS "Users can insert own compliance checks" ON public.compliance_checks
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY IF NOT EXISTS "Users can view own feedback" ON public.feedback
-    FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY IF NOT EXISTS "Users can insert own feedback" ON public.feedback
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
-
--- Create indexes for better performance
+-- Create indexes for better performance (after tables are created)
 CREATE INDEX IF NOT EXISTS idx_business_classifications_user_id ON public.business_classifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_business_classifications_created_at ON public.business_classifications(created_at);
 CREATE INDEX IF NOT EXISTS idx_risk_assessments_user_id ON public.risk_assessments(user_id);
@@ -113,3 +82,47 @@ ON CONFLICT (id) DO NOTHING;
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
+
+-- Create RLS policies (after tables, indexes, and data are created)
+-- Drop existing policies if they exist (to avoid conflicts)
+DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can view own classifications" ON public.business_classifications;
+DROP POLICY IF EXISTS "Users can insert own classifications" ON public.business_classifications;
+DROP POLICY IF EXISTS "Users can view own risk assessments" ON public.risk_assessments;
+DROP POLICY IF EXISTS "Users can insert own risk assessments" ON public.risk_assessments;
+DROP POLICY IF EXISTS "Users can view own compliance checks" ON public.compliance_checks;
+DROP POLICY IF EXISTS "Users can insert own compliance checks" ON public.compliance_checks;
+DROP POLICY IF EXISTS "Users can view own feedback" ON public.feedback;
+DROP POLICY IF EXISTS "Users can insert own feedback" ON public.feedback;
+
+-- Create new policies
+CREATE POLICY "Users can view own profile" ON public.profiles
+    FOR SELECT USING (auth.uid() = id);
+
+CREATE POLICY "Users can update own profile" ON public.profiles
+    FOR UPDATE USING (auth.uid() = id);
+
+CREATE POLICY "Users can view own classifications" ON public.business_classifications
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own classifications" ON public.business_classifications
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can view own risk assessments" ON public.risk_assessments
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own risk assessments" ON public.risk_assessments
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can view own compliance checks" ON public.compliance_checks
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own compliance checks" ON public.compliance_checks
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can view own feedback" ON public.feedback
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own feedback" ON public.feedback
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
