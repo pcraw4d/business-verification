@@ -23,10 +23,11 @@ RUN apk --no-cache add ca-certificates tzdata postgresql-client
 
 WORKDIR /root/
 
-# Copy binary, configs, and scripts
+# Copy binary, configs, scripts, and data files
 COPY --from=builder /app/kyb-platform .
 COPY --from=builder /app/configs ./configs
 COPY --from=builder /app/web ./web
+COPY --from=builder /app/Codes ./Codes
 COPY --from=builder /app/scripts/railway-startup.sh ./railway-startup.sh
 
 # Create non-root user

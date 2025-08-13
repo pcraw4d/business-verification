@@ -56,7 +56,7 @@ func crosswalkFromNAICS(naicsCode string, data *IndustryCodeData) (mcc []string,
 				s = 0.6 + 0.05*float64(overlap) // boost score modestly with overlap
 			}
 		}
-		if s >= 0.55 {
+		if s >= 0.45 {
 			mccScored = append(mccScored, scoredCode{code: code, score: s})
 		}
 	}

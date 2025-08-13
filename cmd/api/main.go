@@ -122,6 +122,10 @@ info:
 func (s *Server) setupRoutes() *http.ServeMux {
 	mux := http.NewServeMux()
 
+	// Serve static web files (must come before other routes)
+	mux.HandleFunc("GET /", s.webHandler)
+	mux.HandleFunc("GET /index.html", s.webHandler)
+
 	// Health check endpoint
 	mux.HandleFunc("GET /health", s.healthHandler)
 
@@ -272,8 +276,7 @@ func (s *Server) setupRoutes() *http.ServeMux {
 	mux.Handle("GET /v1/admin/users", s.authMiddleware.RequireAuth(http.HandlerFunc(s.adminHandler.ListUsers)))
 	mux.Handle("GET /v1/admin/stats", s.authMiddleware.RequireAuth(http.HandlerFunc(s.adminHandler.GetSystemStats)))
 
-	// Catch-all for undefined routes
-	mux.HandleFunc("GET /", s.notFoundHandler)
+	// Catch-all for undefined routes (excluding GET / which is handled by webHandler)
 	mux.HandleFunc("POST /", s.notFoundHandler)
 	mux.HandleFunc("PUT /", s.notFoundHandler)
 	mux.HandleFunc("DELETE /", s.notFoundHandler)
@@ -390,6 +393,25 @@ func (s *Server) docsHandler(w http.ResponseWriter, r *http.Request) {
 </html>`))
 }
 
+// webHandler serves the main web interface
+func (s *Server) webHandler(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+
+	s.logger.WithComponent("api").LogAPIRequest(r.Context(), r.Method, r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
+
+	// Read the web/index.html file
+	content, err := os.ReadFile("web/index.html")
+	if err != nil {
+		s.logger.WithComponent("api").Error("Failed to read web/index.html", "error", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
+	w.Write(content)
+}
+
 // notFoundHandler handles undefined routes
 func (s *Server) notFoundHandler(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
@@ -420,7 +442,7 @@ func (s *Server) securityHeadersMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("X-XSS-Protection", "1; mode=block")
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com data:; script-src 'self' 'unsafe-inline'; img-src 'self' data: https:;")
 
 		// Remove server information
 		w.Header().Set("Server", "KYB-Tool")
@@ -769,9 +791,10 @@ func (s *Server) Shutdown(ctx context.Context) error {
 }
 
 func main() {
-	// Load environment variables from .env file
+	// Load environment variables from .env file (optional)
 	if err := godotenv.Load(); err != nil {
-		log.Printf("Failed to load .env file: %v", err)
+		// Only log as warning, don't fail - Railway uses environment variables
+		log.Printf("Warning: Failed to load .env file: %v (this is normal in Railway)", err)
 	}
 
 	// Load configuration
@@ -789,10 +812,11 @@ func main() {
 		log.Fatalf("Failed to initialize metrics: %v", err)
 	}
 
-	// Load industry data for classification
+	// Load industry data for classification (optional)
 	industryData, err := classification.LoadIndustryCodes("Codes")
 	if err != nil {
-		log.Fatalf("Failed to load industry codes: %v", err)
+		log.Printf("Warning: Failed to load industry codes: %v (using empty data)", err)
+		industryData = &classification.IndustryCodeData{} // Use empty data
 	}
 
 	// Initialize database connection

@@ -8,9 +8,50 @@ set -e
 echo "🚀 KYB Platform Railway Startup"
 echo "================================"
 
+# Function to check environment variables
+check_environment() {
+    echo "🔍 Checking environment variables..."
+    
+    required_vars=(
+        "JWT_SECRET"
+        "DATABASE_URL"
+    )
+    
+    for var in "${required_vars[@]}"; do
+        if [ -z "${!var}" ]; then
+            echo "❌ Required environment variable $var is not set"
+            echo "💡 Add this variable in Railway Dashboard → Variables"
+            exit 1
+        fi
+        echo "✅ $var is set"
+    done
+    
+    # Show non-sensitive environment info
+    echo "🌐 PORT: ${PORT:-8080}"
+    echo "🌐 HOST: ${HOST:-0.0.0.0}"
+    echo "🔗 DATABASE_URL: ${DATABASE_URL:0:20}..."
+    echo "🔐 JWT_SECRET: ${JWT_SECRET:0:8}..."
+    
+    echo "✅ All required environment variables are set"
+}
+
 # Function to wait for database
 wait_for_database() {
     echo "⏳ Waiting for database connection..."
+    
+    if [ -z "$DATABASE_URL" ]; then
+        echo "⚠️ No DATABASE_URL provided, skipping database check"
+        return 0
+    fi
+    
+    # Extract database connection details
+    export DATABASE_HOST=$(echo $DATABASE_URL | sed -n 's/.*@\([^:]*\).*/\1/p')
+    export DATABASE_PORT=$(echo $DATABASE_URL | sed -n 's/.*:\([0-9]*\)\/.*/\1/p')
+    export DATABASE_USER=$(echo $DATABASE_URL | sed -n 's/.*:\/\/\([^:]*\):.*/\1/p')
+    
+    echo "🔗 Database host: $DATABASE_HOST"
+    echo "🔗 Database port: $DATABASE_PORT"
+    echo "🔗 Database user: $DATABASE_USER"
     
     # Try to connect to database
     for i in {1..30}; do
@@ -23,6 +64,7 @@ wait_for_database() {
     done
     
     echo "❌ Database connection failed after 30 attempts"
+    echo "💡 Check if PostgreSQL service is added to Railway"
     return 1
 }
 
@@ -111,24 +153,14 @@ start_application() {
 main() {
     echo "📋 Starting KYB Platform Railway deployment..."
     
-    # Check environment variables
+    # Check environment variables first
     check_environment
     
-    # Wait for database if DATABASE_URL is set
-    if [ -n "$DATABASE_URL" ]; then
-        # Extract database connection details
-        export DATABASE_HOST=$(echo $DATABASE_URL | sed -n 's/.*@\([^:]*\).*/\1/p')
-        export DATABASE_PORT=$(echo $DATABASE_URL | sed -n 's/.*:\([0-9]*\)\/.*/\1/p')
-        export DATABASE_USER=$(echo $DATABASE_URL | sed -n 's/.*:\/\/\([^:]*\):.*/\1/p')
-        
-        # Wait for database
-        wait_for_database
-        
-        # Initialize database
-        initialize_database
-    else
-        echo "⚠️ No DATABASE_URL provided, skipping database initialization"
-    fi
+    # Wait for database
+    wait_for_database
+    
+    # Initialize database
+    initialize_database
     
     # Start the application
     start_application

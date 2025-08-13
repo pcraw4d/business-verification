@@ -2,35 +2,29 @@ package database
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/observability"
+	"go.uber.org/zap"
 )
 
-// BackupConfig holds configuration for database backups
+// BackupConfig holds configuration for backup operations
 type BackupConfig struct {
-	Enabled           bool
 	BackupDir         string
-	RetentionDays     int
 	Compression       bool
 	Encryption        bool
 	EncryptionKey     string
 	CrossRegion       bool
 	CrossRegionBucket string
-	Schedule          string
-}
-
-// BackupService handles database backup operations
-type BackupService struct {
-	db     *sql.DB
-	config BackupConfig
-	logger *observability.Logger
+	MaxBackupAge      time.Duration
+	RetentionPolicy   int
 }
 
 // BackupResult represents the result of a backup operation
@@ -43,14 +37,21 @@ type BackupResult struct {
 	EndTime     time.Time
 	Duration    time.Duration
 	Success     bool
-	Error       error
 	Compressed  bool
 	Encrypted   bool
 	CrossRegion bool
+	Error       error
 }
 
-// NewBackupService creates a new backup service
-func NewBackupService(db *sql.DB, config BackupConfig, logger *observability.Logger) *BackupService {
+// BackupService handles database backup and restore operations
+type BackupService struct {
+	db     *sql.DB
+	config *BackupConfig
+	logger *zap.Logger
+}
+
+// NewBackupService creates a new backup service instance
+func NewBackupService(db *sql.DB, config *BackupConfig, logger *zap.Logger) *BackupService {
 	return &BackupService{
 		db:     db,
 		config: config,
@@ -58,26 +59,67 @@ func NewBackupService(db *sql.DB, config BackupConfig, logger *observability.Log
 	}
 }
 
-// CreateBackup creates a full database backup
+// validateExecutablePath ensures the executable path is safe and exists
+func validateExecutablePath(execPath string) error {
+	// Check if path is absolute
+	if !filepath.IsAbs(execPath) {
+		return fmt.Errorf("executable path must be absolute: %s", execPath)
+	}
+
+	// Validate path contains only safe characters
+	safePathRegex := regexp.MustCompile(`^[a-zA-Z0-9/._-]+$`)
+	if !safePathRegex.MatchString(execPath) {
+		return fmt.Errorf("executable path contains unsafe characters: %s", execPath)
+	}
+
+	// Check if file exists and is executable
+	if _, err := os.Stat(execPath); os.IsNotExist(err) {
+		return fmt.Errorf("executable not found: %s", execPath)
+	}
+
+	return nil
+}
+
+// validateEnvironmentVariable validates environment variable values
+func validateEnvironmentVariable(key, value string) error {
+	// Check for potentially dangerous characters
+	dangerousChars := []string{"`", "$(", "|", "&", ";", ">", "<"}
+	for _, char := range dangerousChars {
+		if strings.Contains(value, char) {
+			return fmt.Errorf("environment variable %s contains dangerous character: %s", key, char)
+		}
+	}
+	return nil
+}
+
+// secureExecCommand creates a secure command with proper validation
+func (bs *BackupService) secureExecCommand(ctx context.Context, name string, args ...string) (*exec.Cmd, error) {
+	// Validate executable path
+	if err := validateExecutablePath(name); err != nil {
+		return nil, fmt.Errorf("invalid executable path: %w", err)
+	}
+
+	// Validate arguments
+	for i, arg := range args {
+		if strings.Contains(arg, "|") || strings.Contains(arg, "&") || strings.Contains(arg, ";") {
+			return nil, fmt.Errorf("argument %d contains dangerous characters: %s", i, arg)
+		}
+	}
+
+	cmd := exec.CommandContext(ctx, name, args...)
+	return cmd, nil
+}
+
+// CreateBackup creates a database backup
 func (bs *BackupService) CreateBackup(ctx context.Context) (*BackupResult, error) {
 	startTime := time.Now()
-	backupID := fmt.Sprintf("backup-%s", startTime.Format("20060102-150405"))
+	backupID := fmt.Sprintf("backup_%s", startTime.Format("20060102_150405"))
 
-	// Validate database configuration before executing commands
-	if err := bs.validateDatabaseConfig(); err != nil {
-		bs.logger.Error("Database configuration validation failed", "error", err, "backup_id", backupID)
-		return &BackupResult{
-			BackupID:  backupID,
-			StartTime: startTime,
-			EndTime:   time.Now(),
-			Success:   false,
-			Error:     err,
-		}, err
-	}
+	bs.logger.Info("Starting database backup", zap.String("backup_id", backupID))
 
 	// Validate backup directory with secure permissions
 	if err := os.MkdirAll(bs.config.BackupDir, 0750); err != nil {
-		bs.logger.Error("Failed to create backup directory", "error", err, "backup_id", backupID)
+		bs.logger.Error("Failed to create backup directory", zap.Error(err), zap.String("backup_id", backupID))
 		return &BackupResult{
 			BackupID:  backupID,
 			StartTime: startTime,
@@ -87,28 +129,53 @@ func (bs *BackupService) CreateBackup(ctx context.Context) (*BackupResult, error
 		}, err
 	}
 
-	// Generate backup filename
+	// Generate backup filename with validation
 	filename := filepath.Join(bs.config.BackupDir, fmt.Sprintf("%s.sql", backupID))
 
-	// Create backup using pg_dump with validated environment variables
-	cmd := exec.CommandContext(ctx, "pg_dump",
-		"--host="+os.Getenv("DB_HOST"),
-		"--port="+os.Getenv("DB_PORT"),
-		"--username="+os.Getenv("DB_USER"),
-		"--dbname="+os.Getenv("DB_NAME"),
+	// Validate filename doesn't contain path traversal
+	if !strings.HasPrefix(filepath.Clean(filename), filepath.Clean(bs.config.BackupDir)) {
+		return nil, fmt.Errorf("invalid backup filename: path traversal detected")
+	}
+
+	// Validate environment variables
+	envVars := map[string]string{
+		"DB_HOST": os.Getenv("DB_HOST"),
+		"DB_PORT": os.Getenv("DB_PORT"),
+		"DB_USER": os.Getenv("DB_USER"),
+		"DB_NAME": os.Getenv("DB_NAME"),
+	}
+
+	for key, value := range envVars {
+		if err := validateEnvironmentVariable(key, value); err != nil {
+			return nil, fmt.Errorf("invalid environment variable: %w", err)
+		}
+	}
+
+	// Create backup using pg_dump with secure command execution
+	cmd, err := bs.secureExecCommand(ctx, "/usr/bin/pg_dump",
+		"--host="+envVars["DB_HOST"],
+		"--port="+envVars["DB_PORT"],
+		"--username="+envVars["DB_USER"],
+		"--dbname="+envVars["DB_NAME"],
 		"--verbose",
 		"--no-password",
 		"--file="+filename,
 	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create secure command: %w", err)
+	}
 
-	// Set environment variables for authentication
-	cmd.Env = append(os.Environ(),
-		"PGPASSWORD="+os.Getenv("DB_PASSWORD"),
-	)
+	// Set environment variables for authentication with validation
+	dbPassword := os.Getenv("DB_PASSWORD")
+	if err := validateEnvironmentVariable("DB_PASSWORD", dbPassword); err != nil {
+		return nil, fmt.Errorf("invalid password environment variable: %w", err)
+	}
+
+	cmd.Env = append(os.Environ(), "PGPASSWORD="+dbPassword)
 
 	// Execute backup command
 	if err := cmd.Run(); err != nil {
-		bs.logger.Error("Backup command failed", "error", err, "backup_id", backupID)
+		bs.logger.Error("Backup command failed", zap.Error(err), zap.String("backup_id", backupID))
 		return &BackupResult{
 			BackupID:  backupID,
 			StartTime: startTime,
@@ -127,7 +194,7 @@ func (bs *BackupService) CreateBackup(ctx context.Context) (*BackupResult, error
 	// Calculate checksum
 	checksum, err := bs.calculateChecksum(filename)
 	if err != nil {
-		bs.logger.Warn("Failed to calculate checksum", "error", err, "backup_id", backupID)
+		bs.logger.Warn("Failed to calculate checksum", zap.Error(err), zap.String("backup_id", backupID))
 	}
 
 	endTime := time.Now()
@@ -147,17 +214,18 @@ func (bs *BackupService) CreateBackup(ctx context.Context) (*BackupResult, error
 		CrossRegion: bs.config.CrossRegion,
 	}
 
-	bs.logger.Info("Database backup completed successfully",
-		"backup_id", backupID,
-		"filename", filename,
-		"size", fileInfo.Size(),
-		"duration", duration,
+	// Log backup completion
+	bs.logger.Info("Database backup completed successfully", 
+		zap.String("backup_id", backupID),
+		zap.String("filename", filename),
+		zap.Int64("size", fileInfo.Size()),
+		zap.Duration("duration", duration),
 	)
 
 	// Compress backup if enabled
 	if bs.config.Compression {
 		if err := bs.compressBackup(filename); err != nil {
-			bs.logger.Warn("Failed to compress backup", "error", err, "backup_id", backupID)
+			bs.logger.Warn("Failed to compress backup", zap.Error(err), zap.String("backup_id", backupID))
 		} else {
 			result.Filename = filename + ".gz"
 			if fileInfo, err := os.Stat(result.Filename); err == nil {
@@ -169,7 +237,7 @@ func (bs *BackupService) CreateBackup(ctx context.Context) (*BackupResult, error
 	// Encrypt backup if enabled
 	if bs.config.Encryption {
 		if err := bs.encryptBackup(result.Filename); err != nil {
-			bs.logger.Warn("Failed to encrypt backup", "error", err, "backup_id", backupID)
+			bs.logger.Warn("Failed to encrypt backup", zap.Error(err), zap.String("backup_id", backupID))
 		} else {
 			result.Filename = result.Filename + ".enc"
 			if fileInfo, err := os.Stat(result.Filename); err == nil {
@@ -179,23 +247,23 @@ func (bs *BackupService) CreateBackup(ctx context.Context) (*BackupResult, error
 	}
 
 	// Upload to cross-region if enabled
-	if bs.config.CrossRegion && bs.config.CrossRegionBucket != "" {
+	if bs.config.CrossRegion {
 		if err := bs.uploadToCrossRegion(result.Filename, backupID); err != nil {
-			bs.logger.Warn("Failed to upload to cross-region", "error", err, "backup_id", backupID)
+			bs.logger.Warn("Failed to upload backup to cross-region", zap.Error(err), zap.String("backup_id", backupID))
 		}
 	}
 
-	// Store backup metadata in database
+	// Store backup metadata
 	if err := bs.storeBackupMetadata(ctx, result); err != nil {
-		bs.logger.Warn("Failed to store backup metadata", "error", err, "backup_id", backupID)
+		bs.logger.Error("Failed to store backup metadata", zap.Error(err), zap.String("backup_id", backupID))
 	}
 
 	return result, nil
 }
 
-// RestoreBackup restores a database from backup
+// RestoreBackup restores a database from a backup
 func (bs *BackupService) RestoreBackup(ctx context.Context, backupID string) error {
-	bs.logger.Info("Starting database restore", "backup_id", backupID)
+	bs.logger.Info("Starting database restore", zap.String("backup_id", backupID))
 
 	// Get backup metadata
 	metadata, err := bs.getBackupMetadata(ctx, backupID)
@@ -206,6 +274,11 @@ func (bs *BackupService) RestoreBackup(ctx context.Context, backupID string) err
 	// Check if backup file exists
 	if _, err := os.Stat(metadata.Filename); os.IsNotExist(err) {
 		return fmt.Errorf("backup file not found: %s", metadata.Filename)
+	}
+
+	// Validate filename doesn't contain path traversal
+	if !strings.HasPrefix(filepath.Clean(metadata.Filename), filepath.Clean(bs.config.BackupDir)) {
+		return fmt.Errorf("invalid backup filename: path traversal detected")
 	}
 
 	// Decrypt backup if it was encrypted
@@ -225,29 +298,49 @@ func (bs *BackupService) RestoreBackup(ctx context.Context, backupID string) err
 		filename = filename[:len(filename)-3] // Remove .gz extension
 	}
 
-	// Restore database using psql
-	cmd := exec.CommandContext(ctx, "psql",
-		"--host="+os.Getenv("DB_HOST"),
-		"--port="+os.Getenv("DB_PORT"),
-		"--username="+os.Getenv("DB_USER"),
-		"--dbname="+os.Getenv("DB_NAME"),
+	// Validate environment variables
+	envVars := map[string]string{
+		"DB_HOST": os.Getenv("DB_HOST"),
+		"DB_PORT": os.Getenv("DB_PORT"),
+		"DB_USER": os.Getenv("DB_USER"),
+		"DB_NAME": os.Getenv("DB_NAME"),
+	}
+
+	for key, value := range envVars {
+		if err := validateEnvironmentVariable(key, value); err != nil {
+			return fmt.Errorf("invalid environment variable: %w", err)
+		}
+	}
+
+	// Restore database using psql with secure command execution
+	cmd, err := bs.secureExecCommand(ctx, "/usr/bin/psql",
+		"--host="+envVars["DB_HOST"],
+		"--port="+envVars["DB_PORT"],
+		"--username="+envVars["DB_USER"],
+		"--dbname="+envVars["DB_NAME"],
 		"--verbose",
 		"--no-password",
 		"--file="+filename,
 	)
+	if err != nil {
+		return fmt.Errorf("failed to create secure restore command: %w", err)
+	}
 
-	// Set environment variables for authentication
-	cmd.Env = append(os.Environ(),
-		"PGPASSWORD="+os.Getenv("DB_PASSWORD"),
-	)
+	// Set environment variables for authentication with validation
+	dbPassword := os.Getenv("DB_PASSWORD")
+	if err := validateEnvironmentVariable("DB_PASSWORD", dbPassword); err != nil {
+		return fmt.Errorf("invalid password environment variable: %w", err)
+	}
+
+	cmd.Env = append(os.Environ(), "PGPASSWORD="+dbPassword)
 
 	// Execute restore command
 	if err := cmd.Run(); err != nil {
-		bs.logger.Error("Restore command failed", "error", err, "backup_id", backupID)
+		bs.logger.Error("Restore command failed", zap.Error(err), zap.String("backup_id", backupID))
 		return err
 	}
 
-	bs.logger.Info("Database restore completed successfully", "backup_id", backupID)
+	bs.logger.Info("Database restore completed successfully", zap.String("backup_id", backupID))
 	return nil
 }
 
@@ -299,9 +392,9 @@ func (bs *BackupService) ListBackups(ctx context.Context) ([]*BackupResult, erro
 
 // CleanupOldBackups removes backups older than the retention period
 func (bs *BackupService) CleanupOldBackups(ctx context.Context) error {
-	bs.logger.Info("Starting cleanup of old backups", "retention_days", bs.config.RetentionDays)
+	bs.logger.Info("Starting cleanup of old backups", zap.Int("retention_days", bs.config.RetentionPolicy))
 
-	cutoffDate := time.Now().AddDate(0, 0, -bs.config.RetentionDays)
+	cutoffDate := time.Now().AddDate(0, 0, -bs.config.RetentionPolicy)
 
 	// Get old backups
 	query := `
@@ -320,33 +413,33 @@ func (bs *BackupService) CleanupOldBackups(ctx context.Context) error {
 	for rows.Next() {
 		var backupID, filename string
 		if err := rows.Scan(&backupID, &filename); err != nil {
-			bs.logger.Warn("Failed to scan backup record", "error", err)
+			bs.logger.Warn("Failed to scan backup record", zap.Error(err))
 			continue
 		}
 
 		// Delete backup file
 		if err := os.Remove(filename); err != nil {
-			bs.logger.Warn("Failed to delete backup file", "error", err, "filename", filename)
+			bs.logger.Warn("Failed to delete backup file", zap.Error(err), zap.String("filename", filename))
 			continue
 		}
 
 		// Delete metadata
 		if _, err := bs.db.ExecContext(ctx, "DELETE FROM backup_metadata WHERE backup_id = $1", backupID); err != nil {
-			bs.logger.Warn("Failed to delete backup metadata", "error", err, "backup_id", backupID)
+			bs.logger.Warn("Failed to delete backup metadata", zap.Error(err), zap.String("backup_id", backupID))
 			continue
 		}
 
 		deletedCount++
-		bs.logger.Info("Deleted old backup", "backup_id", backupID, "filename", filename)
+		bs.logger.Info("Deleted old backup", zap.String("backup_id", backupID), zap.String("filename", filename))
 	}
 
-	bs.logger.Info("Backup cleanup completed", "deleted_count", deletedCount)
+	bs.logger.Info("Backup cleanup completed", zap.Int("deleted_count", deletedCount))
 	return nil
 }
 
 // ValidateBackup validates the integrity of a backup
 func (bs *BackupService) ValidateBackup(ctx context.Context, backupID string) error {
-	bs.logger.Info("Validating backup", "backup_id", backupID)
+	bs.logger.Info("Validating backup", zap.String("backup_id", backupID))
 
 	// Get backup metadata
 	metadata, err := bs.getBackupMetadata(ctx, backupID)
@@ -370,49 +463,78 @@ func (bs *BackupService) ValidateBackup(ctx context.Context, backupID string) er
 		return fmt.Errorf("checksum mismatch: expected %s, got %s", metadata.Checksum, currentChecksum)
 	}
 
-	bs.logger.Info("Backup validation completed successfully", "backup_id", backupID)
+	bs.logger.Info("Backup validation completed successfully", zap.String("backup_id", backupID))
 	return nil
 }
 
 // Helper methods
 
 func (bs *BackupService) calculateChecksum(filename string) (string, error) {
-	cmd := exec.Command("sha256sum", filename)
-	output, err := cmd.Output()
+	// Use Go's crypto/sha256 instead of external command
+	data, err := os.ReadFile(filename)
 	if err != nil {
 		return "", err
 	}
 
-	// Extract checksum from output (format: "checksum filename")
-	checksum := string(output[:64])
-	return checksum, nil
+	hash := sha256.Sum256(data)
+	return fmt.Sprintf("%x", hash), nil
 }
 
 func (bs *BackupService) compressBackup(filename string) error {
-	cmd := exec.Command("gzip", filename)
+	cmd, err := bs.secureExecCommand(context.Background(), "/bin/gzip", filename)
+	if err != nil {
+		return fmt.Errorf("failed to create secure compression command: %w", err)
+	}
 	return cmd.Run()
 }
 
 func (bs *BackupService) decompressBackup(filename string) error {
-	cmd := exec.Command("gunzip", filename)
+	cmd, err := bs.secureExecCommand(context.Background(), "/bin/gunzip", filename)
+	if err != nil {
+		return fmt.Errorf("failed to create secure decompression command: %w", err)
+	}
 	return cmd.Run()
 }
 
 func (bs *BackupService) encryptBackup(filename string) error {
-	// Simple encryption using openssl
-	cmd := exec.Command("openssl", "enc", "-aes-256-cbc", "-salt", "-in", filename, "-out", filename+".enc", "-k", bs.config.EncryptionKey)
+	// Validate encryption key
+	if err := validateEnvironmentVariable("ENCRYPTION_KEY", bs.config.EncryptionKey); err != nil {
+		return fmt.Errorf("invalid encryption key: %w", err)
+	}
+
+	cmd, err := bs.secureExecCommand(context.Background(), "/usr/bin/openssl",
+		"enc", "-aes-256-cbc", "-salt", "-in", filename, "-out", filename+".enc", "-k", bs.config.EncryptionKey)
+	if err != nil {
+		return fmt.Errorf("failed to create secure encryption command: %w", err)
+	}
 	return cmd.Run()
 }
 
 func (bs *BackupService) decryptBackup(filename string) error {
-	// Simple decryption using openssl
-	cmd := exec.Command("openssl", "enc", "-d", "-aes-256-cbc", "-in", filename, "-out", filename[:len(filename)-4], "-k", bs.config.EncryptionKey)
+	// Validate encryption key
+	if err := validateEnvironmentVariable("ENCRYPTION_KEY", bs.config.EncryptionKey); err != nil {
+		return fmt.Errorf("invalid encryption key: %w", err)
+	}
+
+	cmd, err := bs.secureExecCommand(context.Background(), "/usr/bin/openssl",
+		"enc", "-d", "-aes-256-cbc", "-in", filename, "-out", filename[:len(filename)-4], "-k", bs.config.EncryptionKey)
+	if err != nil {
+		return fmt.Errorf("failed to create secure decryption command: %w", err)
+	}
 	return cmd.Run()
 }
 
 func (bs *BackupService) uploadToCrossRegion(filename, backupID string) error {
-	// Upload to S3 using AWS CLI
-	cmd := exec.Command("aws", "s3", "cp", filename, fmt.Sprintf("s3://%s/backups/%s", bs.config.CrossRegionBucket, backupID))
+	// Validate bucket name
+	if err := validateEnvironmentVariable("BUCKET_NAME", bs.config.CrossRegionBucket); err != nil {
+		return fmt.Errorf("invalid bucket name: %w", err)
+	}
+
+	cmd, err := bs.secureExecCommand(context.Background(), "/usr/local/bin/aws",
+		"s3", "cp", filename, fmt.Sprintf("s3://%s/backups/%s", bs.config.CrossRegionBucket, backupID))
+	if err != nil {
+		return fmt.Errorf("failed to create secure upload command: %w", err)
+	}
 	return cmd.Run()
 }
 
@@ -499,47 +621,4 @@ func (bs *BackupService) CreateBackupTable(ctx context.Context) error {
 
 	_, err := bs.db.ExecContext(ctx, query)
 	return err
-}
-
-// validateEnvironmentVariable validates that an environment variable is safe for use in commands
-func validateEnvironmentVariable(name, value string) error {
-	if value == "" {
-		return fmt.Errorf("environment variable %s is empty", name)
-	}
-
-	// Check for potentially dangerous characters
-	dangerousChars := []string{";", "&", "|", "`", "$(", ")", ">", "<", "\"", "'"}
-	for _, char := range dangerousChars {
-		if strings.Contains(value, char) {
-			return fmt.Errorf("environment variable %s contains dangerous character: %s", name, char)
-		}
-	}
-
-	// Check for command injection patterns
-	if strings.Contains(strings.ToLower(value), "exec") ||
-		strings.Contains(strings.ToLower(value), "system") ||
-		strings.Contains(strings.ToLower(value), "eval") {
-		return fmt.Errorf("environment variable %s contains potentially dangerous content", name)
-	}
-
-	return nil
-}
-
-// validateDatabaseConfig validates database configuration for backup operations
-func (bs *BackupService) validateDatabaseConfig() error {
-	requiredVars := map[string]string{
-		"DB_HOST":     os.Getenv("DB_HOST"),
-		"DB_PORT":     os.Getenv("DB_PORT"),
-		"DB_USER":     os.Getenv("DB_USER"),
-		"DB_NAME":     os.Getenv("DB_NAME"),
-		"DB_PASSWORD": os.Getenv("DB_PASSWORD"),
-	}
-
-	for name, value := range requiredVars {
-		if err := validateEnvironmentVariable(name, value); err != nil {
-			return fmt.Errorf("database configuration validation failed: %w", err)
-		}
-	}
-
-	return nil
 }

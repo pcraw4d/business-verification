@@ -167,7 +167,26 @@ railway variables set ENCRYPTION_KEY=new-key
 
 ## 🐛 **Troubleshooting**
 
+### **Quick Fix Scripts:**
+
+We've created automated scripts to help diagnose and fix Railway deployment issues:
+
+```bash
+# Diagnose the specific issue
+./scripts/diagnose-railway-issue.sh
+
+# Fix common deployment issues
+./scripts/fix-railway-deployment.sh check
+./scripts/fix-railway-deployment.sh generate
+./scripts/fix-railway-deployment.sh fix
+```
+
 ### **Common Issues:**
+
+#### **"Healthcheck failed!"**
+- **Most Common Cause**: Missing environment variables
+- **Quick Fix**: Run `./scripts/diagnose-railway-issue.sh`
+- **Solution**: Set JWT_SECRET, DATABASE_URL, PORT, HOST
 
 #### **"Invalid JWT Secret"**
 - Regenerate JWT_SECRET using the script
@@ -188,6 +207,11 @@ railway variables set ENCRYPTION_KEY=new-key
 - Railway automatically sets DATABASE_URL
 - Add PostgreSQL service in Railway dashboard
 - Check if database service is running
+
+#### **"Application failed to start"**
+- Check Railway logs: `railway logs --follow`
+- Verify all required environment variables are set
+- Ensure startup script is executable
 
 ## 📞 **Support**
 

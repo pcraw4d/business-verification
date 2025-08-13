@@ -13,6 +13,7 @@ import (
 	"github.com/pcraw4d/business-verification/internal/database"
 	"github.com/pcraw4d/business-verification/internal/datasource"
 	"github.com/pcraw4d/business-verification/internal/observability"
+	"github.com/pcraw4d/business-verification/internal/webanalysis"
 	"github.com/pcraw4d/business-verification/pkg/validators"
 )
 
@@ -34,6 +35,10 @@ type ClassificationService struct {
 
 	// enrichment
 	enricher *datasource.Aggregator
+
+	// web analysis
+	webAnalysis *webanalysis.ClassificationFlowManager
+	hybridScraper *webanalysis.HybridAPIScraper
 }
 
 // NewClassificationService creates a new business classification service
@@ -47,6 +52,7 @@ func NewClassificationService(cfg *config.ExternalServicesConfig, db database.Da
 	}
 	s.initCache()
 	s.initEnrichment(db)
+	s.initWebAnalysis()
 	return s
 }
 
@@ -61,6 +67,7 @@ func NewClassificationServiceWithData(cfg *config.ExternalServicesConfig, db dat
 	}
 	s.initCache()
 	s.initEnrichment(db)
+	s.initWebAnalysis()
 	return s
 }
 
@@ -195,6 +202,20 @@ func (c *ClassificationService) initEnrichment(db database.Database) {
 	c.enricher = aggr
 }
 
+// initWebAnalysis initializes the web analysis components
+func (c *ClassificationService) initWebAnalysis() {
+	config := webanalysis.FlowConfig{
+		DefaultMaxResults:          10,
+		DefaultConfidenceThreshold: 0.5,
+		URLFlowTimeout:             30 * time.Second,
+		SearchFlowTimeout:          30 * time.Second,
+		FallbackEnabled:            true,
+		RetryAttempts:              3,
+	}
+	c.webAnalysis = webanalysis.NewClassificationFlowManager(config)
+	c.hybridScraper = webanalysis.NewHybridAPIScraper()
+}
+
 // DataSourcesHealth proxies health checks for configured enrichment sources
 func (c *ClassificationService) DataSourcesHealth(ctx context.Context) []datasource.SourceHealth {
 	if c.enricher == nil {
@@ -210,6 +231,7 @@ type ClassificationRequest struct {
 	Industry           string `json:"industry,omitempty"`
 	Description        string `json:"description,omitempty"`
 	Keywords           string `json:"keywords,omitempty"`
+	WebsiteURL         string `json:"website_url,omitempty"`
 	RegistrationNumber string `json:"registration_number,omitempty"`
 	TaxID              string `json:"tax_id,omitempty"`
 }
@@ -592,6 +614,13 @@ func (c *ClassificationService) validateClassificationRequest(req *Classificatio
 // performClassification performs the actual classification using multiple methods
 func (c *ClassificationService) performClassification(ctx context.Context, req *ClassificationRequest) ([]IndustryClassification, error) {
 	var classifications []IndustryClassification
+
+	// Method 0: Hybrid website scraping and API analysis (highest priority when URL provided)
+	if req.WebsiteURL != "" && c.hybridScraper != nil {
+		if webClassifications := c.classifyByHybridAnalysis(ctx, req); len(webClassifications) > 0 {
+			classifications = append(classifications, webClassifications...)
+		}
+	}
 
 	// Method 1: Keyword-based classification
 	if keywordClassifications := c.classifyByKeywords(req); len(keywordClassifications) > 0 {
@@ -1282,6 +1311,105 @@ func (c *ClassificationService) getDefaultClassification() IndustryClassificatio
 		ClassificationMethod: "default",
 		Description:          "Default classification applied when no specific classification could be determined",
 	}
+}
+
+// classifyByHybridAnalysis performs classification using hybrid scraping and API analysis
+func (c *ClassificationService) classifyByHybridAnalysis(ctx context.Context, req *ClassificationRequest) []IndustryClassification {
+	if c.hybridScraper == nil {
+		return nil
+	}
+
+	// Convert our request to hybrid scraping request format
+	hybridReq := &webanalysis.HybridScrapingRequest{
+		BusinessName: req.BusinessName,
+		WebsiteURL:   req.WebsiteURL,
+		Priority:     "medium",
+		Budget:       0.50, // $0.50 max budget
+		ContactEmail: "contact@kyb-platform.com",
+	}
+
+	// Perform hybrid analysis
+	result, err := c.hybridScraper.ScrapeBusiness(ctx, hybridReq)
+	if err != nil {
+		c.logger.WithComponent("classification").Warn("Hybrid analysis failed", "error", err.Error(), "website_url", req.WebsiteURL)
+		return nil
+	}
+
+	// Convert hybrid results to our format
+	var classifications []IndustryClassification
+	
+	// Add classifications from scraped content
+	if result.ScrapedContent != nil && result.ScrapedContent.Text != "" {
+		// Use keyword-based classification on scraped text
+		scrapedReq := &ClassificationRequest{
+			BusinessName: req.BusinessName,
+			Description:  result.ScrapedContent.Text,
+		}
+		scrapedClassifications := c.classifyByKeywords(scrapedReq)
+		for _, classification := range scrapedClassifications {
+			classification.ClassificationMethod = "hybrid_website_analysis"
+			classification.ConfidenceScore *= 0.9 // Slightly reduce confidence for hybrid method
+			classifications = append(classifications, classification)
+		}
+	}
+
+	// Add classifications from API data
+	if result.APIData != nil {
+		apiReq := &ClassificationRequest{
+			BusinessName: req.BusinessName,
+			Description:  result.APIData.Description,
+			Industry:     result.APIData.Industry,
+		}
+		apiClassifications := c.classifyByKeywords(apiReq)
+		for _, classification := range apiClassifications {
+			classification.ClassificationMethod = "hybrid_api_analysis"
+			classification.ConfidenceScore *= result.APIData.Confidence // Weight by API confidence
+			classifications = append(classifications, classification)
+		}
+	}
+
+	return classifications
+}
+
+// classifyByWebsiteAnalysis performs classification using website scraping and analysis
+func (c *ClassificationService) classifyByWebsiteAnalysis(ctx context.Context, req *ClassificationRequest) []IndustryClassification {
+	if c.webAnalysis == nil {
+		return nil
+	}
+
+	// Convert our request to webanalysis request format
+	webReq := &webanalysis.ClassificationRequest{
+		BusinessName:                req.BusinessName,
+		BusinessType:                req.BusinessType,
+		Industry:                    req.Industry,
+		WebsiteURL:                  req.WebsiteURL,
+		MaxResults:                  10,
+		ConfidenceThreshold:         0.5,
+		IncludeRiskAnalysis:         false,
+		IncludeConnectionValidation: false,
+	}
+
+	// Perform web analysis
+	result, err := c.webAnalysis.ClassifyBusiness(ctx, webReq)
+	if err != nil {
+		c.logger.WithComponent("classification").Warn("Website analysis failed", "error", err.Error(), "website_url", req.WebsiteURL)
+		return nil
+	}
+
+	// Convert webanalysis results to our format
+	var classifications []IndustryClassification
+	for _, industry := range result.Industries {
+		classification := IndustryClassification{
+			IndustryCode:         industry.NAICSCode,
+			IndustryName:         industry.Industry,
+			ConfidenceScore:      industry.Confidence,
+			ClassificationMethod: "website_analysis",
+			Description:          industry.Evidence,
+		}
+		classifications = append(classifications, classification)
+	}
+
+	return classifications
 }
 
 // generateBusinessID generates a unique business ID

@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+	"net"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -308,6 +310,27 @@ func getAuthConfig() AuthConfig {
 
 // getDatabaseConfig returns database configuration from environment variables
 func getDatabaseConfig() DatabaseConfig {
+	// Check if DATABASE_URL is provided (Railway format)
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL != "" {
+		// Parse DATABASE_URL to extract individual components
+		parsedConfig := parseDatabaseURL(databaseURL)
+		return DatabaseConfig{
+			Driver:          "postgres",
+			Host:            parsedConfig.Host,
+			Port:            parsedConfig.Port,
+			Username:        parsedConfig.Username,
+			Password:        parsedConfig.Password,
+			Database:        parsedConfig.Database,
+			SSLMode:         parsedConfig.SSLMode,
+			MaxOpenConns:    getEnvAsInt("DB_MAX_OPEN_CONNS", 25),
+			MaxIdleConns:    getEnvAsInt("DB_MAX_IDLE_CONNS", 5),
+			ConnMaxLifetime: getEnvAsDuration("DB_CONN_MAX_LIFETIME", 5*time.Minute),
+			AutoMigrate:     getEnvAsBool("DB_AUTO_MIGRATE", true),
+		}
+	}
+
+	// Fall back to individual environment variables
 	return DatabaseConfig{
 		Driver:          getEnvAsString("DB_DRIVER", "postgres"),
 		Host:            getEnvAsString("DB_HOST", "localhost"),
@@ -321,6 +344,61 @@ func getDatabaseConfig() DatabaseConfig {
 		ConnMaxLifetime: getEnvAsDuration("DB_CONN_MAX_LIFETIME", 5*time.Minute),
 		AutoMigrate:     getEnvAsBool("DB_AUTO_MIGRATE", true),
 	}
+}
+
+// parseDatabaseURL parses a DATABASE_URL and returns database configuration
+func parseDatabaseURL(databaseURL string) DatabaseConfig {
+	// Default values
+	config := DatabaseConfig{
+		Driver:   "postgres",
+		Host:     "localhost",
+		Port:     5432,
+		Username: "postgres",
+		Password: "",
+		Database: "business_verification",
+		SSLMode:  "disable",
+	}
+
+	// Parse the URL
+	u, err := url.Parse(databaseURL)
+	if err != nil {
+		// If parsing fails, return default config
+		return config
+	}
+
+	// Extract username and password
+	if u.User != nil {
+		config.Username = u.User.Username()
+		if password, ok := u.User.Password(); ok {
+			config.Password = password
+		}
+	}
+
+	// Extract host and port
+	if u.Host != "" {
+		host, port, err := net.SplitHostPort(u.Host)
+		if err != nil {
+			// No port specified, use default
+			config.Host = u.Host
+		} else {
+			config.Host = host
+			if portInt, err := strconv.Atoi(port); err == nil {
+				config.Port = portInt
+			}
+		}
+	}
+
+	// Extract database name
+	if u.Path != "" {
+		config.Database = strings.TrimPrefix(u.Path, "/")
+	}
+
+	// Extract SSL mode from query parameters
+	if sslMode := u.Query().Get("sslmode"); sslMode != "" {
+		config.SSLMode = sslMode
+	}
+
+	return config
 }
 
 // getObservabilityConfig returns observability configuration from environment variables
