@@ -1,4 +1,4 @@
-FROM golang:1.22-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache git ca-certificates tzdata
@@ -30,7 +30,7 @@ COPY --from=builder /app/web ./web
 
 # Create non-root user
 RUN addgroup -g 1001 -S appgroup && \
-    adduser -u 1001 -S appuser -G appgroup
+  adduser -u 1001 -S appuser -G appgroup
 
 # Change ownership
 RUN chown -R appuser:appgroup /root/
