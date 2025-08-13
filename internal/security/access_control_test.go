@@ -6,11 +6,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pcraw4d/business-verification/internal/config"
 	"github.com/pcraw4d/business-verification/internal/observability"
 )
 
 func TestNewAccessControlSystem(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := AccessControlConfig{
 		DefaultRole:           "user",
 		SessionTimeout:        30 * time.Minute,
@@ -68,7 +69,7 @@ func TestNewAccessControlSystem(t *testing.T) {
 }
 
 func TestCheckAccess(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := AccessControlConfig{
 		DefaultRole:           "user",
 		SessionTimeout:        30 * time.Minute,
@@ -123,7 +124,7 @@ func TestCheckAccess(t *testing.T) {
 }
 
 func TestGrantAndRevokeRole(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := AccessControlConfig{
 		DefaultRole:           "user",
 		SessionTimeout:        30 * time.Minute,
@@ -186,7 +187,7 @@ func TestGrantAndRevokeRole(t *testing.T) {
 }
 
 func TestCreateRole(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := AccessControlConfig{
 		DefaultRole:           "user",
 		SessionTimeout:        30 * time.Minute,
@@ -230,7 +231,7 @@ func TestCreateRole(t *testing.T) {
 }
 
 func TestCreatePermission(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := AccessControlConfig{
 		DefaultRole:           "user",
 		SessionTimeout:        30 * time.Minute,
@@ -275,7 +276,7 @@ func TestCreatePermission(t *testing.T) {
 }
 
 func TestCreatePolicy(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := AccessControlConfig{
 		DefaultRole:           "user",
 		SessionTimeout:        30 * time.Minute,
@@ -330,7 +331,7 @@ func TestCreatePolicy(t *testing.T) {
 }
 
 func TestAssignAndRemovePermissionFromRole(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := AccessControlConfig{
 		DefaultRole:           "user",
 		SessionTimeout:        30 * time.Minute,
@@ -420,7 +421,7 @@ func TestAssignAndRemovePermissionFromRole(t *testing.T) {
 }
 
 func TestGetUserRoles(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := AccessControlConfig{
 		DefaultRole:           "user",
 		SessionTimeout:        30 * time.Minute,
@@ -480,7 +481,7 @@ func TestGetUserRoles(t *testing.T) {
 }
 
 func TestGetRolePermissions(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := AccessControlConfig{
 		DefaultRole:           "user",
 		SessionTimeout:        30 * time.Minute,
@@ -540,7 +541,7 @@ func TestGetRolePermissions(t *testing.T) {
 }
 
 func TestAccessAuditLogger(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := AuditLoggerConfig{
 		RetentionDays: 90,
 		LogToFile:     true,
@@ -621,7 +622,7 @@ func TestAccessAuditLogger(t *testing.T) {
 }
 
 func TestExportAuditLogs(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := AuditLoggerConfig{
 		RetentionDays: 90,
 		LogToFile:     true,

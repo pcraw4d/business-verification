@@ -6,11 +6,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pcraw4d/business-verification/internal/config"
 	"github.com/pcraw4d/business-verification/internal/observability"
 )
 
 func TestNewSecurityMonitor(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := SecurityMonitorConfig{
 		AlertThresholds: map[SecuritySeverity]int{
 			SeverityMedium: 5,
@@ -36,7 +37,7 @@ func TestNewSecurityMonitor(t *testing.T) {
 }
 
 func TestRecordEvent(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := SecurityMonitorConfig{
 		AlertThresholds: map[SecuritySeverity]int{
 			SeverityMedium: 5,
@@ -77,7 +78,7 @@ func TestRecordEvent(t *testing.T) {
 }
 
 func TestRecordEventGeneratesAlert(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := SecurityMonitorConfig{
 		AlertThresholds: map[SecuritySeverity]int{
 			SeverityMedium: 5,
@@ -119,7 +120,7 @@ func TestRecordEventGeneratesAlert(t *testing.T) {
 }
 
 func TestThresholdBasedAlerting(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := SecurityMonitorConfig{
 		AlertThresholds: map[SecuritySeverity]int{
 			SeverityMedium: 3,
@@ -175,7 +176,7 @@ func TestThresholdBasedAlerting(t *testing.T) {
 }
 
 func TestGetEventsWithFilters(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := SecurityMonitorConfig{
 		RetentionDays: 30,
 	}
@@ -252,7 +253,7 @@ func TestGetEventsWithFilters(t *testing.T) {
 }
 
 func TestGetAlertsWithFilters(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := SecurityMonitorConfig{
 		RetentionDays: 30,
 	}
@@ -310,7 +311,7 @@ func TestGetAlertsWithFilters(t *testing.T) {
 }
 
 func TestUpdateAlertStatus(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := SecurityMonitorConfig{
 		RetentionDays: 30,
 	}
@@ -371,7 +372,7 @@ func TestUpdateAlertStatus(t *testing.T) {
 }
 
 func TestGetMetrics(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := SecurityMonitorConfig{
 		RetentionDays: 30,
 	}
@@ -443,7 +444,7 @@ func TestGetMetrics(t *testing.T) {
 }
 
 func TestEventHandlerRegistration(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := SecurityMonitorConfig{
 		RetentionDays: 30,
 	}
@@ -488,7 +489,7 @@ func TestEventHandlerRegistration(t *testing.T) {
 }
 
 func TestAlertHandlerRegistration(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := SecurityMonitorConfig{
 		RetentionDays: 30,
 	}
@@ -533,7 +534,7 @@ func TestAlertHandlerRegistration(t *testing.T) {
 }
 
 func TestExportEvents(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := SecurityMonitorConfig{
 		RetentionDays: 30,
 	}
@@ -570,7 +571,7 @@ func TestExportEvents(t *testing.T) {
 }
 
 func TestExportAlerts(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := SecurityMonitorConfig{
 		RetentionDays: 30,
 	}
@@ -607,7 +608,3 @@ func TestExportAlerts(t *testing.T) {
 }
 
 // Helper function to check if data is valid JSON
-func isValidJSON(data []byte) bool {
-	var v interface{}
-	return json.Unmarshal(data, &v) == nil
-}

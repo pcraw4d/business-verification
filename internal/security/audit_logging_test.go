@@ -2,18 +2,15 @@ package security
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/pcraw4d/business-verification/internal/observability"
 )
 
 func TestNewAuditLoggingSystem(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := AuditLoggingConfig{
 		Enabled:              true,
 		LogLevel:             "info",
@@ -58,7 +55,7 @@ func TestNewAuditLoggingSystem(t *testing.T) {
 }
 
 func TestLogEvent(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := AuditLoggingConfig{
 		Enabled:              true,
 		LogLevel:             "info",
@@ -80,18 +77,22 @@ func TestLogEvent(t *testing.T) {
 
 	// Create test event
 	event := AuditEvent{
-		EventType:   EventTypeLogin,
-		Category:    CategoryAuthentication,
-		Severity:    SeverityInfo,
-		UserID:      "user1",
-		Resource:    "auth",
-		Action:      "login",
-		Result:      "success",
-		Description: "User login successful",
-		Details: map[string]interface{}{
-			"ip_address": "192.168.1.1",
-			"user_agent": "test-agent",
+		BaseEvent: BaseEvent{
+			ID:          "test-event-1",
+			Timestamp:   time.Now(),
+			EventType:   EventTypeLogin,
+			Category:    CategoryAuthentication,
+			Severity:    SeverityInfo,
+			UserID:      "user1",
+			Description: "User login successful",
+			Details: map[string]interface{}{
+				"ip_address": "192.168.1.1",
+				"user_agent": "test-agent",
+			},
 		},
+		Resource: "auth",
+		Action:   "login",
+		Result:   "success",
 	}
 
 	// Log event
@@ -126,7 +127,7 @@ func TestLogEvent(t *testing.T) {
 }
 
 func TestLogSecurityEvent(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := AuditLoggingConfig{
 		Enabled:              true,
 		LogLevel:             "info",
@@ -181,7 +182,7 @@ func TestLogSecurityEvent(t *testing.T) {
 }
 
 func TestLogAuthenticationEvent(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := AuditLoggingConfig{
 		Enabled:              true,
 		LogLevel:             "info",
@@ -236,7 +237,7 @@ func TestLogAuthenticationEvent(t *testing.T) {
 }
 
 func TestLogDataAccessEvent(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := AuditLoggingConfig{
 		Enabled:              true,
 		LogLevel:             "info",
@@ -291,7 +292,7 @@ func TestLogDataAccessEvent(t *testing.T) {
 }
 
 func TestLogSystemEvent(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := AuditLoggingConfig{
 		Enabled:              true,
 		LogLevel:             "info",
@@ -346,7 +347,7 @@ func TestLogSystemEvent(t *testing.T) {
 }
 
 func TestLogComplianceEvent(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := AuditLoggingConfig{
 		Enabled:              true,
 		LogLevel:             "info",
@@ -402,7 +403,7 @@ func TestLogComplianceEvent(t *testing.T) {
 }
 
 func TestEventHandlers(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := AuditLoggingConfig{
 		Enabled:              true,
 		LogLevel:             "info",
@@ -462,7 +463,7 @@ func TestEventHandlers(t *testing.T) {
 }
 
 func TestExportAuditLogsFromAuditLogger(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := AuditLoggingConfig{
 		Enabled:              true,
 		LogLevel:             "info",
@@ -502,7 +503,7 @@ func TestExportAuditLogsFromAuditLogger(t *testing.T) {
 }
 
 func TestNewAuditFileLogger(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := AuditLoggingConfig{
 		Enabled:              true,
 		LogLevel:             "info",
@@ -558,7 +559,7 @@ func TestNewAuditFileLogger(t *testing.T) {
 }
 
 func TestAuditFileLoggerRotation(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := AuditLoggingConfig{
 		Enabled:              true,
 		LogLevel:             "info",
@@ -612,7 +613,7 @@ func TestAuditFileLoggerRotation(t *testing.T) {
 }
 
 func TestNewAuditDatabaseLogger(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := AuditLoggingConfig{
 		Enabled:              true,
 		LogLevel:             "info",
@@ -656,7 +657,7 @@ func TestNewAuditDatabaseLogger(t *testing.T) {
 }
 
 func TestAuditLoggingDisabled(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := AuditLoggingConfig{
 		Enabled:              false, // Disabled
 		LogLevel:             "info",
@@ -703,7 +704,7 @@ func TestAuditLoggingDisabled(t *testing.T) {
 }
 
 func TestComplianceTags(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := AuditLoggingConfig{
 		Enabled:              true,
 		LogLevel:             "info",
@@ -771,7 +772,7 @@ func TestComplianceTags(t *testing.T) {
 }
 
 func TestRiskScoreCalculation(t *testing.T) {
-	logger := observability.NewLogger("test", "debug")
+	logger := createTestLogger()
 	config := AuditLoggingConfig{
 		Enabled:              true,
 		LogLevel:             "info",
@@ -836,7 +837,3 @@ func TestRiskScoreCalculation(t *testing.T) {
 }
 
 // Helper function to check if data is valid JSON
-func isValidJSON(data []byte) bool {
-	var v interface{}
-	return json.Unmarshal(data, &v) == nil
-}
