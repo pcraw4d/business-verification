@@ -1,0 +1,50 @@
+# KYB Platform - Full Featured Railway Configuration
+server:
+  host: "0.0.0.0"
+  port: 8080
+  read_timeout: "30s"
+  write_timeout: "30s"
+  idle_timeout: "60s"
+
+database:
+  type: "postgresql"
+  connection_string: "${DATABASE_URL}"
+  ssl_mode: "require"
+  max_open_conns: 25
+  max_idle_conns: 10
+
+observability:
+  log_level: "${LOG_LEVEL:-info}"
+  log_format: "json"
+  metrics_enabled: true
+  tracing_enabled: true
+  health_check_path: "/health"
+
+auth:
+  jwt_secret: "${JWT_SECRET}"
+  jwt_expiry: "24h"
+  bcrypt_cost: 10
+  session_timeout: "24h"
+
+supabase:
+  url: "${SUPABASE_URL}"
+  anon_key: "${SUPABASE_ANON_KEY}"
+  service_role_key: "${SUPABASE_SERVICE_ROLE_KEY}"
+  enabled: "${SUPABASE_ENABLED:-true}"
+  real_time_enabled: true
+
+external_services:
+  business_data_api:
+    enabled: "${BUSINESS_DATA_API_ENABLED:-false}"
+    base_url: "${BUSINESS_DATA_API_URL:-}"
+    api_key: "${BUSINESS_DATA_API_KEY:-}"
+
+beta_mode: true
+analytics_enabled: "${ANALYTICS_ENABLED:-true}"
+feedback_collection: "${FEEDBACK_COLLECTION:-true}"
+
+security:
+  cors_origin: "${CORS_ORIGIN:-*}"
+  rate_limit_enabled: true
+  rate_limit_requests: 100
+  rate_limit_window: "1m"
