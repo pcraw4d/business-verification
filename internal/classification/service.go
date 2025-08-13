@@ -37,7 +37,7 @@ type ClassificationService struct {
 	enricher *datasource.Aggregator
 
 	// web analysis
-	webAnalysis *webanalysis.ClassificationFlowManager
+	webAnalysis   *webanalysis.ClassificationFlowManager
 	hybridScraper *webanalysis.HybridAPIScraper
 }
 
@@ -1337,7 +1337,7 @@ func (c *ClassificationService) classifyByHybridAnalysis(ctx context.Context, re
 
 	// Convert hybrid results to our format
 	var classifications []IndustryClassification
-	
+
 	// Add classifications from scraped content
 	if result.ScrapedContent != nil && result.ScrapedContent.Text != "" {
 		// Use keyword-based classification on scraped text

@@ -7,8 +7,8 @@ import (
 
 // BaseAPIClient provides common functionality for API clients
 type BaseAPIClient struct {
-	name     string
-	cost     float64
+	name      string
+	cost      float64
 	available bool
 }
 
@@ -37,8 +37,8 @@ type GooglePlacesClient struct {
 func NewGooglePlacesClient() *GooglePlacesClient {
 	return &GooglePlacesClient{
 		BaseAPIClient: BaseAPIClient{
-			name:     "Google Places",
-			cost:     0.0, // Free tier available
+			name:      "Google Places",
+			cost:      0.0, // Free tier available
 			available: true,
 		},
 		apiKey: "", // Would be set from environment
@@ -71,8 +71,8 @@ type YelpClient struct {
 func NewYelpClient() *YelpClient {
 	return &YelpClient{
 		BaseAPIClient: BaseAPIClient{
-			name:     "Yelp",
-			cost:     0.0, // Free tier available
+			name:      "Yelp",
+			cost:      0.0, // Free tier available
 			available: true,
 		},
 		apiKey: "", // Would be set from environment
@@ -104,8 +104,8 @@ type OpenCorporatesClient struct {
 func NewOpenCorporatesClient() *OpenCorporatesClient {
 	return &OpenCorporatesClient{
 		BaseAPIClient: BaseAPIClient{
-			name:     "OpenCorporates",
-			cost:     0.0, // Free tier available
+			name:      "OpenCorporates",
+			cost:      0.0, // Free tier available
 			available: true,
 		},
 		apiKey: "", // Would be set from environment
@@ -137,8 +137,8 @@ type CrunchbaseClient struct {
 func NewCrunchbaseClient() *CrunchbaseClient {
 	return &CrunchbaseClient{
 		BaseAPIClient: BaseAPIClient{
-			name:     "Crunchbase",
-			cost:     0.25, // $0.25 per request
+			name:      "Crunchbase",
+			cost:      0.25, // $0.25 per request
 			available: true,
 		},
 		apiKey: "", // Would be set from environment
@@ -170,8 +170,8 @@ type LinkedInClient struct {
 func NewLinkedInClient() *LinkedInClient {
 	return &LinkedInClient{
 		BaseAPIClient: BaseAPIClient{
-			name:     "LinkedIn",
-			cost:     0.30, // $0.30 per request
+			name:      "LinkedIn",
+			cost:      0.30, // $0.30 per request
 			available: true,
 		},
 		apiKey: "", // Would be set from environment

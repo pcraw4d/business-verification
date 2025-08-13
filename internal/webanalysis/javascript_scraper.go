@@ -139,11 +139,11 @@ func NewJavaScriptScraper(config JavaScriptScraperConfig) *JavaScriptScraper {
 func (js *JavaScriptScraper) ScrapeWebsite(job *JavaScriptScrapingJob) (*JavaScriptScrapingResult, error) {
 	start := time.Now()
 	result := &JavaScriptScrapingResult{
-		URL:               job.URL,
-		ScrapedAt:         time.Now(),
-		ExtractedData:     make(map[string]string),
-		JavaScriptErrors:  []string{},
-		NetworkRequests:   []NetworkRequest{},
+		URL:                job.URL,
+		ScrapedAt:          time.Now(),
+		ExtractedData:      make(map[string]string),
+		JavaScriptErrors:   []string{},
+		NetworkRequests:    []NetworkRequest{},
 		JavaScriptExecuted: []string{},
 	}
 
@@ -162,30 +162,30 @@ func (js *JavaScriptScraper) ScrapeWebsite(job *JavaScriptScrapingJob) (*JavaScr
 	err = chromedp.Run(ctx,
 		// Set viewport
 		chromedp.EmulateViewport(int64(js.config.ViewportWidth), int64(js.config.ViewportHeight)),
-		
+
 		// Navigate to URL
 		chromedp.Navigate(job.URL),
-		
+
 		// Wait for page load
-		chromedp.Sleep(2 * time.Second), // Simple wait for page load
-		
+		chromedp.Sleep(2*time.Second), // Simple wait for page load
+
 		// Wait for specific selector if provided
 		chromedp.WaitVisible(job.WaitForSelector, chromedp.ByQuery),
-		
+
 		// Execute custom JavaScript
 		js.executeCustomJavaScript(job.ExecuteJavaScript),
-		
+
 		// Perform user interactions
 		js.performUserInteractions(job.UserInteractions),
-		
+
 		// Extract content
 		chromedp.OuterHTML("html", &result.HTML),
 		chromedp.Title(&result.Title),
 		chromedp.Text("body", &result.Text),
-		
+
 		// Take screenshot if enabled
 		js.takeScreenshot(job.EnableScreenshots, job.ScreenshotPath, &result.ScreenshotPath),
-		
+
 		// Extract data from selectors
 		js.extractDataFromSelectors(job.ExtractSelectors, &result.ExtractedData),
 	)

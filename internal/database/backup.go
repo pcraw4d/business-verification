@@ -215,7 +215,7 @@ func (bs *BackupService) CreateBackup(ctx context.Context) (*BackupResult, error
 	}
 
 	// Log backup completion
-	bs.logger.Info("Database backup completed successfully", 
+	bs.logger.Info("Database backup completed successfully",
 		zap.String("backup_id", backupID),
 		zap.String("filename", filename),
 		zap.Int64("size", fileInfo.Size()),

@@ -7,17 +7,17 @@ import (
 
 func TestNewJavaScriptScraper(t *testing.T) {
 	config := JavaScriptScraperConfig{
-		EnableJavaScript:      true,
-		WaitForLoadTimeout:    30 * time.Second,
-		JavaScriptTimeout:     10 * time.Second,
-		EnableFingerprinting:  true,
-		EnableSessionMgmt:     true,
+		EnableJavaScript:       true,
+		WaitForLoadTimeout:     30 * time.Second,
+		JavaScriptTimeout:      10 * time.Second,
+		EnableFingerprinting:   true,
+		EnableSessionMgmt:      true,
 		EnableResourceBlocking: true,
 		EnableUserInteractions: true,
-		MaxConcurrentBrowsers: 5,
-		ViewportWidth:         1920,
-		ViewportHeight:        1080,
-		UserDataDir:           "/tmp/browser_data",
+		MaxConcurrentBrowsers:  5,
+		ViewportWidth:          1920,
+		ViewportHeight:         1080,
+		UserDataDir:            "/tmp/browser_data",
 	}
 
 	scraper := NewJavaScriptScraper(config)
@@ -289,8 +289,8 @@ func TestUserInteractionValidation(t *testing.T) {
 		},
 		{
 			interaction: UserInteraction{
-				Type:      "invalid_type",
-				Selector:  "#element",
+				Type:     "invalid_type",
+				Selector: "#element",
 			},
 			description: "Invalid interaction type",
 			shouldError: true,
@@ -317,23 +317,23 @@ func TestUserInteractionValidation(t *testing.T) {
 
 func TestJavaScriptScrapingResultStructure(t *testing.T) {
 	result := &JavaScriptScrapingResult{
-		URL:                    "https://example.com",
-		Title:                  "Test Page",
-		HTML:                   "<html><body>Test</body></html>",
-		Text:                   "Test",
-		StatusCode:             200,
-		ResponseTime:           2 * time.Second,
-		JavaScriptExecuted:     []string{"console.log('test')"},
-		ExtractedData:          map[string]string{"title": "Test"},
-		DOMSnapshot:            "<html>...</html>",
-		ScreenshotPath:         "/tmp/screenshot.png",
-		JavaScriptErrors:       []string{},
-		LoadTime:               1 * time.Second,
-		NetworkRequests:        []NetworkRequest{},
-		Error:                  "",
-		ScrapedAt:              time.Now(),
-		BrowserFingerprint:     "chrome_windows",
-		SessionID:              "session_123",
+		URL:                "https://example.com",
+		Title:              "Test Page",
+		HTML:               "<html><body>Test</body></html>",
+		Text:               "Test",
+		StatusCode:         200,
+		ResponseTime:       2 * time.Second,
+		JavaScriptExecuted: []string{"console.log('test')"},
+		ExtractedData:      map[string]string{"title": "Test"},
+		DOMSnapshot:        "<html>...</html>",
+		ScreenshotPath:     "/tmp/screenshot.png",
+		JavaScriptErrors:   []string{},
+		LoadTime:           1 * time.Second,
+		NetworkRequests:    []NetworkRequest{},
+		Error:              "",
+		ScrapedAt:          time.Now(),
+		BrowserFingerprint: "chrome_windows",
+		SessionID:          "session_123",
 	}
 
 	if result.URL != "https://example.com" {
