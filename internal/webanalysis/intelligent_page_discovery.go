@@ -24,6 +24,8 @@ type PageDiscoveryResult struct {
 	Depth             int               `json:"depth"`
 	DiscoveredAt      time.Time         `json:"discovered_at"`
 	Metadata          map[string]string `json:"metadata"`
+	PriorityScore     float64           `json:"priority_score"`
+	ContentQuality    float64           `json:"content_quality"`
 }
 
 // PageType represents the type of page discovered
@@ -446,6 +448,8 @@ func (ipd *IntelligentPageDiscovery) analyzePage(job *PageDiscoveryJob, content 
 		Depth:             job.Depth,
 		DiscoveredAt:      time.Now(),
 		Metadata:          job.Metadata,
+		PriorityScore:     0.0,
+		ContentQuality:    0.0,
 	}
 
 	// Determine page type based on URL patterns
@@ -459,6 +463,10 @@ func (ipd *IntelligentPageDiscovery) analyzePage(job *PageDiscoveryJob, content 
 
 	// Extract business keywords
 	result.BusinessKeywords = ipd.extractBusinessKeywords(content, job.Business)
+
+	// Calculate priority score and content quality
+	result.PriorityScore = ipd.calculatePriorityScore(result.PageType)
+	result.ContentQuality = ipd.calculateContentQuality(content)
 
 	// Adjust priority based on page type and relevance
 	result.Priority = ipd.calculatePriority(result)
@@ -494,26 +502,48 @@ func (ipd *IntelligentPageDiscovery) determinePageType(url string, content *Scra
 func (ipd *IntelligentPageDiscovery) calculateRelevanceScore(job *PageDiscoveryJob, content *ScrapedContent, pageType PageType) float64 {
 	score := 0.0
 
-	// Page type match score
+	// Page type match score (enhanced for business information pages)
 	if pageType != PageTypeUnknown {
-		score += ipd.relevanceWeights["page_type_match"]
+		baseScore := ipd.relevanceWeights["page_type_match"]
+		
+		// Boost score for high-value page types
+		switch pageType {
+		case PageTypeAbout, PageTypeMission:
+			baseScore *= 1.5
+		case PageTypeProducts, PageTypeServices:
+			baseScore *= 1.3
+		case PageTypeContact, PageTypeTeam:
+			baseScore *= 1.2
+		case PageTypeCompany, PageTypeBusiness:
+			baseScore *= 1.4
+		}
+		
+		score += baseScore
 	}
 
-	// Keyword density score
+	// Enhanced keyword density score
 	keywordDensity := ipd.calculateKeywordDensity(content, job.Business)
 	score += keywordDensity * ipd.relevanceWeights["keyword_density"]
 
-	// Business name match score
+	// Enhanced business name match score
 	businessMatch := ipd.calculateBusinessNameMatch(content, job.Business)
 	score += businessMatch * ipd.relevanceWeights["business_name_match"]
 
-	// Content quality score
+	// Enhanced content quality score
 	contentQuality := ipd.calculateContentQuality(content)
 	score += contentQuality * ipd.relevanceWeights["content_quality"]
 
-	// Page depth penalty
+	// Page depth penalty (reduced for high-priority pages)
 	depthPenalty := float64(job.Depth) * ipd.relevanceWeights["page_depth"]
+	if pageType == PageTypeAbout || pageType == PageTypeMission || pageType == PageTypeServices || pageType == PageTypeProducts {
+		depthPenalty *= 0.5 // Less penalty for high-priority pages
+	}
 	score -= depthPenalty
+
+	// Business name validation bonus
+	if ipd.validateBusinessNameMatch(content, job.Business) {
+		score += 0.1 // Bonus for validated business name match
+	}
 
 	return score
 }
@@ -577,6 +607,33 @@ func (ipd *IntelligentPageDiscovery) calculateBusinessNameMatch(content *Scraped
 	return float64(matchedWords) / float64(len(businessWords))
 }
 
+// validateBusinessNameMatch validates if the page content matches the business name
+func (ipd *IntelligentPageDiscovery) validateBusinessNameMatch(content *ScrapedContent, business string) bool {
+	text := strings.ToLower(content.Text + " " + content.Title)
+	businessLower := strings.ToLower(business)
+	businessWords := strings.Fields(businessLower)
+
+	// Check for exact business name match
+	if strings.Contains(text, businessLower) {
+		return true
+	}
+
+	// Check for key business words (at least 50% match)
+	matchedWords := 0
+	for _, word := range businessWords {
+		if len(word) > 2 && strings.Contains(text, word) {
+			matchedWords++
+		}
+	}
+
+	if len(businessWords) == 0 {
+		return false
+	}
+
+	matchRatio := float64(matchedWords) / float64(len(businessWords))
+	return matchRatio >= 0.5
+}
+
 // calculateContentQuality calculates the quality of the page content
 func (ipd *IntelligentPageDiscovery) calculateContentQuality(content *ScrapedContent) float64 {
 	text := content.Text
@@ -615,6 +672,29 @@ func (ipd *IntelligentPageDiscovery) calculateContentQuality(content *ScrapedCon
 	}
 
 	return score
+}
+
+// calculatePriorityScore calculates the priority score for a page type
+func (ipd *IntelligentPageDiscovery) calculatePriorityScore(pageType PageType) float64 {
+	priorities := map[PageType]float64{
+		PageTypeAbout:    0.9,  // High priority - essential business information
+		PageTypeMission:  0.8,  // High priority - business purpose and values
+		PageTypeServices: 0.85, // High priority - what the business does
+		PageTypeProducts: 0.8,  // High priority - what the business sells
+		PageTypeContact:  0.7,  // Medium-high priority - contact information
+		PageTypeTeam:     0.6,  // Medium priority - team information
+		PageTypeCompany:  0.75, // High priority - company information
+		PageTypeBusiness: 0.75, // High priority - business information
+		PageTypeNews:     0.3,  // Lower priority - news and updates
+		PageTypeBlog:     0.3,  // Lower priority - blog posts
+		PageTypeCareers:  0.4,  // Lower priority - job opportunities
+		PageTypeUnknown:  0.1,  // Lowest priority - unknown page type
+	}
+
+	if priority, exists := priorities[pageType]; exists {
+		return priority
+	}
+	return 0.1
 }
 
 // calculatePriority calculates the priority for a discovered page

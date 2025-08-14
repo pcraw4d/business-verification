@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
@@ -25,6 +26,8 @@ type PriorityScrapingJob struct {
 	ScheduledAt    time.Time              `json:"scheduled_at"`
 	Context        *ScrapingContext       `json:"context"`
 	Metadata       map[string]interface{} `json:"metadata"`
+	PriorityScore  float64                `json:"priority_score"`
+	ContentQuality float64                `json:"content_quality"`
 	index          int                    // Used by heap interface
 }
 
@@ -86,6 +89,10 @@ type QueueConfig struct {
 	MinRelevanceScore      float64       `json:"min_relevance_score"`
 	MaxDiscoveryDepth      int           `json:"max_discovery_depth"`
 	MaxPagesPerDomain      int           `json:"max_pages_per_domain"`
+	EnableDynamicPriority  bool          `json:"enable_dynamic_priority"`
+	EnableContentQuality   bool          `json:"enable_content_quality"`
+	HighPriorityDepthLimit int           `json:"high_priority_depth_limit"`
+	BusinessNameValidation bool          `json:"business_name_validation"`
 }
 
 // QueueStats holds statistics about the queue
@@ -145,6 +152,10 @@ func NewPriorityScrapingQueue(scraper *WebScraper, relevanceScorer *PageRelevanc
 			MinRelevanceScore:      0.3,
 			MaxDiscoveryDepth:      3,
 			MaxPagesPerDomain:      50,
+			EnableDynamicPriority:  true,
+			EnableContentQuality:   true,
+			HighPriorityDepthLimit: 2,
+			BusinessNameValidation: true,
 		},
 		stats: &QueueStats{
 			LastUpdated: time.Now(),
@@ -284,20 +295,124 @@ func (psq *PriorityScrapingQueue) Stop() {
 
 // CreateJobFromDiscoveryResult creates a scraping job from a page discovery result
 func (psq *PriorityScrapingQueue) CreateJobFromDiscoveryResult(result *PageDiscoveryResult, business string, context *ScrapingContext) *PriorityScrapingJob {
+	// Calculate dynamic priority based on page type and content quality
+	priority := psq.calculateDynamicPriority(result, business)
+	
+	// Validate business name match if enabled
+	businessNameValid := true
+	if psq.config.BusinessNameValidation {
+		businessNameValid = psq.validateBusinessNameMatch(result, business)
+	}
+
+	// Apply depth limiting for high-priority pages
+	depth := result.Depth
+	if psq.config.EnableDynamicPriority && result.PriorityScore >= 0.8 {
+		if depth > psq.config.HighPriorityDepthLimit {
+			depth = psq.config.HighPriorityDepthLimit
+		}
+	}
+
 	return &PriorityScrapingJob{
 		URL:            result.URL,
 		Business:       business,
-		Priority:       result.Priority,
+		Priority:       priority,
 		RelevanceScore: result.RelevanceScore,
 		PageType:       result.PageType,
-		Depth:          result.Depth,
+		Depth:          depth,
 		Context:        context,
+		PriorityScore:  result.PriorityScore,
+		ContentQuality: result.ContentQuality,
 		Metadata: map[string]interface{}{
-			"discovered_at":      result.DiscoveredAt,
-			"content_indicators": result.ContentIndicators,
-			"business_keywords":  result.BusinessKeywords,
+			"discovered_at":        result.DiscoveredAt,
+			"content_indicators":   result.ContentIndicators,
+			"business_keywords":    result.BusinessKeywords,
+			"business_name_valid":  businessNameValid,
+			"dynamic_priority":     priority,
 		},
 	}
+}
+
+// calculateDynamicPriority calculates dynamic priority based on page type and content quality
+func (psq *PriorityScrapingQueue) calculateDynamicPriority(result *PageDiscoveryResult, business string) int {
+	basePriority := result.Priority
+
+	// Boost priority for high-value page types
+	switch result.PageType {
+	case PageTypeAbout, PageTypeMission:
+		basePriority += 50
+	case PageTypeProducts, PageTypeServices:
+		basePriority += 40
+	case PageTypeContact, PageTypeTeam:
+		basePriority += 30
+	case PageTypeCompany, PageTypeBusiness:
+		basePriority += 35
+	case PageTypeNews, PageTypeBlog:
+		basePriority += 20
+	}
+
+	// Boost priority for high relevance scores
+	if result.RelevanceScore > 0.8 {
+		basePriority += 30
+	} else if result.RelevanceScore > 0.6 {
+		basePriority += 20
+	} else if result.RelevanceScore > 0.4 {
+		basePriority += 10
+	}
+
+	// Boost priority for high content quality
+	if psq.config.EnableContentQuality && result.ContentQuality > 0.8 {
+		basePriority += 25
+	} else if result.ContentQuality > 0.6 {
+		basePriority += 15
+	} else if result.ContentQuality > 0.4 {
+		basePriority += 5
+	}
+
+	// Reduce priority for deeper pages (but less penalty for high-priority pages)
+	depthPenalty := result.Depth * 5
+	if result.PriorityScore >= 0.8 {
+		depthPenalty = result.Depth * 2 // Less penalty for high-priority pages
+	}
+	basePriority -= depthPenalty
+
+	return basePriority
+}
+
+// validateBusinessNameMatch validates if the page content matches the business name
+func (psq *PriorityScrapingQueue) validateBusinessNameMatch(result *PageDiscoveryResult, business string) bool {
+	// Check if business name appears in content indicators or keywords
+	businessLower := strings.ToLower(business)
+	businessWords := strings.Fields(businessLower)
+
+	// Check content indicators
+	for _, indicator := range result.ContentIndicators {
+		if strings.Contains(strings.ToLower(indicator), businessLower) {
+			return true
+		}
+	}
+
+	// Check business keywords
+	for _, keyword := range result.BusinessKeywords {
+		if strings.Contains(strings.ToLower(keyword), businessLower) {
+			return true
+		}
+	}
+
+	// Check if key business words are present
+	matchedWords := 0
+	for _, word := range businessWords {
+		if len(word) > 2 { // Skip very short words
+			for _, keyword := range result.BusinessKeywords {
+				if strings.Contains(strings.ToLower(keyword), word) {
+					matchedWords++
+					break
+				}
+			}
+		}
+	}
+
+	// Consider it a match if at least 50% of business words are found
+	return float64(matchedWords)/float64(len(businessWords)) >= 0.5
 }
 
 // CreateJobFromURL creates a scraping job from a URL
@@ -511,12 +626,22 @@ func (h JobHeap) Less(i, j int) bool {
 		return h[i].Priority > h[j].Priority
 	}
 
-	// If priorities are equal, higher relevance score comes first
+	// If priorities are equal, higher priority score comes first
+	if h[i].PriorityScore != h[j].PriorityScore {
+		return h[i].PriorityScore > h[j].PriorityScore
+	}
+
+	// If priority scores are equal, higher relevance score comes first
 	if h[i].RelevanceScore != h[j].RelevanceScore {
 		return h[i].RelevanceScore > h[j].RelevanceScore
 	}
 
-	// If relevance scores are equal, earlier creation time comes first
+	// If relevance scores are equal, higher content quality comes first
+	if h[i].ContentQuality != h[j].ContentQuality {
+		return h[i].ContentQuality > h[j].ContentQuality
+	}
+
+	// If content quality is equal, earlier creation time comes first
 	return h[i].CreatedAt.Before(h[j].CreatedAt)
 }
 

@@ -15,6 +15,8 @@ type PageTypeDetection struct {
 	URLPatterns       []string  `json:"url_patterns"`
 	ContentIndicators []string  `json:"content_indicators"`
 	DetectedAt        time.Time `json:"detected_at"`
+	PriorityScore     float64   `json:"priority_score"`
+	ContentQuality    float64   `json:"content_quality"`
 }
 
 // PageTypeDetector manages page type detection operations
@@ -68,6 +70,10 @@ func (ptd *PageTypeDetector) DetectPageType(content *ScrapedContent) *PageTypeDe
 	detection.Keywords = finalType.Keywords
 	detection.URLPatterns = finalType.URLPatterns
 	detection.ContentIndicators = finalType.ContentIndicators
+
+	// Calculate priority score and content quality
+	detection.PriorityScore = ptd.GetPageTypePriority(finalType.Type)
+	detection.ContentQuality = ptd.AssessContentQuality(content)
 
 	return detection
 }
@@ -468,4 +474,84 @@ func (ptd *PageTypeDetector) GetPageTypeDescription(pageType string) string {
 		return description
 	}
 	return "Unknown Page Type"
+}
+
+// AssessContentQuality assesses the quality of page content for classification
+func (ptd *PageTypeDetector) AssessContentQuality(content *ScrapedContent) float64 {
+	quality := 0.0
+	text := content.Text
+	title := content.Title
+	html := content.HTML
+
+	// Content length assessment
+	if len(text) > 2000 {
+		quality += 0.3
+	} else if len(text) > 1000 {
+		quality += 0.25
+	} else if len(text) > 500 {
+		quality += 0.2
+	} else if len(text) > 100 {
+		quality += 0.1
+	}
+
+	// Title quality assessment
+	if len(title) > 20 && len(title) < 100 {
+		quality += 0.2
+	} else if len(title) > 10 {
+		quality += 0.1
+	}
+
+	// HTML structure quality
+	if strings.Contains(html, "<h1>") {
+		quality += 0.15
+	}
+	if strings.Contains(html, "<h2>") {
+		quality += 0.1
+	}
+	if strings.Contains(html, "<p>") {
+		quality += 0.1
+	}
+
+	// Content relevance indicators
+	relevantKeywords := []string{
+		"company", "business", "enterprise", "organization",
+		"services", "products", "solutions", "about", "mission",
+		"vision", "values", "team", "contact", "leadership",
+	}
+
+	keywordCount := 0
+	textLower := strings.ToLower(text)
+	for _, keyword := range relevantKeywords {
+		if strings.Contains(textLower, keyword) {
+			keywordCount++
+		}
+	}
+
+	if keywordCount >= 5 {
+		quality += 0.15
+	} else if keywordCount >= 3 {
+		quality += 0.1
+	} else if keywordCount >= 1 {
+		quality += 0.05
+	}
+
+	// Penalize low-quality indicators
+	if strings.Count(textLower, "advertisement") > 2 {
+		quality -= 0.2
+	}
+	if strings.Count(textLower, "click here") > 3 {
+		quality -= 0.1
+	}
+	if strings.Count(textLower, "menu") > 10 {
+		quality -= 0.1
+	}
+
+	// Ensure quality is between 0 and 1
+	if quality > 1.0 {
+		quality = 1.0
+	} else if quality < 0.0 {
+		quality = 0.0
+	}
+
+	return quality
 }
