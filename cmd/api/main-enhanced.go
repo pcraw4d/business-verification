@@ -625,45 +625,16 @@ func performComprehensiveClassification(businessName, geographicRegion, business
 
 // performKeywordClassification performs enhanced keyword-based classification
 func performKeywordClassification(businessName, businessType, industry, description, keywords string) map[string]interface{} {
-	confidence := 0.75
-	detectedIndustry := "Technology"
-
 	// Enhanced keyword analysis
 	allText := strings.ToLower(businessName + " " + businessType + " " + industry + " " + description + " " + keywords)
 
-	// Industry detection with enhanced keywords - check most specific first
-	// Use exact word matching for better accuracy
-	if containsAnyExact(allText, "grocery", "supermarket", "food", "market", "fresh", "produce", "deli", "bakery", "meat", "dairy") {
-		detectedIndustry = "Grocery & Food Retail"
-		confidence = 0.90
-	} else if containsAny(allText, "bank", "financial", "credit", "lending", "investment", "insurance", "wealth", "asset") {
-		detectedIndustry = "Financial Services"
-		confidence = 0.85
-	} else if containsAny(allText, "health", "medical", "pharma", "hospital", "clinic", "therapy", "treatment", "care") {
-		detectedIndustry = "Healthcare"
-		confidence = 0.85
-	} else if containsAny(allText, "restaurant", "cafe", "dining", "food service", "catering", "takeout") {
-		detectedIndustry = "Food Service"
-		confidence = 0.85
-	} else if containsAny(allText, "retail", "store", "shop", "ecommerce", "marketplace", "outlet", "mall", "department") {
-		detectedIndustry = "Retail"
-		confidence = 0.80
-	} else if containsAny(allText, "manufacturing", "factory", "industrial", "production", "assembly") {
-		detectedIndustry = "Manufacturing"
-		confidence = 0.80
-	} else if containsAny(allText, "consulting", "advisory", "services", "professional", "management", "strategy") {
-		detectedIndustry = "Professional Services"
-		confidence = 0.80
-	} else if containsAny(allText, "transport", "logistics", "shipping", "delivery", "freight", "warehouse") {
-		detectedIndustry = "Transportation & Logistics"
-		confidence = 0.80
-	} else if containsAny(allText, "real estate", "property", "housing", "construction", "building", "development") {
-		detectedIndustry = "Real Estate & Construction"
-		confidence = 0.80
-	} else if containsAny(allText, "tech", "software", "digital", "ai", "machine learning", "platform", "app", "system") {
-		detectedIndustry = "Technology"
-		confidence = 0.85
-	}
+	// Debug logging
+	fmt.Printf("DEBUG: Analyzing text: %s\n", allText)
+
+	// Use the new reliable keyword detection function
+	detectedIndustry, confidence := detectIndustryFromKeywords(allText)
+	
+	fmt.Printf("DEBUG: Detected industry: %s with confidence: %.2f\n", detectedIndustry, confidence)
 
 	// Get industry codes based on detected industry
 	industryCodes := getIndustryCodes(detectedIndustry)
@@ -686,38 +657,56 @@ func performMLClassification(businessName, description, keywords string) map[str
 	// Simulate ML model processing
 	allText := strings.ToLower(businessName + " " + description + " " + keywords)
 
+	// Debug logging
+	fmt.Printf("DEBUG ML: Analyzing text: %s\n", allText)
+
 	// Enhanced ML-based industry detection
-	switch {
-	case containsAny(allText, "bank", "financial", "credit", "lending", "investment", "insurance"):
-		detectedIndustry = "Financial Services"
-		confidence = 0.92
-	case containsAny(allText, "health", "medical", "pharma", "hospital", "clinic", "therapy", "treatment"):
-		detectedIndustry = "Healthcare"
-		confidence = 0.91
-	case containsAny(allText, "grocery", "supermarket", "food", "market", "fresh", "produce", "deli", "bakery"):
+	if containsAny(allText, "grocery", "supermarket", "food", "market", "fresh", "produce", "deli", "bakery") {
 		detectedIndustry = "Grocery & Food Retail"
 		confidence = 0.93
-	case containsAny(allText, "retail", "store", "shop", "ecommerce", "marketplace", "outlet"):
-		detectedIndustry = "Retail"
-		confidence = 0.89
-	case containsAny(allText, "manufacturing", "factory", "industrial", "production", "assembly"):
-		detectedIndustry = "Manufacturing"
-		confidence = 0.88
-	case containsAny(allText, "consulting", "advisory", "services", "professional", "management"):
-		detectedIndustry = "Professional Services"
-		confidence = 0.87
-	case containsAny(allText, "restaurant", "cafe", "dining", "food service", "catering"):
+		fmt.Printf("DEBUG ML: Detected Grocery & Food Retail\n")
+	} else if containsAny(allText, "bank", "financial", "credit", "lending", "investment", "insurance") {
+		detectedIndustry = "Financial Services"
+		confidence = 0.92
+		fmt.Printf("DEBUG ML: Detected Financial Services\n")
+	} else if containsAny(allText, "health", "medical", "pharma", "hospital", "clinic", "therapy", "treatment") {
+		detectedIndustry = "Healthcare"
+		confidence = 0.91
+		fmt.Printf("DEBUG ML: Detected Healthcare\n")
+	} else if containsAny(allText, "restaurant", "cafe", "dining", "food service", "catering") {
 		detectedIndustry = "Food Service"
 		confidence = 0.90
-	case containsAny(allText, "transport", "logistics", "shipping", "delivery", "freight"):
+		fmt.Printf("DEBUG ML: Detected Food Service\n")
+	} else if containsAny(allText, "retail", "store", "shop", "ecommerce", "marketplace", "outlet") {
+		detectedIndustry = "Retail"
+		confidence = 0.89
+		fmt.Printf("DEBUG ML: Detected Retail\n")
+	} else if containsAny(allText, "manufacturing", "factory", "industrial", "production", "assembly") {
+		detectedIndustry = "Manufacturing"
+		confidence = 0.88
+		fmt.Printf("DEBUG ML: Detected Manufacturing\n")
+	} else if containsAny(allText, "consulting", "advisory", "services", "professional", "management") {
+		detectedIndustry = "Professional Services"
+		confidence = 0.87
+		fmt.Printf("DEBUG ML: Detected Professional Services\n")
+	} else if containsAny(allText, "restaurant", "cafe", "dining", "food service", "catering") {
+		detectedIndustry = "Food Service"
+		confidence = 0.90
+		fmt.Printf("DEBUG ML: Detected Food Service\n")
+	} else if containsAny(allText, "transport", "logistics", "shipping", "delivery", "freight") {
 		detectedIndustry = "Transportation & Logistics"
 		confidence = 0.86
-	case containsAny(allText, "real estate", "property", "housing", "construction", "building"):
+		fmt.Printf("DEBUG ML: Detected Transportation & Logistics\n")
+	} else if containsAny(allText, "real estate", "property", "housing", "construction", "building") {
 		detectedIndustry = "Real Estate & Construction"
 		confidence = 0.85
-	case containsAny(allText, "tech", "software", "digital", "ai", "machine learning", "platform"):
+		fmt.Printf("DEBUG ML: Detected Real Estate & Construction\n")
+	} else if containsAny(allText, "tech", "software", "digital", "ai", "machine learning", "platform") {
 		detectedIndustry = "Technology"
 		confidence = 0.90
+		fmt.Printf("DEBUG ML: Detected Technology\n")
+	} else {
+		fmt.Printf("DEBUG ML: No specific industry detected, defaulting to Technology\n")
 	}
 
 	// Get industry codes based on detected industry
@@ -956,6 +945,82 @@ func containsAnyExact(s string, keywords ...string) bool {
 		}
 	}
 	return false
+}
+
+// Simple keyword detection function
+func detectIndustryFromKeywords(text string) (string, float64) {
+	text = strings.ToLower(text)
+	
+	// Check for grocery keywords first
+	if strings.Contains(text, "grocery") || strings.Contains(text, "supermarket") || 
+	   strings.Contains(text, "food") || strings.Contains(text, "market") || 
+	   strings.Contains(text, "fresh") || strings.Contains(text, "produce") || 
+	   strings.Contains(text, "deli") || strings.Contains(text, "bakery") || 
+	   strings.Contains(text, "meat") || strings.Contains(text, "dairy") {
+		return "Grocery & Food Retail", 0.90
+	}
+	
+	// Check for financial keywords
+	if strings.Contains(text, "bank") || strings.Contains(text, "financial") || 
+	   strings.Contains(text, "credit") || strings.Contains(text, "lending") || 
+	   strings.Contains(text, "investment") || strings.Contains(text, "insurance") {
+		return "Financial Services", 0.85
+	}
+	
+	// Check for healthcare keywords
+	if strings.Contains(text, "health") || strings.Contains(text, "medical") || 
+	   strings.Contains(text, "pharma") || strings.Contains(text, "hospital") || 
+	   strings.Contains(text, "clinic") || strings.Contains(text, "therapy") {
+		return "Healthcare", 0.85
+	}
+	
+	// Check for restaurant keywords
+	if strings.Contains(text, "restaurant") || strings.Contains(text, "cafe") || 
+	   strings.Contains(text, "dining") || strings.Contains(text, "food service") || 
+	   strings.Contains(text, "catering") {
+		return "Food Service", 0.85
+	}
+	
+	// Check for retail keywords
+	if strings.Contains(text, "retail") || strings.Contains(text, "store") || 
+	   strings.Contains(text, "shop") || strings.Contains(text, "ecommerce") || 
+	   strings.Contains(text, "marketplace") {
+		return "Retail", 0.80
+	}
+	
+	// Check for manufacturing keywords
+	if strings.Contains(text, "manufacturing") || strings.Contains(text, "factory") || 
+	   strings.Contains(text, "industrial") || strings.Contains(text, "production") {
+		return "Manufacturing", 0.80
+	}
+	
+	// Check for professional services keywords
+	if strings.Contains(text, "consulting") || strings.Contains(text, "advisory") || 
+	   strings.Contains(text, "services") || strings.Contains(text, "professional") {
+		return "Professional Services", 0.80
+	}
+	
+	// Check for transportation keywords
+	if strings.Contains(text, "transport") || strings.Contains(text, "logistics") || 
+	   strings.Contains(text, "shipping") || strings.Contains(text, "delivery") {
+		return "Transportation & Logistics", 0.80
+	}
+	
+	// Check for real estate keywords
+	if strings.Contains(text, "real estate") || strings.Contains(text, "property") || 
+	   strings.Contains(text, "housing") || strings.Contains(text, "construction") {
+		return "Real Estate & Construction", 0.80
+	}
+	
+	// Check for technology keywords
+	if strings.Contains(text, "tech") || strings.Contains(text, "software") || 
+	   strings.Contains(text, "digital") || strings.Contains(text, "ai") || 
+	   strings.Contains(text, "machine learning") || strings.Contains(text, "platform") {
+		return "Technology", 0.85
+	}
+	
+	// Default to Technology if no specific keywords found
+	return "Technology", 0.75
 }
 
 func extractKeywords(text string) []string {
