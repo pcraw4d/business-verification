@@ -62,7 +62,7 @@ func (s *SupabaseCache) Set(ctx context.Context, key string, value interface{}, 
 	_, err = s.client.DB.From("cache_entries").
 		Upsert(entry, false, "", "", "").
 		Execute("")
-	
+
 	if err != nil {
 		s.logger.Error("Failed to set cache value in Supabase", "error", err)
 		return fmt.Errorf("failed to set cache value: %w", err)
@@ -82,7 +82,7 @@ func (s *SupabaseCache) Get(ctx context.Context, key string) (interface{}, error
 		Gt("expires_at", time.Now()).
 		Single().
 		Execute("")
-	
+
 	if err != nil {
 		s.logger.Debug("Cache miss in Supabase", "key", key)
 		return nil, fmt.Errorf("cache miss: %w", err)
@@ -121,7 +121,7 @@ func (s *SupabaseCache) Delete(ctx context.Context, key string) error {
 		Delete("", "").
 		Eq("key", key).
 		Execute("")
-	
+
 	if err != nil {
 		s.logger.Error("Failed to delete cache value from Supabase", "error", err)
 		return fmt.Errorf("failed to delete cache value: %w", err)
@@ -138,7 +138,7 @@ func (s *SupabaseCache) Clear(ctx context.Context) error {
 	_, err := s.client.DB.From("cache_entries").
 		Delete("", "").
 		Execute("")
-	
+
 	if err != nil {
 		s.logger.Error("Failed to clear cache values from Supabase", "error", err)
 		return fmt.Errorf("failed to clear cache: %w", err)
@@ -157,7 +157,7 @@ func (s *SupabaseCache) GetWithTTL(ctx context.Context, key string) (interface{}
 		Eq("key", key).
 		Single().
 		Execute("")
-	
+
 	if err != nil {
 		s.logger.Debug("Cache miss in Supabase", "key", key)
 		return nil, 0, fmt.Errorf("cache miss: %w", err)
@@ -259,7 +259,7 @@ func (s *SupabaseCache) GetKeys(ctx context.Context, pattern string) ([]string, 
 		Select("key").
 		Gt("expires_at", time.Now()).
 		Execute("")
-	
+
 	if err != nil {
 		s.logger.Error("Failed to get cache keys from Supabase", "error", err)
 		return nil, fmt.Errorf("failed to get cache keys: %w", err)
@@ -310,9 +310,9 @@ func (s *SupabaseCache) GetStats(ctx context.Context) (map[string]interface{}, e
 	}
 
 	stats := map[string]interface{}{
-		"provider":      "supabase",
-		"total_entries": totalCount[0]["count"],
-		"active_entries": activeCount[0]["count"],
+		"provider":        "supabase",
+		"total_entries":   totalCount[0]["count"],
+		"active_entries":  activeCount[0]["count"],
 		"expired_entries": totalCount[0]["count"].(float64) - activeCount[0]["count"].(float64),
 	}
 
@@ -328,7 +328,7 @@ func (s *SupabaseCache) CleanupExpired(ctx context.Context) error {
 		Delete("", "").
 		Lt("expires_at", time.Now()).
 		Execute("")
-	
+
 	if err != nil {
 		s.logger.Error("Failed to cleanup expired cache entries in Supabase", "error", err)
 		return fmt.Errorf("failed to cleanup expired entries: %w", err)

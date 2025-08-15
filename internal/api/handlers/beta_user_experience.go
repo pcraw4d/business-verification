@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/pcraw4d/business-verification/internal/webanalysis.bak"
+	"github.com/pcraw4d/business-verification/internal/webanalysis"
 	"go.uber.org/zap"
 	// "github.com/pcraw4d/business-verification/internal/webanalysis" // Temporarily disabled
 )

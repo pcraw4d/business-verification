@@ -230,56 +230,58 @@ func (c *ClassificationService) initEnrichment(db database.Database) {
 
 // initWebAnalysis initializes the web analysis components
 func (c *ClassificationService) initWebAnalysis() {
-	config := webanalysis.FlowConfig{
-		DefaultMaxResults:          10,
-		DefaultConfidenceThreshold: 0.5,
-		URLFlowTimeout:             30 * time.Second,
-		SearchFlowTimeout:          30 * time.Second,
-		FallbackEnabled:            true,
-		RetryAttempts:              3,
-	}
-	c.webAnalysis = webanalysis.NewClassificationFlowManager(config)
-	c.hybridScraper = webanalysis.NewHybridAPIScraper()
+	// Temporarily disabled - web analysis components are not available
+	// config := webanalysis.FlowConfig{
+	// 	DefaultMaxResults:          10,
+	// 	DefaultConfidenceThreshold: 0.5,
+	// 	URLFlowTimeout:             30 * time.Second,
+	// 	SearchFlowTimeout:          30 * time.Second,
+	// 	FallbackEnabled:            true,
+	// 	RetryAttempts:              3,
+	// }
+	// c.webAnalysis = webanalysis.NewClassificationFlowManager(config)
+	// c.hybridScraper = webanalysis.NewHybridAPIScraper()
 }
 
 // initSearchIntegration initializes the search integration components
 func (c *ClassificationService) initSearchIntegration() {
-	if c.config == nil {
-		return
-	}
-	// Initialize search integration components with default values
-	// Note: API keys would be configured via environment variables or config
-	searchConfig := webanalysis.SearchIntegrationConfig{
-		GoogleAPIKey:         "", // Would be set from config
-		GoogleSearchEngineID: "", // Would be set from config
-		BingAPIKey:           "", // Would be set from config
-		BingEndpoint:         "", // Would be set from config
-		MaxResults:           10,
-		Timeout:              30 * time.Second,
-		EnableCaching:        true,
-		CacheTTL:             1 * time.Hour,
-		RetryAttempts:        3,
-		RetryDelay:           1 * time.Second,
-	}
-	c.multiSourceSearch = webanalysis.NewMultiSourceSearchService(searchConfig)
+	// Temporarily disabled - search integration components are not available
+	// if c.config == nil {
+	// 	return
+	// }
+	// // Initialize search integration components with default values
+	// // Note: API keys would be configured via environment variables or config
+	// searchConfig := webanalysis.SearchIntegrationConfig{
+	// 	GoogleAPIKey:         "", // Would be set from config
+	// 	GoogleSearchEngineID: "", // Would be set from config
+	// 	BingAPIKey:           "", // Would be set from config
+	// 	BingEndpoint:         "", // Would be set from config
+	// 	MaxResults:           10,
+	// 	Timeout:              30 * time.Second,
+	// 	EnableCaching:        true,
+	// 	CacheTTL:             1 * time.Hour,
+	// 	RetryAttempts:        3,
+	// 	RetryDelay:           1 * time.Second,
+	// }
+	// c.multiSourceSearch = webanalysis.NewMultiSourceSearchService(searchConfig)
 
-	analyzerConfig := webanalysis.SearchAnalyzerConfig{
-		MinSnippetLength:    50,
-		MaxSnippetLength:    300,
-		MinQualityScore:     0.3,
-		MinConfidenceScore:  0.75,
-		EnableDeduplication: true,
-		EnableRanking:       true,
-		IndustryKeywords:    c.getIndustryKeywords(),
-		QualityWeights: map[string]float64{
-			"title_length":     0.2,
-			"snippet_length":   0.3,
-			"url_quality":      0.2,
-			"provider_quality": 0.15,
-			"relevance":        0.15,
-		},
-	}
-	c.searchAnalyzer = webanalysis.NewSearchResultAnalyzer(analyzerConfig)
+	// analyzerConfig := webanalysis.SearchAnalyzerConfig{
+	// 	MinSnippetLength:    50,
+	// 	MaxSnippetLength:    300,
+	// 	MinQualityScore:     0.3,
+	// 	MinConfidenceScore:  0.75,
+	// 	EnableDeduplication: true,
+	// 	EnableRanking:       true,
+	// 	IndustryKeywords:    c.getIndustryKeywords(),
+	// 	QualityWeights: map[string]float64{
+	// 		"title_length":     0.2,
+	// 		"snippet_length":   0.3,
+	// 		"url_quality":      0.2,
+	// 		"provider_quality": 0.15,
+	// 		"relevance":        0.15,
+	// 	},
+	// }
+	// c.searchAnalyzer = webanalysis.NewSearchResultAnalyzer(analyzerConfig)
 }
 
 // initCrosswalkMapper initializes the crosswalk mapping component

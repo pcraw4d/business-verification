@@ -123,3 +123,77 @@ func NewConnectionEvidence(source, target, evidenceType string, confidence float
 		Timestamp:    time.Now(),
 	}
 }
+
+// ABTestResult represents the result of an A/B test
+type ABTestResult struct {
+	TestID       string        `json:"test_id"`
+	Method       string        `json:"method"`
+	Success      bool          `json:"success"`
+	ResponseTime time.Duration `json:"response_time"`
+	Accuracy     float64       `json:"accuracy"`
+	DataQuality  float64       `json:"data_quality"`
+	Timestamp    time.Time     `json:"timestamp"`
+}
+
+// NewABTestResult creates a new A/B test result
+func NewABTestResult(testID, method string, success bool, responseTime time.Duration, accuracy, dataQuality float64) *ABTestResult {
+	return &ABTestResult{
+		TestID:       testID,
+		Method:       method,
+		Success:      success,
+		ResponseTime: responseTime,
+		Accuracy:     accuracy,
+		DataQuality:  dataQuality,
+		Timestamp:    time.Now(),
+	}
+}
+
+// BetaTestingFramework represents the beta testing framework
+type BetaTestingFramework struct {
+	config BetaTestingConfig
+}
+
+// BetaTestingConfig represents configuration for beta testing
+type BetaTestingConfig struct {
+	Enabled           bool
+	TestID            string
+	UserID            string
+	Method            string
+	SuccessThreshold  float64
+	AccuracyThreshold float64
+}
+
+// NewBetaTestingFramework creates a new beta testing framework
+func NewBetaTestingFramework(config BetaTestingConfig) *BetaTestingFramework {
+	return &BetaTestingFramework{
+		config: config,
+	}
+}
+
+// BetaFeedback represents feedback from beta testing
+type BetaFeedback struct {
+	TestID       string    `json:"test_id"`
+	UserID       string    `json:"user_id"`
+	Method       string    `json:"method"`
+	Success      bool      `json:"success"`
+	Accuracy     float64   `json:"accuracy"`
+	DataQuality  float64   `json:"data_quality"`
+	Satisfaction int       `json:"satisfaction"`
+	Comments     string    `json:"comments"`
+	Timestamp    time.Time `json:"timestamp"`
+}
+
+// NewBetaFeedback creates new beta feedback
+func NewBetaFeedback(testID, userID, method string, success bool, accuracy, dataQuality float64, satisfaction int, comments string) *BetaFeedback {
+	return &BetaFeedback{
+		TestID:       testID,
+		UserID:       userID,
+		Method:       method,
+		Success:      success,
+		Accuracy:     accuracy,
+		DataQuality:  dataQuality,
+		Satisfaction: satisfaction,
+		Comments:     comments,
+		Timestamp:    time.Now(),
+	}
+}
