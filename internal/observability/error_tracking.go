@@ -555,15 +555,15 @@ func (ets *ErrorTrackingSystem) logError(errorEvent *ErrorEvent) {
 	// Log based on severity
 	switch errorEvent.Severity {
 	case SeverityCritical:
-		logger.Error("Critical error occurred", zap.Error(fmt.Errorf(errorEvent.ErrorMessage)))
+		logger.Error("Critical error occurred", zap.String("error", errorEvent.ErrorMessage))
 	case SeverityHigh:
-		logger.Error("High severity error occurred", zap.Error(fmt.Errorf(errorEvent.ErrorMessage)))
+		logger.Error("High severity error occurred", zap.String("error", errorEvent.ErrorMessage))
 	case SeverityMedium:
-		logger.Warn("Medium severity error occurred", zap.Error(fmt.Errorf(errorEvent.ErrorMessage)))
+		logger.Warn("Medium severity error occurred", zap.String("error", errorEvent.ErrorMessage))
 	case SeverityLow:
-		logger.Info("Low severity error occurred", zap.Error(fmt.Errorf(errorEvent.ErrorMessage)))
+		logger.Info("Low severity error occurred", zap.String("error", errorEvent.ErrorMessage))
 	default:
-		logger.Info("Error occurred", zap.Error(fmt.Errorf(errorEvent.ErrorMessage)))
+		logger.Info("Error occurred", zap.String("error", errorEvent.ErrorMessage))
 	}
 }
 
@@ -851,7 +851,7 @@ func (ets *ErrorTrackingSystem) handleCreateError(w http.ResponseWriter, r *http
 	}
 
 	// Create error
-	err := fmt.Errorf(errorData.ErrorMessage)
+	err := fmt.Errorf("%s", errorData.ErrorMessage)
 	errorEvent := ets.TrackError(r.Context(), err, options...)
 
 	// Return response

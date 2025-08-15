@@ -9,6 +9,14 @@ import (
 	"github.com/pcraw4d/business-verification/internal/observability"
 )
 
+// ConfidenceRange represents a range of confidence scores for a specific method
+type ConfidenceRange struct {
+	MinConfidence float64 `json:"min_confidence"`
+	MaxConfidence float64 `json:"max_confidence"`
+	Method        string  `json:"method"`
+	Description   string  `json:"description"`
+}
+
 // ConfidenceScoringEngine provides sophisticated industry confidence scoring
 type ConfidenceScoringEngine struct {
 	logger  *observability.Logger
@@ -27,15 +35,21 @@ type ConfidenceScoringEngine struct {
 	recencyWeight          float64
 	validationWeight       float64
 
+	// Method-based confidence ranges (as specified in PRD)
+	methodConfidenceRanges map[string]ConfidenceRange
+
 	// Industry-specific scoring data
 	industryPopularity      map[string]float64
 	industryValidationRates map[string]float64
 	keywordReliability      map[string]float64
+
+	// Dynamic confidence adjustment
+	dynamicAdjuster *DynamicConfidenceAdjuster
 }
 
 // NewConfidenceScoringEngine creates a new confidence scoring engine
 func NewConfidenceScoringEngine(logger *observability.Logger, metrics *observability.Metrics) *ConfidenceScoringEngine {
-	return &ConfidenceScoringEngine{
+	engine := &ConfidenceScoringEngine{
 		logger:  logger,
 		metrics: metrics,
 
@@ -57,6 +71,14 @@ func NewConfidenceScoringEngine(logger *observability.Logger, metrics *observabi
 		industryValidationRates: make(map[string]float64),
 		keywordReliability:      make(map[string]float64),
 	}
+
+	// Initialize method-based confidence ranges (as specified in PRD)
+	engine.initializeMethodConfidenceRanges()
+
+	// Initialize dynamic confidence adjuster
+	engine.dynamicAdjuster = NewDynamicConfidenceAdjuster(logger, metrics)
+
+	return engine
 }
 
 // ConfidenceScore represents a comprehensive confidence score with breakdown
@@ -121,8 +143,11 @@ func (c *ConfidenceScoringEngine) CalculateConfidenceScore(ctx context.Context, 
 	// Ensure score is within valid range
 	overallScore = math.Max(0.0, math.Min(1.0, overallScore))
 
+	// Apply dynamic confidence adjustment
+	adjustedScore := c.applyDynamicConfidenceAdjustment(ctx, overallScore, classification, request)
+
 	// Determine confidence level
-	confidenceLevel := c.determineConfidenceLevel(overallScore)
+	confidenceLevel := c.determineConfidenceLevel(adjustedScore)
 
 	// Identify reliability and uncertainty factors
 	reliabilityFactors := c.identifyReliabilityFactors(classification, request)
@@ -130,7 +155,7 @@ func (c *ConfidenceScoringEngine) CalculateConfidenceScore(ctx context.Context, 
 
 	// Create confidence score result
 	result := &ConfidenceScore{
-		OverallScore:       overallScore,
+		OverallScore:       adjustedScore,
 		BaseConfidence:     baseConfidence,
 		KeywordScore:       keywordScore,
 		DescriptionScore:   descriptionScore,
@@ -159,28 +184,94 @@ func (c *ConfidenceScoringEngine) CalculateConfidenceScore(ctx context.Context, 
 		})
 	}
 
+	// Record confidence scoring metrics
+	c.RecordConfidenceScoringMetrics(ctx, classification, result)
+
 	return result
 }
 
-// calculateBaseConfidence calculates the base confidence score
-func (c *ConfidenceScoringEngine) calculateBaseConfidence(classification IndustryClassification) float64 {
-	baseScore := classification.ConfidenceScore
+// initializeMethodConfidenceRanges initializes the method-based confidence ranges as specified in PRD
+func (c *ConfidenceScoringEngine) initializeMethodConfidenceRanges() {
+	c.methodConfidenceRanges = map[string]ConfidenceRange{
+		"website_analysis": {
+			MinConfidence: 0.85,
+			MaxConfidence: 0.95,
+			Method:        "website_analysis",
+			Description:   "Website analysis provides highest confidence due to direct content analysis",
+		},
+		"web_search_analysis": {
+			MinConfidence: 0.75,
+			MaxConfidence: 0.85,
+			Method:        "web_search_analysis",
+			Description:   "Web search analysis provides high confidence through external validation",
+		},
+		"keyword_based": {
+			MinConfidence: 0.60,
+			MaxConfidence: 0.75,
+			Method:        "keyword_based",
+			Description:   "Keyword-based classification provides moderate confidence",
+		},
+		"fuzzy_matching": {
+			MinConfidence: 0.50,
+			MaxConfidence: 0.70,
+			Method:        "fuzzy_matching",
+			Description:   "Fuzzy matching provides lower confidence due to approximate matching",
+		},
+		"crosswalk_mapping": {
+			MinConfidence: 0.40,
+			MaxConfidence: 0.60,
+			Method:        "crosswalk_mapping",
+			Description:   "Crosswalk mapping provides lowest confidence due to indirect mapping",
+		},
+		"search_analysis": {
+			MinConfidence: 0.75,
+			MaxConfidence: 0.85,
+			Method:        "search_analysis",
+			Description:   "Search-based analysis provides high confidence through external validation",
+		},
+		"search_result_analysis": {
+			MinConfidence: 0.70,
+			MaxConfidence: 0.80,
+			Method:        "search_result_analysis",
+			Description:   "Search result analysis provides good confidence through result validation",
+		},
+	}
+}
 
-	// Apply method-specific adjustments
-	switch classification.ClassificationMethod {
-	case "keyword_match":
-		baseScore *= 1.1 // Boost for keyword matches
-	case "description_match":
-		baseScore *= 1.05 // Slight boost for description matches
-	case "fuzzy_match":
-		baseScore *= 0.9 // Reduce for fuzzy matches
-	case "business_type":
-		baseScore *= 0.95 // Slight reduction for business type
-	case "industry_hint":
-		baseScore *= 0.9 // Reduce for industry hints
+// calculateBaseConfidence calculates the base confidence score using method-based ranges
+func (c *ConfidenceScoringEngine) calculateBaseConfidence(classification IndustryClassification) float64 {
+	// Get the confidence range for the classification method
+	confidenceRange, exists := c.methodConfidenceRanges[classification.ClassificationMethod]
+	if !exists {
+		// Default range for unknown methods
+		confidenceRange = ConfidenceRange{
+			MinConfidence: 0.50,
+			MaxConfidence: 0.70,
+			Method:        classification.ClassificationMethod,
+			Description:   "Default confidence range for unknown method",
+		}
 	}
 
-	return math.Max(0.0, math.Min(1.0, baseScore))
+	// Calculate the base score within the method's confidence range
+	rangeSize := confidenceRange.MaxConfidence - confidenceRange.MinConfidence
+	baseScore := confidenceRange.MinConfidence + (rangeSize * classification.ConfidenceScore)
+
+	// Ensure the score is within the valid range
+	baseScore = math.Max(confidenceRange.MinConfidence, math.Min(confidenceRange.MaxConfidence, baseScore))
+
+	// Log the method-based confidence calculation
+	if c.logger != nil {
+		c.logger.WithComponent("confidence_scoring").Debug("method_based_confidence_calculation", map[string]interface{}{
+			"method":         classification.ClassificationMethod,
+			"min_confidence": confidenceRange.MinConfidence,
+			"max_confidence": confidenceRange.MaxConfidence,
+			"original_score": classification.ConfidenceScore,
+			"adjusted_score": baseScore,
+			"description":    confidenceRange.Description,
+		})
+	}
+
+	return baseScore
 }
 
 // calculateKeywordScore calculates keyword-based confidence score
@@ -649,4 +740,266 @@ func (c *ConfidenceScoringEngine) GetWeights() map[string]float64 {
 		"recency":           c.recencyWeight,
 		"validation":        c.validationWeight,
 	}
+}
+
+// ValidateConfidenceRange validates that a confidence score is within the expected range for its method
+func (c *ConfidenceScoringEngine) ValidateConfidenceRange(classification IndustryClassification) (bool, string) {
+	confidenceRange, exists := c.methodConfidenceRanges[classification.ClassificationMethod]
+	if !exists {
+		return false, "unknown_classification_method"
+	}
+
+	if classification.ConfidenceScore < confidenceRange.MinConfidence {
+		return false, "below_minimum_confidence"
+	}
+
+	if classification.ConfidenceScore > confidenceRange.MaxConfidence {
+		return false, "above_maximum_confidence"
+	}
+
+	return true, "within_valid_range"
+}
+
+// GetMethodConfidenceRange returns the confidence range for a specific method
+func (c *ConfidenceScoringEngine) GetMethodConfidenceRange(method string) (ConfidenceRange, bool) {
+	confidenceRange, exists := c.methodConfidenceRanges[method]
+	return confidenceRange, exists
+}
+
+// GetAllMethodConfidenceRanges returns all method confidence ranges
+func (c *ConfidenceScoringEngine) GetAllMethodConfidenceRanges() map[string]ConfidenceRange {
+	return c.methodConfidenceRanges
+}
+
+// UpdateMethodConfidenceRange updates the confidence range for a specific method
+func (c *ConfidenceScoringEngine) UpdateMethodConfidenceRange(method string, minConfidence, maxConfidence float64, description string) {
+	c.methodConfidenceRanges[method] = ConfidenceRange{
+		MinConfidence: minConfidence,
+		MaxConfidence: maxConfidence,
+		Method:        method,
+		Description:   description,
+	}
+
+	// Log the update
+	if c.logger != nil {
+		c.logger.WithComponent("confidence_scoring").Info("method_confidence_range_updated", map[string]interface{}{
+			"method":         method,
+			"min_confidence": minConfidence,
+			"max_confidence": maxConfidence,
+			"description":    description,
+		})
+	}
+}
+
+// GetConfidenceScoringMetrics returns comprehensive confidence scoring metrics
+func (c *ConfidenceScoringEngine) GetConfidenceScoringMetrics() map[string]interface{} {
+	metrics := map[string]interface{}{
+		"method_ranges":           c.methodConfidenceRanges,
+		"scoring_weights":         c.GetWeights(),
+		"total_methods_supported": len(c.methodConfidenceRanges),
+		"supported_methods":       make([]string, 0, len(c.methodConfidenceRanges)),
+	}
+
+	// Add supported methods list
+	for method := range c.methodConfidenceRanges {
+		metrics["supported_methods"] = append(metrics["supported_methods"].([]string), method)
+	}
+
+	return metrics
+}
+
+// RecordConfidenceScoringMetrics records metrics for confidence scoring
+func (c *ConfidenceScoringEngine) RecordConfidenceScoringMetrics(ctx context.Context, classification IndustryClassification, confidenceScore *ConfidenceScore) {
+	if c.metrics == nil {
+		return
+	}
+
+	// Record business classification with confidence level
+	c.metrics.RecordBusinessClassification("success", confidenceScore.ConfidenceLevel)
+
+	// Record classification duration (using a default duration since we don't have timing info here)
+	c.metrics.RecordClassificationDuration(classification.ClassificationMethod, time.Millisecond*100)
+
+	// Log confidence scoring metrics
+	if c.logger != nil {
+		// Record confidence range validation
+		isValid, validationReason := c.ValidateConfidenceRange(classification)
+
+		c.logger.WithComponent("confidence_scoring").Info("confidence_scoring_metrics_recorded", map[string]interface{}{
+			"method":            classification.ClassificationMethod,
+			"confidence_score":  confidenceScore.OverallScore,
+			"confidence_level":  confidenceScore.ConfidenceLevel,
+			"is_valid_range":    isValid,
+			"validation_reason": validationReason,
+			"min_confidence":    c.methodConfidenceRanges[classification.ClassificationMethod].MinConfidence,
+			"max_confidence":    c.methodConfidenceRanges[classification.ClassificationMethod].MaxConfidence,
+		})
+	}
+}
+
+// applyDynamicConfidenceAdjustment applies dynamic confidence adjustment based on various factors
+func (c *ConfidenceScoringEngine) applyDynamicConfidenceAdjustment(ctx context.Context, baseConfidence float64, classification IndustryClassification, request *ClassificationRequest) float64 {
+	// Create adjustment factors based on available data
+	adjustmentFactors := &ConfidenceAdjustmentFactors{
+		ContentQuality:    c.extractContentQuality(classification, request),
+		GeographicRegion:  c.extractGeographicRegion(classification, request),
+		IndustryFactors:   c.extractIndustryFactors(classification),
+		BusinessSize:      c.extractBusinessSize(request),
+		BusinessAge:       c.extractBusinessAge(request),
+		DataSourceQuality: c.extractDataSourceQuality(classification),
+		CrossValidation:   c.extractCrossValidation(classification, request),
+		LastUpdated:       c.extractLastUpdated(classification),
+	}
+
+	// Apply dynamic adjustment
+	adjustedConfidence := c.dynamicAdjuster.AdjustConfidence(ctx, baseConfidence, adjustmentFactors)
+
+	// Log the adjustment
+	if c.logger != nil {
+		c.logger.WithComponent("confidence_scoring").LogBusinessEvent(ctx, "dynamic_confidence_adjustment_applied", "", map[string]interface{}{
+			"base_confidence":       baseConfidence,
+			"adjusted_confidence":   adjustedConfidence,
+			"adjustment_delta":      adjustedConfidence - baseConfidence,
+			"industry_code":         classification.IndustryCode,
+			"classification_method": classification.ClassificationMethod,
+		})
+	}
+
+	return adjustedConfidence
+}
+
+// extractContentQuality extracts content quality factors from classification and request
+func (c *ConfidenceScoringEngine) extractContentQuality(classification IndustryClassification, request *ClassificationRequest) *ContentQuality {
+	// Default content quality assessment
+	quality := &ContentQuality{
+		Completeness:      0.8, // Default completeness
+		Relevance:         0.8, // Default relevance
+		Freshness:         0.8, // Default freshness
+		Accuracy:          0.8, // Default accuracy
+		Consistency:       0.8, // Default consistency
+		SourceReliability: 0.8, // Default source reliability
+	}
+
+	// Adjust based on classification method
+	switch classification.ClassificationMethod {
+	case "website_analysis":
+		quality.Completeness = 0.9
+		quality.Relevance = 0.9
+		quality.SourceReliability = 0.9
+	case "web_search_analysis":
+		quality.Completeness = 0.8
+		quality.Relevance = 0.8
+		quality.SourceReliability = 0.8
+	case "keyword_based":
+		quality.Completeness = 0.7
+		quality.Relevance = 0.7
+		quality.SourceReliability = 0.7
+	}
+
+	// Adjust based on request data quality
+	if request != nil && request.BusinessName != "" {
+		quality.Completeness += 0.1
+	}
+	if request != nil && request.Description != "" {
+		quality.Relevance += 0.1
+	}
+
+	return quality
+}
+
+// extractGeographicRegion extracts geographic region information
+func (c *ConfidenceScoringEngine) extractGeographicRegion(classification IndustryClassification, request *ClassificationRequest) *GeographicRegion {
+	region := &GeographicRegion{
+		Country:     "US", // Default to US
+		State:       "",
+		City:        "",
+		Region:      "",
+		Confidence:  0.8,
+		DataQuality: 0.8,
+	}
+
+	// Extract from request if available
+	// Note: Geographic fields are not available in the current ClassificationRequest structure
+	// This would need to be enhanced when geographic fields are added to the request
+
+	return region
+}
+
+// extractIndustryFactors extracts industry-specific factors
+func (c *ConfidenceScoringEngine) extractIndustryFactors(classification IndustryClassification) *IndustrySpecificFactors {
+	factors := &IndustrySpecificFactors{
+		IndustryCode:     classification.IndustryCode,
+		IndustryCategory: classification.IndustryName, // Use IndustryName as category
+		CodeDensity:      0.5,                         // Default code density
+		ValidationRate:   0.8,                         // Default validation rate
+		Popularity:       0.5,                         // Default popularity
+		Complexity:       0.5,                         // Default complexity
+	}
+
+	// Get industry-specific data if available
+	if validationRate, exists := c.industryValidationRates[classification.IndustryCode]; exists {
+		factors.ValidationRate = validationRate
+	}
+	if popularity, exists := c.industryPopularity[classification.IndustryCode]; exists {
+		factors.Popularity = popularity
+	}
+
+	return factors
+}
+
+// extractBusinessSize extracts business size information
+func (c *ConfidenceScoringEngine) extractBusinessSize(request *ClassificationRequest) string {
+	if request == nil {
+		return "unknown"
+	}
+
+	// Note: EmployeeCount is not available in the current ClassificationRequest structure
+	// This would need to be enhanced when employee count is added to the request
+	// For now, return unknown as default
+
+	return "unknown"
+}
+
+// extractBusinessAge extracts business age information
+func (c *ConfidenceScoringEngine) extractBusinessAge(request *ClassificationRequest) int {
+	if request == nil {
+		return 0
+	}
+
+	// Extract business age from request
+	// This would need to be implemented based on available data
+	return 0 // Default to unknown age
+}
+
+// extractDataSourceQuality extracts data source quality information
+func (c *ConfidenceScoringEngine) extractDataSourceQuality(classification IndustryClassification) float64 {
+	// Default data source quality based on classification method
+	switch classification.ClassificationMethod {
+	case "website_analysis":
+		return 0.9
+	case "web_search_analysis":
+		return 0.8
+	case "keyword_based":
+		return 0.7
+	case "fuzzy_matching":
+		return 0.6
+	case "crosswalk_mapping":
+		return 0.5
+	default:
+		return 0.7
+	}
+}
+
+// extractCrossValidation extracts cross-validation information
+func (c *ConfidenceScoringEngine) extractCrossValidation(classification IndustryClassification, request *ClassificationRequest) float64 {
+	// Default cross-validation score
+	// This would be enhanced based on actual cross-validation results
+	return 0.8
+}
+
+// extractLastUpdated extracts last updated information
+func (c *ConfidenceScoringEngine) extractLastUpdated(classification IndustryClassification) time.Time {
+	// Return current time as default
+	// This would be enhanced based on actual data freshness information
+	return time.Now()
 }

@@ -1,0 +1,776 @@
+package classification
+
+import (
+	"context"
+	"crypto/md5"
+	"encoding/json"
+	"fmt"
+	"sync"
+	"time"
+
+	"github.com/pcraw4d/business-verification/internal/observability"
+)
+
+// CacheKey represents a cache key with metadata
+type CacheKey struct {
+	BusinessName     string                 `json:"business_name"`
+	BusinessType     string                 `json:"business_type,omitempty"`
+	Industry         string                 `json:"industry,omitempty"`
+	Description      string                 `json:"description,omitempty"`
+	Keywords         string                 `json:"keywords,omitempty"`
+	MLModelVersion   string                 `json:"ml_model_version,omitempty"`
+	GeographicRegion string                 `json:"geographic_region,omitempty"`
+	IndustryType     string                 `json:"industry_type,omitempty"`
+	EnhancedMetadata map[string]interface{} `json:"enhanced_metadata,omitempty"`
+	Hash             string                 `json:"hash"`
+	CreatedAt        time.Time              `json:"created_at"`
+	LastAccessed     time.Time              `json:"last_accessed"`
+	AccessCount      int                    `json:"access_count"`
+}
+
+// CacheEntry represents a cached classification result
+type CacheEntry struct {
+	Key              *CacheKey                          `json:"key"`
+	Result           *MultiIndustryClassificationResult `json:"result"`
+	EnhancedResult   *EnhancedClassificationResponse    `json:"enhanced_result,omitempty"`
+	ExpiresAt        time.Time                          `json:"expires_at"`
+	CreatedAt        time.Time                          `json:"created_at"`
+	LastAccessed     time.Time                          `json:"last_accessed"`
+	AccessCount      int                                `json:"access_count"`
+	HitRate          float64                            `json:"hit_rate"`
+	ProcessingTime   time.Duration                      `json:"processing_time"`
+	CacheLevel       string                             `json:"cache_level"` // "l1", "l2", "l3"
+	CompressionRatio float64                            `json:"compression_ratio,omitempty"`
+	Metadata         map[string]interface{}             `json:"metadata"`
+}
+
+// CacheStats represents cache performance statistics
+type CacheStats struct {
+	TotalEntries      int                    `json:"total_entries"`
+	HitCount          int                    `json:"hit_count"`
+	MissCount         int                    `json:"miss_count"`
+	HitRate           float64                `json:"hit_rate"`
+	AverageAccessTime time.Duration          `json:"average_access_time"`
+	TotalMemoryUsage  int64                  `json:"total_memory_usage"`
+	EvictionCount     int                    `json:"eviction_count"`
+	WarmupCount       int                    `json:"warmup_count"`
+	CompressionRatio  float64                `json:"compression_ratio"`
+	LastUpdated       time.Time              `json:"last_updated"`
+	Metadata          map[string]interface{} `json:"metadata"`
+}
+
+// CacheWarmingConfig represents cache warming configuration
+type CacheWarmingConfig struct {
+	Enabled             bool                   `json:"enabled"`
+	WarmupInterval      time.Duration          `json:"warmup_interval"`
+	MaxWarmupEntries    int                    `json:"max_warmup_entries"`
+	PopularityThreshold int                    `json:"popularity_threshold"`
+	WarmupStrategies    []string               `json:"warmup_strategies"`
+	Metadata            map[string]interface{} `json:"metadata"`
+}
+
+// CacheInvalidationRule represents a cache invalidation rule
+type CacheInvalidationRule struct {
+	ID            string                 `json:"id"`
+	Name          string                 `json:"name"`
+	Pattern       string                 `json:"pattern"`
+	Condition     string                 `json:"condition"` // "time", "access_count", "manual", "dependency"
+	Threshold     interface{}            `json:"threshold"`
+	Action        string                 `json:"action"` // "expire", "delete", "update"
+	Enabled       bool                   `json:"enabled"`
+	CreatedAt     time.Time              `json:"created_at"`
+	LastTriggered *time.Time             `json:"last_triggered,omitempty"`
+	Metadata      map[string]interface{} `json:"metadata"`
+}
+
+// CacheFallbackConfig represents cache fallback configuration
+type CacheFallbackConfig struct {
+	Enabled             bool                   `json:"enabled"`
+	FallbackLevels      []string               `json:"fallback_levels"` // "l1", "l2", "l3", "database"
+	FallbackTimeout     time.Duration          `json:"fallback_timeout"`
+	GracefulDegradation bool                   `json:"graceful_degradation"`
+	Metadata            map[string]interface{} `json:"metadata"`
+}
+
+// EnhancedCacheManager provides intelligent caching for classification results
+type EnhancedCacheManager struct {
+	logger  *observability.Logger
+	metrics *observability.Metrics
+
+	// Cache storage
+	cache      map[string]*CacheEntry
+	cacheMutex sync.RWMutex
+
+	// Configuration
+	maxEntries         int
+	defaultTTL         time.Duration
+	compressionEnabled bool
+	warmingConfig      *CacheWarmingConfig
+	fallbackConfig     *CacheFallbackConfig
+
+	// Performance tracking
+	stats      *CacheStats
+	statsMutex sync.RWMutex
+
+	// Invalidation rules
+	invalidationRules map[string]*CacheInvalidationRule
+	rulesMutex        sync.RWMutex
+
+	// Popular entries tracking
+	popularEntries map[string]int
+	popularMutex   sync.RWMutex
+
+	// Background workers
+	warmingTicker *time.Ticker
+	cleanupTicker *time.Ticker
+	statsTicker   *time.Ticker
+	stopChan      chan struct{}
+}
+
+// NewEnhancedCacheManager creates a new enhanced cache manager
+func NewEnhancedCacheManager(
+	logger *observability.Logger,
+	metrics *observability.Metrics,
+	maxEntries int,
+	defaultTTL time.Duration,
+) *EnhancedCacheManager {
+	manager := &EnhancedCacheManager{
+		logger:  logger,
+		metrics: metrics,
+
+		// Initialize cache storage
+		cache:              make(map[string]*CacheEntry),
+		maxEntries:         maxEntries,
+		defaultTTL:         defaultTTL,
+		compressionEnabled: true,
+
+		// Initialize configuration
+		warmingConfig: &CacheWarmingConfig{
+			Enabled:             true,
+			WarmupInterval:      time.Hour,
+			MaxWarmupEntries:    1000,
+			PopularityThreshold: 10,
+			WarmupStrategies:    []string{"popularity", "recency", "frequency"},
+		},
+		fallbackConfig: &CacheFallbackConfig{
+			Enabled:             true,
+			FallbackLevels:      []string{"l1", "l2", "l3", "database"},
+			FallbackTimeout:     time.Second * 5,
+			GracefulDegradation: true,
+		},
+
+		// Initialize tracking
+		stats:             &CacheStats{LastUpdated: time.Now()},
+		invalidationRules: make(map[string]*CacheInvalidationRule),
+		popularEntries:    make(map[string]int),
+
+		// Initialize background workers
+		stopChan: make(chan struct{}),
+	}
+
+	// Initialize default invalidation rules
+	manager.initializeDefaultInvalidationRules()
+
+	// Start background workers
+	go manager.startBackgroundWorkers()
+
+	return manager
+}
+
+// Get retrieves a cached classification result
+func (cm *EnhancedCacheManager) Get(ctx context.Context, key *CacheKey) (*CacheEntry, error) {
+	start := time.Now()
+
+	// Generate cache key hash
+	cacheKey := cm.generateCacheKey(key)
+
+	cm.cacheMutex.RLock()
+	entry, exists := cm.cache[cacheKey]
+	cm.cacheMutex.RUnlock()
+
+	if !exists {
+		cm.recordCacheMiss(ctx, cacheKey, time.Since(start))
+		return nil, fmt.Errorf("cache miss")
+	}
+
+	// Check if entry is expired
+	if time.Now().After(entry.ExpiresAt) {
+		cm.cacheMutex.Lock()
+		delete(cm.cache, cacheKey)
+		cm.cacheMutex.Unlock()
+		cm.recordCacheMiss(ctx, cacheKey, time.Since(start))
+		return nil, fmt.Errorf("cache entry expired")
+	}
+
+	// Update access statistics
+	cm.updateAccessStats(entry, time.Since(start))
+
+	// Update popular entries tracking
+	cm.updatePopularEntries(cacheKey)
+
+	cm.recordCacheHit(ctx, cacheKey, time.Since(start))
+	return entry, nil
+}
+
+// Set stores a classification result in cache
+func (cm *EnhancedCacheManager) Set(ctx context.Context, key *CacheKey, result *MultiIndustryClassificationResult, enhancedResult *EnhancedClassificationResponse) error {
+	start := time.Now()
+
+	// Generate cache key hash
+	cacheKey := cm.generateCacheKey(key)
+
+	// Check cache size limit
+	cm.cacheMutex.Lock()
+	if len(cm.cache) >= cm.maxEntries {
+		cm.evictLeastUsed()
+	}
+	cm.cacheMutex.Unlock()
+
+	// Create cache entry
+	entry := &CacheEntry{
+		Key:            key,
+		Result:         result,
+		EnhancedResult: enhancedResult,
+		ExpiresAt:      time.Now().Add(cm.defaultTTL),
+		CreatedAt:      time.Now(),
+		LastAccessed:   time.Now(),
+		AccessCount:    1,
+		HitRate:        1.0,
+		ProcessingTime: time.Since(start),
+		CacheLevel:     "l1",
+		Metadata:       make(map[string]interface{}),
+	}
+
+	// Apply compression if enabled
+	if cm.compressionEnabled {
+		entry.CompressionRatio = cm.calculateCompressionRatio(entry)
+	}
+
+	// Store in cache
+	cm.cacheMutex.Lock()
+	cm.cache[cacheKey] = entry
+	cm.cacheMutex.Unlock()
+
+	// Log cache set
+	if cm.logger != nil {
+		cm.logger.WithComponent("enhanced_cache_manager").LogBusinessEvent(ctx, "cache_entry_set", cacheKey, map[string]interface{}{
+			"business_name":     key.BusinessName,
+			"cache_level":       entry.CacheLevel,
+			"ttl_seconds":       cm.defaultTTL.Seconds(),
+			"compression_ratio": entry.CompressionRatio,
+		})
+	}
+
+	// Record metrics
+	cm.recordCacheSet(ctx, cacheKey, time.Since(start))
+
+	return nil
+}
+
+// Warmup performs intelligent cache warming
+func (cm *EnhancedCacheManager) Warmup(ctx context.Context) error {
+	start := time.Now()
+
+	if !cm.warmingConfig.Enabled {
+		return nil
+	}
+
+	// Get popular entries for warming
+	popularEntries := cm.getPopularEntries()
+
+	// Perform warming based on strategies
+	for _, strategy := range cm.warmingConfig.WarmupStrategies {
+		switch strategy {
+		case "popularity":
+			cm.warmupByPopularity(ctx, popularEntries)
+		case "recency":
+			cm.warmupByRecency(ctx)
+		case "frequency":
+			cm.warmupByFrequency(ctx)
+		}
+	}
+
+	// Log warmup completion
+	if cm.logger != nil {
+		cm.logger.WithComponent("enhanced_cache_manager").LogBusinessEvent(ctx, "cache_warmup_completed", "", map[string]interface{}{
+			"warmup_entries":     len(popularEntries),
+			"processing_time_ms": time.Since(start).Milliseconds(),
+		})
+	}
+
+	// Update stats
+	cm.statsMutex.Lock()
+	cm.stats.WarmupCount++
+	cm.stats.LastUpdated = time.Now()
+	cm.statsMutex.Unlock()
+
+	return nil
+}
+
+// Invalidate removes entries based on invalidation rules
+func (cm *EnhancedCacheManager) Invalidate(ctx context.Context, pattern string) error {
+	start := time.Now()
+
+	cm.rulesMutex.RLock()
+	rules := cm.getMatchingRules(pattern)
+	cm.rulesMutex.RUnlock()
+
+	invalidatedCount := 0
+
+	for _, rule := range rules {
+		if !rule.Enabled {
+			continue
+		}
+
+		count := cm.applyInvalidationRule(ctx, rule)
+		invalidatedCount += count
+
+		// Update rule statistics
+		now := time.Now()
+		rule.LastTriggered = &now
+	}
+
+	// Log invalidation
+	if cm.logger != nil {
+		cm.logger.WithComponent("enhanced_cache_manager").LogBusinessEvent(ctx, "cache_invalidation_completed", "", map[string]interface{}{
+			"pattern":            pattern,
+			"invalidated_count":  invalidatedCount,
+			"processing_time_ms": time.Since(start).Milliseconds(),
+		})
+	}
+
+	// Update stats
+	cm.statsMutex.Lock()
+	cm.stats.EvictionCount += invalidatedCount
+	cm.stats.LastUpdated = time.Now()
+	cm.statsMutex.Unlock()
+
+	return nil
+}
+
+// GetStats returns cache performance statistics
+func (cm *EnhancedCacheManager) GetStats() *CacheStats {
+	cm.statsMutex.RLock()
+	defer cm.statsMutex.RUnlock()
+
+	// Calculate current statistics
+	cm.cacheMutex.RLock()
+	cm.stats.TotalEntries = len(cm.cache)
+	cm.stats.HitRate = cm.calculateHitRate()
+	cm.cacheMutex.RUnlock()
+
+	return cm.stats
+}
+
+// AddInvalidationRule adds a new cache invalidation rule
+func (cm *EnhancedCacheManager) AddInvalidationRule(ctx context.Context, rule *CacheInvalidationRule) error {
+	cm.rulesMutex.Lock()
+	defer cm.rulesMutex.Unlock()
+
+	rule.CreatedAt = time.Now()
+	cm.invalidationRules[rule.ID] = rule
+
+	// Log rule addition
+	if cm.logger != nil {
+		cm.logger.WithComponent("enhanced_cache_manager").LogBusinessEvent(ctx, "cache_invalidation_rule_added", rule.ID, map[string]interface{}{
+			"rule_name": rule.Name,
+			"pattern":   rule.Pattern,
+			"condition": rule.Condition,
+			"action":    rule.Action,
+		})
+	}
+
+	return nil
+}
+
+// UpdateWarmingConfig updates cache warming configuration
+func (cm *EnhancedCacheManager) UpdateWarmingConfig(ctx context.Context, config *CacheWarmingConfig) error {
+	cm.warmingConfig = config
+
+	// Log configuration update
+	if cm.logger != nil {
+		cm.logger.WithComponent("enhanced_cache_manager").LogBusinessEvent(ctx, "cache_warming_config_updated", "", map[string]interface{}{
+			"enabled":                 config.Enabled,
+			"warmup_interval_seconds": config.WarmupInterval.Seconds(),
+			"max_warmup_entries":      config.MaxWarmupEntries,
+		})
+	}
+
+	return nil
+}
+
+// UpdateFallbackConfig updates cache fallback configuration
+func (cm *EnhancedCacheManager) UpdateFallbackConfig(ctx context.Context, config *CacheFallbackConfig) error {
+	cm.fallbackConfig = config
+
+	// Log configuration update
+	if cm.logger != nil {
+		cm.logger.WithComponent("enhanced_cache_manager").LogBusinessEvent(ctx, "cache_fallback_config_updated", "", map[string]interface{}{
+			"enabled":                  config.Enabled,
+			"fallback_levels":          config.FallbackLevels,
+			"fallback_timeout_seconds": config.FallbackTimeout.Seconds(),
+		})
+	}
+
+	return nil
+}
+
+// Clear clears all cache entries
+func (cm *EnhancedCacheManager) Clear(ctx context.Context) error {
+	start := time.Now()
+
+	cm.cacheMutex.Lock()
+	entryCount := len(cm.cache)
+	cm.cache = make(map[string]*CacheEntry)
+	cm.cacheMutex.Unlock()
+
+	// Clear popular entries
+	cm.popularMutex.Lock()
+	cm.popularEntries = make(map[string]int)
+	cm.popularMutex.Unlock()
+
+	// Log cache clear
+	if cm.logger != nil {
+		cm.logger.WithComponent("enhanced_cache_manager").LogBusinessEvent(ctx, "cache_cleared", "", map[string]interface{}{
+			"cleared_entries":    entryCount,
+			"processing_time_ms": time.Since(start).Milliseconds(),
+		})
+	}
+
+	return nil
+}
+
+// Close stops the cache manager and cleans up resources
+func (cm *EnhancedCacheManager) Close() error {
+	// Stop background workers
+	close(cm.stopChan)
+
+	if cm.warmingTicker != nil {
+		cm.warmingTicker.Stop()
+	}
+	if cm.cleanupTicker != nil {
+		cm.cleanupTicker.Stop()
+	}
+	if cm.statsTicker != nil {
+		cm.statsTicker.Stop()
+	}
+
+	return nil
+}
+
+// Helper methods
+
+// generateCacheKey generates a unique cache key hash
+func (cm *EnhancedCacheManager) generateCacheKey(key *CacheKey) string {
+	// Create a deterministic string representation
+	data := fmt.Sprintf("%s|%s|%s|%s|%s|%s|%s|%s",
+		key.BusinessName,
+		key.BusinessType,
+		key.Industry,
+		key.Description,
+		key.Keywords,
+		key.MLModelVersion,
+		key.GeographicRegion,
+		key.IndustryType,
+	)
+
+	// Add enhanced metadata if present
+	if key.EnhancedMetadata != nil {
+		if metadataBytes, err := json.Marshal(key.EnhancedMetadata); err == nil {
+			data += "|" + string(metadataBytes)
+		}
+	}
+
+	// Generate MD5 hash
+	hash := md5.Sum([]byte(data))
+	return fmt.Sprintf("%x", hash)
+}
+
+// updateAccessStats updates access statistics for a cache entry
+func (cm *EnhancedCacheManager) updateAccessStats(entry *CacheEntry, accessTime time.Duration) {
+	entry.LastAccessed = time.Now()
+	entry.AccessCount++
+
+	// Update hit rate
+	if entry.AccessCount > 1 {
+		entry.HitRate = float64(entry.AccessCount) / float64(entry.AccessCount+1)
+	}
+
+	// Update global stats
+	cm.statsMutex.Lock()
+	cm.stats.HitCount++
+	cm.stats.AverageAccessTime = cm.calculateAverageAccessTime(accessTime)
+	cm.stats.LastUpdated = time.Now()
+	cm.statsMutex.Unlock()
+}
+
+// updatePopularEntries updates popular entries tracking
+func (cm *EnhancedCacheManager) updatePopularEntries(cacheKey string) {
+	cm.popularMutex.Lock()
+	cm.popularEntries[cacheKey]++
+	cm.popularMutex.Unlock()
+}
+
+// getPopularEntries returns the most popular cache entries
+func (cm *EnhancedCacheManager) getPopularEntries() []string {
+	cm.popularMutex.RLock()
+	defer cm.popularMutex.RUnlock()
+
+	var entries []string
+	for key, count := range cm.popularEntries {
+		if count >= cm.warmingConfig.PopularityThreshold {
+			entries = append(entries, key)
+		}
+	}
+
+	return entries
+}
+
+// evictLeastUsed evicts the least used cache entries
+func (cm *EnhancedCacheManager) evictLeastUsed() {
+	// Simple LRU eviction - remove oldest entries
+	var oldestKey string
+	var oldestTime time.Time
+
+	for key, entry := range cm.cache {
+		if oldestKey == "" || entry.LastAccessed.Before(oldestTime) {
+			oldestKey = key
+			oldestTime = entry.LastAccessed
+		}
+	}
+
+	if oldestKey != "" {
+		delete(cm.cache, oldestKey)
+		cm.stats.EvictionCount++
+	}
+}
+
+// calculateCompressionRatio calculates the compression ratio for a cache entry
+func (cm *EnhancedCacheManager) calculateCompressionRatio(entry *CacheEntry) float64 {
+	// This is a simplified calculation - in practice, you'd measure actual compression
+	originalSize := len(entry.Result.Classifications) * 100 // Approximate size
+	compressedSize := originalSize * 80 / 100               // 20% compression
+	return float64(compressedSize) / float64(originalSize)
+}
+
+// calculateHitRate calculates the overall cache hit rate
+func (cm *EnhancedCacheManager) calculateHitRate() float64 {
+	total := cm.stats.HitCount + cm.stats.MissCount
+	if total == 0 {
+		return 0.0
+	}
+	return float64(cm.stats.HitCount) / float64(total)
+}
+
+// calculateAverageAccessTime calculates the average access time
+func (cm *EnhancedCacheManager) calculateAverageAccessTime(newAccessTime time.Duration) time.Duration {
+	total := cm.stats.HitCount + cm.stats.MissCount
+	if total == 0 {
+		return newAccessTime
+	}
+
+	currentAvg := cm.stats.AverageAccessTime
+	newAvg := (currentAvg*time.Duration(total-1) + newAccessTime) / time.Duration(total)
+	return newAvg
+}
+
+// warmupByPopularity warms up cache based on popularity
+func (cm *EnhancedCacheManager) warmupByPopularity(ctx context.Context, popularEntries []string) {
+	// This would typically involve pre-loading popular classifications
+	// For now, just log the warming attempt
+	if cm.logger != nil {
+		cm.logger.WithComponent("enhanced_cache_manager").LogBusinessEvent(ctx, "cache_warmup_popularity", "", map[string]interface{}{
+			"popular_entries": len(popularEntries),
+		})
+	}
+}
+
+// warmupByRecency warms up cache based on recency
+func (cm *EnhancedCacheManager) warmupByRecency(ctx context.Context) {
+	// This would typically involve pre-loading recently accessed entries
+	if cm.logger != nil {
+		cm.logger.WithComponent("enhanced_cache_manager").LogBusinessEvent(ctx, "cache_warmup_recency", "", map[string]interface{}{})
+	}
+}
+
+// warmupByFrequency warms up cache based on frequency
+func (cm *EnhancedCacheManager) warmupByFrequency(ctx context.Context) {
+	// This would typically involve pre-loading frequently accessed entries
+	if cm.logger != nil {
+		cm.logger.WithComponent("enhanced_cache_manager").LogBusinessEvent(ctx, "cache_warmup_frequency", "", map[string]interface{}{})
+	}
+}
+
+// getMatchingRules returns invalidation rules that match a pattern
+func (cm *EnhancedCacheManager) getMatchingRules(pattern string) []*CacheInvalidationRule {
+	var matchingRules []*CacheInvalidationRule
+	for _, rule := range cm.invalidationRules {
+		// Simple pattern matching - in practice, you'd use regex or more sophisticated matching
+		if rule.Pattern == pattern || rule.Pattern == "*" {
+			matchingRules = append(matchingRules, rule)
+		}
+	}
+	return matchingRules
+}
+
+// applyInvalidationRule applies an invalidation rule
+func (cm *EnhancedCacheManager) applyInvalidationRule(ctx context.Context, rule *CacheInvalidationRule) int {
+	invalidatedCount := 0
+
+	cm.cacheMutex.Lock()
+	for key, entry := range cm.cache {
+		if cm.matchesInvalidationCondition(entry, rule) {
+			delete(cm.cache, key)
+			invalidatedCount++
+		}
+	}
+	cm.cacheMutex.Unlock()
+
+	return invalidatedCount
+}
+
+// matchesInvalidationCondition checks if an entry matches invalidation conditions
+func (cm *EnhancedCacheManager) matchesInvalidationCondition(entry *CacheEntry, rule *CacheInvalidationRule) bool {
+	switch rule.Condition {
+	case "time":
+		if threshold, ok := rule.Threshold.(time.Duration); ok {
+			return time.Since(entry.CreatedAt) > threshold
+		}
+	case "access_count":
+		if threshold, ok := rule.Threshold.(int); ok {
+			return entry.AccessCount < threshold
+		}
+	}
+	return false
+}
+
+// initializeDefaultInvalidationRules initializes default cache invalidation rules
+func (cm *EnhancedCacheManager) initializeDefaultInvalidationRules() {
+	defaultRules := []*CacheInvalidationRule{
+		{
+			ID:        "expire_old_entries",
+			Name:      "Expire Old Entries",
+			Pattern:   "*",
+			Condition: "time",
+			Threshold: time.Hour * 24, // 24 hours
+			Action:    "expire",
+			Enabled:   true,
+		},
+		{
+			ID:        "remove_unused_entries",
+			Name:      "Remove Unused Entries",
+			Pattern:   "*",
+			Condition: "access_count",
+			Threshold: 1, // Remove entries accessed less than once
+			Action:    "delete",
+			Enabled:   true,
+		},
+	}
+
+	for _, rule := range defaultRules {
+		cm.invalidationRules[rule.ID] = rule
+	}
+}
+
+// startBackgroundWorkers starts background workers for cache management
+func (cm *EnhancedCacheManager) startBackgroundWorkers() {
+	// Cache warming worker
+	cm.warmingTicker = time.NewTicker(cm.warmingConfig.WarmupInterval)
+	go func() {
+		for {
+			select {
+			case <-cm.warmingTicker.C:
+				cm.Warmup(context.Background())
+			case <-cm.stopChan:
+				return
+			}
+		}
+	}()
+
+	// Cache cleanup worker
+	cm.cleanupTicker = time.NewTicker(time.Minute * 5)
+	go func() {
+		for {
+			select {
+			case <-cm.cleanupTicker.C:
+				cm.cleanupExpiredEntries()
+			case <-cm.stopChan:
+				return
+			}
+		}
+	}()
+
+	// Stats update worker
+	cm.statsTicker = time.NewTicker(time.Minute)
+	go func() {
+		for {
+			select {
+			case <-cm.statsTicker.C:
+				cm.updateStats()
+			case <-cm.stopChan:
+				return
+			}
+		}
+	}()
+}
+
+// cleanupExpiredEntries removes expired cache entries
+func (cm *EnhancedCacheManager) cleanupExpiredEntries() {
+	now := time.Now()
+	expiredCount := 0
+
+	cm.cacheMutex.Lock()
+	for key, entry := range cm.cache {
+		if now.After(entry.ExpiresAt) {
+			delete(cm.cache, key)
+			expiredCount++
+		}
+	}
+	cm.cacheMutex.Unlock()
+
+	if expiredCount > 0 {
+		cm.statsMutex.Lock()
+		cm.stats.EvictionCount += expiredCount
+		cm.statsMutex.Unlock()
+	}
+}
+
+// updateStats updates cache statistics
+func (cm *EnhancedCacheManager) updateStats() {
+	cm.statsMutex.Lock()
+	cm.stats.TotalEntries = len(cm.cache)
+	cm.stats.HitRate = cm.calculateHitRate()
+	cm.stats.LastUpdated = time.Now()
+	cm.statsMutex.Unlock()
+}
+
+// recordCacheHit records a cache hit
+func (cm *EnhancedCacheManager) recordCacheHit(ctx context.Context, cacheKey string, accessTime time.Duration) {
+	if cm.metrics != nil {
+		cm.metrics.RecordHistogram(ctx, "cache_hit_time", float64(accessTime.Milliseconds()), map[string]string{
+			"cache_key": cacheKey,
+		})
+	}
+}
+
+// recordCacheMiss records a cache miss
+func (cm *EnhancedCacheManager) recordCacheMiss(ctx context.Context, cacheKey string, accessTime time.Duration) {
+	cm.statsMutex.Lock()
+	cm.stats.MissCount++
+	cm.statsMutex.Unlock()
+
+	if cm.metrics != nil {
+		cm.metrics.RecordHistogram(ctx, "cache_miss_time", float64(accessTime.Milliseconds()), map[string]string{
+			"cache_key": cacheKey,
+		})
+	}
+}
+
+// recordCacheSet records a cache set operation
+func (cm *EnhancedCacheManager) recordCacheSet(ctx context.Context, cacheKey string, processingTime time.Duration) {
+	if cm.metrics != nil {
+		cm.metrics.RecordHistogram(ctx, "cache_set_time", float64(processingTime.Milliseconds()), map[string]string{
+			"cache_key": cacheKey,
+		})
+	}
+}

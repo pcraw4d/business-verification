@@ -252,16 +252,16 @@ func TestAssessContentQuality(t *testing.T) {
 	content := "This is a comprehensive business registration document for ABC Corporation, a technology company incorporated in Delaware. The document contains detailed information about the company structure, ownership, and legal status."
 	predictions := []ClassificationPrediction{
 		{
-			Label:      "business_registration",
-			Confidence: 0.95,
+			Label:       "business_registration",
+			Confidence:  0.95,
 			Probability: 0.95,
-			Rank:       1,
+			Rank:        1,
 		},
 		{
-			Label:      "financial_report",
-			Confidence: 0.03,
+			Label:       "financial_report",
+			Confidence:  0.03,
 			Probability: 0.03,
-			Rank:       2,
+			Rank:        2,
 		},
 	}
 
@@ -372,10 +372,10 @@ func TestCalculateConfidence(t *testing.T) {
 	// Test with single prediction
 	predictions = []ClassificationPrediction{
 		{
-			Label:      "business_registration",
-			Confidence: 0.95,
+			Label:       "business_registration",
+			Confidence:  0.95,
 			Probability: 0.95,
-			Rank:       1,
+			Rank:        1,
 		},
 	}
 	confidence = scorer.CalculateConfidence(predictions)
@@ -386,16 +386,16 @@ func TestCalculateConfidence(t *testing.T) {
 	// Test with multiple predictions (should use highest)
 	predictions = []ClassificationPrediction{
 		{
-			Label:      "business_registration",
-			Confidence: 0.85,
+			Label:       "business_registration",
+			Confidence:  0.85,
 			Probability: 0.85,
-			Rank:       1,
+			Rank:        1,
 		},
 		{
-			Label:      "financial_report",
-			Confidence: 0.95,
+			Label:       "financial_report",
+			Confidence:  0.95,
 			Probability: 0.95,
-			Rank:       2,
+			Rank:        2,
 		},
 	}
 	confidence = scorer.CalculateConfidence(predictions)
@@ -414,10 +414,10 @@ func TestGenerateExplanations(t *testing.T) {
 	}
 	predictions := []ClassificationPrediction{
 		{
-			Label:      "business_registration",
-			Confidence: 0.95,
+			Label:       "business_registration",
+			Confidence:  0.95,
 			Probability: 0.95,
-			Rank:       1,
+			Rank:        1,
 		},
 	}
 
@@ -458,10 +458,10 @@ func TestGenerateTokenExplanations(t *testing.T) {
 	content := "This is a business registration document."
 	predictions := []ClassificationPrediction{
 		{
-			Label:      "business_registration",
-			Confidence: 0.95,
+			Label:       "business_registration",
+			Confidence:  0.95,
 			Probability: 0.95,
-			Rank:       1,
+			Rank:        1,
 		},
 	}
 
@@ -493,10 +493,10 @@ func TestGeneratePhraseExplanations(t *testing.T) {
 	content := "This is a business registration document."
 	predictions := []ClassificationPrediction{
 		{
-			Label:      "business_registration",
-			Confidence: 0.95,
+			Label:       "business_registration",
+			Confidence:  0.95,
 			Probability: 0.95,
-			Rank:       1,
+			Rank:        1,
 		},
 	}
 
@@ -689,7 +689,7 @@ func TestNewModelExplainability(t *testing.T) {
 
 func TestGenerateContentID(t *testing.T) {
 	content := "This is a test content for ID generation."
-	
+
 	// Generate multiple IDs to ensure uniqueness
 	ids := make(map[string]bool)
 	for i := 0; i < 10; i++ {
@@ -697,14 +697,14 @@ func TestGenerateContentID(t *testing.T) {
 		if id == "" {
 			t.Error("Expected non-empty content ID")
 		}
-		
+
 		// Add small delay to ensure unique timestamps
 		time.Sleep(1 * time.Millisecond)
-		
+
 		if ids[id] {
 			t.Errorf("Expected unique content ID, got duplicate: %s", id)
 		}
-		
+
 		ids[id] = true
 	}
 }
@@ -731,17 +731,17 @@ func TestUpdateModelUsage(t *testing.T) {
 
 func TestBERTModelIntegration(t *testing.T) {
 	config := ContentClassifierConfig{
-		ModelType:              "bert",
-		MaxSequenceLength:      512,
-		BatchSize:              16,
-		LearningRate:           2e-5,
-		Epochs:                 3,
-		ValidationSplit:        0.2,
-		ConfidenceThreshold:    0.8,
-		ExplainabilityEnabled:  true,
-		PerformanceTracking:    true,
+		ModelType:             "bert",
+		MaxSequenceLength:     512,
+		BatchSize:             16,
+		LearningRate:          2e-5,
+		Epochs:                3,
+		ValidationSplit:       0.2,
+		ConfidenceThreshold:   0.8,
+		ExplainabilityEnabled: true,
+		PerformanceTracking:   true,
 	}
-	
+
 	classifier := NewContentClassifier(config)
 
 	// Test BERT-specific configuration
@@ -767,7 +767,7 @@ func TestIndustrySpecificModels(t *testing.T) {
 		IndustryModels: []string{"finance", "healthcare", "technology", "legal"},
 		DefaultModel:   "general",
 	}
-	
+
 	classifier := NewContentClassifier(config)
 
 	// Test industry models configuration
@@ -796,10 +796,10 @@ func TestIndustrySpecificModels(t *testing.T) {
 
 func TestModelVersioning(t *testing.T) {
 	config := ContentClassifierConfig{
-		ModelVersioning: true,
+		ModelVersioning:     true,
 		ModelUpdateInterval: 24 * time.Hour,
 	}
-	
+
 	classifier := NewContentClassifier(config)
 
 	// Test model versioning configuration
@@ -814,10 +814,10 @@ func TestModelVersioning(t *testing.T) {
 
 func TestABTestingConfiguration(t *testing.T) {
 	config := ContentClassifierConfig{
-		ABTestingEnabled: true,
+		ABTestingEnabled:    true,
 		PerformanceTracking: true,
 	}
-	
+
 	classifier := NewContentClassifier(config)
 
 	// Test A/B testing configuration
@@ -832,11 +832,11 @@ func TestABTestingConfiguration(t *testing.T) {
 
 func TestAutoRetrainingConfiguration(t *testing.T) {
 	config := ContentClassifierConfig{
-		AutoRetraining: true,
+		AutoRetraining:      true,
 		RetrainingThreshold: 0.05,
-		DataDriftDetection: true,
+		DataDriftDetection:  true,
 	}
-	
+
 	classifier := NewContentClassifier(config)
 
 	// Test auto retraining configuration

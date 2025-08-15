@@ -728,3 +728,415 @@ groups:
           summary: "Critical network latency detected"
           description: "Network latency is {{ $value }} seconds"
           runbook_url: "https://runbook.kybplatform.com/critical-network-latency"
+
+  # Enhanced Classification Service Alerts
+  - name: kyb-classification-service-alerts
+    rules:
+      # Enhanced Classification Accuracy Alerts
+      - alert: LowClassificationAccuracyByMethod
+        expr: classification_accuracy_by_method < 0.85
+        for: 5m
+        labels:
+          severity: warning
+          team: classification
+          category: accuracy
+        annotations:
+          summary: "Low classification accuracy by method detected"
+          description: "Classification accuracy for method {{ $labels.method }} is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbook.kybplatform.com/low-classification-accuracy-by-method"
+
+      - alert: CriticalClassificationAccuracyByMethod
+        expr: classification_accuracy_by_method < 0.75
+        for: 2m
+        labels:
+          severity: critical
+          team: classification
+          category: accuracy
+        annotations:
+          summary: "Critical classification accuracy by method detected"
+          description: "Classification accuracy for method {{ $labels.method }} is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbook.kybplatform.com/critical-classification-accuracy-by-method"
+
+      - alert: LowWebsiteAnalysisAccuracy
+        expr: website_analysis_accuracy < 0.85
+        for: 5m
+        labels:
+          severity: warning
+          team: classification
+          category: accuracy
+        annotations:
+          summary: "Low website analysis accuracy detected"
+          description: "Website analysis accuracy is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbook.kybplatform.com/low-website-analysis-accuracy"
+
+      - alert: LowWebSearchAccuracy
+        expr: web_search_accuracy < 0.75
+        for: 5m
+        labels:
+          severity: warning
+          team: classification
+          category: accuracy
+        annotations:
+          summary: "Low web search accuracy detected"
+          description: "Web search accuracy is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbook.kybplatform.com/low-web-search-accuracy"
+
+      - alert: LowMLModelAccuracy
+        expr: ml_model_accuracy < 0.80
+        for: 5m
+        labels:
+          severity: warning
+          team: classification
+          category: accuracy
+        annotations:
+          summary: "Low ML model accuracy detected"
+          description: "ML model accuracy is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbook.kybplatform.com/low-ml-model-accuracy"
+
+      # Enhanced Response Time Alerts
+      - alert: HighClassificationResponseTimeByMethod
+        expr: histogram_quantile(0.95, rate(classification_response_time_by_method_seconds_bucket[5m])) > 2.0
+        for: 3m
+        labels:
+          severity: warning
+          team: classification
+          category: performance
+        annotations:
+          summary: "High classification response time by method detected"
+          description: "95th percentile response time for method {{ $labels.method }} is {{ $value }}s"
+          runbook_url: "https://runbook.kybplatform.com/high-classification-response-time-by-method"
+
+      - alert: CriticalClassificationResponseTimeByMethod
+        expr: histogram_quantile(0.95, rate(classification_response_time_by_method_seconds_bucket[5m])) > 5.0
+        for: 1m
+        labels:
+          severity: critical
+          team: classification
+          category: performance
+        annotations:
+          summary: "Critical classification response time by method detected"
+          description: "95th percentile response time for method {{ $labels.method }} is {{ $value }}s"
+          runbook_url: "https://runbook.kybplatform.com/critical-classification-response-time-by-method"
+
+      - alert: HighWebsiteAnalysisResponseTime
+        expr: histogram_quantile(0.95, rate(website_analysis_response_time_seconds_bucket[5m])) > 3.0
+        for: 3m
+        labels:
+          severity: warning
+          team: classification
+          category: performance
+        annotations:
+          summary: "High website analysis response time detected"
+          description: "95th percentile website analysis response time is {{ $value }}s"
+          runbook_url: "https://runbook.kybplatform.com/high-website-analysis-response-time"
+
+      - alert: HighWebSearchResponseTime
+        expr: histogram_quantile(0.95, rate(web_search_response_time_seconds_bucket[5m])) > 2.0
+        for: 3m
+        labels:
+          severity: warning
+          team: classification
+          category: performance
+        annotations:
+          summary: "High web search response time detected"
+          description: "95th percentile web search response time is {{ $value }}s"
+          runbook_url: "https://runbook.kybplatform.com/high-web-search-response-time"
+
+      - alert: HighMLModelResponseTime
+        expr: histogram_quantile(0.95, rate(ml_model_response_time_seconds_bucket[5m])) > 1.0
+        for: 3m
+        labels:
+          severity: warning
+          team: classification
+          category: performance
+        annotations:
+          summary: "High ML model response time detected"
+          description: "95th percentile ML model response time is {{ $value }}s"
+          runbook_url: "https://runbook.kybplatform.com/high-ml-model-response-time"
+
+      # Enhanced Confidence Score Alerts
+      - alert: LowConfidenceScoreByMethod
+        expr: confidence_score_by_method < 0.7
+        for: 5m
+        labels:
+          severity: warning
+          team: classification
+          category: quality
+        annotations:
+          summary: "Low confidence score by method detected"
+          description: "Confidence score for method {{ $labels.method }} is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbook.kybplatform.com/low-confidence-score-by-method"
+
+      - alert: CriticalConfidenceScoreByMethod
+        expr: confidence_score_by_method < 0.5
+        for: 2m
+        labels:
+          severity: critical
+          team: classification
+          category: quality
+        annotations:
+          summary: "Critical confidence score by method detected"
+          description: "Confidence score for method {{ $labels.method }} is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbook.kybplatform.com/critical-confidence-score-by-method"
+
+      - alert: LowWebsiteAnalysisConfidence
+        expr: website_analysis_confidence < 0.85
+        for: 5m
+        labels:
+          severity: warning
+          team: classification
+          category: quality
+        annotations:
+          summary: "Low website analysis confidence detected"
+          description: "Website analysis confidence is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbook.kybplatform.com/low-website-analysis-confidence"
+
+      - alert: LowWebSearchConfidence
+        expr: web_search_confidence < 0.75
+        for: 5m
+        labels:
+          severity: warning
+          team: classification
+          category: quality
+        annotations:
+          summary: "Low web search confidence detected"
+          description: "Web search confidence is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbook.kybplatform.com/low-web-search-confidence"
+
+      # User Satisfaction Alerts
+      - alert: LowUserSatisfactionScore
+        expr: user_satisfaction_score < 0.8
+        for: 10m
+        labels:
+          severity: warning
+          team: classification
+          category: user_experience
+        annotations:
+          summary: "Low user satisfaction score detected"
+          description: "User satisfaction score is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbook.kybplatform.com/low-user-satisfaction-score"
+
+      - alert: CriticalUserSatisfactionScore
+        expr: user_satisfaction_score < 0.7
+        for: 5m
+        labels:
+          severity: critical
+          team: classification
+          category: user_experience
+        annotations:
+          summary: "Critical user satisfaction score detected"
+          description: "User satisfaction score is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbook.kybplatform.com/critical-user-satisfaction-score"
+
+      # Resource Usage Alerts for Classification
+      - alert: HighClassificationMemoryUsage
+        expr: classification_memory_usage_bytes > 1073741824
+        for: 5m
+        labels:
+          severity: warning
+          team: classification
+          category: infrastructure
+        annotations:
+          summary: "High classification memory usage detected"
+          description: "Classification memory usage is {{ $value | humanize }} bytes"
+          runbook_url: "https://runbook.kybplatform.com/high-classification-memory-usage"
+
+      - alert: HighClassificationCPUUsage
+        expr: classification_cpu_usage_percent > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: classification
+          category: infrastructure
+        annotations:
+          summary: "High classification CPU usage detected"
+          description: "Classification CPU usage is {{ $value }}%"
+          runbook_url: "https://runbook.kybplatform.com/high-classification-cpu-usage"
+
+      # Cache Performance Alerts
+      - alert: LowClassificationCacheHitRate
+        expr: classification_cache_hit_rate < 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: classification
+          category: performance
+        annotations:
+          summary: "Low classification cache hit rate detected"
+          description: "Classification cache hit rate is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbook.kybplatform.com/low-classification-cache-hit-rate"
+
+      - alert: CriticalClassificationCacheHitRate
+        expr: classification_cache_hit_rate < 0.6
+        for: 2m
+        labels:
+          severity: critical
+          team: classification
+          category: performance
+        annotations:
+          summary: "Critical classification cache hit rate detected"
+          description: "Classification cache hit rate is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbook.kybplatform.com/critical-classification-cache-hit-rate"
+
+      # Geographic and Industry-Specific Alerts
+      - alert: LowGeographicClassificationAccuracy
+        expr: geographic_classification_accuracy < 0.8
+        for: 10m
+        labels:
+          severity: warning
+          team: classification
+          category: accuracy
+        annotations:
+          summary: "Low geographic classification accuracy detected"
+          description: "Classification accuracy for region {{ $labels.region }} is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbook.kybplatform.com/low-geographic-classification-accuracy"
+
+      - alert: LowIndustrySpecificAccuracy
+        expr: industry_specific_accuracy < 0.8
+        for: 10m
+        labels:
+          severity: warning
+          team: classification
+          category: accuracy
+        annotations:
+          summary: "Low industry-specific accuracy detected"
+          description: "Classification accuracy for industry {{ $labels.industry }} is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbook.kybplatform.com/low-industry-specific-accuracy"
+
+      # Quality Assurance Alerts
+      - alert: LowQualityCheckPassRate
+        expr: quality_check_pass_rate < 0.9
+        for: 5m
+        labels:
+          severity: warning
+          team: classification
+          category: quality
+        annotations:
+          summary: "Low quality check pass rate detected"
+          description: "Quality check pass rate is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbook.kybplatform.com/low-quality-check-pass-rate"
+
+      - alert: CriticalQualityCheckPassRate
+        expr: quality_check_pass_rate < 0.8
+        for: 2m
+        labels:
+          severity: critical
+          team: classification
+          category: quality
+        annotations:
+          summary: "Critical quality check pass rate detected"
+          description: "Quality check pass rate is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbook.kybplatform.com/critical-quality-check-pass-rate"
+
+      # Feedback and Validation Alerts
+      - alert: LowFeedbackValidationRate
+        expr: feedback_validation_rate < 0.9
+        for: 10m
+        labels:
+          severity: warning
+          team: classification
+          category: quality
+        annotations:
+          summary: "Low feedback validation rate detected"
+          description: "Feedback validation rate is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbook.kybplatform.com/low-feedback-validation-rate"
+
+      - alert: HighFeedbackProcessingTime
+        expr: histogram_quantile(0.95, rate(feedback_processing_time_seconds_bucket[5m])) > 5.0
+        for: 3m
+        labels:
+          severity: warning
+          team: classification
+          category: performance
+        annotations:
+          summary: "High feedback processing time detected"
+          description: "95th percentile feedback processing time is {{ $value }}s"
+          runbook_url: "https://runbook.kybplatform.com/high-feedback-processing-time"
+
+      # ML Model Performance Alerts
+      - alert: HighMLModelFallbackRate
+        expr: rate(ml_model_fallback_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: classification
+          category: performance
+        annotations:
+          summary: "High ML model fallback rate detected"
+          description: "ML model fallback rate is {{ $value }} fallbacks per second"
+          runbook_url: "https://runbook.kybplatform.com/high-ml-model-fallback-rate"
+
+      - alert: CriticalMLModelFallbackRate
+        expr: rate(ml_model_fallback_total[5m]) > 0.5
+        for: 2m
+        labels:
+          severity: critical
+          team: classification
+          category: performance
+        annotations:
+          summary: "Critical ML model fallback rate detected"
+          description: "ML model fallback rate is {{ $value }} fallbacks per second"
+          runbook_url: "https://runbook.kybplatform.com/critical-ml-model-fallback-rate"
+
+      # Web Search Provider Alerts
+      - alert: HighWebSearchProviderFallbackRate
+        expr: rate(web_search_provider_fallback_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: classification
+          category: performance
+        annotations:
+          summary: "High web search provider fallback rate detected"
+          description: "Web search provider fallback rate is {{ $value }} fallbacks per second"
+          runbook_url: "https://runbook.kybplatform.com/high-web-search-provider-fallback-rate"
+
+      # Throughput and Scalability Alerts
+      - alert: LowClassificationThroughput
+        expr: rate(classification_database_queries_total[5m]) < 10
+        for: 5m
+        labels:
+          severity: warning
+          team: classification
+          category: performance
+        annotations:
+          summary: "Low classification throughput detected"
+          description: "Classification throughput is {{ $value }} queries per second"
+          runbook_url: "https://runbook.kybplatform.com/low-classification-throughput"
+
+      - alert: HighClassificationErrorRate
+        expr: rate(classification_database_queries_total{status="error"}[5m]) / rate(classification_database_queries_total[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: warning
+          team: classification
+          category: performance
+        annotations:
+          summary: "High classification error rate detected"
+          description: "Classification error rate is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbook.kybplatform.com/high-classification-error-rate"
+
+      # External API Dependency Alerts
+      - alert: HighExternalAPICallRate
+        expr: rate(classification_external_api_calls_total[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+          team: classification
+          category: performance
+        annotations:
+          summary: "High external API call rate detected"
+          description: "External API call rate is {{ $value }} calls per second"
+          runbook_url: "https://runbook.kybplatform.com/high-external-api-call-rate"
+
+      - alert: HighExternalAPIErrorRate
+        expr: rate(classification_external_api_calls_total{status="error"}[5m]) / rate(classification_external_api_calls_total[5m]) > 0.1
+        for: 3m
+        labels:
+          severity: warning
+          team: classification
+          category: performance
+        annotations:
+          summary: "High external API error rate detected"
+          description: "External API error rate is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbook.kybplatform.com/high-external-api-error-rate"

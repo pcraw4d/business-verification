@@ -485,7 +485,7 @@ func TestErrorTrackingHandler_GetErrors(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var response map[string]interface{}
-	err2 := json.Unmarshal(w.Body.Bytes(), &response)
+	err = json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 
 	assert.Contains(t, response, "errors")
@@ -549,7 +549,7 @@ func TestErrorTrackingHandler_CreateError(t *testing.T) {
 		},
 	}
 
-	jsonData, err := json.Marshal(errorData)
+	_, err = json.Marshal(errorData)
 	require.NoError(t, err)
 
 	req := httptest.NewRequest(http.MethodPost, "/errors", nil)
@@ -607,7 +607,7 @@ func TestErrorTrackingHandler_UpdateError(t *testing.T) {
 		"resolution_note": "Fixed via API",
 	}
 
-	jsonData, err := json.Marshal(updateData)
+	_, err = json.Marshal(updateData)
 	require.NoError(t, err)
 
 	req := httptest.NewRequest(http.MethodPut, "/errors/update_test_error", nil)
@@ -641,10 +641,10 @@ func TestErrorPatternDetection(t *testing.T) {
 	ets := NewErrorTrackingSystem(monitoring, logAggregation, config, logger)
 
 	// Track the same error multiple times to trigger pattern detection
-	err := fmt.Errorf("pattern test error")
+	patternErr := fmt.Errorf("pattern test error")
 
 	for i := 0; i < 5; i++ {
-		ets.TrackError(context.Background(), err)
+		ets.TrackError(context.Background(), patternErr)
 	}
 
 	// Check if pattern was created
@@ -753,8 +753,8 @@ func TestErrorTrackingDisabled(t *testing.T) {
 	ets := NewErrorTrackingSystem(monitoring, logAggregation, config, logger)
 
 	// Test that error tracking is disabled
-	err := fmt.Errorf("disabled test error")
-	errorEvent := ets.TrackError(context.Background(), err)
+	disabledErr := fmt.Errorf("disabled test error")
+	errorEvent := ets.TrackError(context.Background(), disabledErr)
 
 	assert.Nil(t, errorEvent) // Should return nil when disabled
 }

@@ -744,3 +744,514 @@ func TestGenerateBusinessID(t *testing.T) {
 		t.Errorf("Expected business ID to start with 'business_', got %s", id2)
 	}
 }
+
+// Enhanced Unit Tests for New Features
+
+func TestEnhancedWebsiteAnalysis(t *testing.T) {
+	// Create test service
+	service := createTestClassificationService(t)
+
+	// Test enhanced website analysis
+	ctx := context.Background()
+	websiteURL := "https://example.com"
+
+	// Test with enhanced analysis enabled
+	result, err := service.AnalyzeWebsiteEnhanced(ctx, websiteURL, &WebsiteAnalysisOptions{
+		EnableIntelligentDiscovery: true,
+		EnableContentAnalysis:      true,
+		EnableKeywordExtraction:    true,
+		EnableIndustryDetection:    true,
+		MaxPages:                   10,
+		Timeout:                    30 * time.Second,
+	})
+
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("Expected analysis result")
+	}
+
+	// Verify enhanced features
+	if !result.IntelligentDiscoveryEnabled {
+		t.Error("Expected intelligent discovery to be enabled")
+	}
+
+	if len(result.DiscoveredPages) == 0 {
+		t.Error("Expected discovered pages")
+	}
+
+	if len(result.ExtractedKeywords) == 0 {
+		t.Error("Expected extracted keywords")
+	}
+
+	if result.IndustryConfidence == 0 {
+		t.Error("Expected industry confidence score")
+	}
+}
+
+func TestWebSearchIntegration(t *testing.T) {
+	// Create test service
+	service := createTestClassificationService(t)
+
+	// Test web search integration
+	ctx := context.Background()
+	searchQuery := "Tech Solutions Inc software development"
+
+	// Test web search
+	results, err := service.SearchWebEnhanced(ctx, searchQuery, &WebSearchOptions{
+		MaxResults:    10,
+		SearchEngines: []string{"google", "bing"},
+		Timeout:       30 * time.Second,
+	})
+
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if len(results) == 0 {
+		t.Error("Expected search results")
+	}
+
+	// Verify search results
+	for _, result := range results {
+		if result.Title == "" {
+			t.Error("Expected search result title")
+		}
+		if result.URL == "" {
+			t.Error("Expected search result URL")
+		}
+		if result.Snippet == "" {
+			t.Error("Expected search result snippet")
+		}
+	}
+}
+
+func TestNewConfidenceScoring(t *testing.T) {
+	// Create test service
+	service := createTestClassificationService(t)
+
+	// Test new confidence scoring
+	ctx := context.Background()
+	request := &ClassificationRequest{
+		BusinessName: "Tech Solutions Inc",
+		Description:  "Software development services",
+		Keywords:     "software, development, technology",
+	}
+
+	// Test confidence scoring
+	confidenceScore, err := service.CalculateConfidenceScore(ctx, request, &ConfidenceScoringOptions{
+		EnableMLScoring:       true,
+		EnableEnsembleScoring: true,
+		EnableFeedbackScoring: true,
+		MinConfidence:         0.5,
+	})
+
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if confidenceScore < 0 || confidenceScore > 1 {
+		t.Errorf("Expected confidence score between 0 and 1, got: %f", confidenceScore)
+	}
+}
+
+func TestMLModelIntegration(t *testing.T) {
+	// Create test service
+	service := createTestClassificationService(t)
+
+	// Test ML model integration
+	ctx := context.Background()
+	request := &MLClassificationRequest{
+		BusinessName:        "Tech Solutions Inc",
+		BusinessDescription: "Software development and consulting services",
+		Keywords:            []string{"software", "development", "consulting"},
+		WebsiteContent:      "We provide software development services",
+		IndustryHints:       []string{"technology", "software"},
+		GeographicRegion:    "California",
+		BusinessType:        "Corporation",
+	}
+
+	// Test ML classification
+	result, err := service.ClassifyWithML(ctx, request)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("Expected ML classification result")
+	}
+
+	// Verify ML result
+	if result.IndustryCode == "" {
+		t.Error("Expected industry code")
+	}
+	if result.IndustryName == "" {
+		t.Error("Expected industry name")
+	}
+	if result.ConfidenceScore < 0 || result.ConfidenceScore > 1 {
+		t.Errorf("Expected confidence score between 0 and 1, got: %f", result.ConfidenceScore)
+	}
+	if result.ModelType == "" {
+		t.Error("Expected model type")
+	}
+	if result.ModelVersion == "" {
+		t.Error("Expected model version")
+	}
+}
+
+func TestEnhancedCacheManager(t *testing.T) {
+	// Create test cache manager
+	logger := createTestLogger()
+	metrics := createTestMetrics()
+	cacheManager := NewEnhancedCacheManager(logger, metrics, 1000, time.Hour)
+
+	// Test cache operations
+	ctx := context.Background()
+	cacheKey := &CacheKey{
+		BusinessName: "Test Business",
+		BusinessType: "LLC",
+		Industry:     "Technology",
+	}
+
+	// Test cache set
+	result := &MultiIndustryClassificationResult{
+		Success: true,
+		Classifications: []IndustryClassification{
+			{
+				IndustryCode:    "541511",
+				IndustryName:    "Custom Computer Programming Services",
+				ConfidenceScore: 0.95,
+			},
+		},
+	}
+
+	err := cacheManager.Set(ctx, cacheKey, result, nil)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	// Test cache get
+	cachedResult, err := cacheManager.Get(ctx, cacheKey)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if cachedResult == nil {
+		t.Fatal("Expected cached result")
+	}
+
+	if !cachedResult.Result.Success {
+		t.Error("Expected successful result")
+	}
+
+	// Test cache warming
+	err = cacheManager.Warmup(ctx)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	// Test cache stats
+	stats := cacheManager.GetStats()
+	if stats == nil {
+		t.Fatal("Expected cache stats")
+	}
+
+	if stats.TotalEntries == 0 {
+		t.Error("Expected cache entries")
+	}
+}
+
+func TestModelOptimizer(t *testing.T) {
+	// Create test model optimizer
+	config := &ModelOptimizationConfig{
+		QuantizationEnabled:   true,
+		QuantizationLevel:     16,
+		CacheEnabled:          true,
+		PreloadEnabled:        true,
+		PerformanceMonitoring: true,
+		OptimizationLevel:     "medium",
+		MaxCacheSize:          100,
+		CacheTTL:              time.Hour,
+	}
+
+	logger := createTestLogger()
+	metrics := createTestMetrics()
+	optimizer := NewModelOptimizer(config, logger, metrics)
+
+	// Test model optimization
+	ctx := context.Background()
+	modelName := "test_model"
+	modelVersion := "v1.0.0"
+	modelData := []byte("test model data")
+
+	result, err := optimizer.OptimizeModel(ctx, modelName, modelVersion, modelData)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("Expected optimization result")
+	}
+
+	// Verify optimization result
+	if result.ModelName != modelName {
+		t.Errorf("Expected model name %s, got %s", modelName, result.ModelName)
+	}
+	if result.ModelVersion != modelVersion {
+		t.Errorf("Expected model version %s, got %s", modelVersion, result.ModelVersion)
+	}
+	if result.OriginalSize == 0 {
+		t.Error("Expected original size")
+	}
+	if result.OptimizationStatus == "" {
+		t.Error("Expected optimization status")
+	}
+
+	// Test model caching
+	cachedModel, err := optimizer.GetOptimizedModel(ctx, modelName, modelVersion)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if cachedModel == nil {
+		t.Fatal("Expected cached model")
+	}
+
+	// Test performance metrics
+	err = optimizer.UpdatePerformanceMetrics(ctx, modelName, modelVersion, time.Millisecond*100, 0.95, 1024)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	performanceMetrics, err := optimizer.GetPerformanceMetrics(ctx, modelName, modelVersion)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if performanceMetrics == nil {
+		t.Fatal("Expected performance metrics")
+	}
+}
+
+func TestCrosswalkMapper(t *testing.T) {
+	// Create test crosswalk mapper
+	logger := createTestLogger()
+	metrics := createTestMetrics()
+	mapper := NewCrosswalkMapper(logger, metrics)
+
+	// Test crosswalk mapping
+	ctx := context.Background()
+	sourceCode := "541511"
+	sourceSystem := "naics"
+
+	result, err := mapper.MapCodes(ctx, sourceCode, sourceSystem, map[string]interface{}{})
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("Expected crosswalk result")
+	}
+
+	// Verify mapping result
+	if result.SourceCode != sourceCode {
+		t.Errorf("Expected source code %s, got %s", sourceCode, result.SourceCode)
+	}
+	if result.SourceSystem != sourceSystem {
+		t.Errorf("Expected source system %s, got %s", sourceSystem, result.SourceSystem)
+	}
+	if result.OverallConfidence < 0 || result.OverallConfidence > 1 {
+		t.Errorf("Expected confidence between 0 and 1, got: %f", result.OverallConfidence)
+	}
+}
+
+func TestGeographicManager(t *testing.T) {
+	// Create test geographic manager
+	logger := createTestLogger()
+	metrics := createTestMetrics()
+	manager := NewGeographicManager(logger, metrics)
+
+	// Test region detection
+	ctx := context.Background()
+	location := "California, USA"
+
+	result, err := manager.DetectRegion(ctx, map[string]interface{}{
+		"location": location,
+	})
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("Expected region detection result")
+	}
+
+	// Verify region result
+	if result.RegionName == "" {
+		t.Error("Expected region name")
+	}
+	if result.ConfidenceScore < 0 || result.ConfidenceScore > 1 {
+		t.Errorf("Expected confidence between 0 and 1, got: %f", result.ConfidenceScore)
+	}
+}
+
+func TestIndustryMapper(t *testing.T) {
+	// Create test industry mapper
+	logger := createTestLogger()
+	metrics := createTestMetrics()
+	mapper := NewIndustryMapper(logger, metrics)
+
+	// Test industry classification
+	ctx := context.Background()
+	industryType := "technology"
+	businessName := "Tech Solutions Inc"
+	description := "Software development services"
+	keywords := "software, development, technology"
+
+	result, err := mapper.ClassifyIndustry(ctx, industryType, businessName, description, keywords)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("Expected industry classification result")
+	}
+
+	// Verify industry result
+	if result.IndustryType != industryType {
+		t.Errorf("Expected industry type %s, got %s", industryType, result.IndustryType)
+	}
+	if result.ConfidenceScore < 0 || result.ConfidenceScore > 1 {
+		t.Errorf("Expected confidence between 0 and 1, got: %f", result.ConfidenceScore)
+	}
+	if result.ClassificationAlgorithm == "" {
+		t.Error("Expected classification algorithm")
+	}
+}
+
+func TestFeedbackCollector(t *testing.T) {
+	// Create test feedback collector
+	logger := createTestLogger()
+	metrics := createTestMetrics()
+	collector := NewFeedbackCollector(logger, metrics)
+
+	// Test feedback submission
+	ctx := context.Background()
+	feedback := &Feedback{
+		ID:            "test_feedback_1",
+		Type:          FeedbackTypeAccuracy,
+		Status:        FeedbackStatusPending,
+		Description:   "Test feedback",
+		FeedbackValue: true,
+		CreatedAt:     time.Now(),
+	}
+
+	err := collector.SubmitFeedback(ctx, feedback)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	// Test feedback retrieval
+	retrievedFeedback, err := collector.GetFeedback(ctx, feedback.ID)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if retrievedFeedback == nil {
+		t.Fatal("Expected retrieved feedback")
+	}
+
+	if retrievedFeedback.ID != feedback.ID {
+		t.Errorf("Expected feedback ID %s, got %s", feedback.ID, retrievedFeedback.ID)
+	}
+
+	// Test accuracy metrics
+	metrics, err := collector.GetAccuracyMetrics(ctx, &AccuracyMetricsRequest{
+		TimeRange: time.Hour * 24,
+		Filters:   map[string]interface{}{},
+	})
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if metrics == nil {
+		t.Fatal("Expected accuracy metrics")
+	}
+}
+
+func TestAccuracyValidator(t *testing.T) {
+	// Create test accuracy validator
+	logger := createTestLogger()
+	metrics := createTestMetrics()
+	validator := NewAccuracyValidator(logger, metrics)
+
+	// Test accuracy validation
+	ctx := context.Background()
+	classifications := []IndustryClassification{
+		{
+			IndustryCode:    "541511",
+			IndustryName:    "Custom Computer Programming Services",
+			ConfidenceScore: 0.95,
+		},
+	}
+
+	feedback := []*Feedback{
+		{
+			ID:            "test_feedback_1",
+			Type:          FeedbackTypeAccuracy,
+			Status:        FeedbackStatusApproved,
+			FeedbackValue: true,
+		},
+	}
+
+	result, err := validator.ValidateAccuracy(ctx, classifications, feedback)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("Expected accuracy validation result")
+	}
+
+	// Verify validation result
+	if result.MetricType == "" {
+		t.Error("Expected metric type")
+	}
+	if result.AccuracyScore < 0 || result.AccuracyScore > 1 {
+		t.Errorf("Expected accuracy score between 0 and 1, got: %f", result.AccuracyScore)
+	}
+}
+
+// Helper functions for testing
+
+func createTestClassificationService(t *testing.T) *ClassificationService {
+	cfg := &config.ExternalServicesConfig{
+		BusinessDataAPI: config.BusinessDataAPIConfig{
+			Enabled: true,
+			BaseURL: "https://api.example.com",
+			APIKey:  "test-key",
+			Timeout: 30 * time.Second,
+		},
+	}
+
+	logger := createTestLogger()
+	metrics := createTestMetrics()
+
+	return NewClassificationService(cfg, nil, logger, metrics)
+}
+
+func createTestLogger() *observability.Logger {
+	return observability.NewLogger(&config.ObservabilityConfig{
+		LogLevel:  "info",
+		LogFormat: "json",
+	})
+}
+
+func createTestMetrics() *observability.Metrics {
+	metrics, _ := observability.NewMetrics(&config.ObservabilityConfig{
+		MetricsEnabled: true,
+	})
+	return metrics
+}

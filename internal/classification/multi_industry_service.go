@@ -57,11 +57,43 @@ func NewMultiIndustryService(baseService *ClassificationService, logger *observa
 		minConfidenceThreshold: 0.1, // Minimum confidence to include in results
 		maxClassifications:     3,   // Maximum number of classifications to return
 		confidenceWeighting: map[string]float64{
-			"keyword_match":     0.3,
-			"description_match": 0.25,
-			"business_type":     0.2,
-			"industry_hint":     0.15,
-			"fuzzy_match":       0.1,
+			// Website analysis methods (highest confidence: 0.85-0.95)
+			"website_analysis":           0.35,
+			"website_content_analysis":   0.33,
+			"website_structure_analysis": 0.32,
+
+			// Web search analysis methods (high confidence: 0.75-0.85)
+			"web_search_analysis":    0.30,
+			"search_analysis":        0.29,
+			"search_result_analysis": 0.28,
+			"multi_source_search":    0.27,
+
+			// Keyword-based methods (moderate confidence: 0.60-0.75)
+			"keyword_based_naics": 0.25,
+			"keyword_based":       0.24,
+			"keyword_based_mcc":   0.23,
+			"keyword_based_sic":   0.22,
+			"keyword_match":       0.21,
+			"description_match":   0.20,
+
+			// Business type and industry methods
+			"business_type":  0.18,
+			"industry_based": 0.17,
+			"industry_hint":  0.16,
+
+			// Fuzzy matching methods (lower confidence: 0.50-0.70)
+			"fuzzy_naics_fulltext": 0.15,
+			"fuzzy_naics_token":    0.14,
+			"fuzzy_mcc_fulltext":   0.13,
+			"fuzzy_mcc_token":      0.12,
+			"fuzzy_sic_fulltext":   0.11,
+			"fuzzy_sic_token":      0.10,
+			"fuzzy_match":          0.09,
+
+			// Crosswalk mapping methods (lowest confidence: 0.40-0.60)
+			"crosswalk_mapping":        0.08,
+			"crosswalk_mcc_from_naics": 0.07,
+			"crosswalk_sic_from_naics": 0.06,
 		},
 
 		// Enhanced ranking engine
@@ -327,18 +359,165 @@ func (m *MultiIndustryService) generateFuzzyMatchClassifications(req *Classifica
 
 // rankAndFilterClassifications ranks and filters classifications using enhanced confidence ranking
 func (m *MultiIndustryService) rankAndFilterClassifications(classifications []IndustryClassification) []IndustryClassification {
+	// Apply confidence range validation to all classifications
+	var validatedClassifications []IndustryClassification
+	for _, classification := range classifications {
+		validatedClassification := m.applyConfidenceRangeValidation(classification)
+		validatedClassifications = append(validatedClassifications, validatedClassification)
+	}
+
 	// Filter by minimum confidence threshold
 	var filtered []IndustryClassification
-	for _, classification := range classifications {
+	for _, classification := range validatedClassifications {
 		if classification.ConfidenceScore >= m.minConfidenceThreshold {
 			filtered = append(filtered, classification)
 		}
 	}
 
+	// Apply confidence-based filtering
+	filtered = m.applyConfidenceBasedFiltering(filtered)
+
 	// Use enhanced confidence ranking engine
 	rankedClassifications := m.rankingEngine.RankClassifications(filtered)
 
+	// Apply confidence-based ranking
+	rankedClassifications = m.applyConfidenceBasedRanking(rankedClassifications)
+
 	return rankedClassifications
+}
+
+// applyConfidenceRangeValidation applies confidence range validation to a classification
+func (m *MultiIndustryService) applyConfidenceRangeValidation(cl IndustryClassification) IndustryClassification {
+	// Define method-based confidence ranges (as specified in PRD)
+	methodConfidenceRanges := map[string]struct {
+		min, max float64
+	}{
+		"website_analysis":           {0.85, 0.95},
+		"website_content_analysis":   {0.85, 0.95},
+		"website_structure_analysis": {0.85, 0.95},
+		"web_search_analysis":        {0.75, 0.85},
+		"search_analysis":            {0.75, 0.85},
+		"search_result_analysis":     {0.70, 0.80},
+		"keyword_based":              {0.60, 0.75},
+		"keyword_based_naics":        {0.60, 0.75},
+		"keyword_based_mcc":          {0.60, 0.75},
+		"keyword_based_sic":          {0.60, 0.75},
+		"fuzzy_matching":             {0.50, 0.70},
+		"fuzzy_naics_fulltext":       {0.50, 0.70},
+		"fuzzy_naics_token":          {0.50, 0.70},
+		"fuzzy_mcc_fulltext":         {0.50, 0.70},
+		"fuzzy_mcc_token":            {0.50, 0.70},
+		"fuzzy_sic_fulltext":         {0.50, 0.70},
+		"fuzzy_sic_token":            {0.50, 0.70},
+		"crosswalk_mapping":          {0.40, 0.60},
+		"crosswalk_mcc_from_naics":   {0.40, 0.60},
+		"crosswalk_sic_from_naics":   {0.40, 0.60},
+	}
+
+	// Get confidence range for the method
+	range_, exists := methodConfidenceRanges[cl.ClassificationMethod]
+	if !exists {
+		// Default range for unknown methods
+		range_ = struct {
+			min, max float64
+		}{0.50, 0.70}
+	}
+
+	// Ensure confidence score is within the valid range
+	if cl.ConfidenceScore < range_.min {
+		cl.ConfidenceScore = range_.min
+	} else if cl.ConfidenceScore > range_.max {
+		cl.ConfidenceScore = range_.max
+	}
+
+	// Log confidence range validation
+	if m.logger != nil {
+		m.logger.WithComponent("multi_industry").Debug("confidence_range_validation", map[string]interface{}{
+			"method":         cl.ClassificationMethod,
+			"min_confidence": range_.min,
+			"max_confidence": range_.max,
+			"final_score":    cl.ConfidenceScore,
+			"industry_code":  cl.IndustryCode,
+		})
+	}
+
+	return cl
+}
+
+// applyConfidenceBasedFiltering applies confidence-based filtering to classifications
+func (m *MultiIndustryService) applyConfidenceBasedFiltering(classifications []IndustryClassification) []IndustryClassification {
+	if len(classifications) == 0 {
+		return classifications
+	}
+
+	var filtered []IndustryClassification
+
+	// Filter based on confidence thresholds
+	for _, cl := range classifications {
+		// Get confidence weight for the method
+		weight, exists := m.confidenceWeighting[cl.ClassificationMethod]
+		if !exists {
+			weight = 0.1 // Default weight for unknown methods
+		}
+
+		// Apply confidence-based filtering criteria
+		shouldInclude := true
+
+		// Filter out very low confidence classifications
+		if cl.ConfidenceScore < 0.3 {
+			shouldInclude = false
+		}
+
+		// Filter out classifications with very low method weights
+		if weight < 0.05 {
+			shouldInclude = false
+		}
+
+		// Include if passes all filters
+		if shouldInclude {
+			filtered = append(filtered, cl)
+		}
+	}
+
+	// Log filtering results
+	if m.logger != nil {
+		m.logger.WithComponent("multi_industry").Debug("confidence_based_filtering", map[string]interface{}{
+			"original_count": len(classifications),
+			"filtered_count": len(filtered),
+			"filtered_out":   len(classifications) - len(filtered),
+		})
+	}
+
+	return filtered
+}
+
+// applyConfidenceBasedRanking applies confidence-based ranking to classifications
+func (m *MultiIndustryService) applyConfidenceBasedRanking(classifications []IndustryClassification) []IndustryClassification {
+	if len(classifications) == 0 {
+		return classifications
+	}
+
+	// Sort classifications by confidence score in descending order
+	// This ensures that higher confidence classifications appear first
+	for i := 0; i < len(classifications)-1; i++ {
+		for j := i + 1; j < len(classifications); j++ {
+			if classifications[i].ConfidenceScore < classifications[j].ConfidenceScore {
+				classifications[i], classifications[j] = classifications[j], classifications[i]
+			}
+		}
+	}
+
+	// Log confidence-based ranking
+	if m.logger != nil && len(classifications) > 0 {
+		m.logger.WithComponent("multi_industry").Debug("confidence_based_ranking_applied", map[string]interface{}{
+			"total_classifications": len(classifications),
+			"top_confidence":        classifications[0].ConfidenceScore,
+			"top_method":            classifications[0].ClassificationMethod,
+			"top_industry_code":     classifications[0].IndustryCode,
+		})
+	}
+
+	return classifications
 }
 
 // selectTopClassifications selects the top N classifications

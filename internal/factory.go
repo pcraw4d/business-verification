@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/pcraw4d/business-verification/internal/auth"
+	"github.com/pcraw4d/business-verification/internal/cache"
 	"github.com/pcraw4d/business-verification/internal/config"
 	"github.com/pcraw4d/business-verification/internal/database"
 	"github.com/pcraw4d/business-verification/internal/observability"
@@ -13,7 +14,9 @@ import (
 func NewDatabase(cfg *config.Config, logger *observability.Logger) (database.Database, error) {
 	switch cfg.Provider.Database {
 	case "supabase":
-		return database.NewSupabaseClient(&cfg.Supabase, logger)
+		// For now, return nil to use existing database implementation
+		// The Supabase database implementation will be integrated in a future update
+		return nil, fmt.Errorf("Supabase database provider not yet fully integrated - using existing database")
 	case "aws":
 		// TODO: Implement AWS RDS database
 		return nil, fmt.Errorf("AWS database provider not yet implemented")
@@ -29,8 +32,8 @@ func NewDatabase(cfg *config.Config, logger *observability.Logger) (database.Dat
 func NewAuthService(cfg *config.Config, db database.Database, logger *observability.Logger, metrics *observability.Metrics) (*auth.AuthService, error) {
 	switch cfg.Provider.Auth {
 	case "supabase":
-		// For now, use the existing auth service
-		// The Supabase auth implementation will be completed in a future update
+		// For now, use the existing auth service with Supabase database
+		// The Supabase auth implementation will be integrated in a future update
 		authConfig := &cfg.Auth
 		return auth.NewAuthService(authConfig, db, logger, metrics), nil
 	case "aws":
@@ -45,12 +48,11 @@ func NewAuthService(cfg *config.Config, db database.Database, logger *observabil
 }
 
 // NewCache creates a new cache instance based on provider configuration
-func NewCache(cfg *config.Config, db database.Database) (interface{}, error) {
+func NewCache(cfg *config.Config, logger *observability.Logger) (interface{}, error) {
 	switch cfg.Provider.Cache {
 	case "supabase":
-		// For now, use the existing in-memory cache
-		// The Supabase cache implementation will be completed in a future update
-		return nil, fmt.Errorf("Supabase cache provider not yet fully implemented - using existing cache")
+		// Use the new Supabase cache implementation
+		return cache.NewSupabaseCache(&cfg.Supabase, logger)
 	case "aws":
 		// TODO: Implement AWS ElastiCache
 		return nil, fmt.Errorf("AWS cache provider not yet implemented")

@@ -13,7 +13,7 @@ import (
 	"github.com/pcraw4d/business-verification/internal/database"
 	"github.com/pcraw4d/business-verification/internal/datasource"
 	"github.com/pcraw4d/business-verification/internal/observability"
-	"github.com/pcraw4d/business-verification/internal/webanalysis"
+	// "github.com/pcraw4d/business-verification/internal/webanalysis" // Temporarily disabled
 	"github.com/pcraw4d/business-verification/pkg/validators"
 )
 
@@ -36,9 +36,25 @@ type ClassificationService struct {
 	// enrichment
 	enricher *datasource.Aggregator
 
-	// web analysis
-	webAnalysis   *webanalysis.ClassificationFlowManager
-	hybridScraper *webanalysis.HybridAPIScraper
+	// web analysis (temporarily disabled)
+	// webAnalysis   *webanalysis.ClassificationFlowManager
+	// hybridScraper *webanalysis.HybridAPIScraper
+
+	// search integration (temporarily disabled)
+	// multiSourceSearch *webanalysis.MultiSourceSearchService
+	// searchAnalyzer    *webanalysis.SearchResultAnalyzer
+
+	// crosswalk mapping
+	crosswalkMapper *CrosswalkMapper
+
+	// geographic region awareness
+	geographicManager *GeographicManager
+
+	// industry-specific mapping
+	industryMapper *IndustryMapper
+
+	// feedback collection
+	feedbackCollector *FeedbackCollector
 }
 
 // NewClassificationService creates a new business classification service
@@ -53,6 +69,11 @@ func NewClassificationService(cfg *config.ExternalServicesConfig, db database.Da
 	s.initCache()
 	s.initEnrichment(db)
 	s.initWebAnalysis()
+	s.initSearchIntegration()
+	s.initCrosswalkMapper()
+	s.initGeographicManager()
+	s.initIndustryMapper()
+	s.initFeedbackCollector()
 	return s
 }
 
@@ -68,6 +89,11 @@ func NewClassificationServiceWithData(cfg *config.ExternalServicesConfig, db dat
 	s.initCache()
 	s.initEnrichment(db)
 	s.initWebAnalysis()
+	s.initSearchIntegration()
+	s.initCrosswalkMapper()
+	s.initGeographicManager()
+	s.initIndustryMapper()
+	s.initFeedbackCollector()
 	return s
 }
 
@@ -214,6 +240,114 @@ func (c *ClassificationService) initWebAnalysis() {
 	}
 	c.webAnalysis = webanalysis.NewClassificationFlowManager(config)
 	c.hybridScraper = webanalysis.NewHybridAPIScraper()
+}
+
+// initSearchIntegration initializes the search integration components
+func (c *ClassificationService) initSearchIntegration() {
+	if c.config == nil {
+		return
+	}
+	// Initialize search integration components with default values
+	// Note: API keys would be configured via environment variables or config
+	searchConfig := webanalysis.SearchIntegrationConfig{
+		GoogleAPIKey:         "", // Would be set from config
+		GoogleSearchEngineID: "", // Would be set from config
+		BingAPIKey:           "", // Would be set from config
+		BingEndpoint:         "", // Would be set from config
+		MaxResults:           10,
+		Timeout:              30 * time.Second,
+		EnableCaching:        true,
+		CacheTTL:             1 * time.Hour,
+		RetryAttempts:        3,
+		RetryDelay:           1 * time.Second,
+	}
+	c.multiSourceSearch = webanalysis.NewMultiSourceSearchService(searchConfig)
+
+	analyzerConfig := webanalysis.SearchAnalyzerConfig{
+		MinSnippetLength:    50,
+		MaxSnippetLength:    300,
+		MinQualityScore:     0.3,
+		MinConfidenceScore:  0.75,
+		EnableDeduplication: true,
+		EnableRanking:       true,
+		IndustryKeywords:    c.getIndustryKeywords(),
+		QualityWeights: map[string]float64{
+			"title_length":     0.2,
+			"snippet_length":   0.3,
+			"url_quality":      0.2,
+			"provider_quality": 0.15,
+			"relevance":        0.15,
+		},
+	}
+	c.searchAnalyzer = webanalysis.NewSearchResultAnalyzer(analyzerConfig)
+}
+
+// initCrosswalkMapper initializes the crosswalk mapping component
+func (c *ClassificationService) initCrosswalkMapper() {
+	c.crosswalkMapper = NewCrosswalkMapper(c.logger, c.metrics)
+}
+
+// initGeographicManager initializes the geographic region manager component
+func (c *ClassificationService) initGeographicManager() {
+	c.geographicManager = NewGeographicManager(c.logger, c.metrics)
+}
+
+// initIndustryMapper initializes the industry-specific mapper component
+func (c *ClassificationService) initIndustryMapper() {
+	c.industryMapper = NewIndustryMapper(c.logger, c.metrics)
+}
+
+// initFeedbackCollector initializes the feedback collector component
+func (c *ClassificationService) initFeedbackCollector() {
+	c.feedbackCollector = NewFeedbackCollector(c.logger, c.metrics)
+}
+
+// getIndustryKeywords returns industry keywords for search analysis
+func (c *ClassificationService) getIndustryKeywords() map[string][]string {
+	// Default industry keywords for search analysis
+	// In a production system, these would be loaded from a database or configuration
+	return map[string][]string{
+		"technology": {
+			"software", "technology", "tech", "digital", "computer", "internet", "web", "mobile", "app",
+			"development", "programming", "coding", "IT", "information technology", "cybersecurity",
+		},
+		"healthcare": {
+			"healthcare", "medical", "health", "hospital", "clinic", "doctor", "nurse", "pharmacy",
+			"dental", "therapy", "wellness", "fitness", "rehabilitation",
+		},
+		"finance": {
+			"finance", "financial", "banking", "investment", "insurance", "accounting", "tax",
+			"credit", "loan", "mortgage", "wealth", "advisory", "consulting",
+		},
+		"retail": {
+			"retail", "store", "shop", "commerce", "ecommerce", "online", "marketplace", "sales",
+			"merchandise", "product", "consumer", "shopping",
+		},
+		"manufacturing": {
+			"manufacturing", "factory", "production", "industrial", "machinery", "equipment",
+			"assembly", "supply chain", "logistics", "warehouse",
+		},
+		"education": {
+			"education", "school", "university", "college", "training", "learning", "academic",
+			"teaching", "student", "course", "curriculum",
+		},
+		"real_estate": {
+			"real estate", "property", "realty", "housing", "construction", "development",
+			"commercial", "residential", "broker", "agent",
+		},
+		"legal": {
+			"legal", "law", "attorney", "lawyer", "law firm", "litigation", "contract",
+			"compliance", "regulatory", "court", "justice",
+		},
+		"consulting": {
+			"consulting", "consultant", "advisory", "strategy", "management", "business",
+			"professional services", "expertise", "solutions",
+		},
+		"transportation": {
+			"transportation", "logistics", "shipping", "delivery", "freight", "trucking",
+			"warehouse", "supply chain", "distribution",
+		},
+	}
 }
 
 // DataSourcesHealth proxies health checks for configured enrichment sources
@@ -622,6 +756,13 @@ func (c *ClassificationService) performClassification(ctx context.Context, req *
 		}
 	}
 
+	// Method 0.5: Search-based classification (high priority when no website URL provided)
+	if req.WebsiteURL == "" && c.multiSourceSearch != nil && c.searchAnalyzer != nil {
+		if searchClassifications := c.classifyBySearchAnalysis(ctx, req); len(searchClassifications) > 0 {
+			classifications = append(classifications, searchClassifications...)
+		}
+	}
+
 	// Method 1: Keyword-based classification
 	if keywordClassifications := c.classifyByKeywords(req); len(keywordClassifications) > 0 {
 		classifications = append(classifications, keywordClassifications...)
@@ -696,7 +837,114 @@ func (c *ClassificationService) performClassification(ctx context.Context, req *
 	return classifications, nil
 }
 
-// postProcessConfidence applies method-based weighting, agreement boosts and deduplicates by industry code.
+// Industry-Specific Mapping Methods
+
+// ClassifyIndustry performs industry-specific classification
+func (c *ClassificationService) ClassifyIndustry(ctx context.Context, businessInfo map[string]interface{}) (*IndustryClassificationResult, error) {
+	if c.industryMapper == nil {
+		return nil, fmt.Errorf("industry mapper not initialized")
+	}
+
+	return c.industryMapper.ClassifyIndustry(ctx, businessInfo)
+}
+
+// AddIndustryMapping adds a new industry mapping
+func (c *ClassificationService) AddIndustryMapping(ctx context.Context, mapping *IndustryMapping) error {
+	if c.industryMapper == nil {
+		return fmt.Errorf("industry mapper not initialized")
+	}
+
+	return c.industryMapper.AddIndustryMapping(ctx, mapping)
+}
+
+// GetIndustryMapping retrieves an industry mapping by type
+func (c *ClassificationService) GetIndustryMapping(ctx context.Context, industryType IndustryType) (*IndustryMapping, error) {
+	if c.industryMapper == nil {
+		return nil, fmt.Errorf("industry mapper not initialized")
+	}
+
+	return c.industryMapper.GetIndustryMapping(ctx, industryType)
+}
+
+// UpdateIndustryMapping updates an existing industry mapping
+func (c *ClassificationService) UpdateIndustryMapping(ctx context.Context, industryType IndustryType, updates map[string]interface{}) error {
+	if c.industryMapper == nil {
+		return fmt.Errorf("industry mapper not initialized")
+	}
+
+	return c.industryMapper.UpdateIndustryMapping(ctx, industryType, updates)
+}
+
+// ListIndustryMappings returns all industry mappings
+func (c *ClassificationService) ListIndustryMappings(ctx context.Context) ([]*IndustryMapping, error) {
+	if c.industryMapper == nil {
+		return nil, fmt.Errorf("industry mapper not initialized")
+	}
+
+	return c.industryMapper.ListIndustryMappings(ctx)
+}
+
+// GetIndustryMapperStats returns statistics about the industry mapper
+func (c *ClassificationService) GetIndustryMapperStats() map[string]interface{} {
+	if c.industryMapper == nil {
+		return map[string]interface{}{
+			"error": "Industry mapper not initialized",
+		}
+	}
+
+	return c.industryMapper.GetMapperStats()
+}
+
+// Enhanced classification with industry-specific integration
+func (c *ClassificationService) ClassifyWithIndustryIntegration(ctx context.Context, req *ClassificationRequest) ([]IndustryClassification, error) {
+	// Perform standard classification first
+	response, err := c.ClassifyBusiness(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("standard classification failed: %w", err)
+	}
+
+	classifications := response.Classifications
+
+	// Apply industry-specific classification if industry mapper is available
+	if c.industryMapper != nil {
+		businessInfo := map[string]interface{}{
+			"business_name": req.BusinessName,
+			"business_type": req.BusinessType,
+			"industry":      req.Industry,
+			"description":   req.Description,
+			"keywords":      req.Keywords,
+		}
+
+		industryResult, err := c.industryMapper.ClassifyIndustry(ctx, businessInfo)
+		if err == nil && industryResult != nil {
+			// Create enhanced classification with industry-specific data
+			enhancedClassification := IndustryClassification{
+				IndustryCode:         industryResult.PrimaryCode,
+				IndustryName:         industryResult.IndustryName,
+				ConfidenceScore:      industryResult.ConfidenceScore,
+				ClassificationMethod: "industry_specific",
+				Description:          fmt.Sprintf("Industry-specific classification for %s (confidence: %.2f)", industryResult.IndustryType, industryResult.ConfidenceScore),
+			}
+
+			// Log industry integration
+			if c.logger != nil {
+				c.logger.WithComponent("classification").LogBusinessEvent(ctx, "industry_integration_applied", "", map[string]interface{}{
+					"business_name":     req.BusinessName,
+					"industry_type":     string(industryResult.IndustryType),
+					"industry_confidence": industryResult.ConfidenceScore,
+					"rules_applied":     len(industryResult.AppliedRules),
+				})
+			}
+
+			// Return enhanced classification
+			return []IndustryClassification{enhancedClassification}, nil
+		}
+	}
+
+	return classifications, nil
+}
+
+// postProcessConfidence applies method-based weighting, agreement boosts, confidence range validation, and deduplicates by industry code.
 func (c *ClassificationService) postProcessConfidence(classifications []IndustryClassification) []IndustryClassification {
 	if len(classifications) == 0 {
 		return classifications
@@ -708,7 +956,7 @@ func (c *ClassificationService) postProcessConfidence(classifications []Industry
 		occurrences[cl.IndustryCode]++
 	}
 
-	// Keep best per code after weighting
+	// Keep best per code after weighting and confidence range validation
 	bestByCode := make(map[string]IndustryClassification)
 	for _, cl := range classifications {
 		weight := methodWeightFor(cl.ClassificationMethod)
@@ -726,6 +974,9 @@ func (c *ClassificationService) postProcessConfidence(classifications []Industry
 		}
 		cl.ConfidenceScore = score
 
+		// Apply confidence range validation
+		cl = c.applyConfidenceRangeValidation(cl)
+
 		cur, exists := bestByCode[cl.IndustryCode]
 		if !exists || cl.ConfidenceScore > cur.ConfidenceScore {
 			bestByCode[cl.IndustryCode] = cl
@@ -736,30 +987,153 @@ func (c *ClassificationService) postProcessConfidence(classifications []Industry
 	for _, v := range bestByCode {
 		out = append(out, v)
 	}
+
+	// Apply confidence-based result ranking
+	out = c.applyConfidenceBasedRanking(out)
+
 	return out
 }
 
-// methodWeightFor returns a multiplicative weight reflecting method reliability.
+// applyConfidenceRangeValidation applies confidence range validation to a classification
+func (c *ClassificationService) applyConfidenceRangeValidation(cl IndustryClassification) IndustryClassification {
+	// Define method-based confidence ranges (as specified in PRD)
+	methodConfidenceRanges := map[string]struct {
+		min, max float64
+	}{
+		"website_analysis":           {0.85, 0.95},
+		"website_content_analysis":   {0.85, 0.95},
+		"website_structure_analysis": {0.85, 0.95},
+		"web_search_analysis":        {0.75, 0.85},
+		"search_analysis":            {0.75, 0.85},
+		"search_result_analysis":     {0.70, 0.80},
+		"keyword_based":              {0.60, 0.75},
+		"keyword_based_naics":        {0.60, 0.75},
+		"keyword_based_mcc":          {0.60, 0.75},
+		"keyword_based_sic":          {0.60, 0.75},
+		"fuzzy_matching":             {0.50, 0.70},
+		"fuzzy_naics_fulltext":       {0.50, 0.70},
+		"fuzzy_naics_token":          {0.50, 0.70},
+		"fuzzy_mcc_fulltext":         {0.50, 0.70},
+		"fuzzy_mcc_token":            {0.50, 0.70},
+		"fuzzy_sic_fulltext":         {0.50, 0.70},
+		"fuzzy_sic_token":            {0.50, 0.70},
+		"crosswalk_mapping":          {0.40, 0.60},
+		"crosswalk_mcc_from_naics":   {0.40, 0.60},
+		"crosswalk_sic_from_naics":   {0.40, 0.60},
+	}
+
+	// Get confidence range for the method
+	range_, exists := methodConfidenceRanges[cl.ClassificationMethod]
+	if !exists {
+		// Default range for unknown methods
+		range_ = struct {
+			min, max float64
+		}{0.50, 0.70}
+	}
+
+	// Ensure confidence score is within the valid range
+	if cl.ConfidenceScore < range_.min {
+		cl.ConfidenceScore = range_.min
+	} else if cl.ConfidenceScore > range_.max {
+		cl.ConfidenceScore = range_.max
+	}
+
+	// Log confidence range validation
+	if c.logger != nil {
+		c.logger.WithComponent("classification").Debug("confidence_range_validation", map[string]interface{}{
+			"method":         cl.ClassificationMethod,
+			"original_score": cl.ConfidenceScore,
+			"min_confidence": range_.min,
+			"max_confidence": range_.max,
+			"final_score":    cl.ConfidenceScore,
+			"industry_code":  cl.IndustryCode,
+		})
+	}
+
+	return cl
+}
+
+// applyConfidenceBasedRanking applies confidence-based ranking to classifications
+func (c *ClassificationService) applyConfidenceBasedRanking(classifications []IndustryClassification) []IndustryClassification {
+	if len(classifications) == 0 {
+		return classifications
+	}
+
+	// Sort classifications by confidence score in descending order
+	// This ensures that higher confidence classifications appear first
+	for i := 0; i < len(classifications)-1; i++ {
+		for j := i + 1; j < len(classifications); j++ {
+			if classifications[i].ConfidenceScore < classifications[j].ConfidenceScore {
+				classifications[i], classifications[j] = classifications[j], classifications[i]
+			}
+		}
+	}
+
+	// Log confidence-based ranking
+	if c.logger != nil && len(classifications) > 0 {
+		c.logger.WithComponent("classification").Debug("confidence_based_ranking_applied", map[string]interface{}{
+			"total_classifications": len(classifications),
+			"top_confidence":        classifications[0].ConfidenceScore,
+			"top_method":            classifications[0].ClassificationMethod,
+			"top_industry_code":     classifications[0].IndustryCode,
+		})
+	}
+
+	return classifications
+}
+
+// methodWeightFor returns a multiplicative weight reflecting method reliability based on confidence ranges.
 func methodWeightFor(method string) float64 {
 	switch method {
-	case "industry_based":
+	// Website analysis methods (highest confidence: 0.85-0.95)
+	case "website_analysis":
+		return 1.20
+	case "website_content_analysis":
+		return 1.18
+	case "website_structure_analysis":
+		return 1.16
+
+	// Web search analysis methods (high confidence: 0.75-0.85)
+	case "web_search_analysis":
 		return 1.15
-	case "business_type_based":
-		return 1.10
-	case "keyword_based_naics":
+	case "search_analysis":
+		return 1.14
+	case "search_result_analysis":
+		return 1.13
+	case "multi_source_search":
 		return 1.12
+
+	// Keyword-based methods (moderate confidence: 0.60-0.75)
+	case "keyword_based_naics":
+		return 1.10
 	case "keyword_based":
 		return 1.08
-	case "name_pattern_based":
-		return 1.05
-	case "fuzzy_naics_fulltext", "fuzzy_naics_token":
+	case "keyword_based_mcc":
+		return 1.07
+	case "keyword_based_sic":
 		return 1.06
-	case "fuzzy_mcc_fulltext", "fuzzy_mcc_token":
+	case "industry_based":
+		return 1.05
+	case "business_type_based":
 		return 1.04
-	case "fuzzy_sic_fulltext", "fuzzy_sic_token":
-		return 1.03
-	case "crosswalk_mcc_from_naics", "crosswalk_sic_from_naics":
+
+	// Fuzzy matching methods (lower confidence: 0.50-0.70)
+	case "fuzzy_naics_fulltext", "fuzzy_naics_token":
 		return 1.02
+	case "fuzzy_mcc_fulltext", "fuzzy_mcc_token":
+		return 1.01
+	case "fuzzy_sic_fulltext", "fuzzy_sic_token":
+		return 1.00
+	case "name_pattern_based":
+		return 0.98
+
+	// Crosswalk mapping methods (lowest confidence: 0.40-0.60)
+	case "crosswalk_mcc_from_naics", "crosswalk_sic_from_naics":
+		return 0.95
+	case "crosswalk_mapping":
+		return 0.93
+
+	// Default weight for unknown methods
 	default:
 		return 1.0
 	}
@@ -1438,4 +1812,522 @@ func (c *ClassificationService) storeClassification(ctx context.Context, busines
 	}
 
 	return c.db.CreateBusinessClassification(ctx, classification)
+}
+
+// classifyBySearchAnalysis performs classification using search-based analysis
+func (c *ClassificationService) classifyBySearchAnalysis(ctx context.Context, req *ClassificationRequest) []IndustryClassification {
+	if c.multiSourceSearch == nil || c.searchAnalyzer == nil {
+		return nil
+	}
+
+	// Create search query from business information
+	searchQuery := c.buildSearchQuery(req)
+
+	// Perform search
+	searchResponse, err := c.multiSourceSearch.Search(ctx, searchQuery, req.BusinessName)
+	if err != nil {
+		c.logger.WithComponent("classification").Warn("Search analysis failed", "error", err.Error(), "business_name", req.BusinessName)
+		return nil
+	}
+
+	// Analyze search results
+	analysisResult, err := c.searchAnalyzer.AnalyzeSearchResults(ctx, searchResponse.Results, req.BusinessName)
+	if err != nil {
+		c.logger.WithComponent("classification").Warn("Search result analysis failed", "error", err.Error(), "business_name", req.BusinessName)
+		return nil
+	}
+
+	// Convert analysis results to classifications
+	var classifications []IndustryClassification
+	for industry, confidence := range analysisResult.IndustryIndicators {
+		// Map industry names to NAICS codes (simplified mapping)
+		naicsCode := c.mapIndustryToNAICS(industry)
+		if naicsCode != "" {
+			classification := IndustryClassification{
+				IndustryCode:         naicsCode,
+				IndustryName:         industry,
+				ConfidenceScore:      confidence * 0.8, // Scale confidence to 0.75-0.85 range
+				ClassificationMethod: "search_analysis",
+				Description:          fmt.Sprintf("Search-based classification with confidence %.2f", confidence),
+			}
+			classifications = append(classifications, classification)
+		}
+	}
+
+	// Add classifications from individual search results
+	for _, analyzedResult := range analysisResult.Results {
+		for _, indicator := range analyzedResult.IndustryIndicators {
+			naicsCode := c.mapIndustryToNAICS(indicator)
+			if naicsCode != "" {
+				classification := IndustryClassification{
+					IndustryCode:         naicsCode,
+					IndustryName:         indicator,
+					ConfidenceScore:      analyzedResult.ConfidenceScore,
+					ClassificationMethod: "search_result_analysis",
+					Description:          fmt.Sprintf("Search result analysis with quality score %.2f", analyzedResult.QualityScore),
+				}
+				classifications = append(classifications, classification)
+			}
+		}
+	}
+
+	return classifications
+}
+
+// buildSearchQuery builds a search query from business information
+func (c *ClassificationService) buildSearchQuery(req *ClassificationRequest) string {
+	var queryParts []string
+
+	// Add business name
+	if req.BusinessName != "" {
+		queryParts = append(queryParts, req.BusinessName)
+	}
+
+	// Add business type
+	if req.BusinessType != "" {
+		queryParts = append(queryParts, req.BusinessType)
+	}
+
+	// Add industry
+	if req.Industry != "" {
+		queryParts = append(queryParts, req.Industry)
+	}
+
+	// Add description keywords
+	if req.Description != "" {
+		// Extract key terms from description
+		words := strings.Fields(req.Description)
+		if len(words) > 0 {
+			// Take first few meaningful words
+			keyWords := words[:min(len(words), 5)]
+			queryParts = append(queryParts, strings.Join(keyWords, " "))
+		}
+	}
+
+	// Add keywords
+	if req.Keywords != "" {
+		queryParts = append(queryParts, req.Keywords)
+	}
+
+	// Combine all parts
+	query := strings.Join(queryParts, " ")
+	if query == "" {
+		query = req.BusinessName // Fallback to just business name
+	}
+
+	return query
+}
+
+// mapIndustryToNAICS maps industry names to NAICS codes
+func (c *ClassificationService) mapIndustryToNAICS(industry string) string {
+	// Simplified mapping - in production this would be more comprehensive
+	industryLower := strings.ToLower(industry)
+
+	switch {
+	case strings.Contains(industryLower, "technology") || strings.Contains(industryLower, "software") || strings.Contains(industryLower, "tech"):
+		return "511200" // Software Publishers
+	case strings.Contains(industryLower, "healthcare") || strings.Contains(industryLower, "medical") || strings.Contains(industryLower, "health"):
+		return "621100" // Offices of Physicians
+	case strings.Contains(industryLower, "finance") || strings.Contains(industryLower, "financial") || strings.Contains(industryLower, "banking"):
+		return "522100" // Depository Credit Intermediation
+	case strings.Contains(industryLower, "retail") || strings.Contains(industryLower, "store") || strings.Contains(industryLower, "shop"):
+		return "441100" // Automobile Dealers
+	case strings.Contains(industryLower, "manufacturing") || strings.Contains(industryLower, "factory") || strings.Contains(industryLower, "production"):
+		return "332000" // Fabricated Metal Product Manufacturing
+	case strings.Contains(industryLower, "education") || strings.Contains(industryLower, "school") || strings.Contains(industryLower, "university"):
+		return "611100" // Elementary and Secondary Schools
+	case strings.Contains(industryLower, "real estate") || strings.Contains(industryLower, "property") || strings.Contains(industryLower, "realty"):
+		return "531100" // Lessors of Real Estate
+	case strings.Contains(industryLower, "legal") || strings.Contains(industryLower, "law") || strings.Contains(industryLower, "attorney"):
+		return "541100" // Legal Services
+	case strings.Contains(industryLower, "consulting") || strings.Contains(industryLower, "advisory") || strings.Contains(industryLower, "strategy"):
+		return "541600" // Management, Scientific, and Technical Consulting Services
+	case strings.Contains(industryLower, "transportation") || strings.Contains(industryLower, "logistics") || strings.Contains(industryLower, "shipping"):
+		return "484000" // Truck Transportation
+	default:
+		return "" // No mapping found
+	}
+}
+
+// min returns the minimum of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+// Crosswalk Mapping Methods
+
+// ClassifyWithCrosswalk performs classification using crosswalk mappings
+func (c *ClassificationService) ClassifyWithCrosswalk(ctx context.Context, inputCode, inputSystem string, businessInfo map[string]interface{}) (*CrosswalkClassification, error) {
+	if c.crosswalkMapper == nil {
+		return nil, fmt.Errorf("crosswalk mapper not initialized")
+	}
+
+	return c.crosswalkMapper.ClassifyWithCrosswalk(ctx, inputCode, inputSystem, businessInfo)
+}
+
+// AddCrosswalkMapping adds a new crosswalk mapping
+func (c *ClassificationService) AddCrosswalkMapping(ctx context.Context, mapping *CrosswalkMapping) error {
+	if c.crosswalkMapper == nil {
+		return fmt.Errorf("crosswalk mapper not initialized")
+	}
+
+	return c.crosswalkMapper.AddMapping(ctx, mapping)
+}
+
+// GetCrosswalkMapping retrieves a crosswalk mapping
+func (c *ClassificationService) GetCrosswalkMapping(ctx context.Context, mccCode, naicsCode, sicCode string) (*CrosswalkMapping, error) {
+	if c.crosswalkMapper == nil {
+		return nil, fmt.Errorf("crosswalk mapper not initialized")
+	}
+
+	return c.crosswalkMapper.GetMapping(ctx, mccCode, naicsCode, sicCode)
+}
+
+// UpdateCrosswalkMapping updates an existing crosswalk mapping
+func (c *ClassificationService) UpdateCrosswalkMapping(ctx context.Context, key string, updates map[string]interface{}) error {
+	if c.crosswalkMapper == nil {
+		return fmt.Errorf("crosswalk mapper not initialized")
+	}
+
+	return c.crosswalkMapper.UpdateMapping(ctx, key, updates)
+}
+
+// ListCrosswalkMappings returns all crosswalk mappings with optional filters
+func (c *ClassificationService) ListCrosswalkMappings(ctx context.Context, filters map[string]interface{}) ([]*CrosswalkMapping, error) {
+	if c.crosswalkMapper == nil {
+		return nil, fmt.Errorf("crosswalk mapper not initialized")
+	}
+
+	return c.crosswalkMapper.ListMappings(ctx, filters)
+}
+
+// ValidateCrosswalkMapping validates a crosswalk mapping
+func (c *ClassificationService) ValidateCrosswalkMapping(ctx context.Context, mapping *CrosswalkMapping) *CrosswalkValidation {
+	if c.crosswalkMapper == nil {
+		return &CrosswalkValidation{
+			IsValid:    false,
+			Confidence: 0.0,
+			Issues: []ValidationIssue{
+				{
+					Type:        "system_error",
+					Severity:    "critical",
+					Description: "Crosswalk mapper not initialized",
+				},
+			},
+		}
+	}
+
+	return c.crosswalkMapper.ValidateMapping(ctx, mapping)
+}
+
+// CalculateCrosswalkConfidence calculates confidence score for a crosswalk mapping
+func (c *ClassificationService) CalculateCrosswalkConfidence(ctx context.Context, mapping *CrosswalkMapping) *CrosswalkConfidence {
+	if c.crosswalkMapper == nil {
+		return &CrosswalkConfidence{
+			OverallConfidence: 0.0,
+			Factors:           make(map[string]float64),
+			Metadata: map[string]interface{}{
+				"error": "Crosswalk mapper not initialized",
+			},
+		}
+	}
+
+	return c.crosswalkMapper.CalculateConfidence(ctx, mapping)
+}
+
+// GetCrosswalkMapperStats returns statistics about the crosswalk mapper
+func (c *ClassificationService) GetCrosswalkMapperStats() map[string]interface{} {
+	if c.crosswalkMapper == nil {
+		return map[string]interface{}{
+			"error": "Crosswalk mapper not initialized",
+		}
+	}
+
+	return c.crosswalkMapper.GetMapperStats()
+}
+
+// Enhanced classification with crosswalk integration
+func (c *ClassificationService) ClassifyWithCrosswalkIntegration(ctx context.Context, req *ClassificationRequest) ([]IndustryClassification, error) {
+	// Perform standard classification first
+	response, err := c.ClassifyBusiness(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("standard classification failed: %w", err)
+	}
+
+	classifications := response.Classifications
+
+	// Enhance with crosswalk mappings if available
+	if c.crosswalkMapper != nil && len(classifications) > 0 {
+		enhancedClassifications := make([]IndustryClassification, 0, len(classifications))
+
+		for _, classification := range classifications {
+			// Try to find crosswalk mapping for the classification
+			if classification.IndustryCode != "" {
+				businessInfo := map[string]interface{}{
+					"business_name": req.BusinessName,
+					"business_type": req.BusinessType,
+					"industry":      req.Industry,
+					"description":   req.Description,
+				}
+
+				crosswalkResult, err := c.crosswalkMapper.ClassifyWithCrosswalk(ctx, classification.IndustryCode, "naics", businessInfo)
+				if err == nil && crosswalkResult != nil {
+					// Create enhanced classification with crosswalk data
+					enhancedClassification := IndustryClassification{
+						IndustryCode:         classification.IndustryCode,
+						IndustryName:         classification.IndustryName,
+						ConfidenceScore:      classification.ConfidenceScore * crosswalkResult.Confidence,
+						ClassificationMethod: "crosswalk_enhanced",
+						Description:          fmt.Sprintf("Enhanced with crosswalk mapping (confidence: %.2f)", crosswalkResult.Confidence),
+					}
+					enhancedClassifications = append(enhancedClassifications, enhancedClassification)
+				} else {
+					// Keep original classification if crosswalk mapping fails
+					enhancedClassifications = append(enhancedClassifications, classification)
+				}
+			} else {
+				enhancedClassifications = append(enhancedClassifications, classification)
+			}
+		}
+
+			return enhancedClassifications, nil
+}
+
+// Geographic Region Methods
+
+// DetectGeographicRegion detects the geographic region for a business
+func (c *ClassificationService) DetectGeographicRegion(ctx context.Context, businessInfo map[string]interface{}) (*RegionDetectionResult, error) {
+	if c.geographicManager == nil {
+		return nil, fmt.Errorf("geographic manager not initialized")
+	}
+
+	return c.geographicManager.DetectRegion(ctx, businessInfo)
+}
+
+// ClassifyWithGeographicRegion performs classification with geographic region awareness
+func (c *ClassificationService) ClassifyWithGeographicRegion(ctx context.Context, classifications []IndustryClassification, region *GeographicRegion) (*RegionClassificationResult, error) {
+	if c.geographicManager == nil {
+		return &RegionClassificationResult{
+			Classifications:       classifications,
+			ConfidenceAdjustments: make(map[string]float64),
+			AppliedRules:          make([]string, 0),
+			ProcessingTime:        0,
+			Metadata:              make(map[string]interface{}),
+		}, nil
+	}
+
+	return c.geographicManager.ClassifyWithRegion(ctx, classifications, region)
+}
+
+// AddGeographicRegion adds a new geographic region
+func (c *ClassificationService) AddGeographicRegion(ctx context.Context, region *GeographicRegion) error {
+	if c.geographicManager == nil {
+		return fmt.Errorf("geographic manager not initialized")
+	}
+
+	return c.geographicManager.AddRegion(ctx, region)
+}
+
+// GetGeographicRegion retrieves a geographic region by ID
+func (c *ClassificationService) GetGeographicRegion(ctx context.Context, regionID string) (*GeographicRegion, error) {
+	if c.geographicManager == nil {
+		return nil, fmt.Errorf("geographic manager not initialized")
+	}
+
+	return c.geographicManager.GetRegion(ctx, regionID)
+}
+
+// UpdateGeographicRegion updates an existing geographic region
+func (c *ClassificationService) UpdateGeographicRegion(ctx context.Context, regionID string, updates map[string]interface{}) error {
+	if c.geographicManager == nil {
+		return fmt.Errorf("geographic manager not initialized")
+	}
+
+	return c.geographicManager.UpdateRegion(ctx, regionID, updates)
+}
+
+// ListGeographicRegions returns all geographic regions with optional filters
+func (c *ClassificationService) ListGeographicRegions(ctx context.Context, filters map[string]interface{}) ([]*GeographicRegion, error) {
+	if c.geographicManager == nil {
+		return nil, fmt.Errorf("geographic manager not initialized")
+	}
+
+	return c.geographicManager.ListRegions(ctx, filters)
+}
+
+// GetGeographicManagerStats returns statistics about the geographic manager
+func (c *ClassificationService) GetGeographicManagerStats() map[string]interface{} {
+	if c.geographicManager == nil {
+		return map[string]interface{}{
+			"error": "Geographic manager not initialized",
+		}
+	}
+
+	return c.geographicManager.GetManagerStats()
+}
+
+// Enhanced classification with geographic region integration
+func (c *ClassificationService) ClassifyWithGeographicIntegration(ctx context.Context, req *ClassificationRequest) ([]IndustryClassification, error) {
+	// Perform standard classification first
+	response, err := c.ClassifyBusiness(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("standard classification failed: %w", err)
+	}
+
+	classifications := response.Classifications
+
+	// Detect geographic region if geographic manager is available
+	if c.geographicManager != nil {
+		businessInfo := map[string]interface{}{
+			"business_name": req.BusinessName,
+			"business_type": req.BusinessType,
+			"industry":      req.Industry,
+			"description":   req.Description,
+			// Add any location information from the request
+		}
+
+		regionResult, err := c.geographicManager.DetectRegion(ctx, businessInfo)
+		if err == nil && regionResult != nil && regionResult.DetectedRegion != nil {
+			// Apply geographic region adjustments
+			regionClassificationResult, err := c.geographicManager.ClassifyWithRegion(ctx, classifications, regionResult.DetectedRegion)
+			if err == nil && regionClassificationResult != nil {
+				// Log geographic integration
+				if c.logger != nil {
+					c.logger.WithComponent("classification").LogBusinessEvent(ctx, "geographic_integration_applied", "", map[string]interface{}{
+						"business_name":     req.BusinessName,
+						"detected_region":   regionResult.DetectedRegion.Name,
+						"region_confidence": regionResult.Confidence,
+						"rules_applied":     len(regionClassificationResult.AppliedRules),
+					})
+				}
+
+				return regionClassificationResult.Classifications, nil
+			}
+		}
+	}
+
+	return classifications, nil
+}
+
+// Feedback Collection Methods
+
+// SubmitFeedback submits user feedback for classification results
+func (c *ClassificationService) SubmitFeedback(ctx context.Context, feedback *Feedback) error {
+	if c.feedbackCollector == nil {
+		return fmt.Errorf("feedback collector not initialized")
+	}
+
+	return c.feedbackCollector.SubmitFeedback(ctx, feedback)
+}
+
+// GetFeedback retrieves feedback by ID
+func (c *ClassificationService) GetFeedback(ctx context.Context, feedbackID string) (*Feedback, error) {
+	if c.feedbackCollector == nil {
+		return nil, fmt.Errorf("feedback collector not initialized")
+	}
+
+	return c.feedbackCollector.GetFeedback(ctx, feedbackID)
+}
+
+// ListFeedback returns feedback with optional filtering
+func (c *ClassificationService) ListFeedback(ctx context.Context, filters map[string]interface{}) ([]*Feedback, error) {
+	if c.feedbackCollector == nil {
+		return nil, fmt.Errorf("feedback collector not initialized")
+	}
+
+	return c.feedbackCollector.ListFeedback(ctx, filters)
+}
+
+// UpdateFeedback updates feedback status
+func (c *ClassificationService) UpdateFeedback(ctx context.Context, feedbackID string, updates map[string]interface{}) error {
+	if c.feedbackCollector == nil {
+		return fmt.Errorf("feedback collector not initialized")
+	}
+
+	return c.feedbackCollector.UpdateFeedback(ctx, feedbackID, updates)
+}
+
+// GetAccuracyMetrics returns accuracy metrics based on feedback
+func (c *ClassificationService) GetAccuracyMetrics(ctx context.Context, filters map[string]interface{}) (*FeedbackAccuracyMetrics, error) {
+	if c.feedbackCollector == nil {
+		return nil, fmt.Errorf("feedback collector not initialized")
+	}
+
+	return c.feedbackCollector.GetAccuracyMetrics(ctx, filters)
+}
+
+// GetModelUpdates returns model updates based on feedback
+func (c *ClassificationService) GetModelUpdates(ctx context.Context) (map[string]interface{}, error) {
+	if c.feedbackCollector == nil {
+		return nil, fmt.Errorf("feedback collector not initialized")
+	}
+
+	return c.feedbackCollector.GetModelUpdates(ctx)
+}
+
+// GetFeedbackStats returns statistics about the feedback collector
+func (c *ClassificationService) GetFeedbackStats() map[string]interface{} {
+	if c.feedbackCollector == nil {
+		return map[string]interface{}{
+			"error": "Feedback collector not initialized",
+		}
+	}
+
+	return c.feedbackCollector.GetCollectorStats()
+}
+
+// Enhanced classification with feedback integration
+func (c *ClassificationService) ClassifyWithFeedbackIntegration(ctx context.Context, req *ClassificationRequest) ([]IndustryClassification, error) {
+	// Perform standard classification first
+	response, err := c.ClassifyBusiness(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("standard classification failed: %w", err)
+	}
+
+	classifications := response.Classifications
+
+	// Apply feedback-based adjustments if feedback collector is available
+	if c.feedbackCollector != nil {
+		// Get accuracy metrics for this business type/industry
+		businessInfo := map[string]interface{}{
+			"business_name": req.BusinessName,
+			"business_type": req.BusinessType,
+			"industry":      req.Industry,
+		}
+
+		accuracyMetrics, err := c.feedbackCollector.GetAccuracyMetrics(ctx, businessInfo)
+		if err == nil && accuracyMetrics != nil {
+			// Apply feedback-based confidence adjustments
+			for i := range classifications {
+				// Adjust confidence based on feedback accuracy
+				if accuracyMetrics.AccuracyScore > 0.8 {
+					// High accuracy feedback - boost confidence slightly
+					classifications[i].ConfidenceScore *= 1.05
+				} else if accuracyMetrics.AccuracyScore < 0.6 {
+					// Low accuracy feedback - reduce confidence slightly
+					classifications[i].ConfidenceScore *= 0.95
+				}
+
+				// Ensure confidence stays within bounds
+				if classifications[i].ConfidenceScore > 1.0 {
+					classifications[i].ConfidenceScore = 1.0
+				}
+			}
+
+			// Log feedback integration
+			if c.logger != nil {
+				c.logger.WithComponent("classification").LogBusinessEvent(ctx, "feedback_integration_applied", "", map[string]interface{}{
+					"business_name":     req.BusinessName,
+					"accuracy_score":    accuracyMetrics.AccuracyScore,
+					"total_feedback":    accuracyMetrics.TotalFeedback,
+					"confidence_adjustment": "applied",
+				})
+			}
+		}
+	}
+
+	return classifications, nil
 }

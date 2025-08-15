@@ -1,0 +1,840 @@
+package classification
+
+import (
+	"context"
+	"fmt"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/pcraw4d/business-verification/internal/observability"
+)
+
+// IndustryType represents different industry categories
+type IndustryType string
+
+const (
+	IndustryTypeAgriculture   IndustryType = "agriculture"
+	IndustryTypeRetail        IndustryType = "retail"
+	IndustryTypeFood          IndustryType = "food"
+	IndustryTypeManufacturing IndustryType = "manufacturing"
+	IndustryTypeTechnology    IndustryType = "technology"
+	IndustryTypeFinance       IndustryType = "finance"
+	IndustryTypeHealthcare    IndustryType = "healthcare"
+	IndustryTypeOther         IndustryType = "other"
+)
+
+// IndustryMapping represents a mapping for a specific industry
+type IndustryMapping struct {
+	IndustryType            IndustryType             `json:"industry_type"`
+	IndustryName            string                   `json:"industry_name"`
+	NAICSCodes              []string                 `json:"naics_codes"`
+	SICCodes                []string                 `json:"sic_codes"`
+	MCCCodes                []string                 `json:"mcc_codes"`
+	Keywords                []string                 `json:"keywords"`
+	ConfidenceScore         float64                  `json:"confidence_score"`
+	ValidationRules         []IndustryValidationRule `json:"validation_rules"`
+	ClassificationAlgorithm string                   `json:"classification_algorithm"`
+	LastUpdated             time.Time                `json:"last_updated"`
+	Metadata                map[string]interface{}   `json:"metadata"`
+}
+
+// IndustryValidationRule represents a validation rule for industry-specific mappings
+type IndustryValidationRule struct {
+	RuleID     string                 `json:"rule_id"`
+	RuleType   string                 `json:"rule_type"` // "keyword_match", "code_validation", "business_logic"
+	Condition  string                 `json:"condition"`
+	Severity   string                 `json:"severity"` // "low", "medium", "high", "critical"
+	Weight     float64                `json:"weight"`
+	Enabled    bool                   `json:"enabled"`
+	Parameters map[string]interface{} `json:"parameters"`
+}
+
+// IndustryClassificationResult represents the result of industry-specific classification
+type IndustryClassificationResult struct {
+	IndustryType     IndustryType           `json:"industry_type"`
+	IndustryName     string                 `json:"industry_name"`
+	PrimaryCode      string                 `json:"primary_code"`
+	CodeSystem       string                 `json:"code_system"`
+	ConfidenceScore  float64                `json:"confidence_score"`
+	AppliedRules     []string               `json:"applied_rules"`
+	ValidationIssues []ValidationIssue      `json:"validation_issues"`
+	ProcessingTime   time.Duration          `json:"processing_time"`
+	Metadata         map[string]interface{} `json:"metadata"`
+}
+
+// IndustryMapper provides industry-specific mapping capabilities
+type IndustryMapper struct {
+	logger  *observability.Logger
+	metrics *observability.Metrics
+
+	// Mapping storage
+	mappings      map[IndustryType]*IndustryMapping
+	mappingsMutex sync.RWMutex
+
+	// Validation rules
+	validationRules map[string]IndustryValidationRule
+	rulesMutex      sync.RWMutex
+
+	// Confidence scoring
+	confidenceWeights map[string]float64
+	weightsMutex      sync.RWMutex
+
+	// Performance tracking
+	performanceMetrics map[string]float64
+	metricsMutex       sync.RWMutex
+
+	// Configuration
+	enableIndustrySpecificMapping bool
+	confidenceThreshold           float64
+	maxResults                    int
+}
+
+// NewIndustryMapper creates a new industry-specific mapper
+func NewIndustryMapper(logger *observability.Logger, metrics *observability.Metrics) *IndustryMapper {
+	mapper := &IndustryMapper{
+		logger:  logger,
+		metrics: metrics,
+
+		// Initialize storage
+		mappings:           make(map[IndustryType]*IndustryMapping),
+		validationRules:    make(map[string]IndustryValidationRule),
+		confidenceWeights:  make(map[string]float64),
+		performanceMetrics: make(map[string]float64),
+
+		// Configuration
+		enableIndustrySpecificMapping: true,
+		confidenceThreshold:           0.7,
+		maxResults:                    5,
+	}
+
+	// Initialize default mappings
+	mapper.initializeDefaultMappings()
+
+	// Initialize validation rules
+	mapper.initializeValidationRules()
+
+	// Initialize confidence weights
+	mapper.initializeConfidenceWeights()
+
+	return mapper
+}
+
+// ClassifyIndustry performs industry-specific classification
+func (im *IndustryMapper) ClassifyIndustry(ctx context.Context, businessInfo map[string]interface{}) (*IndustryClassificationResult, error) {
+	start := time.Now()
+
+	// Log classification start
+	if im.logger != nil {
+		im.logger.WithComponent("industry_mapper").LogBusinessEvent(ctx, "industry_classification_started", "", map[string]interface{}{
+			"business_name": businessInfo["business_name"],
+		})
+	}
+
+	// Determine industry type
+	industryType := im.determineIndustryType(businessInfo)
+
+	// Get industry mapping
+	mapping, exists := im.mappings[industryType]
+	if !exists {
+		return nil, fmt.Errorf("no mapping found for industry type: %s", industryType)
+	}
+
+	// Perform industry-specific classification
+	primaryCode, codeSystem, confidence := im.performIndustryClassification(mapping, businessInfo)
+
+	// Apply validation rules
+	validationIssues := im.applyValidationRules(mapping, businessInfo)
+
+	// Calculate final confidence score
+	finalConfidence := im.calculateFinalConfidence(confidence, validationIssues)
+
+	// Create classification result
+	result := &IndustryClassificationResult{
+		IndustryType:     industryType,
+		IndustryName:     mapping.IndustryName,
+		PrimaryCode:      primaryCode,
+		CodeSystem:       codeSystem,
+		ConfidenceScore:  finalConfidence,
+		AppliedRules:     im.getAppliedRules(mapping),
+		ValidationIssues: validationIssues,
+		ProcessingTime:   time.Since(start),
+		Metadata: map[string]interface{}{
+			"industry_type": string(industryType),
+			"algorithm":     mapping.ClassificationAlgorithm,
+		},
+	}
+
+	// Log classification completion
+	if im.logger != nil {
+		im.logger.WithComponent("industry_mapper").LogBusinessEvent(ctx, "industry_classification_completed", "", map[string]interface{}{
+			"industry_type":      string(industryType),
+			"primary_code":       primaryCode,
+			"confidence":         finalConfidence,
+			"processing_time_ms": result.ProcessingTime.Milliseconds(),
+		})
+	}
+
+	// Record metrics
+	im.RecordClassificationMetrics(ctx, result)
+
+	return result, nil
+}
+
+// AddIndustryMapping adds a new industry mapping
+func (im *IndustryMapper) AddIndustryMapping(ctx context.Context, mapping *IndustryMapping) error {
+	im.mappingsMutex.Lock()
+	defer im.mappingsMutex.Unlock()
+
+	// Validate mapping
+	if err := im.validateIndustryMapping(mapping); err != nil {
+		return fmt.Errorf("invalid mapping: %w", err)
+	}
+
+	// Set metadata
+	mapping.LastUpdated = time.Now()
+	if mapping.Metadata == nil {
+		mapping.Metadata = make(map[string]interface{})
+	}
+
+	// Store mapping
+	im.mappings[mapping.IndustryType] = mapping
+
+	// Log mapping addition
+	if im.logger != nil {
+		im.logger.WithComponent("industry_mapper").LogBusinessEvent(ctx, "industry_mapping_added", string(mapping.IndustryType), map[string]interface{}{
+			"industry_name": mapping.IndustryName,
+			"naics_codes":   len(mapping.NAICSCodes),
+			"sic_codes":     len(mapping.SICCodes),
+			"mcc_codes":     len(mapping.MCCCodes),
+		})
+	}
+
+	// Record metrics
+	im.RecordMappingMetrics(ctx, mapping, "mapping_added")
+
+	return nil
+}
+
+// GetIndustryMapping retrieves an industry mapping by type
+func (im *IndustryMapper) GetIndustryMapping(ctx context.Context, industryType IndustryType) (*IndustryMapping, error) {
+	im.mappingsMutex.RLock()
+	defer im.mappingsMutex.RUnlock()
+
+	mapping, exists := im.mappings[industryType]
+	if !exists {
+		return nil, fmt.Errorf("mapping not found for industry type: %s", industryType)
+	}
+
+	return mapping, nil
+}
+
+// UpdateIndustryMapping updates an existing industry mapping
+func (im *IndustryMapper) UpdateIndustryMapping(ctx context.Context, industryType IndustryType, updates map[string]interface{}) error {
+	im.mappingsMutex.Lock()
+	defer im.mappingsMutex.Unlock()
+
+	mapping, exists := im.mappings[industryType]
+	if !exists {
+		return fmt.Errorf("mapping not found for industry type: %s", industryType)
+	}
+
+	// Apply updates
+	if industryName, ok := updates["industry_name"].(string); ok {
+		mapping.IndustryName = industryName
+	}
+	if naicsCodes, ok := updates["naics_codes"].([]string); ok {
+		mapping.NAICSCodes = naicsCodes
+	}
+	if sicCodes, ok := updates["sic_codes"].([]string); ok {
+		mapping.SICCodes = sicCodes
+	}
+	if mccCodes, ok := updates["mcc_codes"].([]string); ok {
+		mapping.MCCCodes = mccCodes
+	}
+	if keywords, ok := updates["keywords"].([]string); ok {
+		mapping.Keywords = keywords
+	}
+	if confidenceScore, ok := updates["confidence_score"].(float64); ok {
+		mapping.ConfidenceScore = confidenceScore
+	}
+	if algorithm, ok := updates["classification_algorithm"].(string); ok {
+		mapping.ClassificationAlgorithm = algorithm
+	}
+
+	// Update timestamp
+	mapping.LastUpdated = time.Now()
+
+	// Log mapping update
+	if im.logger != nil {
+		im.logger.WithComponent("industry_mapper").LogBusinessEvent(ctx, "industry_mapping_updated", string(industryType), map[string]interface{}{
+			"updates_applied": len(updates),
+		})
+	}
+
+	return nil
+}
+
+// ListIndustryMappings returns all industry mappings
+func (im *IndustryMapper) ListIndustryMappings(ctx context.Context) ([]*IndustryMapping, error) {
+	im.mappingsMutex.RLock()
+	defer im.mappingsMutex.RUnlock()
+
+	mappings := make([]*IndustryMapping, 0, len(im.mappings))
+	for _, mapping := range im.mappings {
+		mappings = append(mappings, mapping)
+	}
+
+	return mappings, nil
+}
+
+// GetMapperStats returns statistics about the industry mapper
+func (im *IndustryMapper) GetMapperStats() map[string]interface{} {
+	im.mappingsMutex.RLock()
+	defer im.mappingsMutex.RUnlock()
+
+	stats := map[string]interface{}{
+		"total_mappings":            len(im.mappings),
+		"validation_rules":          len(im.validationRules),
+		"confidence_threshold":      im.confidenceThreshold,
+		"industry_specific_mapping": im.enableIndustrySpecificMapping,
+		"max_results":               im.maxResults,
+		"industry_types":            make(map[string]int),
+		"total_codes":               make(map[string]int),
+	}
+
+	// Count mappings by industry type and codes
+	for _, mapping := range im.mappings {
+		stats["industry_types"].(map[string]int)[string(mapping.IndustryType)]++
+		stats["total_codes"].(map[string]int)["naics"] += len(mapping.NAICSCodes)
+		stats["total_codes"].(map[string]int)["sic"] += len(mapping.SICCodes)
+		stats["total_codes"].(map[string]int)["mcc"] += len(mapping.MCCCodes)
+	}
+
+	return stats
+}
+
+// Helper methods
+
+// determineIndustryType determines the industry type from business information
+func (im *IndustryMapper) determineIndustryType(businessInfo map[string]interface{}) IndustryType {
+	// Extract text for analysis
+	text := im.extractTextForAnalysis(businessInfo)
+	textLower := strings.ToLower(text)
+
+	// Check for agriculture keywords
+	if im.containsKeywords(textLower, []string{"farm", "agriculture", "crop", "livestock", "dairy", "poultry"}) {
+		return IndustryTypeAgriculture
+	}
+
+	// Check for retail keywords
+	if im.containsKeywords(textLower, []string{"retail", "store", "shop", "merchandise", "sales", "commerce"}) {
+		return IndustryTypeRetail
+	}
+
+	// Check for food keywords
+	if im.containsKeywords(textLower, []string{"restaurant", "food", "catering", "bakery", "cafe", "dining"}) {
+		return IndustryTypeFood
+	}
+
+	// Check for manufacturing keywords
+	if im.containsKeywords(textLower, []string{"manufacturing", "factory", "production", "assembly", "industrial"}) {
+		return IndustryTypeManufacturing
+	}
+
+	// Check for technology keywords
+	if im.containsKeywords(textLower, []string{"technology", "software", "tech", "digital", "computer"}) {
+		return IndustryTypeTechnology
+	}
+
+	// Check for finance keywords
+	if im.containsKeywords(textLower, []string{"finance", "banking", "financial", "investment", "insurance"}) {
+		return IndustryTypeFinance
+	}
+
+	// Check for healthcare keywords
+	if im.containsKeywords(textLower, []string{"healthcare", "medical", "health", "hospital", "clinic"}) {
+		return IndustryTypeHealthcare
+	}
+
+	return IndustryTypeOther
+}
+
+// extractTextForAnalysis extracts text from business information for analysis
+func (im *IndustryMapper) extractTextForAnalysis(businessInfo map[string]interface{}) string {
+	var textParts []string
+
+	// Add business name
+	if businessName, ok := businessInfo["business_name"].(string); ok {
+		textParts = append(textParts, businessName)
+	}
+
+	// Add business type
+	if businessType, ok := businessInfo["business_type"].(string); ok {
+		textParts = append(textParts, businessType)
+	}
+
+	// Add industry
+	if industry, ok := businessInfo["industry"].(string); ok {
+		textParts = append(textParts, industry)
+	}
+
+	// Add description
+	if description, ok := businessInfo["description"].(string); ok {
+		textParts = append(textParts, description)
+	}
+
+	// Add keywords
+	if keywords, ok := businessInfo["keywords"].(string); ok {
+		textParts = append(textParts, keywords)
+	}
+
+	return strings.Join(textParts, " ")
+}
+
+// containsKeywords checks if text contains any of the specified keywords
+func (im *IndustryMapper) containsKeywords(text string, keywords []string) bool {
+	for _, keyword := range keywords {
+		if strings.Contains(text, keyword) {
+			return true
+		}
+	}
+	return false
+}
+
+// performIndustryClassification performs the actual industry-specific classification
+func (im *IndustryMapper) performIndustryClassification(mapping *IndustryMapping, businessInfo map[string]interface{}) (string, string, float64) {
+	// Use the classification algorithm specified in the mapping
+	switch mapping.ClassificationAlgorithm {
+	case "keyword_based":
+		return im.keywordBasedClassification(mapping, businessInfo)
+	case "code_density":
+		return im.codeDensityClassification(mapping, businessInfo)
+	case "hybrid":
+		return im.hybridClassification(mapping, businessInfo)
+	default:
+		return im.defaultClassification(mapping, businessInfo)
+	}
+}
+
+// keywordBasedClassification performs keyword-based classification
+func (im *IndustryMapper) keywordBasedClassification(mapping *IndustryMapping, businessInfo map[string]interface{}) (string, string, float64) {
+	text := im.extractTextForAnalysis(businessInfo)
+	textLower := strings.ToLower(text)
+
+	// Count keyword matches
+	keywordMatches := 0
+	for _, keyword := range mapping.Keywords {
+		if strings.Contains(textLower, strings.ToLower(keyword)) {
+			keywordMatches++
+		}
+	}
+
+	// Calculate confidence based on keyword matches
+	confidence := float64(keywordMatches) / float64(len(mapping.Keywords))
+	if confidence > 1.0 {
+		confidence = 1.0
+	}
+
+	// Return primary code based on confidence
+	if confidence >= 0.5 {
+		if len(mapping.NAICSCodes) > 0 {
+			return mapping.NAICSCodes[0], "naics", confidence
+		}
+		if len(mapping.SICCodes) > 0 {
+			return mapping.SICCodes[0], "sic", confidence
+		}
+		if len(mapping.MCCCodes) > 0 {
+			return mapping.MCCCodes[0], "mcc", confidence
+		}
+	}
+
+	return "", "", confidence
+}
+
+// codeDensityClassification performs code density-based classification
+func (im *IndustryMapper) codeDensityClassification(mapping *IndustryMapping, businessInfo map[string]interface{}) (string, string, float64) {
+	// Calculate code density for each code system
+	naicsDensity := float64(len(mapping.NAICSCodes)) / 1000.0 // Normalize by typical range
+	sicDensity := float64(len(mapping.SICCodes)) / 1000.0
+	mccDensity := float64(len(mapping.MCCCodes)) / 1000.0
+
+	// Find the system with highest density
+	maxDensity := 0.0
+	primaryCode := ""
+	codeSystem := ""
+
+	if naicsDensity > maxDensity && len(mapping.NAICSCodes) > 0 {
+		maxDensity = naicsDensity
+		primaryCode = mapping.NAICSCodes[0]
+		codeSystem = "naics"
+	}
+
+	if sicDensity > maxDensity && len(mapping.SICCodes) > 0 {
+		maxDensity = sicDensity
+		primaryCode = mapping.SICCodes[0]
+		codeSystem = "sic"
+	}
+
+	if mccDensity > maxDensity && len(mapping.MCCCodes) > 0 {
+		maxDensity = mccDensity
+		primaryCode = mapping.MCCCodes[0]
+		codeSystem = "mcc"
+	}
+
+	// Calculate confidence based on density
+	confidence := maxDensity
+	if confidence > 1.0 {
+		confidence = 1.0
+	}
+
+	return primaryCode, codeSystem, confidence
+}
+
+// hybridClassification performs hybrid classification
+func (im *IndustryMapper) hybridClassification(mapping *IndustryMapping, businessInfo map[string]interface{}) (string, string, float64) {
+	// Combine keyword and code density approaches
+	keywordCode, keywordSystem, keywordConfidence := im.keywordBasedClassification(mapping, businessInfo)
+	densityCode, densitySystem, densityConfidence := im.codeDensityClassification(mapping, businessInfo)
+
+	// Weight the approaches
+	keywordWeight := 0.6
+	densityWeight := 0.4
+
+	combinedConfidence := (keywordConfidence * keywordWeight) + (densityConfidence * densityWeight)
+
+	// Prefer keyword-based result if confidence is high
+	if keywordConfidence >= 0.7 {
+		return keywordCode, keywordSystem, combinedConfidence
+	}
+
+	// Otherwise use density-based result
+	return densityCode, densitySystem, combinedConfidence
+}
+
+// defaultClassification performs default classification
+func (im *IndustryMapper) defaultClassification(mapping *IndustryMapping, businessInfo map[string]interface{}) (string, string, float64) {
+	// Simple default: return first available code with base confidence
+	if len(mapping.NAICSCodes) > 0 {
+		return mapping.NAICSCodes[0], "naics", mapping.ConfidenceScore
+	}
+	if len(mapping.SICCodes) > 0 {
+		return mapping.SICCodes[0], "sic", mapping.ConfidenceScore
+	}
+	if len(mapping.MCCCodes) > 0 {
+		return mapping.MCCCodes[0], "mcc", mapping.ConfidenceScore
+	}
+
+	return "", "", 0.0
+}
+
+// applyValidationRules applies validation rules to the classification
+func (im *IndustryMapper) applyValidationRules(mapping *IndustryMapping, businessInfo map[string]interface{}) []ValidationIssue {
+	issues := make([]ValidationIssue, 0)
+
+	for _, rule := range mapping.ValidationRules {
+		if !rule.Enabled {
+			continue
+		}
+
+		issue := im.evaluateValidationRule(rule, businessInfo)
+		if issue != nil {
+			issues = append(issues, *issue)
+		}
+	}
+
+	return issues
+}
+
+// evaluateValidationRule evaluates a validation rule
+func (im *IndustryMapper) evaluateValidationRule(rule IndustryValidationRule, businessInfo map[string]interface{}) *ValidationIssue {
+	switch rule.RuleType {
+	case "keyword_match":
+		return im.evaluateKeywordMatchRule(rule, businessInfo)
+	case "code_validation":
+		return im.evaluateCodeValidationRule(rule, businessInfo)
+	case "business_logic":
+		return im.evaluateBusinessLogicRule(rule, businessInfo)
+	default:
+		return nil
+	}
+}
+
+// evaluateKeywordMatchRule evaluates a keyword match rule
+func (im *IndustryMapper) evaluateKeywordMatchRule(rule IndustryValidationRule, businessInfo map[string]interface{}) *ValidationIssue {
+	text := im.extractTextForAnalysis(businessInfo)
+	textLower := strings.ToLower(text)
+
+	if !strings.Contains(textLower, strings.ToLower(rule.Condition)) {
+		return &ValidationIssue{
+			Type:        "keyword_mismatch",
+			Severity:    rule.Severity,
+			Description: fmt.Sprintf("Missing required keyword: %s", rule.Condition),
+			Field:       "keywords",
+		}
+	}
+
+	return nil
+}
+
+// evaluateCodeValidationRule evaluates a code validation rule
+func (im *IndustryMapper) evaluateCodeValidationRule(rule IndustryValidationRule, businessInfo map[string]interface{}) *ValidationIssue {
+	// This would implement code format validation
+	// For now, return nil (no issues)
+	return nil
+}
+
+// evaluateBusinessLogicRule evaluates a business logic rule
+func (im *IndustryMapper) evaluateBusinessLogicRule(rule IndustryValidationRule, businessInfo map[string]interface{}) *ValidationIssue {
+	// This would implement business logic validation
+	// For now, return nil (no issues)
+	return nil
+}
+
+// calculateFinalConfidence calculates the final confidence score
+func (im *IndustryMapper) calculateFinalConfidence(baseConfidence float64, validationIssues []ValidationIssue) float64 {
+	finalConfidence := baseConfidence
+
+	// Reduce confidence based on validation issues
+	for _, issue := range validationIssues {
+		switch issue.Severity {
+		case "critical":
+			finalConfidence *= 0.5
+		case "high":
+			finalConfidence *= 0.7
+		case "medium":
+			finalConfidence *= 0.85
+		case "low":
+			finalConfidence *= 0.95
+		}
+	}
+
+	return finalConfidence
+}
+
+// getAppliedRules gets the list of applied rules
+func (im *IndustryMapper) getAppliedRules(mapping *IndustryMapping) []string {
+	rules := make([]string, 0)
+	for _, rule := range mapping.ValidationRules {
+		if rule.Enabled {
+			rules = append(rules, rule.RuleID)
+		}
+	}
+	return rules
+}
+
+// validateIndustryMapping validates an industry mapping
+func (im *IndustryMapper) validateIndustryMapping(mapping *IndustryMapping) error {
+	if mapping.IndustryType == "" {
+		return fmt.Errorf("industry type is required")
+	}
+	if mapping.IndustryName == "" {
+		return fmt.Errorf("industry name is required")
+	}
+	if len(mapping.NAICSCodes) == 0 && len(mapping.SICCodes) == 0 && len(mapping.MCCCodes) == 0 {
+		return fmt.Errorf("at least one code must be provided")
+	}
+	return nil
+}
+
+// initializeDefaultMappings initializes default industry mappings
+func (im *IndustryMapper) initializeDefaultMappings() {
+	// Agriculture mappings
+	agricultureMapping := &IndustryMapping{
+		IndustryType: IndustryTypeAgriculture,
+		IndustryName: "Agriculture, Forestry, Fishing and Hunting",
+		NAICSCodes: []string{
+			"111110", // Soybean Farming
+			"111120", // Oilseed (except Soybean) Farming
+			"111130", // Dry Pea and Bean Farming
+			"111140", // Wheat Farming
+			"111150", // Corn Farming
+			"111160", // Rice Farming
+			"111191", // Oilseed and Grain Combination Farming
+			"111199", // All Other Grain Farming
+		},
+		SICCodes: []string{
+			"0111", // Wheat
+			"0112", // Rice
+			"0115", // Corn
+			"0116", // Soybeans
+		},
+		MCCCodes: []string{
+			"0763", // Agricultural Cooperative
+		},
+		Keywords: []string{
+			"farm", "agriculture", "crop", "livestock", "dairy", "poultry", "harvest",
+		},
+		ConfidenceScore:         0.85,
+		ClassificationAlgorithm: "hybrid",
+		LastUpdated:             time.Now(),
+	}
+	im.mappings[IndustryTypeAgriculture] = agricultureMapping
+
+	// Retail mappings
+	retailMapping := &IndustryMapping{
+		IndustryType: IndustryTypeRetail,
+		IndustryName: "Retail Trade",
+		NAICSCodes: []string{
+			"441110", // New Car Dealers
+			"441120", // Used Car Dealers
+			"442110", // Furniture Stores
+			"442210", // Floor Covering Stores
+			"442291", // Window Treatment Stores
+			"442299", // All Other Home Furnishings Stores
+			"443141", // Household Appliance Stores
+			"443142", // Electronics Stores
+		},
+		SICCodes: []string{
+			"5511", // Motor Vehicle Dealers (New & Used)
+			"5712", // Furniture Stores
+			"5722", // Household Appliance Stores
+			"5731", // Radio, Television, & Computer Stores
+		},
+		MCCCodes: []string{
+			"5411", // Grocery Stores, Supermarkets
+			"5311", // Department Stores
+			"5999", // Miscellaneous and Specialty Retail Stores
+		},
+		Keywords: []string{
+			"retail", "store", "shop", "merchandise", "sales", "commerce", "dealer",
+		},
+		ConfidenceScore:         0.80,
+		ClassificationAlgorithm: "keyword_based",
+		LastUpdated:             time.Now(),
+	}
+	im.mappings[IndustryTypeRetail] = retailMapping
+
+	// Food mappings
+	foodMapping := &IndustryMapping{
+		IndustryType: IndustryTypeFood,
+		IndustryName: "Food Services and Drinking Places",
+		NAICSCodes: []string{
+			"722511", // Full-Service Restaurants
+			"722513", // Limited-Service Restaurants
+			"722514", // Cafeterias, Grill Buffets, and Buffets
+			"722515", // Snack and Nonalcoholic Beverage Bars
+			"722320", // Caterers
+			"722330", // Mobile Food Services
+		},
+		SICCodes: []string{
+			"5812", // Eating Places
+			"5813", // Drinking Places (Alcoholic Beverages)
+			"5819", // Eating and Drinking Places, Not Elsewhere Classified
+		},
+		MCCCodes: []string{
+			"5812", // Eating Places and Restaurants
+			"5813", // Drinking Places (Alcoholic Beverages)
+			"5814", // Fast Food Restaurants
+		},
+		Keywords: []string{
+			"restaurant", "food", "catering", "bakery", "cafe", "dining", "kitchen",
+		},
+		ConfidenceScore:         0.90,
+		ClassificationAlgorithm: "keyword_based",
+		LastUpdated:             time.Now(),
+	}
+	im.mappings[IndustryTypeFood] = foodMapping
+
+	// Manufacturing mappings
+	manufacturingMapping := &IndustryMapping{
+		IndustryType: IndustryTypeManufacturing,
+		IndustryName: "Manufacturing",
+		NAICSCodes: []string{
+			"311111", // Dog and Cat Food Manufacturing
+			"311119", // Other Animal Food Manufacturing
+			"311211", // Flour Milling
+			"311212", // Rice Milling
+			"311213", // Malt Manufacturing
+			"311221", // Wet Corn Milling
+			"311224", // Soybean and Other Oilseed Processing
+		},
+		SICCodes: []string{
+			"2041", // Flour and Other Grain Mill Products
+			"2043", // Cereal Breakfast Foods
+			"2044", // Rice Milling
+			"2045", // Prepared Flour Mixes and Doughs
+		},
+		MCCCodes: []string{
+			"7399", // Business Services, Not Elsewhere Classified
+		},
+		Keywords: []string{
+			"manufacturing", "factory", "production", "assembly", "industrial", "plant",
+		},
+		ConfidenceScore:         0.75,
+		ClassificationAlgorithm: "code_density",
+		LastUpdated:             time.Now(),
+	}
+	im.mappings[IndustryTypeManufacturing] = manufacturingMapping
+}
+
+// initializeValidationRules initializes validation rules
+func (im *IndustryMapper) initializeValidationRules() {
+	im.validationRules = map[string]IndustryValidationRule{
+		"keyword_requirement": {
+			RuleID:    "keyword_requirement",
+			RuleType:  "keyword_match",
+			Condition: "business",
+			Severity:  "medium",
+			Weight:    0.3,
+			Enabled:   true,
+		},
+		"code_format": {
+			RuleID:    "code_format",
+			RuleType:  "code_validation",
+			Condition: "format_check",
+			Severity:  "high",
+			Weight:    0.5,
+			Enabled:   true,
+		},
+		"business_logic": {
+			RuleID:    "business_logic",
+			RuleType:  "business_logic",
+			Condition: "logic_check",
+			Severity:  "low",
+			Weight:    0.2,
+			Enabled:   true,
+		},
+	}
+}
+
+// initializeConfidenceWeights initializes confidence scoring weights
+func (im *IndustryMapper) initializeConfidenceWeights() {
+	im.confidenceWeights = map[string]float64{
+		"keyword_match": 0.4,
+		"code_density":  0.3,
+		"validation":    0.2,
+		"recency":       0.1,
+	}
+}
+
+// RecordClassificationMetrics records metrics for classification operations
+func (im *IndustryMapper) RecordClassificationMetrics(ctx context.Context, result *IndustryClassificationResult) {
+	if im.metrics == nil {
+		return
+	}
+
+	im.metrics.RecordHistogram(ctx, "industry_classification_confidence", result.ConfidenceScore, map[string]string{
+		"industry_type": string(result.IndustryType),
+	})
+
+	im.metrics.RecordHistogram(ctx, "industry_classification_time", float64(result.ProcessingTime.Milliseconds()), map[string]string{
+		"industry_type": string(result.IndustryType),
+	})
+}
+
+// RecordMappingMetrics records metrics for mapping operations
+func (im *IndustryMapper) RecordMappingMetrics(ctx context.Context, mapping *IndustryMapping, operation string) {
+	if im.metrics == nil {
+		return
+	}
+
+	im.metrics.RecordHistogram(ctx, "industry_mapping_confidence", mapping.ConfidenceScore, map[string]string{
+		"operation":     operation,
+		"industry_type": string(mapping.IndustryType),
+	})
+
+	im.metrics.RecordHistogram(ctx, "industry_mapping_operations", 1.0, map[string]string{
+		"operation": operation,
+	})
+}
