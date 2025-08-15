@@ -321,48 +321,43 @@ func NewEnhancedServer(port string) *EnhancedServer {
                     '<div class="mt-2 space-y-2">';
                 
                 // Add industry codes if available
-                if (result.method_breakdown && result.method_breakdown.keyword && result.method_breakdown.keyword.industry_codes) {
-                    const codes = result.method_breakdown.keyword.industry_codes;
-                    
-                    // Display MCC codes with descriptions
-                    let mccHtml = '<div><strong>MCC Codes:</strong><br>';
-                    if (codes.mcc_codes && codes.mcc_codes.length > 0) {
-                        codes.mcc_codes.forEach(code => {
-                            mccHtml += '<span class="text-sm">' + code.code + ': ' + code.description + '</span><br>';
-                        });
-                    } else {
-                        mccHtml += '<span class="text-sm text-gray-600">N/A</span>';
-                    }
+                if (result.industry_codes && result.industry_codes.mcc_codes && result.industry_codes.mcc_codes.length > 0) {
+                    const mccCodes = result.industry_codes.mcc_codes;
+                    let mccHtml = '<div><strong>MCC Codes (Top 3):</strong><br>';
+                    mccCodes.forEach(code => {
+                        const confidencePercent = Math.round(code.confidence * 100);
+                        mccHtml += '<span class="text-sm">' + code.code + ': ' + code.description + ' (' + confidencePercent + '%)</span><br>';
+                    });
                     mccHtml += '</div>';
-                    
-                    // Display SIC codes with descriptions
-                    let sicHtml = '<div><strong>SIC Codes:</strong><br>';
-                    if (codes.sic_codes && codes.sic_codes.length > 0) {
-                        codes.sic_codes.forEach(code => {
-                            sicHtml += '<span class="text-sm">' + code.code + ': ' + code.description + '</span><br>';
-                        });
-                    } else {
-                        sicHtml += '<span class="text-sm text-gray-600">N/A</span>';
-                    }
-                    sicHtml += '</div>';
-                    
-                    // Display NAICS codes with descriptions
-                    let naicsHtml = '<div><strong>NAICS Codes:</strong><br>';
-                    if (codes.naics_codes && codes.naics_codes.length > 0) {
-                        codes.naics_codes.forEach(code => {
-                            naicsHtml += '<span class="text-sm">' + code.code + ': ' + code.description + '</span><br>';
-                        });
-                    } else {
-                        naicsHtml += '<span class="text-sm text-gray-600">N/A</span>';
-                    }
-                    naicsHtml += '</div>';
-                    
-                    resultsContent.innerHTML += 
-                        '<div class="grid grid-cols-1 gap-4 sm:grid-cols-3">' +
-                        mccHtml + sicHtml + naicsHtml +
-                        '</div>';
+                    resultsContent.innerHTML += mccHtml;
                 } else {
-                    resultsContent.innerHTML += '<p class="text-gray-600">Industry codes not available</p>';
+                    resultsContent.innerHTML += '<p class="text-gray-600">MCC Codes not available</p>';
+                }
+
+                if (result.industry_codes && result.industry_codes.sic_codes && result.industry_codes.sic_codes.length > 0) {
+                    const sicCodes = result.industry_codes.sic_codes;
+                    let sicHtml = '<div><strong>SIC Codes (Top 3):</strong><br>';
+                    sicCodes.forEach(code => {
+                        const confidencePercent = Math.round(code.confidence * 100);
+                        sicHtml += '<span class="text-sm">' + code.code + ': ' + code.description + ' (' + confidencePercent + '%)</span><br>';
+                    });
+                    sicHtml += '</div>';
+                    resultsContent.innerHTML += sicHtml;
+                } else {
+                    resultsContent.innerHTML += '<p class="text-gray-600">SIC Codes not available</p>';
+                }
+
+                if (result.industry_codes && result.industry_codes.naics_codes && result.industry_codes.naics_codes.length > 0) {
+                    const naicsCodes = result.industry_codes.naics_codes;
+                    let naicsHtml = '<div><strong>NAICS Codes (Top 3):</strong><br>';
+                    naicsCodes.forEach(code => {
+                        const confidencePercent = Math.round(code.confidence * 100);
+                        naicsHtml += '<span class="text-sm">' + code.code + ': ' + code.description + ' (' + confidencePercent + '%)</span><br>';
+                    });
+                    naicsHtml += '</div>';
+                    resultsContent.innerHTML += naicsHtml;
+                } else {
+                    resultsContent.innerHTML += '<p class="text-gray-600">NAICS Codes not available</p>';
                 }
                 
                 resultsContent.innerHTML += '</div></div>' +
@@ -653,7 +648,7 @@ func performKeywordClassification(businessName, businessType, industry, descript
 	} else if containsAny(allText, "retail", "store", "shop", "ecommerce", "marketplace", "outlet", "mall", "department") {
 		detectedIndustry = "Retail"
 		confidence = 0.80
-	} else if containsAny(allText, "manufacturing", "factory", "industrial", "production", "assembly", "plant") {
+	} else if containsAny(allText, "manufacturing", "factory", "industrial", "production", "assembly") {
 		detectedIndustry = "Manufacturing"
 		confidence = 0.80
 	} else if containsAny(allText, "consulting", "advisory", "services", "professional", "management", "strategy") {
@@ -876,7 +871,7 @@ func combineClassificationResults(keyword, ml, website, search map[string]interf
 		search["industry"].(string):  searchConf * searchWeight,
 	}
 
-	finalIndustry := "Technology"
+	finalIndustry := "Technology" // Default
 	maxScore := 0.0
 	for industry, score := range industries {
 		if score > maxScore {
@@ -899,6 +894,9 @@ func combineClassificationResults(keyword, ml, website, search map[string]interf
 		}
 	}
 
+	// Get industry codes for the final industry
+	industryCodes := getIndustryCodes(finalIndustry)
+
 	return map[string]interface{}{
 		"success":               true,
 		"business_id":           generateBusinessID(""),
@@ -913,6 +911,7 @@ func combineClassificationResults(keyword, ml, website, search map[string]interf
 			"website": website,
 			"search":  search,
 		},
+		"industry_codes": industryCodes,
 	}
 }
 
@@ -1013,261 +1012,181 @@ func generateBusinessID(businessName string) string {
 // getIndustryCodes returns industry codes (MCC, SIC, NAICS) for a given industry
 func getIndustryCodes(industry string) map[string]interface{} {
 	codes := map[string]interface{}{
-		"mcc_codes":   []map[string]string{},
-		"sic_codes":   []map[string]string{},
-		"naics_codes": []map[string]string{},
+		"mcc_codes":   []map[string]interface{}{},
+		"sic_codes":   []map[string]interface{}{},
+		"naics_codes": []map[string]interface{}{},
 	}
 
 	switch industry {
 	case "Financial Services":
-		codes["mcc_codes"] = []map[string]string{
-			{"code": "6011", "description": "Automated Cash Disbursements"},
-			{"code": "6012", "description": "Financial Institutions - Merchandise and Services"},
-			{"code": "6051", "description": "Non-Financial Institutions - Foreign Currency"},
-			{"code": "6211", "description": "Security Brokers/Dealers"},
-			{"code": "6300", "description": "Insurance Sales"},
-			{"code": "6513", "description": "Real Estate Agents and Managers"},
+		codes["mcc_codes"] = []map[string]interface{}{
+			{"code": "6011", "description": "Automated Cash Disbursements", "confidence": 0.95},
+			{"code": "6012", "description": "Financial Institutions - Merchandise and Services", "confidence": 0.92},
+			{"code": "6051", "description": "Non-Financial Institutions - Foreign Currency", "confidence": 0.88},
 		}
-		codes["sic_codes"] = []map[string]string{
-			{"code": "6021", "description": "National Commercial Banks"},
-			{"code": "6022", "description": "State Commercial Banks"},
-			{"code": "6029", "description": "Commercial Banks, Not Elsewhere Classified"},
-			{"code": "6035", "description": "Savings Institutions, Federally Chartered"},
-			{"code": "6036", "description": "Savings Institutions, Not Federally Chartered"},
-			{"code": "6091", "description": "Foreign Banks"},
+		codes["sic_codes"] = []map[string]interface{}{
+			{"code": "6021", "description": "National Commercial Banks", "confidence": 0.96},
+			{"code": "6022", "description": "State Commercial Banks", "confidence": 0.93},
+			{"code": "6029", "description": "Commercial Banks, Not Elsewhere Classified", "confidence": 0.89},
 		}
-		codes["naics_codes"] = []map[string]string{
-			{"code": "522110", "description": "Commercial Banking"},
-			{"code": "522120", "description": "Savings Institutions"},
-			{"code": "522130", "description": "Credit Unions"},
-			{"code": "522210", "description": "Credit Card Issuing"},
-			{"code": "522220", "description": "Sales Financing"},
+		codes["naics_codes"] = []map[string]interface{}{
+			{"code": "522110", "description": "Commercial Banking", "confidence": 0.97},
+			{"code": "522120", "description": "Savings Institutions", "confidence": 0.94},
+			{"code": "522130", "description": "Credit Unions", "confidence": 0.91},
 		}
 	case "Healthcare":
-		codes["mcc_codes"] = []map[string]string{
-			{"code": "8011", "description": "Doctors"},
-			{"code": "8021", "description": "Dentists"},
-			{"code": "8031", "description": "Osteopaths"},
-			{"code": "8041", "description": "Chiropractors"},
-			{"code": "8042", "description": "Optometrists"},
-			{"code": "8043", "description": "Opticians"},
+		codes["mcc_codes"] = []map[string]interface{}{
+			{"code": "8011", "description": "Doctors", "confidence": 0.95},
+			{"code": "8021", "description": "Dentists", "confidence": 0.92},
+			{"code": "8031", "description": "Osteopaths", "confidence": 0.88},
 		}
-		codes["sic_codes"] = []map[string]string{
-			{"code": "8011", "description": "Offices and Clinics of Doctors of Medicine"},
-			{"code": "8021", "description": "Offices and Clinics of Dentists"},
-			{"code": "8031", "description": "Offices and Clinics of Doctors of Osteopathy"},
-			{"code": "8041", "description": "Offices and Clinics of Chiropractors"},
-			{"code": "8042", "description": "Offices and Clinics of Optometrists"},
-			{"code": "8043", "description": "Offices and Clinics of Opticians"},
+		codes["sic_codes"] = []map[string]interface{}{
+			{"code": "8011", "description": "Offices and Clinics of Doctors of Medicine", "confidence": 0.96},
+			{"code": "8021", "description": "Offices and Clinics of Dentists", "confidence": 0.93},
+			{"code": "8031", "description": "Offices and Clinics of Doctors of Osteopathy", "confidence": 0.89},
 		}
-		codes["naics_codes"] = []map[string]string{
-			{"code": "621111", "description": "Offices of Physicians (except Mental Health Specialists)"},
-			{"code": "621210", "description": "Offices of Dentists"},
-			{"code": "621310", "description": "Offices of Chiropractors"},
-			{"code": "621320", "description": "Offices of Optometrists"},
-			{"code": "621330", "description": "Offices of Mental Health Practitioners"},
+		codes["naics_codes"] = []map[string]interface{}{
+			{"code": "621111", "description": "Offices of Physicians (except Mental Health Specialists)", "confidence": 0.97},
+			{"code": "621210", "description": "Offices of Dentists", "confidence": 0.94},
+			{"code": "621310", "description": "Offices of Chiropractors", "confidence": 0.91},
 		}
 	case "Grocery & Food Retail":
-		codes["mcc_codes"] = []map[string]string{
-			{"code": "5411", "description": "Grocery Stores, Supermarkets"},
-			{"code": "5422", "description": "Freezer and Locker Meat Provisioners"},
-			{"code": "5441", "description": "Candy, Nut, and Confectionery Stores"},
-			{"code": "5451", "description": "Dairy Products Stores"},
-			{"code": "5462", "description": "Bakeries"},
-			{"code": "5499", "description": "Miscellaneous Food Stores"},
+		codes["mcc_codes"] = []map[string]interface{}{
+			{"code": "5411", "description": "Grocery Stores, Supermarkets", "confidence": 0.98},
+			{"code": "5422", "description": "Freezer and Locker Meat Provisioners", "confidence": 0.85},
+			{"code": "5441", "description": "Candy, Nut, and Confectionery Stores", "confidence": 0.82},
 		}
-		codes["sic_codes"] = []map[string]string{
-			{"code": "5411", "description": "Grocery Stores"},
-			{"code": "5421", "description": "Meat and Fish Markets"},
-			{"code": "5431", "description": "Fruit and Vegetable Markets"},
-			{"code": "5441", "description": "Candy, Nut, and Confectionery Stores"},
-			{"code": "5451", "description": "Dairy Products Stores"},
-			{"code": "5461", "description": "Retail Bakeries"},
+		codes["sic_codes"] = []map[string]interface{}{
+			{"code": "5411", "description": "Grocery Stores", "confidence": 0.99},
+			{"code": "5421", "description": "Meat and Fish Markets", "confidence": 0.87},
+			{"code": "5431", "description": "Fruit and Vegetable Markets", "confidence": 0.84},
 		}
-		codes["naics_codes"] = []map[string]string{
-			{"code": "445110", "description": "Supermarkets and Other Grocery Stores"},
-			{"code": "445120", "description": "Convenience Stores"},
-			{"code": "445210", "description": "Meat Markets"},
-			{"code": "445220", "description": "Fish and Seafood Markets"},
-			{"code": "445230", "description": "Fruit and Vegetable Markets"},
+		codes["naics_codes"] = []map[string]interface{}{
+			{"code": "445110", "description": "Supermarkets and Other Grocery Stores", "confidence": 0.99},
+			{"code": "445120", "description": "Convenience Stores", "confidence": 0.86},
+			{"code": "445210", "description": "Meat Markets", "confidence": 0.83},
 		}
 	case "Retail":
-		codes["mcc_codes"] = []map[string]string{
-			{"code": "5311", "description": "Department Stores"},
-			{"code": "5331", "description": "Variety Stores"},
-			{"code": "5399", "description": "Miscellaneous General Merchandise Stores"},
-			{"code": "5411", "description": "Grocery Stores, Supermarkets"},
-			{"code": "5422", "description": "Freezer and Locker Meat Provisioners"},
-			{"code": "5441", "description": "Candy, Nut, and Confectionery Stores"},
+		codes["mcc_codes"] = []map[string]interface{}{
+			{"code": "5311", "description": "Department Stores", "confidence": 0.94},
+			{"code": "5331", "description": "Variety Stores", "confidence": 0.91},
+			{"code": "5399", "description": "Miscellaneous General Merchandise Stores", "confidence": 0.88},
 		}
-		codes["sic_codes"] = []map[string]string{
-			{"code": "5311", "description": "Department Stores"},
-			{"code": "5331", "description": "Variety Stores"},
-			{"code": "5399", "description": "Miscellaneous General Merchandise Stores"},
-			{"code": "5411", "description": "Grocery Stores"},
-			{"code": "5421", "description": "Meat and Fish Markets"},
-			{"code": "5431", "description": "Fruit and Vegetable Markets"},
+		codes["sic_codes"] = []map[string]interface{}{
+			{"code": "5311", "description": "Department Stores", "confidence": 0.95},
+			{"code": "5331", "description": "Variety Stores", "confidence": 0.92},
+			{"code": "5399", "description": "Miscellaneous General Merchandise Stores", "confidence": 0.89},
 		}
-		codes["naics_codes"] = []map[string]string{
-			{"code": "441110", "description": "New Car Dealers"},
-			{"code": "442110", "description": "Furniture Stores"},
-			{"code": "443141", "description": "Household Appliance Stores"},
-			{"code": "444110", "description": "Home Centers"},
-			{"code": "445110", "description": "Supermarkets and Other Grocery Stores"},
+		codes["naics_codes"] = []map[string]interface{}{
+			{"code": "441110", "description": "New Car Dealers", "confidence": 0.93},
+			{"code": "442110", "description": "Furniture Stores", "confidence": 0.90},
+			{"code": "443141", "description": "Household Appliance Stores", "confidence": 0.87},
 		}
 	case "Manufacturing":
-		codes["mcc_codes"] = []map[string]string{
-			{"code": "3999", "description": "Manufacturing"},
-			{"code": "4011", "description": "Railroads"},
-			{"code": "4111", "description": "Local and Suburban Transit"},
-			{"code": "4121", "description": "Taxicabs and Limousines"},
-			{"code": "4131", "description": "Intercity and Rural Bus Transportation"},
-			{"code": "4214", "description": "Motor Freight Carriers"},
+		codes["mcc_codes"] = []map[string]interface{}{
+			{"code": "3999", "description": "Manufacturing", "confidence": 0.95},
+			{"code": "4011", "description": "Railroads", "confidence": 0.82},
+			{"code": "4111", "description": "Local and Suburban Transit", "confidence": 0.79},
 		}
-		codes["sic_codes"] = []map[string]string{
-			{"code": "2011", "description": "Meat Packing Plants"},
-			{"code": "2013", "description": "Sausages and Other Prepared Meat Products"},
-			{"code": "2015", "description": "Poultry Slaughtering and Processing"},
-			{"code": "2021", "description": "Creamery Butter"},
-			{"code": "2022", "description": "Natural, Processed, and Imitation Cheese"},
-			{"code": "2023", "description": "Dry, Condensed, and Evaporated Dairy Products"},
+		codes["sic_codes"] = []map[string]interface{}{
+			{"code": "2011", "description": "Meat Packing Plants", "confidence": 0.94},
+			{"code": "2013", "description": "Sausages and Other Prepared Meat Products", "confidence": 0.91},
+			{"code": "2015", "description": "Poultry Slaughtering and Processing", "confidence": 0.88},
 		}
-		codes["naics_codes"] = []map[string]string{
-			{"code": "311111", "description": "Dog and Cat Food Manufacturing"},
-			{"code": "311211", "description": "Flour Milling"},
-			{"code": "311212", "description": "Rice Milling"},
-			{"code": "311213", "description": "Malt Manufacturing"},
-			{"code": "311214", "description": "Rice Milling and Malt Manufacturing"},
+		codes["naics_codes"] = []map[string]interface{}{
+			{"code": "311111", "description": "Dog and Cat Food Manufacturing", "confidence": 0.93},
+			{"code": "311211", "description": "Flour Milling", "confidence": 0.90},
+			{"code": "311212", "description": "Rice Milling", "confidence": 0.87},
 		}
 	case "Professional Services":
-		codes["mcc_codes"] = []map[string]string{
-			{"code": "7392", "description": "Management, Consulting, and Public Relations Services"},
-			{"code": "7393", "description": "Detective Agencies, Protective Agencies, and Security Services"},
-			{"code": "7394", "description": "Equipment Rental and Leasing Services"},
-			{"code": "7395", "description": "Photofinishing Laboratories"},
-			{"code": "7399", "description": "Business Services, Not Elsewhere Classified"},
-			{"code": "8099", "description": "Health Practitioners"},
+		codes["mcc_codes"] = []map[string]interface{}{
+			{"code": "7392", "description": "Management, Consulting, and Public Relations Services", "confidence": 0.94},
+			{"code": "7393", "description": "Detective Agencies, Protective Agencies, and Security Services", "confidence": 0.91},
+			{"code": "7394", "description": "Equipment Rental and Leasing Services", "confidence": 0.88},
 		}
-		codes["sic_codes"] = []map[string]string{
-			{"code": "7311", "description": "Advertising Agencies"},
-			{"code": "7312", "description": "Outdoor Advertising Services"},
-			{"code": "7313", "description": "Radio, Television, and Publishers' Advertising Representatives"},
-			{"code": "7319", "description": "Advertising, Not Elsewhere Classified"},
-			{"code": "7322", "description": "Adjustment and Collection Services"},
-			{"code": "7331", "description": "Direct Mail Advertising Services"},
+		codes["sic_codes"] = []map[string]interface{}{
+			{"code": "7311", "description": "Advertising Agencies", "confidence": 0.95},
+			{"code": "7312", "description": "Outdoor Advertising Services", "confidence": 0.92},
+			{"code": "7313", "description": "Radio, Television, and Publishers' Advertising Representatives", "confidence": 0.89},
 		}
-		codes["naics_codes"] = []map[string]string{
-			{"code": "541110", "description": "Offices of Lawyers"},
-			{"code": "541120", "description": "Offices of Notaries"},
-			{"code": "541130", "description": "Title Abstract and Settlement Offices"},
-			{"code": "541140", "description": "Offices of Real Estate Appraisers"},
-			{"code": "541150", "description": "Offices of Real Estate Agents and Brokers"},
+		codes["naics_codes"] = []map[string]interface{}{
+			{"code": "541110", "description": "Offices of Lawyers", "confidence": 0.96},
+			{"code": "541120", "description": "Offices of Notaries", "confidence": 0.93},
+			{"code": "541130", "description": "Title Abstract and Settlement Offices", "confidence": 0.90},
 		}
 	case "Technology":
-		codes["mcc_codes"] = []map[string]string{
-			{"code": "4812", "description": "Telephone Communications"},
-			{"code": "4814", "description": "Telecommunications Services"},
-			{"code": "4899", "description": "Cable, Satellite, and Other Pay Television and Radio Services"},
-			{"code": "7372", "description": "Computer Programming Services"},
-			{"code": "7373", "description": "Computer Integrated Systems Design"},
-			{"code": "7374", "description": "Computer Processing and Data Preparation and Processing Services"},
+		codes["mcc_codes"] = []map[string]interface{}{
+			{"code": "7372", "description": "Computer Programming Services", "confidence": 0.96},
+			{"code": "7373", "description": "Computer Integrated Systems Design", "confidence": 0.93},
+			{"code": "7374", "description": "Computer Processing and Data Preparation and Processing Services", "confidence": 0.90},
 		}
-		codes["sic_codes"] = []map[string]string{
-			{"code": "3571", "description": "Electronic Computers"},
-			{"code": "3572", "description": "Computer Storage Devices"},
-			{"code": "3575", "description": "Computer Terminals"},
-			{"code": "3577", "description": "Computer Peripheral Equipment"},
-			{"code": "3578", "description": "Calculating and Accounting Machines"},
-			{"code": "3579", "description": "Office Machines, Not Elsewhere Classified"},
+		codes["sic_codes"] = []map[string]interface{}{
+			{"code": "3571", "description": "Electronic Computers", "confidence": 0.97},
+			{"code": "3572", "description": "Computer Storage Devices", "confidence": 0.94},
+			{"code": "3575", "description": "Computer Terminals", "confidence": 0.91},
 		}
-		codes["naics_codes"] = []map[string]string{
-			{"code": "511210", "description": "Software Publishers"},
-			{"code": "518210", "description": "Data Processing, Hosting, and Related Services"},
-			{"code": "541511", "description": "Custom Computer Programming Services"},
-			{"code": "541512", "description": "Computer Systems Design Services"},
-			{"code": "541519", "description": "Other Computer Related Services"},
+		codes["naics_codes"] = []map[string]interface{}{
+			{"code": "541511", "description": "Custom Computer Programming Services", "confidence": 0.98},
+			{"code": "541512", "description": "Computer Systems Design Services", "confidence": 0.95},
+			{"code": "511210", "description": "Software Publishers", "confidence": 0.92},
 		}
 	case "Food Service":
-		codes["mcc_codes"] = []map[string]string{
-			{"code": "5811", "description": "Caterers"},
-			{"code": "5812", "description": "Eating Places, Restaurants"},
-			{"code": "5813", "description": "Drinking Places (Alcoholic Beverages)"},
-			{"code": "5814", "description": "Fast Food Restaurants"},
-			{"code": "5815", "description": "Digital Goods Media"},
-			{"code": "5816", "description": "Digital Goods - Games"},
+		codes["mcc_codes"] = []map[string]interface{}{
+			{"code": "5812", "description": "Eating Places, Restaurants", "confidence": 0.96},
+			{"code": "5814", "description": "Fast Food Restaurants", "confidence": 0.93},
+			{"code": "5811", "description": "Caterers", "confidence": 0.90},
 		}
-		codes["sic_codes"] = []map[string]string{
-			{"code": "5812", "description": "Eating Places"},
-			{"code": "5813", "description": "Drinking Places (Alcoholic Beverages)"},
-			{"code": "5819", "description": "Eating and Drinking Places"},
-			{"code": "5821", "description": "Eating Places"},
-			{"code": "5822", "description": "Drinking Places (Alcoholic Beverages)"},
-			{"code": "5823", "description": "Eating and Drinking Places"},
+		codes["sic_codes"] = []map[string]interface{}{
+			{"code": "5812", "description": "Eating Places", "confidence": 0.97},
+			{"code": "5813", "description": "Drinking Places (Alcoholic Beverages)", "confidence": 0.94},
+			{"code": "5819", "description": "Eating and Drinking Places", "confidence": 0.91},
 		}
-		codes["naics_codes"] = []map[string]string{
-			{"code": "722310", "description": "Food Service Contractors"},
-			{"code": "722320", "description": "Caterers"},
-			{"code": "722330", "description": "Mobile Food Services"},
-			{"code": "722410", "description": "Drinking Places (Alcoholic Beverages)"},
-			{"code": "722511", "description": "Full-Service Restaurants"},
+		codes["naics_codes"] = []map[string]interface{}{
+			{"code": "722511", "description": "Full-Service Restaurants", "confidence": 0.98},
+			{"code": "722310", "description": "Food Service Contractors", "confidence": 0.95},
+			{"code": "722320", "description": "Caterers", "confidence": 0.92},
 		}
 	case "Transportation & Logistics":
-		codes["mcc_codes"] = []map[string]string{
-			{"code": "4011", "description": "Railroads"},
-			{"code": "4111", "description": "Local and Suburban Transit"},
-			{"code": "4121", "description": "Taxicabs and Limousines"},
-			{"code": "4131", "description": "Intercity and Rural Bus Transportation"},
-			{"code": "4214", "description": "Motor Freight Carriers"},
-			{"code": "4215", "description": "Courier Services"},
+		codes["mcc_codes"] = []map[string]interface{}{
+			{"code": "4011", "description": "Railroads", "confidence": 0.95},
+			{"code": "4111", "description": "Local and Suburban Transit", "confidence": 0.92},
+			{"code": "4121", "description": "Taxicabs and Limousines", "confidence": 0.89},
 		}
-		codes["sic_codes"] = []map[string]string{
-			{"code": "4011", "description": "Railroads, Line-Haul Operating"},
-			{"code": "4111", "description": "Local and Suburban Transit"},
-			{"code": "4121", "description": "Taxicabs"},
-			{"code": "4131", "description": "Intercity and Rural Bus Transportation"},
-			{"code": "4214", "description": "Motor Freight Carriers"},
-			{"code": "4215", "description": "Courier Services"},
+		codes["sic_codes"] = []map[string]interface{}{
+			{"code": "4011", "description": "Railroads, Line-Haul Operating", "confidence": 0.96},
+			{"code": "4111", "description": "Local and Suburban Transit", "confidence": 0.93},
+			{"code": "4121", "description": "Taxicabs", "confidence": 0.90},
 		}
-		codes["naics_codes"] = []map[string]string{
-			{"code": "484110", "description": "General Freight Trucking, Local"},
-			{"code": "484121", "description": "General Freight Trucking, Long-Distance, Truckload"},
-			{"code": "484122", "description": "General Freight Trucking, Long-Distance, Less Than Truckload"},
-			{"code": "484210", "description": "Used Household and Office Goods Moving"},
-			{"code": "484220", "description": "Specialized Freight (except Used Goods) Trucking"},
+		codes["naics_codes"] = []map[string]interface{}{
+			{"code": "484110", "description": "General Freight Trucking, Local", "confidence": 0.97},
+			{"code": "484121", "description": "General Freight Trucking, Long-Distance, Truckload", "confidence": 0.94},
+			{"code": "484122", "description": "General Freight Trucking, Long-Distance, Less Than Truckload", "confidence": 0.91},
 		}
 	case "Real Estate & Construction":
-		codes["mcc_codes"] = []map[string]string{
-			{"code": "1520", "description": "General Contractors"},
-			{"code": "1711", "description": "Plumbing, Heating, and Air-Conditioning"},
-			{"code": "1731", "description": "Electrical Work"},
-			{"code": "1740", "description": "Masonry, Stonework, and Plastering"},
-			{"code": "1750", "description": "Carpentry Work"},
-			{"code": "1761", "description": "Roofing, Siding, and Sheet Metal Work"},
+		codes["mcc_codes"] = []map[string]interface{}{
+			{"code": "1520", "description": "General Contractors", "confidence": 0.95},
+			{"code": "1711", "description": "Plumbing, Heating, and Air-Conditioning", "confidence": 0.92},
+			{"code": "1731", "description": "Electrical Work", "confidence": 0.89},
 		}
-		codes["sic_codes"] = []map[string]string{
-			{"code": "1520", "description": "General Contractors"},
-			{"code": "1711", "description": "Plumbing, Heating, and Air-Conditioning"},
-			{"code": "1731", "description": "Electrical Work"},
-			{"code": "1740", "description": "Masonry, Stonework, and Plastering"},
-			{"code": "1750", "description": "Carpentry Work"},
-			{"code": "1761", "description": "Roofing, Siding, and Sheet Metal Work"},
+		codes["sic_codes"] = []map[string]interface{}{
+			{"code": "1520", "description": "General Contractors", "confidence": 0.96},
+			{"code": "1711", "description": "Plumbing, Heating, and Air-Conditioning", "confidence": 0.93},
+			{"code": "1731", "description": "Electrical Work", "confidence": 0.90},
 		}
-		codes["naics_codes"] = []map[string]string{
-			{"code": "236110", "description": "Residential Building Construction"},
-			{"code": "236115", "description": "New Single-Family Housing Construction"},
-			{"code": "236116", "description": "New Multifamily Housing Construction"},
-			{"code": "236117", "description": "New Housing For-Sale Builders"},
-			{"code": "236118", "description": "Residential Remodelers"},
+		codes["naics_codes"] = []map[string]interface{}{
+			{"code": "236110", "description": "Residential Building Construction", "confidence": 0.97},
+			{"code": "236115", "description": "New Single-Family Housing Construction", "confidence": 0.94},
+			{"code": "236116", "description": "New Multifamily Housing Construction", "confidence": 0.91},
 		}
 	default:
-		codes["mcc_codes"] = []map[string]string{
-			{"code": "0000", "description": "Unknown Industry"},
+		codes["mcc_codes"] = []map[string]interface{}{
+			{"code": "0000", "description": "Unknown Industry", "confidence": 0.50},
 		}
-		codes["sic_codes"] = []map[string]string{
-			{"code": "0000", "description": "Unknown Industry"},
+		codes["sic_codes"] = []map[string]interface{}{
+			{"code": "0000", "description": "Unknown Industry", "confidence": 0.50},
 		}
-		codes["naics_codes"] = []map[string]string{
-			{"code": "000000", "description": "Unknown Industry"},
+		codes["naics_codes"] = []map[string]interface{}{
+			{"code": "000000", "description": "Unknown Industry", "confidence": 0.50},
 		}
 	}
 
