@@ -317,7 +317,25 @@ func NewEnhancedServer(port string) *EnhancedServer {
                     '</div>' +
                     '</div>' +
                     '<div class="bg-yellow-50 border border-yellow-200 rounded-md p-4">' +
-                    '<h5 class="font-medium text-yellow-800">Method Breakdown</h5>' +
+                    '<h5 class="font-medium text-yellow-800">Industry Codes</h5>' +
+                    '<div class="mt-2 space-y-2">';
+                
+                // Add industry codes if available
+                if (result.method_breakdown && result.method_breakdown.keyword && result.method_breakdown.keyword.industry_codes) {
+                    const codes = result.method_breakdown.keyword.industry_codes;
+                    resultsContent.innerHTML += 
+                        '<div class="grid grid-cols-1 gap-2 sm:grid-cols-3">' +
+                        '<div><strong>MCC Codes:</strong><br>' + (codes.mcc_codes ? codes.mcc_codes.join(', ') : 'N/A') + '</div>' +
+                        '<div><strong>SIC Codes:</strong><br>' + (codes.sic_codes ? codes.sic_codes.join(', ') : 'N/A') + '</div>' +
+                        '<div><strong>NAICS Codes:</strong><br>' + (codes.naics_codes ? codes.naics_codes.join(', ') : 'N/A') + '</div>' +
+                        '</div>';
+                } else {
+                    resultsContent.innerHTML += '<p class="text-gray-600">Industry codes not available</p>';
+                }
+                
+                resultsContent.innerHTML += '</div></div>' +
+                    '<div class="bg-orange-50 border border-orange-200 rounded-md p-4">' +
+                    '<h5 class="font-medium text-orange-800">Method Breakdown</h5>' +
                     '<div class="mt-2 space-y-2">';
                 
                 // Add method breakdown details
@@ -327,7 +345,7 @@ func NewEnhancedServer(port string) *EnhancedServer {
                         if (result.method_breakdown[method]) {
                             const methodData = result.method_breakdown[method];
                             resultsContent.innerHTML += 
-                                '<div class="border-l-4 border-yellow-400 pl-3">' +
+                                '<div class="border-l-4 border-orange-400 pl-3">' +
                                 '<p><strong>' + methodData.method + ':</strong> ' + methodData.industry + ' (' + Math.round(methodData.confidence * 100) + '%)</p>' +
                                 '</div>';
                         }
@@ -586,33 +604,48 @@ func performKeywordClassification(businessName, businessType, industry, descript
 	// Enhanced keyword analysis
 	allText := strings.ToLower(businessName + " " + businessType + " " + industry + " " + description + " " + keywords)
 
-	// Industry detection with enhanced keywords
-	switch {
-	case containsAny(allText, "bank", "financial", "credit", "lending", "investment", "insurance"):
+	// Industry detection with enhanced keywords - check most specific first
+	if containsAny(allText, "grocery", "supermarket", "food", "market", "fresh", "produce", "deli", "bakery", "meat", "dairy") {
+		detectedIndustry = "Grocery & Food Retail"
+		confidence = 0.90
+	} else if containsAny(allText, "bank", "financial", "credit", "lending", "investment", "insurance", "wealth", "asset") {
 		detectedIndustry = "Financial Services"
 		confidence = 0.85
-	case containsAny(allText, "health", "medical", "pharma", "hospital", "clinic", "therapy"):
+	} else if containsAny(allText, "health", "medical", "pharma", "hospital", "clinic", "therapy", "treatment", "care") {
 		detectedIndustry = "Healthcare"
 		confidence = 0.85
-	case containsAny(allText, "retail", "store", "shop", "ecommerce", "marketplace"):
+	} else if containsAny(allText, "restaurant", "cafe", "dining", "food service", "catering", "takeout") {
+		detectedIndustry = "Food Service"
+		confidence = 0.85
+	} else if containsAny(allText, "retail", "store", "shop", "ecommerce", "marketplace", "outlet", "mall", "department") {
 		detectedIndustry = "Retail"
 		confidence = 0.80
-	case containsAny(allText, "manufacturing", "factory", "industrial", "production"):
+	} else if containsAny(allText, "manufacturing", "factory", "industrial", "production", "assembly", "plant") {
 		detectedIndustry = "Manufacturing"
 		confidence = 0.80
-	case containsAny(allText, "consulting", "advisory", "services", "professional"):
+	} else if containsAny(allText, "consulting", "advisory", "services", "professional", "management", "strategy") {
 		detectedIndustry = "Professional Services"
 		confidence = 0.80
-	case containsAny(allText, "tech", "software", "digital", "ai", "machine learning"):
+	} else if containsAny(allText, "transport", "logistics", "shipping", "delivery", "freight", "warehouse") {
+		detectedIndustry = "Transportation & Logistics"
+		confidence = 0.80
+	} else if containsAny(allText, "real estate", "property", "housing", "construction", "building", "development") {
+		detectedIndustry = "Real Estate & Construction"
+		confidence = 0.80
+	} else if containsAny(allText, "tech", "software", "digital", "ai", "machine learning", "platform", "app", "system") {
 		detectedIndustry = "Technology"
 		confidence = 0.85
 	}
+
+	// Get industry codes based on detected industry
+	industryCodes := getIndustryCodes(detectedIndustry)
 
 	return map[string]interface{}{
 		"method":         "enhanced_keyword",
 		"industry":       detectedIndustry,
 		"confidence":     confidence,
 		"keywords_found": extractKeywords(allText),
+		"industry_codes": industryCodes,
 	}
 }
 
@@ -627,22 +660,40 @@ func performMLClassification(businessName, description, keywords string) map[str
 
 	// Enhanced ML-based industry detection
 	switch {
-	case containsAny(allText, "bank", "financial", "credit"):
+	case containsAny(allText, "bank", "financial", "credit", "lending", "investment", "insurance"):
 		detectedIndustry = "Financial Services"
 		confidence = 0.92
-	case containsAny(allText, "health", "medical", "pharma"):
+	case containsAny(allText, "health", "medical", "pharma", "hospital", "clinic", "therapy", "treatment"):
 		detectedIndustry = "Healthcare"
 		confidence = 0.91
-	case containsAny(allText, "retail", "store", "shop"):
+	case containsAny(allText, "grocery", "supermarket", "food", "market", "fresh", "produce", "deli", "bakery"):
+		detectedIndustry = "Grocery & Food Retail"
+		confidence = 0.93
+	case containsAny(allText, "retail", "store", "shop", "ecommerce", "marketplace", "outlet"):
 		detectedIndustry = "Retail"
 		confidence = 0.89
-	case containsAny(allText, "manufacturing", "factory", "industrial"):
+	case containsAny(allText, "manufacturing", "factory", "industrial", "production", "assembly"):
 		detectedIndustry = "Manufacturing"
 		confidence = 0.88
-	case containsAny(allText, "consulting", "advisory", "services"):
+	case containsAny(allText, "consulting", "advisory", "services", "professional", "management"):
 		detectedIndustry = "Professional Services"
 		confidence = 0.87
+	case containsAny(allText, "restaurant", "cafe", "dining", "food service", "catering"):
+		detectedIndustry = "Food Service"
+		confidence = 0.90
+	case containsAny(allText, "transport", "logistics", "shipping", "delivery", "freight"):
+		detectedIndustry = "Transportation & Logistics"
+		confidence = 0.86
+	case containsAny(allText, "real estate", "property", "housing", "construction", "building"):
+		detectedIndustry = "Real Estate & Construction"
+		confidence = 0.85
+	case containsAny(allText, "tech", "software", "digital", "ai", "machine learning", "platform"):
+		detectedIndustry = "Technology"
+		confidence = 0.90
 	}
+
+	// Get industry codes based on detected industry
+	industryCodes := getIndustryCodes(detectedIndustry)
 
 	return map[string]interface{}{
 		"method":           "ml_classification",
@@ -650,6 +701,7 @@ func performMLClassification(businessName, description, keywords string) map[str
 		"confidence":       confidence,
 		"ml_model_version": "bert-v1.0",
 		"features_used":    []string{"business_name", "description", "keywords"},
+		"industry_codes":   industryCodes,
 	}
 }
 
@@ -671,19 +723,34 @@ func performWebsiteAnalysis(businessName string) map[string]interface{} {
 	case containsAny(allText, "health", "medical", "pharma", "hospital", "clinic", "therapy", "treatment", "care"):
 		detectedIndustry = "Healthcare"
 		confidence = 0.89
-	case containsAny(allText, "retail", "store", "shop", "ecommerce", "marketplace", "products", "goods"):
+	case containsAny(allText, "grocery", "supermarket", "food", "market", "fresh", "produce", "deli", "bakery", "meat", "dairy"):
+		detectedIndustry = "Grocery & Food Retail"
+		confidence = 0.92
+	case containsAny(allText, "retail", "store", "shop", "ecommerce", "marketplace", "products", "goods", "outlet"):
 		detectedIndustry = "Retail"
 		confidence = 0.87
-	case containsAny(allText, "manufacturing", "factory", "industrial", "production", "assembly"):
+	case containsAny(allText, "manufacturing", "factory", "industrial", "production", "assembly", "plant"):
 		detectedIndustry = "Manufacturing"
 		confidence = 0.86
-	case containsAny(allText, "consulting", "advisory", "services", "professional", "management"):
+	case containsAny(allText, "consulting", "advisory", "services", "professional", "management", "strategy"):
 		detectedIndustry = "Professional Services"
 		confidence = 0.85
-	case containsAny(allText, "tech", "software", "digital", "ai", "machine learning", "platform", "app"):
+	case containsAny(allText, "restaurant", "cafe", "dining", "food service", "catering", "takeout"):
+		detectedIndustry = "Food Service"
+		confidence = 0.88
+	case containsAny(allText, "transport", "logistics", "shipping", "delivery", "freight", "warehouse"):
+		detectedIndustry = "Transportation & Logistics"
+		confidence = 0.84
+	case containsAny(allText, "real estate", "property", "housing", "construction", "building", "development"):
+		detectedIndustry = "Real Estate & Construction"
+		confidence = 0.83
+	case containsAny(allText, "tech", "software", "digital", "ai", "machine learning", "platform", "app", "system"):
 		detectedIndustry = "Technology"
 		confidence = 0.88
 	}
+
+	// Get industry codes based on detected industry
+	industryCodes := getIndustryCodes(detectedIndustry)
 
 	return map[string]interface{}{
 		"method":          "website_analysis",
@@ -692,6 +759,7 @@ func performWebsiteAnalysis(businessName string) map[string]interface{} {
 		"pages_analyzed":  5,
 		"content_quality": 0.85,
 		"structured_data": true,
+		"industry_codes":  industryCodes,
 	}
 }
 
@@ -703,38 +771,61 @@ func performWebSearchAnalysis(businessName, industry string) map[string]interfac
 
 	// Simulate search results analysis
 	searchResults := simulateSearchResults(businessName)
+	allText := strings.ToLower(businessName + " " + searchResults)
 
 	switch {
-	case containsAny(searchResults, "bank", "financial", "credit"):
+	case containsAny(allText, "bank", "financial", "credit", "lending", "investment", "insurance"):
 		detectedIndustry = "Financial Services"
 		confidence = 0.84
-	case containsAny(searchResults, "health", "medical", "pharma"):
+	case containsAny(allText, "health", "medical", "pharma", "hospital", "clinic", "therapy"):
 		detectedIndustry = "Healthcare"
 		confidence = 0.83
-	case containsAny(searchResults, "retail", "store", "shop"):
+	case containsAny(allText, "grocery", "supermarket", "food", "market", "fresh", "produce", "deli", "bakery"):
+		detectedIndustry = "Grocery & Food Retail"
+		confidence = 0.86
+	case containsAny(allText, "retail", "store", "shop", "ecommerce", "marketplace", "outlet"):
 		detectedIndustry = "Retail"
 		confidence = 0.81
-	case containsAny(searchResults, "manufacturing", "factory", "industrial"):
+	case containsAny(allText, "manufacturing", "factory", "industrial", "production", "assembly"):
 		detectedIndustry = "Manufacturing"
 		confidence = 0.80
+	case containsAny(allText, "consulting", "advisory", "services", "professional", "management"):
+		detectedIndustry = "Professional Services"
+		confidence = 0.79
+	case containsAny(allText, "restaurant", "cafe", "dining", "food service", "catering"):
+		detectedIndustry = "Food Service"
+		confidence = 0.82
+	case containsAny(allText, "transport", "logistics", "shipping", "delivery", "freight"):
+		detectedIndustry = "Transportation & Logistics"
+		confidence = 0.78
+	case containsAny(allText, "real estate", "property", "housing", "construction", "building"):
+		detectedIndustry = "Real Estate & Construction"
+		confidence = 0.77
+	case containsAny(allText, "tech", "software", "digital", "ai", "machine learning", "platform"):
+		detectedIndustry = "Technology"
+		confidence = 0.82
 	}
+
+	// Get industry codes based on detected industry
+	industryCodes := getIndustryCodes(detectedIndustry)
 
 	return map[string]interface{}{
 		"method":          "web_search",
 		"industry":        detectedIndustry,
 		"confidence":      confidence,
-		"search_results":  10,
 		"relevance_score": 0.85,
+		"search_results":  10,
+		"industry_codes":  industryCodes,
 	}
 }
 
 // combineClassificationResults combines results from multiple methods using ensemble approach
 func combineClassificationResults(keyword, ml, website, search map[string]interface{}) map[string]interface{} {
 	// Weighted ensemble combination
-	keywordWeight := 0.30  // Increased weight for keyword analysis
-	mlWeight := 0.35       // ML gets highest weight
-	websiteWeight := 0.20  // Reduced weight for website analysis
-	searchWeight := 0.15   // Search gets lowest weight
+	keywordWeight := 0.30 // Increased weight for keyword analysis
+	mlWeight := 0.35      // ML gets highest weight
+	websiteWeight := 0.20 // Reduced weight for website analysis
+	searchWeight := 0.15  // Search gets lowest weight
 
 	// Calculate weighted confidence
 	keywordConf := keyword["confidence"].(float64)
@@ -821,6 +912,20 @@ func containsAny(s string, keywords ...string) bool {
 	return false
 }
 
+func containsAnyExact(s string, keywords ...string) bool {
+	s = strings.ToLower(s)
+	words := strings.Fields(s)
+	for _, keyword := range keywords {
+		keywordLower := strings.ToLower(keyword)
+		for _, word := range words {
+			if word == keywordLower {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func extractKeywords(text string) []string {
 	// Simple keyword extraction
 	keywords := []string{}
@@ -837,7 +942,7 @@ func simulateWebsiteContent(businessName string) string {
 	// Simulate website content based on business name
 	// Include the business name in the content for better analysis
 	lowerName := strings.ToLower(businessName)
-	
+
 	// Add industry-specific content based on business name
 	if containsAny(lowerName, "bank", "financial", "credit", "investment") {
 		return businessName + " website content with banking and financial services information"
@@ -852,7 +957,7 @@ func simulateWebsiteContent(businessName string) string {
 	} else if containsAny(lowerName, "tech", "software", "digital", "ai") {
 		return businessName + " website content with technology and software information"
 	}
-	
+
 	return businessName + " website content with business information"
 }
 
@@ -870,6 +975,64 @@ func generateBusinessID(businessName string) string {
 		hash = (hash*31 + int(char)) % 1000000
 	}
 	return fmt.Sprintf("business-%d", hash)
+}
+
+// getIndustryCodes returns industry codes (MCC, SIC, NAICS) for a given industry
+func getIndustryCodes(industry string) map[string]interface{} {
+	codes := map[string]interface{}{
+		"mcc_codes": []string{},
+		"sic_codes": []string{},
+		"naics_codes": []string{},
+	}
+
+	switch industry {
+	case "Financial Services":
+		codes["mcc_codes"] = []string{"6011", "6012", "6051", "6211", "6300", "6513"}
+		codes["sic_codes"] = []string{"6021", "6022", "6029", "6035", "6036", "6091"}
+		codes["naics_codes"] = []string{"522110", "522120", "522130", "522210", "522220"}
+	case "Healthcare":
+		codes["mcc_codes"] = []string{"8011", "8021", "8031", "8041", "8042", "8043"}
+		codes["sic_codes"] = []string{"8011", "8021", "8031", "8041", "8042", "8043"}
+		codes["naics_codes"] = []string{"621111", "621210", "621310", "621320", "621330"}
+	case "Grocery & Food Retail":
+		codes["mcc_codes"] = []string{"5411", "5422", "5441", "5451", "5462", "5499"}
+		codes["sic_codes"] = []string{"5411", "5421", "5431", "5441", "5451", "5461"}
+		codes["naics_codes"] = []string{"445110", "445120", "445210", "445220", "445230"}
+	case "Retail":
+		codes["mcc_codes"] = []string{"5311", "5331", "5399", "5411", "5422", "5441"}
+		codes["sic_codes"] = []string{"5311", "5331", "5399", "5411", "5421", "5431"}
+		codes["naics_codes"] = []string{"441110", "442110", "443141", "444110", "445110"}
+	case "Manufacturing":
+		codes["mcc_codes"] = []string{"3999", "4011", "4111", "4121", "4131", "4214"}
+		codes["sic_codes"] = []string{"2011", "2013", "2015", "2021", "2022", "2023"}
+		codes["naics_codes"] = []string{"311111", "311211", "311212", "311213", "311214"}
+	case "Professional Services":
+		codes["mcc_codes"] = []string{"7392", "7393", "7394", "7395", "7399", "8099"}
+		codes["sic_codes"] = []string{"7311", "7312", "7313", "7319", "7322", "7331"}
+		codes["naics_codes"] = []string{"541110", "541120", "541130", "541140", "541150"}
+	case "Technology":
+		codes["mcc_codes"] = []string{"4812", "4814", "4899", "7372", "7373", "7374"}
+		codes["sic_codes"] = []string{"3571", "3572", "3575", "3577", "3578", "3579"}
+		codes["naics_codes"] = []string{"511210", "518210", "541511", "541512", "541519"}
+	case "Food Service":
+		codes["mcc_codes"] = []string{"5811", "5812", "5813", "5814", "5815", "5816"}
+		codes["sic_codes"] = []string{"5812", "5813", "5819", "5821", "5822", "5823"}
+		codes["naics_codes"] = []string{"722310", "722320", "722330", "722410", "722511"}
+	case "Transportation & Logistics":
+		codes["mcc_codes"] = []string{"4011", "4111", "4121", "4131", "4214", "4215"}
+		codes["sic_codes"] = []string{"4011", "4111", "4121", "4131", "4214", "4215"}
+		codes["naics_codes"] = []string{"484110", "484121", "484122", "484210", "484220"}
+	case "Real Estate & Construction":
+		codes["mcc_codes"] = []string{"1520", "1711", "1731", "1740", "1750", "1761"}
+		codes["sic_codes"] = []string{"1520", "1711", "1731", "1740", "1750", "1761"}
+		codes["naics_codes"] = []string{"236110", "236115", "236116", "236117", "236118"}
+	default:
+		codes["mcc_codes"] = []string{"0000"}
+		codes["sic_codes"] = []string{"0000"}
+		codes["naics_codes"] = []string{"000000"}
+	}
+
+	return codes
 }
 
 // Start starts the server
