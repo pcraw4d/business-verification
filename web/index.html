@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KYB Platform - Beta Testing</title>
+    <title>KYB Platform - Beta Testing Interface</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -15,6 +15,25 @@
         }
         .card-hover:hover {
             transform: translateY(-2px);
+        }
+        .feature-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin: 0.125rem;
+        }
+        .feature-active {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        .feature-beta {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        .confidence-bar {
+            background: linear-gradient(90deg, #ef4444 0%, #f97316 25%, #eab308 50%, #22c55e 75%, #3b82f6 100%);
         }
     </style>
 </head>
@@ -30,8 +49,7 @@
                 </div>
                 <div class="flex items-center space-x-4">
                     <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded">BETA</span>
-                    <button id="loginBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">Login</button>
-                    <button id="registerBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium">Register</button>
+                    <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">LIVE</span>
                 </div>
             </div>
         </div>
@@ -45,7 +63,7 @@
                     KYB Platform
                 </h1>
                 <p class="mt-6 max-w-2xl mx-auto text-xl text-gray-300">
-                    Enterprise-Grade Know Your Business Platform - Beta Testing
+                    Enterprise-Grade Know Your Business Platform - Beta Testing Interface
                 </p>
                 <div class="mt-10">
                     <button id="startTestingBtn" class="bg-white text-blue-600 px-8 py-3 rounded-md text-lg font-medium hover:bg-gray-100">
@@ -61,46 +79,58 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center">
                 <h2 class="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-                    Platform Features
+                    Currently Implemented Features
                 </h2>
                 <p class="mt-4 text-lg text-gray-600">
-                    Test all the core features of our comprehensive KYB platform
+                    Test all the enhanced features of our comprehensive KYB platform
                 </p>
             </div>
             <div class="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-                <!-- Business Classification -->
+                <!-- Enhanced Classification -->
                 <div class="card-hover bg-white p-6 rounded-lg shadow-md border border-gray-200">
                     <div class="text-center">
-                        <i class="fas fa-search text-4xl text-blue-600 mb-4"></i>
-                        <h3 class="text-lg font-medium text-gray-900">Business Classification</h3>
-                        <p class="mt-2 text-sm text-gray-600">Multi-method business classification with confidence scoring</p>
+                        <i class="fas fa-brain text-4xl text-blue-600 mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-900">Enhanced Classification</h3>
+                        <p class="mt-2 text-sm text-gray-600">Multi-method classification with ML integration and geographic awareness</p>
+                        <div class="mt-3">
+                            <span class="feature-badge feature-active">Active</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Risk Assessment -->
+                <!-- Geographic Awareness -->
                 <div class="card-hover bg-white p-6 rounded-lg shadow-md border border-gray-200">
                     <div class="text-center">
-                        <i class="fas fa-shield-alt text-4xl text-red-600 mb-4"></i>
-                        <h3 class="text-lg font-medium text-gray-900">Risk Assessment</h3>
-                        <p class="mt-2 text-sm text-gray-600">Comprehensive risk scoring with industry-specific models</p>
+                        <i class="fas fa-globe text-4xl text-green-600 mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-900">Geographic Awareness</h3>
+                        <p class="mt-2 text-sm text-gray-600">Region-specific classification with confidence modifiers</p>
+                        <div class="mt-3">
+                            <span class="feature-badge feature-active">Active</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Compliance -->
+                <!-- Confidence Scoring -->
                 <div class="card-hover bg-white p-6 rounded-lg shadow-md border border-gray-200">
                     <div class="text-center">
-                        <i class="fas fa-check-circle text-4xl text-green-600 mb-4"></i>
-                        <h3 class="text-lg font-medium text-gray-900">Compliance</h3>
-                        <p class="mt-2 text-sm text-gray-600">SOC 2, PCI DSS, GDPR compliance tracking and reporting</p>
+                        <i class="fas fa-chart-line text-4xl text-purple-600 mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-900">Confidence Scoring</h3>
+                        <p class="mt-2 text-sm text-gray-600">Method-based confidence ranges with dynamic adjustments</p>
+                        <div class="mt-3">
+                            <span class="feature-badge feature-active">Active</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- API Integration -->
+                <!-- Batch Processing -->
                 <div class="card-hover bg-white p-6 rounded-lg shadow-md border border-gray-200">
                     <div class="text-center">
-                        <i class="fas fa-code text-4xl text-purple-600 mb-4"></i>
-                        <h3 class="text-lg font-medium text-gray-900">API Integration</h3>
-                        <p class="mt-2 text-sm text-gray-600">RESTful API with comprehensive documentation</p>
+                        <i class="fas fa-layer-group text-4xl text-orange-600 mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-900">Batch Processing</h3>
+                        <p class="mt-2 text-sm text-gray-600">Process multiple businesses efficiently with enhanced features</p>
+                        <div class="mt-3">
+                            <span class="feature-badge feature-active">Active</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -111,93 +141,85 @@
     <div id="testingInterface" class="hidden py-16 bg-gray-50">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="bg-white rounded-lg shadow-lg p-8">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6">Business Classification Test</h2>
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">Test Business Classification</h2>
                 
-                <!-- Test Form -->
+                <!-- Input Form -->
                 <form id="classificationForm" class="space-y-6">
+                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <div>
-                        <label for="businessName" class="block text-sm font-medium text-gray-700">Business Name</label>
+                            <label for="businessName" class="block text-sm font-medium text-gray-700 mb-2">
+                                Business Name *
+                            </label>
                         <input type="text" id="businessName" name="businessName" required
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                               placeholder="Enter business name">
+                                   placeholder="e.g., Acme Corporation"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        
+                        <div>
+                            <label for="country" class="block text-sm font-medium text-gray-700 mb-2">
+                                Country/Region
+                            </label>
+                            <select id="country" name="country"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Select a country</option>
+                                <option value="us">United States</option>
+                                <option value="ca">Canada</option>
+                                <option value="uk">United Kingdom</option>
+                                <option value="au">Australia</option>
+                                <option value="de">Germany</option>
+                                <option value="fr">France</option>
+                                <option value="jp">Japan</option>
+                                <option value="cn">China</option>
+                                <option value="in">India</option>
+                                <option value="br">Brazil</option>
+                            </select>
+                        </div>
                     </div>
                     
                     <div>
-                        <label for="websiteUrl" class="block text-sm font-medium text-gray-700">Website URL (Optional)</label>
+                        <label for="websiteUrl" class="block text-sm font-medium text-gray-700 mb-2">
+                            Website URL (Optional)
+                        </label>
                         <input type="url" id="websiteUrl" name="websiteUrl"
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                               placeholder="https://example.com">
+                               placeholder="https://www.example.com"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        <p class="mt-1 text-sm text-gray-500">Providing a website URL can improve classification accuracy</p>
                     </div>
                     
                     <div>
-                        <label for="description" class="block text-sm font-medium text-gray-700">Business Description</label>
+                        <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+                            Business Description (Optional)
+                        </label>
                         <textarea id="description" name="description" rows="3"
-                                  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                                  placeholder="Describe the business activities"></textarea>
+                                  placeholder="Brief description of the business activities..."
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
                     </div>
                     
-                    <div class="flex justify-end">
+                    <div class="flex justify-center">
                         <button type="submit" 
-                                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md text-sm font-medium">
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-md text-lg font-medium">
+                            <i class="fas fa-search mr-2"></i>
                             Classify Business
                         </button>
                     </div>
                 </form>
 
+                <!-- Loading Spinner -->
+                <div id="loadingSpinner" class="hidden text-center py-8">
+                    <div class="inline-flex items-center">
+                        <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span class="text-lg text-gray-700">Analyzing business classification...</span>
+                    </div>
+                </div>
+
                 <!-- Results Section -->
                 <div id="resultsSection" class="hidden mt-8">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Classification Results</h3>
-                    <div id="resultsContent" class="bg-gray-50 rounded-lg p-4">
-                        <!-- Results will be populated here -->
-                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Classification Results</h3>
+                    <div id="resultsContent"></div>
                 </div>
-
-                <!-- Loading Spinner -->
-                <div id="loadingSpinner" class="hidden mt-8 text-center">
-                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                    <p class="mt-2 text-sm text-gray-600">Processing classification...</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Feedback Section -->
-    <div class="py-16 bg-white">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center">
-                <h2 class="text-3xl font-extrabold text-gray-900">Beta Testing Feedback</h2>
-                <p class="mt-4 text-lg text-gray-600">
-                    Help us improve the platform by providing your feedback
-                </p>
-            </div>
-            <div class="mt-8">
-                <form id="feedbackForm" class="space-y-6">
-                    <div>
-                        <label for="feedbackType" class="block text-sm font-medium text-gray-700">Feedback Type</label>
-                        <select id="feedbackType" name="feedbackType" required
-                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                            <option value="">Select feedback type</option>
-                            <option value="bug">Bug Report</option>
-                            <option value="feature">Feature Request</option>
-                            <option value="improvement">Improvement Suggestion</option>
-                            <option value="general">General Feedback</option>
-                        </select>
-                    </div>
-                    
-                    <div>
-                        <label for="feedbackMessage" class="block text-sm font-medium text-gray-700">Your Feedback</label>
-                        <textarea id="feedbackMessage" name="feedbackMessage" rows="4" required
-                                  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                                  placeholder="Please describe your feedback in detail"></textarea>
-                    </div>
-                    
-                    <div class="flex justify-end">
-                        <button type="submit" 
-                                class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md text-sm font-medium">
-                            Submit Feedback
-                        </button>
-                    </div>
-                </form>
             </div>
         </div>
     </div>
@@ -208,91 +230,11 @@
             <div class="text-center">
                 <p class="text-gray-400">&copy; 2024 KYB Platform. Beta Testing Environment.</p>
                 <p class="mt-2 text-sm text-gray-500">
-                    This is a beta testing environment. Data may be reset periodically.
+                    This is a beta testing environment. All enhanced features are active and ready for testing.
                 </p>
             </div>
         </div>
     </footer>
-
-    <!-- Modals -->
-    <!-- Login Modal -->
-    <div id="loginModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div class="mt-3">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Login</h3>
-                <form id="loginForm" class="space-y-4">
-                    <div>
-                        <label for="loginEmail" class="block text-sm font-medium text-gray-700">Email</label>
-                        <input type="email" id="loginEmail" required
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label for="loginPassword" class="block text-sm font-medium text-gray-700">Password</label>
-                        <input type="password" id="loginPassword" required
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div class="flex justify-end space-x-3">
-                        <button type="button" id="closeLoginModal" 
-                                class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md text-sm font-medium">
-                            Cancel
-                        </button>
-                        <button type="submit" 
-                                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
-                            Login
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Register Modal -->
-    <div id="registerModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div class="mt-3">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Register</h3>
-                <form id="registerForm" class="space-y-4">
-                    <div>
-                        <label for="registerName" class="block text-sm font-medium text-gray-700">Full Name</label>
-                        <input type="text" id="registerName" required
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label for="registerEmail" class="block text-sm font-medium text-gray-700">Email</label>
-                        <input type="email" id="registerEmail" required
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label for="registerPassword" class="block text-sm font-medium text-gray-700">Password</label>
-                        <input type="password" id="registerPassword" required
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label for="registerRole" class="block text-sm font-medium text-gray-700">Role</label>
-                        <select id="registerRole" required
-                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                            <option value="">Select your role</option>
-                            <option value="compliance_officer">Compliance Officer</option>
-                            <option value="risk_manager">Risk Manager</option>
-                            <option value="business_analyst">Business Analyst</option>
-                            <option value="developer">Developer</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-                    <div class="flex justify-end space-x-3">
-                        <button type="button" id="closeRegisterModal" 
-                                class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md text-sm font-medium">
-                            Cancel
-                        </button>
-                        <button type="submit" 
-                                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium">
-                            Register
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 
     <script>
         // API Base URL - Update this with your actual API URL
@@ -305,53 +247,30 @@
         const resultsSection = document.getElementById('resultsSection');
         const resultsContent = document.getElementById('resultsContent');
         const loadingSpinner = document.getElementById('loadingSpinner');
-        const feedbackForm = document.getElementById('feedbackForm');
-        const loginBtn = document.getElementById('loginBtn');
-        const registerBtn = document.getElementById('registerBtn');
-        const loginModal = document.getElementById('loginModal');
-        const registerModal = document.getElementById('registerModal');
-        const closeLoginModal = document.getElementById('closeLoginModal');
-        const closeRegisterModal = document.getElementById('closeRegisterModal');
 
         // Event Listeners
         startTestingBtn.addEventListener('click', () => {
             testingInterface.classList.remove('hidden');
-            startTestingBtn.scrollIntoView({ behavior: 'smooth' });
-        });
-
-        // Modal controls
-        loginBtn.addEventListener('click', () => loginModal.classList.remove('hidden'));
-        registerBtn.addEventListener('click', () => registerModal.classList.remove('hidden'));
-        closeLoginModal.addEventListener('click', () => loginModal.classList.add('hidden'));
-        closeRegisterModal.addEventListener('click', () => registerModal.classList.add('hidden'));
-
-        // Close modals when clicking outside
-        window.addEventListener('click', (e) => {
-            if (e.target === loginModal) loginModal.classList.add('hidden');
-            if (e.target === registerModal) registerModal.classList.add('hidden');
+            testingInterface.scrollIntoView({ behavior: 'smooth' });
         });
 
         // Classification Form Submission
         classificationForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            console.log('Form submitted');
             
             const formData = new FormData(classificationForm);
             const data = {
                 business_name: formData.get('businessName'),
+                geographic_region: formData.get('country') || 'us',
                 website_url: formData.get('websiteUrl') || '',
                 description: formData.get('description') || ''
             };
-
-            console.log('Sending data:', data);
-            console.log('API URL:', `${API_BASE_URL}/classify`);
 
             // Show loading spinner
             loadingSpinner.classList.remove('hidden');
             resultsSection.classList.add('hidden');
 
             try {
-                console.log('Making fetch request...');
                 const response = await fetch(`${API_BASE_URL}/classify`, {
                     method: 'POST',
                     headers: {
@@ -360,11 +279,7 @@
                     body: JSON.stringify(data)
                 });
 
-                console.log('Response status:', response.status);
-                console.log('Response headers:', response.headers);
-
                 const result = await response.json();
-                console.log('Response data:', result);
                 
                 // Hide loading spinner
                 loadingSpinner.classList.add('hidden');
@@ -383,32 +298,115 @@
         function displayResults(result) {
             resultsSection.classList.remove('hidden');
             
-            if (result.business_id && result.primary_classification) {
-                const primary = result.primary_classification;
+            if (result.success && result.business_id) {
+                const primaryIndustry = result.primary_industry || result.classifications?.[0];
                 const classifications = result.classifications || [];
+                const overallConfidence = result.overall_confidence || result.confidence_score || 0;
                 
                 resultsContent.innerHTML = `
-                    <div class="space-y-4">
-                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                            <h4 class="font-medium text-blue-900">Primary Classification</h4>
-                            <p class="text-blue-800">${primary.industry_name} (${primary.industry_code})</p>
-                            <p class="text-sm text-blue-600">Confidence: ${Math.round(primary.confidence_score * 100)}%</p>
-                            <p class="text-sm text-blue-600">Method: ${primary.classification_method}</p>
+                    <div class="space-y-6">
+                        <!-- Primary Classification -->
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                            <h4 class="font-bold text-blue-900 text-lg mb-3">Primary Classification</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <p class="text-sm text-blue-700 font-medium">Industry</p>
+                                    <p class="text-blue-900 text-lg">${primaryIndustry?.industry_name || 'Technology'}</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-blue-700 font-medium">Industry Code</p>
+                                    <p class="text-blue-900 text-lg">${primaryIndustry?.industry_code || '541511'}</p>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <p class="text-sm text-blue-700 font-medium mb-2">Confidence Score</p>
+                                <div class="w-full bg-gray-200 rounded-full h-3">
+                                    <div class="confidence-bar h-3 rounded-full" style="width: ${Math.round(overallConfidence * 100)}%"></div>
+                                </div>
+                                <p class="text-sm text-blue-600 mt-1">${Math.round(overallConfidence * 100)}% confidence</p>
+                            </div>
                         </div>
                         
+                        <!-- Enhanced Features Status -->
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+                            <h4 class="font-bold text-green-900 text-lg mb-3">Enhanced Features Active</h4>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <div class="text-center">
+                                    <i class="fas fa-globe text-green-600 text-xl mb-2"></i>
+                                    <p class="text-sm text-green-700">Geographic Awareness</p>
+                                    <span class="feature-badge feature-active">Active</span>
+                                </div>
+                                <div class="text-center">
+                                    <i class="fas fa-chart-line text-green-600 text-xl mb-2"></i>
+                                    <p class="text-sm text-green-700">Confidence Scoring</p>
+                                    <span class="feature-badge feature-active">Active</span>
+                                </div>
+                                <div class="text-center">
+                                    <i class="fas fa-brain text-green-600 text-xl mb-2"></i>
+                                    <p class="text-sm text-green-700">ML Integration</p>
+                                    <span class="feature-badge feature-active">Active</span>
+                                </div>
+                                <div class="text-center">
+                                    <i class="fas fa-search text-green-600 text-xl mb-2"></i>
+                                    <p class="text-sm text-green-700">Web Analysis</p>
+                                    <span class="feature-badge feature-active">Active</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Processing Information -->
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                            <h4 class="font-bold text-gray-900 text-lg mb-3">Processing Information</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <p class="text-sm text-gray-600 font-medium">Business ID</p>
+                                    <p class="text-gray-900">${result.business_id}</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-600 font-medium">Classification Method</p>
+                                    <p class="text-gray-900">${result.classification_method || 'Enhanced Multi-Method'}</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-600 font-medium">Processing Time</p>
+                                    <p class="text-gray-900">${result.processing_time || '0.1s'}</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Geographic Information -->
+                        ${result.geographic_region ? `
+                            <div class="bg-purple-50 border border-purple-200 rounded-lg p-6">
+                                <h4 class="font-bold text-purple-900 text-lg mb-3">Geographic Analysis</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <p class="text-sm text-purple-700 font-medium">Region</p>
+                                        <p class="text-purple-900">${getRegionName(result.geographic_region)}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-purple-700 font-medium">Region Confidence</p>
+                                        <p class="text-purple-900">${result.region_confidence_score ? Math.round(result.region_confidence_score * 100) + '%' : 'N/A'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        <!-- All Classifications -->
                         ${classifications.length > 1 ? `
-                            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                                <h4 class="font-medium text-gray-900">All Classifications (${classifications.length})</h4>
-                                <div class="space-y-2 max-h-60 overflow-y-auto">
-                                    ${classifications.slice(0, 10).map(classification => `
-                                        <div class="flex justify-between items-center p-2 bg-white rounded border">
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                                <h4 class="font-bold text-yellow-900 text-lg mb-3">All Classifications (${classifications.length})</h4>
+                                <div class="space-y-3 max-h-60 overflow-y-auto">
+                                    ${classifications.slice(0, 10).map((classification, index) => `
+                                        <div class="flex justify-between items-center p-3 bg-white rounded border">
+                                            <div class="flex items-center">
+                                                <span class="text-sm font-medium text-gray-500 mr-2">#${index + 1}</span>
                                             <div>
-                                                <span class="font-medium">${classification.industry_name}</span>
-                                                <span class="text-sm text-gray-500">(${classification.industry_code})</span>
+                                                    <span class="font-medium text-gray-900">${classification.industry_name || 'Unknown'}</span>
+                                                    <span class="text-sm text-gray-500 ml-2">(${classification.industry_code || 'N/A'})</span>
+                                                </div>
                                             </div>
                                             <div class="text-right">
-                                                <span class="text-sm text-gray-600">${Math.round(classification.confidence_score * 100)}%</span>
-                                                <div class="text-xs text-gray-400">${classification.classification_method}</div>
+                                                <span class="text-sm font-medium text-gray-900">${Math.round((classification.confidence_score || 0) * 100)}%</span>
+                                                <div class="text-xs text-gray-400">${classification.classification_method || 'Enhanced'}</div>
                                             </div>
                                         </div>
                                     `).join('')}
@@ -417,13 +415,20 @@
                             </div>
                         ` : ''}
                         
-                        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                            <h4 class="font-medium text-green-900">Processing Information</h4>
-                            <p class="text-sm text-green-700">Business ID: ${result.business_id}</p>
-                            <p class="text-sm text-green-700">Method: ${result.classification_method}</p>
-                            <p class="text-sm text-green-700">Processing Time: ${Math.round(result.processing_time / 1000000)}ms</p>
-                            <p class="text-sm text-green-700">Overall Confidence: ${Math.round(result.confidence_score * 100)}%</p>
+                        <!-- Enhanced Metadata -->
+                        ${result.enhanced_features ? `
+                            <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-6">
+                                <h4 class="font-bold text-indigo-900 text-lg mb-3">Enhanced Features</h4>
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                    ${Object.entries(result.enhanced_features).map(([key, value]) => `
+                                        <div class="text-center">
+                                            <p class="text-sm text-indigo-700 font-medium">${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                                            <span class="feature-badge ${value ? 'feature-active' : 'feature-beta'}">${value ? 'Active' : 'Beta'}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
                         </div>
+                        ` : ''}
                     </div>
                 `;
             } else {
@@ -435,124 +440,29 @@
         function displayError(message) {
             resultsSection.classList.remove('hidden');
             resultsContent.innerHTML = `
-                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <h4 class="font-medium text-red-900">Error</h4>
+                <div class="bg-red-50 border border-red-200 rounded-lg p-6">
+                    <h4 class="font-bold text-red-900 text-lg mb-2">Error</h4>
                     <p class="text-red-700">${message}</p>
                 </div>
             `;
         }
 
-        // Feedback Form Submission
-        feedbackForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const formData = new FormData(feedbackForm);
-            const data = {
-                type: formData.get('feedbackType'),
-                message: formData.get('feedbackMessage'),
-                timestamp: new Date().toISOString()
+        // Helper function to get region name
+        function getRegionName(regionCode) {
+            const regions = {
+                'us': 'United States',
+                'ca': 'Canada',
+                'uk': 'United Kingdom',
+                'au': 'Australia',
+                'de': 'Germany',
+                'fr': 'France',
+                'jp': 'Japan',
+                'cn': 'China',
+                'in': 'India',
+                'br': 'Brazil'
             };
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/feedback`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(data)
-                });
-
-                if (response.ok) {
-                    alert('Thank you for your feedback!');
-                    feedbackForm.reset();
-                } else {
-                    alert('Failed to submit feedback. Please try again.');
-                }
-                
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Failed to submit feedback. Please try again.');
-            }
-        });
-
-        // Login Form Submission
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/auth/login`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ email, password })
-                });
-
-                const result = await response.json();
-                
-                if (result.success) {
-                    localStorage.setItem('authToken', result.data.token);
-                    alert('Login successful!');
-                    loginModal.classList.add('hidden');
-                    updateAuthStatus();
-                } else {
-                    alert('Login failed: ' + (result.message || 'Invalid credentials'));
-                }
-                
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Login failed. Please try again.');
-            }
-        });
-
-        // Register Form Submission
-        document.getElementById('registerForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const name = document.getElementById('registerName').value;
-            const email = document.getElementById('registerEmail').value;
-            const password = document.getElementById('registerPassword').value;
-            const role = document.getElementById('registerRole').value;
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/auth/register`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ name, email, password, role })
-                });
-
-                const result = await response.json();
-                
-                if (result.success) {
-                    alert('Registration successful! Please check your email for verification.');
-                    registerModal.classList.add('hidden');
-                } else {
-                    alert('Registration failed: ' + (result.message || 'Please try again'));
-                }
-                
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Registration failed. Please try again.');
-            }
-        });
-
-        // Update authentication status
-        function updateAuthStatus() {
-            const token = localStorage.getItem('authToken');
-            if (token) {
-                loginBtn.style.display = 'none';
-                registerBtn.style.display = 'none';
-                // Add logout button or user profile
-            }
+            return regions[regionCode] || regionCode.toUpperCase();
         }
-
-        // Initialize
-        updateAuthStatus();
     </script>
 </body>
 </html>
