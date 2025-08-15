@@ -298,26 +298,43 @@ func NewEnhancedServer(port string) *EnhancedServer {
                     '</div>' +
                     '<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">' +
                     '<div class="bg-blue-50 border border-blue-200 rounded-md p-4">' +
-                    '<h5 class="font-medium text-blue-800">Primary Classification</h5>' +
-                    '<p class="text-blue-700">' + (result.primary_classification || 'N/A') + '</p>' +
-                    '<p class="text-sm text-blue-600">Confidence: ' + (result.confidence || 'N/A') + '%</p>' +
+                    '<h5 class="font-medium text-blue-800">Primary Industry</h5>' +
+                    '<p class="text-blue-700">' + (result.primary_industry || 'N/A') + '</p>' +
+                    '<p class="text-sm text-blue-600">Confidence: ' + (result.overall_confidence ? Math.round(result.overall_confidence * 100) : 'N/A') + '%</p>' +
                     '</div>' +
                     '<div class="bg-purple-50 border border-purple-200 rounded-md p-4">' +
-                    '<h5 class="font-medium text-purple-800">Industry Detection</h5>' +
-                    '<p class="text-purple-700">' + (result.industry_detection || 'N/A') + '</p>' +
-                    '<p class="text-sm text-purple-600">Confidence: ' + (result.industry_confidence || 'N/A') + '%</p>' +
+                    '<h5 class="font-medium text-purple-800">Classification Method</h5>' +
+                    '<p class="text-purple-700">' + (result.classification_method || 'N/A') + '</p>' +
+                    '<p class="text-sm text-purple-600">Processing Time: ' + (result.processing_time || 'N/A') + '</p>' +
                     '</div>' +
                     '</div>' +
                     '<div class="bg-gray-50 border border-gray-200 rounded-md p-4">' +
                     '<h5 class="font-medium text-gray-800">Enhanced Features</h5>' +
                     '<div class="mt-2 space-y-2">' +
                     '<p><strong>Geographic Region:</strong> ' + (result.geographic_region || 'N/A') + '</p>' +
-                    '<p><strong>Risk Level:</strong> ' + (result.risk_level || 'N/A') + '</p>' +
-                    '<p><strong>Overall Confidence:</strong> ' + (result.overall_confidence || 'N/A') + '%</p>' +
+                    '<p><strong>Overall Confidence:</strong> ' + (result.overall_confidence ? Math.round(result.overall_confidence * 100) : 'N/A') + '%</p>' +
                     '<p><strong>Classification Method:</strong> ' + (result.classification_method || 'N/A') + '</p>' +
                     '</div>' +
                     '</div>' +
-                    '</div>';
+                    '<div class="bg-yellow-50 border border-yellow-200 rounded-md p-4">' +
+                    '<h5 class="font-medium text-yellow-800">Method Breakdown</h5>' +
+                    '<div class="mt-2 space-y-2">';
+                
+                // Add method breakdown details
+                if (result.method_breakdown) {
+                    const methods = ['keyword', 'ml', 'website', 'search'];
+                    methods.forEach(method => {
+                        if (result.method_breakdown[method]) {
+                            const methodData = result.method_breakdown[method];
+                            resultsContent.innerHTML += 
+                                '<div class="border-l-4 border-yellow-400 pl-3">' +
+                                '<p><strong>' + methodData.method + ':</strong> ' + methodData.industry + ' (' + Math.round(methodData.confidence * 100) + '%)</p>' +
+                                '</div>';
+                        }
+                    });
+                }
+                
+                resultsContent.innerHTML += '</div></div>';
                 
                 resultsSection.classList.remove('hidden');
                 resultsSection.scrollIntoView({ behavior: 'smooth' });
@@ -644,20 +661,28 @@ func performWebsiteAnalysis(businessName string) map[string]interface{} {
 
 	// Simulate website content analysis
 	websiteContent := simulateWebsiteContent(businessName)
+	allText := strings.ToLower(businessName + " " + websiteContent)
 
+	// Enhanced website content analysis
 	switch {
-	case containsAny(websiteContent, "banking", "financial", "investment"):
+	case containsAny(allText, "bank", "banking", "financial", "investment", "credit", "lending", "insurance", "wealth", "asset"):
 		detectedIndustry = "Financial Services"
 		confidence = 0.90
-	case containsAny(websiteContent, "healthcare", "medical", "treatment"):
+	case containsAny(allText, "health", "medical", "pharma", "hospital", "clinic", "therapy", "treatment", "care"):
 		detectedIndustry = "Healthcare"
 		confidence = 0.89
-	case containsAny(websiteContent, "retail", "shopping", "products"):
+	case containsAny(allText, "retail", "store", "shop", "ecommerce", "marketplace", "products", "goods"):
 		detectedIndustry = "Retail"
 		confidence = 0.87
-	case containsAny(websiteContent, "manufacturing", "production", "industrial"):
+	case containsAny(allText, "manufacturing", "factory", "industrial", "production", "assembly"):
 		detectedIndustry = "Manufacturing"
 		confidence = 0.86
+	case containsAny(allText, "consulting", "advisory", "services", "professional", "management"):
+		detectedIndustry = "Professional Services"
+		confidence = 0.85
+	case containsAny(allText, "tech", "software", "digital", "ai", "machine learning", "platform", "app"):
+		detectedIndustry = "Technology"
+		confidence = 0.88
 	}
 
 	return map[string]interface{}{
@@ -706,10 +731,10 @@ func performWebSearchAnalysis(businessName, industry string) map[string]interfac
 // combineClassificationResults combines results from multiple methods using ensemble approach
 func combineClassificationResults(keyword, ml, website, search map[string]interface{}) map[string]interface{} {
 	// Weighted ensemble combination
-	keywordWeight := 0.25
-	mlWeight := 0.35
-	websiteWeight := 0.25
-	searchWeight := 0.15
+	keywordWeight := 0.30  // Increased weight for keyword analysis
+	mlWeight := 0.35       // ML gets highest weight
+	websiteWeight := 0.20  // Reduced weight for website analysis
+	searchWeight := 0.15   // Search gets lowest weight
 
 	// Calculate weighted confidence
 	keywordConf := keyword["confidence"].(float64)
@@ -733,6 +758,20 @@ func combineClassificationResults(keyword, ml, website, search map[string]interf
 		if score > maxScore {
 			maxScore = score
 			finalIndustry = industry
+		}
+	}
+
+	// If we have a clear majority (3 or more methods agree), use that industry
+	industryCounts := make(map[string]int)
+	industryCounts[keyword["industry"].(string)]++
+	industryCounts[ml["industry"].(string)]++
+	industryCounts[website["industry"].(string)]++
+	industryCounts[search["industry"].(string)]++
+
+	for industry, count := range industryCounts {
+		if count >= 3 {
+			finalIndustry = industry
+			break
 		}
 	}
 
@@ -796,6 +835,24 @@ func extractKeywords(text string) []string {
 
 func simulateWebsiteContent(businessName string) string {
 	// Simulate website content based on business name
+	// Include the business name in the content for better analysis
+	lowerName := strings.ToLower(businessName)
+	
+	// Add industry-specific content based on business name
+	if containsAny(lowerName, "bank", "financial", "credit", "investment") {
+		return businessName + " website content with banking and financial services information"
+	} else if containsAny(lowerName, "health", "medical", "pharma", "hospital") {
+		return businessName + " website content with healthcare and medical services information"
+	} else if containsAny(lowerName, "retail", "store", "shop", "market") {
+		return businessName + " website content with retail and shopping information"
+	} else if containsAny(lowerName, "manufacturing", "factory", "industrial") {
+		return businessName + " website content with manufacturing and industrial information"
+	} else if containsAny(lowerName, "consulting", "advisory", "services") {
+		return businessName + " website content with consulting and professional services information"
+	} else if containsAny(lowerName, "tech", "software", "digital", "ai") {
+		return businessName + " website content with technology and software information"
+	}
+	
 	return businessName + " website content with business information"
 }
 
