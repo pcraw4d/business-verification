@@ -26,8 +26,23 @@ func NewEnhancedServer(port string) *EnhancedServer {
 
 	// Web interface endpoint - serve the beta testing UI
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		// Read the web/index.html file
-		content, err := os.ReadFile("web/index.html")
+		// Read the web/index.html file - try multiple possible paths
+		var content []byte
+		var err error
+		
+		// Try different possible paths for the web file
+		possiblePaths := []string{
+			"web/index.html",
+			"./web/index.html",
+			"/root/web/index.html",
+		}
+		
+		for _, path := range possiblePaths {
+			content, err = os.ReadFile(path)
+			if err == nil {
+				break
+			}
+		}
 		if err != nil {
 			// Fallback to API documentation if web file not found
 			w.Header().Set("Content-Type", "text/html")
@@ -251,8 +266,6 @@ func NewEnhancedServer(port string) *EnhancedServer {
 
 		json.NewEncoder(w).Encode(response)
 	})
-
-
 
 	server := &http.Server{
 		Addr:         ":" + port,
