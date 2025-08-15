@@ -24,6 +24,65 @@ type EnhancedServer struct {
 func NewEnhancedServer(port string) *EnhancedServer {
 	mux := http.NewServeMux()
 
+	// Web interface endpoint - serve the beta testing UI
+	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+		// Read the web/index.html file
+		content, err := os.ReadFile("web/index.html")
+		if err != nil {
+			// Fallback to API documentation if web file not found
+			w.Header().Set("Content-Type", "text/html")
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`<!DOCTYPE html>
+<html>
+<head>
+    <title>KYB Platform - Enhanced Classification Service</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .card { background: rgba(255,255,255,0.1); padding: 20px; margin: 20px 0; border-radius: 10px; backdrop-filter: blur(10px); }
+        .endpoint { background: rgba(0,0,0,0.3); padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .method { font-weight: bold; color: #ffd700; }
+        .feature { color: #90EE90; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Classification Service</h1>
+        <h2>Status: ✅ All Enhanced Features Active</h2>
+        <p>The comprehensive enhanced classification service is now active with all critical features for beta testing.</p>
+    </div>
+    
+    <div class="card">
+        <h2>Available Endpoints:</h2>
+        <div class="endpoint"><span class="method">GET</span> /health – Health check</div>
+        <div class="endpoint"><span class="method">GET</span> /v1/status – API status with comprehensive feature status</div>
+        <div class="endpoint"><span class="method">GET</span> /v1/metrics – Metrics</div>
+        <div class="endpoint"><span class="method">POST</span> /v1/classify – Comprehensive single classification</div>
+        <div class="endpoint"><span class="method">POST</span> /v1/classify/batch – Comprehensive batch classification</div>
+        <div class="endpoint"><span class="method">GET</span> /v1/classify/{business_id} – Get classification by ID</div>
+        <div class="endpoint"><span class="method">POST</span> /v1/feedback – Real-time feedback collection</div>
+    </div>
+    
+    <div class="card">
+        <h2>Comprehensive Feature Status:</h2>
+        <div class="feature">✅ Geographic Awareness - Active</div>
+        <div class="feature">✅ Enhanced Confidence Scoring - Active</div>
+        <div class="feature">✅ Industry Detection - Active</div>
+        <div class="feature">✅ ML Integration - Active</div>
+        <div class="feature">✅ Website Analysis - Active</div>
+        <div class="feature">✅ Web Search Integration - Active</div>
+        <div class="feature">✅ Batch Processing - Active</div>
+        <div class="feature">✅ Real-time Feedback - Active</div>
+    </div>
+</body>
+</html>`))
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/html")
+		w.WriteHeader(http.StatusOK)
+		w.Write(content)
+	})
+
 	// Health check endpoint
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
