@@ -9,10 +9,10 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
-	"regexp"
 
 	"github.com/joho/godotenv"
 	"golang.org/x/net/html"
@@ -1306,12 +1306,12 @@ func extractTextFromHTML(htmlContent string) string {
 	// Extract text content
 	var textContent strings.Builder
 	extractText(doc, &textContent)
-	
+
 	// Clean up the text
 	text := textContent.String()
 	text = regexp.MustCompile(`\s+`).ReplaceAllString(text, " ")
 	text = strings.TrimSpace(text)
-	
+
 	return text
 }
 
@@ -1328,39 +1328,39 @@ func extractText(n *html.Node, text *strings.Builder) {
 func performRealWebSearch(query string) (string, error) {
 	// Use DuckDuckGo Instant Answer API (no API key required)
 	url := fmt.Sprintf("https://api.duckduckgo.com/?q=%s&format=json&no_html=1&skip_disambig=1", query)
-	
+
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 	}
-	
+
 	resp, err := client.Get(url)
 	if err != nil {
 		return "", fmt.Errorf("failed to perform web search: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("search API returned status code: %d", resp.StatusCode)
 	}
-	
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("failed to read search response: %w", err)
 	}
-	
+
 	// Parse JSON response
 	var searchResult struct {
-		Abstract string `json:"Abstract"`
-		Answer   string `json:"Answer"`
+		Abstract      string `json:"Abstract"`
+		Answer        string `json:"Answer"`
 		RelatedTopics []struct {
 			Text string `json:"Text"`
 		} `json:"RelatedTopics"`
 	}
-	
+
 	if err := json.Unmarshal(body, &searchResult); err != nil {
 		return "", fmt.Errorf("failed to parse search response: %w", err)
 	}
-	
+
 	// Combine search results
 	var results strings.Builder
 	if searchResult.Abstract != "" {
@@ -1374,7 +1374,7 @@ func performRealWebSearch(query string) (string, error) {
 			results.WriteString(topic.Text + " ")
 		}
 	}
-	
+
 	return results.String(), nil
 }
 
