@@ -1,0 +1,206 @@
+package middleware
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/pcraw4d/business-verification/internal/observability"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+)
+
+// StructuredLoggingMiddleware provides comprehensive HTTP request logging with correlation IDs
+type StructuredLoggingMiddleware struct {
+	logger      *observability.Logger
+	tracer      trace.Tracer
+	environment string
+	serviceName string
+}
+
+// NewStructuredLoggingMiddleware creates a new structured logging middleware
+func NewStructuredLoggingMiddleware(
+	logger *observability.Logger,
+	tracer trace.Tracer,
+	environment string,
+	serviceName string,
+) *StructuredLoggingMiddleware {
+	return &StructuredLoggingMiddleware{
+		logger:      logger,
+		tracer:      tracer,
+		environment: environment,
+		serviceName: serviceName,
+	}
+}
+
+// StructuredLogging wraps HTTP handlers with comprehensive structured logging
+func (slm *StructuredLoggingMiddleware) StructuredLogging(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		startTime := time.Now()
+
+		// Create context with correlation IDs
+		ctx := r.Context()
+		ctx = slm.addCorrelationIDs(ctx, r)
+
+		// Create span for request tracing
+		ctx, span := slm.tracer.Start(ctx, "HTTP.Request",
+			trace.WithAttributes(
+				attribute.String("http.method", r.Method),
+				attribute.String("http.url", r.URL.String()),
+				attribute.String("http.user_agent", r.UserAgent()),
+				attribute.String("http.remote_addr", r.RemoteAddr),
+			),
+		)
+		defer span.End()
+
+		// Create response writer wrapper to capture status code
+		wrappedWriter := &responseWriter{
+			ResponseWriter: w,
+			statusCode:     http.StatusOK,
+		}
+
+		// Log request start
+		slm.logRequestStart(ctx, r, startTime)
+
+		// Process request
+		next.ServeHTTP(wrappedWriter, r.WithContext(ctx))
+
+		// Calculate duration
+		duration := time.Since(startTime)
+
+		// Log request completion
+		slm.logRequestComplete(ctx, r, wrappedWriter, duration, startTime)
+
+		// Update span with response information
+		span.SetAttributes(
+			attribute.Int("http.status_code", wrappedWriter.statusCode),
+			attribute.Int64("http.duration_ms", duration.Milliseconds()),
+		)
+	})
+}
+
+// addCorrelationIDs adds correlation IDs to the context
+func (slm *StructuredLoggingMiddleware) addCorrelationIDs(ctx context.Context, r *http.Request) context.Context {
+	// Extract or generate correlation ID
+	correlationID := r.Header.Get("X-Correlation-ID")
+	if correlationID == "" {
+		correlationID = generateCorrelationID()
+	}
+
+	// Extract request ID
+	requestID := r.Header.Get("X-Request-ID")
+	if requestID == "" {
+		requestID = generateRequestID()
+	}
+
+	// Extract user ID from headers or query parameters
+	userID := r.Header.Get("X-User-ID")
+	if userID == "" {
+		userID = r.URL.Query().Get("user_id")
+	}
+
+	// Add correlation information to context
+	ctx = context.WithValue(ctx, "correlation_id", correlationID)
+	ctx = context.WithValue(ctx, "request_id", requestID)
+	if userID != "" {
+		ctx = context.WithValue(ctx, "user_id", userID)
+	}
+
+	// Add correlation headers to response
+	if w, ok := r.Context().Value("response_writer").(http.ResponseWriter); ok {
+		w.Header().Set("X-Correlation-ID", correlationID)
+		w.Header().Set("X-Request-ID", requestID)
+	}
+
+	return ctx
+}
+
+// logRequestStart logs the start of an HTTP request
+func (slm *StructuredLoggingMiddleware) logRequestStart(ctx context.Context, r *http.Request, startTime time.Time) {
+	slm.logger.WithContext(ctx).Info("HTTP request started",
+		"method", r.Method,
+		"url", r.URL.String(),
+		"user_agent", r.UserAgent(),
+		"remote_addr", r.RemoteAddr,
+		"start_time", startTime,
+		"environment", slm.environment,
+		"service_name", slm.serviceName,
+	)
+}
+
+// logRequestComplete logs the completion of an HTTP request
+func (slm *StructuredLoggingMiddleware) logRequestComplete(
+	ctx context.Context,
+	r *http.Request,
+	w *responseWriter,
+	duration time.Duration,
+	startTime time.Time,
+) {
+	// Determine log level based on status code
+	logLevel := "info"
+	if w.statusCode >= 400 {
+		logLevel = "warn"
+	}
+	if w.statusCode >= 500 {
+		logLevel = "error"
+	}
+
+	// Create structured log entry
+	logData := map[string]interface{}{
+		"method":       r.Method,
+		"url":          r.URL.String(),
+		"status_code":  w.statusCode,
+		"duration":     duration.String(),
+		"duration_ms":  duration.Milliseconds(),
+		"user_agent":   r.UserAgent(),
+		"remote_addr":  r.RemoteAddr,
+		"start_time":   startTime,
+		"end_time":     time.Now(),
+		"environment":  slm.environment,
+		"service_name": slm.serviceName,
+	}
+
+	// Add request headers for debugging (filter sensitive ones)
+	if slm.environment == "development" {
+		logData["request_headers"] = filterSensitiveHeaders(r.Header)
+	}
+
+	// Log based on level
+	switch logLevel {
+	case "error":
+		slm.logger.WithContext(ctx).Error("HTTP request completed", logData)
+	case "warn":
+		slm.logger.WithContext(ctx).Warn("HTTP request completed", logData)
+	default:
+		slm.logger.WithContext(ctx).Info("HTTP request completed", logData)
+	}
+}
+
+// generateCorrelationID generates a unique correlation ID
+func generateCorrelationID() string {
+	return fmt.Sprintf("corr-%d", time.Now().UnixNano())
+}
+
+// filterSensitiveHeaders removes sensitive headers from logging
+func filterSensitiveHeaders(headers http.Header) map[string]string {
+	filtered := make(map[string]string)
+	sensitiveHeaders := map[string]bool{
+		"authorization": true,
+		"cookie":        true,
+		"x-api-key":     true,
+		"x-auth-token":  true,
+	}
+
+	for key, values := range headers {
+		keyLower := strings.ToLower(key)
+		if sensitiveHeaders[keyLower] {
+			filtered[key] = "[REDACTED]"
+		} else {
+			filtered[key] = strings.Join(values, ", ")
+		}
+	}
+
+	return filtered
+}

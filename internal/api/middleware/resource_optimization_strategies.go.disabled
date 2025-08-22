@@ -1,0 +1,248 @@
+package middleware
+
+import (
+	"runtime"
+	"runtime/debug"
+	"time"
+)
+
+// MemoryOptimizationStrategy optimizes memory usage
+type MemoryOptimizationStrategy struct {
+	config *ResourceConfig
+}
+
+// Name returns the strategy name
+func (mos *MemoryOptimizationStrategy) Name() string {
+	return "MemoryOptimization"
+}
+
+// CanOptimize checks if memory optimization is needed
+func (mos *MemoryOptimizationStrategy) CanOptimize(metrics *ResourceMetrics) bool {
+	return metrics.MemoryUsage > float64(mos.config.AlertThresholds.MemoryWarning)
+}
+
+// Optimize performs memory optimization
+func (mos *MemoryOptimizationStrategy) Optimize(metrics *ResourceMetrics) (*OptimizationResult, error) {
+	beforeMem := metrics.ProcessMemory
+
+	// Force garbage collection
+	runtime.GC()
+
+	// Run garbage collection again for better cleanup
+	runtime.GC()
+
+	// Collect new metrics to see the improvement
+	var rtm runtime.MemStats
+	runtime.ReadMemStats(&rtm)
+	afterMem := rtm.Alloc
+
+	memoryReduction := uint64(0)
+	if beforeMem > afterMem {
+		memoryReduction = beforeMem - afterMem
+	}
+
+	return &OptimizationResult{
+		Strategy:        mos.Name(),
+		Applied:         true,
+		Description:     "Forced garbage collection to free memory",
+		CPUReduction:    0,
+		MemoryReduction: memoryReduction,
+		Timestamp:       time.Now(),
+		Metrics: map[string]interface{}{
+			"before_memory": beforeMem,
+			"after_memory":  afterMem,
+			"gc_cycles":     rtm.NumGC,
+		},
+	}, nil
+}
+
+// Priority returns the strategy priority
+func (mos *MemoryOptimizationStrategy) Priority() int {
+	return 3
+}
+
+// CPUOptimizationStrategy optimizes CPU usage
+type CPUOptimizationStrategy struct {
+	config *ResourceConfig
+}
+
+// Name returns the strategy name
+func (cos *CPUOptimizationStrategy) Name() string {
+	return "CPUOptimization"
+}
+
+// CanOptimize checks if CPU optimization is needed
+func (cos *CPUOptimizationStrategy) CanOptimize(metrics *ResourceMetrics) bool {
+	return metrics.CPUUsage > float64(cos.config.AlertThresholds.CPUWarning)
+}
+
+// Optimize performs CPU optimization
+func (cos *CPUOptimizationStrategy) Optimize(metrics *ResourceMetrics) (*OptimizationResult, error) {
+	beforeCPU := metrics.CPUUsage
+
+	// Adjust GOMAXPROCS if needed
+	cores := runtime.NumCPU()
+	currentProcs := runtime.GOMAXPROCS(0)
+
+	var optimization string
+	var applied bool
+
+	if currentProcs > cores {
+		// Reduce GOMAXPROCS to match actual cores
+		runtime.GOMAXPROCS(cores)
+		optimization = "Reduced GOMAXPROCS to match CPU cores"
+		applied = true
+	} else if metrics.CPUUsage > 90.0 {
+		// Reduce GOMAXPROCS slightly to leave room for system processes
+		newProcs := cores - 1
+		if newProcs > 0 {
+			runtime.GOMAXPROCS(newProcs)
+			optimization = "Reduced GOMAXPROCS to leave room for system processes"
+			applied = true
+		}
+	}
+
+	if !applied {
+		optimization = "No CPU optimization needed at this time"
+	}
+
+	// Estimate CPU reduction (this is a rough estimate)
+	estimatedReduction := 0.0
+	if applied && beforeCPU > 80.0 {
+		estimatedReduction = (beforeCPU - 80.0) * 0.5 // Assume 50% improvement in excess usage
+	}
+
+	return &OptimizationResult{
+		Strategy:        cos.Name(),
+		Applied:         applied,
+		Description:     optimization,
+		CPUReduction:    estimatedReduction,
+		MemoryReduction: 0,
+		Timestamp:       time.Now(),
+		Metrics: map[string]interface{}{
+			"before_cpu": beforeCPU,
+			"cpu_cores":  cores,
+			"gomaxprocs": runtime.GOMAXPROCS(0),
+		},
+	}, nil
+}
+
+// Priority returns the strategy priority
+func (cos *CPUOptimizationStrategy) Priority() int {
+	return 2
+}
+
+// GoroutineOptimizationStrategy optimizes goroutine usage
+type GoroutineOptimizationStrategy struct {
+	config *ResourceConfig
+}
+
+// Name returns the strategy name
+func (gos *GoroutineOptimizationStrategy) Name() string {
+	return "GoroutineOptimization"
+}
+
+// CanOptimize checks if goroutine optimization is needed
+func (gos *GoroutineOptimizationStrategy) CanOptimize(metrics *ResourceMetrics) bool {
+	return metrics.GoroutineCount > gos.config.AlertThresholds.GoroutineWarning
+}
+
+// Optimize performs goroutine optimization
+func (gos *GoroutineOptimizationStrategy) Optimize(metrics *ResourceMetrics) (*OptimizationResult, error) {
+	beforeGoroutines := metrics.GoroutineCount
+
+	// For now, we just log the optimization
+	// In a real implementation, you might implement goroutine pooling or throttling
+	optimization := "Goroutine count monitoring - consider implementing goroutine pooling"
+
+	return &OptimizationResult{
+		Strategy:        gos.Name(),
+		Applied:         false, // Not actually applying optimization, just monitoring
+		Description:     optimization,
+		CPUReduction:    0,
+		MemoryReduction: 0,
+		Timestamp:       time.Now(),
+		Metrics: map[string]interface{}{
+			"goroutine_count": beforeGoroutines,
+			"threshold":       gos.config.AlertThresholds.GoroutineWarning,
+		},
+	}, nil
+}
+
+// Priority returns the strategy priority
+func (gos *GoroutineOptimizationStrategy) Priority() int {
+	return 1
+}
+
+// GCOptimizationStrategy optimizes garbage collection
+type GCOptimizationStrategy struct {
+	config *ResourceConfig
+}
+
+// Name returns the strategy name
+func (gcos *GCOptimizationStrategy) Name() string {
+	return "GCOptimization"
+}
+
+// CanOptimize checks if GC optimization is needed
+func (gcos *GCOptimizationStrategy) CanOptimize(metrics *ResourceMetrics) bool {
+	// Optimize if memory usage is high or if we haven't run GC recently
+	return metrics.MemoryUsage > 60.0 || time.Since(metrics.LastGCTime) > 5*time.Minute
+}
+
+// Optimize performs GC optimization
+func (gcos *GCOptimizationStrategy) Optimize(metrics *ResourceMetrics) (*OptimizationResult, error) {
+	var rtm runtime.MemStats
+	runtime.ReadMemStats(&rtm)
+	beforeMem := rtm.Alloc
+	beforeGC := rtm.NumGC
+
+	// Set GC target percentage based on current memory usage
+	targetPercent := gcos.config.GCTargetPercentage
+	if metrics.MemoryUsage > 80.0 {
+		targetPercent = 50 // More aggressive GC for high memory usage
+	} else if metrics.MemoryUsage < 40.0 {
+		targetPercent = 200 // Less aggressive GC for low memory usage
+	}
+
+	// Set the GC target percentage
+	debug.SetGCPercent(targetPercent)
+
+	// Force a GC cycle
+	runtime.GC()
+
+	// Read memory stats again
+	runtime.ReadMemStats(&rtm)
+	afterMem := rtm.Alloc
+	afterGC := rtm.NumGC
+
+	memoryReduction := uint64(0)
+	if beforeMem > afterMem {
+		memoryReduction = beforeMem - afterMem
+	}
+
+	description := "Optimized garbage collection settings"
+	if afterGC > beforeGC {
+		description += " and forced GC cycle"
+	}
+
+	return &OptimizationResult{
+		Strategy:        gcos.Name(),
+		Applied:         true,
+		Description:     description,
+		CPUReduction:    0,
+		MemoryReduction: memoryReduction,
+		Timestamp:       time.Now(),
+		Metrics: map[string]interface{}{
+			"before_memory":  beforeMem,
+			"after_memory":   afterMem,
+			"gc_target":      targetPercent,
+			"gc_cycles_diff": afterGC - beforeGC,
+		},
+	}, nil
+}
+
+// Priority returns the strategy priority
+func (gcos *GCOptimizationStrategy) Priority() int {
+	return 4
+}

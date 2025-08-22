@@ -1,72 +1,22 @@
 version: "3.8"
 
 services:
-  # Database services
-  postgres:
-    image: postgres:15-alpine
-    ports:
-      - "5433:5432"
-    environment:
-      - POSTGRES_DB=kyb_platform
-      - POSTGRES_USER=kyb_user
-      - POSTGRES_PASSWORD=kyb_password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
-      - ./internal/database/migrations:/docker-entrypoint-initdb.d/migrations
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kyb_user -d kyb_platform"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  kyb-platform:
+  # Business Verification V3 API
+  api:
     build:
       context: .
       dockerfile: Dockerfile
-      target: production
+    container_name: business-verification-v3-api
     ports:
       - "8080:8080"
     environment:
-      - ENV=development
-      - PROVIDER_DATABASE=postgres
-      - PROVIDER_AUTH=local
-      - PROVIDER_CACHE=redis
-      - PROVIDER_STORAGE=local
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USERNAME=kyb_user
-      - DB_PASSWORD=kyb_password
-      - DB_DATABASE=kyb_platform
-      - DB_SSL_MODE=disable
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
-      - LOG_LEVEL=debug
-      - METRICS_ENABLED=true
-      - TRACING_ENABLED=true
+      - ENV=production
+    env_file:
+      - configs/production.env
     volumes:
+      - ./logs:/app/logs
+      - ./backups:/app/backups
       - ./configs:/app/configs
-      - ./Codes:/app/Codes
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
@@ -74,15 +24,21 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    networks:
+      - api-network
+    depends_on:
+      - prometheus
+      - grafana
 
-  # Monitoring stack
+  # Prometheus for metrics collection
   prometheus:
     image: prom/prometheus:latest
+    container_name: prometheus
     ports:
       - "9090:9090"
     volumes:
-      - ./deployments/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./deployments/prometheus/alerts.yml:/etc/prometheus/alerts.yml
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml
       - prometheus_data:/prometheus
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
@@ -92,33 +48,156 @@ services:
       - "--storage.tsdb.retention.time=200h"
       - "--web.enable-lifecycle"
     restart: unless-stopped
+    networks:
+      - api-network
 
+  # Grafana for visualization
   grafana:
     image: grafana/grafana:latest
+    container_name: grafana
     ports:
       - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./deployments/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
     restart: unless-stopped
+    networks:
+      - api-network
     depends_on:
       - prometheus
 
+  # Alertmanager for alerting
   alertmanager:
     image: prom/alertmanager:latest
+    container_name: alertmanager
     ports:
       - "9093:9093"
     volumes:
-      - ./deployments/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager_data:/alertmanager
     command:
       - "--config.file=/etc/alertmanager/alertmanager.yml"
       - "--storage.path=/alertmanager"
     restart: unless-stopped
+    networks:
+      - api-network
+
+  # Node Exporter for system metrics
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+    restart: unless-stopped
+    networks:
+      - api-network
+
+  # Blackbox Exporter for HTTP health checks
+  blackbox-exporter:
+    image: prom/blackbox-exporter:latest
+    container_name: blackbox-exporter
+    ports:
+      - "9115:9115"
+    volumes:
+      - ./monitoring/blackbox.yml:/etc/blackbox_exporter/config.yml
+    command:
+      - "--config.file=/etc/blackbox_exporter/config.yml"
+    restart: unless-stopped
+    networks:
+      - api-network
+
+  # Redis (optional, for caching)
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    networks:
+      - api-network
+
+  # Redis Exporter for Redis metrics
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: redis-exporter
+    ports:
+      - "9121:9121"
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+    restart: unless-stopped
+    networks:
+      - api-network
+    depends_on:
+      - redis
+
+  # PostgreSQL (optional, if not using Supabase)
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=business_verification
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - api-network
+
+  # Postgres Exporter for PostgreSQL metrics
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: postgres-exporter
+    ports:
+      - "9187:9187"
+    environment:
+      - DATA_SOURCE_NAME=postgresql://postgres:postgres@postgres:5432/business_verification?sslmode=disable
+    restart: unless-stopped
+    networks:
+      - api-network
+    depends_on:
+      - postgres
+
+  # Nginx reverse proxy (optional)
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    restart: unless-stopped
+    networks:
+      - api-network
+    depends_on:
+      - api
 
 volumes:
-  postgres_data:
-  redis_data:
   prometheus_data:
   grafana_data:
+  alertmanager_data:
+  redis_data:
+  postgres_data:
+
+networks:
+  api-network:
+    driver: bridge

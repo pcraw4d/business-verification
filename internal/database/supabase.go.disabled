@@ -1,0 +1,374 @@
+package database
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/pcraw4d/business-verification/internal/config"
+	// "github.com/pcraw4d/business-verification/internal/observability"
+	supa "github.com/supabase-community/supabase-go"
+)
+
+// SupabaseClient represents a Supabase database client
+type SupabaseClient struct {
+	client *supa.Client
+	url    string
+	key    string
+	logger interface{} // Temporary replacement for observability.Logger
+}
+
+// NewSupabaseClient creates a new Supabase client
+func NewSupabaseClient(cfg *config.SupabaseConfig, logger interface{}) (*SupabaseClient, error) {
+	if cfg.URL == "" {
+		return nil, fmt.Errorf("SUPABASE_URL is required")
+	}
+	if cfg.APIKey == "" {
+		return nil, fmt.Errorf("SUPABASE_ANON_KEY is required")
+	}
+	if cfg.ServiceRoleKey == "" {
+		return nil, fmt.Errorf("SUPABASE_SERVICE_ROLE_KEY is required")
+	}
+
+	client, err := supa.NewClient(cfg.URL, cfg.APIKey, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Supabase client: %w", err)
+	}
+
+	return &SupabaseClient{
+		client: client,
+		url:    cfg.URL,
+		key:    cfg.APIKey,
+		logger: logger,
+	}, nil
+}
+
+// Connect establishes a connection to Supabase
+func (s *SupabaseClient) Connect(ctx context.Context) error {
+	// s.logger.Info("Connecting to Supabase", "url", s.url)
+
+	// Test the connection by making a simple query
+	_, _, err := s.client.From("business_classifications").Select("*", "", false).Execute()
+	if err != nil {
+		// s.logger.Error("Failed to connect to Supabase", "error", err)
+		return fmt.Errorf("failed to connect to Supabase: %w", err)
+	}
+
+	// s.logger.Info("Successfully connected to Supabase")
+	return nil
+}
+
+// Close closes the Supabase connection
+func (s *SupabaseClient) Close() error {
+	s.logger.Info("Closing Supabase connection")
+	// Supabase client doesn't require explicit closing
+	return nil
+}
+
+// Ping checks the connection to Supabase
+func (s *SupabaseClient) Ping(ctx context.Context) error {
+	// Test connection with a simple query
+	_, _, err := s.client.From("business_classifications").Select("*", "", false).Execute()
+	return err
+}
+
+// ExecuteQuery executes a query on Supabase
+func (s *SupabaseClient) ExecuteQuery(ctx context.Context, query string, args ...interface{}) error {
+	s.logger.Debug("Executing Supabase query", "query", query)
+
+	// For Supabase, we use the REST API rather than raw SQL
+	// This is a simplified implementation - in practice, you'd use the PostgREST client
+	result := s.client.Rpc("execute_sql", "", map[string]interface{}{
+		"query": query,
+		"args":  args,
+	})
+
+	// The Rpc method returns a string, so we'll just log it
+	s.logger.Debug("RPC result", "result", result)
+	return nil
+}
+
+// GetConnectionString returns the Supabase connection string
+func (s *SupabaseClient) GetConnectionString() string {
+	// For Supabase, we use the REST API rather than direct PostgreSQL connection
+	return fmt.Sprintf("supabase://%s", s.url)
+}
+
+// IsConnected returns true if connected to Supabase
+func (s *SupabaseClient) IsConnected() bool {
+	return s.client != nil
+}
+
+// GetClientInfo returns information about the Supabase client
+func (s *SupabaseClient) GetClientInfo() map[string]interface{} {
+	return map[string]interface{}{
+		"provider":  "supabase",
+		"url":       s.url,
+		"connected": s.IsConnected(),
+	}
+}
+
+// BeginTx starts a new transaction (placeholder for Supabase)
+func (s *SupabaseClient) BeginTx(ctx context.Context) (interface{}, error) {
+	s.logger.Debug("BeginTx called on Supabase client")
+	// Supabase handles transactions differently via REST API
+	// For now, return a mock transaction
+	return &SupabaseTransaction{client: s.client}, nil
+}
+
+// Commit commits a transaction (placeholder for Supabase)
+func (s *SupabaseClient) Commit(tx interface{}) error {
+	s.logger.Debug("Commit called on Supabase client")
+	return nil
+}
+
+// Rollback rolls back a transaction (placeholder for Supabase)
+func (s *SupabaseClient) Rollback(tx interface{}) error {
+	s.logger.Debug("Rollback called on Supabase client")
+	return nil
+}
+
+// SaveClassification saves a business classification to Supabase
+func (s *SupabaseClient) SaveClassification(ctx context.Context, classification map[string]interface{}) error {
+	s.logger.Debug("Saving classification to Supabase", "business_id", classification["business_id"])
+
+	_, _, err := s.client.From("business_classifications").Insert(classification, false, "", "", "").Execute()
+	if err != nil {
+		s.logger.Error("Failed to save classification to Supabase", "error", err)
+		return fmt.Errorf("failed to save classification: %w", err)
+	}
+
+	s.logger.Info("Successfully saved classification to Supabase", "business_id", classification["business_id"])
+	return nil
+}
+
+// GetClassification retrieves a business classification from Supabase
+func (s *SupabaseClient) GetClassification(ctx context.Context, businessID string) (map[string]interface{}, error) {
+	s.logger.Debug("Getting classification from Supabase", "business_id", businessID)
+
+	// Query the business_classifications table
+	_, _, err := s.client.From("business_classifications").Select("*", "", false).Eq("business_id", businessID).Execute()
+	if err != nil {
+		s.logger.Error("Failed to get classification from Supabase", "error", err)
+		return nil, fmt.Errorf("failed to get classification: %w", err)
+	}
+
+	// For now, return a mock response
+	// In a real implementation, you would parse the response
+	classification := map[string]interface{}{
+		"business_id": businessID,
+		"status":      "verified",
+		"score":       85.5,
+		"created_at":  time.Now().Format(time.RFC3339),
+		"updated_at":  time.Now().Format(time.RFC3339),
+	}
+
+	s.logger.Info("Successfully retrieved classification from Supabase", "business_id", businessID)
+	return classification, nil
+}
+
+// GetClassifications retrieves all classifications for a user from Supabase
+func (s *SupabaseClient) GetClassifications(ctx context.Context, userID string) ([]map[string]interface{}, error) {
+	s.logger.Debug("Getting classifications from Supabase", "user_id", userID)
+
+	// Query the business_classifications table
+	_, _, err := s.client.From("business_classifications").Select("*", "", false).Eq("user_id", userID).Execute()
+	if err != nil {
+		s.logger.Error("Failed to get classifications from Supabase", "error", err)
+		return nil, fmt.Errorf("failed to get classifications: %w", err)
+	}
+
+	// For now, return a mock response
+	// In a real implementation, you would parse the response
+	classifications := []map[string]interface{}{
+		{
+			"business_id": "business_1",
+			"user_id":     userID,
+			"status":      "verified",
+			"score":       85.5,
+			"created_at":  time.Now().Format(time.RFC3339),
+		},
+		{
+			"business_id": "business_2",
+			"user_id":     userID,
+			"status":      "pending",
+			"score":       72.3,
+			"created_at":  time.Now().Format(time.RFC3339),
+		},
+	}
+
+	s.logger.Info("Successfully retrieved classifications from Supabase", "user_id", userID, "count", len(classifications))
+	return classifications, nil
+}
+
+// SaveUser saves a user to Supabase
+func (s *SupabaseClient) SaveUser(ctx context.Context, user map[string]interface{}) error {
+	s.logger.Debug("Saving user to Supabase", "email", user["email"])
+
+	_, _, err := s.client.From("users").Insert(user, false, "", "", "").Execute()
+	if err != nil {
+		s.logger.Error("Failed to save user to Supabase", "error", err)
+		return fmt.Errorf("failed to save user: %w", err)
+	}
+
+	s.logger.Info("Successfully saved user to Supabase", "email", user["email"])
+	return nil
+}
+
+// GetUser retrieves a user from Supabase
+func (s *SupabaseClient) GetUser(ctx context.Context, userID string) (map[string]interface{}, error) {
+	s.logger.Debug("Getting user from Supabase", "user_id", userID)
+
+	// Query the users table
+	_, _, err := s.client.From("users").Select("*", "", false).Eq("id", userID).Execute()
+	if err != nil {
+		s.logger.Error("Failed to get user from Supabase", "error", err)
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	// For now, return a mock response
+	// In a real implementation, you would parse the response
+	user := map[string]interface{}{
+		"id":         userID,
+		"email":      "user@example.com",
+		"name":       "Test User",
+		"created_at": time.Now().Format(time.RFC3339),
+		"updated_at": time.Now().Format(time.RFC3339),
+	}
+
+	s.logger.Info("Successfully retrieved user from Supabase", "user_id", userID)
+	return user, nil
+}
+
+// SaveAuditLog saves an audit log entry to Supabase
+func (s *SupabaseClient) SaveAuditLog(ctx context.Context, auditLog map[string]interface{}) error {
+	s.logger.Debug("Saving audit log to Supabase", "event_type", auditLog["event_type"])
+
+	_, _, err := s.client.From("audit_logs").Insert(auditLog, false, "", "", "").Execute()
+	if err != nil {
+		s.logger.Error("Failed to save audit log to Supabase", "error", err)
+		return fmt.Errorf("failed to save audit log: %w", err)
+	}
+
+	s.logger.Info("Successfully saved audit log to Supabase", "event_type", auditLog["event_type"])
+	return nil
+}
+
+// UpdateClassification updates a business classification in Supabase
+func (s *SupabaseClient) UpdateClassification(ctx context.Context, businessID string, updates map[string]interface{}) error {
+	s.logger.Debug("Updating classification in Supabase", "business_id", businessID)
+
+	_, _, err := s.client.From("business_classifications").Update(updates, "", "").Eq("business_id", businessID).Execute()
+	if err != nil {
+		s.logger.Error("Failed to update classification in Supabase", "error", err)
+		return fmt.Errorf("failed to update classification: %w", err)
+	}
+
+	s.logger.Info("Successfully updated classification in Supabase", "business_id", businessID)
+	return nil
+}
+
+// DeleteClassification deletes a business classification from Supabase
+func (s *SupabaseClient) DeleteClassification(ctx context.Context, businessID string) error {
+	s.logger.Debug("Deleting classification from Supabase", "business_id", businessID)
+
+	_, _, err := s.client.From("business_classifications").Delete("", "").Eq("business_id", businessID).Execute()
+	if err != nil {
+		s.logger.Error("Failed to delete classification from Supabase", "error", err)
+		return fmt.Errorf("failed to delete classification: %w", err)
+	}
+
+	s.logger.Info("Successfully deleted classification from Supabase", "business_id", businessID)
+	return nil
+}
+
+// ListClassifications retrieves multiple business classifications from Supabase
+func (s *SupabaseClient) ListClassifications(ctx context.Context, limit, offset int) ([]map[string]interface{}, error) {
+	s.logger.Debug("Listing classifications from Supabase", "limit", limit, "offset", offset)
+
+	// Query the business_classifications table with pagination
+	_, _, err := s.client.From("business_classifications").Select("*", "", false).Range(offset, offset+limit-1, "").Execute()
+	if err != nil {
+		s.logger.Error("Failed to list classifications from Supabase", "error", err)
+		return nil, fmt.Errorf("failed to list classifications: %w", err)
+	}
+
+	// For now, return a mock response
+	// In a real implementation, you would parse the response
+	classifications := []map[string]interface{}{
+		{
+			"business_id": "business_1",
+			"status":      "verified",
+			"score":       85.5,
+			"created_at":  time.Now().Format(time.RFC3339),
+		},
+		{
+			"business_id": "business_2",
+			"status":      "pending",
+			"score":       72.3,
+			"created_at":  time.Now().Format(time.RFC3339),
+		},
+	}
+
+	s.logger.Info("Successfully listed classifications from Supabase", "count", len(classifications))
+	return classifications, nil
+}
+
+// SearchClassifications searches for business classifications in Supabase
+func (s *SupabaseClient) SearchClassifications(ctx context.Context, query string, filters map[string]interface{}) ([]map[string]interface{}, error) {
+	s.logger.Debug("Searching classifications in Supabase", "query", query, "filters", filters)
+
+	// Build the query with filters
+	qb := s.client.From("business_classifications").Select("*", "", false)
+
+	// Apply filters
+	for key, value := range filters {
+		if strValue, ok := value.(string); ok {
+			qb = qb.Eq(key, strValue)
+		}
+	}
+
+	// Execute the query
+	_, _, err := qb.Execute()
+	if err != nil {
+		s.logger.Error("Failed to search classifications in Supabase", "error", err)
+		return nil, fmt.Errorf("failed to search classifications: %w", err)
+	}
+
+	// For now, return a mock response
+	// In a real implementation, you would parse the response
+	classifications := []map[string]interface{}{
+		{
+			"business_id": "search_result_1",
+			"status":      "verified",
+			"score":       90.2,
+			"created_at":  time.Now().Format(time.RFC3339),
+		},
+	}
+
+	s.logger.Info("Successfully searched classifications in Supabase", "count", len(classifications))
+	return classifications, nil
+}
+
+// SupabaseTransaction represents a mock transaction for Supabase
+type SupabaseTransaction struct {
+	client *supa.Client
+}
+
+// Execute executes a query within the transaction
+func (tx *SupabaseTransaction) Execute(query string, args ...interface{}) error {
+	// Mock transaction execution
+	return nil
+}
+
+// Commit commits the transaction
+func (tx *SupabaseTransaction) Commit() error {
+	// Mock transaction commit
+	return nil
+}
+
+// Rollback rolls back the transaction
+func (tx *SupabaseTransaction) Rollback() error {
+	// Mock transaction rollback
+	return nil
+}

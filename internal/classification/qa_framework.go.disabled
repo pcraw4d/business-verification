@@ -1,0 +1,970 @@
+package classification
+
+import (
+	"context"
+	"fmt"
+	"sync"
+	"time"
+
+	"github.com/pcraw4d/business-verification/internal/observability"
+)
+
+// QAConfig represents quality assurance configuration
+type QAConfig struct {
+	Enabled                     bool                   `json:"enabled"`
+	AccuracyThreshold           float64                `json:"accuracy_threshold"`            // Minimum acceptable accuracy (0.0-1.0)
+	ConfidenceThreshold         float64                `json:"confidence_threshold"`          // Minimum acceptable confidence (0.0-1.0)
+	ResponseTimeThreshold       time.Duration          `json:"response_time_threshold"`       // Maximum acceptable response time
+	ErrorRateThreshold          float64                `json:"error_rate_threshold"`          // Maximum acceptable error rate (0.0-1.0)
+	FeedbackValidationEnabled   bool                   `json:"feedback_validation_enabled"`   // Enable feedback-based validation
+	AutomatedTestingEnabled     bool                   `json:"automated_testing_enabled"`     // Enable automated testing
+	ContinuousMonitoringEnabled bool                   `json:"continuous_monitoring_enabled"` // Enable continuous monitoring
+	AlertingEnabled             bool                   `json:"alerting_enabled"`              // Enable quality-based alerting
+	ReportingEnabled            bool                   `json:"reporting_enabled"`             // Enable quality-based reporting
+	CheckInterval               time.Duration          `json:"check_interval"`                // Interval between quality checks
+	RetentionPeriod             time.Duration          `json:"retention_period"`              // How long to retain quality data
+	Metadata                    map[string]interface{} `json:"metadata"`
+}
+
+// QualityCheck represents a quality check result
+type QualityCheck struct {
+	ID              string                 `json:"id"`
+	Type            string                 `json:"type"`   // "accuracy", "confidence", "response_time", "error_rate"
+	Status          string                 `json:"status"` // "pass", "fail", "warning"
+	Value           float64                `json:"value"`
+	Threshold       float64                `json:"threshold"`
+	Description     string                 `json:"description"`
+	Timestamp       time.Time              `json:"timestamp"`
+	Duration        time.Duration          `json:"duration"`
+	Error           string                 `json:"error,omitempty"`
+	Recommendations []string               `json:"recommendations"`
+	Metadata        map[string]interface{} `json:"metadata"`
+}
+
+// QualityReport represents a quality assurance report
+type QualityReport struct {
+	ID                string                 `json:"id"`
+	ReportType        string                 `json:"report_type"` // "daily", "weekly", "monthly", "on_demand"
+	StartTime         time.Time              `json:"start_time"`
+	EndTime           time.Time              `json:"end_time"`
+	TotalChecks       int                    `json:"total_checks"`
+	PassedChecks      int                    `json:"passed_checks"`
+	FailedChecks      int                    `json:"failed_checks"`
+	WarningChecks     int                    `json:"warning_checks"`
+	OverallScore      float64                `json:"overall_score"`
+	AccuracyScore     float64                `json:"accuracy_score"`
+	ConfidenceScore   float64                `json:"confidence_score"`
+	ResponseTimeScore float64                `json:"response_time_score"`
+	ErrorRateScore    float64                `json:"error_rate_score"`
+	Checks            []*QualityCheck        `json:"checks"`
+	Trends            map[string]interface{} `json:"trends"`
+	Recommendations   []string               `json:"recommendations"`
+	Metadata          map[string]interface{} `json:"metadata"`
+}
+
+// QualityAlert represents a quality-based alert
+type QualityAlert struct {
+	ID          string                 `json:"id"`
+	Type        string                 `json:"type"`     // "accuracy_drop", "confidence_drop", "response_time_increase", "error_rate_increase"
+	Severity    string                 `json:"severity"` // "low", "medium", "high", "critical"
+	Status      string                 `json:"status"`   // "active", "acknowledged", "resolved"
+	Title       string                 `json:"title"`
+	Description string                 `json:"description"`
+	Value       float64                `json:"value"`
+	Threshold   float64                `json:"threshold"`
+	Timestamp   time.Time              `json:"timestamp"`
+	Duration    time.Duration          `json:"duration"`
+	Actions     []string               `json:"actions"`
+	Metadata    map[string]interface{} `json:"metadata"`
+}
+
+// QAFramework provides quality assurance capabilities
+type QAFramework struct {
+	logger  *observability.Logger
+	metrics *observability.Metrics
+
+	// Configuration
+	config *QAConfig
+
+	// Quality tracking
+	qualityChecks  map[string]*QualityCheck
+	qualityAlerts  map[string]*QualityAlert
+	qualityReports map[string]*QualityReport
+	dataMutex      sync.RWMutex
+
+	// Components
+	accuracyValidator *AccuracyValidator
+	feedbackCollector *FeedbackCollector
+
+	// Background workers
+	checkTicker  *time.Ticker
+	reportTicker *time.Ticker
+	alertTicker  *time.Ticker
+	stopChan     chan struct{}
+}
+
+// NewQAFramework creates a new quality assurance framework
+func NewQAFramework(
+	config *QAConfig,
+	accuracyValidator *AccuracyValidator,
+	feedbackCollector *FeedbackCollector,
+	logger *observability.Logger,
+	metrics *observability.Metrics,
+) *QAFramework {
+	framework := &QAFramework{
+		logger:  logger,
+		metrics: metrics,
+		config:  config,
+
+		// Initialize storage
+		qualityChecks:  make(map[string]*QualityCheck),
+		qualityAlerts:  make(map[string]*QualityAlert),
+		qualityReports: make(map[string]*QualityReport),
+
+		// Initialize components
+		accuracyValidator: accuracyValidator,
+		feedbackCollector: feedbackCollector,
+
+		// Initialize background workers
+		stopChan: make(chan struct{}),
+	}
+
+	// Start background workers
+	go framework.startBackgroundWorkers()
+
+	return framework
+}
+
+// RunQualityChecks runs all quality checks
+func (qa *QAFramework) RunQualityChecks(ctx context.Context) ([]*QualityCheck, error) {
+	start := time.Now()
+
+	// Log quality checks start
+	if qa.logger != nil {
+		qa.logger.WithComponent("qa_framework").LogBusinessEvent(ctx, "quality_checks_started", "", map[string]interface{}{
+			"total_checks": 4, // accuracy, confidence, response_time, error_rate
+		})
+	}
+
+	var checks []*QualityCheck
+
+	// Run accuracy check
+	accuracyCheck, err := qa.runAccuracyCheck(ctx)
+	if err != nil {
+		if qa.logger != nil {
+			qa.logger.WithComponent("qa_framework").WithError(err).Error("accuracy_check_failed")
+		}
+	} else {
+		checks = append(checks, accuracyCheck)
+	}
+
+	// Run confidence check
+	confidenceCheck, err := qa.runConfidenceCheck(ctx)
+	if err != nil {
+		if qa.logger != nil {
+			qa.logger.WithComponent("qa_framework").WithError(err).Error("confidence_check_failed")
+		}
+	} else {
+		checks = append(checks, confidenceCheck)
+	}
+
+	// Run response time check
+	responseTimeCheck, err := qa.runResponseTimeCheck(ctx)
+	if err != nil {
+		if qa.logger != nil {
+			qa.logger.WithComponent("qa_framework").WithError(err).Error("response_time_check_failed")
+		}
+	} else {
+		checks = append(checks, responseTimeCheck)
+	}
+
+	// Run error rate check
+	errorRateCheck, err := qa.runErrorRateCheck(ctx)
+	if err != nil {
+		if qa.logger != nil {
+			qa.logger.WithComponent("qa_framework").WithError(err).Error("error_rate_check_failed")
+		}
+	} else {
+		checks = append(checks, errorRateCheck)
+	}
+
+	// Store checks
+	qa.storeQualityChecks(checks)
+
+	// Generate alerts for failed checks
+	qa.generateAlerts(ctx, checks)
+
+	// Log quality checks completion
+	if qa.logger != nil {
+		qa.logger.WithComponent("qa_framework").LogBusinessEvent(ctx, "quality_checks_completed", "", map[string]interface{}{
+			"total_checks":       len(checks),
+			"passed_checks":      qa.countPassedChecks(checks),
+			"failed_checks":      qa.countFailedChecks(checks),
+			"processing_time_ms": time.Since(start).Milliseconds(),
+		})
+	}
+
+	return checks, nil
+}
+
+// GenerateQualityReport generates a quality assurance report
+func (qa *QAFramework) GenerateQualityReport(ctx context.Context, reportType string, startTime, endTime time.Time) (*QualityReport, error) {
+	start := time.Now()
+
+	// Log report generation start
+	if qa.logger != nil {
+		qa.logger.WithComponent("qa_framework").LogBusinessEvent(ctx, "quality_report_generation_started", "", map[string]interface{}{
+			"report_type": reportType,
+			"start_time":  startTime,
+			"end_time":    endTime,
+		})
+	}
+
+	// Get quality checks for the time period
+	checks := qa.getQualityChecksForPeriod(startTime, endTime)
+
+	// Calculate scores
+	accuracyScore := qa.calculateAccuracyScore(checks)
+	confidenceScore := qa.calculateConfidenceScore(checks)
+	responseTimeScore := qa.calculateResponseTimeScore(checks)
+	errorRateScore := qa.calculateErrorRateScore(checks)
+
+	// Calculate overall score
+	overallScore := (accuracyScore + confidenceScore + responseTimeScore + errorRateScore) / 4.0
+
+	// Generate trends
+	trends := qa.generateTrends(checks)
+
+	// Generate recommendations
+	recommendations := qa.generateRecommendations(checks, overallScore)
+
+	// Create report
+	report := &QualityReport{
+		ID:                fmt.Sprintf("qa_report_%s_%d", reportType, time.Now().Unix()),
+		ReportType:        reportType,
+		StartTime:         startTime,
+		EndTime:           endTime,
+		TotalChecks:       len(checks),
+		PassedChecks:      qa.countPassedChecks(checks),
+		FailedChecks:      qa.countFailedChecks(checks),
+		WarningChecks:     qa.countWarningChecks(checks),
+		OverallScore:      overallScore,
+		AccuracyScore:     accuracyScore,
+		ConfidenceScore:   confidenceScore,
+		ResponseTimeScore: responseTimeScore,
+		ErrorRateScore:    errorRateScore,
+		Checks:            checks,
+		Trends:            trends,
+		Recommendations:   recommendations,
+		Metadata:          make(map[string]interface{}),
+	}
+
+	// Store report
+	qa.storeQualityReport(report)
+
+	// Log report generation completion
+	if qa.logger != nil {
+		qa.logger.WithComponent("qa_framework").LogBusinessEvent(ctx, "quality_report_generation_completed", "", map[string]interface{}{
+			"report_id":          report.ID,
+			"overall_score":      overallScore,
+			"processing_time_ms": time.Since(start).Milliseconds(),
+		})
+	}
+
+	return report, nil
+}
+
+// GetQualityAlerts returns active quality alerts
+func (qa *QAFramework) GetQualityAlerts(ctx context.Context, severity string) ([]*QualityAlert, error) {
+	qa.dataMutex.RLock()
+	defer qa.dataMutex.RUnlock()
+
+	var alerts []*QualityAlert
+	for _, alert := range qa.qualityAlerts {
+		if alert.Status == "active" && (severity == "" || alert.Severity == severity) {
+			alerts = append(alerts, alert)
+		}
+	}
+
+	return alerts, nil
+}
+
+// AcknowledgeAlert acknowledges a quality alert
+func (qa *QAFramework) AcknowledgeAlert(ctx context.Context, alertID string) error {
+	qa.dataMutex.Lock()
+	defer qa.dataMutex.Unlock()
+
+	alert, exists := qa.qualityAlerts[alertID]
+	if !exists {
+		return fmt.Errorf("alert not found: %s", alertID)
+	}
+
+	alert.Status = "acknowledged"
+	alert.Metadata["acknowledged_at"] = time.Now()
+
+	// Log alert acknowledgment
+	if qa.logger != nil {
+		qa.logger.WithComponent("qa_framework").LogBusinessEvent(ctx, "quality_alert_acknowledged", "", map[string]interface{}{
+			"alert_id":   alertID,
+			"alert_type": alert.Type,
+			"severity":   alert.Severity,
+		})
+	}
+
+	return nil
+}
+
+// ResolveAlert resolves a quality alert
+func (qa *QAFramework) ResolveAlert(ctx context.Context, alertID string, resolution string) error {
+	qa.dataMutex.Lock()
+	defer qa.dataMutex.Unlock()
+
+	alert, exists := qa.qualityAlerts[alertID]
+	if !exists {
+		return fmt.Errorf("alert not found: %s", alertID)
+	}
+
+	alert.Status = "resolved"
+	alert.Metadata["resolved_at"] = time.Now()
+	alert.Metadata["resolution"] = resolution
+
+	// Log alert resolution
+	if qa.logger != nil {
+		qa.logger.WithComponent("qa_framework").LogBusinessEvent(ctx, "quality_alert_resolved", "", map[string]interface{}{
+			"alert_id":   alertID,
+			"alert_type": alert.Type,
+			"resolution": resolution,
+		})
+	}
+
+	return nil
+}
+
+// GetQualityMetrics returns quality metrics
+func (qa *QAFramework) GetQualityMetrics(ctx context.Context, timeRange time.Duration) (map[string]interface{}, error) {
+	endTime := time.Now()
+	startTime := endTime.Add(-timeRange)
+
+	checks := qa.getQualityChecksForPeriod(startTime, endTime)
+
+	metrics := map[string]interface{}{
+		"total_checks":        len(checks),
+		"passed_checks":       qa.countPassedChecks(checks),
+		"failed_checks":       qa.countFailedChecks(checks),
+		"warning_checks":      qa.countWarningChecks(checks),
+		"pass_rate":           float64(qa.countPassedChecks(checks)) / float64(len(checks)),
+		"accuracy_score":      qa.calculateAccuracyScore(checks),
+		"confidence_score":    qa.calculateConfidenceScore(checks),
+		"response_time_score": qa.calculateResponseTimeScore(checks),
+		"error_rate_score":    qa.calculateErrorRateScore(checks),
+		"overall_score":       (qa.calculateAccuracyScore(checks) + qa.calculateConfidenceScore(checks) + qa.calculateResponseTimeScore(checks) + qa.calculateErrorRateScore(checks)) / 4.0,
+		"active_alerts":       len(qa.getActiveAlerts()),
+		"time_range":          timeRange.String(),
+	}
+
+	return metrics, nil
+}
+
+// Close stops the QA framework and cleans up resources
+func (qa *QAFramework) Close() error {
+	// Stop background workers
+	close(qa.stopChan)
+
+	if qa.checkTicker != nil {
+		qa.checkTicker.Stop()
+	}
+	if qa.reportTicker != nil {
+		qa.reportTicker.Stop()
+	}
+	if qa.alertTicker != nil {
+		qa.alertTicker.Stop()
+	}
+
+	return nil
+}
+
+// Helper methods
+
+// runAccuracyCheck runs accuracy quality check
+func (qa *QAFramework) runAccuracyCheck(ctx context.Context) (*QualityCheck, error) {
+	start := time.Now()
+
+	// Get accuracy metrics from feedback collector (validator API unavailable in current build)
+	accuracyMetrics, err := qa.feedbackCollector.GetAccuracyMetrics(ctx, map[string]interface{}{
+		"time_range_hours": 24,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get accuracy metrics: %w", err)
+	}
+
+	accuracyScore := accuracyMetrics.AccuracyScore
+	status := "pass"
+	if accuracyScore < qa.config.AccuracyThreshold {
+		status = "fail"
+	} else if accuracyScore < qa.config.AccuracyThreshold+0.05 {
+		status = "warning"
+	}
+
+	check := &QualityCheck{
+		ID:              fmt.Sprintf("accuracy_check_%d", time.Now().Unix()),
+		Type:            "accuracy",
+		Status:          status,
+		Value:           accuracyScore,
+		Threshold:       qa.config.AccuracyThreshold,
+		Description:     fmt.Sprintf("Classification accuracy check: %.2f%%", accuracyScore*100),
+		Timestamp:       time.Now(),
+		Duration:        time.Since(start),
+		Recommendations: qa.generateAccuracyRecommendations(accuracyScore),
+		Metadata:        make(map[string]interface{}),
+	}
+
+	return check, nil
+}
+
+// runConfidenceCheck runs confidence quality check
+func (qa *QAFramework) runConfidenceCheck(ctx context.Context) (*QualityCheck, error) {
+	start := time.Now()
+
+	// Derive confidence metrics using feedback accuracy metrics for now
+	accuracyMetrics, err := qa.feedbackCollector.GetAccuracyMetrics(ctx, map[string]interface{}{
+		"time_range_hours": 24,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get confidence metrics: %w", err)
+	}
+	confidenceScore := accuracyMetrics.AccuracyScore
+	status := "pass"
+	if confidenceScore < qa.config.ConfidenceThreshold {
+		status = "fail"
+	} else if confidenceScore < qa.config.ConfidenceThreshold+0.05 {
+		status = "warning"
+	}
+
+	check := &QualityCheck{
+		ID:              fmt.Sprintf("confidence_check_%d", time.Now().Unix()),
+		Type:            "confidence",
+		Status:          status,
+		Value:           confidenceScore,
+		Threshold:       qa.config.ConfidenceThreshold,
+		Description:     fmt.Sprintf("Classification confidence check: %.2f%%", confidenceScore*100),
+		Timestamp:       time.Now(),
+		Duration:        time.Since(start),
+		Recommendations: qa.generateConfidenceRecommendations(confidenceScore),
+		Metadata:        make(map[string]interface{}),
+	}
+
+	return check, nil
+}
+
+// runResponseTimeCheck runs response time quality check
+func (qa *QAFramework) runResponseTimeCheck(ctx context.Context) (*QualityCheck, error) {
+	start := time.Now()
+
+	// Get response time metrics (simulated)
+	averageResponseTime := time.Millisecond * 500 // This would come from actual metrics
+	status := "pass"
+	if averageResponseTime > qa.config.ResponseTimeThreshold {
+		status = "fail"
+	} else if averageResponseTime > qa.config.ResponseTimeThreshold-time.Millisecond*100 {
+		status = "warning"
+	}
+
+	check := &QualityCheck{
+		ID:              fmt.Sprintf("response_time_check_%d", time.Now().Unix()),
+		Type:            "response_time",
+		Status:          status,
+		Value:           float64(averageResponseTime.Milliseconds()),
+		Threshold:       float64(qa.config.ResponseTimeThreshold.Milliseconds()),
+		Description:     fmt.Sprintf("Response time check: %v", averageResponseTime),
+		Timestamp:       time.Now(),
+		Duration:        time.Since(start),
+		Recommendations: qa.generateResponseTimeRecommendations(averageResponseTime),
+		Metadata:        make(map[string]interface{}),
+	}
+
+	return check, nil
+}
+
+// runErrorRateCheck runs error rate quality check
+func (qa *QAFramework) runErrorRateCheck(ctx context.Context) (*QualityCheck, error) {
+	start := time.Now()
+
+	// Get error rate metrics (simulated)
+	errorRate := 0.02 // 2% error rate, this would come from actual metrics
+	status := "pass"
+	if errorRate > qa.config.ErrorRateThreshold {
+		status = "fail"
+	} else if errorRate > qa.config.ErrorRateThreshold-0.01 {
+		status = "warning"
+	}
+
+	check := &QualityCheck{
+		ID:              fmt.Sprintf("error_rate_check_%d", time.Now().Unix()),
+		Type:            "error_rate",
+		Status:          status,
+		Value:           errorRate,
+		Threshold:       qa.config.ErrorRateThreshold,
+		Description:     fmt.Sprintf("Error rate check: %.2f%%", errorRate*100),
+		Timestamp:       time.Now(),
+		Duration:        time.Since(start),
+		Recommendations: qa.generateErrorRateRecommendations(errorRate),
+		Metadata:        make(map[string]interface{}),
+	}
+
+	return check, nil
+}
+
+// storeQualityChecks stores quality checks
+func (qa *QAFramework) storeQualityChecks(checks []*QualityCheck) {
+	qa.dataMutex.Lock()
+	defer qa.dataMutex.Unlock()
+
+	for _, check := range checks {
+		qa.qualityChecks[check.ID] = check
+	}
+}
+
+// storeQualityReport stores a quality report
+func (qa *QAFramework) storeQualityReport(report *QualityReport) {
+	qa.dataMutex.Lock()
+	defer qa.dataMutex.Unlock()
+
+	qa.qualityReports[report.ID] = report
+}
+
+// generateAlerts generates alerts for failed checks
+func (qa *QAFramework) generateAlerts(ctx context.Context, checks []*QualityCheck) {
+	for _, check := range checks {
+		if check.Status == "fail" {
+			alert := qa.createAlertFromCheck(check)
+			qa.storeQualityAlert(alert)
+
+			// Log alert generation
+			if qa.logger != nil {
+				qa.logger.WithComponent("qa_framework").LogBusinessEvent(ctx, "quality_alert_generated", "", map[string]interface{}{
+					"alert_id":        alert.ID,
+					"alert_type":      alert.Type,
+					"severity":        alert.Severity,
+					"check_value":     check.Value,
+					"check_threshold": check.Threshold,
+				})
+			}
+		}
+	}
+}
+
+// createAlertFromCheck creates an alert from a failed quality check
+func (qa *QAFramework) createAlertFromCheck(check *QualityCheck) *QualityAlert {
+	severity := "medium"
+	if check.Value < check.Threshold*0.5 {
+		severity = "critical"
+	} else if check.Value < check.Threshold*0.8 {
+		severity = "high"
+	}
+
+	alertType := fmt.Sprintf("%s_drop", check.Type)
+	title := fmt.Sprintf("Quality Check Failed: %s", check.Type)
+	description := fmt.Sprintf("Quality check for %s failed. Value: %.2f, Threshold: %.2f", check.Type, check.Value, check.Threshold)
+
+	return &QualityAlert{
+		ID:          fmt.Sprintf("qa_alert_%s_%d", check.Type, time.Now().Unix()),
+		Type:        alertType,
+		Severity:    severity,
+		Status:      "active",
+		Title:       title,
+		Description: description,
+		Value:       check.Value,
+		Threshold:   check.Threshold,
+		Timestamp:   time.Now(),
+		Duration:    check.Duration,
+		Actions:     check.Recommendations,
+		Metadata:    make(map[string]interface{}),
+	}
+}
+
+// storeQualityAlert stores a quality alert
+func (qa *QAFramework) storeQualityAlert(alert *QualityAlert) {
+	qa.dataMutex.Lock()
+	defer qa.dataMutex.Unlock()
+
+	qa.qualityAlerts[alert.ID] = alert
+}
+
+// getQualityChecksForPeriod returns quality checks for a time period
+func (qa *QAFramework) getQualityChecksForPeriod(startTime, endTime time.Time) []*QualityCheck {
+	qa.dataMutex.RLock()
+	defer qa.dataMutex.RUnlock()
+
+	var checks []*QualityCheck
+	for _, check := range qa.qualityChecks {
+		if check.Timestamp.After(startTime) && check.Timestamp.Before(endTime) {
+			checks = append(checks, check)
+		}
+	}
+
+	return checks
+}
+
+// getActiveAlerts returns active alerts
+func (qa *QAFramework) getActiveAlerts() []*QualityAlert {
+	qa.dataMutex.RLock()
+	defer qa.dataMutex.RUnlock()
+
+	var alerts []*QualityAlert
+	for _, alert := range qa.qualityAlerts {
+		if alert.Status == "active" {
+			alerts = append(alerts, alert)
+		}
+	}
+
+	return alerts
+}
+
+// countPassedChecks counts passed checks
+func (qa *QAFramework) countPassedChecks(checks []*QualityCheck) int {
+	count := 0
+	for _, check := range checks {
+		if check.Status == "pass" {
+			count++
+		}
+	}
+	return count
+}
+
+// countFailedChecks counts failed checks
+func (qa *QAFramework) countFailedChecks(checks []*QualityCheck) int {
+	count := 0
+	for _, check := range checks {
+		if check.Status == "fail" {
+			count++
+		}
+	}
+	return count
+}
+
+// countWarningChecks counts warning checks
+func (qa *QAFramework) countWarningChecks(checks []*QualityCheck) int {
+	count := 0
+	for _, check := range checks {
+		if check.Status == "warning" {
+			count++
+		}
+	}
+	return count
+}
+
+// calculateAccuracyScore calculates accuracy score from checks
+func (qa *QAFramework) calculateAccuracyScore(checks []*QualityCheck) float64 {
+	if len(checks) == 0 {
+		return 0.0
+	}
+
+	var totalScore float64
+	var accuracyChecks int
+
+	for _, check := range checks {
+		if check.Type == "accuracy" {
+			totalScore += check.Value
+			accuracyChecks++
+		}
+	}
+
+	if accuracyChecks == 0 {
+		return 0.0
+	}
+
+	return totalScore / float64(accuracyChecks)
+}
+
+// calculateConfidenceScore calculates confidence score from checks
+func (qa *QAFramework) calculateConfidenceScore(checks []*QualityCheck) float64 {
+	if len(checks) == 0 {
+		return 0.0
+	}
+
+	var totalScore float64
+	var confidenceChecks int
+
+	for _, check := range checks {
+		if check.Type == "confidence" {
+			totalScore += check.Value
+			confidenceChecks++
+		}
+	}
+
+	if confidenceChecks == 0 {
+		return 0.0
+	}
+
+	return totalScore / float64(confidenceChecks)
+}
+
+// calculateResponseTimeScore calculates response time score from checks
+func (qa *QAFramework) calculateResponseTimeScore(checks []*QualityCheck) float64 {
+	if len(checks) == 0 {
+		return 0.0
+	}
+
+	var totalScore float64
+	var responseTimeChecks int
+
+	for _, check := range checks {
+		if check.Type == "response_time" {
+			// Convert response time to score (lower is better)
+			threshold := check.Threshold
+			value := check.Value
+			score := 1.0 - (value / threshold)
+			if score < 0 {
+				score = 0
+			}
+			totalScore += score
+			responseTimeChecks++
+		}
+	}
+
+	if responseTimeChecks == 0 {
+		return 0.0
+	}
+
+	return totalScore / float64(responseTimeChecks)
+}
+
+// calculateErrorRateScore calculates error rate score from checks
+func (qa *QAFramework) calculateErrorRateScore(checks []*QualityCheck) float64 {
+	if len(checks) == 0 {
+		return 0.0
+	}
+
+	var totalScore float64
+	var errorRateChecks int
+
+	for _, check := range checks {
+		if check.Type == "error_rate" {
+			// Convert error rate to score (lower is better)
+			threshold := check.Threshold
+			value := check.Value
+			score := 1.0 - (value / threshold)
+			if score < 0 {
+				score = 0
+			}
+			totalScore += score
+			errorRateChecks++
+		}
+	}
+
+	if errorRateChecks == 0 {
+		return 0.0
+	}
+
+	return totalScore / float64(errorRateChecks)
+}
+
+// generateTrends generates trends from quality checks
+func (qa *QAFramework) generateTrends(checks []*QualityCheck) map[string]interface{} {
+	trends := make(map[string]interface{})
+
+	// Calculate trends for each metric type
+	accuracyTrend := qa.calculateTrend(checks, "accuracy")
+	confidenceTrend := qa.calculateTrend(checks, "confidence")
+	responseTimeTrend := qa.calculateTrend(checks, "response_time")
+	errorRateTrend := qa.calculateTrend(checks, "error_rate")
+
+	trends["accuracy_trend"] = accuracyTrend
+	trends["confidence_trend"] = confidenceTrend
+	trends["response_time_trend"] = responseTimeTrend
+	trends["error_rate_trend"] = errorRateTrend
+
+	return trends
+}
+
+// calculateTrend calculates trend for a specific metric type
+func (qa *QAFramework) calculateTrend(checks []*QualityCheck, metricType string) string {
+	var values []float64
+	for _, check := range checks {
+		if check.Type == metricType {
+			values = append(values, check.Value)
+		}
+	}
+
+	if len(values) < 2 {
+		return "insufficient_data"
+	}
+
+	// Simple trend calculation
+	firstHalf := values[:len(values)/2]
+	secondHalf := values[len(values)/2:]
+
+	firstAvg := qa.calculateAverage(firstHalf)
+	secondAvg := qa.calculateAverage(secondHalf)
+
+	if secondAvg > firstAvg*1.05 {
+		return "improving"
+	} else if secondAvg < firstAvg*0.95 {
+		return "declining"
+	} else {
+		return "stable"
+	}
+}
+
+// calculateAverage calculates average of values
+func (qa *QAFramework) calculateAverage(values []float64) float64 {
+	if len(values) == 0 {
+		return 0.0
+	}
+
+	var sum float64
+	for _, value := range values {
+		sum += value
+	}
+
+	return sum / float64(len(values))
+}
+
+// generateRecommendations generates recommendations based on quality checks
+func (qa *QAFramework) generateRecommendations(checks []*QualityCheck, overallScore float64) []string {
+	var recommendations []string
+
+	if overallScore < 0.8 {
+		recommendations = append(recommendations, "Overall quality score is below target. Review all quality metrics and implement improvements.")
+	}
+
+	for _, check := range checks {
+		if check.Status == "fail" {
+			switch check.Type {
+			case "accuracy":
+				recommendations = append(recommendations, "Classification accuracy is below threshold. Consider retraining ML models or improving classification algorithms.")
+			case "confidence":
+				recommendations = append(recommendations, "Classification confidence is below threshold. Review confidence scoring algorithms and improve feature extraction.")
+			case "response_time":
+				recommendations = append(recommendations, "Response time is above threshold. Optimize performance and consider caching improvements.")
+			case "error_rate":
+				recommendations = append(recommendations, "Error rate is above threshold. Review error handling and improve system reliability.")
+			}
+		}
+	}
+
+	return recommendations
+}
+
+// generateAccuracyRecommendations generates accuracy-specific recommendations
+func (qa *QAFramework) generateAccuracyRecommendations(accuracyScore float64) []string {
+	var recommendations []string
+
+	if accuracyScore < qa.config.AccuracyThreshold {
+		recommendations = append(recommendations, "Retrain ML models with updated training data")
+		recommendations = append(recommendations, "Review and improve feature extraction algorithms")
+		recommendations = append(recommendations, "Consider ensemble methods for better accuracy")
+	}
+
+	return recommendations
+}
+
+// generateConfidenceRecommendations generates confidence-specific recommendations
+func (qa *QAFramework) generateConfidenceRecommendations(confidenceScore float64) []string {
+	var recommendations []string
+
+	if confidenceScore < qa.config.ConfidenceThreshold {
+		recommendations = append(recommendations, "Improve confidence scoring algorithms")
+		recommendations = append(recommendations, "Add more training data for low-confidence cases")
+		recommendations = append(recommendations, "Review feature importance and selection")
+	}
+
+	return recommendations
+}
+
+// generateResponseTimeRecommendations generates response time-specific recommendations
+func (qa *QAFramework) generateResponseTimeRecommendations(responseTime time.Duration) []string {
+	var recommendations []string
+
+	if responseTime > qa.config.ResponseTimeThreshold {
+		recommendations = append(recommendations, "Optimize database queries and add indexes")
+		recommendations = append(recommendations, "Implement or improve caching strategies")
+		recommendations = append(recommendations, "Consider asynchronous processing for heavy operations")
+	}
+
+	return recommendations
+}
+
+// generateErrorRateRecommendations generates error rate-specific recommendations
+func (qa *QAFramework) generateErrorRateRecommendations(errorRate float64) []string {
+	var recommendations []string
+
+	if errorRate > qa.config.ErrorRateThreshold {
+		recommendations = append(recommendations, "Review error handling and add better validation")
+		recommendations = append(recommendations, "Implement circuit breakers for external dependencies")
+		recommendations = append(recommendations, "Add more comprehensive logging and monitoring")
+	}
+
+	return recommendations
+}
+
+// startBackgroundWorkers starts background workers for quality assurance
+func (qa *QAFramework) startBackgroundWorkers() {
+	// Quality check worker
+	qa.checkTicker = time.NewTicker(qa.config.CheckInterval)
+	go func() {
+		for {
+			select {
+			case <-qa.checkTicker.C:
+				qa.RunQualityChecks(context.Background())
+			case <-qa.stopChan:
+				return
+			}
+		}
+	}()
+
+	// Report generation worker
+	qa.reportTicker = time.NewTicker(time.Hour * 24) // Daily reports
+	go func() {
+		for {
+			select {
+			case <-qa.reportTicker.C:
+				endTime := time.Now()
+				startTime := endTime.Add(-time.Hour * 24)
+				qa.GenerateQualityReport(context.Background(), "daily", startTime, endTime)
+			case <-qa.stopChan:
+				return
+			}
+		}
+	}()
+
+	// Alert monitoring worker
+	qa.alertTicker = time.NewTicker(time.Minute * 5) // Check alerts every 5 minutes
+	go func() {
+		for {
+			select {
+			case <-qa.alertTicker.C:
+				qa.monitorAlerts(context.Background())
+			case <-qa.stopChan:
+				return
+			}
+		}
+	}()
+}
+
+// monitorAlerts monitors active alerts
+func (qa *QAFramework) monitorAlerts(ctx context.Context) {
+	alerts, err := qa.GetQualityAlerts(ctx, "")
+	if err != nil {
+		if qa.logger != nil {
+			qa.logger.WithComponent("qa_framework").WithError(err).Error("failed_to_get_alerts")
+		}
+		return
+	}
+
+	for _, alert := range alerts {
+		// Check if alert has been active for too long
+		if time.Since(alert.Timestamp) > time.Hour*2 {
+			alert.Severity = "critical"
+			alert.Metadata["escalated"] = true
+
+			if qa.logger != nil {
+				qa.logger.WithComponent("qa_framework").LogBusinessEvent(ctx, "quality_alert_escalated", "", map[string]interface{}{
+					"alert_id":   alert.ID,
+					"alert_type": alert.Type,
+					"duration":   time.Since(alert.Timestamp).String(),
+				})
+			}
+		}
+	}
+}

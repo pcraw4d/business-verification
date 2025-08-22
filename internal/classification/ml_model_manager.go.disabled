@@ -1,0 +1,656 @@
+package classification
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"path/filepath"
+	"sync"
+	"time"
+
+	"github.com/pcraw4d/business-verification/internal/observability"
+)
+
+// ModelType represents the type of ML model
+type ModelType string
+
+const (
+	ModelTypeBERT        ModelType = "bert"
+	ModelTypeEnsemble    ModelType = "ensemble"
+	ModelTypeTransformer ModelType = "transformer"
+	ModelTypeCustom      ModelType = "custom"
+)
+
+// ModelStatus represents the current status of a model
+type ModelStatus string
+
+const (
+	ModelStatusLoading    ModelStatus = "loading"
+	ModelStatusReady      ModelStatus = "ready"
+	ModelStatusError      ModelStatus = "error"
+	ModelStatusUpdating   ModelStatus = "updating"
+	ModelStatusDeprecated ModelStatus = "deprecated"
+)
+
+// ModelVersion represents a specific version of a model
+type ModelVersion struct {
+	Version     string                 `json:"version"`
+	ModelType   ModelType              `json:"model_type"`
+	Path        string                 `json:"path"`
+	CreatedAt   time.Time              `json:"created_at"`
+	UpdatedAt   time.Time              `json:"updated_at"`
+	Status      ModelStatus            `json:"status"`
+	Performance *ModelPerformance      `json:"performance,omitempty"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// ModelPerformance represents performance metrics for a model
+type ModelPerformance struct {
+	Accuracy        float64   `json:"accuracy"`
+	Precision       float64   `json:"precision"`
+	Recall          float64   `json:"recall"`
+	F1Score         float64   `json:"f1_score"`
+	InferenceTime   float64   `json:"inference_time_ms"`
+	Throughput      float64   `json:"throughput_requests_per_sec"`
+	MemoryUsage     float64   `json:"memory_usage_mb"`
+	LastEvaluated   time.Time `json:"last_evaluated"`
+	EvaluationCount int       `json:"evaluation_count"`
+}
+
+// ModelConfig represents configuration for a model
+type ModelConfig struct {
+	ModelType       ModelType              `json:"model_type"`
+	ModelPath       string                 `json:"model_path"`
+	Version         string                 `json:"version"`
+	MaxBatchSize    int                    `json:"max_batch_size"`
+	Timeout         time.Duration          `json:"timeout"`
+	FallbackEnabled bool                   `json:"fallback_enabled"`
+	Parameters      map[string]interface{} `json:"parameters"`
+	Preprocessing   map[string]interface{} `json:"preprocessing"`
+	Postprocessing  map[string]interface{} `json:"postprocessing"`
+}
+
+// ModelInfo represents information about a loaded model
+type ModelInfo struct {
+	ID          string                 `json:"id"`
+	Name        string                 `json:"name"`
+	Type        ModelType              `json:"type"`
+	Version     string                 `json:"version"`
+	Status      ModelStatus            `json:"status"`
+	LoadedAt    time.Time              `json:"loaded_at"`
+	LastUsed    time.Time              `json:"last_used"`
+	UsageCount  int64                  `json:"usage_count"`
+	Performance *ModelPerformance      `json:"performance,omitempty"`
+	Config      *ModelConfig           `json:"config,omitempty"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// ModelManager provides comprehensive ML model management capabilities
+type ModelManager struct {
+	logger  *observability.Logger
+	metrics *observability.Metrics
+
+	// Model storage
+	models     map[string]*ModelInfo
+	modelMutex sync.RWMutex
+
+	// Configuration
+	modelDirectory string
+	maxModels      int
+	autoUpdate     bool
+	updateInterval time.Duration
+
+	// Performance tracking
+	performanceHistory map[string][]*ModelPerformance
+	historyMutex       sync.RWMutex
+
+	// Fallback configuration
+	fallbackModels map[ModelType]string
+	fallbackMutex  sync.RWMutex
+
+	// Update management
+	updateChannel chan ModelUpdateRequest
+	updateMutex   sync.Mutex
+}
+
+// ModelUpdateRequest represents a request to update a model
+type ModelUpdateRequest struct {
+	ModelID   string                 `json:"model_id"`
+	Version   string                 `json:"version"`
+	Config    *ModelConfig           `json:"config"`
+	Metadata  map[string]interface{} `json:"metadata"`
+	Priority  int                    `json:"priority"`
+	Requested time.Time              `json:"requested"`
+}
+
+// NewModelManager creates a new ML model manager
+func NewModelManager(logger *observability.Logger, metrics *observability.Metrics, modelDirectory string) *ModelManager {
+	manager := &ModelManager{
+		logger:  logger,
+		metrics: metrics,
+
+		// Initialize storage
+		models:             make(map[string]*ModelInfo),
+		performanceHistory: make(map[string][]*ModelPerformance),
+		fallbackModels:     make(map[ModelType]string),
+
+		// Configuration
+		modelDirectory: modelDirectory,
+		maxModels:      10, // Default maximum models
+		autoUpdate:     true,
+		updateInterval: 24 * time.Hour, // Daily updates
+
+		// Update management
+		updateChannel: make(chan ModelUpdateRequest, 100),
+	}
+
+	// Initialize default fallback models
+	manager.initializeDefaultFallbacks()
+
+	// Start update manager
+	go manager.updateManager()
+
+	return manager
+}
+
+// initializeDefaultFallbacks initializes default fallback models
+func (manager *ModelManager) initializeDefaultFallbacks() {
+	manager.fallbackMutex.Lock()
+	defer manager.fallbackMutex.Unlock()
+
+	// Set default fallback models
+	manager.fallbackModels[ModelTypeBERT] = "default_bert"
+	manager.fallbackModels[ModelTypeEnsemble] = "default_ensemble"
+	manager.fallbackModels[ModelTypeTransformer] = "default_transformer"
+	manager.fallbackModels[ModelTypeCustom] = "default_custom"
+}
+
+// LoadModel loads a model from the specified path
+func (manager *ModelManager) LoadModel(ctx context.Context, modelID, modelPath string, config *ModelConfig) error {
+	manager.modelMutex.Lock()
+	defer manager.modelMutex.Unlock()
+
+	// Check if model already exists
+	if _, exists := manager.models[modelID]; exists {
+		return fmt.Errorf("model %s already loaded", modelID)
+	}
+
+	// Check maximum models limit
+	if len(manager.models) >= manager.maxModels {
+		// Remove least recently used model
+		manager.removeLRUModel()
+	}
+
+	// Validate model path
+	if err := manager.validateModelPath(modelPath); err != nil {
+		return fmt.Errorf("invalid model path: %w", err)
+	}
+
+	// Create model info
+	modelInfo := &ModelInfo{
+		ID:         modelID,
+		Name:       filepath.Base(modelPath),
+		Type:       config.ModelType,
+		Version:    config.Version,
+		Status:     ModelStatusLoading,
+		LoadedAt:   time.Now(),
+		LastUsed:   time.Now(),
+		UsageCount: 0,
+		Config:     config,
+		Metadata:   make(map[string]interface{}),
+	}
+
+	// Load the model (this would integrate with actual ML framework)
+	if err := manager.loadModelFiles(modelInfo); err != nil {
+		modelInfo.Status = ModelStatusError
+		manager.models[modelID] = modelInfo
+		return fmt.Errorf("failed to load model files: %w", err)
+	}
+
+	// Initialize performance tracking
+	manager.performanceHistory[modelID] = make([]*ModelPerformance, 0)
+
+	// Set model as ready
+	modelInfo.Status = ModelStatusReady
+	manager.models[modelID] = modelInfo
+
+	// Log model loading
+	if manager.logger != nil {
+		manager.logger.WithComponent("ml_model_manager").LogBusinessEvent(ctx, "model_loaded", modelID, map[string]interface{}{
+			"model_type": config.ModelType,
+			"version":    config.Version,
+			"path":       modelPath,
+		})
+	}
+
+	// Record metrics
+	manager.RecordModelMetrics(ctx, modelInfo, "model_loaded")
+
+	return nil
+}
+
+// GetModel retrieves a model by ID
+func (manager *ModelManager) GetModel(ctx context.Context, modelID string) (*ModelInfo, error) {
+	manager.modelMutex.RLock()
+	defer manager.modelMutex.RUnlock()
+
+	model, exists := manager.models[modelID]
+	if !exists {
+		return nil, fmt.Errorf("model %s not found", modelID)
+	}
+
+	// Update last used time
+	model.LastUsed = time.Now()
+	model.UsageCount++
+
+	return model, nil
+}
+
+// GetModelByType retrieves the best available model for a given type
+func (manager *ModelManager) GetModelByType(ctx context.Context, modelType ModelType) (*ModelInfo, error) {
+	manager.modelMutex.RLock()
+	defer manager.modelMutex.RUnlock()
+
+	var bestModel *ModelInfo
+	var bestPerformance float64
+
+	// Find the best performing model of the specified type
+	for _, model := range manager.models {
+		if model.Type == modelType && model.Status == ModelStatusReady {
+			performance := manager.calculateModelScore(model)
+			if performance > bestPerformance {
+				bestPerformance = performance
+				bestModel = model
+			}
+		}
+	}
+
+	if bestModel == nil {
+		// Try fallback model
+		return manager.GetFallbackModel(ctx, modelType)
+	}
+
+	// Update usage statistics
+	bestModel.LastUsed = time.Now()
+	bestModel.UsageCount++
+
+	return bestModel, nil
+}
+
+// UpdateModel updates an existing model
+func (manager *ModelManager) UpdateModel(ctx context.Context, modelID, newVersion string, config *ModelConfig) error {
+	// Create update request
+	request := ModelUpdateRequest{
+		ModelID:   modelID,
+		Version:   newVersion,
+		Config:    config,
+		Priority:  1,
+		Requested: time.Now(),
+	}
+
+	// Send update request
+	select {
+	case manager.updateChannel <- request:
+		if manager.logger != nil {
+			manager.logger.WithComponent("ml_model_manager").LogBusinessEvent(ctx, "model_update_requested", modelID, map[string]interface{}{
+				"new_version": newVersion,
+				"priority":    request.Priority,
+			})
+		}
+		return nil
+	default:
+		return fmt.Errorf("update queue is full")
+	}
+}
+
+// UnloadModel unloads a model from memory
+func (manager *ModelManager) UnloadModel(ctx context.Context, modelID string) error {
+	manager.modelMutex.Lock()
+	defer manager.modelMutex.Unlock()
+
+	model, exists := manager.models[modelID]
+	if !exists {
+		return fmt.Errorf("model %s not found", modelID)
+	}
+
+	// Unload model files (this would integrate with actual ML framework)
+	if err := manager.unloadModelFiles(model); err != nil {
+		return fmt.Errorf("failed to unload model files: %w", err)
+	}
+
+	// Remove from storage
+	delete(manager.models, modelID)
+	delete(manager.performanceHistory, modelID)
+
+	// Log model unloading
+	if manager.logger != nil {
+		manager.logger.WithComponent("ml_model_manager").LogBusinessEvent(ctx, "model_unloaded", modelID, map[string]interface{}{
+			"model_type":  model.Type,
+			"version":     model.Version,
+			"usage_count": model.UsageCount,
+		})
+	}
+
+	// Record metrics
+	manager.RecordModelMetrics(ctx, model, "model_unloaded")
+
+	return nil
+}
+
+// ListModels returns all loaded models
+func (manager *ModelManager) ListModels(ctx context.Context) []*ModelInfo {
+	manager.modelMutex.RLock()
+	defer manager.modelMutex.RUnlock()
+
+	models := make([]*ModelInfo, 0, len(manager.models))
+	for _, model := range manager.models {
+		models = append(models, model)
+	}
+
+	return models
+}
+
+// GetModelPerformance returns performance metrics for a model
+func (manager *ModelManager) GetModelPerformance(ctx context.Context, modelID string) (*ModelPerformance, error) {
+	manager.modelMutex.RLock()
+	defer manager.modelMutex.RUnlock()
+
+	model, exists := manager.models[modelID]
+	if !exists {
+		return nil, fmt.Errorf("model %s not found", modelID)
+	}
+
+	return model.Performance, nil
+}
+
+// UpdateModelPerformance updates performance metrics for a model
+func (manager *ModelManager) UpdateModelPerformance(ctx context.Context, modelID string, performance *ModelPerformance) error {
+	manager.modelMutex.Lock()
+	defer manager.modelMutex.Unlock()
+
+	model, exists := manager.models[modelID]
+	if !exists {
+		return fmt.Errorf("model %s not found", modelID)
+	}
+
+	// Update model performance
+	model.Performance = performance
+
+	// Add to history
+	manager.historyMutex.Lock()
+	if history, exists := manager.performanceHistory[modelID]; exists {
+		manager.performanceHistory[modelID] = append(history, performance)
+		// Keep only last 100 performance records
+		if len(manager.performanceHistory[modelID]) > 100 {
+			manager.performanceHistory[modelID] = manager.performanceHistory[modelID][len(manager.performanceHistory[modelID])-100:]
+		}
+	}
+	manager.historyMutex.Unlock()
+
+	// Log performance update
+	if manager.logger != nil {
+		manager.logger.WithComponent("ml_model_manager").LogBusinessEvent(ctx, "model_performance_updated", modelID, map[string]interface{}{
+			"accuracy":       performance.Accuracy,
+			"f1_score":       performance.F1Score,
+			"inference_time": performance.InferenceTime,
+		})
+	}
+
+	return nil
+}
+
+// SetFallbackModel sets a fallback model for a specific type
+func (manager *ModelManager) SetFallbackModel(modelType ModelType, modelID string) error {
+	manager.fallbackMutex.Lock()
+	defer manager.fallbackMutex.Unlock()
+
+	// Verify the model exists
+	manager.modelMutex.RLock()
+	_, exists := manager.models[modelID]
+	manager.modelMutex.RUnlock()
+
+	if !exists {
+		return fmt.Errorf("fallback model %s not found", modelID)
+	}
+
+	manager.fallbackModels[modelType] = modelID
+
+	return nil
+}
+
+// GetFallbackModel gets the fallback model for a specific type
+func (manager *ModelManager) GetFallbackModel(ctx context.Context, modelType ModelType) (*ModelInfo, error) {
+	manager.fallbackMutex.RLock()
+	fallbackID, exists := manager.fallbackModels[modelType]
+	manager.fallbackMutex.RUnlock()
+
+	if !exists {
+		return nil, fmt.Errorf("no fallback model configured for type %s", modelType)
+	}
+
+	return manager.GetModel(ctx, fallbackID)
+}
+
+// validateModelPath validates that the model path exists and contains required files
+func (manager *ModelManager) validateModelPath(modelPath string) error {
+	// Check if path exists
+	if _, err := os.Stat(modelPath); os.IsNotExist(err) {
+		return fmt.Errorf("model path does not exist: %s", modelPath)
+	}
+
+	// Check if it's a directory
+	info, err := os.Stat(modelPath)
+	if err != nil {
+		return fmt.Errorf("failed to stat model path: %w", err)
+	}
+
+	if !info.IsDir() {
+		return fmt.Errorf("model path is not a directory: %s", modelPath)
+	}
+
+	// Check for required model files (this would be framework-specific)
+	requiredFiles := []string{"model.json", "weights.bin", "config.json"}
+	for _, file := range requiredFiles {
+		filePath := filepath.Join(modelPath, file)
+		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+			return fmt.Errorf("required model file not found: %s", filePath)
+		}
+	}
+
+	return nil
+}
+
+// loadModelFiles loads the actual model files (placeholder for ML framework integration)
+func (manager *ModelManager) loadModelFiles(modelInfo *ModelInfo) error {
+	// This would integrate with actual ML frameworks like TensorFlow, PyTorch, etc.
+	// For now, we'll simulate loading with a delay
+	time.Sleep(100 * time.Millisecond)
+
+	// Simulate model loading success
+	return nil
+}
+
+// unloadModelFiles unloads the actual model files (placeholder for ML framework integration)
+func (manager *ModelManager) unloadModelFiles(modelInfo *ModelInfo) error {
+	// This would integrate with actual ML frameworks
+	// For now, we'll simulate unloading
+	time.Sleep(50 * time.Millisecond)
+
+	return nil
+}
+
+// removeLRUModel removes the least recently used model
+func (manager *ModelManager) removeLRUModel() {
+	var lruModel *ModelInfo
+	var lruTime time.Time
+
+	for _, model := range manager.models {
+		if lruModel == nil || model.LastUsed.Before(lruTime) {
+			lruModel = model
+			lruTime = model.LastUsed
+		}
+	}
+
+	if lruModel != nil {
+		delete(manager.models, lruModel.ID)
+		delete(manager.performanceHistory, lruModel.ID)
+	}
+}
+
+// calculateModelScore calculates a performance score for model selection
+func (manager *ModelManager) calculateModelScore(model *ModelInfo) float64 {
+	if model.Performance == nil {
+		return 0.0
+	}
+
+	// Weighted score based on accuracy, F1 score, and inference time
+	accuracyWeight := 0.4
+	f1Weight := 0.4
+	speedWeight := 0.2
+
+	// Normalize inference time (lower is better)
+	speedScore := 1.0 - (model.Performance.InferenceTime / 1000.0) // Assuming 1000ms is max acceptable time
+	if speedScore < 0.0 {
+		speedScore = 0.0
+	}
+
+	score := (model.Performance.Accuracy * accuracyWeight) +
+		(model.Performance.F1Score * f1Weight) +
+		(speedScore * speedWeight)
+
+	return score
+}
+
+// updateManager handles model update requests
+func (manager *ModelManager) updateManager() {
+	for request := range manager.updateChannel {
+		manager.processUpdateRequest(request)
+	}
+}
+
+// processUpdateRequest processes a model update request
+func (manager *ModelManager) processUpdateRequest(request ModelUpdateRequest) {
+	ctx := context.Background()
+
+	// Mark model as updating
+	manager.modelMutex.Lock()
+	model, exists := manager.models[request.ModelID]
+	if !exists {
+		manager.modelMutex.Unlock()
+		if manager.logger != nil {
+			manager.logger.WithComponent("ml_model_manager").Error("model_update_failed", map[string]interface{}{
+				"model_id": request.ModelID,
+				"reason":   "model_not_found",
+			})
+		}
+		return
+	}
+	model.Status = ModelStatusUpdating
+	manager.modelMutex.Unlock()
+
+	// Perform update (this would download and load new model files)
+	if err := manager.performModelUpdate(request); err != nil {
+		// Revert status on failure
+		manager.modelMutex.Lock()
+		if model, exists := manager.models[request.ModelID]; exists {
+			model.Status = ModelStatusReady
+		}
+		manager.modelMutex.Unlock()
+
+		if manager.logger != nil {
+			manager.logger.WithComponent("ml_model_manager").Error("model_update_failed", map[string]interface{}{
+				"model_id": request.ModelID,
+				"version":  request.Version,
+				"error":    err.Error(),
+			})
+		}
+		return
+	}
+
+	// Update model info
+	manager.modelMutex.Lock()
+	if model, exists := manager.models[request.ModelID]; exists {
+		model.Version = request.Version
+		model.Status = ModelStatusReady
+		model.Config = request.Config
+		if request.Metadata != nil {
+			model.Metadata = request.Metadata
+		}
+	}
+	manager.modelMutex.Unlock()
+
+	// Log successful update
+	if manager.logger != nil {
+		manager.logger.WithComponent("ml_model_manager").LogBusinessEvent(ctx, "model_updated", request.ModelID, map[string]interface{}{
+			"new_version": request.Version,
+			"priority":    request.Priority,
+		})
+	}
+}
+
+// performModelUpdate performs the actual model update (placeholder for ML framework integration)
+func (manager *ModelManager) performModelUpdate(request ModelUpdateRequest) error {
+	// This would integrate with actual ML frameworks and model repositories
+	// For now, we'll simulate update with a delay
+	time.Sleep(500 * time.Millisecond)
+
+	// Simulate successful update
+	return nil
+}
+
+// RecordModelMetrics records metrics for model operations
+func (manager *ModelManager) RecordModelMetrics(ctx context.Context, model *ModelInfo, operation string) {
+	if manager.metrics == nil {
+		return
+	}
+
+	// TODO: Replace with appropriate metrics recording when histogram support is added
+	// Record model operation metrics
+	// manager.metrics.RecordHistogram(ctx, "model_operation_duration", 0.0, map[string]string{
+	// 	"operation":  operation,
+	// 	"model_type": string(model.Type),
+	// 	"model_id":   model.ID,
+	// })
+
+	// Record model usage metrics
+	// manager.metrics.RecordHistogram(ctx, "model_usage_count", float64(model.UsageCount), map[string]string{
+	// 	"model_type": string(model.Type),
+	// 	"model_id":   model.ID,
+	// })
+
+	// Record model performance metrics if available
+	if model.Performance != nil {
+		// manager.metrics.RecordHistogram(ctx, "model_accuracy", model.Performance.Accuracy, map[string]string{
+		// 	"model_type": string(model.Type),
+		// 	"model_id":   model.ID,
+		// })
+
+		// manager.metrics.RecordHistogram(ctx, "model_inference_time", model.Performance.InferenceTime, map[string]string{
+		// 	"model_type": string(model.Type),
+		// 	"model_id":   model.ID,
+		// })
+	}
+}
+
+// GetManagerStats returns statistics about the model manager
+func (manager *ModelManager) GetManagerStats() map[string]interface{} {
+	manager.modelMutex.RLock()
+	defer manager.modelMutex.RUnlock()
+
+	stats := map[string]interface{}{
+		"total_models":    len(manager.models),
+		"max_models":      manager.maxModels,
+		"auto_update":     manager.autoUpdate,
+		"update_interval": manager.updateInterval.String(),
+		"model_types":     make(map[ModelType]int),
+		"model_statuses":  make(map[ModelStatus]int),
+	}
+
+	// Count models by type and status
+	for _, model := range manager.models {
+		stats["model_types"].(map[ModelType]int)[model.Type]++
+		stats["model_statuses"].(map[ModelStatus]int)[model.Status]++
+	}
+
+	return stats
+}

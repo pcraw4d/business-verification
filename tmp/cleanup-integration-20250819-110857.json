@@ -1,0 +1,9 @@
+{
+    "timestamp": "2025-08-19T15:08:57Z",
+    "cleanup_completed": true,
+    "tools_used": {
+        "shell_cleanup": false,
+        "go_cleanup": true
+    },
+    "reports_directory": "/Users/petercrawford/New tool/reports"
+}

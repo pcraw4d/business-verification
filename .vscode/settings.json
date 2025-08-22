@@ -1,0 +1,70 @@
+{
+    "go.useLanguageServer": true,
+    "go.lintTool": "golangci-lint",
+    "go.lintFlags": ["--fast"],
+    "go.formatTool": "goimports",
+    "go.buildOnSave": "package",
+    "go.testOnSave": false,
+    "go.vetOnSave": "package",
+    "go.coverOnSave": false,
+    "go.goroot": "",
+    "go.gopath": "",
+    "go.toolsGopath": "",
+    "go.gocodeAutoBuild": false,
+    "go.buildTags": "",
+    "go.testFlags": ["-v"],
+    "go.testTimeout": "30s",
+    "go.coverOnSingleTest": true,
+    "go.coverOnTestPackage": true,
+    "go.coverOnTestFunctions": false,
+    "go.testEnvVars": {},
+    "go.testEnvFile": "${workspaceFolder}/.env",
+    "go.delveConfig": {
+        "dlvLoadConfig": {
+            "followPointers": true,
+            "maxVariableRecurse": 1,
+            "maxStringLen": 64,
+            "maxArrayValues": 64,
+            "maxStructFields": -1
+        },
+        "apiVersion": 1,
+        "showGlobalVariables": false
+    },
+    "go.alternateTools": {},
+    "go.lintOnSave": "package",
+    "go.lintTool": "golangci-lint",
+    "go.lintFlags": ["--fast"],
+    "go.formatTool": "goimports",
+    "go.formatFlags": ["-w"],
+    "go.buildOnSave": "package",
+    "go.testOnSave": false,
+    "go.vetOnSave": "package",
+    "go.coverOnSave": false,
+    "go.goroot": "",
+    "go.gopath": "",
+    "go.toolsGopath": "",
+    "go.gocodeAutoBuild": false,
+    "go.buildTags": "",
+    "go.testFlags": ["-v"],
+    "go.testTimeout": "30s",
+    "go.coverOnSingleTest": true,
+    "go.coverOnTestPackage": true,
+    "go.coverOnTestFunctions": false,
+    "go.testEnvVars": {},
+    "go.testEnvFile": "${workspaceFolder}/.env",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit"
+    },
+    "files.exclude": {
+        "**/tmp": true,
+        "**/build": true,
+        "**/.git": true,
+        "**/.DS_Store": true
+    },
+    "search.exclude": {
+        "**/vendor": true,
+        "**/tmp": true,
+        "**/build": true
+    }
+}

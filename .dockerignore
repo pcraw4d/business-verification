@@ -1,0 +1,12 @@
+.git
+.gitignore
+README.md
+docs/
+test/
+*.md
+.env*
+.air.toml
+Makefile
+Dockerfile*
+docker-compose*
+railway.json

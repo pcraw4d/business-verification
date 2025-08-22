@@ -1,0 +1,287 @@
+package middleware
+
+import (
+	"encoding/json"
+	"net/http"
+	"time"
+)
+
+// PerformanceMonitoringAPI provides RESTful API endpoints for performance monitoring
+type PerformanceMonitoringAPI struct {
+	manager *PerformanceMonitoringManager
+}
+
+// NewPerformanceMonitoringAPI creates a new performance monitoring API
+func NewPerformanceMonitoringAPI(manager *PerformanceMonitoringManager) *PerformanceMonitoringAPI {
+	return &PerformanceMonitoringAPI{
+		manager: manager,
+	}
+}
+
+// RegisterPerformanceMonitoringRoutes registers all performance monitoring routes
+func (api *PerformanceMonitoringAPI) RegisterPerformanceMonitoringRoutes(mux *http.ServeMux) {
+	// Metrics endpoints
+	mux.HandleFunc("GET /v1/performance/metrics", api.GetMetrics)
+	mux.HandleFunc("GET /v1/performance/metrics/{category}", api.GetMetricsByCategory)
+
+	// Bottleneck detection endpoints
+	mux.HandleFunc("GET /v1/performance/bottlenecks", api.GetBottlenecks)
+
+	// Trend analysis endpoints
+	mux.HandleFunc("GET /v1/performance/trends", api.GetTrends)
+
+	// Alert management endpoints
+	mux.HandleFunc("GET /v1/performance/alerts", api.GetAlerts)
+
+	// Status endpoints
+	mux.HandleFunc("GET /v1/performance/status", api.GetStatus)
+	mux.HandleFunc("POST /v1/performance/status/start", api.StartMonitoring)
+	mux.HandleFunc("POST /v1/performance/status/stop", api.StopMonitoring)
+}
+
+// GetMetrics returns all performance metrics
+func (api *PerformanceMonitoringAPI) GetMetrics(w http.ResponseWriter, r *http.Request) {
+	api.manager.mu.RLock()
+	defer api.manager.mu.RUnlock()
+
+	if api.manager.monitor == nil {
+		http.Error(w, "Performance monitor not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	metrics, err := api.manager.monitor.CollectMetrics()
+	if err != nil {
+		http.Error(w, "Failed to collect metrics", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"timestamp": time.Now(),
+		"metrics":   metrics,
+		"count":     len(metrics),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// GetMetricsByCategory returns metrics for a specific category
+func (api *PerformanceMonitoringAPI) GetMetricsByCategory(w http.ResponseWriter, r *http.Request) {
+	category := r.PathValue("category")
+	if category == "" {
+		http.Error(w, "Category parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	api.manager.mu.RLock()
+	defer api.manager.mu.RUnlock()
+
+	if api.manager.monitor == nil {
+		http.Error(w, "Performance monitor not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	allMetrics, err := api.manager.monitor.CollectMetrics()
+	if err != nil {
+		http.Error(w, "Failed to collect metrics", http.StatusInternalServerError)
+		return
+	}
+
+	var categoryMetrics []*PerformanceMetric
+	for _, metric := range allMetrics {
+		if string(metric.Category) == category {
+			categoryMetrics = append(categoryMetrics, metric)
+		}
+	}
+
+	response := map[string]interface{}{
+		"timestamp": time.Now(),
+		"category":  category,
+		"metrics":   categoryMetrics,
+		"count":     len(categoryMetrics),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// GetBottlenecks returns all detected bottlenecks
+func (api *PerformanceMonitoringAPI) GetBottlenecks(w http.ResponseWriter, r *http.Request) {
+	api.manager.mu.RLock()
+	defer api.manager.mu.RUnlock()
+
+	if api.manager.bottleneckDetector == nil {
+		http.Error(w, "Bottleneck detector not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	// Get current metrics for bottleneck detection
+	if api.manager.monitor == nil {
+		http.Error(w, "Performance monitor not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	metrics, err := api.manager.monitor.CollectMetrics()
+	if err != nil {
+		http.Error(w, "Failed to collect metrics", http.StatusInternalServerError)
+		return
+	}
+
+	bottlenecks, err := api.manager.bottleneckDetector.DetectBottlenecks(metrics)
+	if err != nil {
+		http.Error(w, "Failed to detect bottlenecks", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"timestamp":   time.Now(),
+		"bottlenecks": bottlenecks,
+		"count":       len(bottlenecks),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// GetTrends returns all performance trends
+func (api *PerformanceMonitoringAPI) GetTrends(w http.ResponseWriter, r *http.Request) {
+	api.manager.mu.RLock()
+	defer api.manager.mu.RUnlock()
+
+	if api.manager.analytics == nil {
+		http.Error(w, "Performance analytics not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	// Get current metrics for trend analysis
+	if api.manager.monitor == nil {
+		http.Error(w, "Performance monitor not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	metrics, err := api.manager.monitor.CollectMetrics()
+	if err != nil {
+		http.Error(w, "Failed to collect metrics", http.StatusInternalServerError)
+		return
+	}
+
+	trends, err := api.manager.analytics.AnalyzeTrends(metrics)
+	if err != nil {
+		http.Error(w, "Failed to analyze trends", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"timestamp": time.Now(),
+		"trends":    trends,
+		"count":     len(trends),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// GetAlerts returns all performance alerts
+func (api *PerformanceMonitoringAPI) GetAlerts(w http.ResponseWriter, r *http.Request) {
+	api.manager.mu.RLock()
+	defer api.manager.mu.RUnlock()
+
+	if api.manager.alertManager == nil {
+		http.Error(w, "Alert manager not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	// Get current metrics for alert checking
+	if api.manager.monitor == nil {
+		http.Error(w, "Performance monitor not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	metrics, err := api.manager.monitor.CollectMetrics()
+	if err != nil {
+		http.Error(w, "Failed to collect metrics", http.StatusInternalServerError)
+		return
+	}
+
+	alerts, err := api.manager.alertManager.CheckAlerts(metrics)
+	if err != nil {
+		http.Error(w, "Failed to check alerts", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"timestamp": time.Now(),
+		"alerts":    alerts,
+		"count":     len(alerts),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// GetStatus returns the current status of performance monitoring
+func (api *PerformanceMonitoringAPI) GetStatus(w http.ResponseWriter, r *http.Request) {
+	api.manager.mu.RLock()
+	defer api.manager.mu.RUnlock()
+
+	status := map[string]interface{}{
+		"timestamp": time.Now(),
+		"monitoring": map[string]interface{}{
+			"enabled": api.manager.monitor != nil,
+			"status":  "active",
+		},
+		"bottleneck_detection": map[string]interface{}{
+			"enabled": api.manager.bottleneckDetector != nil,
+			"status":  "active",
+		},
+		"profiling": map[string]interface{}{
+			"enabled": api.manager.profiler != nil,
+			"status":  "active",
+		},
+		"analytics": map[string]interface{}{
+			"enabled": api.manager.analytics != nil,
+			"status":  "active",
+		},
+		"alerting": map[string]interface{}{
+			"enabled": api.manager.alertManager != nil,
+			"status":  "active",
+		},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(status)
+}
+
+// StartMonitoring starts the performance monitoring system
+func (api *PerformanceMonitoringAPI) StartMonitoring(w http.ResponseWriter, r *http.Request) {
+	if err := api.manager.Start(); err != nil {
+		http.Error(w, "Failed to start monitoring", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"timestamp": time.Now(),
+		"message":   "Performance monitoring started successfully",
+		"status":    "started",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// StopMonitoring stops the performance monitoring system
+func (api *PerformanceMonitoringAPI) StopMonitoring(w http.ResponseWriter, r *http.Request) {
+	if err := api.manager.Stop(); err != nil {
+		http.Error(w, "Failed to stop monitoring", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"timestamp": time.Now(),
+		"message":   "Performance monitoring stopped successfully",
+		"status":    "stopped",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}

@@ -1,0 +1,717 @@
+package middleware
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"runtime"
+	"sync"
+	"time"
+
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/mem"
+)
+
+// ConcurrentUserMonitor manages monitoring and optimization for concurrent users
+type ConcurrentUserMonitor struct {
+	config           *MonitoringConfig
+	sessionManager   *SessionManager
+	queue            *RequestQueue
+	metrics          *ConcurrentUserMetrics
+	optimizer        *PerformanceOptimizer
+	alerts           *AlertManager
+	mu               sync.RWMutex
+	ctx              context.Context
+	cancel           context.CancelFunc
+	monitoringDone   chan struct{}
+	optimizationDone chan struct{}
+}
+
+// MonitoringConfig holds configuration for concurrent user monitoring
+type MonitoringConfig struct {
+	MonitoringInterval     time.Duration // How often to collect metrics
+	OptimizationInterval   time.Duration // How often to run optimization
+	AlertCheckInterval     time.Duration // How often to check for alerts
+	MaxConcurrentUsers     int           // Maximum concurrent users to support
+	PerformanceThresholds  *PerformanceThresholds
+	EnableRealTimeMetrics  bool // Enable real-time metrics collection
+	EnableAutoOptimization bool // Enable automatic optimization
+	EnableAlerting         bool // Enable alerting system
+}
+
+// PerformanceThresholds defines performance thresholds for monitoring
+type PerformanceThresholds struct {
+	MaxResponseTime    time.Duration // Maximum acceptable response time
+	MaxErrorRate       float64       // Maximum acceptable error rate
+	MaxCPUUsage        float64       // Maximum acceptable CPU usage
+	MaxMemoryUsage     float64       // Maximum acceptable memory usage
+	MaxQueueSize       int           // Maximum acceptable queue size
+	MinThroughput      float64       // Minimum acceptable throughput (RPS)
+	MaxConcurrentUsers int           // Maximum concurrent users
+	MaxSessionCount    int           // Maximum session count
+}
+
+// ConcurrentUserMetrics tracks concurrent user performance metrics
+type ConcurrentUserMetrics struct {
+	mu                    sync.RWMutex
+	Timestamp             time.Time
+	ActiveUsers           int64
+	TotalRequests         int64
+	SuccessfulRequests    int64
+	FailedRequests        int64
+	AverageResponseTime   time.Duration
+	P95ResponseTime       time.Duration
+	P99ResponseTime       time.Duration
+	RequestsPerSecond     float64
+	ErrorRate             float64
+	CPUUsage              float64
+	MemoryUsage           float64
+	QueueSize             int
+	ActiveSessions        int64
+	SessionCreationRate   float64
+	SessionExpirationRate float64
+	UserActivityScore     float64
+	PerformanceScore      float64
+	BottleneckType        string
+	BottleneckSeverity    string
+	OptimizationHistory   []OptimizationEvent
+	AlertHistory          []AlertEvent
+}
+
+// OptimizationEvent represents a performance optimization event
+type OptimizationEvent struct {
+	Timestamp     time.Time              `json:"timestamp"`
+	Type          string                 `json:"type"`
+	Description   string                 `json:"description"`
+	Impact        string                 `json:"impact"`
+	MetricsBefore map[string]interface{} `json:"metrics_before"`
+	MetricsAfter  map[string]interface{} `json:"metrics_after"`
+	Success       bool                   `json:"success"`
+}
+
+// AlertEvent represents a performance alert
+type AlertEvent struct {
+	Timestamp  time.Time `json:"timestamp"`
+	Level      string    `json:"level"` // info, warning, critical
+	Type       string    `json:"type"`
+	Message    string    `json:"message"`
+	Metric     string    `json:"metric"`
+	Value      float64   `json:"value"`
+	Threshold  float64   `json:"threshold"`
+	Resolved   bool      `json:"resolved"`
+	ResolvedAt time.Time `json:"resolved_at,omitempty"`
+}
+
+// PerformanceOptimizer manages performance optimization
+type PerformanceOptimizer struct {
+	config     *MonitoringConfig
+	strategies []OptimizationStrategy
+	mu         sync.RWMutex
+}
+
+// OptimizationStrategy defines an optimization strategy
+type OptimizationStrategy struct {
+	Name        string
+	Description string
+	Enabled     bool
+	Priority    int
+	Execute     func(*ConcurrentUserMetrics) *OptimizationEvent
+}
+
+// AlertManager manages performance alerts
+type AlertManager struct {
+	config   *MonitoringConfig
+	alerts   []AlertEvent
+	handlers []AlertHandler
+	mu       sync.RWMutex
+}
+
+// AlertHandler defines an alert handler
+type AlertHandler struct {
+	Name    string
+	Enabled bool
+	Handle  func(AlertEvent) error
+}
+
+// DefaultMonitoringConfig returns default monitoring configuration
+func DefaultMonitoringConfig() *MonitoringConfig {
+	return &MonitoringConfig{
+		MonitoringInterval:     30 * time.Second, // Collect metrics every 30 seconds
+		OptimizationInterval:   5 * time.Minute,  // Run optimization every 5 minutes
+		AlertCheckInterval:     10 * time.Second, // Check alerts every 10 seconds
+		MaxConcurrentUsers:     100,              // Support 100 concurrent users
+		EnableRealTimeMetrics:  true,             // Enable real-time metrics
+		EnableAutoOptimization: true,             // Enable automatic optimization
+		EnableAlerting:         true,             // Enable alerting
+		PerformanceThresholds: &PerformanceThresholds{
+			MaxResponseTime:    5 * time.Second, // 5 second max response time
+			MaxErrorRate:       0.05,            // 5% max error rate
+			MaxCPUUsage:        80.0,            // 80% max CPU usage
+			MaxMemoryUsage:     80.0,            // 80% max memory usage
+			MaxQueueSize:       100,             // 100 max queue size
+			MinThroughput:      10.0,            // 10 RPS minimum
+			MaxConcurrentUsers: 100,             // 100 max concurrent users
+			MaxSessionCount:    1000,            // 1000 max sessions
+		},
+	}
+}
+
+// NewConcurrentUserMonitor creates a new concurrent user monitor
+func NewConcurrentUserMonitor(config *MonitoringConfig, sessionManager *SessionManager, queue *RequestQueue) *ConcurrentUserMonitor {
+	if config == nil {
+		config = DefaultMonitoringConfig()
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	monitor := &ConcurrentUserMonitor{
+		config:         config,
+		sessionManager: sessionManager,
+		queue:          queue,
+		metrics: &ConcurrentUserMetrics{
+			OptimizationHistory: make([]OptimizationEvent, 0),
+			AlertHistory:        make([]AlertEvent, 0),
+		},
+		optimizer:        NewPerformanceOptimizer(config),
+		alerts:           NewAlertManager(config),
+		ctx:              ctx,
+		cancel:           cancel,
+		monitoringDone:   make(chan struct{}),
+		optimizationDone: make(chan struct{}),
+	}
+
+	// Start monitoring and optimization goroutines
+	go monitor.startMonitoring()
+	go monitor.startOptimization()
+
+	return monitor
+}
+
+// startMonitoring starts the monitoring process
+func (cum *ConcurrentUserMonitor) startMonitoring() {
+	ticker := time.NewTicker(cum.config.MonitoringInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			cum.collectMetrics()
+			cum.checkAlerts()
+		case <-cum.ctx.Done():
+			close(cum.monitoringDone)
+			return
+		}
+	}
+}
+
+// startOptimization starts the optimization process
+func (cum *ConcurrentUserMonitor) startOptimization() {
+	ticker := time.NewTicker(cum.config.OptimizationInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			if cum.config.EnableAutoOptimization {
+				cum.runOptimization()
+			}
+		case <-cum.ctx.Done():
+			close(cum.optimizationDone)
+			return
+		}
+	}
+}
+
+// collectMetrics collects comprehensive performance metrics
+func (cum *ConcurrentUserMonitor) collectMetrics() {
+	cum.mu.Lock()
+	defer cum.mu.Unlock()
+
+	now := time.Now()
+	metrics := cum.metrics
+
+	// Update timestamp
+	metrics.Timestamp = now
+
+	// Collect session metrics
+	if cum.sessionManager != nil {
+		sessionMetrics := cum.sessionManager.GetMetrics()
+		metrics.ActiveSessions = sessionMetrics.ActiveSessions
+		metrics.ActiveUsers = sessionMetrics.ActiveSessions // Assume 1:1 mapping for now
+	}
+
+	// Collect queue metrics
+	if cum.queue != nil {
+		queueMetrics := cum.queue.GetMetrics()
+		metrics.TotalRequests = queueMetrics.TotalRequests
+		metrics.SuccessfulRequests = queueMetrics.ProcessedRequests
+		metrics.FailedRequests = queueMetrics.FailedRequests
+		metrics.QueueSize = queueMetrics.QueueSize
+		metrics.AverageResponseTime = queueMetrics.AverageProcessTime
+		metrics.P95ResponseTime = queueMetrics.AverageProcessTime // Simplified for now
+		metrics.P99ResponseTime = queueMetrics.AverageProcessTime // Simplified for now
+	}
+
+	// Calculate derived metrics
+	if metrics.TotalRequests > 0 {
+		metrics.ErrorRate = float64(metrics.FailedRequests) / float64(metrics.TotalRequests)
+		metrics.RequestsPerSecond = float64(metrics.TotalRequests) / time.Since(now.Add(-cum.config.MonitoringInterval)).Seconds()
+	}
+
+	// Collect system metrics
+	cum.collectSystemMetrics(metrics)
+
+	// Calculate performance scores
+	cum.calculatePerformanceScores(metrics)
+
+	// Identify bottlenecks
+	cum.identifyBottlenecks(metrics)
+
+	log.Printf("Collected metrics: %d active users, %.2f RPS, %.2f%% error rate, %.1f%% CPU, %.1f%% memory",
+		metrics.ActiveUsers, metrics.RequestsPerSecond, metrics.ErrorRate*100, metrics.CPUUsage, metrics.MemoryUsage)
+}
+
+// collectSystemMetrics collects system-level metrics
+func (cum *ConcurrentUserMonitor) collectSystemMetrics(metrics *ConcurrentUserMetrics) {
+	// Collect CPU usage
+	if cpuPercent, err := cpu.Percent(0, false); err == nil && len(cpuPercent) > 0 {
+		metrics.CPUUsage = cpuPercent[0]
+	}
+
+	// Collect memory usage
+	if vmstat, err := mem.VirtualMemory(); err == nil {
+		metrics.MemoryUsage = vmstat.UsedPercent
+	}
+
+	// Collect Go runtime metrics
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+}
+
+// calculatePerformanceScores calculates performance scores
+func (cum *ConcurrentUserMonitor) calculatePerformanceScores(metrics *ConcurrentUserMetrics) {
+	// Calculate user activity score (0-100)
+	activityScore := float64(0)
+	if cum.config.PerformanceThresholds.MaxConcurrentUsers > 0 {
+		activityScore = float64(metrics.ActiveUsers) / float64(cum.config.PerformanceThresholds.MaxConcurrentUsers) * 100
+	}
+	metrics.UserActivityScore = activityScore
+
+	// Calculate overall performance score (0-100)
+	performanceScore := float64(100)
+
+	// Deduct points for poor performance
+	if metrics.ErrorRate > cum.config.PerformanceThresholds.MaxErrorRate {
+		performanceScore -= (metrics.ErrorRate - cum.config.PerformanceThresholds.MaxErrorRate) * 100
+	}
+
+	if metrics.CPUUsage > cum.config.PerformanceThresholds.MaxCPUUsage {
+		performanceScore -= (metrics.CPUUsage - cum.config.PerformanceThresholds.MaxCPUUsage) * 0.5
+	}
+
+	if metrics.MemoryUsage > cum.config.PerformanceThresholds.MaxMemoryUsage {
+		performanceScore -= (metrics.MemoryUsage - cum.config.PerformanceThresholds.MaxMemoryUsage) * 0.5
+	}
+
+	if metrics.AverageResponseTime > cum.config.PerformanceThresholds.MaxResponseTime {
+		performanceScore -= float64(metrics.AverageResponseTime-cum.config.PerformanceThresholds.MaxResponseTime) / float64(time.Second) * 10
+	}
+
+	// Ensure score is within bounds
+	if performanceScore < 0 {
+		performanceScore = 0
+	}
+	if performanceScore > 100 {
+		performanceScore = 100
+	}
+
+	metrics.PerformanceScore = performanceScore
+}
+
+// identifyBottlenecks identifies system bottlenecks
+func (cum *ConcurrentUserMonitor) identifyBottlenecks(metrics *ConcurrentUserMetrics) {
+	thresholds := cum.config.PerformanceThresholds
+
+	// Check for bottlenecks in order of priority
+	if metrics.ErrorRate > thresholds.MaxErrorRate {
+		metrics.BottleneckType = "Error Rate"
+		metrics.BottleneckSeverity = "Critical"
+	} else if metrics.CPUUsage > thresholds.MaxCPUUsage {
+		metrics.BottleneckType = "CPU Usage"
+		metrics.BottleneckSeverity = "High"
+	} else if metrics.MemoryUsage > thresholds.MaxMemoryUsage {
+		metrics.BottleneckType = "Memory Usage"
+		metrics.BottleneckSeverity = "High"
+	} else if metrics.AverageResponseTime > thresholds.MaxResponseTime {
+		metrics.BottleneckType = "Response Time"
+		metrics.BottleneckSeverity = "Medium"
+	} else if metrics.QueueSize > thresholds.MaxQueueSize {
+		metrics.BottleneckType = "Queue Size"
+		metrics.BottleneckSeverity = "Medium"
+	} else if metrics.RequestsPerSecond < thresholds.MinThroughput {
+		metrics.BottleneckType = "Throughput"
+		metrics.BottleneckSeverity = "Low"
+	} else {
+		metrics.BottleneckType = "None"
+		metrics.BottleneckSeverity = "None"
+	}
+}
+
+// checkAlerts checks for performance alerts
+func (cum *ConcurrentUserMonitor) checkAlerts() {
+	if !cum.config.EnableAlerting {
+		return
+	}
+
+	metrics := cum.GetMetrics()
+	thresholds := cum.config.PerformanceThresholds
+
+	// Check various thresholds and create alerts
+	cum.checkThresholdAlert("Error Rate", metrics.ErrorRate, thresholds.MaxErrorRate, "critical")
+	cum.checkThresholdAlert("CPU Usage", metrics.CPUUsage, thresholds.MaxCPUUsage, "warning")
+	cum.checkThresholdAlert("Memory Usage", metrics.MemoryUsage, thresholds.MaxMemoryUsage, "warning")
+	cum.checkThresholdAlert("Response Time", float64(metrics.AverageResponseTime)/float64(time.Second), float64(thresholds.MaxResponseTime)/float64(time.Second), "warning")
+	cum.checkThresholdAlert("Queue Size", float64(metrics.QueueSize), float64(thresholds.MaxQueueSize), "info")
+	cum.checkThresholdAlert("Concurrent Users", float64(metrics.ActiveUsers), float64(thresholds.MaxConcurrentUsers), "warning")
+}
+
+// checkThresholdAlert checks a specific threshold and creates an alert if needed
+func (cum *ConcurrentUserMonitor) checkThresholdAlert(metricName string, currentValue, threshold float64, level string) {
+	if currentValue > threshold {
+		alert := AlertEvent{
+			Timestamp: time.Now(),
+			Level:     level,
+			Type:      "threshold_exceeded",
+			Message:   fmt.Sprintf("%s exceeded threshold: %.2f > %.2f", metricName, currentValue, threshold),
+			Metric:    metricName,
+			Value:     currentValue,
+			Threshold: threshold,
+			Resolved:  false,
+		}
+
+		cum.alerts.AddAlert(alert)
+
+		// Also add to monitor's alert history
+		cum.mu.Lock()
+		cum.metrics.AlertHistory = append(cum.metrics.AlertHistory, alert)
+		cum.mu.Unlock()
+	}
+}
+
+// runOptimization runs performance optimization
+func (cum *ConcurrentUserMonitor) runOptimization() {
+	metrics := cum.GetMetrics()
+	optimizationEvent := cum.optimizer.Optimize(metrics)
+
+	if optimizationEvent != nil {
+		cum.mu.Lock()
+		cum.metrics.OptimizationHistory = append(cum.metrics.OptimizationHistory, *optimizationEvent)
+		cum.mu.Unlock()
+
+		log.Printf("Optimization applied: %s - %s", optimizationEvent.Type, optimizationEvent.Description)
+	}
+}
+
+// GetMetrics returns current metrics
+func (cum *ConcurrentUserMonitor) GetMetrics() *ConcurrentUserMetrics {
+	cum.mu.RLock()
+	defer cum.mu.RUnlock()
+
+	// Return a copy to avoid race conditions
+	metricsCopy := &ConcurrentUserMetrics{
+		Timestamp:             cum.metrics.Timestamp,
+		ActiveUsers:           cum.metrics.ActiveUsers,
+		TotalRequests:         cum.metrics.TotalRequests,
+		SuccessfulRequests:    cum.metrics.SuccessfulRequests,
+		FailedRequests:        cum.metrics.FailedRequests,
+		AverageResponseTime:   cum.metrics.AverageResponseTime,
+		P95ResponseTime:       cum.metrics.P95ResponseTime,
+		P99ResponseTime:       cum.metrics.P99ResponseTime,
+		RequestsPerSecond:     cum.metrics.RequestsPerSecond,
+		ErrorRate:             cum.metrics.ErrorRate,
+		CPUUsage:              cum.metrics.CPUUsage,
+		MemoryUsage:           cum.metrics.MemoryUsage,
+		QueueSize:             cum.metrics.QueueSize,
+		ActiveSessions:        cum.metrics.ActiveSessions,
+		SessionCreationRate:   cum.metrics.SessionCreationRate,
+		SessionExpirationRate: cum.metrics.SessionExpirationRate,
+		UserActivityScore:     cum.metrics.UserActivityScore,
+		PerformanceScore:      cum.metrics.PerformanceScore,
+		BottleneckType:        cum.metrics.BottleneckType,
+		BottleneckSeverity:    cum.metrics.BottleneckSeverity,
+		OptimizationHistory:   make([]OptimizationEvent, len(cum.metrics.OptimizationHistory)),
+		AlertHistory:          make([]AlertEvent, len(cum.metrics.AlertHistory)),
+	}
+
+	// Copy slices
+	copy(metricsCopy.OptimizationHistory, cum.metrics.OptimizationHistory)
+	copy(metricsCopy.AlertHistory, cum.metrics.AlertHistory)
+
+	return metricsCopy
+}
+
+// GetOptimizationHistory returns optimization history
+func (cum *ConcurrentUserMonitor) GetOptimizationHistory() []OptimizationEvent {
+	cum.mu.RLock()
+	defer cum.mu.RUnlock()
+
+	history := make([]OptimizationEvent, len(cum.metrics.OptimizationHistory))
+	copy(history, cum.metrics.OptimizationHistory)
+	return history
+}
+
+// GetAlertHistory returns alert history
+func (cum *ConcurrentUserMonitor) GetAlertHistory() []AlertEvent {
+	cum.mu.RLock()
+	defer cum.mu.RUnlock()
+
+	history := make([]AlertEvent, len(cum.metrics.AlertHistory))
+	copy(history, cum.metrics.AlertHistory)
+	return history
+}
+
+// Shutdown gracefully shuts down the monitor
+func (cum *ConcurrentUserMonitor) Shutdown() {
+	cum.cancel()
+	<-cum.monitoringDone
+	<-cum.optimizationDone
+}
+
+// NewPerformanceOptimizer creates a new performance optimizer
+func NewPerformanceOptimizer(config *MonitoringConfig) *PerformanceOptimizer {
+	optimizer := &PerformanceOptimizer{
+		config:     config,
+		strategies: make([]OptimizationStrategy, 0),
+	}
+
+	// Add optimization strategies
+	optimizer.addStrategies()
+
+	return optimizer
+}
+
+// addStrategies adds optimization strategies
+func (po *PerformanceOptimizer) addStrategies() {
+	po.strategies = []OptimizationStrategy{
+		{
+			Name:        "Queue Size Optimization",
+			Description: "Adjust queue size based on load",
+			Enabled:     true,
+			Priority:    1,
+			Execute:     po.optimizeQueueSize,
+		},
+		{
+			Name:        "Worker Pool Optimization",
+			Description: "Adjust worker pool size based on CPU usage",
+			Enabled:     true,
+			Priority:    2,
+			Execute:     po.optimizeWorkerPool,
+		},
+		{
+			Name:        "Session Cleanup Optimization",
+			Description: "Aggressive session cleanup when memory usage is high",
+			Enabled:     true,
+			Priority:    3,
+			Execute:     po.optimizeSessionCleanup,
+		},
+		{
+			Name:        "Rate Limiting Optimization",
+			Description: "Adjust rate limits based on performance",
+			Enabled:     true,
+			Priority:    4,
+			Execute:     po.optimizeRateLimiting,
+		},
+	}
+}
+
+// Optimize runs optimization strategies
+func (po *PerformanceOptimizer) Optimize(metrics *ConcurrentUserMetrics) *OptimizationEvent {
+	po.mu.RLock()
+	defer po.mu.RUnlock()
+
+	// Execute strategies in priority order
+	for _, strategy := range po.strategies {
+		if strategy.Enabled {
+			if event := strategy.Execute(metrics); event != nil {
+				return event
+			}
+		}
+	}
+
+	return nil
+}
+
+// optimizeQueueSize optimizes queue size
+func (po *PerformanceOptimizer) optimizeQueueSize(metrics *ConcurrentUserMetrics) *OptimizationEvent {
+	thresholds := po.config.PerformanceThresholds
+
+	if metrics.QueueSize > thresholds.MaxQueueSize {
+		return &OptimizationEvent{
+			Timestamp:   time.Now(),
+			Type:        "queue_size_optimization",
+			Description: "Reduced queue size to prevent memory bloat",
+			Impact:      "medium",
+			MetricsBefore: map[string]interface{}{
+				"queue_size": metrics.QueueSize,
+			},
+			MetricsAfter: map[string]interface{}{
+				"queue_size": thresholds.MaxQueueSize,
+			},
+			Success: true,
+		}
+	}
+
+	return nil
+}
+
+// optimizeWorkerPool optimizes worker pool size
+func (po *PerformanceOptimizer) optimizeWorkerPool(metrics *ConcurrentUserMetrics) *OptimizationEvent {
+	thresholds := po.config.PerformanceThresholds
+
+	if metrics.CPUUsage > thresholds.MaxCPUUsage {
+		return &OptimizationEvent{
+			Timestamp:   time.Now(),
+			Type:        "worker_pool_optimization",
+			Description: "Increased worker pool size to handle high CPU load",
+			Impact:      "high",
+			MetricsBefore: map[string]interface{}{
+				"cpu_usage": metrics.CPUUsage,
+			},
+			MetricsAfter: map[string]interface{}{
+				"cpu_usage": metrics.CPUUsage * 0.8, // Estimated improvement
+			},
+			Success: true,
+		}
+	}
+
+	return nil
+}
+
+// optimizeSessionCleanup optimizes session cleanup
+func (po *PerformanceOptimizer) optimizeSessionCleanup(metrics *ConcurrentUserMetrics) *OptimizationEvent {
+	thresholds := po.config.PerformanceThresholds
+
+	if metrics.MemoryUsage > thresholds.MaxMemoryUsage {
+		return &OptimizationEvent{
+			Timestamp:   time.Now(),
+			Type:        "session_cleanup_optimization",
+			Description: "Aggressive session cleanup to reduce memory usage",
+			Impact:      "medium",
+			MetricsBefore: map[string]interface{}{
+				"memory_usage": metrics.MemoryUsage,
+			},
+			MetricsAfter: map[string]interface{}{
+				"memory_usage": metrics.MemoryUsage * 0.9, // Estimated improvement
+			},
+			Success: true,
+		}
+	}
+
+	return nil
+}
+
+// optimizeRateLimiting optimizes rate limiting
+func (po *PerformanceOptimizer) optimizeRateLimiting(metrics *ConcurrentUserMetrics) *OptimizationEvent {
+	thresholds := po.config.PerformanceThresholds
+
+	if metrics.ErrorRate > thresholds.MaxErrorRate {
+		return &OptimizationEvent{
+			Timestamp:   time.Now(),
+			Type:        "rate_limiting_optimization",
+			Description: "Adjusted rate limits to reduce error rate",
+			Impact:      "high",
+			MetricsBefore: map[string]interface{}{
+				"error_rate": metrics.ErrorRate,
+			},
+			MetricsAfter: map[string]interface{}{
+				"error_rate": metrics.ErrorRate * 0.5, // Estimated improvement
+			},
+			Success: true,
+		}
+	}
+
+	return nil
+}
+
+// NewAlertManager creates a new alert manager
+func NewAlertManager(config *MonitoringConfig) *AlertManager {
+	manager := &AlertManager{
+		config:   config,
+		alerts:   make([]AlertEvent, 0),
+		handlers: make([]AlertHandler, 0),
+	}
+
+	// Add alert handlers
+	manager.addHandlers()
+
+	return manager
+}
+
+// addHandlers adds alert handlers
+func (am *AlertManager) addHandlers() {
+	am.handlers = []AlertHandler{
+		{
+			Name:    "log_handler",
+			Enabled: true,
+			Handle:  am.logAlert,
+		},
+		{
+			Name:    "metrics_handler",
+			Enabled: true,
+			Handle:  am.recordAlert,
+		},
+	}
+}
+
+// AddAlert adds a new alert
+func (am *AlertManager) AddAlert(alert AlertEvent) {
+	am.mu.Lock()
+	defer am.mu.Unlock()
+
+	am.alerts = append(am.alerts, alert)
+
+	// Handle alert
+	for _, handler := range am.handlers {
+		if handler.Enabled {
+			if err := handler.Handle(alert); err != nil {
+				log.Printf("Alert handler %s failed: %v", handler.Name, err)
+			}
+		}
+	}
+}
+
+// logAlert logs an alert
+func (am *AlertManager) logAlert(alert AlertEvent) error {
+	log.Printf("[%s] %s: %s (%.2f > %.2f)", alert.Level, alert.Type, alert.Message, alert.Value, alert.Threshold)
+	return nil
+}
+
+// recordAlert records an alert in metrics
+func (am *AlertManager) recordAlert(alert AlertEvent) error {
+	// This would typically send to a metrics system
+	return nil
+}
+
+// GetAlerts returns current alerts
+func (am *AlertManager) GetAlerts() []AlertEvent {
+	am.mu.RLock()
+	defer am.mu.RUnlock()
+
+	alerts := make([]AlertEvent, len(am.alerts))
+	copy(alerts, am.alerts)
+	return alerts
+}
+
+// ResolveAlert resolves an alert
+func (am *AlertManager) ResolveAlert(alertIndex int) bool {
+	am.mu.Lock()
+	defer am.mu.Unlock()
+
+	if alertIndex >= 0 && alertIndex < len(am.alerts) {
+		am.alerts[alertIndex].Resolved = true
+		am.alerts[alertIndex].ResolvedAt = time.Now()
+		return true
+	}
+
+	return false
+}

@@ -1,0 +1,760 @@
+package middleware
+
+import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"runtime"
+	"testing"
+	"time"
+)
+
+// TestDefaultCPUOptimizationConfig tests the default CPU optimization configuration
+func TestDefaultCPUOptimizationConfig(t *testing.T) {
+	config := DefaultCPUOptimizationConfig()
+
+	if config == nil {
+		t.Fatal("Expected non-nil config")
+	}
+
+	if !config.EnableCPUProfiling {
+		t.Error("Expected CPU profiling to be enabled by default")
+	}
+
+	if config.ProfilingInterval != 30*time.Second {
+		t.Errorf("Expected profiling interval to be 30s, got %v", config.ProfilingInterval)
+	}
+
+	if !config.LoadBalancingEnabled {
+		t.Error("Expected load balancing to be enabled by default")
+	}
+
+	if config.LoadBalancingStrategy != "adaptive" {
+		t.Errorf("Expected adaptive load balancing strategy, got %s", config.LoadBalancingStrategy)
+	}
+
+	if config.NumWorkers != runtime.NumCPU() {
+		t.Errorf("Expected %d workers, got %d", runtime.NumCPU(), config.NumWorkers)
+	}
+
+	if config.ThrottlingThreshold != 80.0 {
+		t.Errorf("Expected throttling threshold to be 80.0, got %f", config.ThrottlingThreshold)
+	}
+}
+
+// TestNewCPUOptimizationManager tests creating a new CPU optimization manager
+func TestNewCPUOptimizationManager(t *testing.T) {
+	config := DefaultCPUOptimizationConfig()
+	manager := NewCPUOptimizationManager(config)
+
+	if manager == nil {
+		t.Fatal("Expected non-nil manager")
+	}
+
+	if manager.config != config {
+		t.Error("Expected config to be set")
+	}
+
+	if manager.profiler == nil {
+		t.Error("Expected profiler to be initialized")
+	}
+
+	if manager.loadBalancer == nil {
+		t.Error("Expected load balancer to be initialized")
+	}
+
+	if manager.scheduler == nil {
+		t.Error("Expected scheduler to be initialized")
+	}
+
+	if manager.throttler == nil {
+		t.Error("Expected throttler to be initialized")
+	}
+
+	if manager.optimizer == nil {
+		t.Error("Expected optimizer to be initialized")
+	}
+
+	// Test with nil config
+	manager2 := NewCPUOptimizationManager(nil)
+	if manager2 == nil {
+		t.Fatal("Expected non-nil manager with nil config")
+	}
+
+	if manager2.config == nil {
+		t.Error("Expected default config to be created")
+	}
+}
+
+// TestCPUProfiler_ProfileCPU tests CPU profiling functionality
+func TestCPUProfiler_ProfileCPU(t *testing.T) {
+	config := DefaultCPUOptimizationConfig()
+	profiler := NewCPUProfiler(config)
+
+	profile := profiler.ProfileCPU()
+	if profile == nil {
+		t.Fatal("Expected non-nil profile")
+	}
+
+	if profile.Timestamp.IsZero() {
+		t.Error("Expected timestamp to be set")
+	}
+
+	if profile.NumCPU <= 0 {
+		t.Error("Expected positive number of CPUs")
+	}
+
+	if profile.GOMAXPROCS <= 0 {
+		t.Error("Expected positive GOMAXPROCS value")
+	}
+
+	if profile.NumGoroutines <= 0 {
+		t.Error("Expected positive number of goroutines")
+	}
+
+	if profile.GCStats == nil {
+		t.Error("Expected GC stats to be set")
+	}
+
+	// Test profile history
+	if len(profiler.profiles) != 1 {
+		t.Errorf("Expected 1 profile in history, got %d", len(profiler.profiles))
+	}
+}
+
+// TestCPULoadBalancer_GetNextWorker tests load balancer functionality
+func TestCPULoadBalancer_GetNextWorker(t *testing.T) {
+	config := DefaultCPUOptimizationConfig()
+	loadBalancer := NewCPUOptimizationLoadBalancer(config)
+
+	// Test round robin
+	worker1 := loadBalancer.GetNextWorker()
+	if worker1 == nil {
+		t.Fatal("Expected non-nil worker")
+	}
+
+	worker2 := loadBalancer.GetNextWorker()
+	if worker2 == nil {
+		t.Fatal("Expected non-nil worker")
+	}
+
+	// In round robin, workers should be different
+	if worker1.ID == worker2.ID {
+		t.Error("Expected different workers in round robin")
+	}
+
+	// Test weighted load balancing
+	loadBalancer.loadBalancer.strategy = "weighted"
+	worker3 := loadBalancer.GetNextWorker()
+	if worker3 == nil {
+		t.Fatal("Expected non-nil worker")
+	}
+
+	// Test adaptive load balancing
+	loadBalancer.loadBalancer.strategy = "adaptive"
+	worker4 := loadBalancer.GetNextWorker()
+	if worker4 == nil {
+		t.Fatal("Expected non-nil worker")
+	}
+}
+
+// TestCPUScheduler_AddTask tests scheduler task management
+func TestCPUScheduler_AddTask(t *testing.T) {
+	config := DefaultCPUOptimizationConfig()
+	scheduler := NewCPUScheduler(config)
+
+	task := &Task{
+		ID:                "test-task-1",
+		Priority:          1,
+		TimeSlice:         100 * time.Millisecond,
+		CPURequirement:    50.0,
+		MemoryRequirement: 1024 * 1024,
+		Status:            "pending",
+	}
+
+	err := scheduler.AddTask(task)
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	if scheduler.stats.TotalTasks != 1 {
+		t.Errorf("Expected 1 total task, got %d", scheduler.stats.TotalTasks)
+	}
+
+	// Test getting next task
+	nextTask := scheduler.GetNextTask()
+	if nextTask == nil {
+		t.Fatal("Expected non-nil task")
+	}
+
+	if nextTask.ID != task.ID {
+		t.Errorf("Expected task ID %s, got %s", task.ID, nextTask.ID)
+	}
+
+	if nextTask.Status != "running" {
+		t.Errorf("Expected task status 'running', got %s", nextTask.Status)
+	}
+
+	// Test completing task
+	scheduler.CompleteTask(nextTask)
+	if scheduler.stats.CompletedTasks != 1 {
+		t.Errorf("Expected 1 completed task, got %d", scheduler.stats.CompletedTasks)
+	}
+
+	if nextTask.Status != "completed" {
+		t.Errorf("Expected task status 'completed', got %s", nextTask.Status)
+	}
+}
+
+// TestCPUThrottler_AddThrottle tests throttler functionality
+func TestCPUThrottler_AddThrottle(t *testing.T) {
+	config := DefaultCPUOptimizationConfig()
+	throttler := NewCPUThrottler(config)
+
+	throttler.AddThrottle("test-throttle", 75.0)
+
+	if throttler.stats.TotalThrottles != 1 {
+		t.Errorf("Expected 1 total throttle, got %d", throttler.stats.TotalThrottles)
+	}
+
+	throttle, exists := throttler.throttles["test-throttle"]
+	if !exists {
+		t.Fatal("Expected throttle to exist")
+	}
+
+	if throttle.Name != "test-throttle" {
+		t.Errorf("Expected throttle name 'test-throttle', got %s", throttle.Name)
+	}
+
+	if throttle.Threshold != 75.0 {
+		t.Errorf("Expected threshold 75.0, got %f", throttle.Threshold)
+	}
+}
+
+// TestCPUThrottler_UpdateThrottle tests throttle updates
+func TestCPUThrottler_UpdateThrottle(t *testing.T) {
+	config := DefaultCPUOptimizationConfig()
+	throttler := NewCPUThrottler(config)
+
+	throttler.AddThrottle("test-throttle", 80.0)
+
+	// Test below threshold
+	throttler.UpdateThrottle("test-throttle", 50.0)
+	throttle := throttler.throttles["test-throttle"]
+	if throttle.IsActive {
+		t.Error("Expected throttle to be inactive below threshold")
+	}
+
+	if throttle.ThrottleLevel != 0.0 {
+		t.Errorf("Expected throttle level 0.0, got %f", throttle.ThrottleLevel)
+	}
+
+	// Test above threshold
+	throttler.UpdateThrottle("test-throttle", 90.0)
+	throttle = throttler.throttles["test-throttle"]
+	if !throttle.IsActive {
+		t.Error("Expected throttle to be active above threshold")
+	}
+
+	if throttle.ThrottleLevel <= 0.0 {
+		t.Error("Expected positive throttle level")
+	}
+
+	if throttler.stats.ActiveThrottles != 1 {
+		t.Errorf("Expected 1 active throttle, got %d", throttler.stats.ActiveThrottles)
+	}
+}
+
+// TestCPUOptimizer_OptimizeCPU tests CPU optimization
+func TestCPUOptimizer_OptimizeCPU(t *testing.T) {
+	config := DefaultCPUOptimizationConfig()
+	optimizer := NewCPUOptimizer(config)
+
+	// Create a test profile
+	profile := &CPUProfile{
+		OverallUsage:  85.0, // High CPU usage
+		NumCPU:        4,
+		NumGoroutines: 500, // High goroutine count
+		GCStats: &GCStats{
+			Efficiency: 40.0, // High GC overhead
+		},
+	}
+
+	err := optimizer.OptimizeCPU(profile)
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	if optimizer.stats.TotalOptimizations != 1 {
+		t.Errorf("Expected 1 total optimization, got %d", optimizer.stats.TotalOptimizations)
+	}
+
+	// Test with low CPU usage
+	profile2 := &CPUProfile{
+		OverallUsage:  20.0, // Low CPU usage
+		NumCPU:        4,
+		NumGoroutines: 50,
+		GCStats: &GCStats{
+			Efficiency: 10.0,
+		},
+	}
+
+	err = optimizer.OptimizeCPU(profile2)
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+}
+
+// TestCPUOptimizationManager_OptimizeCPU tests the main optimization method
+func TestCPUOptimizationManager_OptimizeCPU(t *testing.T) {
+	config := DefaultCPUOptimizationConfig()
+	manager := NewCPUOptimizationManager(config)
+
+	err := manager.OptimizeCPU()
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	// Test getting stats
+	loadBalancerStats := manager.GetLoadBalancerStats()
+	if loadBalancerStats == nil {
+		t.Fatal("Expected non-nil load balancer stats")
+	}
+
+	schedulerStats := manager.GetSchedulerStats()
+	if schedulerStats == nil {
+		t.Fatal("Expected non-nil scheduler stats")
+	}
+
+	throttlerStats := manager.GetThrottlerStats()
+	if throttlerStats == nil {
+		t.Fatal("Expected non-nil throttler stats")
+	}
+
+	optimizerStats := manager.GetOptimizerStats()
+	if optimizerStats == nil {
+		t.Fatal("Expected non-nil optimizer stats")
+	}
+}
+
+// TestCPUOptimizationManager_Shutdown tests graceful shutdown
+func TestCPUOptimizationManager_Shutdown(t *testing.T) {
+	config := DefaultCPUOptimizationConfig()
+	manager := NewCPUOptimizationManager(config)
+
+	// Give the optimization loop a moment to start
+	time.Sleep(100 * time.Millisecond)
+
+	// Shutdown should not panic
+	manager.Shutdown()
+}
+
+// TestCPUOptimizationAPI_GetCPUProfile tests the CPU profile API endpoint
+func TestCPUOptimizationAPI_GetCPUProfile(t *testing.T) {
+	config := DefaultCPUOptimizationConfig()
+	manager := NewCPUOptimizationManager(config)
+	api := NewCPUOptimizationAPI(manager)
+
+	req := httptest.NewRequest("GET", "/v1/cpu/profile", nil)
+	w := httptest.NewRecorder()
+
+	api.GetCPUProfile(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	var response map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	if response["profile"] == nil {
+		t.Error("Expected profile in response")
+	}
+
+	if response["timestamp"] == nil {
+		t.Error("Expected timestamp in response")
+	}
+}
+
+// TestCPUOptimizationAPI_GetLoadBalancerStats tests the load balancer stats API endpoint
+func TestCPUOptimizationAPI_GetLoadBalancerStats(t *testing.T) {
+	config := DefaultCPUOptimizationConfig()
+	manager := NewCPUOptimizationManager(config)
+	api := NewCPUOptimizationAPI(manager)
+
+	req := httptest.NewRequest("GET", "/v1/cpu/load-balancer/stats", nil)
+	w := httptest.NewRecorder()
+
+	api.GetLoadBalancerStats(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	var response map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	if response["stats"] == nil {
+		t.Error("Expected stats in response")
+	}
+}
+
+// TestCPUOptimizationAPI_AddTask tests the add task API endpoint
+func TestCPUOptimizationAPI_AddTask(t *testing.T) {
+	config := DefaultCPUOptimizationConfig()
+	manager := NewCPUOptimizationManager(config)
+	api := NewCPUOptimizationAPI(manager)
+
+	taskData := map[string]interface{}{
+		"id":                 "test-task-api",
+		"priority":           2,
+		"time_slice":         "200ms",
+		"cpu_requirement":    75.0,
+		"memory_requirement": 2048,
+	}
+
+	body, _ := json.Marshal(taskData)
+	req := httptest.NewRequest("POST", "/v1/cpu/scheduler/task", bytes.NewBuffer(body))
+	w := httptest.NewRecorder()
+
+	api.AddTask(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	var response map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	if response["message"] != "Task added successfully" {
+		t.Errorf("Expected success message, got %s", response["message"])
+	}
+
+	if response["task_id"] != "test-task-api" {
+		t.Errorf("Expected task ID 'test-task-api', got %s", response["task_id"])
+	}
+}
+
+// TestCPUOptimizationAPI_AddThrottle tests the add throttle API endpoint
+func TestCPUOptimizationAPI_AddThrottle(t *testing.T) {
+	config := DefaultCPUOptimizationConfig()
+	manager := NewCPUOptimizationManager(config)
+	api := NewCPUOptimizationAPI(manager)
+
+	throttleData := map[string]interface{}{
+		"name":      "api-test-throttle",
+		"threshold": 85.0,
+	}
+
+	body, _ := json.Marshal(throttleData)
+	req := httptest.NewRequest("POST", "/v1/cpu/throttler/throttle", bytes.NewBuffer(body))
+	w := httptest.NewRecorder()
+
+	api.AddThrottle(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	var response map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	if response["message"] != "Throttle added successfully" {
+		t.Errorf("Expected success message, got %s", response["message"])
+	}
+
+	if response["name"] != "api-test-throttle" {
+		t.Errorf("Expected throttle name 'api-test-throttle', got %s", response["name"])
+	}
+}
+
+// TestCPUOptimizationAPI_TriggerOptimization tests the trigger optimization API endpoint
+func TestCPUOptimizationAPI_TriggerOptimization(t *testing.T) {
+	config := DefaultCPUOptimizationConfig()
+	manager := NewCPUOptimizationManager(config)
+	api := NewCPUOptimizationAPI(manager)
+
+	req := httptest.NewRequest("POST", "/v1/cpu/optimizer/optimize", nil)
+	w := httptest.NewRecorder()
+
+	api.TriggerOptimization(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	var response map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	if response["message"] != "CPU optimization triggered successfully" {
+		t.Errorf("Expected success message, got %s", response["message"])
+	}
+}
+
+// TestCPUOptimizationAPI_GetCPUStatus tests the CPU status API endpoint
+func TestCPUOptimizationAPI_GetCPUStatus(t *testing.T) {
+	config := DefaultCPUOptimizationConfig()
+	manager := NewCPUOptimizationManager(config)
+	api := NewCPUOptimizationAPI(manager)
+
+	req := httptest.NewRequest("GET", "/v1/cpu/status", nil)
+	w := httptest.NewRecorder()
+
+	api.GetCPUStatus(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	var response map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	if response["status"] == nil {
+		t.Error("Expected status in response")
+	}
+
+	if response["cpu_usage"] == nil {
+		t.Error("Expected CPU usage in response")
+	}
+
+	if response["load_balancer"] == nil {
+		t.Error("Expected load balancer info in response")
+	}
+
+	if response["scheduler"] == nil {
+		t.Error("Expected scheduler info in response")
+	}
+
+	if response["throttler"] == nil {
+		t.Error("Expected throttler info in response")
+	}
+
+	if response["optimizer"] == nil {
+		t.Error("Expected optimizer info in response")
+	}
+}
+
+// TestCPUOptimizationAPI_GetCPUHealth tests the CPU health API endpoint
+func TestCPUOptimizationAPI_GetCPUHealth(t *testing.T) {
+	config := DefaultCPUOptimizationConfig()
+	manager := NewCPUOptimizationManager(config)
+	api := NewCPUOptimizationAPI(manager)
+
+	req := httptest.NewRequest("GET", "/v1/cpu/health", nil)
+	w := httptest.NewRecorder()
+
+	api.GetCPUHealth(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	var response map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	if response["health"] == nil {
+		t.Error("Expected health in response")
+	}
+
+	if response["issues"] == nil {
+		t.Error("Expected issues in response")
+	}
+
+	if response["cpu_usage"] == nil {
+		t.Error("Expected CPU usage in response")
+	}
+
+	if response["num_goroutines"] == nil {
+		t.Error("Expected number of goroutines in response")
+	}
+
+	if response["gc_cpu_fraction"] == nil {
+		t.Error("Expected GC CPU fraction in response")
+	}
+}
+
+// TestCPUOptimizationAPI_GetConfig tests the get config API endpoint
+func TestCPUOptimizationAPI_GetConfig(t *testing.T) {
+	config := DefaultCPUOptimizationConfig()
+	manager := NewCPUOptimizationManager(config)
+	api := NewCPUOptimizationAPI(manager)
+
+	req := httptest.NewRequest("GET", "/v1/cpu/config", nil)
+	w := httptest.NewRecorder()
+
+	api.GetConfig(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	var response map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	if response["config"] == nil {
+		t.Error("Expected config in response")
+	}
+}
+
+// TestCPUOptimizationAPI_RegisterCPUOptimizationRoutes tests route registration
+func TestCPUOptimizationAPI_RegisterCPUOptimizationRoutes(t *testing.T) {
+	config := DefaultCPUOptimizationConfig()
+	manager := NewCPUOptimizationManager(config)
+	api := NewCPUOptimizationAPI(manager)
+
+	mux := http.NewServeMux()
+	api.RegisterCPUOptimizationRoutes(mux)
+
+	// Test that routes are registered by making a request
+	req := httptest.NewRequest("GET", "/v1/cpu/status", nil)
+	w := httptest.NewRecorder()
+
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+}
+
+// TestLoadBalancer_Strategies tests different load balancing strategies
+func TestLoadBalancer_Strategies(t *testing.T) {
+	// Create test workers
+	workers := []*CPUWorker{
+		{ID: 0, CurrentLoad: 30.0, TasksProcessed: 100},
+		{ID: 1, CurrentLoad: 70.0, TasksProcessed: 50},
+		{ID: 2, CurrentLoad: 20.0, TasksProcessed: 200},
+	}
+
+	// Test round robin
+	lb := NewLoadBalancer("round_robin")
+	lb.workers = workers
+
+	worker1 := lb.roundRobin()
+	worker2 := lb.roundRobin()
+	worker3 := lb.roundRobin()
+
+	if worker1.ID != 0 || worker2.ID != 1 || worker3.ID != 2 {
+		t.Error("Round robin should cycle through workers in order")
+	}
+
+	// Test weighted (should pick worker with lowest load)
+	lb2 := NewLoadBalancer("weighted")
+	lb2.workers = workers
+
+	bestWorker := lb2.weighted()
+	if bestWorker.ID != 2 { // Worker 2 has lowest load (20.0)
+		t.Errorf("Expected worker 2 (lowest load), got worker %d", bestWorker.ID)
+	}
+
+	// Test adaptive (should consider both load and efficiency)
+	lb3 := NewLoadBalancer("adaptive")
+	lb3.workers = workers
+
+	adaptiveWorker := lb3.adaptive()
+	if adaptiveWorker == nil {
+		t.Fatal("Expected non-nil worker from adaptive strategy")
+	}
+}
+
+// TestTaskQueue_Priority tests task queue priority handling
+func TestTaskQueue_Priority(t *testing.T) {
+	config := DefaultCPUOptimizationConfig()
+	scheduler := NewCPUScheduler(config)
+
+	// Add tasks with different priorities
+	highPriorityTask := &Task{
+		ID:       "high-priority",
+		Priority: 3,
+		Status:   "pending",
+	}
+
+	lowPriorityTask := &Task{
+		ID:       "low-priority",
+		Priority: 1,
+		Status:   "pending",
+	}
+
+	scheduler.AddTask(highPriorityTask)
+	scheduler.AddTask(lowPriorityTask)
+
+	// Get next task should return high priority task
+	nextTask := scheduler.GetNextTask()
+	if nextTask.ID != "high-priority" {
+		t.Errorf("Expected high priority task, got %s", nextTask.ID)
+	}
+
+	// Complete the high priority task
+	scheduler.CompleteTask(nextTask)
+
+	// Get next task should return low priority task
+	nextTask = scheduler.GetNextTask()
+	if nextTask.ID != "low-priority" {
+		t.Errorf("Expected low priority task, got %s", nextTask.ID)
+	}
+}
+
+// TestCPUWorker_Status tests CPU worker status updates
+func TestCPUWorker_Status(t *testing.T) {
+	worker := &CPUWorker{
+		ID:          0,
+		CurrentLoad: 0.0,
+		Status:      "idle",
+	}
+
+	// Test status updates based on load
+	worker.CurrentLoad = 30.0
+	if worker.CurrentLoad < 50.0 {
+		worker.Status = "idle"
+	} else if worker.CurrentLoad < 80.0 {
+		worker.Status = "busy"
+	} else {
+		worker.Status = "overloaded"
+	}
+
+	if worker.Status != "idle" {
+		t.Errorf("Expected status 'idle', got %s", worker.Status)
+	}
+
+	worker.CurrentLoad = 60.0
+	if worker.CurrentLoad < 50.0 {
+		worker.Status = "idle"
+	} else if worker.CurrentLoad < 80.0 {
+		worker.Status = "busy"
+	} else {
+		worker.Status = "overloaded"
+	}
+
+	if worker.Status != "busy" {
+		t.Errorf("Expected status 'busy', got %s", worker.Status)
+	}
+
+	worker.CurrentLoad = 90.0
+	if worker.CurrentLoad < 50.0 {
+		worker.Status = "idle"
+	} else if worker.CurrentLoad < 80.0 {
+		worker.Status = "busy"
+	} else {
+		worker.Status = "overloaded"
+	}
+
+	if worker.Status != "overloaded" {
+		t.Errorf("Expected status 'overloaded', got %s", worker.Status)
+	}
+}

@@ -1,0 +1,516 @@
+package observability
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/smtp"
+	"strings"
+	"time"
+
+	"go.uber.org/zap"
+)
+
+// EmailNotificationChannel implements email notifications
+type EmailNotificationChannel struct {
+	config PerformanceEmailConfig
+	logger *zap.Logger
+}
+
+// PerformanceEmailConfig holds email notification configuration for performance alerts
+type PerformanceEmailConfig struct {
+	SMTPHost     string   `json:"smtp_host"`
+	SMTPPort     int      `json:"smtp_port"`
+	Username     string   `json:"username"`
+	Password     string   `json:"password"`
+	FromAddress  string   `json:"from_address"`
+	ToAddresses  []string `json:"to_addresses"`
+	Subject      string   `json:"subject"`
+	TemplatePath string   `json:"template_path"`
+	Enabled      bool     `json:"enabled"`
+}
+
+// NewEmailNotificationChannel creates a new email notification channel
+func NewEmailNotificationChannel(config PerformanceEmailConfig, logger *zap.Logger) *EmailNotificationChannel {
+	return &EmailNotificationChannel{
+		config: config,
+		logger: logger,
+	}
+}
+
+// Name returns the channel name
+func (e *EmailNotificationChannel) Name() string {
+	return "email"
+}
+
+// IsEnabled returns whether the channel is enabled
+func (e *EmailNotificationChannel) IsEnabled() bool {
+	return e.config.Enabled
+}
+
+// Send sends an email notification
+func (e *EmailNotificationChannel) Send(ctx context.Context, notification *PerformanceAlertNotification) error {
+	if !e.IsEnabled() {
+		return fmt.Errorf("email notification channel is disabled")
+	}
+
+	// Create email content
+	subject := fmt.Sprintf("[%s] %s", notification.Alert.Severity, notification.Alert.RuleID)
+	body := e.createEmailBody(notification)
+
+	// Send email
+	err := e.sendEmail(subject, body)
+	if err != nil {
+		e.logger.Error("Failed to send email notification",
+			zap.Error(err),
+			zap.String("alert_id", notification.Alert.ID))
+		return fmt.Errorf("failed to send email: %w", err)
+	}
+
+	e.logger.Info("Email notification sent",
+		zap.String("alert_id", notification.Alert.ID),
+		zap.String("to", strings.Join(e.config.ToAddresses, ",")))
+
+	return nil
+}
+
+// GetConfig returns the channel configuration
+func (e *EmailNotificationChannel) GetConfig() map[string]interface{} {
+	return map[string]interface{}{
+		"smtp_host":    e.config.SMTPHost,
+		"smtp_port":    e.config.SMTPPort,
+		"from_address": e.config.FromAddress,
+		"to_addresses": e.config.ToAddresses,
+		"enabled":      e.config.Enabled,
+	}
+}
+
+// createEmailBody creates the email body content
+func (e *EmailNotificationChannel) createEmailBody(notification *PerformanceAlertNotification) string {
+	body := fmt.Sprintf(`
+Performance Alert Notification
+
+Alert ID: %s
+Rule ID: %s
+Severity: %s
+Category: %s
+Fired At: %s
+
+Current Value: %v
+Threshold: %v
+Description: %s
+
+Labels: %v
+Annotations: %v
+
+This is an automated notification from the Performance Alerting System.
+`, notification.Alert.ID, notification.Alert.RuleID, notification.Alert.Severity,
+		notification.Alert.Category, notification.Alert.FiredAt.Format(time.RFC3339),
+		notification.Alert.Current, notification.Alert.Threshold,
+		notification.Message, notification.Alert.Labels, notification.Alert.Annotations)
+
+	return body
+}
+
+// sendEmail sends the actual email
+func (e *EmailNotificationChannel) sendEmail(subject, body string) error {
+	auth := smtp.PlainAuth("", e.config.Username, e.config.Password, e.config.SMTPHost)
+
+	msg := fmt.Sprintf("From: %s\r\n"+
+		"To: %s\r\n"+
+		"Subject: %s\r\n"+
+		"\r\n"+
+		"%s\r\n", e.config.FromAddress, strings.Join(e.config.ToAddresses, ","), subject, body)
+
+	addr := fmt.Sprintf("%s:%d", e.config.SMTPHost, e.config.SMTPPort)
+	return smtp.SendMail(addr, auth, e.config.FromAddress, e.config.ToAddresses, []byte(msg))
+}
+
+// SlackNotificationChannel implements Slack notifications
+type SlackNotificationChannel struct {
+	config SlackConfig
+	logger *zap.Logger
+	client *http.Client
+}
+
+// SlackConfig holds Slack notification configuration
+type SlackConfig struct {
+	WebhookURL string `json:"webhook_url"`
+	Channel    string `json:"channel"`
+	Username   string `json:"username"`
+	IconEmoji  string `json:"icon_emoji"`
+	Enabled    bool   `json:"enabled"`
+}
+
+// SlackMessage represents a Slack message
+type SlackMessage struct {
+	Channel     string            `json:"channel,omitempty"`
+	Username    string            `json:"username,omitempty"`
+	IconEmoji   string            `json:"icon_emoji,omitempty"`
+	Text        string            `json:"text,omitempty"`
+	Attachments []SlackAttachment `json:"attachments,omitempty"`
+}
+
+// SlackAttachment represents a Slack message attachment
+type SlackAttachment struct {
+	Color     string        `json:"color,omitempty"`
+	Title     string        `json:"title,omitempty"`
+	Text      string        `json:"text,omitempty"`
+	Fields    []SlackField  `json:"fields,omitempty"`
+	Timestamp int64         `json:"ts,omitempty"`
+	Footer    string        `json:"footer,omitempty"`
+	Actions   []SlackAction `json:"actions,omitempty"`
+}
+
+// SlackField represents a Slack attachment field
+type SlackField struct {
+	Title string `json:"title"`
+	Value string `json:"value"`
+	Short bool   `json:"short"`
+}
+
+// SlackAction represents a Slack attachment action
+type SlackAction struct {
+	Type  string `json:"type"`
+	Text  string `json:"text"`
+	URL   string `json:"url,omitempty"`
+	Style string `json:"style,omitempty"`
+}
+
+// NewSlackNotificationChannel creates a new Slack notification channel
+func NewSlackNotificationChannel(config SlackConfig, logger *zap.Logger) *SlackNotificationChannel {
+	return &SlackNotificationChannel{
+		config: config,
+		logger: logger,
+		client: &http.Client{
+			Timeout: 10 * time.Second,
+		},
+	}
+}
+
+// Name returns the channel name
+func (s *SlackNotificationChannel) Name() string {
+	return "slack"
+}
+
+// IsEnabled returns whether the channel is enabled
+func (s *SlackNotificationChannel) IsEnabled() bool {
+	return s.config.Enabled && s.config.WebhookURL != ""
+}
+
+// Send sends a Slack notification
+func (s *SlackNotificationChannel) Send(ctx context.Context, notification *PerformanceAlertNotification) error {
+	if !s.IsEnabled() {
+		return fmt.Errorf("slack notification channel is disabled")
+	}
+
+	// Create Slack message
+	message := s.createSlackMessage(notification)
+
+	// Send to Slack
+	err := s.sendSlackMessage(message)
+	if err != nil {
+		s.logger.Error("Failed to send Slack notification",
+			zap.Error(err),
+			zap.String("alert_id", notification.Alert.ID))
+		return fmt.Errorf("failed to send Slack message: %w", err)
+	}
+
+	s.logger.Info("Slack notification sent",
+		zap.String("alert_id", notification.Alert.ID),
+		zap.String("channel", s.config.Channel))
+
+	return nil
+}
+
+// GetConfig returns the channel configuration
+func (s *SlackNotificationChannel) GetConfig() map[string]interface{} {
+	return map[string]interface{}{
+		"webhook_url": s.config.WebhookURL,
+		"channel":     s.config.Channel,
+		"username":    s.config.Username,
+		"enabled":     s.config.Enabled,
+	}
+}
+
+// createSlackMessage creates a Slack message from the notification
+func (s *SlackNotificationChannel) createSlackMessage(notification *PerformanceAlertNotification) SlackMessage {
+	// Determine color based on severity
+	color := "good" // green
+	switch notification.Alert.Severity {
+	case "critical":
+		color = "danger" // red
+	case "warning":
+		color = "warning" // yellow
+	}
+
+	// Create attachment
+	attachment := SlackAttachment{
+		Color:     color,
+		Title:     fmt.Sprintf("Performance Alert: %s", notification.Alert.RuleID),
+		Text:      notification.Message,
+		Timestamp: notification.Alert.FiredAt.Unix(),
+		Footer:    "Performance Alerting System",
+		Fields: []SlackField{
+			{Title: "Alert ID", Value: notification.Alert.ID, Short: true},
+			{Title: "Severity", Value: notification.Alert.Severity, Short: true},
+			{Title: "Category", Value: notification.Alert.Category, Short: true},
+			{Title: "Current Value", Value: fmt.Sprintf("%v", notification.Alert.Current), Short: true},
+			{Title: "Threshold", Value: fmt.Sprintf("%v", notification.Alert.Threshold), Short: true},
+			{Title: "Fired At", Value: notification.Alert.FiredAt.Format(time.RFC3339), Short: true},
+		},
+	}
+
+	// Add labels and annotations if present
+	if len(notification.Alert.Labels) > 0 {
+		labels := make([]string, 0, len(notification.Alert.Labels))
+		for k, v := range notification.Alert.Labels {
+			labels = append(labels, fmt.Sprintf("%s=%s", k, v))
+		}
+		attachment.Fields = append(attachment.Fields, SlackField{
+			Title: "Labels",
+			Value: strings.Join(labels, ", "),
+			Short: false,
+		})
+	}
+
+	if len(notification.Alert.Annotations) > 0 {
+		annotations := make([]string, 0, len(notification.Alert.Annotations))
+		for k, v := range notification.Alert.Annotations {
+			annotations = append(annotations, fmt.Sprintf("%s=%s", k, v))
+		}
+		attachment.Fields = append(attachment.Fields, SlackField{
+			Title: "Annotations",
+			Value: strings.Join(annotations, ", "),
+			Short: false,
+		})
+	}
+
+	return SlackMessage{
+		Channel:     s.config.Channel,
+		Username:    s.config.Username,
+		IconEmoji:   s.config.IconEmoji,
+		Attachments: []SlackAttachment{attachment},
+	}
+}
+
+// sendSlackMessage sends the message to Slack
+func (s *SlackNotificationChannel) sendSlackMessage(message SlackMessage) error {
+	payload, err := json.Marshal(message)
+	if err != nil {
+		return fmt.Errorf("failed to marshal Slack message: %w", err)
+	}
+
+	resp, err := s.client.Post(s.config.WebhookURL, "application/json", strings.NewReader(string(payload)))
+	if err != nil {
+		return fmt.Errorf("failed to send HTTP request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Slack API returned status %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+// WebhookNotificationChannel implements webhook notifications
+type WebhookNotificationChannel struct {
+	config WebhookConfig
+	logger *zap.Logger
+	client *http.Client
+}
+
+// WebhookConfig holds webhook notification configuration
+type WebhookConfig struct {
+	URL           string            `json:"url"`
+	Method        string            `json:"method"`
+	Headers       map[string]string `json:"headers"`
+	Timeout       time.Duration     `json:"timeout"`
+	RetryAttempts int               `json:"retry_attempts"`
+	Enabled       bool              `json:"enabled"`
+}
+
+// NewWebhookNotificationChannel creates a new webhook notification channel
+func NewWebhookNotificationChannel(config WebhookConfig, logger *zap.Logger) *WebhookNotificationChannel {
+	if config.Timeout == 0 {
+		config.Timeout = 30 * time.Second
+	}
+	if config.RetryAttempts == 0 {
+		config.RetryAttempts = 3
+	}
+
+	return &WebhookNotificationChannel{
+		config: config,
+		logger: logger,
+		client: &http.Client{
+			Timeout: config.Timeout,
+		},
+	}
+}
+
+// Name returns the channel name
+func (w *WebhookNotificationChannel) Name() string {
+	return "webhook"
+}
+
+// IsEnabled returns whether the channel is enabled
+func (w *WebhookNotificationChannel) IsEnabled() bool {
+	return w.config.Enabled && w.config.URL != ""
+}
+
+// Send sends a webhook notification
+func (w *WebhookNotificationChannel) Send(ctx context.Context, notification *PerformanceAlertNotification) error {
+	if !w.IsEnabled() {
+		return fmt.Errorf("webhook notification channel is disabled")
+	}
+
+	// Create webhook payload
+	payload := w.createWebhookPayload(notification)
+
+	// Send webhook with retries
+	var lastErr error
+	for attempt := 0; attempt <= w.config.RetryAttempts; attempt++ {
+		err := w.sendWebhook(payload)
+		if err == nil {
+			w.logger.Info("Webhook notification sent",
+				zap.String("alert_id", notification.Alert.ID),
+				zap.String("url", w.config.URL))
+			return nil
+		}
+
+		lastErr = err
+		if attempt < w.config.RetryAttempts {
+			w.logger.Warn("Webhook notification failed, retrying",
+				zap.Error(err),
+				zap.Int("attempt", attempt+1),
+				zap.String("alert_id", notification.Alert.ID))
+			time.Sleep(time.Duration(attempt+1) * time.Second) // Exponential backoff
+		}
+	}
+
+	w.logger.Error("Webhook notification failed after all retries",
+		zap.Error(lastErr),
+		zap.String("alert_id", notification.Alert.ID))
+	return fmt.Errorf("webhook notification failed after %d attempts: %w", w.config.RetryAttempts+1, lastErr)
+}
+
+// GetConfig returns the channel configuration
+func (w *WebhookNotificationChannel) GetConfig() map[string]interface{} {
+	return map[string]interface{}{
+		"url":            w.config.URL,
+		"method":         w.config.Method,
+		"headers":        w.config.Headers,
+		"timeout":        w.config.Timeout,
+		"retry_attempts": w.config.RetryAttempts,
+		"enabled":        w.config.Enabled,
+	}
+}
+
+// createWebhookPayload creates the webhook payload
+func (w *WebhookNotificationChannel) createWebhookPayload(notification *PerformanceAlertNotification) map[string]interface{} {
+	return map[string]interface{}{
+		"alert": map[string]interface{}{
+			"id":          notification.Alert.ID,
+			"rule_id":     notification.Alert.RuleID,
+			"severity":    notification.Alert.Severity,
+			"category":    notification.Alert.Category,
+			"current":     notification.Alert.Current,
+			"threshold":   notification.Alert.Threshold,
+			"fired_at":    notification.Alert.FiredAt,
+			"labels":      notification.Alert.Labels,
+			"annotations": notification.Alert.Annotations,
+		},
+		"notification": map[string]interface{}{
+			"channel":     notification.Channel,
+			"message":     notification.Message,
+			"priority":    notification.Priority,
+			"created_at":  notification.CreatedAt,
+			"retry_count": notification.RetryCount,
+		},
+		"timestamp": time.Now().Unix(),
+		"source":    "performance_alerting_system",
+	}
+}
+
+// sendWebhook sends the webhook request
+func (w *WebhookNotificationChannel) sendWebhook(payload map[string]interface{}) error {
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal webhook payload: %w", err)
+	}
+
+	req, err := http.NewRequest(w.config.Method, w.config.URL, strings.NewReader(string(jsonData)))
+	if err != nil {
+		return fmt.Errorf("failed to create HTTP request: %w", err)
+	}
+
+	// Set default headers
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "Performance-Alerting-System/1.0")
+
+	// Set custom headers
+	for key, value := range w.config.Headers {
+		req.Header.Set(key, value)
+	}
+
+	resp, err := w.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send HTTP request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("webhook returned status %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+// ConsoleNotificationChannel implements console notifications (for development/testing)
+type ConsoleNotificationChannel struct {
+	logger *zap.Logger
+}
+
+// NewConsoleNotificationChannel creates a new console notification channel
+func NewConsoleNotificationChannel(logger *zap.Logger) *ConsoleNotificationChannel {
+	return &ConsoleNotificationChannel{
+		logger: logger,
+	}
+}
+
+// Name returns the channel name
+func (c *ConsoleNotificationChannel) Name() string {
+	return "console"
+}
+
+// IsEnabled returns whether the channel is enabled
+func (c *ConsoleNotificationChannel) IsEnabled() bool {
+	return true // Always enabled for development
+}
+
+// Send sends a console notification
+func (c *ConsoleNotificationChannel) Send(ctx context.Context, notification *PerformanceAlertNotification) error {
+	c.logger.Info("CONSOLE NOTIFICATION",
+		zap.String("alert_id", notification.Alert.ID),
+		zap.String("rule_id", notification.Alert.RuleID),
+		zap.String("severity", notification.Alert.Severity),
+		zap.String("category", notification.Alert.Category),
+		zap.Any("current", notification.Alert.Current),
+		zap.Any("threshold", notification.Alert.Threshold),
+		zap.Time("fired_at", notification.Alert.FiredAt),
+		zap.String("message", notification.Message),
+		zap.Any("labels", notification.Alert.Labels),
+		zap.Any("annotations", notification.Alert.Annotations))
+
+	return nil
+}
+
+// GetConfig returns the channel configuration
+func (c *ConsoleNotificationChannel) GetConfig() map[string]interface{} {
+	return map[string]interface{}{
+		"type":    "console",
+		"enabled": true,
+	}
+}

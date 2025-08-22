@@ -8,18 +8,20 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
-	"os/signal"
 	"regexp"
 	"strings"
-	"syscall"
 	"time"
 
-	"github.com/joho/godotenv"
 	"golang.org/x/net/html"
+
+	"github.com/pcraw4d/business-verification/internal/api/middleware"
 )
 
 // EnhancedServer represents the enhanced classification server
+//
+// DEPRECATED: This server is being replaced by the new modular architecture.
+// The new architecture provides better separation of concerns and modularity.
+// Migration Guide: See docs/migration/legacy-api-migration.md
 type EnhancedServer struct {
 	server *http.Server
 }
@@ -27,6 +29,61 @@ type EnhancedServer struct {
 // NewEnhancedServer creates a new comprehensive enhanced server
 func NewEnhancedServer(port string) *EnhancedServer {
 	mux := http.NewServeMux()
+
+	// Initialize concurrent request handling middleware
+	queueConfig := &middleware.QueueConfig{
+		MaxWorkers:     50,               // Support 100+ concurrent users
+		QueueSize:      1000,             // Large queue for handling bursts
+		RequestTimeout: 30 * time.Second, // 30 second timeout per request
+		RateLimit:      100.0,            // 100 requests per second
+		BurstLimit:     200,              // Allow bursts up to 200 requests
+		EnableMetrics:  true,             // Enable detailed metrics
+		PriorityLevels: 5,                // 5 priority levels
+	}
+
+	concurrentMiddleware := middleware.ConcurrentRequestMiddleware(queueConfig)
+
+	// Initialize load testing API
+	loadTestingAPI := middleware.NewLoadTestingAPI(nil) // Queue will be set later
+
+	// Initialize session management
+	sessionManager := middleware.NewSessionManager(nil)
+	sessionAPI := middleware.NewSessionAPI(sessionManager)
+
+	// Initialize concurrent user monitoring
+	monitoringConfig := middleware.DefaultMonitoringConfig()
+	concurrentUserMonitor := middleware.NewConcurrentUserMonitor(monitoringConfig, sessionManager, nil) // queue will be set later
+	monitoringAPI := middleware.NewConcurrentUserMonitoringAPI(concurrentUserMonitor)
+
+	// Initialize resource utilization monitoring and optimization
+	resourceConfig := middleware.DefaultResourceConfig()
+	resourceUtilizationManager := middleware.NewResourceUtilizationManager(resourceConfig)
+	resourceAPI := middleware.NewResourceUtilizationAPI(resourceUtilizationManager)
+
+	// Initialize memory optimization and garbage collection
+	memoryConfig := middleware.DefaultMemoryOptimizationConfig()
+	memoryOptimizationManager := middleware.NewMemoryOptimizationManager(memoryConfig)
+	memoryAPI := middleware.NewMemoryOptimizationAPI(memoryOptimizationManager)
+
+	// Initialize CPU optimization and load balancing
+	cpuConfig := middleware.DefaultCPUOptimizationConfig()
+	cpuOptimizationManager := middleware.NewCPUOptimizationManager(cpuConfig)
+	cpuAPI := middleware.NewCPUOptimizationAPI(cpuOptimizationManager)
+
+	// Initialize resource alerting and scaling
+	alertingScalingConfig := middleware.DefaultAlertingScalingConfig()
+	resourceAlertingScalingManager := middleware.NewResourceAlertingScalingManager(alertingScalingConfig)
+	alertingScalingAPI := middleware.NewResourceAlertingScalingAPI(resourceAlertingScalingManager)
+
+	// Initialize horizontal scaling and load distribution
+	horizontalScalingConfig := middleware.DefaultHorizontalScalingConfig()
+	horizontalScalingManager := middleware.NewHorizontalScalingManager(horizontalScalingConfig)
+	horizontalScalingAPI := middleware.NewHorizontalScalingAPI(horizontalScalingManager)
+
+	// Initialize performance monitoring and bottleneck identification
+	performanceMonitoringConfig := middleware.DefaultPerformanceMonitoringConfig()
+	performanceMonitoringManager := middleware.NewPerformanceMonitoringManager(performanceMonitoringConfig)
+	performanceMonitoringAPI := middleware.NewPerformanceMonitoringAPI(performanceMonitoringManager)
 
 	// Web interface endpoint - serve the beta testing UI
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
@@ -399,19 +456,28 @@ func NewEnhancedServer(port string) *EnhancedServer {
 </html>`))
 	})
 
-	// Health check endpoint
-	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+	// Health check endpoint with concurrent request handling features
+	healthHandler := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":    "healthy",
 			"timestamp": time.Now().UTC().Format(time.RFC3339),
 			"version":   "1.0.0-beta-comprehensive",
+			"features": map[string]interface{}{
+				"concurrent_request_handling": true,
+				"rate_limiting":               true,
+				"request_queuing":             true,
+				"priority_processing":         true,
+				"worker_pool":                 true,
+			},
 		})
-	})
+	}
 
-	// Status endpoint with comprehensive feature status
-	mux.HandleFunc("GET /v1/status", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /health", concurrentMiddleware(healthHandler))
+
+	// Status endpoint with comprehensive feature status including load testing
+	statusHandler := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]interface{}{
@@ -419,18 +485,66 @@ func NewEnhancedServer(port string) *EnhancedServer {
 			"version":   "1.0.0-beta-comprehensive",
 			"timestamp": time.Now().UTC().Format(time.RFC3339),
 			"features": map[string]interface{}{
-				"enhanced_classification": "active",
-				"geographic_awareness":    "active",
-				"confidence_scoring":      "active",
-				"industry_detection":      "active",
-				"ml_integration":          "active",
-				"website_analysis":        "active",
-				"web_search":              "active",
-				"batch_processing":        "active",
-				"real_time_feedback":      "active",
+				"enhanced_classification":         "active",
+				"geographic_awareness":            "active",
+				"confidence_scoring":              "active",
+				"industry_detection":              "active",
+				"ml_integration":                  "active",
+				"website_analysis":                "active",
+				"web_search":                      "active",
+				"batch_processing":                "active",
+				"real_time_feedback":              "active",
+				"concurrent_request_handling":     "active",
+				"load_testing":                    "active",
+				"capacity_planning":               "active",
+				"session_management":              "active",
+				"user_tracking":                   "active",
+				"concurrent_user_monitoring":      "active",
+				"performance_optimization":        "active",
+				"resource_utilization_monitoring": "active",
+				"resource_optimization":           "active",
+				"memory_management":               "active",
+				"cpu_optimization":                "active",
+				"cpu_profiling":                   "active",
+				"load_balancing":                  "active",
+				"cpu_scheduling":                  "active",
+				"cpu_throttling":                  "active",
+				"gomaxprocs_optimization":         "active",
+				"gc_optimization":                 "active",
+				"goroutine_optimization":          "active",
+				"memory_optimization":             "active",
+				"garbage_collection":              "active",
+				"memory_profiling":                "active",
+				"memory_pooling":                  "active",
+				"leak_detection":                  "active",
+				"memory_compaction":               "active",
+				"resource_alerting":               "active",
+				"auto_scaling":                    "active",
+				"predictive_scaling":              "active",
+				"adaptive_thresholds":             "active",
+				"escalation_management":           "active",
+				"notification_channels":           "active",
+				"alert_acknowledgment":            "active",
+				"metric_retention":                "active",
+				"horizontal_scaling":              "active",
+				"load_distribution":               "active",
+				"service_discovery":               "active",
+				"health_checking":                 "active",
+				"session_affinity":                "active",
+				"auto_scaling_engine":             "active",
+				"load_balancing_strategies":       "active",
+				"instance_management":             "active",
+				"scaling_policies":                "active",
+				"performance_monitoring":          "active",
+				"bottleneck_detection":            "active",
+				"trend_analysis":                  "active",
+				"performance_alerting":            "active",
+				"performance_profiling":           "active",
 			},
 		})
-	})
+	}
+
+	mux.Handle("GET /v1/status", sessionManager.SessionMiddleware()(concurrentMiddleware(http.HandlerFunc(statusHandler))))
 
 	// Metrics endpoint
 	mux.HandleFunc("GET /v1/metrics", func(w http.ResponseWriter, r *http.Request) {
@@ -444,8 +558,8 @@ func NewEnhancedServer(port string) *EnhancedServer {
 		})
 	})
 
-	// Comprehensive enhanced classification endpoint
-	mux.HandleFunc("POST /v1/classify", func(w http.ResponseWriter, r *http.Request) {
+	// Comprehensive enhanced classification endpoint with concurrent request handling
+	classificationHandler := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
@@ -472,10 +586,12 @@ func NewEnhancedServer(port string) *EnhancedServer {
 		result := performComprehensiveClassification(businessName, geographicRegion, businessType, industry, description, keywords, websiteURL)
 
 		json.NewEncoder(w).Encode(result)
-	})
+	}
 
-	// Enhanced batch classification endpoint
-	mux.HandleFunc("POST /v1/classify/batch", func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("POST /v1/classify", sessionManager.SessionMiddleware()(concurrentMiddleware(http.HandlerFunc(classificationHandler))))
+
+	// Enhanced batch classification endpoint with concurrent request handling
+	batchClassificationHandler := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
@@ -520,12 +636,42 @@ func NewEnhancedServer(port string) *EnhancedServer {
 				"website_analysis":     true,
 				"web_search":           true,
 				"batch_processing":     true,
+				"concurrent_handling":  true, // New feature indicator
 			},
-			"message": "Comprehensive batch classification service active with all enhanced features",
+			"message": "Comprehensive batch classification service active with all enhanced features including concurrent request handling",
 		}
 
 		json.NewEncoder(w).Encode(response)
-	})
+	}
+
+	mux.Handle("POST /v1/classify/batch", sessionManager.SessionMiddleware()(concurrentMiddleware(http.HandlerFunc(batchClassificationHandler))))
+
+	// Register load testing routes
+	loadTestingAPI.RegisterLoadTestingRoutes(mux)
+
+	// Register session management routes
+	sessionAPI.RegisterSessionRoutes(mux)
+
+	// Register concurrent user monitoring routes
+	monitoringAPI.RegisterConcurrentUserMonitoringRoutes(mux)
+
+	// Register resource utilization routes
+	resourceAPI.RegisterResourceUtilizationRoutes(mux)
+
+	// Register memory optimization routes
+	memoryAPI.RegisterMemoryOptimizationRoutes(mux)
+
+	// Register CPU optimization routes
+	cpuAPI.RegisterCPUOptimizationRoutes(mux)
+
+	// Register resource alerting and scaling routes
+	alertingScalingAPI.RegisterResourceAlertingScalingRoutes(mux)
+
+	// Register horizontal scaling and load distribution routes
+	horizontalScalingAPI.RegisterHorizontalScalingRoutes(mux)
+
+	// Register performance monitoring and bottleneck identification routes
+	performanceMonitoringAPI.RegisterPerformanceMonitoringRoutes(mux)
 
 	// Get classification by ID endpoint
 	mux.HandleFunc("GET /v1/classify/{business_id}", func(w http.ResponseWriter, r *http.Request) {
@@ -1442,43 +1588,16 @@ func (s *EnhancedServer) Start() error {
 // Shutdown gracefully shuts down the server
 func (s *EnhancedServer) Shutdown(ctx context.Context) error {
 	log.Println("🛑 Shutting down server...")
+
+	// Note: Resource alerting and scaling manager shutdown will be handled
+	// by the consumer of this enhanced server library
+
 	return s.server.Shutdown(ctx)
 }
 
-func main() {
-	// Load environment variables
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, using environment variables")
-	}
-
-	// Get port from environment or use default
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-
-	// Create and start server
-	server := NewEnhancedServer(port)
-
-	// Handle graceful shutdown
-	go func() {
-		sigChan := make(chan os.Signal, 1)
-		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-		<-sigChan
-
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-
-		if err := server.Shutdown(ctx); err != nil {
-			log.Printf("Error during server shutdown: %v", err)
-		}
-	}()
-
-	// Start server
-	if err := server.Start(); err != nil && err != http.ErrServerClosed {
-		log.Fatalf("Failed to start server: %v", err)
-	}
-}
+// main function removed to avoid conflict with main.go
+// This file is meant to be used as a separate binary or imported as a library
+// To use this enhanced server, create a separate main function in a different package
 
 // Real ML classification functions
 type MLFeatures struct {

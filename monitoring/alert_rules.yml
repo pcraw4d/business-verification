@@ -1,0 +1,178 @@
+groups:
+  - name: business-verification-v3-api
+    rules:
+      # High error rate
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          service: business-verification-v3-api
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} errors per second for the last 5 minutes"
+
+      # High response time
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+        for: 2m
+        labels:
+          severity: warning
+          service: business-verification-v3-api
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is {{ $value }} seconds"
+
+      # Service down
+      - alert: ServiceDown
+        expr: up{job="business-verification-v3-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: business-verification-v3-api
+        annotations:
+          summary: "Service is down"
+          description: "The business verification v3 API service is not responding"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: business-verification-v3-api
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value | humanizePercentage }}"
+
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: business-verification-v3-api
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}%"
+
+      # Database connection issues
+      - alert: DatabaseConnectionIssues
+        expr: rate(database_connection_errors_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          service: business-verification-v3-api
+        annotations:
+          summary: "Database connection issues"
+          description: "Database connection errors detected"
+
+      # Rate limiting triggered
+      - alert: RateLimitTriggered
+        expr: rate(rate_limit_exceeded_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          service: business-verification-v3-api
+        annotations:
+          summary: "Rate limiting frequently triggered"
+          description: "Rate limiting is being triggered frequently"
+
+      # Authentication failures
+      - alert: HighAuthFailures
+        expr: rate(auth_failures_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          service: business-verification-v3-api
+        annotations:
+          summary: "High authentication failure rate"
+          description: "Authentication failures are occurring frequently"
+
+      # API endpoint errors
+      - alert: APIEndpointErrors
+        expr: rate(http_requests_total{status=~"4..", endpoint=~"/api/v3/.*"}[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          service: business-verification-v3-api
+        annotations:
+          summary: "API endpoint errors"
+          description: "High rate of 4xx errors on API endpoints"
+
+      # Slow database queries
+      - alert: SlowDatabaseQueries
+        expr: histogram_quantile(0.95, rate(database_query_duration_seconds_bucket[5m])) > 2
+        for: 2m
+        labels:
+          severity: warning
+          service: business-verification-v3-api
+        annotations:
+          summary: "Slow database queries"
+          description: "95th percentile database query time is {{ $value }} seconds"
+
+      # Disk space running low
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: business-verification-v3-api
+        annotations:
+          summary: "Disk space running low"
+          description: "Disk space usage is {{ $value | humanizePercentage }}"
+
+      # High number of goroutines
+      - alert: HighGoroutineCount
+        expr: go_goroutines > 1000
+        for: 2m
+        labels:
+          severity: warning
+          service: business-verification-v3-api
+        annotations:
+          summary: "High goroutine count"
+          description: "Number of goroutines is {{ $value }}"
+
+      # Memory leaks
+      - alert: MemoryLeak
+        expr: rate(go_memstats_heap_alloc_bytes[15m]) > 0
+        for: 10m
+        labels:
+          severity: warning
+          service: business-verification-v3-api
+        annotations:
+          summary: "Potential memory leak"
+          description: "Memory allocation is continuously increasing"
+
+      # External API failures
+      - alert: ExternalAPIFailures
+        expr: rate(external_api_errors_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          service: business-verification-v3-api
+        annotations:
+          summary: "External API failures"
+          description: "High rate of external API failures"
+
+      # SSL certificate expiration
+      - alert: SSLCertificateExpiringSoon
+        expr: probe_ssl_earliest_cert_expiry - time() < 86400 * 30
+        for: 1m
+        labels:
+          severity: warning
+          service: business-verification-v3-api
+        annotations:
+          summary: "SSL certificate expiring soon"
+          description: "SSL certificate will expire in {{ $value | humanizeDuration }}"
+
+      # Backup failures
+      - alert: BackupFailure
+        expr: backup_last_success_timestamp < time() - 86400
+        for: 1h
+        labels:
+          severity: critical
+          service: business-verification-v3-api
+        annotations:
+          summary: "Backup failure"
+          description: "No successful backup in the last 24 hours"

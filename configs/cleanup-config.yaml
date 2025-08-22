@@ -1,0 +1,314 @@
+# Automated Cleanup Configuration
+# Configuration for deprecated code cleanup scripts
+
+# General settings
+general:
+  project_root: "."
+  log_level: "info"
+  enable_backup: true
+  backup_retention_days: 30
+  max_file_size_mb: 50
+  
+# Scan settings
+scan:
+  # File patterns to include in scanning
+  include_patterns:
+    - "*.go"
+    - "*.md"
+    - "*.yaml"
+    - "*.yml"
+    - "*.json"
+    - "*.sh"
+    - "*.sql"
+    - "*.js"
+    - "*.ts"
+    - "*.py"
+  
+  # Directories and patterns to exclude
+  exclude_patterns:
+    - "vendor/"
+    - "node_modules/"
+    - ".git/"
+    - "*.log"
+    - "*.bin"
+    - "*.exe"
+    - "*.so"
+    - "*.dll"
+    - "*.dylib"
+    - ".cleanup-backups/"
+    - "reports/"
+    - "logs/"
+    - "tmp/"
+    - "build/"
+    - "dist/"
+    - "coverage/"
+  
+  # Maximum number of files to scan (0 = unlimited)
+  max_files: 0
+  
+  # Scan timeout in minutes
+  timeout_minutes: 30
+
+# Pattern definitions for deprecated code detection
+patterns:
+  deprecated_comments:
+    regex: "(?i)(//|#|/\\*)\\s*(deprecated|fixme|todo.*remove|legacy|obsolete)"
+    severity: "high"
+    auto_fixable: false
+    description: "Comments marking deprecated code"
+    suggestion: "Review and remove or update deprecated comments"
+  
+  todo_remove:
+    regex: "(?i)(//|#|/\\*)\\s*todo.*remove"
+    severity: "medium"
+    auto_fixable: false
+    description: "TODO comments indicating code should be removed"
+    suggestion: "Review and complete the TODO or remove if no longer relevant"
+  
+  fixme_legacy:
+    regex: "(?i)(//|#|/\\*)\\s*fixme.*legacy"
+    severity: "medium"
+    auto_fixable: false
+    description: "FIXME comments for legacy code"
+    suggestion: "Fix the legacy code or remove if no longer needed"
+  
+  deprecated_imports:
+    regex: "import\\s+.*(\".*deprecated.*\"|\".*legacy.*\"|\".*old.*\")"
+    severity: "high"
+    auto_fixable: false
+    description: "Imports of deprecated packages"
+    suggestion: "Update to use current packages"
+  
+  problematic_imports:
+    regex: "import\\s+.*\".*webanalysis\\.problematic.*\""
+    severity: "critical"
+    auto_fixable: false
+    description: "Imports of problematic packages"
+    suggestion: "Remove problematic imports and update code"
+  
+  deprecated_functions:
+    regex: "func\\s+.*[Dd]eprecated.*\\("
+    severity: "high"
+    auto_fixable: false
+    description: "Deprecated function definitions"
+    suggestion: "Replace with current implementation or remove if unused"
+  
+  legacy_functions:
+    regex: "func\\s+.*[Ll]egacy.*\\("
+    severity: "medium"
+    auto_fixable: false
+    description: "Legacy function definitions"
+    suggestion: "Update to modern implementation"
+  
+  old_functions:
+    regex: "func\\s+.*[Oo]ld.*\\("
+    severity: "medium"
+    auto_fixable: false
+    description: "Old function definitions"
+    suggestion: "Replace with current implementation"
+  
+  deprecated_variables:
+    regex: "(var|const)\\s+.*[Dd]eprecated.*\\s*="
+    severity: "medium"
+    auto_fixable: false
+    description: "Deprecated variable declarations"
+    suggestion: "Update variable names and usage"
+  
+  legacy_variables:
+    regex: "(var|const)\\s+.*[Ll]egacy.*\\s*="
+    severity: "medium"
+    auto_fixable: false
+    description: "Legacy variable declarations"
+    suggestion: "Update to modern naming conventions"
+  
+  deprecated_types:
+    regex: "type\\s+.*[Dd]eprecated.*\\s+(struct|interface)"
+    severity: "high"
+    auto_fixable: false
+    description: "Deprecated type definitions"
+    suggestion: "Update to use current types"
+  
+  legacy_types:
+    regex: "type\\s+.*[Ll]egacy.*\\s+(struct|interface)"
+    severity: "medium"
+    auto_fixable: false
+    description: "Legacy type definitions"
+    suggestion: "Modernize type definitions"
+  
+  backup_files:
+    regex: "\\.(bak|backup|orig)$"
+    severity: "low"
+    auto_fixable: true
+    description: "Backup files"
+    suggestion: "Remove backup files if no longer needed"
+  
+  temp_files:
+    regex: "\\.(tmp|temp)$|~$"
+    severity: "low"
+    auto_fixable: true
+    description: "Temporary files"
+    suggestion: "Remove temporary files"
+  
+  deprecated_files:
+    regex: "[._](deprecated|legacy|old)[._]"
+    severity: "medium"
+    auto_fixable: false
+    description: "Files marked as deprecated"
+    suggestion: "Review file contents and remove if obsolete"
+  
+  hardcoded_urls:
+    regex: "https?://[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
+    severity: "low"
+    auto_fixable: false
+    description: "Hardcoded URLs"
+    suggestion: "Move URLs to configuration files"
+  
+  magic_numbers:
+    regex: "\\b\\d{3,}\\b(?!\\s*//.*explanation)"
+    severity: "low"
+    auto_fixable: false
+    description: "Magic numbers without explanation"
+    suggestion: "Replace with named constants"
+  
+  unused_imports:
+    regex: "import\\s+\"[^\"]+\"\\s*$"
+    severity: "medium"
+    auto_fixable: false
+    description: "Potentially unused imports"
+    suggestion: "Remove unused imports"
+  
+  empty_catch:
+    regex: "catch\\s*\\([^)]*\\)\\s*\\{\\s*\\}"
+    severity: "medium"
+    auto_fixable: false
+    description: "Empty catch blocks"
+    suggestion: "Add proper error handling"
+  
+  generated_files:
+    regex: "// Code generated .* DO NOT EDIT\\."
+    severity: "info"
+    auto_fixable: false
+    description: "Generated files"
+    suggestion: "Do not modify generated files directly"
+
+# Auto-fix settings
+auto_fix:
+  enabled_patterns:
+    - "backup_files"
+    - "temp_files"
+  
+  # Require confirmation for these patterns even in auto-fix mode
+  require_confirmation:
+    - "deprecated_files"
+  
+  # Never auto-fix these patterns
+  never_auto_fix:
+    - "deprecated_functions"
+    - "deprecated_types"
+    - "deprecated_imports"
+    - "problematic_imports"
+
+# Reporting settings
+reporting:
+  # Output format: json, yaml, text, html
+  format: "json"
+  
+  # Include these sections in reports
+  include_sections:
+    - "summary"
+    - "deprecated_items"
+    - "recommendations"
+    - "fixes_applied"
+    - "metadata"
+  
+  # Group results by these fields
+  group_by:
+    - "severity"
+    - "pattern"
+    - "file"
+  
+  # Sort results by these fields
+  sort_by:
+    - "severity"
+    - "file"
+    - "line"
+
+# Integration settings
+integrations:
+  technical_debt_monitor:
+    enabled: true
+    endpoint: "/api/v3/technical-debt/metrics"
+    
+  prometheus:
+    enabled: true
+    metrics_prefix: "kyb_cleanup_"
+    
+  slack:
+    enabled: false
+    webhook_url: ""
+    channel: "#tech-debt"
+    
+  email:
+    enabled: false
+    smtp_server: ""
+    recipients: []
+
+# Cleanup schedules
+schedules:
+  daily:
+    enabled: false
+    time: "02:00"
+    patterns:
+      - "backup_files"
+      - "temp_files"
+    auto_fix: true
+  
+  weekly:
+    enabled: false
+    day: "sunday"
+    time: "01:00"
+    patterns:
+      - "deprecated_comments"
+      - "backup_files"
+      - "temp_files"
+    auto_fix: false
+  
+  monthly:
+    enabled: false
+    day: 1
+    time: "00:00"
+    full_scan: true
+    generate_report: true
+
+# Severity thresholds for alerts
+alerts:
+  critical_threshold: 1
+  high_threshold: 10
+  medium_threshold: 50
+  low_threshold: 100
+  
+  # Actions to take when thresholds are exceeded
+  actions:
+    critical:
+      - "send_alert"
+      - "block_deployment"
+    high:
+      - "send_alert"
+    medium:
+      - "send_notification"
+    low:
+      - "log_warning"
+
+# File size limits (in MB)
+limits:
+  max_file_size: 50
+  max_scan_files: 10000
+  max_report_size: 100
+
+# Advanced settings
+advanced:
+  parallel_processing: true
+  max_workers: 4
+  memory_limit_mb: 1024
+  enable_caching: true
+  cache_duration_hours: 24

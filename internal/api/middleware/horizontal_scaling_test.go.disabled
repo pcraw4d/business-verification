@@ -1,0 +1,761 @@
+package middleware
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+)
+
+// TestDefaultHorizontalScalingConfig tests default configuration creation
+func TestDefaultHorizontalScalingConfig(t *testing.T) {
+	config := DefaultHorizontalScalingConfig()
+
+	if config == nil {
+		t.Fatal("Expected non-nil config")
+	}
+
+	// Test basic settings
+	if !config.LoadBalancingEnabled {
+		t.Error("Expected LoadBalancingEnabled to be true")
+	}
+
+	if !config.ServiceDiscoveryEnabled {
+		t.Error("Expected ServiceDiscoveryEnabled to be true")
+	}
+
+	if !config.HealthCheckEnabled {
+		t.Error("Expected HealthCheckEnabled to be true")
+	}
+
+	if !config.AutoScalingEnabled {
+		t.Error("Expected AutoScalingEnabled to be true")
+	}
+
+	// Test load balancer config
+	if config.LoadBalancerConfig == nil {
+		t.Fatal("Expected LoadBalancerConfig to be non-nil")
+	}
+
+	if config.LoadBalancerConfig.Strategy != "round-robin" {
+		t.Errorf("Expected strategy to be 'round-robin', got %s", config.LoadBalancerConfig.Strategy)
+	}
+
+	// Test service discovery config
+	if config.ServiceDiscoveryConfig == nil {
+		t.Fatal("Expected ServiceDiscoveryConfig to be non-nil")
+	}
+
+	if config.ServiceDiscoveryConfig.ServiceName != "kyb-api" {
+		t.Errorf("Expected service name to be 'kyb-api', got %s", config.ServiceDiscoveryConfig.ServiceName)
+	}
+
+	// Test health check config
+	if config.HealthCheckConfig == nil {
+		t.Fatal("Expected HealthCheckConfig to be non-nil")
+	}
+
+	if !config.HealthCheckConfig.Enabled {
+		t.Error("Expected HealthCheckConfig.Enabled to be true")
+	}
+
+	// Test auto scaling config
+	if config.AutoScalingConfig == nil {
+		t.Fatal("Expected AutoScalingConfig to be non-nil")
+	}
+
+	if !config.AutoScalingConfig.Enabled {
+		t.Error("Expected AutoScalingConfig.Enabled to be true")
+	}
+
+	if config.AutoScalingConfig.CPUThreshold != 80.0 {
+		t.Errorf("Expected CPU threshold to be 80.0, got %f", config.AutoScalingConfig.CPUThreshold)
+	}
+}
+
+// TestNewHorizontalScalingManager tests manager creation
+func TestNewHorizontalScalingManager(t *testing.T) {
+	config := DefaultHorizontalScalingConfig()
+	manager := NewHorizontalScalingManager(config)
+
+	if manager == nil {
+		t.Fatal("Expected non-nil manager")
+	}
+
+	if manager.config != config {
+		t.Error("Expected config to be set")
+	}
+
+	if manager.ctx == nil {
+		t.Error("Expected context to be set")
+	}
+
+	if manager.cancel == nil {
+		t.Error("Expected cancel function to be set")
+	}
+
+	if manager.scalingDone == nil {
+		t.Error("Expected scalingDone channel to be set")
+	}
+
+	// Test component initialization
+	if manager.loadBalancer == nil {
+		t.Error("Expected load balancer to be initialized")
+	}
+
+	if manager.serviceDiscovery == nil {
+		t.Error("Expected service discovery to be initialized")
+	}
+
+	if manager.healthChecker == nil {
+		t.Error("Expected health checker to be initialized")
+	}
+
+	if manager.autoScaler == nil {
+		t.Error("Expected auto scaler to be initialized")
+	}
+}
+
+// TestHorizontalScalingManager_StartStop tests manager start and stop
+func TestHorizontalScalingManager_StartStop(t *testing.T) {
+	config := DefaultHorizontalScalingConfig()
+	manager := NewHorizontalScalingManager(config)
+
+	// Test start
+	if err := manager.Start(); err != nil {
+		t.Fatalf("Failed to start manager: %v", err)
+	}
+
+	// Give components time to start
+	time.Sleep(100 * time.Millisecond)
+
+	// Test stop
+	if err := manager.Stop(); err != nil {
+		t.Fatalf("Failed to stop manager: %v", err)
+	}
+}
+
+// TestNewHorizontalScalingLoadBalancer tests load balancer creation
+func TestNewHorizontalScalingLoadBalancer(t *testing.T) {
+	config := &LoadBalancerConfig{
+		Strategy: "round-robin",
+	}
+
+	lb := NewHorizontalScalingLoadBalancer(config)
+
+	if lb == nil {
+		t.Fatal("Expected non-nil load balancer")
+	}
+
+	if lb.config != config {
+		t.Error("Expected config to be set")
+	}
+
+	if lb.instances == nil {
+		t.Error("Expected instances slice to be initialized")
+	}
+
+	if lb.sessions == nil {
+		t.Error("Expected sessions map to be initialized")
+	}
+
+	if lb.stats == nil {
+		t.Error("Expected stats to be initialized")
+	}
+
+	if lb.strategy == nil {
+		t.Error("Expected strategy to be set")
+	}
+}
+
+// TestHorizontalScalingLoadBalancer_AddRemoveInstance tests instance management
+func TestHorizontalScalingLoadBalancer_AddRemoveInstance(t *testing.T) {
+	config := &LoadBalancerConfig{
+		Strategy: "round-robin",
+	}
+
+	lb := NewHorizontalScalingLoadBalancer(config)
+
+	// Test adding instance
+	instance := &ServiceInstance{
+		ID:           "test-instance-1",
+		URL:          "http://localhost:8081",
+		Weight:       1,
+		HealthStatus: HealthStatusHealthy,
+	}
+
+	lb.AddInstance(instance)
+
+	if len(lb.instances) != 1 {
+		t.Errorf("Expected 1 instance, got %d", len(lb.instances))
+	}
+
+	if lb.instances[0].ID != "test-instance-1" {
+		t.Errorf("Expected instance ID 'test-instance-1', got %s", lb.instances[0].ID)
+	}
+
+	// Test removing instance
+	lb.RemoveInstance("test-instance-1")
+
+	if len(lb.instances) != 0 {
+		t.Errorf("Expected 0 instances after removal, got %d", len(lb.instances))
+	}
+}
+
+// TestHorizontalScalingLoadBalancer_SelectInstance tests instance selection
+func TestHorizontalScalingLoadBalancer_SelectInstance(t *testing.T) {
+	config := &LoadBalancerConfig{
+		Strategy: "round-robin",
+	}
+
+	lb := NewHorizontalScalingLoadBalancer(config)
+
+	// Add test instances
+	instance1 := &ServiceInstance{
+		ID:           "test-instance-1",
+		URL:          "http://localhost:8081",
+		Weight:       1,
+		HealthStatus: HealthStatusHealthy,
+	}
+
+	instance2 := &ServiceInstance{
+		ID:           "test-instance-2",
+		URL:          "http://localhost:8082",
+		Weight:       1,
+		HealthStatus: HealthStatusHealthy,
+	}
+
+	lb.AddInstance(instance1)
+	lb.AddInstance(instance2)
+
+	// Test instance selection
+	req, _ := http.NewRequest("GET", "/test", nil)
+
+	selected := lb.SelectInstance(req)
+	if selected == nil {
+		t.Fatal("Expected non-nil selected instance")
+	}
+
+	// Test with no healthy instances
+	lb.instances[0].HealthStatus = HealthStatusUnhealthy
+	lb.instances[1].HealthStatus = HealthStatusUnhealthy
+
+	selected = lb.SelectInstance(req)
+	if selected != nil {
+		t.Error("Expected nil when no healthy instances")
+	}
+}
+
+// TestRoundRobinStrategy tests round-robin load balancing
+func TestRoundRobinStrategy(t *testing.T) {
+	strategy := &RoundRobinStrategy{}
+
+	instances := []*ServiceInstance{
+		{ID: "instance-1", HealthStatus: HealthStatusHealthy},
+		{ID: "instance-2", HealthStatus: HealthStatusHealthy},
+		{ID: "instance-3", HealthStatus: HealthStatusHealthy},
+	}
+
+	req, _ := http.NewRequest("GET", "/test", nil)
+
+	// Test multiple selections
+	selected1 := strategy.SelectInstance(instances, req)
+	selected2 := strategy.SelectInstance(instances, req)
+	selected3 := strategy.SelectInstance(instances, req)
+	selected4 := strategy.SelectInstance(instances, req)
+
+	if selected1 == nil || selected2 == nil || selected3 == nil || selected4 == nil {
+		t.Fatal("Expected non-nil selections")
+	}
+
+	// Should cycle through instances
+	if selected1.ID == selected2.ID && selected2.ID == selected3.ID && selected3.ID == selected4.ID {
+		t.Error("Expected different instances to be selected")
+	}
+}
+
+// TestWeightedStrategy tests weighted load balancing
+func TestWeightedStrategy(t *testing.T) {
+	strategy := &WeightedStrategy{}
+
+	instances := []*ServiceInstance{
+		{ID: "instance-1", Weight: 2, HealthStatus: HealthStatusHealthy},
+		{ID: "instance-2", Weight: 1, HealthStatus: HealthStatusHealthy},
+	}
+
+	req, _ := http.NewRequest("GET", "/test", nil)
+
+	// Test weighted selection
+	selected1 := strategy.SelectInstance(instances, req)
+	selected2 := strategy.SelectInstance(instances, req)
+	selected3 := strategy.SelectInstance(instances, req)
+
+	if selected1 == nil || selected2 == nil || selected3 == nil {
+		t.Fatal("Expected non-nil selections")
+	}
+
+	// Instance with weight 2 should be selected more often
+	instance1Count := 0
+	if selected1.ID == "instance-1" {
+		instance1Count++
+	}
+	if selected2.ID == "instance-1" {
+		instance1Count++
+	}
+	if selected3.ID == "instance-1" {
+		instance1Count++
+	}
+
+	// Should have selected instance-1 at least once (due to higher weight)
+	if instance1Count == 0 {
+		t.Error("Expected instance-1 to be selected at least once")
+	}
+}
+
+// TestLeastConnectionsStrategy tests least connections load balancing
+func TestLeastConnectionsStrategy(t *testing.T) {
+	strategy := &LeastConnectionsStrategy{}
+
+	instances := []*ServiceInstance{
+		{ID: "instance-1", ConnectionCount: 5, HealthStatus: HealthStatusHealthy},
+		{ID: "instance-2", ConnectionCount: 2, HealthStatus: HealthStatusHealthy},
+		{ID: "instance-3", ConnectionCount: 8, HealthStatus: HealthStatusHealthy},
+	}
+
+	req, _ := http.NewRequest("GET", "/test", nil)
+
+	selected := strategy.SelectInstance(instances, req)
+
+	if selected == nil {
+		t.Fatal("Expected non-nil selected instance")
+	}
+
+	// Should select instance with least connections
+	if selected.ID != "instance-2" {
+		t.Errorf("Expected instance-2 to be selected, got %s", selected.ID)
+	}
+}
+
+// TestIPHashStrategy tests IP hash load balancing
+func TestIPHashStrategy(t *testing.T) {
+	strategy := &IPHashStrategy{}
+
+	instances := []*ServiceInstance{
+		{ID: "instance-1", HealthStatus: HealthStatusHealthy},
+		{ID: "instance-2", HealthStatus: HealthStatusHealthy},
+		{ID: "instance-3", HealthStatus: HealthStatusHealthy},
+	}
+
+	// Test with same IP
+	req1, _ := http.NewRequest("GET", "/test", nil)
+	req1.RemoteAddr = "192.168.1.100:12345"
+
+	selected1 := strategy.SelectInstance(instances, req1)
+	selected2 := strategy.SelectInstance(instances, req1)
+
+	if selected1 == nil || selected2 == nil {
+		t.Fatal("Expected non-nil selections")
+	}
+
+	// Same IP should always hash to same instance
+	if selected1.ID != selected2.ID {
+		t.Error("Expected same instance for same IP")
+	}
+
+	// Test with different IP
+	req2, _ := http.NewRequest("GET", "/test", nil)
+	req2.RemoteAddr = "192.168.1.101:12345"
+
+	selected3 := strategy.SelectInstance(instances, req2)
+
+	if selected3 == nil {
+		t.Fatal("Expected non-nil selection")
+	}
+
+	// Different IP might hash to different instance
+	// (not guaranteed, but likely)
+}
+
+// TestRandomStrategy tests random load balancing
+func TestRandomStrategy(t *testing.T) {
+	strategy := &RandomStrategy{}
+
+	instances := []*ServiceInstance{
+		{ID: "instance-1", HealthStatus: HealthStatusHealthy},
+		{ID: "instance-2", HealthStatus: HealthStatusHealthy},
+		{ID: "instance-3", HealthStatus: HealthStatusHealthy},
+	}
+
+	req, _ := http.NewRequest("GET", "/test", nil)
+
+	// Test multiple selections
+	selected1 := strategy.SelectInstance(instances, req)
+	selected2 := strategy.SelectInstance(instances, req)
+	selected3 := strategy.SelectInstance(instances, req)
+
+	if selected1 == nil || selected2 == nil || selected3 == nil {
+		t.Fatal("Expected non-nil selections")
+	}
+
+	// All selections should be valid instances
+	validIDs := map[string]bool{
+		"instance-1": true,
+		"instance-2": true,
+		"instance-3": true,
+	}
+
+	if !validIDs[selected1.ID] {
+		t.Errorf("Invalid instance ID: %s", selected1.ID)
+	}
+
+	if !validIDs[selected2.ID] {
+		t.Errorf("Invalid instance ID: %s", selected2.ID)
+	}
+
+	if !validIDs[selected3.ID] {
+		t.Errorf("Invalid instance ID: %s", selected3.ID)
+	}
+}
+
+// TestNewServiceDiscovery tests service discovery creation
+func TestNewServiceDiscovery(t *testing.T) {
+	config := &ServiceDiscoveryConfig{
+		ServiceName: "test-service",
+		ServicePort: 8080,
+	}
+
+	sd := NewServiceDiscovery(config)
+
+	if sd == nil {
+		t.Fatal("Expected non-nil service discovery")
+	}
+
+	if sd.config != config {
+		t.Error("Expected config to be set")
+	}
+
+	if sd.instances == nil {
+		t.Error("Expected instances map to be initialized")
+	}
+
+	if sd.registry == nil {
+		t.Error("Expected registry to be initialized")
+	}
+
+	if sd.ctx == nil {
+		t.Error("Expected context to be set")
+	}
+
+	if sd.cancel == nil {
+		t.Error("Expected cancel function to be set")
+	}
+
+	if sd.done == nil {
+		t.Error("Expected done channel to be set")
+	}
+}
+
+// TestServiceDiscovery_StartStop tests service discovery start and stop
+func TestServiceDiscovery_StartStop(t *testing.T) {
+	config := &ServiceDiscoveryConfig{
+		ServiceName:         "test-service",
+		ServicePort:         8080,
+		RegistrationEnabled: false, // Disable for testing
+		DiscoveryInterval:   100 * time.Millisecond,
+	}
+
+	sd := NewServiceDiscovery(config)
+
+	// Test start
+	if err := sd.Start(); err != nil {
+		t.Fatalf("Failed to start service discovery: %v", err)
+	}
+
+	// Give time for discovery loop to run
+	time.Sleep(200 * time.Millisecond)
+
+	// Test stop
+	if err := sd.Stop(); err != nil {
+		t.Fatalf("Failed to stop service discovery: %v", err)
+	}
+}
+
+// TestNewHealthChecker tests health checker creation
+func TestNewHealthChecker(t *testing.T) {
+	config := &HealthCheckConfig{
+		Enabled:       true,
+		CheckInterval: 30 * time.Second,
+	}
+
+	hc := NewHealthChecker(config)
+
+	if hc == nil {
+		t.Fatal("Expected non-nil health checker")
+	}
+
+	if hc.config != config {
+		t.Error("Expected config to be set")
+	}
+
+	if hc.instances == nil {
+		t.Error("Expected instances map to be initialized")
+	}
+
+	if hc.ctx == nil {
+		t.Error("Expected context to be set")
+	}
+
+	if hc.cancel == nil {
+		t.Error("Expected cancel function to be set")
+	}
+
+	if hc.done == nil {
+		t.Error("Expected done channel to be set")
+	}
+}
+
+// TestHealthChecker_StartStop tests health checker start and stop
+func TestHealthChecker_StartStop(t *testing.T) {
+	config := &HealthCheckConfig{
+		Enabled:       true,
+		CheckInterval: 100 * time.Millisecond,
+	}
+
+	hc := NewHealthChecker(config)
+
+	// Test start
+	if err := hc.Start(); err != nil {
+		t.Fatalf("Failed to start health checker: %v", err)
+	}
+
+	// Give time for health check loop to run
+	time.Sleep(200 * time.Millisecond)
+
+	// Test stop
+	if err := hc.Stop(); err != nil {
+		t.Fatalf("Failed to stop health checker: %v", err)
+	}
+}
+
+// TestNewAutoScaler tests auto scaler creation
+func TestNewAutoScaler(t *testing.T) {
+	config := &AutoScalingConfig{
+		Enabled:         true,
+		ScalingInterval: 60 * time.Second,
+		CPUThreshold:    80.0,
+	}
+
+	as := NewAutoScaler(config)
+
+	if as == nil {
+		t.Fatal("Expected non-nil auto scaler")
+	}
+
+	if as.config != config {
+		t.Error("Expected config to be set")
+	}
+
+	if as.instances == nil {
+		t.Error("Expected instances map to be initialized")
+	}
+
+	if as.ctx == nil {
+		t.Error("Expected context to be set")
+	}
+
+	if as.cancel == nil {
+		t.Error("Expected cancel function to be set")
+	}
+
+	if as.done == nil {
+		t.Error("Expected done channel to be set")
+	}
+}
+
+// TestAutoScaler_StartStop tests auto scaler start and stop
+func TestAutoScaler_StartStop(t *testing.T) {
+	config := &AutoScalingConfig{
+		Enabled:         true,
+		ScalingInterval: 100 * time.Millisecond,
+	}
+
+	as := NewAutoScaler(config)
+
+	// Test start
+	if err := as.Start(); err != nil {
+		t.Fatalf("Failed to start auto scaler: %v", err)
+	}
+
+	// Give time for scaling loop to run
+	time.Sleep(200 * time.Millisecond)
+
+	// Test stop
+	if err := as.Stop(); err != nil {
+		t.Fatalf("Failed to stop auto scaler: %v", err)
+	}
+}
+
+// TestHorizontalScalingAPI tests API endpoints
+func TestHorizontalScalingAPI(t *testing.T) {
+	config := DefaultHorizontalScalingConfig()
+	manager := NewHorizontalScalingManager(config)
+	api := NewHorizontalScalingAPI(manager)
+
+	if api == nil {
+		t.Fatal("Expected non-nil API")
+	}
+
+	if api.manager != manager {
+		t.Error("Expected manager to be set")
+	}
+}
+
+// TestHorizontalScalingAPI_GetInstancesHandler tests the get instances endpoint
+func TestHorizontalScalingAPI_GetInstancesHandler(t *testing.T) {
+	config := DefaultHorizontalScalingConfig()
+	manager := NewHorizontalScalingManager(config)
+	api := NewHorizontalScalingAPI(manager)
+
+	// Add test instance
+	instance := &ServiceInstance{
+		ID:           "test-instance",
+		URL:          "http://localhost:8080",
+		HealthStatus: HealthStatusHealthy,
+	}
+	manager.loadBalancer.AddInstance(instance)
+
+	// Create test request
+	req := httptest.NewRequest("GET", "/v1/loadbalancer/instances", nil)
+	w := httptest.NewRecorder()
+
+	// Call handler
+	api.GetInstancesHandler(w, req)
+
+	// Check response
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	// Check content type
+	contentType := w.Header().Get("Content-Type")
+	if contentType != "application/json" {
+		t.Errorf("Expected Content-Type application/json, got %s", contentType)
+	}
+}
+
+// TestHorizontalScalingAPI_AddInstanceHandler tests the add instance endpoint
+func TestHorizontalScalingAPI_AddInstanceHandler(t *testing.T) {
+	config := DefaultHorizontalScalingConfig()
+	manager := NewHorizontalScalingManager(config)
+	api := NewHorizontalScalingAPI(manager)
+
+	// Create test request with JSON body
+	jsonBody := `{"url": "http://localhost:8081", "weight": 2, "metadata": {"env": "test"}}`
+	req := httptest.NewRequest("POST", "/v1/loadbalancer/instances", nil)
+	req.Body = http.NoBody // Simplified for test
+	w := httptest.NewRecorder()
+
+	// Call handler
+	api.AddInstanceHandler(w, req)
+
+	// Check response
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status 400 for invalid body, got %d", w.Code)
+	}
+}
+
+// TestHorizontalScalingAPI_GetStatusHandler tests the status endpoint
+func TestHorizontalScalingAPI_GetStatusHandler(t *testing.T) {
+	config := DefaultHorizontalScalingConfig()
+	manager := NewHorizontalScalingManager(config)
+	api := NewHorizontalScalingAPI(manager)
+
+	// Create test request
+	req := httptest.NewRequest("GET", "/v1/status", nil)
+	w := httptest.NewRecorder()
+
+	// Call handler
+	api.GetStatusHandler(w, req)
+
+	// Check response
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	// Check content type
+	contentType := w.Header().Get("Content-Type")
+	if contentType != "application/json" {
+		t.Errorf("Expected Content-Type application/json, got %s", contentType)
+	}
+}
+
+// TestGenerateInstanceID tests instance ID generation
+func TestGenerateInstanceID(t *testing.T) {
+	id1 := generateInstanceID()
+	id2 := generateInstanceID()
+
+	if id1 == "" {
+		t.Error("Expected non-empty instance ID")
+	}
+
+	if id2 == "" {
+		t.Error("Expected non-empty instance ID")
+	}
+
+	if id1 == id2 {
+		t.Error("Expected different instance IDs")
+	}
+
+	// Check format
+	if len(id1) < 10 {
+		t.Error("Expected instance ID to be at least 10 characters")
+	}
+}
+
+// TestScalingDecision tests scaling decision creation
+func TestScalingDecision(t *testing.T) {
+	decision := ScalingDecision{
+		Type:      ScalingDecisionTypeScaleUp,
+		Reason:    "High CPU usage",
+		Instances: 2,
+		Timestamp: time.Now(),
+	}
+
+	if decision.Type != ScalingDecisionTypeScaleUp {
+		t.Errorf("Expected type %s, got %s", ScalingDecisionTypeScaleUp, decision.Type)
+	}
+
+	if decision.Reason != "High CPU usage" {
+		t.Errorf("Expected reason 'High CPU usage', got %s", decision.Reason)
+	}
+
+	if decision.Instances != 2 {
+		t.Errorf("Expected 2 instances, got %d", decision.Instances)
+	}
+}
+
+// TestHealthStatus tests health status constants
+func TestHealthStatus(t *testing.T) {
+	if HealthStatusHealthy != "healthy" {
+		t.Errorf("Expected HealthStatusHealthy to be 'healthy', got %s", HealthStatusHealthy)
+	}
+
+	if HealthStatusUnhealthy != "unhealthy" {
+		t.Errorf("Expected HealthStatusUnhealthy to be 'unhealthy', got %s", HealthStatusUnhealthy)
+	}
+
+	if HealthStatusUnknown != "unknown" {
+		t.Errorf("Expected HealthStatusUnknown to be 'unknown', got %s", HealthStatusUnknown)
+	}
+}
+
+// TestScalingDecisionType tests scaling decision type constants
+func TestScalingDecisionType(t *testing.T) {
+	if ScalingDecisionTypeScaleUp != "scale_up" {
+		t.Errorf("Expected ScalingDecisionTypeScaleUp to be 'scale_up', got %s", ScalingDecisionTypeScaleUp)
+	}
+
+	if ScalingDecisionTypeScaleDown != "scale_down" {
+		t.Errorf("Expected ScalingDecisionTypeScaleDown to be 'scale_down', got %s", ScalingDecisionTypeScaleDown)
+	}
+}

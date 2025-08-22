@@ -1,0 +1,292 @@
+version: "3.8"
+
+services:
+  # Main modular application
+  business-verification-modular:
+    build:
+      context: .
+      dockerfile: Dockerfile.modular
+      args:
+        - MODULE_NAME=all
+    container_name: business-verification-modular
+    ports:
+      - "8080:8080"
+      - "9090:9090" # Metrics port
+    environment:
+      - ENVIRONMENT=development
+      - PORT=8080
+      - HOST=0.0.0.0
+      - LOG_LEVEL=debug
+      - LOG_FORMAT=json
+      - METRICS_ENABLED=true
+      - HEALTH_CHECK_ENABLED=true
+      - CIRCUIT_BREAKER_ENABLED=true
+      - RETRY_POLICY_ENABLED=true
+      - FALLBACK_STRATEGY_ENABLED=true
+      - DEGRADATION_POLICY_ENABLED=true
+      - ENABLE_MODULES=all
+      - ENABLE_WEBSITE_ANALYSIS=true
+      - ENABLE_WEB_SEARCH_ANALYSIS=true
+      - ENABLE_ML_CLASSIFICATION=true
+      - ENABLE_KEYWORD_CLASSIFICATION=true
+      - ENABLE_VERIFICATION=true
+      - ENABLE_DATA_EXTRACTION=true
+      - ENABLE_RISK_ASSESSMENT=true
+      - ENABLE_INTELLIGENT_ROUTING=true
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=business_verification
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    volumes:
+      - ./logs:/app/logs
+      - ./configs:/app/configs
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - business-verification-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # Individual module services (for microservices deployment)
+  website-analysis-module:
+    build:
+      context: .
+      dockerfile: Dockerfile.module
+      args:
+        - MODULE_NAME=website-analysis
+    container_name: website-analysis-module
+    ports:
+      - "8081:8080"
+    environment:
+      - ENVIRONMENT=development
+      - PORT=8080
+      - MODULE_NAME=website-analysis
+      - LOG_LEVEL=debug
+      - METRICS_ENABLED=true
+      - HEALTH_CHECK_ENABLED=true
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - business-verification-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  web-search-analysis-module:
+    build:
+      context: .
+      dockerfile: Dockerfile.module
+      args:
+        - MODULE_NAME=web-search-analysis
+    container_name: web-search-analysis-module
+    ports:
+      - "8082:8080"
+    environment:
+      - ENVIRONMENT=development
+      - PORT=8080
+      - MODULE_NAME=web-search-analysis
+      - LOG_LEVEL=debug
+      - METRICS_ENABLED=true
+      - HEALTH_CHECK_ENABLED=true
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - business-verification-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  ml-classification-module:
+    build:
+      context: .
+      dockerfile: Dockerfile.module
+      args:
+        - MODULE_NAME=ml-classification
+    container_name: ml-classification-module
+    ports:
+      - "8083:8080"
+    environment:
+      - ENVIRONMENT=development
+      - PORT=8080
+      - MODULE_NAME=ml-classification
+      - LOG_LEVEL=debug
+      - METRICS_ENABLED=true
+      - HEALTH_CHECK_ENABLED=true
+    volumes:
+      - ./logs:/app/logs
+      - ./models:/app/models
+    networks:
+      - business-verification-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  verification-module:
+    build:
+      context: .
+      dockerfile: Dockerfile.module
+      args:
+        - MODULE_NAME=verification
+    container_name: verification-module
+    ports:
+      - "8084:8080"
+    environment:
+      - ENVIRONMENT=development
+      - PORT=8080
+      - MODULE_NAME=verification
+      - LOG_LEVEL=debug
+      - METRICS_ENABLED=true
+      - HEALTH_CHECK_ENABLED=true
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - business-verification-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: business-verification-postgres
+    environment:
+      - POSTGRES_DB=business_verification
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - business-verification-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    container_name: business-verification-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - business-verification-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Prometheus for metrics
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: business-verification-prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--storage.tsdb.retention.time=200h"
+      - "--web.enable-lifecycle"
+    networks:
+      - business-verification-network
+    restart: unless-stopped
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: business-verification-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - business-verification-network
+    restart: unless-stopped
+
+  # Jaeger for tracing
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: business-verification-jaeger
+    ports:
+      - "16686:16686"
+      - "14268:14268"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - business-verification-network
+    restart: unless-stopped
+
+  # Load balancer for microservices
+  nginx:
+    image: nginx:alpine
+    container_name: business-verification-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - business-verification-modular
+      - website-analysis-module
+      - web-search-analysis-module
+      - ml-classification-module
+      - verification-module
+    networks:
+      - business-verification-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  business-verification-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

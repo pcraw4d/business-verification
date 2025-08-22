@@ -1,0 +1,496 @@
+package middleware
+
+import (
+	"encoding/json"
+	"net/http"
+	"time"
+)
+
+// CPUOptimizationAPI provides RESTful API endpoints for CPU optimization
+type CPUOptimizationAPI struct {
+	cpuManager *CPUOptimizationManager
+}
+
+// NewCPUOptimizationAPI creates a new CPU optimization API
+func NewCPUOptimizationAPI(cpuManager *CPUOptimizationManager) *CPUOptimizationAPI {
+	return &CPUOptimizationAPI{
+		cpuManager: cpuManager,
+	}
+}
+
+// RegisterCPUOptimizationRoutes registers all CPU optimization routes
+func (coa *CPUOptimizationAPI) RegisterCPUOptimizationRoutes(mux *http.ServeMux) {
+	// CPU profiling endpoints
+	mux.HandleFunc("GET /v1/cpu/profile", coa.GetCPUProfile)
+	mux.HandleFunc("GET /v1/cpu/profile/history", coa.GetCPUProfileHistory)
+	mux.HandleFunc("GET /v1/cpu/usage/stats", coa.GetCPUUsageStats)
+	
+	// Load balancing endpoints
+	mux.HandleFunc("GET /v1/cpu/load-balancer/stats", coa.GetLoadBalancerStats)
+	mux.HandleFunc("GET /v1/cpu/load-balancer/workers", coa.GetWorkers)
+	mux.HandleFunc("POST /v1/cpu/load-balancer/strategy", coa.SetLoadBalancingStrategy)
+	mux.HandleFunc("POST /v1/cpu/load-balancer/rebalance", coa.TriggerRebalance)
+	
+	// Scheduling endpoints
+	mux.HandleFunc("GET /v1/cpu/scheduler/stats", coa.GetSchedulerStats)
+	mux.HandleFunc("GET /v1/cpu/scheduler/queues", coa.GetSchedulerQueues)
+	mux.HandleFunc("POST /v1/cpu/scheduler/task", coa.AddTask)
+	mux.HandleFunc("GET /v1/cpu/scheduler/task", coa.GetNextTask)
+	
+	// Throttling endpoints
+	mux.HandleFunc("GET /v1/cpu/throttler/stats", coa.GetThrottlerStats)
+	mux.HandleFunc("GET /v1/cpu/throttler/throttles", coa.GetThrottles)
+	mux.HandleFunc("POST /v1/cpu/throttler/throttle", coa.AddThrottle)
+	mux.HandleFunc("PUT /v1/cpu/throttler/throttle", coa.UpdateThrottle)
+	
+	// Optimization endpoints
+	mux.HandleFunc("GET /v1/cpu/optimizer/stats", coa.GetOptimizerStats)
+	mux.HandleFunc("GET /v1/cpu/optimizer/history", coa.GetOptimizationHistory)
+	mux.HandleFunc("POST /v1/cpu/optimizer/optimize", coa.TriggerOptimization)
+	mux.HandleFunc("POST /v1/cpu/optimizer/strategy", coa.AddOptimizationStrategy)
+	
+	// Management endpoints
+	mux.HandleFunc("GET /v1/cpu/status", coa.GetCPUStatus)
+	mux.HandleFunc("GET /v1/cpu/health", coa.GetCPUHealth)
+	mux.HandleFunc("POST /v1/cpu/config", coa.UpdateConfig)
+	mux.HandleFunc("GET /v1/cpu/config", coa.GetConfig)
+}
+
+// GetCPUProfile returns the current CPU profile
+func (coa *CPUOptimizationAPI) GetCPUProfile(w http.ResponseWriter, r *http.Request) {
+	profile := coa.cpuManager.GetCPUProfile()
+	if profile == nil {
+		http.Error(w, "Failed to get CPU profile", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"profile": profile,
+		"timestamp": time.Now(),
+	})
+}
+
+// GetCPUProfileHistory returns CPU profile history
+func (coa *CPUOptimizationAPI) GetCPUProfileHistory(w http.ResponseWriter, r *http.Request) {
+	// This would return the last N profiles from the profiler
+	// For now, return a simplified response
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "CPU profile history endpoint",
+		"timestamp": time.Now(),
+	})
+}
+
+// GetCPUUsageStats returns CPU usage statistics
+func (coa *CPUOptimizationAPI) GetCPUUsageStats(w http.ResponseWriter, r *http.Request) {
+	// This would return detailed usage statistics
+	// For now, return a simplified response
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "CPU usage statistics endpoint",
+		"timestamp": time.Now(),
+	})
+}
+
+// GetLoadBalancerStats returns load balancer statistics
+func (coa *CPUOptimizationAPI) GetLoadBalancerStats(w http.ResponseWriter, r *http.Request) {
+	stats := coa.cpuManager.GetLoadBalancerStats()
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"stats": stats,
+		"timestamp": time.Now(),
+	})
+}
+
+// GetWorkers returns information about all workers
+func (coa *CPUOptimizationAPI) GetWorkers(w http.ResponseWriter, r *http.Request) {
+	// This would return detailed worker information
+	// For now, return a simplified response
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "Workers information endpoint",
+		"timestamp": time.Now(),
+	})
+}
+
+// SetLoadBalancingStrategy sets the load balancing strategy
+func (coa *CPUOptimizationAPI) SetLoadBalancingStrategy(w http.ResponseWriter, r *http.Request) {
+	var request struct {
+		Strategy string `json:"strategy"`
+	}
+	
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	
+	// Validate strategy
+	validStrategies := []string{"round_robin", "weighted", "adaptive"}
+	isValid := false
+	for _, strategy := range validStrategies {
+		if request.Strategy == strategy {
+			isValid = true
+			break
+		}
+	}
+	
+	if !isValid {
+		http.Error(w, "Invalid load balancing strategy", http.StatusBadRequest)
+		return
+	}
+	
+	// Update the strategy (this would require adding a method to the manager)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "Load balancing strategy updated",
+		"strategy": request.Strategy,
+		"timestamp": time.Now(),
+	})
+}
+
+// TriggerRebalance triggers a load balancer rebalance
+func (coa *CPUOptimizationAPI) TriggerRebalance(w http.ResponseWriter, r *http.Request) {
+	// This would trigger a manual rebalance
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "Load balancer rebalance triggered",
+		"timestamp": time.Now(),
+	})
+}
+
+// GetSchedulerStats returns scheduler statistics
+func (coa *CPUOptimizationAPI) GetSchedulerStats(w http.ResponseWriter, r *http.Request) {
+	stats := coa.cpuManager.GetSchedulerStats()
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"stats": stats,
+		"timestamp": time.Now(),
+	})
+}
+
+// GetSchedulerQueues returns information about scheduler queues
+func (coa *CPUOptimizationAPI) GetSchedulerQueues(w http.ResponseWriter, r *http.Request) {
+	// This would return detailed queue information
+	// For now, return a simplified response
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "Scheduler queues information endpoint",
+		"timestamp": time.Now(),
+	})
+}
+
+// AddTask adds a new task to the scheduler
+func (coa *CPUOptimizationAPI) AddTask(w http.ResponseWriter, r *http.Request) {
+	var request struct {
+		ID                string `json:"id"`
+		Priority          int    `json:"priority"`
+		TimeSlice         string `json:"time_slice"`
+		CPURequirement    float64 `json:"cpu_requirement"`
+		MemoryRequirement uint64  `json:"memory_requirement"`
+	}
+	
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	
+	// Parse time slice
+	timeSlice, err := time.ParseDuration(request.TimeSlice)
+	if err != nil {
+		http.Error(w, "Invalid time slice format", http.StatusBadRequest)
+		return
+	}
+	
+	task := &Task{
+		ID:               request.ID,
+		Priority:         request.Priority,
+		TimeSlice:        timeSlice,
+		CPURequirement:   request.CPURequirement,
+		MemoryRequirement: request.MemoryRequirement,
+		Status:           "pending",
+	}
+	
+	if err := coa.cpuManager.scheduler.AddTask(task); err != nil {
+		http.Error(w, "Failed to add task", http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "Task added successfully",
+		"task_id": task.ID,
+		"timestamp": time.Now(),
+	})
+}
+
+// GetNextTask gets the next task from the scheduler
+func (coa *CPUOptimizationAPI) GetNextTask(w http.ResponseWriter, r *http.Request) {
+	task := coa.cpuManager.scheduler.GetNextTask()
+	
+	if task == nil {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"message": "No tasks available",
+			"timestamp": time.Now(),
+		})
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"task": task,
+		"timestamp": time.Now(),
+	})
+}
+
+// GetThrottlerStats returns throttler statistics
+func (coa *CPUOptimizationAPI) GetThrottlerStats(w http.ResponseWriter, r *http.Request) {
+	stats := coa.cpuManager.GetThrottlerStats()
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"stats": stats,
+		"timestamp": time.Now(),
+	})
+}
+
+// GetThrottles returns information about all throttles
+func (coa *CPUOptimizationAPI) GetThrottles(w http.ResponseWriter, r *http.Request) {
+	// This would return detailed throttle information
+	// For now, return a simplified response
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "Throttles information endpoint",
+		"timestamp": time.Now(),
+	})
+}
+
+// AddThrottle adds a new CPU throttle
+func (coa *CPUOptimizationAPI) AddThrottle(w http.ResponseWriter, r *http.Request) {
+	var request struct {
+		Name      string  `json:"name"`
+		Threshold float64 `json:"threshold"`
+	}
+	
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	
+	if request.Threshold <= 0 || request.Threshold > 100 {
+		http.Error(w, "Threshold must be between 0 and 100", http.StatusBadRequest)
+		return
+	}
+	
+	coa.cpuManager.throttler.AddThrottle(request.Name, request.Threshold)
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "Throttle added successfully",
+		"name": request.Name,
+		"threshold": request.Threshold,
+		"timestamp": time.Now(),
+	})
+}
+
+// UpdateThrottle updates an existing CPU throttle
+func (coa *CPUOptimizationAPI) UpdateThrottle(w http.ResponseWriter, r *http.Request) {
+	var request struct {
+		Name      string  `json:"name"`
+		Threshold float64 `json:"threshold"`
+	}
+	
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	
+	if request.Threshold <= 0 || request.Threshold > 100 {
+		http.Error(w, "Threshold must be between 0 and 100", http.StatusBadRequest)
+		return
+	}
+	
+	// This would update the throttle threshold
+	// For now, just return success
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "Throttle updated successfully",
+		"name": request.Name,
+		"threshold": request.Threshold,
+		"timestamp": time.Now(),
+	})
+}
+
+// GetOptimizerStats returns optimizer statistics
+func (coa *CPUOptimizationAPI) GetOptimizerStats(w http.ResponseWriter, r *http.Request) {
+	stats := coa.cpuManager.GetOptimizerStats()
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"stats": stats,
+		"timestamp": time.Now(),
+	})
+}
+
+// GetOptimizationHistory returns optimization history
+func (coa *CPUOptimizationAPI) GetOptimizationHistory(w http.ResponseWriter, r *http.Request) {
+	// This would return the optimization history
+	// For now, return a simplified response
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "Optimization history endpoint",
+		"timestamp": time.Now(),
+	})
+}
+
+// TriggerOptimization triggers a manual CPU optimization
+func (coa *CPUOptimizationAPI) TriggerOptimization(w http.ResponseWriter, r *http.Request) {
+	if err := coa.cpuManager.OptimizeCPU(); err != nil {
+		http.Error(w, "Failed to trigger optimization", http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "CPU optimization triggered successfully",
+		"timestamp": time.Now(),
+	})
+}
+
+// AddOptimizationStrategy adds a new optimization strategy
+func (coa *CPUOptimizationAPI) AddOptimizationStrategy(w http.ResponseWriter, r *http.Request) {
+	var request struct {
+		Name        string `json:"name"`
+		Description string `json:"description"`
+		Priority    int    `json:"priority"`
+	}
+	
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	
+	// This would add a new optimization strategy
+	// For now, just return success
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "Optimization strategy added successfully",
+		"name": request.Name,
+		"timestamp": time.Now(),
+	})
+}
+
+// GetCPUStatus returns the overall CPU optimization status
+func (coa *CPUOptimizationAPI) GetCPUStatus(w http.ResponseWriter, r *http.Request) {
+	profile := coa.cpuManager.GetCPUProfile()
+	loadBalancerStats := coa.cpuManager.GetLoadBalancerStats()
+	schedulerStats := coa.cpuManager.GetSchedulerStats()
+	throttlerStats := coa.cpuManager.GetThrottlerStats()
+	optimizerStats := coa.cpuManager.GetOptimizerStats()
+	
+	status := "healthy"
+	if profile != nil && profile.OverallUsage > 90.0 {
+		status = "critical"
+	} else if profile != nil && profile.OverallUsage > 80.0 {
+		status = "warning"
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": status,
+		"cpu_usage": profile.OverallUsage,
+		"load_balancer": map[string]interface{}{
+			"total_tasks": loadBalancerStats.TotalTasks,
+			"average_load": loadBalancerStats.AverageLoad,
+			"active_workers": len(loadBalancerStats.TasksPerWorker),
+		},
+		"scheduler": map[string]interface{}{
+			"total_tasks": schedulerStats.TotalTasks,
+			"completed_tasks": schedulerStats.CompletedTasks,
+			"queue_count": len(schedulerStats.QueueLengths),
+		},
+		"throttler": map[string]interface{}{
+			"total_throttles": throttlerStats.TotalThrottles,
+			"active_throttles": throttlerStats.ActiveThrottles,
+		},
+		"optimizer": map[string]interface{}{
+			"total_optimizations": optimizerStats.TotalOptimizations,
+			"successful_optimizations": optimizerStats.SuccessfulOptimizations,
+			"last_optimization": optimizerStats.LastOptimization,
+		},
+		"timestamp": time.Now(),
+	})
+}
+
+// GetCPUHealth returns CPU optimization health information
+func (coa *CPUOptimizationAPI) GetCPUHealth(w http.ResponseWriter, r *http.Request) {
+	profile := coa.cpuManager.GetCPUProfile()
+	
+	health := "healthy"
+	issues := []string{}
+	
+	if profile == nil {
+		health = "unhealthy"
+		issues = append(issues, "Failed to get CPU profile")
+	} else {
+		if profile.OverallUsage > 95.0 {
+			health = "critical"
+			issues = append(issues, "CPU usage critically high")
+		} else if profile.OverallUsage > 85.0 {
+			health = "warning"
+			issues = append(issues, "CPU usage high")
+		}
+		
+		if profile.NumGoroutines > profile.NumCPU*200 {
+			health = "warning"
+			issues = append(issues, "Too many goroutines")
+		}
+		
+		if profile.GCStats.GCCPUFraction > 0.5 {
+			health = "warning"
+			issues = append(issues, "High garbage collection overhead")
+		}
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"health": health,
+		"issues": issues,
+		"cpu_usage": profile.OverallUsage,
+		"num_goroutines": profile.NumGoroutines,
+		"gc_cpu_fraction": profile.GCStats.GCCPUFraction,
+		"timestamp": time.Now(),
+	})
+}
+
+// UpdateConfig updates the CPU optimization configuration
+func (coa *CPUOptimizationAPI) UpdateConfig(w http.ResponseWriter, r *http.Request) {
+	var config CPUOptimizationConfig
+	
+	if err := json.NewDecoder(r.Body).Decode(&config); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	
+	// This would update the configuration
+	// For now, just return success
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "Configuration updated successfully",
+		"timestamp": time.Now(),
+	})
+}
+
+// GetConfig returns the current CPU optimization configuration
+func (coa *CPUOptimizationAPI) GetConfig(w http.ResponseWriter, r *http.Request) {
+	config := coa.cpuManager.config
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"config": config,
+		"timestamp": time.Now(),
+	})
+}

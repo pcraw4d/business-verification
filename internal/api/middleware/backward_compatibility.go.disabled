@@ -1,0 +1,201 @@
+package middleware
+
+import (
+	"context"
+	"net/http"
+	"strings"
+
+	"github.com/pcraw4d/business-verification/internal/api/compatibility"
+	"github.com/pcraw4d/business-verification/internal/classification"
+	"go.uber.org/zap"
+)
+
+// BackwardCompatibilityMiddleware provides backward compatibility for API endpoints
+type BackwardCompatibilityMiddleware struct {
+	versionManager     *compatibility.VersionManager
+	compatibilityLayer *compatibility.EnhancedBackwardCompatibilityLayer
+	logger             *zap.Logger
+	processor          compatibility.ClassificationProcessor
+}
+
+// NewBackwardCompatibilityMiddleware creates a new backward compatibility middleware
+func NewBackwardCompatibilityMiddleware(
+	versionManager *compatibility.VersionManager,
+	compatibilityLayer *compatibility.EnhancedBackwardCompatibilityLayer,
+	logger *zap.Logger,
+	processor compatibility.ClassificationProcessor,
+) *BackwardCompatibilityMiddleware {
+	return &BackwardCompatibilityMiddleware{
+		versionManager:     versionManager,
+		compatibilityLayer: compatibilityLayer,
+		logger:             logger,
+		processor:          processor,
+	}
+}
+
+// Middleware returns the middleware function
+func (bcm *BackwardCompatibilityMiddleware) Middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Check if this is a classification endpoint that needs backward compatibility
+		if bcm.shouldHandleWithCompatibility(r) {
+			bcm.handleWithCompatibility(w, r)
+			return
+		}
+
+		// For other endpoints, just add version headers and continue
+		bcm.addVersionHeaders(w, r)
+		next.ServeHTTP(w, r)
+	})
+}
+
+// shouldHandleWithCompatibility determines if the request should be handled with backward compatibility
+func (bcm *BackwardCompatibilityMiddleware) shouldHandleWithCompatibility(r *http.Request) bool {
+	// Check if this is a classification endpoint
+	path := r.URL.Path
+	method := r.Method
+
+	// Handle classification endpoints
+	if method == "POST" && (path == "/v1/classify" || path == "/v2/classify" || path == "/v3/classify") {
+		return true
+	}
+
+	// Handle batch classification endpoints
+	if method == "POST" && (path == "/v1/classify/batch" || path == "/v2/classify/batch" || path == "/v3/classify/batch") {
+		return true
+	}
+
+	// Handle legacy endpoints without version prefix
+	if method == "POST" && (path == "/classify" || path == "/classify/batch") {
+		return true
+	}
+
+	return false
+}
+
+// handleWithCompatibility handles requests with full backward compatibility
+func (bcm *BackwardCompatibilityMiddleware) handleWithCompatibility(w http.ResponseWriter, r *http.Request) {
+	// Use the enhanced backward compatibility layer
+	bcm.compatibilityLayer.HandleRequestWithCompatibility(w, r, bcm.processor)
+}
+
+// addVersionHeaders adds version-related headers to the response
+func (bcm *BackwardCompatibilityMiddleware) addVersionHeaders(w http.ResponseWriter, r *http.Request) {
+	// Extract version from path or headers
+	version := bcm.extractVersionFromRequest(r)
+
+	// Add version headers
+	w.Header().Set("X-API-Version", version)
+	w.Header().Set("X-API-Current-Version", bcm.versionManager.GetCurrentVersion(context.Background()))
+	w.Header().Set("X-API-Default-Version", bcm.versionManager.GetDefaultVersion(context.Background()))
+
+	// Add deprecation headers if version is deprecated
+	if bcm.versionManager.IsVersionDeprecated(context.Background(), version) {
+		bcm.versionManager.AddDeprecationHeaders(context.Background(), w, version)
+	}
+}
+
+// extractVersionFromRequest extracts the API version from the request
+func (bcm *BackwardCompatibilityMiddleware) extractVersionFromRequest(r *http.Request) string {
+	// Try to extract from path first
+	path := r.URL.Path
+	if strings.HasPrefix(path, "/v") {
+		parts := strings.Split(path[1:], "/")
+		if len(parts) > 0 {
+			version := parts[0]
+			if bcm.versionManager.IsVersionSupported(context.Background(), version) {
+				return version
+			}
+		}
+	}
+
+	// Try to extract from headers
+	if acceptHeader := r.Header.Get("Accept"); acceptHeader != "" {
+		version := bcm.extractVersionFromAccept(acceptHeader)
+		if version != "" && bcm.versionManager.IsVersionSupported(context.Background(), version) {
+			return version
+		}
+	}
+
+	if apiVersion := r.Header.Get("X-API-Version"); apiVersion != "" {
+		if bcm.versionManager.IsVersionSupported(context.Background(), apiVersion) {
+			return apiVersion
+		}
+	}
+
+	// Return default version
+	return bcm.versionManager.GetDefaultVersion(context.Background())
+}
+
+// extractVersionFromAccept extracts version from Accept header
+func (bcm *BackwardCompatibilityMiddleware) extractVersionFromAccept(acceptHeader string) string {
+	// Parse Accept header like: application/vnd.kyb-platform.v1+json
+	parts := strings.Split(acceptHeader, ",")
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if strings.Contains(part, "vnd.kyb-platform.v") {
+			// Extract version number
+			start := strings.Index(part, "vnd.kyb-platform.v")
+			if start != -1 {
+				versionStart := start + len("vnd.kyb-platform.v")
+				versionEnd := strings.Index(part[versionStart:], "+")
+				if versionEnd == -1 {
+					versionEnd = strings.Index(part[versionStart:], ";")
+				}
+				if versionEnd == -1 {
+					versionEnd = len(part[versionStart:])
+				}
+				return "v" + part[versionStart:versionStart+versionEnd]
+			}
+		}
+	}
+	return ""
+}
+
+// ClassificationProcessorWrapper wraps the classification service to implement the ClassificationProcessor interface
+type ClassificationProcessorWrapper struct {
+	service *classification.ClassificationService
+}
+
+// NewClassificationProcessorWrapper creates a new classification processor wrapper
+func NewClassificationProcessorWrapper(service *classification.ClassificationService) *ClassificationProcessorWrapper {
+	return &ClassificationProcessorWrapper{
+		service: service,
+	}
+}
+
+// ProcessClassification processes a single classification request
+func (cpw *ClassificationProcessorWrapper) ProcessClassification(
+	ctx context.Context,
+	request *classification.ClassificationRequest,
+) (*classification.ClassificationResponse, error) {
+	return cpw.service.ClassifyBusiness(ctx, request)
+}
+
+// ProcessBatchClassification processes batch classification requests
+func (cpw *ClassificationProcessorWrapper) ProcessBatchClassification(
+	ctx context.Context,
+	requests []*classification.ClassificationRequest,
+) ([]*classification.ClassificationResponse, error) {
+	// Convert to batch request
+	businesses := make([]classification.ClassificationRequest, len(requests))
+	for i, req := range requests {
+		businesses[i] = *req
+	}
+
+	batchRequest := &classification.BatchClassificationRequest{
+		Businesses: businesses,
+	}
+
+	batchResponse, err := cpw.service.ClassifyBusinessesBatch(ctx, batchRequest)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert results to pointers
+	results := make([]*classification.ClassificationResponse, len(batchResponse.Results))
+	for i := range batchResponse.Results {
+		results[i] = &batchResponse.Results[i]
+	}
+
+	return results, nil
+}

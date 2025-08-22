@@ -1,0 +1,738 @@
+package middleware
+
+import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"runtime"
+	"testing"
+	"time"
+)
+
+func TestDefaultMemoryOptimizationConfig(t *testing.T) {
+	config := DefaultMemoryOptimizationConfig()
+
+	if config == nil {
+		t.Fatal("Expected non-nil config")
+	}
+
+	// Check default values
+	if !config.EnableMemoryProfiling {
+		t.Error("Expected EnableMemoryProfiling to be true")
+	}
+
+	if config.ProfilingInterval != 30*time.Second {
+		t.Errorf("Expected ProfilingInterval to be 30s, got %v", config.ProfilingInterval)
+	}
+
+	if config.GCTriggerThreshold != 75.0 {
+		t.Errorf("Expected GCTriggerThreshold to be 75.0, got %f", config.GCTriggerThreshold)
+	}
+
+	if config.MemoryCompactionThreshold != 80.0 {
+		t.Errorf("Expected MemoryCompactionThreshold to be 80.0, got %f", config.MemoryCompactionThreshold)
+	}
+
+	if !config.LeakDetectionEnabled {
+		t.Error("Expected LeakDetectionEnabled to be true")
+	}
+
+	if !config.PoolingEnabled {
+		t.Error("Expected PoolingEnabled to be true")
+	}
+
+	if !config.CompactionEnabled {
+		t.Error("Expected CompactionEnabled to be true")
+	}
+}
+
+func TestNewMemoryOptimizationManager(t *testing.T) {
+	// Test with nil config
+	mom := NewMemoryOptimizationManager(nil)
+	if mom == nil {
+		t.Fatal("Expected non-nil MemoryOptimizationManager")
+	}
+
+	// Test with custom config
+	config := &MemoryOptimizationConfig{
+		EnableMemoryProfiling: false,
+		ProfilingInterval:     60 * time.Second,
+	}
+
+	mom2 := NewMemoryOptimizationManager(config)
+	if mom2 == nil {
+		t.Fatal("Expected non-nil MemoryOptimizationManager")
+	}
+
+	if mom2.config.EnableMemoryProfiling != false {
+		t.Error("Expected EnableMemoryProfiling to be false")
+	}
+
+	if mom2.config.ProfilingInterval != 60*time.Second {
+		t.Errorf("Expected ProfilingInterval to be 60s, got %v", mom2.config.ProfilingInterval)
+	}
+
+	// Cleanup
+	mom.Shutdown()
+	mom2.Shutdown()
+}
+
+func TestMemoryProfiler_ProfileMemory(t *testing.T) {
+	config := DefaultMemoryOptimizationConfig()
+	profiler := NewMemoryProfiler(config)
+
+	profile := profiler.ProfileMemory()
+	if profile == nil {
+		t.Fatal("Expected non-nil profile")
+	}
+
+	// Check that profile has reasonable values
+	if profile.Timestamp.IsZero() {
+		t.Error("Expected timestamp to be set")
+	}
+
+	if profile.HeapAlloc == 0 && profile.HeapSys == 0 {
+		t.Error("Expected heap stats to be non-zero")
+	}
+
+	if profile.NumGC < 0 {
+		t.Error("Expected NumGC to be non-negative")
+	}
+
+	// Check that profile was added to history
+	if len(profiler.profiles) != 1 {
+		t.Errorf("Expected 1 profile in history, got %d", len(profiler.profiles))
+	}
+
+	// Test multiple profiles
+	profile2 := profiler.ProfileMemory()
+	if profile2 == nil {
+		t.Fatal("Expected non-nil second profile")
+	}
+
+	if len(profiler.profiles) != 2 {
+		t.Errorf("Expected 2 profiles in history, got %d", len(profiler.profiles))
+	}
+}
+
+func TestAdvancedGCOptimizer_OptimizeGC(t *testing.T) {
+	config := DefaultMemoryOptimizationConfig()
+	optimizer := NewAdvancedGCOptimizer(config)
+
+	// Create a test profile
+	profile := &MemoryProfile{
+		Timestamp:    time.Now(),
+		HeapAlloc:    100 * 1024 * 1024, // 100MB
+		HeapSys:      200 * 1024 * 1024, // 200MB
+		HeapInuse:    180 * 1024 * 1024, // 90% usage
+		NumGC:        10,
+		PauseTotalNs: 1000000000, // 1 second
+	}
+
+	err := optimizer.OptimizeGC(profile)
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	// Check that GC stats were updated
+	if optimizer.gcStats.TotalCycles != 10 {
+		t.Errorf("Expected TotalCycles to be 10, got %d", optimizer.gcStats.TotalCycles)
+	}
+
+	if optimizer.gcStats.TotalPauseTime != time.Duration(1000000000) {
+		t.Errorf("Expected TotalPauseTime to be 1s, got %v", optimizer.gcStats.TotalPauseTime)
+	}
+}
+
+func TestAdvancedGCOptimizer_CalculateOptimalGCPercentage(t *testing.T) {
+	config := DefaultMemoryOptimizationConfig()
+	optimizer := NewAdvancedGCOptimizer(config)
+
+	tests := []struct {
+		name      string
+		heapInuse uint64
+		heapSys   uint64
+		expected  int
+	}{
+		{
+			name:      "high memory usage > 90%",
+			heapInuse: 95 * 1024 * 1024,
+			heapSys:   100 * 1024 * 1024,
+			expected:  50,
+		},
+		{
+			name:      "high memory usage > 80%",
+			heapInuse: 85 * 1024 * 1024,
+			heapSys:   100 * 1024 * 1024,
+			expected:  75,
+		},
+		{
+			name:      "moderate memory usage > 70%",
+			heapInuse: 75 * 1024 * 1024,
+			heapSys:   100 * 1024 * 1024,
+			expected:  100,
+		},
+		{
+			name:      "low memory usage > 50%",
+			heapInuse: 60 * 1024 * 1024,
+			heapSys:   100 * 1024 * 1024,
+			expected:  150,
+		},
+		{
+			name:      "very low memory usage <= 50%",
+			heapInuse: 40 * 1024 * 1024,
+			heapSys:   100 * 1024 * 1024,
+			expected:  200,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			profile := &MemoryProfile{
+				HeapInuse: tt.heapInuse,
+				HeapSys:   tt.heapSys,
+			}
+
+			result := optimizer.calculateOptimalGCPercentage(profile)
+			if result != tt.expected {
+				t.Errorf("Expected %d, got %d", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestAdvancedMemoryPooler_CreatePool(t *testing.T) {
+	config := DefaultMemoryOptimizationConfig()
+	pooler := NewAdvancedMemoryPooler(config)
+
+	pool := pooler.CreatePool("test_pool", 1024, 100)
+	if pool == nil {
+		t.Fatal("Expected non-nil pool")
+	}
+
+	if pool.Name != "test_pool" {
+		t.Errorf("Expected pool name to be 'test_pool', got %s", pool.Name)
+	}
+
+	if pool.ObjectSize != 1024 {
+		t.Errorf("Expected object size to be 1024, got %d", pool.ObjectSize)
+	}
+
+	if pool.MaxObjects != 100 {
+		t.Errorf("Expected max objects to be 100, got %d", pool.MaxObjects)
+	}
+
+	if pool.Pool == nil {
+		t.Error("Expected pool.Pool to be non-nil")
+	}
+
+	// Check that pool was added to pools map
+	pooler.mu.RLock()
+	_, exists := pooler.pools["test_pool"]
+	pooler.mu.RUnlock()
+
+	if !exists {
+		t.Error("Expected pool to be added to pools map")
+	}
+
+	// Check stats
+	if pooler.stats.TotalPools != 1 {
+		t.Errorf("Expected TotalPools to be 1, got %d", pooler.stats.TotalPools)
+	}
+}
+
+func TestAdvancedMemoryPooler_GetFromPool(t *testing.T) {
+	config := DefaultMemoryOptimizationConfig()
+	pooler := NewAdvancedMemoryPooler(config)
+
+	// Create a pool
+	pool := pooler.CreatePool("test_pool", 1024, 100)
+
+	// Get object from pool
+	obj := pooler.GetFromPool("test_pool")
+	if obj == nil {
+		t.Fatal("Expected non-nil object")
+	}
+
+	// Check that object is a byte slice of correct size
+	if bytes, ok := obj.([]byte); !ok {
+		t.Error("Expected object to be []byte")
+	} else if len(bytes) != 1024 {
+		t.Errorf("Expected object size to be 1024, got %d", len(bytes))
+	}
+
+	// Check pool stats
+	if pool.Allocations != 1 {
+		t.Errorf("Expected Allocations to be 1, got %d", pool.Allocations)
+	}
+
+	if pool.CurrentObjects != 1 {
+		t.Errorf("Expected CurrentObjects to be 1, got %d", pool.CurrentObjects)
+	}
+
+	// Test getting from non-existent pool
+	obj2 := pooler.GetFromPool("non_existent")
+	if obj2 != nil {
+		t.Error("Expected nil object for non-existent pool")
+	}
+}
+
+func TestAdvancedMemoryPooler_ReturnToPool(t *testing.T) {
+	config := DefaultMemoryOptimizationConfig()
+	pooler := NewAdvancedMemoryPooler(config)
+
+	// Create a pool
+	pool := pooler.CreatePool("test_pool", 1024, 100)
+
+	// Get object from pool
+	obj := pooler.GetFromPool("test_pool")
+
+	// Return object to pool
+	pooler.ReturnToPool("test_pool", obj)
+
+	// Check pool stats
+	if pool.Releases != 1 {
+		t.Errorf("Expected Releases to be 1, got %d", pool.Releases)
+	}
+
+	if pool.CurrentObjects != 0 {
+		t.Errorf("Expected CurrentObjects to be 0, got %d", pool.CurrentObjects)
+	}
+
+	// Test returning to non-existent pool (should not panic)
+	pooler.ReturnToPool("non_existent", obj)
+}
+
+func TestMemoryLeakDetector_DetectLeaks(t *testing.T) {
+	config := DefaultMemoryOptimizationConfig()
+	detector := NewMemoryLeakDetector(config)
+
+	// Create a test profile with high memory usage
+	profile := &MemoryProfile{
+		Timestamp: time.Now(),
+		HeapInuse: 95 * 1024 * 1024, // 95% usage
+		HeapSys:   100 * 1024 * 1024,
+	}
+
+	leaks := detector.DetectLeaks(profile)
+
+	// Should detect heap growth pattern due to high usage
+	if len(leaks) == 0 {
+		t.Error("Expected to detect at least one leak pattern")
+	}
+
+	// Check that leak was added to history
+	if len(detector.detectionHistory) != 1 {
+		t.Errorf("Expected 1 leak in history, got %d", len(detector.detectionHistory))
+	}
+
+	// Test with normal memory usage
+	profile2 := &MemoryProfile{
+		Timestamp: time.Now(),
+		HeapInuse: 5 * 1024 * 1024, // 5% usage (well below threshold)
+		HeapSys:   100 * 1024 * 1024,
+	}
+
+	leaks2 := detector.DetectLeaks(profile2)
+	if len(leaks2) > 0 {
+		t.Error("Expected no leaks for normal memory usage")
+	}
+}
+
+func TestMemoryCompactionManager_CompactMemory(t *testing.T) {
+	config := DefaultMemoryOptimizationConfig()
+	manager := NewMemoryCompactionManager(config)
+
+	// Force some memory allocation
+	for i := 0; i < 1000; i++ {
+		_ = make([]byte, 1024)
+	}
+
+	// Run garbage collection to establish baseline
+	runtime.GC()
+
+	err := manager.CompactMemory()
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	// Check that compaction was recorded
+	if manager.compactionStats.TotalCompactions != 1 {
+		t.Errorf("Expected TotalCompactions to be 1, got %d", manager.compactionStats.TotalCompactions)
+	}
+
+	if len(manager.compactionHistory) != 1 {
+		t.Errorf("Expected 1 compaction event in history, got %d", len(manager.compactionHistory))
+	}
+
+	// Check that the compaction event has reasonable values
+	event := manager.compactionHistory[0]
+	if event.Timestamp.IsZero() {
+		t.Error("Expected timestamp to be set")
+	}
+
+	if event.Duration <= 0 {
+		t.Error("Expected duration to be positive")
+	}
+}
+
+func TestMemoryOptimizationManager_OptimizeMemory(t *testing.T) {
+	config := DefaultMemoryOptimizationConfig()
+	mom := NewMemoryOptimizationManager(config)
+
+	err := mom.OptimizeMemory()
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	// Check that memory profile was created
+	profile := mom.GetMemoryProfile()
+	if profile == nil {
+		t.Error("Expected non-nil memory profile")
+	}
+
+	// Cleanup
+	mom.Shutdown()
+}
+
+func TestMemoryOptimizationManager_GetGCOptimizationHistory(t *testing.T) {
+	config := DefaultMemoryOptimizationConfig()
+	mom := NewMemoryOptimizationManager(config)
+
+	history := mom.GetGCOptimizationHistory()
+	if history == nil {
+		t.Error("Expected non-nil history")
+	}
+
+	// Initially should be empty
+	if len(history) != 0 {
+		t.Errorf("Expected empty history, got %d events", len(history))
+	}
+
+	// Cleanup
+	mom.Shutdown()
+}
+
+func TestMemoryOptimizationManager_GetLeakDetectionHistory(t *testing.T) {
+	config := DefaultMemoryOptimizationConfig()
+	mom := NewMemoryOptimizationManager(config)
+
+	history := mom.GetLeakDetectionHistory()
+	if history == nil {
+		t.Error("Expected non-nil history")
+	}
+
+	// Initially should be empty
+	if len(history) != 0 {
+		t.Errorf("Expected empty history, got %d events", len(history))
+	}
+
+	// Cleanup
+	mom.Shutdown()
+}
+
+func TestMemoryOptimizationManager_GetCompactionHistory(t *testing.T) {
+	config := DefaultMemoryOptimizationConfig()
+	mom := NewMemoryOptimizationManager(config)
+
+	history := mom.GetCompactionHistory()
+	if history == nil {
+		t.Error("Expected non-nil history")
+	}
+
+	// Initially should be empty
+	if len(history) != 0 {
+		t.Errorf("Expected empty history, got %d events", len(history))
+	}
+
+	// Cleanup
+	mom.Shutdown()
+}
+
+// API Tests
+
+func TestMemoryOptimizationAPI_GetMemoryProfile(t *testing.T) {
+	config := DefaultMemoryOptimizationConfig()
+	mom := NewMemoryOptimizationManager(config)
+	api := NewMemoryOptimizationAPI(mom)
+
+	req := httptest.NewRequest("GET", "/v1/memory/profile", nil)
+	w := httptest.NewRecorder()
+
+	api.GetMemoryProfile(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	var response map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	// Check response structure
+	if _, exists := response["timestamp"]; !exists {
+		t.Error("Expected timestamp in response")
+	}
+
+	if _, exists := response["heap"]; !exists {
+		t.Error("Expected heap data in response")
+	}
+
+	if _, exists := response["gc"]; !exists {
+		t.Error("Expected gc data in response")
+	}
+
+	// Cleanup
+	mom.Shutdown()
+}
+
+func TestMemoryOptimizationAPI_GetGCStats(t *testing.T) {
+	config := DefaultMemoryOptimizationConfig()
+	mom := NewMemoryOptimizationManager(config)
+	api := NewMemoryOptimizationAPI(mom)
+
+	req := httptest.NewRequest("GET", "/v1/memory/gc/stats", nil)
+	w := httptest.NewRecorder()
+
+	api.GetGCStats(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	var response map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	// Check response structure
+	if _, exists := response["num_gc"]; !exists {
+		t.Error("Expected num_gc in response")
+	}
+
+	if _, exists := response["cpu_fraction"]; !exists {
+		t.Error("Expected cpu_fraction in response")
+	}
+
+	// Cleanup
+	mom.Shutdown()
+}
+
+func TestMemoryOptimizationAPI_GetMemoryPools(t *testing.T) {
+	config := DefaultMemoryOptimizationConfig()
+	mom := NewMemoryOptimizationManager(config)
+	api := NewMemoryOptimizationAPI(mom)
+
+	// Create a test pool
+	mom.memoryPooler.CreatePool("test_pool", 1024, 100)
+
+	req := httptest.NewRequest("GET", "/v1/memory/pools", nil)
+	w := httptest.NewRecorder()
+
+	api.GetMemoryPools(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	var response map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	// Check response structure
+	if _, exists := response["pools"]; !exists {
+		t.Error("Expected pools in response")
+	}
+
+	if _, exists := response["count"]; !exists {
+		t.Error("Expected count in response")
+	}
+
+	if _, exists := response["stats"]; !exists {
+		t.Error("Expected stats in response")
+	}
+
+	// Cleanup
+	mom.Shutdown()
+}
+
+func TestMemoryOptimizationAPI_CreateMemoryPool(t *testing.T) {
+	config := DefaultMemoryOptimizationConfig()
+	mom := NewMemoryOptimizationManager(config)
+	api := NewMemoryOptimizationAPI(mom)
+
+	requestBody := map[string]interface{}{
+		"name":        "test_pool",
+		"object_size": 1024,
+		"max_objects": 100,
+	}
+
+	body, _ := json.Marshal(requestBody)
+	req := httptest.NewRequest("POST", "/v1/memory/pools", bytes.NewBuffer(body))
+	w := httptest.NewRecorder()
+
+	api.CreateMemoryPool(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	var response map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	if response["message"] != "Memory pool created successfully" {
+		t.Errorf("Expected success message, got %s", response["message"])
+	}
+
+	// Test invalid request
+	invalidBody := map[string]interface{}{
+		"name": "", // Missing required field
+	}
+
+	body2, _ := json.Marshal(invalidBody)
+	req2 := httptest.NewRequest("POST", "/v1/memory/pools", bytes.NewBuffer(body2))
+	w2 := httptest.NewRecorder()
+
+	api.CreateMemoryPool(w2, req2)
+
+	if w2.Code != http.StatusBadRequest {
+		t.Errorf("Expected status 400, got %d", w2.Code)
+	}
+
+	// Cleanup
+	mom.Shutdown()
+}
+
+func TestMemoryOptimizationAPI_TriggerMemoryOptimization(t *testing.T) {
+	config := DefaultMemoryOptimizationConfig()
+	mom := NewMemoryOptimizationManager(config)
+	api := NewMemoryOptimizationAPI(mom)
+
+	req := httptest.NewRequest("POST", "/v1/memory/optimize", nil)
+	w := httptest.NewRecorder()
+
+	api.TriggerMemoryOptimization(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	var response map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	if response["message"] != "Memory optimization completed successfully" {
+		t.Errorf("Expected success message, got %s", response["message"])
+	}
+
+	// Cleanup
+	mom.Shutdown()
+}
+
+func TestMemoryOptimizationAPI_GetMemoryStatus(t *testing.T) {
+	config := DefaultMemoryOptimizationConfig()
+	mom := NewMemoryOptimizationManager(config)
+	api := NewMemoryOptimizationAPI(mom)
+
+	req := httptest.NewRequest("GET", "/v1/memory/status", nil)
+	w := httptest.NewRecorder()
+
+	api.GetMemoryStatus(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	var response map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	// Check response structure
+	if _, exists := response["timestamp"]; !exists {
+		t.Error("Expected timestamp in response")
+	}
+
+	if _, exists := response["memory_usage"]; !exists {
+		t.Error("Expected memory_usage in response")
+	}
+
+	if _, exists := response["gc_status"]; !exists {
+		t.Error("Expected gc_status in response")
+	}
+
+	if _, exists := response["optimization"]; !exists {
+		t.Error("Expected optimization in response")
+	}
+
+	// Cleanup
+	mom.Shutdown()
+}
+
+func TestMemoryOptimizationAPI_GetMemoryHealth(t *testing.T) {
+	config := DefaultMemoryOptimizationConfig()
+	mom := NewMemoryOptimizationManager(config)
+	api := NewMemoryOptimizationAPI(mom)
+
+	req := httptest.NewRequest("GET", "/v1/memory/health", nil)
+	w := httptest.NewRecorder()
+
+	api.GetMemoryHealth(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	var response map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	// Check response structure
+	if _, exists := response["status"]; !exists {
+		t.Error("Expected status in response")
+	}
+
+	if _, exists := response["health_score"]; !exists {
+		t.Error("Expected health_score in response")
+	}
+
+	if _, exists := response["timestamp"]; !exists {
+		t.Error("Expected timestamp in response")
+	}
+
+	if _, exists := response["recommendations"]; !exists {
+		t.Error("Expected recommendations in response")
+	}
+
+	// Cleanup
+	mom.Shutdown()
+}
+
+func TestMemoryOptimizationAPI_RegisterMemoryOptimizationRoutes(t *testing.T) {
+	config := DefaultMemoryOptimizationConfig()
+	mom := NewMemoryOptimizationManager(config)
+	api := NewMemoryOptimizationAPI(mom)
+
+	mux := http.NewServeMux()
+	api.RegisterMemoryOptimizationRoutes(mux)
+
+	// Test that routes are registered by making a request
+	req := httptest.NewRequest("GET", "/v1/memory/profile", nil)
+	w := httptest.NewRecorder()
+
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	// Cleanup
+	mom.Shutdown()
+}

@@ -1,0 +1,56 @@
+package middleware
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+)
+
+// TestNewPerformanceMonitoringManager tests the creation of a performance monitoring manager
+func TestNewPerformanceMonitoringManager(t *testing.T) {
+	config := DefaultPerformanceMonitoringConfig()
+	manager := NewPerformanceMonitoringManager(config)
+
+	if manager == nil {
+		t.Fatal("Expected manager to be created")
+	}
+
+	if manager.config != config {
+		t.Error("Expected config to be set")
+	}
+}
+
+// TestPerformanceMonitoringAPI tests the API endpoints
+func TestPerformanceMonitoringAPI(t *testing.T) {
+	config := DefaultPerformanceMonitoringConfig()
+	manager := NewPerformanceMonitoringManager(config)
+	api := NewPerformanceMonitoringAPI(manager)
+
+	// Test GetStatus endpoint
+	t.Run("GetStatus", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/v1/performance/status", nil)
+		w := httptest.NewRecorder()
+
+		api.GetStatus(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status 200, got %d", w.Code)
+		}
+	})
+}
+
+// TestDefaultConfigs tests the default configurations
+func TestDefaultConfigs(t *testing.T) {
+	// Test default performance monitoring config
+	t.Run("DefaultPerformanceMonitoringConfig", func(t *testing.T) {
+		config := DefaultPerformanceMonitoringConfig()
+
+		if config == nil {
+			t.Fatal("Expected config to be created")
+		}
+
+		if !config.MonitoringEnabled {
+			t.Error("Expected monitoring to be enabled by default")
+		}
+	})
+}

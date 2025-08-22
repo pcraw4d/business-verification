@@ -1,0 +1,237 @@
+package auth
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/pcraw4d/business-verification/internal/config"
+	"github.com/pcraw4d/business-verification/internal/observability"
+	"github.com/supabase-community/gotrue-go"
+	"github.com/supabase-community/gotrue-go/types"
+)
+
+// SupabaseAuth represents a Supabase authentication client
+type SupabaseAuth struct {
+	client gotrue.Client
+	logger *observability.Logger
+}
+
+// NewSupabaseAuth creates a new Supabase auth client
+func NewSupabaseAuth(cfg *config.SupabaseConfig, logger *observability.Logger) (*SupabaseAuth, error) {
+	client := gotrue.New(cfg.URL, cfg.APIKey)
+
+	return &SupabaseAuth{
+		client: client,
+		logger: logger,
+	}, nil
+}
+
+// User represents a user in the system
+type User struct {
+	ID        string    `json:"id"`
+	Email     string    `json:"email"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Active    bool      `json:"active"`
+}
+
+// AuthenticateUser authenticates a user with email and password
+func (s *SupabaseAuth) AuthenticateUser(ctx context.Context, email, password string) (*User, error) {
+	s.logger.Debug("Authenticating user with Supabase", "email", email)
+
+	auth, err := s.client.SignInWithEmailPassword(email, password)
+	if err != nil {
+		s.logger.Error("Failed to authenticate user with Supabase", "error", err)
+		return nil, fmt.Errorf("authentication failed: %w", err)
+	}
+
+	user := &User{
+		ID:        auth.User.ID.String(),
+		Email:     auth.User.Email,
+		Name:      auth.User.UserMetadata["name"].(string),
+		CreatedAt: auth.User.CreatedAt,
+		UpdatedAt: auth.User.UpdatedAt,
+		Active:    auth.User.EmailConfirmedAt != nil,
+	}
+
+	s.logger.Info("Successfully authenticated user with Supabase", "user_id", user.ID)
+	return user, nil
+}
+
+// RegisterUser registers a new user
+func (s *SupabaseAuth) RegisterUser(ctx context.Context, email, password, name string) (*User, error) {
+	s.logger.Debug("Registering user with Supabase", "email", email)
+
+	req := types.SignupRequest{
+		Email:    email,
+		Password: password,
+		Data: map[string]interface{}{
+			"name": name,
+		},
+	}
+
+	auth, err := s.client.Signup(req)
+	if err != nil {
+		s.logger.Error("Failed to register user with Supabase", "error", err)
+		return nil, fmt.Errorf("registration failed: %w", err)
+	}
+
+	user := &User{
+		ID:        auth.User.ID.String(),
+		Email:     auth.User.Email,
+		Name:      name,
+		CreatedAt: auth.User.CreatedAt,
+		UpdatedAt: auth.User.UpdatedAt,
+		Active:    false, // User needs to confirm email
+	}
+
+	s.logger.Info("Successfully registered user with Supabase", "user_id", user.ID)
+	return user, nil
+}
+
+// RefreshToken refreshes an access token
+func (s *SupabaseAuth) RefreshToken(ctx context.Context, refreshToken string) (string, error) {
+	s.logger.Debug("Refreshing token with Supabase")
+
+	auth, err := s.client.RefreshToken(refreshToken)
+	if err != nil {
+		s.logger.Error("Failed to refresh token with Supabase", "error", err)
+		return "", fmt.Errorf("token refresh failed: %w", err)
+	}
+
+	s.logger.Info("Successfully refreshed token with Supabase")
+	return auth.AccessToken, nil
+}
+
+// ValidateToken validates an access token
+func (s *SupabaseAuth) ValidateToken(ctx context.Context, accessToken string) (*User, error) {
+	s.logger.Debug("Validating token with Supabase")
+
+	// Set the token for this request
+	clientWithToken := s.client.WithToken(accessToken)
+
+	user, err := clientWithToken.GetUser()
+	if err != nil {
+		s.logger.Error("Failed to validate token with Supabase", "error", err)
+		return nil, fmt.Errorf("token validation failed: %w", err)
+	}
+
+	result := &User{
+		ID:        user.User.ID.String(),
+		Email:     user.User.Email,
+		Name:      user.User.UserMetadata["name"].(string),
+		CreatedAt: user.User.CreatedAt,
+		UpdatedAt: user.User.UpdatedAt,
+		Active:    user.User.EmailConfirmedAt != nil,
+	}
+
+	s.logger.Info("Successfully validated token with Supabase", "user_id", result.ID)
+	return result, nil
+}
+
+// LogoutUser logs out a user
+func (s *SupabaseAuth) LogoutUser(ctx context.Context, accessToken string) error {
+	s.logger.Debug("Logging out user with Supabase")
+
+	// Set the token for this request
+	clientWithToken := s.client.WithToken(accessToken)
+
+	err := clientWithToken.Logout()
+	if err != nil {
+		s.logger.Error("Failed to logout user with Supabase", "error", err)
+		return fmt.Errorf("logout failed: %w", err)
+	}
+
+	s.logger.Info("Successfully logged out user with Supabase")
+	return nil
+}
+
+// ResetPassword sends a password reset email
+func (s *SupabaseAuth) ResetPassword(ctx context.Context, email string) error {
+	s.logger.Debug("Sending password reset email with Supabase", "email", email)
+
+	req := types.RecoverRequest{
+		Email: email,
+	}
+
+	err := s.client.Recover(req)
+	if err != nil {
+		s.logger.Error("Failed to send password reset email with Supabase", "error", err)
+		return fmt.Errorf("password reset failed: %w", err)
+	}
+
+	s.logger.Info("Successfully sent password reset email with Supabase", "email", email)
+	return nil
+}
+
+// UpdateUser updates a user's information
+func (s *SupabaseAuth) UpdateUser(ctx context.Context, accessToken string, updates map[string]interface{}) (*User, error) {
+	s.logger.Debug("Updating user with Supabase")
+
+	// Set the token for this request
+	clientWithToken := s.client.WithToken(accessToken)
+
+	req := types.UpdateUserRequest{
+		Data: updates,
+	}
+
+	response, err := clientWithToken.UpdateUser(req)
+	if err != nil {
+		s.logger.Error("Failed to update user with Supabase", "error", err)
+		return nil, fmt.Errorf("user update failed: %w", err)
+	}
+
+	user := &User{
+		ID:        response.User.ID.String(),
+		Email:     response.User.Email,
+		Name:      response.User.UserMetadata["name"].(string),
+		CreatedAt: response.User.CreatedAt,
+		UpdatedAt: response.User.UpdatedAt,
+		Active:    response.User.EmailConfirmedAt != nil,
+	}
+
+	s.logger.Info("Successfully updated user with Supabase", "user_id", user.ID)
+	return user, nil
+}
+
+// GetUser retrieves user information
+func (s *SupabaseAuth) GetUser(ctx context.Context, accessToken string) (*User, error) {
+	s.logger.Debug("Getting user information with Supabase")
+
+	// Set the token for this request
+	clientWithToken := s.client.WithToken(accessToken)
+
+	response, err := clientWithToken.GetUser()
+	if err != nil {
+		s.logger.Error("Failed to get user information with Supabase", "error", err)
+		return nil, fmt.Errorf("get user failed: %w", err)
+	}
+
+	user := &User{
+		ID:        response.User.ID.String(),
+		Email:     response.User.Email,
+		Name:      response.User.UserMetadata["name"].(string),
+		CreatedAt: response.User.CreatedAt,
+		UpdatedAt: response.User.UpdatedAt,
+		Active:    response.User.EmailConfirmedAt != nil,
+	}
+
+	s.logger.Info("Successfully retrieved user information with Supabase", "user_id", user.ID)
+	return user, nil
+}
+
+// HealthCheck checks the health of the Supabase auth service
+func (s *SupabaseAuth) HealthCheck(ctx context.Context) error {
+	s.logger.Debug("Checking Supabase auth service health")
+
+	response, err := s.client.HealthCheck()
+	if err != nil {
+		s.logger.Error("Supabase auth service health check failed", "error", err)
+		return fmt.Errorf("health check failed: %w", err)
+	}
+
+	s.logger.Info("Supabase auth service health check passed", "version", response.Version)
+	return nil
+}

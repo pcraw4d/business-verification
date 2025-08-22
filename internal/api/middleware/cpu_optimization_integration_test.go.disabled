@@ -1,0 +1,270 @@
+package middleware
+
+import (
+	"testing"
+	"time"
+)
+
+// TestCPUOptimizationIntegration tests the integration of CPU optimization components
+func TestCPUOptimizationIntegration(t *testing.T) {
+	// Test that the CPU optimization system can be created and initialized
+	config := &CPUOptimizationConfig{
+		OptimizationEnabled:   true,
+		OptimizationInterval:  30 * time.Second,
+		MaxCPUUsage:           80.0,
+		LoadBalancingEnabled:  true,
+		NumWorkers:            10,
+		LoadBalancingStrategy: "adaptive",
+	}
+
+	// Test creating CPU optimization manager
+	manager := NewCPUOptimizationManager(config)
+	if manager == nil {
+		t.Fatal("Expected non-nil CPU optimization manager")
+	}
+
+	// Test that the manager has all required components
+	if manager.profiler == nil {
+		t.Error("Expected non-nil CPU profiler")
+	}
+
+	if manager.loadBalancer == nil {
+		t.Error("Expected non-nil load balancer")
+	}
+
+	if manager.scheduler == nil {
+		t.Error("Expected non-nil CPU scheduler")
+	}
+
+	if manager.throttler == nil {
+		t.Error("Expected non-nil CPU throttler")
+	}
+
+	if manager.optimizer == nil {
+		t.Error("Expected non-nil CPU optimizer")
+	}
+
+	// Test getting CPU profile
+	profile := manager.GetCPUProfile()
+	if profile == nil {
+		t.Error("Expected non-nil CPU profile")
+	}
+
+	// Test getting load balancer stats
+	lbStats := manager.GetLoadBalancerStats()
+	if lbStats == nil {
+		t.Error("Expected non-nil load balancer stats")
+	}
+
+	// Test getting scheduler stats
+	schedulerStats := manager.GetSchedulerStats()
+	if schedulerStats == nil {
+		t.Error("Expected non-nil scheduler stats")
+	}
+
+	// Test getting throttler stats
+	throttlerStats := manager.GetThrottlerStats()
+	if throttlerStats == nil {
+		t.Error("Expected non-nil throttler stats")
+	}
+
+	// Test getting optimizer stats
+	optimizerStats := manager.GetOptimizerStats()
+	if optimizerStats == nil {
+		t.Error("Expected non-nil optimizer stats")
+	}
+
+	// Test CPU optimization
+	err := manager.OptimizeCPU()
+	if err != nil {
+		t.Errorf("Failed to optimize CPU: %v", err)
+	}
+
+	// Test shutdown
+	manager.Shutdown()
+}
+
+// TestCPUOptimizationConfig tests the CPU optimization configuration
+func TestCPUOptimizationConfig(t *testing.T) {
+	config := &CPUOptimizationConfig{
+		EnableCPUProfiling:        true,
+		ProfilingInterval:         10 * time.Second,
+		LoadBalancingEnabled:      true,
+		LoadBalancingInterval:     5 * time.Second,
+		SchedulingEnabled:         true,
+		SchedulingInterval:        15 * time.Second,
+		ThrottlingEnabled:         true,
+		ThrottlingThreshold:       90.0,
+		OptimizationEnabled:       true,
+		OptimizationInterval:      30 * time.Second,
+		MaxCPUUsage:               80.0,
+		MinCPUUsage:               10.0,
+		LoadBalancingStrategy:     "adaptive",
+		NumWorkers:                10,
+		WorkerPoolSize:            100,
+		EnableGOMAXPROCS:          true,
+		EnableGCPauseOptimization: true,
+	}
+
+	// Test that all fields are set correctly
+	if !config.EnableCPUProfiling {
+		t.Error("Expected EnableCPUProfiling to be true")
+	}
+
+	if config.ProfilingInterval != 10*time.Second {
+		t.Error("Expected ProfilingInterval to be 10 seconds")
+	}
+
+	if !config.LoadBalancingEnabled {
+		t.Error("Expected LoadBalancingEnabled to be true")
+	}
+
+	if config.LoadBalancingStrategy != "adaptive" {
+		t.Error("Expected LoadBalancingStrategy to be 'adaptive'")
+	}
+
+	if config.NumWorkers != 10 {
+		t.Error("Expected NumWorkers to be 10")
+	}
+
+	if config.MaxCPUUsage != 80.0 {
+		t.Error("Expected MaxCPUUsage to be 80.0")
+	}
+}
+
+// TestCPUProfile tests the CPU profile structure
+func TestCPUProfile(t *testing.T) {
+	profile := &CPUProfile{
+		Timestamp:      time.Now(),
+		OverallUsage:   75.5,
+		PerCoreUsage:   []float64{80.0, 70.0, 85.0, 65.0},
+		UserUsage:      60.0,
+		SystemUsage:    15.5,
+		IdleUsage:      24.5,
+		IOWaitUsage:    0.0,
+		Load1:          2.5,
+		Load5:          2.3,
+		Load15:         2.1,
+		NumCPU:         4,
+		GOMAXPROCS:     4,
+		NumGoroutines:  100,
+		NumThreads:     8,
+		ProcessUsage:   25.0,
+		ProcessThreads: 4,
+	}
+
+	// Test that all fields are set correctly
+	if profile.OverallUsage != 75.5 {
+		t.Error("Expected OverallUsage to be 75.5")
+	}
+
+	if len(profile.PerCoreUsage) != 4 {
+		t.Error("Expected 4 cores in PerCoreUsage")
+	}
+
+	if profile.NumCPU != 4 {
+		t.Error("Expected NumCPU to be 4")
+	}
+
+	if profile.NumGoroutines != 100 {
+		t.Error("Expected NumGoroutines to be 100")
+	}
+
+	// Test that the profile is valid
+	if profile.OverallUsage < 0 || profile.OverallUsage > 100 {
+		t.Error("Expected OverallUsage to be between 0 and 100")
+	}
+
+	for i, usage := range profile.PerCoreUsage {
+		if usage < 0 || usage > 100 {
+			t.Errorf("Expected PerCoreUsage[%d] to be between 0 and 100, got %f", i, usage)
+		}
+	}
+}
+
+// TestCPUOptimizationManagerLifecycle tests the lifecycle of the CPU optimization manager
+func TestCPUOptimizationManagerLifecycle(t *testing.T) {
+	config := &CPUOptimizationConfig{
+		OptimizationEnabled:  true,
+		LoadBalancingEnabled: true,
+		NumWorkers:           5,
+	}
+
+	manager := NewCPUOptimizationManager(config)
+
+	// Test that manager is created successfully
+	if manager == nil {
+		t.Fatal("Expected non-nil CPU optimization manager")
+	}
+
+	// Test that all components are initialized
+	if manager.profiler == nil {
+		t.Error("Expected non-nil CPU profiler")
+	}
+
+	if manager.loadBalancer == nil {
+		t.Error("Expected non-nil load balancer")
+	}
+
+	if manager.scheduler == nil {
+		t.Error("Expected non-nil CPU scheduler")
+	}
+
+	if manager.throttler == nil {
+		t.Error("Expected non-nil CPU throttler")
+	}
+
+	if manager.optimizer == nil {
+		t.Error("Expected non-nil CPU optimizer")
+	}
+
+	// Test CPU optimization
+	err := manager.OptimizeCPU()
+	if err != nil {
+		t.Errorf("Failed to optimize CPU: %v", err)
+	}
+
+	// Test shutdown
+	manager.Shutdown()
+}
+
+// BenchmarkCPUOptimizationManager benchmarks the CPU optimization manager
+func BenchmarkCPUOptimizationManager(b *testing.B) {
+	config := &CPUOptimizationConfig{
+		OptimizationEnabled:  true,
+		LoadBalancingEnabled: true,
+		NumWorkers:           10,
+	}
+
+	manager := NewCPUOptimizationManager(config)
+	defer manager.Shutdown()
+
+	b.ResetTimer()
+
+	b.Run("GetCPUProfile", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			profile := manager.GetCPUProfile()
+			if profile == nil {
+				b.Error("Expected non-nil CPU profile")
+			}
+		}
+	})
+
+	b.Run("GetLoadBalancerStats", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			stats := manager.GetLoadBalancerStats()
+			if stats == nil {
+				b.Error("Expected non-nil load balancer stats")
+			}
+		}
+	})
+
+	b.Run("OptimizeCPU", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			err := manager.OptimizeCPU()
+			if err != nil {
+				b.Errorf("Failed to optimize CPU: %v", err)
+			}
+		}
+	})
+}

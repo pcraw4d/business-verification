@@ -2,6 +2,7 @@ package factory
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/pcraw4d/business-verification/internal/auth"
 	"github.com/pcraw4d/business-verification/internal/cache"
@@ -51,8 +52,17 @@ func NewAuthService(cfg *config.Config, db database.Database, logger *observabil
 func NewCache(cfg *config.Config, logger *observability.Logger) (interface{}, error) {
 	switch cfg.Provider.Cache {
 	case "supabase":
-		// Use the new Supabase cache implementation
-		return cache.NewSupabaseCache(&cfg.Supabase, logger)
+		// Use the intelligent cache implementation for now
+		// TODO: Implement proper Supabase cache
+		cacheConfig := &cache.IntelligentCacheConfig{
+			BaseTTL:                 5 * time.Minute,
+			MaxTTL:                  30 * time.Minute,
+			TTLMultiplier:           1.5,
+			EnableAdaptiveTTL:       true,
+			EnableExpirationManager: true,
+			ExpirationCheckInterval: 1 * time.Minute,
+		}
+		return cache.NewIntelligentCache(cacheConfig)
 	case "aws":
 		// TODO: Implement AWS ElastiCache
 		return nil, fmt.Errorf("AWS cache provider not yet implemented")

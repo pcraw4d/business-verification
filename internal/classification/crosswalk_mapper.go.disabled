@@ -1,0 +1,762 @@
+package classification
+
+import (
+	"context"
+	"fmt"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/pcraw4d/business-verification/internal/observability"
+)
+
+// CrosswalkMapping represents a mapping between different industry code systems
+type CrosswalkMapping struct {
+	MCCCode        string                 `json:"mcc_code"`
+	NAICSCode      string                 `json:"naics_code"`
+	SICCode        string                 `json:"sic_code"`
+	IndustryName   string                 `json:"industry_name"`
+	Confidence     float64                `json:"confidence"`
+	MappingType    string                 `json:"mapping_type"` // "exact", "fuzzy", "inferred"
+	LastUpdated    time.Time              `json:"last_updated"`
+	ValidationData map[string]interface{} `json:"validation_data"`
+}
+
+// CrosswalkValidation represents validation results for a crosswalk mapping
+type CrosswalkValidation struct {
+	IsValid        bool                   `json:"is_valid"`
+	Confidence     float64                `json:"confidence"`
+	ValidationType string                 `json:"validation_type"`
+	Issues         []ValidationIssue      `json:"issues"`
+	Suggestions    []string               `json:"suggestions"`
+	Metadata       map[string]interface{} `json:"metadata"`
+}
+
+// ValidationIssue represents a validation issue with a crosswalk mapping
+type ValidationIssue struct {
+	Type        string `json:"type"`     // "mismatch", "outdated", "ambiguous", "missing"
+	Severity    string `json:"severity"` // "low", "medium", "high", "critical"
+	Description string `json:"description"`
+	Code        string `json:"code"`
+	Field       string `json:"field"`
+}
+
+// CrosswalkConfidence represents confidence scoring for crosswalk mappings
+type CrosswalkConfidence struct {
+	OverallConfidence  float64                `json:"overall_confidence"`
+	CodeMatchScore     float64                `json:"code_match_score"`
+	IndustryMatchScore float64                `json:"industry_match_score"`
+	ValidationScore    float64                `json:"validation_score"`
+	RecencyScore       float64                `json:"recency_score"`
+	Factors            map[string]float64     `json:"factors"`
+	Metadata           map[string]interface{} `json:"metadata"`
+}
+
+// CrosswalkClassification represents classification results using crosswalk mappings
+type CrosswalkClassification struct {
+	PrimaryCode    string                 `json:"primary_code"`
+	PrimarySystem  string                 `json:"primary_system"`
+	MappedCodes    map[string]string      `json:"mapped_codes"`
+	Confidence     float64                `json:"confidence"`
+	IndustryName   string                 `json:"industry_name"`
+	Validation     *CrosswalkValidation   `json:"validation"`
+	ProcessingTime time.Duration          `json:"processing_time"`
+	Metadata       map[string]interface{} `json:"metadata"`
+}
+
+// CrosswalkMapper provides enhanced crosswalk mapping capabilities
+type CrosswalkMapper struct {
+	logger  *observability.Logger
+	metrics *observability.Metrics
+
+	// Mapping storage
+	mappings      map[string]*CrosswalkMapping
+	mappingsMutex sync.RWMutex
+
+	// Validation rules
+	validationRules map[string]CrosswalkValidationRule
+	rulesMutex      sync.RWMutex
+
+	// Confidence scoring
+	confidenceWeights map[string]float64
+	weightsMutex      sync.RWMutex
+
+	// Performance tracking
+	performanceMetrics map[string]float64
+	metricsMutex       sync.RWMutex
+
+	// Configuration
+	enableFuzzyMatching bool
+	confidenceThreshold float64
+	maxResults          int
+}
+
+// ValidationRule represents a validation rule for crosswalk mappings
+type CrosswalkValidationRule struct {
+	RuleID      string                 `json:"rule_id"`
+	RuleType    string                 `json:"rule_type"`
+	Description string                 `json:"description"`
+	Conditions  map[string]interface{} `json:"conditions"`
+	Severity    string                 `json:"severity"`
+	Weight      float64                `json:"weight"`
+	Enabled     bool                   `json:"enabled"`
+}
+
+// NewCrosswalkMapper creates a new enhanced crosswalk mapper
+func NewCrosswalkMapper(logger *observability.Logger, metrics *observability.Metrics) *CrosswalkMapper {
+	mapper := &CrosswalkMapper{
+		logger:  logger,
+		metrics: metrics,
+
+		// Initialize storage
+		mappings:           make(map[string]*CrosswalkMapping),
+		validationRules:    make(map[string]CrosswalkValidationRule),
+		confidenceWeights:  make(map[string]float64),
+		performanceMetrics: make(map[string]float64),
+
+		// Configuration
+		enableFuzzyMatching: true,
+		confidenceThreshold: 0.7,
+		maxResults:          5,
+	}
+
+	// Initialize default mappings
+	mapper.initializeDefaultMappings()
+
+	// Initialize validation rules
+	mapper.initializeValidationRules()
+
+	// Initialize confidence weights
+	mapper.initializeConfidenceWeights()
+
+	return mapper
+}
+
+// AddMapping adds a new crosswalk mapping
+func (cm *CrosswalkMapper) AddMapping(ctx context.Context, mapping *CrosswalkMapping) error {
+	cm.mappingsMutex.Lock()
+	defer cm.mappingsMutex.Unlock()
+
+	// Generate mapping key
+	key := cm.generateMappingKey(mapping.MCCCode, mapping.NAICSCode, mapping.SICCode)
+
+	// Validate mapping
+	validation := cm.validateMapping(mapping)
+	if !validation.IsValid {
+		return fmt.Errorf("invalid mapping: %s", validation.Issues[0].Description)
+	}
+
+	// Update mapping with validation data
+	mapping.ValidationData = validation.Metadata
+	mapping.LastUpdated = time.Now()
+
+	// Store mapping
+	cm.mappings[key] = mapping
+
+	// Log mapping addition
+	if cm.logger != nil {
+		cm.logger.WithComponent("crosswalk_mapper").LogBusinessEvent(ctx, "crosswalk_mapping_added", key, map[string]interface{}{
+			"mcc_code":     mapping.MCCCode,
+			"naics_code":   mapping.NAICSCode,
+			"sic_code":     mapping.SICCode,
+			"confidence":   mapping.Confidence,
+			"mapping_type": mapping.MappingType,
+		})
+	}
+
+	// Record metrics
+	cm.RecordMappingMetrics(ctx, mapping, "mapping_added")
+
+	return nil
+}
+
+// GetMapping retrieves a crosswalk mapping
+func (cm *CrosswalkMapper) GetMapping(ctx context.Context, mccCode, naicsCode, sicCode string) (*CrosswalkMapping, error) {
+	cm.mappingsMutex.RLock()
+	defer cm.mappingsMutex.RUnlock()
+
+	// Try exact match first
+	key := cm.generateMappingKey(mccCode, naicsCode, sicCode)
+	if mapping, exists := cm.mappings[key]; exists {
+		return mapping, nil
+	}
+
+	// Try fuzzy matching if enabled
+	if cm.enableFuzzyMatching {
+		return cm.findFuzzyMapping(mccCode, naicsCode, sicCode)
+	}
+
+	return nil, fmt.Errorf("mapping not found")
+}
+
+// ClassifyWithCrosswalk performs classification using crosswalk mappings
+func (cm *CrosswalkMapper) ClassifyWithCrosswalk(ctx context.Context, inputCode, inputSystem string, businessInfo map[string]interface{}) (*CrosswalkClassification, error) {
+	start := time.Now()
+
+	// Log classification start
+	if cm.logger != nil {
+		cm.logger.WithComponent("crosswalk_mapper").LogBusinessEvent(ctx, "crosswalk_classification_started", "", map[string]interface{}{
+			"input_code":   inputCode,
+			"input_system": inputSystem,
+		})
+	}
+
+	// Find relevant mappings
+	mappings := cm.findRelevantMappings(inputCode, inputSystem)
+
+	if len(mappings) == 0 {
+		return nil, fmt.Errorf("no relevant mappings found for %s code %s", inputSystem, inputCode)
+	}
+
+	// Score and rank mappings
+	rankedMappings := cm.rankMappings(mappings, businessInfo)
+
+	// Select best mapping
+	bestMapping := rankedMappings[0]
+
+	// Create classification result
+	result := &CrosswalkClassification{
+		PrimaryCode:    bestMapping.getCodeForSystem(inputSystem),
+		PrimarySystem:  inputSystem,
+		MappedCodes:    bestMapping.getAllCodes(),
+		Confidence:     bestMapping.Confidence,
+		IndustryName:   bestMapping.IndustryName,
+		Validation:     cm.validateMapping(bestMapping),
+		ProcessingTime: time.Since(start),
+		Metadata: map[string]interface{}{
+			"mapping_type":    bestMapping.MappingType,
+			"total_mappings":  len(mappings),
+			"ranked_mappings": len(rankedMappings),
+			"input_code":      inputCode,
+			"input_system":    inputSystem,
+		},
+	}
+
+	// Log classification completion
+	if cm.logger != nil {
+		cm.logger.WithComponent("crosswalk_mapper").LogBusinessEvent(ctx, "crosswalk_classification_completed", "", map[string]interface{}{
+			"input_code":         inputCode,
+			"primary_code":       result.PrimaryCode,
+			"confidence":         result.Confidence,
+			"processing_time_ms": result.ProcessingTime.Milliseconds(),
+		})
+	}
+
+	// Record metrics
+	cm.RecordClassificationMetrics(ctx, result, inputSystem)
+
+	return result, nil
+}
+
+// ValidateMapping validates a crosswalk mapping
+func (cm *CrosswalkMapper) ValidateMapping(ctx context.Context, mapping *CrosswalkMapping) *CrosswalkValidation {
+	validation := &CrosswalkValidation{
+		IsValid:        true,
+		Confidence:     1.0,
+		ValidationType: "comprehensive",
+		Issues:         make([]ValidationIssue, 0),
+		Suggestions:    make([]string, 0),
+		Metadata:       make(map[string]interface{}),
+	}
+
+	// Apply validation rules
+	cm.rulesMutex.RLock()
+	for _, rule := range cm.validationRules {
+		if !rule.Enabled {
+			continue
+		}
+
+		issue := cm.applyValidationRule(mapping, rule)
+		if issue != nil {
+			validation.Issues = append(validation.Issues, *issue)
+			validation.IsValid = false
+			validation.Confidence *= (1.0 - rule.Weight)
+		}
+	}
+	cm.rulesMutex.RUnlock()
+
+	// Generate suggestions based on issues
+	validation.Suggestions = cm.generateSuggestions(validation.Issues)
+
+	// Add validation metadata
+	validation.Metadata["total_rules_applied"] = len(cm.validationRules)
+	validation.Metadata["issues_found"] = len(validation.Issues)
+	validation.Metadata["suggestions_generated"] = len(validation.Suggestions)
+
+	return validation
+}
+
+// CalculateConfidence calculates confidence score for a crosswalk mapping
+func (cm *CrosswalkMapper) CalculateConfidence(ctx context.Context, mapping *CrosswalkMapping) *CrosswalkConfidence {
+	confidence := &CrosswalkConfidence{
+		OverallConfidence:  0.0,
+		CodeMatchScore:     0.0,
+		IndustryMatchScore: 0.0,
+		ValidationScore:    0.0,
+		RecencyScore:       0.0,
+		Factors:            make(map[string]float64),
+		Metadata:           make(map[string]interface{}),
+	}
+
+	// Calculate code match score
+	confidence.CodeMatchScore = cm.calculateCodeMatchScore(mapping)
+
+	// Calculate industry match score
+	confidence.IndustryMatchScore = cm.calculateIndustryMatchScore(mapping)
+
+	// Calculate validation score
+	validation := cm.ValidateMapping(ctx, mapping)
+	confidence.ValidationScore = validation.Confidence
+
+	// Calculate recency score
+	confidence.RecencyScore = cm.calculateRecencyScore(mapping)
+
+	// Calculate overall confidence using weights
+	cm.weightsMutex.RLock()
+	confidence.OverallConfidence = (confidence.CodeMatchScore * cm.confidenceWeights["code_match"]) +
+		(confidence.IndustryMatchScore * cm.confidenceWeights["industry_match"]) +
+		(confidence.ValidationScore * cm.confidenceWeights["validation"]) +
+		(confidence.RecencyScore * cm.confidenceWeights["recency"])
+	cm.weightsMutex.RUnlock()
+
+	// Store individual factors
+	confidence.Factors["code_match"] = confidence.CodeMatchScore
+	confidence.Factors["industry_match"] = confidence.IndustryMatchScore
+	confidence.Factors["validation"] = confidence.ValidationScore
+	confidence.Factors["recency"] = confidence.RecencyScore
+
+	// Add metadata
+	confidence.Metadata["mapping_type"] = mapping.MappingType
+	confidence.Metadata["last_updated"] = mapping.LastUpdated
+	confidence.Metadata["validation_issues"] = len(validation.Issues)
+
+	return confidence
+}
+
+// UpdateMapping updates an existing crosswalk mapping
+func (cm *CrosswalkMapper) UpdateMapping(ctx context.Context, key string, updates map[string]interface{}) error {
+	cm.mappingsMutex.Lock()
+	defer cm.mappingsMutex.Unlock()
+
+	mapping, exists := cm.mappings[key]
+	if !exists {
+		return fmt.Errorf("mapping not found: %s", key)
+	}
+
+	// Apply updates
+	if mccCode, ok := updates["mcc_code"].(string); ok {
+		mapping.MCCCode = mccCode
+	}
+	if naicsCode, ok := updates["naics_code"].(string); ok {
+		mapping.NAICSCode = naicsCode
+	}
+	if sicCode, ok := updates["sic_code"].(string); ok {
+		mapping.SICCode = sicCode
+	}
+	if industryName, ok := updates["industry_name"].(string); ok {
+		mapping.IndustryName = industryName
+	}
+	if confidence, ok := updates["confidence"].(float64); ok {
+		mapping.Confidence = confidence
+	}
+	if mappingType, ok := updates["mapping_type"].(string); ok {
+		mapping.MappingType = mappingType
+	}
+
+	// Update timestamp
+	mapping.LastUpdated = time.Now()
+
+	// Revalidate mapping
+	validation := cm.validateMapping(mapping)
+	mapping.ValidationData = validation.Metadata
+
+	// Log mapping update
+	if cm.logger != nil {
+		cm.logger.WithComponent("crosswalk_mapper").LogBusinessEvent(ctx, "crosswalk_mapping_updated", key, map[string]interface{}{
+			"updates_applied": len(updates),
+			"new_confidence":  mapping.Confidence,
+		})
+	}
+
+	return nil
+}
+
+// ListMappings returns all crosswalk mappings
+func (cm *CrosswalkMapper) ListMappings(ctx context.Context, filters map[string]interface{}) ([]*CrosswalkMapping, error) {
+	cm.mappingsMutex.RLock()
+	defer cm.mappingsMutex.RUnlock()
+
+	mappings := make([]*CrosswalkMapping, 0)
+
+	for _, mapping := range cm.mappings {
+		if cm.matchesFilters(mapping, filters) {
+			mappings = append(mappings, mapping)
+		}
+	}
+
+	return mappings, nil
+}
+
+// GetMapperStats returns statistics about the crosswalk mapper
+func (cm *CrosswalkMapper) GetMapperStats() map[string]interface{} {
+	cm.mappingsMutex.RLock()
+	defer cm.mappingsMutex.RUnlock()
+
+	stats := map[string]interface{}{
+		"total_mappings":       len(cm.mappings),
+		"validation_rules":     len(cm.validationRules),
+		"confidence_threshold": cm.confidenceThreshold,
+		"fuzzy_matching":       cm.enableFuzzyMatching,
+		"max_results":          cm.maxResults,
+		"mapping_types":        make(map[string]int),
+		"confidence_ranges":    make(map[string]int),
+	}
+
+	// Count mappings by type and confidence
+	for _, mapping := range cm.mappings {
+		stats["mapping_types"].(map[string]int)[mapping.MappingType]++
+
+		confidenceRange := "low"
+		if mapping.Confidence >= 0.8 {
+			confidenceRange = "high"
+		} else if mapping.Confidence >= 0.6 {
+			confidenceRange = "medium"
+		}
+		stats["confidence_ranges"].(map[string]int)[confidenceRange]++
+	}
+
+	return stats
+}
+
+// Helper methods
+
+// generateMappingKey generates a unique key for a mapping
+func (cm *CrosswalkMapper) generateMappingKey(mccCode, naicsCode, sicCode string) string {
+	return fmt.Sprintf("%s:%s:%s", mccCode, naicsCode, sicCode)
+}
+
+// validateMapping validates a crosswalk mapping
+func (cm *CrosswalkMapper) validateMapping(mapping *CrosswalkMapping) *CrosswalkValidation {
+	return cm.ValidateMapping(context.Background(), mapping)
+}
+
+// findFuzzyMapping finds a mapping using fuzzy matching
+func (cm *CrosswalkMapper) findFuzzyMapping(mccCode, naicsCode, sicCode string) (*CrosswalkMapping, error) {
+	var bestMapping *CrosswalkMapping
+	var bestScore float64
+
+	for _, mapping := range cm.mappings {
+		score := cm.calculateFuzzyScore(mapping, mccCode, naicsCode, sicCode)
+		if score > bestScore {
+			bestScore = score
+			bestMapping = mapping
+		}
+	}
+
+	if bestMapping != nil && bestScore >= cm.confidenceThreshold {
+		return bestMapping, nil
+	}
+
+	return nil, fmt.Errorf("no suitable fuzzy mapping found")
+}
+
+// findRelevantMappings finds mappings relevant to the input code and system
+func (cm *CrosswalkMapper) findRelevantMappings(inputCode, inputSystem string) []*CrosswalkMapping {
+	relevantMappings := make([]*CrosswalkMapping, 0)
+
+	for _, mapping := range cm.mappings {
+		if cm.isRelevantMapping(mapping, inputCode, inputSystem) {
+			relevantMappings = append(relevantMappings, mapping)
+		}
+	}
+
+	return relevantMappings
+}
+
+// isRelevantMapping checks if a mapping is relevant to the input
+func (cm *CrosswalkMapper) isRelevantMapping(mapping *CrosswalkMapping, inputCode, inputSystem string) bool {
+	switch inputSystem {
+	case "mcc":
+		return mapping.MCCCode == inputCode
+	case "naics":
+		return mapping.NAICSCode == inputCode
+	case "sic":
+		return mapping.SICCode == inputCode
+	default:
+		return false
+	}
+}
+
+// rankMappings ranks mappings by relevance and confidence
+func (cm *CrosswalkMapper) rankMappings(mappings []*CrosswalkMapping, businessInfo map[string]interface{}) []*CrosswalkMapping {
+	// Create a copy of mappings for ranking
+	rankedMappings := make([]*CrosswalkMapping, len(mappings))
+	copy(rankedMappings, mappings)
+
+	// Sort by confidence score (descending)
+	for i := 0; i < len(rankedMappings); i++ {
+		for j := i + 1; j < len(rankedMappings); j++ {
+			if rankedMappings[i].Confidence < rankedMappings[j].Confidence {
+				rankedMappings[i], rankedMappings[j] = rankedMappings[j], rankedMappings[i]
+			}
+		}
+	}
+
+	// Limit to max results
+	if len(rankedMappings) > cm.maxResults {
+		rankedMappings = rankedMappings[:cm.maxResults]
+	}
+
+	return rankedMappings
+}
+
+// applyValidationRule applies a validation rule to a mapping
+func (cm *CrosswalkMapper) applyValidationRule(mapping *CrosswalkMapping, rule CrosswalkValidationRule) *ValidationIssue {
+	// This would implement specific validation logic based on rule type
+	// For now, return nil (no issues)
+	return nil
+}
+
+// generateSuggestions generates suggestions based on validation issues
+func (cm *CrosswalkMapper) generateSuggestions(issues []ValidationIssue) []string {
+	suggestions := make([]string, 0)
+
+	for _, issue := range issues {
+		switch issue.Type {
+		case "mismatch":
+			suggestions = append(suggestions, "Review and update code mappings")
+		case "outdated":
+			suggestions = append(suggestions, "Update mapping with latest industry codes")
+		case "ambiguous":
+			suggestions = append(suggestions, "Add more specific industry context")
+		case "missing":
+			suggestions = append(suggestions, "Add missing code mappings")
+		}
+	}
+
+	return suggestions
+}
+
+// calculateCodeMatchScore calculates the code match score
+func (cm *CrosswalkMapper) calculateCodeMatchScore(mapping *CrosswalkMapping) float64 {
+	// Simple scoring based on mapping type
+	switch mapping.MappingType {
+	case "exact":
+		return 1.0
+	case "fuzzy":
+		return 0.8
+	case "inferred":
+		return 0.6
+	default:
+		return 0.5
+	}
+}
+
+// calculateIndustryMatchScore calculates the industry match score
+func (cm *CrosswalkMapper) calculateIndustryMatchScore(mapping *CrosswalkMapping) float64 {
+	// This would implement more sophisticated industry matching logic
+	// For now, return a default score
+	return 0.8
+}
+
+// calculateRecencyScore calculates the recency score
+func (cm *CrosswalkMapper) calculateRecencyScore(mapping *CrosswalkMapping) float64 {
+	age := time.Since(mapping.LastUpdated)
+
+	// Score based on age (newer = higher score)
+	if age < 30*24*time.Hour { // Less than 30 days
+		return 1.0
+	} else if age < 90*24*time.Hour { // Less than 90 days
+		return 0.8
+	} else if age < 365*24*time.Hour { // Less than 1 year
+		return 0.6
+	} else {
+		return 0.4
+	}
+}
+
+// calculateFuzzyScore calculates a fuzzy matching score
+func (cm *CrosswalkMapper) calculateFuzzyScore(mapping *CrosswalkMapping, mccCode, naicsCode, sicCode string) float64 {
+	score := 0.0
+	count := 0
+
+	if mccCode != "" && mapping.MCCCode == mccCode {
+		score += 1.0
+		count++
+	}
+	if naicsCode != "" && mapping.NAICSCode == naicsCode {
+		score += 1.0
+		count++
+	}
+	if sicCode != "" && mapping.SICCode == sicCode {
+		score += 1.0
+		count++
+	}
+
+	if count == 0 {
+		return 0.0
+	}
+
+	return score / float64(count)
+}
+
+// matchesFilters checks if a mapping matches the given filters
+func (cm *CrosswalkMapper) matchesFilters(mapping *CrosswalkMapping, filters map[string]interface{}) bool {
+	for key, value := range filters {
+		switch key {
+		case "mapping_type":
+			if filterType, ok := value.(string); ok && mapping.MappingType != filterType {
+				return false
+			}
+		case "min_confidence":
+			if minConf, ok := value.(float64); ok && mapping.Confidence < minConf {
+				return false
+			}
+		case "industry_name":
+			if industryName, ok := value.(string); ok && !strings.Contains(strings.ToLower(mapping.IndustryName), strings.ToLower(industryName)) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// initializeDefaultMappings initializes default crosswalk mappings
+func (cm *CrosswalkMapper) initializeDefaultMappings() {
+	// Add some example mappings
+	defaultMappings := []*CrosswalkMapping{
+		{
+			MCCCode:      "5411",
+			NAICSCode:    "541110",
+			SICCode:      "8711",
+			IndustryName: "Legal Services",
+			Confidence:   0.95,
+			MappingType:  "exact",
+			LastUpdated:  time.Now(),
+		},
+		{
+			MCCCode:      "5999",
+			NAICSCode:    "453998",
+			SICCode:      "5999",
+			IndustryName: "Miscellaneous Retail",
+			Confidence:   0.90,
+			MappingType:  "exact",
+			LastUpdated:  time.Now(),
+		},
+		{
+			MCCCode:      "5812",
+			NAICSCode:    "722511",
+			SICCode:      "5812",
+			IndustryName: "Eating Places and Restaurants",
+			Confidence:   0.92,
+			MappingType:  "exact",
+			LastUpdated:  time.Now(),
+		},
+	}
+
+	for _, mapping := range defaultMappings {
+		key := cm.generateMappingKey(mapping.MCCCode, mapping.NAICSCode, mapping.SICCode)
+		cm.mappings[key] = mapping
+	}
+}
+
+// initializeValidationRules initializes validation rules
+func (cm *CrosswalkMapper) initializeValidationRules() {
+	cm.validationRules = map[string]CrosswalkValidationRule{
+		"code_format": {
+			RuleID:      "code_format",
+			RuleType:    "format_validation",
+			Description: "Validate code format",
+			Conditions:  map[string]interface{}{"min_length": 4},
+			Severity:    "high",
+			Weight:      0.3,
+			Enabled:     true,
+		},
+		"industry_consistency": {
+			RuleID:      "industry_consistency",
+			RuleType:    "business_logic",
+			Description: "Check industry name consistency",
+			Conditions:  map[string]interface{}{"require_name": true},
+			Severity:    "medium",
+			Weight:      0.2,
+			Enabled:     true,
+		},
+		"recency_check": {
+			RuleID:      "recency_check",
+			RuleType:    "temporal",
+			Description: "Check mapping recency",
+			Conditions:  map[string]interface{}{"max_age_days": 365},
+			Severity:    "low",
+			Weight:      0.1,
+			Enabled:     true,
+		},
+	}
+}
+
+// initializeConfidenceWeights initializes confidence scoring weights
+func (cm *CrosswalkMapper) initializeConfidenceWeights() {
+	cm.confidenceWeights = map[string]float64{
+		"code_match":     0.4,
+		"industry_match": 0.3,
+		"validation":     0.2,
+		"recency":        0.1,
+	}
+}
+
+// RecordMappingMetrics records metrics for mapping operations
+func (cm *CrosswalkMapper) RecordMappingMetrics(ctx context.Context, mapping *CrosswalkMapping, operation string) {
+	if cm.metrics == nil {
+		return
+	}
+
+	// TODO: Replace with appropriate metrics recording when histogram support is added
+	// cm.metrics.RecordHistogram(ctx, "crosswalk_mapping_confidence", mapping.Confidence, map[string]string{
+	// 	"operation":    operation,
+	// 	"mapping_type": mapping.MappingType,
+	// })
+
+	// cm.metrics.RecordHistogram(ctx, "crosswalk_mapping_operations", 1.0, map[string]string{
+	// 	"operation": operation,
+	// })
+}
+
+// RecordClassificationMetrics records metrics for classification operations
+func (cm *CrosswalkMapper) RecordClassificationMetrics(ctx context.Context, result *CrosswalkClassification, inputSystem string) {
+	if cm.metrics == nil {
+		return
+	}
+
+	// TODO: Replace with appropriate metrics recording when histogram support is added
+	// cm.metrics.RecordHistogram(ctx, "crosswalk_classification_confidence", result.Confidence, map[string]string{
+	// 	"input_system": inputSystem,
+	// })
+
+	// cm.metrics.RecordHistogram(ctx, "crosswalk_classification_time", float64(result.ProcessingTime.Milliseconds()), map[string]string{
+	// 	"input_system": inputSystem,
+	// })
+}
+
+// Helper methods for CrosswalkMapping
+
+// getCodeForSystem returns the code for the specified system
+func (cm *CrosswalkMapping) getCodeForSystem(system string) string {
+	switch system {
+	case "mcc":
+		return cm.MCCCode
+	case "naics":
+		return cm.NAICSCode
+	case "sic":
+		return cm.SICCode
+	default:
+		return ""
+	}
+}
+
+// getAllCodes returns all codes for the mapping
+func (cm *CrosswalkMapping) getAllCodes() map[string]string {
+	return map[string]string{
+		"mcc":   cm.MCCCode,
+		"naics": cm.NAICSCode,
+		"sic":   cm.SICCode,
+	}
+}

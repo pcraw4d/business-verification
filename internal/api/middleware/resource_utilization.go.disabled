@@ -1,0 +1,651 @@
+package middleware
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"os"
+	"runtime"
+	"sync"
+	"time"
+
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/mem"
+	"github.com/shirou/gopsutil/v3/process"
+)
+
+// ResourceUtilizationManager manages system resource monitoring and optimization
+type ResourceUtilizationManager struct {
+	config           *ResourceConfig
+	metrics          *ResourceMetrics
+	optimizer        *ResourceOptimizer
+	alerts           *ResourceAlertManager
+	memoryPooler     *MemoryPooler
+	gcOptimizer      *GCOptimizer
+	cpuManager       *CPULoadManager
+	mu               sync.RWMutex
+	ctx              context.Context
+	cancel           context.CancelFunc
+	monitoringDone   chan struct{}
+	optimizationDone chan struct{}
+}
+
+// ResourceConfig holds configuration for resource management
+type ResourceConfig struct {
+	MonitoringInterval      time.Duration // How often to collect metrics
+	OptimizationInterval    time.Duration // How often to run optimizations
+	MaxCPUUsage             float64       // Maximum CPU usage threshold (0.0-100.0)
+	MaxMemoryUsage          float64       // Maximum memory usage threshold (0.0-100.0)
+	CPUOptimizationLevel    int           // CPU optimization aggressiveness (1-5)
+	MemoryOptimizationLevel int           // Memory optimization aggressiveness (1-5)
+	GCTargetPercentage      int           // Garbage collection target percentage
+	MaxGoroutines           int           // Maximum number of goroutines
+	AlertThresholds         *ResourceAlertThresholds
+	EnableProfiling         bool          // Enable continuous profiling
+	ProfilingInterval       time.Duration // Profiling data collection interval
+}
+
+// ResourceAlertThresholds defines thresholds for resource usage alerts
+type ResourceAlertThresholds struct {
+	CPUWarning        float64 // CPU usage warning threshold
+	CPUCritical       float64 // CPU usage critical threshold
+	MemoryWarning     float64 // Memory usage warning threshold
+	MemoryCritical    float64 // Memory usage critical threshold
+	GoroutineWarning  int     // Goroutine count warning threshold
+	GoroutineCritical int     // Goroutine count critical threshold
+}
+
+// ResourceMetrics tracks real-time resource utilization
+type ResourceMetrics struct {
+	mu              sync.RWMutex
+	Timestamp       time.Time
+	CPUUsage        float64           // Current CPU usage percentage
+	MemoryUsage     float64           // Current memory usage percentage
+	MemoryTotal     uint64            // Total system memory
+	MemoryUsed      uint64            // Used system memory
+	MemoryAvailable uint64            // Available system memory
+	ProcessMemory   uint64            // Process memory usage
+	GoroutineCount  int               // Current goroutine count
+	HeapAlloc       uint64            // Heap allocated memory
+	HeapSys         uint64            // Heap system memory
+	HeapInuse       uint64            // Heap in-use memory
+	HeapIdle        uint64            // Heap idle memory
+	GCCycles        uint32            // Number of GC cycles
+	LastGCTime      time.Time         // Last GC time
+	CPUCores        int               // Number of CPU cores
+	LoadAverage     []float64         // System load average
+	DiskIO          *DiskIOMetrics    // Disk I/O metrics
+	NetworkIO       *NetworkIOMetrics // Network I/O metrics
+	AlertHistory    []ResourceAlert   // Recent alerts
+}
+
+// DiskIOMetrics tracks disk I/O performance
+type DiskIOMetrics struct {
+	ReadBytes     uint64  // Bytes read from disk
+	WriteBytes    uint64  // Bytes written to disk
+	ReadOps       uint64  // Number of read operations
+	WriteOps      uint64  // Number of write operations
+	IOUtilization float64 // Disk I/O utilization percentage
+}
+
+// NetworkIOMetrics tracks network I/O performance
+type NetworkIOMetrics struct {
+	BytesSent       uint64  // Bytes sent over network
+	BytesReceived   uint64  // Bytes received over network
+	PacketsSent     uint64  // Packets sent
+	PacketsReceived uint64  // Packets received
+	Connections     int     // Active network connections
+	Bandwidth       float64 // Network bandwidth utilization
+}
+
+// ResourceOptimizer manages resource optimization strategies
+type ResourceOptimizer struct {
+	config              *ResourceConfig
+	strategies          []OptimizationStrategy
+	lastOptimization    time.Time
+	optimizationHistory []OptimizationEvent
+	mu                  sync.RWMutex
+}
+
+// OptimizationStrategy defines a resource optimization strategy
+type OptimizationStrategy interface {
+	Name() string
+	CanOptimize(metrics *ResourceMetrics) bool
+	Optimize(metrics *ResourceMetrics) (*OptimizationResult, error)
+	Priority() int
+}
+
+// OptimizationResult contains the result of an optimization operation
+type OptimizationResult struct {
+	Strategy        string
+	Applied         bool
+	Description     string
+	CPUReduction    float64
+	MemoryReduction uint64
+	Timestamp       time.Time
+	Metrics         map[string]interface{}
+}
+
+// OptimizationEvent tracks optimization events
+type OptimizationEvent struct {
+	Timestamp time.Time
+	Strategy  string
+	Result    *OptimizationResult
+	Error     error
+}
+
+// MemoryPooler manages memory pools for efficient allocation
+type MemoryPooler struct {
+	pools   map[string]*sync.Pool
+	metrics *MemoryPoolMetrics
+	mu      sync.RWMutex
+}
+
+// MemoryPoolMetrics tracks memory pool performance
+type MemoryPoolMetrics struct {
+	PoolAllocations map[string]int64
+	PoolReleases    map[string]int64
+	PoolHitRate     map[string]float64
+	TotalSavings    uint64
+}
+
+// GCOptimizer manages garbage collection optimization
+type GCOptimizer struct {
+	config        *ResourceConfig
+	lastGCTime    time.Time
+	gcMetrics     *GCMetrics
+	targetPercent int
+	mu            sync.RWMutex
+}
+
+// GCMetrics tracks garbage collection performance
+type GCMetrics struct {
+	TotalPauses    time.Duration
+	PauseHistory   []time.Duration
+	FrequencyHz    float64
+	LastPauseTime  time.Duration
+	MemoryReleased uint64
+}
+
+// CPULoadManager manages CPU load balancing and optimization
+type CPULoadManager struct {
+	config           *ResourceConfig
+	maxProcs         int
+	affinitySettings map[string]int
+	loadBalancer     *CPULoadBalancer
+	mu               sync.RWMutex
+}
+
+// CPULoadBalancer distributes CPU load across cores
+type CPULoadBalancer struct {
+	CoreUsage   []float64
+	TaskQueue   chan CPUTask
+	WorkerPools []chan CPUTask
+	LoadMetrics *CPULoadMetrics
+}
+
+// CPUTask represents a CPU-intensive task
+type CPUTask struct {
+	ID       string
+	Function func() error
+	Priority int
+	Timeout  time.Duration
+}
+
+// CPULoadMetrics tracks CPU load balancing metrics
+type CPULoadMetrics struct {
+	CoreUtilization []float64
+	TasksCompleted  int64
+	TasksQueued     int64
+	AverageWaitTime time.Duration
+}
+
+// ResourceAlertManager manages resource usage alerts
+type ResourceAlertManager struct {
+	config      *ResourceConfig
+	alerts      []ResourceAlert
+	escalations []ResourceEscalation
+	mu          sync.RWMutex
+}
+
+// ResourceAlert represents a resource usage alert
+type ResourceAlert struct {
+	ID          string
+	Type        string // CPU, Memory, Goroutine, Disk, Network
+	Level       string // Warning, Critical
+	Metric      string
+	Current     float64
+	Threshold   float64
+	Timestamp   time.Time
+	Resolved    bool
+	ResolvedAt  *time.Time
+	Description string
+	Actions     []string
+}
+
+// ResourceEscalation tracks alert escalations
+type ResourceEscalation struct {
+	AlertID   string
+	Level     int
+	Timestamp time.Time
+	Action    string
+	Result    string
+}
+
+// DefaultResourceConfig creates a default resource configuration
+func DefaultResourceConfig() *ResourceConfig {
+	return &ResourceConfig{
+		MonitoringInterval:      10 * time.Second,
+		OptimizationInterval:    30 * time.Second,
+		MaxCPUUsage:             80.0,
+		MaxMemoryUsage:          80.0,
+		CPUOptimizationLevel:    3,
+		MemoryOptimizationLevel: 3,
+		GCTargetPercentage:      75,
+		MaxGoroutines:           1000,
+		AlertThresholds: &ResourceAlertThresholds{
+			CPUWarning:        70.0,
+			CPUCritical:       90.0,
+			MemoryWarning:     70.0,
+			MemoryCritical:    90.0,
+			GoroutineWarning:  800,
+			GoroutineCritical: 1200,
+		},
+		EnableProfiling:   true,
+		ProfilingInterval: 1 * time.Minute,
+	}
+}
+
+// NewResourceUtilizationManager creates a new resource utilization manager
+func NewResourceUtilizationManager(config *ResourceConfig) *ResourceUtilizationManager {
+	if config == nil {
+		config = DefaultResourceConfig()
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	rum := &ResourceUtilizationManager{
+		config:           config,
+		metrics:          &ResourceMetrics{AlertHistory: make([]ResourceAlert, 0)},
+		optimizer:        NewResourceOptimizer(config),
+		alerts:           NewResourceAlertManager(config),
+		memoryPooler:     NewMemoryPooler(),
+		gcOptimizer:      NewGCOptimizer(config),
+		cpuManager:       NewCPULoadManager(config),
+		ctx:              ctx,
+		cancel:           cancel,
+		monitoringDone:   make(chan struct{}),
+		optimizationDone: make(chan struct{}),
+	}
+
+	// Start monitoring and optimization goroutines
+	go rum.startMonitoring()
+	go rum.startOptimization()
+
+	return rum
+}
+
+// NewResourceOptimizer creates a new resource optimizer
+func NewResourceOptimizer(config *ResourceConfig) *ResourceOptimizer {
+	ro := &ResourceOptimizer{
+		config:              config,
+		optimizationHistory: make([]OptimizationEvent, 0),
+	}
+
+	// Register optimization strategies
+	ro.strategies = []OptimizationStrategy{
+		&MemoryOptimizationStrategy{config: config},
+		&CPUOptimizationStrategy{config: config},
+		&GoroutineOptimizationStrategy{config: config},
+		&GCOptimizationStrategy{config: config},
+	}
+
+	return ro
+}
+
+// NewResourceAlertManager creates a new resource alert manager
+func NewResourceAlertManager(config *ResourceConfig) *ResourceAlertManager {
+	return &ResourceAlertManager{
+		config:      config,
+		alerts:      make([]ResourceAlert, 0),
+		escalations: make([]ResourceEscalation, 0),
+	}
+}
+
+// NewMemoryPooler creates a new memory pooler
+func NewMemoryPooler() *MemoryPooler {
+	return &MemoryPooler{
+		pools: make(map[string]*sync.Pool),
+		metrics: &MemoryPoolMetrics{
+			PoolAllocations: make(map[string]int64),
+			PoolReleases:    make(map[string]int64),
+			PoolHitRate:     make(map[string]float64),
+		},
+	}
+}
+
+// NewGCOptimizer creates a new garbage collection optimizer
+func NewGCOptimizer(config *ResourceConfig) *GCOptimizer {
+	return &GCOptimizer{
+		config:        config,
+		targetPercent: config.GCTargetPercentage,
+		gcMetrics: &GCMetrics{
+			PauseHistory: make([]time.Duration, 0),
+		},
+	}
+}
+
+// NewCPULoadManager creates a new CPU load manager
+func NewCPULoadManager(config *ResourceConfig) *CPULoadManager {
+	cores := runtime.NumCPU()
+	runtime.GOMAXPROCS(cores)
+
+	return &CPULoadManager{
+		config:           config,
+		maxProcs:         cores,
+		affinitySettings: make(map[string]int),
+		loadBalancer: &CPULoadBalancer{
+			CoreUsage:   make([]float64, cores),
+			TaskQueue:   make(chan CPUTask, 100),
+			WorkerPools: make([]chan CPUTask, cores),
+			LoadMetrics: &CPULoadMetrics{
+				CoreUtilization: make([]float64, cores),
+			},
+		},
+	}
+}
+
+// CollectMetrics collects current resource utilization metrics
+func (rum *ResourceUtilizationManager) CollectMetrics() error {
+	rum.mu.Lock()
+	defer rum.mu.Unlock()
+
+	// Get current process
+	pid := int32(os.Getpid())
+	proc, err := process.NewProcess(pid)
+	if err != nil {
+		return fmt.Errorf("failed to get process: %w", err)
+	}
+
+	// Collect CPU metrics
+	cpuPercent, err := cpu.Percent(0, false)
+	if err == nil && len(cpuPercent) > 0 {
+		rum.metrics.CPUUsage = cpuPercent[0]
+	}
+
+	// Collect memory metrics
+	memInfo, err := mem.VirtualMemory()
+	if err == nil {
+		rum.metrics.MemoryUsage = memInfo.UsedPercent
+		rum.metrics.MemoryTotal = memInfo.Total
+		rum.metrics.MemoryUsed = memInfo.Used
+		rum.metrics.MemoryAvailable = memInfo.Available
+	}
+
+	// Collect process memory
+	memInfo2, err := proc.MemoryInfo()
+	if err == nil {
+		rum.metrics.ProcessMemory = memInfo2.RSS
+	}
+
+	// Collect runtime metrics
+	var rtm runtime.MemStats
+	runtime.ReadMemStats(&rtm)
+
+	rum.metrics.Timestamp = time.Now()
+	rum.metrics.GoroutineCount = runtime.NumGoroutine()
+	rum.metrics.HeapAlloc = rtm.Alloc
+	rum.metrics.HeapSys = rtm.HeapSys
+	rum.metrics.HeapInuse = rtm.HeapInuse
+	rum.metrics.HeapIdle = rtm.HeapIdle
+	rum.metrics.GCCycles = rtm.NumGC
+	rum.metrics.CPUCores = runtime.NumCPU()
+
+	if rtm.NumGC > 0 {
+		rum.metrics.LastGCTime = time.Unix(0, int64(rtm.LastGC))
+	}
+
+	// Check for alerts
+	rum.checkResourceAlerts()
+
+	return nil
+}
+
+// checkResourceAlerts checks if any resource thresholds are exceeded
+func (rum *ResourceUtilizationManager) checkResourceAlerts() {
+	thresholds := rum.config.AlertThresholds
+
+	// Check CPU alerts
+	if rum.metrics.CPUUsage > thresholds.CPUCritical {
+		rum.createAlert("CPU", "Critical", "CPU usage", rum.metrics.CPUUsage, thresholds.CPUCritical)
+	} else if rum.metrics.CPUUsage > thresholds.CPUWarning {
+		rum.createAlert("CPU", "Warning", "CPU usage", rum.metrics.CPUUsage, thresholds.CPUWarning)
+	}
+
+	// Check memory alerts
+	if rum.metrics.MemoryUsage > thresholds.MemoryCritical {
+		rum.createAlert("Memory", "Critical", "Memory usage", rum.metrics.MemoryUsage, thresholds.MemoryCritical)
+	} else if rum.metrics.MemoryUsage > thresholds.MemoryWarning {
+		rum.createAlert("Memory", "Warning", "Memory usage", rum.metrics.MemoryUsage, thresholds.MemoryWarning)
+	}
+
+	// Check goroutine alerts
+	goroutineCount := float64(rum.metrics.GoroutineCount)
+	if rum.metrics.GoroutineCount > thresholds.GoroutineCritical {
+		rum.createAlert("Goroutine", "Critical", "Goroutine count", goroutineCount, float64(thresholds.GoroutineCritical))
+	} else if rum.metrics.GoroutineCount > thresholds.GoroutineWarning {
+		rum.createAlert("Goroutine", "Warning", "Goroutine count", goroutineCount, float64(thresholds.GoroutineWarning))
+	}
+}
+
+// createAlert creates a new resource alert
+func (rum *ResourceUtilizationManager) createAlert(alertType, level, metric string, current, threshold float64) {
+	alert := ResourceAlert{
+		ID:          fmt.Sprintf("%s-%s-%d", alertType, level, time.Now().Unix()),
+		Type:        alertType,
+		Level:       level,
+		Metric:      metric,
+		Current:     current,
+		Threshold:   threshold,
+		Timestamp:   time.Now(),
+		Resolved:    false,
+		Description: fmt.Sprintf("%s %s exceeded threshold: %.2f > %.2f", alertType, metric, current, threshold),
+		Actions:     rum.getRecommendedActions(alertType, level),
+	}
+
+	rum.metrics.AlertHistory = append(rum.metrics.AlertHistory, alert)
+	rum.alerts.AddAlert(alert)
+
+	log.Printf("Resource Alert: %s", alert.Description)
+}
+
+// getRecommendedActions returns recommended actions for an alert
+func (rum *ResourceUtilizationManager) getRecommendedActions(alertType, level string) []string {
+	actions := make([]string, 0)
+
+	switch alertType {
+	case "CPU":
+		actions = append(actions, "Reduce concurrent processing")
+		actions = append(actions, "Implement CPU affinity")
+		if level == "Critical" {
+			actions = append(actions, "Scale horizontally")
+		}
+	case "Memory":
+		actions = append(actions, "Force garbage collection")
+		actions = append(actions, "Reduce cache size")
+		if level == "Critical" {
+			actions = append(actions, "Restart service")
+		}
+	case "Goroutine":
+		actions = append(actions, "Reduce concurrent operations")
+		actions = append(actions, "Implement goroutine pooling")
+		if level == "Critical" {
+			actions = append(actions, "Graceful degradation")
+		}
+	}
+
+	return actions
+}
+
+// OptimizeResources runs resource optimization strategies
+func (rum *ResourceUtilizationManager) OptimizeResources() error {
+	rum.optimizer.mu.Lock()
+	defer rum.optimizer.mu.Unlock()
+
+	results := make([]*OptimizationResult, 0)
+
+	for _, strategy := range rum.optimizer.strategies {
+		if strategy.CanOptimize(rum.metrics) {
+			result, err := strategy.Optimize(rum.metrics)
+
+			// Record optimization event
+			event := OptimizationEvent{
+				Timestamp: time.Now(),
+				Strategy:  strategy.Name(),
+				Result:    result,
+				Error:     err,
+			}
+			rum.optimizer.optimizationHistory = append(rum.optimizer.optimizationHistory, event)
+
+			if err != nil {
+				log.Printf("Optimization strategy %s failed: %v", strategy.Name(), err)
+				continue
+			}
+
+			if result.Applied {
+				results = append(results, result)
+				log.Printf("Applied optimization: %s - %s", result.Strategy, result.Description)
+			}
+		}
+	}
+
+	// Keep only the last 100 optimization events
+	if len(rum.optimizer.optimizationHistory) > 100 {
+		rum.optimizer.optimizationHistory = rum.optimizer.optimizationHistory[len(rum.optimizer.optimizationHistory)-100:]
+	}
+
+	rum.optimizer.lastOptimization = time.Now()
+	return nil
+}
+
+// GetResourceMetrics returns current resource metrics
+func (rum *ResourceUtilizationManager) GetResourceMetrics() *ResourceMetrics {
+	rum.mu.RLock()
+	defer rum.mu.RUnlock()
+
+	// Create a copy to avoid race conditions
+	metrics := *rum.metrics
+	return &metrics
+}
+
+// GetOptimizationHistory returns optimization history
+func (rum *ResourceUtilizationManager) GetOptimizationHistory() []OptimizationEvent {
+	rum.optimizer.mu.RLock()
+	defer rum.optimizer.mu.RUnlock()
+
+	// Create a copy
+	history := make([]OptimizationEvent, len(rum.optimizer.optimizationHistory))
+	copy(history, rum.optimizer.optimizationHistory)
+	return history
+}
+
+// GetResourceAlerts returns active resource alerts
+func (rum *ResourceUtilizationManager) GetResourceAlerts() []ResourceAlert {
+	rum.alerts.mu.RLock()
+	defer rum.alerts.mu.RUnlock()
+
+	// Create a copy
+	alerts := make([]ResourceAlert, len(rum.alerts.alerts))
+	copy(alerts, rum.alerts.alerts)
+	return alerts
+}
+
+// startMonitoring starts the resource monitoring loop
+func (rum *ResourceUtilizationManager) startMonitoring() {
+	defer close(rum.monitoringDone)
+
+	ticker := time.NewTicker(rum.config.MonitoringInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-rum.ctx.Done():
+			return
+		case <-ticker.C:
+			if err := rum.CollectMetrics(); err != nil {
+				log.Printf("Error collecting resource metrics: %v", err)
+			}
+		}
+	}
+}
+
+// startOptimization starts the resource optimization loop
+func (rum *ResourceUtilizationManager) startOptimization() {
+	defer close(rum.optimizationDone)
+
+	ticker := time.NewTicker(rum.config.OptimizationInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-rum.ctx.Done():
+			return
+		case <-ticker.C:
+			if err := rum.OptimizeResources(); err != nil {
+				log.Printf("Error optimizing resources: %v", err)
+			}
+		}
+	}
+}
+
+// Shutdown gracefully shuts down the resource utilization manager
+func (rum *ResourceUtilizationManager) Shutdown() {
+	rum.cancel()
+
+	// Wait for monitoring and optimization to finish
+	<-rum.monitoringDone
+	<-rum.optimizationDone
+}
+
+// AddAlert adds a resource alert to the alert manager
+func (ram *ResourceAlertManager) AddAlert(alert ResourceAlert) {
+	ram.mu.Lock()
+	defer ram.mu.Unlock()
+
+	ram.alerts = append(ram.alerts, alert)
+
+	// Keep only the last 100 alerts
+	if len(ram.alerts) > 100 {
+		ram.alerts = ram.alerts[len(ram.alerts)-100:]
+	}
+}
+
+// ResolveAlert resolves a resource alert
+func (ram *ResourceAlertManager) ResolveAlert(alertID string) {
+	ram.mu.Lock()
+	defer ram.mu.Unlock()
+
+	for i := range ram.alerts {
+		if ram.alerts[i].ID == alertID {
+			now := time.Now()
+			ram.alerts[i].Resolved = true
+			ram.alerts[i].ResolvedAt = &now
+			break
+		}
+	}
+}
+
+// GetActiveAlerts returns all active (unresolved) alerts
+func (ram *ResourceAlertManager) GetActiveAlerts() []ResourceAlert {
+	ram.mu.RLock()
+	defer ram.mu.RUnlock()
+
+	activeAlerts := make([]ResourceAlert, 0)
+	for _, alert := range ram.alerts {
+		if !alert.Resolved {
+			activeAlerts = append(activeAlerts, alert)
+		}
+	}
+
+	return activeAlerts
+}

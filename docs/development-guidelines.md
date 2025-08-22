@@ -1,0 +1,1278 @@
+# Development Guidelines for KYB Platform
+
+## Overview
+
+This document establishes comprehensive development guidelines for the KYB Platform, ensuring consistent, maintainable, and high-quality code across all team members and future development efforts.
+
+## Table of Contents
+
+1. [Code Standards](#code-standards)
+2. [Architecture Principles](#architecture-principles)
+3. [Testing Guidelines](#testing-guidelines)
+4. [Documentation Standards](#documentation-standards)
+5. [Security Guidelines](#security-guidelines)
+6. [Performance Guidelines](#performance-guidelines)
+7. [Error Handling](#error-handling)
+8. [Logging and Monitoring](#logging-and-monitoring)
+9. [Database Guidelines](#database-guidelines)
+10. [API Design Guidelines](#api-design-guidelines)
+
+## Code Standards
+
+### 1. Go Coding Standards
+
+#### Naming Conventions
+```go
+// Package names: lowercase, no underscores
+package businessverification
+
+// Constants: CamelCase with descriptive names
+const (
+    DefaultTimeout = 30 * time.Second
+    MaxRetryAttempts = 3
+    APIVersionV3 = "v3"
+)
+
+// Variables: camelCase
+var (
+    serverPort = 8080
+    databaseURL string
+)
+
+// Types: PascalCase
+type BusinessVerification struct {
+    ID          string    `json:"id"`
+    Status      string    `json:"status"`
+    CreatedAt   time.Time `json:"created_at"`
+}
+
+// Functions: PascalCase for exported, camelCase for private
+func VerifyBusiness(data BusinessData) (*VerificationResult, error) {
+    return verifyBusinessInternal(data)
+}
+
+func verifyBusinessInternal(data BusinessData) (*VerificationResult, error) {
+    // Implementation
+}
+
+// Interfaces: PascalCase, often end with -er
+type BusinessValidator interface {
+    Validate(ctx context.Context, data BusinessData) error
+}
+
+// Methods: PascalCase for exported, camelCase for private
+func (v *BusinessVerification) GetStatus() string {
+    return v.Status
+}
+
+func (v *BusinessVerification) updateStatus(status string) {
+    v.Status = status
+}
+```
+
+#### Function Design Principles
+```go
+// Good: Single responsibility, clear purpose
+func ValidateBusinessEmail(email string) error {
+    if email == "" {
+        return errors.New("email is required")
+    }
+    
+    if !isValidEmail(email) {
+        return errors.New("email format is invalid")
+    }
+    
+    return nil
+}
+
+// Good: Proper error handling with context
+func SaveBusinessVerification(ctx context.Context, verification *BusinessVerification) error {
+    if verification == nil {
+        return errors.New("verification cannot be nil")
+    }
+    
+    if err := validation.ValidateStruct(verification); err != nil {
+        return fmt.Errorf("validation failed: %w", err)
+    }
+    
+    if err := repository.Save(ctx, verification); err != nil {
+        return fmt.Errorf("failed to save verification: %w", err)
+    }
+    
+    return nil
+}
+
+// Good: Use of context for cancellation and timeouts
+func ProcessBusinessVerification(ctx context.Context, data BusinessData) (*VerificationResult, error) {
+    // Create a timeout context
+    ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+    defer cancel()
+    
+    // Process with context
+    result, err := externalAPI.Verify(ctx, data)
+    if err != nil {
+        return nil, fmt.Errorf("external verification failed: %w", err)
+    }
+    
+    return result, nil
+}
+```
+
+#### Error Handling Patterns
+```go
+// Good: Comprehensive error handling
+func ProcessVerificationRequest(ctx context.Context, req *VerificationRequest) (*VerificationResult, error) {
+    // Input validation
+    if req == nil {
+        return nil, errors.New("request cannot be nil")
+    }
+    
+    if err := validateRequest(req); err != nil {
+        return nil, fmt.Errorf("invalid request: %w", err)
+    }
+    
+    // Business logic with proper error wrapping
+    result, err := performVerification(ctx, req)
+    if err != nil {
+        // Log error with context
+        logger.Error("verification failed",
+            zap.String("request_id", req.ID),
+            zap.Error(err))
+        
+        // Wrap error with context
+        return nil, fmt.Errorf("verification process failed for request %s: %w", req.ID, err)
+    }
+    
+    // Success logging
+    logger.Info("verification completed successfully",
+        zap.String("request_id", req.ID),
+        zap.String("status", result.Status))
+    
+    return result, nil
+}
+
+// Custom error types for specific cases
+type ValidationError struct {
+    Field   string
+    Message string
+}
+
+func (e ValidationError) Error() string {
+    return fmt.Sprintf("validation error in field '%s': %s", e.Field, e.Message)
+}
+
+// Usage of custom errors
+func ValidateBusinessData(data BusinessData) error {
+    if data.Name == "" {
+        return ValidationError{
+            Field:   "name",
+            Message: "business name is required",
+        }
+    }
+    
+    if len(data.Name) > 255 {
+        return ValidationError{
+            Field:   "name",
+            Message: "business name exceeds maximum length of 255 characters",
+        }
+    }
+    
+    return nil
+}
+```
+
+### 2. Code Organization
+
+#### Package Structure
+```
+kyb-platform/
+├── cmd/                    # Application entry points
+│   ├── server/            # Main API server
+│   ├── worker/            # Background worker
+│   └── migrate/           # Database migration tool
+├── internal/              # Private application code
+│   ├── api/              # API layer
+│   │   ├── handlers/     # HTTP handlers
+│   │   ├── middleware/   # HTTP middleware
+│   │   └── routes/       # Route definitions
+│   ├── business/         # Business logic
+│   │   ├── verification/ # Verification domain
+│   │   ├── validation/   # Validation logic
+│   │   └── notification/ # Notification logic
+│   ├── repository/       # Data access layer
+│   │   ├── postgres/     # PostgreSQL implementations
+│   │   └── cache/        # Cache implementations
+│   ├── external/         # External service clients
+│   │   ├── govdata/      # Government data APIs
+│   │   └── creditbureau/ # Credit bureau APIs
+│   ├── config/           # Configuration management
+│   ├── observability/    # Monitoring, logging, metrics
+│   └── security/         # Security utilities
+├── pkg/                  # Public packages (if any)
+│   └── client/           # Go client SDK
+├── api/                  # API definitions
+│   ├── openapi/          # OpenAPI specifications
+│   └── proto/            # Protocol buffer definitions
+├── scripts/              # Build and deployment scripts
+├── docs/                 # Documentation
+├── test/                 # Test utilities and fixtures
+│   ├── fixtures/         # Test data
+│   ├── mocks/            # Generated mocks
+│   └── integration/      # Integration tests
+└── configs/              # Configuration files
+    ├── dev/              # Development config
+    ├── staging/          # Staging config
+    └── production/       # Production config
+```
+
+#### File Organization
+```go
+// Good: Logical grouping within files
+package handlers
+
+import (
+    // Standard library imports first
+    "context"
+    "encoding/json"
+    "net/http"
+    "time"
+    
+    // Third-party imports second
+    "github.com/gorilla/mux"
+    "go.uber.org/zap"
+    
+    // Local imports last
+    "github.com/company/kyb-platform/internal/business/verification"
+    "github.com/company/kyb-platform/internal/config"
+)
+
+// Constants at package level
+const (
+    MaxRequestSize = 10 * 1024 * 1024 // 10MB
+    DefaultTimeout = 30 * time.Second
+)
+
+// Types and interfaces
+type VerificationHandler struct {
+    service verification.Service
+    logger  *zap.Logger
+    config  *config.Config
+}
+
+// Constructor
+func NewVerificationHandler(service verification.Service, logger *zap.Logger, config *config.Config) *VerificationHandler {
+    return &VerificationHandler{
+        service: service,
+        logger:  logger,
+        config:  config,
+    }
+}
+
+// Public methods
+func (h *VerificationHandler) VerifyBusiness(w http.ResponseWriter, r *http.Request) {
+    // Implementation
+}
+
+// Private methods
+func (h *VerificationHandler) validateRequest(r *http.Request) error {
+    // Implementation
+}
+```
+
+## Architecture Principles
+
+### 1. Clean Architecture
+
+#### Layer Separation
+```go
+// Domain layer - Pure business logic
+package verification
+
+type Business struct {
+    ID       string
+    Name     string
+    Address  string
+    Industry string
+}
+
+type VerificationResult struct {
+    BusinessID string
+    Status     VerificationStatus
+    Score      float64
+    Checks     []Check
+}
+
+type Service interface {
+    VerifyBusiness(ctx context.Context, business Business) (*VerificationResult, error)
+}
+
+// Application layer - Use cases
+package verification
+
+type service struct {
+    repo      Repository
+    validator Validator
+    notifier  Notifier
+    logger    Logger
+}
+
+func (s *service) VerifyBusiness(ctx context.Context, business Business) (*VerificationResult, error) {
+    // Validation
+    if err := s.validator.Validate(business); err != nil {
+        return nil, fmt.Errorf("validation failed: %w", err)
+    }
+    
+    // Business logic
+    result := &VerificationResult{
+        BusinessID: business.ID,
+        Status:     StatusPending,
+    }
+    
+    // Perform checks
+    checks, err := s.performChecks(ctx, business)
+    if err != nil {
+        return nil, fmt.Errorf("checks failed: %w", err)
+    }
+    
+    result.Checks = checks
+    result.Score = s.calculateScore(checks)
+    result.Status = s.determineStatus(result.Score)
+    
+    // Persist result
+    if err := s.repo.Save(ctx, result); err != nil {
+        return nil, fmt.Errorf("failed to save result: %w", err)
+    }
+    
+    // Async notification
+    go func() {
+        if err := s.notifier.NotifyResult(context.Background(), result); err != nil {
+            s.logger.Error("notification failed", zap.Error(err))
+        }
+    }()
+    
+    return result, nil
+}
+
+// Infrastructure layer - External concerns
+package handlers
+
+func (h *VerificationHandler) VerifyBusiness(w http.ResponseWriter, r *http.Request) {
+    ctx := r.Context()
+    
+    // Parse request
+    var req VerificationRequest
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        http.Error(w, "invalid request", http.StatusBadRequest)
+        return
+    }
+    
+    // Convert to domain model
+    business := verification.Business{
+        ID:       generateID(),
+        Name:     req.Name,
+        Address:  req.Address,
+        Industry: req.Industry,
+    }
+    
+    // Call service
+    result, err := h.service.VerifyBusiness(ctx, business)
+    if err != nil {
+        h.logger.Error("verification failed", zap.Error(err))
+        http.Error(w, "verification failed", http.StatusInternalServerError)
+        return
+    }
+    
+    // Return response
+    response := VerificationResponse{
+        ID:     result.BusinessID,
+        Status: string(result.Status),
+        Score:  result.Score,
+    }
+    
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(response)
+}
+```
+
+### 2. Dependency Injection
+
+#### Interface-Based Design
+```go
+// Define interfaces for dependencies
+type Repository interface {
+    Save(ctx context.Context, verification *Verification) error
+    GetByID(ctx context.Context, id string) (*Verification, error)
+    List(ctx context.Context, filters Filters) ([]*Verification, error)
+}
+
+type ExternalValidator interface {
+    ValidateBusinessData(ctx context.Context, data BusinessData) (*ValidationResult, error)
+}
+
+type NotificationService interface {
+    SendVerificationComplete(ctx context.Context, verification *Verification) error
+}
+
+// Service with injected dependencies
+type VerificationService struct {
+    repo      Repository
+    validator ExternalValidator
+    notifier  NotificationService
+    logger    *zap.Logger
+    config    *Config
+}
+
+// Constructor with dependency injection
+func NewVerificationService(
+    repo Repository,
+    validator ExternalValidator,
+    notifier NotificationService,
+    logger *zap.Logger,
+    config *Config,
+) *VerificationService {
+    return &VerificationService{
+        repo:      repo,
+        validator: validator,
+        notifier:  notifier,
+        logger:    logger,
+        config:    config,
+    }
+}
+
+// Wire dependencies in main
+func main() {
+    // Initialize dependencies
+    logger := zap.NewProduction()
+    config := loadConfig()
+    db := connectDatabase(config.DatabaseURL)
+    
+    // Create implementations
+    repo := postgres.NewVerificationRepository(db, logger)
+    validator := external.NewBusinessValidator(config.ValidatorConfig, logger)
+    notifier := notification.NewEmailNotifier(config.EmailConfig, logger)
+    
+    // Inject dependencies
+    service := NewVerificationService(repo, validator, notifier, logger, config)
+    handler := handlers.NewVerificationHandler(service, logger)
+    
+    // Start server
+    startServer(handler)
+}
+```
+
+## Testing Guidelines
+
+### 1. Testing Strategy
+
+#### Testing Pyramid
+```
+              /\
+             /  \
+            / UI \
+           /______\
+          /        \
+         /   API    \
+        /____________\
+       /              \
+      /     Unit       \
+     /_________________ \
+```
+
+#### Unit Testing
+```go
+// Good: Comprehensive unit test
+func TestVerificationService_VerifyBusiness(t *testing.T) {
+    tests := []struct {
+        name           string
+        business       Business
+        mockSetup      func(*mocks.Repository, *mocks.Validator)
+        expectedResult *VerificationResult
+        expectedError  string
+    }{
+        {
+            name: "successful verification",
+            business: Business{
+                ID:      "test-123",
+                Name:    "Test Company",
+                Address: "123 Test St",
+            },
+            mockSetup: func(repo *mocks.Repository, validator *mocks.Validator) {
+                validator.On("Validate", mock.Anything).Return(nil)
+                repo.On("Save", mock.Anything, mock.Anything).Return(nil)
+            },
+            expectedResult: &VerificationResult{
+                BusinessID: "test-123",
+                Status:     StatusPassed,
+                Score:      0.95,
+            },
+        },
+        {
+            name: "validation failure",
+            business: Business{
+                ID:   "test-123",
+                Name: "", // Invalid: empty name
+            },
+            mockSetup: func(repo *mocks.Repository, validator *mocks.Validator) {
+                validator.On("Validate", mock.Anything).Return(errors.New("name is required"))
+            },
+            expectedError: "validation failed: name is required",
+        },
+    }
+    
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            // Setup mocks
+            mockRepo := &mocks.Repository{}
+            mockValidator := &mocks.Validator{}
+            mockNotifier := &mocks.NotificationService{}
+            
+            if tt.mockSetup != nil {
+                tt.mockSetup(mockRepo, mockValidator)
+            }
+            
+            // Create service
+            service := NewVerificationService(
+                mockRepo,
+                mockValidator,
+                mockNotifier,
+                zap.NewNop(),
+                &Config{},
+            )
+            
+            // Execute test
+            result, err := service.VerifyBusiness(context.Background(), tt.business)
+            
+            // Assert results
+            if tt.expectedError != "" {
+                assert.Error(t, err)
+                assert.Contains(t, err.Error(), tt.expectedError)
+                assert.Nil(t, result)
+            } else {
+                assert.NoError(t, err)
+                assert.NotNil(t, result)
+                assert.Equal(t, tt.expectedResult.BusinessID, result.BusinessID)
+                assert.Equal(t, tt.expectedResult.Status, result.Status)
+            }
+            
+            // Verify mocks
+            mockRepo.AssertExpectations(t)
+            mockValidator.AssertExpectations(t)
+        })
+    }
+}
+```
+
+#### Integration Testing
+```go
+// Integration test with real database
+func TestVerificationRepository_Integration(t *testing.T) {
+    if testing.Short() {
+        t.Skip("skipping integration test")
+    }
+    
+    // Setup test database
+    db := setupTestDB(t)
+    defer cleanupTestDB(t, db)
+    
+    repo := postgres.NewVerificationRepository(db, zap.NewNop())
+    
+    t.Run("save and retrieve verification", func(t *testing.T) {
+        verification := &Verification{
+            ID:        "test-123",
+            Status:    StatusPending,
+            CreatedAt: time.Now(),
+        }
+        
+        // Save
+        err := repo.Save(context.Background(), verification)
+        require.NoError(t, err)
+        
+        // Retrieve
+        retrieved, err := repo.GetByID(context.Background(), "test-123")
+        require.NoError(t, err)
+        assert.Equal(t, verification.ID, retrieved.ID)
+        assert.Equal(t, verification.Status, retrieved.Status)
+    })
+}
+```
+
+### 2. Test Organization
+
+#### Test Structure
+```go
+// Good: Clear test structure
+func TestBusinessValidator_ValidateBusinessData(t *testing.T) {
+    // Table-driven tests
+    tests := []struct {
+        name          string
+        input         BusinessData
+        expectedError string
+    }{
+        {
+            name: "valid business data",
+            input: BusinessData{
+                Name:    "Valid Company",
+                Address: "123 Valid St, City, State 12345",
+                Phone:   "+1-555-123-4567",
+                Email:   "contact@validcompany.com",
+            },
+            expectedError: "",
+        },
+        {
+            name: "missing name",
+            input: BusinessData{
+                Address: "123 Valid St",
+                Phone:   "+1-555-123-4567",
+            },
+            expectedError: "name is required",
+        },
+        {
+            name: "invalid email format",
+            input: BusinessData{
+                Name:  "Valid Company",
+                Email: "invalid-email",
+            },
+            expectedError: "email format is invalid",
+        },
+    }
+    
+    validator := NewBusinessValidator()
+    
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            err := validator.ValidateBusinessData(tt.input)
+            
+            if tt.expectedError == "" {
+                assert.NoError(t, err)
+            } else {
+                assert.Error(t, err)
+                assert.Contains(t, err.Error(), tt.expectedError)
+            }
+        })
+    }
+}
+```
+
+## Documentation Standards
+
+### 1. Code Documentation
+
+#### GoDoc Standards
+```go
+// Package documentation
+// Package verification provides business verification functionality for the KYB platform.
+//
+// The package implements comprehensive business verification including:
+//   - Identity verification
+//   - Address validation
+//   - Business registration checks
+//   - Compliance screening
+//
+// Example usage:
+//
+//	service := verification.NewService(repo, validator, logger)
+//	result, err := service.VerifyBusiness(ctx, businessData)
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	fmt.Printf("Verification status: %s\n", result.Status)
+package verification
+
+// VerificationStatus represents the status of a business verification.
+//
+// Valid statuses are:
+//   - StatusPending: Verification is in progress
+//   - StatusPassed: Verification completed successfully
+//   - StatusFailed: Verification failed
+//   - StatusError: Verification encountered an error
+type VerificationStatus string
+
+// Business verification status constants.
+const (
+    StatusPending VerificationStatus = "pending"
+    StatusPassed  VerificationStatus = "passed"
+    StatusFailed  VerificationStatus = "failed"
+    StatusError   VerificationStatus = "error"
+)
+
+// VerifyBusiness performs comprehensive business verification.
+//
+// The verification process includes:
+//   1. Input validation
+//   2. Identity verification
+//   3. Address validation
+//   4. Business registration checks
+//   5. Compliance screening
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeouts
+//   - business: Business data to verify
+//
+// Returns:
+//   - VerificationResult: Complete verification results
+//   - error: Any error that occurred during verification
+//
+// Example:
+//
+//	business := Business{
+//	    Name:    "Acme Corp",
+//	    Address: "123 Main St, Anytown, ST 12345",
+//	}
+//	
+//	result, err := service.VerifyBusiness(ctx, business)
+//	if err != nil {
+//	    return fmt.Errorf("verification failed: %w", err)
+//	}
+//	
+//	if result.Status == StatusPassed {
+//	    fmt.Println("Verification successful")
+//	}
+func (s *Service) VerifyBusiness(ctx context.Context, business Business) (*VerificationResult, error) {
+    // Implementation
+}
+```
+
+### 2. API Documentation
+
+#### OpenAPI Specification
+```yaml
+# api/openapi/verification.yaml
+openapi: 3.0.3
+info:
+  title: KYB Platform API
+  description: Know Your Business verification platform
+  version: 3.0.0
+  contact:
+    name: API Support
+    email: api-support@company.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.kyb-platform.com/v3
+    description: Production server
+  - url: https://staging-api.kyb-platform.com/v3
+    description: Staging server
+
+paths:
+  /verify:
+    post:
+      summary: Verify business information
+      description: |
+        Performs comprehensive business verification including:
+        - Identity verification
+        - Address validation
+        - Business registration checks
+        - Compliance screening
+      operationId: verifyBusiness
+      tags:
+        - verification
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerificationRequest'
+            examples:
+              basic_verification:
+                summary: Basic business verification
+                value:
+                  name: "Acme Corporation"
+                  address: "123 Main St, Anytown, ST 12345"
+                  phone: "+1-555-123-4567"
+                  email: "contact@acme.com"
+      responses:
+        '200':
+          description: Verification completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+        '429':
+          description: Rate limit exceeded
+        '500':
+          description: Internal server error
+
+components:
+  schemas:
+    VerificationRequest:
+      type: object
+      required:
+        - name
+        - address
+      properties:
+        name:
+          type: string
+          description: Business name
+          example: "Acme Corporation"
+          minLength: 1
+          maxLength: 255
+        address:
+          type: string
+          description: Business address
+          example: "123 Main St, Anytown, ST 12345"
+          minLength: 10
+          maxLength: 500
+        phone:
+          type: string
+          description: Business phone number
+          example: "+1-555-123-4567"
+          pattern: '^\\+[1-9]\\d{1,14}$'
+        email:
+          type: string
+          description: Business email address
+          example: "contact@acme.com"
+          format: email
+        website:
+          type: string
+          description: Business website
+          example: "https://www.acme.com"
+          format: uri
+    
+    VerificationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Verification ID
+          example: "ver_1234567890"
+        status:
+          type: string
+          enum: [pending, passed, failed, error]
+          description: Verification status
+          example: "passed"
+        score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Verification confidence score
+          example: 0.95
+        checks:
+          type: array
+          items:
+            $ref: '#/components/schemas/VerificationCheck'
+        created_at:
+          type: string
+          format: date-time
+          description: Verification creation timestamp
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: API key for authentication
+```
+
+## Security Guidelines
+
+### 1. Input Validation
+
+#### Comprehensive Validation
+```go
+// Input validation with detailed error messages
+func ValidateVerificationRequest(req *VerificationRequest) error {
+    var errors []string
+    
+    // Required field validation
+    if req.Name == "" {
+        errors = append(errors, "name is required")
+    } else if len(req.Name) > 255 {
+        errors = append(errors, "name exceeds maximum length of 255 characters")
+    }
+    
+    if req.Address == "" {
+        errors = append(errors, "address is required")
+    } else if len(req.Address) < 10 {
+        errors = append(errors, "address must be at least 10 characters")
+    } else if len(req.Address) > 500 {
+        errors = append(errors, "address exceeds maximum length of 500 characters")
+    }
+    
+    // Format validation
+    if req.Email != "" {
+        if !isValidEmail(req.Email) {
+            errors = append(errors, "email format is invalid")
+        }
+    }
+    
+    if req.Phone != "" {
+        if !isValidPhone(req.Phone) {
+            errors = append(errors, "phone format is invalid")
+        }
+    }
+    
+    if req.Website != "" {
+        if !isValidURL(req.Website) {
+            errors = append(errors, "website URL format is invalid")
+        }
+    }
+    
+    // Content validation
+    if containsSQLInjection(req.Name) || containsSQLInjection(req.Address) {
+        errors = append(errors, "request contains potentially harmful content")
+    }
+    
+    if len(errors) > 0 {
+        return fmt.Errorf("validation failed: %s", strings.Join(errors, "; "))
+    }
+    
+    return nil
+}
+
+// Security-focused validation helpers
+func isValidEmail(email string) bool {
+    // Use a robust email validation library
+    pattern := `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
+    matched, _ := regexp.MatchString(pattern, email)
+    return matched && len(email) <= 254
+}
+
+func isValidPhone(phone string) bool {
+    // E.164 format validation
+    pattern := `^\+[1-9]\d{1,14}$`
+    matched, _ := regexp.MatchString(pattern, phone)
+    return matched
+}
+
+func isValidURL(url string) bool {
+    parsed, err := url.Parse(url)
+    return err == nil && (parsed.Scheme == "http" || parsed.Scheme == "https")
+}
+
+func containsSQLInjection(input string) bool {
+    // Basic SQL injection pattern detection
+    patterns := []string{
+        `(?i)(union|select|insert|update|delete|drop|create|alter|exec|execute)`,
+        `(?i)(script|javascript|vbscript|onload|onerror|onclick)`,
+        `['\";]`,
+    }
+    
+    for _, pattern := range patterns {
+        matched, _ := regexp.MatchString(pattern, input)
+        if matched {
+            return true
+        }
+    }
+    
+    return false
+}
+```
+
+### 2. Authentication and Authorization
+
+#### JWT Implementation
+```go
+// JWT token management
+type TokenManager struct {
+    secretKey []byte
+    issuer    string
+    audience  string
+}
+
+func NewTokenManager(secretKey, issuer, audience string) *TokenManager {
+    return &TokenManager{
+        secretKey: []byte(secretKey),
+        issuer:    issuer,
+        audience:  audience,
+    }
+}
+
+func (tm *TokenManager) GenerateToken(userID string, permissions []string) (string, error) {
+    now := time.Now()
+    
+    claims := jwt.MapClaims{
+        "sub":         userID,
+        "iss":         tm.issuer,
+        "aud":         tm.audience,
+        "iat":         now.Unix(),
+        "exp":         now.Add(24 * time.Hour).Unix(),
+        "permissions": permissions,
+    }
+    
+    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+    return token.SignedString(tm.secretKey)
+}
+
+func (tm *TokenManager) ValidateToken(tokenString string) (*jwt.MapClaims, error) {
+    token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+        if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+            return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+        }
+        return tm.secretKey, nil
+    })
+    
+    if err != nil {
+        return nil, fmt.Errorf("token validation failed: %w", err)
+    }
+    
+    if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+        // Validate issuer and audience
+        if claims["iss"] != tm.issuer {
+            return nil, errors.New("invalid issuer")
+        }
+        
+        if claims["aud"] != tm.audience {
+            return nil, errors.New("invalid audience")
+        }
+        
+        return &claims, nil
+    }
+    
+    return nil, errors.New("invalid token")
+}
+
+// Authorization middleware
+func (tm *TokenManager) AuthorizeMiddleware(requiredPermissions []string) func(http.Handler) http.Handler {
+    return func(next http.Handler) http.Handler {
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+            // Extract token from Authorization header
+            authHeader := r.Header.Get("Authorization")
+            if !strings.HasPrefix(authHeader, "Bearer ") {
+                http.Error(w, "Missing or invalid authorization header", http.StatusUnauthorized)
+                return
+            }
+            
+            tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+            
+            // Validate token
+            claims, err := tm.ValidateToken(tokenString)
+            if err != nil {
+                http.Error(w, "Invalid token", http.StatusUnauthorized)
+                return
+            }
+            
+            // Check permissions
+            userPermissions, ok := (*claims)["permissions"].([]interface{})
+            if !ok {
+                http.Error(w, "Invalid token permissions", http.StatusForbidden)
+                return
+            }
+            
+            hasPermission := false
+            for _, required := range requiredPermissions {
+                for _, userPerm := range userPermissions {
+                    if userPerm.(string) == required {
+                        hasPermission = true
+                        break
+                    }
+                }
+                if hasPermission {
+                    break
+                }
+            }
+            
+            if !hasPermission {
+                http.Error(w, "Insufficient permissions", http.StatusForbidden)
+                return
+            }
+            
+            // Add user info to context
+            ctx := context.WithValue(r.Context(), "user_id", (*claims)["sub"])
+            ctx = context.WithValue(ctx, "permissions", userPermissions)
+            
+            next.ServeHTTP(w, r.WithContext(ctx))
+        })
+    }
+}
+```
+
+## Performance Guidelines
+
+### 1. Database Optimization
+
+#### Query Optimization
+```go
+// Good: Optimized database queries
+type VerificationRepository struct {
+    db    *sql.DB
+    cache Cache
+}
+
+func (r *VerificationRepository) GetVerificationsByStatus(ctx context.Context, status VerificationStatus, limit int, offset int) ([]*Verification, error) {
+    // Use prepared statements
+    const query = `
+        SELECT id, business_id, status, score, created_at, updated_at 
+        FROM verifications 
+        WHERE status = $1 
+        ORDER BY created_at DESC 
+        LIMIT $2 OFFSET $3
+    `
+    
+    rows, err := r.db.QueryContext(ctx, query, status, limit, offset)
+    if err != nil {
+        return nil, fmt.Errorf("query failed: %w", err)
+    }
+    defer rows.Close()
+    
+    var verifications []*Verification
+    for rows.Next() {
+        var v Verification
+        err := rows.Scan(
+            &v.ID,
+            &v.BusinessID,
+            &v.Status,
+            &v.Score,
+            &v.CreatedAt,
+            &v.UpdatedAt,
+        )
+        if err != nil {
+            return nil, fmt.Errorf("scan failed: %w", err)
+        }
+        verifications = append(verifications, &v)
+    }
+    
+    if err := rows.Err(); err != nil {
+        return nil, fmt.Errorf("rows iteration failed: %w", err)
+    }
+    
+    return verifications, nil
+}
+
+// Connection pooling configuration
+func ConfigureDatabase(databaseURL string) (*sql.DB, error) {
+    db, err := sql.Open("postgres", databaseURL)
+    if err != nil {
+        return nil, fmt.Errorf("failed to open database: %w", err)
+    }
+    
+    // Configure connection pool
+    db.SetMaxOpenConns(25)                 // Maximum open connections
+    db.SetMaxIdleConns(5)                  // Maximum idle connections
+    db.SetConnMaxLifetime(5 * time.Minute) // Connection lifetime
+    db.SetConnMaxIdleTime(1 * time.Minute) // Idle connection timeout
+    
+    // Test connection
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+    
+    if err := db.PingContext(ctx); err != nil {
+        return nil, fmt.Errorf("database ping failed: %w", err)
+    }
+    
+    return db, nil
+}
+```
+
+### 2. Caching Strategy
+
+#### Redis Implementation
+```go
+// Cache implementation with Redis
+type RedisCache struct {
+    client *redis.Client
+    prefix string
+    ttl    time.Duration
+}
+
+func NewRedisCache(addr, password, prefix string, ttl time.Duration) *RedisCache {
+    client := redis.NewClient(&redis.Options{
+        Addr:     addr,
+        Password: password,
+        DB:       0,
+    })
+    
+    return &RedisCache{
+        client: client,
+        prefix: prefix,
+        ttl:    ttl,
+    }
+}
+
+func (c *RedisCache) Get(ctx context.Context, key string) (interface{}, error) {
+    fullKey := c.prefix + ":" + key
+    
+    data, err := c.client.Get(ctx, fullKey).Bytes()
+    if err != nil {
+        if err == redis.Nil {
+            return nil, nil // Cache miss
+        }
+        return nil, fmt.Errorf("cache get failed: %w", err)
+    }
+    
+    var value interface{}
+    if err := json.Unmarshal(data, &value); err != nil {
+        return nil, fmt.Errorf("unmarshal failed: %w", err)
+    }
+    
+    return value, nil
+}
+
+func (c *RedisCache) Set(ctx context.Context, key string, value interface{}) error {
+    fullKey := c.prefix + ":" + key
+    
+    data, err := json.Marshal(value)
+    if err != nil {
+        return fmt.Errorf("marshal failed: %w", err)
+    }
+    
+    if err := c.client.Set(ctx, fullKey, data, c.ttl).Err(); err != nil {
+        return fmt.Errorf("cache set failed: %w", err)
+    }
+    
+    return nil
+}
+
+// Cache middleware for HTTP handlers
+func CacheMiddleware(cache Cache, ttl time.Duration) func(http.Handler) http.Handler {
+    return func(next http.Handler) http.Handler {
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+            // Only cache GET requests
+            if r.Method != http.MethodGet {
+                next.ServeHTTP(w, r)
+                return
+            }
+            
+            // Generate cache key
+            cacheKey := generateCacheKey(r)
+            
+            // Try to get from cache
+            cached, err := cache.Get(r.Context(), cacheKey)
+            if err == nil && cached != nil {
+                w.Header().Set("X-Cache", "HIT")
+                w.Header().Set("Content-Type", "application/json")
+                json.NewEncoder(w).Encode(cached)
+                return
+            }
+            
+            // Cache miss - capture response
+            recorder := &ResponseRecorder{
+                ResponseWriter: w,
+                Body:          &bytes.Buffer{},
+                StatusCode:    http.StatusOK,
+            }
+            
+            next.ServeHTTP(recorder, r)
+            
+            // Cache successful responses
+            if recorder.StatusCode == http.StatusOK {
+                cache.Set(r.Context(), cacheKey, recorder.Body.String())
+            }
+            
+            w.Header().Set("X-Cache", "MISS")
+        })
+    }
+}
+```
+
+---
+
+**Document Version**: 1.0.0  
+**Last Updated**: August 19, 2025  
+**Next Review**: November 19, 2025

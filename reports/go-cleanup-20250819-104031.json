@@ -1,0 +1,31 @@
+{
+  "scan_date": "2025-08-19T10:40:32.557216-04:00",
+  "project_root": "/Users/petercrawford/New tool",
+  "scan_options": {
+    "dry_run": false,
+    "interactive": false,
+    "auto_fix": true,
+    "pattern_filter": "backup_files",
+    "file_filter": "",
+    "exclude_patterns": null,
+    "severity": "",
+    "output_format": "json"
+  },
+  "summary": {
+    "total_items": 0,
+    "files_affected": 0,
+    "items_by_severity": {},
+    "items_by_pattern": {},
+    "auto_fixable": 0,
+    "fixes_applied": 0,
+    "scan_duration": 516167546
+  },
+  "deprecated_items": null,
+  "recommendations": null,
+  "fixes_applied": null,
+  "metadata": {
+    "files_scanned": 598,
+    "files_with_issues": 0,
+    "scan_duration": "516.174824ms"
+  }
+}
