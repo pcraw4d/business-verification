@@ -35,8 +35,8 @@ type BusinessModelClassifierConfig struct {
 	// Classification settings
 	RequireMultipleIndicators bool
 	EnableFallbackAnalysis    bool
-	ValidateClassifications    bool
-	EnableDetailedBreakdown    bool
+	ValidateClassifications   bool
+	EnableDetailedBreakdown   bool
 }
 
 // BusinessModelClassification represents comprehensive business model classification
@@ -47,16 +47,16 @@ type BusinessModelClassification struct {
 	BusinessModelType      string `json:"business_model_type"` // B2B, B2C, B2B2C, Marketplace, etc.
 
 	// Detailed breakdown
-	ModelIndicators    ModelIndicatorAnalysis    `json:"model_indicators"`
-	AudienceAnalysis   AudienceAnalysis          `json:"audience_analysis"`
-	RevenueModel       RevenueModelAnalysis      `json:"revenue_model"`
-	MarketPositioning  MarketPositioningAnalysis `json:"market_positioning"`
+	ModelIndicators   ModelIndicatorAnalysis    `json:"model_indicators"`
+	AudienceAnalysis  AudienceAnalysis          `json:"audience_analysis"`
+	RevenueModel      RevenueModelAnalysis      `json:"revenue_model"`
+	MarketPositioning MarketPositioningAnalysis `json:"market_positioning"`
 
 	// Confidence and validation
-	ConfidenceScore  float64                    `json:"confidence_score"`
-	ComponentScores  BusinessComponentScores    `json:"component_scores"`
-	Evidence         []string                   `json:"evidence"`
-	ExtractedPhrases []string                   `json:"extracted_phrases"`
+	ConfidenceScore  float64                 `json:"confidence_score"`
+	ComponentScores  BusinessComponentScores `json:"component_scores"`
+	Evidence         []string                `json:"evidence"`
+	ExtractedPhrases []string                `json:"extracted_phrases"`
 
 	// Quality assessment
 	IsValidated      bool             `json:"is_validated"`
@@ -114,8 +114,6 @@ type CustomerType struct {
 	Description     string  `json:"description"`
 	ConfidenceScore float64 `json:"confidence_score"`
 }
-
-
 
 // BusinessComponentScores detailed scoring breakdown
 type BusinessComponentScores struct {

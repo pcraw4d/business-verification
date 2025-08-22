@@ -12,9 +12,9 @@ import (
 // HTMLParser handles HTML parsing and text extraction
 type HTMLParser struct {
 	// Configuration for parsing
-	removeScripts    bool
-	removeStyles     bool
-	removeComments   bool
+	removeScripts     bool
+	removeStyles      bool
+	removeComments    bool
 	preserveLinks     bool
 	maxTextLength     int
 	extractMetaData   bool
@@ -24,9 +24,9 @@ type HTMLParser struct {
 // NewHTMLParser creates a new HTML parser with default configuration
 func NewHTMLParser() *HTMLParser {
 	return &HTMLParser{
-		removeScripts:    true,
-		removeStyles:     true,
-		removeComments:   true,
+		removeScripts:     true,
+		removeStyles:      true,
+		removeComments:    true,
 		preserveLinks:     true,
 		maxTextLength:     100000, // 100KB limit
 		extractMetaData:   true,
@@ -51,17 +51,17 @@ type ParsedContent struct {
 
 // StructuredData represents structured data extracted from the page
 type StructuredData struct {
-	BusinessName    string   `json:"business_name,omitempty"`
-	Address         string   `json:"address,omitempty"`
-	Phone           string   `json:"phone,omitempty"`
-	Email           string   `json:"email,omitempty"`
-	Website         string   `json:"website,omitempty"`
-	SocialMedia     []string `json:"social_media,omitempty"`
-	BusinessHours   string   `json:"business_hours,omitempty"`
-	Services        []string `json:"services,omitempty"`
-	TeamMembers     []string `json:"team_members,omitempty"`
-	ContactInfo     []string `json:"contact_info,omitempty"`
-	LocationInfo    []string `json:"location_info,omitempty"`
+	BusinessName  string   `json:"business_name,omitempty"`
+	Address       string   `json:"address,omitempty"`
+	Phone         string   `json:"phone,omitempty"`
+	Email         string   `json:"email,omitempty"`
+	Website       string   `json:"website,omitempty"`
+	SocialMedia   []string `json:"social_media,omitempty"`
+	BusinessHours string   `json:"business_hours,omitempty"`
+	Services      []string `json:"services,omitempty"`
+	TeamMembers   []string `json:"team_members,omitempty"`
+	ContactInfo   []string `json:"contact_info,omitempty"`
+	LocationInfo  []string `json:"location_info,omitempty"`
 }
 
 // ParseHTML parses HTML content and extracts text and metadata
@@ -208,8 +208,8 @@ func (p *HTMLParser) extractLinks(doc *html.Node, result *ParsedContent) {
 			for _, attr := range n.Attr {
 				if attr.Key == "href" && attr.Val != "" {
 					// Skip javascript: and mailto: links
-					if !strings.HasPrefix(attr.Val, "javascript:") && 
-					   !strings.HasPrefix(attr.Val, "mailto:") {
+					if !strings.HasPrefix(attr.Val, "javascript:") &&
+						!strings.HasPrefix(attr.Val, "mailto:") {
 						result.Links = append(result.Links, attr.Val)
 					}
 					break
@@ -462,26 +462,26 @@ func (p *HTMLParser) getNodeText(n *html.Node) string {
 func (p *HTMLParser) parseJSONLDContent(content string, data *StructuredData) {
 	// This is a simplified JSON-LD parser
 	// In a production environment, you'd want to use a proper JSON parser
-	
+
 	// Look for common business properties
-	if strings.Contains(content, `"@type":"Organization"`) || 
-	   strings.Contains(content, `"@type":"LocalBusiness"`) {
-		
+	if strings.Contains(content, `"@type":"Organization"`) ||
+		strings.Contains(content, `"@type":"LocalBusiness"`) {
+
 		// Extract name
 		if nameMatch := regexp.MustCompile(`"name"\s*:\s*"([^"]+)"`).FindStringSubmatch(content); len(nameMatch) > 1 {
 			data.BusinessName = nameMatch[1]
 		}
-		
+
 		// Extract address
 		if addrMatch := regexp.MustCompile(`"address"\s*:\s*"([^"]+)"`).FindStringSubmatch(content); len(addrMatch) > 1 {
 			data.Address = addrMatch[1]
 		}
-		
+
 		// Extract phone
 		if phoneMatch := regexp.MustCompile(`"telephone"\s*:\s*"([^"]+)"`).FindStringSubmatch(content); len(phoneMatch) > 1 {
 			data.Phone = phoneMatch[1]
 		}
-		
+
 		// Extract email
 		if emailMatch := regexp.MustCompile(`"email"\s*:\s*"([^"]+)"`).FindStringSubmatch(content); len(emailMatch) > 1 {
 			data.Email = emailMatch[1]

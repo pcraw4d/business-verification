@@ -22,21 +22,21 @@ func NewBusinessExtractor(logger *zap.Logger) *BusinessExtractor {
 
 // BusinessInfo represents extracted business information
 type BusinessInfo struct {
-	Name            string            `json:"name"`
-	LegalName       string            `json:"legal_name,omitempty"`
-	Address         Address           `json:"address"`
-	Phone           []string          `json:"phone"`
-	Email           []string          `json:"email"`
-	Website         string            `json:"website"`
-	SocialMedia     map[string]string `json:"social_media"`
-	BusinessHours   []BusinessHours   `json:"business_hours,omitempty"`
-	Services        []string          `json:"services,omitempty"`
-	Industry        string            `json:"industry,omitempty"`
-	Founded         string            `json:"founded,omitempty"`
-	TeamMembers     []TeamMember      `json:"team_members,omitempty"`
-	ContactInfo     []ContactInfo     `json:"contact_info,omitempty"`
-	Confidence      float64           `json:"confidence"`
-	ExtractionDate  string            `json:"extraction_date"`
+	Name           string            `json:"name"`
+	LegalName      string            `json:"legal_name,omitempty"`
+	Address        Address           `json:"address"`
+	Phone          []string          `json:"phone"`
+	Email          []string          `json:"email"`
+	Website        string            `json:"website"`
+	SocialMedia    map[string]string `json:"social_media"`
+	BusinessHours  []BusinessHours   `json:"business_hours,omitempty"`
+	Services       []string          `json:"services,omitempty"`
+	Industry       string            `json:"industry,omitempty"`
+	Founded        string            `json:"founded,omitempty"`
+	TeamMembers    []TeamMember      `json:"team_members,omitempty"`
+	ContactInfo    []ContactInfo     `json:"contact_info,omitempty"`
+	Confidence     float64           `json:"confidence"`
+	ExtractionDate string            `json:"extraction_date"`
 }
 
 // Address represents a business address
@@ -51,20 +51,20 @@ type Address struct {
 
 // BusinessHours represents business operating hours
 type BusinessHours struct {
-	Day     string `json:"day"`
-	Open    string `json:"open"`
-	Close   string `json:"close"`
-	Closed  bool   `json:"closed"`
+	Day    string `json:"day"`
+	Open   string `json:"open"`
+	Close  string `json:"close"`
+	Closed bool   `json:"closed"`
 }
 
 // TeamMember represents a team member or employee
 type TeamMember struct {
-	Name        string `json:"name"`
-	Title       string `json:"title,omitempty"`
-	Email       string `json:"email,omitempty"`
-	Phone       string `json:"phone,omitempty"`
-	LinkedIn    string `json:"linkedin,omitempty"`
-	Bio         string `json:"bio,omitempty"`
+	Name     string `json:"name"`
+	Title    string `json:"title,omitempty"`
+	Email    string `json:"email,omitempty"`
+	Phone    string `json:"phone,omitempty"`
+	LinkedIn string `json:"linkedin,omitempty"`
+	Bio      string `json:"bio,omitempty"`
 }
 
 // ContactInfo represents contact information
@@ -88,43 +88,43 @@ func (e *BusinessExtractor) ExtractBusinessInfo(parsedContent *ParsedContent) (*
 
 	// Extract business name
 	info.Name = e.extractBusinessName(parsedContent)
-	
+
 	// Extract address
 	info.Address = e.extractAddress(parsedContent)
-	
+
 	// Extract phone numbers
 	info.Phone = e.extractPhoneNumbers(parsedContent)
-	
+
 	// Extract email addresses
 	info.Email = e.extractEmailAddresses(parsedContent)
-	
+
 	// Extract website
 	info.Website = e.extractWebsite(parsedContent)
-	
+
 	// Extract social media
 	info.SocialMedia = e.extractSocialMedia(parsedContent)
-	
+
 	// Extract business hours
 	info.BusinessHours = e.extractBusinessHours(parsedContent)
-	
+
 	// Extract services
 	info.Services = e.extractServices(parsedContent)
-	
+
 	// Extract industry
 	info.Industry = e.extractIndustry(parsedContent)
-	
+
 	// Extract founded year
 	info.Founded = e.extractFoundedYear(parsedContent)
-	
+
 	// Extract team members
 	info.TeamMembers = e.extractTeamMembers(parsedContent)
-	
+
 	// Extract contact information
 	info.ContactInfo = e.extractContactInfo(parsedContent)
-	
+
 	// Calculate confidence score
 	info.Confidence = e.calculateConfidence(info)
-	
+
 	// Set extraction date
 	info.ExtractionDate = time.Now().Format("2006-01-02T15:04:05Z")
 
@@ -210,7 +210,7 @@ func (e *BusinessExtractor) parseAddressComponents(fullAddress string) Address {
 	if len(parts) >= 3 {
 		address.Street = strings.TrimSpace(parts[0])
 		address.City = strings.TrimSpace(parts[1])
-		
+
 		// Parse state and postal code
 		stateZip := strings.TrimSpace(parts[2])
 		stateZipPattern := regexp.MustCompile(`([A-Z]{2})\s*(\d{5}(?:-\d{4})?)`)
@@ -268,7 +268,7 @@ func (e *BusinessExtractor) extractEmailAddresses(content *ParsedContent) []stri
 	// Extract email addresses using patterns
 	emailPattern := regexp.MustCompile(`[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`)
 	matches := emailPattern.FindAllString(content.Text, -1)
-	
+
 	for _, match := range matches {
 		email := strings.TrimSpace(match)
 		if !contains(emails, email) {
@@ -288,8 +288,8 @@ func (e *BusinessExtractor) extractWebsite(content *ParsedContent) string {
 
 	// Extract from links
 	for _, link := range content.Links {
-		if strings.HasPrefix(link, "http") && !strings.Contains(link, "facebook") && 
-		   !strings.Contains(link, "twitter") && !strings.Contains(link, "linkedin") {
+		if strings.HasPrefix(link, "http") && !strings.Contains(link, "facebook") &&
+			!strings.Contains(link, "twitter") && !strings.Contains(link, "linkedin") {
 			return link
 		}
 	}
@@ -349,7 +349,7 @@ func (e *BusinessExtractor) extractBusinessHours(content *ParsedContent) []Busin
 			if len(match) > 2 {
 				day := strings.Title(strings.ToLower(match[1]))
 				timeRange := strings.TrimSpace(match[2])
-				
+
 				hours = append(hours, BusinessHours{
 					Day:   day,
 					Open:  timeRange,

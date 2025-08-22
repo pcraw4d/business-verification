@@ -12,14 +12,14 @@ import (
 
 // ServiceClientImpl implements the ServiceClient interface
 type ServiceClientImpl struct {
-	discovery     *ServiceDiscoveryImpl
-	loadBalancer  ServiceLoadBalancer
+	discovery      *ServiceDiscoveryImpl
+	loadBalancer   ServiceLoadBalancer
 	circuitBreaker ServiceCircuitBreaker
-	metrics       ServiceMetrics
-	timeout       ServiceTimeout
-	retry         ServiceRetry
-	rateLimiter   ServiceRateLimiter
-	logger        *observability.Logger
+	metrics        ServiceMetrics
+	timeout        ServiceTimeout
+	retry          ServiceRetry
+	rateLimiter    ServiceRateLimiter
+	logger         *observability.Logger
 }
 
 // NewServiceClient creates a new service client
@@ -57,13 +57,13 @@ func (c *ServiceClientImpl) Call(ctx context.Context, serviceName, method string
 
 	// Use circuit breaker
 	result, err := c.circuitBreaker.Execute(ctx, serviceName, method, request)
-	
+
 	// Record metrics
 	duration := time.Since(start)
 	success := err == nil
 	c.metrics.RecordRequest(serviceName, method, duration, success)
 	c.metrics.RecordLatency(serviceName, method, duration)
-	
+
 	if !success {
 		c.metrics.RecordError(serviceName, method, "call_failed")
 	}
@@ -77,7 +77,7 @@ func (c *ServiceClientImpl) CallAsync(ctx context.Context, serviceName, method s
 
 	go func() {
 		start := time.Now()
-		
+
 		// Check rate limiting
 		if !c.rateLimiter.Allow(serviceName) {
 			c.metrics.RecordError(serviceName, method, "rate_limited")
@@ -92,13 +92,13 @@ func (c *ServiceClientImpl) CallAsync(ctx context.Context, serviceName, method s
 
 		// Use circuit breaker
 		result, err := c.circuitBreaker.Execute(ctx, serviceName, method, request)
-		
+
 		// Record metrics
 		duration := time.Since(start)
 		success := err == nil
 		c.metrics.RecordRequest(serviceName, method, duration, success)
 		c.metrics.RecordLatency(serviceName, method, duration)
-		
+
 		if !success {
 			c.metrics.RecordError(serviceName, method, "call_failed")
 		}
@@ -162,7 +162,7 @@ func (lb *ServiceLoadBalancerImpl) Select(serviceName string) (ServiceInstance, 
 	// Simple round-robin selection
 	lb.mu.Lock()
 	defer lb.mu.Unlock()
-	
+
 	// Use random selection for now (can be enhanced with round-robin)
 	selectedIndex := rand.Intn(len(instances))
 	selectedInstance := instances[selectedIndex]
@@ -212,7 +212,7 @@ func NewServiceCircuitBreaker(logger *observability.Logger) *ServiceCircuitBreak
 // Execute executes a service call with circuit breaker protection
 func (cb *ServiceCircuitBreakerImpl) Execute(ctx context.Context, serviceName, method string, request interface{}) (interface{}, error) {
 	key := fmt.Sprintf("%s:%s", serviceName, method)
-	
+
 	cb.mu.Lock()
 	state, exists := cb.states[key]
 	if !exists {
@@ -240,11 +240,11 @@ func (cb *ServiceCircuitBreakerImpl) Execute(ctx context.Context, serviceName, m
 		state.State = "half-open"
 		state.LastStateChange = time.Now()
 		cb.mu.Unlock()
-		
+
 	case "half-open":
 		// Allow one request to test if service is back
 		break
-		
+
 	case "closed":
 		// Normal operation
 		break
@@ -252,10 +252,10 @@ func (cb *ServiceCircuitBreakerImpl) Execute(ctx context.Context, serviceName, m
 
 	// Execute the actual service call (simulated for now)
 	result, err := cb.executeServiceCall(ctx, serviceName, method, request)
-	
+
 	// Update circuit breaker state
 	cb.updateState(state, err)
-	
+
 	return result, err
 }
 
@@ -263,14 +263,14 @@ func (cb *ServiceCircuitBreakerImpl) Execute(ctx context.Context, serviceName, m
 func (cb *ServiceCircuitBreakerImpl) GetState(serviceName string) CircuitBreakerState {
 	cb.mu.RLock()
 	defer cb.mu.RUnlock()
-	
+
 	// Return the first matching state (simplified)
 	for _, state := range cb.states {
 		if state.ServiceName == serviceName {
 			return *state
 		}
 	}
-	
+
 	return CircuitBreakerState{
 		ServiceName: serviceName,
 		State:       "closed",
@@ -283,21 +283,21 @@ func (cb *ServiceCircuitBreakerImpl) GetState(serviceName string) CircuitBreaker
 func (cb *ServiceCircuitBreakerImpl) Reset(serviceName string) error {
 	cb.mu.Lock()
 	defer cb.mu.Unlock()
-	
+
 	for _, state := range cb.states {
 		if state.ServiceName == serviceName {
 			state.State = "closed"
 			state.FailureCount = 0
 			state.SuccessCount = 0
 			state.LastStateChange = time.Now()
-			
+
 			cb.logger.Info("Circuit breaker reset",
 				"service_name", serviceName,
 			)
 			return nil
 		}
 	}
-	
+
 	return fmt.Errorf("circuit breaker not found for service %s", serviceName)
 }
 
@@ -305,11 +305,11 @@ func (cb *ServiceCircuitBreakerImpl) Reset(serviceName string) error {
 func (cb *ServiceCircuitBreakerImpl) executeServiceCall(ctx context.Context, serviceName, method string, request interface{}) (interface{}, error) {
 	// Simulate service call with random success/failure
 	time.Sleep(10 * time.Millisecond) // Simulate network delay
-	
+
 	if rand.Float64() < 0.1 { // 10% failure rate
 		return nil, fmt.Errorf("service call failed for %s:%s", serviceName, method)
 	}
-	
+
 	return map[string]interface{}{
 		"service": serviceName,
 		"method":  method,
@@ -322,12 +322,12 @@ func (cb *ServiceCircuitBreakerImpl) executeServiceCall(ctx context.Context, ser
 func (cb *ServiceCircuitBreakerImpl) updateState(state *CircuitBreakerState, err error) {
 	cb.mu.Lock()
 	defer cb.mu.Unlock()
-	
+
 	if err != nil {
 		state.FailureCount++
 		now := time.Now()
 		state.LastFailure = &now
-		
+
 		if state.State == "half-open" {
 			// Back to open
 			state.State = "open"
@@ -350,7 +350,7 @@ func (cb *ServiceCircuitBreakerImpl) updateState(state *CircuitBreakerState, err
 		state.SuccessCount++
 		now := time.Now()
 		state.LastSuccess = &now
-		
+
 		if state.State == "half-open" {
 			// Back to closed
 			state.State = "closed"
@@ -385,7 +385,7 @@ func NewServiceMetrics(logger *observability.Logger) *ServiceMetricsImpl {
 func (m *ServiceMetricsImpl) RecordRequest(serviceName, method string, duration time.Duration, success bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	if m.metrics[serviceName] == nil {
 		m.metrics[serviceName] = &ServiceMetricsData{
 			ServiceName:   serviceName,
@@ -393,46 +393,46 @@ func (m *ServiceMetricsImpl) RecordRequest(serviceName, method string, duration 
 			LastUpdated:   time.Now(),
 		}
 	}
-	
+
 	// Update service-level metrics
 	serviceMetrics := m.metrics[serviceName]
 	serviceMetrics.RequestCount++
 	serviceMetrics.LastUpdated = time.Now()
-	
+
 	if success {
 		serviceMetrics.SuccessCount++
 	} else {
 		serviceMetrics.ErrorCount++
 	}
-	
+
 	// Update method-level metrics
 	if serviceMetrics.MethodMetrics[method].Method == "" {
 		serviceMetrics.MethodMetrics[method] = MethodMetrics{
 			Method: method,
 		}
 	}
-	
+
 	methodMetrics := serviceMetrics.MethodMetrics[method]
 	methodMetrics.RequestCount++
-	
+
 	if success {
 		methodMetrics.SuccessCount++
 	} else {
 		methodMetrics.ErrorCount++
 	}
-	
+
 	// Update latency metrics (simplified)
 	methodMetrics.AverageLatency = duration
 	serviceMetrics.AverageLatency = duration
-	
+
 	serviceMetrics.MethodMetrics[method] = methodMetrics
-	
+
 	// Calculate rates
 	if serviceMetrics.RequestCount > 0 {
 		serviceMetrics.SuccessRate = float64(serviceMetrics.SuccessCount) / float64(serviceMetrics.RequestCount)
 		serviceMetrics.ErrorRate = float64(serviceMetrics.ErrorCount) / float64(serviceMetrics.RequestCount)
 	}
-	
+
 	if methodMetrics.RequestCount > 0 {
 		methodMetrics.SuccessRate = float64(methodMetrics.SuccessCount) / float64(methodMetrics.RequestCount)
 		methodMetrics.ErrorRate = float64(methodMetrics.ErrorCount) / float64(methodMetrics.RequestCount)
@@ -454,11 +454,11 @@ func (m *ServiceMetricsImpl) RecordError(serviceName, method, errorType string) 
 func (m *ServiceMetricsImpl) GetMetrics(serviceName string) ServiceMetricsData {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	if metrics, exists := m.metrics[serviceName]; exists {
 		return *metrics
 	}
-	
+
 	return ServiceMetricsData{
 		ServiceName: serviceName,
 		LastUpdated: time.Now(),

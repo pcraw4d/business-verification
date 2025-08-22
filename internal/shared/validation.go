@@ -13,23 +13,23 @@ import (
 
 // ValidationRule represents a validation rule
 type ValidationRule struct {
-	Field       string                 `json:"field"`
-	Rule        string                 `json:"rule"`
-	Message     string                 `json:"message"`
-	Required    bool                   `json:"required"`
-	MinLength   int                    `json:"min_length,omitempty"`
-	MaxLength   int                    `json:"max_length,omitempty"`
-	Pattern     string                 `json:"pattern,omitempty"`
-	MinValue    float64                `json:"min_value,omitempty"`
-	MaxValue    float64                `json:"max_value,omitempty"`
-	AllowedValues []string             `json:"allowed_values,omitempty"`
-	Custom      func(interface{}) error `json:"-"`
+	Field         string                  `json:"field"`
+	Rule          string                  `json:"rule"`
+	Message       string                  `json:"message"`
+	Required      bool                    `json:"required"`
+	MinLength     int                     `json:"min_length,omitempty"`
+	MaxLength     int                     `json:"max_length,omitempty"`
+	Pattern       string                  `json:"pattern,omitempty"`
+	MinValue      float64                 `json:"min_value,omitempty"`
+	MaxValue      float64                 `json:"max_value,omitempty"`
+	AllowedValues []string                `json:"allowed_values,omitempty"`
+	Custom        func(interface{}) error `json:"-"`
 }
 
 // ValidationSchema represents a validation schema
 type ValidationSchema struct {
-	Name        string          `json:"name"`
-	Description string          `json:"description"`
+	Name        string           `json:"name"`
+	Description string           `json:"description"`
 	Rules       []ValidationRule `json:"rules"`
 }
 
@@ -56,10 +56,10 @@ var BusinessClassificationRequestSchema = ValidationSchema{
 			MaxLength: 200,
 		},
 		{
-			Field:     "business_name",
-			Rule:      "pattern",
-			Message:   "Business name contains invalid characters",
-			Pattern:   `^[a-zA-Z0-9\s\-\.&'()]+$`,
+			Field:   "business_name",
+			Rule:    "pattern",
+			Message: "Business name contains invalid characters",
+			Pattern: `^[a-zA-Z0-9\s\-\.&'()]+$`,
 		},
 		{
 			Field:     "business_type",
@@ -80,10 +80,10 @@ var BusinessClassificationRequestSchema = ValidationSchema{
 			MaxLength: 1000,
 		},
 		{
-			Field:     "website_url",
-			Rule:      "url",
-			Message:   "Website URL must be a valid URL",
-			Pattern:   `^https?://[^\s/$.?#].[^\s]*$`,
+			Field:   "website_url",
+			Rule:    "url",
+			Message: "Website URL must be a valid URL",
+			Pattern: `^https?://[^\s/$.?#].[^\s]*$`,
 		},
 		{
 			Field:     "registration_number",
@@ -201,17 +201,17 @@ var WebsiteAnalysisRequestSchema = ValidationSchema{
 			Required: true,
 		},
 		{
-			Field:     "website_url",
-			Rule:      "url",
-			Message:   "Website URL must be a valid URL",
-			Pattern:   `^https?://[^\s/$.?#].[^\s]*$`,
+			Field:   "website_url",
+			Rule:    "url",
+			Message: "Website URL must be a valid URL",
+			Pattern: `^https?://[^\s/$.?#].[^\s]*$`,
 		},
 		{
-			Field:     "max_pages",
-			Rule:      "range",
-			Message:   "Max pages must be between 1 and 20",
-			MinValue:  1,
-			MaxValue:  20,
+			Field:    "max_pages",
+			Rule:     "range",
+			Message:  "Max pages must be between 1 and 20",
+			MinValue: 1,
+			MaxValue: 20,
 		},
 	},
 }
@@ -259,11 +259,11 @@ var WebSearchAnalysisRequestSchema = ValidationSchema{
 			MaxLength: 500,
 		},
 		{
-			Field:     "max_results",
-			Rule:      "range",
-			Message:   "Max results must be between 1 and 50",
-			MinValue:  1,
-			MaxValue:  50,
+			Field:    "max_results",
+			Rule:     "range",
+			Message:  "Max results must be between 1 and 50",
+			MinValue: 1,
+			MaxValue: 50,
 		},
 		{
 			Field:     "search_engines",
@@ -272,9 +272,9 @@ var WebSearchAnalysisRequestSchema = ValidationSchema{
 			MaxLength: 10,
 		},
 		{
-			Field:        "search_engines",
-			Rule:         "allowed_values",
-			Message:      "Search engine must be one of: google, bing, duckduckgo",
+			Field:         "search_engines",
+			Rule:          "allowed_values",
+			Message:       "Search engine must be one of: google, bing, duckduckgo",
 			AllowedValues: []string{"google", "bing", "duckduckgo"},
 		},
 	},
@@ -340,7 +340,7 @@ func ValidateWithSchema(obj interface{}, schema ValidationSchema) (*ValidationRe
 func validateRule(obj interface{}, rule ValidationRule) error {
 	// This is a simplified implementation
 	// In a real system, you would use reflection to get field values
-	
+
 	switch rule.Rule {
 	case "required":
 		// Check if required field is present and not empty
@@ -402,7 +402,7 @@ func validatePattern(obj interface{}, rule ValidationRule) error {
 	if rule.Pattern == "" {
 		return nil
 	}
-	
+
 	// Simplified implementation
 	// In reality, you'd use reflection to get the field value and apply the regex
 	return nil
@@ -441,7 +441,7 @@ func IsValidBusinessName(name string) bool {
 	if name == "" || len(name) > 200 {
 		return false
 	}
-	
+
 	// Check for invalid characters
 	pattern := regexp.MustCompile(`^[a-zA-Z0-9\s\-\.&'()]+$`)
 	return pattern.MatchString(name)
@@ -452,7 +452,7 @@ func IsValidURL(url string) bool {
 	if url == "" {
 		return false
 	}
-	
+
 	pattern := regexp.MustCompile(`^https?://[^\s/$.?#].[^\s]*$`)
 	return pattern.MatchString(url)
 }
@@ -462,7 +462,7 @@ func IsValidEmail(email string) bool {
 	if email == "" {
 		return false
 	}
-	
+
 	pattern := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 	return pattern.MatchString(email)
 }
@@ -472,7 +472,7 @@ func IsValidPhoneNumber(phone string) bool {
 	if phone == "" {
 		return false
 	}
-	
+
 	// Basic US phone number pattern
 	pattern := regexp.MustCompile(`^\d{3}[-.]?\d{3}[-.]?\d{4}$`)
 	return pattern.MatchString(phone)
@@ -483,25 +483,25 @@ func IsValidIndustryCode(code string) bool {
 	if code == "" {
 		return false
 	}
-	
+
 	// Check if it's a valid NAICS code (6 digits)
 	naicsPattern := regexp.MustCompile(`^\d{6}$`)
 	if naicsPattern.MatchString(code) {
 		return true
 	}
-	
+
 	// Check if it's a valid SIC code (4 digits)
 	sicPattern := regexp.MustCompile(`^\d{4}$`)
 	if sicPattern.MatchString(code) {
 		return true
 	}
-	
+
 	// Check if it's a valid MCC code (4 digits)
 	mccPattern := regexp.MustCompile(`^\d{4}$`)
 	if mccPattern.MatchString(code) {
 		return true
 	}
-	
+
 	return false
 }
 
@@ -525,7 +525,7 @@ func IsValidClassificationMethodString(method string) bool {
 		"ensemble",
 		"hybrid",
 	}
-	
+
 	for _, valid := range validMethods {
 		if method == valid {
 			return true
@@ -542,7 +542,7 @@ func IsValidModelType(modelType ModelType) bool {
 		ModelTypeTransformer,
 		ModelTypeCustom,
 	}
-	
+
 	for _, valid := range validTypes {
 		if modelType == valid {
 			return true
@@ -560,7 +560,7 @@ func IsValidModelStatus(status ModelStatus) bool {
 		ModelStatusUpdating,
 		ModelStatusDeprecated,
 	}
-	
+
 	for _, valid := range validStatuses {
 		if status == valid {
 			return true
@@ -577,20 +577,20 @@ func IsValidModelStatus(status ModelStatus) bool {
 func SanitizeBusinessName(name string) string {
 	// Remove extra whitespace
 	name = strings.TrimSpace(name)
-	
+
 	// Replace multiple spaces with single space
 	spacePattern := regexp.MustCompile(`\s+`)
 	name = spacePattern.ReplaceAllString(name, " ")
-	
+
 	// Remove invalid characters
 	invalidPattern := regexp.MustCompile(`[^a-zA-Z0-9\s\-\.&'()]`)
 	name = invalidPattern.ReplaceAllString(name, "")
-	
+
 	// Limit length
 	if len(name) > 200 {
 		name = name[:200]
 	}
-	
+
 	return name
 }
 
@@ -598,16 +598,16 @@ func SanitizeBusinessName(name string) string {
 func SanitizeURL(url string) string {
 	// Remove extra whitespace
 	url = strings.TrimSpace(url)
-	
+
 	// Ensure URL has protocol
 	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
 		url = "https://" + url
 	}
-	
+
 	// Remove invalid characters
 	invalidPattern := regexp.MustCompile(`[^\w\-\.~:/?#[\]@!$&'()*+,;=%]`)
 	url = invalidPattern.ReplaceAllString(url, "")
-	
+
 	return url
 }
 
@@ -615,11 +615,11 @@ func SanitizeURL(url string) string {
 func SanitizeEmail(email string) string {
 	// Remove extra whitespace and convert to lowercase
 	email = strings.ToLower(strings.TrimSpace(email))
-	
+
 	// Remove invalid characters
 	invalidPattern := regexp.MustCompile(`[^a-zA-Z0-9._%+-@]`)
 	email = invalidPattern.ReplaceAllString(email, "")
-	
+
 	return email
 }
 
@@ -628,12 +628,12 @@ func SanitizePhoneNumber(phone string) string {
 	// Remove all non-digit characters
 	digitPattern := regexp.MustCompile(`\D`)
 	phone = digitPattern.ReplaceAllString(phone, "")
-	
+
 	// Format as XXX-XXX-XXXX if it's 10 digits
 	if len(phone) == 10 {
 		return fmt.Sprintf("%s-%s-%s", phone[:3], phone[3:6], phone[6:])
 	}
-	
+
 	return phone
 }
 
@@ -642,16 +642,16 @@ func SanitizeIndustryCode(code string) string {
 	// Remove all non-digit characters
 	digitPattern := regexp.MustCompile(`\D`)
 	code = digitPattern.ReplaceAllString(code, "")
-	
+
 	// Pad with zeros if needed for NAICS (6 digits)
 	if len(code) < 6 {
 		code = strings.Repeat("0", 6-len(code)) + code
 	}
-	
+
 	// Limit to 6 digits
 	if len(code) > 6 {
 		code = code[:6]
 	}
-	
+
 	return code
 }

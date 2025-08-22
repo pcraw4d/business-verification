@@ -12,11 +12,11 @@ import (
 
 // AuthConfig holds authentication configuration
 type AuthConfig struct {
-	JWTSecret     string
-	APIKeyHeader  string
-	APIKeys       map[string]string // API key to user mapping
-	RequireAuth   bool
-	ExemptPaths   []string // Paths that don't require authentication
+	JWTSecret    string
+	APIKeyHeader string
+	APIKeys      map[string]string // API key to user mapping
+	RequireAuth  bool
+	ExemptPaths  []string // Paths that don't require authentication
 }
 
 // Claims represents JWT claims

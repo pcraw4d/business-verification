@@ -27,35 +27,35 @@ func (rasa *ResourceAlertingScalingAPI) RegisterResourceAlertingScalingRoutes(mu
 	mux.HandleFunc("GET /v1/alerts/history", rasa.GetAlertHistory)
 	mux.HandleFunc("POST /v1/alerts/{alertId}/acknowledge", rasa.AcknowledgeAlert)
 	mux.HandleFunc("POST /v1/alerts/{alertId}/resolve", rasa.ResolveAlert)
-	
+
 	// Scaling management endpoints
 	mux.HandleFunc("GET /v1/scaling/status", rasa.GetScalingStatus)
 	mux.HandleFunc("GET /v1/scaling/history", rasa.GetScalingHistory)
 	mux.HandleFunc("POST /v1/scaling/manual", rasa.ManualScale)
 	mux.HandleFunc("GET /v1/scaling/instances", rasa.GetCurrentInstances)
-	
+
 	// Metrics endpoints
 	mux.HandleFunc("GET /v1/metrics/current", rasa.GetCurrentMetrics)
 	mux.HandleFunc("GET /v1/metrics/history", rasa.GetMetricsHistory)
-	
+
 	// Configuration endpoints
 	mux.HandleFunc("GET /v1/alerting-scaling/config", rasa.GetConfig)
 	mux.HandleFunc("PUT /v1/alerting-scaling/config", rasa.UpdateConfig)
 	mux.HandleFunc("GET /v1/alerting-scaling/status", rasa.GetStatus)
 	mux.HandleFunc("GET /v1/alerting-scaling/health", rasa.GetHealth)
-	
+
 	// Threshold management endpoints
 	mux.HandleFunc("GET /v1/thresholds", rasa.GetThresholds)
 	mux.HandleFunc("PUT /v1/thresholds", rasa.UpdateThresholds)
 	mux.HandleFunc("GET /v1/thresholds/adaptive", rasa.GetAdaptiveThresholds)
-	
+
 	// Notification endpoints
 	mux.HandleFunc("GET /v1/notifications/channels", rasa.GetNotificationChannels)
 	mux.HandleFunc("POST /v1/notifications/channels", rasa.CreateNotificationChannel)
 	mux.HandleFunc("PUT /v1/notifications/channels/{channelId}", rasa.UpdateNotificationChannel)
 	mux.HandleFunc("DELETE /v1/notifications/channels/{channelId}", rasa.DeleteNotificationChannel)
 	mux.HandleFunc("GET /v1/notifications/history", rasa.GetNotificationHistory)
-	
+
 	// Escalation endpoints
 	mux.HandleFunc("GET /v1/escalations/policies", rasa.GetEscalationPolicies)
 	mux.HandleFunc("POST /v1/escalations/policies", rasa.CreateEscalationPolicy)
@@ -63,7 +63,7 @@ func (rasa *ResourceAlertingScalingAPI) RegisterResourceAlertingScalingRoutes(mu
 	mux.HandleFunc("DELETE /v1/escalations/policies/{policyId}", rasa.DeleteEscalationPolicy)
 	mux.HandleFunc("GET /v1/escalations/active", rasa.GetActiveEscalations)
 	mux.HandleFunc("GET /v1/escalations/history", rasa.GetEscalationHistory)
-	
+
 	// Predictive scaling endpoints
 	mux.HandleFunc("GET /v1/predictive/model", rasa.GetPredictiveModel)
 	mux.HandleFunc("POST /v1/predictive/train", rasa.TrainPredictiveModel)
@@ -73,13 +73,13 @@ func (rasa *ResourceAlertingScalingAPI) RegisterResourceAlertingScalingRoutes(mu
 // GetActiveAlerts returns all active alerts
 func (rasa *ResourceAlertingScalingAPI) GetActiveAlerts(w http.ResponseWriter, r *http.Request) {
 	alerts := rasa.manager.GetActiveAlerts()
-	
+
 	response := map[string]interface{}{
 		"active_alerts": alerts,
 		"count":         len(alerts),
 		"timestamp":     time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -94,16 +94,16 @@ func (rasa *ResourceAlertingScalingAPI) GetAlertHistory(w http.ResponseWriter, r
 			limit = parsedLimit
 		}
 	}
-	
+
 	alerts := rasa.manager.GetAlertHistory(limit)
-	
+
 	response := map[string]interface{}{
 		"alert_history": alerts,
 		"count":         len(alerts),
 		"limit":         limit,
 		"timestamp":     time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -115,20 +115,20 @@ func (rasa *ResourceAlertingScalingAPI) AcknowledgeAlert(w http.ResponseWriter, 
 		http.Error(w, "Alert ID is required", http.StatusBadRequest)
 		return
 	}
-	
+
 	err := rasa.manager.AcknowledgeAlert(alertID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to acknowledge alert: %v", err), http.StatusBadRequest)
 		return
 	}
-	
+
 	response := map[string]interface{}{
 		"status":    "success",
 		"message":   "Alert acknowledged successfully",
 		"alert_id":  alertID,
 		"timestamp": time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -140,20 +140,20 @@ func (rasa *ResourceAlertingScalingAPI) ResolveAlert(w http.ResponseWriter, r *h
 		http.Error(w, "Alert ID is required", http.StatusBadRequest)
 		return
 	}
-	
+
 	err := rasa.manager.ResolveAlert(alertID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to resolve alert: %v", err), http.StatusBadRequest)
 		return
 	}
-	
+
 	response := map[string]interface{}{
 		"status":    "success",
 		"message":   "Alert resolved successfully",
 		"alert_id":  alertID,
 		"timestamp": time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -161,7 +161,7 @@ func (rasa *ResourceAlertingScalingAPI) ResolveAlert(w http.ResponseWriter, r *h
 // GetScalingStatus returns the current scaling status
 func (rasa *ResourceAlertingScalingAPI) GetScalingStatus(w http.ResponseWriter, r *http.Request) {
 	currentInstances := rasa.manager.GetCurrentInstances()
-	
+
 	response := map[string]interface{}{
 		"current_instances":    currentInstances,
 		"min_instances":        rasa.manager.config.ScalingPolicies.MinInstances,
@@ -173,7 +173,7 @@ func (rasa *ResourceAlertingScalingAPI) GetScalingStatus(w http.ResponseWriter, 
 		"scale_down_threshold": rasa.manager.config.ScalingPolicies.CPUScaleDownThreshold,
 		"timestamp":            time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -188,16 +188,16 @@ func (rasa *ResourceAlertingScalingAPI) GetScalingHistory(w http.ResponseWriter,
 			limit = parsedLimit
 		}
 	}
-	
+
 	events := rasa.manager.GetScalingHistory(limit)
-	
+
 	response := map[string]interface{}{
 		"scaling_history": events,
 		"count":           len(events),
 		"limit":           limit,
 		"timestamp":       time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -215,22 +215,22 @@ func (rasa *ResourceAlertingScalingAPI) ManualScale(w http.ResponseWriter, r *ht
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	
+
 	if req.TargetInstances <= 0 {
 		http.Error(w, "Target instances must be positive", http.StatusBadRequest)
 		return
 	}
-	
+
 	if req.Reason == "" {
 		req.Reason = "Manual scaling via API"
 	}
-	
+
 	err := rasa.manager.ManualScale(req.TargetInstances, req.Reason)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to scale: %v", err), http.StatusBadRequest)
 		return
 	}
-	
+
 	response := map[string]interface{}{
 		"status":           "success",
 		"message":          "Manual scaling initiated successfully",
@@ -238,7 +238,7 @@ func (rasa *ResourceAlertingScalingAPI) ManualScale(w http.ResponseWriter, r *ht
 		"reason":           req.Reason,
 		"timestamp":        time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -246,12 +246,12 @@ func (rasa *ResourceAlertingScalingAPI) ManualScale(w http.ResponseWriter, r *ht
 // GetCurrentInstances returns the current number of instances
 func (rasa *ResourceAlertingScalingAPI) GetCurrentInstances(w http.ResponseWriter, r *http.Request) {
 	currentInstances := rasa.manager.GetCurrentInstances()
-	
+
 	response := map[string]interface{}{
 		"current_instances": currentInstances,
 		"timestamp":         time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -263,12 +263,12 @@ func (rasa *ResourceAlertingScalingAPI) GetCurrentMetrics(w http.ResponseWriter,
 		http.Error(w, fmt.Sprintf("Failed to get metrics: %v", err), http.StatusInternalServerError)
 		return
 	}
-	
+
 	response := map[string]interface{}{
 		"metrics":   metrics,
 		"timestamp": time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -283,25 +283,25 @@ func (rasa *ResourceAlertingScalingAPI) GetMetricsHistory(w http.ResponseWriter,
 			limit = parsedLimit
 		}
 	}
-	
+
 	rasa.manager.metricCollector.mu.RLock()
 	history := rasa.manager.metricCollector.metricHistory
 	if limit > 0 && len(history) > limit {
 		history = history[len(history)-limit:]
 	}
-	
+
 	// Create a copy
 	result := make([]*MetricSnapshot, len(history))
 	copy(result, history)
 	rasa.manager.metricCollector.mu.RUnlock()
-	
+
 	response := map[string]interface{}{
 		"metrics_history": result,
 		"count":           len(result),
 		"limit":           limit,
 		"timestamp":       time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -312,7 +312,7 @@ func (rasa *ResourceAlertingScalingAPI) GetConfig(w http.ResponseWriter, r *http
 		"config":    rasa.manager.config,
 		"timestamp": time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -324,19 +324,19 @@ func (rasa *ResourceAlertingScalingAPI) UpdateConfig(w http.ResponseWriter, r *h
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	
+
 	err := rasa.manager.UpdateConfig(&config)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to update config: %v", err), http.StatusInternalServerError)
 		return
 	}
-	
+
 	response := map[string]interface{}{
 		"status":    "success",
 		"message":   "Configuration updated successfully",
 		"timestamp": time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -344,7 +344,7 @@ func (rasa *ResourceAlertingScalingAPI) UpdateConfig(w http.ResponseWriter, r *h
 // GetStatus returns the current status
 func (rasa *ResourceAlertingScalingAPI) GetStatus(w http.ResponseWriter, r *http.Request) {
 	status := rasa.manager.GetStatus()
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(status)
 }
@@ -353,15 +353,15 @@ func (rasa *ResourceAlertingScalingAPI) GetStatus(w http.ResponseWriter, r *http
 func (rasa *ResourceAlertingScalingAPI) GetHealth(w http.ResponseWriter, r *http.Request) {
 	// Perform health checks
 	health := map[string]interface{}{
-		"status":                "healthy",
-		"alerting_operational":  true,
-		"scaling_operational":   true,
-		"metrics_operational":   true,
+		"status":                    "healthy",
+		"alerting_operational":      true,
+		"scaling_operational":       true,
+		"metrics_operational":       true,
 		"notifications_operational": true,
-		"timestamp":             time.Now(),
-		"uptime":                time.Since(rasa.manager.scalingEngine.lastScalingTime),
+		"timestamp":                 time.Now(),
+		"uptime":                    time.Since(rasa.manager.scalingEngine.lastScalingTime),
 	}
-	
+
 	// Check if manager is responding
 	_, err := rasa.manager.GetCurrentMetrics()
 	if err != nil {
@@ -369,7 +369,7 @@ func (rasa *ResourceAlertingScalingAPI) GetHealth(w http.ResponseWriter, r *http
 		health["metrics_operational"] = false
 		health["error"] = err.Error()
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(health)
 }
@@ -380,7 +380,7 @@ func (rasa *ResourceAlertingScalingAPI) GetThresholds(w http.ResponseWriter, r *
 		"thresholds": rasa.manager.config.AlertThresholds,
 		"timestamp":  time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -392,17 +392,17 @@ func (rasa *ResourceAlertingScalingAPI) UpdateThresholds(w http.ResponseWriter, 
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	
+
 	// Update thresholds in config
 	rasa.manager.config.AlertThresholds = &thresholds
 	rasa.manager.alertEngine.thresholds = &thresholds
-	
+
 	response := map[string]interface{}{
 		"status":    "success",
 		"message":   "Thresholds updated successfully",
 		"timestamp": time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -412,12 +412,12 @@ func (rasa *ResourceAlertingScalingAPI) GetAdaptiveThresholds(w http.ResponseWri
 	rasa.manager.alertEngine.mu.RLock()
 	adaptiveMetrics := rasa.manager.alertEngine.adaptiveMetrics
 	rasa.manager.alertEngine.mu.RUnlock()
-	
+
 	response := map[string]interface{}{
 		"adaptive_metrics": adaptiveMetrics,
 		"timestamp":        time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -429,7 +429,7 @@ func (rasa *ResourceAlertingScalingAPI) GetNotificationChannels(w http.ResponseW
 		"count":     len(rasa.manager.config.NotificationChannels),
 		"timestamp": time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -441,22 +441,22 @@ func (rasa *ResourceAlertingScalingAPI) CreateNotificationChannel(w http.Respons
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	
+
 	// Generate ID if not provided
 	if channel.ID == "" {
 		channel.ID = fmt.Sprintf("channel-%d", time.Now().UnixNano())
 	}
-	
+
 	// Add to config
 	rasa.manager.config.NotificationChannels = append(rasa.manager.config.NotificationChannels, &channel)
-	
+
 	response := map[string]interface{}{
 		"status":     "success",
 		"message":    "Notification channel created successfully",
 		"channel_id": channel.ID,
 		"timestamp":  time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -468,13 +468,13 @@ func (rasa *ResourceAlertingScalingAPI) UpdateNotificationChannel(w http.Respons
 		http.Error(w, "Channel ID is required", http.StatusBadRequest)
 		return
 	}
-	
+
 	var updatedChannel NotificationChannel
 	if err := json.NewDecoder(r.Body).Decode(&updatedChannel); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	
+
 	// Find and update channel
 	found := false
 	for i, channel := range rasa.manager.config.NotificationChannels {
@@ -485,18 +485,18 @@ func (rasa *ResourceAlertingScalingAPI) UpdateNotificationChannel(w http.Respons
 			break
 		}
 	}
-	
+
 	if !found {
 		http.Error(w, "Channel not found", http.StatusNotFound)
 		return
 	}
-	
+
 	response := map[string]interface{}{
 		"status":    "success",
 		"message":   "Notification channel updated successfully",
 		"timestamp": time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -508,7 +508,7 @@ func (rasa *ResourceAlertingScalingAPI) DeleteNotificationChannel(w http.Respons
 		http.Error(w, "Channel ID is required", http.StatusBadRequest)
 		return
 	}
-	
+
 	// Find and remove channel
 	found := false
 	for i, channel := range rasa.manager.config.NotificationChannels {
@@ -521,18 +521,18 @@ func (rasa *ResourceAlertingScalingAPI) DeleteNotificationChannel(w http.Respons
 			break
 		}
 	}
-	
+
 	if !found {
 		http.Error(w, "Channel not found", http.StatusNotFound)
 		return
 	}
-	
+
 	response := map[string]interface{}{
 		"status":    "success",
 		"message":   "Notification channel deleted successfully",
 		"timestamp": time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -547,25 +547,25 @@ func (rasa *ResourceAlertingScalingAPI) GetNotificationHistory(w http.ResponseWr
 			limit = parsedLimit
 		}
 	}
-	
+
 	rasa.manager.notificationMgr.mu.RLock()
 	history := rasa.manager.notificationMgr.notificationHistory
 	if limit > 0 && len(history) > limit {
 		history = history[len(history)-limit:]
 	}
-	
+
 	// Create a copy
 	result := make([]*NotificationEvent, len(history))
 	copy(result, history)
 	rasa.manager.notificationMgr.mu.RUnlock()
-	
+
 	response := map[string]interface{}{
 		"notification_history": result,
 		"count":                len(result),
 		"limit":                limit,
 		"timestamp":            time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -577,7 +577,7 @@ func (rasa *ResourceAlertingScalingAPI) GetEscalationPolicies(w http.ResponseWri
 		"count":     len(rasa.manager.config.EscalationPolicies),
 		"timestamp": time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -589,22 +589,22 @@ func (rasa *ResourceAlertingScalingAPI) CreateEscalationPolicy(w http.ResponseWr
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	
+
 	// Generate ID if not provided
 	if policy.ID == "" {
 		policy.ID = fmt.Sprintf("policy-%d", time.Now().UnixNano())
 	}
-	
+
 	// Add to config
 	rasa.manager.config.EscalationPolicies = append(rasa.manager.config.EscalationPolicies, &policy)
-	
+
 	response := map[string]interface{}{
 		"status":    "success",
 		"message":   "Escalation policy created successfully",
 		"policy_id": policy.ID,
 		"timestamp": time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -616,13 +616,13 @@ func (rasa *ResourceAlertingScalingAPI) UpdateEscalationPolicy(w http.ResponseWr
 		http.Error(w, "Policy ID is required", http.StatusBadRequest)
 		return
 	}
-	
+
 	var updatedPolicy EscalationPolicy
 	if err := json.NewDecoder(r.Body).Decode(&updatedPolicy); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	
+
 	// Find and update policy
 	found := false
 	for i, policy := range rasa.manager.config.EscalationPolicies {
@@ -633,18 +633,18 @@ func (rasa *ResourceAlertingScalingAPI) UpdateEscalationPolicy(w http.ResponseWr
 			break
 		}
 	}
-	
+
 	if !found {
 		http.Error(w, "Policy not found", http.StatusNotFound)
 		return
 	}
-	
+
 	response := map[string]interface{}{
 		"status":    "success",
 		"message":   "Escalation policy updated successfully",
 		"timestamp": time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -656,7 +656,7 @@ func (rasa *ResourceAlertingScalingAPI) DeleteEscalationPolicy(w http.ResponseWr
 		http.Error(w, "Policy ID is required", http.StatusBadRequest)
 		return
 	}
-	
+
 	// Find and remove policy
 	found := false
 	for i, policy := range rasa.manager.config.EscalationPolicies {
@@ -669,18 +669,18 @@ func (rasa *ResourceAlertingScalingAPI) DeleteEscalationPolicy(w http.ResponseWr
 			break
 		}
 	}
-	
+
 	if !found {
 		http.Error(w, "Policy not found", http.StatusNotFound)
 		return
 	}
-	
+
 	response := map[string]interface{}{
 		"status":    "success",
 		"message":   "Escalation policy deleted successfully",
 		"timestamp": time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -693,13 +693,13 @@ func (rasa *ResourceAlertingScalingAPI) GetActiveEscalations(w http.ResponseWrit
 		activeEscalations = append(activeEscalations, escalation)
 	}
 	rasa.manager.escalationEngine.mu.RUnlock()
-	
+
 	response := map[string]interface{}{
 		"active_escalations": activeEscalations,
 		"count":              len(activeEscalations),
 		"timestamp":          time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -714,25 +714,25 @@ func (rasa *ResourceAlertingScalingAPI) GetEscalationHistory(w http.ResponseWrit
 			limit = parsedLimit
 		}
 	}
-	
+
 	rasa.manager.escalationEngine.mu.RLock()
 	history := rasa.manager.escalationEngine.escalationHistory
 	if limit > 0 && len(history) > limit {
 		history = history[len(history)-limit:]
 	}
-	
+
 	// Create a copy
 	result := make([]*EscalationEvent, len(history))
 	copy(result, history)
 	rasa.manager.escalationEngine.mu.RUnlock()
-	
+
 	response := map[string]interface{}{
 		"escalation_history": result,
 		"count":              len(result),
 		"limit":              limit,
 		"timestamp":          time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -742,12 +742,12 @@ func (rasa *ResourceAlertingScalingAPI) GetPredictiveModel(w http.ResponseWriter
 	rasa.manager.scalingEngine.mu.RLock()
 	model := rasa.manager.scalingEngine.predictiveModel
 	rasa.manager.scalingEngine.mu.RUnlock()
-	
+
 	response := map[string]interface{}{
 		"predictive_model": model,
 		"timestamp":        time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -759,17 +759,17 @@ func (rasa *ResourceAlertingScalingAPI) TrainPredictiveModel(w http.ResponseWrit
 	// - Collect historical data
 	// - Train ML models
 	// - Update predictions
-	
+
 	rasa.manager.scalingEngine.mu.Lock()
 	rasa.manager.scalingEngine.predictiveModel.LastTrainingTime = time.Now()
 	rasa.manager.scalingEngine.mu.Unlock()
-	
+
 	response := map[string]interface{}{
 		"status":    "success",
 		"message":   "Predictive model training initiated",
 		"timestamp": time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -781,14 +781,14 @@ func (rasa *ResourceAlertingScalingAPI) GetPredictions(w http.ResponseWriter, r 
 	confidence := rasa.manager.scalingEngine.predictiveModel.Confidence
 	trends := rasa.manager.scalingEngine.predictiveModel.Trends
 	rasa.manager.scalingEngine.mu.RUnlock()
-	
+
 	response := map[string]interface{}{
 		"predictions": predictions,
 		"confidence":  confidence,
 		"trends":      trends,
 		"timestamp":   time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }

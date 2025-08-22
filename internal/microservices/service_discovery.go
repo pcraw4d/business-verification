@@ -176,7 +176,7 @@ func (d *ServiceDiscoveryImpl) UnregisterInstance(serviceName, instanceID string
 		if instance.ID == instanceID {
 			// Remove instance
 			d.instances[serviceName] = append(instances[:i], instances[i+1:]...)
-			
+
 			d.notifyWatchers(serviceName, ServiceEvent{
 				Type:      ServiceEventRemoved,
 				Instance:  instance,
@@ -236,11 +236,11 @@ func (d *ServiceDiscoveryImpl) Watch(serviceName string) (<-chan ServiceEvent, e
 	defer d.mu.Unlock()
 
 	eventChan := make(chan ServiceEvent, 100)
-	
+
 	if d.watchers[serviceName] == nil {
 		d.watchers[serviceName] = make([]chan ServiceEvent, 0)
 	}
-	
+
 	d.watchers[serviceName] = append(d.watchers[serviceName], eventChan)
 
 	d.logger.Info("Service watcher added", "service_name", serviceName)

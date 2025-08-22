@@ -17,20 +17,20 @@ import (
 type DiskCache struct {
 	// Configuration
 	config DiskCacheConfig
-	
+
 	// File system operations
 	basePath string
-	
+
 	// Thread safety
 	mu sync.RWMutex
-	
+
 	// Statistics
 	stats     *DiskCacheStats
 	statsLock sync.RWMutex
-	
+
 	// Logging
 	logger *zap.Logger
-	
+
 	// Control
 	stopChannel chan struct{}
 }
@@ -44,14 +44,14 @@ type DiskCacheConfig struct {
 
 // DiskCacheStats holds disk cache statistics
 type DiskCacheStats struct {
-	Hits       int64         `json:"hits"`
-	Misses     int64         `json:"misses"`
-	Evictions  int64         `json:"evictions"`
-	Size       int64         `json:"size"`
-	MaxSize    int64         `json:"max_size"`
-	HitRate    float64       `json:"hit_rate"`
-	FileCount  int64         `json:"file_count"`
-	Errors     int64         `json:"errors"`
+	Hits      int64   `json:"hits"`
+	Misses    int64   `json:"misses"`
+	Evictions int64   `json:"evictions"`
+	Size      int64   `json:"size"`
+	MaxSize   int64   `json:"max_size"`
+	HitRate   float64 `json:"hit_rate"`
+	FileCount int64   `json:"file_count"`
+	Errors    int64   `json:"errors"`
 }
 
 // diskCacheItem represents an item stored on disk
@@ -102,7 +102,7 @@ func NewDiskCache(config DiskCacheConfig, logger *zap.Logger) (*DiskCache, error
 func (dc *DiskCache) Get(ctx context.Context, key string) (*CacheItem, bool) {
 	// Generate file path
 	filePath := dc.getFilePath(key)
-	
+
 	dc.mu.RLock()
 	defer dc.mu.RUnlock()
 
@@ -115,9 +115,9 @@ func (dc *DiskCache) Get(ctx context.Context, key string) (*CacheItem, bool) {
 	// Read file
 	data, err := os.ReadFile(filePath)
 	if err != nil {
-		dc.logger.Error("Failed to read cache file", 
-			zap.String("key", key), 
-			zap.String("path", filePath), 
+		dc.logger.Error("Failed to read cache file",
+			zap.String("key", key),
+			zap.String("path", filePath),
 			zap.Error(err))
 		dc.incrementError()
 		dc.incrementMiss()
@@ -127,8 +127,8 @@ func (dc *DiskCache) Get(ctx context.Context, key string) (*CacheItem, bool) {
 	// Unmarshal item
 	var item diskCacheItem
 	if err := json.Unmarshal(data, &item); err != nil {
-		dc.logger.Error("Failed to unmarshal cache item", 
-			zap.String("key", key), 
+		dc.logger.Error("Failed to unmarshal cache item",
+			zap.String("key", key),
 			zap.Error(err))
 		dc.incrementError()
 		dc.incrementMiss()
@@ -212,7 +212,7 @@ func (dc *DiskCache) Set(ctx context.Context, key string, value interface{}, exp
 // Delete removes a value from the disk cache
 func (dc *DiskCache) Delete(ctx context.Context, key string) error {
 	filePath := dc.getFilePath(key)
-	
+
 	dc.mu.Lock()
 	defer dc.mu.Unlock()
 
@@ -239,15 +239,15 @@ func (dc *DiskCache) Clear(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		
+
 		if !d.IsDir() && path != dc.basePath {
 			if err := os.Remove(path); err != nil {
-				dc.logger.Warn("Failed to remove cache file", 
-					zap.String("path", path), 
+				dc.logger.Warn("Failed to remove cache file",
+					zap.String("path", path),
 					zap.Error(err))
 			}
 		}
-		
+
 		return nil
 	})
 
@@ -308,18 +308,18 @@ func (dc *DiskCache) ensureSpace() error {
 
 func (dc *DiskCache) getCurrentSize() int64 {
 	var totalSize int64
-	
+
 	err := filepath.WalkDir(dc.basePath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		
+
 		if !d.IsDir() {
 			if info, err := d.Info(); err == nil {
 				totalSize += info.Size()
 			}
 		}
-		
+
 		return nil
 	})
 
@@ -340,12 +340,12 @@ func (dc *DiskCache) evictOldestFiles(requiredSpace int64) error {
 	}
 
 	var files []fileInfo
-	
+
 	err := filepath.WalkDir(dc.basePath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		
+
 		if !d.IsDir() {
 			if info, err := d.Info(); err == nil {
 				files = append(files, fileInfo{
@@ -355,7 +355,7 @@ func (dc *DiskCache) evictOldestFiles(requiredSpace int64) error {
 				})
 			}
 		}
-		
+
 		return nil
 	})
 
@@ -378,14 +378,14 @@ func (dc *DiskCache) evictOldestFiles(requiredSpace int64) error {
 		if freedSpace >= requiredSpace {
 			break
 		}
-		
+
 		if err := os.Remove(file.path); err != nil {
-			dc.logger.Warn("Failed to evict cache file", 
-				zap.String("path", file.path), 
+			dc.logger.Warn("Failed to evict cache file",
+				zap.String("path", file.path),
 				zap.Error(err))
 			continue
 		}
-		
+
 		freedSpace += file.size
 		dc.incrementEviction()
 	}
@@ -395,8 +395,8 @@ func (dc *DiskCache) evictOldestFiles(requiredSpace int64) error {
 
 func (dc *DiskCache) removeFile(filePath string) {
 	if err := os.Remove(filePath); err != nil && !os.IsNotExist(err) {
-		dc.logger.Warn("Failed to remove expired cache file", 
-			zap.String("path", filePath), 
+		dc.logger.Warn("Failed to remove expired cache file",
+			zap.String("path", filePath),
 			zap.Error(err))
 	}
 }
@@ -404,15 +404,15 @@ func (dc *DiskCache) removeFile(filePath string) {
 func (dc *DiskCache) updateAccessInfo(filePath string, item *diskCacheItem) {
 	data, err := json.Marshal(item)
 	if err != nil {
-		dc.logger.Error("Failed to marshal updated cache item", 
-			zap.String("key", item.Key), 
+		dc.logger.Error("Failed to marshal updated cache item",
+			zap.String("key", item.Key),
 			zap.Error(err))
 		return
 	}
 
 	if err := os.WriteFile(filePath, data, 0644); err != nil {
-		dc.logger.Error("Failed to update cache file access info", 
-			zap.String("path", filePath), 
+		dc.logger.Error("Failed to update cache file access info",
+			zap.String("path", filePath),
 			zap.Error(err))
 	}
 }
@@ -436,12 +436,12 @@ func (dc *DiskCache) cleanupExpired() {
 	defer dc.mu.Unlock()
 
 	now := time.Now()
-	
+
 	err := filepath.WalkDir(dc.basePath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		
+
 		if !d.IsDir() {
 			// Read file and check expiration
 			data, err := os.ReadFile(path)
@@ -456,13 +456,13 @@ func (dc *DiskCache) cleanupExpired() {
 
 			if now.After(item.ExpiresAt) {
 				if err := os.Remove(path); err != nil {
-					dc.logger.Warn("Failed to remove expired cache file", 
-						zap.String("path", path), 
+					dc.logger.Warn("Failed to remove expired cache file",
+						zap.String("path", path),
 						zap.Error(err))
 				}
 			}
 		}
-		
+
 		return nil
 	})
 
@@ -510,9 +510,9 @@ func (dc *DiskCache) updateHitRate() {
 func (dc *DiskCache) updateStats() {
 	dc.statsLock.Lock()
 	defer dc.statsLock.Unlock()
-	
+
 	dc.stats.Size = dc.getCurrentSize()
-	
+
 	// Count files
 	fileCount := int64(0)
 	filepath.WalkDir(dc.basePath, func(path string, d fs.DirEntry, err error) error {
@@ -527,7 +527,7 @@ func (dc *DiskCache) updateStats() {
 func (dc *DiskCache) resetStats() {
 	dc.statsLock.Lock()
 	defer dc.statsLock.Unlock()
-	
+
 	dc.stats = &DiskCacheStats{
 		MaxSize: dc.config.Size,
 	}

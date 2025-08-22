@@ -15,22 +15,22 @@ import (
 type CacheInvalidationManager struct {
 	// Configuration
 	config CacheConfig
-	
+
 	// Cache layers for invalidation
-	memoryCache  *MemoryCacheImpl
-	diskCache    *DiskCache
-	redisCache   interface{} // Will be properly typed when Redis is implemented
-	
+	memoryCache *MemoryCacheImpl
+	diskCache   *DiskCache
+	redisCache  interface{} // Will be properly typed when Redis is implemented
+
 	// Invalidation patterns and rules
 	invalidationRules []InvalidationRule
-	
+
 	// Thread safety
 	mu sync.RWMutex
-	
+
 	// Invalidation statistics
 	stats     *InvalidationStats
 	statsLock sync.RWMutex
-	
+
 	// Logging
 	logger *zap.Logger
 }
@@ -45,21 +45,21 @@ type InvalidationRule struct {
 
 // InvalidationStats holds invalidation statistics
 type InvalidationStats struct {
-	InvalidationsByPattern int64         `json:"invalidations_by_pattern"`
-	InvalidationsByTags    int64         `json:"invalidations_by_tags"`
-	InvalidationsByTTL     int64         `json:"invalidations_by_ttl"`
-	TotalInvalidations     int64         `json:"total_invalidations"`
-	LastInvalidation       time.Time     `json:"last_invalidation"`
+	InvalidationsByPattern  int64         `json:"invalidations_by_pattern"`
+	InvalidationsByTags     int64         `json:"invalidations_by_tags"`
+	InvalidationsByTTL      int64         `json:"invalidations_by_ttl"`
+	TotalInvalidations      int64         `json:"total_invalidations"`
+	LastInvalidation        time.Time     `json:"last_invalidation"`
 	AverageInvalidationTime time.Duration `json:"average_invalidation_time"`
 }
 
 // NewCacheInvalidationManager creates a new cache invalidation manager
 func NewCacheInvalidationManager(config CacheConfig, logger *zap.Logger) *CacheInvalidationManager {
 	return &CacheInvalidationManager{
-		config:           config,
+		config:            config,
 		invalidationRules: make([]InvalidationRule, 0),
-		stats:            &InvalidationStats{},
-		logger:           logger,
+		stats:             &InvalidationStats{},
+		logger:            logger,
 	}
 }
 
@@ -91,7 +91,7 @@ func (cim *CacheInvalidationManager) AddInvalidationRule(rule InvalidationRule) 
 	// Sort by priority (higher priority first)
 	cim.sortInvalidationRules()
 
-	cim.logger.Info("Added invalidation rule", 
+	cim.logger.Info("Added invalidation rule",
 		zap.String("pattern", rule.Pattern),
 		zap.Int("priority", rule.Priority),
 		zap.String("description", rule.Description))
@@ -116,7 +116,7 @@ func (cim *CacheInvalidationManager) RemoveInvalidationRule(pattern string) {
 // InvalidateByPattern invalidates cache entries matching a pattern
 func (cim *CacheInvalidationManager) InvalidateByPattern(ctx context.Context, pattern string) error {
 	start := time.Now()
-	
+
 	cim.mu.RLock()
 	defer cim.mu.RUnlock()
 
@@ -158,7 +158,7 @@ func (cim *CacheInvalidationManager) InvalidateByPattern(ctx context.Context, pa
 	// Update statistics
 	cim.updateInvalidationStats("pattern", invalidatedCount, time.Since(start))
 
-	cim.logger.Info("Invalidated cache entries by pattern", 
+	cim.logger.Info("Invalidated cache entries by pattern",
 		zap.String("pattern", pattern),
 		zap.Int64("count", invalidatedCount))
 
@@ -168,7 +168,7 @@ func (cim *CacheInvalidationManager) InvalidateByPattern(ctx context.Context, pa
 // InvalidateByTags invalidates cache entries with specific tags
 func (cim *CacheInvalidationManager) InvalidateByTags(ctx context.Context, tags []string) error {
 	start := time.Now()
-	
+
 	cim.mu.RLock()
 	defer cim.mu.RUnlock()
 
@@ -211,7 +211,7 @@ func (cim *CacheInvalidationManager) InvalidateByTags(ctx context.Context, tags 
 	// Update statistics
 	cim.updateInvalidationStats("tags", invalidatedCount, time.Since(start))
 
-	cim.logger.Info("Invalidated cache entries by tags", 
+	cim.logger.Info("Invalidated cache entries by tags",
 		zap.Strings("tags", tags),
 		zap.Int64("count", invalidatedCount))
 
@@ -221,7 +221,7 @@ func (cim *CacheInvalidationManager) InvalidateByTags(ctx context.Context, tags 
 // InvalidateByTTL invalidates cache entries that have expired
 func (cim *CacheInvalidationManager) InvalidateByTTL(ctx context.Context) error {
 	start := time.Now()
-	
+
 	cim.mu.RLock()
 	defer cim.mu.RUnlock()
 
@@ -249,7 +249,7 @@ func (cim *CacheInvalidationManager) InvalidateByTTL(ctx context.Context) error 
 	// Update statistics
 	cim.updateInvalidationStats("ttl", invalidatedCount, time.Since(start))
 
-	cim.logger.Debug("TTL-based invalidation completed", 
+	cim.logger.Debug("TTL-based invalidation completed",
 		zap.Int64("count", invalidatedCount))
 
 	return nil
@@ -258,7 +258,7 @@ func (cim *CacheInvalidationManager) InvalidateByTTL(ctx context.Context) error 
 // InvalidateAll invalidates all cache entries
 func (cim *CacheInvalidationManager) InvalidateAll(ctx context.Context) error {
 	start := time.Now()
-	
+
 	cim.mu.RLock()
 	defer cim.mu.RUnlock()
 
@@ -287,7 +287,7 @@ func (cim *CacheInvalidationManager) InvalidateAll(ctx context.Context) error {
 	// Update statistics
 	cim.updateInvalidationStats("all", invalidatedCount, time.Since(start))
 
-	cim.logger.Info("Invalidated all cache entries", 
+	cim.logger.Info("Invalidated all cache entries",
 		zap.Int64("layers_cleared", invalidatedCount))
 
 	return nil

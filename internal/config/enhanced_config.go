@@ -37,13 +37,13 @@ type ModuleConfigs struct {
 	// Data processing modules
 	DataExtraction DataExtractionConfig `json:"data_extraction" yaml:"data_extraction"`
 	RiskAssessment RiskAssessmentConfig `json:"risk_assessment" yaml:"risk_assessment"`
-	Verification    VerificationConfig    `json:"verification" yaml:"verification"`
+	Verification   VerificationConfig   `json:"verification" yaml:"verification"`
 
 	// Infrastructure modules
-	Cache        CacheConfig        `json:"cache" yaml:"cache"`
+	Cache         CacheConfig         `json:"cache" yaml:"cache"`
 	Observability ObservabilityConfig `json:"observability" yaml:"observability"`
-	Security     SecurityConfig     `json:"security" yaml:"security"`
-	Compliance   ComplianceConfig   `json:"compliance" yaml:"compliance"`
+	Security      SecurityConfig      `json:"security" yaml:"security"`
+	Compliance    ComplianceConfig    `json:"compliance" yaml:"compliance"`
 }
 
 // KeywordClassificationConfig holds keyword classification module configuration
@@ -73,10 +73,10 @@ type MLClassificationConfig struct {
 	Enabled bool `json:"enabled" yaml:"enabled"`
 
 	// Model settings
-	ModelPath        string  `json:"model_path" yaml:"model_path"`
-	ModelVersion     string  `json:"model_version" yaml:"model_version"`
+	ModelPath           string  `json:"model_path" yaml:"model_path"`
+	ModelVersion        string  `json:"model_version" yaml:"model_version"`
 	ConfidenceThreshold float64 `json:"confidence_threshold" yaml:"confidence_threshold"`
-	MaxPredictions   int     `json:"max_predictions" yaml:"max_predictions"`
+	MaxPredictions      int     `json:"max_predictions" yaml:"max_predictions"`
 
 	// Performance settings
 	MaxConcurrency int           `json:"max_concurrency" yaml:"max_concurrency"`
@@ -84,9 +84,9 @@ type MLClassificationConfig struct {
 	BatchSize      int           `json:"batch_size" yaml:"batch_size"`
 
 	// GPU settings
-	UseGPU          bool   `json:"use_gpu" yaml:"use_gpu"`
-	GPUDeviceID     int    `json:"gpu_device_id" yaml:"gpu_device_id"`
-	GPUMemoryLimit  string `json:"gpu_memory_limit" yaml:"gpu_memory_limit"`
+	UseGPU         bool   `json:"use_gpu" yaml:"use_gpu"`
+	GPUDeviceID    int    `json:"gpu_device_id" yaml:"gpu_device_id"`
+	GPUMemoryLimit string `json:"gpu_memory_limit" yaml:"gpu_memory_limit"`
 
 	// Caching
 	EnableCaching bool          `json:"enable_caching" yaml:"enable_caching"`
@@ -101,27 +101,27 @@ type WebsiteAnalysisConfig struct {
 	Enabled bool `json:"enabled" yaml:"enabled"`
 
 	// HTTP client settings
-	Timeout           time.Duration `json:"timeout" yaml:"timeout"`
-	MaxRedirects      int           `json:"max_redirects" yaml:"max_redirects"`
-	UserAgent         string        `json:"user_agent" yaml:"user_agent"`
-	FollowRedirects   bool          `json:"follow_redirects" yaml:"follow_redirects"`
+	Timeout         time.Duration `json:"timeout" yaml:"timeout"`
+	MaxRedirects    int           `json:"max_redirects" yaml:"max_redirects"`
+	UserAgent       string        `json:"user_agent" yaml:"user_agent"`
+	FollowRedirects bool          `json:"follow_redirects" yaml:"follow_redirects"`
 
 	// Content extraction settings
-	MaxContentSize    int64  `json:"max_content_size" yaml:"max_content_size"`
-	ExtractImages     bool   `json:"extract_images" yaml:"extract_images"`
-	ExtractLinks      bool   `json:"extract_links" yaml:"extract_links"`
-	ExtractMetadata   bool   `json:"extract_metadata" yaml:"extract_metadata"`
+	MaxContentSize  int64 `json:"max_content_size" yaml:"max_content_size"`
+	ExtractImages   bool  `json:"extract_images" yaml:"extract_images"`
+	ExtractLinks    bool  `json:"extract_links" yaml:"extract_links"`
+	ExtractMetadata bool  `json:"extract_metadata" yaml:"extract_metadata"`
 
 	// Rate limiting
-	RateLimitEnabled  bool          `json:"rate_limit_enabled" yaml:"rate_limit_enabled"`
-	RateLimitPerMinute int          `json:"rate_limit_per_minute" yaml:"rate_limit_per_minute"`
-	RateLimitDelay    time.Duration `json:"rate_limit_delay" yaml:"rate_limit_delay"`
+	RateLimitEnabled   bool          `json:"rate_limit_enabled" yaml:"rate_limit_enabled"`
+	RateLimitPerMinute int           `json:"rate_limit_per_minute" yaml:"rate_limit_per_minute"`
+	RateLimitDelay     time.Duration `json:"rate_limit_delay" yaml:"rate_limit_delay"`
 
 	// Proxy settings
-	UseProxy         bool     `json:"use_proxy" yaml:"use_proxy"`
-	ProxyURL         string   `json:"proxy_url" yaml:"proxy_url"`
-	ProxyRotation    bool     `json:"proxy_rotation" yaml:"proxy_rotation"`
-	ProxyList        []string `json:"proxy_list" yaml:"proxy_list"`
+	UseProxy      bool     `json:"use_proxy" yaml:"use_proxy"`
+	ProxyURL      string   `json:"proxy_url" yaml:"proxy_url"`
+	ProxyRotation bool     `json:"proxy_rotation" yaml:"proxy_rotation"`
+	ProxyList     []string `json:"proxy_list" yaml:"proxy_list"`
 
 	// Caching
 	EnableCaching bool          `json:"enable_caching" yaml:"enable_caching"`
@@ -136,13 +136,13 @@ type WebSearchAnalysisConfig struct {
 	Enabled bool `json:"enabled" yaml:"enabled"`
 
 	// Search engine settings
-	SearchEngines    []string `json:"search_engines" yaml:"search_engines"`
-	MaxResults       int      `json:"max_results" yaml:"max_results"`
-	SearchTimeout    time.Duration `json:"search_timeout" yaml:"search_timeout"`
+	SearchEngines []string      `json:"search_engines" yaml:"search_engines"`
+	MaxResults    int           `json:"max_results" yaml:"max_results"`
+	SearchTimeout time.Duration `json:"search_timeout" yaml:"search_timeout"`
 
 	// API settings
-	APIKeys          map[string]string `json:"api_keys" yaml:"api_keys"`
-	APIEndpoints     map[string]string `json:"api_endpoints" yaml:"api_endpoints"`
+	APIKeys      map[string]string `json:"api_keys" yaml:"api_keys"`
+	APIEndpoints map[string]string `json:"api_endpoints" yaml:"api_endpoints"`
 
 	// Rate limiting
 	RateLimitEnabled bool          `json:"rate_limit_enabled" yaml:"rate_limit_enabled"`
@@ -191,13 +191,13 @@ type ResourceManagerConfig struct {
 	Enabled bool `json:"enabled" yaml:"enabled"`
 
 	// Load balancing
-	EnableLoadBalancing   bool                  `json:"enable_load_balancing" yaml:"enable_load_balancing"`
-	LoadBalancingStrategy string                `json:"load_balancing_strategy" yaml:"load_balancing_strategy"`
+	EnableLoadBalancing   bool   `json:"enable_load_balancing" yaml:"enable_load_balancing"`
+	LoadBalancingStrategy string `json:"load_balancing_strategy" yaml:"load_balancing_strategy"`
 
 	// Monitoring
-	EnableResourceMonitoring bool          `json:"enable_resource_monitoring" yaml:"enable_resource_monitoring"`
-	EnableHealthMonitoring   bool          `json:"enable_health_monitoring" yaml:"enable_health_monitoring"`
-	EnableCapacityPlanning   bool          `json:"enable_capacity_planning" yaml:"enable_capacity_planning"`
+	EnableResourceMonitoring bool `json:"enable_resource_monitoring" yaml:"enable_resource_monitoring"`
+	EnableHealthMonitoring   bool `json:"enable_health_monitoring" yaml:"enable_health_monitoring"`
+	EnableCapacityPlanning   bool `json:"enable_capacity_planning" yaml:"enable_capacity_planning"`
 
 	// Intervals
 	ResourceUpdateInterval   time.Duration `json:"resource_update_interval" yaml:"resource_update_interval"`
@@ -272,13 +272,13 @@ type VerificationConfig struct {
 	Enabled bool `json:"enabled" yaml:"enabled"`
 
 	// Verification settings
-	VerificationTimeout time.Duration `json:"verification_timeout" yaml:"verification_timeout"`
-	MaxVerificationAttempts int       `json:"max_verification_attempts" yaml:"max_verification_attempts"`
+	VerificationTimeout     time.Duration `json:"verification_timeout" yaml:"verification_timeout"`
+	MaxVerificationAttempts int           `json:"max_verification_attempts" yaml:"max_verification_attempts"`
 
 	// Verification methods
-	EnableWebsiteScraping bool `json:"enable_website_scraping" yaml:"enable_website_scraping"`
+	EnableWebsiteScraping     bool `json:"enable_website_scraping" yaml:"enable_website_scraping"`
 	EnableContactVerification bool `json:"enable_contact_verification" yaml:"enable_contact_verification"`
-	EnableDomainVerification bool `json:"enable_domain_verification" yaml:"enable_domain_verification"`
+	EnableDomainVerification  bool `json:"enable_domain_verification" yaml:"enable_domain_verification"`
 
 	// Thresholds
 	MinVerificationScore float64 `json:"min_verification_score" yaml:"min_verification_score"`
@@ -300,8 +300,8 @@ type CacheConfig struct {
 	Type string `json:"type" yaml:"type"` // "memory", "redis", "file"
 
 	// Memory cache settings
-	MaxSize     int           `json:"max_size" yaml:"max_size"`
-	DefaultTTL  time.Duration `json:"default_ttl" yaml:"default_ttl"`
+	MaxSize         int           `json:"max_size" yaml:"max_size"`
+	DefaultTTL      time.Duration `json:"default_ttl" yaml:"default_ttl"`
 	CleanupInterval time.Duration `json:"cleanup_interval" yaml:"cleanup_interval"`
 
 	// Redis settings
@@ -310,9 +310,9 @@ type CacheConfig struct {
 	RedisDB       int    `json:"redis_db" yaml:"redis_db"`
 
 	// File cache settings
-	CacheDir      string `json:"cache_dir" yaml:"cache_dir"`
-	MaxFileSize   int64  `json:"max_file_size" yaml:"max_file_size"`
-	Compression   bool   `json:"compression" yaml:"compression"`
+	CacheDir    string `json:"cache_dir" yaml:"cache_dir"`
+	MaxFileSize int64  `json:"max_file_size" yaml:"max_file_size"`
+	Compression bool   `json:"compression" yaml:"compression"`
 }
 
 // ComplianceConfig holds compliance module configuration
@@ -330,7 +330,7 @@ type ComplianceConfig struct {
 	AuditRetentionDays int  `json:"audit_retention_days" yaml:"audit_retention_days"`
 
 	// Data protection
-	EnableDataEncryption bool `json:"enable_data_encryption" yaml:"enable_data_encryption"`
+	EnableDataEncryption    bool `json:"enable_data_encryption" yaml:"enable_data_encryption"`
 	EnableDataAnonymization bool `json:"enable_data_anonymization" yaml:"enable_data_anonymization"`
 }
 
@@ -348,8 +348,8 @@ type EnhancedFeaturesConfig struct {
 	EnableAPIKeyManagement bool `json:"enable_api_key_management" yaml:"enable_api_key_management"`
 
 	// Advanced features
-	EnableMachineLearning bool `json:"enable_machine_learning" yaml:"enable_machine_learning"`
-	EnablePredictiveAnalytics bool `json:"enable_predictive_analytics" yaml:"enable_predictive_analytics"`
+	EnableMachineLearning       bool `json:"enable_machine_learning" yaml:"enable_machine_learning"`
+	EnablePredictiveAnalytics   bool `json:"enable_predictive_analytics" yaml:"enable_predictive_analytics"`
 	EnableAutomatedOptimization bool `json:"enable_automated_optimization" yaml:"enable_automated_optimization"`
 }
 
@@ -374,8 +374,8 @@ type PerformanceConfig struct {
 // AdvancedMonitoringConfig holds advanced monitoring configuration
 type AdvancedMonitoringConfig struct {
 	// Metrics collection
-	EnableCustomMetrics bool `json:"enable_custom_metrics" yaml:"enable_custom_metrics"`
-	EnableBusinessMetrics bool `json:"enable_business_metrics" yaml:"enable_business_metrics"`
+	EnableCustomMetrics      bool `json:"enable_custom_metrics" yaml:"enable_custom_metrics"`
+	EnableBusinessMetrics    bool `json:"enable_business_metrics" yaml:"enable_business_metrics"`
 	EnablePerformanceMetrics bool `json:"enable_performance_metrics" yaml:"enable_performance_metrics"`
 
 	// Alerting

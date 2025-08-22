@@ -15,14 +15,14 @@ import (
 type CacheKeyManager struct {
 	// Configuration
 	config CacheConfig
-	
+
 	// Thread safety
 	mu sync.RWMutex
-	
+
 	// Key statistics
 	keyStats     *KeyStats
 	keyStatsLock sync.RWMutex
-	
+
 	// Logging
 	logger *zap.Logger
 }

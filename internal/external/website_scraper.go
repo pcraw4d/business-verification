@@ -112,7 +112,7 @@ type ScrapingResult struct {
 // ScrapeWebsite scrapes a website with retry logic and comprehensive error handling
 func (s *WebsiteScraper) ScrapeWebsite(ctx context.Context, targetURL string) (*ScrapingResult, error) {
 	startTime := time.Now()
-	
+
 	// Validate URL
 	parsedURL, err := url.Parse(targetURL)
 	if err != nil {
@@ -142,7 +142,7 @@ func (s *WebsiteScraper) ScrapeWebsite(ctx context.Context, targetURL string) (*
 				zap.String("url", targetURL),
 				zap.Int("attempt", attempt+1),
 				zap.Duration("delay", s.config.RetryDelay))
-			
+
 			// Wait before retry
 			select {
 			case <-ctx.Done():
@@ -281,7 +281,7 @@ func (s *WebsiteScraper) shouldNotRetry(err error) bool {
 	}
 
 	errStr := err.Error()
-	
+
 	// Don't retry on client errors (4xx)
 	if strings.Contains(errStr, "HTTP error: 4") {
 		return true
@@ -412,7 +412,7 @@ func (s *WebsiteScraper) checkRobotsTxt(ctx context.Context, baseURL string) boo
 	}
 
 	robotsURL := fmt.Sprintf("%s://%s/robots.txt", parsedURL.Scheme, parsedURL.Host)
-	
+
 	req, err := http.NewRequestWithContext(ctx, "GET", robotsURL, nil)
 	if err != nil {
 		return false
@@ -435,7 +435,7 @@ func (s *WebsiteScraper) checkSitemap(ctx context.Context, baseURL string) bool 
 	}
 
 	sitemapURL := fmt.Sprintf("%s://%s/sitemap.xml", parsedURL.Scheme, parsedURL.Host)
-	
+
 	req, err := http.NewRequestWithContext(ctx, "GET", sitemapURL, nil)
 	if err != nil {
 		return false
@@ -457,7 +457,7 @@ func (s *WebsiteScraper) detectBlocking(result *ScrapingResult) bool {
 	}
 
 	content := strings.ToLower(result.Content)
-	
+
 	// Check for common blocking indicators
 	blockingIndicators := []string{
 		"access denied",

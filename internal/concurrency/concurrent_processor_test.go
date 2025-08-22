@@ -337,4 +337,3 @@ func (p *testProcessor) Process(ctx context.Context, request *ConcurrentRequest)
 		CompletedAt: time.Now(),
 	}, nil
 }
-

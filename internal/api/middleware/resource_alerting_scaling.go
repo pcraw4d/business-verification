@@ -32,85 +32,85 @@ type ResourceAlertingScalingManager struct {
 
 // AlertingScalingConfig holds configuration for enhanced alerting and scaling
 type AlertingScalingConfig struct {
-	AlertingInterval        time.Duration             // How often to check for alerts
-	ScalingInterval         time.Duration             // How often to check for scaling
-	MetricRetentionPeriod   time.Duration             // How long to retain metrics
-	AlertRetentionPeriod    time.Duration             // How long to retain alert history
-	ScalingCooldownPeriod   time.Duration             // Cooldown between scaling actions
-	EnableProactiveScaling  bool                      // Enable predictive scaling
+	AlertingInterval         time.Duration            // How often to check for alerts
+	ScalingInterval          time.Duration            // How often to check for scaling
+	MetricRetentionPeriod    time.Duration            // How long to retain metrics
+	AlertRetentionPeriod     time.Duration            // How long to retain alert history
+	ScalingCooldownPeriod    time.Duration            // Cooldown between scaling actions
+	EnableProactiveScaling   bool                     // Enable predictive scaling
 	EnableAdaptiveThresholds bool                     // Enable dynamic threshold adjustment
-	AlertThresholds         *EnhancedAlertThresholds  // Enhanced alert thresholds
-	ScalingPolicies         *AutoScalingPolicies      // Auto-scaling policies
-	NotificationChannels    []*NotificationChannel    // Notification channels
-	EscalationPolicies      []*EscalationPolicy       // Escalation policies
+	AlertThresholds          *EnhancedAlertThresholds // Enhanced alert thresholds
+	ScalingPolicies          *AutoScalingPolicies     // Auto-scaling policies
+	NotificationChannels     []*NotificationChannel   // Notification channels
+	EscalationPolicies       []*EscalationPolicy      // Escalation policies
 }
 
 // EnhancedAlertThresholds defines comprehensive alerting thresholds
 type EnhancedAlertThresholds struct {
 	// CPU Thresholds
-	CPUWarning            float64 // CPU usage warning threshold
-	CPUCritical           float64 // CPU usage critical threshold
-	CPUEmergency          float64 // CPU usage emergency threshold
-	CPULoadAvgWarning     float64 // Load average warning threshold
-	CPULoadAvgCritical    float64 // Load average critical threshold
-	
-	// Memory Thresholds  
-	MemoryWarning         float64 // Memory usage warning threshold
-	MemoryCritical        float64 // Memory usage critical threshold
-	MemoryEmergency       float64 // Memory usage emergency threshold
-	HeapWarning           float64 // Heap usage warning threshold
-	HeapCritical          float64 // Heap usage critical threshold
-	
+	CPUWarning         float64 // CPU usage warning threshold
+	CPUCritical        float64 // CPU usage critical threshold
+	CPUEmergency       float64 // CPU usage emergency threshold
+	CPULoadAvgWarning  float64 // Load average warning threshold
+	CPULoadAvgCritical float64 // Load average critical threshold
+
+	// Memory Thresholds
+	MemoryWarning   float64 // Memory usage warning threshold
+	MemoryCritical  float64 // Memory usage critical threshold
+	MemoryEmergency float64 // Memory usage emergency threshold
+	HeapWarning     float64 // Heap usage warning threshold
+	HeapCritical    float64 // Heap usage critical threshold
+
 	// Goroutine Thresholds
-	GoroutineWarning      int     // Goroutine count warning threshold
-	GoroutineCritical     int     // Goroutine count critical threshold
-	GoroutineEmergency    int     // Goroutine count emergency threshold
-	
+	GoroutineWarning   int // Goroutine count warning threshold
+	GoroutineCritical  int // Goroutine count critical threshold
+	GoroutineEmergency int // Goroutine count emergency threshold
+
 	// Performance Thresholds
-	ResponseTimeWarning   time.Duration // Response time warning threshold
-	ResponseTimeCritical  time.Duration // Response time critical threshold
-	ThroughputWarning     float64       // Throughput warning threshold (RPS)
-	ThroughputCritical    float64       // Throughput critical threshold (RPS)
-	ErrorRateWarning      float64       // Error rate warning threshold (%)
-	ErrorRateCritical     float64       // Error rate critical threshold (%)
-	
+	ResponseTimeWarning  time.Duration // Response time warning threshold
+	ResponseTimeCritical time.Duration // Response time critical threshold
+	ThroughputWarning    float64       // Throughput warning threshold (RPS)
+	ThroughputCritical   float64       // Throughput critical threshold (RPS)
+	ErrorRateWarning     float64       // Error rate warning threshold (%)
+	ErrorRateCritical    float64       // Error rate critical threshold (%)
+
 	// Resource Utilization Thresholds
-	DiskIOWarning         float64 // Disk I/O utilization warning threshold
-	DiskIOCritical        float64 // Disk I/O utilization critical threshold
-	NetworkIOWarning      float64 // Network I/O utilization warning threshold
-	NetworkIOCritical     float64 // Network I/O utilization critical threshold
-	
+	DiskIOWarning     float64 // Disk I/O utilization warning threshold
+	DiskIOCritical    float64 // Disk I/O utilization critical threshold
+	NetworkIOWarning  float64 // Network I/O utilization warning threshold
+	NetworkIOCritical float64 // Network I/O utilization critical threshold
+
 	// Adaptive Thresholds
-	AdaptiveEnabled       bool    // Enable adaptive threshold adjustment
-	AdaptiveWindow        time.Duration // Window for adaptive calculations
-	AdaptiveSensitivity   float64 // Sensitivity for adaptive adjustments (0.0-1.0)
+	AdaptiveEnabled     bool          // Enable adaptive threshold adjustment
+	AdaptiveWindow      time.Duration // Window for adaptive calculations
+	AdaptiveSensitivity float64       // Sensitivity for adaptive adjustments (0.0-1.0)
 }
 
 // AutoScalingPolicies defines auto-scaling behavior
 type AutoScalingPolicies struct {
 	// Scaling Triggers
-	CPUScaleUpThreshold     float64 // CPU threshold to trigger scale up
-	CPUScaleDownThreshold   float64 // CPU threshold to trigger scale down
-	MemoryScaleUpThreshold  float64 // Memory threshold to trigger scale up
+	CPUScaleUpThreshold      float64 // CPU threshold to trigger scale up
+	CPUScaleDownThreshold    float64 // CPU threshold to trigger scale down
+	MemoryScaleUpThreshold   float64 // Memory threshold to trigger scale up
 	MemoryScaleDownThreshold float64 // Memory threshold to trigger scale down
-	
+
 	// Scaling Parameters
-	MinInstances            int           // Minimum number of instances
-	MaxInstances            int           // Maximum number of instances
-	ScaleUpIncrement        int           // Number of instances to add on scale up
-	ScaleDownDecrement      int           // Number of instances to remove on scale down
-	ScaleUpCooldown         time.Duration // Cooldown after scale up
-	ScaleDownCooldown       time.Duration // Cooldown after scale down
-	
+	MinInstances       int           // Minimum number of instances
+	MaxInstances       int           // Maximum number of instances
+	ScaleUpIncrement   int           // Number of instances to add on scale up
+	ScaleDownDecrement int           // Number of instances to remove on scale down
+	ScaleUpCooldown    time.Duration // Cooldown after scale up
+	ScaleDownCooldown  time.Duration // Cooldown after scale down
+
 	// Advanced Scaling
-	PredictiveScalingEnabled bool     // Enable predictive scaling
+	PredictiveScalingEnabled bool          // Enable predictive scaling
 	PredictiveWindow         time.Duration // Window for predictive analysis
-	PredictiveSensitivity    float64  // Sensitivity for predictive scaling (0.0-1.0)
-	TargetUtilization        float64  // Target utilization percentage
-	
+	PredictiveSensitivity    float64       // Sensitivity for predictive scaling (0.0-1.0)
+	TargetUtilization        float64       // Target utilization percentage
+
 	// Scaling Strategies
-	ScaleUpStrategy         ScalingStrategy // Strategy for scaling up
-	ScaleDownStrategy       ScalingStrategy // Strategy for scaling down
+	ScaleUpStrategy   ScalingStrategy // Strategy for scaling up
+	ScaleDownStrategy ScalingStrategy // Strategy for scaling down
 }
 
 // ScalingStrategy defines how scaling should be performed
@@ -125,49 +125,49 @@ const (
 
 // NotificationChannel defines notification delivery methods
 type NotificationChannel struct {
-	ID          string            `json:"id"`
-	Type        NotificationType  `json:"type"`
-	Endpoint    string            `json:"endpoint"`
-	Enabled     bool              `json:"enabled"`
-	Filters     []AlertLevel      `json:"filters"`
-	Config      map[string]string `json:"config"`
-	RateLimit   *NotificationRateLimit `json:"rate_limit,omitempty"`
+	ID        string                 `json:"id"`
+	Type      NotificationType       `json:"type"`
+	Endpoint  string                 `json:"endpoint"`
+	Enabled   bool                   `json:"enabled"`
+	Filters   []AlertLevel           `json:"filters"`
+	Config    map[string]string      `json:"config"`
+	RateLimit *NotificationRateLimit `json:"rate_limit,omitempty"`
 }
 
 // NotificationType defines the type of notification channel
 type NotificationType string
 
 const (
-	NotificationTypeEmail    NotificationType = "email"
-	NotificationTypeSlack    NotificationType = "slack"
-	NotificationTypeWebhook  NotificationType = "webhook"
-	NotificationTypeSMS      NotificationType = "sms"
+	NotificationTypeEmail     NotificationType = "email"
+	NotificationTypeSlack     NotificationType = "slack"
+	NotificationTypeWebhook   NotificationType = "webhook"
+	NotificationTypeSMS       NotificationType = "sms"
 	NotificationTypePagerDuty NotificationType = "pagerduty"
 )
 
 // EscalationPolicy defines how alerts should be escalated
 type EscalationPolicy struct {
-	ID                string               `json:"id"`
-	AlertTypes        []string             `json:"alert_types"`
-	Levels            []AlertLevel         `json:"levels"`
-	EscalationSteps   []*EscalationStep    `json:"escalation_steps"`
-	TimeoutDuration   time.Duration        `json:"timeout_duration"`
-	MaxEscalations    int                  `json:"max_escalations"`
-	Enabled           bool                 `json:"enabled"`
+	ID              string            `json:"id"`
+	AlertTypes      []string          `json:"alert_types"`
+	Levels          []AlertLevel      `json:"levels"`
+	EscalationSteps []*EscalationStep `json:"escalation_steps"`
+	TimeoutDuration time.Duration     `json:"timeout_duration"`
+	MaxEscalations  int               `json:"max_escalations"`
+	Enabled         bool              `json:"enabled"`
 }
 
 // EscalationStep defines a step in the escalation process
 type EscalationStep struct {
-	StepNumber          int               `json:"step_number"`
-	DelayDuration       time.Duration     `json:"delay_duration"`
-	NotificationChannels []string         `json:"notification_channels"`
-	Actions             []*EscalationAction `json:"actions"`
-	RequireAcknowledgment bool            `json:"require_acknowledgment"`
+	StepNumber            int                 `json:"step_number"`
+	DelayDuration         time.Duration       `json:"delay_duration"`
+	NotificationChannels  []string            `json:"notification_channels"`
+	Actions               []*EscalationAction `json:"actions"`
+	RequireAcknowledgment bool                `json:"require_acknowledgment"`
 }
 
 // EscalationAction defines an action to take during escalation
 type EscalationAction struct {
-	Type       EscalationActionType  `json:"type"`
+	Type       EscalationActionType   `json:"type"`
 	Parameters map[string]interface{} `json:"parameters"`
 }
 
@@ -175,11 +175,11 @@ type EscalationAction struct {
 type EscalationActionType string
 
 const (
-	EscalationActionScale     EscalationActionType = "scale"
-	EscalationActionRestart   EscalationActionType = "restart"
-	EscalationActionThrottle  EscalationActionType = "throttle"
-	EscalationActionProfile   EscalationActionType = "profile"
-	EscalationActionNotify    EscalationActionType = "notify"
+	EscalationActionScale    EscalationActionType = "scale"
+	EscalationActionRestart  EscalationActionType = "restart"
+	EscalationActionThrottle EscalationActionType = "throttle"
+	EscalationActionProfile  EscalationActionType = "profile"
+	EscalationActionNotify   EscalationActionType = "notify"
 )
 
 // NotificationRateLimit defines rate limiting for notifications
@@ -256,29 +256,29 @@ const (
 
 // AutoScalingEngine manages automatic scaling operations
 type AutoScalingEngine struct {
-	config          *AlertingScalingConfig
-	policies        *AutoScalingPolicies
-	scalingHistory  []*ScalingEvent
+	config           *AlertingScalingConfig
+	policies         *AutoScalingPolicies
+	scalingHistory   []*ScalingEvent
 	currentInstances int
-	lastScalingTime time.Time
-	predictiveModel *PredictiveModel
-	mu              sync.RWMutex
+	lastScalingTime  time.Time
+	predictiveModel  *PredictiveModel
+	mu               sync.RWMutex
 }
 
 // ScalingEvent represents a scaling operation
 type ScalingEvent struct {
-	ID              string          `json:"id"`
-	Type            ScalingType     `json:"type"`
-	Trigger         ScalingTrigger  `json:"trigger"`
-	Strategy        ScalingStrategy `json:"strategy"`
-	InstancesBefore int             `json:"instances_before"`
-	InstancesAfter  int             `json:"instances_after"`
-	Reason          string          `json:"reason"`
+	ID              string                 `json:"id"`
+	Type            ScalingType            `json:"type"`
+	Trigger         ScalingTrigger         `json:"trigger"`
+	Strategy        ScalingStrategy        `json:"strategy"`
+	InstancesBefore int                    `json:"instances_before"`
+	InstancesAfter  int                    `json:"instances_after"`
+	Reason          string                 `json:"reason"`
 	Metadata        map[string]interface{} `json:"metadata"`
-	Timestamp       time.Time       `json:"timestamp"`
-	Duration        time.Duration   `json:"duration"`
-	Success         bool            `json:"success"`
-	Error           string          `json:"error,omitempty"`
+	Timestamp       time.Time              `json:"timestamp"`
+	Duration        time.Duration          `json:"duration"`
+	Success         bool                   `json:"success"`
+	Error           string                 `json:"error,omitempty"`
 }
 
 // ScalingType defines the type of scaling operation
@@ -308,55 +308,55 @@ type EnhancedMetricCollector struct {
 
 // EnhancedMetrics represents comprehensive system metrics
 type EnhancedMetrics struct {
-	Timestamp           time.Time              `json:"timestamp"`
-	
+	Timestamp time.Time `json:"timestamp"`
+
 	// CPU Metrics
-	CPUUsage            float64                `json:"cpu_usage"`
-	CPUUsagePerCore     []float64              `json:"cpu_usage_per_core"`
-	LoadAverage         []float64              `json:"load_average"`
-	CPUFrequency        float64                `json:"cpu_frequency"`
-	CPUTemperature      float64                `json:"cpu_temperature,omitempty"`
-	
+	CPUUsage        float64   `json:"cpu_usage"`
+	CPUUsagePerCore []float64 `json:"cpu_usage_per_core"`
+	LoadAverage     []float64 `json:"load_average"`
+	CPUFrequency    float64   `json:"cpu_frequency"`
+	CPUTemperature  float64   `json:"cpu_temperature,omitempty"`
+
 	// Memory Metrics
-	MemoryUsage         float64                `json:"memory_usage"`
-	MemoryTotal         uint64                 `json:"memory_total"`
-	MemoryUsed          uint64                 `json:"memory_used"`
-	MemoryAvailable     uint64                 `json:"memory_available"`
-	MemoryBuffered      uint64                 `json:"memory_buffered"`
-	MemoryCached        uint64                 `json:"memory_cached"`
-	SwapUsage           float64                `json:"swap_usage"`
-	SwapTotal           uint64                 `json:"swap_total"`
-	SwapUsed            uint64                 `json:"swap_used"`
-	
+	MemoryUsage     float64 `json:"memory_usage"`
+	MemoryTotal     uint64  `json:"memory_total"`
+	MemoryUsed      uint64  `json:"memory_used"`
+	MemoryAvailable uint64  `json:"memory_available"`
+	MemoryBuffered  uint64  `json:"memory_buffered"`
+	MemoryCached    uint64  `json:"memory_cached"`
+	SwapUsage       float64 `json:"swap_usage"`
+	SwapTotal       uint64  `json:"swap_total"`
+	SwapUsed        uint64  `json:"swap_used"`
+
 	// Go Runtime Metrics
-	HeapAlloc           uint64                 `json:"heap_alloc"`
-	HeapSys             uint64                 `json:"heap_sys"`
-	HeapInuse           uint64                 `json:"heap_inuse"`
-	HeapIdle            uint64                 `json:"heap_idle"`
-	HeapReleased        uint64                 `json:"heap_released"`
-	GoroutineCount      int                    `json:"goroutine_count"`
-	GCCycles            uint32                 `json:"gc_cycles"`
-	GCPause             time.Duration          `json:"gc_pause"`
-	GCCPUFraction       float64                `json:"gc_cpu_fraction"`
-	
+	HeapAlloc      uint64        `json:"heap_alloc"`
+	HeapSys        uint64        `json:"heap_sys"`
+	HeapInuse      uint64        `json:"heap_inuse"`
+	HeapIdle       uint64        `json:"heap_idle"`
+	HeapReleased   uint64        `json:"heap_released"`
+	GoroutineCount int           `json:"goroutine_count"`
+	GCCycles       uint32        `json:"gc_cycles"`
+	GCPause        time.Duration `json:"gc_pause"`
+	GCCPUFraction  float64       `json:"gc_cpu_fraction"`
+
 	// Performance Metrics
-	ResponseTime        time.Duration          `json:"response_time"`
-	Throughput          float64                `json:"throughput"`
-	ErrorRate           float64                `json:"error_rate"`
-	ActiveConnections   int                    `json:"active_connections"`
-	QueueLength         int                    `json:"queue_length"`
-	
+	ResponseTime      time.Duration `json:"response_time"`
+	Throughput        float64       `json:"throughput"`
+	ErrorRate         float64       `json:"error_rate"`
+	ActiveConnections int           `json:"active_connections"`
+	QueueLength       int           `json:"queue_length"`
+
 	// I/O Metrics
-	DiskIOReads         uint64                 `json:"disk_io_reads"`
-	DiskIOWrites        uint64                 `json:"disk_io_writes"`
-	DiskIOUtilization   float64                `json:"disk_io_utilization"`
-	NetworkBytesIn      uint64                 `json:"network_bytes_in"`
-	NetworkBytesOut     uint64                 `json:"network_bytes_out"`
-	NetworkPacketsIn    uint64                 `json:"network_packets_in"`
-	NetworkPacketsOut   uint64                 `json:"network_packets_out"`
-	
+	DiskIOReads       uint64  `json:"disk_io_reads"`
+	DiskIOWrites      uint64  `json:"disk_io_writes"`
+	DiskIOUtilization float64 `json:"disk_io_utilization"`
+	NetworkBytesIn    uint64  `json:"network_bytes_in"`
+	NetworkBytesOut   uint64  `json:"network_bytes_out"`
+	NetworkPacketsIn  uint64  `json:"network_packets_in"`
+	NetworkPacketsOut uint64  `json:"network_packets_out"`
+
 	// Custom Metrics
-	CustomMetrics       map[string]float64     `json:"custom_metrics"`
+	CustomMetrics map[string]float64 `json:"custom_metrics"`
 }
 
 // MetricSnapshot represents a point-in-time metric capture
@@ -367,99 +367,99 @@ type MetricSnapshot struct {
 
 // AdaptiveMetrics tracks adaptive threshold adjustments
 type AdaptiveMetrics struct {
-	BaselineMetrics     map[string]float64    `json:"baseline_metrics"`
-	MovingAverages      map[string]float64    `json:"moving_averages"`
-	StandardDeviations  map[string]float64    `json:"standard_deviations"`
-	AdaptedThresholds   map[string]float64    `json:"adapted_thresholds"`
-	LastUpdated         time.Time             `json:"last_updated"`
+	BaselineMetrics    map[string]float64 `json:"baseline_metrics"`
+	MovingAverages     map[string]float64 `json:"moving_averages"`
+	StandardDeviations map[string]float64 `json:"standard_deviations"`
+	AdaptedThresholds  map[string]float64 `json:"adapted_thresholds"`
+	LastUpdated        time.Time          `json:"last_updated"`
 }
 
 // PredictiveModel represents a simple predictive scaling model
 type PredictiveModel struct {
-	MetricWindows       map[string][]float64  `json:"metric_windows"`
-	Trends             map[string]float64     `json:"trends"`
-	Seasonality        map[string][]float64   `json:"seasonality"`
-	Predictions        map[string]float64     `json:"predictions"`
-	Confidence         map[string]float64     `json:"confidence"`
-	LastTrainingTime   time.Time              `json:"last_training_time"`
+	MetricWindows    map[string][]float64 `json:"metric_windows"`
+	Trends           map[string]float64   `json:"trends"`
+	Seasonality      map[string][]float64 `json:"seasonality"`
+	Predictions      map[string]float64   `json:"predictions"`
+	Confidence       map[string]float64   `json:"confidence"`
+	LastTrainingTime time.Time            `json:"last_training_time"`
 }
 
 // EscalationEngine manages alert escalation
 type EscalationEngine struct {
-	config             *AlertingScalingConfig
-	policies           []*EscalationPolicy
-	activeEscalations  map[string]*ActiveEscalation
-	escalationHistory  []*EscalationEvent
-	mu                 sync.RWMutex
+	config            *AlertingScalingConfig
+	policies          []*EscalationPolicy
+	activeEscalations map[string]*ActiveEscalation
+	escalationHistory []*EscalationEvent
+	mu                sync.RWMutex
 }
 
 // ActiveEscalation represents an ongoing escalation
 type ActiveEscalation struct {
-	ID                string             `json:"id"`
-	AlertID           string             `json:"alert_id"`
-	PolicyID          string             `json:"policy_id"`
-	CurrentStep       int                `json:"current_step"`
-	StartedAt         time.Time          `json:"started_at"`
-	LastEscalatedAt   time.Time          `json:"last_escalated_at"`
-	AcknowledgedAt    *time.Time         `json:"acknowledged_at,omitempty"`
-	ResolvedAt        *time.Time         `json:"resolved_at,omitempty"`
-	EscalationSteps   []*CompletedStep   `json:"escalation_steps"`
+	ID              string           `json:"id"`
+	AlertID         string           `json:"alert_id"`
+	PolicyID        string           `json:"policy_id"`
+	CurrentStep     int              `json:"current_step"`
+	StartedAt       time.Time        `json:"started_at"`
+	LastEscalatedAt time.Time        `json:"last_escalated_at"`
+	AcknowledgedAt  *time.Time       `json:"acknowledged_at,omitempty"`
+	ResolvedAt      *time.Time       `json:"resolved_at,omitempty"`
+	EscalationSteps []*CompletedStep `json:"escalation_steps"`
 }
 
 // CompletedStep represents a completed escalation step
 type CompletedStep struct {
-	StepNumber        int        `json:"step_number"`
-	CompletedAt       time.Time  `json:"completed_at"`
-	Acknowledged      bool       `json:"acknowledged"`
-	ActionsExecuted   []string   `json:"actions_executed"`
+	StepNumber      int       `json:"step_number"`
+	CompletedAt     time.Time `json:"completed_at"`
+	Acknowledged    bool      `json:"acknowledged"`
+	ActionsExecuted []string  `json:"actions_executed"`
 }
 
 // EscalationEvent represents an escalation event
 type EscalationEvent struct {
-	ID                string                 `json:"id"`
-	Type              EscalationEventType    `json:"type"`
-	AlertID           string                 `json:"alert_id"`
-	EscalationID      string                 `json:"escalation_id"`
-	PolicyID          string                 `json:"policy_id"`
-	StepNumber        int                    `json:"step_number"`
-	Details           string                 `json:"details"`
-	Metadata          map[string]interface{} `json:"metadata"`
-	Timestamp         time.Time              `json:"timestamp"`
+	ID           string                 `json:"id"`
+	Type         EscalationEventType    `json:"type"`
+	AlertID      string                 `json:"alert_id"`
+	EscalationID string                 `json:"escalation_id"`
+	PolicyID     string                 `json:"policy_id"`
+	StepNumber   int                    `json:"step_number"`
+	Details      string                 `json:"details"`
+	Metadata     map[string]interface{} `json:"metadata"`
+	Timestamp    time.Time              `json:"timestamp"`
 }
 
 // EscalationEventType defines the type of escalation event
 type EscalationEventType string
 
 const (
-	EscalationEventStarted     EscalationEventType = "started"
-	EscalationEventEscalated   EscalationEventType = "escalated"
+	EscalationEventStarted      EscalationEventType = "started"
+	EscalationEventEscalated    EscalationEventType = "escalated"
 	EscalationEventAcknowledged EscalationEventType = "acknowledged"
-	EscalationEventResolved    EscalationEventType = "resolved"
-	EscalationEventTimedOut    EscalationEventType = "timed_out"
+	EscalationEventResolved     EscalationEventType = "resolved"
+	EscalationEventTimedOut     EscalationEventType = "timed_out"
 )
 
 // NotificationManager manages notification delivery
 type NotificationManager struct {
-	channels         []*NotificationChannel
+	channels            []*NotificationChannel
 	notificationHistory []*NotificationEvent
-	rateLimiters     map[string]*NotificationRateLimiter
-	mu               sync.RWMutex
+	rateLimiters        map[string]*NotificationRateLimiter
+	mu                  sync.RWMutex
 }
 
 // NotificationEvent represents a notification event
 type NotificationEvent struct {
-	ID              string                 `json:"id"`
-	ChannelID       string                 `json:"channel_id"`
-	AlertID         string                 `json:"alert_id"`
-	Type            NotificationType       `json:"type"`
-	Recipient       string                 `json:"recipient"`
-	Subject         string                 `json:"subject"`
-	Message         string                 `json:"message"`
-	Status          NotificationStatus     `json:"status"`
-	Metadata        map[string]interface{} `json:"metadata"`
-	SentAt          time.Time              `json:"sent_at"`
-	DeliveredAt     *time.Time             `json:"delivered_at,omitempty"`
-	Error           string                 `json:"error,omitempty"`
+	ID          string                 `json:"id"`
+	ChannelID   string                 `json:"channel_id"`
+	AlertID     string                 `json:"alert_id"`
+	Type        NotificationType       `json:"type"`
+	Recipient   string                 `json:"recipient"`
+	Subject     string                 `json:"subject"`
+	Message     string                 `json:"message"`
+	Status      NotificationStatus     `json:"status"`
+	Metadata    map[string]interface{} `json:"metadata"`
+	SentAt      time.Time              `json:"sent_at"`
+	DeliveredAt *time.Time             `json:"delivered_at,omitempty"`
+	Error       string                 `json:"error,omitempty"`
 }
 
 // NotificationStatus defines the status of a notification
@@ -483,40 +483,40 @@ type NotificationRateLimiter struct {
 // DefaultAlertingScalingConfig creates a default configuration
 func DefaultAlertingScalingConfig() *AlertingScalingConfig {
 	return &AlertingScalingConfig{
-		AlertingInterval:        30 * time.Second,
-		ScalingInterval:         60 * time.Second,
-		MetricRetentionPeriod:   24 * time.Hour,
-		AlertRetentionPeriod:    7 * 24 * time.Hour,
-		ScalingCooldownPeriod:   5 * time.Minute,
-		EnableProactiveScaling:  true,
+		AlertingInterval:         30 * time.Second,
+		ScalingInterval:          60 * time.Second,
+		MetricRetentionPeriod:    24 * time.Hour,
+		AlertRetentionPeriod:     7 * 24 * time.Hour,
+		ScalingCooldownPeriod:    5 * time.Minute,
+		EnableProactiveScaling:   true,
 		EnableAdaptiveThresholds: true,
 		AlertThresholds: &EnhancedAlertThresholds{
-			CPUWarning:            70.0,
-			CPUCritical:           85.0,
-			CPUEmergency:          95.0,
-			CPULoadAvgWarning:     2.0,
-			CPULoadAvgCritical:    4.0,
-			MemoryWarning:         70.0,
-			MemoryCritical:        85.0,
-			MemoryEmergency:       95.0,
-			HeapWarning:           80.0,
-			HeapCritical:          90.0,
-			GoroutineWarning:      1000,
-			GoroutineCritical:     2000,
-			GoroutineEmergency:    5000,
-			ResponseTimeWarning:   500 * time.Millisecond,
-			ResponseTimeCritical:  1000 * time.Millisecond,
-			ThroughputWarning:     100.0,
-			ThroughputCritical:    50.0,
-			ErrorRateWarning:      5.0,
-			ErrorRateCritical:     10.0,
-			DiskIOWarning:         80.0,
-			DiskIOCritical:        90.0,
-			NetworkIOWarning:      80.0,
-			NetworkIOCritical:     90.0,
-			AdaptiveEnabled:       true,
-			AdaptiveWindow:        30 * time.Minute,
-			AdaptiveSensitivity:   0.1,
+			CPUWarning:           70.0,
+			CPUCritical:          85.0,
+			CPUEmergency:         95.0,
+			CPULoadAvgWarning:    2.0,
+			CPULoadAvgCritical:   4.0,
+			MemoryWarning:        70.0,
+			MemoryCritical:       85.0,
+			MemoryEmergency:      95.0,
+			HeapWarning:          80.0,
+			HeapCritical:         90.0,
+			GoroutineWarning:     1000,
+			GoroutineCritical:    2000,
+			GoroutineEmergency:   5000,
+			ResponseTimeWarning:  500 * time.Millisecond,
+			ResponseTimeCritical: 1000 * time.Millisecond,
+			ThroughputWarning:    100.0,
+			ThroughputCritical:   50.0,
+			ErrorRateWarning:     5.0,
+			ErrorRateCritical:    10.0,
+			DiskIOWarning:        80.0,
+			DiskIOCritical:       90.0,
+			NetworkIOWarning:     80.0,
+			NetworkIOCritical:    90.0,
+			AdaptiveEnabled:      true,
+			AdaptiveWindow:       30 * time.Minute,
+			AdaptiveSensitivity:  0.1,
 		},
 		ScalingPolicies: &AutoScalingPolicies{
 			CPUScaleUpThreshold:      80.0,
@@ -587,16 +587,16 @@ func NewResourceAlertingScalingManager(config *AlertingScalingConfig) *ResourceA
 	ctx, cancel := context.WithCancel(context.Background())
 
 	rasm := &ResourceAlertingScalingManager{
-		config:          config,
-		alertEngine:     NewAlertEngine(config),
-		scalingEngine:   NewAutoScalingEngine(config),
-		metricCollector: NewEnhancedMetricCollector(),
+		config:           config,
+		alertEngine:      NewAlertEngine(config),
+		scalingEngine:    NewAutoScalingEngine(config),
+		metricCollector:  NewEnhancedMetricCollector(),
 		escalationEngine: NewEscalationEngine(config),
-		notificationMgr: NewNotificationManager(config.NotificationChannels),
-		ctx:             ctx,
-		cancel:          cancel,
-		alertingDone:    make(chan struct{}),
-		scalingDone:     make(chan struct{}),
+		notificationMgr:  NewNotificationManager(config.NotificationChannels),
+		ctx:              ctx,
+		cancel:           cancel,
+		alertingDone:     make(chan struct{}),
+		scalingDone:      make(chan struct{}),
 	}
 
 	// Start background processes
@@ -609,10 +609,10 @@ func NewResourceAlertingScalingManager(config *AlertingScalingConfig) *ResourceA
 // NewAlertEngine creates a new alert engine
 func NewAlertEngine(config *AlertingScalingConfig) *AlertEngine {
 	return &AlertEngine{
-		config:          config,
-		thresholds:      config.AlertThresholds,
-		alertHistory:    make([]*EnhancedAlert, 0),
-		activeAlerts:    make(map[string]*EnhancedAlert),
+		config:       config,
+		thresholds:   config.AlertThresholds,
+		alertHistory: make([]*EnhancedAlert, 0),
+		activeAlerts: make(map[string]*EnhancedAlert),
 		adaptiveMetrics: &AdaptiveMetrics{
 			BaselineMetrics:    make(map[string]float64),
 			MovingAverages:     make(map[string]float64),
@@ -632,11 +632,11 @@ func NewAutoScalingEngine(config *AlertingScalingConfig) *AutoScalingEngine {
 		currentInstances: config.ScalingPolicies.MinInstances,
 		lastScalingTime:  time.Now(),
 		predictiveModel: &PredictiveModel{
-			MetricWindows: make(map[string][]float64),
-			Trends:        make(map[string]float64),
-			Seasonality:   make(map[string][]float64),
-			Predictions:   make(map[string]float64),
-			Confidence:    make(map[string]float64),
+			MetricWindows:    make(map[string][]float64),
+			Trends:           make(map[string]float64),
+			Seasonality:      make(map[string][]float64),
+			Predictions:      make(map[string]float64),
+			Confidence:       make(map[string]float64),
 			LastTrainingTime: time.Now(),
 		},
 	}
@@ -773,7 +773,7 @@ func (rasm *ResourceAlertingScalingManager) executeScaling(event *ScalingEvent) 
 	// Execute the scaling operation (placeholder - in real implementation this would
 	// interface with container orchestrator, cloud provider, etc.)
 	err := rasm.performScalingOperation(event)
-	
+
 	event.Duration = time.Since(startTime)
 	event.Success = (err == nil)
 	if err != nil {
@@ -788,7 +788,7 @@ func (rasm *ResourceAlertingScalingManager) executeScaling(event *ScalingEvent) 
 		return err
 	}
 
-	log.Printf("Scaling operation completed: %s from %d to %d instances", 
+	log.Printf("Scaling operation completed: %s from %d to %d instances",
 		event.Type, event.InstancesBefore, event.InstancesAfter)
 	return nil
 }
@@ -801,16 +801,16 @@ func (rasm *ResourceAlertingScalingManager) performScalingOperation(event *Scali
 	// - Cloud provider APIs for instance scaling
 	// - Load balancer configuration
 	// - Service mesh updates
-	
+
 	// For now, we'll simulate the scaling operation
 	log.Printf("Simulating scaling operation: %s", event.Type)
-	
+
 	// Update current instance count
 	rasm.scalingEngine.mu.Lock()
 	rasm.scalingEngine.currentInstances = event.InstancesAfter
 	rasm.scalingEngine.lastScalingTime = time.Now()
 	rasm.scalingEngine.mu.Unlock()
-	
+
 	return nil
 }
 
@@ -849,7 +849,7 @@ func (emc *EnhancedMetricCollector) CollectMetrics() (*EnhancedMetrics, error) {
 
 	// Update metrics
 	emc.metrics.Timestamp = time.Now()
-	
+
 	// CPU metrics
 	if len(cpuPercent) > 0 {
 		emc.metrics.CPUUsage = cpuPercent[0]
@@ -900,19 +900,19 @@ func (emc *EnhancedMetricCollector) CollectMetrics() (*EnhancedMetrics, error) {
 // copyMetrics creates a copy of current metrics
 func (emc *EnhancedMetricCollector) copyMetrics() *EnhancedMetrics {
 	metrics := *emc.metrics
-	
+
 	// Deep copy slices and maps
 	metrics.CPUUsagePerCore = make([]float64, len(emc.metrics.CPUUsagePerCore))
 	copy(metrics.CPUUsagePerCore, emc.metrics.CPUUsagePerCore)
-	
+
 	metrics.LoadAverage = make([]float64, len(emc.metrics.LoadAverage))
 	copy(metrics.LoadAverage, emc.metrics.LoadAverage)
-	
+
 	metrics.CustomMetrics = make(map[string]float64)
 	for k, v := range emc.metrics.CustomMetrics {
 		metrics.CustomMetrics[k] = v
 	}
-	
+
 	return &metrics
 }
 
@@ -925,13 +925,13 @@ func (ae *AlertEngine) CheckAlerts(metrics *EnhancedMetrics) []*EnhancedAlert {
 
 	// Check CPU alerts
 	alerts = append(alerts, ae.checkCPUAlerts(metrics)...)
-	
+
 	// Check memory alerts
 	alerts = append(alerts, ae.checkMemoryAlerts(metrics)...)
-	
+
 	// Check goroutine alerts
 	alerts = append(alerts, ae.checkGoroutineAlerts(metrics)...)
-	
+
 	// Check performance alerts
 	alerts = append(alerts, ae.checkPerformanceAlerts(metrics)...)
 
@@ -1033,7 +1033,7 @@ func (ae *AlertEngine) checkGoroutineAlerts(metrics *EnhancedMetrics) []*Enhance
 	var alerts []*EnhancedAlert
 
 	goroutineCount := float64(metrics.GoroutineCount)
-	
+
 	if metrics.GoroutineCount >= ae.thresholds.GoroutineEmergency {
 		alerts = append(alerts, ae.createAlert(
 			AlertTypeGoroutine, AlertLevelEmergency, "Goroutine Count Emergency",
@@ -1179,28 +1179,28 @@ func (ae *AlertEngine) UpdateAdaptiveThresholds(metrics *EnhancedMetrics) {
 
 	// Simple adaptive threshold logic
 	// In a real implementation, this would use more sophisticated algorithms
-	
+
 	// Update baseline metrics
 	ae.adaptiveMetrics.BaselineMetrics["cpu_usage"] = ae.updateBaseline(ae.adaptiveMetrics.BaselineMetrics["cpu_usage"], metrics.CPUUsage)
 	ae.adaptiveMetrics.BaselineMetrics["memory_usage"] = ae.updateBaseline(ae.adaptiveMetrics.BaselineMetrics["memory_usage"], metrics.MemoryUsage)
-	
+
 	// Calculate moving averages
 	ae.adaptiveMetrics.MovingAverages["cpu_usage"] = ae.updateMovingAverage(ae.adaptiveMetrics.MovingAverages["cpu_usage"], metrics.CPUUsage)
 	ae.adaptiveMetrics.MovingAverages["memory_usage"] = ae.updateMovingAverage(ae.adaptiveMetrics.MovingAverages["memory_usage"], metrics.MemoryUsage)
-	
+
 	// Adjust thresholds based on moving averages
 	sensitivity := ae.config.AlertThresholds.AdaptiveSensitivity
-	
+
 	if cpuAvg := ae.adaptiveMetrics.MovingAverages["cpu_usage"]; cpuAvg > 0 {
 		adaptedThreshold := cpuAvg * (1 + sensitivity)
 		ae.adaptiveMetrics.AdaptedThresholds["cpu_warning"] = math.Min(adaptedThreshold, ae.thresholds.CPUWarning)
 	}
-	
+
 	if memAvg := ae.adaptiveMetrics.MovingAverages["memory_usage"]; memAvg > 0 {
 		adaptedThreshold := memAvg * (1 + sensitivity)
 		ae.adaptiveMetrics.AdaptedThresholds["memory_warning"] = math.Min(adaptedThreshold, ae.thresholds.MemoryWarning)
 	}
-	
+
 	ae.adaptiveMetrics.LastUpdated = time.Now()
 }
 
@@ -1293,19 +1293,19 @@ func (ase *AutoScalingEngine) shouldScaleDown(metrics *EnhancedMetrics) bool {
 // predictiveScaleUp uses predictive modeling to determine if scale up is needed
 func (ase *AutoScalingEngine) predictiveScaleUp(metrics *EnhancedMetrics) bool {
 	// Simple predictive logic - in real implementation would use ML models
-	
+
 	// Update metric windows
 	ase.updateMetricWindow("cpu_usage", metrics.CPUUsage)
 	ase.updateMetricWindow("memory_usage", metrics.MemoryUsage)
-	
+
 	// Calculate trends
 	cpuTrend := ase.calculateTrend("cpu_usage")
 	memoryTrend := ase.calculateTrend("memory_usage")
-	
+
 	// Predict future values
 	cpuPredicted := metrics.CPUUsage + cpuTrend*5 // 5 minutes ahead
 	memoryPredicted := metrics.MemoryUsage + memoryTrend*5
-	
+
 	// Check if predicted values exceed thresholds
 	return cpuPredicted >= ase.policies.CPUScaleUpThreshold || memoryPredicted >= ase.policies.MemoryScaleUpThreshold
 }
@@ -1314,13 +1314,13 @@ func (ase *AutoScalingEngine) predictiveScaleUp(metrics *EnhancedMetrics) bool {
 func (ase *AutoScalingEngine) updateMetricWindow(metric string, value float64) {
 	window := ase.predictiveModel.MetricWindows[metric]
 	window = append(window, value)
-	
+
 	// Keep only last N values (e.g., 30 for 30 data points)
 	maxWindow := 30
 	if len(window) > maxWindow {
 		window = window[len(window)-maxWindow:]
 	}
-	
+
 	ase.predictiveModel.MetricWindows[metric] = window
 }
 
@@ -1330,11 +1330,11 @@ func (ase *AutoScalingEngine) calculateTrend(metric string) float64 {
 	if len(window) < 2 {
 		return 0
 	}
-	
+
 	// Simple linear regression slope
 	n := len(window)
 	sumX, sumY, sumXY, sumX2 := 0.0, 0.0, 0.0, 0.0
-	
+
 	for i, y := range window {
 		x := float64(i)
 		sumX += x
@@ -1342,10 +1342,10 @@ func (ase *AutoScalingEngine) calculateTrend(metric string) float64 {
 		sumXY += x * y
 		sumX2 += x * x
 	}
-	
+
 	slope := (float64(n)*sumXY - sumX*sumY) / (float64(n)*sumX2 - sumX*sumX)
 	ase.predictiveModel.Trends[metric] = slope
-	
+
 	return slope
 }
 
@@ -1353,7 +1353,7 @@ func (ase *AutoScalingEngine) calculateTrend(metric string) float64 {
 func (ase *AutoScalingEngine) createScaleUpEvent(metrics *EnhancedMetrics) *ScalingEvent {
 	instancesBefore := ase.currentInstances
 	instancesAfter := instancesBefore + ase.policies.ScaleUpIncrement
-	
+
 	if instancesAfter > ase.policies.MaxInstances {
 		instancesAfter = ase.policies.MaxInstances
 	}
@@ -1367,9 +1367,9 @@ func (ase *AutoScalingEngine) createScaleUpEvent(metrics *EnhancedMetrics) *Scal
 		InstancesAfter:  instancesAfter,
 		Reason:          fmt.Sprintf("CPU: %.2f%%, Memory: %.2f%%", metrics.CPUUsage, metrics.MemoryUsage),
 		Metadata: map[string]interface{}{
-			"cpu_usage":    metrics.CPUUsage,
-			"memory_usage": metrics.MemoryUsage,
-			"cpu_threshold": ase.policies.CPUScaleUpThreshold,
+			"cpu_usage":        metrics.CPUUsage,
+			"memory_usage":     metrics.MemoryUsage,
+			"cpu_threshold":    ase.policies.CPUScaleUpThreshold,
 			"memory_threshold": ase.policies.MemoryScaleUpThreshold,
 		},
 		Timestamp: time.Now(),
@@ -1380,7 +1380,7 @@ func (ase *AutoScalingEngine) createScaleUpEvent(metrics *EnhancedMetrics) *Scal
 func (ase *AutoScalingEngine) createScaleDownEvent(metrics *EnhancedMetrics) *ScalingEvent {
 	instancesBefore := ase.currentInstances
 	instancesAfter := instancesBefore - ase.policies.ScaleDownDecrement
-	
+
 	if instancesAfter < ase.policies.MinInstances {
 		instancesAfter = ase.policies.MinInstances
 	}
@@ -1394,9 +1394,9 @@ func (ase *AutoScalingEngine) createScaleDownEvent(metrics *EnhancedMetrics) *Sc
 		InstancesAfter:  instancesAfter,
 		Reason:          fmt.Sprintf("CPU: %.2f%%, Memory: %.2f%%", metrics.CPUUsage, metrics.MemoryUsage),
 		Metadata: map[string]interface{}{
-			"cpu_usage":    metrics.CPUUsage,
-			"memory_usage": metrics.MemoryUsage,
-			"cpu_threshold": ase.policies.CPUScaleDownThreshold,
+			"cpu_usage":        metrics.CPUUsage,
+			"memory_usage":     metrics.MemoryUsage,
+			"cpu_threshold":    ase.policies.CPUScaleDownThreshold,
 			"memory_threshold": ase.policies.MemoryScaleDownThreshold,
 		},
 		Timestamp: time.Now(),
@@ -1780,18 +1780,18 @@ func (rasm *ResourceAlertingScalingManager) GetStatus() map[string]interface{} {
 	defer rasm.mu.RUnlock()
 
 	status := map[string]interface{}{
-		"status":              "active",
-		"alerting_enabled":    true,
-		"scaling_enabled":     true,
-		"active_alerts":       len(rasm.GetActiveAlerts()),
-		"current_instances":   rasm.GetCurrentInstances(),
-		"min_instances":       rasm.config.ScalingPolicies.MinInstances,
-		"max_instances":       rasm.config.ScalingPolicies.MaxInstances,
-		"last_scaling_time":   rasm.scalingEngine.lastScalingTime,
-		"predictive_enabled":  rasm.config.ScalingPolicies.PredictiveScalingEnabled,
-		"adaptive_enabled":    rasm.config.AlertThresholds.AdaptiveEnabled,
+		"status":                "active",
+		"alerting_enabled":      true,
+		"scaling_enabled":       true,
+		"active_alerts":         len(rasm.GetActiveAlerts()),
+		"current_instances":     rasm.GetCurrentInstances(),
+		"min_instances":         rasm.config.ScalingPolicies.MinInstances,
+		"max_instances":         rasm.config.ScalingPolicies.MaxInstances,
+		"last_scaling_time":     rasm.scalingEngine.lastScalingTime,
+		"predictive_enabled":    rasm.config.ScalingPolicies.PredictiveScalingEnabled,
+		"adaptive_enabled":      rasm.config.AlertThresholds.AdaptiveEnabled,
 		"notification_channels": len(rasm.config.NotificationChannels),
-		"escalation_policies": len(rasm.config.EscalationPolicies),
+		"escalation_policies":   len(rasm.config.EscalationPolicies),
 	}
 
 	return status

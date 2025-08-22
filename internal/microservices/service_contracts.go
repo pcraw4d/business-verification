@@ -15,9 +15,9 @@ type ServiceContract interface {
 
 // ServiceHealth represents the health status of a service
 type ServiceHealth struct {
-	Status    string    `json:"status"`
-	Message   string    `json:"message"`
-	Timestamp time.Time `json:"timestamp"`
+	Status    string                 `json:"status"`
+	Message   string                 `json:"message"`
+	Timestamp time.Time              `json:"timestamp"`
 	Details   map[string]interface{} `json:"details,omitempty"`
 }
 
@@ -31,19 +31,19 @@ type ServiceCapability struct {
 
 // ServiceEndpoint represents a service endpoint
 type ServiceEndpoint struct {
-	Path        string            `json:"path"`
-	Method      string            `json:"method"`
-	Description string            `json:"description"`
-	Parameters  []EndpointParam   `json:"parameters,omitempty"`
+	Path        string             `json:"path"`
+	Method      string             `json:"method"`
+	Description string             `json:"description"`
+	Parameters  []EndpointParam    `json:"parameters,omitempty"`
 	Responses   []EndpointResponse `json:"responses,omitempty"`
 }
 
 // EndpointParam represents a parameter for a service endpoint
 type EndpointParam struct {
-	Name        string `json:"name"`
-	Type        string `json:"type"`
-	Required    bool   `json:"required"`
-	Description string `json:"description"`
+	Name        string      `json:"name"`
+	Type        string      `json:"type"`
+	Required    bool        `json:"required"`
+	Description string      `json:"description"`
 	Default     interface{} `json:"default,omitempty"`
 }
 
@@ -86,9 +86,9 @@ type ServiceInstance struct {
 
 // ServiceEvent represents a service discovery event
 type ServiceEvent struct {
-	Type     ServiceEventType `json:"type"`
-	Instance ServiceInstance  `json:"instance"`
-	Timestamp time.Time       `json:"timestamp"`
+	Type      ServiceEventType `json:"type"`
+	Instance  ServiceInstance  `json:"instance"`
+	Timestamp time.Time        `json:"timestamp"`
 }
 
 // ServiceEventType represents the type of service event
@@ -109,8 +109,8 @@ type ServiceClient interface {
 
 // ServiceResponse represents a response from a service call
 type ServiceResponse struct {
-	Data    interface{} `json:"data"`
-	Error   error       `json:"error,omitempty"`
+	Data    interface{}   `json:"data"`
+	Error   error         `json:"error,omitempty"`
 	Latency time.Duration `json:"latency"`
 }
 
@@ -130,15 +130,15 @@ type ServiceCircuitBreaker interface {
 
 // CircuitBreakerState represents the state of a circuit breaker
 type CircuitBreakerState struct {
-	ServiceName    string        `json:"service_name"`
-	State          string        `json:"state"`
-	FailureCount   int64         `json:"failure_count"`
-	SuccessCount   int64         `json:"success_count"`
-	LastFailure    *time.Time    `json:"last_failure,omitempty"`
-	LastSuccess    *time.Time    `json:"last_success,omitempty"`
-	Threshold      int64         `json:"threshold"`
-	Timeout        time.Duration `json:"timeout"`
-	LastStateChange time.Time    `json:"last_state_change"`
+	ServiceName     string        `json:"service_name"`
+	State           string        `json:"state"`
+	FailureCount    int64         `json:"failure_count"`
+	SuccessCount    int64         `json:"success_count"`
+	LastFailure     *time.Time    `json:"last_failure,omitempty"`
+	LastSuccess     *time.Time    `json:"last_success,omitempty"`
+	Threshold       int64         `json:"threshold"`
+	Timeout         time.Duration `json:"timeout"`
+	LastStateChange time.Time     `json:"last_state_change"`
 }
 
 // ServiceMetrics provides metrics for service monitoring
@@ -151,17 +151,17 @@ type ServiceMetrics interface {
 
 // ServiceMetricsData represents metrics data for a service
 type ServiceMetricsData struct {
-	ServiceName     string                 `json:"service_name"`
-	RequestCount    int64                  `json:"request_count"`
-	SuccessCount    int64                  `json:"success_count"`
-	ErrorCount      int64                  `json:"error_count"`
-	AverageLatency  time.Duration          `json:"average_latency"`
-	P95Latency      time.Duration          `json:"p95_latency"`
-	P99Latency      time.Duration          `json:"p99_latency"`
-	ErrorRate       float64                `json:"error_rate"`
-	SuccessRate     float64                `json:"success_rate"`
-	MethodMetrics   map[string]MethodMetrics `json:"method_metrics,omitempty"`
-	LastUpdated     time.Time              `json:"last_updated"`
+	ServiceName    string                   `json:"service_name"`
+	RequestCount   int64                    `json:"request_count"`
+	SuccessCount   int64                    `json:"success_count"`
+	ErrorCount     int64                    `json:"error_count"`
+	AverageLatency time.Duration            `json:"average_latency"`
+	P95Latency     time.Duration            `json:"p95_latency"`
+	P99Latency     time.Duration            `json:"p99_latency"`
+	ErrorRate      float64                  `json:"error_rate"`
+	SuccessRate    float64                  `json:"success_rate"`
+	MethodMetrics  map[string]MethodMetrics `json:"method_metrics,omitempty"`
+	LastUpdated    time.Time                `json:"last_updated"`
 }
 
 // MethodMetrics represents metrics for a specific method
@@ -205,9 +205,9 @@ type ServiceSecurity interface {
 
 // ServiceToken represents a service authentication token
 type ServiceToken struct {
-	Token     string            `json:"token"`
-	Type      string            `json:"type"`
-	ExpiresAt time.Time         `json:"expires_at"`
+	Token     string                 `json:"token"`
+	Type      string                 `json:"type"`
+	ExpiresAt time.Time              `json:"expires_at"`
 	Claims    map[string]interface{} `json:"claims,omitempty"`
 }
 
@@ -228,11 +228,11 @@ type RetryConfig struct {
 
 // RetryStats represents retry statistics
 type RetryStats struct {
-	ServiceName    string `json:"service_name"`
-	TotalAttempts  int64  `json:"total_attempts"`
-	SuccessfulRetries int64 `json:"successful_retries"`
-	FailedRetries  int64  `json:"failed_retries"`
-	AverageAttempts float64 `json:"average_attempts"`
+	ServiceName       string  `json:"service_name"`
+	TotalAttempts     int64   `json:"total_attempts"`
+	SuccessfulRetries int64   `json:"successful_retries"`
+	FailedRetries     int64   `json:"failed_retries"`
+	AverageAttempts   float64 `json:"average_attempts"`
 }
 
 // ServiceTimeout provides timeout management for service calls
@@ -252,8 +252,8 @@ type ServiceRateLimiter interface {
 
 // RateLimit represents rate limiting configuration
 type RateLimit struct {
-	RequestsPerSecond float64 `json:"requests_per_second"`
-	BurstSize         int     `json:"burst_size"`
+	RequestsPerSecond float64       `json:"requests_per_second"`
+	BurstSize         int           `json:"burst_size"`
 	WindowSize        time.Duration `json:"window_size"`
 }
 
@@ -265,18 +265,18 @@ type ServiceFaultTolerance interface {
 
 // FallbackStrategy represents a fallback strategy
 type FallbackStrategy struct {
-	Type        string      `json:"type"`
-	FallbackData interface{} `json:"fallback_data,omitempty"`
-	FallbackService string   `json:"fallback_service,omitempty"`
-	FallbackMethod string    `json:"fallback_method,omitempty"`
+	Type            string      `json:"type"`
+	FallbackData    interface{} `json:"fallback_data,omitempty"`
+	FallbackService string      `json:"fallback_service,omitempty"`
+	FallbackMethod  string      `json:"fallback_method,omitempty"`
 }
 
 // FaultToleranceStats represents fault tolerance statistics
 type FaultToleranceStats struct {
-	ServiceName      string `json:"service_name"`
-	TotalCalls       int64  `json:"total_calls"`
-	FallbackCalls    int64  `json:"fallback_calls"`
-	FallbackRate     float64 `json:"fallback_rate"`
-	SuccessfulFallbacks int64 `json:"successful_fallbacks"`
-	FailedFallbacks  int64  `json:"failed_fallbacks"`
+	ServiceName         string  `json:"service_name"`
+	TotalCalls          int64   `json:"total_calls"`
+	FallbackCalls       int64   `json:"fallback_calls"`
+	FallbackRate        float64 `json:"fallback_rate"`
+	SuccessfulFallbacks int64   `json:"successful_fallbacks"`
+	FailedFallbacks     int64   `json:"failed_fallbacks"`
 }

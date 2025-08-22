@@ -76,9 +76,9 @@ type ExternalAPILimit struct {
 	CurrentRequestsPerDay    int
 
 	// Timestamps
-	LastMinuteReset  time.Time
-	LastHourReset    time.Time
-	LastDayReset     time.Time
+	LastMinuteReset time.Time
+	LastHourReset   time.Time
+	LastDayReset    time.Time
 
 	// Status
 	QuotaExceeded bool
@@ -87,9 +87,9 @@ type ExternalAPILimit struct {
 	LastSuccess   time.Time
 
 	// Statistics
-	TotalRequests    int64
-	SuccessfulRequests int64
-	FailedRequests   int64
+	TotalRequests       int64
+	SuccessfulRequests  int64
+	FailedRequests      int64
 	AverageResponseTime time.Duration
 }
 
@@ -123,41 +123,41 @@ type ExternalRateLimitResult struct {
 
 // MonitorConfig contains monitoring configuration
 type MonitorConfig struct {
-	Enabled              bool          `json:"enabled"`
+	Enabled                   bool          `json:"enabled"`
 	MetricsCollectionInterval time.Duration `json:"metrics_collection_interval"`
-	AlertThreshold       float64       `json:"alert_threshold"`
-	AlertCooldown        time.Duration `json:"alert_cooldown"`
-	
+	AlertThreshold            float64       `json:"alert_threshold"`
+	AlertCooldown             time.Duration `json:"alert_cooldown"`
+
 	// Alert thresholds
-	QuotaExceededThreshold    float64 `json:"quota_exceeded_threshold"`
-	HighUsageThreshold        float64 `json:"high_usage_threshold"`
-	LowSuccessRateThreshold   float64 `json:"low_success_rate_threshold"`
-	HighLatencyThreshold      time.Duration `json:"high_latency_threshold"`
-	
+	QuotaExceededThreshold  float64       `json:"quota_exceeded_threshold"`
+	HighUsageThreshold      float64       `json:"high_usage_threshold"`
+	LowSuccessRateThreshold float64       `json:"low_success_rate_threshold"`
+	HighLatencyThreshold    time.Duration `json:"high_latency_threshold"`
+
 	// Metrics retention
 	MetricsRetentionDays int `json:"metrics_retention_days"`
-	
+
 	// Alert retention
 	AlertRetentionDays int `json:"alert_retention_days"`
 }
 
 // FallbackConfig contains fallback strategy configuration
 type FallbackConfig struct {
-	Enabled           bool     `json:"enabled"`
-	FallbackAPIs      []string `json:"fallback_apis"`
-	CacheFallback     bool     `json:"cache_fallback"`
-	RetryWithBackoff  bool     `json:"retry_with_backoff"`
-	MaxRetryAttempts  int      `json:"max_retry_attempts"`
+	Enabled          bool     `json:"enabled"`
+	FallbackAPIs     []string `json:"fallback_apis"`
+	CacheFallback    bool     `json:"cache_fallback"`
+	RetryWithBackoff bool     `json:"retry_with_backoff"`
+	MaxRetryAttempts int      `json:"max_retry_attempts"`
 }
 
 // OptimizationConfig contains optimization configuration
 type OptimizationConfig struct {
-	Enabled           bool          `json:"enabled"`
-	CacheEnabled      bool          `json:"cache_enabled"`
-	CacheTTL          time.Duration `json:"cache_ttl"`
-	RequestBatching   bool          `json:"request_batching"`
-	BatchSize         int           `json:"batch_size"`
-	BatchTimeout      time.Duration `json:"batch_timeout"`
+	Enabled         bool          `json:"enabled"`
+	CacheEnabled    bool          `json:"cache_enabled"`
+	CacheTTL        time.Duration `json:"cache_ttl"`
+	RequestBatching bool          `json:"request_batching"`
+	BatchSize       int           `json:"batch_size"`
+	BatchTimeout    time.Duration `json:"batch_timeout"`
 }
 
 // RateLimitMonitor provides comprehensive monitoring and alerting for rate limits
@@ -170,11 +170,11 @@ type RateLimitMonitor struct {
 	metrics map[string]*RateLimitMetrics
 
 	// Alert management
-	alerts map[string]*RateLimitAlert
+	alerts       map[string]*RateLimitAlert
 	alertHistory []*RateLimitAlert
 
 	// Background monitoring
-	stopChan chan struct{}
+	stopChan         chan struct{}
 	monitoringActive bool
 
 	// Alert handlers
@@ -183,22 +183,22 @@ type RateLimitMonitor struct {
 
 // RateLimitMetrics contains detailed metrics for rate limiting
 type RateLimitMetrics struct {
-	APIEndpoint        string
-	TotalChecks        int64
-	AllowedRequests    int64
-	BlockedRequests    int64
-	AverageWaitTime    time.Duration
-	LastAlertTime      time.Time
-	LastCheckTime      time.Time
-	LastSuccessTime    time.Time
-	LastFailureTime    time.Time
+	APIEndpoint     string
+	TotalChecks     int64
+	AllowedRequests int64
+	BlockedRequests int64
+	AverageWaitTime time.Duration
+	LastAlertTime   time.Time
+	LastCheckTime   time.Time
+	LastSuccessTime time.Time
+	LastFailureTime time.Time
 
 	// Rate limit specific metrics
-	RateLimitHits      int64
-	QuotaExceededCount int64
+	RateLimitHits       int64
+	QuotaExceededCount  int64
 	AverageResponseTime time.Duration
-	SuccessRate        float64
-	ErrorRate          float64
+	SuccessRate         float64
+	ErrorRate           float64
 
 	// Time-based metrics
 	MinuteMetrics *TimeWindowMetrics
@@ -220,29 +220,29 @@ type TimeWindowMetrics struct {
 
 // RateLimitAlert represents a rate limit alert
 type RateLimitAlert struct {
-	ID          string
-	APIEndpoint string
-	AlertType   AlertType
-	Severity    AlertSeverity
-	Message     string
-	Timestamp   time.Time
+	ID           string
+	APIEndpoint  string
+	AlertType    AlertType
+	Severity     AlertSeverity
+	Message      string
+	Timestamp    time.Time
 	Acknowledged bool
-	Resolved    bool
-	ResolvedAt  *time.Time
-	Metadata    map[string]interface{}
+	Resolved     bool
+	ResolvedAt   *time.Time
+	Metadata     map[string]interface{}
 }
 
 // AlertType represents the type of rate limit alert
 type AlertType string
 
 const (
-	AlertTypeQuotaExceeded    AlertType = "quota_exceeded"
-	AlertTypeHighUsage        AlertType = "high_usage"
-	AlertTypeLowSuccessRate   AlertType = "low_success_rate"
-	AlertTypeHighLatency      AlertType = "high_latency"
-	AlertTypeGlobalLimitHit   AlertType = "global_limit_hit"
-	AlertTypeFallbackUsed     AlertType = "fallback_used"
-	AlertTypeCacheMiss        AlertType = "cache_miss"
+	AlertTypeQuotaExceeded  AlertType = "quota_exceeded"
+	AlertTypeHighUsage      AlertType = "high_usage"
+	AlertTypeLowSuccessRate AlertType = "low_success_rate"
+	AlertTypeHighLatency    AlertType = "high_latency"
+	AlertTypeGlobalLimitHit AlertType = "global_limit_hit"
+	AlertTypeFallbackUsed   AlertType = "fallback_used"
+	AlertTypeCacheMiss      AlertType = "cache_miss"
 )
 
 // AlertSeverity represents the severity of an alert
@@ -268,12 +268,12 @@ func NewRateLimitMonitor(config *MonitorConfig, logger *zap.Logger) *RateLimitMo
 	}
 
 	monitor := &RateLimitMonitor{
-		config:       config,
-		logger:       logger,
-		metrics:      make(map[string]*RateLimitMetrics),
-		alerts:       make(map[string]*RateLimitAlert),
-		alertHistory: make([]*RateLimitAlert, 0),
-		stopChan:     make(chan struct{}),
+		config:        config,
+		logger:        logger,
+		metrics:       make(map[string]*RateLimitMetrics),
+		alerts:        make(map[string]*RateLimitAlert),
+		alertHistory:  make([]*RateLimitAlert, 0),
+		stopChan:      make(chan struct{}),
 		alertHandlers: make([]AlertHandler, 0),
 	}
 
@@ -288,16 +288,16 @@ func NewRateLimitMonitor(config *MonitorConfig, logger *zap.Logger) *RateLimitMo
 // DefaultMonitorConfig returns default monitoring configuration
 func DefaultMonitorConfig() *MonitorConfig {
 	return &MonitorConfig{
-		Enabled:              true,
+		Enabled:                   true,
 		MetricsCollectionInterval: 30 * time.Second,
-		AlertThreshold:       0.8,
-		AlertCooldown:        5 * time.Minute,
-		QuotaExceededThreshold: 0.1,  // 10% quota exceeded
-		HighUsageThreshold:   0.8,    // 80% usage
-		LowSuccessRateThreshold: 0.9, // 90% success rate
-		HighLatencyThreshold: 5 * time.Second,
-		MetricsRetentionDays: 30,
-		AlertRetentionDays:   90,
+		AlertThreshold:            0.8,
+		AlertCooldown:             5 * time.Minute,
+		QuotaExceededThreshold:    0.1, // 10% quota exceeded
+		HighUsageThreshold:        0.8, // 80% usage
+		LowSuccessRateThreshold:   0.9, // 90% success rate
+		HighLatencyThreshold:      5 * time.Second,
+		MetricsRetentionDays:      30,
+		AlertRetentionDays:        90,
 	}
 }
 
@@ -343,7 +343,7 @@ func (rlm *RateLimitMonitor) RecordRateLimitCheck(apiEndpoint string, result *Ex
 	metrics, exists := rlm.metrics[apiEndpoint]
 	if !exists {
 		metrics = &RateLimitMetrics{
-			APIEndpoint: apiEndpoint,
+			APIEndpoint:   apiEndpoint,
 			MinuteMetrics: &TimeWindowMetrics{},
 			HourMetrics:   &TimeWindowMetrics{},
 			DayMetrics:    &TimeWindowMetrics{},
@@ -398,7 +398,7 @@ func (rlm *RateLimitMonitor) RecordAPICall(apiEndpoint string, success bool, res
 	metrics, exists := rlm.metrics[apiEndpoint]
 	if !exists {
 		metrics = &RateLimitMetrics{
-			APIEndpoint: apiEndpoint,
+			APIEndpoint:   apiEndpoint,
 			MinuteMetrics: &TimeWindowMetrics{},
 			HourMetrics:   &TimeWindowMetrics{},
 			DayMetrics:    &TimeWindowMetrics{},
@@ -507,7 +507,7 @@ func (rlm *RateLimitMonitor) ClearOldMetrics() {
 	defer rlm.mu.Unlock()
 
 	cutoff := time.Now().AddDate(0, 0, -rlm.config.MetricsRetentionDays)
-	
+
 	for apiEndpoint, metrics := range rlm.metrics {
 		if metrics.LastCheckTime.Before(cutoff) {
 			delete(rlm.metrics, apiEndpoint)
@@ -521,7 +521,7 @@ func (rlm *RateLimitMonitor) ClearOldAlerts() {
 	defer rlm.mu.Unlock()
 
 	cutoff := time.Now().AddDate(0, 0, -rlm.config.AlertRetentionDays)
-	
+
 	// Clear from current alerts
 	for alertID, alert := range rlm.alerts {
 		if alert.Timestamp.Before(cutoff) {
@@ -579,14 +579,14 @@ func (rlm *RateLimitMonitor) checkForAlerts(apiEndpoint string, metrics *RateLim
 	// Check quota exceeded threshold
 	if float64(metrics.QuotaExceededCount)/float64(metrics.TotalChecks) > rlm.config.QuotaExceededThreshold {
 		rlm.createAlert(apiEndpoint, AlertTypeQuotaExceeded, AlertSeverityWarning,
-			fmt.Sprintf("Quota exceeded rate is %.2f%%", 
+			fmt.Sprintf("Quota exceeded rate is %.2f%%",
 				float64(metrics.QuotaExceededCount)/float64(metrics.TotalChecks)*100))
 	}
 
 	// Check high usage threshold
 	if float64(metrics.BlockedRequests)/float64(metrics.TotalChecks) > rlm.config.HighUsageThreshold {
 		rlm.createAlert(apiEndpoint, AlertTypeHighUsage, AlertSeverityWarning,
-			fmt.Sprintf("High usage detected: %.2f%% requests blocked", 
+			fmt.Sprintf("High usage detected: %.2f%% requests blocked",
 				float64(metrics.BlockedRequests)/float64(metrics.TotalChecks)*100))
 	}
 
@@ -705,7 +705,7 @@ func (rlm *RateLimitMonitor) updateTimeWindowMetricsForAPICall(metrics *RateLimi
 		} else {
 			metrics.MinuteMetrics.FailureCount++
 		}
-		
+
 		// Update latency metrics
 		if metrics.MinuteMetrics.AverageLatency == 0 {
 			metrics.MinuteMetrics.AverageLatency = responseTime
@@ -729,7 +729,7 @@ func (rlm *RateLimitMonitor) updateTimeWindowMetricsForAPICall(metrics *RateLimi
 		} else {
 			metrics.HourMetrics.FailureCount++
 		}
-		
+
 		// Update latency metrics
 		if metrics.HourMetrics.AverageLatency == 0 {
 			metrics.HourMetrics.AverageLatency = responseTime
@@ -753,7 +753,7 @@ func (rlm *RateLimitMonitor) updateTimeWindowMetricsForAPICall(metrics *RateLimi
 		} else {
 			metrics.DayMetrics.FailureCount++
 		}
-		
+
 		// Update latency metrics
 		if metrics.DayMetrics.AverageLatency == 0 {
 			metrics.DayMetrics.AverageLatency = responseTime
@@ -797,17 +797,17 @@ func (rlm *RateLimitMonitor) logMonitoringSummary() {
 
 // RateLimitFallback provides fallback strategies for rate-limited APIs
 type RateLimitFallback struct {
-	config *FallbackConfig
-	logger *zap.Logger
-	mu     sync.RWMutex
+	config    *FallbackConfig
+	logger    *zap.Logger
+	mu        sync.RWMutex
 	fallbacks map[string][]string
 }
 
 // NewRateLimitFallback creates a new rate limit fallback
 func NewRateLimitFallback(config *FallbackConfig, logger *zap.Logger) *RateLimitFallback {
 	return &RateLimitFallback{
-		config:   config,
-		logger:   logger,
+		config:    config,
+		logger:    logger,
 		fallbacks: make(map[string][]string),
 	}
 }
@@ -880,16 +880,16 @@ func DefaultExternalRateLimitConfig() *ExternalRateLimitConfig {
 			},
 		},
 		MonitorConfig: &MonitorConfig{
-			Enabled:              true,
+			Enabled:                   true,
 			MetricsCollectionInterval: 30 * time.Second,
-			AlertThreshold:       0.8,
-			AlertCooldown:        5 * time.Minute,
-			QuotaExceededThreshold: 0.1,
-			HighUsageThreshold:   0.8,
-			LowSuccessRateThreshold: 0.9,
-			HighLatencyThreshold: 5 * time.Second,
-			MetricsRetentionDays: 30,
-			AlertRetentionDays:   90,
+			AlertThreshold:            0.8,
+			AlertCooldown:             5 * time.Minute,
+			QuotaExceededThreshold:    0.1,
+			HighUsageThreshold:        0.8,
+			LowSuccessRateThreshold:   0.9,
+			HighLatencyThreshold:      5 * time.Second,
+			MetricsRetentionDays:      30,
+			AlertRetentionDays:        90,
 		},
 		FallbackConfig: &FallbackConfig{
 			Enabled:          true,
@@ -899,12 +899,12 @@ func DefaultExternalRateLimitConfig() *ExternalRateLimitConfig {
 			MaxRetryAttempts: 3,
 		},
 		OptimizationConfig: &OptimizationConfig{
-			Enabled:        true,
-			CacheEnabled:   true,
-			CacheTTL:       5 * time.Minute,
+			Enabled:         true,
+			CacheEnabled:    true,
+			CacheTTL:        5 * time.Minute,
 			RequestBatching: false,
-			BatchSize:      10,
-			BatchTimeout:   1 * time.Second,
+			BatchSize:       10,
+			BatchTimeout:    1 * time.Second,
 		},
 	}
 }
@@ -948,7 +948,7 @@ func NewExternalAPIRateLimiter(config *ExternalRateLimitConfig, logger *zap.Logg
 	// Initialize API limits from config
 	for apiEndpoint, apiConfig := range config.APIConfigs {
 		limiter.apiLimits[apiEndpoint] = &ExternalAPILimit{
-			Config:         apiConfig,
+			Config:          apiConfig,
 			LastMinuteReset: time.Now(),
 			LastHourReset:   time.Now(),
 			LastDayReset:    time.Now(),
@@ -985,9 +985,9 @@ func (erl *ExternalAPIRateLimiter) CheckRateLimit(ctx context.Context, apiEndpoi
 
 	// Check if we're within limits
 	result := &ExternalRateLimitResult{
-		APIEndpoint:   apiEndpoint,
-		Priority:      apiLimit.Config.Priority,
-		ResetTime:     apiLimit.LastMinuteReset.Add(time.Minute),
+		APIEndpoint: apiEndpoint,
+		Priority:    apiLimit.Config.Priority,
+		ResetTime:   apiLimit.LastMinuteReset.Add(time.Minute),
 	}
 
 	// Check minute limit
@@ -1146,7 +1146,7 @@ func (erl *ExternalAPIRateLimiter) AddAPIConfig(apiEndpoint string, config *APIC
 
 	erl.config.APIConfigs[apiEndpoint] = config
 	erl.apiLimits[apiEndpoint] = &ExternalAPILimit{
-		Config:         config,
+		Config:          config,
 		LastMinuteReset: time.Now(),
 		LastHourReset:   time.Now(),
 		LastDayReset:    time.Now(),
@@ -1230,7 +1230,7 @@ func (erl *ExternalAPIRateLimiter) getOrCreateAPILimit(apiEndpoint string) *Exte
 		}
 
 		apiLimit := &ExternalAPILimit{
-			Config:         config,
+			Config:          config,
 			LastMinuteReset: time.Now(),
 			LastHourReset:   time.Now(),
 			LastDayReset:    time.Now(),

@@ -18,10 +18,10 @@ type RateLimitConfig struct {
 
 // RateLimiter represents a rate limiter for a specific client
 type RateLimiter struct {
-	requests     []time.Time
-	lastReset    time.Time
-	mu           sync.RWMutex
-	config       RateLimitConfig
+	requests  []time.Time
+	lastReset time.Time
+	mu        sync.RWMutex
+	config    RateLimitConfig
 }
 
 // RateLimitStore holds rate limiters for different clients
@@ -45,7 +45,7 @@ func getClientIdentifier(r *http.Request) string {
 	if forwardedFor := r.Header.Get("X-Forwarded-For"); forwardedFor != "" {
 		return forwardedFor
 	}
-	
+
 	// Fall back to RemoteAddr
 	return r.RemoteAddr
 }
@@ -150,7 +150,7 @@ func (rl *RateLimiter) remaining() int {
 
 	now := time.Now()
 	cutoff := now.Add(-time.Minute)
-	
+
 	var validRequests int
 	for _, reqTime := range rl.requests {
 		if reqTime.After(cutoff) {

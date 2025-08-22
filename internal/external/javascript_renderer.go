@@ -13,14 +13,14 @@ import (
 
 // JavaScriptRenderer handles rendering of JavaScript-heavy websites
 type JavaScriptRenderer struct {
-	timeout     time.Duration
-	waitTime    time.Duration
-	userAgent   string
-	viewport    Viewport
-	logger      *zap.Logger
-	headless    bool
-	disableGPU  bool
-	noSandbox   bool
+	timeout    time.Duration
+	waitTime   time.Duration
+	userAgent  string
+	viewport   Viewport
+	logger     *zap.Logger
+	headless   bool
+	disableGPU bool
+	noSandbox  bool
 }
 
 // Viewport represents browser viewport settings
@@ -39,27 +39,27 @@ func DefaultViewport() Viewport {
 
 // RenderConfig holds configuration for JavaScript rendering
 type RenderConfig struct {
-	Timeout     time.Duration `json:"timeout"`
-	WaitTime    time.Duration `json:"wait_time"`
-	UserAgent   string        `json:"user_agent"`
-	Viewport    Viewport      `json:"viewport"`
-	Headless    bool          `json:"headless"`
-	DisableGPU  bool          `json:"disable_gpu"`
-	NoSandbox   bool          `json:"no_sandbox"`
-	WaitForSelector string    `json:"wait_for_selector"`
-	WaitForNetworkIdle bool   `json:"wait_for_network_idle"`
+	Timeout            time.Duration `json:"timeout"`
+	WaitTime           time.Duration `json:"wait_time"`
+	UserAgent          string        `json:"user_agent"`
+	Viewport           Viewport      `json:"viewport"`
+	Headless           bool          `json:"headless"`
+	DisableGPU         bool          `json:"disable_gpu"`
+	NoSandbox          bool          `json:"no_sandbox"`
+	WaitForSelector    string        `json:"wait_for_selector"`
+	WaitForNetworkIdle bool          `json:"wait_for_network_idle"`
 }
 
 // DefaultRenderConfig returns default configuration for JavaScript rendering
 func DefaultRenderConfig() *RenderConfig {
 	return &RenderConfig{
-		Timeout:     30 * time.Second,
-		WaitTime:    2 * time.Second,
-		UserAgent:   "KYB-Platform-Bot/1.0 (+https://kyb-platform.com/bot)",
-		Viewport:    DefaultViewport(),
-		Headless:    true,
-		DisableGPU:  true,
-		NoSandbox:   true,
+		Timeout:            30 * time.Second,
+		WaitTime:           2 * time.Second,
+		UserAgent:          "KYB-Platform-Bot/1.0 (+https://kyb-platform.com/bot)",
+		Viewport:           DefaultViewport(),
+		Headless:           true,
+		DisableGPU:         true,
+		NoSandbox:          true,
 		WaitForNetworkIdle: true,
 	}
 }
@@ -84,16 +84,16 @@ func NewJavaScriptRenderer(config *RenderConfig, logger *zap.Logger) *JavaScript
 
 // RenderResult represents the result of JavaScript rendering
 type RenderResult struct {
-	URL           string            `json:"url"`
-	HTML          string            `json:"html"`
-	Text          string            `json:"text"`
-	Title         string            `json:"title"`
-	Status        string            `json:"status"`
-	Error         string            `json:"error,omitempty"`
-	RenderedAt    time.Time         `json:"rendered_at"`
-	Duration      time.Duration     `json:"duration"`
-	ConsoleLogs   []string          `json:"console_logs,omitempty"`
-	NetworkLogs   []NetworkLog      `json:"network_logs,omitempty"`
+	URL         string        `json:"url"`
+	HTML        string        `json:"html"`
+	Text        string        `json:"text"`
+	Title       string        `json:"title"`
+	Status      string        `json:"status"`
+	Error       string        `json:"error,omitempty"`
+	RenderedAt  time.Time     `json:"rendered_at"`
+	Duration    time.Duration `json:"duration"`
+	ConsoleLogs []string      `json:"console_logs,omitempty"`
+	NetworkLogs []NetworkLog  `json:"network_logs,omitempty"`
 }
 
 // NetworkLog represents a network request/response
@@ -108,7 +108,7 @@ type NetworkLog struct {
 // RenderPage renders a page with JavaScript support
 func (r *JavaScriptRenderer) RenderPage(ctx context.Context, url string, config *RenderConfig) (*RenderResult, error) {
 	startTime := time.Now()
-	
+
 	if config == nil {
 		config = DefaultRenderConfig()
 	}
@@ -149,19 +149,19 @@ func (r *JavaScriptRenderer) RenderPage(ctx context.Context, url string, config 
 	tasks := chromedp.Tasks{
 		// Navigate to page
 		chromedp.Navigate(url),
-		
+
 		// Wait for page to load
 		chromedp.Sleep(config.WaitTime),
-		
+
 		// Wait for network idle if enabled
 		chromedp.Sleep(500 * time.Millisecond),
-		
+
 		// Wait for specific selector if provided
 		chromedp.Sleep(1 * time.Second),
-		
+
 		// Capture console logs
 		chromedp.Sleep(100 * time.Millisecond),
-		
+
 		// Get page content
 		chromedp.OuterHTML("html", &result.HTML),
 		chromedp.Title(&result.Title),
@@ -170,7 +170,7 @@ func (r *JavaScriptRenderer) RenderPage(ctx context.Context, url string, config 
 
 	// Execute tasks
 	err := chromedp.Run(taskCtx, tasks)
-	
+
 	result.URL = url
 	result.RenderedAt = time.Now()
 	result.Duration = time.Since(startTime)
@@ -330,17 +330,17 @@ func (r *JavaScriptRenderer) CheckRenderingNecessity(ctx context.Context, url st
 	}
 
 	check := &RenderingCheck{
-		URL:           url,
+		URL:            url,
 		NeedsRendering: false,
-		Reason:        "Static content detected",
-		StaticContent: scrapingResult.Content,
+		Reason:         "Static content detected",
+		StaticContent:  scrapingResult.Content,
 	}
 
 	// Check if JavaScript rendering is needed
 	if r.DetectJavaScriptDependency(scrapingResult.Content) {
 		check.NeedsRendering = true
 		check.Reason = "JavaScript dependency detected"
-		
+
 		// Try rendering with JavaScript
 		renderResult, err := r.RenderPage(ctx, url, DefaultRenderConfig())
 		if err == nil {
@@ -356,11 +356,11 @@ func (r *JavaScriptRenderer) CheckRenderingNecessity(ctx context.Context, url st
 
 // RenderingCheck represents the result of checking if rendering is necessary
 type RenderingCheck struct {
-	URL                string `json:"url"`
-	NeedsRendering     bool   `json:"needs_rendering"`
-	Reason             string `json:"reason"`
-	StaticContent      string `json:"static_content,omitempty"`
-	RenderedContent    string `json:"rendered_content,omitempty"`
-	RenderingSuccessful bool  `json:"rendering_successful"`
-	RenderingError     string `json:"rendering_error,omitempty"`
+	URL                 string `json:"url"`
+	NeedsRendering      bool   `json:"needs_rendering"`
+	Reason              string `json:"reason"`
+	StaticContent       string `json:"static_content,omitempty"`
+	RenderedContent     string `json:"rendered_content,omitempty"`
+	RenderingSuccessful bool   `json:"rendering_successful"`
+	RenderingError      string `json:"rendering_error,omitempty"`
 }
