@@ -13,49 +13,49 @@ import (
 
 // AccuracyValidator validates classification algorithm accuracy and performance
 type AccuracyValidator struct {
-	logger           *zap.Logger
-	mu               sync.RWMutex
-	validationHistory []*ValidationResult
-	activeValidations map[string]*ValidationResult
+	logger             *zap.Logger
+	mu                 sync.RWMutex
+	validationHistory  []*ValidationResult
+	activeValidations  map[string]*ValidationResult
 	performanceTracker *PerformanceTracker
-	algorithmRegistry *AlgorithmRegistry
-	patternAnalyzer   *classification_monitoring.PatternAnalysisEngine
+	algorithmRegistry  *AlgorithmRegistry
+	patternAnalyzer    *classification_monitoring.PatternAnalysisEngine
 }
 
 // ValidationConfig defines validation parameters
 type ValidationConfig struct {
-	MinTestCases        int           `json:"min_test_cases"`
-	ValidationTimeout   time.Duration `json:"validation_timeout"`
-	ConfidenceThreshold float64       `json:"confidence_threshold"`
-	AccuracyThreshold   float64       `json:"accuracy_threshold"`
-	CrossValidationFolds int          `json:"cross_validation_folds"`
-	EnableRegressionTesting bool      `json:"enable_regression_testing"`
+	MinTestCases            int           `json:"min_test_cases"`
+	ValidationTimeout       time.Duration `json:"validation_timeout"`
+	ConfidenceThreshold     float64       `json:"confidence_threshold"`
+	AccuracyThreshold       float64       `json:"accuracy_threshold"`
+	CrossValidationFolds    int           `json:"cross_validation_folds"`
+	EnableRegressionTesting bool          `json:"enable_regression_testing"`
 }
 
 // ValidationResult represents the result of an accuracy validation
 type ValidationResult struct {
-	ID                    string                 `json:"id"`
-	AlgorithmID           string                 `json:"algorithm_id"`
-	ValidationType        ValidationType         `json:"validation_type"`
-	Status                ValidationStatus       `json:"status"`
-	TestCases             []*TestCase            `json:"test_cases"`
-	Metrics               *ValidationMetrics     `json:"metrics"`
-	RegressionAnalysis    *RegressionAnalysis    `json:"regression_analysis,omitempty"`
-	ValidationTime        time.Time              `json:"validation_time"`
-	CompletionTime        *time.Time             `json:"completion_time"`
-	Error                 string                 `json:"error,omitempty"`
-	Recommendations       []*ValidationRecommendation `json:"recommendations"`
+	ID                 string                      `json:"id"`
+	AlgorithmID        string                      `json:"algorithm_id"`
+	ValidationType     ValidationType              `json:"validation_type"`
+	Status             ValidationStatus            `json:"status"`
+	TestCases          []*TestCase                 `json:"test_cases"`
+	Metrics            *ValidationMetrics          `json:"metrics"`
+	RegressionAnalysis *RegressionAnalysis         `json:"regression_analysis,omitempty"`
+	ValidationTime     time.Time                   `json:"validation_time"`
+	CompletionTime     *time.Time                  `json:"completion_time"`
+	Error              string                      `json:"error,omitempty"`
+	Recommendations    []*ValidationRecommendation `json:"recommendations"`
 }
 
 // ValidationType represents the type of validation performed
 type ValidationType string
 
 const (
-	ValidationTypeAccuracy    ValidationType = "accuracy"
+	ValidationTypeAccuracy        ValidationType = "accuracy"
 	ValidationTypeCrossValidation ValidationType = "cross_validation"
-	ValidationTypeRegression  ValidationType = "regression"
-	ValidationTypeStress      ValidationType = "stress"
-	ValidationTypeEdgeCases   ValidationType = "edge_cases"
+	ValidationTypeRegression      ValidationType = "regression"
+	ValidationTypeStress          ValidationType = "stress"
+	ValidationTypeEdgeCases       ValidationType = "edge_cases"
 )
 
 // ValidationStatus represents the status of a validation
@@ -71,52 +71,52 @@ const (
 
 // TestCase represents a single test case for validation
 type TestCase struct {
-	ID              string                 `json:"id"`
-	Input           map[string]interface{} `json:"input"`
-	ExpectedOutput  string                 `json:"expected_output"`
-	ActualOutput    string                 `json:"actual_output,omitempty"`
-	Confidence      float64                `json:"confidence,omitempty"`
-	ProcessingTime  time.Duration          `json:"processing_time,omitempty"`
-	IsCorrect       bool                   `json:"is_correct,omitempty"`
-	Error           string                 `json:"error,omitempty"`
-	TestCaseType    string                 `json:"test_case_type"`
-	Difficulty      string                 `json:"difficulty"` // easy, medium, hard
+	ID             string                 `json:"id"`
+	Input          map[string]interface{} `json:"input"`
+	ExpectedOutput string                 `json:"expected_output"`
+	ActualOutput   string                 `json:"actual_output,omitempty"`
+	Confidence     float64                `json:"confidence,omitempty"`
+	ProcessingTime time.Duration          `json:"processing_time,omitempty"`
+	IsCorrect      bool                   `json:"is_correct,omitempty"`
+	Error          string                 `json:"error,omitempty"`
+	TestCaseType   string                 `json:"test_case_type"`
+	Difficulty     string                 `json:"difficulty"` // easy, medium, hard
 }
 
 // ValidationMetrics represents validation performance metrics
 type ValidationMetrics struct {
-	TotalTestCases      int     `json:"total_test_cases"`
-	PassedTestCases     int     `json:"passed_test_cases"`
-	FailedTestCases     int     `json:"failed_test_cases"`
-	Accuracy            float64 `json:"accuracy"`
-	Precision           float64 `json:"precision"`
-	Recall              float64 `json:"recall"`
-	F1Score             float64 `json:"f1_score"`
-	AverageConfidence   float64 `json:"average_confidence"`
+	TotalTestCases        int     `json:"total_test_cases"`
+	PassedTestCases       int     `json:"passed_test_cases"`
+	FailedTestCases       int     `json:"failed_test_cases"`
+	Accuracy              float64 `json:"accuracy"`
+	Precision             float64 `json:"precision"`
+	Recall                float64 `json:"recall"`
+	F1Score               float64 `json:"f1_score"`
+	AverageConfidence     float64 `json:"average_confidence"`
 	AverageProcessingTime float64 `json:"average_processing_time"`
-	ErrorRate           float64 `json:"error_rate"`
+	ErrorRate             float64 `json:"error_rate"`
 	ConfidenceCorrelation float64 `json:"confidence_correlation"`
 }
 
 // RegressionAnalysis represents regression testing results
 type RegressionAnalysis struct {
-	PreviousAccuracy    float64 `json:"previous_accuracy"`
-	CurrentAccuracy     float64 `json:"current_accuracy"`
-	AccuracyChange      float64 `json:"accuracy_change"`
-	AccuracyImprovement bool    `json:"accuracy_improvement"`
-	RegressionDetected  bool    `json:"regression_detected"`
-	SignificanceLevel   float64 `json:"significance_level"`
+	PreviousAccuracy    float64   `json:"previous_accuracy"`
+	CurrentAccuracy     float64   `json:"current_accuracy"`
+	AccuracyChange      float64   `json:"accuracy_change"`
+	AccuracyImprovement bool      `json:"accuracy_improvement"`
+	RegressionDetected  bool      `json:"regression_detected"`
+	SignificanceLevel   float64   `json:"significance_level"`
 	ConfidenceInterval  []float64 `json:"confidence_interval"`
 }
 
 // ValidationRecommendation represents a recommendation for improvement
 type ValidationRecommendation struct {
-	ID          string  `json:"id"`
-	Type        string  `json:"type"`
-	Priority    string  `json:"priority"`
-	Description string  `json:"description"`
-	Impact      float64 `json:"impact"`
-	Confidence  float64 `json:"confidence"`
+	ID          string   `json:"id"`
+	Type        string   `json:"type"`
+	Priority    string   `json:"priority"`
+	Description string   `json:"description"`
+	Impact      float64  `json:"impact"`
+	Confidence  float64  `json:"confidence"`
 	Actions     []string `json:"actions"`
 }
 
@@ -124,11 +124,11 @@ type ValidationRecommendation struct {
 func NewAccuracyValidator(config *ValidationConfig, logger *zap.Logger) *AccuracyValidator {
 	if config == nil {
 		config = &ValidationConfig{
-			MinTestCases:        100,
-			ValidationTimeout:   5 * time.Minute,
-			ConfidenceThreshold: 0.7,
-			AccuracyThreshold:   0.8,
-			CrossValidationFolds: 5,
+			MinTestCases:            100,
+			ValidationTimeout:       5 * time.Minute,
+			ConfidenceThreshold:     0.7,
+			AccuracyThreshold:       0.8,
+			CrossValidationFolds:    5,
 			EnableRegressionTesting: true,
 		}
 	}
@@ -406,11 +406,11 @@ func (av *AccuracyValidator) executeTestCases(ctx context.Context, algorithm *Cl
 	for _, testCase := range testCases {
 		// Simulate classification (in real implementation, this would call the actual algorithm)
 		start := time.Now()
-		
+
 		// Mock classification result
 		actualOutput := av.mockClassification(algorithm, testCase.Input)
 		confidence := av.calculateConfidence(algorithm, testCase.Input, actualOutput)
-		
+
 		processingTime := time.Since(start)
 
 		// Update test case
@@ -640,21 +640,21 @@ func (av *AccuracyValidator) calculateConfidenceCorrelation(testCases []*TestCas
 func (av *AccuracyValidator) getConfig() *ValidationConfig {
 	// Return default config for now
 	return &ValidationConfig{
-		MinTestCases:        100,
-		ValidationTimeout:   5 * time.Minute,
-		ConfidenceThreshold: 0.7,
-		AccuracyThreshold:   0.8,
-		CrossValidationFolds: 5,
+		MinTestCases:            100,
+		ValidationTimeout:       5 * time.Minute,
+		ConfidenceThreshold:     0.7,
+		AccuracyThreshold:       0.8,
+		CrossValidationFolds:    5,
 		EnableRegressionTesting: true,
 	}
 }
 
 // ValidationSummary represents a summary of validation results
 type ValidationSummary struct {
-	TotalValidations    int               `json:"total_validations"`
-	ActiveValidations   int               `json:"active_validations"`
-	ValidationsByType   map[string]int    `json:"validations_by_type"`
-	ValidationsByStatus map[string]int    `json:"validations_by_status"`
-	AverageAccuracy     float64           `json:"average_accuracy"`
-	AverageF1Score      float64           `json:"average_f1_score"`
+	TotalValidations    int            `json:"total_validations"`
+	ActiveValidations   int            `json:"active_validations"`
+	ValidationsByType   map[string]int `json:"validations_by_type"`
+	ValidationsByStatus map[string]int `json:"validations_by_status"`
+	AverageAccuracy     float64        `json:"average_accuracy"`
+	AverageF1Score      float64        `json:"average_f1_score"`
 }

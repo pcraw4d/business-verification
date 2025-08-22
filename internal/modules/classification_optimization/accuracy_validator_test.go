@@ -465,8 +465,8 @@ func TestAccuracyValidator_aggregateCrossValidationMetrics(t *testing.T) {
 	assert.Equal(t, 40, aggregated.TotalTestCases)
 	assert.Equal(t, 34, aggregated.PassedTestCases)
 	assert.Equal(t, 6, aggregated.FailedTestCases)
-	assert.InDelta(t, 0.85, aggregated.Accuracy, 0.0001)              // Average of 0.8 and 0.9
-	assert.InDelta(t, 0.83, aggregated.F1Score, 0.0001)               // Average of 0.78 and 0.88
+	assert.InDelta(t, 0.85, aggregated.Accuracy, 0.0001)    // Average of 0.8 and 0.9
+	assert.InDelta(t, 0.83, aggregated.F1Score, 0.0001)     // Average of 0.78 and 0.88
 	assert.Equal(t, 0.8, aggregated.AverageConfidence)      // Average of 0.75 and 0.85
 	assert.Equal(t, 97.5, aggregated.AverageProcessingTime) // Average of 100 and 95
 }
