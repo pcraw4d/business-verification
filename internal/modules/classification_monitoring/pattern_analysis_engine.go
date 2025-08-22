@@ -21,83 +21,83 @@ func generateID() string {
 
 // PatternAnalysisEngine performs deep analysis of misclassification patterns
 type PatternAnalysisEngine struct {
-	config           *PatternAnalysisConfig
-	logger           *zap.Logger
-	mu               sync.RWMutex
-	patterns         map[string]*MisclassificationPattern
-	patternHistory   []*PatternAnalysisResult
-	rootCauseAnalyzer *RootCauseAnalyzer
+	config               *PatternAnalysisConfig
+	logger               *zap.Logger
+	mu                   sync.RWMutex
+	patterns             map[string]*MisclassificationPattern
+	patternHistory       []*PatternAnalysisResult
+	rootCauseAnalyzer    *RootCauseAnalyzer
 	recommendationEngine *RecommendationEngine
-	predictiveAnalyzer *PredictiveAnalyzer
-	startTime        time.Time
+	predictiveAnalyzer   *PredictiveAnalyzer
+	startTime            time.Time
 }
 
 // PatternAnalysisConfig holds configuration for pattern analysis
 type PatternAnalysisConfig struct {
-	EnableDeepAnalysis      bool          `json:"enable_deep_analysis"`
-	EnablePredictiveAnalysis bool         `json:"enable_predictive_analysis"`
-	EnableRootCauseAnalysis bool          `json:"enable_root_cause_analysis"`
-	PatternRetentionPeriod  time.Duration `json:"pattern_retention_period"`
-	AnalysisWindowSize      time.Duration `json:"analysis_window_size"`
-	MinPatternOccurrences   int           `json:"min_pattern_occurrences"`
-	ConfidenceThreshold     float64       `json:"confidence_threshold"`
-	EnableRealTimeAnalysis  bool          `json:"enable_real_time_analysis"`
-	MaxPatternsPerCategory  int           `json:"max_patterns_per_category"`
-	EnableCrossDimensionalAnalysis bool   `json:"enable_cross_dimensional_analysis"`
+	EnableDeepAnalysis             bool          `json:"enable_deep_analysis"`
+	EnablePredictiveAnalysis       bool          `json:"enable_predictive_analysis"`
+	EnableRootCauseAnalysis        bool          `json:"enable_root_cause_analysis"`
+	PatternRetentionPeriod         time.Duration `json:"pattern_retention_period"`
+	AnalysisWindowSize             time.Duration `json:"analysis_window_size"`
+	MinPatternOccurrences          int           `json:"min_pattern_occurrences"`
+	ConfidenceThreshold            float64       `json:"confidence_threshold"`
+	EnableRealTimeAnalysis         bool          `json:"enable_real_time_analysis"`
+	MaxPatternsPerCategory         int           `json:"max_patterns_per_category"`
+	EnableCrossDimensionalAnalysis bool          `json:"enable_cross_dimensional_analysis"`
 }
 
 // MisclassificationPattern represents a detected pattern in misclassifications
 type MisclassificationPattern struct {
-	ID                    string                 `json:"id"`
-	Name                  string                 `json:"name"`
-	Description           string                 `json:"description"`
-	PatternType           PatternType            `json:"pattern_type"`
-	Category              PatternCategory        `json:"category"`
-	Severity              PatternSeverity        `json:"severity"`
-	Confidence            float64                `json:"confidence"`
-	OccurrenceCount       int                    `json:"occurrence_count"`
-	FirstSeen             time.Time              `json:"first_seen"`
-	LastSeen              time.Time              `json:"last_seen"`
-	Frequency             float64                `json:"frequency"` // occurrences per hour
-	Trend                 TrendDirection         `json:"trend"`
-	Characteristics       PatternCharacteristics  `json:"characteristics"`
-	RootCauses            []RootCause            `json:"root_causes"`
-	Recommendations       []Recommendation       `json:"recommendations"`
-	ImpactScore           float64                `json:"impact_score"`
-	BusinessImpact        BusinessImpact         `json:"business_impact"`
-	Metadata              map[string]interface{} `json:"metadata"`
-	CreatedAt             time.Time              `json:"created_at"`
-	UpdatedAt             time.Time              `json:"updated_at"`
+	ID              string                 `json:"id"`
+	Name            string                 `json:"name"`
+	Description     string                 `json:"description"`
+	PatternType     PatternType            `json:"pattern_type"`
+	Category        PatternCategory        `json:"category"`
+	Severity        PatternSeverity        `json:"severity"`
+	Confidence      float64                `json:"confidence"`
+	OccurrenceCount int                    `json:"occurrence_count"`
+	FirstSeen       time.Time              `json:"first_seen"`
+	LastSeen        time.Time              `json:"last_seen"`
+	Frequency       float64                `json:"frequency"` // occurrences per hour
+	Trend           TrendDirection         `json:"trend"`
+	Characteristics PatternCharacteristics `json:"characteristics"`
+	RootCauses      []RootCause            `json:"root_causes"`
+	Recommendations []Recommendation       `json:"recommendations"`
+	ImpactScore     float64                `json:"impact_score"`
+	BusinessImpact  BusinessImpact         `json:"business_impact"`
+	Metadata        map[string]interface{} `json:"metadata"`
+	CreatedAt       time.Time              `json:"created_at"`
+	UpdatedAt       time.Time              `json:"updated_at"`
 }
 
 // PatternType defines the type of misclassification pattern
 type PatternType string
 
 const (
-	PatternTypeTemporal     PatternType = "temporal"
-	PatternTypeSemantic     PatternType = "semantic"
-	PatternTypeConfidence   PatternType = "confidence"
-	PatternTypeInput        PatternType = "input"
-	PatternTypeMethod       PatternType = "method"
-	PatternTypeIndustry     PatternType = "industry"
+	PatternTypeTemporal         PatternType = "temporal"
+	PatternTypeSemantic         PatternType = "semantic"
+	PatternTypeConfidence       PatternType = "confidence"
+	PatternTypeInput            PatternType = "input"
+	PatternTypeMethod           PatternType = "method"
+	PatternTypeIndustry         PatternType = "industry"
 	PatternTypeCrossDimensional PatternType = "cross_dimensional"
-	PatternTypeAnomaly      PatternType = "anomaly"
-	PatternTypeTrend        PatternType = "trend"
-	PatternTypeSeasonal     PatternType = "seasonal"
+	PatternTypeAnomaly          PatternType = "anomaly"
+	PatternTypeTrend            PatternType = "trend"
+	PatternTypeSeasonal         PatternType = "seasonal"
 )
 
 // PatternCategory defines the category of pattern
 type PatternCategory string
 
 const (
-	PatternCategoryDataQuality     PatternCategory = "data_quality"
+	PatternCategoryDataQuality      PatternCategory = "data_quality"
 	PatternCategoryModelPerformance PatternCategory = "model_performance"
-	PatternCategoryInputProcessing PatternCategory = "input_processing"
-	PatternCategoryBusinessLogic   PatternCategory = "business_logic"
-	PatternCategoryExternalFactors PatternCategory = "external_factors"
-	PatternCategorySystemIssues    PatternCategory = "system_issues"
-	PatternCategoryUserBehavior    PatternCategory = "user_behavior"
-	PatternCategoryConfiguration   PatternCategory = "configuration"
+	PatternCategoryInputProcessing  PatternCategory = "input_processing"
+	PatternCategoryBusinessLogic    PatternCategory = "business_logic"
+	PatternCategoryExternalFactors  PatternCategory = "external_factors"
+	PatternCategorySystemIssues     PatternCategory = "system_issues"
+	PatternCategoryUserBehavior     PatternCategory = "user_behavior"
+	PatternCategoryConfiguration    PatternCategory = "configuration"
 )
 
 // PatternSeverity defines the severity level of a pattern
@@ -114,76 +114,76 @@ const (
 type TrendDirection string
 
 const (
-	TrendDirectionIncreasing TrendDirection = "increasing"
-	TrendDirectionDecreasing TrendDirection = "decreasing"
-	TrendDirectionStable     TrendDirection = "stable"
+	TrendDirectionIncreasing  TrendDirection = "increasing"
+	TrendDirectionDecreasing  TrendDirection = "decreasing"
+	TrendDirectionStable      TrendDirection = "stable"
 	TrendDirectionFluctuating TrendDirection = "fluctuating"
 )
 
 // PatternCharacteristics describes the characteristics of a pattern
 type PatternCharacteristics struct {
-	TimeOfDayDistribution    map[string]int     `json:"time_of_day_distribution"`
-	DayOfWeekDistribution    map[string]int     `json:"day_of_week_distribution"`
-	ConfidenceDistribution   map[string]int     `json:"confidence_distribution"`
-	MethodDistribution       map[string]int     `json:"method_distribution"`
-	IndustryDistribution     map[string]int     `json:"industry_distribution"`
-	InputLengthDistribution  map[string]int     `json:"input_length_distribution"`
-	ErrorTypeDistribution    map[string]int     `json:"error_type_distribution"`
-	GeographicDistribution   map[string]int     `json:"geographic_distribution"`
-	UserAgentDistribution    map[string]int     `json:"user_agent_distribution"`
-	CommonKeywords           []string           `json:"common_keywords"`
-	CommonPhrases            []string           `json:"common_phrases"`
-	InputPatterns            []string           `json:"input_patterns"`
-	CorrelationFactors       map[string]float64 `json:"correlation_factors"`
+	TimeOfDayDistribution   map[string]int     `json:"time_of_day_distribution"`
+	DayOfWeekDistribution   map[string]int     `json:"day_of_week_distribution"`
+	ConfidenceDistribution  map[string]int     `json:"confidence_distribution"`
+	MethodDistribution      map[string]int     `json:"method_distribution"`
+	IndustryDistribution    map[string]int     `json:"industry_distribution"`
+	InputLengthDistribution map[string]int     `json:"input_length_distribution"`
+	ErrorTypeDistribution   map[string]int     `json:"error_type_distribution"`
+	GeographicDistribution  map[string]int     `json:"geographic_distribution"`
+	UserAgentDistribution   map[string]int     `json:"user_agent_distribution"`
+	CommonKeywords          []string           `json:"common_keywords"`
+	CommonPhrases           []string           `json:"common_phrases"`
+	InputPatterns           []string           `json:"input_patterns"`
+	CorrelationFactors      map[string]float64 `json:"correlation_factors"`
 }
 
 // RootCause represents a root cause of misclassifications
 type RootCause struct {
-	ID          string  `json:"id"`
-	Type        string  `json:"type"`
-	Description string  `json:"description"`
-	Confidence  float64 `json:"confidence"`
+	ID          string   `json:"id"`
+	Type        string   `json:"type"`
+	Description string   `json:"description"`
+	Confidence  float64  `json:"confidence"`
 	Evidence    []string `json:"evidence"`
-	Impact      float64 `json:"impact"`
-	Fixable     bool    `json:"fixable"`
-	Priority    int     `json:"priority"`
+	Impact      float64  `json:"impact"`
+	Fixable     bool     `json:"fixable"`
+	Priority    int      `json:"priority"`
 }
 
 // BusinessImpact describes the business impact of a pattern
 type BusinessImpact struct {
-	AccuracyImpact    float64 `json:"accuracy_impact"`
+	AccuracyImpact       float64 `json:"accuracy_impact"`
 	UserExperienceImpact float64 `json:"user_experience_impact"`
-	RevenueImpact     float64 `json:"revenue_impact"`
-	ComplianceImpact  float64 `json:"compliance_impact"`
-	OperationalImpact float64 `json:"operational_impact"`
-	RiskLevel         string  `json:"risk_level"`
+	RevenueImpact        float64 `json:"revenue_impact"`
+	ComplianceImpact     float64 `json:"compliance_impact"`
+	OperationalImpact    float64 `json:"operational_impact"`
+	RiskLevel            string  `json:"risk_level"`
 }
 
 // PatternAnalysisResult represents the result of pattern analysis
 type PatternAnalysisResult struct {
-	ID              string                    `json:"id"`
-	AnalysisTime    time.Time                 `json:"analysis_time"`
-	PatternsFound   int                       `json:"patterns_found"`
-	PatternsUpdated int                       `json:"patterns_updated"`
-	NewPatterns     int                       `json:"new_patterns"`
-	CriticalPatterns int                      `json:"critical_patterns"`
+	ID                 string                 `json:"id"`
+	AnalysisTime       time.Time              `json:"analysis_time"`
+	PatternsFound      int                    `json:"patterns_found"`
+	PatternsUpdated    int                    `json:"patterns_updated"`
+	NewPatterns        int                    `json:"new_patterns"`
+	CriticalPatterns   int                    `json:"critical_patterns"`
 	HighImpactPatterns int                    `json:"high_impact_patterns"`
-	Recommendations []Recommendation          `json:"recommendations"`
-	Summary         PatternAnalysisSummary    `json:"summary"`
-	Metadata        map[string]interface{}    `json:"metadata"`
+	Recommendations    []Recommendation       `json:"recommendations"`
+	Summary            PatternAnalysisSummary `json:"summary"`
+	Metadata           map[string]interface{} `json:"metadata"`
 }
 
 // PatternAnalysisSummary provides a summary of pattern analysis
 type PatternAnalysisSummary struct {
-	TotalPatterns       int                       `json:"total_patterns"`
-	PatternsByType      map[PatternType]int       `json:"patterns_by_type"`
-	PatternsByCategory  map[PatternCategory]int   `json:"patterns_by_category"`
-	PatternsBySeverity  map[PatternSeverity]int   `json:"patterns_by_severity"`
-	TopPatterns         []*MisclassificationPattern `json:"top_patterns"`
-	TrendingPatterns    []*MisclassificationPattern `json:"trending_patterns"`
-	CriticalPatterns    []*MisclassificationPattern `json:"critical_patterns"`
-	ImpactScore         float64                   `json:"impact_score"`
-	RiskLevel           string                    `json:"risk_level"`
+	TotalPatterns      int                         `json:"total_patterns"`
+	PatternsByType     map[PatternType]int         `json:"patterns_by_type"`
+	PatternsByCategory map[PatternCategory]int     `json:"patterns_by_category"`
+	PatternsBySeverity map[PatternSeverity]int     `json:"patterns_by_severity"`
+	TopPatterns        []*MisclassificationPattern `json:"top_patterns"`
+	TrendingPatterns   []*MisclassificationPattern `json:"trending_patterns"`
+	CriticalPatterns   []*MisclassificationPattern `json:"critical_patterns"`
+	ImpactScore        float64                     `json:"impact_score"`
+	RiskLevel          string                      `json:"risk_level"`
 }
 
 // RecommendationEngine generates recommendations based on patterns
@@ -201,7 +201,7 @@ func NewRecommendationEngine(logger *zap.Logger) *RecommendationEngine {
 // GenerateRecommendations generates recommendations based on patterns
 func (re *RecommendationEngine) GenerateRecommendations(patterns []*MisclassificationPattern) []Recommendation {
 	recommendations := make([]Recommendation, 0)
-	
+
 	for _, pattern := range patterns {
 		switch pattern.PatternType {
 		case PatternTypeConfidence:
@@ -241,7 +241,7 @@ func (re *RecommendationEngine) GenerateRecommendations(patterns []*Misclassific
 			})
 		}
 	}
-	
+
 	return recommendations
 }
 
@@ -263,15 +263,15 @@ func NewPredictiveAnalyzer(config *PatternAnalysisConfig, logger *zap.Logger) *P
 func NewPatternAnalysisEngine(config *PatternAnalysisConfig, logger *zap.Logger) *PatternAnalysisEngine {
 	if config == nil {
 		config = &PatternAnalysisConfig{
-			EnableDeepAnalysis:         true,
-			EnablePredictiveAnalysis:   true,
-			EnableRootCauseAnalysis:    true,
-			PatternRetentionPeriod:     30 * 24 * time.Hour, // 30 days
-			AnalysisWindowSize:         1 * time.Hour,
-			MinPatternOccurrences:      5,
-			ConfidenceThreshold:        0.7,
-			EnableRealTimeAnalysis:     true,
-			MaxPatternsPerCategory:     10,
+			EnableDeepAnalysis:             true,
+			EnablePredictiveAnalysis:       true,
+			EnableRootCauseAnalysis:        true,
+			PatternRetentionPeriod:         30 * 24 * time.Hour, // 30 days
+			AnalysisWindowSize:             1 * time.Hour,
+			MinPatternOccurrences:          5,
+			ConfidenceThreshold:            0.7,
+			EnableRealTimeAnalysis:         true,
+			MaxPatternsPerCategory:         10,
 			EnableCrossDimensionalAnalysis: true,
 		}
 	}
@@ -298,7 +298,7 @@ func (pae *PatternAnalysisEngine) AnalyzeMisclassifications(ctx context.Context,
 	defer pae.mu.Unlock()
 
 	startTime := time.Now()
-	pae.logger.Info("Starting pattern analysis", 
+	pae.logger.Info("Starting pattern analysis",
 		zap.Int("misclassifications_count", len(misclassifications)))
 
 	// Perform different types of pattern analysis
@@ -365,7 +365,7 @@ func (pae *PatternAnalysisEngine) AnalyzeMisclassifications(ctx context.Context,
 		Summary:         pae.generateAnalysisSummary(patterns),
 		Metadata: map[string]interface{}{
 			"analysis_duration": time.Since(startTime).String(),
-			"config":           pae.config,
+			"config":            pae.config,
 		},
 	}
 
@@ -482,29 +482,29 @@ func (pae *PatternAnalysisEngine) analyzeConfidencePatterns(misclassifications [
 	// Detect high-confidence error patterns (most critical)
 	if len(confidenceRanges["high"]) > pae.config.MinPatternOccurrences {
 		pattern := &MisclassificationPattern{
-			ID:          generateID(),
-			Name:        "High Confidence Misclassifications",
-			Description: "Misclassifications occurring with high confidence scores",
-			PatternType: PatternTypeConfidence,
-			Category:    PatternCategoryModelPerformance,
-			Severity:    PatternSeverityCritical,
-			Confidence:  pae.calculatePatternConfidence(confidenceRanges["high"]),
+			ID:              generateID(),
+			Name:            "High Confidence Misclassifications",
+			Description:     "Misclassifications occurring with high confidence scores",
+			PatternType:     PatternTypeConfidence,
+			Category:        PatternCategoryModelPerformance,
+			Severity:        PatternSeverityCritical,
+			Confidence:      pae.calculatePatternConfidence(confidenceRanges["high"]),
 			OccurrenceCount: len(confidenceRanges["high"]),
-			FirstSeen:   time.Now(),
-			LastSeen:    time.Now(),
-			Frequency:   float64(len(confidenceRanges["high"])) / pae.config.AnalysisWindowSize.Hours(),
-			Trend:       TrendDirectionStable,
+			FirstSeen:       time.Now(),
+			LastSeen:        time.Now(),
+			Frequency:       float64(len(confidenceRanges["high"])) / pae.config.AnalysisWindowSize.Hours(),
+			Trend:           TrendDirectionStable,
 			Characteristics: PatternCharacteristics{
 				ConfidenceDistribution: map[string]int{
 					"high": len(confidenceRanges["high"]),
 				},
 			},
-			RootCauses: pae.analyzeRootCauses(confidenceRanges["high"]),
+			RootCauses:  pae.analyzeRootCauses(confidenceRanges["high"]),
 			ImpactScore: 0.9, // High impact for high-confidence errors
 			BusinessImpact: BusinessImpact{
-				AccuracyImpact: 0.8,
+				AccuracyImpact:       0.8,
 				UserExperienceImpact: 0.7,
-				RiskLevel: "high",
+				RiskLevel:            "high",
 			},
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
@@ -542,18 +542,18 @@ func (pae *PatternAnalysisEngine) analyzeInputPatterns(misclassifications []*Mis
 	for lengthType, count := range lengthDistribution {
 		if count >= pae.config.MinPatternOccurrences {
 			pattern := &MisclassificationPattern{
-				ID:          generateID(),
-				Name:        fmt.Sprintf("%s Input Length Misclassifications", strings.Title(lengthType)),
-				Description: fmt.Sprintf("Misclassifications for %s input length", lengthType),
-				PatternType: PatternTypeInput,
-				Category:    PatternCategoryInputProcessing,
-				Severity:    pae.calculateSeverity(count, len(misclassifications)),
-				Confidence:  pae.calculatePatternConfidence(misclassifications),
+				ID:              generateID(),
+				Name:            fmt.Sprintf("%s Input Length Misclassifications", strings.Title(lengthType)),
+				Description:     fmt.Sprintf("Misclassifications for %s input length", lengthType),
+				PatternType:     PatternTypeInput,
+				Category:        PatternCategoryInputProcessing,
+				Severity:        pae.calculateSeverity(count, len(misclassifications)),
+				Confidence:      pae.calculatePatternConfidence(misclassifications),
 				OccurrenceCount: count,
-				FirstSeen:   time.Now(),
-				LastSeen:    time.Now(),
-				Frequency:   float64(count) / pae.config.AnalysisWindowSize.Hours(),
-				Trend:       TrendDirectionStable,
+				FirstSeen:       time.Now(),
+				LastSeen:        time.Now(),
+				Frequency:       float64(count) / pae.config.AnalysisWindowSize.Hours(),
+				Trend:           TrendDirectionStable,
 				Characteristics: PatternCharacteristics{
 					InputLengthDistribution: map[string]int{
 						lengthType: count,
@@ -588,7 +588,7 @@ func (pae *PatternAnalysisEngine) analyzeCrossDimensionalPatterns(misclassificat
 	for _, mis := range misclassifications {
 		method := mis.ClassificationMethod
 		confidenceLevel := pae.getConfidenceLevel(mis.ConfidenceScore)
-		
+
 		if methodConfidenceMap[method] == nil {
 			methodConfidenceMap[method] = make(map[string]int)
 		}
@@ -600,18 +600,18 @@ func (pae *PatternAnalysisEngine) analyzeCrossDimensionalPatterns(misclassificat
 		for confidenceLevel, count := range confidenceMap {
 			if count >= pae.config.MinPatternOccurrences {
 				pattern := &MisclassificationPattern{
-					ID:          generateID(),
-					Name:        fmt.Sprintf("%s Method %s Confidence Errors", method, confidenceLevel),
-					Description: fmt.Sprintf("Misclassifications for %s method with %s confidence", method, confidenceLevel),
-					PatternType: PatternTypeCrossDimensional,
-					Category:    PatternCategoryModelPerformance,
-					Severity:    pae.calculateSeverity(count, len(misclassifications)),
-					Confidence:  pae.calculatePatternConfidence(misclassifications),
+					ID:              generateID(),
+					Name:            fmt.Sprintf("%s Method %s Confidence Errors", method, confidenceLevel),
+					Description:     fmt.Sprintf("Misclassifications for %s method with %s confidence", method, confidenceLevel),
+					PatternType:     PatternTypeCrossDimensional,
+					Category:        PatternCategoryModelPerformance,
+					Severity:        pae.calculateSeverity(count, len(misclassifications)),
+					Confidence:      pae.calculatePatternConfidence(misclassifications),
 					OccurrenceCount: count,
-					FirstSeen:   time.Now(),
-					LastSeen:    time.Now(),
-					Frequency:   float64(count) / pae.config.AnalysisWindowSize.Hours(),
-					Trend:       TrendDirectionStable,
+					FirstSeen:       time.Now(),
+					LastSeen:        time.Now(),
+					Frequency:       float64(count) / pae.config.AnalysisWindowSize.Hours(),
+					Trend:           TrendDirectionStable,
 					Characteristics: PatternCharacteristics{
 						MethodDistribution: map[string]int{
 							method: count,
@@ -644,7 +644,7 @@ func (pae *PatternAnalysisEngine) analyzeCrossDimensionalPatterns(misclassificat
 // analyzeRootCauses analyzes root causes for a set of misclassifications
 func (pae *PatternAnalysisEngine) analyzeRootCauses(misclassifications []*MisclassificationRecord) []RootCause {
 	rootCauses := make([]RootCause, 0)
-	
+
 	// Simple root cause analysis - in production, use more sophisticated methods
 	if len(misclassifications) > 0 {
 		// Analyze common patterns
@@ -654,7 +654,7 @@ func (pae *PatternAnalysisEngine) analyzeRootCauses(misclassifications []*Miscla
 				highConfidenceCount++
 			}
 		}
-		
+
 		if highConfidenceCount > len(misclassifications)/2 {
 			rootCauses = append(rootCauses, RootCause{
 				ID:          generateID(),
@@ -665,7 +665,7 @@ func (pae *PatternAnalysisEngine) analyzeRootCauses(misclassifications []*Miscla
 				Priority:    1,
 			})
 		}
-		
+
 		// Add generic root cause
 		rootCauses = append(rootCauses, RootCause{
 			ID:          generateID(),
@@ -676,7 +676,7 @@ func (pae *PatternAnalysisEngine) analyzeRootCauses(misclassifications []*Miscla
 			Priority:    2,
 		})
 	}
-	
+
 	return rootCauses
 }
 
@@ -716,18 +716,18 @@ func (pae *PatternAnalysisEngine) detectTimeOfDayPattern(distribution map[int]in
 
 	if maxCount >= pae.config.MinPatternOccurrences {
 		return &MisclassificationPattern{
-			ID:          generateID(),
-			Name:        fmt.Sprintf("Peak Hour Misclassifications (%02d:00)", peakHour),
-			Description: fmt.Sprintf("Increased misclassifications during hour %02d:00", peakHour),
-			PatternType: PatternTypeTemporal,
-			Category:    PatternCategorySystemIssues,
-			Severity:    pae.calculateSeverity(maxCount, len(misclassifications)),
-			Confidence:  pae.calculatePatternConfidence(misclassifications),
+			ID:              generateID(),
+			Name:            fmt.Sprintf("Peak Hour Misclassifications (%02d:00)", peakHour),
+			Description:     fmt.Sprintf("Increased misclassifications during hour %02d:00", peakHour),
+			PatternType:     PatternTypeTemporal,
+			Category:        PatternCategorySystemIssues,
+			Severity:        pae.calculateSeverity(maxCount, len(misclassifications)),
+			Confidence:      pae.calculatePatternConfidence(misclassifications),
 			OccurrenceCount: maxCount,
-			FirstSeen:   time.Now(),
-			LastSeen:    time.Now(),
-			Frequency:   float64(maxCount) / pae.config.AnalysisWindowSize.Hours(),
-			Trend:       TrendDirectionStable,
+			FirstSeen:       time.Now(),
+			LastSeen:        time.Now(),
+			Frequency:       float64(maxCount) / pae.config.AnalysisWindowSize.Hours(),
+			Trend:           TrendDirectionStable,
 			Characteristics: PatternCharacteristics{
 				TimeOfDayDistribution: map[string]int{
 					fmt.Sprintf("%02d:00", peakHour): maxCount,
@@ -764,18 +764,18 @@ func (pae *PatternAnalysisEngine) detectDayOfWeekPattern(distribution map[string
 
 	if maxCount >= pae.config.MinPatternOccurrences {
 		return &MisclassificationPattern{
-			ID:          generateID(),
-			Name:        fmt.Sprintf("Peak Day Misclassifications (%s)", peakDay),
-			Description: fmt.Sprintf("Increased misclassifications on %s", peakDay),
-			PatternType: PatternTypeTemporal,
-			Category:    PatternCategoryUserBehavior,
-			Severity:    pae.calculateSeverity(maxCount, len(misclassifications)),
-			Confidence:  pae.calculatePatternConfidence(misclassifications),
+			ID:              generateID(),
+			Name:            fmt.Sprintf("Peak Day Misclassifications (%s)", peakDay),
+			Description:     fmt.Sprintf("Increased misclassifications on %s", peakDay),
+			PatternType:     PatternTypeTemporal,
+			Category:        PatternCategoryUserBehavior,
+			Severity:        pae.calculateSeverity(maxCount, len(misclassifications)),
+			Confidence:      pae.calculatePatternConfidence(misclassifications),
 			OccurrenceCount: maxCount,
-			FirstSeen:   time.Now(),
-			LastSeen:    time.Now(),
-			Frequency:   float64(maxCount) / (pae.config.AnalysisWindowSize.Hours() / 24),
-			Trend:       TrendDirectionStable,
+			FirstSeen:       time.Now(),
+			LastSeen:        time.Now(),
+			Frequency:       float64(maxCount) / (pae.config.AnalysisWindowSize.Hours() / 24),
+			Trend:           TrendDirectionStable,
 			Characteristics: PatternCharacteristics{
 				DayOfWeekDistribution: map[string]int{
 					peakDay: maxCount,
@@ -818,18 +818,18 @@ func (pae *PatternAnalysisEngine) detectKeywordPattern(keywordFrequency map[stri
 
 	if maxCount >= pae.config.MinPatternOccurrences {
 		return &MisclassificationPattern{
-			ID:          generateID(),
-			Name:        fmt.Sprintf("Keyword-Based Misclassifications (%s)", topKeyword),
-			Description: fmt.Sprintf("Misclassifications associated with keyword '%s'", topKeyword),
-			PatternType: PatternTypeSemantic,
-			Category:    PatternCategoryModelPerformance,
-			Severity:    pae.calculateSeverity(maxCount, len(misclassifications)),
-			Confidence:  pae.calculatePatternConfidence(misclassifications),
+			ID:              generateID(),
+			Name:            fmt.Sprintf("Keyword-Based Misclassifications (%s)", topKeyword),
+			Description:     fmt.Sprintf("Misclassifications associated with keyword '%s'", topKeyword),
+			PatternType:     PatternTypeSemantic,
+			Category:        PatternCategoryModelPerformance,
+			Severity:        pae.calculateSeverity(maxCount, len(misclassifications)),
+			Confidence:      pae.calculatePatternConfidence(misclassifications),
 			OccurrenceCount: maxCount,
-			FirstSeen:   time.Now(),
-			LastSeen:    time.Now(),
-			Frequency:   float64(maxCount) / pae.config.AnalysisWindowSize.Hours(),
-			Trend:       TrendDirectionStable,
+			FirstSeen:       time.Now(),
+			LastSeen:        time.Now(),
+			Frequency:       float64(maxCount) / pae.config.AnalysisWindowSize.Hours(),
+			Trend:           TrendDirectionStable,
 			Characteristics: PatternCharacteristics{
 				CommonKeywords: []string{topKeyword},
 			},
@@ -898,19 +898,19 @@ func (pae *PatternAnalysisEngine) extractKeywords(text string) []string {
 	// Simple keyword extraction - in production, use NLP libraries
 	words := strings.Fields(strings.ToLower(text))
 	keywords := make([]string, 0)
-	
+
 	// Filter out common stop words and short words
 	stopWords := map[string]bool{
 		"the": true, "a": true, "an": true, "and": true, "or": true, "but": true,
 		"in": true, "on": true, "at": true, "to": true, "for": true, "of": true, "with": true, "by": true,
 	}
-	
+
 	for _, word := range words {
 		if len(word) > 3 && !stopWords[word] {
 			keywords = append(keywords, word)
 		}
 	}
-	
+
 	return keywords
 }
 
@@ -919,12 +919,12 @@ func (pae *PatternAnalysisEngine) extractPhrases(text string) []string {
 	// This is a basic implementation
 	phrases := make([]string, 0)
 	words := strings.Fields(text)
-	
+
 	for i := 0; i < len(words)-1; i++ {
 		phrase := words[i] + " " + words[i+1]
 		phrases = append(phrases, phrase)
 	}
-	
+
 	return phrases
 }
 
@@ -944,19 +944,19 @@ func (pae *PatternAnalysisEngine) calculatePatternConfidence(misclassifications 
 	if len(misclassifications) == 0 {
 		return 0.0
 	}
-	
+
 	// Simple confidence calculation - in production, use more sophisticated methods
 	confidenceSum := 0.0
 	for _, mis := range misclassifications {
 		confidenceSum += mis.ConfidenceScore
 	}
-	
+
 	return confidenceSum / float64(len(misclassifications))
 }
 
 func (pae *PatternAnalysisEngine) calculateSeverity(count, total int) PatternSeverity {
 	percentage := float64(count) / float64(total)
-	
+
 	switch {
 	case percentage >= 0.3:
 		return PatternSeverityCritical
@@ -974,7 +974,7 @@ func (pae *PatternAnalysisEngine) updatePattern(existing, new *Misclassification
 	existing.LastSeen = new.LastSeen
 	existing.Frequency = float64(existing.OccurrenceCount) / time.Since(existing.FirstSeen).Hours()
 	existing.UpdatedAt = time.Now()
-	
+
 	// Update characteristics
 	if existing.Characteristics.TimeOfDayDistribution == nil {
 		existing.Characteristics.TimeOfDayDistribution = make(map[string]int)
@@ -982,7 +982,7 @@ func (pae *PatternAnalysisEngine) updatePattern(existing, new *Misclassification
 	for key, value := range new.Characteristics.TimeOfDayDistribution {
 		existing.Characteristics.TimeOfDayDistribution[key] += value
 	}
-	
+
 	// Update root causes if new ones are found
 	for _, newRootCause := range new.RootCauses {
 		found := false
@@ -1063,7 +1063,7 @@ func (pae *PatternAnalysisEngine) generateAnalysisSummary(patterns []*Misclassif
 
 func (pae *PatternAnalysisEngine) cleanupOldPatterns() {
 	cutoffTime := time.Now().Add(-pae.config.PatternRetentionPeriod)
-	
+
 	for id, pattern := range pae.patterns {
 		if pattern.LastSeen.Before(cutoffTime) {
 			delete(pae.patterns, id)
@@ -1075,7 +1075,7 @@ func (pae *PatternAnalysisEngine) cleanupOldPatterns() {
 func (pae *PatternAnalysisEngine) GetPatterns() map[string]*MisclassificationPattern {
 	pae.mu.RLock()
 	defer pae.mu.RUnlock()
-	
+
 	result := make(map[string]*MisclassificationPattern)
 	for id, pattern := range pae.patterns {
 		result[id] = pattern
@@ -1087,7 +1087,7 @@ func (pae *PatternAnalysisEngine) GetPatterns() map[string]*MisclassificationPat
 func (pae *PatternAnalysisEngine) GetPatternsByType(patternType PatternType) []*MisclassificationPattern {
 	pae.mu.RLock()
 	defer pae.mu.RUnlock()
-	
+
 	patterns := make([]*MisclassificationPattern, 0)
 	for _, pattern := range pae.patterns {
 		if pattern.PatternType == patternType {
@@ -1101,7 +1101,7 @@ func (pae *PatternAnalysisEngine) GetPatternsByType(patternType PatternType) []*
 func (pae *PatternAnalysisEngine) GetPatternsBySeverity(severity PatternSeverity) []*MisclassificationPattern {
 	pae.mu.RLock()
 	defer pae.mu.RUnlock()
-	
+
 	patterns := make([]*MisclassificationPattern, 0)
 	for _, pattern := range pae.patterns {
 		if pattern.Severity == severity {
@@ -1115,7 +1115,7 @@ func (pae *PatternAnalysisEngine) GetPatternsBySeverity(severity PatternSeverity
 func (pae *PatternAnalysisEngine) GetPatternHistory() []*PatternAnalysisResult {
 	pae.mu.RLock()
 	defer pae.mu.RUnlock()
-	
+
 	result := make([]*PatternAnalysisResult, len(pae.patternHistory))
 	copy(result, pae.patternHistory)
 	return result

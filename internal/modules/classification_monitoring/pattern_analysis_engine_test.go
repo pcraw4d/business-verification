@@ -13,15 +13,15 @@ import (
 func TestNewPatternAnalysisEngine(t *testing.T) {
 	logger := zap.NewNop()
 	config := &PatternAnalysisConfig{
-		EnableDeepAnalysis:         true,
-		EnablePredictiveAnalysis:   true,
-		EnableRootCauseAnalysis:    true,
-		PatternRetentionPeriod:     24 * time.Hour,
-		AnalysisWindowSize:         1 * time.Hour,
-		MinPatternOccurrences:      5,
-		ConfidenceThreshold:        0.7,
-		EnableRealTimeAnalysis:     true,
-		MaxPatternsPerCategory:     10,
+		EnableDeepAnalysis:             true,
+		EnablePredictiveAnalysis:       true,
+		EnableRootCauseAnalysis:        true,
+		PatternRetentionPeriod:         24 * time.Hour,
+		AnalysisWindowSize:             1 * time.Hour,
+		MinPatternOccurrences:          5,
+		ConfidenceThreshold:            0.7,
+		EnableRealTimeAnalysis:         true,
+		MaxPatternsPerCategory:         10,
 		EnableCrossDimensionalAnalysis: true,
 	}
 
@@ -98,18 +98,18 @@ func TestPatternAnalysisEngine_GetPatterns(t *testing.T) {
 
 	// Add some test patterns
 	pattern := &MisclassificationPattern{
-		ID:          "test-pattern",
-		Name:        "Test Pattern",
-		Description: "Test pattern description",
-		PatternType: PatternTypeConfidence,
-		Category:    PatternCategoryModelPerformance,
-		Severity:    PatternSeverityHigh,
-		Confidence:  0.8,
+		ID:              "test-pattern",
+		Name:            "Test Pattern",
+		Description:     "Test pattern description",
+		PatternType:     PatternTypeConfidence,
+		Category:        PatternCategoryModelPerformance,
+		Severity:        PatternSeverityHigh,
+		Confidence:      0.8,
 		OccurrenceCount: 10,
-		FirstSeen:   time.Now(),
-		LastSeen:    time.Now(),
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		FirstSeen:       time.Now(),
+		LastSeen:        time.Now(),
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
 	}
 
 	engine.patterns["test-pattern"] = pattern
@@ -158,15 +158,15 @@ func TestPatternAnalysisEngine_GetPatternsBySeverity(t *testing.T) {
 
 	// Add test patterns of different severities
 	highSeverityPattern := &MisclassificationPattern{
-		ID:       "high-severity-pattern",
-		Severity: PatternSeverityHigh,
+		ID:        "high-severity-pattern",
+		Severity:  PatternSeverityHigh,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
 
 	criticalSeverityPattern := &MisclassificationPattern{
-		ID:       "critical-severity-pattern",
-		Severity: PatternSeverityCritical,
+		ID:        "critical-severity-pattern",
+		Severity:  PatternSeverityCritical,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
@@ -189,10 +189,10 @@ func TestPatternAnalysisEngine_GetPatternHistory(t *testing.T) {
 
 	// Add test history
 	historyResult := &PatternAnalysisResult{
-		ID:           "test-history",
-		AnalysisTime: time.Now(),
+		ID:            "test-history",
+		AnalysisTime:  time.Now(),
 		PatternsFound: 5,
-		NewPatterns:  3,
+		NewPatterns:   3,
 	}
 
 	engine.patternHistory = append(engine.patternHistory, historyResult)
@@ -213,21 +213,21 @@ func TestPatternAnalysisEngine_analyzeTemporalPatterns(t *testing.T) {
 	now := time.Now()
 	misclassifications := []*MisclassificationRecord{
 		{
-			ID:           "test-1",
-			Timestamp:    now,
-			ConfidenceScore: 0.8,
+			ID:                   "test-1",
+			Timestamp:            now,
+			ConfidenceScore:      0.8,
 			ClassificationMethod: "ml",
 		},
 		{
-			ID:           "test-2",
-			Timestamp:    now.Add(1 * time.Hour),
-			ConfidenceScore: 0.8,
+			ID:                   "test-2",
+			Timestamp:            now.Add(1 * time.Hour),
+			ConfidenceScore:      0.8,
 			ClassificationMethod: "ml",
 		},
 		{
-			ID:           "test-3",
-			Timestamp:    now.Add(2 * time.Hour),
-			ConfidenceScore: 0.8,
+			ID:                   "test-3",
+			Timestamp:            now.Add(2 * time.Hour),
+			ConfidenceScore:      0.8,
 			ClassificationMethod: "ml",
 		},
 	}
@@ -246,33 +246,33 @@ func TestPatternAnalysisEngine_analyzeConfidencePatterns(t *testing.T) {
 	// Create misclassifications with high confidence
 	misclassifications := []*MisclassificationRecord{
 		{
-			ID:           "test-1",
-			ConfidenceScore: 0.9,
+			ID:                   "test-1",
+			ConfidenceScore:      0.9,
 			ClassificationMethod: "ml",
 		},
 		{
-			ID:           "test-2",
-			ConfidenceScore: 0.85,
+			ID:                   "test-2",
+			ConfidenceScore:      0.85,
 			ClassificationMethod: "ml",
 		},
 		{
-			ID:           "test-3",
-			ConfidenceScore: 0.88,
+			ID:                   "test-3",
+			ConfidenceScore:      0.88,
 			ClassificationMethod: "ml",
 		},
 		{
-			ID:           "test-4",
-			ConfidenceScore: 0.92,
+			ID:                   "test-4",
+			ConfidenceScore:      0.92,
 			ClassificationMethod: "ml",
 		},
 		{
-			ID:           "test-5",
-			ConfidenceScore: 0.87,
+			ID:                   "test-5",
+			ConfidenceScore:      0.87,
 			ClassificationMethod: "ml",
 		},
 		{
-			ID:           "test-6",
-			ConfidenceScore: 0.89,
+			ID:                   "test-6",
+			ConfidenceScore:      0.89,
 			ClassificationMethod: "ml",
 		},
 	}
@@ -292,39 +292,39 @@ func TestPatternAnalysisEngine_analyzeInputPatterns(t *testing.T) {
 	// Create misclassifications with different input lengths
 	misclassifications := []*MisclassificationRecord{
 		{
-			ID:           "test-1",
-			InputData:    map[string]interface{}{"text": "short"},
-			ConfidenceScore: 0.8,
+			ID:                   "test-1",
+			InputData:            map[string]interface{}{"text": "short"},
+			ConfidenceScore:      0.8,
 			ClassificationMethod: "ml",
 		},
 		{
-			ID:           "test-2",
-			InputData:    map[string]interface{}{"text": "short"},
-			ConfidenceScore: 0.8,
+			ID:                   "test-2",
+			InputData:            map[string]interface{}{"text": "short"},
+			ConfidenceScore:      0.8,
 			ClassificationMethod: "ml",
 		},
 		{
-			ID:           "test-3",
-			InputData:    map[string]interface{}{"text": "short"},
-			ConfidenceScore: 0.8,
+			ID:                   "test-3",
+			InputData:            map[string]interface{}{"text": "short"},
+			ConfidenceScore:      0.8,
 			ClassificationMethod: "ml",
 		},
 		{
-			ID:           "test-4",
-			InputData:    map[string]interface{}{"text": "short"},
-			ConfidenceScore: 0.8,
+			ID:                   "test-4",
+			InputData:            map[string]interface{}{"text": "short"},
+			ConfidenceScore:      0.8,
 			ClassificationMethod: "ml",
 		},
 		{
-			ID:           "test-5",
-			InputData:    map[string]interface{}{"text": "short"},
-			ConfidenceScore: 0.8,
+			ID:                   "test-5",
+			InputData:            map[string]interface{}{"text": "short"},
+			ConfidenceScore:      0.8,
 			ClassificationMethod: "ml",
 		},
 		{
-			ID:           "test-6",
-			InputData:    map[string]interface{}{"text": "short"},
-			ConfidenceScore: 0.8,
+			ID:                   "test-6",
+			InputData:            map[string]interface{}{"text": "short"},
+			ConfidenceScore:      0.8,
 			ClassificationMethod: "ml",
 		},
 	}
@@ -344,33 +344,33 @@ func TestPatternAnalysisEngine_analyzeCrossDimensionalPatterns(t *testing.T) {
 	// Create misclassifications with different method-confidence combinations
 	misclassifications := []*MisclassificationRecord{
 		{
-			ID:                 "test-1",
-			ConfidenceScore:    0.9,
+			ID:                   "test-1",
+			ConfidenceScore:      0.9,
 			ClassificationMethod: "ml",
 		},
 		{
-			ID:                 "test-2",
-			ConfidenceScore:    0.85,
+			ID:                   "test-2",
+			ConfidenceScore:      0.85,
 			ClassificationMethod: "ml",
 		},
 		{
-			ID:                 "test-3",
-			ConfidenceScore:    0.88,
+			ID:                   "test-3",
+			ConfidenceScore:      0.88,
 			ClassificationMethod: "ml",
 		},
 		{
-			ID:                 "test-4",
-			ConfidenceScore:    0.92,
+			ID:                   "test-4",
+			ConfidenceScore:      0.92,
 			ClassificationMethod: "ml",
 		},
 		{
-			ID:                 "test-5",
-			ConfidenceScore:    0.87,
+			ID:                   "test-5",
+			ConfidenceScore:      0.87,
 			ClassificationMethod: "ml",
 		},
 		{
-			ID:                 "test-6",
-			ConfidenceScore:    0.89,
+			ID:                   "test-6",
+			ConfidenceScore:      0.89,
 			ClassificationMethod: "ml",
 		},
 	}
@@ -390,18 +390,18 @@ func TestPatternAnalysisEngine_analyzeRootCauses(t *testing.T) {
 	// Create misclassifications with high confidence
 	misclassifications := []*MisclassificationRecord{
 		{
-			ID:           "test-1",
-			ConfidenceScore: 0.9,
+			ID:                   "test-1",
+			ConfidenceScore:      0.9,
 			ClassificationMethod: "ml",
 		},
 		{
-			ID:           "test-2",
-			ConfidenceScore: 0.85,
+			ID:                   "test-2",
+			ConfidenceScore:      0.85,
 			ClassificationMethod: "ml",
 		},
 		{
-			ID:           "test-3",
-			ConfidenceScore: 0.88,
+			ID:                   "test-3",
+			ConfidenceScore:      0.88,
 			ClassificationMethod: "ml",
 		},
 	}
@@ -410,7 +410,7 @@ func TestPatternAnalysisEngine_analyzeRootCauses(t *testing.T) {
 
 	assert.NotNil(t, rootCauses)
 	assert.Greater(t, len(rootCauses), 0)
-	
+
 	// Check that root causes have required fields
 	for _, rootCause := range rootCauses {
 		assert.NotEmpty(t, rootCause.ID)

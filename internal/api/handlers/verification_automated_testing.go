@@ -8,7 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 
-	"github.com/company/kyb-platform/internal/external"
+	"github.com/pcraw4d/business-verification/internal/external"
 )
 
 // VerificationAutomatedTestingHandler handles HTTP requests for automated testing functionality
