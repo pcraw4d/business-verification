@@ -8,7 +8,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/company/kyb-platform/internal/observability"
+	"github.com/pcraw4d/business-verification/internal/observability"
 )
 
 // PerformanceTrendAnalysisDashboardHandler provides HTTP handlers for trend analysis

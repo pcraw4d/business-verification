@@ -9,7 +9,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/company/kyb-platform/internal/observability"
+	"github.com/pcraw4d/business-verification/internal/observability"
 )
 
 // PerformanceBaselineDashboardHandler handles HTTP requests for performance baseline establishment

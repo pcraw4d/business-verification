@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 
-	"github.com/company/kyb-platform/internal/modules/success_monitoring"
+	"github.com/pcraw4d/business-verification/internal/modules/success_monitoring"
 )
 
 // SuccessRateBenchmarkingHandler handles HTTP requests for success rate benchmarking

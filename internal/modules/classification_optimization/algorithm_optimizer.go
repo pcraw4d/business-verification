@@ -13,14 +13,14 @@ import (
 
 // AlgorithmOptimizer optimizes classification algorithms based on pattern analysis
 type AlgorithmOptimizer struct {
-	config           *OptimizationConfig
-	logger           *zap.Logger
-	mu               sync.RWMutex
+	config              *OptimizationConfig
+	logger              *zap.Logger
+	mu                  sync.RWMutex
 	optimizationHistory []*OptimizationResult
 	activeOptimizations map[string]*OptimizationResult
-	patternAnalyzer   *classification_monitoring.PatternAnalysisEngine
-	performanceTracker *PerformanceTracker
-	algorithmRegistry *AlgorithmRegistry
+	patternAnalyzer     *classification_monitoring.PatternAnalysisEngine
+	performanceTracker  *PerformanceTracker
+	algorithmRegistry   *AlgorithmRegistry
 }
 
 // OptimizationConfig defines optimization parameters
@@ -36,77 +36,77 @@ type OptimizationConfig struct {
 
 // OptimizationResult represents the result of an algorithm optimization
 type OptimizationResult struct {
-	ID                    string                 `json:"id"`
-	AlgorithmID           string                 `json:"algorithm_id"`
-	OptimizationType      OptimizationType       `json:"optimization_type"`
-	Status                OptimizationStatus     `json:"status"`
-	TriggeredByPatterns   []string               `json:"triggered_by_patterns"`
-	BeforeMetrics         *AlgorithmMetrics      `json:"before_metrics"`
-	AfterMetrics          *AlgorithmMetrics      `json:"after_metrics"`
-	Improvement           *ImprovementMetrics    `json:"improvement"`
-	Changes               []*AlgorithmChange     `json:"changes"`
-	OptimizationTime      time.Time              `json:"optimization_time"`
-	CompletionTime        *time.Time             `json:"completion_time"`
-	Error                 string                 `json:"error,omitempty"`
-	Recommendations       []*OptimizationRecommendation `json:"recommendations"`
+	ID                  string                        `json:"id"`
+	AlgorithmID         string                        `json:"algorithm_id"`
+	OptimizationType    OptimizationType              `json:"optimization_type"`
+	Status              OptimizationStatus            `json:"status"`
+	TriggeredByPatterns []string                      `json:"triggered_by_patterns"`
+	BeforeMetrics       *AlgorithmMetrics             `json:"before_metrics"`
+	AfterMetrics        *AlgorithmMetrics             `json:"after_metrics"`
+	Improvement         *ImprovementMetrics           `json:"improvement"`
+	Changes             []*AlgorithmChange            `json:"changes"`
+	OptimizationTime    time.Time                     `json:"optimization_time"`
+	CompletionTime      *time.Time                    `json:"completion_time"`
+	Error               string                        `json:"error,omitempty"`
+	Recommendations     []*OptimizationRecommendation `json:"recommendations"`
 }
 
 // OptimizationType represents the type of optimization performed
 type OptimizationType string
 
 const (
-	OptimizationTypeThreshold    OptimizationType = "threshold"
-	OptimizationTypeWeights      OptimizationType = "weights"
-	OptimizationTypeFeatures     OptimizationType = "features"
-	OptimizationTypeModel        OptimizationType = "model"
-	OptimizationTypeEnsemble     OptimizationType = "ensemble"
-	OptimizationTypeHyperparams  OptimizationType = "hyperparams"
+	OptimizationTypeThreshold   OptimizationType = "threshold"
+	OptimizationTypeWeights     OptimizationType = "weights"
+	OptimizationTypeFeatures    OptimizationType = "features"
+	OptimizationTypeModel       OptimizationType = "model"
+	OptimizationTypeEnsemble    OptimizationType = "ensemble"
+	OptimizationTypeHyperparams OptimizationType = "hyperparams"
 )
 
 // OptimizationStatus represents the status of an optimization
 type OptimizationStatus string
 
 const (
-	OptimizationStatusPending   OptimizationStatus = "pending"
-	OptimizationStatusRunning   OptimizationStatus = "running"
-	OptimizationStatusCompleted OptimizationStatus = "completed"
-	OptimizationStatusFailed    OptimizationStatus = "failed"
+	OptimizationStatusPending    OptimizationStatus = "pending"
+	OptimizationStatusRunning    OptimizationStatus = "running"
+	OptimizationStatusCompleted  OptimizationStatus = "completed"
+	OptimizationStatusFailed     OptimizationStatus = "failed"
 	OptimizationStatusRolledBack OptimizationStatus = "rolled_back"
 )
 
 // AlgorithmMetrics represents performance metrics for an algorithm
 type AlgorithmMetrics struct {
-	Accuracy           float64 `json:"accuracy"`
-	Precision          float64 `json:"precision"`
-	Recall             float64 `json:"recall"`
-	F1Score            float64 `json:"f1_score"`
+	Accuracy              float64 `json:"accuracy"`
+	Precision             float64 `json:"precision"`
+	Recall                float64 `json:"recall"`
+	F1Score               float64 `json:"f1_score"`
 	MisclassificationRate float64 `json:"misclassification_rate"`
-	ConfidenceScore    float64 `json:"confidence_score"`
-	ProcessingTime     float64 `json:"processing_time"`
-	Throughput         float64 `json:"throughput"`
-	ErrorRate          float64 `json:"error_rate"`
+	ConfidenceScore       float64 `json:"confidence_score"`
+	ProcessingTime        float64 `json:"processing_time"`
+	Throughput            float64 `json:"throughput"`
+	ErrorRate             float64 `json:"error_rate"`
 }
 
 // ImprovementMetrics represents the improvement achieved by optimization
 type ImprovementMetrics struct {
-	AccuracyImprovement      float64 `json:"accuracy_improvement"`
-	PrecisionImprovement     float64 `json:"precision_improvement"`
-	RecallImprovement        float64 `json:"recall_improvement"`
-	F1ScoreImprovement       float64 `json:"f1_score_improvement"`
+	AccuracyImprovement        float64 `json:"accuracy_improvement"`
+	PrecisionImprovement       float64 `json:"precision_improvement"`
+	RecallImprovement          float64 `json:"recall_improvement"`
+	F1ScoreImprovement         float64 `json:"f1_score_improvement"`
 	MisclassificationReduction float64 `json:"misclassification_reduction"`
-	ConfidenceImprovement    float64 `json:"confidence_improvement"`
-	ProcessingTimeImprovement float64 `json:"processing_time_improvement"`
-	OverallImprovement       float64 `json:"overall_improvement"`
+	ConfidenceImprovement      float64 `json:"confidence_improvement"`
+	ProcessingTimeImprovement  float64 `json:"processing_time_improvement"`
+	OverallImprovement         float64 `json:"overall_improvement"`
 }
 
 // AlgorithmChange represents a change made to an algorithm
 type AlgorithmChange struct {
-	Parameter     string      `json:"parameter"`
-	OldValue      interface{} `json:"old_value"`
-	NewValue      interface{} `json:"new_value"`
-	ChangeType    string      `json:"change_type"`
-	Impact        string      `json:"impact"`
-	Confidence    float64     `json:"confidence"`
+	Parameter  string      `json:"parameter"`
+	OldValue   interface{} `json:"old_value"`
+	NewValue   interface{} `json:"new_value"`
+	ChangeType string      `json:"change_type"`
+	Impact     string      `json:"impact"`
+	Confidence float64     `json:"confidence"`
 }
 
 // OptimizationRecommendation represents a recommendation for optimization
@@ -138,8 +138,8 @@ func NewAlgorithmOptimizer(config *OptimizationConfig, logger *zap.Logger) *Algo
 	}
 
 	optimizer := &AlgorithmOptimizer{
-		config:             config,
-		logger:             logger,
+		config:              config,
+		logger:              logger,
 		optimizationHistory: make([]*OptimizationResult, 0),
 		activeOptimizations: make(map[string]*OptimizationResult),
 		performanceTracker:  NewPerformanceTracker(logger),
@@ -232,15 +232,15 @@ func (ao *AlgorithmOptimizer) analyzeOptimizationOpportunities(patterns map[stri
 
 // OptimizationOpportunity represents an opportunity for optimization
 type OptimizationOpportunity struct {
-	ID                    string                                    `json:"id"`
-	Type                  OptimizationType                          `json:"type"`
-	Category              string                                    `json:"category"`
-	Patterns              []*classification_monitoring.MisclassificationPattern `json:"patterns"`
-	CurrentMetrics        *AlgorithmMetrics                         `json:"current_metrics"`
-	ExpectedImprovement   *ImprovementMetrics                       `json:"expected_improvement"`
-	Confidence            float64                                   `json:"confidence"`
-	Priority              string                                    `json:"priority"`
-	Actions               []string                                  `json:"actions"`
+	ID                  string                                                `json:"id"`
+	Type                OptimizationType                                      `json:"type"`
+	Category            string                                                `json:"category"`
+	Patterns            []*classification_monitoring.MisclassificationPattern `json:"patterns"`
+	CurrentMetrics      *AlgorithmMetrics                                     `json:"current_metrics"`
+	ExpectedImprovement *ImprovementMetrics                                   `json:"expected_improvement"`
+	Confidence          float64                                               `json:"confidence"`
+	Priority            string                                                `json:"priority"`
+	Actions             []string                                              `json:"actions"`
 }
 
 // analyzeCategoryOpportunity analyzes optimization opportunities for a specific category
@@ -299,10 +299,10 @@ func (ao *AlgorithmOptimizer) analyzeCategoryOpportunity(category string, patter
 
 	// Calculate expected improvement
 	expectedImprovement := &ImprovementMetrics{
-		AccuracyImprovement:       totalImpact * 0.1,
+		AccuracyImprovement:        totalImpact * 0.1,
 		MisclassificationReduction: totalImpact * 0.15,
-		ConfidenceImprovement:     totalImpact * 0.05,
-		OverallImprovement:        totalImpact * 0.1,
+		ConfidenceImprovement:      totalImpact * 0.05,
+		OverallImprovement:         totalImpact * 0.1,
 	}
 
 	// Determine priority
@@ -490,10 +490,10 @@ func (ao *AlgorithmOptimizer) optimizeThresholds(ctx context.Context, result *Op
 	result.AfterMetrics = ao.performanceTracker.GetCategoryMetrics(opportunity.Category)
 	if result.AfterMetrics != nil && result.BeforeMetrics != nil {
 		result.Improvement = &ImprovementMetrics{
-			AccuracyImprovement:      result.AfterMetrics.Accuracy - result.BeforeMetrics.Accuracy,
+			AccuracyImprovement:        result.AfterMetrics.Accuracy - result.BeforeMetrics.Accuracy,
 			MisclassificationReduction: result.BeforeMetrics.MisclassificationRate - result.AfterMetrics.MisclassificationRate,
-			ConfidenceImprovement:    result.AfterMetrics.ConfidenceScore - result.BeforeMetrics.ConfidenceScore,
-			OverallImprovement:       (result.AfterMetrics.Accuracy - result.BeforeMetrics.Accuracy) * 0.5,
+			ConfidenceImprovement:      result.AfterMetrics.ConfidenceScore - result.BeforeMetrics.ConfidenceScore,
+			OverallImprovement:         (result.AfterMetrics.Accuracy - result.BeforeMetrics.Accuracy) * 0.5,
 		}
 	}
 
@@ -504,7 +504,7 @@ func (ao *AlgorithmOptimizer) optimizeThresholds(ctx context.Context, result *Op
 func (ao *AlgorithmOptimizer) optimizeWeights(ctx context.Context, result *OptimizationResult, opportunity *OptimizationOpportunity) error {
 	// This is a placeholder for weight optimization logic
 	// In a real implementation, this would analyze feature importance and adjust weights
-	
+
 	result.Changes = append(result.Changes, &AlgorithmChange{
 		Parameter:  "feature_weights",
 		OldValue:   "default",
@@ -521,7 +521,7 @@ func (ao *AlgorithmOptimizer) optimizeWeights(ctx context.Context, result *Optim
 func (ao *AlgorithmOptimizer) optimizeFeatures(ctx context.Context, result *OptimizationResult, opportunity *OptimizationOpportunity) error {
 	// This is a placeholder for feature optimization logic
 	// In a real implementation, this would enhance feature extraction based on patterns
-	
+
 	result.Changes = append(result.Changes, &AlgorithmChange{
 		Parameter:  "feature_extraction",
 		OldValue:   "basic",
@@ -538,7 +538,7 @@ func (ao *AlgorithmOptimizer) optimizeFeatures(ctx context.Context, result *Opti
 func (ao *AlgorithmOptimizer) optimizeModel(ctx context.Context, result *OptimizationResult, opportunity *OptimizationOpportunity) error {
 	// This is a placeholder for model optimization logic
 	// In a real implementation, this would retrain or fine-tune the model
-	
+
 	result.Changes = append(result.Changes, &AlgorithmChange{
 		Parameter:  "model_parameters",
 		OldValue:   "current",
@@ -555,7 +555,7 @@ func (ao *AlgorithmOptimizer) optimizeModel(ctx context.Context, result *Optimiz
 func (ao *AlgorithmOptimizer) GetOptimizationHistory() []*OptimizationResult {
 	ao.mu.RLock()
 	defer ao.mu.RUnlock()
-	
+
 	history := make([]*OptimizationResult, len(ao.optimizationHistory))
 	copy(history, ao.optimizationHistory)
 	return history
@@ -565,7 +565,7 @@ func (ao *AlgorithmOptimizer) GetOptimizationHistory() []*OptimizationResult {
 func (ao *AlgorithmOptimizer) GetActiveOptimizations() map[string]*OptimizationResult {
 	ao.mu.RLock()
 	defer ao.mu.RUnlock()
-	
+
 	active := make(map[string]*OptimizationResult)
 	for k, v := range ao.activeOptimizations {
 		active[k] = v
@@ -579,11 +579,11 @@ func (ao *AlgorithmOptimizer) GetOptimizationSummary() *OptimizationSummary {
 	defer ao.mu.RUnlock()
 
 	summary := &OptimizationSummary{
-		TotalOptimizations: len(ao.optimizationHistory),
+		TotalOptimizations:      len(ao.optimizationHistory),
 		SuccessfulOptimizations: 0,
-		FailedOptimizations: 0,
-		AverageImprovement: 0.0,
-		OptimizationsByType: make(map[OptimizationType]int),
+		FailedOptimizations:     0,
+		AverageImprovement:      0.0,
+		OptimizationsByType:     make(map[OptimizationType]int),
 		OptimizationsByCategory: make(map[string]int),
 	}
 
@@ -614,10 +614,10 @@ func (ao *AlgorithmOptimizer) GetOptimizationSummary() *OptimizationSummary {
 
 // OptimizationSummary represents a summary of optimization performance
 type OptimizationSummary struct {
-	TotalOptimizations      int                           `json:"total_optimizations"`
-	SuccessfulOptimizations int                           `json:"successful_optimizations"`
-	FailedOptimizations     int                           `json:"failed_optimizations"`
-	AverageImprovement      float64                       `json:"average_improvement"`
-	OptimizationsByType     map[OptimizationType]int      `json:"optimizations_by_type"`
-	OptimizationsByCategory map[string]int                `json:"optimizations_by_category"`
+	TotalOptimizations      int                      `json:"total_optimizations"`
+	SuccessfulOptimizations int                      `json:"successful_optimizations"`
+	FailedOptimizations     int                      `json:"failed_optimizations"`
+	AverageImprovement      float64                  `json:"average_improvement"`
+	OptimizationsByType     map[OptimizationType]int `json:"optimizations_by_type"`
+	OptimizationsByCategory map[string]int           `json:"optimizations_by_category"`
 }

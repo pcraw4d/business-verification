@@ -16,17 +16,17 @@ type AlgorithmRegistry struct {
 
 // ClassificationAlgorithm represents a classification algorithm with configurable parameters
 type ClassificationAlgorithm struct {
-	ID                    string                 `json:"id"`
-	Name                  string                 `json:"name"`
-	Category              string                 `json:"category"`
-	Version               string                 `json:"version"`
-	ConfidenceThreshold   float64                `json:"confidence_threshold"`
-	FeatureWeights        map[string]float64     `json:"feature_weights"`
-	ModelParameters       map[string]interface{} `json:"model_parameters"`
-	PerformanceMetrics    *AlgorithmMetrics      `json:"performance_metrics"`
-	IsActive              bool                   `json:"is_active"`
-	LastOptimized         *int64                 `json:"last_optimized,omitempty"`
-	OptimizationHistory   []*OptimizationResult  `json:"optimization_history"`
+	ID                  string                 `json:"id"`
+	Name                string                 `json:"name"`
+	Category            string                 `json:"category"`
+	Version             string                 `json:"version"`
+	ConfidenceThreshold float64                `json:"confidence_threshold"`
+	FeatureWeights      map[string]float64     `json:"feature_weights"`
+	ModelParameters     map[string]interface{} `json:"model_parameters"`
+	PerformanceMetrics  *AlgorithmMetrics      `json:"performance_metrics"`
+	IsActive            bool                   `json:"is_active"`
+	LastOptimized       *int64                 `json:"last_optimized,omitempty"`
+	OptimizationHistory []*OptimizationResult  `json:"optimization_history"`
 }
 
 // NewAlgorithmRegistry creates a new algorithm registry
@@ -65,15 +65,15 @@ func (ar *AlgorithmRegistry) RegisterAlgorithm(algorithm *ClassificationAlgorith
 
 	if algorithm.PerformanceMetrics == nil {
 		algorithm.PerformanceMetrics = &AlgorithmMetrics{
-			Accuracy:           0.0,
-			Precision:          0.0,
-			Recall:             0.0,
-			F1Score:            0.0,
+			Accuracy:              0.0,
+			Precision:             0.0,
+			Recall:                0.0,
+			F1Score:               0.0,
 			MisclassificationRate: 0.0,
-			ConfidenceScore:    0.0,
-			ProcessingTime:     0.0,
-			Throughput:         0.0,
-			ErrorRate:          0.0,
+			ConfidenceScore:       0.0,
+			ProcessingTime:        0.0,
+			Throughput:            0.0,
+			ErrorRate:             0.0,
 		}
 	}
 
@@ -286,11 +286,11 @@ func (ar *AlgorithmRegistry) GetAlgorithmSummary() *AlgorithmRegistrySummary {
 	defer ar.mu.RUnlock()
 
 	summary := &AlgorithmRegistrySummary{
-		TotalAlgorithms:     len(ar.algorithms),
-		ActiveAlgorithms:    0,
+		TotalAlgorithms:      len(ar.algorithms),
+		ActiveAlgorithms:     0,
 		AlgorithmsByCategory: make(map[string]int),
-		AverageAccuracy:     0.0,
-		AverageConfidence:   0.0,
+		AverageAccuracy:      0.0,
+		AverageConfidence:    0.0,
 	}
 
 	var totalAccuracy float64
@@ -321,11 +321,11 @@ func (ar *AlgorithmRegistry) GetAlgorithmSummary() *AlgorithmRegistrySummary {
 
 // AlgorithmRegistrySummary represents a summary of the algorithm registry
 type AlgorithmRegistrySummary struct {
-	TotalAlgorithms      int               `json:"total_algorithms"`
-	ActiveAlgorithms     int               `json:"active_algorithms"`
-	AlgorithmsByCategory map[string]int    `json:"algorithms_by_category"`
-	AverageAccuracy      float64           `json:"average_accuracy"`
-	AverageConfidence    float64           `json:"average_confidence"`
+	TotalAlgorithms      int            `json:"total_algorithms"`
+	ActiveAlgorithms     int            `json:"active_algorithms"`
+	AlgorithmsByCategory map[string]int `json:"algorithms_by_category"`
+	AverageAccuracy      float64        `json:"average_accuracy"`
+	AverageConfidence    float64        `json:"average_confidence"`
 }
 
 // cloneAlgorithm creates a deep copy of an algorithm
@@ -363,15 +363,15 @@ func (ar *AlgorithmRegistry) cloneAlgorithm(algorithm *ClassificationAlgorithm) 
 	// Clone performance metrics
 	if algorithm.PerformanceMetrics != nil {
 		cloned.PerformanceMetrics = &AlgorithmMetrics{
-			Accuracy:           algorithm.PerformanceMetrics.Accuracy,
-			Precision:          algorithm.PerformanceMetrics.Precision,
-			Recall:             algorithm.PerformanceMetrics.Recall,
-			F1Score:            algorithm.PerformanceMetrics.F1Score,
+			Accuracy:              algorithm.PerformanceMetrics.Accuracy,
+			Precision:             algorithm.PerformanceMetrics.Precision,
+			Recall:                algorithm.PerformanceMetrics.Recall,
+			F1Score:               algorithm.PerformanceMetrics.F1Score,
 			MisclassificationRate: algorithm.PerformanceMetrics.MisclassificationRate,
-			ConfidenceScore:    algorithm.PerformanceMetrics.ConfidenceScore,
-			ProcessingTime:     algorithm.PerformanceMetrics.ProcessingTime,
-			Throughput:         algorithm.PerformanceMetrics.Throughput,
-			ErrorRate:          algorithm.PerformanceMetrics.ErrorRate,
+			ConfidenceScore:       algorithm.PerformanceMetrics.ConfidenceScore,
+			ProcessingTime:        algorithm.PerformanceMetrics.ProcessingTime,
+			Throughput:            algorithm.PerformanceMetrics.Throughput,
+			ErrorRate:             algorithm.PerformanceMetrics.ErrorRate,
 		}
 	}
 

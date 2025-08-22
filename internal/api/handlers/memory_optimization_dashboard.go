@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/company/kyb-platform/internal/observability"
+	"github.com/pcraw4d/business-verification/internal/observability"
 	"go.uber.org/zap"
 )
 
