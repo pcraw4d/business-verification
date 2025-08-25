@@ -22,39 +22,39 @@ const (
 
 // OptimizationAction represents a specific optimization action
 type OptimizationAction struct {
-	ID          string
-	Strategy    OptimizationStrategy
-	Description string
-	Parameters  map[string]interface{}
-	Priority    int
-	Impact      string
-	Risk        string
+	ID            string
+	Strategy      OptimizationStrategy
+	Description   string
+	Parameters    map[string]interface{}
+	Priority      int
+	Impact        string
+	Risk          string
 	EstimatedGain float64
 	EstimatedCost float64
-	ROI         float64
+	ROI           float64
 }
 
 // OptimizationResult represents the result of an optimization action
 type OptimizationResult struct {
-	ActionID      string
-	Strategy      OptimizationStrategy
-	Success       bool
-	Error         error
-	BeforeMetrics map[string]float64
-	AfterMetrics  map[string]float64
-	Improvement   map[string]float64
-	Duration      time.Duration
-	Timestamp     time.Time
+	ActionID        string
+	Strategy        OptimizationStrategy
+	Success         bool
+	Error           error
+	BeforeMetrics   map[string]float64
+	AfterMetrics    map[string]float64
+	Improvement     map[string]float64
+	Duration        time.Duration
+	Timestamp       time.Time
 	Recommendations []string
 }
 
 // OptimizationPlan represents a comprehensive optimization plan
 type OptimizationPlan struct {
-	ID          string
-	Name        string
-	Description string
-	Actions     []OptimizationAction
-	Priority    int
+	ID                 string
+	Name               string
+	Description        string
+	Actions            []OptimizationAction
+	Priority           int
 	EstimatedTotalGain float64
 	EstimatedTotalCost float64
 	EstimatedROI       float64
@@ -76,15 +76,15 @@ type OptimizationConfig struct {
 
 // CacheOptimizer manages cache optimization strategies
 type CacheOptimizer struct {
-	cache     *IntelligentCache
-	monitor   *CacheMonitor
-	config    OptimizationConfig
-	mu        sync.RWMutex
-	ctx       context.Context
-	cancel    context.CancelFunc
-	plans     []OptimizationPlan
-	results   []OptimizationResult
-	lastRun   time.Time
+	cache   *IntelligentCache
+	monitor *CacheMonitor
+	config  OptimizationConfig
+	mu      sync.RWMutex
+	ctx     context.Context
+	cancel  context.CancelFunc
+	plans   []OptimizationPlan
+	results []OptimizationResult
+	lastRun time.Time
 }
 
 // NewCacheOptimizer creates a new cache optimizer
@@ -318,12 +318,12 @@ func (co *CacheOptimizer) generateHitRateOptimizations(snapshot *CachePerformanc
 			Parameters: map[string]interface{}{
 				"new_size": snapshot.TotalSize * 2,
 			},
-			Priority:       1,
-			Impact:         "high",
-			Risk:           "low",
-			EstimatedGain:  0.15,
-			EstimatedCost:  0.05,
-			ROI:            3.0,
+			Priority:      1,
+			Impact:        "high",
+			Risk:          "low",
+			EstimatedGain: 0.15,
+			EstimatedCost: 0.05,
+			ROI:           3.0,
 		})
 	}
 
@@ -332,15 +332,15 @@ func (co *CacheOptimizer) generateHitRateOptimizations(snapshot *CachePerformanc
 		Strategy:    OptimizationStrategyTTLOptimization,
 		Description: "Optimize TTL based on access patterns",
 		Parameters: map[string]interface{}{
-			"base_ttl":     time.Hour,
+			"base_ttl":      time.Hour,
 			"access_factor": 1.5,
 		},
-		Priority:       2,
-		Impact:         "medium",
-		Risk:           "low",
-		EstimatedGain:  0.08,
-		EstimatedCost:  0.02,
-		ROI:            4.0,
+		Priority:      2,
+		Impact:        "medium",
+		Risk:          "low",
+		EstimatedGain: 0.08,
+		EstimatedCost: 0.02,
+		ROI:           4.0,
 	})
 
 	return actions
@@ -358,12 +358,12 @@ func (co *CacheOptimizer) generateMemoryOptimizations(snapshot *CachePerformance
 			"compression_level": 6,
 			"min_size":          1024,
 		},
-		Priority:       1,
-		Impact:         "high",
-		Risk:           "low",
-		EstimatedGain:  0.3,
-		EstimatedCost:  0.1,
-		ROI:            3.0,
+		Priority:      1,
+		Impact:        "high",
+		Risk:          "low",
+		EstimatedGain: 0.3,
+		EstimatedCost: 0.1,
+		ROI:           3.0,
 	})
 
 	return actions
@@ -380,12 +380,12 @@ func (co *CacheOptimizer) generateLatencyOptimizations(snapshot *CachePerformanc
 		Parameters: map[string]interface{}{
 			"new_shard_count": snapshot.ShardCount * 2,
 		},
-		Priority:       1,
-		Impact:         "high",
-		Risk:           "medium",
-		EstimatedGain:  0.25,
-		EstimatedCost:  0.1,
-		ROI:            2.5,
+		Priority:      1,
+		Impact:        "high",
+		Risk:          "medium",
+		EstimatedGain: 0.25,
+		EstimatedCost: 0.1,
+		ROI:           2.5,
 	})
 
 	return actions
@@ -402,12 +402,12 @@ func (co *CacheOptimizer) generateEvictionOptimizations(snapshot *CachePerforman
 		Parameters: map[string]interface{}{
 			"new_size": int64(float64(snapshot.TotalSize) * 1.5),
 		},
-		Priority:       1,
-		Impact:         "high",
-		Risk:           "low",
-		EstimatedGain:  0.2,
-		EstimatedCost:  0.1,
-		ROI:            2.0,
+		Priority:      1,
+		Impact:        "high",
+		Risk:          "low",
+		EstimatedGain: 0.2,
+		EstimatedCost: 0.1,
+		ROI:           2.0,
 	})
 
 	return actions
@@ -441,15 +441,15 @@ func (co *CacheOptimizer) executeAction(action OptimizationAction) OptimizationR
 	improvement := co.calculateImprovement(beforeMetrics, afterMetrics)
 
 	result := OptimizationResult{
-		ActionID:      action.ID,
-		Strategy:      action.Strategy,
-		Success:       success,
-		Error:         err,
-		BeforeMetrics: beforeMetrics,
-		AfterMetrics:  afterMetrics,
-		Improvement:   improvement,
-		Duration:      time.Since(startTime),
-		Timestamp:     time.Now(),
+		ActionID:        action.ID,
+		Strategy:        action.Strategy,
+		Success:         success,
+		Error:           err,
+		BeforeMetrics:   beforeMetrics,
+		AfterMetrics:    afterMetrics,
+		Improvement:     improvement,
+		Duration:        time.Since(startTime),
+		Timestamp:       time.Now(),
 		Recommendations: co.generateRecommendations(action, improvement),
 	}
 

@@ -227,7 +227,7 @@ func (vv *VotingValidator) ValidateVotingResult(ctx context.Context, result *Vot
 			break
 		}
 	}
-	
+
 	validationResult.IsValid = !hasCriticalIssues && (len(validationResult.Issues) == 0 ||
 		(len(validationResult.Issues) > 0 && validationResult.ValidationScore >= vv.config.MinVotingScoreThreshold))
 
