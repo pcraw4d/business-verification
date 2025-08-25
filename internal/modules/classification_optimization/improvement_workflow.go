@@ -13,15 +13,15 @@ import (
 
 // ImprovementWorkflow orchestrates automated classification improvement processes
 type ImprovementWorkflow struct {
-	logger               *zap.Logger
-	mu                   sync.RWMutex
-	workflowHistory      []*WorkflowExecution
-	activeWorkflows      map[string]*WorkflowExecution
-	algorithmRegistry    *AlgorithmRegistry
-	performanceTracker   *PerformanceTracker
-	accuracyValidator    *AccuracyValidator
-	patternAnalyzer      *classification_monitoring.PatternAnalysisEngine
-	config               *WorkflowConfig
+	logger             *zap.Logger
+	mu                 sync.RWMutex
+	workflowHistory    []*WorkflowExecution
+	activeWorkflows    map[string]*WorkflowExecution
+	algorithmRegistry  *AlgorithmRegistry
+	performanceTracker *PerformanceTracker
+	accuracyValidator  *AccuracyValidator
+	patternAnalyzer    *classification_monitoring.PatternAnalysisEngine
+	config             *WorkflowConfig
 }
 
 // WorkflowConfig defines workflow parameters and thresholds
@@ -68,22 +68,22 @@ type WorkflowType string
 
 const (
 	WorkflowTypeContinuousImprovement WorkflowType = "continuous_improvement"
-	WorkflowTypeABTesting            WorkflowType = "ab_testing"
-	WorkflowTypeHyperparameterTuning WorkflowType = "hyperparameter_tuning"
-	WorkflowTypeFeatureOptimization  WorkflowType = "feature_optimization"
-	WorkflowTypeEnsembleOptimization WorkflowType = "ensemble_optimization"
+	WorkflowTypeABTesting             WorkflowType = "ab_testing"
+	WorkflowTypeHyperparameterTuning  WorkflowType = "hyperparameter_tuning"
+	WorkflowTypeFeatureOptimization   WorkflowType = "feature_optimization"
+	WorkflowTypeEnsembleOptimization  WorkflowType = "ensemble_optimization"
 )
 
 // WorkflowIteration represents a single iteration within a workflow
 type WorkflowIteration struct {
-	IterationNumber int                    `json:"iteration_number"`
-	StartTime       time.Time              `json:"start_time"`
-	EndTime         *time.Time             `json:"end_time,omitempty"`
-	Changes         []*AlgorithmChange     `json:"changes"`
-	Metrics         *ValidationMetrics     `json:"metrics"`
-	Improvement     float64                `json:"improvement"`
-	Status          IterationStatus        `json:"status"`
-	Error           string                 `json:"error,omitempty"`
+	IterationNumber int                `json:"iteration_number"`
+	StartTime       time.Time          `json:"start_time"`
+	EndTime         *time.Time         `json:"end_time,omitempty"`
+	Changes         []*AlgorithmChange `json:"changes"`
+	Metrics         *ValidationMetrics `json:"metrics"`
+	Improvement     float64            `json:"improvement"`
+	Status          IterationStatus    `json:"status"`
+	Error           string             `json:"error,omitempty"`
 }
 
 // IterationStatus represents the status of a workflow iteration
@@ -98,14 +98,14 @@ const (
 
 // WorkflowRecommendation represents a recommendation from the improvement workflow
 type WorkflowRecommendation struct {
-	ID          string  `json:"id"`
-	Type        string  `json:"type"`
-	Priority    string  `json:"priority"`
-	Description string  `json:"description"`
-	Impact      float64 `json:"impact"`
-	Confidence  float64 `json:"confidence"`
+	ID          string   `json:"id"`
+	Type        string   `json:"type"`
+	Priority    string   `json:"priority"`
+	Description string   `json:"description"`
+	Impact      float64  `json:"impact"`
+	Confidence  float64  `json:"confidence"`
 	Actions     []string `json:"actions"`
-	Applied     bool    `json:"applied"`
+	Applied     bool     `json:"applied"`
 }
 
 // NewImprovementWorkflow creates a new improvement workflow engine
@@ -124,10 +124,10 @@ func NewImprovementWorkflow(config *WorkflowConfig, logger *zap.Logger) *Improve
 	}
 
 	return &ImprovementWorkflow{
-		logger:            logger,
-		workflowHistory:   make([]*WorkflowExecution, 0),
-		activeWorkflows:   make(map[string]*WorkflowExecution),
-		config:            config,
+		logger:          logger,
+		workflowHistory: make([]*WorkflowExecution, 0),
+		activeWorkflows: make(map[string]*WorkflowExecution),
+		config:          config,
 	}
 }
 
@@ -140,7 +140,7 @@ func (iw *ImprovementWorkflow) SetDependencies(
 ) {
 	iw.mu.Lock()
 	defer iw.mu.Unlock()
-	
+
 	iw.algorithmRegistry = algorithmRegistry
 	iw.performanceTracker = performanceTracker
 	iw.accuracyValidator = accuracyValidator
@@ -151,12 +151,12 @@ func (iw *ImprovementWorkflow) SetDependencies(
 func (iw *ImprovementWorkflow) StartContinuousImprovement(ctx context.Context, algorithmID string) (*WorkflowExecution, error) {
 	// Create workflow execution
 	execution := &WorkflowExecution{
-		ID:        fmt.Sprintf("ci_%s_%d", algorithmID, time.Now().Unix()),
+		ID:          fmt.Sprintf("ci_%s_%d", algorithmID, time.Now().Unix()),
 		AlgorithmID: algorithmID,
-		Status:    WorkflowStatusRunning,
-		Type:      WorkflowTypeContinuousImprovement,
-		StartTime: time.Now(),
-		Iterations: make([]*WorkflowIteration, 0),
+		Status:      WorkflowStatusRunning,
+		Type:        WorkflowTypeContinuousImprovement,
+		StartTime:   time.Now(),
+		Iterations:  make([]*WorkflowIteration, 0),
 	}
 
 	// Add to active workflows
@@ -203,7 +203,7 @@ func (iw *ImprovementWorkflow) StartContinuousImprovement(ctx context.Context, a
 
 	// Calculate final improvement score
 	execution.ImprovementScore = iw.calculateImprovementScore(execution.BaselineMetrics, execution.FinalMetrics)
-	
+
 	// Generate recommendations
 	execution.Recommendations = iw.generateWorkflowRecommendations(execution)
 
@@ -224,12 +224,12 @@ func (iw *ImprovementWorkflow) StartContinuousImprovement(ctx context.Context, a
 // StartABTesting starts A/B testing workflow for algorithm comparison
 func (iw *ImprovementWorkflow) StartABTesting(ctx context.Context, algorithmA, algorithmB string, testCases []*TestCase) (*WorkflowExecution, error) {
 	execution := &WorkflowExecution{
-		ID:        fmt.Sprintf("ab_%s_%s_%d", algorithmA, algorithmB, time.Now().Unix()),
+		ID:          fmt.Sprintf("ab_%s_%s_%d", algorithmA, algorithmB, time.Now().Unix()),
 		AlgorithmID: algorithmA, // Primary algorithm
-		Status:    WorkflowStatusRunning,
-		Type:      WorkflowTypeABTesting,
-		StartTime: time.Now(),
-		Iterations: make([]*WorkflowIteration, 0),
+		Status:      WorkflowStatusRunning,
+		Type:        WorkflowTypeABTesting,
+		StartTime:   time.Now(),
+		Iterations:  make([]*WorkflowIteration, 0),
 	}
 
 	// Add to active workflows
@@ -317,7 +317,7 @@ func (iw *ImprovementWorkflow) establishBaseline(ctx context.Context, algorithm 
 	// In a real implementation, this would query the performance tracker
 	return &ValidationMetrics{
 		Accuracy:          0.75, // Default baseline
-		F1Score:          0.70,
+		F1Score:           0.70,
 		AverageConfidence: 0.80,
 	}, nil
 }

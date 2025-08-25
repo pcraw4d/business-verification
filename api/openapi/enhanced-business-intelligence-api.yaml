@@ -1,0 +1,1072 @@
+openapi: 3.0.3
+info:
+  title: Enhanced Business Intelligence System API
+  description: |
+    Enhanced Business Intelligence System API with intelligent routing, advanced classification,
+    and comprehensive business intelligence features.
+    
+    ## Key Features
+    - **Intelligent Routing**: Automatically routes requests to the best classification method
+    - **Enhanced Classification**: Advanced business classification with 10+ data points
+    - **Business Intelligence**: Analytics, insights, and trend analysis
+    - **Backward Compatibility**: Full v1 API compatibility with enhanced functionality
+    
+    ## Migration Guide
+    - **v1 endpoints**: Still supported but route through intelligent routing system
+    - **v2 endpoints**: New enhanced endpoints with advanced features
+    - **Benefits**: Improved performance, better accuracy, comprehensive data extraction
+    
+  version: 2.0.0
+  contact:
+    name: API Support
+    email: api-support@business-verification.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.business-verification.com/v2
+    description: Production server
+  - url: https://staging-api.business-verification.com/v2
+    description: Staging server
+  - url: http://localhost:8080/v2
+    description: Development server
+
+tags:
+  - name: Classification
+    description: Business classification endpoints
+  - name: Business Intelligence
+    description: Enhanced business intelligence features
+  - name: Routing
+    description: Intelligent routing system endpoints
+  - name: Health
+    description: Health and monitoring endpoints
+
+paths:
+  # Enhanced Classification Endpoints
+  /classify:
+    post:
+      tags:
+        - Classification
+      summary: Enhanced single business classification
+      description: |
+        Perform enhanced business classification using intelligent routing system.
+        This endpoint automatically selects the best classification method based on
+        the business data and provides comprehensive results with 10+ data points.
+      operationId: classifyBusiness
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnhancedClassificationRequest'
+            examples:
+              basic_classification:
+                summary: Basic business classification
+                value:
+                  business_name: "Acme Corporation"
+                  website_url: "https://acme.com"
+                  description: "Technology consulting services"
+              comprehensive_classification:
+                summary: Comprehensive business classification
+                value:
+                  business_name: "TechCorp Solutions"
+                  website_url: "https://techcorp.com"
+                  description: "Software development and consulting"
+                  industry: "Technology"
+                  keywords: "software, development, consulting"
+                  geographic_region: "California, USA"
+      responses:
+        '200':
+          description: Classification completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnhancedClassificationResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /classify/batch:
+    post:
+      tags:
+        - Classification
+      summary: Enhanced batch business classification
+      description: |
+        Perform enhanced batch business classification using intelligent routing system.
+        Supports up to 100 businesses per request with parallel processing for optimal performance.
+      operationId: classifyBusinessBatch
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnhancedBatchClassificationRequest'
+            examples:
+              batch_classification:
+                summary: Batch business classification
+                value:
+                  requests:
+                    - business_name: "Acme Corporation"
+                      website_url: "https://acme.com"
+                    - business_name: "TechCorp Solutions"
+                      website_url: "https://techcorp.com"
+      responses:
+        '200':
+          description: Batch classification completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnhancedBatchClassificationResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+        '429':
+          description: Rate limit exceeded
+        '500':
+          description: Internal server error
+
+  # Business Intelligence Endpoints
+  /business-intelligence/enhanced-classify:
+    post:
+      tags:
+        - Business Intelligence
+      summary: Enhanced classification with business intelligence features
+      description: |
+        Perform enhanced classification with additional business intelligence features
+        including analytics, insights, and trend analysis.
+      operationId: enhancedClassifyWithBusinessIntelligence
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BusinessIntelligenceRequest'
+      responses:
+        '200':
+          description: Enhanced classification with business intelligence completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BusinessIntelligenceResponse'
+        '400':
+          description: Invalid request data
+        '401':
+          description: Unauthorized
+        '429':
+          description: Rate limit exceeded
+        '500':
+          description: Internal server error
+
+  /business-intelligence/batch-enhanced:
+    post:
+      tags:
+        - Business Intelligence
+      summary: Enhanced batch classification with business intelligence features
+      description: |
+        Perform enhanced batch classification with business intelligence features
+        including analytics, insights, and trend analysis for multiple businesses.
+      operationId: enhancedBatchClassifyWithBusinessIntelligence
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BusinessIntelligenceBatchRequest'
+      responses:
+        '200':
+          description: Enhanced batch classification with business intelligence completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BusinessIntelligenceBatchResponse'
+        '400':
+          description: Invalid request data
+        '401':
+          description: Unauthorized
+        '429':
+          description: Rate limit exceeded
+        '500':
+          description: Internal server error
+
+  /business-intelligence/analytics:
+    get:
+      tags:
+        - Business Intelligence
+      summary: Get business intelligence analytics
+      description: |
+        Retrieve comprehensive analytics and insights about classification performance,
+        trends, and system metrics.
+      operationId: getBusinessIntelligenceAnalytics
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: time_range
+          in: query
+          description: Time range for analytics (e.g., 1h, 24h, 7d, 30d)
+          required: false
+          schema:
+            type: string
+            default: "24h"
+        - name: metrics
+          in: query
+          description: Comma-separated list of metrics to include
+          required: false
+          schema:
+            type: string
+            default: "all"
+      responses:
+        '200':
+          description: Analytics data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsResponse'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+
+  /business-intelligence/insights:
+    get:
+      tags:
+        - Business Intelligence
+      summary: Get business intelligence insights
+      description: |
+        Retrieve business intelligence insights including trends, patterns,
+        and recommendations.
+      operationId: getBusinessIntelligenceInsights
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: insight_type
+          in: query
+          description: Type of insights to retrieve
+          required: false
+          schema:
+            type: string
+            enum: [trends, patterns, recommendations, all]
+            default: "all"
+        - name: limit
+          in: query
+          description: Maximum number of insights to return
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Insights retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsightsResponse'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+
+  # Routing System Endpoints
+  /routing/health:
+    get:
+      tags:
+        - Routing
+      summary: Get intelligent routing system health
+      description: |
+        Check the health status of the intelligent routing system including
+        module status, performance metrics, and system availability.
+      operationId: getRoutingHealth
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Routing system health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoutingHealthResponse'
+        '503':
+          description: Routing system unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /routing/metrics:
+    get:
+      tags:
+        - Routing
+      summary: Get intelligent routing system metrics
+      description: |
+        Retrieve performance metrics for the intelligent routing system including
+        request counts, response times, success rates, and module performance.
+      operationId: getRoutingMetrics
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: time_range
+          in: query
+          description: Time range for metrics (e.g., 1h, 24h, 7d, 30d)
+          required: false
+          schema:
+            type: string
+            default: "1h"
+      responses:
+        '200':
+          description: Routing metrics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoutingMetricsResponse'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: API key for authentication
+
+  schemas:
+    EnhancedClassificationRequest:
+      type: object
+      required:
+        - business_name
+      properties:
+        business_name:
+          type: string
+          description: Name of the business to classify
+          example: "Acme Corporation"
+          minLength: 1
+          maxLength: 255
+        website_url:
+          type: string
+          description: Business website URL
+          example: "https://acme.com"
+          format: uri
+        description:
+          type: string
+          description: Business description
+          example: "Technology consulting services"
+          maxLength: 1000
+        industry:
+          type: string
+          description: Known industry or sector
+          example: "Technology"
+          maxLength: 100
+        keywords:
+          type: string
+          description: Keywords related to the business
+          example: "software, development, consulting"
+          maxLength: 500
+        geographic_region:
+          type: string
+          description: Geographic region or location
+          example: "California, USA"
+          maxLength: 100
+        enhanced_features:
+          type: object
+          description: Enable specific enhanced features
+          properties:
+            include_company_size:
+              type: boolean
+              description: Include company size analysis
+              default: true
+            include_business_model:
+              type: boolean
+              description: Include business model analysis
+              default: true
+            include_technology_stack:
+              type: boolean
+              description: Include technology stack analysis
+              default: true
+            include_risk_assessment:
+              type: boolean
+              description: Include risk assessment
+              default: false
+
+    EnhancedClassificationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique classification ID
+          example: "class_1234567890"
+        business_name:
+          type: string
+          description: Business name
+          example: "Acme Corporation"
+        status:
+          type: string
+          enum: [pending, completed, failed, error]
+          description: Classification status
+          example: "completed"
+        classifications:
+          type: array
+          items:
+            $ref: '#/components/schemas/IndustryClassification'
+          description: Industry classifications
+        company_size:
+          $ref: '#/components/schemas/CompanySize'
+        business_model:
+          $ref: '#/components/schemas/BusinessModel'
+        technology_stack:
+          $ref: '#/components/schemas/TechnologyStack'
+        risk_assessment:
+          $ref: '#/components/schemas/RiskAssessment'
+        metadata:
+          $ref: '#/components/schemas/ClassificationMetadata'
+        created_at:
+          type: string
+          format: date-time
+          description: Classification creation timestamp
+          example: "2024-12-19T10:30:00Z"
+
+    IndustryClassification:
+      type: object
+      properties:
+        industry_code:
+          type: string
+          description: Industry classification code
+          example: "541511"
+        industry_name:
+          type: string
+          description: Industry name
+          example: "Custom Computer Programming Services"
+        confidence_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Confidence score for this classification
+          example: 0.95
+        classification_type:
+          type: string
+          enum: [NAICS, SIC, MCC]
+          description: Type of industry classification
+          example: "NAICS"
+
+    CompanySize:
+      type: object
+      properties:
+        employee_count_range:
+          type: string
+          enum: [1-10, 11-50, 51-200, 201-500, 501-1000, 1000+]
+          description: Estimated employee count range
+          example: "51-200"
+        revenue_indicator:
+          type: string
+          enum: [startup, small_business, medium_business, large_business]
+          description: Revenue size indicator
+          example: "medium_business"
+        office_locations_count:
+          type: integer
+          minimum: 0
+          description: Number of office locations
+          example: 3
+        confidence_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Confidence score for size estimation
+          example: 0.85
+
+    BusinessModel:
+      type: object
+      properties:
+        model_type:
+          type: string
+          enum: [B2B, B2C, B2B2C, Marketplace, SaaS, Freemium, Subscription, OneTime]
+          description: Business model type
+          example: "B2B"
+        revenue_model:
+          type: string
+          description: Primary revenue model
+          example: "subscription"
+        target_market:
+          type: string
+          description: Target market description
+          example: "Enterprise technology companies"
+        pricing_model:
+          type: string
+          description: Pricing model description
+          example: "Tiered subscription pricing"
+        confidence_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Confidence score for business model analysis
+          example: 0.90
+
+    TechnologyStack:
+      type: object
+      properties:
+        programming_languages:
+          type: array
+          items:
+            type: string
+          description: Programming languages used
+          example: ["JavaScript", "Python", "Go"]
+        frameworks:
+          type: array
+          items:
+            type: string
+          description: Frameworks and libraries used
+          example: ["React", "Node.js", "Django"]
+        cloud_platforms:
+          type: array
+          items:
+            type: string
+          description: Cloud platforms used
+          example: ["AWS", "Google Cloud"]
+        third_party_services:
+          type: array
+          items:
+            type: string
+          description: Third-party services and integrations
+          example: ["Stripe", "SendGrid", "MongoDB"]
+        development_tools:
+          type: array
+          items:
+            type: string
+          description: Development tools and platforms
+          example: ["GitHub", "Docker", "Kubernetes"]
+        confidence_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Confidence score for technology stack analysis
+          example: 0.88
+
+    RiskAssessment:
+      type: object
+      properties:
+        overall_risk:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+          description: Overall risk level
+          example: "LOW"
+        security_risk:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+          description: Security risk level
+          example: "LOW"
+        financial_risk:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+          description: Financial risk level
+          example: "MEDIUM"
+        compliance_risk:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+          description: Compliance risk level
+          example: "LOW"
+        risk_factors:
+          type: array
+          items:
+            type: string
+          description: Identified risk factors
+          example: ["Limited financial history", "New market entry"]
+
+    ClassificationMetadata:
+      type: object
+      properties:
+        processing_time:
+          type: string
+          description: Total processing time
+          example: "1.2s"
+        strategies_used:
+          type: array
+          items:
+            type: string
+          description: Classification strategies used
+          example: ["intelligent_routing", "ml_classification", "keyword_analysis"]
+        cache_hit:
+          type: boolean
+          description: Whether result was served from cache
+          example: false
+        intelligent_routing_method:
+          type: string
+          description: Method selected by intelligent routing
+          example: "ml_classification"
+        data_points_extracted:
+          type: integer
+          description: Number of data points extracted
+          example: 12
+
+    EnhancedBatchClassificationRequest:
+      type: object
+      required:
+        - requests
+      properties:
+        requests:
+          type: array
+          items:
+            $ref: '#/components/schemas/EnhancedClassificationRequest'
+          description: Array of business classification requests
+          minItems: 1
+          maxItems: 100
+
+    EnhancedBatchClassificationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Batch request ID
+          example: "batch_1234567890"
+        status:
+          type: string
+          enum: [pending, completed, failed, partial]
+          description: Batch processing status
+          example: "completed"
+        responses:
+          type: array
+          items:
+            $ref: '#/components/schemas/EnhancedClassificationResponse'
+          description: Successful classification responses
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/BatchError'
+          description: Errors for failed classifications
+        metadata:
+          $ref: '#/components/schemas/BatchMetadata'
+        created_at:
+          type: string
+          format: date-time
+          description: Batch creation timestamp
+        completed_at:
+          type: string
+          format: date-time
+          description: Batch completion timestamp
+
+    BatchError:
+      type: object
+      properties:
+        index:
+          type: integer
+          description: Index of the failed request
+          example: 2
+        error:
+          type: string
+          description: Error message
+          example: "Invalid business name provided"
+        code:
+          type: string
+          description: Error code
+          example: "VALIDATION_ERROR"
+
+    BatchMetadata:
+      type: object
+      properties:
+        total_requests:
+          type: integer
+          description: Total number of requests
+          example: 10
+        successful_count:
+          type: integer
+          description: Number of successful classifications
+          example: 8
+        error_count:
+          type: integer
+          description: Number of failed classifications
+          example: 2
+        processing_time:
+          type: string
+          description: Total processing time
+          example: "5.2s"
+        parallel_processing:
+          type: boolean
+          description: Whether parallel processing was used
+          example: true
+
+    BusinessIntelligenceRequest:
+      allOf:
+        - $ref: '#/components/schemas/EnhancedClassificationRequest'
+        - type: object
+          properties:
+            include_analytics:
+              type: boolean
+              description: Include analytics data
+              default: true
+            include_insights:
+              type: boolean
+              description: Include business insights
+              default: true
+            include_trends:
+              type: boolean
+              description: Include trend analysis
+              default: true
+
+    BusinessIntelligenceResponse:
+      allOf:
+        - $ref: '#/components/schemas/EnhancedClassificationResponse'
+        - type: object
+          properties:
+            analytics:
+              $ref: '#/components/schemas/AnalyticsData'
+            insights:
+              $ref: '#/components/schemas/InsightsData'
+            trends:
+              $ref: '#/components/schemas/TrendsData'
+
+    BusinessIntelligenceBatchRequest:
+      type: object
+      required:
+        - requests
+      properties:
+        requests:
+          type: array
+          items:
+            $ref: '#/components/schemas/BusinessIntelligenceRequest'
+          description: Array of business intelligence requests
+          minItems: 1
+          maxItems: 100
+
+    BusinessIntelligenceBatchResponse:
+      allOf:
+        - $ref: '#/components/schemas/EnhancedBatchClassificationResponse'
+        - type: object
+          properties:
+            batch_analytics:
+              $ref: '#/components/schemas/BatchAnalyticsData'
+            batch_insights:
+              $ref: '#/components/schemas/BatchInsightsData'
+
+    AnalyticsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Request success status
+          example: true
+        analytics:
+          $ref: '#/components/schemas/AnalyticsData'
+        message:
+          type: string
+          description: Response message
+          example: "Analytics data retrieved successfully"
+
+    AnalyticsData:
+      type: object
+      properties:
+        total_classifications:
+          type: integer
+          description: Total number of classifications
+          example: 1500
+        average_confidence:
+          type: number
+          format: float
+          description: Average confidence score
+          example: 0.87
+        processing_time_avg:
+          type: string
+          description: Average processing time
+          example: "1.2s"
+        success_rate:
+          type: number
+          format: float
+          description: Success rate percentage
+          example: 0.95
+        top_industries:
+          type: array
+          items:
+            type: object
+            properties:
+              industry:
+                type: string
+                description: Industry name
+              count:
+                type: integer
+                description: Number of classifications
+          description: Top industries by classification count
+
+    InsightsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Request success status
+          example: true
+        insights:
+          $ref: '#/components/schemas/InsightsData'
+        message:
+          type: string
+          description: Response message
+          example: "Insights retrieved successfully"
+
+    InsightsData:
+      type: object
+      properties:
+        trends:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrendData'
+          description: Identified trends
+        patterns:
+          type: array
+          items:
+            $ref: '#/components/schemas/PatternData'
+          description: Identified patterns
+        recommendations:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecommendationData'
+          description: Business recommendations
+
+    TrendData:
+      type: object
+      properties:
+        trend_type:
+          type: string
+          description: Type of trend
+          example: "industry_growth"
+        description:
+          type: string
+          description: Trend description
+          example: "Technology sector showing 15% growth"
+        confidence:
+          type: number
+          format: float
+          description: Confidence in trend
+          example: 0.85
+        timeframe:
+          type: string
+          description: Trend timeframe
+          example: "30 days"
+
+    PatternData:
+      type: object
+      properties:
+        pattern_type:
+          type: string
+          description: Type of pattern
+          example: "classification_accuracy"
+        description:
+          type: string
+          description: Pattern description
+          example: "Higher accuracy for technology companies"
+        significance:
+          type: number
+          format: float
+          description: Pattern significance
+          example: 0.92
+
+    RecommendationData:
+      type: object
+      properties:
+        recommendation_type:
+          type: string
+          description: Type of recommendation
+          example: "model_optimization"
+        description:
+          type: string
+          description: Recommendation description
+          example: "Consider retraining model for healthcare sector"
+        priority:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+          description: Recommendation priority
+          example: "MEDIUM"
+
+    BatchAnalyticsData:
+      type: object
+      properties:
+        batch_processing_efficiency:
+          type: number
+          format: float
+          description: Batch processing efficiency
+          example: 0.95
+        parallel_processing_benefit:
+          type: number
+          format: float
+          description: Performance improvement from parallel processing
+          example: 0.80
+        resource_utilization:
+          type: object
+          properties:
+            cpu_usage:
+              type: number
+              format: float
+              description: CPU utilization percentage
+              example: 0.65
+            memory_usage:
+              type: number
+              format: float
+              description: Memory utilization percentage
+              example: 0.45
+
+    BatchInsightsData:
+      type: object
+      properties:
+        batch_patterns:
+          type: array
+          items:
+            $ref: '#/components/schemas/PatternData'
+          description: Patterns identified in batch processing
+        optimization_suggestions:
+          type: array
+          items:
+            type: string
+          description: Suggestions for batch processing optimization
+          example: ["Increase batch size for better efficiency", "Optimize parallel processing"]
+
+    RoutingHealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          description: Overall health status
+          example: "healthy"
+        timestamp:
+          type: string
+          format: date-time
+          description: Health check timestamp
+          example: "2024-12-19T10:30:00Z"
+        router_id:
+          type: string
+          description: Router identifier
+          example: "intelligent_routing_system"
+        version:
+          type: string
+          description: Router version
+          example: "1.0.0"
+        uptime:
+          type: string
+          description: System uptime
+          example: "24h 30m 15s"
+        active_requests:
+          type: integer
+          description: Number of active requests
+          example: 5
+        modules:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                description: Module name
+              status:
+                type: string
+                enum: [healthy, degraded, unhealthy]
+                description: Module health status
+              response_time:
+                type: string
+                description: Module response time
+          description: Health status of individual modules
+
+    RoutingMetricsResponse:
+      type: object
+      properties:
+        total_requests:
+          type: integer
+          description: Total number of requests
+          example: 1500
+        successful_requests:
+          type: integer
+          description: Number of successful requests
+          example: 1425
+        failed_requests:
+          type: integer
+          description: Number of failed requests
+          example: 75
+        average_response_time:
+          type: string
+          description: Average response time
+          example: "1.2s"
+        requests_per_minute:
+          type: number
+          format: float
+          description: Requests per minute
+          example: 25.5
+        module_performance:
+          type: array
+          items:
+            type: object
+            properties:
+              module_name:
+                type: string
+                description: Module name
+              request_count:
+                type: integer
+                description: Number of requests routed to this module
+              success_rate:
+                type: number
+                format: float
+                description: Success rate for this module
+              average_response_time:
+                type: string
+                description: Average response time for this module
+          description: Performance metrics for individual modules
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: Error code
+              example: "VALIDATION_ERROR"
+            message:
+              type: string
+              description: Error message
+              example: "Invalid business name provided"
+            details:
+              type: object
+              description: Additional error details
+            request_id:
+              type: string
+              description: Request ID for tracking
+              example: "req_1234567890"
+            timestamp:
+              type: string
+              format: date-time
+              description: Error timestamp
+              example: "2024-12-19T10:30:00Z"

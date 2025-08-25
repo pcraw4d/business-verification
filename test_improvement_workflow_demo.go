@@ -48,7 +48,7 @@ func main() {
 
 	// Test A/B testing
 	fmt.Println("\nStarting A/B testing workflow...")
-	
+
 	// Register second algorithm
 	algorithmB := &classification_optimization.ClassificationAlgorithm{
 		ID:                  "algorithm-b",

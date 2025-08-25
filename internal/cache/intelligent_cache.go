@@ -2,833 +2,1213 @@ package cache
 
 import (
 	"context"
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
 	"sync"
 	"time"
 
-	"go.uber.org/zap"
+	"github.com/pcraw4d/business-verification/internal/observability"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
-// IntelligentCache provides a multi-level caching system with intelligent cache management
+// IntelligentCache provides multi-level caching with intelligent optimization
 type IntelligentCache struct {
-	// Cache layers
-	memoryCache *MemoryCacheImpl
-	diskCache   *DiskCache
-	redisCache  interface{} // Will be properly typed when Redis is implemented
-
 	// Configuration
-	config CacheConfig
+	config *CacheConfig
 
-	// Cache statistics and monitoring
-	stats     *CacheStats
-	statsLock sync.RWMutex
+	// Observability
+	logger *observability.Logger
+	tracer trace.Tracer
 
-	// Cache key management
-	keyManager *CacheKeyManager
+	// Cache levels
+	memoryCache      *MemoryCache
+	diskCache        *DiskCache
+	distributedCache *DistributedCache
 
-	// Cache invalidation
-	invalidationManager *CacheInvalidationManager
+	// Cache management
+	manager    *CacheManager
+	managerMux sync.RWMutex
 
 	// Performance monitoring
-	performanceMonitor *CachePerformanceMonitor
+	monitor    *CacheMonitor
+	monitorMux sync.RWMutex
 
-	// Logging
-	logger *zap.Logger
+	// Warming and optimization
+	warmer    *CacheWarmer
+	warmerMux sync.RWMutex
 
-	// Control channels
-	stopChannel chan struct{}
+	// Context for shutdown
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
-// CacheConfig holds configuration for the intelligent cache system
+// CacheConfig configuration for intelligent caching
 type CacheConfig struct {
-	// Cache layer settings
-	EnableMemoryCache bool `json:"enable_memory_cache"`
-	EnableDiskCache   bool `json:"enable_disk_cache"`
-	EnableRedisCache  bool `json:"enable_redis_cache"`
-
 	// Memory cache settings
-	MemoryCacheSize   int           `json:"memory_cache_size"`   // Number of items
-	MemoryCacheTTL    time.Duration `json:"memory_cache_ttl"`    // Time to live
-	MemoryCachePolicy string        `json:"memory_cache_policy"` // LRU, LFU, FIFO
+	MemoryCacheSize      int
+	MemoryCacheTTL       time.Duration
+	MemoryEvictionPolicy string
 
 	// Disk cache settings
-	DiskCachePath string        `json:"disk_cache_path"` // Cache directory
-	DiskCacheSize int64         `json:"disk_cache_size"` // Max size in bytes
-	DiskCacheTTL  time.Duration `json:"disk_cache_ttl"`  // Time to live
+	DiskCacheEnabled bool
+	DiskCachePath    string
+	DiskCacheSize    int64
+	DiskCacheTTL     time.Duration
+	DiskCompression  bool
 
-	// Redis cache settings
-	RedisAddr     string        `json:"redis_addr"`      // Redis server address
-	RedisPassword string        `json:"redis_password"`  // Redis password
-	RedisDB       int           `json:"redis_db"`        // Redis database
-	RedisTTL      time.Duration `json:"redis_ttl"`       // Time to live
-	RedisPoolSize int           `json:"redis_pool_size"` // Connection pool size
+	// Distributed cache settings
+	DistributedCacheEnabled bool
+	DistributedCacheURL     string
+	DistributedCacheTTL     time.Duration
+	DistributedCachePool    int
 
-	// Cache key settings
-	KeyPrefix        string `json:"key_prefix"`         // Key prefix
-	KeySeparator     string `json:"key_separator"`      // Key separator
-	KeyHashAlgorithm string `json:"key_hash_algorithm"` // MD5, FNV, SHA256
-
-	// Invalidation settings
-	EnableAutoInvalidation bool          `json:"enable_auto_invalidation"`
-	InvalidationInterval   time.Duration `json:"invalidation_interval"`
-	InvalidationBatchSize  int           `json:"invalidation_batch_size"`
+	// Cache warming settings
+	WarmingEnabled   bool
+	WarmingInterval  time.Duration
+	WarmingBatchSize int
+	WarmingStrategy  string
 
 	// Performance settings
-	EnableCompression    bool          `json:"enable_compression"`
-	CompressionThreshold int           `json:"compression_threshold"` // Min size for compression
-	EnableMetrics        bool          `json:"enable_metrics"`
-	MetricsInterval      time.Duration `json:"metrics_interval"`
+	PerformanceMonitoring bool
+	PerformanceInterval   time.Duration
+	HitRateThreshold      float64
+	OptimizationInterval  time.Duration
 
-	// Advanced settings
-	EnableCacheWarming    bool          `json:"enable_cache_warming"`
-	WarmingInterval       time.Duration `json:"warming_interval"`
-	EnablePredictiveCache bool          `json:"enable_predictive_cache"`
-	PredictiveWindow      time.Duration `json:"predictive_window"`
-
-	// Security settings
-	EnableEncryption    bool          `json:"enable_encryption"`
-	EncryptionKey       string        `json:"encryption_key"`
-	EnableKeyRotation   bool          `json:"enable_key_rotation"`
-	KeyRotationInterval time.Duration `json:"key_rotation_interval"`
+	// Invalidation settings
+	InvalidationStrategy  string
+	InvalidationBatchSize int
+	InvalidationTimeout   time.Duration
+	InvalidationCooldown  time.Duration
 }
 
-// CacheStats holds cache performance statistics
-type CacheStats struct {
-	// Hit rates
-	MemoryHitRate  float64 `json:"memory_hit_rate"`
-	DiskHitRate    float64 `json:"disk_hit_rate"`
-	RedisHitRate   float64 `json:"redis_hit_rate"`
-	OverallHitRate float64 `json:"overall_hit_rate"`
-
-	// Request counts
-	MemoryRequests int64 `json:"memory_requests"`
-	DiskRequests   int64 `json:"disk_requests"`
-	RedisRequests  int64 `json:"redis_requests"`
-	TotalRequests  int64 `json:"total_requests"`
-
-	// Cache sizes
-	MemorySize int64 `json:"memory_size"`
-	DiskSize   int64 `json:"disk_size"`
-	RedisSize  int64 `json:"redis_size"`
-	TotalSize  int64 `json:"total_size"`
-
-	// Performance metrics
-	AverageLatency time.Duration `json:"average_latency"`
-	MaxLatency     time.Duration `json:"max_latency"`
-	MinLatency     time.Duration `json:"min_latency"`
-
-	// Error rates
-	MemoryErrors int64 `json:"memory_errors"`
-	DiskErrors   int64 `json:"disk_errors"`
-	RedisErrors  int64 `json:"redis_errors"`
-	TotalErrors  int64 `json:"total_errors"`
-
-	// Invalidation stats
-	Invalidations int64 `json:"invalidations"`
-	Evictions     int64 `json:"evictions"`
-
-	// Last updated
-	LastUpdated time.Time `json:"last_updated"`
+// MemoryCache provides in-memory caching
+type MemoryCache struct {
+	Data           map[string]*CacheEntry
+	Size           int
+	TTL            time.Duration
+	EvictionPolicy string
+	AccessOrder    []string
+	Mux            sync.RWMutex
 }
 
-// CacheItem represents a cached item with metadata
-type CacheItem struct {
-	Key         string      `json:"key"`
-	Value       interface{} `json:"value"`
-	CreatedAt   time.Time   `json:"created_at"`
-	ExpiresAt   time.Time   `json:"expires_at"`
-	AccessedAt  time.Time   `json:"accessed_at"`
-	AccessCount int64       `json:"access_count"`
-	Size        int64       `json:"size"`
-	Compressed  bool        `json:"compressed"`
-	Encrypted   bool        `json:"encrypted"`
-	Tags        []string    `json:"tags"`
-	Priority    int         `json:"priority"` // Higher priority = more important
+// DiskCache provides disk-based caching
+type DiskCache struct {
+	Path        string
+	Size        int64
+	TTL         time.Duration
+	Compression bool
+	Index       map[string]*DiskEntry
+	Mux         sync.RWMutex
 }
 
-// CacheResult represents the result of a cache operation
-type CacheResult struct {
-	Found      bool          `json:"found"`
-	Value      interface{}   `json:"value"`
-	Source     string        `json:"source"` // memory, disk, redis
-	Latency    time.Duration `json:"latency"`
-	Compressed bool          `json:"compressed"`
-	Encrypted  bool          `json:"encrypted"`
-	ExpiresAt  time.Time     `json:"expires_at"`
-	Size       int64         `json:"size"`
+// DistributedCache provides distributed caching
+type DistributedCache struct {
+	URL         string
+	TTL         time.Duration
+	Pool        int
+	Connections map[string]*DistributedConnection
+	Mux         sync.RWMutex
 }
 
-// NewIntelligentCache creates a new intelligent cache system
-func NewIntelligentCache(config CacheConfig, logger *zap.Logger) (*IntelligentCache, error) {
-	// Set default values
-	if config.KeySeparator == "" {
-		config.KeySeparator = ":"
+// CacheEntry represents a cache entry
+type CacheEntry struct {
+	Key          string
+	Value        interface{}
+	CreatedAt    time.Time
+	ExpiresAt    time.Time
+	LastAccessed time.Time
+	AccessCount  int64
+	Size         int64
+	Compressed   bool
+	Metadata     map[string]interface{}
+}
+
+// DiskEntry represents a disk cache entry
+type DiskEntry struct {
+	Key          string
+	FilePath     string
+	Size         int64
+	CreatedAt    time.Time
+	ExpiresAt    time.Time
+	LastAccessed time.Time
+	AccessCount  int64
+	Compressed   bool
+	Checksum     string
+}
+
+// DistributedConnection represents a distributed cache connection
+type DistributedConnection struct {
+	ID         string
+	URL        string
+	Connected  bool
+	LastPing   time.Time
+	Latency    time.Duration
+	ErrorCount int
+}
+
+// CacheManager manages cache operations
+type CacheManager struct {
+	Strategy         string
+	Invalidations    map[string]*InvalidationInfo
+	Optimizations    map[string]*OptimizationInfo
+	LastOptimization time.Time
+	Mux              sync.RWMutex
+}
+
+// InvalidationInfo represents cache invalidation information
+type InvalidationInfo struct {
+	Pattern           string
+	LastInvalidated   time.Time
+	InvalidationCount int64
+	AffectedKeys      []string
+}
+
+// OptimizationInfo represents cache optimization information
+type OptimizationInfo struct {
+	Type              string
+	LastOptimized     time.Time
+	OptimizationCount int64
+	Improvement       float64
+}
+
+// CacheMonitor monitors cache performance
+type CacheMonitor struct {
+	Metrics    *CacheMetrics
+	Alerts     []*CacheAlert
+	Thresholds map[string]float64
+	LastAlert  time.Time
+	Mux        sync.RWMutex
+}
+
+// CacheMetrics represents cache performance metrics
+type CacheMetrics struct {
+	MemoryHits        int64
+	MemoryMisses      int64
+	DiskHits          int64
+	DiskMisses        int64
+	DistributedHits   int64
+	DistributedMisses int64
+	TotalHits         int64
+	TotalMisses       int64
+	HitRate           float64
+	MemoryUsage       int64
+	DiskUsage         int64
+	AverageLatency    time.Duration
+	Evictions         int64
+	Invalidations     int64
+	LastUpdate        time.Time
+}
+
+// CacheAlert represents a cache alert
+type CacheAlert struct {
+	ID           string
+	Type         string
+	Severity     string
+	Message      string
+	Metric       string
+	Value        float64
+	Threshold    float64
+	Timestamp    time.Time
+	Acknowledged bool
+}
+
+// CacheWarmer manages cache warming
+type CacheWarmer struct {
+	Strategy     string
+	WarmingQueue []*WarmingTask
+	WarmingStats map[string]*WarmingStats
+	LastWarming  time.Time
+	Mux          sync.RWMutex
+}
+
+// WarmingTask represents a cache warming task
+type WarmingTask struct {
+	ID          string
+	Key         string
+	Priority    int
+	CreatedAt   time.Time
+	Attempts    int
+	MaxAttempts int
+	LastAttempt time.Time
+}
+
+// WarmingStats represents warming statistics
+type WarmingStats struct {
+	TotalWarmed     int64
+	SuccessfulWarms int64
+	FailedWarms     int64
+	AverageWarmTime time.Duration
+	LastWarmed      time.Time
+}
+
+// NewIntelligentCache creates a new intelligent cache
+func NewIntelligentCache(config *CacheConfig, logger *observability.Logger, tracer trace.Tracer) *IntelligentCache {
+	if config == nil {
+		config = &CacheConfig{
+			MemoryCacheSize:         1000,
+			MemoryCacheTTL:          30 * time.Minute,
+			MemoryEvictionPolicy:    "lru",
+			DiskCacheEnabled:        true,
+			DiskCachePath:           "./cache",
+			DiskCacheSize:           100 * 1024 * 1024, // 100MB
+			DiskCacheTTL:            2 * time.Hour,
+			DiskCompression:         true,
+			DistributedCacheEnabled: false,
+			DistributedCacheURL:     "",
+			DistributedCacheTTL:     1 * time.Hour,
+			DistributedCachePool:    10,
+			WarmingEnabled:          true,
+			WarmingInterval:         5 * time.Minute,
+			WarmingBatchSize:        100,
+			WarmingStrategy:         "frequent",
+			PerformanceMonitoring:   true,
+			PerformanceInterval:     30 * time.Second,
+			HitRateThreshold:        0.8,
+			OptimizationInterval:    10 * time.Minute,
+			InvalidationStrategy:    "pattern",
+			InvalidationBatchSize:   100,
+			InvalidationTimeout:     30 * time.Second,
+			InvalidationCooldown:    1 * time.Minute,
+		}
 	}
-	if config.KeyHashAlgorithm == "" {
-		config.KeyHashAlgorithm = "MD5"
-	}
-	if config.MemoryCachePolicy == "" {
-		config.MemoryCachePolicy = "LRU"
-	}
-	if config.InvalidationInterval == 0 {
-		config.InvalidationInterval = 5 * time.Minute
-	}
-	if config.MetricsInterval == 0 {
-		config.MetricsInterval = 1 * time.Minute
-	}
-	if config.WarmingInterval == 0 {
-		config.WarmingInterval = 10 * time.Minute
-	}
-	if config.PredictiveWindow == 0 {
-		config.PredictiveWindow = 1 * time.Hour
-	}
-	if config.KeyRotationInterval == 0 {
-		config.KeyRotationInterval = 24 * time.Hour
-	}
+
+	ctx, cancel := context.WithCancel(context.Background())
 
 	ic := &IntelligentCache{
-		config:      config,
-		stats:       &CacheStats{},
-		logger:      logger,
-		stopChannel: make(chan struct{}),
+		config: config,
+		logger: logger,
+		tracer: tracer,
+		ctx:    ctx,
+		cancel: cancel,
 	}
 
-	// Initialize cache layers
-	if err := ic.initializeCacheLayers(); err != nil {
-		return nil, fmt.Errorf("failed to initialize cache layers: %w", err)
+	// Initialize cache levels
+	ic.memoryCache = &MemoryCache{
+		Data:           make(map[string]*CacheEntry),
+		Size:           config.MemoryCacheSize,
+		TTL:            config.MemoryCacheTTL,
+		EvictionPolicy: config.MemoryEvictionPolicy,
+		AccessOrder:    make([]string, 0),
 	}
 
-	// Initialize managers
-	ic.keyManager = NewCacheKeyManager(config, logger)
-	ic.invalidationManager = NewCacheInvalidationManager(config, logger)
-	ic.performanceMonitor = NewCachePerformanceMonitor(config, logger)
+	if config.DiskCacheEnabled {
+		ic.diskCache = &DiskCache{
+			Path:        config.DiskCachePath,
+			Size:        config.DiskCacheSize,
+			TTL:         config.DiskCacheTTL,
+			Compression: config.DiskCompression,
+			Index:       make(map[string]*DiskEntry),
+		}
+		ic.initializeDiskCache()
+	}
 
-	return ic, nil
+	if config.DistributedCacheEnabled {
+		ic.distributedCache = &DistributedCache{
+			URL:         config.DistributedCacheURL,
+			TTL:         config.DistributedCacheTTL,
+			Pool:        config.DistributedCachePool,
+			Connections: make(map[string]*DistributedConnection),
+		}
+		ic.initializeDistributedCache()
+	}
+
+	// Initialize cache manager
+	ic.manager = &CacheManager{
+		Strategy:      config.InvalidationStrategy,
+		Invalidations: make(map[string]*InvalidationInfo),
+		Optimizations: make(map[string]*OptimizationInfo),
+	}
+
+	// Initialize cache monitor
+	ic.monitor = &CacheMonitor{
+		Metrics:    &CacheMetrics{},
+		Alerts:     make([]*CacheAlert, 0),
+		Thresholds: make(map[string]float64),
+	}
+	ic.monitor.Thresholds["hit_rate"] = config.HitRateThreshold
+	ic.monitor.Thresholds["memory_usage"] = 0.9
+	ic.monitor.Thresholds["disk_usage"] = 0.9
+
+	// Initialize cache warmer
+	ic.warmer = &CacheWarmer{
+		Strategy:     config.WarmingStrategy,
+		WarmingQueue: make([]*WarmingTask, 0),
+		WarmingStats: make(map[string]*WarmingStats),
+	}
+
+	// Start background workers
+	ic.startBackgroundWorkers()
+
+	return ic
 }
 
-// Start starts the intelligent cache system
-func (ic *IntelligentCache) Start(ctx context.Context) error {
-	ic.logger.Info("Starting intelligent cache system")
+// startBackgroundWorkers starts background cache management workers
+func (ic *IntelligentCache) startBackgroundWorkers() {
+	// Performance monitoring worker
+	go ic.performanceMonitoringWorker()
 
-	// Start cache warming if enabled
-	if ic.config.EnableCacheWarming {
-		go ic.startCacheWarming(ctx)
-	}
+	// Cache warming worker
+	go ic.cacheWarmingWorker()
 
-	// Start predictive caching if enabled
-	if ic.config.EnablePredictiveCache {
-		go ic.startPredictiveCaching(ctx)
-	}
+	// Cache optimization worker
+	go ic.cacheOptimizationWorker()
 
-	// Start metrics collection if enabled
-	if ic.config.EnableMetrics {
-		go ic.startMetricsCollection(ctx)
-	}
+	// Cache cleanup worker
+	go ic.cacheCleanupWorker()
 
-	// Start cache invalidation if enabled
-	if ic.config.EnableAutoInvalidation {
-		go ic.startCacheInvalidation(ctx)
-	}
-
-	// Start key rotation if enabled
-	if ic.config.EnableKeyRotation {
-		go ic.startKeyRotation(ctx)
-	}
-
-	ic.logger.Info("Intelligent cache system started successfully")
-	return nil
+	// Cache invalidation worker
+	go ic.cacheInvalidationWorker()
 }
 
-// Stop stops the intelligent cache system
-func (ic *IntelligentCache) Stop() {
-	ic.logger.Info("Stopping intelligent cache system")
-	close(ic.stopChannel)
-}
+// performanceMonitoringWorker monitors cache performance
+func (ic *IntelligentCache) performanceMonitoringWorker() {
+	ticker := time.NewTicker(ic.config.PerformanceInterval)
+	defer ticker.Stop()
 
-// Get retrieves a value from the cache using multi-level lookup
-func (ic *IntelligentCache) Get(ctx context.Context, key string) (*CacheResult, error) {
-	start := time.Now()
-
-	// Generate cache key
-	cacheKey := ic.keyManager.GenerateKey(key)
-
-	// Track request
-	ic.incrementRequest("total")
-
-	// Try memory cache first (fastest)
-	if ic.config.EnableMemoryCache && ic.memoryCache != nil {
-		if result, found := ic.memoryCache.Get(ctx, cacheKey); found {
-			ic.incrementRequest("memory")
-			ic.updateHitRate("memory", true)
-			return &CacheResult{
-				Found:      true,
-				Value:      result.Value,
-				Source:     "memory",
-				Latency:    time.Since(start),
-				Compressed: result.Compressed,
-				Encrypted:  result.Encrypted,
-				ExpiresAt:  result.ExpiresAt,
-				Size:       result.Size,
-			}, nil
+	for {
+		select {
+		case <-ic.ctx.Done():
+			return
+		case <-ticker.C:
+			ic.updatePerformanceMetrics()
 		}
-		ic.updateHitRate("memory", false)
-	}
-
-	// Try disk cache second
-	if ic.config.EnableDiskCache && ic.diskCache != nil {
-		if result, found := ic.diskCache.Get(ctx, cacheKey); found {
-			ic.incrementRequest("disk")
-			ic.updateHitRate("disk", true)
-
-			// Populate memory cache for future requests
-			if ic.config.EnableMemoryCache && ic.memoryCache != nil {
-				go func() {
-					ic.memoryCache.Set(ctx, cacheKey, result.Value, result.ExpiresAt)
-				}()
-			}
-
-			return &CacheResult{
-				Found:      true,
-				Value:      result.Value,
-				Source:     "disk",
-				Latency:    time.Since(start),
-				Compressed: result.Compressed,
-				Encrypted:  result.Encrypted,
-				ExpiresAt:  result.ExpiresAt,
-				Size:       result.Size,
-			}, nil
-		}
-		ic.updateHitRate("disk", false)
-	}
-
-	// Try Redis cache last
-	if ic.config.EnableRedisCache && ic.redisCache != nil {
-		if result, found := ic.redisCache.Get(ctx, cacheKey); found {
-			ic.incrementRequest("redis")
-			ic.updateHitRate("redis", true)
-
-			// Populate faster cache layers for future requests
-			go func() {
-				if ic.config.EnableMemoryCache && ic.memoryCache != nil {
-					ic.memoryCache.Set(ctx, cacheKey, result.Value, result.ExpiresAt)
-				}
-				if ic.config.EnableDiskCache && ic.diskCache != nil {
-					ic.diskCache.Set(ctx, cacheKey, result.Value, result.ExpiresAt)
-				}
-			}()
-
-			return &CacheResult{
-				Found:      true,
-				Value:      result.Value,
-				Source:     "redis",
-				Latency:    time.Since(start),
-				Compressed: result.Compressed,
-				Encrypted:  result.Encrypted,
-				ExpiresAt:  result.ExpiresAt,
-				Size:       result.Size,
-			}, nil
-		}
-		ic.updateHitRate("redis", false)
-	}
-
-	// Cache miss
-	ic.updateHitRate("overall", false)
-	return &CacheResult{
-		Found:   false,
-		Latency: time.Since(start),
-	}, nil
-}
-
-// Set stores a value in the cache across all enabled layers
-func (ic *IntelligentCache) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
-	// Generate cache key
-	cacheKey := ic.keyManager.GenerateKey(key)
-
-	// Calculate expiration time
-	expiresAt := time.Now().Add(ttl)
-
-	// Prepare cache item
-	item := &CacheItem{
-		Key:         cacheKey,
-		Value:       value,
-		CreatedAt:   time.Now(),
-		ExpiresAt:   expiresAt,
-		AccessedAt:  time.Now(),
-		AccessCount: 1,
-		Size:        ic.calculateSize(value),
-		Compressed:  ic.shouldCompress(value),
-		Encrypted:   ic.config.EnableEncryption,
-		Tags:        ic.extractTags(key),
-		Priority:    ic.calculatePriority(key),
-	}
-
-	// Compress if needed
-	if item.Compressed {
-		if compressed, err := ic.compressValue(value); err == nil {
-			item.Value = compressed
-		}
-	}
-
-	// Encrypt if needed
-	if item.Encrypted {
-		if encrypted, err := ic.encryptValue(item.Value); err == nil {
-			item.Value = encrypted
-		}
-	}
-
-	// Store in all enabled cache layers
-	var errors []error
-
-	// Memory cache (fastest)
-	if ic.config.EnableMemoryCache && ic.memoryCache != nil {
-		if err := ic.memoryCache.Set(ctx, cacheKey, item.Value, expiresAt); err != nil {
-			errors = append(errors, fmt.Errorf("memory cache set failed: %w", err))
-			ic.incrementError("memory")
-		}
-	}
-
-	// Disk cache (medium speed)
-	if ic.config.EnableDiskCache && ic.diskCache != nil {
-		if err := ic.diskCache.Set(ctx, cacheKey, item.Value, expiresAt); err != nil {
-			errors = append(errors, fmt.Errorf("disk cache set failed: %w", err))
-			ic.incrementError("disk")
-		}
-	}
-
-	// Redis cache (slowest but distributed)
-	if ic.config.EnableRedisCache && ic.redisCache != nil {
-		if err := ic.redisCache.Set(ctx, cacheKey, item.Value, expiresAt); err != nil {
-			errors = append(errors, fmt.Errorf("redis cache set failed: %w", err))
-			ic.incrementError("redis")
-		}
-	}
-
-	// Update statistics
-	ic.updateCacheSizes()
-
-	// Return combined errors if any
-	if len(errors) > 0 {
-		return fmt.Errorf("cache set errors: %v", errors)
-	}
-
-	return nil
-}
-
-// Delete removes a value from all cache layers
-func (ic *IntelligentCache) Delete(ctx context.Context, key string) error {
-	cacheKey := ic.keyManager.GenerateKey(key)
-
-	var errors []error
-
-	// Delete from all cache layers
-	if ic.config.EnableMemoryCache && ic.memoryCache != nil {
-		if err := ic.memoryCache.Delete(ctx, cacheKey); err != nil {
-			errors = append(errors, fmt.Errorf("memory cache delete failed: %w", err))
-		}
-	}
-
-	if ic.config.EnableDiskCache && ic.diskCache != nil {
-		if err := ic.diskCache.Delete(ctx, cacheKey); err != nil {
-			errors = append(errors, fmt.Errorf("disk cache delete failed: %w", err))
-		}
-	}
-
-	if ic.config.EnableRedisCache && ic.redisCache != nil {
-		if err := ic.redisCache.Delete(ctx, cacheKey); err != nil {
-			errors = append(errors, fmt.Errorf("redis cache delete failed: %w", err))
-		}
-	}
-
-	// Update statistics
-	ic.incrementInvalidation()
-	ic.updateCacheSizes()
-
-	if len(errors) > 0 {
-		return fmt.Errorf("cache delete errors: %v", errors)
-	}
-
-	return nil
-}
-
-// InvalidateByPattern removes all keys matching a pattern
-func (ic *IntelligentCache) InvalidateByPattern(ctx context.Context, pattern string) error {
-	ic.logger.Info("Invalidating cache by pattern", zap.String("pattern", pattern))
-
-	// Use invalidation manager to handle pattern-based invalidation
-	return ic.invalidationManager.InvalidateByPattern(ctx, pattern)
-}
-
-// InvalidateByTags removes all items with specific tags
-func (ic *IntelligentCache) InvalidateByTags(ctx context.Context, tags []string) error {
-	ic.logger.Info("Invalidating cache by tags", zap.Strings("tags", tags))
-
-	return ic.invalidationManager.InvalidateByTags(ctx, tags)
-}
-
-// GetStats returns current cache statistics
-func (ic *IntelligentCache) GetStats() *CacheStats {
-	ic.statsLock.RLock()
-	defer ic.statsLock.RUnlock()
-
-	// Create a copy to avoid race conditions
-	stats := *ic.stats
-	return &stats
-}
-
-// Clear clears all cache layers
-func (ic *IntelligentCache) Clear(ctx context.Context) error {
-	ic.logger.Info("Clearing all cache layers")
-
-	var errors []error
-
-	if ic.config.EnableMemoryCache && ic.memoryCache != nil {
-		if err := ic.memoryCache.Clear(ctx); err != nil {
-			errors = append(errors, fmt.Errorf("memory cache clear failed: %w", err))
-		}
-	}
-
-	if ic.config.EnableDiskCache && ic.diskCache != nil {
-		if err := ic.diskCache.Clear(ctx); err != nil {
-			errors = append(errors, fmt.Errorf("disk cache clear failed: %w", err))
-		}
-	}
-
-	if ic.config.EnableRedisCache && ic.redisCache != nil {
-		if err := ic.redisCache.Clear(ctx); err != nil {
-			errors = append(errors, fmt.Errorf("redis cache clear failed: %w", err))
-		}
-	}
-
-	// Reset statistics
-	ic.resetStats()
-
-	if len(errors) > 0 {
-		return fmt.Errorf("cache clear errors: %v", errors)
-	}
-
-	return nil
-}
-
-// WarmCache preloads frequently accessed data
-func (ic *IntelligentCache) WarmCache(ctx context.Context, warmData map[string]interface{}) error {
-	ic.logger.Info("Warming cache with data", zap.Int("items", len(warmData)))
-
-	for key, value := range warmData {
-		// Use default TTL for warm data
-		ttl := ic.config.MemoryCacheTTL
-		if ttl == 0 {
-			ttl = 1 * time.Hour
-		}
-
-		if err := ic.Set(ctx, key, value, ttl); err != nil {
-			ic.logger.Warn("Failed to warm cache item",
-				zap.String("key", key),
-				zap.Error(err))
-		}
-	}
-
-	return nil
-}
-
-// Helper methods
-
-func (ic *IntelligentCache) initializeCacheLayers() error {
-	// Initialize memory cache
-	if ic.config.EnableMemoryCache {
-		memoryConfig := MemoryCacheConfig{
-			Size:   ic.config.MemoryCacheSize,
-			TTL:    ic.config.MemoryCacheTTL,
-			Policy: ic.config.MemoryCachePolicy,
-		}
-		// For now, create a simple memory cache instance
-		// TODO: Implement proper memory cache initialization
-		ic.memoryCache = nil
-	}
-
-	// Initialize disk cache
-	if ic.config.EnableDiskCache {
-		diskConfig := DiskCacheConfig{
-			Path: ic.config.DiskCachePath,
-			Size: ic.config.DiskCacheSize,
-			TTL:  ic.config.DiskCacheTTL,
-		}
-		diskCache, err := NewDiskCache(diskConfig, ic.logger)
-		if err != nil {
-			return fmt.Errorf("failed to initialize disk cache: %w", err)
-		}
-		ic.diskCache = diskCache
-	}
-
-	// Initialize Redis cache
-	if ic.config.EnableRedisCache {
-		redisConfig := RedisCacheConfig{
-			Addr:     ic.config.RedisAddr,
-			Password: ic.config.RedisPassword,
-			DB:       ic.config.RedisDB,
-			TTL:      ic.config.RedisTTL,
-			PoolSize: ic.config.RedisPoolSize,
-		}
-		redisCache, err := NewRedisCache(redisConfig, ic.logger)
-		if err != nil {
-			return fmt.Errorf("failed to initialize Redis cache: %w", err)
-		}
-		ic.redisCache = redisCache
-	}
-
-	return nil
-}
-
-func (ic *IntelligentCache) calculateSize(value interface{}) int64 {
-	data, err := json.Marshal(value)
-	if err != nil {
-		return 0
-	}
-	return int64(len(data))
-}
-
-func (ic *IntelligentCache) shouldCompress(value interface{}) bool {
-	if !ic.config.EnableCompression {
-		return false
-	}
-
-	size := ic.calculateSize(value)
-	return size >= int64(ic.config.CompressionThreshold)
-}
-
-func (ic *IntelligentCache) compressValue(value interface{}) (interface{}, error) {
-	// Implementation would use gzip or similar compression
-	// For now, return the original value
-	return value, nil
-}
-
-func (ic *IntelligentCache) encryptValue(value interface{}) (interface{}, error) {
-	// Implementation would use AES or similar encryption
-	// For now, return the original value
-	return value, nil
-}
-
-func (ic *IntelligentCache) extractTags(key string) []string {
-	// Extract tags from key or return empty slice
-	// This could be based on key patterns or metadata
-	return []string{}
-}
-
-func (ic *IntelligentCache) calculatePriority(key string) int {
-	// Calculate priority based on key patterns or usage patterns
-	// Higher priority items are kept longer in cache
-	return 1
-}
-
-func (ic *IntelligentCache) incrementRequest(cacheType string) {
-	ic.statsLock.Lock()
-	defer ic.statsLock.Unlock()
-
-	switch cacheType {
-	case "memory":
-		ic.stats.MemoryRequests++
-	case "disk":
-		ic.stats.DiskRequests++
-	case "redis":
-		ic.stats.RedisRequests++
-	case "total":
-		ic.stats.TotalRequests++
-	}
-
-	ic.stats.LastUpdated = time.Now()
-}
-
-func (ic *IntelligentCache) incrementError(cacheType string) {
-	ic.statsLock.Lock()
-	defer ic.statsLock.Unlock()
-
-	switch cacheType {
-	case "memory":
-		ic.stats.MemoryErrors++
-	case "disk":
-		ic.stats.DiskErrors++
-	case "redis":
-		ic.stats.RedisErrors++
-	}
-
-	ic.stats.TotalErrors++
-	ic.stats.LastUpdated = time.Now()
-}
-
-func (ic *IntelligentCache) updateHitRate(cacheType string, hit bool) {
-	ic.statsLock.Lock()
-	defer ic.statsLock.Unlock()
-
-	// Simplified hit rate calculation
-	// In a real implementation, this would be more sophisticated
-	switch cacheType {
-	case "memory":
-		if hit {
-			ic.stats.MemoryHitRate = 0.95 // Simplified
-		} else {
-			ic.stats.MemoryHitRate = 0.85 // Simplified
-		}
-	case "disk":
-		if hit {
-			ic.stats.DiskHitRate = 0.90 // Simplified
-		} else {
-			ic.stats.DiskHitRate = 0.80 // Simplified
-		}
-	case "redis":
-		if hit {
-			ic.stats.RedisHitRate = 0.85 // Simplified
-		} else {
-			ic.stats.RedisHitRate = 0.75 // Simplified
-		}
-	case "overall":
-		if hit {
-			ic.stats.OverallHitRate = 0.90 // Simplified
-		} else {
-			ic.stats.OverallHitRate = 0.80 // Simplified
-		}
-	}
-
-	ic.stats.LastUpdated = time.Now()
-}
-
-func (ic *IntelligentCache) incrementInvalidation() {
-	ic.statsLock.Lock()
-	defer ic.statsLock.Unlock()
-	ic.stats.Invalidations++
-	ic.stats.LastUpdated = time.Now()
-}
-
-func (ic *IntelligentCache) updateCacheSizes() {
-	ic.statsLock.Lock()
-	defer ic.statsLock.Unlock()
-
-	// Update cache sizes (simplified)
-	if ic.memoryCache != nil {
-		ic.stats.MemorySize = int64(ic.config.MemoryCacheSize) * 1024 // Simplified
-	}
-	if ic.diskCache != nil {
-		ic.stats.DiskSize = ic.config.DiskCacheSize
-	}
-	if ic.redisCache != nil {
-		ic.stats.RedisSize = 1024 * 1024 * 1024 // 1GB simplified
-	}
-
-	ic.stats.TotalSize = ic.stats.MemorySize + ic.stats.DiskSize + ic.stats.RedisSize
-	ic.stats.LastUpdated = time.Now()
-}
-
-func (ic *IntelligentCache) resetStats() {
-	ic.statsLock.Lock()
-	defer ic.statsLock.Unlock()
-
-	ic.stats = &CacheStats{
-		LastUpdated: time.Now(),
 	}
 }
 
-// Background goroutines
-
-func (ic *IntelligentCache) startCacheWarming(ctx context.Context) {
+// cacheWarmingWorker manages cache warming
+func (ic *IntelligentCache) cacheWarmingWorker() {
 	ticker := time.NewTicker(ic.config.WarmingInterval)
 	defer ticker.Stop()
 
 	for {
 		select {
-		case <-ctx.Done():
-			return
-		case <-ic.stopChannel:
+		case <-ic.ctx.Done():
 			return
 		case <-ticker.C:
-			ic.performCacheWarming(ctx)
+			ic.performCacheWarming()
 		}
 	}
 }
 
-func (ic *IntelligentCache) startPredictiveCaching(ctx context.Context) {
-	ticker := time.NewTicker(ic.config.PredictiveWindow)
+// cacheOptimizationWorker manages cache optimization
+func (ic *IntelligentCache) cacheOptimizationWorker() {
+	ticker := time.NewTicker(ic.config.OptimizationInterval)
 	defer ticker.Stop()
 
 	for {
 		select {
-		case <-ctx.Done():
-			return
-		case <-ic.stopChannel:
+		case <-ic.ctx.Done():
 			return
 		case <-ticker.C:
-			ic.performPredictiveCaching(ctx)
+			ic.performCacheOptimization()
 		}
 	}
 }
 
-func (ic *IntelligentCache) startMetricsCollection(ctx context.Context) {
-	ticker := time.NewTicker(ic.config.MetricsInterval)
+// cacheCleanupWorker manages cache cleanup
+func (ic *IntelligentCache) cacheCleanupWorker() {
+	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
 	for {
 		select {
-		case <-ctx.Done():
-			return
-		case <-ic.stopChannel:
+		case <-ic.ctx.Done():
 			return
 		case <-ticker.C:
-			ic.collectMetrics(ctx)
+			ic.performCacheCleanup()
 		}
 	}
 }
 
-func (ic *IntelligentCache) startCacheInvalidation(ctx context.Context) {
-	ticker := time.NewTicker(ic.config.InvalidationInterval)
+// cacheInvalidationWorker manages cache invalidation
+func (ic *IntelligentCache) cacheInvalidationWorker() {
+	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
 	for {
 		select {
-		case <-ctx.Done():
-			return
-		case <-ic.stopChannel:
+		case <-ic.ctx.Done():
 			return
 		case <-ticker.C:
-			ic.performCacheInvalidation(ctx)
+			ic.performCacheInvalidation()
 		}
 	}
 }
 
-func (ic *IntelligentCache) startKeyRotation(ctx context.Context) {
-	ticker := time.NewTicker(ic.config.KeyRotationInterval)
-	defer ticker.Stop()
+// Get retrieves a value from cache
+func (ic *IntelligentCache) Get(ctx context.Context, key string) (interface{}, bool) {
+	ctx, span := ic.tracer.Start(ctx, "IntelligentCache.Get")
+	defer span.End()
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ic.stopChannel:
-			return
-		case <-ticker.C:
-			ic.performKeyRotation(ctx)
+	span.SetAttributes(attribute.String("cache_key", key))
+
+	// Try memory cache first
+	if value, found := ic.getFromMemory(key); found {
+		ic.updateMetrics("memory_hit", 1)
+		span.SetAttributes(attribute.String("cache_level", "memory"))
+		return value, true
+	}
+
+	// Try disk cache
+	if ic.diskCache != nil {
+		if value, found := ic.getFromDisk(key); found {
+			ic.updateMetrics("disk_hit", 1)
+			span.SetAttributes(attribute.String("cache_level", "disk"))
+			return value, true
+		}
+	}
+
+	// Try distributed cache
+	if ic.distributedCache != nil {
+		if value, found := ic.getFromDistributed(ctx, key); found {
+			ic.updateMetrics("distributed_hit", 1)
+			span.SetAttributes(attribute.String("cache_level", "distributed"))
+			return value, true
+		}
+	}
+
+	// Cache miss
+	ic.updateMetrics("miss", 1)
+	span.SetAttributes(attribute.String("cache_level", "miss"))
+	return nil, false
+}
+
+// Set stores a value in cache
+func (ic *IntelligentCache) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+	ctx, span := ic.tracer.Start(ctx, "IntelligentCache.Set")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("cache_key", key),
+		attribute.String("ttl", ttl.String()),
+	)
+
+	// Store in memory cache
+	if err := ic.setInMemory(key, value, ttl); err != nil {
+		return fmt.Errorf("failed to set in memory cache: %w", err)
+	}
+
+	// Store in disk cache if enabled
+	if ic.diskCache != nil {
+		if err := ic.setInDisk(key, value, ttl); err != nil {
+			ic.logger.Warn("failed to set in disk cache", map[string]interface{}{
+				"key":   key,
+				"error": err.Error(),
+			})
+		}
+	}
+
+	// Store in distributed cache if enabled
+	if ic.distributedCache != nil {
+		if err := ic.setInDistributed(ctx, key, value, ttl); err != nil {
+			ic.logger.Warn("failed to set in distributed cache", map[string]interface{}{
+				"key":   key,
+				"error": err.Error(),
+			})
+		}
+	}
+
+	return nil
+}
+
+// Delete removes a value from cache
+func (ic *IntelligentCache) Delete(ctx context.Context, key string) error {
+	ctx, span := ic.tracer.Start(ctx, "IntelligentCache.Delete")
+	defer span.End()
+
+	span.SetAttributes(attribute.String("cache_key", key))
+
+	// Delete from memory cache
+	ic.deleteFromMemory(key)
+
+	// Delete from disk cache
+	if ic.diskCache != nil {
+		ic.deleteFromDisk(key)
+	}
+
+	// Delete from distributed cache
+	if ic.distributedCache != nil {
+		ic.deleteFromDistributed(ctx, key)
+	}
+
+	return nil
+}
+
+// Invalidate invalidates cache entries matching a pattern
+func (ic *IntelligentCache) Invalidate(ctx context.Context, pattern string) error {
+	ctx, span := ic.tracer.Start(ctx, "IntelligentCache.Invalidate")
+	defer span.End()
+
+	span.SetAttributes(attribute.String("pattern", pattern))
+
+	ic.manager.Mux.Lock()
+	defer ic.manager.Mux.Unlock()
+
+	// Record invalidation
+	ic.manager.Invalidations[pattern] = &InvalidationInfo{
+		Pattern:           pattern,
+		LastInvalidated:   time.Now(),
+		InvalidationCount: 1,
+		AffectedKeys:      make([]string, 0),
+	}
+
+	// Invalidate from all cache levels
+	affectedKeys := ic.invalidateFromMemory(pattern)
+	ic.manager.Invalidations[pattern].AffectedKeys = affectedKeys
+
+	if ic.diskCache != nil {
+		diskKeys := ic.invalidateFromDisk(pattern)
+		ic.manager.Invalidations[pattern].AffectedKeys = append(
+			ic.manager.Invalidations[pattern].AffectedKeys, diskKeys...)
+	}
+
+	if ic.distributedCache != nil {
+		distributedKeys := ic.invalidateFromDistributed(ctx, pattern)
+		ic.manager.Invalidations[pattern].AffectedKeys = append(
+			ic.manager.Invalidations[pattern].AffectedKeys, distributedKeys...)
+	}
+
+	ic.updateMetrics("invalidations", 1)
+
+	return nil
+}
+
+// Warm warms the cache with frequently accessed data
+func (ic *IntelligentCache) Warm(ctx context.Context, keys []string) error {
+	ctx, span := ic.tracer.Start(ctx, "IntelligentCache.Warm")
+	defer span.End()
+
+	span.SetAttributes(attribute.Int("key_count", len(keys)))
+
+	ic.warmer.Mux.Lock()
+	defer ic.warmer.Mux.Unlock()
+
+	for _, key := range keys {
+		task := &WarmingTask{
+			ID:          generateTaskID(),
+			Key:         key,
+			Priority:    1,
+			CreatedAt:   time.Now(),
+			Attempts:    0,
+			MaxAttempts: 3,
+		}
+		ic.warmer.WarmingQueue = append(ic.warmer.WarmingQueue, task)
+	}
+
+	return nil
+}
+
+// GetMetrics returns cache performance metrics
+func (ic *IntelligentCache) GetMetrics() *CacheMetrics {
+	ic.monitor.Mux.RLock()
+	defer ic.monitor.Mux.RUnlock()
+
+	return ic.monitor.Metrics
+}
+
+// GetAlerts returns cache alerts
+func (ic *IntelligentCache) GetAlerts() []*CacheAlert {
+	ic.monitor.Mux.RLock()
+	defer ic.monitor.Mux.RUnlock()
+
+	return ic.monitor.Alerts
+}
+
+// Memory cache operations
+
+func (ic *IntelligentCache) getFromMemory(key string) (interface{}, bool) {
+	ic.memoryCache.Mux.RLock()
+	defer ic.memoryCache.Mux.RUnlock()
+
+	entry, exists := ic.memoryCache.Data[key]
+	if !exists {
+		return nil, false
+	}
+
+	// Check if expired
+	if time.Now().After(entry.ExpiresAt) {
+		return nil, false
+	}
+
+	// Update access information
+	entry.LastAccessed = time.Now()
+	entry.AccessCount++
+
+	// Update access order for LRU
+	ic.updateAccessOrder(key)
+
+	return entry.Value, true
+}
+
+func (ic *IntelligentCache) setInMemory(key string, value interface{}, ttl time.Duration) error {
+	ic.memoryCache.Mux.Lock()
+	defer ic.memoryCache.Mux.Unlock()
+
+	// Check if we need to evict entries
+	if len(ic.memoryCache.Data) >= ic.memoryCache.Size {
+		ic.evictFromMemory()
+	}
+
+	entry := &CacheEntry{
+		Key:          key,
+		Value:        value,
+		CreatedAt:    time.Now(),
+		ExpiresAt:    time.Now().Add(ttl),
+		LastAccessed: time.Now(),
+		AccessCount:  1,
+		Metadata:     make(map[string]interface{}),
+	}
+
+	ic.memoryCache.Data[key] = entry
+	ic.updateAccessOrder(key)
+
+	return nil
+}
+
+func (ic *IntelligentCache) deleteFromMemory(key string) {
+	ic.memoryCache.Mux.Lock()
+	defer ic.memoryCache.Mux.Unlock()
+
+	delete(ic.memoryCache.Data, key)
+	ic.removeFromAccessOrder(key)
+}
+
+func (ic *IntelligentCache) evictFromMemory() {
+	switch ic.memoryCache.EvictionPolicy {
+	case "lru":
+		ic.evictLRU()
+	case "lfu":
+		ic.evictLFU()
+	case "fifo":
+		ic.evictFIFO()
+	default:
+		ic.evictLRU()
+	}
+}
+
+func (ic *IntelligentCache) evictLRU() {
+	if len(ic.memoryCache.AccessOrder) == 0 {
+		return
+	}
+
+	// Remove least recently used
+	key := ic.memoryCache.AccessOrder[0]
+	delete(ic.memoryCache.Data, key)
+	ic.memoryCache.AccessOrder = ic.memoryCache.AccessOrder[1:]
+}
+
+func (ic *IntelligentCache) evictLFU() {
+	var leastFrequentKey string
+	var minAccessCount int64 = 1<<63 - 1
+
+	for key, entry := range ic.memoryCache.Data {
+		if entry.AccessCount < minAccessCount {
+			minAccessCount = entry.AccessCount
+			leastFrequentKey = key
+		}
+	}
+
+	if leastFrequentKey != "" {
+		delete(ic.memoryCache.Data, leastFrequentKey)
+		ic.removeFromAccessOrder(leastFrequentKey)
+	}
+}
+
+func (ic *IntelligentCache) evictFIFO() {
+	if len(ic.memoryCache.AccessOrder) == 0 {
+		return
+	}
+
+	// Remove first in (oldest)
+	key := ic.memoryCache.AccessOrder[0]
+	delete(ic.memoryCache.Data, key)
+	ic.memoryCache.AccessOrder = ic.memoryCache.AccessOrder[1:]
+}
+
+func (ic *IntelligentCache) updateAccessOrder(key string) {
+	ic.removeFromAccessOrder(key)
+	ic.memoryCache.AccessOrder = append(ic.memoryCache.AccessOrder, key)
+}
+
+func (ic *IntelligentCache) removeFromAccessOrder(key string) {
+	for i, k := range ic.memoryCache.AccessOrder {
+		if k == key {
+			ic.memoryCache.AccessOrder = append(ic.memoryCache.AccessOrder[:i], ic.memoryCache.AccessOrder[i+1:]...)
+			break
 		}
 	}
 }
 
-func (ic *IntelligentCache) performCacheWarming(ctx context.Context) {
-	ic.logger.Debug("Performing cache warming")
-	// Implementation would preload frequently accessed data
+func (ic *IntelligentCache) invalidateFromMemory(pattern string) []string {
+	ic.memoryCache.Mux.Lock()
+	defer ic.memoryCache.Mux.Unlock()
+
+	var affectedKeys []string
+	for key := range ic.memoryCache.Data {
+		if ic.matchesPattern(key, pattern) {
+			delete(ic.memoryCache.Data, key)
+			ic.removeFromAccessOrder(key)
+			affectedKeys = append(affectedKeys, key)
+		}
+	}
+
+	return affectedKeys
 }
 
-func (ic *IntelligentCache) performPredictiveCaching(ctx context.Context) {
-	ic.logger.Debug("Performing predictive caching")
-	// Implementation would predict and cache likely-to-be-accessed data
+// Disk cache operations
+
+func (ic *IntelligentCache) initializeDiskCache() error {
+	// Create cache directory
+	if err := os.MkdirAll(ic.diskCache.Path, 0755); err != nil {
+		return fmt.Errorf("failed to create cache directory: %w", err)
+	}
+
+	// Load existing index
+	return ic.loadDiskIndex()
 }
 
-func (ic *IntelligentCache) collectMetrics(ctx context.Context) {
-	ic.logger.Debug("Collecting cache metrics")
-	// Implementation would collect detailed performance metrics
+func (ic *IntelligentCache) loadDiskIndex() error {
+	indexFile := filepath.Join(ic.diskCache.Path, "index.json")
+
+	data, err := os.ReadFile(indexFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil // Index doesn't exist yet
+		}
+		return fmt.Errorf("failed to read index file: %w", err)
+	}
+
+	return json.Unmarshal(data, &ic.diskCache.Index)
 }
 
-func (ic *IntelligentCache) performCacheInvalidation(ctx context.Context) {
-	ic.logger.Debug("Performing cache invalidation")
-	// Implementation would invalidate expired or stale cache entries
+func (ic *IntelligentCache) saveDiskIndex() error {
+	ic.diskCache.Mux.RLock()
+	defer ic.diskCache.Mux.RUnlock()
+
+	data, err := json.Marshal(ic.diskCache.Index)
+	if err != nil {
+		return fmt.Errorf("failed to marshal index: %w", err)
+	}
+
+	indexFile := filepath.Join(ic.diskCache.Path, "index.json")
+	return os.WriteFile(indexFile, data, 0644)
 }
 
-func (ic *IntelligentCache) performKeyRotation(ctx context.Context) {
-	ic.logger.Debug("Performing key rotation")
-	// Implementation would rotate encryption keys
+func (ic *IntelligentCache) getFromDisk(key string) (interface{}, bool) {
+	ic.diskCache.Mux.RLock()
+	entry, exists := ic.diskCache.Index[key]
+	ic.diskCache.Mux.RUnlock()
+
+	if !exists {
+		return nil, false
+	}
+
+	// Check if expired
+	if time.Now().After(entry.ExpiresAt) {
+		ic.deleteFromDisk(key)
+		return nil, false
+	}
+
+	// Read file
+	data, err := os.ReadFile(entry.FilePath)
+	if err != nil {
+		ic.logger.Warn("failed to read disk cache file", map[string]interface{}{
+			"key":   key,
+			"file":  entry.FilePath,
+			"error": err.Error(),
+		})
+		return nil, false
+	}
+
+	// Decompress if needed
+	if entry.Compressed {
+		data = ic.decompress(data)
+	}
+
+	// Deserialize
+	var value interface{}
+	if err := json.Unmarshal(data, &value); err != nil {
+		ic.logger.Warn("failed to deserialize disk cache value", map[string]interface{}{
+			"key":   key,
+			"error": err.Error(),
+		})
+		return nil, false
+	}
+
+	// Update access information
+	ic.diskCache.Mux.Lock()
+	entry.LastAccessed = time.Now()
+	entry.AccessCount++
+	ic.diskCache.Mux.Unlock()
+
+	return value, true
+}
+
+func (ic *IntelligentCache) setInDisk(key string, value interface{}, ttl time.Duration) error {
+	// Serialize value
+	data, err := json.Marshal(value)
+	if err != nil {
+		return fmt.Errorf("failed to serialize value: %w", err)
+	}
+
+	// Compress if enabled
+	if ic.diskCache.Compression {
+		data = ic.compress(data)
+	}
+
+	// Generate file path
+	hash := fmt.Sprintf("%x", md5.Sum([]byte(key)))
+	fileName := fmt.Sprintf("%s.cache", hash)
+	filePath := filepath.Join(ic.diskCache.Path, fileName)
+
+	// Write file
+	if err := os.WriteFile(filePath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write cache file: %w", err)
+	}
+
+	// Update index
+	ic.diskCache.Mux.Lock()
+	defer ic.diskCache.Mux.Unlock()
+
+	ic.diskCache.Index[key] = &DiskEntry{
+		Key:          key,
+		FilePath:     filePath,
+		Size:         int64(len(data)),
+		CreatedAt:    time.Now(),
+		ExpiresAt:    time.Now().Add(ttl),
+		LastAccessed: time.Now(),
+		AccessCount:  1,
+		Compressed:   ic.diskCache.Compression,
+		Checksum:     fmt.Sprintf("%x", md5.Sum(data)),
+	}
+
+	return ic.saveDiskIndex()
+}
+
+func (ic *IntelligentCache) deleteFromDisk(key string) {
+	ic.diskCache.Mux.Lock()
+	defer ic.diskCache.Mux.Unlock()
+
+	entry, exists := ic.diskCache.Index[key]
+	if !exists {
+		return
+	}
+
+	// Remove file
+	os.Remove(entry.FilePath)
+
+	// Remove from index
+	delete(ic.diskCache.Index, key)
+	ic.saveDiskIndex()
+}
+
+func (ic *IntelligentCache) invalidateFromDisk(pattern string) []string {
+	ic.diskCache.Mux.Lock()
+	defer ic.diskCache.Mux.Unlock()
+
+	var affectedKeys []string
+	for key, entry := range ic.diskCache.Index {
+		if ic.matchesPattern(key, pattern) {
+			os.Remove(entry.FilePath)
+			delete(ic.diskCache.Index, key)
+			affectedKeys = append(affectedKeys, key)
+		}
+	}
+
+	ic.saveDiskIndex()
+	return affectedKeys
+}
+
+// Distributed cache operations (simplified implementation)
+
+func (ic *IntelligentCache) initializeDistributedCache() error {
+	// Simplified implementation - in production, connect to Redis/Memcached
+	ic.logger.Info("distributed cache initialized", map[string]interface{}{
+		"url": ic.distributedCache.URL,
+	})
+	return nil
+}
+
+func (ic *IntelligentCache) getFromDistributed(ctx context.Context, key string) (interface{}, bool) {
+	// Simplified implementation - in production, use Redis/Memcached client
+	return nil, false
+}
+
+func (ic *IntelligentCache) setInDistributed(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+	// Simplified implementation - in production, use Redis/Memcached client
+	return nil
+}
+
+func (ic *IntelligentCache) deleteFromDistributed(ctx context.Context, key string) {
+	// Simplified implementation - in production, use Redis/Memcached client
+}
+
+func (ic *IntelligentCache) invalidateFromDistributed(ctx context.Context, pattern string) []string {
+	// Simplified implementation - in production, use Redis/Memcached client
+	return []string{}
+}
+
+// Cache warming operations
+
+func (ic *IntelligentCache) performCacheWarming() {
+	ic.warmer.Mux.Lock()
+	defer ic.warmer.Mux.Unlock()
+
+	if len(ic.warmer.WarmingQueue) == 0 {
+		return
+	}
+
+	// Sort by priority
+	sort.Slice(ic.warmer.WarmingQueue, func(i, j int) bool {
+		return ic.warmer.WarmingQueue[i].Priority > ic.warmer.WarmingQueue[j].Priority
+	})
+
+	// Process batch
+	batchSize := ic.config.WarmingBatchSize
+	if batchSize > len(ic.warmer.WarmingQueue) {
+		batchSize = len(ic.warmer.WarmingQueue)
+	}
+
+	for i := 0; i < batchSize; i++ {
+		task := ic.warmer.WarmingQueue[i]
+		task.Attempts++
+		task.LastAttempt = time.Now()
+
+		// Simulate warming (in production, fetch actual data)
+		ic.logger.Info("warming cache", map[string]interface{}{
+			"key":     task.Key,
+			"attempt": task.Attempts,
+		})
+
+		// Remove from queue
+		ic.warmer.WarmingQueue = ic.warmer.WarmingQueue[1:]
+	}
+
+	ic.warmer.LastWarming = time.Now()
+}
+
+// Cache optimization operations
+
+func (ic *IntelligentCache) performCacheOptimization() {
+	ic.manager.Mux.Lock()
+	defer ic.manager.Mux.Unlock()
+
+	// Optimize memory cache
+	ic.optimizeMemoryCache()
+
+	// Optimize disk cache
+	if ic.diskCache != nil {
+		ic.optimizeDiskCache()
+	}
+
+	ic.manager.LastOptimization = time.Now()
+}
+
+func (ic *IntelligentCache) optimizeMemoryCache() {
+	// Remove expired entries
+	ic.memoryCache.Mux.Lock()
+	defer ic.memoryCache.Mux.Unlock()
+
+	now := time.Now()
+	for key, entry := range ic.memoryCache.Data {
+		if now.After(entry.ExpiresAt) {
+			delete(ic.memoryCache.Data, key)
+			ic.removeFromAccessOrder(key)
+		}
+	}
+}
+
+func (ic *IntelligentCache) optimizeDiskCache() {
+	// Remove expired entries
+	ic.diskCache.Mux.Lock()
+	defer ic.diskCache.Mux.Unlock()
+
+	now := time.Now()
+	for key, entry := range ic.diskCache.Index {
+		if now.After(entry.ExpiresAt) {
+			os.Remove(entry.FilePath)
+			delete(ic.diskCache.Index, key)
+		}
+	}
+
+	ic.saveDiskIndex()
+}
+
+// Cache cleanup operations
+
+func (ic *IntelligentCache) performCacheCleanup() {
+	// Clean up expired entries
+	ic.cleanupExpiredEntries()
+
+	// Clean up old alerts
+	ic.cleanupOldAlerts()
+}
+
+func (ic *IntelligentCache) cleanupExpiredEntries() {
+	// Memory cache cleanup
+	ic.memoryCache.Mux.Lock()
+	now := time.Now()
+	for key, entry := range ic.memoryCache.Data {
+		if now.After(entry.ExpiresAt) {
+			delete(ic.memoryCache.Data, key)
+			ic.removeFromAccessOrder(key)
+		}
+	}
+	ic.memoryCache.Mux.Unlock()
+
+	// Disk cache cleanup
+	if ic.diskCache != nil {
+		ic.diskCache.Mux.Lock()
+		for key, entry := range ic.diskCache.Index {
+			if now.After(entry.ExpiresAt) {
+				os.Remove(entry.FilePath)
+				delete(ic.diskCache.Index, key)
+			}
+		}
+		ic.diskCache.Mux.Unlock()
+		ic.saveDiskIndex()
+	}
+}
+
+func (ic *IntelligentCache) cleanupOldAlerts() {
+	ic.monitor.Mux.Lock()
+	defer ic.monitor.Mux.Unlock()
+
+	cutoff := time.Now().Add(-24 * time.Hour) // Keep alerts for 24 hours
+	newAlerts := make([]*CacheAlert, 0)
+
+	for _, alert := range ic.monitor.Alerts {
+		if alert.Timestamp.After(cutoff) {
+			newAlerts = append(newAlerts, alert)
+		}
+	}
+
+	ic.monitor.Alerts = newAlerts
+}
+
+// Cache invalidation operations
+
+func (ic *IntelligentCache) performCacheInvalidation() {
+	// Process pending invalidations
+	ic.manager.Mux.Lock()
+	defer ic.manager.Mux.Unlock()
+
+	for pattern, info := range ic.manager.Invalidations {
+		if time.Since(info.LastInvalidated) > ic.config.InvalidationCooldown {
+			// Process invalidation
+			ic.logger.Info("processing cache invalidation", map[string]interface{}{
+				"pattern":       pattern,
+				"affected_keys": len(info.AffectedKeys),
+			})
+		}
+	}
+}
+
+// Performance monitoring operations
+
+func (ic *IntelligentCache) updatePerformanceMetrics() {
+	ic.monitor.Mux.Lock()
+	defer ic.monitor.Mux.Unlock()
+
+	// Calculate hit rate
+	total := ic.monitor.Metrics.TotalHits + ic.monitor.Metrics.TotalMisses
+	if total > 0 {
+		ic.monitor.Metrics.HitRate = float64(ic.monitor.Metrics.TotalHits) / float64(total)
+	}
+
+	// Check for alerts
+	if ic.monitor.Metrics.HitRate < ic.monitor.Thresholds["hit_rate"] {
+		ic.createAlert("hit_rate", "low", fmt.Sprintf("Cache hit rate is %.2f%%", ic.monitor.Metrics.HitRate*100), ic.monitor.Metrics.HitRate, ic.monitor.Thresholds["hit_rate"])
+	}
+
+	ic.monitor.Metrics.LastUpdate = time.Now()
+}
+
+func (ic *IntelligentCache) updateMetrics(metric string, value int64) {
+	ic.monitor.Mux.Lock()
+	defer ic.monitor.Mux.Unlock()
+
+	switch metric {
+	case "memory_hit":
+		ic.monitor.Metrics.MemoryHits += value
+		ic.monitor.Metrics.TotalHits += value
+	case "disk_hit":
+		ic.monitor.Metrics.DiskHits += value
+		ic.monitor.Metrics.TotalHits += value
+	case "distributed_hit":
+		ic.monitor.Metrics.DistributedHits += value
+		ic.monitor.Metrics.TotalHits += value
+	case "miss":
+		ic.monitor.Metrics.TotalMisses += value
+	case "invalidations":
+		ic.monitor.Metrics.Invalidations += value
+	}
+}
+
+func (ic *IntelligentCache) createAlert(alertType, severity, message string, value, threshold float64) {
+	// Check cooldown
+	if time.Since(ic.monitor.LastAlert) < 5*time.Minute {
+		return
+	}
+
+	alert := &CacheAlert{
+		ID:        fmt.Sprintf("cache-alert-%d", time.Now().Unix()),
+		Type:      alertType,
+		Severity:  severity,
+		Message:   message,
+		Metric:    alertType,
+		Value:     value,
+		Threshold: threshold,
+		Timestamp: time.Now(),
+	}
+
+	ic.monitor.Alerts = append(ic.monitor.Alerts, alert)
+	ic.monitor.LastAlert = time.Now()
+
+	ic.logger.Warn("cache alert created", map[string]interface{}{
+		"alert_id":  alert.ID,
+		"type":      alert.Type,
+		"severity":  alert.Severity,
+		"message":   alert.Message,
+		"value":     alert.Value,
+		"threshold": alert.Threshold,
+	})
+}
+
+// Utility functions
+
+func (ic *IntelligentCache) matchesPattern(key, pattern string) bool {
+	// Simplified pattern matching - in production, use regex
+	return key == pattern || pattern == "*"
+}
+
+func (ic *IntelligentCache) compress(data []byte) []byte {
+	// Simplified compression - in production, use gzip
+	return data
+}
+
+func (ic *IntelligentCache) decompress(data []byte) []byte {
+	// Simplified decompression - in production, use gzip
+	return data
+}
+
+func generateTaskID() string {
+	return fmt.Sprintf("task-%d", time.Now().UnixNano())
+}
+
+// Shutdown shuts down the intelligent cache
+func (ic *IntelligentCache) Shutdown() {
+	ic.cancel()
+
+	// Save disk index
+	if ic.diskCache != nil {
+		ic.saveDiskIndex()
+	}
+
+	ic.logger.Info("intelligent cache shutting down")
 }

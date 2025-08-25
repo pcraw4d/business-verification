@@ -2,3 +2,30 @@ Wed Aug 20 06:00:57 EDT 2025: Starting cleanup health check
 Wed Aug 20 06:16:57 EDT 2025: Cleanup health check passed
 Thu Aug 21 06:00:10 EDT 2025: Starting cleanup health check
 Thu Aug 21 06:00:28 EDT 2025: Cleanup health check passed
+[0;34m=== KYB Platform - Comprehensive Cleanup Runner ===[0m
+[0;34mℹ[0m Starting cleanup process at Sat Aug 23 02:00:01 EDT 2025
+[0;34mℹ[0m Project root: /Users/petercrawford/New tool
+[0;34mℹ[0m Mode: LIVE
+[0;34mℹ[0m Shell cleanup: false
+[0;34mℹ[0m Go cleanup: true
+[0;34mℹ[0m Checking dependencies...
+Please install the missing dependencies before running.
+[0;34mℹ[0m Cleanup runner terminated
+[0;34m=== KYB Platform - Comprehensive Cleanup Runner ===[0m
+[0;34mℹ[0m Starting cleanup process at Sun Aug 24 01:00:01 EDT 2025
+[0;34mℹ[0m Project root: /Users/petercrawford/New tool
+[0;34mℹ[0m Mode: LIVE
+[0;34mℹ[0m Shell cleanup: false
+[0;34mℹ[0m Go cleanup: true
+[0;34mℹ[0m Checking dependencies...
+Please install the missing dependencies before running.
+[0;34mℹ[0m Cleanup runner terminated
+[0;34m=== KYB Platform - Comprehensive Cleanup Runner ===[0m
+[0;34mℹ[0m Starting cleanup process at Sun Aug 24 02:00:00 EDT 2025
+[0;34mℹ[0m Project root: /Users/petercrawford/New tool
+[0;34mℹ[0m Mode: LIVE
+[0;34mℹ[0m Shell cleanup: false
+[0;34mℹ[0m Go cleanup: true
+[0;34mℹ[0m Checking dependencies...
+Please install the missing dependencies before running.
+[0;34mℹ[0m Cleanup runner terminated

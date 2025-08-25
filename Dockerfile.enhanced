@@ -5,15 +5,17 @@ RUN apk add --no-cache git ca-certificates tzdata
 
 WORKDIR /app
 
-# Copy go mod files (use full go.mod instead of minimal)
+# Copy go mod files
 COPY go.mod go.mod
 COPY go.sum go.sum
 
 # Download dependencies
 RUN go mod download
 
-# Copy source code and web interface
-COPY cmd/api/main-enhanced.go cmd/api/main-enhanced.go
+# Copy all source code (including internal packages)
+COPY cmd/ cmd/
+COPY internal/ internal/
+COPY pkg/ pkg/
 COPY web/ web/
 
 # Build the enhanced application
@@ -29,6 +31,9 @@ WORKDIR /root/
 
 # Copy binary
 COPY --from=builder /app/kyb-platform .
+
+# Copy web files for serving
+COPY --from=builder /app/web/ web/
 
 # Create non-root user
 RUN addgroup -g 1001 -S appgroup && \

@@ -1,0 +1,1494 @@
+openapi: 3.0.3
+info:
+  title: KYB Platform Caching API
+  description: |
+    Intelligent caching system with advanced optimization capabilities, performance monitoring, 
+    and sophisticated invalidation strategies for the KYB Platform.
+    
+    This API provides comprehensive cache management including:
+    - Intelligent cache operations with multiple eviction policies
+    - Real-time performance monitoring and analytics
+    - Automated optimization strategies
+    - Advanced cache invalidation mechanisms
+    - Cache statistics and health monitoring
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: api-support@kyb-platform.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.kyb-platform.com/v1/cache
+    description: Production cache API
+  - url: https://staging-api.kyb-platform.com/v1/cache
+    description: Staging cache API
+  - url: http://localhost:8080/v1/cache
+    description: Local development cache API
+
+tags:
+  - name: cache
+    description: Core cache operations
+  - name: optimization
+    description: Cache optimization strategies
+  - name: monitoring
+    description: Performance monitoring and analytics
+  - name: invalidation
+    description: Cache invalidation strategies
+  - name: health
+    description: Cache health and status
+
+paths:
+  # Cache Operations
+  /cache/{key}:
+    get:
+      summary: Get cached value
+      description: Retrieve a value from the intelligent cache
+      operationId: getCacheValue
+      tags:
+        - cache
+      parameters:
+        - name: key
+          in: path
+          required: true
+          description: Cache key
+          schema:
+            type: string
+            example: "user:12345:profile"
+      responses:
+        '200':
+          description: Value retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheGetResponse'
+        '404':
+          description: Key not found in cache
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    put:
+      summary: Set cache value
+      description: Store a value in the intelligent cache with optional TTL and metadata
+      operationId: setCacheValue
+      tags:
+        - cache
+      parameters:
+        - name: key
+          in: path
+          required: true
+          description: Cache key
+          schema:
+            type: string
+            example: "user:12345:profile"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CacheSetRequest'
+            examples:
+              simple_value:
+                summary: Simple value with TTL
+                value:
+                  value: "cached data"
+                  ttl: 3600
+              complex_value:
+                summary: Complex value with metadata
+                value:
+                  value:
+                    id: "12345"
+                    name: "John Doe"
+                    email: "john@example.com"
+                  ttl: 1800
+                  priority: 1
+                  tags: ["user", "profile"]
+                  metadata:
+                    source: "database"
+                    version: "1.0"
+      responses:
+        '200':
+          description: Value stored successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheSetResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '413':
+          description: Value too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    delete:
+      summary: Delete cache value
+      description: Remove a value from the cache
+      operationId: deleteCacheValue
+      tags:
+        - cache
+      parameters:
+        - name: key
+          in: path
+          required: true
+          description: Cache key
+          schema:
+            type: string
+            example: "user:12345:profile"
+      responses:
+        '200':
+          description: Value deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheDeleteResponse'
+        '404':
+          description: Key not found in cache
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /cache:
+    delete:
+      summary: Clear all cache
+      description: Remove all values from the cache
+      operationId: clearCache
+      tags:
+        - cache
+      responses:
+        '200':
+          description: Cache cleared successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheClearResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Cache Statistics
+  /cache/stats:
+    get:
+      summary: Get cache statistics
+      description: Retrieve comprehensive cache statistics and performance metrics
+      operationId: getCacheStats
+      tags:
+        - monitoring
+      responses:
+        '200':
+          description: Cache statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheStatsResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Cache Analytics
+  /cache/analytics:
+    get:
+      summary: Get cache analytics
+      description: Retrieve detailed cache analytics including access patterns and performance insights
+      operationId: getCacheAnalytics
+      tags:
+        - monitoring
+      parameters:
+        - name: time_range
+          in: query
+          description: Time range for analytics (e.g., "1h", "24h", "7d")
+          schema:
+            type: string
+            default: "1h"
+            example: "24h"
+      responses:
+        '200':
+          description: Cache analytics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheAnalyticsResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Optimization
+  /cache/optimization/plans:
+    get:
+      summary: List optimization plans
+      description: Retrieve all optimization plans
+      operationId: listOptimizationPlans
+      tags:
+        - optimization
+      responses:
+        '200':
+          description: Optimization plans retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OptimizationPlansResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    post:
+      summary: Generate optimization plan
+      description: Generate a new optimization plan based on current cache performance
+      operationId: generateOptimizationPlan
+      tags:
+        - optimization
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OptimizationPlanRequest'
+      responses:
+        '200':
+          description: Optimization plan generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OptimizationPlanResponse'
+        '400':
+          description: Invalid request or no optimization needed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /cache/optimization/plans/{plan_id}:
+    get:
+      summary: Get optimization plan
+      description: Retrieve a specific optimization plan
+      operationId: getOptimizationPlan
+      tags:
+        - optimization
+      parameters:
+        - name: plan_id
+          in: path
+          required: true
+          description: Optimization plan ID
+          schema:
+            type: string
+            example: "plan_1234567890"
+      responses:
+        '200':
+          description: Optimization plan retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OptimizationPlanResponse'
+        '404':
+          description: Optimization plan not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    post:
+      summary: Execute optimization plan
+      description: Execute a specific optimization plan
+      operationId: executeOptimizationPlan
+      tags:
+        - optimization
+      parameters:
+        - name: plan_id
+          in: path
+          required: true
+          description: Optimization plan ID
+          schema:
+            type: string
+            example: "plan_1234567890"
+      responses:
+        '200':
+          description: Optimization plan executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OptimizationResultResponse'
+        '404':
+          description: Optimization plan not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Optimization plan already executed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /cache/optimization/results:
+    get:
+      summary: List optimization results
+      description: Retrieve all optimization execution results
+      operationId: listOptimizationResults
+      tags:
+        - optimization
+      responses:
+        '200':
+          description: Optimization results retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OptimizationResultsResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Invalidation
+  /cache/invalidation/rules:
+    get:
+      summary: List invalidation rules
+      description: Retrieve all cache invalidation rules
+      operationId: listInvalidationRules
+      tags:
+        - invalidation
+      responses:
+        '200':
+          description: Invalidation rules retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidationRulesResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    post:
+      summary: Create invalidation rule
+      description: Create a new cache invalidation rule
+      operationId: createInvalidationRule
+      tags:
+        - invalidation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvalidationRuleRequest'
+            examples:
+              exact_rule:
+                summary: Exact key invalidation rule
+                value:
+                  name: "User profile invalidation"
+                  strategy: "exact"
+                  pattern: "user:*:profile"
+                  priority: 1
+                  enabled: true
+              pattern_rule:
+                summary: Pattern-based invalidation rule
+                value:
+                  name: "Session invalidation"
+                  strategy: "pattern"
+                  pattern: "session:.*"
+                  priority: 2
+                  enabled: true
+                  conditions:
+                    time_range:
+                      start: "00:00"
+                      end: "06:00"
+      responses:
+        '201':
+          description: Invalidation rule created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidationRuleResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /cache/invalidation/rules/{rule_id}:
+    get:
+      summary: Get invalidation rule
+      description: Retrieve a specific invalidation rule
+      operationId: getInvalidationRule
+      tags:
+        - invalidation
+      parameters:
+        - name: rule_id
+          in: path
+          required: true
+          description: Invalidation rule ID
+          schema:
+            type: string
+            example: "rule_1234567890"
+      responses:
+        '200':
+          description: Invalidation rule retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidationRuleResponse'
+        '404':
+          description: Invalidation rule not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    put:
+      summary: Update invalidation rule
+      description: Update an existing invalidation rule
+      operationId: updateInvalidationRule
+      tags:
+        - invalidation
+      parameters:
+        - name: rule_id
+          in: path
+          required: true
+          description: Invalidation rule ID
+          schema:
+            type: string
+            example: "rule_1234567890"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvalidationRuleRequest'
+      responses:
+        '200':
+          description: Invalidation rule updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidationRuleResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Invalidation rule not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    delete:
+      summary: Delete invalidation rule
+      description: Delete an invalidation rule
+      operationId: deleteInvalidationRule
+      tags:
+        - invalidation
+      parameters:
+        - name: rule_id
+          in: path
+          required: true
+          description: Invalidation rule ID
+          schema:
+            type: string
+            example: "rule_1234567890"
+      responses:
+        '200':
+          description: Invalidation rule deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidationRuleDeleteResponse'
+        '404':
+          description: Invalidation rule not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /cache/invalidation/execute:
+    post:
+      summary: Execute invalidation
+      description: Execute cache invalidation by key, pattern, or all
+      operationId: executeInvalidation
+      tags:
+        - invalidation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvalidationExecuteRequest'
+            examples:
+              invalidate_key:
+                summary: Invalidate specific key
+                value:
+                  strategy: "exact"
+                  key: "user:12345:profile"
+              invalidate_pattern:
+                summary: Invalidate by pattern
+                value:
+                  strategy: "pattern"
+                  pattern: "user:*:profile"
+              invalidate_all:
+                summary: Invalidate all cache
+                value:
+                  strategy: "all"
+      responses:
+        '200':
+          description: Invalidation executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidationExecuteResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Health and Status
+  /cache/health:
+    get:
+      summary: Get cache health
+      description: Retrieve cache health status and basic information
+      operationId: getCacheHealth
+      tags:
+        - health
+      responses:
+        '200':
+          description: Cache health information retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheHealthResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    # Cache Operation Schemas
+    CacheSetRequest:
+      type: object
+      required:
+        - value
+      properties:
+        value:
+          description: Value to cache
+          oneOf:
+            - type: string
+            - type: number
+            - type: boolean
+            - type: object
+            - type: array
+          example: "cached data"
+        ttl:
+          description: Time to live in seconds
+          type: integer
+          minimum: 1
+          maximum: 31536000
+          example: 3600
+        priority:
+          description: Cache priority (1-5, where 1 is highest)
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 1
+        tags:
+          description: Tags for categorization
+          type: array
+          items:
+            type: string
+          example: ["user", "profile"]
+        metadata:
+          description: Additional metadata
+          type: object
+          additionalProperties: true
+          example:
+            source: "database"
+            version: "1.0"
+
+    CacheGetResponse:
+      type: object
+      properties:
+        key:
+          type: string
+          description: Cache key
+          example: "user:12345:profile"
+        value:
+          description: Cached value
+          oneOf:
+            - type: string
+            - type: number
+            - type: boolean
+            - type: object
+            - type: array
+          example: "cached data"
+        ttl:
+          type: integer
+          description: Remaining time to live in seconds
+          example: 1800
+        created_at:
+          type: string
+          format: date-time
+          description: When the value was cached
+          example: "2024-12-19T10:30:00Z"
+        accessed_at:
+          type: string
+          format: date-time
+          description: When the value was last accessed
+          example: "2024-12-19T11:00:00Z"
+        access_count:
+          type: integer
+          description: Number of times the value has been accessed
+          example: 5
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["user", "profile"]
+        metadata:
+          type: object
+          additionalProperties: true
+          example:
+            source: "database"
+            version: "1.0"
+
+    CacheSetResponse:
+      type: object
+      properties:
+        key:
+          type: string
+          description: Cache key
+          example: "user:12345:profile"
+        success:
+          type: boolean
+          description: Whether the operation was successful
+          example: true
+        message:
+          type: string
+          description: Operation message
+          example: "Value cached successfully"
+        ttl:
+          type: integer
+          description: Time to live in seconds
+          example: 3600
+        size:
+          type: integer
+          description: Size of the cached value in bytes
+          example: 1024
+
+    CacheDeleteResponse:
+      type: object
+      properties:
+        key:
+          type: string
+          description: Cache key
+          example: "user:12345:profile"
+        success:
+          type: boolean
+          description: Whether the operation was successful
+          example: true
+        message:
+          type: string
+          description: Operation message
+          example: "Value deleted successfully"
+
+    CacheClearResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Whether the operation was successful
+          example: true
+        message:
+          type: string
+          description: Operation message
+          example: "Cache cleared successfully"
+        deleted_count:
+          type: integer
+          description: Number of entries deleted
+          example: 1000
+
+    # Statistics and Analytics Schemas
+    CacheStatsResponse:
+      type: object
+      properties:
+        hits:
+          type: integer
+          description: Number of cache hits
+          example: 15000
+        misses:
+          type: integer
+          description: Number of cache misses
+          example: 3000
+        evictions:
+          type: integer
+          description: Number of cache evictions
+          example: 500
+        expirations:
+          type: integer
+          description: Number of cache expirations
+          example: 200
+        total_size:
+          type: integer
+          description: Total cache size in bytes
+          example: 104857600
+        entry_count:
+          type: integer
+          description: Number of cache entries
+          example: 5000
+        hit_rate:
+          type: number
+          format: float
+          description: Cache hit rate (0.0 to 1.0)
+          example: 0.833
+        miss_rate:
+          type: number
+          format: float
+          description: Cache miss rate (0.0 to 1.0)
+          example: 0.167
+        average_access_time:
+          type: number
+          format: float
+          description: Average access time in milliseconds
+          example: 2.5
+        memory_usage:
+          type: integer
+          description: Memory usage in bytes
+          example: 52428800
+        throughput:
+          type: integer
+          description: Operations per second
+          example: 1000
+        shard_count:
+          type: integer
+          description: Number of cache shards
+          example: 8
+
+    CacheAnalyticsResponse:
+      type: object
+      properties:
+        time_range:
+          type: string
+          description: Time range for analytics
+          example: "24h"
+        hit_rate:
+          type: number
+          format: float
+          description: Average hit rate for the time range
+          example: 0.85
+        miss_rate:
+          type: number
+          format: float
+          description: Average miss rate for the time range
+          example: 0.15
+        eviction_rate:
+          type: number
+          format: float
+          description: Eviction rate for the time range
+          example: 0.05
+        expiration_rate:
+          type: number
+          format: float
+          description: Expiration rate for the time range
+          example: 0.02
+        average_entry_size:
+          type: number
+          format: float
+          description: Average entry size in bytes
+          example: 2048
+        average_access_time:
+          type: number
+          format: float
+          description: Average access time in milliseconds
+          example: 3.2
+        popular_keys:
+          type: array
+          description: Most frequently accessed keys
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+                example: "user:12345:profile"
+              access_count:
+                type: integer
+                example: 150
+              last_access:
+                type: string
+                format: date-time
+                example: "2024-12-19T11:00:00Z"
+        hot_keys:
+          type: array
+          description: Recently accessed keys
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+                example: "session:67890"
+              access_count:
+                type: integer
+                example: 25
+              last_access:
+                type: string
+                format: date-time
+                example: "2024-12-19T11:05:00Z"
+        cold_keys:
+          type: array
+          description: Least recently accessed keys
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+                example: "config:old"
+              access_count:
+                type: integer
+                example: 1
+              last_access:
+                type: string
+                format: date-time
+                example: "2024-12-18T10:00:00Z"
+        access_patterns:
+          type: object
+          description: Access pattern analysis
+          properties:
+            read_write_ratio:
+              type: number
+              format: float
+              example: 0.8
+            temporal_patterns:
+              type: object
+              additionalProperties:
+                type: integer
+              example:
+                "00:00": 100
+                "06:00": 500
+                "12:00": 1000
+                "18:00": 800
+        size_distribution:
+          type: object
+          description: Size distribution analysis
+          properties:
+            small:
+              type: integer
+              description: Entries < 1KB
+              example: 2000
+            medium:
+              type: integer
+              description: Entries 1KB - 10KB
+              example: 2500
+            large:
+              type: integer
+              description: Entries > 10KB
+              example: 500
+
+    # Optimization Schemas
+    OptimizationPlanRequest:
+      type: object
+      properties:
+        force_generation:
+          type: boolean
+          description: Force plan generation even if no issues detected
+          default: false
+          example: false
+
+    OptimizationPlanResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Optimization plan ID
+          example: "plan_1234567890"
+        name:
+          type: string
+          description: Plan name
+          example: "Cache Performance Optimization"
+        description:
+          type: string
+          description: Plan description
+          example: "Optimize cache performance based on current metrics"
+        actions:
+          type: array
+          description: Optimization actions
+          items:
+            $ref: '#/components/schemas/OptimizationAction'
+        estimated_total_gain:
+          type: number
+          format: float
+          description: Estimated total performance gain
+          example: 0.25
+        estimated_total_cost:
+          type: number
+          format: float
+          description: Estimated total cost
+          example: 0.05
+        estimated_roi:
+          type: number
+          format: float
+          description: Estimated return on investment
+          example: 5.0
+        risk_level:
+          type: string
+          enum: [low, medium, high]
+          description: Risk level of the optimization plan
+          example: "low"
+        execution_time:
+          type: integer
+          description: Estimated execution time in seconds
+          example: 30
+        created_at:
+          type: string
+          format: date-time
+          description: When the plan was created
+          example: "2024-12-19T11:00:00Z"
+        status:
+          type: string
+          enum: [pending, executing, completed, failed]
+          description: Plan status
+          example: "pending"
+
+    OptimizationAction:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Action ID
+          example: "action_1234567890"
+        strategy:
+          type: string
+          enum: [size_adjustment, eviction_policy, ttl_optimization, sharding, compression]
+          description: Optimization strategy
+          example: "size_adjustment"
+        description:
+          type: string
+          description: Action description
+          example: "Increase cache size to reduce evictions"
+        parameters:
+          type: object
+          description: Strategy-specific parameters
+          additionalProperties: true
+          example:
+            new_size: 209715200
+        priority:
+          type: integer
+          description: Action priority (1-5, where 1 is highest)
+          example: 1
+        impact:
+          type: string
+          enum: [low, medium, high, critical]
+          description: Expected impact
+          example: "high"
+        risk:
+          type: string
+          enum: [low, medium, high]
+          description: Risk level
+          example: "low"
+        estimated_gain:
+          type: number
+          format: float
+          description: Estimated performance gain
+          example: 0.15
+        estimated_cost:
+          type: number
+          format: float
+          description: Estimated cost
+          example: 0.05
+        roi:
+          type: number
+          format: float
+          description: Return on investment
+          example: 3.0
+
+    OptimizationPlansResponse:
+      type: object
+      properties:
+        plans:
+          type: array
+          items:
+            $ref: '#/components/schemas/OptimizationPlanResponse'
+        total_count:
+          type: integer
+          description: Total number of plans
+          example: 10
+
+    OptimizationResultResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Result ID
+          example: "result_1234567890"
+        plan_id:
+          type: string
+          description: Associated plan ID
+          example: "plan_1234567890"
+        success:
+          type: boolean
+          description: Whether the optimization was successful
+          example: true
+        error_message:
+          type: string
+          description: Error message if failed
+          example: ""
+        actual_gain:
+          type: number
+          format: float
+          description: Actual performance gain achieved
+          example: 0.18
+        actual_cost:
+          type: number
+          format: float
+          description: Actual cost incurred
+          example: 0.03
+        execution_duration:
+          type: integer
+          description: Execution time in seconds
+          example: 25
+        timestamp:
+          type: string
+          format: date-time
+          description: When the optimization was executed
+          example: "2024-12-19T11:05:00Z"
+
+    OptimizationResultsResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/OptimizationResultResponse'
+        total_count:
+          type: integer
+          description: Total number of results
+          example: 15
+
+    # Invalidation Schemas
+    InvalidationRuleRequest:
+      type: object
+      required:
+        - name
+        - strategy
+      properties:
+        name:
+          type: string
+          description: Rule name
+          example: "User profile invalidation"
+        strategy:
+          type: string
+          enum: [exact, pattern, prefix, suffix, tag, dependency, time, size, priority, all]
+          description: Invalidation strategy
+          example: "pattern"
+        pattern:
+          type: string
+          description: Pattern for pattern-based invalidation
+          example: "user:*:profile"
+        tags:
+          type: array
+          items:
+            type: string
+          description: Tags for tag-based invalidation
+          example: ["user", "profile"]
+        dependencies:
+          type: array
+          items:
+            type: string
+          description: Dependent keys for dependency-based invalidation
+          example: ["user:12345:data"]
+        conditions:
+          type: object
+          description: Invalidation conditions
+          properties:
+            time_range:
+              type: object
+              properties:
+                start:
+                  type: string
+                  description: Start time (HH:MM)
+                  example: "00:00"
+                end:
+                  type: string
+                  description: End time (HH:MM)
+                  example: "06:00"
+            day_of_week:
+              type: array
+              items:
+                type: string
+                enum: [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
+              example: ["saturday", "sunday"]
+            size_threshold:
+              type: integer
+              description: Size threshold in bytes
+              example: 1048576
+        priority:
+          type: integer
+          description: Rule priority (1-5, where 1 is highest)
+          example: 1
+        enabled:
+          type: boolean
+          description: Whether the rule is enabled
+          default: true
+          example: true
+
+    InvalidationRuleResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Rule ID
+          example: "rule_1234567890"
+        name:
+          type: string
+          description: Rule name
+          example: "User profile invalidation"
+        strategy:
+          type: string
+          enum: [exact, pattern, prefix, suffix, tag, dependency, time, size, priority, all]
+          description: Invalidation strategy
+          example: "pattern"
+        pattern:
+          type: string
+          description: Pattern for pattern-based invalidation
+          example: "user:*:profile"
+        tags:
+          type: array
+          items:
+            type: string
+          description: Tags for tag-based invalidation
+          example: ["user", "profile"]
+        dependencies:
+          type: array
+          items:
+            type: string
+          description: Dependent keys for dependency-based invalidation
+          example: ["user:12345:data"]
+        conditions:
+          type: object
+          description: Invalidation conditions
+          properties:
+            time_range:
+              type: object
+              properties:
+                start:
+                  type: string
+                  description: Start time (HH:MM)
+                  example: "00:00"
+                end:
+                  type: string
+                  description: End time (HH:MM)
+                  example: "06:00"
+            day_of_week:
+              type: array
+              items:
+                type: string
+                enum: [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
+              example: ["saturday", "sunday"]
+            size_threshold:
+              type: integer
+              description: Size threshold in bytes
+              example: 1048576
+        priority:
+          type: integer
+          description: Rule priority (1-5, where 1 is highest)
+          example: 1
+        enabled:
+          type: boolean
+          description: Whether the rule is enabled
+          example: true
+        created_at:
+          type: string
+          format: date-time
+          description: When the rule was created
+          example: "2024-12-19T10:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: When the rule was last updated
+          example: "2024-12-19T10:30:00Z"
+
+    InvalidationRulesResponse:
+      type: object
+      properties:
+        rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvalidationRuleResponse'
+        total_count:
+          type: integer
+          description: Total number of rules
+          example: 5
+
+    InvalidationRuleDeleteResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Deleted rule ID
+          example: "rule_1234567890"
+        success:
+          type: boolean
+          description: Whether the deletion was successful
+          example: true
+        message:
+          type: string
+          description: Operation message
+          example: "Invalidation rule deleted successfully"
+
+    InvalidationExecuteRequest:
+      type: object
+      required:
+        - strategy
+      properties:
+        strategy:
+          type: string
+          enum: [exact, pattern, prefix, suffix, tag, dependency, time, size, priority, all]
+          description: Invalidation strategy
+          example: "pattern"
+        key:
+          type: string
+          description: Key for exact invalidation
+          example: "user:12345:profile"
+        pattern:
+          type: string
+          description: Pattern for pattern-based invalidation
+          example: "user:*:profile"
+        tags:
+          type: array
+          items:
+            type: string
+          description: Tags for tag-based invalidation
+          example: ["user", "profile"]
+
+    InvalidationExecuteResponse:
+      type: object
+      properties:
+        strategy:
+          type: string
+          description: Executed strategy
+          example: "pattern"
+        pattern:
+          type: string
+          description: Executed pattern
+          example: "user:*:profile"
+        invalidated_count:
+          type: integer
+          description: Number of entries invalidated
+          example: 150
+        success:
+          type: boolean
+          description: Whether the invalidation was successful
+          example: true
+        message:
+          type: string
+          description: Operation message
+          example: "Invalidation executed successfully"
+
+    # Health Schema
+    CacheHealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          description: Overall cache health status
+          example: "healthy"
+        uptime:
+          type: integer
+          description: Cache uptime in seconds
+          example: 86400
+        version:
+          type: string
+          description: Cache system version
+          example: "1.0.0"
+        eviction_policy:
+          type: string
+          description: Current eviction policy
+          example: "lru"
+        shard_count:
+          type: integer
+          description: Number of cache shards
+          example: 8
+        total_entries:
+          type: integer
+          description: Total number of cache entries
+          example: 5000
+        total_size:
+          type: integer
+          description: Total cache size in bytes
+          example: 104857600
+        memory_usage:
+          type: integer
+          description: Memory usage in bytes
+          example: 52428800
+        hit_rate:
+          type: number
+          format: float
+          description: Current hit rate
+          example: 0.85
+        last_optimization:
+          type: string
+          format: date-time
+          description: Last optimization execution time
+          example: "2024-12-19T10:00:00Z"
+        checks:
+          type: object
+          description: Health check results
+          properties:
+            cache_accessible:
+              type: boolean
+              description: Whether cache is accessible
+              example: true
+            memory_ok:
+              type: boolean
+              description: Whether memory usage is acceptable
+              example: true
+            performance_ok:
+              type: boolean
+              description: Whether performance is acceptable
+              example: true
+            optimization_enabled:
+              type: boolean
+              description: Whether optimization is enabled
+              example: true
+
+    # Error Schema
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: "Invalid request data"
+        code:
+          type: string
+          description: Error code
+          example: "INVALID_REQUEST"
+        details:
+          type: object
+          description: Additional error details
+          additionalProperties: true
+          example:
+            field: "ttl"
+            reason: "Value must be positive"
+        timestamp:
+          type: string
+          format: date-time
+          description: When the error occurred
+          example: "2024-12-19T11:00:00Z"
+        request_id:
+          type: string
+          description: Request ID for tracking
+          example: "req_1234567890"
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: API key for authentication
+      example: "Bearer your-api-key-here"
+    
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication
+
+security:
+  - ApiKeyAuth: []
+  - BearerAuth: []

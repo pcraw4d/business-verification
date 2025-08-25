@@ -891,11 +891,16 @@ func main() {
 
 	// Initialize rate limiting middleware
 	rateLimitConfig := &middleware.RateLimitConfig{
+		Enabled:           cfg.RateLimit.Enabled,
 		RequestsPerMinute: cfg.RateLimit.RequestsPer,
 		BurstSize:         cfg.RateLimit.BurstSize,
-		Enabled:           cfg.RateLimit.Enabled,
+		WindowSize:        time.Duration(cfg.RateLimit.WindowSize) * time.Second,
+		Strategy:          "token_bucket",
+		Distributed:       false,
+		CleanupInterval:   5 * time.Minute,
+		MaxKeys:           10000,
 	}
-	rateLimiter := middleware.NewRateLimiter(rateLimitConfig, logger)
+	rateLimiter := middleware.NewAPIRateLimiter(rateLimitConfig, logger)
 
 	// Initialize auth-specific rate limiting middleware
 	authRateLimitConfig := &middleware.AuthRateLimitConfig{
@@ -905,6 +910,9 @@ func main() {
 		PasswordResetAttemptsPer: 3,
 		WindowSize:               60 * time.Second,
 		LockoutDuration:          15 * time.Minute,
+		MaxLockouts:              3,
+		PermanentLockoutDuration: 24 * time.Hour,
+		Distributed:              false,
 	}
 	authRateLimiter := middleware.NewAuthRateLimiter(authRateLimitConfig, logger)
 

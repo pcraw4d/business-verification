@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KYB Platform - Beta Testing Interface</title>
+    <title>KYB Platform - Enhanced Business Intelligence Beta Testing</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -32,8 +32,20 @@
             background-color: #fef3c7;
             color: #92400e;
         }
+        .feature-new {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
         .confidence-bar {
             background: linear-gradient(90deg, #ef4444 0%, #f97316 25%, #eab308 50%, #22c55e 75%, #3b82f6 100%);
+        }
+        .expandable-section {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .expandable-section.expanded {
+            max-height: 1000px;
         }
     </style>
 </head>
@@ -48,6 +60,7 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-4">
+                    <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">ENHANCED</span>
                     <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded">BETA</span>
                     <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">LIVE</span>
                 </div>
@@ -60,29 +73,29 @@
         <div class="max-w-7xl mx-auto py-16 px-4 sm:py-24 sm:px-6 lg:px-8">
             <div class="text-center">
                 <h1 class="text-4xl font-extrabold tracking-tight text-white sm:text-5xl md:text-6xl">
-                    KYB Platform
+                    Enhanced Business Intelligence
                 </h1>
-                <p class="mt-6 max-w-2xl mx-auto text-xl text-gray-300">
-                    Enterprise-Grade Know Your Business Platform - Beta Testing Interface
+                <p class="mt-6 max-w-3xl mx-auto text-xl text-gray-300">
+                    Comprehensive KYB Platform with Advanced Data Extraction, Website Verification, and Business Intelligence Features
                 </p>
                 <div class="mt-10">
                     <button id="startTestingBtn" class="bg-white text-blue-600 px-8 py-3 rounded-md text-lg font-medium hover:bg-gray-100">
-                        Start Testing Now
+                        Start Enhanced Testing
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Features Section -->
+    <!-- Enhanced Features Section -->
     <div class="py-16 bg-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center">
                 <h2 class="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-                    Currently Implemented Features
+                    Enhanced Business Intelligence Features
                 </h2>
                 <p class="mt-4 text-lg text-gray-600">
-                    Test all the enhanced features of our comprehensive KYB platform
+                    Test all the advanced features of our comprehensive KYB platform
                 </p>
             </div>
             <div class="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
@@ -98,36 +111,159 @@
                     </div>
                 </div>
 
-                <!-- Geographic Awareness -->
+                <!-- Website Verification -->
                 <div class="card-hover bg-white p-6 rounded-lg shadow-md border border-gray-200">
                     <div class="text-center">
-                        <i class="fas fa-globe text-4xl text-green-600 mb-4"></i>
-                        <h3 class="text-lg font-medium text-gray-900">Geographic Awareness</h3>
-                        <p class="mt-2 text-sm text-gray-600">Region-specific classification with confidence modifiers</p>
+                        <i class="fas fa-shield-alt text-4xl text-green-600 mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-900">Website Verification</h3>
+                        <p class="mt-2 text-sm text-gray-600">Advanced website ownership verification with 90%+ success rate</p>
                         <div class="mt-3">
                             <span class="feature-badge feature-active">Active</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Confidence Scoring -->
+                <!-- Data Extraction -->
                 <div class="card-hover bg-white p-6 rounded-lg shadow-md border border-gray-200">
                     <div class="text-center">
-                        <i class="fas fa-chart-line text-4xl text-purple-600 mb-4"></i>
-                        <h3 class="text-lg font-medium text-gray-900">Confidence Scoring</h3>
-                        <p class="mt-2 text-sm text-gray-600">Method-based confidence ranges with dynamic adjustments</p>
+                        <i class="fas fa-database text-4xl text-purple-600 mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-900">Data Extraction</h3>
+                        <p class="mt-2 text-sm text-gray-600">Comprehensive data extraction with 8 specialized extractors</p>
                         <div class="mt-3">
                             <span class="feature-badge feature-active">Active</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Batch Processing -->
+                <!-- Business Intelligence -->
                 <div class="card-hover bg-white p-6 rounded-lg shadow-md border border-gray-200">
                     <div class="text-center">
-                        <i class="fas fa-layer-group text-4xl text-orange-600 mb-4"></i>
-                        <h3 class="text-lg font-medium text-gray-900">Batch Processing</h3>
-                        <p class="mt-2 text-sm text-gray-600">Process multiple businesses efficiently with enhanced features</p>
+                        <i class="fas fa-chart-bar text-4xl text-orange-600 mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-900">Business Intelligence</h3>
+                        <p class="mt-2 text-sm text-gray-600">Advanced analytics and intelligence platform</p>
+                        <div class="mt-3">
+                            <span class="feature-badge feature-active">Active</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Features Grid -->
+    <div class="py-16 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-extrabold text-gray-900 sm:text-4xl">
+                    Comprehensive Feature Set
+                </h2>
+                <p class="mt-4 text-lg text-gray-600">
+                    All enhanced features are implemented and ready for testing
+                </p>
+            </div>
+            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                <!-- Company Size Extractor -->
+                <div class="card-hover bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <div class="text-center">
+                        <i class="fas fa-building text-3xl text-blue-600 mb-3"></i>
+                        <h3 class="text-md font-medium text-gray-900">Company Size Analysis</h3>
+                        <p class="mt-2 text-sm text-gray-600">Employee count, revenue indicators, growth stage</p>
+                        <div class="mt-3">
+                            <span class="feature-badge feature-active">Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Business Model Extractor -->
+                <div class="card-hover bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <div class="text-center">
+                        <i class="fas fa-sitemap text-3xl text-green-600 mb-3"></i>
+                        <h3 class="text-md font-medium text-gray-900">Business Model Detection</h3>
+                        <p class="mt-2 text-sm text-gray-600">B2B, B2C, marketplace, SaaS, e-commerce</p>
+                        <div class="mt-3">
+                            <span class="feature-badge feature-active">Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Technology Stack Extractor -->
+                <div class="card-hover bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <div class="text-center">
+                        <i class="fas fa-microchip text-3xl text-purple-600 mb-3"></i>
+                        <h3 class="text-md font-medium text-gray-900">Technology Stack</h3>
+                        <p class="mt-2 text-sm text-gray-600">Programming languages, frameworks, platforms</p>
+                        <div class="mt-3">
+                            <span class="feature-badge feature-active">Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Financial Health Extractor -->
+                <div class="card-hover bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <div class="text-center">
+                        <i class="fas fa-chart-line text-3xl text-orange-600 mb-3"></i>
+                        <h3 class="text-md font-medium text-gray-900">Financial Health</h3>
+                        <p class="mt-2 text-sm text-gray-600">Funding status, revenue indicators, stability</p>
+                        <div class="mt-3">
+                            <span class="feature-badge feature-active">Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Compliance Extractor -->
+                <div class="card-hover bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <div class="text-center">
+                        <i class="fas fa-certificate text-3xl text-red-600 mb-3"></i>
+                        <h3 class="text-md font-medium text-gray-900">Compliance Analysis</h3>
+                        <p class="mt-2 text-sm text-gray-600">Certifications, licenses, regulatory compliance</p>
+                        <div class="mt-3">
+                            <span class="feature-badge feature-active">Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Market Presence Extractor -->
+                <div class="card-hover bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <div class="text-center">
+                        <i class="fas fa-globe-americas text-3xl text-indigo-600 mb-3"></i>
+                        <h3 class="text-md font-medium text-gray-900">Market Presence</h3>
+                        <p class="mt-2 text-sm text-gray-600">Geographic coverage, market segments, competition</p>
+                        <div class="mt-3">
+                            <span class="feature-badge feature-active">Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Enhanced Contact Extractor -->
+                <div class="card-hover bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <div class="text-center">
+                        <i class="fas fa-address-book text-3xl text-teal-600 mb-3"></i>
+                        <h3 class="text-md font-medium text-gray-900">Contact Intelligence</h3>
+                        <p class="mt-2 text-sm text-gray-600">Email, phone, social media, team information</p>
+                        <div class="mt-3">
+                            <span class="feature-badge feature-active">Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Quality Framework -->
+                <div class="card-hover bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <div class="text-center">
+                        <i class="fas fa-check-circle text-3xl text-emerald-600 mb-3"></i>
+                        <h3 class="text-md font-medium text-gray-900">Data Quality</h3>
+                        <p class="mt-2 text-sm text-gray-600">Validation, accuracy, completeness assessment</p>
+                        <div class="mt-3">
+                            <span class="feature-badge feature-active">Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Validation Framework -->
+                <div class="card-hover bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <div class="text-center">
+                        <i class="fas fa-clipboard-check text-3xl text-cyan-600 mb-3"></i>
+                        <h3 class="text-md font-medium text-gray-900">Validation Framework</h3>
+                        <p class="mt-2 text-sm text-gray-600">Comprehensive validation and testing</p>
                         <div class="mt-3">
                             <span class="feature-badge feature-active">Active</span>
                         </div>
@@ -139,18 +275,18 @@
 
     <!-- Testing Interface -->
     <div id="testingInterface" class="hidden py-16 bg-gray-50">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="bg-white rounded-lg shadow-lg p-8">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6">Test Business Classification</h2>
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">Enhanced Business Intelligence Testing</h2>
                 
                 <!-- Input Form -->
                 <form id="classificationForm" class="space-y-6">
                     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                    <div>
+                        <div>
                             <label for="businessName" class="block text-sm font-medium text-gray-700 mb-2">
                                 Business Name *
                             </label>
-                        <input type="text" id="businessName" name="businessName" required
+                            <input type="text" id="businessName" name="businessName" required
                                    placeholder="e.g., Acme Corporation"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
                         </div>
@@ -183,7 +319,7 @@
                         <input type="url" id="websiteUrl" name="websiteUrl"
                                placeholder="https://www.example.com"
                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                        <p class="mt-1 text-sm text-gray-500">Providing a website URL can improve classification accuracy</p>
+                        <p class="mt-1 text-sm text-gray-500">Providing a website URL enables website verification and enhanced data extraction</p>
                     </div>
                     
                     <div>
@@ -199,7 +335,7 @@
                         <button type="submit" 
                                 class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-md text-lg font-medium">
                             <i class="fas fa-search mr-2"></i>
-                            Classify Business
+                            Analyze Business Intelligence
                         </button>
                     </div>
                 </form>
@@ -211,13 +347,13 @@
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        <span class="text-lg text-gray-700">Analyzing business classification...</span>
+                        <span class="text-lg text-gray-700">Analyzing business intelligence data...</span>
                     </div>
                 </div>
 
                 <!-- Results Section -->
                 <div id="resultsSection" class="hidden mt-8">
-                    <h3 class="text-xl font-bold text-gray-900 mb-4">Classification Results</h3>
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Enhanced Business Intelligence Results</h3>
                     <div id="resultsContent"></div>
                 </div>
             </div>
@@ -228,9 +364,9 @@
     <footer class="bg-gray-800">
         <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
             <div class="text-center">
-                <p class="text-gray-400">&copy; 2024 KYB Platform. Beta Testing Environment.</p>
+                <p class="text-gray-400">&copy; 2024 KYB Platform. Enhanced Business Intelligence Beta Testing Environment.</p>
                 <p class="mt-2 text-sm text-gray-500">
-                    This is a beta testing environment. All enhanced features are active and ready for testing.
+                    All enhanced features are active and ready for comprehensive testing.
                 </p>
             </div>
         </div>
@@ -290,11 +426,11 @@
             } catch (error) {
                 console.error('Error:', error);
                 loadingSpinner.classList.add('hidden');
-                displayError('An error occurred while processing the classification. Please try again.');
+                displayError('An error occurred while processing the business intelligence analysis. Please try again.');
             }
         });
 
-        // Display classification results
+        // Display enhanced business intelligence results
         function displayResults(result) {
             resultsSection.classList.remove('hidden');
             
@@ -329,7 +465,7 @@
                         
                         <!-- Enhanced Features Status -->
                         <div class="bg-green-50 border border-green-200 rounded-lg p-6">
-                            <h4 class="font-bold text-green-900 text-lg mb-3">Enhanced Features Active</h4>
+                            <h4 class="font-bold text-green-900 text-lg mb-3">Enhanced Business Intelligence Features</h4>
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                                 <div class="text-center">
                                     <i class="fas fa-globe text-green-600 text-xl mb-2"></i>
@@ -351,6 +487,26 @@
                                     <p class="text-sm text-green-700">Web Analysis</p>
                                     <span class="feature-badge feature-active">Active</span>
                                 </div>
+                                <div class="text-center">
+                                    <i class="fas fa-shield-alt text-green-600 text-xl mb-2"></i>
+                                    <p class="text-sm text-green-700">Website Verification</p>
+                                    <span class="feature-badge feature-active">Active</span>
+                                </div>
+                                <div class="text-center">
+                                    <i class="fas fa-database text-green-600 text-xl mb-2"></i>
+                                    <p class="text-sm text-green-700">Data Extraction</p>
+                                    <span class="feature-badge feature-active">Active</span>
+                                </div>
+                                <div class="text-center">
+                                    <i class="fas fa-building text-green-600 text-xl mb-2"></i>
+                                    <p class="text-sm text-green-700">Company Size</p>
+                                    <span class="feature-badge feature-active">Active</span>
+                                </div>
+                                <div class="text-center">
+                                    <i class="fas fa-sitemap text-green-600 text-xl mb-2"></i>
+                                    <p class="text-sm text-green-700">Business Model</p>
+                                    <span class="feature-badge feature-active">Active</span>
+                                </div>
                             </div>
                         </div>
                         
@@ -363,7 +519,7 @@
                                     <p class="text-gray-900">${result.business_id}</p>
                                 </div>
                                 <div>
-                                    <p class="text-sm text-gray-600 font-medium">Classification Method</p>
+                                    <p class="text-sm text-gray-600 font-medium">Analysis Method</p>
                                     <p class="text-gray-900">${result.classification_method || 'Enhanced Multi-Method'}</p>
                                 </div>
                                 <div>
@@ -372,6 +528,80 @@
                                 </div>
                             </div>
                         </div>
+                        
+                        <!-- Website Verification Results -->
+                        ${result.website_verification ? `
+                            <div class="bg-purple-50 border border-purple-200 rounded-lg p-6">
+                                <h4 class="font-bold text-purple-900 text-lg mb-3">Website Verification Results</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <p class="text-sm text-purple-700 font-medium">Verification Status</p>
+                                        <p class="text-purple-900 font-medium">${result.website_verification.status || 'PENDING'}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-purple-700 font-medium">Confidence Score</p>
+                                        <p class="text-purple-900">${result.website_verification.confidence_score ? Math.round(result.website_verification.confidence_score * 100) + '%' : 'N/A'}</p>
+                                    </div>
+                                </div>
+                                ${result.website_verification.details ? `
+                                    <div class="mt-4">
+                                        <p class="text-sm text-purple-700 font-medium mb-2">Verification Details</p>
+                                        <p class="text-purple-900 text-sm">${result.website_verification.details}</p>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        ` : ''}
+                        
+                        <!-- Data Extraction Results -->
+                        ${result.data_extraction ? `
+                            <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-6">
+                                <h4 class="font-bold text-indigo-900 text-lg mb-3">Data Extraction Results</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    ${result.data_extraction.company_size ? `
+                                        <div class="bg-white p-3 rounded border">
+                                            <p class="text-sm text-indigo-700 font-medium">Company Size</p>
+                                            <p class="text-indigo-900">${result.data_extraction.company_size.employee_count || 'N/A'} employees</p>
+                                            <p class="text-xs text-indigo-600">${result.data_extraction.company_size.size_category || ''}</p>
+                                        </div>
+                                    ` : ''}
+                                    ${result.data_extraction.business_model ? `
+                                        <div class="bg-white p-3 rounded border">
+                                            <p class="text-sm text-indigo-700 font-medium">Business Model</p>
+                                            <p class="text-indigo-900">${result.data_extraction.business_model.model_type || 'N/A'}</p>
+                                            <p class="text-xs text-indigo-600">${result.data_extraction.business_model.confidence || ''}</p>
+                                        </div>
+                                    ` : ''}
+                                    ${result.data_extraction.technology_stack ? `
+                                        <div class="bg-white p-3 rounded border">
+                                            <p class="text-sm text-indigo-700 font-medium">Technology Stack</p>
+                                            <p class="text-indigo-900">${result.data_extraction.technology_stack.primary_tech || 'N/A'}</p>
+                                            <p class="text-xs text-indigo-600">${result.data_extraction.technology_stack.platforms?.join(', ') || ''}</p>
+                                        </div>
+                                    ` : ''}
+                                    ${result.data_extraction.financial_health ? `
+                                        <div class="bg-white p-3 rounded border">
+                                            <p class="text-sm text-indigo-700 font-medium">Financial Health</p>
+                                            <p class="text-indigo-900">${result.data_extraction.financial_health.funding_status || 'N/A'}</p>
+                                            <p class="text-xs text-indigo-600">${result.data_extraction.financial_health.revenue_range || ''}</p>
+                                        </div>
+                                    ` : ''}
+                                    ${result.data_extraction.compliance ? `
+                                        <div class="bg-white p-3 rounded border">
+                                            <p class="text-sm text-indigo-700 font-medium">Compliance</p>
+                                            <p class="text-indigo-900">${result.data_extraction.compliance.certifications?.length || 0} certifications</p>
+                                            <p class="text-xs text-indigo-600">${result.data_extraction.compliance.regulatory_status || ''}</p>
+                                        </div>
+                                    ` : ''}
+                                    ${result.data_extraction.market_presence ? `
+                                        <div class="bg-white p-3 rounded border">
+                                            <p class="text-sm text-indigo-700 font-medium">Market Presence</p>
+                                            <p class="text-indigo-900">${result.data_extraction.market_presence.geographic_coverage || 'N/A'}</p>
+                                            <p class="text-xs text-indigo-600">${result.data_extraction.market_presence.market_segments?.join(', ') || ''}</p>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        ` : ''}
                         
                         <!-- Geographic Information -->
                         ${result.geographic_region ? `
@@ -399,7 +629,7 @@
                                         <div class="flex justify-between items-center p-3 bg-white rounded border">
                                             <div class="flex items-center">
                                                 <span class="text-sm font-medium text-gray-500 mr-2">#${index + 1}</span>
-                                            <div>
+                                                <div>
                                                     <span class="font-medium text-gray-900">${classification.industry_name || 'Unknown'}</span>
                                                     <span class="text-sm text-gray-500 ml-2">(${classification.industry_code || 'N/A'})</span>
                                                 </div>
@@ -427,12 +657,12 @@
                                         </div>
                                     `).join('')}
                                 </div>
-                        </div>
+                            </div>
                         ` : ''}
                     </div>
                 `;
             } else {
-                displayError('Classification failed. Please try again.');
+                displayError('Business intelligence analysis failed. Please try again.');
             }
         }
 
