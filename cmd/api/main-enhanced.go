@@ -122,11 +122,12 @@ func NewEnhancedServer(port string) *EnhancedServer {
 			"primary_industry":        classificationResult.PrimaryIndustry,
 			"overall_confidence":      classificationResult.Confidence,
 			"confidence_score":        classificationResult.Confidence,
-			"classification_method":   "Real Business Intelligence Processing",
+			"classification_method":   classificationResult.Classifications[0]["classification_method"],
 			"processing_time":         processingTime.String(),
 			"geographic_region":       request.GeographicRegion,
 			"region_confidence_score": 0.89,
 			"classifications":         classificationResult.Classifications,
+			"website_analyzed":        classificationResult.WebsiteAnalyzed,
 			"website_verification": map[string]interface{}{
 				"status":           "VERIFIED",
 				"confidence_score": 0.92,
@@ -250,59 +251,82 @@ type ClassificationResult struct {
 	PrimaryIndustry string                   `json:"primary_industry"`
 	Confidence      float64                  `json:"confidence"`
 	Classifications []map[string]interface{} `json:"classifications"`
+	WebsiteAnalyzed bool                     `json:"website_analyzed"`
 }
 
 // REAL business intelligence processing functions
 func performRealKeywordClassification(businessName, description, websiteURL string) ClassificationResult {
-	// PRIMARY CLASSIFICATION: Based on business name and independent data sources
+	// MULTI-SOURCE CLASSIFICATION: Weighted analysis from multiple data sources
 	primaryIndustry := "Technology"
-	confidence := 0.87
-	classificationMethod := "Business Name Analysis"
+	confidence := 0.75
+	classificationMethod := "Multi-Source Analysis"
+	websiteAnalyzed := false
 
-	// Step 1: Analyze business name for industry indicators (HIGH CONFIDENCE)
+	// Step 1: Analyze business name for industry indicators (LOW-MEDIUM CONFIDENCE)
 	businessNameLower := strings.ToLower(businessName)
+	businessNameIndustry := ""
+	businessNameConfidence := 0.0
 
-	// Industry detection from business name
+	// Industry detection from business name - REDUCED CONFIDENCE
 	if contains(businessNameLower, "manufacturing") || contains(businessNameLower, "factory") || contains(businessNameLower, "production") || contains(businessNameLower, "industrial") {
-		primaryIndustry = "Manufacturing"
-		confidence = 0.92
-		classificationMethod = "Business Name Industry Detection"
+		businessNameIndustry = "Manufacturing"
+		businessNameConfidence = 0.65 // Reduced from 0.92
 	} else if contains(businessNameLower, "healthcare") || contains(businessNameLower, "medical") || contains(businessNameLower, "hospital") || contains(businessNameLower, "pharmacy") {
-		primaryIndustry = "Healthcare"
-		confidence = 0.89
-		classificationMethod = "Business Name Industry Detection"
+		businessNameIndustry = "Healthcare"
+		businessNameConfidence = 0.70 // Reduced from 0.89
 	} else if contains(businessNameLower, "bank") || contains(businessNameLower, "finance") || contains(businessNameLower, "insurance") || contains(businessNameLower, "credit") {
-		primaryIndustry = "Financial Services"
-		confidence = 0.91
-		classificationMethod = "Business Name Industry Detection"
+		businessNameIndustry = "Financial Services"
+		businessNameConfidence = 0.75 // Reduced from 0.91
 	} else if contains(businessNameLower, "coffee") || contains(businessNameLower, "restaurant") || contains(businessNameLower, "cafe") || contains(businessNameLower, "bakery") || contains(businessNameLower, "pizza") || contains(businessNameLower, "wine") || contains(businessNameLower, "liquor") || contains(businessNameLower, "spirits") || contains(businessNameLower, "grape") || contains(businessNameLower, "vineyard") {
-		primaryIndustry = "Retail"
-		confidence = 0.88
-		classificationMethod = "Business Name Industry Detection"
+		businessNameIndustry = "Retail"
+		businessNameConfidence = 0.60 // Reduced from 0.88 - "grape" alone is not very specific
 	} else if contains(businessNameLower, "school") || contains(businessNameLower, "university") || contains(businessNameLower, "college") || contains(businessNameLower, "academy") {
-		primaryIndustry = "Education"
-		confidence = 0.85
-		classificationMethod = "Business Name Industry Detection"
+		businessNameIndustry = "Education"
+		businessNameConfidence = 0.70 // Reduced from 0.85
 	} else if contains(businessNameLower, "real estate") || contains(businessNameLower, "property") || contains(businessNameLower, "construction") || contains(businessNameLower, "builders") {
-		primaryIndustry = "Real Estate"
-		confidence = 0.86
-		classificationMethod = "Business Name Industry Detection"
+		businessNameIndustry = "Real Estate"
+		businessNameConfidence = 0.65 // Reduced from 0.86
 	} else if contains(businessNameLower, "transport") || contains(businessNameLower, "logistics") || contains(businessNameLower, "shipping") || contains(businessNameLower, "delivery") {
-		primaryIndustry = "Transportation & Logistics"
-		confidence = 0.84
-		classificationMethod = "Business Name Industry Detection"
+		businessNameIndustry = "Transportation & Logistics"
+		businessNameConfidence = 0.60 // Reduced from 0.84
 	} else if contains(businessNameLower, "energy") || contains(businessNameLower, "oil") || contains(businessNameLower, "gas") || contains(businessNameLower, "power") {
-		primaryIndustry = "Energy"
-		confidence = 0.83
-		classificationMethod = "Business Name Industry Detection"
+		businessNameIndustry = "Energy"
+		businessNameConfidence = 0.65 // Reduced from 0.83
 	} else if contains(businessNameLower, "consulting") || contains(businessNameLower, "advisory") || contains(businessNameLower, "services") {
-		primaryIndustry = "Professional Services"
-		confidence = 0.87
-		classificationMethod = "Business Name Industry Detection"
+		businessNameIndustry = "Professional Services"
+		businessNameConfidence = 0.70 // Reduced from 0.87
 	} else if contains(businessNameLower, "media") || contains(businessNameLower, "entertainment") || contains(businessNameLower, "publishing") || contains(businessNameLower, "studio") {
-		primaryIndustry = "Media & Entertainment"
-		confidence = 0.82
-		classificationMethod = "Business Name Industry Detection"
+		businessNameIndustry = "Media & Entertainment"
+		businessNameConfidence = 0.65 // Reduced from 0.82
+	}
+
+	// Step 2: Website analysis for enhanced classification (HIGH CONFIDENCE)
+	websiteIndustry := ""
+	websiteConfidence := 0.0
+	if websiteURL != "" {
+		websiteContent := scrapeWebsiteContent(websiteURL)
+		if websiteContent != "" {
+			websiteAnalyzed = true
+			websiteText := strings.ToLower(websiteContent)
+
+			// Website-based industry detection - HIGHER CONFIDENCE
+			if contains(websiteText, "manufacturing") || contains(websiteText, "factory") || contains(websiteText, "production") || contains(websiteText, "industrial") {
+				websiteIndustry = "Manufacturing"
+				websiteConfidence = 0.90 // Higher confidence for website content
+			} else if contains(websiteText, "healthcare") || contains(websiteText, "medical") || contains(websiteText, "hospital") || contains(websiteText, "pharmacy") {
+				websiteIndustry = "Healthcare"
+				websiteConfidence = 0.88
+			} else if contains(websiteText, "bank") || contains(websiteText, "finance") || contains(websiteText, "insurance") || contains(websiteText, "credit") {
+				websiteIndustry = "Financial Services"
+				websiteConfidence = 0.92
+			} else if contains(websiteText, "restaurant") || contains(websiteText, "menu") || contains(websiteText, "food") || contains(websiteText, "dining") || contains(websiteText, "coffee") || contains(websiteText, "cafe") || contains(websiteText, "wine") || contains(websiteText, "liquor") || contains(websiteText, "shop") || contains(websiteText, "store") {
+				websiteIndustry = "Retail"
+				websiteConfidence = 0.85
+			} else if contains(websiteText, "school") || contains(websiteText, "university") || contains(websiteText, "education") || contains(websiteText, "learning") {
+				websiteIndustry = "Education"
+				websiteConfidence = 0.87
+			}
+		}
 	}
 
 	// Step 2: Website analysis for enhanced classification (MEDIUM CONFIDENCE)
@@ -337,33 +361,61 @@ func performRealKeywordClassification(businessName, description, websiteURL stri
 	}
 
 	// Step 3: Description validation (VERY LOW CONFIDENCE - for verification only)
-	descriptionClassification := ""
+	descriptionIndustry := ""
 	descriptionConfidence := 0.0
 	if description != "" {
 		descriptionLower := strings.ToLower(description)
 
 		// Description-based classification with very low confidence
 		if contains(descriptionLower, "manufacturing") || contains(descriptionLower, "factory") || contains(descriptionLower, "production") {
-			descriptionClassification = "Manufacturing"
+			descriptionIndustry = "Manufacturing"
 			descriptionConfidence = 0.25 // Very low confidence
 		} else if contains(descriptionLower, "healthcare") || contains(descriptionLower, "medical") || contains(descriptionLower, "hospital") {
-			descriptionClassification = "Healthcare"
+			descriptionIndustry = "Healthcare"
 			descriptionConfidence = 0.25
 		} else if contains(descriptionLower, "bank") || contains(descriptionLower, "finance") || contains(descriptionLower, "insurance") {
-			descriptionClassification = "Financial Services"
+			descriptionIndustry = "Financial Services"
 			descriptionConfidence = 0.25
 		} else if contains(descriptionLower, "restaurant") || contains(descriptionLower, "food") || contains(descriptionLower, "coffee") || contains(descriptionLower, "wine") || contains(descriptionLower, "shop") {
-			descriptionClassification = "Retail"
+			descriptionIndustry = "Retail"
 			descriptionConfidence = 0.25
 		} else if contains(descriptionLower, "school") || contains(descriptionLower, "education") || contains(descriptionLower, "university") {
-			descriptionClassification = "Education"
+			descriptionIndustry = "Education"
 			descriptionConfidence = 0.25
 		}
+	}
 
-		// If description classification matches primary classification, slightly boost confidence
-		if descriptionClassification == primaryIndustry && descriptionConfidence > 0 {
-			confidence = math.Min(confidence+0.05, 0.99) // Small boost, max 99%
+	// Step 4: Weighted voting system to determine final classification
+	// Priority: Website Analysis > Business Name > Description
+
+	if websiteIndustry != "" {
+		// Website analysis takes priority when available
+		primaryIndustry = websiteIndustry
+		confidence = websiteConfidence
+		classificationMethod = "Website Content Analysis"
+
+		// Boost confidence if business name or description agrees
+		if businessNameIndustry == websiteIndustry && businessNameConfidence > 0 {
+			confidence = math.Min(confidence+0.05, 0.99)
 		}
+		if descriptionIndustry == websiteIndustry && descriptionConfidence > 0 {
+			confidence = math.Min(confidence+0.03, 0.99)
+		}
+	} else if businessNameIndustry != "" {
+		// Fall back to business name analysis
+		primaryIndustry = businessNameIndustry
+		confidence = businessNameConfidence
+		classificationMethod = "Business Name Industry Detection"
+
+		// Boost confidence if description agrees
+		if descriptionIndustry == businessNameIndustry && descriptionConfidence > 0 {
+			confidence = math.Min(confidence+0.05, 0.99)
+		}
+	} else if descriptionIndustry != "" {
+		// Last resort: description only
+		primaryIndustry = descriptionIndustry
+		confidence = descriptionConfidence
+		classificationMethod = "Description Analysis"
 	}
 
 	// Generate comprehensive industry code classifications
@@ -373,6 +425,7 @@ func performRealKeywordClassification(businessName, description, websiteURL stri
 		PrimaryIndustry: primaryIndustry,
 		Confidence:      confidence,
 		Classifications: classifications,
+		WebsiteAnalyzed: websiteAnalyzed,
 	}
 }
 
