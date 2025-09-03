@@ -165,7 +165,9 @@ func NewEnhancedServer(port string) *EnhancedServer {
 		}
 
 		// Add real-time scraping information if available
+		log.Printf("🔍 Response building - RealTimeScraping is nil: %v", classificationResult.RealTimeScraping == nil)
 		if classificationResult.RealTimeScraping != nil {
+			log.Printf("✅ Adding real_time_scraping to response")
 			response["real_time_scraping"] = classificationResult.RealTimeScraping
 
 			// Generate classification codes based on extracted keywords and industry analysis
@@ -175,9 +177,15 @@ func NewEnhancedServer(port string) *EnhancedServer {
 				detectedIndustry := classificationResult.RealTimeScraping.IndustryAnalysis.DetectedIndustry
 				confidence := classificationResult.RealTimeScraping.IndustryAnalysis.Confidence
 
+				log.Printf("🔍 Generating classification codes for %s (%.1f%% confidence)", detectedIndustry, confidence*100)
 				classificationCodes := generateClassificationCodes(keywords, detectedIndustry, confidence)
 				response["classification_codes"] = classificationCodes
+				log.Printf("✅ Added classification_codes to response")
+			} else {
+				log.Printf("❌ ContentExtracted or IndustryAnalysis is nil")
 			}
+		} else {
+			log.Printf("❌ RealTimeScraping is nil - this should not happen!")
 		}
 
 		w.WriteHeader(http.StatusOK)
@@ -415,6 +423,25 @@ func performRealKeywordClassification(businessName, description, websiteURL stri
 		log.Printf("🔍 Starting website content analysis...")
 
 		// Use the enhanced scraping function with progress tracking
+		log.Printf("🔍 Calling scrapeWebsiteContentWithProgress for: %s", websiteURL)
+
+		// Add panic recovery
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("❌ Panic in scrapeWebsiteContentWithProgress: %v", r)
+				realTimeScraping = &RealTimeScrapingInfo{
+					WebsiteURL:     websiteURL,
+					ScrapingStatus: "failed",
+					ErrorDetails: &ErrorInfo{
+						ErrorType:          "panic_recovered",
+						ErrorMessage:       fmt.Sprintf("Panic recovered: %v", r),
+						SuggestedSolutions: []string{"Check server logs", "Try again later", "Contact support"},
+						Retryable:          false,
+					},
+				}
+			}
+		}()
+
 		scrapingInfo, err := scrapeWebsiteContentWithProgress(websiteURL)
 		if err != nil {
 			log.Printf("⚠️ Website scraping failed: %v", err)
@@ -429,10 +456,13 @@ func performRealKeywordClassification(businessName, description, websiteURL stri
 					Retryable:          true,
 				},
 			}
+			log.Printf("❌ Created error info for realTimeScraping")
 		} else {
+			log.Printf("✅ Website scraping succeeded, setting realTimeScraping")
 			realTimeScraping = scrapingInfo
 			websiteAnalyzed = true
 			log.Printf("✅ Website content successfully scraped (%d characters)", len(scrapingInfo.ContentExtracted.ContentPreview))
+			log.Printf("🔍 RealTimeScraping status: %s", realTimeScraping.ScrapingStatus)
 
 			// Use the industry analysis from the scraping info
 			if scrapingInfo.IndustryAnalysis != nil {
@@ -445,38 +475,29 @@ func performRealKeywordClassification(businessName, description, websiteURL stri
 		}
 	} else {
 		log.Printf("ℹ️ No website URL provided - skipping website analysis")
-	}
-
-	// Step 2: Website analysis for enhanced classification (MEDIUM CONFIDENCE)
-	if websiteURL != "" {
-		websiteContent := scrapeWebsiteContent(websiteURL)
-		if websiteContent != "" {
-			websiteText := strings.ToLower(websiteContent)
-
-			// Website-based industry detection
-			if contains(websiteText, "manufacturing") || contains(websiteText, "factory") || contains(websiteText, "production") || contains(websiteText, "industrial") {
-				primaryIndustry = "Manufacturing"
-				confidence = 0.94
-				classificationMethod = "Website Content Analysis"
-			} else if contains(websiteText, "healthcare") || contains(websiteText, "medical") || contains(websiteText, "hospital") || contains(websiteText, "pharmacy") {
-				primaryIndustry = "Healthcare"
-				confidence = 0.93
-				classificationMethod = "Website Content Analysis"
-			} else if contains(websiteText, "bank") || contains(websiteText, "finance") || contains(websiteText, "insurance") || contains(websiteText, "credit") {
-				primaryIndustry = "Financial Services"
-				confidence = 0.95
-				classificationMethod = "Website Content Analysis"
-			} else if contains(websiteText, "restaurant") || contains(websiteText, "menu") || contains(websiteText, "food") || contains(websiteText, "dining") || contains(websiteText, "coffee") || contains(websiteText, "cafe") {
-				primaryIndustry = "Retail"
-				confidence = 0.92
-				classificationMethod = "Website Content Analysis"
-			} else if contains(websiteText, "school") || contains(websiteText, "university") || contains(websiteText, "education") || contains(websiteText, "learning") {
-				primaryIndustry = "Education"
-				confidence = 0.91
-				classificationMethod = "Website Content Analysis"
-			}
+		// Create a basic real-time scraping info for debugging
+		realTimeScraping = &RealTimeScrapingInfo{
+			WebsiteURL:     "none",
+			ScrapingStatus: "skipped",
+			ProgressSteps:  []ScrapingStep{},
+			ContentExtracted: &ExtractedContentInfo{
+				ContentLength:  0,
+				ContentPreview: "No website provided",
+				KeywordsFound:  []string{},
+			},
+			IndustryAnalysis: &IndustryAnalysisInfo{
+				DetectedIndustry: "Unknown",
+				Confidence:       0.0,
+				KeywordsMatched:  []string{},
+				AnalysisMethod:   "No Analysis",
+				Evidence:         "No website URL provided",
+			},
 		}
+		log.Printf("🔍 Created fallback realTimeScraping for no website case")
 	}
+
+	// Website analysis already completed in the enhanced section above
+	// The realTimeScraping variable now contains the complete analysis
 
 	// Step 3: Description validation (VERY LOW CONFIDENCE - for verification only)
 	descriptionIndustry := ""
@@ -566,6 +587,23 @@ func performRealKeywordClassification(businessName, description, websiteURL stri
 
 	// Generate comprehensive industry code classifications
 	classifications := generateComprehensiveClassifications(primaryIndustry, businessName, description, websiteURL, confidence, classificationMethod)
+
+	// Debug logging for realTimeScraping
+	if realTimeScraping != nil {
+		log.Printf("🔍 Returning realTimeScraping with status: %s", realTimeScraping.ScrapingStatus)
+		if realTimeScraping.ContentExtracted != nil {
+			log.Printf("🔍 Content extracted: %d characters, %d keywords",
+				realTimeScraping.ContentExtracted.ContentLength,
+				len(realTimeScraping.ContentExtracted.KeywordsFound))
+		}
+		if realTimeScraping.IndustryAnalysis != nil {
+			log.Printf("🔍 Industry analysis: %s (%.1f%%)",
+				realTimeScraping.IndustryAnalysis.DetectedIndustry,
+				realTimeScraping.IndustryAnalysis.Confidence*100)
+		}
+	} else {
+		log.Printf("❌ realTimeScraping is nil - this should not happen!")
+	}
 
 	return ClassificationResult{
 		PrimaryIndustry:  primaryIndustry,
@@ -1302,13 +1340,44 @@ func extractKeyKeywords(content string) string {
 		"the": true, "and": true, "for": true, "with": true, "this": true, "that": true, "they": true, "have": true, "been": true, "from": true, "will": true, "more": true, "some": true, "were": true, "said": true, "each": true, "which": true, "their": true, "time": true, "would": true, "there": true, "could": true, "other": true, "than": true, "first": true, "about": true, "may": true, "into": true, "over": true, "think": true, "also": true, "after": true, "never": true, "before": true, "during": true, "under": true, "while": true, "where": true, "through": true, "between": true, "within": true, "without": true, "against": true, "toward": true, "towards": true, "among": true, "amongst": true, "throughout": true, "despite": true, "except": true, "excepting": true, "excluding": true, "including": true, "like": true, "unlike": true, "per": true, "versus": true, "via": true,
 	}
 
-	// Look for words that might indicate industry
+	// JavaScript and code patterns to filter out
+	codePatterns := []string{"function", "var", "window", "google", "document", "getElement", "addEventListener", "setTimeout", "setInterval", "console", "log", "error", "warn", "info", "debug", "alert", "confirm", "prompt", "parseInt", "parseFloat", "toString", "valueOf", "hasOwnProperty", "isPrototypeOf", "propertyIsEnumerable", "toLocaleString", "toFixed", "toExponential", "toPrecision", "charAt", "charCodeAt", "concat", "indexOf", "lastIndexOf", "localeCompare", "match", "replace", "search", "slice", "split", "substr", "substring", "toLowerCase", "toUpperCase", "trim", "value", "innerHTML", "outerHTML", "textContent", "innerText", "outerText", "nodeValue", "nodeType", "nodeName", "parentNode", "childNodes", "firstChild", "lastChild", "nextSibling", "previousSibling", "ownerDocument", "namespaceURI", "prefix", "localName", "tagName", "className", "id", "title", "lang", "dir", "hidden", "tabIndex", "accessKey", "draggable", "spellcheck", "contentEditable", "contextMenu", "dropzone", "hidden", "tabIndex", "accessKey", "draggable", "spellcheck", "contentEditable", "contextMenu", "dropzone"}
+
+	// Look for meaningful business keywords
 	for _, word := range words {
-		if len(word) > 3 && !stopWords[strings.ToLower(word)] {
-			keywords = append(keywords, word)
-			if len(keywords) >= 10 { // Limit to 10 keywords
+		wordLower := strings.ToLower(word)
+
+		// Skip stop words, code patterns, and very short words
+		if len(word) <= 3 || stopWords[wordLower] {
+			continue
+		}
+
+		// Skip JavaScript and code patterns
+		isCodePattern := false
+		for _, pattern := range codePatterns {
+			if strings.Contains(wordLower, pattern) {
+				isCodePattern = true
 				break
 			}
+		}
+		if isCodePattern {
+			continue
+		}
+
+		// Skip words with special characters (likely code)
+		if strings.ContainsAny(word, "(){}[];:,.<>\"'`~!@#$%^&*+=|\\") {
+			continue
+		}
+
+		// Skip words that are mostly numbers
+		if len(word) > 0 && word[0] >= '0' && word[0] <= '9' {
+			continue
+		}
+
+		// Add meaningful business keywords
+		keywords = append(keywords, word)
+		if len(keywords) >= 15 { // Increased limit for better coverage
+			break
 		}
 	}
 
@@ -1498,7 +1567,14 @@ func analyzeIndustryFromContent(content string) *IndustryAnalysisInfo {
 	var analysisMethod string
 	var evidence string
 
-	if contains(contentLower, "manufacturing") || contains(contentLower, "factory") || contains(contentLower, "production") || contains(contentLower, "industrial") {
+	// Check for technology indicators first (higher priority)
+	if contains(contentLower, "search") || contains(contentLower, "google") || contains(contentLower, "technology") || contains(contentLower, "software") || contains(contentLower, "platform") || contains(contentLower, "digital") || contains(contentLower, "online") || contains(contentLower, "web") || contains(contentLower, "internet") || contains(contentLower, "app") || contains(contentLower, "mobile") || contains(contentLower, "cloud") || contains(contentLower, "api") || contains(contentLower, "data") || contains(contentLower, "algorithm") || contains(contentLower, "machine") || contains(contentLower, "ai") || contains(contentLower, "artificial") || contains(contentLower, "intelligence") {
+		detectedIndustry = "Technology"
+		confidence = 0.94
+		keywordsMatched = []string{"search", "technology", "software", "platform", "digital"}
+		analysisMethod = "keyword_matching"
+		evidence = "Technology keywords detected in content"
+	} else if contains(contentLower, "manufacturing") || contains(contentLower, "factory") || contains(contentLower, "production") || contains(contentLower, "industrial") {
 		detectedIndustry = "Manufacturing"
 		confidence = 0.90
 		keywordsMatched = []string{"manufacturing", "factory", "production", "industrial"}
@@ -1619,6 +1695,22 @@ func generateClassificationCodes(keywords []string, detectedIndustry string, con
 		})
 	}
 
+	// Add technology-specific MCC codes
+	if containsAny(keywordsLower, []string{"search", "technology", "software", "platform", "digital", "online", "web", "internet", "app", "mobile", "cloud", "api", "data", "algorithm", "machine", "ai", "artificial", "intelligence", "images", "maps", "play", "youtube", "google"}) {
+		codes.MCC = append(codes.MCC, MCCCode{
+			Code:        "5734",
+			Description: "Computer Software Stores",
+			Confidence:  confidence * 0.9,
+			Keywords:    findMatchingKeywords(keywordsLower, []string{"search", "technology", "software", "platform", "digital", "images", "maps", "play", "youtube"}),
+		})
+		codes.MCC = append(codes.MCC, MCCCode{
+			Code:        "7372",
+			Description: "Prepackaged Software",
+			Confidence:  confidence * 0.85,
+			Keywords:    findMatchingKeywords(keywordsLower, []string{"software", "platform", "digital", "images", "maps"}),
+		})
+	}
+
 	// Generate SIC codes
 	if detectedIndustry == "Financial Services" {
 		codes.SIC = append(codes.SIC, SICCode{
@@ -1656,6 +1748,21 @@ func generateClassificationCodes(keywords []string, detectedIndustry string, con
 			Description: "Fabricated Metal Products, Not Elsewhere Classified",
 			Confidence:  confidence * 0.85,
 			Keywords:    findMatchingKeywords(keywordsLower, []string{"manufacturing", "factory", "production"}),
+		})
+	}
+
+	if detectedIndustry == "Technology" {
+		codes.SIC = append(codes.SIC, SICCode{
+			Code:        "7372",
+			Description: "Prepackaged Software",
+			Confidence:  confidence * 0.9,
+			Keywords:    findMatchingKeywords(keywordsLower, []string{"software", "platform", "digital", "images", "maps", "play", "youtube"}),
+		})
+		codes.SIC = append(codes.SIC, SICCode{
+			Code:        "7373",
+			Description: "Computer Integrated Systems Design",
+			Confidence:  confidence * 0.85,
+			Keywords:    findMatchingKeywords(keywordsLower, []string{"technology", "platform", "system", "images", "maps"}),
 		})
 	}
 
@@ -1699,6 +1806,21 @@ func generateClassificationCodes(keywords []string, detectedIndustry string, con
 		})
 	}
 
+	if detectedIndustry == "Technology" {
+		codes.NAICS = append(codes.NAICS, NAICSCode{
+			Code:        "541511",
+			Description: "Custom Computer Programming Services",
+			Confidence:  confidence * 0.9,
+			Keywords:    findMatchingKeywords(keywordsLower, []string{"software", "platform", "digital", "images", "maps", "play", "youtube"}),
+		})
+		codes.NAICS = append(codes.NAICS, NAICSCode{
+			Code:        "541512",
+			Description: "Computer Systems Design Services",
+			Confidence:  confidence * 0.85,
+			Keywords:    findMatchingKeywords(keywordsLower, []string{"technology", "platform", "system", "images", "maps"}),
+		})
+	}
+
 	return codes
 }
 
@@ -1716,6 +1838,10 @@ func containsAny(source []string, targets []string) bool {
 
 // findMatchingKeywords finds keywords that match any of the target patterns
 func findMatchingKeywords(keywords []string, targets []string) []string {
+	if keywords == nil {
+		return []string{}
+	}
+
 	var matches []string
 	for _, target := range targets {
 		for _, keyword := range keywords {
