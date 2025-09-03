@@ -167,6 +167,17 @@ func NewEnhancedServer(port string) *EnhancedServer {
 		// Add real-time scraping information if available
 		if classificationResult.RealTimeScraping != nil {
 			response["real_time_scraping"] = classificationResult.RealTimeScraping
+
+			// Generate classification codes based on extracted keywords and industry analysis
+			if classificationResult.RealTimeScraping.ContentExtracted != nil &&
+				classificationResult.RealTimeScraping.IndustryAnalysis != nil {
+				keywords := classificationResult.RealTimeScraping.ContentExtracted.KeywordsFound
+				detectedIndustry := classificationResult.RealTimeScraping.IndustryAnalysis.DetectedIndustry
+				confidence := classificationResult.RealTimeScraping.IndustryAnalysis.Confidence
+
+				classificationCodes := generateClassificationCodes(keywords, detectedIndustry, confidence)
+				response["classification_codes"] = classificationCodes
+			}
 		}
 
 		w.WriteHeader(http.StatusOK)
@@ -267,7 +278,7 @@ type ClassificationResult struct {
 	RealTimeScraping *RealTimeScrapingInfo    `json:"real_time_scraping,omitempty"`
 }
 
-// Enhanced API response structure with real-time scraping information
+// Enhanced API response structure with real-time scraping information and classification codes
 type EnhancedClassificationResponse struct {
 	BusinessID            string                   `json:"business_id"`
 	ClassificationMethod  string                   `json:"classification_method"`
@@ -280,11 +291,40 @@ type EnhancedClassificationResponse struct {
 	PrimaryIndustry       string                   `json:"primary_industry"`
 	ProcessingTime        string                   `json:"processing_time"`
 	RegionConfidenceScore float64                  `json:"region_confidence_score"`
-	Success               bool                     `json:"success"`
-	WebsiteVerification   map[string]interface{}   `json:"website_verification"`
+	WebsiteAnalyzed       bool                     `json:"website_analyzed"`
+	RealTimeScraping      *RealTimeScrapingInfo    `json:"real_time_scraping,omitempty"`
+	ClassificationCodes   *ClassificationCodesInfo `json:"classification_codes,omitempty"`
+}
 
-	// New real-time scraping information
-	RealTimeScraping *RealTimeScrapingInfo `json:"real_time_scraping,omitempty"`
+// ClassificationCodesInfo contains the industry classification codes
+type ClassificationCodesInfo struct {
+	MCC   []MCCCode   `json:"mcc,omitempty"`
+	SIC   []SICCode   `json:"sic,omitempty"`
+	NAICS []NAICSCode `json:"naics,omitempty"`
+}
+
+// MCCCode represents a Merchant Category Code
+type MCCCode struct {
+	Code        string   `json:"code"`
+	Description string   `json:"description"`
+	Confidence  float64  `json:"confidence"`
+	Keywords    []string `json:"keywords_matched"`
+}
+
+// SICCode represents a Standard Industrial Classification code
+type SICCode struct {
+	Code        string   `json:"code"`
+	Description string   `json:"description"`
+	Confidence  float64  `json:"confidence"`
+	Keywords    []string `json:"keywords_matched"`
+}
+
+// NAICSCode represents a North American Industry Classification System code
+type NAICSCode struct {
+	Code        string   `json:"code"`
+	Description string   `json:"description"`
+	Confidence  float64  `json:"confidence"`
+	Keywords    []string `json:"keywords_matched"`
 }
 
 // RealTimeScrapingInfo provides detailed information about the scraping process
@@ -1511,6 +1551,180 @@ func truncateString(s string, maxLen int) string {
 		return s
 	}
 	return s[:maxLen] + "..."
+}
+
+// generateClassificationCodes generates MCC, SIC, and NAICS codes based on extracted keywords and industry analysis
+func generateClassificationCodes(keywords []string, detectedIndustry string, confidence float64) *ClassificationCodesInfo {
+	codes := &ClassificationCodesInfo{
+		MCC:   []MCCCode{},
+		SIC:   []SICCode{},
+		NAICS: []NAICSCode{},
+	}
+
+	// Convert keywords to lowercase for matching
+	keywordsLower := make([]string, len(keywords))
+	for i, keyword := range keywords {
+		keywordsLower[i] = strings.ToLower(keyword)
+	}
+
+	// Generate MCC codes based on keywords and industry
+	if containsAny(keywordsLower, []string{"bank", "finance", "credit", "loan", "mortgage"}) {
+		codes.MCC = append(codes.MCC, MCCCode{
+			Code:        "6011",
+			Description: "Automated Teller Machine Services",
+			Confidence:  confidence * 0.9,
+			Keywords:    findMatchingKeywords(keywordsLower, []string{"bank", "finance", "credit", "loan", "mortgage"}),
+		})
+		codes.MCC = append(codes.MCC, MCCCode{
+			Code:        "6012",
+			Description: "Financial Institutions - Manual Cash Disbursements",
+			Confidence:  confidence * 0.85,
+			Keywords:    findMatchingKeywords(keywordsLower, []string{"bank", "finance", "credit", "loan", "mortgage"}),
+		})
+	}
+
+	if containsAny(keywordsLower, []string{"restaurant", "food", "dining", "menu", "cafe"}) {
+		codes.MCC = append(codes.MCC, MCCCode{
+			Code:        "5812",
+			Description: "Eating Places and Restaurants",
+			Confidence:  confidence * 0.9,
+			Keywords:    findMatchingKeywords(keywordsLower, []string{"restaurant", "food", "dining", "menu", "cafe"}),
+		})
+	}
+
+	if containsAny(keywordsLower, []string{"retail", "shop", "store", "merchandise"}) {
+		codes.MCC = append(codes.MCC, MCCCode{
+			Code:        "5311",
+			Description: "Department Stores",
+			Confidence:  confidence * 0.8,
+			Keywords:    findMatchingKeywords(keywordsLower, []string{"retail", "shop", "store", "merchandise"}),
+		})
+	}
+
+	if containsAny(keywordsLower, []string{"manufacturing", "factory", "production", "industrial"}) {
+		codes.MCC = append(codes.MCC, MCCCode{
+			Code:        "3999",
+			Description: "Manufacturing Industries, Not Elsewhere Classified",
+			Confidence:  confidence * 0.85,
+			Keywords:    findMatchingKeywords(keywordsLower, []string{"manufacturing", "factory", "production", "industrial"}),
+		})
+	}
+
+	if containsAny(keywordsLower, []string{"healthcare", "medical", "hospital", "pharmacy"}) {
+		codes.MCC = append(codes.MCC, MCCCode{
+			Code:        "8099",
+			Description: "Health Practitioners, Not Elsewhere Classified",
+			Confidence:  confidence * 0.9,
+			Keywords:    findMatchingKeywords(keywordsLower, []string{"healthcare", "medical", "hospital", "pharmacy"}),
+		})
+	}
+
+	// Generate SIC codes
+	if detectedIndustry == "Financial Services" {
+		codes.SIC = append(codes.SIC, SICCode{
+			Code:        "6021",
+			Description: "National Commercial Banks",
+			Confidence:  confidence * 0.9,
+			Keywords:    findMatchingKeywords(keywordsLower, []string{"bank", "finance", "credit"}),
+		})
+		codes.SIC = append(codes.SIC, SICCode{
+			Code:        "6022",
+			Description: "State Commercial Banks",
+			Confidence:  confidence * 0.85,
+			Keywords:    findMatchingKeywords(keywordsLower, []string{"bank", "finance", "credit"}),
+		})
+	}
+
+	if detectedIndustry == "Retail" {
+		codes.SIC = append(codes.SIC, SICCode{
+			Code:        "5311",
+			Description: "Department Stores",
+			Confidence:  confidence * 0.8,
+			Keywords:    findMatchingKeywords(keywordsLower, []string{"retail", "shop", "store"}),
+		})
+		codes.SIC = append(codes.SIC, SICCode{
+			Code:        "5812",
+			Description: "Eating Places",
+			Confidence:  confidence * 0.9,
+			Keywords:    findMatchingKeywords(keywordsLower, []string{"restaurant", "food", "dining"}),
+		})
+	}
+
+	if detectedIndustry == "Manufacturing" {
+		codes.SIC = append(codes.SIC, SICCode{
+			Code:        "3499",
+			Description: "Fabricated Metal Products, Not Elsewhere Classified",
+			Confidence:  confidence * 0.85,
+			Keywords:    findMatchingKeywords(keywordsLower, []string{"manufacturing", "factory", "production"}),
+		})
+	}
+
+	// Generate NAICS codes
+	if detectedIndustry == "Financial Services" {
+		codes.NAICS = append(codes.NAICS, NAICSCode{
+			Code:        "522110",
+			Description: "Commercial Banking",
+			Confidence:  confidence * 0.9,
+			Keywords:    findMatchingKeywords(keywordsLower, []string{"bank", "finance", "credit"}),
+		})
+		codes.NAICS = append(codes.NAICS, NAICSCode{
+			Code:        "522120",
+			Description: "Savings Institutions",
+			Confidence:  confidence * 0.85,
+			Keywords:    findMatchingKeywords(keywordsLower, []string{"bank", "finance", "credit"}),
+		})
+	}
+
+	if detectedIndustry == "Retail" {
+		codes.NAICS = append(codes.NAICS, NAICSCode{
+			Code:        "445110",
+			Description: "Supermarkets and Other Grocery (except Convenience) Stores",
+			Confidence:  confidence * 0.8,
+			Keywords:    findMatchingKeywords(keywordsLower, []string{"retail", "shop", "store"}),
+		})
+		codes.NAICS = append(codes.NAICS, NAICSCode{
+			Code:        "722511",
+			Description: "Full-Service Restaurants",
+			Confidence:  confidence * 0.9,
+			Keywords:    findMatchingKeywords(keywordsLower, []string{"restaurant", "food", "dining"}),
+		})
+	}
+
+	if detectedIndustry == "Manufacturing" {
+		codes.NAICS = append(codes.NAICS, NAICSCode{
+			Code:        "332996",
+			Description: "Fabricated Pipe and Pipe Fitting Manufacturing",
+			Confidence:  confidence * 0.85,
+			Keywords:    findMatchingKeywords(keywordsLower, []string{"manufacturing", "factory", "production"}),
+		})
+	}
+
+	return codes
+}
+
+// containsAny checks if any of the target strings are contained in the source strings
+func containsAny(source []string, targets []string) bool {
+	for _, target := range targets {
+		for _, sourceStr := range source {
+			if strings.Contains(sourceStr, target) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// findMatchingKeywords finds keywords that match any of the target patterns
+func findMatchingKeywords(keywords []string, targets []string) []string {
+	var matches []string
+	for _, target := range targets {
+		for _, keyword := range keywords {
+			if strings.Contains(keyword, target) {
+				matches = append(matches, keyword)
+			}
+		}
+	}
+	return matches
 }
 
 func main() {

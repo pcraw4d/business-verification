@@ -221,6 +221,108 @@
             font-weight: 600;
         }
 
+        .classification-codes {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .codes-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .codes-section h4 {
+            margin: 0 0 15px 0;
+            color: #495057;
+            font-size: 16px;
+        }
+
+        .codes-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .code-item {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .code-type {
+            background: #667eea;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .code-value {
+            font-family: monospace;
+            font-size: 16px;
+            font-weight: 700;
+            color: #495057;
+            background: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .code-confidence {
+            font-size: 12px;
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        .code-description {
+            font-size: 14px;
+            color: #495057;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .code-matched-keywords {
+            font-size: 12px;
+        }
+
+        .code-matched-keywords strong {
+            color: #495057;
+        }
+
+        .code-matched-keywords ul {
+            margin: 5px 0 0 0;
+            padding-left: 20px;
+        }
+
+        .code-matched-keywords li {
+            color: #6c757d;
+            margin: 2px 0;
+        }
+
+        .no-codes {
+            color: #6c757d;
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+        }
+
         .industry-analysis {
             background: #f8f9fa;
             border-radius: 12px;
@@ -360,6 +462,32 @@
                 </div>
             </div>
 
+            <div class="classification-codes hidden" id="classificationCodes">
+                <h3>🏷️ Industry Classification Codes</h3>
+                <p>Compare extracted keywords with industry standard classification codes:</p>
+                
+                <div class="codes-section">
+                    <h4>💳 MCC Codes (Merchant Category Codes)</h4>
+                    <div class="codes-list" id="mccCodes">
+                        <!-- MCC codes will be populated here -->
+                    </div>
+                </div>
+                
+                <div class="codes-section">
+                    <h4>🏢 SIC Codes (Standard Industrial Classification)</h4>
+                    <div class="codes-list" id="sicCodes">
+                        <!-- SIC codes will be populated here -->
+                    </div>
+                </div>
+                
+                <div class="codes-section">
+                    <h4>🌍 NAICS Codes (North American Industry Classification System)</h4>
+                    <div class="codes-list" id="naicsCodes">
+                        <!-- NAICS codes will be populated here -->
+                    </div>
+                </div>
+            </div>
+
             <div class="error-details hidden" id="errorDetails">
                 <h3>❌ Error Details</h3>
                 <p><strong>Error Type:</strong> <span id="errorType">Unknown</span></p>
@@ -431,6 +559,7 @@
             document.getElementById('progressSteps').innerHTML = '';
             document.getElementById('contentExtraction').classList.add('hidden');
             document.getElementById('industryAnalysis').classList.add('hidden');
+            document.getElementById('classificationCodes').classList.add('hidden'); // Hide classification codes on reset
             document.getElementById('errorDetails').classList.add('hidden');
         }
         
@@ -564,6 +693,47 @@
                     matchedKeywords.appendChild(tag);
                 });
             }
+
+            // Display classification codes if available
+            if (scrapingInfo.classification_codes) {
+                document.getElementById('classificationCodes').classList.remove('hidden');
+                
+                // Display MCC codes
+                const mccCodesContainer = document.getElementById('mccCodes');
+                mccCodesContainer.innerHTML = '';
+                if (scrapingInfo.classification_codes.mcc && scrapingInfo.classification_codes.mcc.length > 0) {
+                    scrapingInfo.classification_codes.mcc.forEach(code => {
+                        const codeElement = createCodeElement(code, 'mcc');
+                        mccCodesContainer.appendChild(codeElement);
+                    });
+                } else {
+                    mccCodesContainer.innerHTML = '<p class="no-codes">No MCC codes found</p>';
+                }
+                
+                // Display SIC codes
+                const sicCodesContainer = document.getElementById('sicCodes');
+                sicCodesContainer.innerHTML = '';
+                if (scrapingInfo.classification_codes.sic && scrapingInfo.classification_codes.sic.length > 0) {
+                    scrapingInfo.classification_codes.sic.forEach(code => {
+                        const codeElement = createCodeElement(code, 'sic');
+                        sicCodesContainer.appendChild(codeElement);
+                    });
+                } else {
+                    sicCodesContainer.innerHTML = '<p class="no-codes">No SIC codes found</p>';
+                }
+                
+                // Display NAICS codes
+                const naicsCodesContainer = document.getElementById('naicsCodes');
+                naicsCodesContainer.innerHTML = '';
+                if (scrapingInfo.classification_codes.naics && scrapingInfo.classification_codes.naics.length > 0) {
+                    scrapingInfo.classification_codes.naics.forEach(code => {
+                        const codeElement = createCodeElement(code, 'naics');
+                        naicsCodesContainer.appendChild(codeElement);
+                    });
+                } else {
+                    naicsCodesContainer.innerHTML = '<p class="no-codes">No NAICS codes found</p>';
+                }
+            }
             
             // Display error details if any
             if (scrapingInfo.error_details) {
@@ -586,6 +756,26 @@
             document.getElementById('errorType').textContent = type;
             document.getElementById('errorMessage').textContent = message;
             document.getElementById('suggestionsList').innerHTML = '<li>Try refreshing the page</li><li>Check your internet connection</li><li>Verify the website URL is correct</li>';
+        }
+
+        function createCodeElement(code, type) {
+            const codeElement = document.createElement('div');
+            codeElement.className = 'code-item';
+            codeElement.innerHTML = `
+                <div class="code-header">
+                    <span class="code-type">${type.toUpperCase()}</span>
+                    <span class="code-value">${code.code}</span>
+                    <span class="code-confidence">Confidence: ${code.confidence * 100}%</span>
+                </div>
+                <div class="code-description">${code.description}</div>
+                <div class="code-matched-keywords">
+                    <strong>Matched Keywords:</strong>
+                    <ul>
+                        ${code.matched_keywords.map(keyword => `<li>${keyword}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+            return codeElement;
         }
     </script>
 </body>
