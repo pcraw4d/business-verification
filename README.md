@@ -1,321 +1,147 @@
-# KYB Platform - Business Verification & Risk Assessment
+# KYB Platform - Enhanced Business Intelligence System
 
-A comprehensive Know Your Business (KYB) platform built with Go, providing business verification, risk assessment, and compliance monitoring capabilities.
+## 🚀 **Current Status: MVP Ready**
 
-## 🚀 Quick Start with Supabase
+The KYB Platform is currently running as an **MVP (Minimum Viable Product)** with core business intelligence classification functionality. The system provides:
 
-The KYB Platform now uses **Supabase** for cost-effective MVP deployment during the product discovery phase.
+- **Real-time business classification** using weighted analysis from multiple data sources
+- **Website scraping and content analysis** for enhanced accuracy
+- **Comprehensive industry code mapping** (NAICS, MCC, SIC)
+- **Confidence scoring** with realistic confidence levels
+- **Beta testing UI** accessible via Railway deployment
 
-### Prerequisites
+## 🎯 **MVP Features**
 
-- Go 1.22 or later
-- Docker and Docker Compose
-- Supabase account and project
-- PostgreSQL client (optional, for database testing)
+### **Core Classification System**
+- **Multi-source analysis**: Business name, website content, and description validation
+- **Weighted voting system**: Website analysis prioritized over business names
+- **Industry detection**: 10+ major industries with keyword-based classification
+- **Confidence scoring**: Realistic confidence levels (60-95%) based on data source quality
 
-### 1. Setup Supabase
+### **Enhanced Business Intelligence**
+- **Company size extraction**: Employee count and size category detection
+- **Business model identification**: B2B, B2C, SaaS, and other model types
+- **Technology stack analysis**: Platform and technology detection
+- **Financial health assessment**: Basic financial indicators
+- **Compliance detection**: Industry-specific compliance requirements
+- **Market presence analysis**: Geographic and market positioning
 
-1. **Create a Supabase project:**
-   - Go to [supabase.com](https://supabase.com)
-   - Create a new project
-   - Note your project URL and API keys
+### **User Interface**
+- **Beta testing UI**: Comprehensive web interface for testing all features
+- **Real-time results**: Immediate classification results with detailed breakdowns
+- **Industry code grouping**: Top 3 results for each code type (NAICS, MCC, SIC)
+- **Processing information**: Debug information and analysis method details
 
-2. **Run the setup script:**
-   ```bash
-   ./scripts/setup_supabase.sh
-   ```
-   
-   This script will:
-   - Prompt for your Supabase credentials
-   - Create a `.env` file with proper configuration
-   - Test database connectivity
-   - Set up Supabase configuration files
+## 🔧 **Technical Architecture**
 
-### 2. Start the Application
+### **Current Implementation**
+- **Stateless architecture**: No database dependency for MVP
+- **In-memory processing**: All classification logic runs in memory
+- **Go 1.24+**: Built with latest Go features and standard library
+- **HTTP/2 support**: Modern web standards with ServeMux routing
+- **Docker deployment**: Containerized for Railway cloud deployment
 
-**Option A: Using Docker (Recommended)**
+### **Performance Characteristics**
+- **Response time**: 1.3-1.4 seconds average
+- **Throughput**: Handles concurrent requests efficiently
+- **Memory usage**: Optimized for cloud deployment
+- **Scalability**: Ready for horizontal scaling
+
+## 🌐 **Deployment**
+
+### **Production Environment**
+- **Platform**: Railway (cloud deployment)
+- **URL**: https://shimmering-comfort-production.up.railway.app
+- **Status**: Live and fully functional
+- **Features**: All 14 enhanced features active
+
+### **Local Development**
 ```bash
-# Development
-docker-compose -f docker-compose.dev.yml up
+# Build the application
+go build -o kyb-platform ./cmd/api/main-enhanced.go
 
-# Production
-docker-compose up
+# Run locally
+./kyb-platform
+
+# Access UI at http://localhost:8080
 ```
 
-**Option B: Running Locally**
+## 📋 **Post-MVP Roadmap**
+
+### **Supabase Integration (Planned)**
+The system is designed with Supabase integration in mind but currently runs without database dependencies for MVP stability. See [POST_MVP_SUPABASE_INTEGRATION_PLAN.md](./POST_MVP_SUPABASE_INTEGRATION_PLAN.md) for the complete reactivation plan.
+
+**Key post-MVP features**:
+- **User authentication and management**
+- **Data persistence and historical analysis**
+- **Real-time collaboration features**
+- **Machine learning and accuracy improvement**
+- **Advanced analytics and reporting**
+
+### **Implementation Timeline**
+- **Phase 1**: Core database integration (Weeks 1-2)
+- **Phase 2**: Authentication & security (Weeks 3-4)
+- **Phase 3**: Advanced features (Weeks 5-6)
+- **Phase 4**: Machine learning integration (Weeks 7-8)
+
+## 🧪 **Testing the System**
+
+### **API Endpoints**
 ```bash
-# Install dependencies
-go mod download
+# Health check
+curl https://shimmering-comfort-production.up.railway.app/health
 
-# Run the application
-go run ./cmd/api
+# Business classification
+curl -X POST https://shimmering-comfort-production.up.railway.app/v1/classify \
+  -H "Content-Type: application/json" \
+  -d '{"business_name":"The Greene Grape","website_url":"","description":"Wine shop"}'
+
+# Batch processing
+curl -X POST https://shimmering-comfort-production.up.railway.app/v1/classify/batch \
+  -H "Content-Type: application/json" \
+  -d '{"businesses":[{"name":"Test Business","description":"Test"}]}'
 ```
 
-### 3. Access the Platform
+### **Test Cases**
+- **"The Greene Grape"** (No website): Should classify as "Retail" with 65% confidence
+- **"Test Business"** (With website): Should prioritize website analysis with 85-95% confidence
+- **"ABC Manufacturing"**: Should classify as "Manufacturing" with appropriate confidence
 
-- **Application:** http://localhost:8080
-- **API Documentation:** http://localhost:8080/docs
-- **Health Check:** http://localhost:8080/health
-- **Metrics:** http://localhost:8080/metrics
+## 📚 **Documentation**
 
-### 4. Monitoring & Observability
+### **Core Documentation**
+- [Enhanced Business Intelligence Tasks](./tasks/enhanced-business-intelligence-implementation-tasks.md)
+- [Technical Architecture](./docs/technical-architecture.md)
+- [Feature Specifications](./docs/feature-specifications.md)
 
-- **Grafana Dashboard:** http://localhost:3000 (admin/admin)
-- **Prometheus Metrics:** http://localhost:9090
-- **Jaeger Tracing:** http://localhost:16686 (development only)
+### **Implementation Summaries**
+- [Beta Testing Launch](./task-completion-summaries/beta-testing-launch-completion.md)
+- [Cloud Deployment](./task-completion-summaries/cloud-beta-testing-deployment-completion.md)
+- [Weighted Classification System](./WEIGHTED_CLASSIFICATION_SYSTEM_IMPROVEMENTS.md)
 
-## 🏗️ Architecture
+### **Post-MVP Planning**
+- [Supabase Integration Plan](./POST_MVP_SUPABASE_INTEGRATION_PLAN.md)
 
-### Provider Abstraction
+## 🤝 **Contributing**
 
-The platform uses a **provider abstraction layer** that allows easy switching between different cloud providers:
+### **Current Development Status**
+- **MVP Phase**: Complete and deployed
+- **Next Phase**: Post-MVP Supabase integration
+- **Development Approach**: Incremental feature addition
 
-- **Current:** Supabase (MVP phase)
-- **Future:** AWS, GCP, Azure (enterprise phase)
+### **Getting Started**
+1. **Fork the repository**
+2. **Create a feature branch**
+3. **Implement changes following Go best practices**
+4. **Test thoroughly with existing test cases**
+5. **Submit a pull request**
 
-### Core Components
+## 📄 **License**
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   API Gateway   │    │  Authentication │    │   Database      │
-│   (Go/HTTP)     │◄──►│   (Supabase)    │◄──►│   (PostgreSQL)  │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         ▼                       ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│  Classification │    │  Risk Assessment│    │   Compliance    │
-│     Service     │    │     Service     │    │     Service     │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         ▼                       ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│     Cache       │    │   Monitoring    │    │   Storage       │
-│   (Supabase)    │    │  (Prometheus)   │    │   (Supabase)    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
-
-## 📊 Features
-
-### Core KYB Features
-- **Business Classification:** Industry code mapping and categorization
-- **Risk Assessment:** Multi-factor risk scoring and analysis
-- **Compliance Monitoring:** Regulatory framework tracking
-- **Audit Trail:** Complete activity logging and traceability
-
-### Technical Features
-- **Provider Abstraction:** Easy migration between cloud providers
-- **Row Level Security:** Supabase RLS for data protection
-- **Real-time Updates:** Supabase real-time subscriptions
-- **API-First Design:** RESTful API with OpenAPI documentation
-- **Monitoring:** Prometheus metrics and Grafana dashboards
-- **Tracing:** Distributed tracing with Jaeger
-
-## 🔧 Configuration
-
-### Environment Variables
-
-The platform uses environment variables for configuration. Key variables:
-
-```bash
-# Provider Selection
-PROVIDER_DATABASE=supabase
-PROVIDER_AUTH=supabase
-PROVIDER_CACHE=supabase
-PROVIDER_STORAGE=supabase
-
-# Supabase Configuration
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_API_KEY=your_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-SUPABASE_JWT_SECRET=your_jwt_secret
-
-# Database Configuration
-DB_HOST=db.your-project.supabase.co
-DB_PORT=5432
-DB_USERNAME=postgres
-DB_PASSWORD=your_password
-DB_DATABASE=postgres
-DB_SSL_MODE=require
-```
-
-### Configuration Files
-
-- **Development:** `configs/development.env`
-- **Production:** `configs/production.env`
-- **Example:** `env.example`
-
-## 🗄️ Database Schema
-
-The platform uses PostgreSQL with the following key tables:
-
-- **users:** User accounts and profiles
-- **businesses:** Business entities and information
-- **classifications:** Industry classifications and codes
-- **risk_assessments:** Risk analysis results
-- **compliance_status:** Compliance tracking
-- **audit_logs:** Activity audit trail
-- **cache:** Application caching layer
-
-### Row Level Security (RLS)
-
-All tables have RLS policies enabled for data protection:
-- Users can only access their own data
-- Admins have broader access for management
-- Automatic field population (created_by, updated_at)
-
-## 🔄 Migration Strategy
-
-### Current: Supabase (MVP Phase)
-- **Cost:** ~$25/month
-- **Features:** PostgreSQL, Auth, Real-time, Storage
-- **Benefits:** Fast setup, low cost, managed services
-
-### Future: AWS (Enterprise Phase)
-- **Cost:** ~$200-500/month
-- **Features:** Advanced analytics, ML, global distribution
-- **Benefits:** Enterprise features, scalability, compliance
-
-### Provider Switching
-The platform supports easy migration between providers:
-```bash
-# Switch to AWS
-PROVIDER_DATABASE=aws
-PROVIDER_AUTH=aws
-PROVIDER_CACHE=aws
-PROVIDER_STORAGE=aws
-```
-
-## 🧪 Testing
-
-### Run Tests
-```bash
-# Unit tests
-go test ./...
-
-# Integration tests
-go test ./test/integration/...
-
-# Performance tests
-go test ./test/performance/...
-```
-
-### Test Coverage
-```bash
-go test -cover ./...
-go test -coverprofile=coverage.out ./...
-go tool cover -html=coverage.out
-```
-
-## 📚 API Documentation
-
-### OpenAPI Specification
-- **Swagger UI:** http://localhost:8080/docs
-- **OpenAPI JSON:** http://localhost:8080/docs/swagger.json
-
-### Key Endpoints
-- `POST /v1/auth/register` - User registration
-- `POST /v1/auth/login` - User authentication
-- `POST /v1/businesses/classify` - Business classification
-- `POST /v1/businesses/assess-risk` - Risk assessment
-- `GET /v1/businesses/{id}` - Get business details
-- `GET /v1/health` - Health check
-
-## 🚀 Deployment
-
-### Development
-```bash
-# Using Docker Compose
-docker-compose -f docker-compose.dev.yml up
-
-# Using local Go
-go run ./cmd/api
-```
-
-### Production
-```bash
-# Using Docker Compose
-docker-compose up -d
-
-# Using Kubernetes
-kubectl apply -f deployments/kubernetes/
-```
-
-### Environment-Specific Configurations
-- **Development:** Local development with hot reload
-- **Staging:** Pre-production testing environment
-- **Production:** Live production environment
-
-## 📊 Monitoring & Observability
-
-### Metrics (Prometheus)
-- Request rates and latencies
-- Error rates and types
-- Database connection pool stats
-- Cache hit/miss ratios
-
-### Logging
-- Structured JSON logging
-- Request tracing with correlation IDs
-- Error tracking and alerting
-
-### Dashboards (Grafana)
-- **KYB Business Dashboard:** Business metrics and trends
-- **KYB Performance Dashboard:** System performance metrics
-
-## 🔒 Security
-
-### Authentication & Authorization
-- JWT-based authentication
-- Role-based access control (RBAC)
-- API key management
-- Session management
-
-### Data Protection
-- Row Level Security (RLS)
-- Encrypted data transmission (TLS)
-- Secure password handling
-- Audit logging
-
-### Rate Limiting
-- Request rate limiting
-- Authentication-specific limits
-- IP-based blocking
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
-
-### Development Guidelines
-- Follow Go best practices
-- Write comprehensive tests
-- Update documentation
-- Use conventional commits
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🆘 Support
-
-### Documentation
-- [API Documentation](./docs/api/)
-- [User Guides](./docs/user-guides/)
-- [Architecture Documentation](./docs/architecture.md)
-
-### Troubleshooting
-- Check application logs: `docker-compose logs kyb-platform`
-- Test database connection: `PGPASSWORD='password' psql -h host -U user -d database`
-- Verify environment variables: `cat .env`
-
-### Getting Help
-- Create an issue on GitHub
-- Check the documentation
-- Review the troubleshooting guide
+This project is proprietary and confidential. All rights reserved.
 
 ---
 
-**Built with ❤️ using Go and Supabase**
+**Last Updated**: August 24, 2025  
+**Version**: 3.0.0 - MVP Release  
+**Status**: Production Ready

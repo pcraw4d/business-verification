@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Website Scraping - Enhanced Business Intelligence</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .form-section {
+            padding: 30px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results-section {
+            padding: 30px;
+            display: none;
+        }
+
+        .results-section.show {
+            display: block;
+        }
+
+        .scraping-progress {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .progress-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .progress-status {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+            margin-left: auto;
+        }
+
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-in_progress { background: #d1ecf1; color: #0c5460; }
+        .status-completed { background: #d4edda; color: #155724; }
+        .status-failed { background: #f8d7da; color: #721c24; }
+
+        .progress-steps {
+            margin-bottom: 20px;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #e1e5e9;
+        }
+
+        .step.completed { border-left-color: #28a745; }
+        .step.failed { border-left-color: #dc3545; }
+        .step.warning { border-left-color: #ffc107; }
+
+        .step-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .step.completed .step-icon { background: #28a745; color: white; }
+        .step.failed .step-icon { background: #dc3545; color: white; }
+        .step.warning .step-icon { background: #ffc107; color: #333; }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-message {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .step-details {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .step-duration {
+            font-size: 12px;
+            color: #999;
+            margin-left: 12px;
+        }
+
+        .content-extraction {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .content-preview {
+            background: white;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .keywords-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .keyword-tag {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .industry-analysis {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .confidence-bar {
+            background: #e1e5e9;
+            border-radius: 10px;
+            height: 20px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            transition: width 0.5s ease;
+        }
+
+        .error-details {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .suggestions-list {
+            list-style: none;
+            margin-top: 10px;
+        }
+
+        .suggestions-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #f5c6cb;
+        }
+
+        .suggestions-list li:last-child {
+            border-bottom: none;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Real-Time Website Scraping</h1>
+            <p>Enhanced Business Intelligence with Live Progress Tracking</p>
+        </div>
+
+        <div class="form-section">
+            <form id="classificationForm">
+                <div class="form-group">
+                    <label for="businessName">Business Name *</label>
+                    <input type="text" id="businessName" name="businessName" required placeholder="Enter business name">
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Business Description</label>
+                    <textarea id="description" name="description" rows="3" placeholder="Describe the business (optional)"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="websiteURL">Website URL *</label>
+                    <input type="url" id="websiteURL" name="websiteURL" required placeholder="https://example.com">
+                </div>
+
+                <div class="form-group">
+                    <label for="geographicRegion">Geographic Region</label>
+                    <input type="text" id="geographicRegion" name="geographicRegion" placeholder="e.g., United States, Europe">
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    🚀 Start Real-Time Analysis
+                </button>
+            </form>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <h2>📊 Real-Time Scraping Progress</h2>
+            
+            <div class="scraping-progress" id="scrapingProgress">
+                <div class="progress-header">
+                    <h3>🌐 Website Analysis Progress</h3>
+                    <div class="progress-status" id="progressStatus">Pending</div>
+                </div>
+                
+                <div class="progress-steps" id="progressSteps">
+                    <!-- Progress steps will be populated here -->
+                </div>
+            </div>
+
+            <div class="content-extraction hidden" id="contentExtraction">
+                <h3>📄 Content Extraction Results</h3>
+                <p><strong>Content Length:</strong> <span id="contentLength">0</span> characters</p>
+                <p><strong>Content Preview:</strong></p>
+                <div class="content-preview" id="contentPreview">No content extracted yet...</div>
+                <p><strong>Keywords Found:</strong></p>
+                <div class="keywords-list" id="keywordsList">
+                    <!-- Keywords will be populated here -->
+                </div>
+            </div>
+
+            <div class="industry-analysis hidden" id="industryAnalysis">
+                <h3>🏭 Industry Analysis Results</h3>
+                <p><strong>Detected Industry:</strong> <span id="detectedIndustry">Unknown</span></p>
+                <p><strong>Confidence:</strong> <span id="confidenceScore">0%</span></p>
+                <div class="confidence-bar">
+                    <div class="confidence-fill" id="confidenceFill" style="width: 0%"></div>
+                </div>
+                <p><strong>Analysis Method:</strong> <span id="analysisMethod">Unknown</span></p>
+                <p><strong>Evidence:</strong> <span id="evidence">No evidence available</span></p>
+                <p><strong>Keywords Matched:</strong></p>
+                <div class="keywords-list" id="matchedKeywords">
+                    <!-- Matched keywords will be populated here -->
+                </div>
+            </div>
+
+            <div class="error-details hidden" id="errorDetails">
+                <h3>❌ Error Details</h3>
+                <p><strong>Error Type:</strong> <span id="errorType">Unknown</span></p>
+                <p><strong>Error Message:</strong> <span id="errorMessage">No error message</span></p>
+                <p><strong>Suggested Solutions:</strong></p>
+                <ul class="suggestions-list" id="suggestionsList">
+                    <!-- Suggestions will be populated here -->
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('classificationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const resultsSection = document.getElementById('resultsSection');
+            
+            // Show results section and disable submit button
+            resultsSection.classList.add('show');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="loading-spinner"></span>Analyzing...';
+            
+            // Reset progress
+            resetProgress();
+            
+            // Get form data
+            const formData = {
+                business_name: document.getElementById('businessName').value,
+                description: document.getElementById('description').value,
+                website_url: document.getElementById('websiteURL').value,
+                geographic_region: document.getElementById('geographicRegion').value
+            };
+            
+            try {
+                // Start real-time progress simulation
+                simulateProgress();
+                
+                // Make API call
+                const response = await fetch('/v1/classify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Display real-time scraping information
+                    displayScrapingResults(result.real_time_scraping);
+                } else {
+                    showError('API Error', 'Failed to get classification results');
+                }
+            } catch (error) {
+                showError('Network Error', error.message);
+            } finally {
+                // Re-enable submit button
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '🚀 Start Real-Time Analysis';
+            }
+        });
+        
+        function resetProgress() {
+            document.getElementById('progressStatus').textContent = 'Pending';
+            document.getElementById('progressStatus').className = 'progress-status status-pending';
+            document.getElementById('progressSteps').innerHTML = '';
+            document.getElementById('contentExtraction').classList.add('hidden');
+            document.getElementById('industryAnalysis').classList.add('hidden');
+            document.getElementById('errorDetails').classList.add('hidden');
+        }
+        
+        function simulateProgress() {
+            const steps = [
+                { step: 'init', message: 'Starting website scraping...', delay: 500 },
+                { step: 'request_creation', message: 'Creating HTTP request...', delay: 1000 },
+                { step: 'http_request', message: 'Making HTTP request to website...', delay: 2000 },
+                { step: 'read_response', message: 'Reading website response...', delay: 1500 },
+                { step: 'content_processing', message: 'Processing HTML content...', delay: 1000 },
+                { step: 'content_analysis', message: 'Analyzing content for keywords...', delay: 1200 },
+                { step: 'industry_analysis', message: 'Detecting industry from content...', delay: 1500 },
+                { step: 'completion', message: 'Website scraping completed successfully!', delay: 500 }
+            ];
+            
+            let currentStep = 0;
+            
+            function addStep() {
+                if (currentStep < steps.length) {
+                    const step = steps[currentStep];
+                    addProgressStep(step.step, 'in_progress', step.message);
+                    
+                    setTimeout(() => {
+                        updateStepStatus(step.step, 'completed', step.message);
+                        currentStep++;
+                        
+                        if (currentStep < steps.length) {
+                            addStep();
+                        } else {
+                            document.getElementById('progressStatus').textContent = 'Completed';
+                            document.getElementById('progressStatus').className = 'progress-status status-completed';
+                        }
+                    }, step.delay);
+                }
+            }
+            
+            addStep();
+        }
+        
+        function addProgressStep(stepId, status, message) {
+            const stepsContainer = document.getElementById('progressSteps');
+            const stepElement = document.createElement('div');
+            stepElement.className = `step ${status}`;
+            stepElement.id = `step-${stepId}`;
+            
+            const icon = status === 'completed' ? '✅' : status === 'failed' ? '❌' : status === 'warning' ? '⚠️' : '⏳';
+            
+            stepElement.innerHTML = `
+                <div class="step-icon">${icon}</div>
+                <div class="step-content">
+                    <div class="step-message">${message}</div>
+                    <div class="step-details">Processing...</div>
+                </div>
+            `;
+            
+            stepsContainer.appendChild(stepElement);
+        }
+        
+        function updateStepStatus(stepId, status, message) {
+            const stepElement = document.getElementById(`step-${stepId}`);
+            if (stepElement) {
+                stepElement.className = `step ${status}`;
+                const icon = status === 'completed' ? '✅' : status === 'failed' ? '❌' : status === 'warning' ? '⚠️' : '⏳';
+                stepElement.querySelector('.step-icon').innerHTML = icon;
+                stepElement.querySelector('.step-message').textContent = message;
+                stepElement.querySelector('.step-details').textContent = 'Completed';
+            }
+        }
+        
+        function displayScrapingResults(scrapingInfo) {
+            if (!scrapingInfo) return;
+            
+            // Update progress status
+            const progressStatus = document.getElementById('progressStatus');
+            progressStatus.textContent = scrapingInfo.scraping_status.replace('_', ' ').toUpperCase();
+            progressStatus.className = `progress-status status-${scrapingInfo.scraping_status}`;
+            
+            // Display progress steps
+            const stepsContainer = document.getElementById('progressSteps');
+            stepsContainer.innerHTML = '';
+            
+            scrapingInfo.progress_steps.forEach(step => {
+                const stepElement = document.createElement('div');
+                stepElement.className = `step ${step.status}`;
+                
+                const icon = step.status === 'completed' ? '✅' : step.status === 'failed' ? '❌' : step.status === 'warning' ? '⚠️' : '⏳';
+                
+                stepElement.innerHTML = `
+                    <div class="step-icon">${icon}</div>
+                    <div class="step-content">
+                        <div class="step-message">${step.message}</div>
+                        <div class="step-details">${step.details || ''}</div>
+                    </div>
+                    ${step.duration ? `<div class="step-duration">${step.duration}</div>` : ''}
+                `;
+                
+                stepsContainer.appendChild(stepElement);
+            });
+            
+            // Display content extraction results
+            if (scrapingInfo.content_extracted) {
+                document.getElementById('contentExtraction').classList.remove('hidden');
+                document.getElementById('contentLength').textContent = scrapingInfo.content_extracted.content_length;
+                document.getElementById('contentPreview').textContent = scrapingInfo.content_extracted.content_preview;
+                
+                const keywordsList = document.getElementById('keywordsList');
+                keywordsList.innerHTML = '';
+                scrapingInfo.content_extracted.keywords_found.forEach(keyword => {
+                    const tag = document.createElement('span');
+                    tag.className = 'keyword-tag';
+                    tag.textContent = keyword;
+                    keywordsList.appendChild(tag);
+                });
+            }
+            
+            // Display industry analysis results
+            if (scrapingInfo.industry_analysis) {
+                document.getElementById('industryAnalysis').classList.remove('hidden');
+                document.getElementById('detectedIndustry').textContent = scrapingInfo.industry_analysis.detected_industry;
+                document.getElementById('confidenceScore').textContent = `${(scrapingInfo.industry_analysis.confidence * 100).toFixed(1)}%`;
+                document.getElementById('confidenceFill').style.width = `${scrapingInfo.industry_analysis.confidence * 100}%`;
+                document.getElementById('analysisMethod').textContent = scrapingInfo.industry_analysis.analysis_method;
+                document.getElementById('evidence').textContent = scrapingInfo.industry_analysis.evidence;
+                
+                const matchedKeywords = document.getElementById('matchedKeywords');
+                matchedKeywords.innerHTML = '';
+                scrapingInfo.industry_analysis.keywords_matched.forEach(keyword => {
+                    const tag = document.createElement('span');
+                    tag.className = 'keyword-tag';
+                    tag.textContent = keyword;
+                    matchedKeywords.appendChild(tag);
+                });
+            }
+            
+            // Display error details if any
+            if (scrapingInfo.error_details) {
+                document.getElementById('errorDetails').classList.remove('hidden');
+                document.getElementById('errorType').textContent = scrapingInfo.error_details.error_type;
+                document.getElementById('errorMessage').textContent = scrapingInfo.error_details.error_message;
+                
+                const suggestionsList = document.getElementById('suggestionsList');
+                suggestionsList.innerHTML = '';
+                scrapingInfo.error_details.suggested_solutions.forEach(suggestion => {
+                    const li = document.createElement('li');
+                    li.textContent = suggestion;
+                    suggestionsList.appendChild(li);
+                });
+            }
+        }
+        
+        function showError(type, message) {
+            document.getElementById('errorDetails').classList.remove('hidden');
+            document.getElementById('errorType').textContent = type;
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('suggestionsList').innerHTML = '<li>Try refreshing the page</li><li>Check your internet connection</li><li>Verify the website URL is correct</li>';
+        }
+    </script>
+</body>
+</html>

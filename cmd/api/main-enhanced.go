@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"math"
@@ -26,6 +27,10 @@ func NewEnhancedServer(port string) *EnhancedServer {
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		// Serve the comprehensive beta testing UI with all enhanced features
 		http.ServeFile(w, r, "web/index.html")
+	})
+
+	mux.HandleFunc("GET /real-time", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "web/real-time-scraping.html")
 	})
 
 	// Serve static web assets
@@ -141,7 +146,7 @@ func NewEnhancedServer(port string) *EnhancedServer {
 				"compliance":       complianceResult,
 				"market_presence":  marketResult,
 			},
-			"enhanced_features": map[string]interface{}{
+			"enhanced_features": map[string]string{
 				"enhanced_classification": "active",
 				"geographic_awareness":    "active",
 				"confidence_scoring":      "active",
@@ -154,7 +159,14 @@ func NewEnhancedServer(port string) *EnhancedServer {
 				"beta_testing_ui":         "active",
 				"cloud_deployment":        "active",
 				"worldwide_access":        "active",
+				"data_extraction":         "active",
+				"validation_framework":    "active",
 			},
+		}
+
+		// Add real-time scraping information if available
+		if classificationResult.RealTimeScraping != nil {
+			response["real_time_scraping"] = classificationResult.RealTimeScraping
 		}
 
 		w.WriteHeader(http.StatusOK)
@@ -246,87 +258,153 @@ func NewEnhancedServer(port string) *EnhancedServer {
 	}
 }
 
-// Real business intelligence processing structures
+// ClassificationResult represents the result of business classification
 type ClassificationResult struct {
-	PrimaryIndustry string                   `json:"primary_industry"`
-	Confidence      float64                  `json:"confidence"`
-	Classifications []map[string]interface{} `json:"classifications"`
-	WebsiteAnalyzed bool                     `json:"website_analyzed"`
+	PrimaryIndustry  string                   `json:"primary_industry"`
+	Confidence       float64                  `json:"confidence"`
+	Classifications  []map[string]interface{} `json:"classifications"`
+	WebsiteAnalyzed  bool                     `json:"website_analyzed"`
+	RealTimeScraping *RealTimeScrapingInfo    `json:"real_time_scraping,omitempty"`
+}
+
+// Enhanced API response structure with real-time scraping information
+type EnhancedClassificationResponse struct {
+	BusinessID            string                   `json:"business_id"`
+	ClassificationMethod  string                   `json:"classification_method"`
+	Classifications       []map[string]interface{} `json:"classifications"`
+	ConfidenceScore       float64                  `json:"confidence_score"`
+	DataExtraction        map[string]interface{}   `json:"data_extraction"`
+	EnhancedFeatures      map[string]string        `json:"enhanced_features"`
+	GeographicRegion      string                   `json:"geographic_region"`
+	OverallConfidence     float64                  `json:"overall_confidence"`
+	PrimaryIndustry       string                   `json:"primary_industry"`
+	ProcessingTime        string                   `json:"processing_time"`
+	RegionConfidenceScore float64                  `json:"region_confidence_score"`
+	Success               bool                     `json:"success"`
+	WebsiteVerification   map[string]interface{}   `json:"website_verification"`
+
+	// New real-time scraping information
+	RealTimeScraping *RealTimeScrapingInfo `json:"real_time_scraping,omitempty"`
+}
+
+// RealTimeScrapingInfo provides detailed information about the scraping process
+type RealTimeScrapingInfo struct {
+	WebsiteURL       string                `json:"website_url"`
+	ScrapingStatus   string                `json:"scraping_status"` // "pending", "in_progress", "completed", "failed"
+	ProgressSteps    []ScrapingStep        `json:"progress_steps"`
+	ContentExtracted *ExtractedContentInfo `json:"content_extracted,omitempty"`
+	IndustryAnalysis *IndustryAnalysisInfo `json:"industry_analysis,omitempty"`
+	ErrorDetails     *ErrorInfo            `json:"error_details,omitempty"`
+	ProcessingTime   string                `json:"processing_time"`
+}
+
+// ScrapingStep represents a step in the scraping process
+type ScrapingStep struct {
+	Step      string `json:"step"`
+	Status    string `json:"status"` // "pending", "in_progress", "completed", "failed"
+	Message   string `json:"message"`
+	Timestamp string `json:"timestamp"`
+	Duration  string `json:"duration,omitempty"`
+	Details   string `json:"details,omitempty"`
+}
+
+// ExtractedContentInfo shows what was extracted from the website
+type ExtractedContentInfo struct {
+	ContentLength  int                    `json:"content_length"`
+	ContentPreview string                 `json:"content_preview"`
+	KeywordsFound  []string               `json:"keywords_found"`
+	MetaTags       map[string]string      `json:"meta_tags,omitempty"`
+	StructuredData map[string]interface{} `json:"structured_data,omitempty"`
+}
+
+// IndustryAnalysisInfo shows the industry detection process
+type IndustryAnalysisInfo struct {
+	DetectedIndustry string   `json:"detected_industry"`
+	Confidence       float64  `json:"confidence"`
+	KeywordsMatched  []string `json:"keywords_matched"`
+	AnalysisMethod   string   `json:"analysis_method"`
+	Evidence         string   `json:"evidence"`
+}
+
+// ErrorInfo provides detailed error information
+type ErrorInfo struct {
+	ErrorType          string   `json:"error_type"`
+	ErrorMessage       string   `json:"error_message"`
+	ErrorCode          string   `json:"error_code,omitempty"`
+	SuggestedSolutions []string `json:"suggested_solutions"`
+	Retryable          bool     `json:"retryable"`
 }
 
 // REAL business intelligence processing functions
 func performRealKeywordClassification(businessName, description, websiteURL string) ClassificationResult {
-	// MULTI-SOURCE CLASSIFICATION: Weighted analysis from multiple data sources
-	primaryIndustry := "Technology"
-	confidence := 0.75
-	classificationMethod := "Multi-Source Analysis"
+	// Initialize variables
+	primaryIndustry := ""
+	confidence := 0.0
+	classificationMethod := ""
 	websiteAnalyzed := false
 
-	// Step 1: Analyze business name for industry indicators (LOW-MEDIUM CONFIDENCE)
-	businessNameLower := strings.ToLower(businessName)
+	// Step 1: Business name analysis (LOW-MEDIUM CONFIDENCE)
 	businessNameIndustry := ""
 	businessNameConfidence := 0.0
 
-	// Industry detection from business name - REDUCED CONFIDENCE
-	if contains(businessNameLower, "manufacturing") || contains(businessNameLower, "factory") || contains(businessNameLower, "production") || contains(businessNameLower, "industrial") {
+	// Business name-based industry detection with reduced confidence
+	if contains(businessName, "manufacturing") || contains(businessName, "factory") || contains(businessName, "production") || contains(businessName, "industrial") {
 		businessNameIndustry = "Manufacturing"
-		businessNameConfidence = 0.65 // Reduced from 0.92
-	} else if contains(businessNameLower, "healthcare") || contains(businessNameLower, "medical") || contains(businessNameLower, "hospital") || contains(businessNameLower, "pharmacy") {
+		businessNameConfidence = 0.65 // Reduced from 0.82
+	} else if contains(businessName, "healthcare") || contains(businessName, "medical") || contains(businessName, "hospital") || contains(businessName, "pharmacy") {
 		businessNameIndustry = "Healthcare"
 		businessNameConfidence = 0.70 // Reduced from 0.89
-	} else if contains(businessNameLower, "bank") || contains(businessNameLower, "finance") || contains(businessNameLower, "insurance") || contains(businessNameLower, "credit") {
+	} else if contains(businessName, "bank") || contains(businessName, "finance") || contains(businessName, "insurance") || contains(businessName, "credit") {
 		businessNameIndustry = "Financial Services"
 		businessNameConfidence = 0.75 // Reduced from 0.91
-	} else if contains(businessNameLower, "coffee") || contains(businessNameLower, "restaurant") || contains(businessNameLower, "cafe") || contains(businessNameLower, "bakery") || contains(businessNameLower, "pizza") || contains(businessNameLower, "wine") || contains(businessNameLower, "liquor") || contains(businessNameLower, "spirits") || contains(businessNameLower, "grape") || contains(businessNameLower, "vineyard") {
+	} else if contains(businessName, "coffee") || contains(businessName, "restaurant") || contains(businessName, "cafe") || contains(businessName, "bakery") || contains(businessName, "pizza") || contains(businessName, "wine") || contains(businessName, "liquor") || contains(businessName, "spirits") || contains(businessName, "grape") || contains(businessName, "vineyard") {
 		businessNameIndustry = "Retail"
-		businessNameConfidence = 0.60 // Reduced from 0.88 - "grape" alone is not very specific
-	} else if contains(businessNameLower, "school") || contains(businessNameLower, "university") || contains(businessNameLower, "college") || contains(businessNameLower, "academy") {
+		businessNameConfidence = 0.60 // Reduced from 0.88
+	} else if contains(businessName, "school") || contains(businessName, "university") || contains(businessName, "college") || contains(businessName, "academy") {
 		businessNameIndustry = "Education"
 		businessNameConfidence = 0.70 // Reduced from 0.85
-	} else if contains(businessNameLower, "real estate") || contains(businessNameLower, "property") || contains(businessNameLower, "construction") || contains(businessNameLower, "builders") {
-		businessNameIndustry = "Real Estate"
-		businessNameConfidence = 0.65 // Reduced from 0.86
-	} else if contains(businessNameLower, "transport") || contains(businessNameLower, "logistics") || contains(businessNameLower, "shipping") || contains(businessNameLower, "delivery") {
-		businessNameIndustry = "Transportation & Logistics"
-		businessNameConfidence = 0.60 // Reduced from 0.84
-	} else if contains(businessNameLower, "energy") || contains(businessNameLower, "oil") || contains(businessNameLower, "gas") || contains(businessNameLower, "power") {
-		businessNameIndustry = "Energy"
-		businessNameConfidence = 0.65 // Reduced from 0.83
-	} else if contains(businessNameLower, "consulting") || contains(businessNameLower, "advisory") || contains(businessNameLower, "services") {
-		businessNameIndustry = "Professional Services"
-		businessNameConfidence = 0.70 // Reduced from 0.87
-	} else if contains(businessNameLower, "media") || contains(businessNameLower, "entertainment") || contains(businessNameLower, "publishing") || contains(businessNameLower, "studio") {
-		businessNameIndustry = "Media & Entertainment"
-		businessNameConfidence = 0.65 // Reduced from 0.82
 	}
 
 	// Step 2: Website analysis for enhanced classification (HIGH CONFIDENCE)
 	websiteIndustry := ""
 	websiteConfidence := 0.0
-	if websiteURL != "" {
-		websiteContent := scrapeWebsiteContent(websiteURL)
-		if websiteContent != "" {
-			websiteAnalyzed = true
-			websiteText := strings.ToLower(websiteContent)
+	var realTimeScraping *RealTimeScrapingInfo
 
-			// Website-based industry detection - HIGHER CONFIDENCE
-			if contains(websiteText, "manufacturing") || contains(websiteText, "factory") || contains(websiteText, "production") || contains(websiteText, "industrial") {
-				websiteIndustry = "Manufacturing"
-				websiteConfidence = 0.90 // Higher confidence for website content
-			} else if contains(websiteText, "healthcare") || contains(websiteText, "medical") || contains(websiteText, "hospital") || contains(websiteText, "pharmacy") {
-				websiteIndustry = "Healthcare"
-				websiteConfidence = 0.88
-			} else if contains(websiteText, "bank") || contains(websiteText, "finance") || contains(websiteText, "insurance") || contains(websiteText, "credit") {
-				websiteIndustry = "Financial Services"
-				websiteConfidence = 0.92
-			} else if contains(websiteText, "restaurant") || contains(websiteText, "menu") || contains(websiteText, "food") || contains(websiteText, "dining") || contains(websiteText, "coffee") || contains(websiteText, "cafe") || contains(websiteText, "wine") || contains(websiteText, "liquor") || contains(websiteText, "shop") || contains(websiteText, "store") {
-				websiteIndustry = "Retail"
-				websiteConfidence = 0.85
-			} else if contains(websiteText, "school") || contains(websiteText, "university") || contains(websiteText, "education") || contains(websiteText, "learning") {
-				websiteIndustry = "Education"
-				websiteConfidence = 0.87
+	if websiteURL != "" {
+		log.Printf("🌐 Website URL provided: %s", websiteURL)
+		log.Printf("🔍 Starting website content analysis...")
+
+		// Use the enhanced scraping function with progress tracking
+		scrapingInfo, err := scrapeWebsiteContentWithProgress(websiteURL)
+		if err != nil {
+			log.Printf("⚠️ Website scraping failed: %v", err)
+			// Create error info for the response
+			realTimeScraping = &RealTimeScrapingInfo{
+				WebsiteURL:     websiteURL,
+				ScrapingStatus: "failed",
+				ErrorDetails: &ErrorInfo{
+					ErrorType:          "scraping_failed",
+					ErrorMessage:       err.Error(),
+					SuggestedSolutions: []string{"Check URL format", "Verify website accessibility", "Try again later"},
+					Retryable:          true,
+				},
+			}
+		} else {
+			realTimeScraping = scrapingInfo
+			websiteAnalyzed = true
+			log.Printf("✅ Website content successfully scraped (%d characters)", len(scrapingInfo.ContentExtracted.ContentPreview))
+
+			// Use the industry analysis from the scraping info
+			if scrapingInfo.IndustryAnalysis != nil {
+				websiteIndustry = scrapingInfo.IndustryAnalysis.DetectedIndustry
+				websiteConfidence = scrapingInfo.IndustryAnalysis.Confidence
+				log.Printf("🏭 Industry detected from website: %s (confidence: %.1f%%)", websiteIndustry, websiteConfidence*100)
+			} else {
+				log.Printf("❓ No industry analysis available from website content")
 			}
 		}
+	} else {
+		log.Printf("ℹ️ No website URL provided - skipping website analysis")
 	}
 
 	// Step 2: Website analysis for enhanced classification (MEDIUM CONFIDENCE)
@@ -388,18 +466,30 @@ func performRealKeywordClassification(businessName, description, websiteURL stri
 	// Step 4: Weighted voting system to determine final classification
 	// Priority: Website Analysis > Business Name > Description
 
+	log.Printf("🎯 Starting weighted voting system...")
+	log.Printf("📊 Business Name Industry: %s (confidence: %.1f%%)", businessNameIndustry, businessNameConfidence*100)
+	log.Printf("🌐 Website Industry: %s (confidence: %.1f%%)", websiteIndustry, websiteConfidence*100)
+	log.Printf("📝 Description Industry: %s (confidence: %.1f%%)", descriptionIndustry, descriptionConfidence*100)
+
 	if websiteIndustry != "" {
 		// Website analysis takes priority when available
 		primaryIndustry = websiteIndustry
 		confidence = websiteConfidence
 		classificationMethod = "Website Content Analysis"
 
+		log.Printf("✅ Website analysis selected as primary method")
+		log.Printf("🎯 Final Industry: %s (confidence: %.1f%%)", primaryIndustry, confidence*100)
+
 		// Boost confidence if business name or description agrees
 		if businessNameIndustry == websiteIndustry && businessNameConfidence > 0 {
 			confidence = math.Min(confidence+0.05, 0.99)
+			log.Printf("🚀 Confidence boosted by 5%% due to business name agreement")
+			log.Printf("🎯 Final Industry: %s (confidence: %.1f%%)", primaryIndustry, confidence*100)
 		}
 		if descriptionIndustry == websiteIndustry && descriptionConfidence > 0 {
 			confidence = math.Min(confidence+0.03, 0.99)
+			log.Printf("🚀 Confidence boosted by 3%% due to description agreement")
+			log.Printf("🎯 Final Industry: %s (confidence: %.1f%%)", primaryIndustry, confidence*100)
 		}
 	} else if businessNameIndustry != "" {
 		// Fall back to business name analysis
@@ -407,25 +497,42 @@ func performRealKeywordClassification(businessName, description, websiteURL stri
 		confidence = businessNameConfidence
 		classificationMethod = "Business Name Industry Detection"
 
+		log.Printf("✅ Business name analysis selected as primary method")
+		log.Printf("🎯 Final Industry: %s (confidence: %.1f%%)", primaryIndustry, confidence*100)
+
 		// Boost confidence if description agrees
 		if descriptionIndustry == businessNameIndustry && descriptionConfidence > 0 {
 			confidence = math.Min(confidence+0.05, 0.99)
+			log.Printf("🚀 Confidence boosted by 5%% due to description agreement")
+			log.Printf("🎯 Final Industry: %s (confidence: %.1f%%)", primaryIndustry, confidence*100)
 		}
 	} else if descriptionIndustry != "" {
-		// Last resort: description only
+		// Last resort: use description
 		primaryIndustry = descriptionIndustry
 		confidence = descriptionConfidence
-		classificationMethod = "Description Analysis"
+		classificationMethod = "Description Validation"
+
+		log.Printf("⚠️ Description validation selected as primary method (fallback)")
+		log.Printf("🎯 Final Industry: %s (confidence: %.1f%%)", primaryIndustry, confidence*100)
+	} else {
+		// Default fallback
+		primaryIndustry = "General Business"
+		confidence = 0.50
+		classificationMethod = "Default Classification"
+
+		log.Printf("⚠️ Default classification used (no indicators found)")
+		log.Printf("🎯 Final Industry: %s (confidence: %.1f%%)", primaryIndustry, confidence*100)
 	}
 
 	// Generate comprehensive industry code classifications
 	classifications := generateComprehensiveClassifications(primaryIndustry, businessName, description, websiteURL, confidence, classificationMethod)
 
 	return ClassificationResult{
-		PrimaryIndustry: primaryIndustry,
-		Confidence:      confidence,
-		Classifications: classifications,
-		WebsiteAnalyzed: websiteAnalyzed,
+		PrimaryIndustry:  primaryIndustry,
+		Confidence:       confidence,
+		Classifications:  classifications,
+		WebsiteAnalyzed:  websiteAnalyzed,
+		RealTimeScraping: realTimeScraping,
 	}
 }
 
@@ -583,6 +690,8 @@ func scrapeWebsiteContent(url string) string {
 		url = "https://" + url
 	}
 
+	log.Printf("🔍 Starting website scraping for: %s", url)
+
 	// Create HTTP client with timeout
 	client := &http.Client{
 		Timeout: 10 * time.Second,
@@ -591,36 +700,67 @@ func scrapeWebsiteContent(url string) string {
 	// Create request with user agent
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
+		log.Printf("❌ Failed to create request for %s: %v", url, err)
 		return ""
 	}
 	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; BusinessIntelligenceBot/1.0)")
 
+	log.Printf("📡 Making HTTP request to: %s", url)
+
 	// Make request
 	resp, err := client.Do(req)
 	if err != nil {
+		log.Printf("❌ HTTP request failed for %s: %v", url, err)
 		return ""
 	}
 	defer resp.Body.Close()
 
+	log.Printf("📊 Response status: %d %s", resp.StatusCode, resp.Status)
+
 	// Check if response is successful
 	if resp.StatusCode != http.StatusOK {
-		return ""
+		log.Printf("⚠️ Non-200 status code for %s: %d", url, resp.StatusCode)
+		// Don't return immediately - some sites return 200 with different status codes
 	}
 
 	// Read response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		log.Printf("❌ Failed to read response body for %s: %v", url, err)
 		return ""
 	}
 
+	log.Printf("📄 Response body length: %d bytes", len(body))
+
 	// Convert to string and extract text content (basic HTML tag removal)
 	content := string(body)
+
+	// Log content preview for debugging
+	if len(content) > 200 {
+		log.Printf("📝 Content preview: %s...", content[:200])
+	} else {
+		log.Printf("📝 Full content: %s", content)
+	}
 
 	// Remove HTML tags (basic implementation)
 	content = removeHTMLTags(content)
 
 	// Remove extra whitespace
 	content = strings.Join(strings.Fields(content), " ")
+
+	log.Printf("🧹 Cleaned content length: %d characters", len(content))
+
+	if len(content) > 200 {
+		log.Printf("🧹 Cleaned content preview: %s...", content[:200])
+	} else {
+		log.Printf("🧹 Full cleaned content: %s", content)
+	}
+
+	if len(content) == 0 {
+		log.Printf("⚠️ Warning: No content extracted from %s", url)
+	} else {
+		log.Printf("✅ Successfully scraped %s - extracted %d characters", url, len(content))
+	}
 
 	return content
 }
@@ -1109,6 +1249,268 @@ func (s *EnhancedServer) Start() error {
 func (s *EnhancedServer) Shutdown(ctx context.Context) error {
 	log.Printf("🛑 Shutting down Enhanced Business Intelligence Beta Testing Server")
 	return s.server.Shutdown(ctx)
+}
+
+// extractKeyKeywords extracts key keywords from website content for debugging
+func extractKeyKeywords(content string) string {
+	// Split content into words and find meaningful keywords
+	words := strings.Fields(content)
+	var keywords []string
+
+	// Common stop words to filter out
+	stopWords := map[string]bool{
+		"the": true, "and": true, "for": true, "with": true, "this": true, "that": true, "they": true, "have": true, "been": true, "from": true, "will": true, "more": true, "some": true, "were": true, "said": true, "each": true, "which": true, "their": true, "time": true, "would": true, "there": true, "could": true, "other": true, "than": true, "first": true, "about": true, "may": true, "into": true, "over": true, "think": true, "also": true, "after": true, "never": true, "before": true, "during": true, "under": true, "while": true, "where": true, "through": true, "between": true, "within": true, "without": true, "against": true, "toward": true, "towards": true, "among": true, "amongst": true, "throughout": true, "despite": true, "except": true, "excepting": true, "excluding": true, "including": true, "like": true, "unlike": true, "per": true, "versus": true, "via": true,
+	}
+
+	// Look for words that might indicate industry
+	for _, word := range words {
+		if len(word) > 3 && !stopWords[strings.ToLower(word)] {
+			keywords = append(keywords, word)
+			if len(keywords) >= 10 { // Limit to 10 keywords
+				break
+			}
+		}
+	}
+
+	if len(keywords) == 0 {
+		return "none found"
+	}
+
+	return strings.Join(keywords, ", ")
+}
+
+// scrapeWebsiteContentWithProgress attempts to scrape content from a website URL with detailed progress tracking
+func scrapeWebsiteContentWithProgress(url string) (*RealTimeScrapingInfo, error) {
+	scrapingInfo := &RealTimeScrapingInfo{
+		WebsiteURL:     url,
+		ScrapingStatus: "pending",
+		ProgressSteps:  []ScrapingStep{},
+	}
+
+	// Add http:// if no protocol specified
+	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
+		url = "https://" + url
+	}
+
+	// Step 1: Starting scraping
+	startTime := time.Now()
+	scrapingInfo.ScrapingStatus = "in_progress"
+	scrapingInfo.addStep("init", "completed", "Starting website scraping", startTime, "")
+
+	log.Printf("🔍 Starting website scraping for: %s", url)
+
+	// Create HTTP client with timeout
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	// Step 2: Creating request
+	reqStart := time.Now()
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		scrapingInfo.ScrapingStatus = "failed"
+		scrapingInfo.addStep("request_creation", "failed", "Failed to create request", reqStart, "")
+		scrapingInfo.ErrorDetails = &ErrorInfo{
+			ErrorType:          "request_creation_failed",
+			ErrorMessage:       fmt.Sprintf("Failed to create request: %v", err),
+			SuggestedSolutions: []string{"Check URL format", "Verify URL is accessible", "Try again"},
+			Retryable:          true,
+		}
+		log.Printf("❌ Failed to create request for %s: %v", url, err)
+		return scrapingInfo, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; BusinessIntelligenceBot/1.0)")
+	scrapingInfo.addStep("request_creation", "completed", "Request created successfully", reqStart, "")
+
+	log.Printf("📡 Making HTTP request to: %s", url)
+
+	// Step 3: Making HTTP request
+	httpStart := time.Now()
+	resp, err := client.Do(req)
+	if err != nil {
+		scrapingInfo.ScrapingStatus = "failed"
+		scrapingInfo.addStep("http_request", "failed", "HTTP request failed", httpStart, "")
+		scrapingInfo.ErrorDetails = &ErrorInfo{
+			ErrorType:          "http_request_failed",
+			ErrorMessage:       fmt.Sprintf("HTTP request failed: %v", err),
+			SuggestedSolutions: []string{"Check internet connection", "Verify website is accessible", "Try again later"},
+			Retryable:          true,
+		}
+		log.Printf("❌ HTTP request failed for %s: %v", url, err)
+		return scrapingInfo, fmt.Errorf("HTTP request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	httpDuration := time.Since(httpStart)
+	scrapingInfo.addStep("http_request", "completed", fmt.Sprintf("HTTP request completed (Status: %d)", resp.StatusCode), httpStart, httpDuration.String())
+
+	log.Printf("📊 Response status: %d %s", resp.StatusCode, resp.Status)
+
+	// Check if response is successful
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("⚠️ Non-200 status code for %s: %d", url, resp.StatusCode)
+		scrapingInfo.addStep("status_check", "warning", fmt.Sprintf("Non-200 status code: %d", resp.StatusCode), time.Now(), "")
+	}
+
+	// Step 4: Reading response body
+	readStart := time.Now()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		scrapingInfo.ScrapingStatus = "failed"
+		scrapingInfo.addStep("read_response", "failed", "Failed to read response body", readStart, "")
+		scrapingInfo.ErrorDetails = &ErrorInfo{
+			ErrorType:          "response_read_failed",
+			ErrorMessage:       fmt.Sprintf("Failed to read response body: %v", err),
+			SuggestedSolutions: []string{"Try again", "Check website response", "Contact support"},
+			Retryable:          true,
+		}
+		log.Printf("❌ Failed to read response body for %s: %v", url, err)
+		return scrapingInfo, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	readDuration := time.Since(readStart)
+	scrapingInfo.addStep("read_response", "completed", fmt.Sprintf("Response body read (%d bytes)", len(body)), readStart, readDuration.String())
+
+	log.Printf("📄 Response body length: %d bytes", len(body))
+
+	// Convert to string and extract text content
+	content := string(body)
+
+	// Log content preview for debugging
+	if len(content) > 200 {
+		log.Printf("📝 Content preview: %s...", content[:200])
+	} else {
+		log.Printf("📝 Full content: %s", content)
+	}
+
+	// Step 5: Processing content
+	processStart := time.Now()
+	content = removeHTMLTags(content)
+	content = strings.Join(strings.Fields(content), " ")
+
+	processDuration := time.Since(processStart)
+	scrapingInfo.addStep("content_processing", "completed", "HTML content processed and cleaned", processStart, processDuration.String())
+
+	log.Printf("🧹 Cleaned content length: %d characters", len(content))
+
+	if len(content) > 200 {
+		log.Printf("🧹 Cleaned content preview: %s...", content[:200])
+	} else {
+		log.Printf("🧹 Cleaned content preview: %s", content)
+	}
+
+	// Step 6: Content extraction analysis
+	extractStart := time.Now()
+	keywords := extractKeyKeywords(content)
+	scrapingInfo.ContentExtracted = &ExtractedContentInfo{
+		ContentLength:  len(content),
+		ContentPreview: truncateString(content, 200),
+		KeywordsFound:  strings.Split(keywords, ", "),
+	}
+
+	extractDuration := time.Since(extractStart)
+	scrapingInfo.addStep("content_analysis", "completed", fmt.Sprintf("Content analyzed (%d keywords found)", len(scrapingInfo.ContentExtracted.KeywordsFound)), extractStart, extractDuration.String())
+
+	// Step 7: Industry analysis
+	industryStart := time.Now()
+	industryInfo := analyzeIndustryFromContent(content)
+	scrapingInfo.IndustryAnalysis = industryInfo
+
+	industryDuration := time.Since(industryStart)
+	scrapingInfo.addStep("industry_analysis", "completed", fmt.Sprintf("Industry analysis completed (%s, %.1f%% confidence)", industryInfo.DetectedIndustry, industryInfo.Confidence*100), industryStart, industryDuration.String())
+
+	// Final status
+	totalDuration := time.Since(startTime)
+	scrapingInfo.ScrapingStatus = "completed"
+	scrapingInfo.ProcessingTime = totalDuration.String()
+	scrapingInfo.addStep("completion", "completed", "Website scraping completed successfully", time.Now(), totalDuration.String())
+
+	if len(content) == 0 {
+		log.Printf("⚠️ Warning: No content extracted from %s", url)
+		scrapingInfo.addStep("content_validation", "warning", "No content extracted", time.Now(), "")
+	} else {
+		log.Printf("✅ Successfully scraped %s - extracted %d characters", url, len(content))
+	}
+
+	return scrapingInfo, nil
+}
+
+// addStep adds a progress step to the scraping info
+func (r *RealTimeScrapingInfo) addStep(step, status, message string, startTime time.Time, duration string) {
+	stepInfo := ScrapingStep{
+		Step:      step,
+		Status:    status,
+		Message:   message,
+		Timestamp: time.Now().Format(time.RFC3339),
+		Duration:  duration,
+	}
+	r.ProgressSteps = append(r.ProgressSteps, stepInfo)
+}
+
+// analyzeIndustryFromContent analyzes website content to detect industry
+func analyzeIndustryFromContent(content string) *IndustryAnalysisInfo {
+	contentLower := strings.ToLower(content)
+
+	// Industry detection logic
+	var detectedIndustry string
+	var confidence float64
+	var keywordsMatched []string
+	var analysisMethod string
+	var evidence string
+
+	if contains(contentLower, "manufacturing") || contains(contentLower, "factory") || contains(contentLower, "production") || contains(contentLower, "industrial") {
+		detectedIndustry = "Manufacturing"
+		confidence = 0.90
+		keywordsMatched = []string{"manufacturing", "factory", "production", "industrial"}
+		analysisMethod = "keyword_matching"
+		evidence = "Found manufacturing-related keywords in website content"
+	} else if contains(contentLower, "healthcare") || contains(contentLower, "medical") || contains(contentLower, "hospital") || contains(contentLower, "pharmacy") {
+		detectedIndustry = "Healthcare"
+		confidence = 0.88
+		keywordsMatched = []string{"healthcare", "medical", "hospital", "pharmacy"}
+		analysisMethod = "keyword_matching"
+		evidence = "Found healthcare-related keywords in website content"
+	} else if contains(contentLower, "bank") || contains(contentLower, "finance") || contains(contentLower, "insurance") || contains(contentLower, "credit") {
+		detectedIndustry = "Financial Services"
+		confidence = 0.92
+		keywordsMatched = []string{"bank", "finance", "insurance", "credit"}
+		analysisMethod = "keyword_matching"
+		evidence = "Found financial services-related keywords in website content"
+	} else if contains(contentLower, "restaurant") || contains(contentLower, "menu") || contains(contentLower, "food") || contains(contentLower, "dining") || contains(contentLower, "coffee") || contains(contentLower, "cafe") || contains(contentLower, "wine") || contains(contentLower, "liquor") || contains(contentLower, "shop") || contains(contentLower, "store") {
+		detectedIndustry = "Retail"
+		confidence = 0.85
+		keywordsMatched = []string{"restaurant", "menu", "food", "dining", "coffee", "cafe", "wine", "liquor", "shop", "store"}
+		analysisMethod = "keyword_matching"
+		evidence = "Found retail-related keywords in website content"
+	} else if contains(contentLower, "school") || contains(contentLower, "university") || contains(contentLower, "education") || contains(contentLower, "learning") {
+		detectedIndustry = "Education"
+		confidence = 0.87
+		keywordsMatched = []string{"school", "university", "education", "learning"}
+		analysisMethod = "keyword_matching"
+		evidence = "Found education-related keywords in website content"
+	} else {
+		detectedIndustry = "General Business"
+		confidence = 0.50
+		keywordsMatched = []string{}
+		analysisMethod = "fallback"
+		evidence = "No specific industry indicators found, using default classification"
+	}
+
+	return &IndustryAnalysisInfo{
+		DetectedIndustry: detectedIndustry,
+		Confidence:       confidence,
+		KeywordsMatched:  keywordsMatched,
+		AnalysisMethod:   analysisMethod,
+		Evidence:         evidence,
+	}
+}
+
+// truncateString truncates a string to the specified length
+func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
 }
 
 func main() {
