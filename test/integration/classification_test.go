@@ -1,8 +1,11 @@
 package integration
 
 import (
+	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -258,15 +261,15 @@ func TestDatabaseIntegration(t *testing.T) {
 	t.Run("DataPersistence", func(t *testing.T) {
 		// Test classification data persistence
 		classification := &classification.EnhancedClassification{
-			BusinessID:           "test_business_1",
-			BusinessName:         "Test Business",
-			PrimaryIndustryCode:  "541511",
-			PrimaryIndustryName:  "Custom Computer Programming Services",
-			ConfidenceScore:      0.95,
-			MLModelVersion:       "bert_classifier_v1.0.0",
-			GeographicRegion:     "California, USA",
+			BusinessID:              "test_business_1",
+			BusinessName:            "Test Business",
+			PrimaryIndustryCode:     "541511",
+			PrimaryIndustryName:     "Custom Computer Programming Services",
+			ConfidenceScore:         0.95,
+			MLModelVersion:          "bert_classifier_v1.0.0",
+			GeographicRegion:        "California, USA",
 			ClassificationAlgorithm: "ml_enhanced",
-			CreatedAt:            time.Now(),
+			CreatedAt:               time.Now(),
 		}
 
 		err := saveClassification(db, classification)
@@ -392,14 +395,14 @@ func TestCachingAndPerformance(t *testing.T) {
 	// Test model optimization performance
 	t.Run("ModelOptimizationPerformance", func(t *testing.T) {
 		config := &classification.ModelOptimizationConfig{
-			QuantizationEnabled: true,
-			QuantizationLevel:   16,
-			CacheEnabled:        true,
-			PreloadEnabled:      true,
+			QuantizationEnabled:   true,
+			QuantizationLevel:     16,
+			CacheEnabled:          true,
+			PreloadEnabled:        true,
 			PerformanceMonitoring: true,
-			OptimizationLevel:   "medium",
-			MaxCacheSize:        100,
-			CacheTTL:            time.Hour,
+			OptimizationLevel:     "medium",
+			MaxCacheSize:          100,
+			CacheTTL:              time.Hour,
 		}
 
 		optimizer := classification.NewModelOptimizer(config, logger, metrics)
@@ -447,7 +450,7 @@ func TestCachingAndPerformance(t *testing.T) {
 	})
 
 	// Test batch processing performance
-	t.Run("BatchProcessingPerformance", func(t *testing.T)) {
+	t.Run("BatchProcessingPerformance", func(t *testing.T) {
 		service := createTestClassificationService(t)
 
 		// Create batch of requests
@@ -589,14 +592,14 @@ func createTestModelManager(t *testing.T) *classification.ModelManager {
 
 func createTestModelOptimizer(t *testing.T) *classification.ModelOptimizer {
 	config := &classification.ModelOptimizationConfig{
-		QuantizationEnabled: true,
-		QuantizationLevel:   16,
-		CacheEnabled:        true,
-		PreloadEnabled:      true,
+		QuantizationEnabled:   true,
+		QuantizationLevel:     16,
+		CacheEnabled:          true,
+		PreloadEnabled:        true,
 		PerformanceMonitoring: true,
-		OptimizationLevel:   "medium",
-		MaxCacheSize:        100,
-		CacheTTL:            time.Hour,
+		OptimizationLevel:     "medium",
+		MaxCacheSize:          100,
+		CacheTTL:              time.Hour,
 	}
 
 	logger := createTestLogger()
@@ -640,7 +643,7 @@ func getClassification(db *sql.DB, businessID string) (*classification.EnhancedC
 	// This would retrieve a classification from the database
 	// For now, return a mock result to avoid compilation errors
 	return &classification.EnhancedClassification{
-		BusinessID: businessID,
+		BusinessID:   businessID,
 		BusinessName: "Test Business",
 	}, nil
 }
@@ -655,7 +658,7 @@ func getFeedback(db *sql.DB, feedbackID string) (*classification.Feedback, error
 	// This would retrieve feedback from the database
 	// For now, return a mock result to avoid compilation errors
 	return &classification.Feedback{
-		ID: feedbackID,
+		ID:          feedbackID,
 		Description: "Test feedback",
 	}, nil
 }
