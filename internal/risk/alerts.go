@@ -124,9 +124,9 @@ func (s *AlertService) GenerateAlerts(ctx context.Context, assessment *RiskAsses
 	alerts = append(alerts, trendAlerts...)
 
 	s.logger.Info("Alert generation completed", map[string]interface{}{
-		"request_id": requestID,
+		"request_id":   requestID,
 		"total_alerts": len(alerts),
-		"business_id": assessment.BusinessID,
+		"business_id":  assessment.BusinessID,
 	})
 
 	return alerts, nil
@@ -392,7 +392,7 @@ func (s *AlertService) GetAlerts(ctx context.Context, businessID string) ([]Risk
 	requestID := ctx.Value("request_id").(string)
 
 	s.logger.Info("Retrieving alerts for business", map[string]interface{}{
-		"request_id": requestID,
+		"request_id":  requestID,
 		"business_id": businessID,
 	})
 
@@ -424,7 +424,7 @@ func (s *AlertService) GetAlerts(ctx context.Context, businessID string) ([]Risk
 	}
 
 	s.logger.Info("Retrieved alerts for business", map[string]interface{}{
-		"request_id": requestID,
+		"request_id":  requestID,
 		"business_id": businessID,
 		"alert_count": len(alerts),
 	})

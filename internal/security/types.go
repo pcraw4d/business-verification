@@ -123,3 +123,25 @@ type BaseEvent struct {
 	Details     map[string]interface{} `json:"details,omitempty"`
 	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
+
+// SecurityEvent represents a security event
+type SecurityEvent struct {
+	ID          string                 `json:"id"`
+	Timestamp   time.Time              `json:"timestamp"`
+	EventType   EventType              `json:"event_type"`
+	Category    EventCategory          `json:"category"`
+	Severity    Severity               `json:"severity"`
+	UserID      string                 `json:"user_id,omitempty"`
+	IPAddress   string                 `json:"ip_address,omitempty"`
+	Description string                 `json:"description,omitempty"`
+	Details     map[string]interface{} `json:"details,omitempty"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// Logger interface for logging
+type Logger interface {
+	Info(msg string, fields map[string]interface{})
+	Warn(msg string, fields map[string]interface{})
+	Error(msg string, fields map[string]interface{})
+	Debug(msg string, fields map[string]interface{})
+}

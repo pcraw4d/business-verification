@@ -178,10 +178,9 @@ func (als *AuditLoggingSystem) LogEvent(ctx context.Context, event AuditEvent) e
 		return nil
 	default:
 		// Queue is full, log error
-		als.logger.Error("Audit event queue is full, dropping event",
-			"event_id", event.ID,
+		als.logger.Error("Audit event queue is full, dropping event", map[string]interface{}{event_id: event.ID,
 			"event_type", event.EventType,
-		)
+		})
 		return fmt.Errorf("audit event queue is full")
 	}
 }
@@ -348,27 +347,24 @@ func (als *AuditLoggingSystem) eventProcessor() {
 		// Log to file if enabled
 		if als.fileLogger != nil {
 			if err := als.fileLogger.LogEvent(event); err != nil {
-				als.logger.Error("Failed to log event to file",
-					"error", err,
+				als.logger.Error("Failed to log event to file", map[string]interface{}{error: err,
 					"event_id", event.ID,
-				)
+				})
 			}
 		}
 
 		// Log to database if enabled
 		if als.databaseLogger != nil {
 			if err := als.databaseLogger.LogEvent(event); err != nil {
-				als.logger.Error("Failed to log event to database",
-					"error", err,
+				als.logger.Error("Failed to log event to database", map[string]interface{}{error: err,
 					"event_id", event.ID,
-				)
+				})
 			}
 		}
 
 		// Log to console if enabled
 		if als.config.ConsoleEnabled {
-			als.logger.Info("Audit event",
-				"event_id", event.ID,
+			als.logger.Info("Audit event", map[string]interface{}{event_id: event.ID,
 				"event_type", event.EventType,
 				"category", event.Category,
 				"severity", event.Severity,
@@ -377,7 +373,7 @@ func (als *AuditLoggingSystem) eventProcessor() {
 				"action", event.Action,
 				"result", event.Result,
 				"description", event.Description,
-			)
+			})
 		}
 
 		// Call event handlers
@@ -422,10 +418,9 @@ func (als *AuditLoggingSystem) callEventHandlers(event AuditEvent) {
 		go func(h func(AuditEvent), e AuditEvent) {
 			defer func() {
 				if r := recover(); r != nil {
-					als.logger.Error("Event handler panicked",
-						"error", r,
+					als.logger.Error("Event handler panicked", map[string]interface{}{error: r,
 						"event_id", e.ID,
-					)
+					})
 				}
 			}()
 			h(e)
@@ -773,10 +768,9 @@ func (afl *AuditFileLogger) rotateFile() error {
 func (afl *AuditFileLogger) cleanupOldFiles() {
 	// In a real implementation, this would remove old files
 	// For now, we'll just log that cleanup is needed
-	afl.logger.Info("Audit log file cleanup needed",
-		"file_count", afl.fileCount,
+	afl.logger.Info("Audit log file cleanup needed", map[string]interface{}{file_count: afl.fileCount,
 		"max_files", afl.config.MaxFiles,
-	)
+	})
 }
 
 // cleanup removes old audit files
@@ -798,10 +792,9 @@ func NewAuditDatabaseLogger(logger *observability.Logger, config AuditLoggingCon
 func (adl *AuditDatabaseLogger) LogEvent(event AuditEvent) error {
 	// In a real implementation, this would insert the event into a database
 	// For now, we'll just log that the event would be stored
-	adl.logger.Debug("Audit event would be stored in database",
-		"event_id", event.ID,
+	adl.logger.Debug("Audit event would be stored in database", map[string]interface{}{event_id: event.ID,
 		"event_type", event.EventType,
-	)
+	})
 	return nil
 }
 

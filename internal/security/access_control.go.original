@@ -448,10 +448,9 @@ func (acs *AccessControlSystem) AssignPermissionToRole(ctx context.Context, role
 	// Assign permission
 	acs.rolePermissions[roleID] = append(acs.rolePermissions[roleID], permissionID)
 
-	acs.logger.Info("Permission assigned to role",
-		"role_id", roleID,
+	acs.logger.Info("Permission assigned to role", map[string]interface{}{role_id: roleID,
 		"permission_id", permissionID,
-	)
+	})
 
 	return nil
 }
@@ -467,10 +466,9 @@ func (acs *AccessControlSystem) RemovePermissionFromRole(ctx context.Context, ro
 			// Remove permission
 			acs.rolePermissions[roleID] = append(permissions[:i], permissions[i+1:]...)
 
-			acs.logger.Info("Permission removed from role",
-				"role_id", roleID,
+			acs.logger.Info("Permission removed from role", map[string]interface{}{role_id: roleID,
 				"permission_id", permissionID,
-			)
+			})
 
 			return nil
 		}
@@ -718,13 +716,12 @@ func (aal *AccessAuditLogger) LogAccessEvent(ctx context.Context, userID, action
 	aal.events = append(aal.events, event)
 
 	// Log to logger
-	aal.logger.Info("Access control event",
-		"user_id", userID,
+	aal.logger.Info("Access control event", map[string]interface{}{user_id: userID,
 		"action", action,
 		"resource", resource,
 		"result", event.Result,
 		"ip_address", event.IPAddress,
-	)
+	})
 }
 
 // GetAuditLogs retrieves audit logs with optional filtering

@@ -160,11 +160,11 @@ func (s *AutomatedAlertService) ProcessAssessment(ctx context.Context, assessmen
 	// Process factor-specific alerts
 	factorAlerts, err := s.processFactorAlerts(ctx, assessment)
 	if err != nil {
-		s.logger.Error("Failed to process factor alerts",
-			"request_id", requestID,
-			"business_id", assessment.BusinessID,
-			"error", err.Error(),
-		)
+		s.logger.Error("Failed to process factor alerts", map[string]interface{}{
+			"request_id": requestID,
+			"business_id": assessment.BusinessID,
+			"error": err.Error(),
+		})
 		return nil, fmt.Errorf("failed to process factor alerts: %w", err)
 	}
 	alerts = append(alerts, factorAlerts...)
@@ -172,11 +172,11 @@ func (s *AutomatedAlertService) ProcessAssessment(ctx context.Context, assessmen
 	// Process trend-based alerts
 	trendAlerts, err := s.processTrendAlerts(ctx, assessment)
 	if err != nil {
-		s.logger.Error("Failed to process trend alerts",
-			"request_id", requestID,
-			"business_id", assessment.BusinessID,
-			"error", err.Error(),
-		)
+		s.logger.Error("Failed to process trend alerts", map[string]interface{}{
+			"request_id": requestID,
+			"business_id": assessment.BusinessID,
+			"error": err.Error(),
+		})
 		return nil, fmt.Errorf("failed to process trend alerts: %w", err)
 	}
 	alerts = append(alerts, trendAlerts...)
@@ -184,11 +184,11 @@ func (s *AutomatedAlertService) ProcessAssessment(ctx context.Context, assessmen
 	// Process anomaly alerts
 	anomalyAlerts, err := s.processAnomalyAlerts(ctx, assessment)
 	if err != nil {
-		s.logger.Error("Failed to process anomaly alerts",
-			"request_id", requestID,
-			"business_id", assessment.BusinessID,
-			"error", err.Error(),
-		)
+		s.logger.Error("Failed to process anomaly alerts", map[string]interface{}{
+			"request_id": requestID,
+			"business_id": assessment.BusinessID,
+			"error": err.Error(),
+		})
 		return nil, fmt.Errorf("failed to process anomaly alerts: %w", err)
 	}
 	alerts = append(alerts, anomalyAlerts...)
@@ -197,27 +197,27 @@ func (s *AutomatedAlertService) ProcessAssessment(ctx context.Context, assessmen
 	for _, alert := range alerts {
 		select {
 		case s.alertQueue <- alert:
-			s.logger.Debug("Alert queued for processing",
-				"request_id", requestID,
-				"alert_id", alert.ID,
-				"rule_id", alert.RuleID,
-			)
+			s.logger.Debug("Alert queued for processing", map[string]interface{}{
+				"request_id": requestID,
+				"alert_id": alert.ID,
+				"rule_id": alert.RuleID,
+			})
 		default:
-			s.logger.Warn("Alert queue full, dropping alert",
-				"request_id", requestID,
-				"alert_id", alert.ID,
-			)
+			s.logger.Warn("Alert queue full, dropping alert", map[string]interface{}{
+				"request_id": requestID,
+				"alert_id": alert.ID,
+			})
 		}
 	}
 
 	// Store alerts in history
 	s.storeAlertHistory(assessment.BusinessID, alerts)
 
-	s.logger.Info("Automated alert processing completed",
-		"request_id", requestID,
-		"business_id", assessment.BusinessID,
-		"total_alerts", len(alerts),
-	)
+	s.logger.Info("Automated alert processing completed", map[string]interface{}{
+		"request_id": requestID,
+		"business_id": assessment.BusinessID,
+		"total_alerts": len(alerts),
+	})
 
 	return alerts, nil
 }
@@ -488,28 +488,28 @@ func (s *AutomatedAlertService) processAnomalyAlerts(ctx context.Context, assess
 
 // processAlertWorker processes alerts from the queue
 func (s *AutomatedAlertService) processAlertWorker(workerID int) {
-	s.logger.Info("Starting alert processing worker",
-		"worker_id", workerID,
-	)
+	s.logger.Info("Starting alert processing worker", map[string]interface{}{
+		"worker_id": workerID,
+	})
 
 	for alert := range s.alertQueue {
 		ctx := context.Background()
 		ctx = context.WithValue(ctx, "request_id", fmt.Sprintf("worker_%d_%s", workerID, alert.ID))
 
-		s.logger.Info("Processing automated alert",
-			"worker_id", workerID,
-			"alert_id", alert.ID,
-			"business_id", alert.BusinessID,
-			"level", alert.Level,
-		)
+		s.logger.Info("Processing automated alert", map[string]interface{}{
+			"worker_id": workerID,
+			"alert_id": alert.ID,
+			"business_id": alert.BusinessID,
+			"level": alert.Level,
+		})
 
 		// Send notifications
 		if err := s.sendAlertNotifications(ctx, alert); err != nil {
-			s.logger.Error("Failed to send alert notifications",
-				"worker_id", workerID,
-				"alert_id", alert.ID,
-				"error", err.Error(),
-			)
+			s.logger.Error("Failed to send alert notifications", map[string]interface{}{
+				"worker_id": workerID,
+				"alert_id": alert.ID,
+				"error": err.Error(),
+			})
 		}
 
 		// Handle escalation if needed
