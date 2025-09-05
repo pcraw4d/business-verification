@@ -18,34 +18,34 @@ const (
 
 // AuditEvent represents an audit event
 type AuditEvent struct {
-	ID          string      `json:"id"`
-	UserID      string      `json:"user_id"`
-	Action      AuditAction `json:"action"`
-	Resource    string      `json:"resource"`
-	ResourceID  string      `json:"resource_id"`
-	Details     string      `json:"details"`
-	IPAddress   string      `json:"ip_address"`
-	UserAgent   string      `json:"user_agent"`
-	Timestamp   time.Time   `json:"timestamp"`
-	Success     bool        `json:"success"`
-	Error       string      `json:"error,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	ID         string                 `json:"id"`
+	UserID     string                 `json:"user_id"`
+	Action     AuditAction            `json:"action"`
+	Resource   string                 `json:"resource"`
+	ResourceID string                 `json:"resource_id"`
+	Details    string                 `json:"details"`
+	IPAddress  string                 `json:"ip_address"`
+	UserAgent  string                 `json:"user_agent"`
+	Timestamp  time.Time              `json:"timestamp"`
+	Success    bool                   `json:"success"`
+	Error      string                 `json:"error,omitempty"`
+	Metadata   map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // ComplianceAuditTrail represents a compliance audit trail
 type ComplianceAuditTrail struct {
-	ID          string      `json:"id"`
-	UserID      string      `json:"user_id"`
-	Action      AuditAction `json:"action"`
-	Resource    string      `json:"resource"`
-	ResourceID  string      `json:"resource_id"`
-	Details     string      `json:"details"`
-	IPAddress   string      `json:"ip_address"`
-	UserAgent   string      `json:"user_agent"`
-	Timestamp   time.Time   `json:"timestamp"`
-	Success     bool        `json:"success"`
-	Error       string      `json:"error,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	ID         string                 `json:"id"`
+	UserID     string                 `json:"user_id"`
+	Action     AuditAction            `json:"action"`
+	Resource   string                 `json:"resource"`
+	ResourceID string                 `json:"resource_id"`
+	Details    string                 `json:"details"`
+	IPAddress  string                 `json:"ip_address"`
+	UserAgent  string                 `json:"user_agent"`
+	Timestamp  time.Time              `json:"timestamp"`
+	Success    bool                   `json:"success"`
+	Error      string                 `json:"error,omitempty"`
+	Metadata   map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // AuditSummary represents audit summary data
@@ -63,11 +63,11 @@ type AuditSummary struct {
 
 // AuditTrends represents audit trend data
 type AuditTrends struct {
-	TimeSeries    map[string]int         `json:"time_series"`
-	ActionTrends  map[AuditAction]int    `json:"action_trends"`
-	ResourceTrends map[string]int        `json:"resource_trends"`
-	UserTrends    map[string]int         `json:"user_trends"`
-	Metadata      map[string]interface{} `json:"metadata,omitempty"`
+	TimeSeries     map[string]int         `json:"time_series"`
+	ActionTrends   map[AuditAction]int    `json:"action_trends"`
+	ResourceTrends map[string]int         `json:"resource_trends"`
+	UserTrends     map[string]int         `json:"user_trends"`
+	Metadata       map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // AuditAnomaly represents an audit anomaly
@@ -93,16 +93,16 @@ type AuditMetrics struct {
 
 // AuditFilter represents audit filter criteria
 type AuditFilter struct {
-	UserIDs    []string      `json:"user_ids,omitempty"`
-	Actions    []AuditAction `json:"actions,omitempty"`
-	Resources  []string      `json:"resources,omitempty"`
-	StartTime  *time.Time    `json:"start_time,omitempty"`
-	EndTime    *time.Time    `json:"end_time,omitempty"`
-	Success    *bool         `json:"success,omitempty"`
-	IPAddress  string        `json:"ip_address,omitempty"`
-	UserAgent  string        `json:"user_agent,omitempty"`
-	Limit      int           `json:"limit,omitempty"`
-	Offset     int           `json:"offset,omitempty"`
+	UserIDs   []string      `json:"user_ids,omitempty"`
+	Actions   []AuditAction `json:"actions,omitempty"`
+	Resources []string      `json:"resources,omitempty"`
+	StartTime *time.Time    `json:"start_time,omitempty"`
+	EndTime   *time.Time    `json:"end_time,omitempty"`
+	Success   *bool         `json:"success,omitempty"`
+	IPAddress string        `json:"ip_address,omitempty"`
+	UserAgent string        `json:"user_agent,omitempty"`
+	Limit     int           `json:"limit,omitempty"`
+	Offset    int           `json:"offset,omitempty"`
 }
 
 // TimeRange represents a time range

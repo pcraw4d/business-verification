@@ -70,22 +70,22 @@ type AlertNotification struct {
 func (s *AlertService) GenerateAlerts(ctx context.Context, assessment *RiskAssessment) ([]RiskAlert, error) {
 	requestID := ctx.Value("request_id").(string)
 
-	s.logger.Info("Generating alerts for risk assessment",
-		"request_id", requestID,
-		"business_id", assessment.BusinessID,
-		"overall_score", assessment.OverallScore,
-		"overall_level", assessment.OverallLevel,
-	)
+	s.logger.Info("Generating alerts for risk assessment", map[string]interface{}{
+		"request_id":    requestID,
+		"business_id":   assessment.BusinessID,
+		"overall_score": assessment.OverallScore,
+		"overall_level": assessment.OverallLevel,
+	})
 
 	var alerts []RiskAlert
 
 	// Generate factor-specific alerts
 	factorAlerts, err := s.generateFactorAlerts(ctx, assessment)
 	if err != nil {
-		s.logger.Error("Failed to generate factor alerts",
-			"request_id", requestID,
-			"error", err.Error(),
-		)
+		s.logger.Error("Failed to generate factor alerts", map[string]interface{}{
+			"request_id": requestID,
+			"error":      err.Error(),
+		})
 		return nil, fmt.Errorf("failed to generate factor alerts: %w", err)
 	}
 	alerts = append(alerts, factorAlerts...)
@@ -93,10 +93,10 @@ func (s *AlertService) GenerateAlerts(ctx context.Context, assessment *RiskAsses
 	// Generate category-specific alerts
 	categoryAlerts, err := s.generateCategoryAlerts(ctx, assessment)
 	if err != nil {
-		s.logger.Error("Failed to generate category alerts",
-			"request_id", requestID,
-			"error", err.Error(),
-		)
+		s.logger.Error("Failed to generate category alerts", map[string]interface{}{
+			"request_id": requestID,
+			"error":      err.Error(),
+		})
 		return nil, fmt.Errorf("failed to generate category alerts: %w", err)
 	}
 	alerts = append(alerts, categoryAlerts...)
@@ -104,10 +104,10 @@ func (s *AlertService) GenerateAlerts(ctx context.Context, assessment *RiskAsses
 	// Generate overall risk alerts
 	overallAlerts, err := s.generateOverallAlerts(ctx, assessment)
 	if err != nil {
-		s.logger.Error("Failed to generate overall alerts",
-			"request_id", requestID,
-			"error", err.Error(),
-		)
+		s.logger.Error("Failed to generate overall alerts", map[string]interface{}{
+			"request_id": requestID,
+			"error":      err.Error(),
+		})
 		return nil, fmt.Errorf("failed to generate overall alerts: %w", err)
 	}
 	alerts = append(alerts, overallAlerts...)
@@ -115,19 +115,19 @@ func (s *AlertService) GenerateAlerts(ctx context.Context, assessment *RiskAsses
 	// Generate trend-based alerts
 	trendAlerts, err := s.generateTrendAlerts(ctx, assessment)
 	if err != nil {
-		s.logger.Error("Failed to generate trend alerts",
-			"request_id", requestID,
-			"error", err.Error(),
-		)
+		s.logger.Error("Failed to generate trend alerts", map[string]interface{}{
+			"request_id": requestID,
+			"error":      err.Error(),
+		})
 		return nil, fmt.Errorf("failed to generate trend alerts: %w", err)
 	}
 	alerts = append(alerts, trendAlerts...)
 
-	s.logger.Info("Alert generation completed",
-		"request_id", requestID,
-		"total_alerts", len(alerts),
-		"business_id", assessment.BusinessID,
-	)
+	s.logger.Info("Alert generation completed", map[string]interface{}{
+		"request_id": requestID,
+		"total_alerts": len(alerts),
+		"business_id": assessment.BusinessID,
+	})
 
 	return alerts, nil
 }
@@ -391,10 +391,10 @@ func (s *AlertService) GetAlertRules() ([]*AlertRule, error) {
 func (s *AlertService) GetAlerts(ctx context.Context, businessID string) ([]RiskAlert, error) {
 	requestID := ctx.Value("request_id").(string)
 
-	s.logger.Info("Retrieving alerts for business",
-		"request_id", requestID,
-		"business_id", businessID,
-	)
+	s.logger.Info("Retrieving alerts for business", map[string]interface{}{
+		"request_id": requestID,
+		"business_id": businessID,
+	})
 
 	// In a real implementation, this would query the database
 	// For now, return mock alerts
@@ -423,11 +423,11 @@ func (s *AlertService) GetAlerts(ctx context.Context, businessID string) ([]Risk
 		},
 	}
 
-	s.logger.Info("Retrieved alerts for business",
-		"request_id", requestID,
-		"business_id", businessID,
-		"alert_count", len(alerts),
-	)
+	s.logger.Info("Retrieved alerts for business", map[string]interface{}{
+		"request_id": requestID,
+		"business_id": businessID,
+		"alert_count": len(alerts),
+	})
 
 	return alerts, nil
 }

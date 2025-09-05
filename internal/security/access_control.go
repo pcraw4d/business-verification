@@ -262,10 +262,10 @@ func (acs *AccessControlSystem) GrantRole(ctx context.Context, userID, roleID st
 		"role_id": roleID,
 	})
 
-	acs.logger.Info("Role granted to user",
-		"user_id", userID,
-		"role_id", roleID,
-	)
+	acs.logger.Info("Role granted to user", map[string]interface{}{
+		"user_id": userID,
+		"role_id": roleID,
+	})
 
 	return nil
 }
@@ -287,10 +287,10 @@ func (acs *AccessControlSystem) RevokeRole(ctx context.Context, userID, roleID s
 				"role_id": roleID,
 			})
 
-			acs.logger.Info("Role revoked from user",
-				"user_id", userID,
-				"role_id", roleID,
-			)
+			acs.logger.Info("Role revoked from user", map[string]interface{}{
+				"user_id": userID,
+				"role_id": roleID,
+			})
 
 			return nil
 		}
@@ -320,10 +320,10 @@ func (acs *AccessControlSystem) CreateRole(ctx context.Context, role *Role) erro
 	// Initialize role permissions
 	acs.rolePermissions[role.ID] = make([]string, 0)
 
-	acs.logger.Info("Role created",
-		"role_id", role.ID,
-		"role_name", role.Name,
-	)
+	acs.logger.Info("Role created", map[string]interface{}{
+		"role_id": role.ID,
+		"role_name": role.Name,
+	})
 
 	return nil
 }
@@ -346,12 +346,12 @@ func (acs *AccessControlSystem) CreatePermission(ctx context.Context, permission
 	// Store permission
 	acs.permissions[permission.ID] = permission
 
-	acs.logger.Info("Permission created",
-		"permission_id", permission.ID,
-		"permission_name", permission.Name,
-		"resource", permission.Resource,
-		"action", permission.Action,
-	)
+	acs.logger.Info("Permission created", map[string]interface{}{
+		"permission_id": permission.ID,
+		"permission_name": permission.Name,
+		"resource": permission.Resource,
+		"action": permission.Action,
+	})
 
 	return nil
 }
@@ -374,11 +374,11 @@ func (acs *AccessControlSystem) CreatePolicy(ctx context.Context, policy *Policy
 	// Store policy
 	acs.policies[policy.ID] = policy
 
-	acs.logger.Info("Policy created",
-		"policy_id", policy.ID,
-		"policy_name", policy.Name,
-		"policy_type", policy.Type,
-	)
+	acs.logger.Info("Policy created", map[string]interface{}{
+		"policy_id": policy.ID,
+		"policy_name": policy.Name,
+		"policy_type": policy.Type,
+	})
 
 	return nil
 }

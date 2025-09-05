@@ -84,7 +84,7 @@ func NewDRService(config DRConfig, logger *observability.Logger) *DRService {
 
 // StartHealthMonitoring starts continuous health monitoring
 func (dr *DRService) StartHealthMonitoring(ctx context.Context) {
-	dr.logger.Info("Starting disaster recovery health monitoring")
+	dr.logger.Info("Starting disaster recovery health monitoring", map[string]interface{}{})
 
 	ticker := time.NewTicker(dr.config.HealthCheckInterval)
 	defer ticker.Stop()
@@ -92,7 +92,7 @@ func (dr *DRService) StartHealthMonitoring(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			dr.logger.Info("Stopping disaster recovery health monitoring")
+			dr.logger.Info("Stopping disaster recovery health monitoring", map[string]interface{}{})
 			return
 		case <-ticker.C:
 			dr.performHealthCheck(ctx)
@@ -102,7 +102,7 @@ func (dr *DRService) StartHealthMonitoring(ctx context.Context) {
 
 // performHealthCheck performs health checks on both regions
 func (dr *DRService) performHealthCheck(ctx context.Context) {
-	dr.logger.Debug("Performing health check")
+	dr.logger.Debug("Performing health check", map[string]interface{}{})
 
 	// Check primary region health
 	primaryHealth := dr.checkRegionHealth(ctx, dr.config.PrimaryRegion)
@@ -113,19 +113,19 @@ func (dr *DRService) performHealthCheck(ctx context.Context) {
 	dr.status.DRHealth = drHealth.Healthy
 
 	// Log health status
-	dr.logger.Info("Health check completed",
-		"primary_healthy", primaryHealth.Healthy,
-		"dr_healthy", drHealth.Healthy,
-		"primary_response_time", primaryHealth.ResponseTime,
-		"dr_response_time", drHealth.ResponseTime,
-	)
+	dr.logger.Info("Health check completed", map[string]interface{}{
+		"primary_healthy":       primaryHealth.Healthy,
+		"dr_healthy":            drHealth.Healthy,
+		"primary_response_time": primaryHealth.ResponseTime,
+		"dr_response_time":      drHealth.ResponseTime,
+	})
 
 	// Handle auto-failover if enabled
 	if dr.config.AutoFailover && dr.status.CurrentRegion == dr.config.PrimaryRegion {
 		if !primaryHealth.Healthy && drHealth.Healthy {
-			dr.logger.Warn("Primary region unhealthy, initiating auto-failover")
+			dr.logger.Warn("Primary region unhealthy, initiating auto-failover", map[string]interface{}{})
 			if err := dr.InitiateFailover(ctx); err != nil {
-				dr.logger.Error("Auto-failover failed", "error", err)
+				dr.logger.Error("Auto-failover failed", map[string]interface{}{"error": err})
 			}
 		}
 	}
@@ -135,7 +135,7 @@ func (dr *DRService) performHealthCheck(ctx context.Context) {
 		if primaryHealth.Healthy && drHealth.Healthy {
 			// Check if primary has been healthy for the failback threshold
 			// This is a simplified implementation - in production you'd want more sophisticated logic
-			dr.logger.Info("Primary region recovered, considering auto-failback")
+			dr.logger.Info("Primary region recovered, considering auto-failback", map[string]interface{}{})
 		}
 	}
 }
@@ -173,10 +173,10 @@ func (dr *DRService) checkRegionHealth(ctx context.Context, region string) Healt
 func (dr *DRService) InitiateFailover(ctx context.Context) error {
 	start := time.Now()
 
-	dr.logger.Info("Initiating failover to DR region",
-		"from_region", dr.status.CurrentRegion,
-		"to_region", dr.config.DRRegion,
-	)
+	dr.logger.Info("Initiating failover to DR region", map[string]interface{}{
+		"from_region": dr.status.CurrentRegion,
+		"to_region":   dr.config.DRRegion,
+	})
 
 	// Check if we're already in DR region
 	if dr.status.CurrentRegion == dr.config.DRRegion {
@@ -210,10 +210,10 @@ func (dr *DRService) InitiateFailover(ctx context.Context) error {
 
 	duration := time.Since(start)
 
-	dr.logger.Info("Failover completed successfully",
-		"duration", duration,
-		"failover_count", dr.status.FailoverCount,
-	)
+	dr.logger.Info("Failover completed successfully", map[string]interface{}{
+		"duration":       duration,
+		"failover_count": dr.status.FailoverCount,
+	})
 
 	return nil
 }
@@ -222,10 +222,10 @@ func (dr *DRService) InitiateFailover(ctx context.Context) error {
 func (dr *DRService) InitiateFailback(ctx context.Context) error {
 	start := time.Now()
 
-	dr.logger.Info("Initiating failback to primary region",
-		"from_region", dr.status.CurrentRegion,
-		"to_region", dr.config.PrimaryRegion,
-	)
+	dr.logger.Info("Initiating failback to primary region", map[string]interface{}{
+		"from_region": dr.status.CurrentRegion,
+		"to_region":   dr.config.PrimaryRegion,
+	})
 
 	// Check if we're already in primary region
 	if dr.status.CurrentRegion == dr.config.PrimaryRegion {
@@ -259,10 +259,10 @@ func (dr *DRService) InitiateFailback(ctx context.Context) error {
 
 	duration := time.Since(start)
 
-	dr.logger.Info("Failback completed successfully",
-		"duration", duration,
-		"failback_count", dr.status.FailbackCount,
-	)
+	dr.logger.Info("Failback completed successfully", map[string]interface{}{
+		"duration":       duration,
+		"failback_count": dr.status.FailbackCount,
+	})
 
 	return nil
 }
@@ -285,7 +285,7 @@ func (dr *DRService) GetHealthStatus(ctx context.Context) map[string]HealthCheck
 
 // TestFailover performs a test failover without actually switching traffic
 func (dr *DRService) TestFailover(ctx context.Context) error {
-	dr.logger.Info("Performing test failover")
+	dr.logger.Info("Performing test failover", map[string]interface{}{})
 
 	// Check DR region health
 	drHealth := dr.checkRegionHealth(ctx, dr.config.DRRegion)
@@ -294,18 +294,18 @@ func (dr *DRService) TestFailover(ctx context.Context) error {
 	}
 
 	// Simulate DNS update (without actually updating)
-	dr.logger.Info("Test failover: Would update DNS records to DR region")
+	dr.logger.Info("Test failover: Would update DNS records to DR region", map[string]interface{}{})
 
 	// Simulate verification
-	dr.logger.Info("Test failover: Would verify failover success")
+	dr.logger.Info("Test failover: Would verify failover success", map[string]interface{}{})
 
-	dr.logger.Info("Test failover completed successfully")
+	dr.logger.Info("Test failover completed successfully", map[string]interface{}{})
 	return nil
 }
 
 // TestFailback performs a test failback without actually switching traffic
 func (dr *DRService) TestFailback(ctx context.Context) error {
-	dr.logger.Info("Performing test failback")
+	dr.logger.Info("Performing test failback", map[string]interface{}{})
 
 	// Check primary region health
 	primaryHealth := dr.checkRegionHealth(ctx, dr.config.PrimaryRegion)
@@ -314,18 +314,18 @@ func (dr *DRService) TestFailback(ctx context.Context) error {
 	}
 
 	// Simulate DNS update (without actually updating)
-	dr.logger.Info("Test failback: Would update DNS records to primary region")
+	dr.logger.Info("Test failback: Would update DNS records to primary region", map[string]interface{}{})
 
 	// Simulate verification
-	dr.logger.Info("Test failback: Would verify failback success")
+	dr.logger.Info("Test failback: Would verify failback success", map[string]interface{}{})
 
-	dr.logger.Info("Test failback completed successfully")
+	dr.logger.Info("Test failback completed successfully", map[string]interface{}{})
 	return nil
 }
 
 // updateDNSRecords updates DNS records to point to the specified region
 func (dr *DRService) updateDNSRecords(ctx context.Context, region string) error {
-	dr.logger.Info("Updating DNS records", "region", region)
+	dr.logger.Info("Updating DNS records", map[string]interface{}{region: region})
 
 	// In a real implementation, you would use AWS SDK to update Route53 records
 	// For now, we'll simulate the DNS update
@@ -337,11 +337,11 @@ func (dr *DRService) updateDNSRecords(ctx context.Context, region string) error 
 		loadBalancerARN = dr.config.DRLoadBalancerARN
 	}
 
-	dr.logger.Info("DNS update simulation",
-		"zone_id", dr.config.Route53ZoneID,
-		"domain", dr.config.Route53Domain,
-		"load_balancer_arn", loadBalancerARN,
-	)
+	dr.logger.Info("DNS update simulation", map[string]interface{}{
+		"zone_id":           dr.config.Route53ZoneID,
+		"domain":            dr.config.Route53Domain,
+		"load_balancer_arn": loadBalancerARN,
+	})
 
 	// Simulate DNS update delay
 	time.Sleep(5 * time.Second)
@@ -351,7 +351,7 @@ func (dr *DRService) updateDNSRecords(ctx context.Context, region string) error 
 
 // verifyFailover verifies that failover was successful
 func (dr *DRService) verifyFailover(ctx context.Context) error {
-	dr.logger.Info("Verifying failover success")
+	dr.logger.Info("Verifying failover success", map[string]interface{}{})
 
 	// Check if the application is accessible through the DR region
 	healthCheck := dr.checkRegionHealth(ctx, dr.config.DRRegion)
@@ -359,13 +359,13 @@ func (dr *DRService) verifyFailover(ctx context.Context) error {
 		return fmt.Errorf("DR region health check failed after failover")
 	}
 
-	dr.logger.Info("Failover verification successful")
+	dr.logger.Info("Failover verification successful", map[string]interface{}{})
 	return nil
 }
 
 // verifyFailback verifies that failback was successful
 func (dr *DRService) verifyFailback(ctx context.Context) error {
-	dr.logger.Info("Verifying failback success")
+	dr.logger.Info("Verifying failback success", map[string]interface{}{})
 
 	// Check if the application is accessible through the primary region
 	healthCheck := dr.checkRegionHealth(ctx, dr.config.PrimaryRegion)
@@ -373,7 +373,7 @@ func (dr *DRService) verifyFailback(ctx context.Context) error {
 		return fmt.Errorf("Primary region health check failed after failback")
 	}
 
-	dr.logger.Info("Failback verification successful")
+	dr.logger.Info("Failback verification successful", map[string]interface{}{})
 	return nil
 }
 
@@ -381,28 +381,28 @@ func (dr *DRService) verifyFailback(ctx context.Context) error {
 func (dr *DRService) EnableAutoFailover() {
 	dr.config.AutoFailover = true
 	dr.status.AutoFailoverEnabled = true
-	dr.logger.Info("Auto-failover enabled")
+	dr.logger.Info("Auto-failover enabled", map[string]interface{}{})
 }
 
 // DisableAutoFailover disables automatic failover
 func (dr *DRService) DisableAutoFailover() {
 	dr.config.AutoFailover = false
 	dr.status.AutoFailoverEnabled = false
-	dr.logger.Info("Auto-failover disabled")
+	dr.logger.Info("Auto-failover disabled", map[string]interface{}{})
 }
 
 // EnableAutoFailback enables automatic failback
 func (dr *DRService) EnableAutoFailback() {
 	dr.config.AutoFailback = true
 	dr.status.AutoFailbackEnabled = true
-	dr.logger.Info("Auto-failback enabled")
+	dr.logger.Info("Auto-failback enabled", map[string]interface{}{})
 }
 
 // DisableAutoFailback disables automatic failback
 func (dr *DRService) DisableAutoFailback() {
 	dr.config.AutoFailback = false
 	dr.status.AutoFailbackEnabled = false
-	dr.logger.Info("Auto-failback disabled")
+	dr.logger.Info("Auto-failback disabled", map[string]interface{}{})
 }
 
 // GetFailoverHistory returns the failover history

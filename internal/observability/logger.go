@@ -67,3 +67,8 @@ func (l *Logger) Fatal(msg string, fields map[string]interface{}) {
 	}
 	l.zapLogger.Fatal(msg, zapFields...)
 }
+
+// Tracer returns a tracer instance
+func (l *Logger) Tracer() Tracer {
+	return NewTracer()
+}

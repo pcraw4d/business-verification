@@ -125,22 +125,22 @@ func NewAutomatedAlertService(logger *observability.Logger) *AutomatedAlertServi
 func (s *AutomatedAlertService) ProcessAssessment(ctx context.Context, assessment *RiskAssessment) ([]AutomatedAlert, error) {
 	requestID := ctx.Value("request_id").(string)
 
-	s.logger.Info("Processing assessment for automated alerts",
-		"request_id", requestID,
-		"business_id", assessment.BusinessID,
-		"overall_score", assessment.OverallScore,
-	)
+	s.logger.Info("Processing assessment for automated alerts", map[string]interface{}{
+		"request_id": requestID,
+		"business_id": assessment.BusinessID,
+		"overall_score": assessment.OverallScore,
+	})
 
 	var alerts []AutomatedAlert
 
 	// Process overall risk alerts
 	overallAlerts, err := s.processOverallRiskAlerts(ctx, assessment)
 	if err != nil {
-		s.logger.Error("Failed to process overall risk alerts",
-			"request_id", requestID,
-			"business_id", assessment.BusinessID,
-			"error", err.Error(),
-		)
+		s.logger.Error("Failed to process overall risk alerts", map[string]interface{}{
+			"request_id": requestID,
+			"business_id": assessment.BusinessID,
+			"error": err.Error(),
+		})
 		return nil, fmt.Errorf("failed to process overall risk alerts: %w", err)
 	}
 	alerts = append(alerts, overallAlerts...)
@@ -148,11 +148,11 @@ func (s *AutomatedAlertService) ProcessAssessment(ctx context.Context, assessmen
 	// Process category-specific alerts
 	categoryAlerts, err := s.processCategoryAlerts(ctx, assessment)
 	if err != nil {
-		s.logger.Error("Failed to process category alerts",
-			"request_id", requestID,
-			"business_id", assessment.BusinessID,
-			"error", err.Error(),
-		)
+		s.logger.Error("Failed to process category alerts", map[string]interface{}{
+			"request_id": requestID,
+			"business_id": assessment.BusinessID,
+			"error": err.Error(),
+		})
 		return nil, fmt.Errorf("failed to process category alerts: %w", err)
 	}
 	alerts = append(alerts, categoryAlerts...)

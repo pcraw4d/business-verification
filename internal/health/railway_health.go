@@ -95,15 +95,15 @@ func (rhc *RailwayHealthChecker) RegisterModuleHealthCheck(
 		Details:       make(map[string]interface{}),
 	}
 
-	rhc.logger.Info("Module health check registered",
-		"module_name", name,
-		"enabled", enabled,
-	)
+	rhc.logger.Info("Module health check registered", map[string]interface{}{
+		"module_name": name,
+		"enabled":     enabled,
+	})
 }
 
 // StartHealthCheckLoop starts the background health check loop
 func (rhc *RailwayHealthChecker) StartHealthCheckLoop(ctx context.Context) {
-	rhc.logger.Info("Starting Railway health check loop")
+	rhc.logger.Info("Starting Railway health check loop", map[string]interface{}{})
 
 	ticker := time.NewTicker(rhc.checkInterval)
 	defer ticker.Stop()
@@ -114,7 +114,7 @@ func (rhc *RailwayHealthChecker) StartHealthCheckLoop(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			rhc.logger.Info("Stopping Railway health check loop")
+			rhc.logger.Info("Stopping Railway health check loop", map[string]interface{}{})
 			return
 		case <-ticker.C:
 			rhc.performHealthChecks()
@@ -152,19 +152,19 @@ func (rhc *RailwayHealthChecker) performHealthChecks() {
 			check.Status = "unhealthy"
 			check.Error = err.Error()
 			unhealthyCount++
-			rhc.logger.Warn("Module health check failed",
-				"module_name", name,
-				"error", err.Error(),
-				"response_time", responseTime,
-			)
+			rhc.logger.Warn("Module health check failed", map[string]interface{}{
+				"module_name":   name,
+				"error":         err.Error(),
+				"response_time": responseTime,
+			})
 		} else {
 			check.Status = "healthy"
 			check.Error = ""
 			healthyCount++
-			rhc.logger.Debug("Module health check passed",
-				"module_name", name,
-				"response_time", responseTime,
-			)
+			rhc.logger.Debug("Module health check passed", map[string]interface{}{
+				"module_name":   name,
+				"response_time": responseTime,
+			})
 		}
 
 		rhc.moduleHealthChecks[name] = check
@@ -199,14 +199,14 @@ func (rhc *RailwayHealthChecker) performHealthChecks() {
 
 	rhc.lastCheckTime = time.Now()
 
-	rhc.logger.Info("Health checks completed",
-		"total_modules", len(rhc.moduleHealthChecks),
-		"healthy", healthyCount,
-		"unhealthy", unhealthyCount,
-		"degraded", degradedCount,
-		"overall_status", rhc.overallHealth.Status,
-		"total_time", time.Since(startTime),
-	)
+	rhc.logger.Info("Health checks completed", map[string]interface{}{
+		"total_modules":  len(rhc.moduleHealthChecks),
+		"healthy":        healthyCount,
+		"unhealthy":      unhealthyCount,
+		"degraded":       degradedCount,
+		"overall_status": rhc.overallHealth.Status,
+		"total_time":     time.Since(startTime),
+	})
 }
 
 // GetHealthStatus returns the current health status
@@ -239,7 +239,7 @@ func (rhc *RailwayHealthChecker) GetModuleHealth(moduleName string) (*ModuleHeal
 
 // ForceHealthCheck forces an immediate health check
 func (rhc *RailwayHealthChecker) ForceHealthCheck() {
-	rhc.logger.Info("Forcing immediate health check")
+	rhc.logger.Info("Forcing immediate health check", map[string]interface{}{})
 	rhc.performHealthChecks()
 }
 
@@ -292,11 +292,11 @@ func (rhh *RailwayHealthHandler) HandleHealth(w http.ResponseWriter, r *http.Req
 
 	json.NewEncoder(w).Encode(response)
 
-	rhh.logger.Debug("Health check request served",
-		"status", status.Status,
-		"http_status", httpStatus,
-		"client_ip", r.RemoteAddr,
-	)
+	rhh.logger.Debug("Health check request served", map[string]interface{}{
+		"status":      status.Status,
+		"http_status": httpStatus,
+		"client_ip":   r.RemoteAddr,
+	})
 }
 
 // HandleReadiness handles the readiness probe endpoint
@@ -321,10 +321,10 @@ func (rhh *RailwayHealthHandler) HandleReadiness(w http.ResponseWriter, r *http.
 
 	json.NewEncoder(w).Encode(response)
 
-	rhh.logger.Debug("Readiness probe served",
-		"ready", status.Ready,
-		"http_status", httpStatus,
-	)
+	rhh.logger.Debug("Readiness probe served", map[string]interface{}{
+		"ready":       status.Ready,
+		"http_status": httpStatus,
+	})
 }
 
 // HandleLiveness handles the liveness probe endpoint
@@ -349,10 +349,10 @@ func (rhh *RailwayHealthHandler) HandleLiveness(w http.ResponseWriter, r *http.R
 
 	json.NewEncoder(w).Encode(response)
 
-	rhh.logger.Debug("Liveness probe served",
-		"live", status.Live,
-		"http_status", httpStatus,
-	)
+	rhh.logger.Debug("Liveness probe served", map[string]interface{}{
+		"live":        status.Live,
+		"http_status": httpStatus,
+	})
 }
 
 // HandleModuleHealth handles module-specific health checks
@@ -386,11 +386,11 @@ func (rhh *RailwayHealthHandler) HandleModuleHealth(w http.ResponseWriter, r *ht
 
 	json.NewEncoder(w).Encode(check)
 
-	rhh.logger.Debug("Module health check served",
-		"module_name", moduleName,
-		"status", check.Status,
-		"http_status", httpStatus,
-	)
+	rhh.logger.Debug("Module health check served", map[string]interface{}{
+		"module_name": moduleName,
+		"status":      check.Status,
+		"http_status": httpStatus,
+	})
 }
 
 // HandleForceHealthCheck forces an immediate health check
@@ -407,7 +407,7 @@ func (rhh *RailwayHealthHandler) HandleForceHealthCheck(w http.ResponseWriter, r
 
 	json.NewEncoder(w).Encode(response)
 
-	rhh.logger.Info("Health check forced via HTTP request")
+	rhh.logger.Info("Health check forced via HTTP request", map[string]interface{}{})
 }
 
 // Railway-specific health check functions
