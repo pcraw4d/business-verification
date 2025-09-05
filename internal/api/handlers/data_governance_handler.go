@@ -64,37 +64,6 @@ const (
 	RiskLevelCritical RiskLevel = "critical"
 )
 
-// Governance Policy Definition
-type GovernancePolicy struct {
-	ID          string                    `json:"id"`
-	Name        string                    `json:"name"`
-	Description string                    `json:"description"`
-	Category    string                    `json:"category"`
-	Version     string                    `json:"version"`
-	Status      GovernanceFrameworkStatus `json:"status"`
-	Owner       string                    `json:"owner"`
-	CreatedAt   time.Time                 `json:"created_at"`
-	UpdatedAt   time.Time                 `json:"updated_at"`
-	Rules       []PolicyRule              `json:"rules"`
-	Compliance  []ComplianceStandard      `json:"compliance"`
-	RiskLevel   RiskLevel                 `json:"risk_level"`
-	Tags        []string                  `json:"tags"`
-	Metadata    map[string]interface{}    `json:"metadata"`
-}
-
-// Policy Rule
-type PolicyRule struct {
-	ID          string                 `json:"id"`
-	Name        string                 `json:"name"`
-	Description string                 `json:"description"`
-	Type        string                 `json:"type"`
-	Condition   string                 `json:"condition"`
-	Action      string                 `json:"action"`
-	Priority    int                    `json:"priority"`
-	Enabled     bool                   `json:"enabled"`
-	Parameters  map[string]interface{} `json:"parameters"`
-}
-
 // Governance Framework
 type GovernanceFramework struct {
 	ID          string                    `json:"id"`
@@ -335,15 +304,6 @@ type GovernanceSummary struct {
 	RiskScore         float64   `json:"risk_score"`
 	Coverage          float64   `json:"coverage"`
 	LastAssessment    time.Time `json:"last_assessment"`
-}
-
-// Governance Statistics
-type GovernanceStatistics struct {
-	PolicyDistribution   map[string]int     `json:"policy_distribution"`
-	ControlEffectiveness map[string]float64 `json:"control_effectiveness"`
-	ComplianceTrends     map[string]float64 `json:"compliance_trends"`
-	RiskDistribution     map[string]int     `json:"risk_distribution"`
-	AssessmentHistory    []AssessmentRecord `json:"assessment_history"`
 }
 
 // Assessment Record
@@ -695,40 +655,7 @@ func (h *DataGovernanceHandler) generateGovernanceSummary(framework *GovernanceF
 }
 
 func (h *DataGovernanceHandler) generateGovernanceStatistics(framework *GovernanceFramework) GovernanceStatistics {
-	return GovernanceStatistics{
-		PolicyDistribution: map[string]int{
-			"data_quality":  2,
-			"data_privacy":  3,
-			"data_security": 2,
-		},
-		ControlEffectiveness: map[string]float64{
-			"preventive":   0.90,
-			"detective":    0.85,
-			"corrective":   0.80,
-			"compensating": 0.75,
-		},
-		ComplianceTrends: map[string]float64{
-			"gdpr":  0.95,
-			"ccpa":  0.88,
-			"sox":   0.92,
-			"hipaa": 0.90,
-		},
-		RiskDistribution: map[string]int{
-			"low":      5,
-			"medium":   3,
-			"high":     2,
-			"critical": 1,
-		},
-		AssessmentHistory: []AssessmentRecord{
-			{
-				Date:      time.Now().AddDate(0, -1, 0),
-				Score:     0.82,
-				RiskLevel: RiskLevelMedium,
-				Assessor:  "Governance Team",
-				Notes:     "Monthly assessment",
-			},
-		},
-	}
+	return GovernanceStatistics{}
 }
 
 func (h *DataGovernanceHandler) assessCompliance(framework *GovernanceFramework) ComplianceStatus {
@@ -812,7 +739,7 @@ func (h *DataGovernanceHandler) assessPolicies(policies []GovernancePolicy) []Po
 		statuses[i] = PolicyStatus{
 			ID:         policy.ID,
 			Name:       policy.Name,
-			Status:     string(policy.Status),
+			Status:     "active",
 			Compliance: 0.90,
 			LastReview: time.Now().AddDate(0, -1, 0),
 			NextReview: time.Now().AddDate(0, 1, 0),
@@ -849,17 +776,9 @@ func (h *DataGovernanceHandler) generateSamplePolicies() []GovernancePolicy {
 			ID:          "policy-1",
 			Name:        "Data Quality Policy",
 			Description: "Ensures high data quality standards",
-			Category:    "Quality",
-			Version:     "1.0",
-			Status:      FrameworkStatusActive,
-			Owner:       "Data Team",
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
 			Rules:       []PolicyRule{},
-			Compliance:  []ComplianceStandard{StandardGDPR},
-			RiskLevel:   RiskLevelLow,
-			Tags:        []string{"quality", "compliance"},
-			Metadata:    make(map[string]interface{}),
 		},
 	}
 }
@@ -969,7 +888,7 @@ func (h *DataGovernanceHandler) processGovernanceJob(jobID string, req *DataGove
 
 	// Simulate processing steps
 	steps := []string{"validating", "processing", "assessing", "generating", "finalizing"}
-	for i, step := range steps {
+	for i, _ := range steps {
 		time.Sleep(100 * time.Millisecond) // Simulate work
 
 		h.mu.Lock()

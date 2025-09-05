@@ -37,10 +37,10 @@ func (sm *SecurityMonitor) GetSecurityMetrics(ctx context.Context) (*SecurityMet
 
 // SecurityMetrics represents security metrics
 type SecurityMetrics struct {
-	TotalEvents     int
-	CriticalEvents  int
-	HighEvents      int
-	MediumEvents    int
-	LowEvents       int
-	LastUpdated     time.Time
+	TotalEvents    int
+	CriticalEvents int
+	HighEvents     int
+	MediumEvents   int
+	LowEvents      int
+	LastUpdated    time.Time
 }

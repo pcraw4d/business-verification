@@ -11,6 +11,25 @@ import (
 	"github.com/pcraw4d/business-verification/internal/external"
 )
 
+// VerificationReasoningGenerateReportRequest represents a request to generate a verification reasoning report
+type VerificationReasoningGenerateReportRequest struct {
+	VerificationID string                 `json:"verification_id"`
+	BusinessName   string                 `json:"business_name"`
+	WebsiteURL     string                 `json:"website_url,omitempty"`
+	Result         interface{}            `json:"result"`
+	Comparison     interface{}            `json:"comparison,omitempty"`
+	IncludeAudit   bool                   `json:"include_audit,omitempty"`
+	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// VerificationReasoningGenerateReportResponse represents a response for generating a verification reasoning report
+type VerificationReasoningGenerateReportResponse struct {
+	Success   bool        `json:"success"`
+	Report    interface{} `json:"report,omitempty"`
+	Error     string      `json:"error,omitempty"`
+	Timestamp time.Time   `json:"timestamp"`
+}
+
 // VerificationReasoningHandler handles verification reasoning API requests
 type VerificationReasoningHandler struct {
 	generator *external.VerificationReasoningGenerator
@@ -40,25 +59,6 @@ type GenerateReasoningResponse struct {
 	Reasoning *external.VerificationReasoning `json:"reasoning,omitempty"`
 	Error     string                          `json:"error,omitempty"`
 	Timestamp time.Time                       `json:"timestamp"`
-}
-
-// GenerateReportRequest represents a request to generate a complete verification report
-type GenerateReportRequest struct {
-	VerificationID string                       `json:"verification_id"`
-	BusinessName   string                       `json:"business_name"`
-	WebsiteURL     string                       `json:"website_url"`
-	Result         *external.VerificationResult `json:"result"`
-	Comparison     *external.ComparisonResult   `json:"comparison"`
-	IncludeAudit   bool                         `json:"include_audit"`
-	Metadata       map[string]interface{}       `json:"metadata,omitempty"`
-}
-
-// GenerateReportResponse represents the response from report generation
-type GenerateReportResponse struct {
-	Success   bool                         `json:"success"`
-	Report    *external.VerificationReport `json:"report,omitempty"`
-	Error     string                       `json:"error,omitempty"`
-	Timestamp time.Time                    `json:"timestamp"`
 }
 
 // UpdateReasoningConfigRequest represents a request to update reasoning configuration
@@ -159,10 +159,10 @@ func (h *VerificationReasoningHandler) GenerateReasoning(w http.ResponseWriter, 
 
 // GenerateReport handles POST /generate-report
 func (h *VerificationReasoningHandler) GenerateReport(w http.ResponseWriter, r *http.Request) {
-	var req GenerateReportRequest
+	var req VerificationReasoningGenerateReportRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.logger.Error("failed to decode request", zap.Error(err))
-		response := GenerateReportResponse{
+		response := VerificationReasoningGenerateReportResponse{
 			Success:   false,
 			Error:     "Invalid request body",
 			Timestamp: time.Now(),
@@ -173,7 +173,7 @@ func (h *VerificationReasoningHandler) GenerateReport(w http.ResponseWriter, r *
 		return
 	}
 
-	response := GenerateReportResponse{
+	response := VerificationReasoningGenerateReportResponse{
 		Timestamp: time.Now(),
 	}
 
@@ -206,12 +206,27 @@ func (h *VerificationReasoningHandler) GenerateReport(w http.ResponseWriter, r *
 	}
 
 	// Generate comprehensive verification report
+	// Type assertions for interface{} fields
+	var verificationResult *external.VerificationResult
+	if req.Result != nil {
+		if vr, ok := req.Result.(*external.VerificationResult); ok {
+			verificationResult = vr
+		}
+	}
+
+	var comparisonResult *external.ComparisonResult
+	if req.Comparison != nil {
+		if cr, ok := req.Comparison.(*external.ComparisonResult); ok {
+			comparisonResult = cr
+		}
+	}
+
 	report, err := h.generator.GenerateVerificationReport(
 		req.VerificationID,
 		req.BusinessName,
 		req.WebsiteURL,
-		req.Result,
-		req.Comparison,
+		verificationResult,
+		comparisonResult,
 		req.IncludeAudit,
 		req.Metadata,
 	)

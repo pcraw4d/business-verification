@@ -55,7 +55,7 @@ func main() {
 	)
 
 	// Create validator
-	validator := observability.NewCodeQualityValidator(logger, absProjectRoot)
+	validator := observability.NewCodeQualityValidator(observability.NewLogger(logger))
 
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
@@ -63,16 +63,13 @@ func main() {
 
 	// Perform validation
 	startTime := time.Now()
-	metrics, err := validator.ValidateCodeQuality(ctx)
-	if err != nil {
-		logger.Fatal("Failed to validate code quality", zap.Error(err))
-	}
+	metrics := validator.ValidateCodeQuality(ctx)
 
 	duration := time.Since(startTime)
 	logger.Info("Code quality validation completed",
 		zap.Duration("duration", duration),
-		zap.Float64("quality_score", metrics.CodeQualityScore),
-		zap.Float64("maintainability_index", metrics.MaintainabilityIndex),
+		zap.Float64("complexity", metrics.Complexity),
+		zap.Float64("maintainability", metrics.Maintainability),
 	)
 
 	// Handle different output modes
@@ -100,7 +97,10 @@ func showSummary(metrics *observability.CodeQualityMetrics, validator *observabi
 		if err != nil {
 			logger.Fatal("Failed to generate quality report", zap.Error(err))
 		}
-		output = []byte(report)
+		output, err = json.MarshalIndent(report, "", "  ")
+		if err != nil {
+			logger.Fatal("Failed to marshal report", zap.Error(err))
+		}
 	case "json":
 		fallthrough
 	default:
@@ -123,15 +123,11 @@ func showSummary(metrics *observability.CodeQualityMetrics, validator *observabi
 
 	// Print summary to stderr
 	fmt.Fprintf(os.Stderr, "\n=== Code Quality Summary ===\n")
-	fmt.Fprintf(os.Stderr, "Quality Score: %.1f/100\n", metrics.CodeQualityScore)
-	fmt.Fprintf(os.Stderr, "Maintainability Index: %.1f/100\n", metrics.MaintainabilityIndex)
-	fmt.Fprintf(os.Stderr, "Technical Debt Ratio: %.1f%%\n", metrics.TechnicalDebtRatio*100)
+	fmt.Fprintf(os.Stderr, "Complexity: %.1f/100\n", metrics.Complexity)
+	fmt.Fprintf(os.Stderr, "Maintainability: %.1f/100\n", metrics.Maintainability)
+	fmt.Fprintf(os.Stderr, "Reliability: %.1f/100\n", metrics.Reliability)
+	fmt.Fprintf(os.Stderr, "Security: %.1f/100\n", metrics.Security)
 	fmt.Fprintf(os.Stderr, "Test Coverage: %.1f%%\n", metrics.TestCoverage)
-	fmt.Fprintf(os.Stderr, "Improvement Score: %.1f\n", metrics.ImprovementScore)
-	fmt.Fprintf(os.Stderr, "Trend Direction: %s\n", metrics.TrendDirection)
-	fmt.Fprintf(os.Stderr, "Files Scanned: %d\n", metrics.TotalFiles)
-	fmt.Fprintf(os.Stderr, "Total Lines of Code: %d\n", metrics.TotalLinesOfCode)
-	fmt.Fprintf(os.Stderr, "Scan Duration: %.2fs\n", metrics.ScanDuration)
 }
 
 func showHistory(validator *observability.CodeQualityValidator, logger *zap.Logger) {
@@ -147,9 +143,9 @@ func showHistory(validator *observability.CodeQualityValidator, logger *zap.Logg
 		fmt.Printf("%d. %s - Quality: %.1f, Maintainability: %.1f, Debt: %.1f%%, Tests: %.1f%%\n",
 			i+1,
 			metrics.Timestamp.Format("2006-01-02 15:04:05"),
-			metrics.CodeQualityScore,
-			metrics.MaintainabilityIndex,
-			metrics.TechnicalDebtRatio*100,
+			metrics.Complexity,
+			metrics.Maintainability,
+			metrics.Reliability*100,
 			metrics.TestCoverage,
 		)
 	}
@@ -196,17 +192,17 @@ func showTrends(validator *observability.CodeQualityValidator, logger *zap.Logge
 
 	fmt.Printf("=== Code Quality Trends (%s) ===\n", period)
 	fmt.Printf("Quality Score: %.1f → %.1f (%+.1f)\n",
-		first.CodeQualityScore, last.CodeQualityScore,
-		last.CodeQualityScore-first.CodeQualityScore)
+		first.Complexity, last.Complexity,
+		last.Complexity-first.Complexity)
 	fmt.Printf("Maintainability: %.1f → %.1f (%+.1f)\n",
-		first.MaintainabilityIndex, last.MaintainabilityIndex,
-		last.MaintainabilityIndex-first.MaintainabilityIndex)
+		first.Maintainability, last.Maintainability,
+		last.Maintainability-first.Maintainability)
 	fmt.Printf("Test Coverage: %.1f%% → %.1f%% (%+.1f%%)\n",
 		first.TestCoverage, last.TestCoverage,
 		last.TestCoverage-first.TestCoverage)
 	fmt.Printf("Technical Debt: %.1f%% → %.1f%% (%+.1f%%)\n",
-		first.TechnicalDebtRatio*100, last.TechnicalDebtRatio*100,
-		(first.TechnicalDebtRatio-last.TechnicalDebtRatio)*100)
+		first.Reliability*100, last.Reliability*100,
+		(first.Reliability-last.Reliability)*100)
 	fmt.Printf("Data Points: %d\n", len(filteredHistory))
 }
 
@@ -222,12 +218,12 @@ func showAlerts(validator *observability.CodeQualityValidator, logger *zap.Logge
 
 	// Critical alerts
 	if severity == "all" || severity == "critical" {
-		if metrics.TechnicalDebtRatio > 0.5 {
+		if metrics.Reliability > 0.5 {
 			alerts = append(alerts, map[string]interface{}{
 				"severity": "critical",
 				"title":    "High Technical Debt",
 				"message":  "Technical debt ratio is above 50%",
-				"value":    metrics.TechnicalDebtRatio,
+				"value":    metrics.Reliability,
 			})
 		}
 
@@ -252,12 +248,12 @@ func showAlerts(validator *observability.CodeQualityValidator, logger *zap.Logge
 			})
 		}
 
-		if metrics.CodeQualityScore < 60 {
+		if metrics.Complexity < 60 {
 			alerts = append(alerts, map[string]interface{}{
 				"severity": "high",
 				"title":    "Low Code Quality",
 				"message":  "Code quality score is below 60",
-				"value":    metrics.CodeQualityScore,
+				"value":    metrics.Complexity,
 			})
 		}
 	}
@@ -331,7 +327,10 @@ func generateDetailedReport(validator *observability.CodeQualityValidator, metri
 		if err != nil {
 			logger.Fatal("Failed to generate quality report", zap.Error(err))
 		}
-		output = []byte(report)
+		output, err = json.MarshalIndent(report, "", "  ")
+		if err != nil {
+			logger.Fatal("Failed to marshal report", zap.Error(err))
+		}
 	case "json":
 		fallthrough
 	default:
@@ -340,9 +339,9 @@ func generateDetailedReport(validator *observability.CodeQualityValidator, metri
 			"metrics": metrics,
 			"report": map[string]interface{}{
 				"summary": map[string]interface{}{
-					"quality_score":         metrics.CodeQualityScore,
-					"maintainability_index": metrics.MaintainabilityIndex,
-					"technical_debt_ratio":  metrics.TechnicalDebtRatio,
+					"quality_score":         metrics.Complexity,
+					"maintainability_index": metrics.Maintainability,
+					"technical_debt_ratio":  metrics.Reliability,
 					"test_coverage":         metrics.TestCoverage,
 					"improvement_score":     metrics.ImprovementScore,
 					"trend_direction":       metrics.TrendDirection,
@@ -388,7 +387,7 @@ func generateRecommendations(metrics *observability.CodeQualityMetrics) []string
 		recommendations = append(recommendations, "Test coverage below 80%. Increase test coverage for better code quality.")
 	}
 
-	if metrics.TechnicalDebtRatio > 0.3 {
+	if metrics.Reliability > 0.3 {
 		recommendations = append(recommendations, "High technical debt ratio. Prioritize debt reduction in upcoming sprints.")
 	}
 
@@ -454,12 +453,12 @@ func generateAlerts(metrics *observability.CodeQualityMetrics, severity string) 
 
 	// Critical alerts
 	if severity == "all" || severity == "critical" {
-		if metrics.TechnicalDebtRatio > 0.5 {
+		if metrics.Reliability > 0.5 {
 			alerts = append(alerts, map[string]interface{}{
 				"severity": "critical",
 				"title":    "High Technical Debt",
 				"message":  "Technical debt ratio is above 50%",
-				"value":    metrics.TechnicalDebtRatio,
+				"value":    metrics.Reliability,
 			})
 		}
 
@@ -484,12 +483,12 @@ func generateAlerts(metrics *observability.CodeQualityMetrics, severity string) 
 			})
 		}
 
-		if metrics.CodeQualityScore < 60 {
+		if metrics.Complexity < 60 {
 			alerts = append(alerts, map[string]interface{}{
 				"severity": "high",
 				"title":    "Low Code Quality",
 				"message":  "Code quality score is below 60",
-				"value":    metrics.CodeQualityScore,
+				"value":    metrics.Complexity,
 			})
 		}
 	}

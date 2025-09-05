@@ -172,7 +172,7 @@ func (h *ErrorHandler) ConvertError(err error, r *http.Request) *APIError {
 	switch e := err.(type) {
 	case *ValidationError:
 		return &APIError{
-			Error:       e.Code,
+			Error:       ErrorCode(e.Code),
 			Category:    ErrorCategoryValidation,
 			Severity:    ErrorSeverityMedium,
 			Message:     e.Message,
@@ -290,11 +290,10 @@ func (h *ErrorHandler) logError(ctx context.Context, apiError *APIError, origina
 // CreateValidationError creates a validation error
 func (h *ErrorHandler) CreateValidationError(code ErrorCode, message, field, constraint string, value interface{}) error {
 	return &ValidationError{
-		Code:       code,
-		Message:    message,
-		Field:      field,
-		Constraint: constraint,
-		Value:      value,
+		Code:    string(code),
+		Message: message,
+		Field:   field,
+		// Skip fields that don't exist in ValidationError struct
 	}
 }
 

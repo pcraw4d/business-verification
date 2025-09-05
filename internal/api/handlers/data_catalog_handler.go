@@ -188,22 +188,6 @@ type AssetQuality struct {
 	Metrics        map[string]interface{} `json:"metrics"`
 }
 
-// QualityIssue represents a data quality issue
-type QualityIssue struct {
-	ID          string                 `json:"id"`
-	Type        string                 `json:"type"`
-	Severity    string                 `json:"severity"`
-	Description string                 `json:"description"`
-	Column      string                 `json:"column"`
-	Value       interface{}            `json:"value"`
-	Count       int                    `json:"count"`
-	Percentage  float64                `json:"percentage"`
-	DetectedAt  time.Time              `json:"detected_at"`
-	Status      string                 `json:"status"`
-	Resolution  string                 `json:"resolution"`
-	Metadata    map[string]interface{} `json:"metadata"`
-}
-
 // AssetLineage represents asset lineage information
 type AssetLineage struct {
 	Upstream   []LineageReference     `json:"upstream"`
@@ -221,29 +205,6 @@ type LineageReference struct {
 	AssetType    string                 `json:"asset_type"`
 	Relationship string                 `json:"relationship"`
 	Properties   map[string]interface{} `json:"properties"`
-}
-
-// LineageJob represents a lineage job
-type LineageJob struct {
-	ID         string                 `json:"id"`
-	Name       string                 `json:"name"`
-	Type       string                 `json:"type"`
-	Schedule   string                 `json:"schedule"`
-	LastRun    time.Time              `json:"last_run"`
-	Status     string                 `json:"status"`
-	Properties map[string]interface{} `json:"properties"`
-}
-
-// LineageProcess represents a lineage process
-type LineageProcess struct {
-	ID          string                 `json:"id"`
-	Name        string                 `json:"name"`
-	Type        string                 `json:"type"`
-	Description string                 `json:"description"`
-	Inputs      []string               `json:"inputs"`
-	Outputs     []string               `json:"outputs"`
-	Logic       string                 `json:"logic"`
-	Properties  map[string]interface{} `json:"properties"`
 }
 
 // AssetUsage represents asset usage information
@@ -312,28 +273,6 @@ type AssetGovernance struct {
 	Approval   ApprovalInfo           `json:"approval"`
 	Audit      AuditInfo              `json:"audit"`
 	Metadata   map[string]interface{} `json:"metadata"`
-}
-
-// GovernancePolicy represents a governance policy
-type GovernancePolicy struct {
-	ID          string                 `json:"id"`
-	Name        string                 `json:"name"`
-	Type        string                 `json:"type"`
-	Description string                 `json:"description"`
-	Rules       []PolicyRule           `json:"rules"`
-	Enforcement string                 `json:"enforcement"`
-	Status      string                 `json:"status"`
-	Metadata    map[string]interface{} `json:"metadata"`
-}
-
-// PolicyRule represents a policy rule
-type PolicyRule struct {
-	ID         string                 `json:"id"`
-	Name       string                 `json:"name"`
-	Condition  string                 `json:"condition"`
-	Action     string                 `json:"action"`
-	Parameters map[string]interface{} `json:"parameters"`
-	Enabled    bool                   `json:"enabled"`
 }
 
 // ComplianceInfo represents compliance information
@@ -556,15 +495,6 @@ type LineageStatistics struct {
 	OrphanAssets    int                    `json:"orphan_assets"`
 	ComplexityScore float64                `json:"complexity_score"`
 	Metrics         map[string]interface{} `json:"metrics"`
-}
-
-// GovernanceStatistics represents governance statistics
-type GovernanceStatistics struct {
-	ManagedAssets    int                    `json:"managed_assets"`
-	PolicyViolations int                    `json:"policy_violations"`
-	ComplianceScore  float64                `json:"compliance_score"`
-	ApprovalsPending int                    `json:"approvals_pending"`
-	Metrics          map[string]interface{} `json:"metrics"`
 }
 
 // PerformanceStatistics represents performance statistics
@@ -1021,11 +951,7 @@ func (h *DataCatalogHandler) generateCatalogStatistics(req DataCatalogRequest) C
 			Metrics:         make(map[string]interface{}),
 		},
 		GovernanceStats: GovernanceStatistics{
-			ManagedAssets:    len(req.Assets),
-			PolicyViolations: 2,
-			ComplianceScore:  0.92,
-			ApprovalsPending: 1,
-			Metrics:          make(map[string]interface{}),
+			ComplianceScore: 0.92,
 		},
 		PerformanceStats: PerformanceStatistics{
 			AvgResponseTime: 125.5,

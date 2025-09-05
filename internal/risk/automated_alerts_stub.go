@@ -103,11 +103,11 @@ func (fpm *FinancialProviderManager) GetFinancialData(ctx context.Context, busin
 
 // FinancialData represents financial data
 type FinancialData struct {
-	BusinessID     string
-	Revenue        float64
-	Assets         float64
-	Liabilities    float64
-	LastUpdated    time.Time
+	BusinessID  string
+	Revenue     float64
+	Assets      float64
+	Liabilities float64
+	LastUpdated time.Time
 }
 
 // CreditScore represents a credit score
@@ -119,16 +119,16 @@ type CreditScore struct {
 
 // PaymentHistory represents payment history
 type PaymentHistory struct {
-	BusinessID string
-	Payments   []Payment
+	BusinessID  string
+	Payments    []Payment
 	LastUpdated time.Time
 }
 
 // Payment represents a payment
 type Payment struct {
-	Amount    float64
-	Date      time.Time
-	Status    string
+	Amount float64
+	Date   time.Time
+	Status string
 }
 
 // IndustryBenchmarks represents industry benchmarks
@@ -184,40 +184,40 @@ func (mdpm *MarketDataProviderManager) GetEconomicIndicators(ctx context.Context
 
 // EconomicIndicators represents economic indicators
 type EconomicIndicators struct {
-	GDP        float64
-	Inflation  float64
+	GDP          float64
+	Inflation    float64
 	Unemployment float64
-	LastUpdated time.Time
+	LastUpdated  time.Time
 }
 
 // MarketIndustryBenchmarks represents market industry benchmarks
 type MarketIndustryBenchmarks struct {
-	Industry   string
-	Benchmarks map[string]float64
+	Industry    string
+	Benchmarks  map[string]float64
 	LastUpdated time.Time
 }
 
 // MarketRiskFactors represents market risk factors
 type MarketRiskFactors struct {
-	Factors    map[string]float64
+	Factors     map[string]float64
 	LastUpdated time.Time
 }
 
 // CommodityPrices represents commodity prices
 type CommodityPrices struct {
-	Prices     map[string]float64
+	Prices      map[string]float64
 	LastUpdated time.Time
 }
 
 // CurrencyRates represents currency exchange rates
 type CurrencyRates struct {
-	Rates      map[string]float64
+	Rates       map[string]float64
 	LastUpdated time.Time
 }
 
 // MarketTrends represents market trends
 type MarketTrends struct {
-	Trends     map[string]string
+	Trends      map[string]string
 	LastUpdated time.Time
 }
 
@@ -241,14 +241,14 @@ func (mpm *MediaProviderManager) GetNewsData(ctx context.Context, query NewsQuer
 
 // NewsQuery represents a news query
 type NewsQuery struct {
-	Keywords []string
+	Keywords  []string
 	StartDate time.Time
 	EndDate   time.Time
 }
 
 // NewsResult represents news results
 type NewsResult struct {
-	Articles []NewsArticle
+	Articles   []NewsArticle
 	TotalCount int
 }
 
@@ -268,7 +268,7 @@ type SocialMediaQuery struct {
 
 // SocialMediaResult represents social media results
 type SocialMediaResult struct {
-	Posts []SocialMediaPost
+	Posts      []SocialMediaPost
 	TotalCount int
 }
 
@@ -282,8 +282,8 @@ type SocialMediaPost struct {
 
 // SentimentResult represents sentiment analysis results
 type SentimentResult struct {
-	Score     float64
-	Sentiment string
+	Score      float64
+	Sentiment  string
 	Confidence float64
 }
 
@@ -329,8 +329,8 @@ func (rpm *RegulatoryProviderManager) GetSanctionsData(ctx context.Context, busi
 
 // SanctionsData represents sanctions data
 type SanctionsData struct {
-	BusinessID string
-	Sanctions  []Sanction
+	BusinessID  string
+	Sanctions   []Sanction
 	LastUpdated time.Time
 }
 
@@ -344,23 +344,23 @@ type Sanction struct {
 
 // LicenseData represents license data
 type LicenseData struct {
-	BusinessID string
-	Licenses   []License
+	BusinessID  string
+	Licenses    []License
 	LastUpdated time.Time
 }
 
 // License represents a license
 type License struct {
-	Type        string
-	Number      string
-	Status      string
-	ExpiryDate  time.Time
+	Type       string
+	Number     string
+	Status     string
+	ExpiryDate time.Time
 }
 
 // ComplianceData represents compliance data
 type ComplianceData struct {
-	BusinessID string
-	Compliance []ComplianceItem
+	BusinessID  string
+	Compliance  []ComplianceItem
 	LastUpdated time.Time
 }
 
@@ -373,8 +373,8 @@ type ComplianceItem struct {
 
 // RegulatoryViolations represents regulatory violations
 type RegulatoryViolations struct {
-	BusinessID string
-	Violations []Violation
+	BusinessID  string
+	Violations  []Violation
 	LastUpdated time.Time
 }
 
@@ -388,22 +388,22 @@ type Violation struct {
 
 // TaxComplianceData represents tax compliance data
 type TaxComplianceData struct {
-	BusinessID string
-	Compliance []TaxComplianceItem
+	BusinessID  string
+	Compliance  []TaxComplianceItem
 	LastUpdated time.Time
 }
 
 // TaxComplianceItem represents a tax compliance item
 type TaxComplianceItem struct {
-	Type        string
-	Status      string
-	LastFiled   time.Time
+	Type      string
+	Status    string
+	LastFiled time.Time
 }
 
 // DataProtectionCompliance represents data protection compliance
 type DataProtectionCompliance struct {
-	BusinessID string
-	Compliance []DataProtectionItem
+	BusinessID  string
+	Compliance  []DataProtectionItem
 	LastUpdated time.Time
 }
 
@@ -441,11 +441,11 @@ type ReportRequest struct {
 
 // Report represents a report
 type Report struct {
-	ID        string
-	BusinessID string
-	Type      ReportType
-	Format    ReportFormat
-	Content   []byte
+	ID          string
+	BusinessID  string
+	Type        ReportType
+	Format      ReportFormat
+	Content     []byte
 	GeneratedAt time.Time
 }
 
@@ -511,7 +511,39 @@ type DateRange struct {
 	EndDate   time.Time
 }
 
+// RiskService provides risk assessment functionality
+type RiskService struct {
+	logger Logger
+}
 
+// NewRiskService creates a new risk service
+func NewRiskService(logger Logger) *RiskService {
+	return &RiskService{
+		logger: logger,
+	}
+}
+
+// AssessRisk assesses business risk
+func (rs *RiskService) AssessRisk(ctx context.Context, businessID string) (*RiskAssessment, error) {
+	// Stub implementation
+	return &RiskAssessment{}, nil
+}
+
+// MonitoringStatus represents monitoring status
+type MonitoringStatus struct {
+	Active    bool
+	LastCheck time.Time
+	Status    string
+}
+
+// ThresholdAlert represents a threshold alert
+type ThresholdAlert struct {
+	ID        string
+	Type      string
+	Message   string
+	Severity  string
+	Timestamp time.Time
+}
 
 // Logger interface for logging
 type Logger interface {
@@ -519,4 +551,108 @@ type Logger interface {
 	Warn(msg string, fields map[string]interface{})
 	Error(msg string, fields map[string]interface{})
 	Debug(msg string, fields map[string]interface{})
+}
+
+// Report types
+const (
+	ReportTypeSummary  = "summary"
+	ReportTypeDetailed = "detailed"
+	ReportTypeTrend    = "trend"
+)
+
+// CreateExportJob creates a new export job
+func (rs *RiskService) CreateExportJob(ctx context.Context, request ExportRequest) (*ExportJob, error) {
+	// Stub implementation
+	job := &ExportJob{
+		ID:         "export_" + request.BusinessID + "_" + time.Now().Format("20060102150405"),
+		BusinessID: request.BusinessID,
+		ExportType: ExportType(request.ExportType),
+		Format:     ExportFormat(request.Format),
+		Status:     "pending",
+		Progress:   0,
+		CreatedAt:  time.Now(),
+	}
+	return job, nil
+}
+
+// GetExportJob retrieves an export job by ID
+func (rs *RiskService) GetExportJob(ctx context.Context, jobID string) (*ExportJob, error) {
+	// Stub implementation
+	job := &ExportJob{
+		ID:          jobID,
+		BusinessID:  "test_business",
+		ExportType:  ExportTypeAssessments,
+		Format:      ExportFormatJSON,
+		Status:      "completed",
+		Progress:    100,
+		CreatedAt:   time.Now().Add(-1 * time.Hour),
+		CompletedAt: func() *time.Time { t := time.Now().Add(-30 * time.Minute); return &t }(),
+	}
+	return job, nil
+}
+
+// GenerateRiskReport generates a risk report
+func (rs *RiskService) GenerateRiskReport(ctx context.Context, request ReportRequest) (map[string]interface{}, error) {
+	// Stub implementation
+	report := map[string]interface{}{
+		"business_id":   request.BusinessID,
+		"report_type":   string(request.Type),
+		"format":        string(request.Format),
+		"generated_at":  time.Now(),
+		"overall_score": 75.5,
+		"risk_level":    "medium",
+		"summary":       "Risk assessment completed successfully",
+	}
+	return report, nil
+}
+
+// GetCompanyFinancials retrieves company financial data
+func (rs *RiskService) GetCompanyFinancials(ctx context.Context, businessID string) (*FinancialData, error) {
+	// Stub implementation
+	financials := &FinancialData{
+		BusinessID:  businessID,
+		Revenue:     1000000.0,
+		Assets:      2000000.0,
+		Liabilities: 500000.0,
+		LastUpdated: time.Now(),
+	}
+	return financials, nil
+}
+
+// GetCreditScore retrieves credit score data
+func (rs *RiskService) GetCreditScore(ctx context.Context, businessID string) (*CreditScore, error) {
+	// Stub implementation
+	creditScore := &CreditScore{
+		Score:       750,
+		Provider:    "credit_bureau",
+		LastUpdated: time.Now(),
+	}
+	return creditScore, nil
+}
+
+// GetPaymentHistory retrieves payment history data
+func (rs *RiskService) GetPaymentHistory(ctx context.Context, businessID string) (*PaymentHistory, error) {
+	// Stub implementation
+	paymentHistory := &PaymentHistory{
+		BusinessID:  businessID,
+		Payments:    []Payment{},
+		LastUpdated: time.Now(),
+	}
+	return paymentHistory, nil
+}
+
+// GetIndustryBenchmarks retrieves industry benchmark data
+func (rs *RiskService) GetIndustryBenchmarks(ctx context.Context, industry string) (*IndustryBenchmarks, error) {
+	// Stub implementation
+	benchmarks := &IndustryBenchmarks{
+		Industry: industry,
+		Benchmarks: map[string]float64{
+			"average_score": 70.0,
+			"median_score":  72.0,
+			"percentile_75": 80.0,
+			"percentile_90": 85.0,
+		},
+		LastUpdated: time.Now(),
+	}
+	return benchmarks, nil
 }

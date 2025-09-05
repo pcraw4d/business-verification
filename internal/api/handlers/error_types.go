@@ -5,16 +5,7 @@ import (
 	"time"
 )
 
-// ValidationError represents a validation error
-type ValidationError struct {
-	Code       ErrorCode   `json:"code"`
-	Message    string      `json:"message"`
-	Field      string      `json:"field,omitempty"`
-	Constraint string      `json:"constraint,omitempty"`
-	Value      interface{} `json:"value,omitempty"`
-}
-
-func (e *ValidationError) Error() string {
+func (e ValidationError) Error() string {
 	if e.Field != "" {
 		return fmt.Sprintf("validation error in field '%s': %s", e.Field, e.Message)
 	}

@@ -265,7 +265,7 @@ func (h *DataReportingHandler) GenerateReport(w http.ResponseWriter, r *http.Req
 
 // CreateReportJob creates a background report generation job
 func (h *DataReportingHandler) CreateReportJob(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	_ = r.Context()
 
 	// Parse request
 	var req DataReportingRequest

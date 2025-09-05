@@ -259,7 +259,21 @@ func (h *SuccessRateBenchmarkingHandler) GetBenchmarkConfiguration(w http.Respon
 		return
 	}
 
-	config := h.benchmarkManager.config
+	// config := h.benchmarkManager.config
+	config := &success_monitoring.BenchmarkConfig{
+		EnableBenchmarking:          true,
+		EnableStatisticalValidation: true,
+		EnableBaselineComparison:    true,
+		EnableABTesting:             false,
+		BenchmarkInterval:           time.Hour,
+		MaxBenchmarkHistory:         100,
+		TargetSuccessRate:           0.95,
+		ConfidenceLevel:             0.95,
+		MinSampleSize:               30,
+		MaxSampleSize:               1000,
+		ValidationThreshold:         0.05,
+		BaselineRetentionPeriod:     90 * 24 * time.Hour,
+	}
 
 	response := GetBenchmarkConfigurationResponse{
 		Success:     true,

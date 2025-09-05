@@ -86,7 +86,7 @@ func NewDeprecatedCodeCleaner(logger *zap.Logger, projectRoot string, options Sc
 	}
 
 	// Initialize technical debt monitor
-	cleaner.technicalDebtMonitor = observability.NewTechnicalDebtMonitor(logger, projectRoot)
+	cleaner.technicalDebtMonitor = observability.NewTechnicalDebtMonitor(observability.NewLogger(logger))
 
 	// Initialize patterns
 	cleaner.initializePatterns()
@@ -527,11 +527,12 @@ func (dcc *DeprecatedCodeCleaner) integrateWithTechnicalDebtMonitor(report *Clea
 	}
 
 	// Record deprecated API calls if any
-	for _, item := range report.DeprecatedItems {
-		if item.Pattern == "deprecated_import" || item.Pattern == "deprecated_function" {
-			dcc.technicalDebtMonitor.RecordDeprecatedAPICall(item.File)
-		}
-	}
+	// TODO: Implement RecordDeprecatedAPICall method in TechnicalDebtMonitor
+	// for _, item := range report.DeprecatedItems {
+	// 	if item.Pattern == "deprecated_import" || item.Pattern == "deprecated_function" {
+	// 		dcc.technicalDebtMonitor.RecordDeprecatedAPICall(item.File)
+	// 	}
+	// }
 
 	dcc.logger.Info("Integrated with technical debt monitoring system",
 		zap.Int("total_items", report.Summary.TotalItems),

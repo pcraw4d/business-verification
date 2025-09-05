@@ -41,7 +41,6 @@ func NewClassificationMonitoringHandler(
 
 // GetAccuracyMetrics returns current accuracy metrics
 func (cmh *ClassificationMonitoringHandler) GetAccuracyMetrics(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 
 	cmh.logger.Info("Getting accuracy metrics")
 
@@ -97,7 +96,6 @@ func (cmh *ClassificationMonitoringHandler) GetAccuracyMetrics(w http.ResponseWr
 
 // GetMisclassifications returns misclassification records
 func (cmh *ClassificationMonitoringHandler) GetMisclassifications(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 
 	cmh.logger.Info("Getting misclassifications")
 
@@ -114,8 +112,6 @@ func (cmh *ClassificationMonitoringHandler) GetMisclassifications(w http.Respons
 	endTimeStr := r.URL.Query().Get("end_time")
 
 	var misclassifications interface{}
-	var err error
-
 	if startTimeStr != "" && endTimeStr != "" {
 		// Get misclassifications by time range
 		startTime, err1 := time.Parse(time.RFC3339, startTimeStr)

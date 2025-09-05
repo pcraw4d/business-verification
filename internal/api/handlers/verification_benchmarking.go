@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/pcraw4d/business-verification/internal/external"
+	"github.com/pcraw4d/business-verification/internal/modules/success_monitoring"
 	"go.uber.org/zap"
 )
 
@@ -32,14 +33,6 @@ type CreateBenchmarkSuiteRequest struct {
 	Category    string                        `json:"category"`
 	TestCases   []*external.BenchmarkTestCase `json:"test_cases"`
 	Config      map[string]interface{}        `json:"config,omitempty"`
-}
-
-// CreateBenchmarkSuiteResponse represents the response from creating a benchmark suite
-type CreateBenchmarkSuiteResponse struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	Message   string    `json:"message"`
-	CreatedAt time.Time `json:"created_at"`
 }
 
 // RunBenchmarkRequest represents the request to run a benchmark
@@ -70,12 +63,6 @@ type GetBenchmarkSuiteResponse struct {
 type ListBenchmarkSuitesResponse struct {
 	Suites []*external.BenchmarkSuite `json:"suites"`
 	Total  int                        `json:"total"`
-}
-
-// GetBenchmarkResultsResponse represents the response from getting benchmark results
-type GetBenchmarkResultsResponse struct {
-	Results []*external.BenchmarkResult `json:"results"`
-	Total   int                         `json:"total"`
 }
 
 // CompareBenchmarksRequest represents the request to compare benchmarks
@@ -161,10 +148,13 @@ func (h *VerificationBenchmarkingHandler) CreateBenchmarkSuite(w http.ResponseWr
 	}
 
 	response := CreateBenchmarkSuiteResponse{
-		ID:        suite.ID,
-		Name:      suite.Name,
-		Message:   "Benchmark suite created successfully",
-		CreatedAt: suite.CreatedAt,
+		Success: true,
+		Message: "Benchmark suite created successfully",
+		Suite: &success_monitoring.BenchmarkSuite{
+			ID:        suite.ID,
+			Name:      suite.Name,
+			CreatedAt: suite.CreatedAt,
+		},
 	}
 
 	h.logger.Info("Benchmark suite created",
@@ -278,9 +268,23 @@ func (h *VerificationBenchmarkingHandler) GetBenchmarkResults(w http.ResponseWri
 
 	results := h.manager.GetBenchmarkResults(limit)
 
+	// Convert external.BenchmarkResult to success_monitoring.BenchmarkResult
+	convertedResults := make([]*success_monitoring.BenchmarkResult, len(results))
+	for i, result := range results {
+		convertedResults[i] = &success_monitoring.BenchmarkResult{
+			ID:            result.ID,
+			SuiteID:       result.SuiteID,
+			ExecutionTime: result.ExecutedAt,
+			Duration:      result.Duration,
+			CreatedAt:     result.ExecutedAt, // Use ExecutedAt as CreatedAt
+		}
+	}
+
 	response := GetBenchmarkResultsResponse{
-		Results: results,
-		Total:   len(results),
+		Success: true,
+		Results: convertedResults,
+		Count:   len(results),
+		SuiteID: "", // Set appropriate suite ID if available
 	}
 
 	w.Header().Set("Content-Type", "application/json")

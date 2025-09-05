@@ -247,19 +247,18 @@ func (h *SuccessRateMonitorHandler) GetAllProcessMetrics(w http.ResponseWriter, 
 	}
 
 	overallMetrics := &success_monitoring.OverallMetrics{
-		TotalAttempts:      totalAttempts,
-		SuccessfulAttempts: totalSuccesses,
-		FailedAttempts:     totalFailures,
+		TotalAttempts:  totalAttempts,
+		TotalSuccesses: totalSuccesses,
+		TotalFailures:  totalFailures,
 	}
 
 	if totalAttempts > 0 {
-		overallMetrics.SuccessRate = float64(totalSuccesses) / float64(totalAttempts)
-		overallMetrics.AverageResponseTime = totalResponseTime / time.Duration(totalAttempts)
+		overallMetrics.AverageSuccessRate = float64(totalSuccesses) / float64(totalAttempts)
 	}
 
 	// Check if target is achieved
 	targetRate := 0.95 // Default target
-	isAchieved := overallMetrics.SuccessRate >= targetRate
+	isAchieved := overallMetrics.AverageSuccessRate >= targetRate
 
 	response := GetAllMetricsResponse{
 		Success:        true,
@@ -420,7 +419,7 @@ func (h *SuccessRateMonitorHandler) GetSuccessRateReport(w http.ResponseWriter, 
 	}
 
 	// Generate report
-	report, err := h.monitor.GetSuccessRateReport(r.Context())
+	report, err := h.monitor.GetSuccessRateReport(r.Context(), "all")
 	if err != nil {
 		h.logger.Error("Failed to generate success rate report", zap.Error(err))
 		http.Error(w, "Failed to generate report", http.StatusInternalServerError)

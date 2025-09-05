@@ -20,24 +20,26 @@ func NewValidationHelper(errorHandler *ErrorHandler) *ValidationHelper {
 	}
 }
 
-// ValidationResult represents the result of validation
-type ValidationResult struct {
-	IsValid bool
-	Errors  []error
-}
-
 // NewValidationResult creates a new validation result
 func NewValidationResult() *ValidationResult {
 	return &ValidationResult{
-		IsValid: true,
-		Errors:  []error{},
+		Valid:    true,
+		Errors:   []ValidationError{},
+		Warnings: []ValidationError{},
 	}
 }
 
 // AddError adds an error to the validation result
-func (r *ValidationResult) AddError(err error) {
-	r.IsValid = false
+func (r *ValidationResult) AddError(err ValidationError) {
+	r.Valid = false
 	r.Errors = append(r.Errors, err)
+}
+
+// addValidationError is a helper method to add validation errors from the error handler
+func (h *ValidationHelper) addValidationError(result *ValidationResult, err error) {
+	if validationErr, ok := err.(*ValidationError); ok {
+		result.AddError(*validationErr)
+	}
 }
 
 // BusinessClassificationRequest represents a business classification request
@@ -67,7 +69,7 @@ func (h *ValidationHelper) ValidateBusinessClassificationRequest(req *BusinessCl
 			"required",
 			req.BusinessName,
 		)
-		result.AddError(err)
+		h.addValidationError(result, err)
 	} else {
 		// Validate business name length first
 		if utf8.RuneCountInString(req.BusinessName) > 255 {
@@ -78,7 +80,7 @@ func (h *ValidationHelper) ValidateBusinessClassificationRequest(req *BusinessCl
 				"max_length",
 				req.BusinessName,
 			)
-			result.AddError(err)
+			h.addValidationError(result, err)
 		} else {
 			// Only validate format if length is valid
 			if !h.isValidBusinessName(req.BusinessName) {
@@ -89,7 +91,7 @@ func (h *ValidationHelper) ValidateBusinessClassificationRequest(req *BusinessCl
 					"format",
 					req.BusinessName,
 				)
-				result.AddError(err)
+				h.addValidationError(result, err)
 			}
 		}
 	}
@@ -104,7 +106,7 @@ func (h *ValidationHelper) ValidateBusinessClassificationRequest(req *BusinessCl
 				"url_format",
 				req.WebsiteURL,
 			)
-			result.AddError(err)
+			h.addValidationError(result, err)
 		}
 	}
 
@@ -117,7 +119,7 @@ func (h *ValidationHelper) ValidateBusinessClassificationRequest(req *BusinessCl
 				"email_format",
 				req.Email,
 			)
-			result.AddError(err)
+			h.addValidationError(result, err)
 		}
 	}
 
@@ -130,7 +132,7 @@ func (h *ValidationHelper) ValidateBusinessClassificationRequest(req *BusinessCl
 				"phone_format",
 				req.Phone,
 			)
-			result.AddError(err)
+			h.addValidationError(result, err)
 		}
 	}
 
@@ -143,7 +145,7 @@ func (h *ValidationHelper) ValidateBusinessClassificationRequest(req *BusinessCl
 			"max_length",
 			req.Description,
 		)
-		result.AddError(err)
+		h.addValidationError(result, err)
 	}
 
 	if req.Keywords != "" && utf8.RuneCountInString(req.Keywords) > 500 {
@@ -154,7 +156,7 @@ func (h *ValidationHelper) ValidateBusinessClassificationRequest(req *BusinessCl
 			"max_length",
 			req.Keywords,
 		)
-		result.AddError(err)
+		h.addValidationError(result, err)
 	}
 
 	if req.Address != "" && utf8.RuneCountInString(req.Address) > 500 {
@@ -165,7 +167,7 @@ func (h *ValidationHelper) ValidateBusinessClassificationRequest(req *BusinessCl
 			"max_length",
 			req.Address,
 		)
-		result.AddError(err)
+		h.addValidationError(result, err)
 	}
 
 	return result
@@ -190,7 +192,7 @@ func (h *ValidationHelper) ValidateBatchClassificationRequest(req *BatchClassifi
 			"required",
 			req.Businesses,
 		)
-		result.AddError(err)
+		h.addValidationError(result, err)
 	} else if len(req.Businesses) > 100 {
 		err := h.errorHandler.CreateValidationError(
 			ErrorCodeFieldTooLong,
@@ -199,18 +201,16 @@ func (h *ValidationHelper) ValidateBatchClassificationRequest(req *BatchClassifi
 			"max_count",
 			len(req.Businesses),
 		)
-		result.AddError(err)
+		h.addValidationError(result, err)
 	} else {
 		// Validate each business in the batch
 		for i, business := range req.Businesses {
 			businessResult := h.ValidateBusinessClassificationRequest(&business)
-			if !businessResult.IsValid {
+			if !businessResult.Valid {
 				for _, err := range businessResult.Errors {
 					// Add context about which business in the batch has the error
-					if validationErr, ok := err.(*ValidationError); ok {
-						validationErr.Field = fmt.Sprintf("businesses[%d].%s", i, validationErr.Field)
-					}
-					result.AddError(err)
+					err.Field = fmt.Sprintf("businesses[%d].%s", i, err.Field)
+					h.addValidationError(result, err)
 				}
 			}
 		}
@@ -241,7 +241,7 @@ func (h *ValidationHelper) ValidateWebsiteVerificationRequest(req *WebsiteVerifi
 			"required",
 			req.BusinessName,
 		)
-		result.AddError(err)
+		h.addValidationError(result, err)
 	}
 
 	if strings.TrimSpace(req.WebsiteURL) == "" {
@@ -252,7 +252,7 @@ func (h *ValidationHelper) ValidateWebsiteVerificationRequest(req *WebsiteVerifi
 			"required",
 			req.WebsiteURL,
 		)
-		result.AddError(err)
+		h.addValidationError(result, err)
 	} else if !h.isValidURL(req.WebsiteURL) {
 		err := h.errorHandler.CreateValidationError(
 			ErrorCodeInvalidURL,
@@ -261,7 +261,7 @@ func (h *ValidationHelper) ValidateWebsiteVerificationRequest(req *WebsiteVerifi
 			"url_format",
 			req.WebsiteURL,
 		)
-		result.AddError(err)
+		h.addValidationError(result, err)
 	}
 
 	// Validate optional fields
@@ -273,7 +273,7 @@ func (h *ValidationHelper) ValidateWebsiteVerificationRequest(req *WebsiteVerifi
 			"email_format",
 			req.Email,
 		)
-		result.AddError(err)
+		h.addValidationError(result, err)
 	}
 
 	if req.Phone != "" && !h.isValidPhone(req.Phone) {
@@ -284,7 +284,7 @@ func (h *ValidationHelper) ValidateWebsiteVerificationRequest(req *WebsiteVerifi
 			"phone_format",
 			req.Phone,
 		)
-		result.AddError(err)
+		h.addValidationError(result, err)
 	}
 
 	return result
@@ -311,7 +311,7 @@ func (h *ValidationHelper) ValidateRiskAssessmentRequest(req *RiskAssessmentRequ
 			"required",
 			req.BusinessID,
 		)
-		result.AddError(err)
+		h.addValidationError(result, err)
 	} else if !h.isValidBusinessID(req.BusinessID) {
 		err := h.errorHandler.CreateValidationError(
 			ErrorCodeInvalidFieldFormat,
@@ -320,7 +320,7 @@ func (h *ValidationHelper) ValidateRiskAssessmentRequest(req *RiskAssessmentRequ
 			"uuid_format",
 			req.BusinessID,
 		)
-		result.AddError(err)
+		h.addValidationError(result, err)
 	}
 
 	// Validate assessment type if provided
@@ -341,7 +341,7 @@ func (h *ValidationHelper) ValidateRiskAssessmentRequest(req *RiskAssessmentRequ
 				"enum",
 				req.AssessmentType,
 			)
-			result.AddError(err)
+			h.addValidationError(result, err)
 		}
 	}
 
@@ -401,19 +401,19 @@ func (h *ValidationHelper) isValidBusinessID(id string) bool {
 func (h *ValidationHelper) GetValidationErrorMessage(err error) string {
 	if validationErr, ok := err.(*ValidationError); ok {
 		switch validationErr.Code {
-		case ErrorCodeMissingRequiredField:
+		case string(ErrorCodeMissingRequiredField):
 			return fmt.Sprintf("The field '%s' is required. Please provide a value for this field.", validationErr.Field)
-		case ErrorCodeFieldTooLong:
+		case string(ErrorCodeFieldTooLong):
 			return fmt.Sprintf("The field '%s' is too long. Please shorten the value to meet the length requirement.", validationErr.Field)
-		case ErrorCodeFieldTooShort:
+		case string(ErrorCodeFieldTooShort):
 			return fmt.Sprintf("The field '%s' is too short. Please provide a longer value.", validationErr.Field)
-		case ErrorCodeInvalidURL:
+		case string(ErrorCodeInvalidURL):
 			return "Please provide a valid URL starting with http:// or https://"
-		case ErrorCodeInvalidEmail:
+		case string(ErrorCodeInvalidEmail):
 			return "Please provide a valid email address in the format user@example.com"
-		case ErrorCodeInvalidPhone:
+		case string(ErrorCodeInvalidPhone):
 			return "Please provide a valid phone number in E.164 format (e.g., +1-555-123-4567)"
-		case ErrorCodeInvalidFieldFormat:
+		case string(ErrorCodeInvalidFieldFormat):
 			return fmt.Sprintf("The field '%s' has an invalid format. %s", validationErr.Field, validationErr.Message)
 		default:
 			return validationErr.Message
@@ -426,15 +426,15 @@ func (h *ValidationHelper) GetValidationErrorMessage(err error) string {
 func (h *ValidationHelper) GetValidationHelpURL(err error) string {
 	if validationErr, ok := err.(*ValidationError); ok {
 		switch validationErr.Code {
-		case ErrorCodeMissingRequiredField:
+		case string(ErrorCodeMissingRequiredField):
 			return "https://docs.kyb-platform.com/api/validation/required-fields"
-		case ErrorCodeFieldTooLong:
+		case string(ErrorCodeFieldTooLong):
 			return "https://docs.kyb-platform.com/api/validation/field-lengths"
-		case ErrorCodeInvalidURL:
+		case string(ErrorCodeInvalidURL):
 			return "https://docs.kyb-platform.com/api/validation/urls"
-		case ErrorCodeInvalidEmail:
+		case string(ErrorCodeInvalidEmail):
 			return "https://docs.kyb-platform.com/api/validation/emails"
-		case ErrorCodeInvalidPhone:
+		case string(ErrorCodeInvalidPhone):
 			return "https://docs.kyb-platform.com/api/validation/phone-numbers"
 		default:
 			return "https://docs.kyb-platform.com/api/validation"

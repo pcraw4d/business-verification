@@ -4,6 +4,8 @@ import (
 	"context"
 	"log"
 
+	"go.uber.org/zap"
+
 	"github.com/pcraw4d/business-verification/internal/config"
 	"github.com/pcraw4d/business-verification/internal/database"
 	"github.com/pcraw4d/business-verification/internal/observability"
@@ -17,9 +19,10 @@ func main() {
 	}
 
 	// Initialize logger
-	logger := observability.NewLogger(&cfg.Observability)
+	zapLogger := zap.NewNop() // Use no-op logger for migration
+	logger := observability.NewLogger(zapLogger)
 
-	logger.Info("Starting database migration process")
+	logger.Info("Starting database migration process", map[string]interface{}{})
 
 	// Initialize database
 	db, err := database.NewDatabase(&cfg.Database)
@@ -34,7 +37,7 @@ func main() {
 	}
 	defer db.Close()
 
-	logger.Info("Database connection established")
+	logger.Info("Database connection established", map[string]interface{}{})
 
 	// Get migration system
 	postgresDB, ok := db.(*database.PostgresDB)
@@ -50,7 +53,7 @@ func main() {
 		log.Fatalf("Failed to initialize migration table: %v", err)
 	}
 
-	logger.Info("Migration table initialized")
+	logger.Info("Migration table initialized", map[string]interface{}{})
 
 	// Run migrations
 	err = migrationSystem.RunMigrations(ctx)
@@ -64,7 +67,9 @@ func main() {
 		log.Fatalf("Failed to get migration status: %v", err)
 	}
 
-	logger.Info("Migrations completed successfully", "status", status)
+	logger.Info("Migrations completed successfully", map[string]interface{}{
+		"status": status,
+	})
 	println("✅ Migrations completed successfully!")
 	println("📊 Migration Status:")
 	for key, value := range status {

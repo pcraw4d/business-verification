@@ -1,13 +1,11 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
-	// "github.com/pcraw4d/business-verification/internal/classification" // Disabled package
+	"github.com/pcraw4d/business-verification/internal/classification"
 	"github.com/pcraw4d/business-verification/internal/observability"
 	"github.com/pcraw4d/business-verification/pkg/validators"
 )
@@ -74,7 +72,7 @@ func (h *AccuracyValidationHandler) HandleValidateClassification(w http.Response
 	}
 
 	// Log validation request
-	h.logger.WithComponent("accuracy_validation_handler").LogBusinessEvent(ctx, "accuracy_validation_request_received", "", map[string]interface{}{
+	h.logger.WithComponent("accuracy_validation_handler").LogBusinessEvent("accuracy_validation_request_received", map[string]interface{}{
 		"business_name":    req.BusinessName,
 		"industry_code":    req.Classification.IndustryCode,
 		"confidence_score": req.Classification.ConfidenceScore,
@@ -82,19 +80,27 @@ func (h *AccuracyValidationHandler) HandleValidateClassification(w http.Response
 
 	// Add known classification if provided
 	if req.KnownData != nil {
-		h.accuracyValidationEngine.AddKnownClassification(*req.KnownData)
+		h.accuracyValidationEngine.AddKnownClassification(ctx, *req.KnownData)
 	}
 
 	// Add benchmark data if provided
 	if req.BenchmarkData != nil {
-		h.accuracyValidationEngine.AddIndustryBenchmark(*req.BenchmarkData)
+		h.accuracyValidationEngine.AddIndustryBenchmark(ctx, *req.BenchmarkData)
 	}
 
 	// Perform accuracy validation
-	validationResult := h.accuracyValidationEngine.ValidateClassification(ctx, req.Classification, req.BusinessName)
+	validationResult, err := h.accuracyValidationEngine.ValidateClassification(ctx, req.Classification)
+	if err != nil {
+		h.handleError(w, "Validation failed", http.StatusInternalServerError, err)
+		return
+	}
 
 	// Get accuracy metrics
-	accuracyMetrics := h.accuracyValidationEngine.GetAccuracyMetrics()
+	accuracyMetrics, err := h.accuracyValidationEngine.GetAccuracyMetrics(ctx)
+	if err != nil {
+		h.handleError(w, "Failed to get accuracy metrics", http.StatusInternalServerError, err)
+		return
+	}
 
 	// Create response
 	response := &AccuracyValidationResponse{
@@ -106,7 +112,7 @@ func (h *AccuracyValidationHandler) HandleValidateClassification(w http.Response
 	}
 
 	// Log successful completion
-	h.logger.WithComponent("accuracy_validation_handler").LogBusinessEvent(ctx, "accuracy_validation_request_completed", "", map[string]interface{}{
+	h.logger.WithComponent("accuracy_validation_handler").LogBusinessEvent("accuracy_validation_request_completed", map[string]interface{}{
 		"business_name":      req.BusinessName,
 		"accuracy_score":     validationResult.AccuracyScore,
 		"is_accurate":        validationResult.IsAccurate,
@@ -116,14 +122,14 @@ func (h *AccuracyValidationHandler) HandleValidateClassification(w http.Response
 	})
 
 	// Record metrics
-	h.metrics.RecordBusinessClassification("accuracy_validation_api_success", "1")
+	h.metrics.RecordBusinessClassification("accuracy_validation_api_success", 1.0)
 
 	// Send response
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.WithComponent("accuracy_validation_handler").LogBusinessEvent(ctx, "accuracy_validation_response_encoding_error", "", map[string]interface{}{
+		h.logger.WithComponent("accuracy_validation_handler").LogBusinessEvent("accuracy_validation_response_encoding_error", map[string]interface{}{
 			"error": err.Error(),
 		})
 	}
@@ -149,17 +155,17 @@ func (h *AccuracyValidationHandler) HandleAddKnownClassification(w http.Response
 
 	// Add known classifications
 	for _, known := range req.KnownClassifications {
-		h.accuracyValidationEngine.AddKnownClassification(known)
+		h.accuracyValidationEngine.AddKnownClassification(ctx, known)
 	}
 
 	// Log addition
-	h.logger.WithComponent("accuracy_validation_handler").LogBusinessEvent(ctx, "known_classifications_added", "", map[string]interface{}{
+	h.logger.WithComponent("accuracy_validation_handler").LogBusinessEvent("known_classifications_added", map[string]interface{}{
 		"count":              len(req.KnownClassifications),
 		"processing_time_ms": time.Since(start).Milliseconds(),
 	})
 
 	// Record metrics
-	h.metrics.RecordBusinessClassification("known_classifications_added", fmt.Sprintf("%d", len(req.KnownClassifications)))
+	h.metrics.RecordBusinessClassification("known_classifications_added", float64(len(req.KnownClassifications)))
 
 	// Send response
 	w.Header().Set("Content-Type", "application/json")
@@ -174,7 +180,7 @@ func (h *AccuracyValidationHandler) HandleAddKnownClassification(w http.Response
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.WithComponent("accuracy_validation_handler").LogBusinessEvent(ctx, "known_classifications_response_encoding_error", "", map[string]interface{}{
+		h.logger.WithComponent("accuracy_validation_handler").LogBusinessEvent("known_classifications_response_encoding_error", map[string]interface{}{
 			"error": err.Error(),
 		})
 	}
@@ -200,17 +206,17 @@ func (h *AccuracyValidationHandler) HandleAddBenchmark(w http.ResponseWriter, r 
 
 	// Add benchmarks
 	for _, benchmark := range req.Benchmarks {
-		h.accuracyValidationEngine.AddIndustryBenchmark(benchmark)
+		h.accuracyValidationEngine.AddIndustryBenchmark(ctx, benchmark)
 	}
 
 	// Log addition
-	h.logger.WithComponent("accuracy_validation_handler").LogBusinessEvent(ctx, "benchmarks_added", "", map[string]interface{}{
+	h.logger.WithComponent("accuracy_validation_handler").LogBusinessEvent("benchmarks_added", map[string]interface{}{
 		"count":              len(req.Benchmarks),
 		"processing_time_ms": time.Since(start).Milliseconds(),
 	})
 
 	// Record metrics
-	h.metrics.RecordBusinessClassification("benchmarks_added", fmt.Sprintf("%d", len(req.Benchmarks)))
+	h.metrics.RecordBusinessClassification("benchmarks_added", float64(len(req.Benchmarks)))
 
 	// Send response
 	w.Header().Set("Content-Type", "application/json")
@@ -225,7 +231,7 @@ func (h *AccuracyValidationHandler) HandleAddBenchmark(w http.ResponseWriter, r 
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.WithComponent("accuracy_validation_handler").LogBusinessEvent(ctx, "benchmarks_response_encoding_error", "", map[string]interface{}{
+		h.logger.WithComponent("accuracy_validation_handler").LogBusinessEvent("benchmarks_response_encoding_error", map[string]interface{}{
 			"error": err.Error(),
 		})
 	}
@@ -237,10 +243,14 @@ func (h *AccuracyValidationHandler) HandleGetAccuracyMetrics(w http.ResponseWrit
 	ctx := r.Context()
 
 	// Get accuracy metrics
-	metrics := h.accuracyValidationEngine.GetAccuracyMetrics()
+	metrics, err := h.accuracyValidationEngine.GetAccuracyMetrics(ctx)
+	if err != nil {
+		h.handleError(w, "Failed to get accuracy metrics", http.StatusInternalServerError, err)
+		return
+	}
 
 	// Log request
-	h.logger.WithComponent("accuracy_validation_handler").LogBusinessEvent(ctx, "accuracy_metrics_requested", "", map[string]interface{}{
+	h.logger.WithComponent("accuracy_validation_handler").LogBusinessEvent("accuracy_metrics_requested", map[string]interface{}{
 		"processing_time_ms": time.Since(start).Milliseconds(),
 	})
 
@@ -256,7 +266,7 @@ func (h *AccuracyValidationHandler) HandleGetAccuracyMetrics(w http.ResponseWrit
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.WithComponent("accuracy_validation_handler").LogBusinessEvent(ctx, "accuracy_metrics_response_encoding_error", "", map[string]interface{}{
+		h.logger.WithComponent("accuracy_validation_handler").LogBusinessEvent("accuracy_metrics_response_encoding_error", map[string]interface{}{
 			"error": err.Error(),
 		})
 	}
@@ -264,16 +274,14 @@ func (h *AccuracyValidationHandler) HandleGetAccuracyMetrics(w http.ResponseWrit
 
 // handleError handles error responses
 func (h *AccuracyValidationHandler) handleError(w http.ResponseWriter, message string, statusCode int, err error) {
-	ctx := context.Background()
-
-	h.logger.WithComponent("accuracy_validation_handler").LogBusinessEvent(ctx, "accuracy_validation_error", "", map[string]interface{}{
+	h.logger.WithComponent("accuracy_validation_handler").LogBusinessEvent("accuracy_validation_error", map[string]interface{}{
 		"error":       err.Error(),
 		"status_code": statusCode,
 		"message":     message,
 	})
 
 	// Record error metrics
-	h.metrics.RecordBusinessClassification("accuracy_validation_api_error", "1")
+	h.metrics.RecordBusinessClassification("accuracy_validation_api_error", 1.0)
 
 	// Send error response
 	w.Header().Set("Content-Type", "application/json")
@@ -286,7 +294,7 @@ func (h *AccuracyValidationHandler) handleError(w http.ResponseWriter, message s
 	}
 
 	if err := json.NewEncoder(w).Encode(errorResponse); err != nil {
-		h.logger.WithComponent("accuracy_validation_handler").LogBusinessEvent(ctx, "error_response_encoding_error", "", map[string]interface{}{
+		h.logger.WithComponent("accuracy_validation_handler").LogBusinessEvent("error_response_encoding_error", map[string]interface{}{
 			"error": err.Error(),
 		})
 	}

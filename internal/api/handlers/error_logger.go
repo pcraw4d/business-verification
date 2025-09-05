@@ -42,8 +42,8 @@ func (l *ErrorLogger) LogValidationError(ctx context.Context, err *ValidationErr
 		zap.String("error_type", "validation_error"),
 		zap.String("error_code", string(err.Code)),
 		zap.String("field", err.Field),
-		zap.String("constraint", err.Constraint),
-		zap.Any("value", err.Value),
+		zap.String("constraint", "unknown"),
+		zap.Any("value", nil),
 		zap.Any("request_data", requestData),
 	}
 

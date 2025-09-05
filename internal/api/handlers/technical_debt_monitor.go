@@ -58,10 +58,11 @@ func (h *TechnicalDebtMonitorHandler) GetTechnicalDebtMetrics(w http.ResponseWri
 	}
 
 	h.logger.Info("Technical debt metrics retrieved successfully",
-		zap.Int64("total_lines", metrics.TotalLinesOfCode),
-		zap.Int64("deprecated_lines", metrics.DeprecatedCodeLines),
-		zap.Float64("technical_debt_ratio", metrics.TechnicalDebtRatio),
-		zap.Float64("test_coverage", metrics.TestCoveragePercentage),
+		zap.Float64("complexity", metrics.Complexity),
+		zap.Float64("maintainability", metrics.Maintainability),
+		zap.Float64("reliability", metrics.Reliability),
+		zap.Float64("security", metrics.Security),
+		zap.Float64("test_coverage", metrics.TestCoverage),
 		zap.Duration("duration", time.Since(startTime)),
 	)
 }
@@ -71,7 +72,12 @@ func (h *TechnicalDebtMonitorHandler) GetTechnicalDebtReport(w http.ResponseWrit
 	startTime := time.Now()
 
 	// Get technical debt report
-	report := h.monitor.GetTechnicalDebtReport()
+	report, err := h.monitor.GetTechnicalDebtReport(r.Context())
+	if err != nil {
+		h.logger.Error("Failed to get technical debt report", zap.Error(err))
+		http.Error(w, "Failed to get technical debt report", http.StatusInternalServerError)
+		return
+	}
 
 	// Add response metadata
 	response := map[string]interface{}{
@@ -114,7 +120,12 @@ func (h *TechnicalDebtMonitorHandler) GetTechnicalDebtHistory(w http.ResponseWri
 	}
 
 	// Get metrics history
-	history := h.monitor.GetMetricsHistory()
+	history, err := h.monitor.GetMetricsHistory(r.Context(), limit)
+	if err != nil {
+		h.logger.Error("Failed to get metrics history", zap.Error(err))
+		http.Error(w, "Failed to get metrics history", http.StatusInternalServerError)
+		return
+	}
 
 	// Apply limit
 	if len(history) > limit {
@@ -201,7 +212,12 @@ func (h *TechnicalDebtMonitorHandler) GetTechnicalDebtTrends(w http.ResponseWrit
 	}
 
 	// Get metrics history
-	history := h.monitor.GetMetricsHistory()
+	history, err := h.monitor.GetMetricsHistory(r.Context(), days)
+	if err != nil {
+		h.logger.Error("Failed to get metrics history", zap.Error(err))
+		http.Error(w, "Failed to get metrics history", http.StatusInternalServerError)
+		return
+	}
 
 	// Filter by days
 	cutoffTime := time.Now().AddDate(0, 0, -days)
@@ -209,7 +225,7 @@ func (h *TechnicalDebtMonitorHandler) GetTechnicalDebtTrends(w http.ResponseWrit
 
 	for _, metric := range history {
 		if metric.Timestamp.After(cutoffTime) {
-			filteredHistory = append(filteredHistory, metric)
+			filteredHistory = append(filteredHistory, &metric)
 		}
 	}
 
@@ -262,40 +278,22 @@ func (h *TechnicalDebtMonitorHandler) calculateTrends(history []*observability.T
 	// Calculate trends
 	trends := map[string]interface{}{
 		"technical_debt_ratio": map[string]interface{}{
-			"start":  first.TechnicalDebtRatio,
-			"end":    last.TechnicalDebtRatio,
-			"change": last.TechnicalDebtRatio - first.TechnicalDebtRatio,
-			"trend":  h.getTrendDirection(first.TechnicalDebtRatio, last.TechnicalDebtRatio),
+			"start":  first.DebtRatio,
+			"end":    last.DebtRatio,
+			"change": last.DebtRatio - first.DebtRatio,
+			"trend":  h.getTrendDirection(first.DebtRatio, last.DebtRatio),
 		},
-		"test_coverage": map[string]interface{}{
-			"start":  first.TestCoveragePercentage,
-			"end":    last.TestCoveragePercentage,
-			"change": last.TestCoveragePercentage - first.TestCoveragePercentage,
-			"trend":  h.getTrendDirection(first.TestCoveragePercentage, last.TestCoveragePercentage),
+		"total_debt": map[string]interface{}{
+			"start":  first.TotalDebt,
+			"end":    last.TotalDebt,
+			"change": last.TotalDebt - first.TotalDebt,
+			"trend":  h.getTrendDirection(first.TotalDebt, last.TotalDebt),
 		},
-		"code_quality": map[string]interface{}{
-			"start":  first.CodeQualityScore,
-			"end":    last.CodeQualityScore,
-			"change": last.CodeQualityScore - first.CodeQualityScore,
-			"trend":  h.getTrendDirection(first.CodeQualityScore, last.CodeQualityScore),
-		},
-		"maintainability": map[string]interface{}{
-			"start":  first.MaintainabilityIndex,
-			"end":    last.MaintainabilityIndex,
-			"change": last.MaintainabilityIndex - first.MaintainabilityIndex,
-			"trend":  h.getTrendDirection(first.MaintainabilityIndex, last.MaintainabilityIndex),
-		},
-		"deprecated_code": map[string]interface{}{
-			"start":  first.DeprecatedCodeLines,
-			"end":    last.DeprecatedCodeLines,
-			"change": last.DeprecatedCodeLines - first.DeprecatedCodeLines,
-			"trend":  h.getTrendDirection(float64(first.DeprecatedCodeLines), float64(last.DeprecatedCodeLines)),
-		},
-		"refactoring_opportunities": map[string]interface{}{
-			"start":  first.RefactoringOpportunities,
-			"end":    last.RefactoringOpportunities,
-			"change": last.RefactoringOpportunities - first.RefactoringOpportunities,
-			"trend":  h.getTrendDirection(float64(first.RefactoringOpportunities), float64(last.RefactoringOpportunities)),
+		"remediation_cost": map[string]interface{}{
+			"start":  first.RemediationCost,
+			"end":    last.RemediationCost,
+			"change": last.RemediationCost - first.RemediationCost,
+			"trend":  h.getTrendDirection(first.RemediationCost, last.RemediationCost),
 		},
 	}
 
@@ -318,7 +316,7 @@ func (h *TechnicalDebtMonitorHandler) GetTechnicalDebtAlerts(w http.ResponseWrit
 	startTime := time.Now()
 
 	// Get current metrics
-	metrics := h.monitor.GetMetrics()
+	metrics := h.monitor.GetCurrentMetrics()
 	if metrics == nil {
 		http.Error(w, "No metrics available", http.StatusNotFound)
 		return
@@ -361,73 +359,49 @@ func (h *TechnicalDebtMonitorHandler) generateAlerts(metrics *observability.Tech
 	var alerts []map[string]interface{}
 
 	// Technical debt ratio alert
-	if metrics.TechnicalDebtRatio > 0.3 {
+	if metrics.DebtRatio > 0.3 {
 		alerts = append(alerts, map[string]interface{}{
 			"severity":  "high",
 			"metric":    "technical_debt_ratio",
-			"value":     metrics.TechnicalDebtRatio,
+			"value":     metrics.DebtRatio,
 			"threshold": 0.3,
 			"message":   "Technical debt ratio is above 30%. Consider prioritizing refactoring efforts.",
 			"timestamp": time.Now().UTC().Format(time.RFC3339),
 		})
 	}
 
-	// Test coverage alert
-	if metrics.TestCoveragePercentage < 80 {
+	// Total debt alert
+	if metrics.TotalDebt > 10000 {
 		alerts = append(alerts, map[string]interface{}{
 			"severity":  "medium",
-			"metric":    "test_coverage",
-			"value":     metrics.TestCoveragePercentage,
-			"threshold": 80,
-			"message":   "Test coverage is below 80%. Increase test coverage for better code quality.",
+			"metric":    "total_debt",
+			"value":     metrics.TotalDebt,
+			"threshold": 10000,
+			"message":   "Total technical debt is above 10,000. Consider addressing high-impact debt items.",
 			"timestamp": time.Now().UTC().Format(time.RFC3339),
 		})
 	}
 
-	// Code quality alert
-	if metrics.CodeQualityScore < 70 {
-		alerts = append(alerts, map[string]interface{}{
-			"severity":  "medium",
-			"metric":    "code_quality",
-			"value":     metrics.CodeQualityScore,
-			"threshold": 70,
-			"message":   "Code quality score is below 70. Review and improve code quality.",
-			"timestamp": time.Now().UTC().Format(time.RFC3339),
-		})
-	}
-
-	// Maintainability alert
-	if metrics.MaintainabilityIndex < 60 {
+	// Remediation cost alert
+	if metrics.RemediationCost > 20000 {
 		alerts = append(alerts, map[string]interface{}{
 			"severity":  "high",
-			"metric":    "maintainability",
-			"value":     metrics.MaintainabilityIndex,
-			"threshold": 60,
-			"message":   "Maintainability index is below 60. Focus on improving code maintainability.",
+			"metric":    "remediation_cost",
+			"value":     metrics.RemediationCost,
+			"threshold": 20000,
+			"message":   "Remediation cost is above 20,000. High cost to address technical debt.",
 			"timestamp": time.Now().UTC().Format(time.RFC3339),
 		})
 	}
 
-	// Refactoring opportunities alert
-	if metrics.RefactoringOpportunities > 20 {
-		alerts = append(alerts, map[string]interface{}{
-			"severity":  "medium",
-			"metric":    "refactoring_opportunities",
-			"value":     metrics.RefactoringOpportunities,
-			"threshold": 20,
-			"message":   "Many refactoring opportunities identified. Plan refactoring sprints.",
-			"timestamp": time.Now().UTC().Format(time.RFC3339),
-		})
-	}
-
-	// Priority issues alert
-	if metrics.PriorityIssues > 10 {
+	// Risk level alert
+	if metrics.RiskLevel == "high" {
 		alerts = append(alerts, map[string]interface{}{
 			"severity":  "high",
-			"metric":    "priority_issues",
-			"value":     metrics.PriorityIssues,
-			"threshold": 10,
-			"message":   "High number of priority issues. Address critical issues first.",
+			"metric":    "risk_level",
+			"value":     metrics.RiskLevel,
+			"threshold": "high",
+			"message":   "Technical debt risk level is high. Immediate attention required.",
 			"timestamp": time.Now().UTC().Format(time.RFC3339),
 		})
 	}

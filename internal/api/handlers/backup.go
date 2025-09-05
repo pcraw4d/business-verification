@@ -76,21 +76,21 @@ func (h *BackupHandler) CreateBackup(w http.ResponseWriter, r *http.Request) {
 	// Parse request body
 	var req BackupRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.logger.Error("Failed to decode backup request", "error", err)
+		h.logger.Error("Failed to decode backup request", map[string]interface{}{"error": err})
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	h.logger.Info("Creating backup",
-		"compression", req.Compression,
-		"encryption", req.Encryption,
-		"cross_region", req.CrossRegion,
-	)
+	h.logger.Info("Creating backup", map[string]interface{}{
+		"compression":  req.Compression,
+		"encryption":   req.Encryption,
+		"cross_region": req.CrossRegion,
+	})
 
 	// Create backup
 	result, err := h.backupService.CreateBackup(ctx)
 	if err != nil {
-		h.logger.Error("Failed to create backup", "error", err)
+		h.logger.Error("Failed to create backup", map[string]interface{}{"error": err})
 		http.Error(w, fmt.Sprintf("Failed to create backup: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -119,12 +119,12 @@ func (h *BackupHandler) CreateBackup(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Error("Failed to encode backup response", "error", err)
+		h.logger.Error("Failed to encode backup response", map[string]interface{}{"error": err})
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	h.logger.Info("Backup created successfully", "backup_id", result.BackupID)
+	h.logger.Info("Backup created successfully", map[string]interface{}{"backup_id": result.BackupID})
 }
 
 // ListBackups handles GET /v1/backup
@@ -142,12 +142,12 @@ func (h *BackupHandler) ListBackups(w http.ResponseWriter, r *http.Request) {
 		limit = 20
 	}
 
-	h.logger.Info("Listing backups", "page", page, "limit", limit)
+	h.logger.Info("Listing backups", map[string]interface{}{"page": page, "limit": limit})
 
 	// Get backups
 	backups, err := h.backupService.ListBackups(ctx)
 	if err != nil {
-		h.logger.Error("Failed to list backups", "error", err)
+		h.logger.Error("Failed to list backups", map[string]interface{}{"error": err})
 		http.Error(w, fmt.Sprintf("Failed to list backups: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -197,12 +197,12 @@ func (h *BackupHandler) ListBackups(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Error("Failed to encode backup list response", "error", err)
+		h.logger.Error("Failed to encode backup list response", map[string]interface{}{"error": err})
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	h.logger.Info("Backup list retrieved successfully", "total", len(backups))
+	h.logger.Info("Backup list retrieved successfully", map[string]interface{}{"total": len(backups)})
 }
 
 // GetBackup handles GET /v1/backup/{backup_id}
@@ -216,12 +216,12 @@ func (h *BackupHandler) GetBackup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.logger.Info("Getting backup details", "backup_id", backupID)
+	h.logger.Info("Getting backup details", map[string]interface{}{"backup_id": backupID})
 
 	// Get backup metadata
 	backups, err := h.backupService.ListBackups(ctx)
 	if err != nil {
-		h.logger.Error("Failed to get backup", "error", err, "backup_id", backupID)
+		h.logger.Error("Failed to get backup", map[string]interface{}{"error": err, "backup_id": backupID})
 		http.Error(w, fmt.Sprintf("Failed to get backup: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -236,7 +236,7 @@ func (h *BackupHandler) GetBackup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if targetBackup == nil {
-		h.logger.Warn("Backup not found", "backup_id", backupID)
+		h.logger.Warn("Backup not found", map[string]interface{}{"backup_id": backupID})
 		http.Error(w, "Backup not found", http.StatusNotFound)
 		return
 	}
@@ -264,12 +264,12 @@ func (h *BackupHandler) GetBackup(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Error("Failed to encode backup response", "error", err)
+		h.logger.Error("Failed to encode backup response", map[string]interface{}{"error": err})
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	h.logger.Info("Backup details retrieved successfully", "backup_id", backupID)
+	h.logger.Info("Backup details retrieved successfully", map[string]interface{}{"backup_id": backupID})
 }
 
 // RestoreBackup handles POST /v1/backup/{backup_id}/restore
@@ -283,11 +283,11 @@ func (h *BackupHandler) RestoreBackup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.logger.Info("Restoring backup", "backup_id", backupID)
+	h.logger.Info("Restoring backup", map[string]interface{}{"backup_id": backupID})
 
 	// Restore backup
 	if err := h.backupService.RestoreBackup(ctx, backupID); err != nil {
-		h.logger.Error("Failed to restore backup", "error", err, "backup_id", backupID)
+		h.logger.Error("Failed to restore backup", map[string]interface{}{"error": err, "backup_id": backupID})
 		http.Error(w, fmt.Sprintf("Failed to restore backup: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -303,12 +303,12 @@ func (h *BackupHandler) RestoreBackup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Error("Failed to encode restore response", "error", err)
+		h.logger.Error("Failed to encode restore response", map[string]interface{}{"error": err})
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	h.logger.Info("Backup restored successfully", "backup_id", backupID)
+	h.logger.Info("Backup restored successfully", map[string]interface{}{"backup_id": backupID})
 }
 
 // ValidateBackup handles POST /v1/backup/{backup_id}/validate
@@ -322,11 +322,11 @@ func (h *BackupHandler) ValidateBackup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.logger.Info("Validating backup", "backup_id", backupID)
+	h.logger.Info("Validating backup", map[string]interface{}{"backup_id": backupID})
 
 	// Validate backup
 	if err := h.backupService.ValidateBackup(ctx, backupID); err != nil {
-		h.logger.Error("Backup validation failed", "error", err, "backup_id", backupID)
+		h.logger.Error("Backup validation failed", map[string]interface{}{"error": err, "backup_id": backupID})
 		http.Error(w, fmt.Sprintf("Backup validation failed: %v", err), http.StatusBadRequest)
 		return
 	}
@@ -342,23 +342,23 @@ func (h *BackupHandler) ValidateBackup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Error("Failed to encode validation response", "error", err)
+		h.logger.Error("Failed to encode validation response", map[string]interface{}{"error": err})
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	h.logger.Info("Backup validation successful", "backup_id", backupID)
+	h.logger.Info("Backup validation successful", map[string]interface{}{"backup_id": backupID})
 }
 
 // CleanupBackups handles POST /v1/backup/cleanup
 func (h *BackupHandler) CleanupBackups(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	h.logger.Info("Cleaning up old backups")
+	h.logger.Info("Cleaning up old backups", map[string]interface{}{})
 
 	// Cleanup old backups
 	if err := h.backupService.CleanupOldBackups(ctx); err != nil {
-		h.logger.Error("Failed to cleanup backups", "error", err)
+		h.logger.Error("Failed to cleanup backups", map[string]interface{}{"error": err})
 		http.Error(w, fmt.Sprintf("Failed to cleanup backups: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -373,24 +373,24 @@ func (h *BackupHandler) CleanupBackups(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Error("Failed to encode cleanup response", "error", err)
+		h.logger.Error("Failed to encode cleanup response", map[string]interface{}{"error": err})
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	h.logger.Info("Backup cleanup completed successfully")
+	h.logger.Info("Backup cleanup completed successfully", map[string]interface{}{})
 }
 
 // GetBackupStats handles GET /v1/backup/stats
 func (h *BackupHandler) GetBackupStats(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	h.logger.Info("Getting backup statistics")
+	h.logger.Info("Getting backup statistics", map[string]interface{}{})
 
 	// Get backups
 	backups, err := h.backupService.ListBackups(ctx)
 	if err != nil {
-		h.logger.Error("Failed to get backup statistics", "error", err)
+		h.logger.Error("Failed to get backup statistics", map[string]interface{}{"error": err})
 		http.Error(w, fmt.Sprintf("Failed to get backup statistics: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -444,31 +444,31 @@ func (h *BackupHandler) GetBackupStats(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Error("Failed to encode backup stats response", "error", err)
+		h.logger.Error("Failed to encode backup stats response", map[string]interface{}{"error": err})
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	h.logger.Info("Backup statistics retrieved successfully", "total_backups", totalBackups)
+	h.logger.Info("Backup statistics retrieved successfully", map[string]interface{}{"total_backups": totalBackups})
 }
 
 // TestBackup handles POST /v1/backup/test
 func (h *BackupHandler) TestBackup(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	h.logger.Info("Testing backup system")
+	h.logger.Info("Testing backup system", map[string]interface{}{})
 
 	// Create a test backup
 	result, err := h.backupService.CreateBackup(ctx)
 	if err != nil {
-		h.logger.Error("Backup test failed", "error", err)
+		h.logger.Error("Backup test failed", map[string]interface{}{"error": err})
 		http.Error(w, fmt.Sprintf("Backup test failed: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	// Validate the test backup
 	if err := h.backupService.ValidateBackup(ctx, result.BackupID); err != nil {
-		h.logger.Error("Backup validation test failed", "error", err, "backup_id", result.BackupID)
+		h.logger.Error("Backup validation test failed", map[string]interface{}{"error": err, "backup_id": result.BackupID})
 		http.Error(w, fmt.Sprintf("Backup validation test failed: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -486,10 +486,10 @@ func (h *BackupHandler) TestBackup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Error("Failed to encode test response", "error", err)
+		h.logger.Error("Failed to encode test response", map[string]interface{}{"error": err})
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	h.logger.Info("Backup test completed successfully", "backup_id", result.BackupID)
+	h.logger.Info("Backup test completed successfully", map[string]interface{}{"backup_id": result.BackupID})
 }

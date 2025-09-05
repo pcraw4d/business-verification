@@ -208,7 +208,7 @@ func (h *DataExportHandler) ExportData(w http.ResponseWriter, r *http.Request) {
 
 // CreateExportJob creates a background export job
 func (h *DataExportHandler) CreateExportJob(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	_ = r.Context()
 
 	// Parse request
 	var req DataExportRequest

@@ -32,18 +32,15 @@ func (h *AdminHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	// Parse request body
 	var request auth.UserManagementRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		h.logger.WithComponent("admin_handler").WithError(err).Error("Failed to decode create user request")
+		h.logger.WithComponent("admin_handler").WithError(err).Error("Failed to decode create user request", map[string]interface{}{})
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	// Set action
-	request.Action = "create"
-
 	// Call admin service
-	response, err := h.adminService.CreateUser(ctx, &request)
+	response, err := h.adminService.CreateUser(ctx, request)
 	if err != nil {
-		h.logger.WithComponent("admin_handler").WithError(err).Error("Failed to create user")
+		h.logger.WithComponent("admin_handler").WithError(err).Error("Failed to create user", map[string]interface{}{})
 		http.Error(w, fmt.Sprintf("Failed to create user: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -68,7 +65,7 @@ func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	// Parse request body
 	var request auth.UserManagementRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		h.logger.WithComponent("admin_handler").WithError(err).Error("Failed to decode update user request")
+		h.logger.WithComponent("admin_handler").WithError(err).Error("Failed to decode update user request", map[string]interface{}{})
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -78,9 +75,9 @@ func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	request.Action = "update"
 
 	// Call admin service
-	response, err := h.adminService.UpdateUser(ctx, &request)
+	response, err := h.adminService.UpdateUser(ctx, request)
 	if err != nil {
-		h.logger.WithComponent("admin_handler").WithError(err).Error("Failed to update user")
+		h.logger.WithComponent("admin_handler").WithError(err).Error("Failed to update user", map[string]interface{}{})
 		http.Error(w, fmt.Sprintf("Failed to update user: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -103,8 +100,8 @@ func (h *AdminHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get admin user ID from context (set by auth middleware)
-	adminUserID, ok := middleware.GetUserIDFromContext(ctx)
-	if !ok || adminUserID == "" {
+	adminUserID := middleware.GetUserIDFromContext(ctx)
+	if adminUserID == "" {
 		http.Error(w, "Admin user ID is required", http.StatusBadRequest)
 		return
 	}
@@ -117,9 +114,9 @@ func (h *AdminHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Call admin service
-	response, err := h.adminService.DeleteUser(ctx, request)
+	err := h.adminService.DeleteUser(ctx, *request)
 	if err != nil {
-		h.logger.WithComponent("admin_handler").WithError(err).Error("Failed to delete user")
+		h.logger.WithComponent("admin_handler").WithError(err).Error("Failed to delete user", map[string]interface{}{})
 		http.Error(w, fmt.Sprintf("Failed to delete user: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -127,7 +124,7 @@ func (h *AdminHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	// Return response
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(map[string]string{"message": "User deleted successfully"})
 }
 
 // ActivateUser handles POST /v1/admin/users/{id}/activate
@@ -142,8 +139,8 @@ func (h *AdminHandler) ActivateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get admin user ID from context
-	adminUserID, ok := middleware.GetUserIDFromContext(ctx)
-	if !ok || adminUserID == "" {
+	adminUserID := middleware.GetUserIDFromContext(ctx)
+	if adminUserID == "" {
 		http.Error(w, "Admin user ID is required", http.StatusBadRequest)
 		return
 	}
@@ -156,9 +153,9 @@ func (h *AdminHandler) ActivateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Call admin service
-	response, err := h.adminService.ActivateUser(ctx, request)
+	response, err := h.adminService.ActivateUser(ctx, *request)
 	if err != nil {
-		h.logger.WithComponent("admin_handler").WithError(err).Error("Failed to activate user")
+		h.logger.WithComponent("admin_handler").WithError(err).Error("Failed to activate user", map[string]interface{}{})
 		http.Error(w, fmt.Sprintf("Failed to activate user: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -181,8 +178,8 @@ func (h *AdminHandler) DeactivateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get admin user ID from context
-	adminUserID, ok := middleware.GetUserIDFromContext(ctx)
-	if !ok || adminUserID == "" {
+	adminUserID := middleware.GetUserIDFromContext(ctx)
+	if adminUserID == "" {
 		http.Error(w, "Admin user ID is required", http.StatusBadRequest)
 		return
 	}
@@ -195,9 +192,9 @@ func (h *AdminHandler) DeactivateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Call admin service
-	response, err := h.adminService.DeactivateUser(ctx, request)
+	response, err := h.adminService.DeactivateUser(ctx, *request)
 	if err != nil {
-		h.logger.WithComponent("admin_handler").WithError(err).Error("Failed to deactivate user")
+		h.logger.WithComponent("admin_handler").WithError(err).Error("Failed to deactivate user", map[string]interface{}{})
 		http.Error(w, fmt.Sprintf("Failed to deactivate user: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -213,8 +210,8 @@ func (h *AdminHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// Get admin user ID from context
-	adminUserID, ok := middleware.GetUserIDFromContext(ctx)
-	if !ok || adminUserID == "" {
+	adminUserID := middleware.GetUserIDFromContext(ctx)
+	if adminUserID == "" {
 		http.Error(w, "Admin user ID is required", http.StatusBadRequest)
 		return
 	}
@@ -244,7 +241,7 @@ func (h *AdminHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 	// Create request
 	request := &auth.ListUsersRequest{
 		AdminUserID: adminUserID,
-		Role:        auth.Role(role),
+		Role:        role,
 		Status:      status,
 		Search:      search,
 		Limit:       limit,
@@ -252,9 +249,9 @@ func (h *AdminHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Call admin service
-	response, err := h.adminService.ListUsers(ctx, request)
+	response, err := h.adminService.ListUsers(ctx, *request)
 	if err != nil {
-		h.logger.WithComponent("admin_handler").WithError(err).Error("Failed to list users")
+		h.logger.WithComponent("admin_handler").WithError(err).Error("Failed to list users", map[string]interface{}{})
 		http.Error(w, fmt.Sprintf("Failed to list users: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -270,16 +267,16 @@ func (h *AdminHandler) GetSystemStats(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// Get admin user ID from context
-	adminUserID, ok := middleware.GetUserIDFromContext(ctx)
-	if !ok || adminUserID == "" {
+	adminUserID := middleware.GetUserIDFromContext(ctx)
+	if adminUserID == "" {
 		http.Error(w, "Admin user ID is required", http.StatusBadRequest)
 		return
 	}
 
 	// Call admin service
-	stats, err := h.adminService.GetSystemStats(ctx, adminUserID)
+	stats, err := h.adminService.GetSystemStats(ctx)
 	if err != nil {
-		h.logger.WithComponent("admin_handler").WithError(err).Error("Failed to get system stats")
+		h.logger.WithComponent("admin_handler").WithError(err).Error("Failed to get system stats", map[string]interface{}{})
 		http.Error(w, fmt.Sprintf("Failed to get system stats: %v", err), http.StatusInternalServerError)
 		return
 	}

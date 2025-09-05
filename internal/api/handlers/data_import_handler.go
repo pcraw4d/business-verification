@@ -119,15 +119,6 @@ type ImportWarning struct {
 	Data    string `json:"data,omitempty"`
 }
 
-// ValidationRule represents a validation rule
-type ValidationRule struct {
-	Field    string      `json:"field"`
-	Type     string      `json:"type"` // required, format, range, custom
-	Value    interface{} `json:"value,omitempty"`
-	Message  string      `json:"message"`
-	Severity string      `json:"severity"` // error, warning
-}
-
 // TransformRule represents a transformation rule
 type TransformRule struct {
 	Field       string      `json:"field"`

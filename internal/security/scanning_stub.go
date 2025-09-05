@@ -37,10 +37,10 @@ func (sss *SecurityScanningService) PerformVulnerabilityScan(ctx context.Context
 
 // VulnerabilityScanResult represents the result of a vulnerability scan
 type VulnerabilityScanResult struct {
-	Target        string
+	Target          string
 	Vulnerabilities []Vulnerability
-	ScanTime      time.Time
-	Status        string
+	ScanTime        time.Time
+	Status          string
 }
 
 // Vulnerability represents a security vulnerability
@@ -52,3 +52,46 @@ type Vulnerability struct {
 	CVSS        float64
 	References  []string
 }
+
+// VulnerabilityInstance represents a vulnerability instance
+type VulnerabilityInstance struct {
+	ID              string
+	VulnID          string
+	VulnerabilityID string
+	Component       string
+	Location        string
+	Environment     string
+	Status          string
+	Priority        string
+	RiskScore       float64
+	DiscoveredAt    time.Time
+	AssignedTo      string
+	DueDate         *time.Time
+	ResolvedAt      *time.Time
+	ResolutionNotes string
+	Metadata        map[string]interface{}
+}
+
+// VulnerabilityWorkflow represents a vulnerability workflow
+type VulnerabilityWorkflow struct {
+	ID     string
+	Steps  []WorkflowStep
+	Status string
+}
+
+// WorkflowStep represents a step in a vulnerability workflow
+type WorkflowStep struct {
+	ID     string
+	Status StepStatus
+	Notes  string
+}
+
+// StepStatus represents the status of a workflow step
+type StepStatus string
+
+const (
+	StepStatusPending    StepStatus = "pending"
+	StepStatusInProgress StepStatus = "in_progress"
+	StepStatusCompleted  StepStatus = "completed"
+	StepStatusFailed     StepStatus = "failed"
+)

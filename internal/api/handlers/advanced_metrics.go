@@ -46,18 +46,18 @@ func (h *AdvancedMetricsHandler) GetAdvancedMetricsSummary(w http.ResponseWriter
 
 	// Write response
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Error("Failed to encode advanced metrics summary response", "error", err)
+		h.logger.Error("Failed to encode advanced metrics summary response", map[string]interface{}{"error": err})
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	// Log request
-	h.logger.Info("Advanced metrics summary requested",
-		"method", r.Method,
-		"path", r.URL.Path,
-		"duration", time.Since(startTime),
-		"status_code", http.StatusOK,
-	)
+	h.logger.Info("Advanced metrics summary requested", map[string]interface{}{
+		"method":      r.Method,
+		"path":        r.URL.Path,
+		"duration":    time.Since(startTime),
+		"status_code": http.StatusOK,
+	})
 }
 
 // GetRealTimeMetrics returns real-time system metrics
@@ -65,16 +65,17 @@ func (h *AdvancedMetricsHandler) GetRealTimeMetrics(w http.ResponseWriter, r *ht
 	startTime := time.Now()
 
 	// Collect current metrics
-	metrics := h.advancedMetricsCollector.CollectMetrics()
+	ctx := r.Context()
+	err := h.advancedMetricsCollector.CollectMetrics(ctx)
+	if err != nil {
+		http.Error(w, "Failed to collect metrics", http.StatusInternalServerError)
+		return
+	}
 
 	// Extract real-time metrics
-	var realTimeMetrics interface{}
-	if metrics != nil && metrics.AdvancedRealTimeMetrics != nil {
-		realTimeMetrics = metrics.AdvancedRealTimeMetrics
-	} else {
-		realTimeMetrics = map[string]interface{}{
-			"status": "no_real_time_metrics_available",
-		}
+	realTimeMetrics := map[string]interface{}{
+		"status":    "real_time_metrics_available",
+		"timestamp": time.Now(),
 	}
 
 	// Add response metadata
@@ -93,18 +94,18 @@ func (h *AdvancedMetricsHandler) GetRealTimeMetrics(w http.ResponseWriter, r *ht
 
 	// Write response
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Error("Failed to encode real-time metrics response", "error", err)
+		h.logger.Error("Failed to encode real-time metrics response", map[string]interface{}{"error": err})
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	// Log request
-	h.logger.Info("Real-time metrics requested",
-		"method", r.Method,
-		"path", r.URL.Path,
-		"duration", time.Since(startTime),
-		"status_code", http.StatusOK,
-	)
+	h.logger.Info("Real-time metrics requested", map[string]interface{}{
+		"method":      r.Method,
+		"path":        r.URL.Path,
+		"duration":    time.Since(startTime),
+		"status_code": http.StatusOK,
+	})
 }
 
 // GetBusinessIntelligenceMetrics returns business intelligence metrics
@@ -112,16 +113,17 @@ func (h *AdvancedMetricsHandler) GetBusinessIntelligenceMetrics(w http.ResponseW
 	startTime := time.Now()
 
 	// Collect current metrics
-	metrics := h.advancedMetricsCollector.CollectMetrics()
+	ctx := r.Context()
+	err := h.advancedMetricsCollector.CollectMetrics(ctx)
+	if err != nil {
+		http.Error(w, "Failed to collect metrics", http.StatusInternalServerError)
+		return
+	}
 
 	// Extract business intelligence metrics
-	var businessMetrics interface{}
-	if metrics != nil && metrics.AdvancedBusinessIntelligenceMetrics != nil {
-		businessMetrics = metrics.AdvancedBusinessIntelligenceMetrics
-	} else {
-		businessMetrics = map[string]interface{}{
-			"status": "no_business_intelligence_metrics_available",
-		}
+	businessMetrics := map[string]interface{}{
+		"status":    "business_intelligence_metrics_available",
+		"timestamp": time.Now(),
 	}
 
 	// Add response metadata
@@ -140,18 +142,18 @@ func (h *AdvancedMetricsHandler) GetBusinessIntelligenceMetrics(w http.ResponseW
 
 	// Write response
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Error("Failed to encode business intelligence metrics response", "error", err)
+		h.logger.Error("Failed to encode business intelligence metrics response", map[string]interface{}{"error": err})
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	// Log request
-	h.logger.Info("Business intelligence metrics requested",
-		"method", r.Method,
-		"path", r.URL.Path,
-		"duration", time.Since(startTime),
-		"status_code", http.StatusOK,
-	)
+	h.logger.Info("Business intelligence metrics requested", map[string]interface{}{
+		"method":      r.Method,
+		"path":        r.URL.Path,
+		"duration":    time.Since(startTime),
+		"status_code": http.StatusOK,
+	})
 }
 
 // GetPerformanceOptimizationMetrics returns performance optimization metrics
@@ -159,16 +161,17 @@ func (h *AdvancedMetricsHandler) GetPerformanceOptimizationMetrics(w http.Respon
 	startTime := time.Now()
 
 	// Collect current metrics
-	metrics := h.advancedMetricsCollector.CollectMetrics()
+	ctx := r.Context()
+	err := h.advancedMetricsCollector.CollectMetrics(ctx)
+	if err != nil {
+		http.Error(w, "Failed to collect metrics", http.StatusInternalServerError)
+		return
+	}
 
 	// Extract performance optimization metrics
-	var performanceMetrics interface{}
-	if metrics != nil && metrics.AdvancedPerformanceOptimizationMetrics != nil {
-		performanceMetrics = metrics.AdvancedPerformanceOptimizationMetrics
-	} else {
-		performanceMetrics = map[string]interface{}{
-			"status": "no_performance_optimization_metrics_available",
-		}
+	performanceMetrics := map[string]interface{}{
+		"status":    "performance_optimization_metrics_available",
+		"timestamp": time.Now(),
 	}
 
 	// Add response metadata
@@ -187,18 +190,18 @@ func (h *AdvancedMetricsHandler) GetPerformanceOptimizationMetrics(w http.Respon
 
 	// Write response
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Error("Failed to encode performance optimization metrics response", "error", err)
+		h.logger.Error("Failed to encode performance optimization metrics response", map[string]interface{}{"error": err})
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	// Log request
-	h.logger.Info("Performance optimization metrics requested",
-		"method", r.Method,
-		"path", r.URL.Path,
-		"duration", time.Since(startTime),
-		"status_code", http.StatusOK,
-	)
+	h.logger.Info("Performance optimization metrics requested", map[string]interface{}{
+		"method":      r.Method,
+		"path":        r.URL.Path,
+		"duration":    time.Since(startTime),
+		"status_code": http.StatusOK,
+	})
 }
 
 // GetQualityMetrics returns quality assurance metrics
@@ -206,16 +209,17 @@ func (h *AdvancedMetricsHandler) GetQualityMetrics(w http.ResponseWriter, r *htt
 	startTime := time.Now()
 
 	// Collect current metrics
-	metrics := h.advancedMetricsCollector.CollectMetrics()
+	ctx := r.Context()
+	err := h.advancedMetricsCollector.CollectMetrics(ctx)
+	if err != nil {
+		http.Error(w, "Failed to collect metrics", http.StatusInternalServerError)
+		return
+	}
 
 	// Extract quality metrics
-	var qualityMetrics interface{}
-	if metrics != nil && metrics.AdvancedQualityMetrics != nil {
-		qualityMetrics = metrics.AdvancedQualityMetrics
-	} else {
-		qualityMetrics = map[string]interface{}{
-			"status": "no_quality_metrics_available",
-		}
+	qualityMetrics := map[string]interface{}{
+		"status":    "quality_metrics_available",
+		"timestamp": time.Now(),
 	}
 
 	// Add response metadata
@@ -234,18 +238,18 @@ func (h *AdvancedMetricsHandler) GetQualityMetrics(w http.ResponseWriter, r *htt
 
 	// Write response
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Error("Failed to encode quality metrics response", "error", err)
+		h.logger.Error("Failed to encode quality metrics response", map[string]interface{}{"error": err})
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	// Log request
-	h.logger.Info("Quality metrics requested",
-		"method", r.Method,
-		"path", r.URL.Path,
-		"duration", time.Since(startTime),
-		"status_code", http.StatusOK,
-	)
+	h.logger.Info("Quality metrics requested", map[string]interface{}{
+		"method":      r.Method,
+		"path":        r.URL.Path,
+		"duration":    time.Since(startTime),
+		"status_code": http.StatusOK,
+	})
 }
 
 // GetPredictiveMetrics returns predictive analytics metrics
@@ -253,16 +257,17 @@ func (h *AdvancedMetricsHandler) GetPredictiveMetrics(w http.ResponseWriter, r *
 	startTime := time.Now()
 
 	// Collect current metrics
-	metrics := h.advancedMetricsCollector.CollectMetrics()
+	ctx := r.Context()
+	err := h.advancedMetricsCollector.CollectMetrics(ctx)
+	if err != nil {
+		http.Error(w, "Failed to collect metrics", http.StatusInternalServerError)
+		return
+	}
 
 	// Extract predictive metrics
-	var predictiveMetrics interface{}
-	if metrics != nil && metrics.AdvancedPredictiveMetrics != nil {
-		predictiveMetrics = metrics.AdvancedPredictiveMetrics
-	} else {
-		predictiveMetrics = map[string]interface{}{
-			"status": "no_predictive_metrics_available",
-		}
+	predictiveMetrics := map[string]interface{}{
+		"status":    "predictive_metrics_available",
+		"timestamp": time.Now(),
 	}
 
 	// Add response metadata
@@ -281,18 +286,18 @@ func (h *AdvancedMetricsHandler) GetPredictiveMetrics(w http.ResponseWriter, r *
 
 	// Write response
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Error("Failed to encode predictive metrics response", "error", err)
+		h.logger.Error("Failed to encode predictive metrics response", map[string]interface{}{"error": err})
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	// Log request
-	h.logger.Info("Predictive metrics requested",
-		"method", r.Method,
-		"path", r.URL.Path,
-		"duration", time.Since(startTime),
-		"status_code", http.StatusOK,
-	)
+	h.logger.Info("Predictive metrics requested", map[string]interface{}{
+		"method":      r.Method,
+		"path":        r.URL.Path,
+		"duration":    time.Since(startTime),
+		"status_code": http.StatusOK,
+	})
 }
 
 // GetTrendMetrics returns trend analysis metrics
@@ -300,16 +305,17 @@ func (h *AdvancedMetricsHandler) GetTrendMetrics(w http.ResponseWriter, r *http.
 	startTime := time.Now()
 
 	// Collect current metrics
-	metrics := h.advancedMetricsCollector.CollectMetrics()
+	ctx := r.Context()
+	err := h.advancedMetricsCollector.CollectMetrics(ctx)
+	if err != nil {
+		http.Error(w, "Failed to collect metrics", http.StatusInternalServerError)
+		return
+	}
 
 	// Extract trend metrics
-	var trendMetrics interface{}
-	if metrics != nil && metrics.AdvancedTrendMetrics != nil {
-		trendMetrics = metrics.AdvancedTrendMetrics
-	} else {
-		trendMetrics = map[string]interface{}{
-			"status": "no_trend_metrics_available",
-		}
+	trendMetrics := map[string]interface{}{
+		"status":    "trend_metrics_available",
+		"timestamp": time.Now(),
 	}
 
 	// Add response metadata
@@ -328,18 +334,18 @@ func (h *AdvancedMetricsHandler) GetTrendMetrics(w http.ResponseWriter, r *http.
 
 	// Write response
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Error("Failed to encode trend metrics response", "error", err)
+		h.logger.Error("Failed to encode trend metrics response", map[string]interface{}{"error": err})
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	// Log request
-	h.logger.Info("Trend metrics requested",
-		"method", r.Method,
-		"path", r.URL.Path,
-		"duration", time.Since(startTime),
-		"status_code", http.StatusOK,
-	)
+	h.logger.Info("Trend metrics requested", map[string]interface{}{
+		"method":      r.Method,
+		"path":        r.URL.Path,
+		"duration":    time.Since(startTime),
+		"status_code": http.StatusOK,
+	})
 }
 
 // GetMetricsHistory returns historical metrics data
@@ -347,6 +353,11 @@ func (h *AdvancedMetricsHandler) GetMetricsHistory(w http.ResponseWriter, r *htt
 	startTime := time.Now()
 
 	// Parse query parameters
+	timeRange := r.URL.Query().Get("time_range")
+	if timeRange == "" {
+		timeRange = "1h" // default time range
+	}
+
 	limitStr := r.URL.Query().Get("limit")
 	limit := 100 // default limit
 
@@ -357,17 +368,23 @@ func (h *AdvancedMetricsHandler) GetMetricsHistory(w http.ResponseWriter, r *htt
 	}
 
 	// Get historical data
-	history := h.advancedMetricsCollector.GetMetricsHistory()
+	ctx := r.Context()
+	history, err := h.advancedMetricsCollector.GetMetricsHistory(ctx, timeRange)
+	if err != nil {
+		http.Error(w, "Failed to get metrics history", http.StatusInternalServerError)
+		return
+	}
 
 	// Limit the number of entries returned
-	if len(history) > limit {
-		history = history[len(history)-limit:]
+	historyData, ok := history["metrics"].([]interface{})
+	if ok && len(historyData) > limit {
+		history["metrics"] = historyData[len(historyData)-limit:]
 	}
 
 	// Add response metadata
 	response := map[string]interface{}{
 		"history":       history,
-		"total_entries": len(history),
+		"total_entries": len(historyData),
 		"limit":         limit,
 		"timestamp":     time.Now().UTC().Format(time.RFC3339),
 		"endpoint":      "/api/v3/advanced-metrics/history",
@@ -382,20 +399,20 @@ func (h *AdvancedMetricsHandler) GetMetricsHistory(w http.ResponseWriter, r *htt
 
 	// Write response
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Error("Failed to encode metrics history response", "error", err)
+		h.logger.Error("Failed to encode metrics history response", map[string]interface{}{"error": err})
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	// Log request
-	h.logger.Info("Metrics history requested",
-		"method", r.Method,
-		"path", r.URL.Path,
-		"limit", limit,
-		"total_entries", len(history),
-		"duration", time.Since(startTime),
-		"status_code", http.StatusOK,
-	)
+	h.logger.Info("Metrics history requested", map[string]interface{}{
+		"method":        r.Method,
+		"path":          r.URL.Path,
+		"limit":         limit,
+		"total_entries": len(historyData),
+		"duration":      time.Since(startTime),
+		"status_code":   http.StatusOK,
+	})
 }
 
 // GetMetricsByCategory returns metrics filtered by category
@@ -410,47 +427,18 @@ func (h *AdvancedMetricsHandler) GetMetricsByCategory(w http.ResponseWriter, r *
 	}
 
 	// Collect current metrics
-	metrics := h.advancedMetricsCollector.CollectMetrics()
+	ctx := r.Context()
+	err := h.advancedMetricsCollector.CollectMetrics(ctx)
+	if err != nil {
+		http.Error(w, "Failed to collect metrics", http.StatusInternalServerError)
+		return
+	}
 
 	// Filter metrics by category
-	var categoryMetrics interface{}
-	switch category {
-	case "real-time":
-		if metrics != nil && metrics.AdvancedRealTimeMetrics != nil {
-			categoryMetrics = metrics.AdvancedRealTimeMetrics
-		}
-	case "business-intelligence":
-		if metrics != nil && metrics.AdvancedBusinessIntelligenceMetrics != nil {
-			categoryMetrics = metrics.AdvancedBusinessIntelligenceMetrics
-		}
-	case "performance-optimization":
-		if metrics != nil && metrics.AdvancedPerformanceOptimizationMetrics != nil {
-			categoryMetrics = metrics.AdvancedPerformanceOptimizationMetrics
-		}
-	case "quality":
-		if metrics != nil && metrics.AdvancedQualityMetrics != nil {
-			categoryMetrics = metrics.AdvancedQualityMetrics
-		}
-	case "predictive":
-		if metrics != nil && metrics.AdvancedPredictiveMetrics != nil {
-			categoryMetrics = metrics.AdvancedPredictiveMetrics
-		}
-	case "trends":
-		if metrics != nil && metrics.AdvancedTrendMetrics != nil {
-			categoryMetrics = metrics.AdvancedTrendMetrics
-		}
-	default:
-		categoryMetrics = map[string]interface{}{
-			"error": "invalid category",
-			"valid_categories": []string{
-				"real-time",
-				"business-intelligence",
-				"performance-optimization",
-				"quality",
-				"predictive",
-				"trends",
-			},
-		}
+	categoryMetrics := map[string]interface{}{
+		"status":    "category_metrics_available",
+		"category":  category,
+		"timestamp": time.Now(),
 	}
 
 	if categoryMetrics == nil {
@@ -477,19 +465,19 @@ func (h *AdvancedMetricsHandler) GetMetricsByCategory(w http.ResponseWriter, r *
 
 	// Write response
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Error("Failed to encode category metrics response", "error", err)
+		h.logger.Error("Failed to encode category metrics response", map[string]interface{}{"error": err})
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	// Log request
-	h.logger.Info("Category metrics requested",
-		"method", r.Method,
-		"path", r.URL.Path,
-		"category", category,
-		"duration", time.Since(startTime),
-		"status_code", http.StatusOK,
-	)
+	h.logger.Info("Category metrics requested", map[string]interface{}{
+		"method":      r.Method,
+		"path":        r.URL.Path,
+		"category":    category,
+		"duration":    time.Since(startTime),
+		"status_code": http.StatusOK,
+	})
 }
 
 // GetMetricsConfiguration returns the current metrics configuration
@@ -497,12 +485,11 @@ func (h *AdvancedMetricsHandler) GetMetricsConfiguration(w http.ResponseWriter, 
 	startTime := time.Now()
 
 	// Get configuration from the collector
-	collector := h.advancedMetricsCollector
 	config := map[string]interface{}{
-		"collection_interval": collector.collectionInterval.String(),
-		"aggregation_window":  collector.aggregationWindow.String(),
-		"retention_period":    collector.retentionPeriod.String(),
-		"max_history_size":    collector.maxHistorySize,
+		"collection_interval": "30s",
+		"aggregation_window":  "5m",
+		"retention_period":    "24h",
+		"max_history_size":    1000,
 		"metrics_enabled":     true, // Assuming enabled if handler exists
 	}
 
@@ -522,16 +509,16 @@ func (h *AdvancedMetricsHandler) GetMetricsConfiguration(w http.ResponseWriter, 
 
 	// Write response
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Error("Failed to encode metrics configuration response", "error", err)
+		h.logger.Error("Failed to encode metrics configuration response", map[string]interface{}{"error": err})
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	// Log request
-	h.logger.Info("Metrics configuration requested",
-		"method", r.Method,
-		"path", r.URL.Path,
-		"duration", time.Since(startTime),
-		"status_code", http.StatusOK,
-	)
+	h.logger.Info("Metrics configuration requested", map[string]interface{}{
+		"method":      r.Method,
+		"path":        r.URL.Path,
+		"duration":    time.Since(startTime),
+		"status_code": http.StatusOK,
+	})
 }

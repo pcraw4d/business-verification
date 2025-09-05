@@ -156,21 +156,6 @@ type QualityCheckResult struct {
 	Timestamp     time.Time              `json:"timestamp"`
 }
 
-// QualityIssue represents a quality issue
-type QualityIssue struct {
-	ID          string                 `json:"id"`
-	Type        string                 `json:"type"`
-	Description string                 `json:"description"`
-	Severity    QualitySeverity        `json:"severity"`
-	Field       string                 `json:"field"`
-	Value       interface{}            `json:"value"`
-	Expected    interface{}            `json:"expected"`
-	Row         int                    `json:"row,omitempty"`
-	Column      string                 `json:"column,omitempty"`
-	Context     map[string]interface{} `json:"context"`
-	Timestamp   time.Time              `json:"timestamp"`
-}
-
 // QualitySummary represents a quality summary
 type QualitySummary struct {
 	TotalChecks    int                    `json:"total_checks"`
@@ -554,24 +539,14 @@ func (h *DataQualityHandler) generateIssues(check QualityCheck) []QualityIssue {
 			ID:          fmt.Sprintf("issue_%d", time.Now().UnixNano()),
 			Type:        "missing_data",
 			Description: "Some required fields are missing",
-			Severity:    QualitySeverityMedium,
-			Field:       "email",
-			Value:       nil,
-			Expected:    "non_null",
-			Context:     map[string]interface{}{"missing_count": 5},
-			Timestamp:   time.Now(),
+			Severity:    string(QualitySeverityMedium),
 		})
 	case QualityCheckTypeAccuracy:
 		issues = append(issues, QualityIssue{
 			ID:          fmt.Sprintf("issue_%d", time.Now().UnixNano()),
 			Type:        "invalid_format",
 			Description: "Invalid email format detected",
-			Severity:    QualitySeverityHigh,
-			Field:       "email",
-			Value:       "invalid-email",
-			Expected:    "valid_email_format",
-			Context:     map[string]interface{}{"invalid_count": 3},
-			Timestamp:   time.Now(),
+			Severity:    string(QualitySeverityHigh),
 		})
 	}
 
@@ -632,13 +607,13 @@ func (h *DataQualityHandler) generateQualitySummary(req DataQualityRequest) Qual
 		for _, issue := range result.Issues {
 			totalIssues++
 			switch issue.Severity {
-			case QualitySeverityCritical:
+			case string(QualitySeverityCritical):
 				criticalIssues++
-			case QualitySeverityHigh:
+			case string(QualitySeverityHigh):
 				highIssues++
-			case QualitySeverityMedium:
+			case string(QualitySeverityMedium):
 				mediumIssues++
-			case QualitySeverityLow:
+			case string(QualitySeverityLow):
 				lowIssues++
 			}
 		}

@@ -86,21 +86,6 @@ type LineageTarget struct {
 	Metadata   map[string]interface{} `json:"metadata"`
 }
 
-// LineageProcess represents a lineage process
-type LineageProcess struct {
-	ID          string                 `json:"id"`
-	Name        string                 `json:"name"`
-	Type        string                 `json:"type"`
-	Description string                 `json:"description"`
-	Inputs      []string               `json:"inputs"`
-	Outputs     []string               `json:"outputs"`
-	Logic       string                 `json:"logic"`
-	Parameters  map[string]interface{} `json:"parameters"`
-	Schedule    string                 `json:"schedule"`
-	Status      string                 `json:"status"`
-	Metadata    map[string]interface{} `json:"metadata"`
-}
-
 // LineageTransformation represents a lineage transformation
 type LineageTransformation struct {
 	ID           string                      `json:"id"`
@@ -283,20 +268,6 @@ type LineageSummary struct {
 	Metrics       map[string]interface{} `json:"metrics"`
 }
 
-// LineageJob represents a background lineage job
-type LineageJob struct {
-	ID          string                 `json:"id"`
-	RequestID   string                 `json:"request_id"`
-	Status      string                 `json:"status"`
-	Progress    int                    `json:"progress"`
-	Result      *DataLineageResponse   `json:"result,omitempty"`
-	Error       string                 `json:"error,omitempty"`
-	CreatedAt   time.Time              `json:"created_at"`
-	UpdatedAt   time.Time              `json:"updated_at"`
-	CompletedAt *time.Time             `json:"completed_at,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata"`
-}
-
 // LineageReport represents a lineage report
 type LineageReport struct {
 	ID              string                  `json:"id"`
@@ -456,13 +427,8 @@ func (h *DataLineageHandler) CreateLineageJob(w http.ResponseWriter, r *http.Req
 
 	// Create background job
 	job := &LineageJob{
-		ID:        jobID,
-		RequestID: fmt.Sprintf("req_%d", time.Now().UnixNano()),
-		Status:    "pending",
-		Progress:  0,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-		Metadata:  req.Metadata,
+		ID:     jobID,
+		Status: "pending",
 	}
 
 	h.mutex.Lock()
@@ -580,9 +546,9 @@ func (h *DataLineageHandler) generateLineageNodes(req DataLineageRequest) []Line
 			Location: "internal",
 			Status:   process.Status,
 			Properties: map[string]interface{}{
-				"inputs":  process.Inputs,
-				"outputs": process.Outputs,
-				"logic":   process.Logic,
+				"inputs":  []string{},
+				"outputs": []string{},
+				"logic":   "sample logic",
 			},
 			Schema: make(map[string]interface{}),
 			Stats: LineageStats{
@@ -593,7 +559,7 @@ func (h *DataLineageHandler) generateLineageNodes(req DataLineageRequest) []Line
 				RefreshRate: "hourly",
 				Quality:     0.92,
 			},
-			Metadata: process.Metadata,
+			Metadata: make(map[string]interface{}),
 			Position: Position{
 				X: float64(i * 150),
 				Y: 100,
@@ -783,28 +749,22 @@ func (h *DataLineageHandler) processLineageJob(job *LineageJob, req DataLineageR
 
 	h.mutex.Lock()
 	job.Status = "running"
-	job.Progress = 25
-	job.UpdatedAt = time.Now()
 	h.mutex.Unlock()
 
 	time.Sleep(1 * time.Second)
 
 	h.mutex.Lock()
-	job.Progress = 50
-	job.UpdatedAt = time.Now()
 	h.mutex.Unlock()
 
 	time.Sleep(1 * time.Second)
 
 	h.mutex.Lock()
-	job.Progress = 75
-	job.UpdatedAt = time.Now()
 	h.mutex.Unlock()
 
 	time.Sleep(1 * time.Second)
 
 	// Create result
-	result := &DataLineageResponse{
+	_ = &DataLineageResponse{
 		ID:        job.ID,
 		Name:      req.Name,
 		Type:      req.Type,
@@ -826,10 +786,7 @@ func (h *DataLineageHandler) processLineageJob(job *LineageJob, req DataLineageR
 
 	h.mutex.Lock()
 	job.Status = "completed"
-	job.Progress = 100
-	job.Result = result
 	job.CompletedAt = &completedAt
-	job.UpdatedAt = time.Now()
 	h.mutex.Unlock()
 }
 

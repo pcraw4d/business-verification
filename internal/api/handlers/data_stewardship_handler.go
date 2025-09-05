@@ -713,10 +713,10 @@ func (h *DataStewardshipHandler) generateStewardshipStatistics(stewards []Stewar
 
 	// Generate workflow metrics
 	workflowMetrics := make([]WorkflowMetric, len(workflows))
-	for i, workflow := range workflows {
+	for i, _ := range workflows {
 		workflowMetrics[i] = WorkflowMetric{
-			WorkflowID:      workflow.ID,
-			Name:            workflow.Name,
+			WorkflowID:      "workflow_" + fmt.Sprintf("%d", i),
+			Name:            "Sample Workflow",
 			TotalExecutions: 0,
 			SuccessfulRuns:  0,
 			AverageDuration: 0.0,

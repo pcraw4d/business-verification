@@ -10,21 +10,26 @@ import (
 
 	"github.com/pcraw4d/business-verification/internal/auth"
 	"github.com/pcraw4d/business-verification/internal/config"
+	"github.com/pcraw4d/business-verification/internal/observability"
 	"go.uber.org/zap"
 )
 
 // AuthHandler handles authentication-related HTTP requests
 type AuthHandler struct {
 	authService *auth.AuthService
-	logger      *zap.Logger
+	logger      *observability.Logger
+	metrics     *observability.Metrics
 	config      *config.Config
 }
 
 // NewAuthHandler creates a new authentication handler
 func NewAuthHandler(authService *auth.AuthService, logger *zap.Logger, cfg *config.Config) *AuthHandler {
+	obsLogger := observability.NewLogger(logger)
+	metrics := observability.NewMetrics()
 	return &AuthHandler{
 		authService: authService,
-		logger:      logger,
+		logger:      obsLogger,
+		metrics:     metrics,
 		config:      cfg,
 	}
 }
@@ -100,7 +105,7 @@ func (h *AuthHandler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse request body
 	var req auth.RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.logger.Error("Failed to decode register request", zap.Error(err))
+		h.logger.Error("Failed to decode register request", map[string]interface{}{"error": err})
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -108,7 +113,7 @@ func (h *AuthHandler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	// Register user
 	user, err := h.authService.RegisterUser(ctx, &req)
 	if err != nil {
-		h.logger.Error("User registration failed", zap.Error(err), zap.String("email", req.Email))
+		h.logger.Error("User registration failed", map[string]interface{}{"error": err, "email": req.Email})
 
 		// Handle different error types
 		if err.Error() == "email already exists" || err.Error() == "username already exists" {
@@ -122,7 +127,7 @@ func (h *AuthHandler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	// Create email verification token
 	verificationToken, err := h.authService.CreateEmailVerificationToken(ctx, user.ID)
 	if err != nil {
-		h.logger.Error("Failed to create email verification token", zap.Error(err), zap.String("user_id", user.ID))
+		h.logger.Error("Failed to create email verification token", map[string]interface{}{"error": err, "user_id": user.ID})
 		// Don't fail registration, just log the error
 	}
 
@@ -148,7 +153,7 @@ func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse request body
 	var req auth.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.logger.Error("Failed to decode login request", zap.Error(err))
+		h.logger.Error("Failed to decode login request", map[string]interface{}{"error": err})
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -156,7 +161,7 @@ func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	// Authenticate user
 	tokenResponse, err := h.authService.LoginUser(ctx, &req)
 	if err != nil {
-		h.logger.Error("User login failed", zap.Error(err), zap.String("email", req.Email))
+		h.logger.Error("User login failed", map[string]interface{}{"error": err, "email": req.Email})
 
 		// Handle different error types
 		if err.Error() == "invalid credentials" {
@@ -207,14 +212,14 @@ func (h *AuthHandler) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	// Get user ID from token
 	userResponse, err := h.authService.ValidateToken(ctx, tokenString)
 	if err != nil {
-		h.logger.Error("Invalid token for logout", zap.Error(err))
+		h.logger.Error("Invalid token for logout", map[string]interface{}{"error": err})
 		http.Error(w, "Invalid token", http.StatusUnauthorized)
 		return
 	}
 
 	// Logout user (blacklist token)
 	if err := h.authService.LogoutUser(ctx, tokenString, userResponse.ID); err != nil {
-		h.logger.Error("Logout failed", zap.Error(err), zap.String("user_id", userResponse.ID))
+		h.logger.Error("Logout failed", map[string]interface{}{"error": err, "user_id": userResponse.ID})
 		http.Error(w, "Logout failed", http.StatusInternalServerError)
 		return
 	}
@@ -262,7 +267,7 @@ func (h *AuthHandler) RefreshTokenHandler(w http.ResponseWriter, r *http.Request
 	// Refresh token
 	tokenResponse, err := h.authService.RefreshToken(ctx, req.RefreshToken)
 	if err != nil {
-		h.logger.WithComponent("auth").Error("Token refresh failed", "error", err)
+		h.logger.WithComponent("auth").Error("Token refresh failed", map[string]interface{}{"error": err})
 		http.Error(w, "Token refresh failed", http.StatusUnauthorized)
 		return
 	}
@@ -281,7 +286,7 @@ func (h *AuthHandler) RefreshTokenHandler(w http.ResponseWriter, r *http.Request
 	json.NewEncoder(w).Encode(response)
 
 	// Record metrics
-	h.metrics.RecordBusinessClassification("success", "token_refresh")
+	h.metrics.RecordBusinessClassification("token_refresh", 1.0)
 }
 
 // VerifyEmailHandler handles email verification requests
@@ -297,7 +302,7 @@ func (h *AuthHandler) VerifyEmailHandler(w http.ResponseWriter, r *http.Request)
 
 	// Verify email
 	if err := h.authService.VerifyEmail(ctx, token); err != nil {
-		h.logger.WithComponent("auth").Error("Email verification failed", "error", err, "token", token)
+		h.logger.WithComponent("auth").Error("Email verification failed", map[string]interface{}{"error": err, "token": token})
 
 		// Handle different error types
 		if err.Error() == "verification token has expired" {
@@ -319,7 +324,7 @@ func (h *AuthHandler) VerifyEmailHandler(w http.ResponseWriter, r *http.Request)
 	json.NewEncoder(w).Encode(response)
 
 	// Record metrics
-	h.metrics.RecordBusinessClassification("success", "email_verification")
+	h.metrics.RecordBusinessClassification("email_verification", 1.0)
 }
 
 // RequestPasswordResetHandler handles password reset requests
@@ -331,7 +336,7 @@ func (h *AuthHandler) RequestPasswordResetHandler(w http.ResponseWriter, r *http
 		Email string `json:"email"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.logger.WithComponent("auth").Error("Failed to decode password reset request", "error", err)
+		h.logger.WithComponent("auth").Error("Failed to decode password reset request", map[string]interface{}{"error": err})
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -339,7 +344,7 @@ func (h *AuthHandler) RequestPasswordResetHandler(w http.ResponseWriter, r *http
 	// Create password reset token
 	resetToken, err := h.authService.CreatePasswordResetToken(ctx, req.Email)
 	if err != nil {
-		h.logger.WithComponent("auth").Error("Password reset token creation failed", "error", err, "email", req.Email)
+		h.logger.WithComponent("auth").Error("Password reset token creation failed", map[string]interface{}{"error": err, "email": req.Email})
 		// Always return success to prevent email enumeration
 	}
 
@@ -356,7 +361,7 @@ func (h *AuthHandler) RequestPasswordResetHandler(w http.ResponseWriter, r *http
 	json.NewEncoder(w).Encode(response)
 
 	// Record metrics
-	h.metrics.RecordBusinessClassification("success", "password_reset_request")
+	h.metrics.RecordBusinessClassification("password_reset_request", 1.0)
 }
 
 // ResetPasswordHandler handles password reset confirmation requests
@@ -369,14 +374,14 @@ func (h *AuthHandler) ResetPasswordHandler(w http.ResponseWriter, r *http.Reques
 		NewPassword string `json:"new_password"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.logger.WithComponent("auth").Error("Failed to decode password reset confirmation request", "error", err)
+		h.logger.WithComponent("auth").Error("Failed to decode password reset confirmation request", map[string]interface{}{"error": err})
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	// Reset password
 	if err := h.authService.ResetPassword(ctx, req.Token, req.NewPassword); err != nil {
-		h.logger.WithComponent("auth").Error("Password reset failed", "error", err, "token", req.Token)
+		h.logger.WithComponent("auth").Error("Password reset failed", map[string]interface{}{"error": err, "token": req.Token})
 
 		// Handle different error types
 		if err.Error() == "reset token has expired" {
@@ -398,7 +403,7 @@ func (h *AuthHandler) ResetPasswordHandler(w http.ResponseWriter, r *http.Reques
 	json.NewEncoder(w).Encode(response)
 
 	// Record metrics
-	h.metrics.RecordBusinessClassification("success", "password_reset")
+	h.metrics.RecordBusinessClassification("password_reset", 1.0)
 }
 
 // ChangePasswordHandler handles password change requests
@@ -418,14 +423,14 @@ func (h *AuthHandler) ChangePasswordHandler(w http.ResponseWriter, r *http.Reque
 		NewPassword     string `json:"new_password"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.logger.WithComponent("auth").Error("Failed to decode change password request", "error", err)
+		h.logger.WithComponent("auth").Error("Failed to decode change password request", map[string]interface{}{"error": err})
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	// Change password
 	if err := h.authService.ChangePassword(ctx, userID, req.CurrentPassword, req.NewPassword); err != nil {
-		h.logger.WithComponent("auth").Error("Password change failed", "error", err, "user_id", userID)
+		h.logger.WithComponent("auth").Error("Password change failed", map[string]interface{}{"error": err, "user_id": userID})
 
 		if err.Error() == "current password is incorrect" {
 			http.Error(w, "Current password is incorrect", http.StatusBadRequest)
@@ -444,7 +449,7 @@ func (h *AuthHandler) ChangePasswordHandler(w http.ResponseWriter, r *http.Reque
 	json.NewEncoder(w).Encode(response)
 
 	// Record metrics
-	h.metrics.RecordBusinessClassification("success", "password_change")
+	h.metrics.RecordBusinessClassification("password_change", 1.0)
 }
 
 // ProfileHandler returns the current user's profile
@@ -461,7 +466,7 @@ func (h *AuthHandler) ProfileHandler(w http.ResponseWriter, r *http.Request) {
 	// Get user profile
 	user, err := h.authService.GetUserByID(ctx, userID)
 	if err != nil {
-		h.logger.WithComponent("auth").Error("Failed to get user profile", "error", err, "user_id", userID)
+		h.logger.WithComponent("auth").Error("Failed to get user profile", map[string]interface{}{"error": err, "user_id": userID})
 		http.Error(w, "Failed to get user profile", http.StatusInternalServerError)
 		return
 	}

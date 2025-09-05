@@ -1,6 +1,9 @@
 package security
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 // Shared event types that are used across multiple security components
 type EventType string
@@ -136,6 +139,129 @@ type SecurityEvent struct {
 	Description string                 `json:"description,omitempty"`
 	Details     map[string]interface{} `json:"details,omitempty"`
 	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// VulnerabilityManagementSystem provides vulnerability management functionality
+type VulnerabilityManagementSystem struct {
+	logger Logger
+}
+
+// NewVulnerabilityManagementSystem creates a new vulnerability management system
+func NewVulnerabilityManagementSystem(logger Logger) *VulnerabilityManagementSystem {
+	return &VulnerabilityManagementSystem{
+		logger: logger,
+	}
+}
+
+// ManageVulnerabilities manages vulnerabilities
+func (vms *VulnerabilityManagementSystem) ManageVulnerabilities(ctx context.Context) error {
+	// Stub implementation
+	return nil
+}
+
+// RegisterVulnerability registers a new vulnerability
+func (vms *VulnerabilityManagementSystem) RegisterVulnerability(ctx context.Context, vuln *Vulnerability) error {
+	// Stub implementation
+	return nil
+}
+
+// CreateVulnerabilityInstance creates a new vulnerability instance
+func (vms *VulnerabilityManagementSystem) CreateVulnerabilityInstance(ctx context.Context, vulnID, component, location, environment string) (*VulnerabilityInstance, error) {
+	// Stub implementation
+	return &VulnerabilityInstance{
+		ID:          "stub-instance-id",
+		VulnID:      vulnID,
+		Component:   component,
+		Location:    location,
+		Environment: environment,
+	}, nil
+}
+
+// GetVulnerabilityInstances retrieves vulnerability instances
+func (vms *VulnerabilityManagementSystem) GetVulnerabilityInstances(ctx context.Context, filters map[string]interface{}) ([]*VulnerabilityInstance, error) {
+	// Stub implementation
+	return []*VulnerabilityInstance{}, nil
+}
+
+// UpdateVulnerabilityInstance updates a vulnerability instance
+func (vms *VulnerabilityManagementSystem) UpdateVulnerabilityInstance(ctx context.Context, instanceID string, updates map[string]interface{}) error {
+	// Stub implementation
+	return nil
+}
+
+// GetVulnerabilityWorkflows retrieves vulnerability workflows
+func (vms *VulnerabilityManagementSystem) GetVulnerabilityWorkflows(ctx context.Context, instanceID string) ([]*VulnerabilityWorkflow, error) {
+	// Stub implementation
+	return []*VulnerabilityWorkflow{}, nil
+}
+
+// UpdateWorkflowStep updates a workflow step
+func (vms *VulnerabilityManagementSystem) UpdateWorkflowStep(ctx context.Context, workflowID, stepID string, status StepStatus, notes string) error {
+	// Stub implementation
+	return nil
+}
+
+// GetVulnerabilityMetrics retrieves vulnerability metrics
+func (vms *VulnerabilityManagementSystem) GetVulnerabilityMetrics(ctx context.Context) (*VulnerabilityMetrics, error) {
+	// Stub implementation
+	return &VulnerabilityMetrics{}, nil
+}
+
+// ExportVulnerabilities exports vulnerabilities
+func (vms *VulnerabilityManagementSystem) ExportVulnerabilities(ctx context.Context, filters map[string]interface{}) ([]byte, error) {
+	// Stub implementation
+	return []byte("{}"), nil
+}
+
+// ExportWorkflows exports workflows
+func (vms *VulnerabilityManagementSystem) ExportWorkflows(ctx context.Context, instanceID string) ([]byte, error) {
+	// Stub implementation
+	return []byte("{}"), nil
+}
+
+// CVSSScore represents a CVSS score
+type CVSSScore struct {
+	BaseScore          float64 `json:"base_score"`
+	TemporalScore      float64 `json:"temporal_score"`
+	EnvironmentalScore float64 `json:"environmental_score"`
+	Vector             string  `json:"vector"`
+}
+
+// VulnerabilityStatus represents vulnerability status
+type VulnerabilityStatus string
+
+const (
+	VulnerabilityStatusOpen       VulnerabilityStatus = "open"
+	VulnerabilityStatusInProgress VulnerabilityStatus = "in_progress"
+	VulnerabilityStatusResolved   VulnerabilityStatus = "resolved"
+	VulnerabilityStatusClosed     VulnerabilityStatus = "closed"
+)
+
+// VulnerabilityPriority represents vulnerability priority
+type VulnerabilityPriority string
+
+const (
+	VulnerabilityPriorityLow      VulnerabilityPriority = "low"
+	VulnerabilityPriorityMedium   VulnerabilityPriority = "medium"
+	VulnerabilityPriorityHigh     VulnerabilityPriority = "high"
+	VulnerabilityPriorityCritical VulnerabilityPriority = "critical"
+)
+
+// VulnerabilityMetrics represents vulnerability metrics
+type VulnerabilityMetrics struct {
+	TotalVulnerabilities    int
+	CriticalCount           int
+	HighCount               int
+	MediumCount             int
+	LowCount                int
+	OpenVulnerabilities     int
+	ResolvedVulnerabilities int
+	VulnsBySeverity         map[Severity]int
+	VulnsByStatus           map[VulnerabilityStatus]int
+	VulnsByPriority         map[VulnerabilityPriority]int
+	MeanTimeToResolve       time.Duration
+	ResolutionRate          float64
+	LastUpdated             time.Time
 }
 
 // Logger interface for logging

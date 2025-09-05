@@ -35,7 +35,6 @@ func (sd *SecurityDashboard) GetThreatIntelligence(ctx context.Context) (*Threat
 	return &ThreatIntelligence{}, nil
 }
 
-
 // EventFilters represents filters for security events
 type EventFilters struct {
 	StartTime time.Time
@@ -46,8 +45,8 @@ type EventFilters struct {
 
 // ThreatIntelligence represents threat intelligence data
 type ThreatIntelligence struct {
-	ActiveThreats   int
-	BlockedIPs      int
-	MaliciousURLs   int
-	LastUpdated     time.Time
+	ActiveThreats int
+	BlockedIPs    int
+	MaliciousURLs int
+	LastUpdated   time.Time
 }

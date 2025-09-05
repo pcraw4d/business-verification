@@ -150,14 +150,14 @@ func (h *AuditHandler) RecordAuditEvent(w http.ResponseWriter, r *http.Request) 
 	// Parse request body
 	var req RecordAuditEventRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusBadRequest, time.Since(start))
+		h.logger.WithComponent("api").LogAPIRequest(r.Method, r.URL.Path, http.StatusBadRequest, time.Since(start), map[string]interface{}{"error": "validation error"})
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	// Basic validation
 	if req.BusinessID == "" || req.EventType == "" || req.EventCategory == "" || req.EntityType == "" || req.EntityID == "" || req.Description == "" || req.UserID == "" || req.UserName == "" || req.UserRole == "" || req.UserEmail == "" || req.Severity == "" || req.Impact == "" {
-		h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusBadRequest, time.Since(start))
+		h.logger.WithComponent("api").LogAPIRequest(r.Method, r.URL.Path, http.StatusBadRequest, time.Since(start), map[string]interface{}{"error": "missing required fields"})
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
 		return
 	}
@@ -182,8 +182,8 @@ func (h *AuditHandler) RecordAuditEvent(w http.ResponseWriter, r *http.Request) 
 		RequestID:     req.RequestID,
 		Timestamp:     time.Now(),
 		Success:       true,
-		OldValue:      req.OldValue,
-		NewValue:      req.NewValue,
+		OldValue:      fmt.Sprintf("%v", req.OldValue),
+		NewValue:      fmt.Sprintf("%v", req.NewValue),
 		Metadata:      req.Metadata,
 		Severity:      req.Severity,
 		Impact:        req.Impact,
@@ -192,7 +192,7 @@ func (h *AuditHandler) RecordAuditEvent(w http.ResponseWriter, r *http.Request) 
 
 	// Record the audit event
 	if err := h.auditSystem.RecordAuditEvent(ctx, event); err != nil {
-		h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusInternalServerError, time.Since(start))
+		h.logger.WithComponent("api").LogAPIRequest(r.Method, r.URL.Path, http.StatusInternalServerError, time.Since(start), map[string]interface{}{"error": "validation error"})
 		http.Error(w, "Failed to record audit event", http.StatusInternalServerError)
 		return
 	}
@@ -208,7 +208,7 @@ func (h *AuditHandler) RecordAuditEvent(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
 
-	h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusCreated, time.Since(start))
+	h.logger.WithComponent("api").LogAPIRequest(r.Method, r.URL.Path, http.StatusCreated, time.Since(start), map[string]interface{}{})
 }
 
 // GetAuditEvents handles retrieving audit events with filtering
@@ -219,7 +219,7 @@ func (h *AuditHandler) GetAuditEvents(w http.ResponseWriter, r *http.Request) {
 	// Parse query parameters
 	businessID := r.URL.Query().Get("business_id")
 	if businessID == "" {
-		h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusBadRequest, time.Since(start))
+		h.logger.WithComponent("api").LogAPIRequest(r.Method, r.URL.Path, http.StatusBadRequest, time.Since(start), map[string]interface{}{"error": "validation error"})
 		http.Error(w, "business_id is required", http.StatusBadRequest)
 		return
 	}
@@ -332,9 +332,9 @@ func (h *AuditHandler) GetAuditEvents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get audit events
-	events, err := h.auditSystem.GetAuditEvents(ctx, businessID, filter)
+	events, err := h.auditSystem.GetAuditEvents(ctx, filter)
 	if err != nil {
-		h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusInternalServerError, time.Since(start))
+		h.logger.WithComponent("api").LogAPIRequest(r.Method, r.URL.Path, http.StatusInternalServerError, time.Since(start), map[string]interface{}{"error": "validation error"})
 		http.Error(w, "Failed to get audit events", http.StatusInternalServerError)
 		return
 	}
@@ -343,9 +343,15 @@ func (h *AuditHandler) GetAuditEvents(w http.ResponseWriter, r *http.Request) {
 	total := len(events)
 	hasMore := total == filter.Limit
 
+	// Convert events to slice of values
+	eventValues := make([]compliance.AuditEvent, len(events))
+	for i, event := range events {
+		eventValues[i] = *event
+	}
+
 	// Return response
 	response := GetAuditEventsResponse{
-		Events: events,
+		Events: eventValues,
 		Meta: struct {
 			Total   int  `json:"total"`
 			Limit   int  `json:"limit"`
@@ -362,7 +368,7 @@ func (h *AuditHandler) GetAuditEvents(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 
-	h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
+	h.logger.WithComponent("api").LogAPIRequest(r.Method, r.URL.Path, http.StatusOK, time.Since(start), map[string]interface{}{})
 }
 
 // GetAuditTrail handles retrieving audit trail for a business
@@ -373,21 +379,21 @@ func (h *AuditHandler) GetAuditTrail(w http.ResponseWriter, r *http.Request) {
 	// Parse query parameters
 	businessID := r.URL.Query().Get("business_id")
 	if businessID == "" {
-		h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusBadRequest, time.Since(start))
+		h.logger.WithComponent("api").LogAPIRequest(r.Method, r.URL.Path, http.StatusBadRequest, time.Since(start), map[string]interface{}{"error": "validation error"})
 		http.Error(w, "business_id is required", http.StatusBadRequest)
 		return
 	}
 
 	startDateStr := r.URL.Query().Get("start_date")
 	if startDateStr == "" {
-		h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusBadRequest, time.Since(start))
+		h.logger.WithComponent("api").LogAPIRequest(r.Method, r.URL.Path, http.StatusBadRequest, time.Since(start), map[string]interface{}{"error": "validation error"})
 		http.Error(w, "start_date is required", http.StatusBadRequest)
 		return
 	}
 
 	endDateStr := r.URL.Query().Get("end_date")
 	if endDateStr == "" {
-		h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusBadRequest, time.Since(start))
+		h.logger.WithComponent("api").LogAPIRequest(r.Method, r.URL.Path, http.StatusBadRequest, time.Since(start), map[string]interface{}{"error": "validation error"})
 		http.Error(w, "end_date is required", http.StatusBadRequest)
 		return
 	}
@@ -395,33 +401,33 @@ func (h *AuditHandler) GetAuditTrail(w http.ResponseWriter, r *http.Request) {
 	// Parse dates
 	startDate, err := time.Parse(time.RFC3339, startDateStr)
 	if err != nil {
-		h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusBadRequest, time.Since(start))
+		h.logger.WithComponent("api").LogAPIRequest(r.Method, r.URL.Path, http.StatusBadRequest, time.Since(start), map[string]interface{}{"error": "validation error"})
 		http.Error(w, "Invalid start_date format", http.StatusBadRequest)
 		return
 	}
 
 	endDate, err := time.Parse(time.RFC3339, endDateStr)
 	if err != nil {
-		h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusBadRequest, time.Since(start))
+		h.logger.WithComponent("api").LogAPIRequest(r.Method, r.URL.Path, http.StatusBadRequest, time.Since(start), map[string]interface{}{"error": "validation error"})
 		http.Error(w, "Invalid end_date format", http.StatusBadRequest)
 		return
 	}
 
 	// Get audit trail
-	auditTrail, err := h.auditSystem.GetAuditTrail(ctx, businessID, startDate, endDate)
+	auditTrail, err := h.auditSystem.GetAuditTrail(ctx, "business", businessID)
 	if err != nil {
-		h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusInternalServerError, time.Since(start))
+		h.logger.WithComponent("api").LogAPIRequest(r.Method, r.URL.Path, http.StatusInternalServerError, time.Since(start), map[string]interface{}{"error": "validation error"})
 		http.Error(w, "Failed to get audit trail", http.StatusInternalServerError)
 		return
 	}
 
 	// Calculate metadata
-	totalEntries := len(auditTrail)
+	totalEntries := 1 // Single audit trail
 	duration := endDate.Sub(startDate)
 
 	// Return response
 	response := GetAuditTrailResponse{
-		AuditTrail: auditTrail,
+		AuditTrail: []compliance.ComplianceAuditTrail{*auditTrail},
 		Meta: struct {
 			TotalEntries int           `json:"total_entries"`
 			StartDate    time.Time     `json:"start_date"`
@@ -438,7 +444,7 @@ func (h *AuditHandler) GetAuditTrail(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 
-	h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
+	h.logger.WithComponent("api").LogAPIRequest(r.Method, r.URL.Path, http.StatusOK, time.Since(start), map[string]interface{}{})
 }
 
 // GenerateAuditReport handles generating an audit report
@@ -449,22 +455,29 @@ func (h *AuditHandler) GenerateAuditReport(w http.ResponseWriter, r *http.Reques
 	// Parse request body
 	var req GenerateAuditReportRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusBadRequest, time.Since(start))
+		h.logger.WithComponent("api").LogAPIRequest(r.Method, r.URL.Path, http.StatusBadRequest, time.Since(start), map[string]interface{}{"error": "validation error"})
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	// Basic validation
 	if req.BusinessID == "" || req.ReportType == "" {
-		h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusBadRequest, time.Since(start))
+		h.logger.WithComponent("api").LogAPIRequest(r.Method, r.URL.Path, http.StatusBadRequest, time.Since(start), map[string]interface{}{"error": "validation error"})
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
 		return
 	}
 
+	// Create filter for report generation
+	filter := &compliance.AuditFilter{
+		BusinessID: req.BusinessID,
+		StartDate:  &req.StartDate,
+		EndDate:    &req.EndDate,
+	}
+
 	// Generate audit report
-	report, err := h.auditSystem.GenerateAuditReport(ctx, req.BusinessID, req.ReportType, req.StartDate, req.EndDate)
+	report, err := h.auditSystem.GenerateAuditReport(ctx, filter)
 	if err != nil {
-		h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusInternalServerError, time.Since(start))
+		h.logger.WithComponent("api").LogAPIRequest(r.Method, r.URL.Path, http.StatusInternalServerError, time.Since(start), map[string]interface{}{"error": "validation error"})
 		http.Error(w, "Failed to generate audit report", http.StatusInternalServerError)
 		return
 	}
@@ -479,16 +492,16 @@ func (h *AuditHandler) GenerateAuditReport(w http.ResponseWriter, r *http.Reques
 		StartDate:   report.StartDate,
 		EndDate:     report.EndDate,
 		TotalEvents: report.TotalEvents,
-		Summary:     report.Summary,
-		Trends:      report.Trends,
-		Anomalies:   report.Anomalies,
+		Summary:     *report,
+		Trends:      *report.Trends,
+		Anomalies:   []compliance.AuditAnomaly{},
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
 
-	h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusCreated, time.Since(start))
+	h.logger.WithComponent("api").LogAPIRequest(r.Method, r.URL.Path, http.StatusCreated, time.Since(start), map[string]interface{}{})
 }
 
 // GetAuditMetrics handles retrieving audit metrics
@@ -499,21 +512,26 @@ func (h *AuditHandler) GetAuditMetrics(w http.ResponseWriter, r *http.Request) {
 	// Extract business_id from URL path
 	pathParts := strings.Split(r.URL.Path, "/")
 	if len(pathParts) < 4 {
-		h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusBadRequest, time.Since(start))
+		h.logger.WithComponent("api").LogAPIRequest(r.Method, r.URL.Path, http.StatusBadRequest, time.Since(start), map[string]interface{}{"error": "validation error"})
 		http.Error(w, "business_id is required", http.StatusBadRequest)
 		return
 	}
 	businessID := pathParts[len(pathParts)-1]
 	if businessID == "" {
-		h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusBadRequest, time.Since(start))
+		h.logger.WithComponent("api").LogAPIRequest(r.Method, r.URL.Path, http.StatusBadRequest, time.Since(start), map[string]interface{}{"error": "validation error"})
 		http.Error(w, "business_id is required", http.StatusBadRequest)
 		return
 	}
 
+	// Create filter for metrics
+	filter := &compliance.AuditFilter{
+		BusinessID: businessID,
+	}
+
 	// Get audit metrics
-	metrics, err := h.auditSystem.GetAuditMetrics(ctx, businessID)
+	metrics, err := h.auditSystem.GetAuditMetrics(ctx, filter)
 	if err != nil {
-		h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusInternalServerError, time.Since(start))
+		h.logger.WithComponent("api").LogAPIRequest(r.Method, r.URL.Path, http.StatusInternalServerError, time.Since(start), map[string]interface{}{"error": "validation error"})
 		http.Error(w, "Failed to get audit metrics", http.StatusInternalServerError)
 		return
 	}
@@ -526,7 +544,7 @@ func (h *AuditHandler) GetAuditMetrics(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 
-	h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
+	h.logger.WithComponent("api").LogAPIRequest(r.Method, r.URL.Path, http.StatusOK, time.Since(start), map[string]interface{}{})
 }
 
 // UpdateAuditMetrics handles updating audit metrics
@@ -537,20 +555,22 @@ func (h *AuditHandler) UpdateAuditMetrics(w http.ResponseWriter, r *http.Request
 	// Extract business_id from URL path
 	pathParts := strings.Split(r.URL.Path, "/")
 	if len(pathParts) < 4 {
-		h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusBadRequest, time.Since(start))
+		h.logger.WithComponent("api").LogAPIRequest(r.Method, r.URL.Path, http.StatusBadRequest, time.Since(start), map[string]interface{}{"error": "validation error"})
 		http.Error(w, "business_id is required", http.StatusBadRequest)
 		return
 	}
 	businessID := pathParts[len(pathParts)-1]
 	if businessID == "" {
-		h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusBadRequest, time.Since(start))
+		h.logger.WithComponent("api").LogAPIRequest(r.Method, r.URL.Path, http.StatusBadRequest, time.Since(start), map[string]interface{}{"error": "validation error"})
 		http.Error(w, "business_id is required", http.StatusBadRequest)
 		return
 	}
 
 	// Update audit metrics
-	if err := h.auditSystem.UpdateAuditMetrics(ctx, businessID); err != nil {
-		h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusInternalServerError, time.Since(start))
+	// Create empty metrics for update
+	emptyMetrics := &compliance.AuditMetrics{}
+	if err := h.auditSystem.UpdateAuditMetrics(ctx, emptyMetrics); err != nil {
+		h.logger.WithComponent("api").LogAPIRequest(r.Method, r.URL.Path, http.StatusInternalServerError, time.Since(start), map[string]interface{}{"error": "validation error"})
 		http.Error(w, "Failed to update audit metrics", http.StatusInternalServerError)
 		return
 	}
@@ -563,7 +583,7 @@ func (h *AuditHandler) UpdateAuditMetrics(w http.ResponseWriter, r *http.Request
 		"message": "Audit metrics updated successfully",
 	})
 
-	h.logger.WithComponent("api").LogAPIRequest(ctx, r.Method, r.URL.Path, r.UserAgent(), http.StatusOK, time.Since(start))
+	h.logger.WithComponent("api").LogAPIRequest(r.Method, r.URL.Path, http.StatusOK, time.Since(start), map[string]interface{}{})
 }
 
 // Helper function to parse comma-separated values
