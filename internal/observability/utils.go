@@ -229,9 +229,9 @@ func (cqv *CodeQualityValidator) ValidateCodeQuality(ctx context.Context) *CodeQ
 func (cqv *CodeQualityValidator) GenerateQualityReport(metrics *CodeQualityMetrics) (map[string]interface{}, error) {
 	// Stub implementation
 	return map[string]interface{}{
-		"report_id":  "mock_report_id",
-		"timestamp":  "2024-01-01T00:00:00Z",
-		"metrics":    metrics,
+		"report_id": "mock_report_id",
+		"timestamp": "2024-01-01T00:00:00Z",
+		"metrics":   metrics,
 		"recommendations": []string{
 			"Improve test coverage",
 			"Reduce complexity",
