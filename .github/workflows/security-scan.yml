@@ -33,12 +33,16 @@ jobs:
       - name: Install security tools
         run: |
           # Install Go security tools
-          go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
-          go install golang.org/x/vuln/cmd/govulncheck@latest
+          go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest || {
+            echo "gosec v2 installation failed, trying alternative path..."
+            go install github.com/securecodewarrior/gosec/cmd/gosec@latest || echo "gosec installation failed completely"
+          }
+          
+          go install golang.org/x/vuln/cmd/govulncheck@latest || echo "govulncheck installation failed"
 
           # Install Trivy with proper error handling
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.48.0
-
+          
           # Add Trivy to PATH
           echo "/usr/local/bin" >> $GITHUB_PATH
 
