@@ -40,3 +40,12 @@ Please install the missing dependencies before running.
 [0;34mℹ[0m Cleanup runner terminated
 Fri Sep  5 06:00:01 EDT 2025: Starting cleanup health check
 Fri Sep  5 06:00:01 EDT 2025: Cleanup health check passed
+[0;34m=== KYB Platform - Comprehensive Cleanup Runner ===[0m
+[0;34mℹ[0m Starting cleanup process at Sat Sep  6 02:00:01 EDT 2025
+[0;34mℹ[0m Project root: /Users/petercrawford/New tool
+[0;34mℹ[0m Mode: LIVE
+[0;34mℹ[0m Shell cleanup: false
+[0;34mℹ[0m Go cleanup: true
+[0;34mℹ[0m Checking dependencies...
+Please install the missing dependencies before running.
+[0;34mℹ[0m Cleanup runner terminated

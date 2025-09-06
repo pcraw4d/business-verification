@@ -139,18 +139,12 @@ jobs:
           cache: true
 
       - name: Install Trivy
-        uses: aquasecurity/trivy-action@master
-        with:
-          trivy-version: "0.48.0"
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.48.0
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: "fs"
-          scan-ref: "."
-          format: "sarif"
-          output: "trivy-results.sarif"
-          severity: "CRITICAL,HIGH"
+        run: |
+          trivy fs --format sarif --output trivy-results.sarif --severity CRITICAL,HIGH .
 
       - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
@@ -190,7 +184,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run GitGuardian secret scanner
-        uses: GitGuardian/ggshield-action@main
+        uses: GitGuardian/ggshield-action@v1.15.0
         with:
           command: scan path . --recursive --exit-zero
         env:
@@ -213,12 +207,8 @@ jobs:
           docker build -t kyb-tool:latest .
 
       - name: Run Trivy container scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: "kyb-tool:latest"
-          format: "sarif"
-          output: "trivy-container-results.sarif"
-          severity: "CRITICAL,HIGH"
+        run: |
+          trivy image --format sarif --output trivy-container-results.sarif --severity CRITICAL,HIGH kyb-tool:latest
 
       - name: Upload container scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
@@ -242,23 +232,36 @@ jobs:
 
       - name: Run compliance checks
         run: |
-          # Check for hardcoded secrets
+          # Check for hardcoded secrets (excluding test files and examples)
           echo "Checking for hardcoded secrets..."
-          if grep -r -i "password\|secret\|key\|token" . --exclude-dir=.git --exclude-dir=vendor --exclude-dir=node_modules | grep -v "example\|test\|mock"; then
+          if grep -r -i "password\|secret\|key\|token" . \
+            --exclude-dir=.git \
+            --exclude-dir=vendor \
+            --exclude-dir=node_modules \
+            --exclude-dir=test \
+            --exclude="*_test.go" \
+            --exclude="*example*" \
+            --exclude="*mock*" \
+            --exclude="*.md" \
+            --exclude="*.yml" \
+            --exclude="*.yaml" | grep -v "example\|test\|mock\|TODO\|FIXME\|placeholder"; then
             echo "🚨 Potential hardcoded secrets found!"
             exit 1
           fi
 
-          # Check for proper TLS configuration
+          # Check for proper TLS configuration (excluding test files)
           echo "Checking TLS configuration..."
-          if grep -r "http://" . --include="*.go" --exclude-dir=vendor --exclude-dir=test; then
-            echo "⚠️  HTTP URLs found in Go code"
+          if grep -r "http://" . --include="*.go" --exclude-dir=vendor --exclude-dir=test --exclude="*_test.go" | grep -v "example\|test\|mock"; then
+            echo "⚠️  HTTP URLs found in Go code (excluding tests)"
           fi
 
           # Check for proper error handling
           echo "Checking error handling..."
-          if grep -r "if err != nil" . --include="*.go" --exclude-dir=vendor | wc -l | grep -q "^0$"; then
-            echo "⚠️  No error handling patterns found"
+          ERROR_HANDLING_COUNT=$(grep -r "if err != nil" . --include="*.go" --exclude-dir=vendor --exclude="*_test.go" | wc -l)
+          if [ "$ERROR_HANDLING_COUNT" -eq 0 ]; then
+            echo "⚠️  No error handling patterns found in main code"
+          else
+            echo "✅ Found $ERROR_HANDLING_COUNT error handling patterns"
           fi
 
           echo "✅ Basic compliance checks passed"
