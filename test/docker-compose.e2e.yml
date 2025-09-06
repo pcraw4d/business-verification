@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   # PostgreSQL database for E2E tests
@@ -78,27 +78,27 @@ services:
       DB_USER: kyb_test
       DB_PASSWORD: kyb_test_password
       DB_SSL_MODE: disable
-      
+
       # Redis configuration
       REDIS_HOST: redis-e2e
       REDIS_PORT: 6379
       REDIS_PASSWORD: ""
-      
+
       # External API configuration
       EXTERNAL_API_BASE_URL: http://mock-api-e2e:1080
-      
+
       # Test configuration
       TEST_MODE: true
       LOG_LEVEL: debug
       E2E_TEST_TIMEOUT: 30s
-      
+
       # Feature flags for E2E tests
       ENABLE_CLASSIFICATION: true
       ENABLE_ML_CLASSIFICATION: false
       ENABLE_KEYWORD_CLASSIFICATION: true
       ENABLE_WEBSITE_ANALYSIS: true
       ENABLE_WEB_SEARCH_ANALYSIS: false
-      
+
       # Performance settings for E2E tests
       MAX_CONCURRENT_REQUESTS: 10
       REQUEST_TIMEOUT: 30s

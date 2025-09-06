@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/pcraw4d/business-verification/internal/api/handlers"
+	"github.com/pcraw4d/business-verification/internal/config"
+	"github.com/pcraw4d/business-verification/internal/observability"
 	"github.com/pcraw4d/business-verification/internal/shared"
 	"github.com/pcraw4d/business-verification/test/mocks"
 )

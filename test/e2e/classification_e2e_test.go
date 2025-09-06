@@ -300,7 +300,7 @@ func TestAPIIntegrationE2E(t *testing.T) {
 		}
 
 		// Make API request
-		resp, err := http.Post(server.URL+"/api/v1/classify", "application/json", 
+		resp, err := http.Post(server.URL+"/api/v1/classify", "application/json",
 			bytes.NewReader(requestBody))
 		if err != nil {
 			t.Fatalf("Failed to make classification request: %v", err)

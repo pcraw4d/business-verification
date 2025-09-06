@@ -10,10 +10,10 @@ import (
 // MockClassificationService provides a mock implementation of classification service for E2E tests
 type MockClassificationService struct {
 	// Configuration for mock behavior
-	ShouldFail    bool
-	Delay         time.Duration
-	MockResults   []shared.IndustryClassification
-	ErrorMessage  string
+	ShouldFail   bool
+	Delay        time.Duration
+	MockResults  []shared.IndustryClassification
+	ErrorMessage string
 }
 
 // NewMockClassificationService creates a new mock classification service
@@ -43,16 +43,16 @@ func (m *MockClassificationService) ClassifyBusiness(ctx context.Context, reques
 
 	// Create mock response
 	response := &shared.BusinessClassificationResponse{
-		ID:                    request.ID,
-		BusinessName:          request.BusinessName,
-		Classifications:       m.MockResults,
-		OverallConfidence:     0.85,
-		ClassificationMethod:  "mock_classification",
-		ProcessingTime:        m.Delay,
-		ModuleResults:         make(map[string]shared.ModuleResult),
-		RawData:               make(map[string]interface{}),
-		CreatedAt:             time.Now(),
-		Metadata:              make(map[string]interface{}),
+		ID:                   request.ID,
+		BusinessName:         request.BusinessName,
+		Classifications:      m.MockResults,
+		OverallConfidence:    0.85,
+		ClassificationMethod: "mock_classification",
+		ProcessingTime:       m.Delay,
+		ModuleResults:        make(map[string]shared.ModuleResult),
+		RawData:              make(map[string]interface{}),
+		CreatedAt:            time.Now(),
+		Metadata:             make(map[string]interface{}),
 	}
 
 	// Set primary classification if results exist
@@ -104,10 +104,10 @@ func getDefaultMockResults() []shared.IndustryClassification {
 			Evidence:             "Mock classification based on business name and description",
 			ProcessingTime:       50 * time.Millisecond,
 			Metadata: map[string]interface{}{
-				"source":        "mock_service",
-				"algorithm":     "keyword_matching",
-				"version":       "1.0.0",
-				"test_mode":     true,
+				"source":    "mock_service",
+				"algorithm": "keyword_matching",
+				"version":   "1.0.0",
+				"test_mode": true,
 			},
 		},
 		{
@@ -120,10 +120,10 @@ func getDefaultMockResults() []shared.IndustryClassification {
 			Evidence:             "Mock secondary classification based on business description",
 			ProcessingTime:       30 * time.Millisecond,
 			Metadata: map[string]interface{}{
-				"source":        "mock_service",
-				"algorithm":     "keyword_matching",
-				"version":       "1.0.0",
-				"test_mode":     true,
+				"source":    "mock_service",
+				"algorithm": "keyword_matching",
+				"version":   "1.0.0",
+				"test_mode": true,
 			},
 		},
 	}
