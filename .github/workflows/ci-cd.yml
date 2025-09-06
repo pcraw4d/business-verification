@@ -24,8 +24,7 @@ on:
         type: boolean
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: kyb-platform
 
 jobs:
   # Build and Test Stage
@@ -47,7 +46,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: "1.24"
+          go-version: "1.22"
           cache: true
 
       - name: Set up Docker Buildx
@@ -55,37 +54,21 @@ jobs:
         with:
           platforms: linux/amd64,linux/arm64
 
-      - name: Log in to Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
+      - name: Set up build metadata
         id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-          labels: |
-            org.opencontainers.image.title=KYB Platform
-            org.opencontainers.image.description=Enterprise-Grade Know Your Business Platform
-            org.opencontainers.image.vendor=KYB Platform Team
+        run: |
+          echo "tags=kyb-platform:latest" >> $GITHUB_OUTPUT
+          echo "labels=org.opencontainers.image.title=KYB Platform,org.opencontainers.image.description=Enterprise-Grade Know Your Business Platform,org.opencontainers.image.vendor=KYB Platform Team" >> $GITHUB_OUTPUT
 
-      - name: Build and push Docker image
+      - name: Build Docker image (local only)
         id: build
         uses: docker/build-push-action@v5
         with:
           context: .
           platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          push: false
+          load: true
+          tags: kyb-platform:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
@@ -226,15 +209,16 @@ jobs:
           docker build -t kyb-platform:security-scan .
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: "kyb-platform:security-scan"
-          format: "sarif"
-          output: "trivy-results.sarif"
-          severity: "CRITICAL,HIGH"
+        run: |
+          # Install Trivy
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.48.0
+
+          # Run Trivy scan
+          trivy image --format sarif --output trivy-results.sarif --severity CRITICAL,HIGH kyb-platform:security-scan
 
       - name: Run Snyk security scan
-        uses: snyk/actions/docker@master
+        if: ${{ secrets.SNYK_TOKEN != '' }}
+        uses: snyk/actions/docker@v1.0.0
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
@@ -303,7 +287,7 @@ jobs:
     name: Deploy to Staging
     runs-on: ubuntu-latest
     needs: [build-and-test, security-scan, code-quality]
-    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    if: false # Disabled for now - enable when deployment is ready
     environment: staging
 
     steps:
@@ -366,7 +350,7 @@ jobs:
     name: Deploy to Production
     runs-on: ubuntu-latest
     needs: [build-and-test, security-scan, code-quality]
-    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    if: false # Disabled for now - enable when deployment is ready
     environment: production
 
     steps:
@@ -468,7 +452,7 @@ jobs:
   rollback:
     name: Rollback Deployment
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.rollback == 'true'
+    if: false # Disabled for now - enable when deployment is ready
     environment: production
 
     steps:
