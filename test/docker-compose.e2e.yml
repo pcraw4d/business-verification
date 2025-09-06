@@ -1,0 +1,122 @@
+version: '3.8'
+
+services:
+  # PostgreSQL database for E2E tests
+  postgres-e2e:
+    image: postgres:15-alpine
+    container_name: kyb-e2e-postgres
+    environment:
+      POSTGRES_DB: kyb_e2e_test
+      POSTGRES_USER: kyb_test
+      POSTGRES_PASSWORD: kyb_test_password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_e2e_data:/var/lib/postgresql/data
+      - ./testdata/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kyb_test -d kyb_e2e_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kyb-e2e-network
+
+  # Redis for caching in E2E tests
+  redis-e2e:
+    image: redis:7-alpine
+    container_name: kyb-e2e-redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_e2e_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - kyb-e2e-network
+
+  # Mock external API server for E2E tests
+  mock-api-e2e:
+    image: mockserver/mockserver:5.15.0
+    container_name: kyb-e2e-mock-api
+    ports:
+      - "1080:1080"
+    environment:
+      MOCKSERVER_INITIALIZATION_JSON_PATH: /config/initializerJson.json
+    volumes:
+      - ./testdata/mock-api-config.json:/config/initializerJson.json
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:1080/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kyb-e2e-network
+
+  # Test application container
+  kyb-e2e-app:
+    build:
+      context: ..
+      dockerfile: test/Dockerfile.e2e
+    container_name: kyb-e2e-app
+    depends_on:
+      postgres-e2e:
+        condition: service_healthy
+      redis-e2e:
+        condition: service_healthy
+      mock-api-e2e:
+        condition: service_healthy
+    environment:
+      # Database configuration
+      DB_HOST: postgres-e2e
+      DB_PORT: 5432
+      DB_NAME: kyb_e2e_test
+      DB_USER: kyb_test
+      DB_PASSWORD: kyb_test_password
+      DB_SSL_MODE: disable
+      
+      # Redis configuration
+      REDIS_HOST: redis-e2e
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      
+      # External API configuration
+      EXTERNAL_API_BASE_URL: http://mock-api-e2e:1080
+      
+      # Test configuration
+      TEST_MODE: true
+      LOG_LEVEL: debug
+      E2E_TEST_TIMEOUT: 30s
+      
+      # Feature flags for E2E tests
+      ENABLE_CLASSIFICATION: true
+      ENABLE_ML_CLASSIFICATION: false
+      ENABLE_KEYWORD_CLASSIFICATION: true
+      ENABLE_WEBSITE_ANALYSIS: true
+      ENABLE_WEB_SEARCH_ANALYSIS: false
+      
+      # Performance settings for E2E tests
+      MAX_CONCURRENT_REQUESTS: 10
+      REQUEST_TIMEOUT: 30s
+      CACHE_TTL: 5m
+    volumes:
+      - ../test:/app/test
+      - ../internal:/app/internal
+      - ../pkg:/app/pkg
+    networks:
+      - kyb-e2e-network
+    command: ["go", "test", "-v", "-tags=e2e", "./test/e2e/..."]
+
+volumes:
+  postgres_e2e_data:
+    driver: local
+  redis_e2e_data:
+    driver: local
+
+networks:
+  kyb-e2e-network:
+    driver: bridge

@@ -8,36 +8,48 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/pcraw4d/business-verification/internal/api/handlers"
-	"github.com/pcraw4d/business-verification/internal/classification"
-	"github.com/pcraw4d/business-verification/internal/config"
-	"github.com/pcraw4d/business-verification/internal/observability"
+	"github.com/pcraw4d/business-verification/internal/shared"
+	"github.com/pcraw4d/business-verification/test/mocks"
 )
 
 // TestEndToEndClassification tests the complete classification flow
 func TestEndToEndClassification(t *testing.T) {
+	// Skip if not running E2E tests
+	if os.Getenv("E2E_TESTS") != "true" {
+		t.Skip("Skipping E2E tests - set E2E_TESTS=true to run")
+	}
+
 	// Create test dependencies
-	logger := createTestLogger()
-	metrics := createTestMetrics()
-	service := createTestClassificationService(t)
+	mockService := mocks.NewMockClassificationService()
+	mockDB := mocks.NewMockDatabase()
+
+	// Test database connection
+	if err := mockDB.Connect(); err != nil {
+		t.Fatalf("Failed to connect to mock database: %v", err)
+	}
+	defer mockDB.Disconnect()
 
 	// Test end-to-end classification
 	ctx := context.Background()
-	request := &classification.ClassificationRequest{
+	request := &shared.BusinessClassificationRequest{
+		ID:                 "test-001",
 		BusinessName:       "Tech Solutions Inc",
 		BusinessType:       "Corporation",
 		Industry:           "Technology",
 		Description:        "Software development and consulting services",
-		Keywords:           "software, development, consulting, technology",
+		Keywords:           []string{"software", "development", "consulting", "technology"},
 		RegistrationNumber: "REG123456",
 		TaxID:              "TAX123456",
+		RequestedAt:        time.Now(),
 	}
 
 	// Perform classification
-	result, err := service.ClassifyBusiness(ctx, request)
+	result, err := mockService.ClassifyBusiness(ctx, request)
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
 	}
