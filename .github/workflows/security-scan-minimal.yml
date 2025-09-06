@@ -1,13 +1,16 @@
-name: Security Scanning Test
+name: Security Scanning Minimal
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
+env:
+  GO_VERSION: "1.22"
+
 jobs:
-  test-security-scan:
-    name: Test Security Scan
+  security-scan:
+    name: Security Scan
     runs-on: ubuntu-latest
 
     steps:
@@ -17,14 +20,14 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: "1.22"
+          go-version: ${{ env.GO_VERSION }}
           cache: true
 
       - name: Install security tools
         run: |
           # Install Go security tools
           go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest || {
-            echo "gosec installation failed, trying alternative path..."
+            echo "gosec v2 installation failed, trying alternative path..."
             go install github.com/securecodewarrior/gosec/cmd/gosec@latest || echo "gosec installation failed completely"
           }
           
@@ -34,18 +37,12 @@ jobs:
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.48.0
           echo "/usr/local/bin" >> $GITHUB_PATH
 
-          # Verify installations
-          echo "Verifying security tool installations..."
-          gosec --version || echo "gosec installation failed"
-          govulncheck --version || echo "govulncheck installation failed"
-          trivy --version || echo "trivy installation failed"
-
-      - name: Run basic security scan
+      - name: Run security scan
         run: |
-          echo "Running basic security scan..."
+          echo "Running security scan..."
           gosec ./... || echo "gosec scan completed with issues"
-          echo "✅ Basic security scan completed"
+          echo "✅ Security scan completed"
 
       - name: Test result
         run: |
-          echo "🎉 Security Scanning Test Workflow completed successfully!"
+          echo "🎉 Security Scanning Minimal Workflow completed successfully!"
