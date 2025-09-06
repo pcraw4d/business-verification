@@ -12,6 +12,7 @@ import (
 
 	"github.com/pcraw4d/business-verification/internal/observability"
 	"github.com/pcraw4d/business-verification/internal/shared"
+	"go.opentelemetry.io/otel/codes"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -92,7 +93,7 @@ func (m *MockSpan) SpanContext() trace.SpanContext {
 	return args.Get(0).(trace.SpanContext)
 }
 
-func (m *MockSpan) SetStatus(code trace.StatusCode, description string) {
+func (m *MockSpan) SetStatus(code codes.Code, description string) {
 	m.Called(code, description)
 }
 

@@ -5,37 +5,32 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/pcraw4d/business-verification/internal/observability"
+	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
 )
 
 func TestNewIntelligentCache(t *testing.T) {
 	config := &IntelligentCacheConfig{
-		BaseConfig: &CacheConfig{
-			Type:            MemoryCache,
-			DefaultTTL:      30 * time.Minute,
-			MaxSize:         100,
-			CleanupInterval: 1 * time.Minute,
-		},
-		MinAccessCount:            5,
-		AnalysisWindow:            30 * time.Second,
-		PromotionThreshold:        0.8,
-		BaseTTL:                   15 * time.Minute,
-		MaxTTL:                    2 * time.Hour,
-		TTLMultiplier:             1.2,
-		HighPriorityTTL:           2 * time.Hour,
-		MediumPriorityTTL:         1 * time.Hour,
-		LowPriorityTTL:            15 * time.Minute,
-		EnableFrequencyAnalysis:   true,
-		EnableAdaptiveTTL:         true,
-		EnablePriorityCaching:     true,
-		EnableExpirationManager:   true,
-		EnableInvalidationManager: true,
-		EnableEvictionManager:     true,
+		MemoryCacheSize:         100,
+		MemoryCacheTTL:          30 * time.Minute,
+		MemoryEvictionPolicy:    "lru",
+		DiskCacheEnabled:        false,
+		DistributedCacheEnabled: false,
+		WarmingEnabled:          true,
+		WarmingInterval:         5 * time.Minute,
+		WarmingBatchSize:        10,
+		WarmingStrategy:         "lru",
+		PerformanceMonitoring:   true,
+		PerformanceInterval:     1 * time.Minute,
+		HitRateThreshold:        0.8,
+		OptimizationInterval:    5 * time.Minute,
 	}
 
-	cache, err := NewIntelligentCache(config)
-	if err != nil {
-		t.Fatalf("NewIntelligentCache failed: %v", err)
-	}
+	logger := observability.NewLogger(zap.NewNop())
+	tracer := trace.NewNoopTracerProvider().Tracer("test")
+	cache := NewIntelligentCache(config, logger, tracer)
 	if cache == nil {
 		t.Fatal("NewIntelligentCache returned nil")
 	}
@@ -52,9 +47,6 @@ func TestNewIntelligentCache(t *testing.T) {
 
 func TestIntelligentCache_GetSet(t *testing.T) {
 	cache, err := NewIntelligentCache(nil)
-	if err != nil {
-		t.Fatalf("NewIntelligentCache failed: %v", err)
-	}
 	ctx := context.Background()
 
 	// Test basic get/set
@@ -78,9 +70,6 @@ func TestIntelligentCache_GetSet(t *testing.T) {
 
 func TestIntelligentCache_AccessTracking(t *testing.T) {
 	cache, err := NewIntelligentCache(nil)
-	if err != nil {
-		t.Fatalf("NewIntelligentCache failed: %v", err)
-	}
 	ctx := context.Background()
 
 	key := "frequent-key"
@@ -124,7 +113,9 @@ func TestIntelligentCache_ExpirationManager(t *testing.T) {
 		ExpirationCheckInterval: 100 * time.Millisecond, // Fast for testing
 	}
 
-	cache, err := NewIntelligentCache(config)
+	logger := observability.NewLogger(zap.NewNop())
+	tracer := trace.NewNoopTracerProvider().Tracer("test")
+	cache := NewIntelligentCache(config, logger, tracer)
 	if err != nil {
 		t.Fatalf("Failed to create intelligent cache: %v", err)
 	}
@@ -183,7 +174,9 @@ func TestIntelligentCache_InvalidationManager(t *testing.T) {
 		EnableInvalidationManager: true,
 	}
 
-	cache, err := NewIntelligentCache(config)
+	logger := observability.NewLogger(zap.NewNop())
+	tracer := trace.NewNoopTracerProvider().Tracer("test")
+	cache := NewIntelligentCache(config, logger, tracer)
 	if err != nil {
 		t.Fatalf("Failed to create intelligent cache: %v", err)
 	}
@@ -329,7 +322,9 @@ func TestIntelligentCache_EvictionManager(t *testing.T) {
 		EvictionPolicy:        LRUEviction,
 	}
 
-	cache, err := NewIntelligentCache(config)
+	logger := observability.NewLogger(zap.NewNop())
+	tracer := trace.NewNoopTracerProvider().Tracer("test")
+	cache := NewIntelligentCache(config, logger, tracer)
 	if err != nil {
 		t.Fatalf("Failed to create intelligent cache: %v", err)
 	}
@@ -404,7 +399,9 @@ func TestIntelligentCache_AdaptiveTTL(t *testing.T) {
 		MinAccessCount:    3,
 	}
 
-	cache, err := NewIntelligentCache(config)
+	logger := observability.NewLogger(zap.NewNop())
+	tracer := trace.NewNoopTracerProvider().Tracer("test")
+	cache := NewIntelligentCache(config, logger, tracer)
 	if err != nil {
 		t.Fatalf("Failed to create intelligent cache: %v", err)
 	}
@@ -462,7 +459,9 @@ func TestIntelligentCache_PriorityCaching(t *testing.T) {
 		PromotionThreshold:    0.5,
 	}
 
-	cache, err := NewIntelligentCache(config)
+	logger := observability.NewLogger(zap.NewNop())
+	tracer := trace.NewNoopTracerProvider().Tracer("test")
+	cache := NewIntelligentCache(config, logger, tracer)
 	if err != nil {
 		t.Fatalf("Failed to create intelligent cache: %v", err)
 	}
@@ -538,7 +537,9 @@ func TestIntelligentCache_ComprehensiveStats(t *testing.T) {
 		AnalysisWindow:            1 * time.Second,
 	}
 
-	cache, err := NewIntelligentCache(config)
+	logger := observability.NewLogger(zap.NewNop())
+	tracer := trace.NewNoopTracerProvider().Tracer("test")
+	cache := NewIntelligentCache(config, logger, tracer)
 	if err != nil {
 		t.Fatalf("Failed to create intelligent cache: %v", err)
 	}
@@ -607,7 +608,9 @@ func TestIntelligentCache_ErrorHandling(t *testing.T) {
 		EnableInvalidationManager: false, // Disable for testing
 	}
 
-	cache, err := NewIntelligentCache(config)
+	logger := observability.NewLogger(zap.NewNop())
+	tracer := trace.NewNoopTracerProvider().Tracer("test")
+	cache := NewIntelligentCache(config, logger, tracer)
 	if err != nil {
 		t.Fatalf("Failed to create intelligent cache: %v", err)
 	}
@@ -651,7 +654,9 @@ func TestIntelligentCache_ConcurrentAccess(t *testing.T) {
 		EvictionCheckInterval:     100 * time.Millisecond,
 	}
 
-	cache, err := NewIntelligentCache(config)
+	logger := observability.NewLogger(zap.NewNop())
+	tracer := trace.NewNoopTracerProvider().Tracer("test")
+	cache := NewIntelligentCache(config, logger, tracer)
 	if err != nil {
 		t.Fatalf("Failed to create intelligent cache: %v", err)
 	}

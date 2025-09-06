@@ -135,12 +135,12 @@ func (erm *ErrorResilienceManager) RegisterCircuitBreaker(
 		State:            CircuitBreakerClosed,
 	}
 
-	erm.logger.Info("Circuit breaker registered",
-		"name", name,
-		"failure_threshold", failureThreshold,
-		"success_threshold", successThreshold,
-		"timeout", timeout,
-	)
+	erm.logger.Info("Circuit breaker registered", map[string]interface{}{
+		"name":              name,
+		"failure_threshold": failureThreshold,
+		"success_threshold": successThreshold,
+		"timeout":           timeout,
+	})
 }
 
 // RegisterRetryPolicy registers a retry policy for a module
@@ -164,13 +164,13 @@ func (erm *ErrorResilienceManager) RegisterRetryPolicy(
 		RetryableErrors: retryableErrors,
 	}
 
-	erm.logger.Info("Retry policy registered",
-		"name", name,
-		"max_attempts", maxAttempts,
-		"initial_delay", initialDelay,
-		"max_delay", maxDelay,
-		"backoff_factor", backoffFactor,
-	)
+	erm.logger.Info("Retry policy registered", map[string]interface{}{
+		"name":           name,
+		"max_attempts":   maxAttempts,
+		"initial_delay":  initialDelay,
+		"max_delay":      maxDelay,
+		"backoff_factor": backoffFactor,
+	})
 }
 
 // RegisterFallbackStrategy registers a fallback strategy for a module
@@ -194,13 +194,13 @@ func (erm *ErrorResilienceManager) RegisterFallbackStrategy(
 		DegradationLevel:  degradationLevel,
 	}
 
-	erm.logger.Info("Fallback strategy registered",
-		"name", name,
-		"enabled", enabled,
-		"strategy", strategy,
-		"alternative_module", alternativeModule,
-		"degradation_level", degradationLevel,
-	)
+	erm.logger.Info("Fallback strategy registered", map[string]interface{}{
+		"name":               name,
+		"enabled":            enabled,
+		"strategy":           strategy,
+		"alternative_module": alternativeModule,
+		"degradation_level":  degradationLevel,
+	})
 }
 
 // RegisterDegradationPolicy registers a degradation policy for a module
@@ -222,12 +222,12 @@ func (erm *ErrorResilienceManager) RegisterDegradationPolicy(
 		MinimalResultThreshold: minimalResultThreshold,
 	}
 
-	erm.logger.Info("Degradation policy registered",
-		"name", name,
-		"enabled", enabled,
-		"partial_threshold", partialResultThreshold,
-		"minimal_threshold", minimalResultThreshold,
-	)
+	erm.logger.Info("Degradation policy registered", map[string]interface{}{
+		"name":              name,
+		"enabled":           enabled,
+		"partial_threshold": partialResultThreshold,
+		"minimal_threshold": minimalResultThreshold,
+	})
 }
 
 // ExecuteWithResilience executes a module with full error resilience
@@ -585,7 +585,9 @@ func (erm *ErrorResilienceManager) recordSuccess(moduleName string) {
 		erm.metrics.SuccessfulRecoveries++
 		erm.metrics.mu.Unlock()
 
-		erm.logger.Info("Circuit breaker closed", "name", moduleName)
+		erm.logger.Info("Circuit breaker closed", map[string]interface{}{
+			"name": moduleName,
+		})
 	}
 }
 
@@ -613,7 +615,9 @@ func (erm *ErrorResilienceManager) recordFailure(moduleName string) {
 		erm.metrics.CircuitBreakerTrips++
 		erm.metrics.mu.Unlock()
 
-		erm.logger.Warn("Circuit breaker opened", "name", moduleName)
+		erm.logger.Warn("Circuit breaker opened", map[string]interface{}{
+			"name": moduleName,
+		})
 	} else if cb.State == CircuitBreakerHalfOpen {
 		cb.State = CircuitBreakerOpen
 		cb.FailureCount = 0
@@ -622,7 +626,9 @@ func (erm *ErrorResilienceManager) recordFailure(moduleName string) {
 		erm.metrics.CircuitBreakerTrips++
 		erm.metrics.mu.Unlock()
 
-		erm.logger.Warn("Circuit breaker reopened", "name", moduleName)
+		erm.logger.Warn("Circuit breaker reopened", map[string]interface{}{
+			"name": moduleName,
+		})
 	}
 }
 
@@ -701,7 +707,9 @@ func (erm *ErrorResilienceManager) ResetCircuitBreaker(moduleName string) error 
 	cb.FailureCount = 0
 	cb.SuccessCount = 0
 
-	erm.logger.Info("Circuit breaker reset", "name", moduleName)
+	erm.logger.Info("Circuit breaker reset", map[string]interface{}{
+		"name": moduleName,
+	})
 	return nil
 }
 

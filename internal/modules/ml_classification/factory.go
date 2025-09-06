@@ -43,7 +43,7 @@ func (f *MLClassificationFactory) CreateModule(config architecture.ModuleConfig)
 	module.config = config
 
 	// Create module logger
-	moduleLogger := observability.NewModuleLogger(f.logger, f.tracer, module.ID())
+	moduleLogger := observability.NewModuleLogger(f.logger.GetZapLogger(), module.ID())
 
 	// Inject dependencies
 	module.logger = moduleLogger

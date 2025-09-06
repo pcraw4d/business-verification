@@ -7,6 +7,7 @@ import (
 	"github.com/pcraw4d/business-verification/internal/api/middleware"
 	"github.com/pcraw4d/business-verification/internal/observability"
 	"github.com/pcraw4d/business-verification/internal/routing"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // RouteConfig holds configuration for route registration
@@ -139,7 +140,7 @@ func CreateIntelligentRoutingHandler(
 	router *routing.IntelligentRouter,
 	logger *observability.Logger,
 	metrics *observability.Metrics,
-	tracer interface{}, // Using interface{} to avoid import issues
+	tracer trace.Tracer,
 ) *handlers.IntelligentRoutingHandler {
 	return handlers.NewIntelligentRoutingHandler(router, logger, metrics, tracer)
 }

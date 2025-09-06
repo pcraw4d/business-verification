@@ -5,18 +5,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/config"
 	"github.com/pcraw4d/business-verification/internal/observability"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func TestServiceClient_NewServiceClient(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	registry := NewServiceRegistry(logger)
 	discovery := NewServiceDiscovery(logger, registry)
 	loadBalancer := NewServiceLoadBalancer(discovery, logger)
@@ -49,11 +46,8 @@ func TestServiceClient_NewServiceClient(t *testing.T) {
 }
 
 func TestServiceClient_Call_Success(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	registry := NewServiceRegistry(logger)
 	discovery := NewServiceDiscovery(logger, registry)
 	loadBalancer := NewServiceLoadBalancer(discovery, logger)
@@ -87,11 +81,8 @@ func TestServiceClient_Call_Success(t *testing.T) {
 }
 
 func TestServiceClient_Call_RateLimited(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	registry := NewServiceRegistry(logger)
 	discovery := NewServiceDiscovery(logger, registry)
 	loadBalancer := NewServiceLoadBalancer(discovery, logger)
@@ -121,11 +112,8 @@ func TestServiceClient_Call_RateLimited(t *testing.T) {
 }
 
 func TestServiceClient_CallAsync_Success(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	registry := NewServiceRegistry(logger)
 	discovery := NewServiceDiscovery(logger, registry)
 	loadBalancer := NewServiceLoadBalancer(discovery, logger)
@@ -169,11 +157,8 @@ func TestServiceClient_CallAsync_Success(t *testing.T) {
 }
 
 func TestServiceClient_CallAsync_RateLimited(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	registry := NewServiceRegistry(logger)
 	discovery := NewServiceDiscovery(logger, registry)
 	loadBalancer := NewServiceLoadBalancer(discovery, logger)
@@ -212,11 +197,8 @@ func TestServiceClient_CallAsync_RateLimited(t *testing.T) {
 }
 
 func TestServiceClient_Health(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	registry := NewServiceRegistry(logger)
 	discovery := NewServiceDiscovery(logger, registry)
 	loadBalancer := NewServiceLoadBalancer(discovery, logger)
@@ -246,11 +228,8 @@ func TestServiceClient_Health(t *testing.T) {
 }
 
 func TestServiceLoadBalancer_NewServiceLoadBalancer(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	registry := NewServiceRegistry(logger)
 	discovery := NewServiceDiscovery(logger, registry)
 
@@ -262,11 +241,8 @@ func TestServiceLoadBalancer_NewServiceLoadBalancer(t *testing.T) {
 }
 
 func TestServiceLoadBalancer_Select_NoInstances(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	registry := NewServiceRegistry(logger)
 	discovery := NewServiceDiscovery(logger, registry)
 	loadBalancer := NewServiceLoadBalancer(discovery, logger)
@@ -279,11 +255,8 @@ func TestServiceLoadBalancer_Select_NoInstances(t *testing.T) {
 }
 
 func TestServiceLoadBalancer_Select_WithInstances(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	registry := NewServiceRegistry(logger)
 	discovery := NewServiceDiscovery(logger, registry)
 	loadBalancer := NewServiceLoadBalancer(discovery, logger)
@@ -332,11 +305,8 @@ func TestServiceLoadBalancer_Select_WithInstances(t *testing.T) {
 }
 
 func TestServiceLoadBalancer_Select_OnlyUnhealthyInstances(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	registry := NewServiceRegistry(logger)
 	discovery := NewServiceDiscovery(logger, registry)
 	loadBalancer := NewServiceLoadBalancer(discovery, logger)
@@ -368,11 +338,8 @@ func TestServiceLoadBalancer_Select_OnlyUnhealthyInstances(t *testing.T) {
 }
 
 func TestServiceLoadBalancer_UpdateHealth(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	registry := NewServiceRegistry(logger)
 	discovery := NewServiceDiscovery(logger, registry)
 	loadBalancer := NewServiceLoadBalancer(discovery, logger)
@@ -390,11 +357,8 @@ func TestServiceLoadBalancer_UpdateHealth(t *testing.T) {
 }
 
 func TestServiceLoadBalancer_GetInstances(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	registry := NewServiceRegistry(logger)
 	discovery := NewServiceDiscovery(logger, registry)
 	loadBalancer := NewServiceLoadBalancer(discovery, logger)
@@ -438,11 +402,8 @@ func TestServiceLoadBalancer_GetInstances(t *testing.T) {
 }
 
 func TestServiceCircuitBreaker_NewServiceCircuitBreaker(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 
 	circuitBreaker := NewServiceCircuitBreaker(logger)
 
@@ -452,11 +413,8 @@ func TestServiceCircuitBreaker_NewServiceCircuitBreaker(t *testing.T) {
 }
 
 func TestServiceCircuitBreaker_Execute_Success(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	circuitBreaker := NewServiceCircuitBreaker(logger)
 
 	// Mock successful service call
@@ -472,11 +430,8 @@ func TestServiceCircuitBreaker_Execute_Success(t *testing.T) {
 }
 
 func TestServiceCircuitBreaker_Execute_Failure(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	circuitBreaker := NewServiceCircuitBreaker(logger)
 
 	// Mock failed service call
@@ -493,11 +448,8 @@ func TestServiceCircuitBreaker_Execute_Failure(t *testing.T) {
 }
 
 func TestServiceCircuitBreaker_GetState(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	circuitBreaker := NewServiceCircuitBreaker(logger)
 
 	// Get state for non-existent service
@@ -510,11 +462,8 @@ func TestServiceCircuitBreaker_GetState(t *testing.T) {
 }
 
 func TestServiceCircuitBreaker_Reset(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	circuitBreaker := NewServiceCircuitBreaker(logger)
 
 	// Reset non-existent service
@@ -529,11 +478,8 @@ func TestServiceCircuitBreaker_Reset(t *testing.T) {
 }
 
 func TestServiceMetrics_NewServiceMetrics(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 
 	metrics := NewServiceMetrics(logger)
 
@@ -543,11 +489,8 @@ func TestServiceMetrics_NewServiceMetrics(t *testing.T) {
 }
 
 func TestServiceMetrics_RecordRequest(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	metrics := NewServiceMetrics(logger)
 
 	// Record successful request
@@ -568,11 +511,8 @@ func TestServiceMetrics_RecordRequest(t *testing.T) {
 }
 
 func TestServiceMetrics_RecordLatency(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	metrics := NewServiceMetrics(logger)
 
 	// Record latency
@@ -588,11 +528,8 @@ func TestServiceMetrics_RecordLatency(t *testing.T) {
 }
 
 func TestServiceMetrics_RecordError(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	metrics := NewServiceMetrics(logger)
 
 	// Record errors
@@ -607,11 +544,8 @@ func TestServiceMetrics_RecordError(t *testing.T) {
 }
 
 func TestServiceMetrics_GetMetrics_NonExistent(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	metrics := NewServiceMetrics(logger)
 
 	// Get metrics for non-existent service
@@ -664,11 +598,8 @@ func (m *MockServiceRateLimiter) SetRateLimit(serviceName string, requestsPerSec
 
 // Test concurrent operations
 func TestServiceCommunication_ConcurrentOperations(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	registry := NewServiceRegistry(logger)
 	discovery := NewServiceDiscovery(logger, registry)
 	loadBalancer := NewServiceLoadBalancer(discovery, logger)
@@ -734,11 +665,8 @@ func TestServiceCommunication_ConcurrentOperations(t *testing.T) {
 
 // Test circuit breaker state transitions
 func TestServiceCircuitBreaker_StateTransitions(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	circuitBreaker := NewServiceCircuitBreaker(logger)
 
 	// Configure circuit breaker for faster testing

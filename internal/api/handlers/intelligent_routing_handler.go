@@ -97,6 +97,11 @@ func (h *IntelligentRoutingHandler) ClassifyBusiness(w http.ResponseWriter, r *h
 	h.writeResponse(w, response, http.StatusOK)
 }
 
+// ClassifyBusinessBatch is an alias for ClassifyBusinessesBatch for backward compatibility
+func (h *IntelligentRoutingHandler) ClassifyBusinessBatch(w http.ResponseWriter, r *http.Request) {
+	h.ClassifyBusinessesBatch(w, r)
+}
+
 // ClassifyBusinessesBatch handles batch business classification requests using intelligent routing
 func (h *IntelligentRoutingHandler) ClassifyBusinessesBatch(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()

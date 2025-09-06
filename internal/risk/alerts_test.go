@@ -5,17 +5,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/config"
 	"github.com/pcraw4d/business-verification/internal/observability"
+	"go.uber.org/zap"
 )
 
 // createTestLogger creates a logger for testing
 func createTestLogger() *observability.Logger {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	return observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	return observability.NewLogger(zapLogger)
 }
 
 func TestNewAlertService(t *testing.T) {

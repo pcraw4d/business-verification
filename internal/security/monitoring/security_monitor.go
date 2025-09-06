@@ -353,7 +353,13 @@ func (m *SecurityMonitor) processAlert(alert *SecurityAlert) {
 
 // updateMetrics updates metrics periodically
 func (m *SecurityMonitor) updateMetrics() {
-	ticker := time.NewTicker(m.config.MetricsInterval)
+	// Ensure we have a valid interval
+	interval := m.config.MetricsInterval
+	if interval <= 0 {
+		interval = 1 * time.Minute // Default to 1 minute
+	}
+
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
 	for {

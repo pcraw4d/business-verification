@@ -7,7 +7,7 @@ import (
 
 	"github.com/pcraw4d/business-verification/internal/config"
 	"github.com/pcraw4d/business-verification/internal/database"
-	"github.com/pcraw4d/business-verification/internal/observability"
+	"go.uber.org/zap"
 )
 
 // MockDatabase provides a mock implementation for testing
@@ -287,20 +287,22 @@ func (m *MockRoleDatabase) UpdateWebhookEvent(ctx context.Context, event *databa
 }
 func (m *MockRoleDatabase) DeleteWebhookEvent(ctx context.Context, id string) error { return nil }
 
-func setupRoleServiceTest() (*RoleService, *MockRoleDatabase) {
+func setupRoleServiceTest() (*AuthService, *MockRoleDatabase) {
 	mockDB := NewMockRoleDatabase()
 
-	// Create a simple logger config
-	loggerConfig := &config.ObservabilityConfig{
-		LogLevel: "debug",
+	// Create a simple logger
+	zapLogger, _ := zap.NewDevelopment()
+	logger := zapLogger
+
+	// Create a minimal auth service for testing
+	authConfig := &config.AuthConfig{
+		JWTSecret:     "test-secret",
+		JWTExpiration: 15 * time.Minute,
 	}
-	logger := observability.NewLogger(loggerConfig)
+	authService := NewAuthService(authConfig, logger)
 
-	// Create a minimal RBAC service for testing
-	authService := &AuthService{} // Simplified for testing
-	rbacService := NewRBACService(authService)
-
-	roleService := NewRoleService(mockDB, logger, rbacService)
+	// Return the auth service instead of role service since RoleService is disabled
+	roleService := authService
 
 	return roleService, mockDB
 }

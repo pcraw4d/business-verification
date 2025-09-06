@@ -98,11 +98,11 @@ func (sim *ServiceIsolationManager) RegisterService(
 
 	sim.services[serviceName] = isolatedService
 
-	sim.logger.Info("Service registered for isolation",
-		"service_name", serviceName,
-		"isolation_level", isolationLevel,
-		"fallback_enabled", fallbackConfig.Enabled,
-	)
+	sim.logger.Info("Service registered for isolation", map[string]interface{}{
+		"service_name":     serviceName,
+		"isolation_level":  isolationLevel,
+		"fallback_enabled": fallbackConfig.Enabled,
+	})
 
 	return nil
 }
@@ -117,7 +117,9 @@ func (sim *ServiceIsolationManager) UnregisterService(serviceName string) error 
 	}
 
 	delete(sim.services, serviceName)
-	sim.logger.Info("Service unregistered from isolation", "service_name", serviceName)
+	sim.logger.Info("Service unregistered from isolation", map[string]interface{}{
+		"service_name": serviceName,
+	})
 
 	return nil
 }
@@ -211,13 +213,13 @@ func (sim *ServiceIsolationManager) executeWithBasicIsolation(
 		}
 
 		lastErr = err
-		sim.logger.Warn("Service call failed, retrying",
-			"service_name", isolatedService.Name,
-			"method", method,
-			"attempt", attempt+1,
-			"max_attempts", config.MaxRetries+1,
-			"error", err,
-		)
+		sim.logger.Warn("Service call failed, retrying", map[string]interface{}{
+			"service_name": isolatedService.Name,
+			"method":       method,
+			"attempt":      attempt + 1,
+			"max_attempts": config.MaxRetries + 1,
+			"error":        err.Error(),
+		})
 	}
 
 	// All retries failed, use fallback if enabled
@@ -253,10 +255,10 @@ func (sim *ServiceIsolationManager) executeWithEnhancedIsolation(
 	// Check if circuit breaker is open
 	state := sim.circuitBreaker.GetState(isolatedService.Name)
 	if state.State == "open" && config.Enabled {
-		sim.logger.Warn("Circuit breaker open, using fallback",
-			"service_name", isolatedService.Name,
-			"method", method,
-		)
+		sim.logger.Warn("Circuit breaker open, using fallback", map[string]interface{}{
+			"service_name": isolatedService.Name,
+			"method":       method,
+		})
 		return sim.executeFallback(isolatedService, method, request, err)
 	}
 
@@ -302,12 +304,12 @@ func (sim *ServiceIsolationManager) executeFallback(
 ) (interface{}, error) {
 	config := isolatedService.FallbackConfig
 
-	sim.logger.Info("Executing fallback strategy",
-		"service_name", isolatedService.Name,
-		"method", method,
-		"fallback_type", config.Strategy,
-		"original_error", originalError,
-	)
+	sim.logger.Info("Executing fallback strategy", map[string]interface{}{
+		"service_name":   isolatedService.Name,
+		"method":         method,
+		"fallback_type":  config.Strategy,
+		"original_error": originalError.Error(),
+	})
 
 	switch config.Strategy {
 	case FallbackStrategyStatic:
@@ -371,11 +373,11 @@ func (sim *ServiceIsolationManager) UpdateServiceHealth(serviceName string, heal
 	isolatedService.Health = health
 	isolatedService.LastUpdated = time.Now()
 
-	sim.logger.Info("Service health updated",
-		"service_name", serviceName,
-		"health_status", health.Status,
-		"health_message", health.Message,
-	)
+	sim.logger.Info("Service health updated", map[string]interface{}{
+		"service_name":   serviceName,
+		"health_status":  health.Status,
+		"health_message": health.Message,
+	})
 
 	return nil
 }
@@ -470,10 +472,10 @@ func (sim *ServiceIsolationManager) SetIsolationLevel(serviceName string, level 
 	isolatedService.IsolationLevel = level
 	isolatedService.LastUpdated = time.Now()
 
-	sim.logger.Info("Service isolation level updated",
-		"service_name", serviceName,
-		"isolation_level", level,
-	)
+	sim.logger.Info("Service isolation level updated", map[string]interface{}{
+		"service_name":    serviceName,
+		"isolation_level": level,
+	})
 
 	return nil
 }
@@ -491,11 +493,11 @@ func (sim *ServiceIsolationManager) UpdateFallbackConfig(serviceName string, con
 	isolatedService.FallbackConfig = config
 	isolatedService.LastUpdated = time.Now()
 
-	sim.logger.Info("Service fallback config updated",
-		"service_name", serviceName,
-		"fallback_enabled", config.Enabled,
-		"fallback_strategy", config.Strategy,
-	)
+	sim.logger.Info("Service fallback config updated", map[string]interface{}{
+		"service_name":      serviceName,
+		"fallback_enabled":  config.Enabled,
+		"fallback_strategy": config.Strategy,
+	})
 
 	return nil
 }

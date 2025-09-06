@@ -63,6 +63,7 @@ type ResourceManagerConfig struct {
 	// Worker pool settings
 	MinWorkers        int
 	MaxWorkers        int
+	MaxConcurrentOps  int
 	WorkerIdleTimeout time.Duration
 	WorkerMaxTasks    int
 
@@ -517,7 +518,7 @@ func (rm *ResourceManager) monitoringWorker() {
 
 // updateCPUUsage updates CPU usage metrics
 func (rm *ResourceManager) updateCPUUsage() {
-	ctx, span := rm.tracer.Start(rm.ctx, "ResourceManager.updateCPUUsage")
+	_, span := rm.tracer.Start(rm.ctx, "ResourceManager.updateCPUUsage")
 	defer span.End()
 
 	// Get CPU usage (simplified implementation)
@@ -562,7 +563,7 @@ func (rm *ResourceManager) updateCPUUsage() {
 
 // updateMemoryUsage updates memory usage metrics
 func (rm *ResourceManager) updateMemoryUsage() {
-	ctx, span := rm.tracer.Start(rm.ctx, "ResourceManager.updateMemoryUsage")
+	_, span := rm.tracer.Start(rm.ctx, "ResourceManager.updateMemoryUsage")
 	defer span.End()
 
 	// Get memory usage
@@ -603,16 +604,16 @@ func (rm *ResourceManager) updateMemoryUsage() {
 	}
 
 	span.SetAttributes(
-		attribute.Uint64("memory_usage", m.Alloc),
-		attribute.Uint64("memory_average", rm.memoryMonitor.AverageUsage),
-		attribute.Uint64("memory_max", rm.memoryMonitor.MaxUsage),
+		attribute.Int64("memory_usage", int64(m.Alloc)),
+		attribute.Int64("memory_average", int64(rm.memoryMonitor.AverageUsage)),
+		attribute.Int64("memory_max", int64(rm.memoryMonitor.MaxUsage)),
 		attribute.Float64("memory_percentage", usagePercentage),
 	)
 }
 
 // updateNetworkUsage updates network usage metrics
 func (rm *ResourceManager) updateNetworkUsage() {
-	ctx, span := rm.tracer.Start(rm.ctx, "ResourceManager.updateNetworkUsage")
+	_, span := rm.tracer.Start(rm.ctx, "ResourceManager.updateNetworkUsage")
 	defer span.End()
 
 	// Get network usage (simplified implementation)
@@ -626,14 +627,14 @@ func (rm *ResourceManager) updateNetworkUsage() {
 	rm.networkMonitor.LastUpdate = time.Now()
 
 	span.SetAttributes(
-		attribute.Uint64("network_bytes_in", bytesIn),
-		attribute.Uint64("network_bytes_out", bytesOut),
+		attribute.Int64("network_bytes_in", int64(bytesIn)),
+		attribute.Int64("network_bytes_out", int64(bytesOut)),
 	)
 }
 
 // updateDiskUsage updates disk usage metrics
 func (rm *ResourceManager) updateDiskUsage() {
-	ctx, span := rm.tracer.Start(rm.ctx, "ResourceManager.updateDiskUsage")
+	_, span := rm.tracer.Start(rm.ctx, "ResourceManager.updateDiskUsage")
 	defer span.End()
 
 	// Get disk usage (simplified implementation)
@@ -654,16 +655,16 @@ func (rm *ResourceManager) updateDiskUsage() {
 	}
 
 	span.SetAttributes(
-		attribute.Uint64("disk_total", totalSpace),
-		attribute.Uint64("disk_used", usedSpace),
-		attribute.Uint64("disk_free", freeSpace),
+		attribute.Int64("disk_total", int64(totalSpace)),
+		attribute.Int64("disk_used", int64(usedSpace)),
+		attribute.Int64("disk_free", int64(freeSpace)),
 		attribute.Float64("disk_percentage", rm.diskMonitor.UsagePercentage),
 	)
 }
 
 // manageWorkerPool manages the worker pool
 func (rm *ResourceManager) manageWorkerPool() {
-	ctx, span := rm.tracer.Start(rm.ctx, "ResourceManager.manageWorkerPool")
+	_, span := rm.tracer.Start(rm.ctx, "ResourceManager.manageWorkerPool")
 	defer span.End()
 
 	rm.workerPool.Mux.Lock()
@@ -832,7 +833,7 @@ func (rm *ResourceManager) updateWorkerHealth() {
 
 // updateLoadBalancing updates load balancing
 func (rm *ResourceManager) updateLoadBalancing() {
-	ctx, span := rm.tracer.Start(rm.ctx, "ResourceManager.updateLoadBalancing")
+	_, span := rm.tracer.Start(rm.ctx, "ResourceManager.updateLoadBalancing")
 	defer span.End()
 
 	rm.loadBalancer.Mux.Lock()
@@ -885,7 +886,7 @@ func (rm *ResourceManager) performHealthChecks() {
 
 // updateResourceAllocation updates resource allocation
 func (rm *ResourceManager) updateResourceAllocation() {
-	ctx, span := rm.tracer.Start(rm.ctx, "ResourceManager.updateResourceAllocation")
+	_, span := rm.tracer.Start(rm.ctx, "ResourceManager.updateResourceAllocation")
 	defer span.End()
 
 	rm.allocator.Mux.Lock()
@@ -912,7 +913,7 @@ func (rm *ResourceManager) updateResourceAllocation() {
 
 	span.SetAttributes(
 		attribute.Float64("available_cpu", rm.allocator.ResourcePool.AvailableCPU),
-		attribute.Uint64("available_memory", rm.allocator.ResourcePool.AvailableMemory),
+		attribute.Int64("available_memory", int64(rm.allocator.ResourcePool.AvailableMemory)),
 		attribute.Int("active_allocations", len(rm.allocator.Allocations)),
 	)
 }
@@ -933,7 +934,7 @@ func (rm *ResourceManager) cleanupExpiredAllocations() {
 
 // updateMonitoring updates monitoring and alerting
 func (rm *ResourceManager) updateMonitoring() {
-	ctx, span := rm.tracer.Start(rm.ctx, "ResourceManager.updateMonitoring")
+	_, span := rm.tracer.Start(rm.ctx, "ResourceManager.updateMonitoring")
 	defer span.End()
 
 	rm.monitor.Mux.Lock()
@@ -1141,7 +1142,46 @@ func (rm *ResourceManager) GetAlerts() []*ResourceAlert {
 // Shutdown shuts down the resource manager
 func (rm *ResourceManager) Shutdown() {
 	rm.cancel()
-	rm.logger.Info("resource manager shutting down")
+	rm.logger.Info("resource manager shutting down", map[string]interface{}{})
+}
+
+// Start starts the resource manager
+func (rm *ResourceManager) Start() error {
+	rm.startBackgroundWorkers()
+	rm.logger.Info("resource manager started", map[string]interface{}{})
+	return nil
+}
+
+// Stop stops the resource manager
+func (rm *ResourceManager) Stop() {
+	rm.Shutdown()
+}
+
+// Acquire acquires a resource
+func (rm *ResourceManager) Acquire(ctx context.Context, resourceTypes []string) ([]*Resource, error) {
+	// Simplified implementation - just return success for now
+	resources := make([]*Resource, len(resourceTypes))
+	for i, resourceType := range resourceTypes {
+		resources[i] = &Resource{
+			ID:        resourceType,
+			Type:      resourceType,
+			Capacity:  1,
+			Used:      1,
+			Available: 0,
+		}
+	}
+	return resources, nil
+}
+
+// Release releases a resource
+func (rm *ResourceManager) Release(resources []*Resource) error {
+	// Simplified implementation - just return success for now
+	return nil
+}
+
+// GetStats returns resource manager statistics
+func (rm *ResourceManager) GetStats() *ResourceMetrics {
+	return rm.GetResourceMetrics()
 }
 
 // Helper functions (simplified implementations)

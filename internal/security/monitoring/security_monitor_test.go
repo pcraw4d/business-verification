@@ -35,16 +35,18 @@ func TestNewSecurityMonitor(t *testing.T) {
 		{
 			name: "custom config",
 			config: &SecurityMonitorConfig{
-				MaxEvents:      5000,
-				EventRetention: 7 * 24 * time.Hour,
-				AlertCooldown:  1 * time.Minute,
-				WebhookURL:     "https://example.com/webhook",
+				MaxEvents:       5000,
+				EventRetention:  7 * 24 * time.Hour,
+				AlertCooldown:   1 * time.Minute,
+				MetricsInterval: 2 * time.Minute,
+				WebhookURL:      "https://example.com/webhook",
 			},
 			expected: &SecurityMonitorConfig{
-				MaxEvents:      5000,
-				EventRetention: 7 * 24 * time.Hour,
-				AlertCooldown:  1 * time.Minute,
-				WebhookURL:     "https://example.com/webhook",
+				MaxEvents:       5000,
+				EventRetention:  7 * 24 * time.Hour,
+				AlertCooldown:   1 * time.Minute,
+				MetricsInterval: 2 * time.Minute,
+				WebhookURL:      "https://example.com/webhook",
 			},
 		},
 	}
@@ -213,6 +215,9 @@ func TestSecurityMonitor_GetEvents(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Stop the monitor to prevent goroutine leaks
+			defer monitor.Stop()
+
 			events, err := monitor.GetEvents(tt.filters)
 			assert.NoError(t, err)
 			assert.Len(t, events, tt.expected)

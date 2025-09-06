@@ -67,6 +67,19 @@ type diskCacheItem struct {
 	Encrypted   bool        `json:"encrypted"`
 }
 
+// CacheItem represents a cache item returned by the disk cache
+type CacheItem struct {
+	Key         string      `json:"key"`
+	Value       interface{} `json:"value"`
+	CreatedAt   time.Time   `json:"created_at"`
+	ExpiresAt   time.Time   `json:"expires_at"`
+	AccessedAt  time.Time   `json:"accessed_at"`
+	AccessCount int64       `json:"access_count"`
+	Size        int64       `json:"size"`
+	Compressed  bool        `json:"compressed"`
+	Encrypted   bool        `json:"encrypted"`
+}
+
 // NewDiskCache creates a new disk cache
 func NewDiskCache(config DiskCacheConfig, logger *zap.Logger) (*DiskCache, error) {
 	if config.Path == "" {

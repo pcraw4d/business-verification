@@ -362,12 +362,22 @@ func (fhe *FinancialHealthExtractor) ExtractFinancialHealth(ctx context.Context,
 	}
 
 	fhe.logger.Info("financial health extraction completed", map[string]interface{}{
-		"business_name":   businessName,
-		"confidence":      confidence,
-		"has_funding":     fundingInfo != nil && fundingInfo.HasFunding,
-		"has_revenue":     revenueInfo != nil && revenueInfo.RevenueAmount > 0,
-		"stability_score": stabilityInfo != nil && stabilityInfo.StabilityScore,
-		"risk_score":      creditRiskInfo != nil && creditRiskInfo.RiskScore,
+		"business_name": businessName,
+		"confidence":    confidence,
+		"has_funding":   fundingInfo != nil && fundingInfo.HasFunding,
+		"has_revenue":   revenueInfo != nil && revenueInfo.RevenueAmount > 0,
+		"stability_score": func() float64 {
+			if stabilityInfo != nil {
+				return stabilityInfo.StabilityScore
+			}
+			return 0.0
+		}(),
+		"risk_score": func() float64 {
+			if creditRiskInfo != nil {
+				return creditRiskInfo.RiskScore
+			}
+			return 0.0
+		}(),
 	})
 
 	return result, nil
@@ -1236,8 +1246,8 @@ func parseAmountHelper(amountStr string) (float64, string) {
 func compilePatterns(patterns []string) []*regexp.Regexp {
 	var compiled []*regexp.Regexp
 	for _, pattern := range patterns {
-		if compiled, err := regexp.Compile(pattern); err == nil {
-			compiled = append(compiled, compiled)
+		if regex, err := regexp.Compile(pattern); err == nil {
+			compiled = append(compiled, regex)
 		}
 	}
 	return compiled

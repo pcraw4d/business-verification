@@ -162,7 +162,7 @@ func TestDataSourceReliabilityAssessor_AssessSourceReliability(t *testing.T) {
 			// Recommendations validation
 			assert.NotNil(t, result.Recommendations)
 			assert.NotNil(t, result.PriorityActions)
-		}
+		},
 	}
 }
 

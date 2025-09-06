@@ -6,19 +6,17 @@ import (
 	"time"
 
 	"github.com/pcraw4d/business-verification/internal/classification"
-	"github.com/pcraw4d/business-verification/internal/config"
 	"github.com/pcraw4d/business-verification/internal/database"
 	"github.com/pcraw4d/business-verification/internal/observability"
 	"github.com/pcraw4d/business-verification/internal/risk"
+	"go.uber.org/zap"
 )
 
 // BenchmarkClassificationService tests classification service performance
 func BenchmarkClassificationService(b *testing.B) {
 	// Setup test environment
-	logger := observability.NewLogger(&config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	})
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 
 	// Create classification service
 	service := classification.NewClassificationService(nil, nil, logger, nil)
@@ -71,10 +69,8 @@ func BenchmarkClassificationService(b *testing.B) {
 
 // BenchmarkBatchClassification tests batch classification performance
 func BenchmarkBatchClassification(b *testing.B) {
-	logger := observability.NewLogger(&config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	})
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 
 	service := classification.NewClassificationService(nil, nil, logger, nil)
 
@@ -106,10 +102,8 @@ func BenchmarkBatchClassification(b *testing.B) {
 
 // BenchmarkRiskAssessment tests risk assessment performance
 func BenchmarkRiskAssessment(b *testing.B) {
-	logger := observability.NewLogger(&config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	})
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 
 	service := risk.NewService(nil, logger)
 
@@ -199,10 +193,8 @@ func BenchmarkRiskAssessment(b *testing.B) {
 
 // BenchmarkDatabaseOperations tests database operation performance
 func BenchmarkDatabaseOperations(b *testing.B) {
-	logger := observability.NewLogger(&config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	})
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 
 	// This would connect to a test database
 	// For now, we'll simulate database operations
@@ -238,10 +230,8 @@ func BenchmarkDatabaseOperations(b *testing.B) {
 
 // BenchmarkConcurrentOperations tests performance under concurrent load
 func BenchmarkConcurrentOperations(b *testing.B) {
-	logger := observability.NewLogger(&config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	})
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 
 	classificationService := classification.NewService(nil, logger)
 	riskService := risk.NewService(nil, logger)
@@ -303,10 +293,8 @@ func BenchmarkConcurrentOperations(b *testing.B) {
 
 // BenchmarkMemoryUsage tests memory usage patterns
 func BenchmarkMemoryUsage(b *testing.B) {
-	logger := observability.NewLogger(&config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	})
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 
 	service := classification.NewService(nil, logger)
 

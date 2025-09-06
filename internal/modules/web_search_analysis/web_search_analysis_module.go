@@ -159,7 +159,9 @@ func (m *WebSearchAnalysisModule) Start(ctx context.Context) error {
 	}
 
 	span.SetAttributes(attribute.String("module.id", m.id))
-	m.logger.WithComponent("web_search_analysis_module").Info("Module started", "module_id", m.id)
+	m.logger.WithComponent("web_search_analysis_module").Info("Module started", map[string]interface{}{
+		"module_id": m.id,
+	})
 
 	return nil
 }
@@ -188,7 +190,9 @@ func (m *WebSearchAnalysisModule) Stop(ctx context.Context) error {
 	}
 
 	span.SetAttributes(attribute.String("module.id", m.id))
-	m.logger.WithComponent("web_search_analysis_module").Info("Module stopped", "module_id", m.id)
+	m.logger.WithComponent("web_search_analysis_module").Info("Module stopped", map[string]interface{}{
+		"module_id": m.id,
+	})
 
 	return nil
 }
@@ -265,7 +269,7 @@ func (m *WebSearchAnalysisModule) Process(ctx context.Context, req architecture.
 	}
 
 	// Record metrics
-	m.metrics.RecordBusinessClassification("web_search_analysis", "success")
+	m.metrics.RecordBusinessClassification("web_search_analysis", 1.0)
 
 	return response, nil
 }

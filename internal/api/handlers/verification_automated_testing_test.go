@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
-	"github.com/company/kyb-platform/internal/external"
+	"github.com/pcraw4d/business-verification/internal/external"
 )
 
 func TestNewVerificationAutomatedTestingHandler(t *testing.T) {

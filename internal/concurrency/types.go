@@ -39,11 +39,7 @@ type Resource struct {
 	ReleasedAt time.Time `json:"released_at,omitempty"`
 }
 
-// ResourceManagerConfig holds configuration for the resource manager
-type ResourceManagerConfig struct {
-	MaxConcurrentOps int           `json:"max_concurrent_ops"`
-	ResourceTimeout  time.Duration `json:"resource_timeout"`
-}
+// Note: ResourceManagerConfig is defined in resource_manager.go to avoid conflicts
 
 // ConcurrentRequestHandlerConfig holds configuration for the request handler
 type ConcurrentRequestHandlerConfig struct {

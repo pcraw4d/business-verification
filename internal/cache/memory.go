@@ -28,6 +28,17 @@ type cacheItem struct {
 	LastAccess  time.Time
 }
 
+// CacheStats holds memory cache statistics
+type CacheStats struct {
+	HitCount      int64   `json:"hit_count"`
+	MissCount     int64   `json:"miss_count"`
+	HitRate       float64 `json:"hit_rate"`
+	Size          int64   `json:"size"`
+	MaxSize       int64   `json:"max_size"`
+	ExpiredCount  int64   `json:"expired_count"`
+	EvictionCount int64   `json:"eviction_count"`
+}
+
 // NewMemoryCache creates a new memory cache instance
 func NewMemoryCache(config *CacheConfig) *MemoryCacheImpl {
 	if config == nil {
@@ -60,7 +71,7 @@ func (mc *MemoryCacheImpl) Get(ctx context.Context, key string) ([]byte, error) 
 
 	if !exists {
 		mc.recordMiss()
-		return nil, &CacheNotFoundError{Key: key}
+		return nil, CacheNotFoundError
 	}
 
 	// Check if item has expired
@@ -70,7 +81,7 @@ func (mc *MemoryCacheImpl) Get(ctx context.Context, key string) ([]byte, error) 
 		mc.stats.ExpiredCount++
 		mc.mu.Unlock()
 		mc.recordMiss()
-		return nil, &CacheNotFoundError{Key: key}
+		return nil, CacheNotFoundError
 	}
 
 	// Update access statistics
@@ -91,7 +102,7 @@ func (mc *MemoryCacheImpl) Set(ctx context.Context, key string, value []byte, tt
 
 	// Check if cache is full and evict if necessary
 	mc.mu.Lock()
-	if int64(len(mc.data)) >= mc.config.MaxSize {
+	if len(mc.data) >= mc.config.MaxSize {
 		mc.evictLRU()
 	}
 	mc.mu.Unlock()
@@ -128,7 +139,7 @@ func (mc *MemoryCacheImpl) Delete(ctx context.Context, key string) error {
 		return nil
 	}
 
-	return &CacheNotFoundError{Key: key}
+	return CacheNotFoundError
 }
 
 // Exists checks if a key exists in the cache
@@ -156,7 +167,7 @@ func (mc *MemoryCacheImpl) GetTTL(ctx context.Context, key string) (time.Duratio
 
 	item, exists := mc.data[key]
 	if !exists {
-		return 0, &CacheNotFoundError{Key: key}
+		return 0, CacheNotFoundError
 	}
 
 	if item.ExpiresAt.IsZero() {
@@ -165,7 +176,7 @@ func (mc *MemoryCacheImpl) GetTTL(ctx context.Context, key string) (time.Duratio
 
 	remaining := time.Until(item.ExpiresAt)
 	if remaining <= 0 {
-		return 0, &CacheNotFoundError{Key: key}
+		return 0, CacheNotFoundError
 	}
 
 	return remaining, nil
@@ -178,7 +189,7 @@ func (mc *MemoryCacheImpl) SetTTL(ctx context.Context, key string, ttl time.Dura
 
 	item, exists := mc.data[key]
 	if !exists {
-		return &CacheNotFoundError{Key: key}
+		return CacheNotFoundError
 	}
 
 	item.TTL = ttl
@@ -218,7 +229,7 @@ func (mc *MemoryCacheImpl) GetStats(ctx context.Context) (*CacheStats, error) {
 		MissCount:     mc.stats.MissCount,
 		HitRate:       hitRate,
 		Size:          mc.stats.Size,
-		MaxSize:       mc.config.MaxSize,
+		MaxSize:       int64(mc.config.MaxSize),
 		EvictionCount: mc.stats.EvictionCount,
 		ExpiredCount:  mc.stats.ExpiredCount,
 	}
@@ -356,10 +367,9 @@ func (mc *MemoryCacheImpl) GetEntries(ctx context.Context, keys []string) (map[s
 
 		entries[key] = &CacheEntry{
 			Key:       key,
-			Value:     item.Value,
+			Value:     string(item.Value),
 			CreatedAt: item.CreatedAt,
 			ExpiresAt: item.ExpiresAt,
-			TTL:       item.TTL,
 			Size:      item.Size,
 		}
 	}
@@ -381,10 +391,10 @@ func (mc *MemoryCacheImpl) SetEntries(ctx context.Context, entries map[string]*C
 
 	for key, entry := range entries {
 		item := &cacheItem{
-			Value:       entry.Value,
+			Value:       []byte(entry.Value.(string)),
 			CreatedAt:   entry.CreatedAt,
 			ExpiresAt:   entry.ExpiresAt,
-			TTL:         entry.TTL,
+			TTL:         entry.ExpiresAt.Sub(entry.CreatedAt),
 			Size:        entry.Size,
 			AccessCount: 0,
 			LastAccess:  time.Now(),

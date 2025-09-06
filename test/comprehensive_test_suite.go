@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
 )
 
 // ComprehensiveTestSuite provides comprehensive testing for the enhanced business intelligence system
@@ -822,7 +823,8 @@ func TestMarketPresenceExtractor(t *testing.T) {
 		CacheTTL:                     1 * time.Hour,
 	}
 
-	logger := observability.NewLogger()
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	tracer := trace.NewNoopTracerProvider().Tracer("test")
 
 	extractor := data_extraction.NewMarketPresenceExtractor(config, logger, tracer)
@@ -848,7 +850,8 @@ func TestValidationFramework(t *testing.T) {
 		ReliabilityValidationEnabled:  true,
 	}
 
-	logger := observability.NewLogger()
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	tracer := trace.NewNoopTracerProvider().Tracer("test")
 
 	framework := validation.NewValidationFramework(config, logger, tracer)

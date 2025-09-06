@@ -6,18 +6,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/config"
 	"github.com/pcraw4d/business-verification/internal/observability"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func TestErrorResilienceManager_NewErrorResilienceManager(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 
 	manager := NewErrorResilienceManager(logger)
 
@@ -35,11 +32,8 @@ func TestErrorResilienceManager_NewErrorResilienceManager(t *testing.T) {
 }
 
 func TestErrorResilienceManager_RegisterCircuitBreaker(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	manager := NewErrorResilienceManager(logger)
 
 	// Register circuit breaker
@@ -55,11 +49,8 @@ func TestErrorResilienceManager_RegisterCircuitBreaker(t *testing.T) {
 }
 
 func TestErrorResilienceManager_RegisterRetryPolicy(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	manager := NewErrorResilienceManager(logger)
 
 	// Register retry policy
@@ -79,11 +70,8 @@ func TestErrorResilienceManager_RegisterRetryPolicy(t *testing.T) {
 }
 
 func TestErrorResilienceManager_RegisterFallbackStrategy(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	manager := NewErrorResilienceManager(logger)
 
 	// Register fallback strategy
@@ -105,11 +93,8 @@ func TestErrorResilienceManager_RegisterFallbackStrategy(t *testing.T) {
 }
 
 func TestErrorResilienceManager_RegisterDegradationPolicy(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	manager := NewErrorResilienceManager(logger)
 
 	// Register degradation policy
@@ -127,11 +112,8 @@ func TestErrorResilienceManager_RegisterDegradationPolicy(t *testing.T) {
 }
 
 func TestErrorResilienceManager_ExecuteWithResilience_Success(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	manager := NewErrorResilienceManager(logger)
 
 	// Execute successful operation
@@ -150,11 +132,8 @@ func TestErrorResilienceManager_ExecuteWithResilience_Success(t *testing.T) {
 }
 
 func TestErrorResilienceManager_ExecuteWithResilience_CircuitBreakerOpen(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	manager := NewErrorResilienceManager(logger)
 
 	// Register circuit breaker with low threshold
@@ -181,11 +160,8 @@ func TestErrorResilienceManager_ExecuteWithResilience_CircuitBreakerOpen(t *test
 }
 
 func TestErrorResilienceManager_ExecuteWithResilience_RetrySuccess(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	manager := NewErrorResilienceManager(logger)
 
 	// Register retry policy
@@ -209,11 +185,8 @@ func TestErrorResilienceManager_ExecuteWithResilience_RetrySuccess(t *testing.T)
 }
 
 func TestErrorResilienceManager_ExecuteWithResilience_RetryFailure(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	manager := NewErrorResilienceManager(logger)
 
 	// Register retry policy
@@ -232,11 +205,8 @@ func TestErrorResilienceManager_ExecuteWithResilience_RetryFailure(t *testing.T)
 }
 
 func TestErrorResilienceManager_ExecuteWithResilience_FallbackSuccess(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	manager := NewErrorResilienceManager(logger)
 
 	// Register fallback strategy
@@ -258,11 +228,8 @@ func TestErrorResilienceManager_ExecuteWithResilience_FallbackSuccess(t *testing
 }
 
 func TestErrorResilienceManager_ExecuteWithResilience_GracefulDegradation(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	manager := NewErrorResilienceManager(logger)
 
 	// Register degradation policy
@@ -282,11 +249,8 @@ func TestErrorResilienceManager_ExecuteWithResilience_GracefulDegradation(t *tes
 }
 
 func TestErrorResilienceManager_GetMetrics(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	manager := NewErrorResilienceManager(logger)
 
 	// Register policies
@@ -313,11 +277,8 @@ func TestErrorResilienceManager_GetMetrics(t *testing.T) {
 }
 
 func TestErrorResilienceManager_ResetCircuitBreaker(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	manager := NewErrorResilienceManager(logger)
 
 	// Register circuit breaker
@@ -344,11 +305,8 @@ func TestErrorResilienceManager_ResetCircuitBreaker(t *testing.T) {
 }
 
 func TestErrorResilienceManager_ResetCircuitBreaker_NotFound(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	manager := NewErrorResilienceManager(logger)
 
 	// Try to reset non-existent circuit breaker
@@ -358,11 +316,8 @@ func TestErrorResilienceManager_ResetCircuitBreaker_NotFound(t *testing.T) {
 }
 
 func TestErrorResilienceManager_GetCircuitBreakerState_NotFound(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	manager := NewErrorResilienceManager(logger)
 
 	// Get state of non-existent circuit breaker
@@ -372,11 +327,8 @@ func TestErrorResilienceManager_GetCircuitBreakerState_NotFound(t *testing.T) {
 
 // Test circuit breaker state transitions
 func TestCircuitBreaker_StateTransitions(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	manager := NewErrorResilienceManager(logger)
 
 	// Register circuit breaker with low thresholds for testing
@@ -414,11 +366,8 @@ func TestCircuitBreaker_StateTransitions(t *testing.T) {
 
 // Test retry with exponential backoff
 func TestRetryPolicy_ExponentialBackoff(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	manager := NewErrorResilienceManager(logger)
 
 	// Register retry policy with exponential backoff
@@ -441,11 +390,8 @@ func TestRetryPolicy_ExponentialBackoff(t *testing.T) {
 
 // Test context cancellation
 func TestErrorResilienceManager_ContextCancellation(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	manager := NewErrorResilienceManager(logger)
 
 	// Register retry policy
@@ -466,11 +412,8 @@ func TestErrorResilienceManager_ContextCancellation(t *testing.T) {
 
 // Test concurrent operations
 func TestErrorResilienceManager_ConcurrentOperations(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	manager := NewErrorResilienceManager(logger)
 
 	// Register policies

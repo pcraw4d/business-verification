@@ -9,18 +9,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/config"
 	"github.com/pcraw4d/business-verification/internal/observability"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func TestRailwayHealthChecker_NewRailwayHealthChecker(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 
 	checker := NewRailwayHealthChecker(logger)
 
@@ -33,11 +30,8 @@ func TestRailwayHealthChecker_NewRailwayHealthChecker(t *testing.T) {
 }
 
 func TestRailwayHealthChecker_RegisterModuleHealthCheck(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	checker := NewRailwayHealthChecker(logger)
 
 	// Register a module health check
@@ -54,11 +48,8 @@ func TestRailwayHealthChecker_RegisterModuleHealthCheck(t *testing.T) {
 }
 
 func TestRailwayHealthChecker_GetModuleHealth_NotFound(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	checker := NewRailwayHealthChecker(logger)
 
 	// Try to get non-existent module
@@ -69,11 +60,8 @@ func TestRailwayHealthChecker_GetModuleHealth_NotFound(t *testing.T) {
 }
 
 func TestRailwayHealthChecker_GetHealthStatus(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	checker := NewRailwayHealthChecker(logger)
 
 	// Register some module health checks
@@ -101,11 +89,8 @@ func TestRailwayHealthChecker_GetHealthStatus(t *testing.T) {
 }
 
 func TestRailwayHealthChecker_StartHealthCheckLoop(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	checker := NewRailwayHealthChecker(logger)
 
 	// Register a module health check
@@ -134,11 +119,8 @@ func TestRailwayHealthChecker_StartHealthCheckLoop(t *testing.T) {
 }
 
 func TestRailwayHealthChecker_ForceHealthCheck(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	checker := NewRailwayHealthChecker(logger)
 
 	// Register a module health check
@@ -156,11 +138,8 @@ func TestRailwayHealthChecker_ForceHealthCheck(t *testing.T) {
 }
 
 func TestRailwayHealthHandler_NewRailwayHealthHandler(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	checker := NewRailwayHealthChecker(logger)
 
 	handler := NewRailwayHealthHandler(checker, logger)
@@ -171,11 +150,8 @@ func TestRailwayHealthHandler_NewRailwayHealthHandler(t *testing.T) {
 }
 
 func TestRailwayHealthHandler_HandleHealth(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	checker := NewRailwayHealthChecker(logger)
 
 	// Register a healthy module
@@ -210,11 +186,8 @@ func TestRailwayHealthHandler_HandleHealth(t *testing.T) {
 }
 
 func TestRailwayHealthHandler_HandleHealth_Unhealthy(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	checker := NewRailwayHealthChecker(logger)
 
 	// Register an unhealthy module
@@ -247,11 +220,8 @@ func TestRailwayHealthHandler_HandleHealth_Unhealthy(t *testing.T) {
 }
 
 func TestRailwayHealthHandler_HandleReadiness(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	checker := NewRailwayHealthChecker(logger)
 
 	// Register a healthy module
@@ -283,11 +253,8 @@ func TestRailwayHealthHandler_HandleReadiness(t *testing.T) {
 }
 
 func TestRailwayHealthHandler_HandleReadiness_NotReady(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	checker := NewRailwayHealthChecker(logger)
 
 	// Register an unhealthy module
@@ -319,11 +286,8 @@ func TestRailwayHealthHandler_HandleReadiness_NotReady(t *testing.T) {
 }
 
 func TestRailwayHealthHandler_HandleLiveness(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	checker := NewRailwayHealthChecker(logger)
 
 	// Register a healthy module
@@ -355,11 +319,8 @@ func TestRailwayHealthHandler_HandleLiveness(t *testing.T) {
 }
 
 func TestRailwayHealthHandler_HandleLiveness_NotLive(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	checker := NewRailwayHealthChecker(logger)
 
 	// Register an unhealthy module
@@ -391,11 +352,8 @@ func TestRailwayHealthHandler_HandleLiveness_NotLive(t *testing.T) {
 }
 
 func TestRailwayHealthHandler_HandleModuleHealth(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	checker := NewRailwayHealthChecker(logger)
 
 	// Register a module health check
@@ -428,11 +386,8 @@ func TestRailwayHealthHandler_HandleModuleHealth(t *testing.T) {
 }
 
 func TestRailwayHealthHandler_HandleModuleHealth_NotFound(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	checker := NewRailwayHealthChecker(logger)
 
 	handler := NewRailwayHealthHandler(checker, logger)
@@ -449,11 +404,8 @@ func TestRailwayHealthHandler_HandleModuleHealth_NotFound(t *testing.T) {
 }
 
 func TestRailwayHealthHandler_HandleModuleHealth_MissingParameter(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	checker := NewRailwayHealthChecker(logger)
 
 	handler := NewRailwayHealthHandler(checker, logger)
@@ -470,11 +422,8 @@ func TestRailwayHealthHandler_HandleModuleHealth_MissingParameter(t *testing.T) 
 }
 
 func TestRailwayHealthHandler_HandleForceHealthCheck(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	checker := NewRailwayHealthChecker(logger)
 
 	handler := NewRailwayHealthHandler(checker, logger)
@@ -530,11 +479,8 @@ func TestCheckErrorResilienceHealth(t *testing.T) {
 
 // Test concurrent health checks
 func TestRailwayHealthChecker_ConcurrentHealthChecks(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	checker := NewRailwayHealthChecker(logger)
 
 	// Register multiple module health checks
@@ -569,11 +515,8 @@ func TestRailwayHealthChecker_ConcurrentHealthChecks(t *testing.T) {
 
 // Test health check metrics
 func TestRailwayHealthChecker_HealthCheckMetrics(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	checker := NewRailwayHealthChecker(logger)
 
 	// Register modules with different health states
@@ -606,11 +549,8 @@ func TestRailwayHealthChecker_HealthCheckMetrics(t *testing.T) {
 
 // Test health check response times
 func TestRailwayHealthChecker_HealthCheckResponseTimes(t *testing.T) {
-	cfg := &config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	}
-	logger := observability.NewLogger(cfg)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 	checker := NewRailwayHealthChecker(logger)
 
 	// Register a module with a slow health check

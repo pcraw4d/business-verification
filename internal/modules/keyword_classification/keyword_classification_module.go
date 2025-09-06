@@ -221,7 +221,7 @@ func (m *KeywordClassificationModule) Process(ctx context.Context, req architect
 
 	// Log incoming request
 	if m.logger != nil {
-		m.logger.LogModuleRequest(ctx, req.Type, req.ID, len(req.Data))
+		m.logger.LogModuleRequest(ctx, req.ID, 200, time.Since(time.Now()))
 	}
 
 	// Check if this module can handle the request
@@ -234,7 +234,7 @@ func (m *KeywordClassificationModule) Process(ctx context.Context, req architect
 
 		// Log response
 		if m.logger != nil {
-			m.logger.LogModuleResponse(ctx, req.ID, false, 0, time.Since(startTime))
+			m.logger.LogModuleResponse(ctx, req.ID, 400, time.Since(startTime), map[string]interface{}{"success": false})
 		}
 
 		return response, nil
@@ -259,7 +259,7 @@ func (m *KeywordClassificationModule) Process(ctx context.Context, req architect
 
 		// Log response
 		if m.logger != nil {
-			m.logger.LogModuleResponse(ctx, req.ID, false, 0, time.Since(startTime))
+			m.logger.LogModuleResponse(ctx, req.ID, 400, time.Since(startTime), map[string]interface{}{"success": false})
 		}
 
 		return response, nil
@@ -284,7 +284,7 @@ func (m *KeywordClassificationModule) Process(ctx context.Context, req architect
 
 		// Log response
 		if m.logger != nil {
-			m.logger.LogModuleResponse(ctx, req.ID, false, 0, time.Since(startTime))
+			m.logger.LogModuleResponse(ctx, req.ID, 400, time.Since(startTime), map[string]interface{}{"success": false})
 		}
 
 		return response, nil
@@ -303,7 +303,7 @@ func (m *KeywordClassificationModule) Process(ctx context.Context, req architect
 
 	// Log successful response
 	if m.logger != nil {
-		m.logger.LogModuleResponse(ctx, req.ID, true, len(classifications), time.Since(startTime))
+		m.logger.LogModuleResponse(ctx, req.ID, 200, time.Since(startTime), map[string]interface{}{"success": true, "classifications_count": len(classifications)})
 	}
 
 	return response, nil

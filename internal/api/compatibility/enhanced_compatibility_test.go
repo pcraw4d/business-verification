@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/classification"
 	"github.com/pcraw4d/business-verification/internal/config"
+	"github.com/pcraw4d/business-verification/internal/shared"
 	"github.com/pcraw4d/business-verification/pkg/validators"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,21 +19,21 @@ import (
 
 // EnhancedMockClassificationProcessor implements ClassificationProcessor for testing
 type EnhancedMockClassificationProcessor struct {
-	responses map[string]*classification.ClassificationResponse
+	responses map[string]*shared.BusinessClassificationResponse
 	errors    map[string]error
 }
 
 func NewEnhancedMockClassificationProcessor() *EnhancedMockClassificationProcessor {
 	return &EnhancedMockClassificationProcessor{
-		responses: make(map[string]*classification.ClassificationResponse),
+		responses: make(map[string]*shared.BusinessClassificationResponse),
 		errors:    make(map[string]error),
 	}
 }
 
 func (m *EnhancedMockClassificationProcessor) ProcessClassification(
 	ctx context.Context,
-	request *classification.ClassificationRequest,
-) (*classification.ClassificationResponse, error) {
+	request *shared.BusinessClassificationRequest,
+) (*shared.BusinessClassificationResponse, error) {
 	key := request.BusinessName
 	if err, exists := m.errors[key]; exists {
 		return nil, err
@@ -79,9 +79,9 @@ func (m *EnhancedMockClassificationProcessor) ProcessClassification(
 
 func (m *EnhancedMockClassificationProcessor) ProcessBatchClassification(
 	ctx context.Context,
-	requests []*classification.ClassificationRequest,
-) ([]*classification.ClassificationResponse, error) {
-	var responses []*classification.ClassificationResponse
+	requests []*shared.BusinessClassificationRequest,
+) ([]*shared.BusinessClassificationResponse, error) {
+	var responses []*shared.BusinessClassificationResponse
 	for _, req := range requests {
 		response, err := m.ProcessClassification(ctx, req)
 		if err != nil {
@@ -92,7 +92,7 @@ func (m *EnhancedMockClassificationProcessor) ProcessBatchClassification(
 	return responses, nil
 }
 
-func (m *EnhancedMockClassificationProcessor) SetResponse(businessName string, response *classification.ClassificationResponse) {
+func (m *EnhancedMockClassificationProcessor) SetResponse(businessName string, response *shared.BusinessClassificationResponse) {
 	m.responses[businessName] = response
 }
 

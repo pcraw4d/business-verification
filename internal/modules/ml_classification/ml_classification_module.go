@@ -264,7 +264,7 @@ func (m *MLClassificationModule) Process(ctx context.Context, req architecture.M
 	}
 
 	// Record metrics
-	m.metrics.RecordBusinessClassification("ml", "success")
+	m.metrics.RecordBusinessClassification("ml", 1.0)
 
 	return response, nil
 }

@@ -531,7 +531,7 @@ func TestCalculateRiskScore(t *testing.T) {
 		{
 			name: "medium risk assessment",
 			assessment: &PrivacyImpactAssessment{
-				DataCategories: []string{"business_data", "contact_information"},
+				DataCategories: []string{"business_data", "contact_information", "personal_identification"},
 				ProcessingActivities: []ProcessingActivity{
 					{
 						ID:   "activity_1",
@@ -541,10 +541,14 @@ func TestCalculateRiskScore(t *testing.T) {
 						ID:   "activity_2",
 						Name: "Data Processing",
 					},
+					{
+						ID:   "activity_3",
+						Name: "Data Analysis",
+					},
 				},
 			},
 			expectedLevel:    "medium",
-			expectedMinScore: 10.0,
+			expectedMinScore: 30.0,
 		},
 		{
 			name: "high risk assessment",
@@ -629,6 +633,8 @@ func TestAssessCompliance(t *testing.T) {
 			assessment: &PrivacyImpactAssessment{
 				RiskScore:       10.0,
 				Recommendations: []string{"Standard monitoring"},
+				AssessmentDate:  time.Now(),
+				NextReviewDate:  time.Now().Add(365 * 24 * time.Hour),
 			},
 			expectedCompliance: "compliant",
 			expectedMinScore:   90.0,
@@ -638,6 +644,8 @@ func TestAssessCompliance(t *testing.T) {
 			assessment: &PrivacyImpactAssessment{
 				RiskScore:       25.0,
 				Recommendations: []string{"Enhanced monitoring"},
+				AssessmentDate:  time.Now(),
+				NextReviewDate:  time.Now().Add(180 * 24 * time.Hour),
 			},
 			expectedCompliance: "partially_compliant",
 			expectedMinScore:   75.0,
@@ -647,6 +655,8 @@ func TestAssessCompliance(t *testing.T) {
 			assessment: &PrivacyImpactAssessment{
 				RiskScore:       80.0,
 				Recommendations: []string{"Immediate action required"},
+				AssessmentDate:  time.Now(),
+				NextReviewDate:  time.Now().Add(90 * 24 * time.Hour),
 			},
 			expectedCompliance: "non_compliant",
 			expectedMinScore:   20.0,
@@ -821,7 +831,7 @@ func TestGenerateReportRecommendations(t *testing.T) {
 			stats: &PrivacyStatistics{
 				CriticalEvents: 3,
 			},
-			shouldContain: []string{"critical events"},
+			shouldContain: []string{"critical privacy events"},
 		},
 	}
 

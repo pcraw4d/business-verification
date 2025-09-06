@@ -19,16 +19,20 @@ import (
 // IntelligentCache provides multi-level caching with intelligent optimization
 type IntelligentCache struct {
 	// Configuration
-	config *CacheConfig
+	config *IntelligentCacheConfig
 
 	// Observability
 	logger *observability.Logger
 	tracer trace.Tracer
 
 	// Cache levels
-	memoryCache      *MemoryCache
+	memoryCache      *MemoryCacheImpl
 	diskCache        *DiskCache
 	distributedCache *DistributedCache
+
+	// Disk cache index
+	diskIndex map[string]*cacheItem
+	diskMux   sync.RWMutex
 
 	// Cache management
 	manager    *CacheManager
@@ -47,8 +51,8 @@ type IntelligentCache struct {
 	cancel context.CancelFunc
 }
 
-// CacheConfig configuration for intelligent caching
-type CacheConfig struct {
+// IntelligentCacheConfig configuration for intelligent caching
+type IntelligentCacheConfig struct {
 	// Memory cache settings
 	MemoryCacheSize      int
 	MemoryCacheTTL       time.Duration
@@ -86,25 +90,8 @@ type CacheConfig struct {
 	InvalidationCooldown  time.Duration
 }
 
-// MemoryCache provides in-memory caching
-type MemoryCache struct {
-	Data           map[string]*CacheEntry
-	Size           int
-	TTL            time.Duration
-	EvictionPolicy string
-	AccessOrder    []string
-	Mux            sync.RWMutex
-}
-
-// DiskCache provides disk-based caching
-type DiskCache struct {
-	Path        string
-	Size        int64
-	TTL         time.Duration
-	Compression bool
-	Index       map[string]*DiskEntry
-	Mux         sync.RWMutex
-}
+// Note: MemoryCache and DiskCache types are defined in their respective files
+// memory.go and disk_cache.go to avoid conflicts
 
 // DistributedCache provides distributed caching
 type DistributedCache struct {
@@ -247,9 +234,9 @@ type WarmingStats struct {
 }
 
 // NewIntelligentCache creates a new intelligent cache
-func NewIntelligentCache(config *CacheConfig, logger *observability.Logger, tracer trace.Tracer) *IntelligentCache {
+func NewIntelligentCache(config *IntelligentCacheConfig, logger *observability.Logger, tracer trace.Tracer) *IntelligentCache {
 	if config == nil {
-		config = &CacheConfig{
+		config = &IntelligentCacheConfig{
 			MemoryCacheSize:         1000,
 			MemoryCacheTTL:          30 * time.Minute,
 			MemoryEvictionPolicy:    "lru",
@@ -280,31 +267,36 @@ func NewIntelligentCache(config *CacheConfig, logger *observability.Logger, trac
 	ctx, cancel := context.WithCancel(context.Background())
 
 	ic := &IntelligentCache{
-		config: config,
-		logger: logger,
-		tracer: tracer,
-		ctx:    ctx,
-		cancel: cancel,
+		config:    config,
+		logger:    logger,
+		tracer:    tracer,
+		ctx:       ctx,
+		cancel:    cancel,
+		diskIndex: make(map[string]*cacheItem),
 	}
 
 	// Initialize cache levels
-	ic.memoryCache = &MemoryCache{
-		Data:           make(map[string]*CacheEntry),
-		Size:           config.MemoryCacheSize,
-		TTL:            config.MemoryCacheTTL,
-		EvictionPolicy: config.MemoryEvictionPolicy,
-		AccessOrder:    make([]string, 0),
+	memoryConfig := &CacheConfig{
+		Type:       MemoryCache,
+		DefaultTTL: config.MemoryCacheTTL,
+		MaxSize:    config.MemoryCacheSize,
 	}
+	ic.memoryCache = NewMemoryCache(memoryConfig)
 
 	if config.DiskCacheEnabled {
-		ic.diskCache = &DiskCache{
-			Path:        config.DiskCachePath,
-			Size:        config.DiskCacheSize,
-			TTL:         config.DiskCacheTTL,
-			Compression: config.DiskCompression,
-			Index:       make(map[string]*DiskEntry),
+		diskConfig := DiskCacheConfig{
+			Path: config.DiskCachePath,
+			Size: config.DiskCacheSize,
+			TTL:  config.DiskCacheTTL,
 		}
-		ic.initializeDiskCache()
+		var err error
+		ic.diskCache, err = NewDiskCache(diskConfig, ic.logger.GetZapLogger())
+		if err != nil {
+			// Log error and continue without disk cache
+			ic.logger.Error("Failed to initialize disk cache", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
 	}
 
 	if config.DistributedCacheEnabled {
@@ -622,10 +614,10 @@ func (ic *IntelligentCache) GetAlerts() []*CacheAlert {
 // Memory cache operations
 
 func (ic *IntelligentCache) getFromMemory(key string) (interface{}, bool) {
-	ic.memoryCache.Mux.RLock()
-	defer ic.memoryCache.Mux.RUnlock()
+	ic.memoryCache.mu.RLock()
+	defer ic.memoryCache.mu.RUnlock()
 
-	entry, exists := ic.memoryCache.Data[key]
+	entry, exists := ic.memoryCache.data[key]
 	if !exists {
 		return nil, false
 	}
@@ -636,7 +628,7 @@ func (ic *IntelligentCache) getFromMemory(key string) (interface{}, bool) {
 	}
 
 	// Update access information
-	entry.LastAccessed = time.Now()
+	entry.LastAccess = time.Now()
 	entry.AccessCount++
 
 	// Update access order for LRU
@@ -646,40 +638,46 @@ func (ic *IntelligentCache) getFromMemory(key string) (interface{}, bool) {
 }
 
 func (ic *IntelligentCache) setInMemory(key string, value interface{}, ttl time.Duration) error {
-	ic.memoryCache.Mux.Lock()
-	defer ic.memoryCache.Mux.Unlock()
+	ic.memoryCache.mu.Lock()
+	defer ic.memoryCache.mu.Unlock()
 
 	// Check if we need to evict entries
-	if len(ic.memoryCache.Data) >= ic.memoryCache.Size {
+	if len(ic.memoryCache.data) >= ic.memoryCache.config.MaxSize {
 		ic.evictFromMemory()
 	}
 
-	entry := &CacheEntry{
-		Key:          key,
-		Value:        value,
-		CreatedAt:    time.Now(),
-		ExpiresAt:    time.Now().Add(ttl),
-		LastAccessed: time.Now(),
-		AccessCount:  1,
-		Metadata:     make(map[string]interface{}),
+	// Create cache item for memory cache
+	valueBytes, err := json.Marshal(value)
+	if err != nil {
+		return fmt.Errorf("failed to marshal value: %w", err)
 	}
 
-	ic.memoryCache.Data[key] = entry
+	entry := &cacheItem{
+		Value:       valueBytes,
+		CreatedAt:   time.Now(),
+		ExpiresAt:   time.Now().Add(ttl),
+		TTL:         ttl,
+		Size:        int64(len(valueBytes)),
+		AccessCount: 1,
+		LastAccess:  time.Now(),
+	}
+
+	ic.memoryCache.data[key] = entry
 	ic.updateAccessOrder(key)
 
 	return nil
 }
 
 func (ic *IntelligentCache) deleteFromMemory(key string) {
-	ic.memoryCache.Mux.Lock()
-	defer ic.memoryCache.Mux.Unlock()
+	ic.memoryCache.mu.Lock()
+	defer ic.memoryCache.mu.Unlock()
 
-	delete(ic.memoryCache.Data, key)
+	delete(ic.memoryCache.data, key)
 	ic.removeFromAccessOrder(key)
 }
 
 func (ic *IntelligentCache) evictFromMemory() {
-	switch ic.memoryCache.EvictionPolicy {
+	switch ic.config.MemoryEvictionPolicy {
 	case "lru":
 		ic.evictLRU()
 	case "lfu":
@@ -692,21 +690,33 @@ func (ic *IntelligentCache) evictFromMemory() {
 }
 
 func (ic *IntelligentCache) evictLRU() {
-	if len(ic.memoryCache.AccessOrder) == 0 {
+	if len(ic.memoryCache.data) == 0 {
 		return
 	}
 
-	// Remove least recently used
-	key := ic.memoryCache.AccessOrder[0]
-	delete(ic.memoryCache.Data, key)
-	ic.memoryCache.AccessOrder = ic.memoryCache.AccessOrder[1:]
+	// Find least recently used item
+	var oldestKey string
+	var oldestTime time.Time
+	first := true
+
+	for key, item := range ic.memoryCache.data {
+		if first || item.LastAccess.Before(oldestTime) {
+			oldestKey = key
+			oldestTime = item.LastAccess
+			first = false
+		}
+	}
+
+	if oldestKey != "" {
+		delete(ic.memoryCache.data, oldestKey)
+	}
 }
 
 func (ic *IntelligentCache) evictLFU() {
 	var leastFrequentKey string
 	var minAccessCount int64 = 1<<63 - 1
 
-	for key, entry := range ic.memoryCache.Data {
+	for key, entry := range ic.memoryCache.data {
 		if entry.AccessCount < minAccessCount {
 			minAccessCount = entry.AccessCount
 			leastFrequentKey = key
@@ -714,44 +724,53 @@ func (ic *IntelligentCache) evictLFU() {
 	}
 
 	if leastFrequentKey != "" {
-		delete(ic.memoryCache.Data, leastFrequentKey)
-		ic.removeFromAccessOrder(leastFrequentKey)
+		delete(ic.memoryCache.data, leastFrequentKey)
 	}
 }
 
 func (ic *IntelligentCache) evictFIFO() {
-	if len(ic.memoryCache.AccessOrder) == 0 {
+	if len(ic.memoryCache.data) == 0 {
 		return
 	}
 
-	// Remove first in (oldest)
-	key := ic.memoryCache.AccessOrder[0]
-	delete(ic.memoryCache.Data, key)
-	ic.memoryCache.AccessOrder = ic.memoryCache.AccessOrder[1:]
-}
+	// Find oldest item by creation time
+	var oldestKey string
+	var oldestTime time.Time
+	first := true
 
-func (ic *IntelligentCache) updateAccessOrder(key string) {
-	ic.removeFromAccessOrder(key)
-	ic.memoryCache.AccessOrder = append(ic.memoryCache.AccessOrder, key)
-}
-
-func (ic *IntelligentCache) removeFromAccessOrder(key string) {
-	for i, k := range ic.memoryCache.AccessOrder {
-		if k == key {
-			ic.memoryCache.AccessOrder = append(ic.memoryCache.AccessOrder[:i], ic.memoryCache.AccessOrder[i+1:]...)
-			break
+	for key, item := range ic.memoryCache.data {
+		if first || item.CreatedAt.Before(oldestTime) {
+			oldestKey = key
+			oldestTime = item.CreatedAt
+			first = false
 		}
+	}
+
+	if oldestKey != "" {
+		delete(ic.memoryCache.data, oldestKey)
 	}
 }
 
+func (ic *IntelligentCache) updateAccessOrder(key string) {
+	// Update access time for LRU tracking
+	if item, exists := ic.memoryCache.data[key]; exists {
+		item.LastAccess = time.Now()
+	}
+}
+
+func (ic *IntelligentCache) removeFromAccessOrder(key string) {
+	// No-op since we're not maintaining a separate access order list
+	// Access order is tracked via LastAccess field in cacheItem
+}
+
 func (ic *IntelligentCache) invalidateFromMemory(pattern string) []string {
-	ic.memoryCache.Mux.Lock()
-	defer ic.memoryCache.Mux.Unlock()
+	ic.memoryCache.mu.Lock()
+	defer ic.memoryCache.mu.Unlock()
 
 	var affectedKeys []string
-	for key := range ic.memoryCache.Data {
+	for key := range ic.memoryCache.data {
 		if ic.matchesPattern(key, pattern) {
-			delete(ic.memoryCache.Data, key)
+			delete(ic.memoryCache.data, key)
 			ic.removeFromAccessOrder(key)
 			affectedKeys = append(affectedKeys, key)
 		}
@@ -764,7 +783,7 @@ func (ic *IntelligentCache) invalidateFromMemory(pattern string) []string {
 
 func (ic *IntelligentCache) initializeDiskCache() error {
 	// Create cache directory
-	if err := os.MkdirAll(ic.diskCache.Path, 0755); err != nil {
+	if err := os.MkdirAll(ic.diskCache.basePath, 0755); err != nil {
 		return fmt.Errorf("failed to create cache directory: %w", err)
 	}
 
@@ -773,7 +792,7 @@ func (ic *IntelligentCache) initializeDiskCache() error {
 }
 
 func (ic *IntelligentCache) loadDiskIndex() error {
-	indexFile := filepath.Join(ic.diskCache.Path, "index.json")
+	indexFile := filepath.Join(ic.diskCache.basePath, "index.json")
 
 	data, err := os.ReadFile(indexFile)
 	if err != nil {
@@ -783,26 +802,26 @@ func (ic *IntelligentCache) loadDiskIndex() error {
 		return fmt.Errorf("failed to read index file: %w", err)
 	}
 
-	return json.Unmarshal(data, &ic.diskCache.Index)
+	return json.Unmarshal(data, &ic.diskIndex)
 }
 
 func (ic *IntelligentCache) saveDiskIndex() error {
-	ic.diskCache.Mux.RLock()
-	defer ic.diskCache.Mux.RUnlock()
+	ic.diskMux.RLock()
+	defer ic.diskMux.RUnlock()
 
-	data, err := json.Marshal(ic.diskCache.Index)
+	data, err := json.Marshal(ic.diskIndex)
 	if err != nil {
 		return fmt.Errorf("failed to marshal index: %w", err)
 	}
 
-	indexFile := filepath.Join(ic.diskCache.Path, "index.json")
+	indexFile := filepath.Join(ic.diskCache.basePath, "index.json")
 	return os.WriteFile(indexFile, data, 0644)
 }
 
 func (ic *IntelligentCache) getFromDisk(key string) (interface{}, bool) {
-	ic.diskCache.Mux.RLock()
-	entry, exists := ic.diskCache.Index[key]
-	ic.diskCache.Mux.RUnlock()
+	ic.diskMux.RLock()
+	entry, exists := ic.diskIndex[key]
+	ic.diskMux.RUnlock()
 
 	if !exists {
 		return nil, false
@@ -814,19 +833,22 @@ func (ic *IntelligentCache) getFromDisk(key string) (interface{}, bool) {
 		return nil, false
 	}
 
+	// Construct file path from key
+	filePath := filepath.Join(ic.diskCache.basePath, key+".cache")
+
 	// Read file
-	data, err := os.ReadFile(entry.FilePath)
+	data, err := os.ReadFile(filePath)
 	if err != nil {
 		ic.logger.Warn("failed to read disk cache file", map[string]interface{}{
 			"key":   key,
-			"file":  entry.FilePath,
+			"file":  filePath,
 			"error": err.Error(),
 		})
 		return nil, false
 	}
 
-	// Decompress if needed
-	if entry.Compressed {
+	// Decompress if needed (simplified - assume compression based on config)
+	if ic.config.DiskCompression {
 		data = ic.decompress(data)
 	}
 
@@ -841,10 +863,10 @@ func (ic *IntelligentCache) getFromDisk(key string) (interface{}, bool) {
 	}
 
 	// Update access information
-	ic.diskCache.Mux.Lock()
-	entry.LastAccessed = time.Now()
+	ic.diskMux.Lock()
+	entry.LastAccess = time.Now()
 	entry.AccessCount++
-	ic.diskCache.Mux.Unlock()
+	ic.diskMux.Unlock()
 
 	return value, true
 }
@@ -857,14 +879,14 @@ func (ic *IntelligentCache) setInDisk(key string, value interface{}, ttl time.Du
 	}
 
 	// Compress if enabled
-	if ic.diskCache.Compression {
+	if ic.config.DiskCompression {
 		data = ic.compress(data)
 	}
 
 	// Generate file path
 	hash := fmt.Sprintf("%x", md5.Sum([]byte(key)))
 	fileName := fmt.Sprintf("%s.cache", hash)
-	filePath := filepath.Join(ic.diskCache.Path, fileName)
+	filePath := filepath.Join(ic.diskCache.basePath, fileName)
 
 	// Write file
 	if err := os.WriteFile(filePath, data, 0644); err != nil {
@@ -872,50 +894,50 @@ func (ic *IntelligentCache) setInDisk(key string, value interface{}, ttl time.Du
 	}
 
 	// Update index
-	ic.diskCache.Mux.Lock()
-	defer ic.diskCache.Mux.Unlock()
+	ic.diskMux.Lock()
+	defer ic.diskMux.Unlock()
 
-	ic.diskCache.Index[key] = &DiskEntry{
-		Key:          key,
-		FilePath:     filePath,
-		Size:         int64(len(data)),
-		CreatedAt:    time.Now(),
-		ExpiresAt:    time.Now().Add(ttl),
-		LastAccessed: time.Now(),
-		AccessCount:  1,
-		Compressed:   ic.diskCache.Compression,
-		Checksum:     fmt.Sprintf("%x", md5.Sum(data)),
+	ic.diskIndex[key] = &cacheItem{
+		Value:       data,
+		CreatedAt:   time.Now(),
+		ExpiresAt:   time.Now().Add(ttl),
+		TTL:         ttl,
+		Size:        int64(len(data)),
+		AccessCount: 1,
+		LastAccess:  time.Now(),
 	}
 
 	return ic.saveDiskIndex()
 }
 
 func (ic *IntelligentCache) deleteFromDisk(key string) {
-	ic.diskCache.Mux.Lock()
-	defer ic.diskCache.Mux.Unlock()
+	ic.diskMux.Lock()
+	defer ic.diskMux.Unlock()
 
-	entry, exists := ic.diskCache.Index[key]
+	_, exists := ic.diskIndex[key]
 	if !exists {
 		return
 	}
 
 	// Remove file
-	os.Remove(entry.FilePath)
+	filePath := filepath.Join(ic.diskCache.basePath, key+".cache")
+	os.Remove(filePath)
 
 	// Remove from index
-	delete(ic.diskCache.Index, key)
+	delete(ic.diskIndex, key)
 	ic.saveDiskIndex()
 }
 
 func (ic *IntelligentCache) invalidateFromDisk(pattern string) []string {
-	ic.diskCache.Mux.Lock()
-	defer ic.diskCache.Mux.Unlock()
+	ic.diskMux.Lock()
+	defer ic.diskMux.Unlock()
 
 	var affectedKeys []string
-	for key, entry := range ic.diskCache.Index {
+	for key := range ic.diskIndex {
 		if ic.matchesPattern(key, pattern) {
-			os.Remove(entry.FilePath)
-			delete(ic.diskCache.Index, key)
+			filePath := filepath.Join(ic.diskCache.basePath, key+".cache")
+			os.Remove(filePath)
+			delete(ic.diskIndex, key)
 			affectedKeys = append(affectedKeys, key)
 		}
 	}
@@ -1011,13 +1033,13 @@ func (ic *IntelligentCache) performCacheOptimization() {
 
 func (ic *IntelligentCache) optimizeMemoryCache() {
 	// Remove expired entries
-	ic.memoryCache.Mux.Lock()
-	defer ic.memoryCache.Mux.Unlock()
+	ic.memoryCache.mu.Lock()
+	defer ic.memoryCache.mu.Unlock()
 
 	now := time.Now()
-	for key, entry := range ic.memoryCache.Data {
+	for key, entry := range ic.memoryCache.data {
 		if now.After(entry.ExpiresAt) {
-			delete(ic.memoryCache.Data, key)
+			delete(ic.memoryCache.data, key)
 			ic.removeFromAccessOrder(key)
 		}
 	}
@@ -1025,14 +1047,15 @@ func (ic *IntelligentCache) optimizeMemoryCache() {
 
 func (ic *IntelligentCache) optimizeDiskCache() {
 	// Remove expired entries
-	ic.diskCache.Mux.Lock()
-	defer ic.diskCache.Mux.Unlock()
+	ic.diskMux.Lock()
+	defer ic.diskMux.Unlock()
 
 	now := time.Now()
-	for key, entry := range ic.diskCache.Index {
+	for key, entry := range ic.diskIndex {
 		if now.After(entry.ExpiresAt) {
-			os.Remove(entry.FilePath)
-			delete(ic.diskCache.Index, key)
+			filePath := filepath.Join(ic.diskCache.basePath, key+".cache")
+			os.Remove(filePath)
+			delete(ic.diskIndex, key)
 		}
 	}
 
@@ -1051,26 +1074,27 @@ func (ic *IntelligentCache) performCacheCleanup() {
 
 func (ic *IntelligentCache) cleanupExpiredEntries() {
 	// Memory cache cleanup
-	ic.memoryCache.Mux.Lock()
+	ic.memoryCache.mu.Lock()
 	now := time.Now()
-	for key, entry := range ic.memoryCache.Data {
+	for key, entry := range ic.memoryCache.data {
 		if now.After(entry.ExpiresAt) {
-			delete(ic.memoryCache.Data, key)
+			delete(ic.memoryCache.data, key)
 			ic.removeFromAccessOrder(key)
 		}
 	}
-	ic.memoryCache.Mux.Unlock()
+	ic.memoryCache.mu.Unlock()
 
 	// Disk cache cleanup
 	if ic.diskCache != nil {
-		ic.diskCache.Mux.Lock()
-		for key, entry := range ic.diskCache.Index {
+		ic.diskMux.Lock()
+		for key, entry := range ic.diskIndex {
 			if now.After(entry.ExpiresAt) {
-				os.Remove(entry.FilePath)
-				delete(ic.diskCache.Index, key)
+				filePath := filepath.Join(ic.diskCache.basePath, key+".cache")
+				os.Remove(filePath)
+				delete(ic.diskIndex, key)
 			}
 		}
-		ic.diskCache.Mux.Unlock()
+		ic.diskMux.Unlock()
 		ic.saveDiskIndex()
 	}
 }
@@ -1210,5 +1234,5 @@ func (ic *IntelligentCache) Shutdown() {
 		ic.saveDiskIndex()
 	}
 
-	ic.logger.Info("intelligent cache shutting down")
+	ic.logger.Info("intelligent cache shutting down", map[string]interface{}{})
 }

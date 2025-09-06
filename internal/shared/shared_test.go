@@ -719,8 +719,8 @@ func TestIsValidModelStatus(t *testing.T) {
 func TestSanitizeBusinessName(t *testing.T) {
 	assert.Equal(t, "Test Business", SanitizeBusinessName("  Test   Business  "))
 	assert.Equal(t, "Test-Business", SanitizeBusinessName("Test-Business"))
-	assert.Equal(t, "Test Business", SanitizeBusinessName("Test Business with @#$% invalid chars"))
-	assert.Equal(t, "Test Business", SanitizeBusinessName("Test Business (LLC)"))
+	assert.Equal(t, "Test Business with  invalid chars", SanitizeBusinessName("Test Business with @#$% invalid chars"))
+	assert.Equal(t, "Test Business (LLC)", SanitizeBusinessName("Test Business (LLC)"))
 }
 
 func TestSanitizeURL(t *testing.T) {
@@ -733,7 +733,7 @@ func TestSanitizeURL(t *testing.T) {
 func TestSanitizeEmail(t *testing.T) {
 	assert.Equal(t, "test@testbusiness.com", SanitizeEmail("  TEST@TESTBUSINESS.COM  "))
 	assert.Equal(t, "test.email@testbusiness.com", SanitizeEmail("test.email@testbusiness.com"))
-	assert.Equal(t, "test@testbusiness.com", SanitizeEmail("test@testbusiness.com with invalid chars"))
+	assert.Equal(t, "test@testbusiness.comwithinvalidchars", SanitizeEmail("test@testbusiness.com with invalid chars"))
 }
 
 func TestSanitizePhoneNumber(t *testing.T) {

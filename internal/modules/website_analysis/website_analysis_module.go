@@ -164,7 +164,9 @@ func (m *WebsiteAnalysisModule) Start(ctx context.Context) error {
 	}
 
 	span.SetAttributes(attribute.String("module.id", m.id))
-	m.logger.WithComponent("website_analysis_module").Info("Module started", "module_id", m.id)
+	m.logger.WithComponent("website_analysis_module").Info("Module started", map[string]interface{}{
+		"module_id": m.id,
+	})
 
 	return nil
 }
@@ -193,7 +195,9 @@ func (m *WebsiteAnalysisModule) Stop(ctx context.Context) error {
 	}
 
 	span.SetAttributes(attribute.String("module.id", m.id))
-	m.logger.WithComponent("website_analysis_module").Info("Module stopped", "module_id", m.id)
+	m.logger.WithComponent("website_analysis_module").Info("Module stopped", map[string]interface{}{
+		"module_id": m.id,
+	})
 
 	return nil
 }
@@ -270,7 +274,7 @@ func (m *WebsiteAnalysisModule) Process(ctx context.Context, req architecture.Mo
 	}
 
 	// Record metrics
-	m.metrics.RecordBusinessClassification("website_analysis", "success")
+	m.metrics.RecordBusinessClassification("website_analysis", 1.0)
 
 	return response, nil
 }

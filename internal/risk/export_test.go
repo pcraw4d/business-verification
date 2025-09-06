@@ -5,16 +5,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/config"
 	"github.com/pcraw4d/business-verification/internal/observability"
+	"go.uber.org/zap"
 )
 
 func TestExportService_ExportRiskData(t *testing.T) {
 	// Create test logger
-	logger := observability.NewLogger(&config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	})
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 
 	// Create test components
 	historyService := NewRiskHistoryService(logger, nil)
@@ -91,10 +89,8 @@ func TestExportService_ExportRiskData(t *testing.T) {
 
 func TestExportService_ExportRiskData_CSV(t *testing.T) {
 	// Create test logger
-	logger := observability.NewLogger(&config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	})
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 
 	// Create test components
 	historyService := NewRiskHistoryService(logger, nil)
@@ -143,10 +139,8 @@ func TestExportService_ExportRiskData_CSV(t *testing.T) {
 
 func TestExportService_CreateExportJob(t *testing.T) {
 	// Create test logger
-	logger := observability.NewLogger(&config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	})
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 
 	// Create test components
 	historyService := NewRiskHistoryService(logger, nil)
@@ -223,10 +217,8 @@ func TestExportService_CreateExportJob(t *testing.T) {
 
 func TestExportService_GetExportJob(t *testing.T) {
 	// Create test logger
-	logger := observability.NewLogger(&config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	})
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 
 	// Create test components
 	historyService := NewRiskHistoryService(logger, nil)
@@ -277,10 +269,8 @@ func TestExportService_GetExportJob(t *testing.T) {
 
 func TestExportService_ValidateExportRequest(t *testing.T) {
 	// Create test logger
-	logger := observability.NewLogger(&config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	})
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 
 	// Create test components
 	historyService := NewRiskHistoryService(logger, nil)
@@ -360,10 +350,8 @@ func TestExportService_ValidateExportRequest(t *testing.T) {
 
 func TestExportService_FormatExportData(t *testing.T) {
 	// Create test logger
-	logger := observability.NewLogger(&config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	})
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 
 	// Create test components
 	historyService := NewRiskHistoryService(logger, nil)
@@ -449,10 +437,8 @@ func TestExportService_FormatExportData(t *testing.T) {
 
 func TestExportService_ConvertToString(t *testing.T) {
 	// Create test logger
-	logger := observability.NewLogger(&config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	})
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 
 	// Create test components
 	historyService := NewRiskHistoryService(logger, nil)
@@ -516,10 +502,8 @@ func TestExportService_ConvertToString(t *testing.T) {
 
 func TestExportService_CountRecords(t *testing.T) {
 	// Create test logger
-	logger := observability.NewLogger(&config.ObservabilityConfig{
-		LogLevel:  "info",
-		LogFormat: "json",
-	})
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 
 	// Create test components
 	historyService := NewRiskHistoryService(logger, nil)

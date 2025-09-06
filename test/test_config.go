@@ -11,6 +11,7 @@ import (
 	"github.com/pcraw4d/business-verification/internal/config"
 	"github.com/pcraw4d/business-verification/internal/database"
 	"github.com/pcraw4d/business-verification/internal/observability"
+	"go.uber.org/zap"
 )
 
 // TestConfig holds test configuration
@@ -56,10 +57,8 @@ func setupTestConfig(t *testing.T) *TestConfig {
 	}
 
 	// Create logger
-	logger := observability.NewLogger(&config.ObservabilityConfig{
-		LogLevel:  "debug",
-		LogFormat: "json",
-	})
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 
 	// Create database connection
 	db, err := database.NewDatabaseWithConnection(context.Background(), dbConfig)
@@ -326,7 +325,9 @@ func TestLogger(t *testing.T) {
 	ts.AssertNotNil(logger)
 
 	// Test logging functionality
-	logger.Info("Test log message", "test_key", "test_value")
+	logger.Info("Test log message", map[string]interface{}{
+		"test_key": "test_value",
+	})
 }
 
 // BenchmarkDatabaseOperations benchmarks database operations
@@ -360,7 +361,9 @@ func BenchmarkLoggerOperations(b *testing.B) {
 
 	b.Run("InfoLogging", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			logger.Info("Benchmark log message", "iteration", i)
+			logger.Info("Benchmark log message", map[string]interface{}{
+				"iteration": i,
+			})
 		}
 	})
 }

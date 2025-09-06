@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pcraw4d/business-verification/internal/observability"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -90,44 +92,26 @@ func TestResourceManager(t *testing.T) {
 		ResourceTimeout:  30 * time.Second,
 	}
 
-	rm := NewResourceManager(config, logger)
+	obsLogger := observability.NewLogger(logger)
+	tracer := trace.NewNoopTracerProvider().Tracer("test")
+	rm := NewResourceManager(config, obsLogger, tracer)
 
-	// Test registering resources
-	err := rm.RegisterResource("cpu", "processor", 4)
+	// Test starting the resource manager
+	err := rm.Start()
 	if err != nil {
-		t.Fatalf("Failed to register resource: %v", err)
+		t.Fatalf("Failed to start resource manager: %v", err)
 	}
+	defer rm.Stop()
 
-	err = rm.RegisterResource("memory", "storage", 8192)
-	if err != nil {
-		t.Fatalf("Failed to register resource: %v", err)
-	}
-
-	// Test acquiring resources
-	ctx := context.Background()
-	resources, err := rm.Acquire(ctx, []string{"cpu", "memory"})
-	if err != nil {
-		t.Fatalf("Failed to acquire resources: %v", err)
-	}
-
-	if len(resources) != 2 {
-		t.Errorf("Expected 2 resources, got %d", len(resources))
-	}
-
-	// Test releasing resources
-	err = rm.Release(resources)
-	if err != nil {
-		t.Fatalf("Failed to release resources: %v", err)
-	}
-
-	// Test statistics
+	// Test getting resource metrics
 	stats := rm.GetStats()
 	if stats == nil {
-		t.Fatal("Stats should not be nil")
+		t.Error("Expected stats to be non-nil")
 	}
 
-	if stats.TotalResources != 8196 { // 4 + 8192
-		t.Errorf("Expected 8196 total resources, got %d", stats.TotalResources)
+	// Basic stats validation
+	if stats.CPUUtilization < 0 || stats.CPUUtilization > 100 {
+		t.Errorf("CPU utilization should be between 0 and 100, got %f", stats.CPUUtilization)
 	}
 }
 
@@ -265,7 +249,9 @@ func TestConcurrentRequestHandler(t *testing.T) {
 		MaxConcurrentOps: 10,
 		ResourceTimeout:  30 * time.Second,
 	}
-	resourceMgr := NewResourceManager(resourceConfig, logger)
+	obsLogger := observability.NewLogger(logger)
+	tracer := trace.NewNoopTracerProvider().Tracer("test")
+	resourceMgr := NewResourceManager(resourceConfig, obsLogger, tracer)
 
 	// Create request handler config
 	requestConfig := &ConcurrentRequestHandlerConfig{

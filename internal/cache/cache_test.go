@@ -10,20 +10,22 @@ import (
 func TestCacheTypes(t *testing.T) {
 	// Test that basic types can be created
 	config := CacheConfig{
-		EnableMemoryCache: true,
-		EnableDiskCache:   false,
-		EnableRedisCache:  false,
-		MemoryCacheSize:   1000,
-		MemoryCacheTTL:    1 * time.Hour,
-		MemoryCachePolicy: "LRU",
+		Type:             MemoryCache,
+		DefaultTTL:       1 * time.Hour,
+		MaxSize:          1000,
+		KeyPrefix:        "test",
+		KeySeparator:     ":",
+		KeyHashAlgorithm: "md5",
+		CleanupInterval:  5 * time.Minute,
+		MetricsInterval:  1 * time.Minute,
 	}
 
-	if config.EnableMemoryCache != true {
-		t.Errorf("Expected EnableMemoryCache to be true")
+	if config.Type != MemoryCache {
+		t.Errorf("Expected Type to be MemoryCache")
 	}
 
-	if config.MemoryCacheSize != 1000 {
-		t.Errorf("Expected MemoryCacheSize to be 1000, got %d", config.MemoryCacheSize)
+	if config.MaxSize != 1000 {
+		t.Errorf("Expected MaxSize to be 1000, got %d", config.MaxSize)
 	}
 }
 
@@ -49,8 +51,14 @@ func TestCacheKeyManager(t *testing.T) {
 func TestCacheInvalidationManager(t *testing.T) {
 	logger := zap.NewNop()
 	config := CacheConfig{
-		EnableAutoInvalidation: true,
-		InvalidationInterval:   5 * time.Minute,
+		Type:             MemoryCache,
+		DefaultTTL:       5 * time.Minute,
+		MaxSize:          1000,
+		KeyPrefix:        "test",
+		KeySeparator:     ":",
+		KeyHashAlgorithm: "md5",
+		CleanupInterval:  5 * time.Minute,
+		MetricsInterval:  1 * time.Minute,
 	}
 
 	manager := NewCacheInvalidationManager(config, logger)
@@ -62,8 +70,14 @@ func TestCacheInvalidationManager(t *testing.T) {
 func TestCachePerformanceMonitor(t *testing.T) {
 	logger := zap.NewNop()
 	config := CacheConfig{
-		EnableMetrics:   true,
-		MetricsInterval: 1 * time.Minute,
+		Type:             MemoryCache,
+		DefaultTTL:       1 * time.Hour,
+		MaxSize:          1000,
+		KeyPrefix:        "test",
+		KeySeparator:     ":",
+		KeyHashAlgorithm: "md5",
+		CleanupInterval:  5 * time.Minute,
+		MetricsInterval:  1 * time.Minute,
 	}
 
 	monitor := NewCachePerformanceMonitor(config, logger)

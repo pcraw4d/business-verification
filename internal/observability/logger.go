@@ -1,6 +1,7 @@
 package observability
 
 import (
+	"context"
 	"time"
 
 	"go.uber.org/zap"
@@ -11,11 +12,102 @@ type Logger struct {
 	zapLogger *zap.Logger
 }
 
+// ModuleLogger provides module-specific logging functionality
+type ModuleLogger struct {
+	*Logger
+	moduleName string
+}
+
 // NewLogger creates a new logger instance
 func NewLogger(zapLogger *zap.Logger) *Logger {
 	return &Logger{
 		zapLogger: zapLogger,
 	}
+}
+
+// NewModuleLogger creates a new module logger instance
+func NewModuleLogger(zapLogger *zap.Logger, moduleName string) *ModuleLogger {
+	return &ModuleLogger{
+		Logger:     NewLogger(zapLogger),
+		moduleName: moduleName,
+	}
+}
+
+// Module-specific logging methods
+func (ml *ModuleLogger) LogModuleConfig(ctx context.Context, operation string, config map[string]interface{}) {
+	ml.Info("Module configuration", map[string]interface{}{
+		"module":    ml.moduleName,
+		"operation": operation,
+		"config":    config,
+	})
+}
+
+func (ml *ModuleLogger) LogModuleHealth(ctx context.Context, healthy bool, status string, details map[string]interface{}) {
+	ml.Info("Module health check", map[string]interface{}{
+		"module":  ml.moduleName,
+		"healthy": healthy,
+		"status":  status,
+		"details": details,
+	})
+}
+
+func (ml *ModuleLogger) LogModuleStart(ctx context.Context, metadata map[string]interface{}) {
+	ml.Info("Module started", map[string]interface{}{
+		"module":   ml.moduleName,
+		"metadata": metadata,
+	})
+}
+
+func (ml *ModuleLogger) LogModuleStop(ctx context.Context, reason string) {
+	ml.Info("Module stopped", map[string]interface{}{
+		"module": ml.moduleName,
+		"reason": reason,
+	})
+}
+
+func (ml *ModuleLogger) LogModuleError(ctx context.Context, operation string, err error, metadata map[string]interface{}) {
+	ml.Error("Module error", map[string]interface{}{
+		"module":    ml.moduleName,
+		"operation": operation,
+		"error":     err.Error(),
+		"metadata":  metadata,
+	})
+}
+
+func (ml *ModuleLogger) LogModulePerformance(ctx context.Context, operation string, startTime, endTime time.Time, metrics map[string]interface{}) {
+	duration := endTime.Sub(startTime)
+	ml.Info("Module performance", map[string]interface{}{
+		"module":     ml.moduleName,
+		"operation":  operation,
+		"duration":   duration.String(),
+		"start_time": startTime,
+		"end_time":   endTime,
+		"metrics":    metrics,
+	})
+}
+
+func (ml *ModuleLogger) LogModuleRequest(ctx context.Context, requestID string, statusCode int, duration time.Duration) {
+	ml.Info("Module request", map[string]interface{}{
+		"module":      ml.moduleName,
+		"request_id":  requestID,
+		"status_code": statusCode,
+		"duration":    duration.String(),
+	})
+}
+
+func (ml *ModuleLogger) LogModuleResponse(ctx context.Context, requestID string, statusCode int, duration time.Duration, metadata map[string]interface{}) {
+	ml.Info("Module response", map[string]interface{}{
+		"module":      ml.moduleName,
+		"request_id":  requestID,
+		"status_code": statusCode,
+		"duration":    duration.String(),
+		"metadata":    metadata,
+	})
+}
+
+// GetZapLogger returns the underlying zap logger
+func (l *Logger) GetZapLogger() *zap.Logger {
+	return l.zapLogger
 }
 
 // WithComponent creates a logger with component context

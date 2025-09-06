@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pcraw4d/business-verification/internal/observability"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -266,7 +268,10 @@ func (cp *ConcurrentProcessor) initializeComponents() error {
 		MaxConcurrentOps: cp.config.MaxConcurrentOps,
 		ResourceTimeout:  cp.config.ResourceTimeout,
 	}
-	cp.resourceManager = NewResourceManager(resourceConfig, cp.logger)
+	// Create observability logger and tracer
+	obsLogger := observability.NewLogger(cp.logger)
+	tracer := trace.NewNoopTracerProvider().Tracer("concurrent-processor")
+	cp.resourceManager = NewResourceManager(resourceConfig, obsLogger, tracer)
 
 	// Initialize thread-safe data structures
 	cp.dataStructures = NewThreadSafeDataStructures()
@@ -339,7 +344,7 @@ func (cp *ConcurrentProcessor) collectMetrics() {
 	if cp.resourceManager != nil {
 		stats := cp.resourceManager.GetStats()
 		if stats != nil {
-			cp.stats.ResourceUtilization = stats.Utilization
+			cp.stats.ResourceUtilization = stats.CPUUtilization
 		}
 	}
 

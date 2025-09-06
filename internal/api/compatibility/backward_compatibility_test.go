@@ -9,22 +9,22 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/classification"
 	"github.com/pcraw4d/business-verification/internal/config"
+	"github.com/pcraw4d/business-verification/internal/shared"
 	"github.com/pcraw4d/business-verification/pkg/validators"
 )
 
 // MockClassificationProcessor implements ClassificationProcessor for testing
 type MockClassificationProcessor struct {
 	shouldError bool
-	response    *classification.ClassificationResponse
-	responses   []*classification.ClassificationResponse
+	response    *shared.BusinessClassificationResponse
+	responses   []*shared.BusinessClassificationResponse
 }
 
 func (m *MockClassificationProcessor) ProcessClassification(
 	ctx context.Context,
-	request *classification.ClassificationRequest,
-) (*classification.ClassificationResponse, error) {
+	request *shared.BusinessClassificationRequest,
+) (*shared.BusinessClassificationResponse, error) {
 	if m.shouldError {
 		return nil, fmt.Errorf("Mock classification error")
 	}
@@ -33,8 +33,8 @@ func (m *MockClassificationProcessor) ProcessClassification(
 
 func (m *MockClassificationProcessor) ProcessBatchClassification(
 	ctx context.Context,
-	requests []*classification.ClassificationRequest,
-) ([]*classification.ClassificationResponse, error) {
+	requests []*shared.BusinessClassificationRequest,
+) ([]*shared.BusinessClassificationResponse, error) {
 	if m.shouldError {
 		return nil, fmt.Errorf("Mock batch classification error")
 	}

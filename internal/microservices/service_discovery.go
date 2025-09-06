@@ -35,11 +35,11 @@ func (r *ServiceRegistryImpl) Register(service ServiceContract) error {
 	}
 
 	r.services[serviceName] = service
-	r.logger.Info("Service registered",
-		"service_name", serviceName,
-		"version", service.Version(),
-		"capabilities_count", len(service.Capabilities()),
-	)
+	r.logger.Info("Service registered", map[string]interface{}{
+		"service_name":       serviceName,
+		"version":            service.Version(),
+		"capabilities_count": len(service.Capabilities()),
+	})
 
 	return nil
 }
@@ -54,7 +54,9 @@ func (r *ServiceRegistryImpl) Unregister(serviceName string) error {
 	}
 
 	delete(r.services, serviceName)
-	r.logger.Info("Service unregistered", "service_name", serviceName)
+	r.logger.Info("Service unregistered", map[string]interface{}{
+		"service_name": serviceName,
+	})
 
 	return nil
 }
@@ -152,12 +154,12 @@ func (d *ServiceDiscoveryImpl) RegisterInstance(instance ServiceInstance) error 
 		Timestamp: time.Now(),
 	})
 
-	d.logger.Info("Service instance registered",
-		"service_name", serviceName,
-		"instance_id", instance.ID,
-		"host", instance.Host,
-		"port", instance.Port,
-	)
+	d.logger.Info("Service instance registered", map[string]interface{}{
+		"service_name": serviceName,
+		"instance_id":  instance.ID,
+		"host":         instance.Host,
+		"port":         instance.Port,
+	})
 
 	return nil
 }
@@ -183,10 +185,10 @@ func (d *ServiceDiscoveryImpl) UnregisterInstance(serviceName, instanceID string
 				Timestamp: time.Now(),
 			})
 
-			d.logger.Info("Service instance unregistered",
-				"service_name", serviceName,
-				"instance_id", instanceID,
-			)
+			d.logger.Info("Service instance unregistered", map[string]interface{}{
+				"service_name": serviceName,
+				"instance_id":  instanceID,
+			})
 
 			return nil
 		}
@@ -243,7 +245,9 @@ func (d *ServiceDiscoveryImpl) Watch(serviceName string) (<-chan ServiceEvent, e
 
 	d.watchers[serviceName] = append(d.watchers[serviceName], eventChan)
 
-	d.logger.Info("Service watcher added", "service_name", serviceName)
+	d.logger.Info("Service watcher added", map[string]interface{}{
+		"service_name": serviceName,
+	})
 
 	return eventChan, nil
 }
@@ -264,7 +268,9 @@ func (d *ServiceDiscoveryImpl) Unwatch(serviceName string) error {
 	}
 
 	delete(d.watchers, serviceName)
-	d.logger.Info("Service watchers removed", "service_name", serviceName)
+	d.logger.Info("Service watchers removed", map[string]interface{}{
+		"service_name": serviceName,
+	})
 
 	return nil
 }
@@ -282,10 +288,10 @@ func (d *ServiceDiscoveryImpl) notifyWatchers(serviceName string, event ServiceE
 			// Event sent successfully
 		default:
 			// Channel is full, skip this event
-			d.logger.Warn("Service event channel full, skipping event",
-				"service_name", serviceName,
-				"event_type", event.Type,
-			)
+			d.logger.Warn("Service event channel full, skipping event", map[string]interface{}{
+				"service_name": serviceName,
+				"event_type":   event.Type,
+			})
 		}
 	}
 }
@@ -313,11 +319,11 @@ func (d *ServiceDiscoveryImpl) UpdateInstanceHealth(serviceName, instanceID stri
 				Timestamp: time.Now(),
 			})
 
-			d.logger.Info("Service instance health updated",
-				"service_name", serviceName,
-				"instance_id", instanceID,
-				"health_status", health.Status,
-			)
+			d.logger.Info("Service instance health updated", map[string]interface{}{
+				"service_name":  serviceName,
+				"instance_id":   instanceID,
+				"health_status": health.Status,
+			})
 
 			return nil
 		}
@@ -338,11 +344,11 @@ func (d *ServiceDiscoveryImpl) CleanupStaleInstances(timeout time.Duration) {
 			if now.Sub(instance.LastSeen) < timeout {
 				activeInstances = append(activeInstances, instance)
 			} else {
-				d.logger.Info("Removing stale service instance",
-					"service_name", serviceName,
-					"instance_id", instance.ID,
-					"last_seen", instance.LastSeen,
-				)
+				d.logger.Info("Removing stale service instance", map[string]interface{}{
+					"service_name": serviceName,
+					"instance_id":  instance.ID,
+					"last_seen":    instance.LastSeen,
+				})
 
 				d.notifyWatchers(serviceName, ServiceEvent{
 					Type:      ServiceEventRemoved,
@@ -390,11 +396,11 @@ func (d *ServiceDiscoveryImpl) performHealthChecks() {
 			}
 
 			if err := d.UpdateInstanceHealth(serviceName, instance.ID, health); err != nil {
-				d.logger.Error("Failed to update instance health",
-					"service_name", serviceName,
-					"instance_id", instance.ID,
-					"error", err,
-				)
+				d.logger.Error("Failed to update instance health", map[string]interface{}{
+					"service_name": serviceName,
+					"instance_id":  instance.ID,
+					"error":        err.Error(),
+				})
 			}
 		}
 	}

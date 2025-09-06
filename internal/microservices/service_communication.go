@@ -167,12 +167,12 @@ func (lb *ServiceLoadBalancerImpl) Select(serviceName string) (ServiceInstance, 
 	selectedIndex := rand.Intn(len(instances))
 	selectedInstance := instances[selectedIndex]
 
-	lb.logger.Info("Service instance selected",
-		"service_name", serviceName,
-		"instance_id", selectedInstance.ID,
-		"host", selectedInstance.Host,
-		"port", selectedInstance.Port,
-	)
+	lb.logger.Info("Service instance selected", map[string]interface{}{
+		"service_name": serviceName,
+		"instance_id":  selectedInstance.ID,
+		"host":         selectedInstance.Host,
+		"port":         selectedInstance.Port,
+	})
 
 	return selectedInstance, nil
 }
@@ -181,11 +181,11 @@ func (lb *ServiceLoadBalancerImpl) Select(serviceName string) (ServiceInstance, 
 func (lb *ServiceLoadBalancerImpl) UpdateHealth(instanceID string, health ServiceHealth) error {
 	// This would typically update the health status in the discovery system
 	// For now, we'll just log the update
-	lb.logger.Info("Service instance health updated",
-		"instance_id", instanceID,
-		"health_status", health.Status,
-		"health_message", health.Message,
-	)
+	lb.logger.Info("Service instance health updated", map[string]interface{}{
+		"instance_id":    instanceID,
+		"health_status":  health.Status,
+		"health_message": health.Message,
+	})
 	return nil
 }
 
@@ -291,9 +291,9 @@ func (cb *ServiceCircuitBreakerImpl) Reset(serviceName string) error {
 			state.SuccessCount = 0
 			state.LastStateChange = time.Now()
 
-			cb.logger.Info("Circuit breaker reset",
-				"service_name", serviceName,
-			)
+			cb.logger.Info("Circuit breaker reset", map[string]interface{}{
+				"service_name": serviceName,
+			})
 			return nil
 		}
 	}
@@ -332,19 +332,19 @@ func (cb *ServiceCircuitBreakerImpl) updateState(state *CircuitBreakerState, err
 			// Back to open
 			state.State = "open"
 			state.LastStateChange = now
-			cb.logger.Warn("Circuit breaker opened",
-				"service_name", state.ServiceName,
-				"failure_count", state.FailureCount,
-			)
+			cb.logger.Warn("Circuit breaker opened", map[string]interface{}{
+				"service_name":  state.ServiceName,
+				"failure_count": state.FailureCount,
+			})
 		} else if state.State == "closed" && state.FailureCount >= state.Threshold {
 			// Transition to open
 			state.State = "open"
 			state.LastStateChange = now
-			cb.logger.Warn("Circuit breaker opened",
-				"service_name", state.ServiceName,
-				"failure_count", state.FailureCount,
-				"threshold", state.Threshold,
-			)
+			cb.logger.Warn("Circuit breaker opened", map[string]interface{}{
+				"service_name":  state.ServiceName,
+				"failure_count": state.FailureCount,
+				"threshold":     state.Threshold,
+			})
 		}
 	} else {
 		state.SuccessCount++
@@ -356,9 +356,9 @@ func (cb *ServiceCircuitBreakerImpl) updateState(state *CircuitBreakerState, err
 			state.State = "closed"
 			state.FailureCount = 0
 			state.LastStateChange = now
-			cb.logger.Info("Circuit breaker closed",
-				"service_name", state.ServiceName,
-			)
+			cb.logger.Info("Circuit breaker closed", map[string]interface{}{
+				"service_name": state.ServiceName,
+			})
 		} else if state.State == "closed" {
 			// Reset failure count on success
 			state.FailureCount = 0

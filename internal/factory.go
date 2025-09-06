@@ -9,6 +9,7 @@ import (
 	"github.com/pcraw4d/business-verification/internal/config"
 	"github.com/pcraw4d/business-verification/internal/database"
 	"github.com/pcraw4d/business-verification/internal/observability"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // NewDatabase creates a new database instance based on provider configuration
@@ -36,7 +37,7 @@ func NewAuthService(cfg *config.Config, db database.Database, logger *observabil
 		// For now, use the existing auth service with Supabase database
 		// The Supabase auth implementation will be integrated in a future update
 		authConfig := &cfg.Auth
-		return auth.NewAuthService(authConfig, db, logger, metrics), nil
+		return auth.NewAuthService(authConfig, logger.GetZapLogger()), nil
 	case "aws":
 		// TODO: Implement AWS Cognito authentication
 		return nil, fmt.Errorf("AWS auth provider not yet implemented")
@@ -50,19 +51,25 @@ func NewAuthService(cfg *config.Config, db database.Database, logger *observabil
 
 // NewCache creates a new cache instance based on provider configuration
 func NewCache(cfg *config.Config, logger *observability.Logger) (interface{}, error) {
+	// Create a no-op tracer for now
+	tracer := trace.NewNoopTracerProvider().Tracer("factory")
+
 	switch cfg.Provider.Cache {
 	case "supabase":
 		// Use the intelligent cache implementation for now
 		// TODO: Implement proper Supabase cache
 		cacheConfig := &cache.IntelligentCacheConfig{
-			BaseTTL:                 5 * time.Minute,
-			MaxTTL:                  30 * time.Minute,
-			TTLMultiplier:           1.5,
-			EnableAdaptiveTTL:       true,
-			EnableExpirationManager: true,
-			ExpirationCheckInterval: 1 * time.Minute,
+			MemoryCacheSize:         1000,
+			MemoryCacheTTL:          5 * time.Minute,
+			MemoryEvictionPolicy:    "lru",
+			DiskCacheEnabled:        true,
+			DiskCachePath:           "./cache",
+			DiskCacheSize:           100 * 1024 * 1024, // 100MB
+			DiskCacheTTL:            30 * time.Minute,
+			DiskCompression:         true,
+			DistributedCacheEnabled: false,
 		}
-		return cache.NewIntelligentCache(cacheConfig)
+		return cache.NewIntelligentCache(cacheConfig, logger, tracer), nil
 	case "aws":
 		// TODO: Implement AWS ElastiCache
 		return nil, fmt.Errorf("AWS cache provider not yet implemented")

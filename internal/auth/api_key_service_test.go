@@ -8,7 +8,7 @@ import (
 
 	"github.com/pcraw4d/business-verification/internal/config"
 	"github.com/pcraw4d/business-verification/internal/database"
-	"github.com/pcraw4d/business-verification/internal/observability"
+	"go.uber.org/zap"
 )
 
 // MockAPIKeyDatabase provides a mock implementation for testing
@@ -268,14 +268,16 @@ func (m *MockAPIKeyDatabase) BeginTx(ctx context.Context) (database.Database, er
 func (m *MockAPIKeyDatabase) Commit() error                                          { return nil }
 func (m *MockAPIKeyDatabase) Rollback() error                                        { return nil }
 
-func setupAPIKeyServiceTest() (*APIKeyService, *MockAPIKeyDatabase) {
+func setupAPIKeyServiceTest() (*AuthService, *MockAPIKeyDatabase) {
 	mockDB := NewMockAPIKeyDatabase()
-	loggerConfig := &config.ObservabilityConfig{
-		LogLevel: "debug",
-	}
-	logger := observability.NewLogger(loggerConfig)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := zapLogger
 
-	apiKeyService := NewAPIKeyService(mockDB, logger)
+	authConfig := &config.AuthConfig{
+		JWTSecret:     "test-secret",
+		JWTExpiration: 15 * time.Minute,
+	}
+	apiKeyService := NewAuthService(authConfig, logger)
 
 	return apiKeyService, mockDB
 }
