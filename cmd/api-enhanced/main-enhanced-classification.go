@@ -269,7 +269,7 @@ func NewEnhancedClassificationServer(port string) *EnhancedClassificationServer 
 		// Extract classification result from the service response
 		classificationData := result["classification_data"].(map[string]interface{})
 		industryDetection := classificationData["industry_detection"].(map[string]interface{})
-		
+
 		classificationResult := map[string]interface{}{
 			"primary_industry": industryDetection["detected_industry"],
 			"confidence":       industryDetection["confidence"],
@@ -290,7 +290,7 @@ func NewEnhancedClassificationServer(port string) *EnhancedClassificationServer 
 
 		// Build comprehensive response
 		response := map[string]interface{}{
-			"success":              true,
+			"success":               true,
 			"business_id":           fmt.Sprintf("biz_%d", time.Now().Unix()),
 			"primary_industry":      classificationResult["primary_industry"],
 			"confidence_score":      classificationResult["confidence"],
