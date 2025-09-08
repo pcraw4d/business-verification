@@ -8,6 +8,10 @@ import (
 
 // NewRepository creates a new keyword repository with the real Supabase client
 func NewRepository(supabaseClient *database.SupabaseClient, logger *log.Logger) KeywordRepository {
+	if supabaseClient == nil {
+		// Return a fallback repository that uses hardcoded data
+		return NewFallbackKeywordRepository(logger)
+	}
 	adapter := NewSupabaseClientAdapter(supabaseClient)
 	return NewSupabaseKeywordRepository(adapter, logger)
 }

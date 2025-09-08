@@ -18,14 +18,14 @@ COPY internal/ internal/
 COPY pkg/ pkg/
 COPY web/ web/
 
-# Build the enhanced application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o kyb-platform ./cmd/api/main-enhanced.go
+# Build the enhanced application with new classification system
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o kyb-platform ./cmd/api-enhanced/main-enhanced-classification.go
 
 # Create final image
 FROM alpine:latest
 
 # Install runtime dependencies
-RUN apk --no-cache add ca-certificates tzdata
+RUN apk --no-cache add ca-certificates tzdata wget
 
 WORKDIR /root/
 

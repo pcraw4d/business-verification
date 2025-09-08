@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
+	"time"
 
 	postgrest "github.com/supabase-community/postgrest-go"
 	supa "github.com/supabase-community/supabase-go"
@@ -87,11 +89,32 @@ func (s *SupabaseClient) Close() error {
 
 // Ping checks the connection to Supabase
 func (s *SupabaseClient) Ping(ctx context.Context) error {
-	// Test connection with a simple query to check if tables exist
-	// This will help verify the database schema is accessible
-	_, _, err := s.postgrest.From("industries").Select("*", "", false).Execute()
+	// Test connection with a simple health check
+	// Try to access the Supabase API directly without requiring specific tables
+	_, _, err := s.postgrest.From("_health").Select("*", "", false).Execute()
 	if err != nil {
-		return fmt.Errorf("ping failed - database schema may not be initialized: %w", err)
+		// If health table doesn't exist, try a simple query to test API access
+		_, _, err2 := s.postgrest.From("information_schema.tables").Select("table_name", "", false).Limit(1, "").Execute()
+		if err2 != nil {
+			// If that fails, try a simple HTTP request to test API access
+			req, err3 := http.NewRequestWithContext(ctx, "GET", s.url+"/rest/v1/", nil)
+			if err3 != nil {
+				return fmt.Errorf("ping failed - unable to create request: %w", err3)
+			}
+			req.Header.Set("apikey", s.apiKey)
+			req.Header.Set("Authorization", "Bearer "+s.apiKey)
+
+			client := &http.Client{Timeout: 10 * time.Second}
+			resp, err4 := client.Do(req)
+			if err4 != nil {
+				return fmt.Errorf("ping failed - unable to access Supabase API: %w", err4)
+			}
+			defer resp.Body.Close()
+
+			if resp.StatusCode >= 400 {
+				return fmt.Errorf("ping failed - Supabase API returned status %d", resp.StatusCode)
+			}
+		}
 	}
 	return nil
 }

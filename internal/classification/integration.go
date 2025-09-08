@@ -2,7 +2,9 @@ package classification
 
 import (
 	"context"
+	"io"
 	"log"
+	"net/http"
 
 	"github.com/pcraw4d/business-verification/internal/classification/repository"
 	"github.com/pcraw4d/business-verification/internal/database"
@@ -145,7 +147,31 @@ func (s *IntegrationService) createDefaultResult(reason string) *IndustryDetecti
 
 // scrapeWebsiteContent performs basic website content scraping
 func (s *IntegrationService) scrapeWebsiteContent(url string) string {
-	// This is a simplified version - in production, you'd use the full scraping logic
-	// For now, return a placeholder
-	return "Website content placeholder - implement full scraping logic"
+	// Import required packages
+	client := &http.Client{Timeout: 10 * time.Second}
+	
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		s.logger.Printf("❌ Error creating request for %s: %v", url, err)
+		return "Error creating request"
+	}
+	
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; BusinessVerificationBot/1.0)")
+	
+	resp, err := client.Do(req)
+	if err != nil {
+		s.logger.Printf("❌ Error fetching content from %s: %v", url, err)
+		return "Error fetching content"
+	}
+	defer resp.Body.Close()
+	
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		s.logger.Printf("❌ Error reading response from %s: %v", url, err)
+		return "Error reading response"
+	}
+	
+	content := string(body)
+	s.logger.Printf("✅ Successfully scraped %d characters from %s", len(content), url)
+	return content
 }

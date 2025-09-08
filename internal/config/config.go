@@ -248,7 +248,7 @@ func getProviderConfig() ProviderConfig {
 func getSupabaseConfig() SupabaseConfig {
 	return SupabaseConfig{
 		URL:            getEnvAsString("SUPABASE_URL", ""),
-		APIKey:         getEnvAsString("SUPABASE_API_KEY", ""),
+		APIKey:         getEnvAsString("SUPABASE_ANON_KEY", ""), // Railway uses SUPABASE_ANON_KEY
 		ServiceRoleKey: getEnvAsString("SUPABASE_SERVICE_ROLE_KEY", ""),
 		JWTSecret:      getEnvAsString("SUPABASE_JWT_SECRET", ""),
 	}

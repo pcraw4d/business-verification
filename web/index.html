@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- CSP temporarily disabled to fix font loading issues -->
+    <!-- <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: https:; font-src 'self' data: https://cdnjs.cloudflare.com https://fonts.gstatic.com; connect-src 'self' https:;"> -->
     <title>KYB Platform - Enhanced Business Intelligence Beta Testing</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -456,7 +458,7 @@
                                 </div>
                                 <div>
                                     <p class="text-sm text-blue-700 font-medium">Primary Code</p>
-                                    <p class="text-blue-900 text-lg">${classifications[0]?.industry_code || 'N/A'}</p>
+                                    <p class="text-blue-900 text-lg">${classifications[0]?.code || 'N/A'}</p>
                                 </div>
                             </div>
                             <div class="mt-4">
@@ -472,46 +474,37 @@
                         <div class="bg-green-50 border border-green-200 rounded-lg p-6">
                             <h4 class="font-bold text-green-900 text-lg mb-3">Enhanced Business Intelligence Features</h4>
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                <div class="text-center">
-                                    <i class="fas fa-globe text-green-600 text-xl mb-2"></i>
-                                    <p class="text-sm text-green-700">Geographic Awareness</p>
-                                    <span class="feature-badge feature-active">Active</span>
-                                </div>
-                                <div class="text-center">
-                                    <i class="fas fa-chart-line text-green-600 text-xl mb-2"></i>
-                                    <p class="text-sm text-green-700">Confidence Scoring</p>
-                                    <span class="feature-badge feature-active">Active</span>
-                                </div>
-                                <div class="text-center">
-                                    <i class="fas fa-brain text-green-600 text-xl mb-2"></i>
-                                    <p class="text-sm text-green-700">ML Integration</p>
-                                    <span class="feature-badge feature-active">Active</span>
-                                </div>
-                                <div class="text-center">
-                                    <i class="fas fa-search text-green-600 text-xl mb-2"></i>
-                                    <p class="text-sm text-green-700">Web Analysis</p>
-                                    <span class="feature-badge feature-active">Active</span>
-                                </div>
-                                <div class="text-center">
-                                    <i class="fas fa-shield-alt text-green-600 text-xl mb-2"></i>
-                                    <p class="text-sm text-green-700">Website Verification</p>
-                                    <span class="feature-badge feature-active">Active</span>
-                                </div>
-                                <div class="text-center">
-                                    <i class="fas fa-database text-green-600 text-xl mb-2"></i>
-                                    <p class="text-sm text-green-700">Data Extraction</p>
-                                    <span class="feature-badge feature-active">Active</span>
-                                </div>
-                                <div class="text-center">
-                                    <i class="fas fa-building text-green-600 text-xl mb-2"></i>
-                                    <p class="text-sm text-green-700">Company Size</p>
-                                    <span class="feature-badge feature-active">Active</span>
-                                </div>
-                                <div class="text-center">
-                                    <i class="fas fa-sitemap text-green-600 text-xl mb-2"></i>
-                                    <p class="text-sm text-green-700">Business Model</p>
-                                    <span class="feature-badge feature-active">Active</span>
-                                </div>
+                                ${Object.entries(result.enhanced_features || {}).map(([feature, status]) => {
+                                    const featureIcons = {
+                                        'geographic_awareness': 'fas fa-globe',
+                                        'confidence_scoring': 'fas fa-chart-line',
+                                        'ml_integration': 'fas fa-brain',
+                                        'web_search': 'fas fa-search',
+                                        'website_analysis': 'fas fa-shield-alt',
+                                        'data_extraction': 'fas fa-database',
+                                        'industry_detection': 'fas fa-building',
+                                        'enhanced_classification': 'fas fa-sitemap',
+                                        'batch_processing': 'fas fa-layer-group',
+                                        'beta_testing_ui': 'fas fa-flask',
+                                        'cloud_deployment': 'fas fa-cloud',
+                                        'database_driven_keywords': 'fas fa-key',
+                                        'keyword_weighted_scoring': 'fas fa-weight-hanging',
+                                        'modular_architecture': 'fas fa-cubes',
+                                        'real_time_feedback': 'fas fa-comments',
+                                        'supabase_integration': 'fas fa-database',
+                                        'validation_framework': 'fas fa-check-circle',
+                                        'worldwide_access': 'fas fa-globe-americas'
+                                    };
+                                    const icon = featureIcons[feature] || 'fas fa-cog';
+                                    const displayName = feature.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                                    return `
+                                        <div class="text-center">
+                                            <i class="${icon} text-green-600 text-xl mb-2"></i>
+                                            <p class="text-sm text-green-700">${displayName}</p>
+                                            <span class="feature-badge feature-active">${status}</span>
+                                        </div>
+                                    `;
+                                }).join('')}
                             </div>
                         </div>
                         
@@ -537,12 +530,86 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Enhanced Analysis Features -->
+                        ${result.data_extraction ? `
+                            <div class="bg-purple-50 border border-purple-200 rounded-lg p-6">
+                                <h4 class="font-bold text-purple-900 text-lg mb-4">Enhanced Business Analysis</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    ${result.data_extraction.company_size ? `
+                                        <div class="bg-white p-4 rounded-lg border">
+                                            <h5 class="font-semibold text-gray-900 mb-2 flex items-center">
+                                                <i class="fas fa-building text-blue-600 mr-2"></i>
+                                                Company Size
+                                            </h5>
+                                            <p class="text-sm text-gray-600">Size: ${result.data_extraction.company_size.size_category || 'N/A'}</p>
+                                            <p class="text-sm text-gray-600">Employees: ${result.data_extraction.company_size.employee_count || 'N/A'}</p>
+                                        </div>
+                                    ` : ''}
+                                    
+                                    ${result.data_extraction.business_model ? `
+                                        <div class="bg-white p-4 rounded-lg border">
+                                            <h5 class="font-semibold text-gray-900 mb-2 flex items-center">
+                                                <i class="fas fa-sitemap text-green-600 mr-2"></i>
+                                                Business Model
+                                            </h5>
+                                            <p class="text-sm text-gray-600">Type: ${result.data_extraction.business_model.model_type || 'N/A'}</p>
+                                            <p class="text-sm text-gray-600">Confidence: ${result.data_extraction.business_model.confidence || 'N/A'}</p>
+                                        </div>
+                                    ` : ''}
+                                    
+                                    ${result.data_extraction.technology_stack ? `
+                                        <div class="bg-white p-4 rounded-lg border">
+                                            <h5 class="font-semibold text-gray-900 mb-2 flex items-center">
+                                                <i class="fas fa-microchip text-purple-600 mr-2"></i>
+                                                Technology Stack
+                                            </h5>
+                                            <p class="text-sm text-gray-600">Primary: ${result.data_extraction.technology_stack.primary_tech || 'N/A'}</p>
+                                            <p class="text-sm text-gray-600">Platforms: ${(result.data_extraction.technology_stack.platforms || []).join(', ') || 'N/A'}</p>
+                                        </div>
+                                    ` : ''}
+                                    
+                                    ${result.data_extraction.financial_health ? `
+                                        <div class="bg-white p-4 rounded-lg border">
+                                            <h5 class="font-semibold text-gray-900 mb-2 flex items-center">
+                                                <i class="fas fa-chart-line text-orange-600 mr-2"></i>
+                                                Financial Health
+                                            </h5>
+                                            <p class="text-sm text-gray-600">Revenue: ${result.data_extraction.financial_health.revenue_range || 'N/A'}</p>
+                                            <p class="text-sm text-gray-600">Funding: ${result.data_extraction.financial_health.funding_status || 'N/A'}</p>
+                                        </div>
+                                    ` : ''}
+                                    
+                                    ${result.data_extraction.market_presence ? `
+                                        <div class="bg-white p-4 rounded-lg border">
+                                            <h5 class="font-semibold text-gray-900 mb-2 flex items-center">
+                                                <i class="fas fa-globe text-indigo-600 mr-2"></i>
+                                                Market Presence
+                                            </h5>
+                                            <p class="text-sm text-gray-600">Coverage: ${result.data_extraction.market_presence.geographic_coverage || 'N/A'}</p>
+                                            <p class="text-sm text-gray-600">Segments: ${(result.data_extraction.market_presence.market_segments || []).join(', ') || 'N/A'}</p>
+                                        </div>
+                                    ` : ''}
+                                    
+                                    ${result.data_extraction.compliance ? `
+                                        <div class="bg-white p-4 rounded-lg border">
+                                            <h5 class="font-semibold text-gray-900 mb-2 flex items-center">
+                                                <i class="fas fa-shield-alt text-red-600 mr-2"></i>
+                                                Compliance
+                                            </h5>
+                                            <p class="text-sm text-gray-600">Status: ${result.data_extraction.compliance.regulatory_status || 'N/A'}</p>
+                                            <p class="text-sm text-gray-600">Certifications: ${(result.data_extraction.compliance.certifications || []).join(', ') || 'None'}</p>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        ` : ''}
                         
                         <!-- Website Verification Results -->
                         ${result.website_verification ? `
                             <div class="bg-purple-50 border border-purple-200 rounded-lg p-6">
                                 <h4 class="font-bold text-purple-900 text-lg mb-3">Website Verification Results</h4>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                                     <div>
                                         <p class="text-sm text-purple-700 font-medium">Verification Status</p>
                                         <p class="text-purple-900 font-medium">${result.website_verification.status || 'PENDING'}</p>
@@ -551,11 +618,143 @@
                                         <p class="text-sm text-purple-700 font-medium">Confidence Score</p>
                                         <p class="text-purple-900">${result.website_verification.confidence_score ? Math.round(result.website_verification.confidence_score * 100) + '%' : 'N/A'}</p>
                                     </div>
+                                    <div>
+                                        <p class="text-sm text-purple-700 font-medium">Domain Name</p>
+                                        <p class="text-purple-900">${result.website_verification.domain_name || 'N/A'}</p>
+                                    </div>
                                 </div>
+                                
+                                ${result.website_verification.verification_methods && result.website_verification.verification_methods.length > 0 ? `
+                                    <div class="mb-4">
+                                        <p class="text-sm text-purple-700 font-medium mb-2">Verification Methods Used</p>
+                                        <div class="flex flex-wrap gap-2">
+                                            ${result.website_verification.verification_methods.map(method => `
+                                                <span class="px-2 py-1 bg-purple-200 text-purple-800 text-xs rounded-full">
+                                                    ${method.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                                </span>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                
                                 ${result.website_verification.details ? `
-                                    <div class="mt-4">
+                                    <div class="mb-4">
                                         <p class="text-sm text-purple-700 font-medium mb-2">Verification Details</p>
                                         <p class="text-purple-900 text-sm">${result.website_verification.details}</p>
+                                    </div>
+                                ` : ''}
+                                
+                                ${result.website_verification.whois_info ? `
+                                    <div class="mb-4">
+                                        <p class="text-sm text-purple-700 font-medium mb-2">WHOIS Information</p>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                            <div><span class="font-medium">Registrant:</span> ${result.website_verification.whois_info.registrant_name || 'N/A'}</div>
+                                            <div><span class="font-medium">Organization:</span> ${result.website_verification.whois_info.registrant_org || 'N/A'}</div>
+                                            <div><span class="font-medium">Country:</span> ${result.website_verification.whois_info.registrant_country || 'N/A'}</div>
+                                            <div><span class="font-medium">Created:</span> ${result.website_verification.whois_info.creation_date || 'N/A'}</div>
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                
+                                ${result.website_verification.contact_info ? `
+                                    <div class="mb-4">
+                                        <p class="text-sm text-purple-700 font-medium mb-2">Contact Information</p>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                            <div><span class="font-medium">Phone Match:</span> ${result.website_verification.contact_info.phone_match ? 'Yes' : 'No'}</div>
+                                            <div><span class="font-medium">Email Match:</span> ${result.website_verification.contact_info.email_match ? 'Yes' : 'No'}</div>
+                                            ${result.website_verification.contact_info.phone_found ? `<div><span class="font-medium">Phone Found:</span> ${result.website_verification.contact_info.phone_found}</div>` : ''}
+                                            ${result.website_verification.contact_info.email_found ? `<div><span class="font-medium">Email Found:</span> ${result.website_verification.contact_info.email_found}</div>` : ''}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        ` : ''}
+
+                        <!-- Website Analysis & Keywords -->
+                        ${result.real_time_scraping ? `
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                                <h4 class="font-bold text-blue-900 text-lg mb-3">Website Analysis & Keywords</h4>
+                                
+                                ${result.real_time_scraping.content_extracted ? `
+                                    <div class="mb-4">
+                                        <h5 class="font-semibold text-blue-800 mb-2">Content Analysis</h5>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                            <div>
+                                                <span class="font-medium">Content Length:</span> ${result.real_time_scraping.content_extracted.content_length || 0} characters
+                                            </div>
+                                            <div>
+                                                <span class="font-medium">Keywords Found:</span> ${result.real_time_scraping.content_extracted.keywords_found ? result.real_time_scraping.content_extracted.keywords_found.length : 0}
+                                            </div>
+                                        </div>
+                                        
+                                        ${result.real_time_scraping.content_extracted.keywords_found && result.real_time_scraping.content_extracted.keywords_found.length > 0 ? `
+                                            <div class="mt-3">
+                                                <p class="font-medium text-blue-800 mb-2">Keywords Extracted:</p>
+                                                <div class="flex flex-wrap gap-2">
+                                                    ${result.real_time_scraping.content_extracted.keywords_found.map(keyword => `
+                                                        <span class="px-2 py-1 bg-blue-200 text-blue-800 text-xs rounded-full">
+                                                            ${keyword}
+                                                        </span>
+                                                    `).join('')}
+                                                </div>
+                                            </div>
+                                        ` : ''}
+                                        
+                                        ${result.real_time_scraping.content_extracted.content_preview ? `
+                                            <div class="mt-3">
+                                                <p class="font-medium text-blue-800 mb-2">Content Preview:</p>
+                                                <p class="text-sm text-blue-700 bg-blue-100 p-2 rounded">${result.real_time_scraping.content_extracted.content_preview}</p>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                ` : ''}
+                                
+                                ${result.real_time_scraping.industry_analysis ? `
+                                    <div class="mb-4">
+                                        <h5 class="font-semibold text-blue-800 mb-2">Industry Analysis from Website</h5>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                            <div>
+                                                <span class="font-medium">Detected Industry:</span> ${result.real_time_scraping.industry_analysis.detected_industry || 'N/A'}
+                                            </div>
+                                            <div>
+                                                <span class="font-medium">Confidence:</span> ${result.real_time_scraping.industry_analysis.confidence ? Math.round(result.real_time_scraping.industry_analysis.confidence * 100) + '%' : 'N/A'}
+                                            </div>
+                                            <div>
+                                                <span class="font-medium">Analysis Method:</span> ${result.real_time_scraping.industry_analysis.analysis_method || 'N/A'}
+                                            </div>
+                                            <div>
+                                                <span class="font-medium">Evidence:</span> ${result.real_time_scraping.industry_analysis.evidence || 'N/A'}
+                                            </div>
+                                        </div>
+                                        
+                                        ${result.real_time_scraping.industry_analysis.keywords_matched && result.real_time_scraping.industry_analysis.keywords_matched.length > 0 ? `
+                                            <div class="mt-3">
+                                                <p class="font-medium text-blue-800 mb-2">Keywords That Matched Industry:</p>
+                                                <div class="flex flex-wrap gap-2">
+                                                    ${result.real_time_scraping.industry_analysis.keywords_matched.map(keyword => `
+                                                        <span class="px-2 py-1 bg-green-200 text-green-800 text-xs rounded-full">
+                                                            ${keyword}
+                                                        </span>
+                                                    `).join('')}
+                                                </div>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                ` : ''}
+                                
+                                ${result.real_time_scraping.progress_steps && result.real_time_scraping.progress_steps.length > 0 ? `
+                                    <div class="mb-4">
+                                        <h5 class="font-semibold text-blue-800 mb-2">Scraping Progress</h5>
+                                        <div class="space-y-2">
+                                            ${result.real_time_scraping.progress_steps.map(step => `
+                                                <div class="flex items-center text-sm">
+                                                    <span class="w-2 h-2 rounded-full ${step.status === 'completed' ? 'bg-green-500' : step.status === 'failed' ? 'bg-red-500' : 'bg-yellow-500'} mr-2"></span>
+                                                    <span class="font-medium">${step.step.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</span>
+                                                    <span class="ml-2">${step.message}</span>
+                                                    ${step.duration ? `<span class="ml-2 text-gray-500">(${step.duration})</span>` : ''}
+                                                </div>
+                                            `).join('')}
+                                        </div>
                                     </div>
                                 ` : ''}
                             </div>
@@ -642,12 +841,12 @@
                                                     <div class="flex items-center">
                                                         <span class="text-sm font-medium text-green-600 mr-2">#${index + 1}</span>
                                                         <div>
-                                                            <div class="font-medium text-gray-900 text-base">${classification.code_description || 'No description available'}</div>
-                                                            <div class="text-sm text-gray-500">Code: ${classification.industry_code || 'N/A'}</div>
+                                                            <div class="font-medium text-gray-900 text-base">${classification.description || classification.code_description || 'No description available'}</div>
+                                                            <div class="text-sm text-gray-500">Code: ${classification.code || classification.industry_code || 'N/A'}</div>
                                                         </div>
                                                     </div>
                                                     <div class="text-right">
-                                                        <span class="text-sm font-medium text-gray-900">${Math.round((classification.confidence_score || 0) * 100)}%</span>
+                                                        <span class="text-sm font-medium text-gray-900">${Math.round((classification.confidence || classification.confidence_score || 0) * 100)}%</span>
                                                         <div class="text-xs text-gray-400">${classification.classification_method || 'Enhanced'}</div>
                                                     </div>
                                                 </div>
@@ -666,12 +865,12 @@
                                                     <div class="flex items-center">
                                                         <span class="text-sm font-medium text-blue-600 mr-2">#${index + 1}</span>
                                                         <div>
-                                                            <div class="font-medium text-gray-900 text-base">${classification.code_description || 'No description available'}</div>
-                                                            <div class="text-sm text-gray-500">Code: ${classification.industry_code || 'N/A'}</div>
+                                                            <div class="font-medium text-gray-900 text-base">${classification.description || classification.code_description || 'No description available'}</div>
+                                                            <div class="text-sm text-gray-500">Code: ${classification.code || classification.industry_code || 'N/A'}</div>
                                                         </div>
                                                     </div>
                                                     <div class="text-right">
-                                                        <span class="text-sm font-medium text-gray-900">${Math.round((classification.confidence_score || 0) * 100)}%</span>
+                                                        <span class="text-sm font-medium text-gray-900">${Math.round((classification.confidence || classification.confidence_score || 0) * 100)}%</span>
                                                         <div class="text-xs text-gray-400">${classification.classification_method || 'Enhanced'}</div>
                                                     </div>
                                                 </div>
@@ -690,12 +889,12 @@
                                                     <div class="flex items-center">
                                                         <span class="text-sm font-medium text-purple-600 mr-2">#${index + 1}</span>
                                                         <div>
-                                                            <div class="font-medium text-gray-900 text-base">${classification.code_description || 'No description available'}</div>
-                                                            <div class="text-sm text-gray-500">Code: ${classification.industry_code || 'N/A'}</div>
+                                                            <div class="font-medium text-gray-900 text-base">${classification.description || classification.code_description || 'No description available'}</div>
+                                                            <div class="text-sm text-gray-500">Code: ${classification.code || classification.industry_code || 'N/A'}</div>
                                                         </div>
                                                     </div>
                                                     <div class="text-right">
-                                                        <span class="text-sm font-medium text-gray-900">${Math.round((classification.confidence_score || 0) * 100)}%</span>
+                                                        <span class="text-sm font-medium text-gray-900">${Math.round((classification.confidence || classification.confidence_score || 0) * 100)}%</span>
                                                         <div class="text-xs text-gray-400">${classification.classification_method || 'Enhanced'}</div>
                                                     </div>
                                                 </div>
