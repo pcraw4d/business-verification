@@ -18,7 +18,11 @@
         "PORT": "8080",
         "ENVIRONMENT": "production",
         "BETA_TESTING_ENABLED": "true",
-        "ENHANCED_FEATURES_ENABLED": "true"
+        "ENHANCED_FEATURES_ENABLED": "true",
+        "SUPABASE_URL": "https://qpqhuqqmkjxsltzshfam.supabase.co",
+        "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwcWh1cXFta2p4c2x0enNoZmFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ4NzQ4MzEsImV4cCI6MjA3MDQ1MDgzMX0.UelJkQAVf-XJz1UV0Rbyi-hZHADGOdsHo1PwcPf7JVI",
+        "SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwcWh1cXFta2p4c2x0enNoZmFtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NDg3NDgzMSwiZXhwIjoyMDcwNDUwODMxfQ.sIm3w7Ad2kLv08whNBrzdP42nz0s4dsLpvUiYDSwArw",
+        "SUPABASE_JWT_SECRET": "zIJXeH0Z1RsbTFEoGgp6aaknV1jGsMjIkNLN77bhfsQ7Mk7OOIzzRzFPRGITX3dg7OX6RemHFcYr7ytolG76yw=="
       }
     }
   }
