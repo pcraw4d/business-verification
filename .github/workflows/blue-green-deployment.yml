@@ -44,6 +44,7 @@ jobs:
   validate-blue-green:
     name: Validate Blue-Green Deployment
     runs-on: ubuntu-latest
+    if: false # Disabled - requires AWS configuration
     outputs:
       can_deploy: ${{ steps.validate.outputs.can_deploy }}
       deployment_version: ${{ steps.validate.outputs.deployment_version }}
@@ -54,6 +55,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configure AWS credentials
+        if: secrets.AWS_ACCESS_KEY_ID != ''
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
