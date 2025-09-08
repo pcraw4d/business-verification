@@ -12,6 +12,7 @@ import (
 	"github.com/pcraw4d/business-verification/internal/compliance"
 	"github.com/pcraw4d/business-verification/internal/config"
 	"github.com/pcraw4d/business-verification/internal/observability"
+	"go.uber.org/zap"
 )
 
 func TestAuditHandler_RecordAuditEvent(t *testing.T) {
@@ -20,10 +21,11 @@ func TestAuditHandler_RecordAuditEvent(t *testing.T) {
 		LogLevel:  "debug",
 		LogFormat: "json",
 	}
-	logger := observability.NewLogger(obsConfig)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 
 	// Create real audit system for testing
-	auditSystem := compliance.NewComplianceAuditSystem(logger)
+	auditSystem := compliance.NewComplianceAuditSystem()
 	handler := NewAuditHandler(auditSystem, logger)
 
 	tests := []struct {
@@ -121,10 +123,11 @@ func TestAuditHandler_GetAuditEvents(t *testing.T) {
 		LogLevel:  "debug",
 		LogFormat: "json",
 	}
-	logger := observability.NewLogger(obsConfig)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 
 	// Create real audit system for testing
-	auditSystem := compliance.NewComplianceAuditSystem(logger)
+	auditSystem := compliance.NewComplianceAuditSystem()
 	handler := NewAuditHandler(auditSystem, logger)
 
 	// Add a test event first
@@ -229,10 +232,11 @@ func TestAuditHandler_GetAuditMetrics(t *testing.T) {
 		LogLevel:  "debug",
 		LogFormat: "json",
 	}
-	logger := observability.NewLogger(obsConfig)
+	zapLogger, _ := zap.NewDevelopment()
+	logger := observability.NewLogger(zapLogger)
 
 	// Create real audit system for testing
-	auditSystem := compliance.NewComplianceAuditSystem(logger)
+	auditSystem := compliance.NewComplianceAuditSystem()
 	handler := NewAuditHandler(auditSystem, logger)
 
 	tests := []struct {

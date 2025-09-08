@@ -53,12 +53,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install security tools
         run: |
           echo "🔧 Installing comprehensive security tools..."
-          
+
           # Install Go security tools
           echo "Installing gosec..."
           go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest || {
@@ -113,7 +113,7 @@ jobs:
       - name: Run Semgrep static analysis
         run: |
           echo "🔍 Running Semgrep static analysis..."
-          
+
           # Check if semgrep is available
           if command -v semgrep &> /dev/null; then
             semgrep --config=auto \

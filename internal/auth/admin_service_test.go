@@ -297,24 +297,10 @@ func setupAdminServiceTest() (*AdminService, *MockAdminDatabase) {
 	mockDB := NewMockAdminDatabase()
 
 	// Create test configuration
-	authConfig := &config.AuthConfig{
-		JWTSecret:         "test-secret",
-		JWTExpiration:     15 * time.Minute,
-		RefreshExpiration: 7 * 24 * time.Hour,
-	}
+	// Remove unused variables
 
-	zapLogger, _ := zap.NewDevelopment()
-	logger := zapLogger
-	metrics, _ := observability.NewMetrics()
-
-	authService := NewAuthService(authConfig, logger)
-	// Note: Some services are disabled, using simplified setup for testing
-	rbacService := authService   // Use auth service as placeholder
-	roleService := authService   // Use auth service as placeholder
-	apiKeyService := authService // Use auth service as placeholder
-
-	// AdminService is disabled, use auth service as placeholder
-	adminService := authService
+	// Create admin service
+	adminService := NewAdminService()
 
 	return adminService, mockDB
 }
@@ -332,19 +318,12 @@ func TestAdminService_CreateUser(t *testing.T) {
 	mockDB.users[adminUser.ID] = adminUser
 
 	t.Run("successful creation", func(t *testing.T) {
-		request := &UserManagementRequest{
+		request := UserManagementRequest{
 			AdminUserID:  adminUser.ID,
 			TargetUserID: "new-user-123",
-			Action:       "create",
-			Data: map[string]interface{}{
-				"email":      "newuser@example.com",
-				"username":   "newuser",
-				"first_name": "New",
-				"last_name":  "User",
-				"company":    "Test Company",
-				"role":       string(RoleUser),
-				"password":   "password123",
-			},
+			Username:     "newuser",
+			Email:        "newuser@example.com",
+			Role:         string(RoleUser),
 		}
 
 		response, err := as.CreateUser(context.Background(), request)
@@ -358,21 +337,12 @@ func TestAdminService_CreateUser(t *testing.T) {
 			return
 		}
 
-		if !response.Success {
-			t.Errorf("Expected success, got %v", response.Success)
+		if response.Email != "newuser@example.com" {
+			t.Errorf("Expected email newuser@example.com, got %s", response.Email)
 		}
 
-		if response.User == nil {
-			t.Error("Expected user in response")
-			return
-		}
-
-		if response.User.Email != "newuser@example.com" {
-			t.Errorf("Expected email newuser@example.com, got %s", response.User.Email)
-		}
-
-		if response.User.Role != string(RoleUser) {
-			t.Errorf("Expected role %s, got %s", string(RoleUser), response.User.Role)
+		if response.Role != string(RoleUser) {
+			t.Errorf("Expected role %s, got %s", string(RoleUser), response.Role)
 		}
 	})
 
@@ -386,19 +356,12 @@ func TestAdminService_CreateUser(t *testing.T) {
 		}
 		mockDB.users[nonAdminUser.ID] = nonAdminUser
 
-		request := &UserManagementRequest{
+		request := UserManagementRequest{
 			AdminUserID:  nonAdminUser.ID,
 			TargetUserID: "new-user-456",
-			Action:       "create",
-			Data: map[string]interface{}{
-				"email":      "another@example.com",
-				"username":   "another",
-				"first_name": "Another",
-				"last_name":  "User",
-				"company":    "Test Company",
-				"role":       string(RoleUser),
-				"password":   "password123",
-			},
+			Username:     "another",
+			Email:        "another@example.com",
+			Role:         string(RoleUser),
 		}
 
 		_, err := as.CreateUser(context.Background(), request)
@@ -441,16 +404,11 @@ func TestAdminService_UpdateUser(t *testing.T) {
 	mockDB.users[targetUser.ID] = targetUser
 
 	t.Run("successful update", func(t *testing.T) {
-		request := &UserManagementRequest{
+		request := UserManagementRequest{
 			AdminUserID:  adminUser.ID,
 			TargetUserID: targetUser.ID,
-			Action:       "update",
-			Data: map[string]interface{}{
-				"email":      "updated@example.com",
-				"first_name": "Updated",
-				"last_name":  "User",
-				"role":       string(RoleManager),
-			},
+			Email:        "updated@example.com",
+			Role:         string(RoleManager),
 		}
 
 		response, err := as.UpdateUser(context.Background(), request)
@@ -464,27 +422,20 @@ func TestAdminService_UpdateUser(t *testing.T) {
 			return
 		}
 
-		if !response.Success {
-			t.Errorf("Expected success, got %v", response.Success)
+		if response.Email != "updated@example.com" {
+			t.Errorf("Expected email updated@example.com, got %s", response.Email)
 		}
 
-		if response.User.Email != "updated@example.com" {
-			t.Errorf("Expected email updated@example.com, got %s", response.User.Email)
-		}
-
-		if response.User.Role != string(RoleManager) {
-			t.Errorf("Expected role %s, got %s", string(RoleManager), response.User.Role)
+		if response.Role != string(RoleManager) {
+			t.Errorf("Expected role %s, got %s", string(RoleManager), response.Role)
 		}
 	})
 
 	t.Run("user not found", func(t *testing.T) {
-		request := &UserManagementRequest{
+		request := UserManagementRequest{
 			AdminUserID:  adminUser.ID,
 			TargetUserID: "nonexistent",
-			Action:       "update",
-			Data: map[string]interface{}{
-				"email": "updated@example.com",
-			},
+			Email:        "updated@example.com",
 		}
 
 		_, err := as.UpdateUser(context.Background(), request)

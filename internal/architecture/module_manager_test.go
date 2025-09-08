@@ -398,7 +398,7 @@ func TestStartModuleWithDependencies(t *testing.T) {
 	assert.True(t, module.IsRunning())
 }
 
-func TestStopModule(t *testing.T) {
+func TestModuleManagerStopModule(t *testing.T) {
 	mm := NewModuleManager()
 
 	module := &MockModule{
@@ -429,7 +429,7 @@ func TestStopModule(t *testing.T) {
 	assert.Equal(t, ModuleStatusStopped, health.Status)
 }
 
-func TestStopModuleNotFound(t *testing.T) {
+func TestModuleManagerStopModuleNotFound(t *testing.T) {
 	mm := NewModuleManager()
 
 	err := mm.StopModule("non-existent-module")
@@ -437,7 +437,7 @@ func TestStopModuleNotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "not found")
 }
 
-func TestStartAllModules(t *testing.T) {
+func TestModuleManagerStartAllModules(t *testing.T) {
 	mm := NewModuleManager()
 
 	// Create multiple modules
@@ -600,7 +600,7 @@ func TestStartAllModulesCircularDependency(t *testing.T) {
 	assert.Contains(t, err.Error(), "circular dependency")
 }
 
-func TestStopAllModules(t *testing.T) {
+func TestModuleManagerStopAllModules(t *testing.T) {
 	mm := NewModuleManager()
 
 	// Create multiple modules
