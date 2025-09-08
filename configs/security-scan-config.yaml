@@ -1,0 +1,219 @@
+# Security Scanning Configuration for KYB Platform
+# This file configures various security scanning tools and their parameters
+
+# Global settings
+global:
+  output_dir: "./security-reports"
+  fail_on_critical: false
+  log_level: "info"
+  parallel_scans: true
+
+# Tool configurations
+tools:
+  # Go Security Scanner (gosec)
+  gosec:
+    enabled: true
+    version: "latest"
+    rules: "all"
+    severity: "medium"
+    confidence: "medium"
+    exclude_rules:
+      - "G204"  # Subprocess launching with variable
+      - "G304"  # File path provided as taint input
+    include_rules:
+      - "G101"  # Look for hard coded credentials
+      - "G102"  # Bind to all interfaces
+      - "G103"  # Audit the use of unsafe block
+      - "G104"  # Audit errors not checked
+      - "G106"  # Audit the use of ssh.InsecureIgnoreHostKey
+      - "G107"  # Url provided to HTTP request as taint input
+      - "G108"  # Profiling endpoint automatically exposed on /debug/pprof
+      - "G109"  # Converting strconv.Atoi result to int32/int16
+      - "G110"  # Detect io.Copy instead of io.CopyN when decompression
+      - "G111"  # Detect http.Dir("/") as a potential risk
+      - "G112"  # Detect potential slowloris attack
+      - "G113"  # Usage of Rat.SetString in math/big with an overflow
+      - "G114"  # Use of net/http serve function that has no support for setting timeouts
+      - "G201"  # SQL query construction using format string
+      - "G202"  # SQL query construction using string concatenation
+      - "G203"  # Use of unescaped data in HTML templates
+      - "G301"  # Poor file permissions used when creating a directory
+      - "G302"  # Poor file permissions used with chmod
+      - "G303"  # Creating tempfile using a predictable path
+      - "G305"  # File traversal when extracting zip archive
+      - "G306"  # Poor file permissions used when writing to a file
+      - "G307"  # Deferring a method which returns an error
+      - "G308"  # Unhandled error in call to a logging function
+      - "G309"  # Note the risk of integer overflow
+      - "G310"  # Detecting the usage of DES, RC4, MD5 or SHA1
+      - "G311"  # Detect potentially weak rand usage
+      - "G312"  # Detect when log.Fatal is used
+      - "G313"  # Detect usage of an insecure method of generating random numbers
+      - "G401"  # Detect the usage of DES, RC4, MD5 or SHA1
+      - "G402"  # Look for bad TLS connection settings
+      - "G403"  # Ensure minimum RSA key length of 2048 bits
+      - "G404"  # Insecure random number source (rand)
+      - "G501"  # Import blocklist: crypto/md5
+      - "G502"  # Import blocklist: crypto/des
+      - "G503"  # Import blocklist: crypto/rc4
+      - "G504"  # Import blocklist: net/http/cgi
+      - "G505"  # Import blocklist: crypto/sha1
+      - "G601"  # Implicit memory aliasing in RangeStmt
+
+  # Go Vulnerability Checker (govulncheck)
+  govulncheck:
+    enabled: true
+    version: "latest"
+    mode: "binary"  # binary, source, or govulncheck
+    severity_threshold: "medium"
+
+  # Trivy Security Scanner
+  trivy:
+    enabled: true
+    version: "0.50.0"
+    severity: ["CRITICAL", "HIGH", "MEDIUM"]
+    security_checks: ["vuln", "secret", "config"]
+    formats: ["json", "table", "sarif"]
+    cache_dir: "/tmp/trivy-cache"
+    skip_dirs:
+      - "vendor"
+      - "node_modules"
+      - ".git"
+      - "test"
+    skip_files:
+      - "*.test.go"
+      - "*_test.go"
+      - "*.mock.go"
+
+  # Semgrep Static Analysis
+  semgrep:
+    enabled: true
+    version: "latest"
+    config: "auto"  # auto, p/security-audit, p/secrets, p/owasp-top-ten
+    severity: ["ERROR", "WARNING", "INFO"]
+    languages: ["go", "yaml", "json", "dockerfile"]
+    exclude_patterns:
+      - "vendor/**"
+      - "test/**"
+      - "*.test.go"
+      - "*_test.go"
+    include_patterns:
+      - "**/*.go"
+      - "**/*.yaml"
+      - "**/*.yml"
+      - "**/Dockerfile*"
+
+  # Secret Scanning
+  secret_scan:
+    enabled: true
+    patterns:
+      - name: "API Keys"
+        pattern: "api[_-]?key\s*=\s*['\"][^'\"]{8,}['\"]"
+        severity: "high"
+      - name: "Passwords"
+        pattern: "password\s*=\s*['\"][^'\"]{8,}['\"]"
+        severity: "high"
+      - name: "Secrets"
+        pattern: "secret\s*=\s*['\"][^'\"]{8,}['\"]"
+        severity: "high"
+      - name: "Tokens"
+        pattern: "token\s*=\s*['\"][^'\"]{8,}['\"]"
+        severity: "high"
+      - name: "Private Keys"
+        pattern: "private[_-]?key\s*=\s*['\"][^'\"]{8,}['\"]"
+        severity: "critical"
+      - name: "Access Keys"
+        pattern: "access[_-]?key\s*=\s*['\"][^'\"]{8,}['\"]"
+        severity: "high"
+      - name: "Auth Tokens"
+        pattern: "auth[_-]?token\s*=\s*['\"][^'\"]{8,}['\"]"
+        severity: "high"
+      - name: "JWT Secrets"
+        pattern: "jwt[_-]?secret\s*=\s*['\"][^'\"]{8,}['\"]"
+        severity: "high"
+      - name: "Database Passwords"
+        pattern: "database[_-]?password\s*=\s*['\"][^'\"]{8,}['\"]"
+        severity: "high"
+      - name: "Redis Passwords"
+        pattern: "redis[_-]?password\s*=\s*['\"][^'\"]{8,}['\"]"
+        severity: "high"
+    exclude_dirs:
+      - ".git"
+      - "vendor"
+      - "node_modules"
+      - "test"
+      - ".github"
+    exclude_files:
+      - "*.test.go"
+      - "*_test.go"
+      - "*example*"
+      - "*mock*"
+      - "*.md"
+      - "*.yml"
+      - "*.yaml"
+      - "security-scan.sh"
+      - "enhanced-security-scan.sh"
+      - "*.log"
+      - "*.csv"
+      - "*.html"
+      - "*.json"
+
+  # OWASP ZAP (disabled by default)
+  zap:
+    enabled: false
+    version: "2.14.0"
+    install_path: "/opt/zap_2.14.0"
+    baseline_scan: true
+    active_scan: false
+    target_url: "http://localhost:8080"
+    timeout: 300
+    context_file: null
+    user: null
+    auth_header: null
+
+  # Container Security
+  container_scan:
+    enabled: true
+    image_name: "kyb-platform-security-scan"
+    scan_layers: true
+    include_dev_packages: false
+    skip_java_db: true
+
+# Reporting configuration
+reporting:
+  formats: ["json", "txt", "html"]
+  include_summary: true
+  include_details: true
+  severity_threshold: "medium"
+  max_issues_per_tool: 1000
+
+# Notification settings
+notifications:
+  enabled: false
+  webhook_url: null
+  slack_channel: null
+  email_recipients: []
+  severity_threshold: "high"
+
+# Integration settings
+integrations:
+  github_security_tab: true
+  sarif_upload: true
+  artifact_upload: true
+  pr_comments: true
+
+# Performance settings
+performance:
+  max_parallel_jobs: 4
+  timeout_per_tool: 600  # 10 minutes
+  memory_limit: "2G"
+  cpu_limit: "2"
+
+# Compliance frameworks
+compliance:
+  enabled: false
+  frameworks:
+    - "OWASP Top 10"
+    - "CIS Kubernetes Benchmark"
+    - "NIST Cybersecurity Framework"
+  custom_checks: []

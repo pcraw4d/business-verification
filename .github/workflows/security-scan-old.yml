@@ -1,4 +1,4 @@
-name: Enhanced Security Scanning
+name: Security Scanning
 
 on:
   push:
@@ -8,19 +8,6 @@ on:
   schedule:
     # Run daily at 2 AM UTC
     - cron: "0 2 * * *"
-  workflow_dispatch:
-    inputs:
-      scan_type:
-        description: "Type of security scan to run"
-        required: true
-        default: "all"
-        type: choice
-        options:
-          - all
-          - code
-          - dependencies
-          - secrets
-          - containers
 
 permissions:
   contents: read
@@ -32,11 +19,10 @@ env:
   SCAN_OUTPUT_DIR: "./security-reports"
 
 jobs:
-  # Comprehensive Security Scan
   security-scan:
-    name: Enhanced Security Scan
+    name: Security Scan
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
 
     steps:
       - name: Checkout code
@@ -50,15 +36,10 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
       - name: Install security tools
         run: |
-          echo "🔧 Installing comprehensive security tools..."
-          
+          echo "🔧 Installing security tools..."
+
           # Install Go security tools
           echo "Installing gosec..."
           go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest || {
@@ -70,11 +51,24 @@ jobs:
           go install golang.org/x/vuln/cmd/govulncheck@latest || echo "govulncheck installation failed"
 
           echo "Installing Trivy..."
+          # Install Trivy with proper error handling
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.50.0
+
+          # Add Trivy to PATH
           echo "/usr/local/bin" >> $GITHUB_PATH
 
           echo "Installing Semgrep..."
+          # Install Semgrep (free and open-source)
           python3 -m pip install semgrep || echo "Semgrep installation failed"
+
+          echo "Installing OWASP ZAP baseline..."
+          # Install OWASP ZAP baseline (free)
+          curl -sSL https://github.com/zaproxy/zaproxy/releases/download/v2.14.0/zap_2.14.0_linux.tar.gz | tar -xz -C /opt/ || echo "ZAP installation failed"
+
+          # Install Python security tools (if needed)
+          if command -v pip3 &> /dev/null; then
+            pip3 install bandit safety || echo "Python security tools installation failed"
+          fi
 
           # Verify installations
           echo "🔍 Verifying security tool installations..."
@@ -82,18 +76,24 @@ jobs:
           govulncheck --version || echo "govulncheck installation failed"
           trivy --version || echo "trivy installation failed"
           semgrep --version || echo "semgrep installation failed"
+          if command -v bandit &> /dev/null; then
+            bandit --version || echo "bandit installation failed"
+          fi
+          if command -v safety &> /dev/null; then
+            safety --version || echo "safety installation failed"
+          fi
 
       - name: Create output directory
         run: mkdir -p ${{ env.SCAN_OUTPUT_DIR }}
 
-      - name: Run enhanced security scan
+      - name: Run comprehensive security scan
         run: |
-          chmod +x scripts/enhanced-security-scan.sh
-          ./scripts/enhanced-security-scan.sh \
+          chmod +x scripts/security-scan.sh
+          ./scripts/security-scan.sh \
             --scan-dir . \
             --output-dir ${{ env.SCAN_OUTPUT_DIR }} \
-            --scan-type ${{ github.event.inputs.scan_type || 'all' }} \
-            --fail-on-critical false
+            --scan-type all \
+            --fail-on-critical true
         continue-on-error: true
 
       - name: Run Semgrep static analysis
@@ -105,7 +105,7 @@ jobs:
                   --severity=ERROR \
                   --severity=WARNING \
                   . || echo "Semgrep scan completed with findings"
-          
+
           # Also generate a text report
           semgrep --config=auto \
                   --output=${{ env.SCAN_OUTPUT_DIR }}/semgrep-results.txt \
@@ -133,9 +133,9 @@ jobs:
         id: parse-results
         run: |
           # Parse gosec results
-          if [ -f "${{ env.SCAN_OUTPUT_DIR }}/gosec-results.json" ]; then
-            CRITICAL_COUNT=$(jq '[.Issues[] | select(.severity == "HIGH")] | length' "${{ env.SCAN_OUTPUT_DIR }}/gosec-results.json" 2>/dev/null || echo "0")
-            HIGH_COUNT=$(jq '[.Issues[] | select(.severity == "MEDIUM")] | length' "${{ env.SCAN_OUTPUT_DIR }}/gosec-results.json" 2>/dev/null || echo "0")
+          if [ -f "${{ env.SCAN_OUTPUT_DIR }}/code-security-scan.json" ]; then
+            CRITICAL_COUNT=$(jq '[.Issues[] | select(.severity == "HIGH")] | length' "${{ env.SCAN_OUTPUT_DIR }}/code-security-scan.json" 2>/dev/null || echo "0")
+            HIGH_COUNT=$(jq '[.Issues[] | select(.severity == "MEDIUM")] | length' "${{ env.SCAN_OUTPUT_DIR }}/code-security-scan.json" 2>/dev/null || echo "0")
             echo "critical_count=$CRITICAL_COUNT" >> $GITHUB_OUTPUT
             echo "high_count=$HIGH_COUNT" >> $GITHUB_OUTPUT
           else
@@ -157,10 +157,9 @@ jobs:
       - name: Security scan summary
         if: always()
         run: |
-          echo "## 🔒 Enhanced Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "## Security Scan Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Scan completed:** $(date)" >> $GITHUB_STEP_SUMMARY
-          echo "**Scan type:** ${{ github.event.inputs.scan_type || 'all' }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Issues Found:" >> $GITHUB_STEP_SUMMARY
           echo "- Critical: ${{ steps.parse-results.outputs.critical_count }}" >> $GITHUB_STEP_SUMMARY
@@ -176,13 +175,17 @@ jobs:
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "📋 **Reports available:** Security reports have been uploaded as artifacts." >> $GITHUB_STEP_SUMMARY
-          echo "🔗 **GitHub Security Tab:** Results will appear in the Security tab within 24 hours." >> $GITHUB_STEP_SUMMARY
 
-  # Dependency Vulnerability Scan
+      - name: Fail on critical issues
+        if: steps.parse-results.outputs.has_critical_issues == 'true'
+        run: |
+          echo "🚨 Critical security issues detected. Build failed."
+          echo "Please review and fix security issues before proceeding."
+          exit 1
+
   dependency-scan:
     name: Dependency Vulnerability Scan
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout code
@@ -230,11 +233,9 @@ jobs:
             echo "✅ No critical or high severity vulnerabilities found in Go dependencies"
           fi
 
-  # Secret Scanning
   secret-scan:
     name: Secret Scanning
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout code
@@ -259,11 +260,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
 
-  # Container Security Scan
   container-scan:
     name: Container Security Scan
     runs-on: ubuntu-latest
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout code
@@ -298,7 +298,67 @@ jobs:
         with:
           sarif_file: "trivy-container-results.sarif"
 
-  # Security Notification
+  compliance-check:
+    name: Compliance Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run compliance checks
+        run: |
+          # Check for hardcoded secrets (excluding test files, examples, and template files)
+          echo "Checking for hardcoded secrets..."
+
+          # More intelligent secret detection - look for actual secret patterns
+          if grep -r -i "password\s*=\s*['\"][^'\"]*['\"]\|secret\s*=\s*['\"][^'\"]*['\"]\|api_key\s*=\s*['\"][^'\"]*['\"]\|token\s*=\s*['\"][^'\"]*['\"]" . \
+            --exclude-dir=.git \
+            --exclude-dir=vendor \
+            --exclude-dir=node_modules \
+            --exclude-dir=test \
+            --exclude="*_test.go" \
+            --exclude="*example*" \
+            --exclude="*mock*" \
+            --exclude="*.md" \
+            --exclude="*.yml" \
+            --exclude="*.yaml" \
+            --exclude="*.template" \
+            --exclude=".env.example" \
+            --exclude="*.csv" \
+            --exclude="*.html" \
+            --exclude="*.json" \
+            --exclude="*.go" | grep -v "example\|test\|mock\|TODO\|FIXME\|placeholder\|your_.*_here\|template\|func\|type\|struct\|interface\|const\|var"; then
+            echo "🚨 Potential hardcoded secrets found!"
+            echo "Please ensure all secrets are in environment variables or secure configuration."
+            exit 1
+          fi
+
+          echo "✅ No hardcoded secrets detected"
+
+          # Check for proper TLS configuration (excluding test files)
+          echo "Checking TLS configuration..."
+          if grep -r "http://" . --include="*.go" --exclude-dir=vendor --exclude-dir=test --exclude="*_test.go" | grep -v "example\|test\|mock"; then
+            echo "⚠️  HTTP URLs found in Go code (excluding tests)"
+          fi
+
+          # Check for proper error handling
+          echo "Checking error handling..."
+          ERROR_HANDLING_COUNT=$(grep -r "if err != nil" . --include="*.go" --exclude-dir=vendor --exclude="*_test.go" | wc -l)
+          if [ "$ERROR_HANDLING_COUNT" -eq 0 ]; then
+            echo "⚠️  No error handling patterns found in main code"
+          else
+            echo "✅ Found $ERROR_HANDLING_COUNT error handling patterns"
+          fi
+
+          echo "✅ Basic compliance checks passed"
+
   security-notification:
     name: Security Notification
     runs-on: ubuntu-latest
