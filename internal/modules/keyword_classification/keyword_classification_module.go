@@ -15,6 +15,23 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+// ClassificationRequest represents a request for business classification
+type ClassificationRequest struct {
+	BusinessName string   `json:"business_name"`
+	Description  string   `json:"description"`
+	Keywords     []string `json:"keywords"`
+}
+
+// IndustryClassification represents the result of industry classification
+type IndustryClassification struct {
+	IndustryCode         string   `json:"industry_code"`
+	IndustryName         string   `json:"industry_name"`
+	ConfidenceScore      float64  `json:"confidence_score"`
+	ClassificationMethod string   `json:"classification_method"`
+	Description          string   `json:"description"`
+	MatchedKeywords      []string `json:"matched_keywords"`
+}
+
 // KeywordClassificationModule implements the Module interface for keyword-based classification
 type KeywordClassificationModule struct {
 	id        string
@@ -26,19 +43,15 @@ type KeywordClassificationModule struct {
 	db        database.Database
 	appConfig *config.Config
 
-	// Keyword classification specific fields
-	keywordMappings  map[string][]string
-	industryCodes    map[string]string
-	confidenceScores map[string]float64
+	// Database-driven keyword classification
+	keywordRepo database.KeywordRepository
 }
 
 // NewKeywordClassificationModule creates a new keyword classification module
-func NewKeywordClassificationModule() *KeywordClassificationModule {
+func NewKeywordClassificationModule(keywordRepo database.KeywordRepository) *KeywordClassificationModule {
 	return &KeywordClassificationModule{
-		id:               "keyword_classification_module",
-		keywordMappings:  make(map[string][]string),
-		industryCodes:    make(map[string]string),
-		confidenceScores: make(map[string]float64),
+		id:          "keyword_classification_module",
+		keywordRepo: keywordRepo,
 	}
 }
 
@@ -116,26 +129,29 @@ func (m *KeywordClassificationModule) Start(ctx context.Context) error {
 		})
 	}
 
-	// Initialize keyword mappings
-	if err := m.initializeKeywordMappings(); err != nil {
-		span.RecordError(err)
-		if m.logger != nil {
-			m.logger.LogModuleError(ctx, "initialize_keyword_mappings", err, map[string]interface{}{
-				"operation": "startup",
-			})
-		}
-		return fmt.Errorf("failed to initialize keyword mappings: %w", err)
+	// Initialize database connection and validate data
+	if m.keywordRepo == nil {
+		span.RecordError(fmt.Errorf("keyword repository not initialized"))
+		return fmt.Errorf("keyword repository not initialized")
 	}
 
-	// Initialize industry codes
-	if err := m.initializeIndustryCodes(); err != nil {
+	// Test database connectivity
+	if err := m.testDatabaseConnection(ctx); err != nil {
 		span.RecordError(err)
 		if m.logger != nil {
-			m.logger.LogModuleError(ctx, "initialize_industry_codes", err, map[string]interface{}{
+			m.logger.LogModuleError(ctx, "database_connection_test", err, map[string]interface{}{
 				"operation": "startup",
 			})
 		}
-		return fmt.Errorf("failed to initialize industry codes: %w", err)
+		return fmt.Errorf("failed to connect to database: %w", err)
+	}
+
+	// Log successful database connection
+	if m.logger != nil {
+		m.logger.Info("Database connected", map[string]interface{}{
+			"module_id": m.id,
+			"status":    "connected",
+		})
 	}
 
 	m.running = true
@@ -153,21 +169,20 @@ func (m *KeywordClassificationModule) Start(ctx context.Context) error {
 		})
 	}
 
-	span.SetAttributes(attribute.String("module.id", m.id))
-
 	// Log performance metrics
 	if m.logger != nil {
 		m.logger.LogModulePerformance(ctx, "module_start", startTime, time.Now(), map[string]interface{}{
-			"keyword_mappings_count": len(m.keywordMappings),
-			"industry_codes_count":   len(m.industryCodes),
+			"database_connected": true,
+			"module_type":        "database_driven",
 		})
 	}
+
+	span.SetAttributes(attribute.String("module.id", m.id))
 
 	return nil
 }
 
 func (m *KeywordClassificationModule) Stop(ctx context.Context) error {
-	startTime := time.Now()
 	_, span := m.tracer.Start(ctx, "KeywordClassificationModule.Stop")
 	defer span.End()
 
@@ -179,7 +194,7 @@ func (m *KeywordClassificationModule) Stop(ctx context.Context) error {
 
 	// Log module stop
 	if m.logger != nil {
-		m.logger.LogModuleStop(ctx, "graceful shutdown")
+		m.logger.LogModuleStop(ctx, "manual_stop")
 	}
 
 	// Emit module stopped event
@@ -190,127 +205,18 @@ func (m *KeywordClassificationModule) Stop(ctx context.Context) error {
 			Priority: architecture.EventPriorityNormal,
 			Data: map[string]interface{}{
 				"module_id": m.id,
-				"stop_time": startTime,
+				"reason":    "manual_stop",
 			},
 		})
 	}
 
 	span.SetAttributes(attribute.String("module.id", m.id))
 
-	// Log performance metrics
-	if m.logger != nil {
-		m.logger.LogModulePerformance(ctx, "module_stop", startTime, time.Now(), nil)
-	}
-
 	return nil
 }
 
 func (m *KeywordClassificationModule) IsRunning() bool {
 	return m.running
-}
-
-func (m *KeywordClassificationModule) Process(ctx context.Context, req architecture.ModuleRequest) (architecture.ModuleResponse, error) {
-	startTime := time.Now()
-	_, span := m.tracer.Start(ctx, "KeywordClassificationModule.Process")
-	defer span.End()
-
-	span.SetAttributes(
-		attribute.String("module.id", m.id),
-		attribute.String("request.type", req.Type),
-	)
-
-	// Log incoming request
-	if m.logger != nil {
-		m.logger.LogModuleRequest(ctx, req.ID, 200, time.Since(time.Now()))
-	}
-
-	// Check if this module can handle the request
-	if !m.CanHandle(req) {
-		response := architecture.ModuleResponse{
-			ID:      req.ID,
-			Success: false,
-			Error:   "unsupported request type",
-		}
-
-		// Log response
-		if m.logger != nil {
-			m.logger.LogModuleResponse(ctx, req.ID, 400, time.Since(startTime), map[string]interface{}{"success": false})
-		}
-
-		return response, nil
-	}
-
-	// Parse the request payload
-	classificationReq, err := m.parseClassificationRequest(req.Data)
-	if err != nil {
-		span.RecordError(err)
-		if m.logger != nil {
-			m.logger.LogModuleError(ctx, "parse_classification_request", err, map[string]interface{}{
-				"request_id":   req.ID,
-				"request_type": req.Type,
-			})
-		}
-
-		response := architecture.ModuleResponse{
-			ID:      req.ID,
-			Success: false,
-			Error:   fmt.Sprintf("failed to parse request: %v", err),
-		}
-
-		// Log response
-		if m.logger != nil {
-			m.logger.LogModuleResponse(ctx, req.ID, 400, time.Since(startTime), map[string]interface{}{"success": false})
-		}
-
-		return response, nil
-	}
-
-	// Perform keyword classification
-	classifications, err := m.performKeywordClassification(ctx, classificationReq)
-	if err != nil {
-		span.RecordError(err)
-		if m.logger != nil {
-			m.logger.LogModuleError(ctx, "perform_keyword_classification", err, map[string]interface{}{
-				"request_id":    req.ID,
-				"business_name": classificationReq.BusinessName,
-			})
-		}
-
-		response := architecture.ModuleResponse{
-			ID:      req.ID,
-			Success: false,
-			Error:   fmt.Sprintf("classification failed: %v", err),
-		}
-
-		// Log response
-		if m.logger != nil {
-			m.logger.LogModuleResponse(ctx, req.ID, 400, time.Since(startTime), map[string]interface{}{"success": false})
-		}
-
-		return response, nil
-	}
-
-	// Create response
-	response := architecture.ModuleResponse{
-		ID:      req.ID,
-		Success: true,
-		Data: map[string]interface{}{
-			"classifications": classifications,
-			"method":          "keyword_classification",
-			"module_id":       m.id,
-		},
-	}
-
-	// Log successful response
-	if m.logger != nil {
-		m.logger.LogModuleResponse(ctx, req.ID, 200, time.Since(startTime), map[string]interface{}{"success": true, "classifications_count": len(classifications)})
-	}
-
-	return response, nil
-}
-
-func (m *KeywordClassificationModule) CanHandle(req architecture.ModuleRequest) bool {
-	return req.Type == "classify_by_keywords"
 }
 
 func (m *KeywordClassificationModule) HealthCheck(ctx context.Context) error {
@@ -321,85 +227,85 @@ func (m *KeywordClassificationModule) HealthCheck(ctx context.Context) error {
 		return fmt.Errorf("module is not running")
 	}
 
-	// Check if keyword mappings are loaded
-	if len(m.keywordMappings) == 0 {
-		return fmt.Errorf("keyword mappings not initialized")
+	// Check if database repository is available
+	if m.keywordRepo == nil {
+		return fmt.Errorf("keyword repository not initialized")
 	}
 
-	// Check if industry codes are loaded
-	if len(m.industryCodes) == 0 {
-		return fmt.Errorf("industry codes not initialized")
+	// Test database connectivity
+	_, err := m.keywordRepo.ListIndustries(ctx, "")
+	if err != nil {
+		return fmt.Errorf("database connectivity check failed: %w", err)
 	}
 
 	span.SetAttributes(attribute.String("module.id", m.id))
 	return nil
 }
 
+// CanHandle determines if this module can handle the given request
+func (m *KeywordClassificationModule) CanHandle(req architecture.ModuleRequest) bool {
+	// This module can handle classification requests
+	if req.Type == "classification" || req.Type == "keyword_classification" {
+		return true
+	}
+	return false
+}
+
+// Process processes a module request
+func (m *KeywordClassificationModule) Process(ctx context.Context, req architecture.ModuleRequest) (architecture.ModuleResponse, error) {
+	startTime := time.Now()
+
+	// Convert the request to a classification request
+	classificationReq := &ClassificationRequest{
+		BusinessName: req.Data["business_name"].(string),
+		Description:  req.Data["description"].(string),
+	}
+
+	// Process the classification
+	classifications, err := m.PerformKeywordClassification(ctx, classificationReq)
+	if err != nil {
+		return architecture.ModuleResponse{
+			ID:         req.ID,
+			Success:    false,
+			Error:      err.Error(),
+			Confidence: 0.0,
+			Latency:    time.Since(startTime),
+		}, err
+	}
+
+	// Calculate overall confidence from classifications
+	overallConfidence := 0.0
+	if len(classifications) > 0 {
+		overallConfidence = classifications[0].ConfidenceScore // Use highest confidence
+	}
+
+	// Return the results
+	return architecture.ModuleResponse{
+		ID:         req.ID,
+		Success:    true,
+		Confidence: overallConfidence,
+		Latency:    time.Since(startTime),
+		Data: map[string]interface{}{
+			"classifications": classifications,
+		},
+	}, nil
+}
+
+// OnEvent handles module events
 func (m *KeywordClassificationModule) OnEvent(event architecture.ModuleEvent) error {
-	// Handle events if needed
+	// Log the event
+	if m.logger != nil {
+		m.logger.Info("Module event received", map[string]interface{}{
+			"event_type": event.Type,
+			"module_id":  event.ModuleID,
+			"timestamp":  event.Timestamp,
+		})
+	}
 	return nil
 }
 
-// Keyword classification specific methods
-
-// ClassificationRequest represents a keyword classification request
-type ClassificationRequest struct {
-	BusinessName       string `json:"business_name"`
-	Description        string `json:"description"`
-	Keywords           string `json:"keywords"`
-	BusinessType       string `json:"business_type"`
-	Industry           string `json:"industry"`
-	RegistrationNumber string `json:"registration_number"`
-	WebsiteURL         string `json:"website_url"`
-}
-
-// IndustryClassification represents a classification result
-type IndustryClassification struct {
-	IndustryCode         string   `json:"industry_code"`
-	IndustryName         string   `json:"industry_name"`
-	ConfidenceScore      float64  `json:"confidence_score"`
-	ClassificationMethod string   `json:"classification_method"`
-	Description          string   `json:"description"`
-	MatchedKeywords      []string `json:"matched_keywords"`
-}
-
-// parseClassificationRequest parses the module request into a classification request
-func (m *KeywordClassificationModule) parseClassificationRequest(payload map[string]interface{}) (*ClassificationRequest, error) {
-	req := &ClassificationRequest{}
-
-	if businessName, ok := payload["business_name"].(string); ok {
-		req.BusinessName = businessName
-	}
-
-	if description, ok := payload["description"].(string); ok {
-		req.Description = description
-	}
-
-	if keywords, ok := payload["keywords"].(string); ok {
-		req.Keywords = keywords
-	}
-
-	if businessType, ok := payload["business_type"].(string); ok {
-		req.BusinessType = businessType
-	}
-
-	if industry, ok := payload["industry"].(string); ok {
-		req.Industry = industry
-	}
-
-	if registrationNumber, ok := payload["registration_number"].(string); ok {
-		req.RegistrationNumber = registrationNumber
-	}
-
-	if websiteURL, ok := payload["website_url"].(string); ok {
-		req.WebsiteURL = websiteURL
-	}
-
-	return req, nil
-}
-
-// performKeywordClassification performs keyword-based classification
-func (m *KeywordClassificationModule) performKeywordClassification(ctx context.Context, req *ClassificationRequest) ([]IndustryClassification, error) {
+// PerformKeywordClassification performs database-driven keyword-based classification
+func (m *KeywordClassificationModule) PerformKeywordClassification(ctx context.Context, req *ClassificationRequest) ([]IndustryClassification, error) {
 	_, span := m.tracer.Start(ctx, "performKeywordClassification")
 	defer span.End()
 
@@ -414,30 +320,59 @@ func (m *KeywordClassificationModule) performKeywordClassification(ctx context.C
 	var classifications []IndustryClassification
 	matchedKeywords := make(map[string][]string)
 
-	// Check each industry category for keyword matches
-	for industry, keywords := range m.keywordMappings {
-		matched := m.findKeywordMatches(normalized, tokens, keywords)
+	// Get all industries from database
+	industries, err := m.keywordRepo.ListIndustries(ctx, "")
+	if err != nil {
+		span.RecordError(err)
+		return nil, fmt.Errorf("failed to list industries: %w", err)
+	}
+
+	// Process each industry to find keyword matches
+	for _, industry := range industries {
+		// Get keywords for this industry
+		keywords, err := m.keywordRepo.GetKeywordsByIndustry(ctx, industry.ID)
+		if err != nil {
+			// Log error but continue with other industries
+			if m.logger != nil {
+				m.logger.LogModuleError(ctx, "get_keywords_for_industry", err, map[string]interface{}{
+					"industry_id":   industry.ID,
+					"industry_name": industry.Name,
+				})
+			}
+			continue
+		}
+
+		// Find keyword matches
+		matched := m.findKeywordMatchesInDatabase(normalized, tokens, keywords)
 		if len(matched) > 0 {
-			// Get industry code
-			industryCode := m.industryCodes[industry]
-			if industryCode == "" {
-				industryCode = industry // Fallback to industry name as code
+			// Get classification codes for this industry
+			codes, err := m.keywordRepo.GetClassificationCodesByIndustry(ctx, industry.ID)
+			if err != nil {
+				// Log error but continue
+				if m.logger != nil {
+					m.logger.LogModuleError(ctx, "get_classification_codes", err, map[string]interface{}{
+						"industry_id": industry.ID,
+					})
+				}
 			}
 
-			// Calculate confidence score
-			confidence := m.calculateKeywordConfidence(matched, keywords)
+			// Calculate confidence score based on keyword matches and weights
+			confidence := m.calculateDatabaseConfidence(matched, keywords)
+
+			// Get primary industry code (prefer NAICS, then MCC, then SIC)
+			industryCode := m.getPrimaryIndustryCode(codes)
 
 			classification := IndustryClassification{
 				IndustryCode:         industryCode,
-				IndustryName:         industry,
+				IndustryName:         industry.Name,
 				ConfidenceScore:      confidence,
-				ClassificationMethod: "keyword_classification",
-				Description:          fmt.Sprintf("Keyword-based classification with %d matches", len(matched)),
+				ClassificationMethod: "database_keyword_classification",
+				Description:          fmt.Sprintf("Database-driven classification with %d keyword matches", len(matched)),
 				MatchedKeywords:      matched,
 			}
 
 			classifications = append(classifications, classification)
-			matchedKeywords[industry] = matched
+			matchedKeywords[industry.Name] = matched
 		}
 	}
 
@@ -453,55 +388,50 @@ func (m *KeywordClassificationModule) performKeywordClassification(ctx context.C
 }
 
 // normalizeBusinessFields normalizes business fields for keyword matching
-func (m *KeywordClassificationModule) normalizeBusinessFields(businessName, description, keywords string) (string, []string) {
-	var fields []string
+func (m *KeywordClassificationModule) normalizeBusinessFields(businessName, description string, keywords []string) (string, []string) {
+	// Combine all text fields
+	combined := strings.Join([]string{businessName, description, strings.Join(keywords, " ")}, " ")
 
-	// Add business name
-	if businessName != "" {
-		fields = append(fields, strings.ToLower(strings.TrimSpace(businessName)))
-	}
+	// Normalize to lowercase
+	normalized := strings.ToLower(combined)
 
-	// Add description
-	if description != "" {
-		fields = append(fields, strings.ToLower(strings.TrimSpace(description)))
-	}
-
-	// Add keywords
-	if keywords != "" {
-		fields = append(fields, strings.ToLower(strings.TrimSpace(keywords)))
-	}
-
-	if len(fields) == 0 {
-		return "", nil
-	}
-
-	// Join all fields
-	normalized := strings.Join(fields, " ")
-
-	// Extract tokens
+	// Remove common stop words and split into tokens
 	tokens := strings.Fields(normalized)
 
-	return normalized, tokens
+	// Filter out short tokens and common stop words
+	var filteredTokens []string
+	stopWords := map[string]bool{
+		"the": true, "and": true, "or": true, "but": true, "in": true, "on": true, "at": true, "to": true,
+		"for": true, "of": true, "with": true, "by": true, "a": true, "an": true, "is": true, "are": true,
+	}
+
+	for _, token := range tokens {
+		if len(token) > 2 && !stopWords[token] {
+			filteredTokens = append(filteredTokens, token)
+		}
+	}
+
+	return normalized, filteredTokens
 }
 
-// findKeywordMatches finds keyword matches in the normalized text
-func (m *KeywordClassificationModule) findKeywordMatches(normalized string, tokens []string, keywords []string) []string {
+// findKeywordMatchesInDatabase finds keyword matches using database keywords
+func (m *KeywordClassificationModule) findKeywordMatchesInDatabase(normalized string, tokens []string, keywords []*database.IndustryKeyword) []string {
 	var matches []string
 
 	for _, keyword := range keywords {
-		keywordLower := strings.ToLower(keyword)
-
-		// Check for exact match in normalized text
-		if strings.Contains(normalized, keywordLower) {
-			matches = append(matches, keyword)
+		if !keyword.IsActive {
 			continue
+		}
+
+		// Check for exact matches in normalized text
+		if strings.Contains(strings.ToLower(normalized), strings.ToLower(keyword.Keyword)) {
+			matches = append(matches, keyword.Keyword)
 		}
 
 		// Check for token matches
 		for _, token := range tokens {
-			if strings.Contains(token, keywordLower) || strings.Contains(keywordLower, token) {
-				matches = append(matches, keyword)
-				break
+			if strings.EqualFold(token, keyword.Keyword) {
+				matches = append(matches, keyword.Keyword)
 			}
 		}
 	}
@@ -509,21 +439,45 @@ func (m *KeywordClassificationModule) findKeywordMatches(normalized string, toke
 	return matches
 }
 
-// calculateKeywordConfidence calculates confidence score based on keyword matches
-func (m *KeywordClassificationModule) calculateKeywordConfidence(matched []string, totalKeywords []string) float64 {
-	if len(totalKeywords) == 0 {
+// calculateDatabaseConfidence calculates confidence score based on database keyword matches and weights
+func (m *KeywordClassificationModule) calculateDatabaseConfidence(matched []string, keywords []*database.IndustryKeyword) float64 {
+	if len(matched) == 0 {
 		return 0.0
 	}
 
-	// Base confidence on match ratio
-	matchRatio := float64(len(matched)) / float64(len(totalKeywords))
+	// Create a map of keyword weights for quick lookup
+	keywordWeights := make(map[string]float64)
+	for _, keyword := range keywords {
+		keywordWeights[keyword.Keyword] = keyword.Weight
+	}
 
-	// Apply confidence scoring
-	confidence := matchRatio * 0.9 // Max 90% confidence for keyword matching
+	// Calculate weighted confidence
+	totalWeight := 0.0
+	matchedWeight := 0.0
+
+	for _, keyword := range keywords {
+		totalWeight += keyword.Weight
+	}
+
+	for _, match := range matched {
+		if weight, exists := keywordWeights[match]; exists {
+			matchedWeight += weight
+		}
+	}
+
+	if totalWeight == 0 {
+		return 0.0
+	}
+
+	// Base confidence on weighted match ratio
+	confidence := matchedWeight / totalWeight
+
+	// Apply confidence scaling (max 95%)
+	confidence = confidence * 0.95
 
 	// Boost confidence for multiple matches
 	if len(matched) > 1 {
-		confidence += 0.05 * float64(len(matched)-1)
+		confidence += 0.02 * float64(len(matched)-1)
 	}
 
 	// Cap at 95%
@@ -532,6 +486,43 @@ func (m *KeywordClassificationModule) calculateKeywordConfidence(matched []strin
 	}
 
 	return confidence
+}
+
+// getPrimaryIndustryCode gets the primary industry code, preferring NAICS > MCC > SIC
+func (m *KeywordClassificationModule) getPrimaryIndustryCode(codes []*database.ClassificationCode) string {
+	if len(codes) == 0 {
+		return ""
+	}
+
+	// Prefer NAICS codes
+	for _, code := range codes {
+		if code.CodeType == "naics" && code.IsActive {
+			return code.Code
+		}
+	}
+
+	// Fall back to MCC codes
+	for _, code := range codes {
+		if code.CodeType == "mcc" && code.IsActive {
+			return code.Code
+		}
+	}
+
+	// Fall back to SIC codes
+	for _, code := range codes {
+		if code.CodeType == "sic" && code.IsActive {
+			return code.Code
+		}
+	}
+
+	// Return the first active code if no preferred type found
+	for _, code := range codes {
+		if code.IsActive {
+			return code.Code
+		}
+	}
+
+	return ""
 }
 
 // sortByConfidence sorts classifications by confidence score (highest first)
@@ -547,67 +538,33 @@ func (m *KeywordClassificationModule) sortByConfidence(classifications []Industr
 	return classifications
 }
 
-// initializeKeywordMappings initializes keyword mappings for different industries
-func (m *KeywordClassificationModule) initializeKeywordMappings() error {
-	m.keywordMappings = map[string][]string{
-		"Grocery & Food Retail": {
-			"grocery", "supermarket", "food", "market", "store", "retail", "fresh", "organic",
-			"produce", "meat", "dairy", "bakery", "deli", "convenience", "shop",
-		},
-		"Financial Services": {
-			"bank", "financial", "credit", "loan", "mortgage", "investment", "insurance",
-			"wealth", "asset", "fund", "capital", "finance", "lending", "savings",
-		},
-		"Healthcare": {
-			"health", "medical", "hospital", "clinic", "doctor", "physician", "nurse",
-			"pharmacy", "dental", "therapy", "wellness", "care", "treatment", "medicine",
-		},
-		"Technology": {
-			"tech", "software", "hardware", "computer", "digital", "internet", "web",
-			"app", "platform", "system", "data", "cloud", "ai", "machine learning",
-		},
-		"Real Estate": {
-			"real estate", "property", "housing", "apartment", "rental", "leasing",
-			"construction", "development", "building", "home", "house", "commercial",
-		},
-		"Transportation": {
-			"transport", "logistics", "shipping", "delivery", "freight", "trucking",
-			"warehouse", "storage", "supply chain", "distribution", "courier",
-		},
-		"Education": {
-			"education", "school", "university", "college", "academy", "training",
-			"learning", "course", "program", "institute", "center", "tutoring",
-		},
-		"Entertainment": {
-			"entertainment", "media", "film", "music", "gaming", "sports", "recreation",
-			"leisure", "amusement", "theater", "cinema", "studio", "production",
-		},
-		"Manufacturing": {
-			"manufacturing", "factory", "production", "industrial", "machinery",
-			"equipment", "assembly", "fabrication", "processing", "industrial",
-		},
-		"Professional Services": {
-			"consulting", "legal", "accounting", "advisory", "professional",
-			"service", "agency", "firm", "partners", "associates", "group",
-		},
+// testDatabaseConnection tests the database connection and validates data availability
+func (m *KeywordClassificationModule) testDatabaseConnection(ctx context.Context) error {
+	// Test basic connectivity by listing industries
+	industries, err := m.keywordRepo.ListIndustries(ctx, "")
+	if err != nil {
+		return fmt.Errorf("failed to list industries: %w", err)
 	}
 
-	return nil
-}
+	if len(industries) == 0 {
+		return fmt.Errorf("no industries found in database")
+	}
 
-// initializeIndustryCodes initializes industry code mappings
-func (m *KeywordClassificationModule) initializeIndustryCodes() error {
-	m.industryCodes = map[string]string{
-		"Grocery & Food Retail": "445110",
-		"Financial Services":    "522110",
-		"Healthcare":            "621111",
-		"Technology":            "511210",
-		"Real Estate":           "531210",
-		"Transportation":        "484110",
-		"Education":             "611110",
-		"Entertainment":         "711110",
-		"Manufacturing":         "332996",
-		"Professional Services": "541611",
+	// Test keyword retrieval for the first industry
+	if len(industries) > 0 {
+		keywords, err := m.keywordRepo.GetKeywordsByIndustry(ctx, industries[0].ID)
+		if err != nil {
+			return fmt.Errorf("failed to get keywords for industry %d: %w", industries[0].ID, err)
+		}
+
+		// Log database statistics
+		if m.logger != nil {
+			m.logger.Info("Database validation", map[string]interface{}{
+				"total_industries": len(industries),
+				"sample_industry":  industries[0].Name,
+				"sample_keywords":  len(keywords),
+			})
+		}
 	}
 
 	return nil

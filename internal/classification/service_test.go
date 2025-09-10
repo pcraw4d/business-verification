@@ -67,11 +67,48 @@ func (m *MockKeywordRepository) GetClassificationCodesByIndustry(ctx context.Con
 	if m.getClassificationCodesError != nil {
 		return nil, m.getClassificationCodesError
 	}
-	return m.getClassificationCodesResult, nil
+
+	// Return mock classification codes for the industry
+	switch industryID {
+	case 1: // Technology
+		return []*repository.ClassificationCode{
+			{ID: 1, Code: "5734", Description: "Computer Software Stores", CodeType: "MCC", IndustryID: 1},
+			{ID: 2, Code: "7372", Description: "Prepackaged Software", CodeType: "SIC", IndustryID: 1},
+			{ID: 3, Code: "541511", Description: "Custom Computer Programming Services", CodeType: "NAICS", IndustryID: 1},
+		}, nil
+	case 2: // Financial Services
+		return []*repository.ClassificationCode{
+			{ID: 4, Code: "6011", Description: "Automated Teller Machine Services", CodeType: "MCC", IndustryID: 2},
+			{ID: 5, Code: "6021", Description: "National Commercial Banks", CodeType: "SIC", IndustryID: 2},
+			{ID: 6, Code: "522110", Description: "Commercial Banking", CodeType: "NAICS", IndustryID: 2},
+		}, nil
+	default:
+		return []*repository.ClassificationCode{}, nil
+	}
 }
 
 func (m *MockKeywordRepository) GetClassificationCodesByType(ctx context.Context, codeType string) ([]*repository.ClassificationCode, error) {
-	return []*repository.ClassificationCode{{ID: 1, Code: "TEST123"}}, nil
+	// Return realistic classification codes based on type
+	switch codeType {
+	case "MCC":
+		return []*repository.ClassificationCode{
+			{ID: 1, Code: "6011", Description: "Automated Teller Machine Services", CodeType: "MCC"},
+			{ID: 2, Code: "6012", Description: "Financial Institutions - Manual Cash Disbursements", CodeType: "MCC"},
+			{ID: 3, Code: "5734", Description: "Computer Software Stores", CodeType: "MCC"},
+		}, nil
+	case "SIC":
+		return []*repository.ClassificationCode{
+			{ID: 4, Code: "6021", Description: "National Commercial Banks", CodeType: "SIC"},
+			{ID: 5, Code: "7372", Description: "Prepackaged Software", CodeType: "SIC"},
+		}, nil
+	case "NAICS":
+		return []*repository.ClassificationCode{
+			{ID: 6, Code: "522110", Description: "Commercial Banking", CodeType: "NAICS"},
+			{ID: 7, Code: "541511", Description: "Custom Computer Programming Services", CodeType: "NAICS"},
+		}, nil
+	default:
+		return []*repository.ClassificationCode{}, nil
+	}
 }
 
 func (m *MockKeywordRepository) AddClassificationCode(ctx context.Context, code *repository.ClassificationCode) error {

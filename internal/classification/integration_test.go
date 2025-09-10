@@ -22,15 +22,17 @@ func TestDatabaseIntegration(t *testing.T) {
 	// Check if we have Supabase credentials
 	supabaseURL := os.Getenv("SUPABASE_URL")
 	supabaseKey := os.Getenv("SUPABASE_ANON_KEY")
+	supabaseServiceKey := os.Getenv("SUPABASE_SERVICE_ROLE_KEY")
 
-	if supabaseURL == "" || supabaseKey == "" {
-		t.Skip("skipping integration test: SUPABASE_URL or SUPABASE_ANON_KEY not set")
+	if supabaseURL == "" || supabaseKey == "" || supabaseServiceKey == "" {
+		t.Skip("skipping integration test: SUPABASE_URL, SUPABASE_ANON_KEY, or SUPABASE_SERVICE_ROLE_KEY not set")
 	}
 
 	// Create Supabase client
 	config := &database.SupabaseConfig{
-		URL:    supabaseURL,
-		APIKey: supabaseKey,
+		URL:            supabaseURL,
+		APIKey:         supabaseKey,
+		ServiceRoleKey: supabaseServiceKey,
 	}
 
 	logger := log.New(os.Stdout, "", log.LstdFlags)

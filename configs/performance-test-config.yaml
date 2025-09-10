@@ -1,0 +1,341 @@
+# Performance Testing Configuration for KYB Platform
+# This file configures comprehensive performance tests for the classification system
+
+# Test Suite Configuration
+test_suite:
+  name: "KYB Platform Performance Testing Suite"
+  version: "1.0.0"
+  description: "Comprehensive performance testing for classification optimizations"
+  
+# Test Categories
+test_categories:
+  # Large Keyword Dataset Performance Testing
+  large_keyword_dataset:
+    enabled: true
+    description: "Performance testing with large keyword datasets"
+    config:
+      duration: "30s"
+      concurrent_requests: 10
+      keyword_set_size: 1000
+      business_count: 500
+      enable_caching: true
+      enable_parallel: true
+      warmup_duration: "5s"
+    thresholds:
+      max_response_time: "2s"
+      min_throughput: 50.0  # requests per second
+      max_error_rate: 0.05  # 5%
+      min_cache_hit_ratio: 0.8  # 80%
+      
+  # Cache Performance Testing
+  cache_performance:
+    enabled: true
+    description: "Cache hit/miss ratio testing"
+    config:
+      keyword_set_size: 500
+      business_count: 200
+      cache_warmup_rounds: 3
+      cache_test_rounds: 5
+    thresholds:
+      min_cache_improvement: 0.5  # 50% improvement
+      max_cache_miss_time: "3s"
+      min_cache_hit_time: "500ms"
+      
+  # Classification Accuracy Benchmarking
+  classification_accuracy:
+    enabled: true
+    description: "Classification accuracy benchmarking"
+    config:
+      business_count: 100
+      test_businesses:
+        - name: "Google Inc"
+          description: "Search engine and technology company"
+          website: "https://google.com"
+          expected_industry: "Technology"
+        - name: "Apple Inc"
+          description: "Consumer electronics and software company"
+          website: "https://apple.com"
+          expected_industry: "Technology"
+        - name: "McDonald's Corporation"
+          description: "Fast food restaurant chain"
+          website: "https://mcdonalds.com"
+          expected_industry: "Restaurant"
+        - name: "JPMorgan Chase & Co"
+          description: "Investment banking and financial services"
+          website: "https://jpmorganchase.com"
+          expected_industry: "Financial"
+        - name: "Johnson & Johnson"
+          description: "Pharmaceutical and consumer goods company"
+          website: "https://jnj.com"
+          expected_industry: "Healthcare"
+    thresholds:
+      min_accuracy: 0.85  # 85%
+      max_processing_time: "1s"
+      min_confidence_score: 0.7  # 70%
+      
+  # Load Testing for Concurrent Requests
+  load_testing:
+    enabled: true
+    description: "Load testing for concurrent requests"
+    config:
+      duration: "60s"
+      concurrency_levels: [1, 5, 10, 20, 50, 100]
+      keyword_set_size: 200
+      ramp_up_duration: "10s"
+      ramp_down_duration: "10s"
+    thresholds:
+      max_response_time_p95: "5s"
+      max_response_time_p99: "10s"
+      min_throughput: 100.0  # requests per second
+      max_error_rate: 0.01  # 1%
+      max_memory_usage: "500MB"
+      
+  # Memory Usage Optimization Testing
+  memory_optimization:
+    enabled: true
+    description: "Memory usage optimization testing"
+    config:
+      business_count: 1000
+      keyword_set_size: 500
+      memory_check_interval: "10s"
+      gc_interval: "100"  # requests
+    thresholds:
+      max_memory_increase: "100MB"
+      max_memory_per_request: "1MB"
+      min_memory_efficiency: 0.8  # 80%
+      
+# Benchmark Configuration
+benchmarks:
+  enabled: true
+  duration: "30s"
+  memory_profiling: true
+  cpu_profiling: true
+  goroutine_profiling: true
+  block_profiling: true
+  
+  benchmark_tests:
+    - name: "BenchmarkPerformanceTesting"
+      pattern: "BenchmarkPerformance"
+      description: "General performance benchmarks"
+    - name: "BenchmarkMemoryUsage"
+      pattern: "BenchmarkMemory"
+      description: "Memory usage benchmarks"
+    - name: "BenchmarkLoadTest"
+      pattern: "BenchmarkLoadTest"
+      description: "Load testing benchmarks"
+    - name: "BenchmarkCachePerformance"
+      pattern: "BenchmarkCache"
+      description: "Cache performance benchmarks"
+    - name: "BenchmarkParallelProcessing"
+      pattern: "BenchmarkParallel"
+      description: "Parallel processing benchmarks"
+
+# Profiling Configuration
+profiling:
+  enabled: true
+  
+  memory_profiling:
+    enabled: true
+    duration: "60s"
+    interval: "10s"
+    output_format: "pprof"
+    
+  cpu_profiling:
+    enabled: true
+    duration: "60s"
+    output_format: "pprof"
+    
+  goroutine_profiling:
+    enabled: true
+    duration: "60s"
+    interval: "5s"
+    
+  block_profiling:
+    enabled: true
+    duration: "60s"
+
+# Test Data Configuration
+test_data:
+  # Keyword datasets
+  keyword_datasets:
+    small: 100
+    medium: 500
+    large: 1000
+    xlarge: 5000
+    
+  # Business test data
+  business_datasets:
+    small: 50
+    medium: 200
+    large: 500
+    xlarge: 1000
+    
+  # Industry categories for testing
+  industry_categories:
+    - "Technology"
+    - "Financial"
+    - "Healthcare"
+    - "Retail"
+    - "Manufacturing"
+    - "Restaurant"
+    - "Education"
+    - "Real Estate"
+    - "Transportation"
+    - "Energy"
+
+# Performance Thresholds
+performance_thresholds:
+  # Response time thresholds
+  response_time:
+    excellent: "100ms"
+    good: "500ms"
+    acceptable: "1s"
+    poor: "2s"
+    critical: "5s"
+    
+  # Throughput thresholds
+  throughput:
+    excellent: 1000.0  # requests per second
+    good: 500.0
+    acceptable: 100.0
+    poor: 50.0
+    critical: 10.0
+    
+  # Error rate thresholds
+  error_rate:
+    excellent: 0.001  # 0.1%
+    good: 0.01        # 1%
+    acceptable: 0.05  # 5%
+    poor: 0.1         # 10%
+    critical: 0.2     # 20%
+    
+  # Memory usage thresholds
+  memory_usage:
+    excellent: "50MB"
+    good: "100MB"
+    acceptable: "200MB"
+    poor: "500MB"
+    critical: "1GB"
+
+# Reporting Configuration
+reporting:
+  enabled: true
+  
+  # Report formats
+  formats:
+    - json
+    - html
+    - csv
+    - markdown
+    
+  # Report sections
+  sections:
+    - summary
+    - detailed_results
+    - performance_metrics
+    - recommendations
+    - charts
+    - raw_data
+    
+  # Chart configuration
+  charts:
+    response_time_trend: true
+    throughput_chart: true
+    error_rate_chart: true
+    memory_usage_chart: true
+    cache_hit_ratio_chart: true
+    concurrent_users_chart: true
+    
+  # Output directory
+  output_directory: "reports/performance"
+  
+  # Report retention
+  retention:
+    days: 30
+    max_reports: 100
+
+# Alerting Configuration
+alerting:
+  enabled: true
+  
+  # Alert thresholds
+  thresholds:
+    response_time_exceeded: "5s"
+    error_rate_exceeded: 0.1  # 10%
+    memory_usage_exceeded: "1GB"
+    throughput_below: 10.0  # requests per second
+    
+  # Alert channels
+  channels:
+    console: true
+    file: true
+    email:
+      enabled: false
+      recipients: []
+    slack:
+      enabled: false
+      webhook_url: ""
+      
+  # Alert frequency
+  frequency:
+    max_alerts_per_hour: 10
+    cooldown_period: "5m"
+
+# Test Environment Configuration
+test_environment:
+  # Database configuration
+  database:
+    type: "postgres"
+    connection_pool_size: 20
+    max_connections: 100
+    connection_timeout: "30s"
+    
+  # Cache configuration
+  cache:
+    type: "redis"
+    connection_pool_size: 10
+    max_connections: 50
+    connection_timeout: "10s"
+    
+  # Logging configuration
+  logging:
+    level: "info"
+    format: "json"
+    output: "file"
+    file_path: "logs/performance-tests.log"
+    
+  # Monitoring configuration
+  monitoring:
+    enabled: true
+    metrics_endpoint: "/metrics"
+    health_check_endpoint: "/health"
+    prometheus_enabled: true
+    grafana_enabled: true
+
+# Test Execution Configuration
+execution:
+  # Parallel execution
+  parallel:
+    enabled: true
+    max_workers: 4
+    
+  # Test timeouts
+  timeouts:
+    individual_test: "10m"
+    test_suite: "1h"
+    setup: "5m"
+    teardown: "2m"
+    
+  # Retry configuration
+  retry:
+    enabled: true
+    max_retries: 3
+    retry_delay: "5s"
+    backoff_multiplier: 2.0
+    
+  # Cleanup configuration
+  cleanup:
+    enabled: true
+    cleanup_test_data: true
+    cleanup_temp_files: true
+    cleanup_logs: false

@@ -5,14 +5,17 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/pcraw4d/business-verification/internal/classification/repository"
 )
 
 // ClassificationCodeGenerator provides database-driven classification code generation
 type ClassificationCodeGenerator struct {
-	repo   repository.KeywordRepository
-	logger *log.Logger
+	repo    repository.KeywordRepository
+	logger  *log.Logger
+	monitor *ClassificationAccuracyMonitoring
 }
 
 // NewClassificationCodeGenerator creates a new classification code generator
@@ -22,8 +25,22 @@ func NewClassificationCodeGenerator(repo repository.KeywordRepository, logger *l
 	}
 
 	return &ClassificationCodeGenerator{
-		repo:   repo,
-		logger: logger,
+		repo:    repo,
+		logger:  logger,
+		monitor: nil, // Will be set separately if monitoring is needed
+	}
+}
+
+// NewClassificationCodeGeneratorWithMonitoring creates a new classification code generator with monitoring
+func NewClassificationCodeGeneratorWithMonitoring(repo repository.KeywordRepository, logger *log.Logger, monitor *ClassificationAccuracyMonitoring) *ClassificationCodeGenerator {
+	if logger == nil {
+		logger = log.Default()
+	}
+
+	return &ClassificationCodeGenerator{
+		repo:    repo,
+		logger:  logger,
+		monitor: monitor,
 	}
 }
 
@@ -60,7 +77,10 @@ type NAICSCode struct {
 
 // GenerateClassificationCodes generates MCC, SIC, and NAICS codes based on extracted keywords and industry analysis
 func (g *ClassificationCodeGenerator) GenerateClassificationCodes(ctx context.Context, keywords []string, detectedIndustry string, confidence float64) (*ClassificationCodesInfo, error) {
-	g.logger.Printf("🔍 Generating classification codes for industry: %s (confidence: %.2f%%)", detectedIndustry, confidence*100)
+	startTime := time.Now()
+	requestID := g.generateRequestID()
+
+	g.logger.Printf("🔍 Generating classification codes for industry: %s (confidence: %.2f%%) (request: %s)", detectedIndustry, confidence*100, requestID)
 
 	codes := &ClassificationCodesInfo{
 		MCC:   []MCCCode{},
@@ -74,289 +94,230 @@ func (g *ClassificationCodeGenerator) GenerateClassificationCodes(ctx context.Co
 		keywordsLower[i] = strings.ToLower(keyword)
 	}
 
-	// Generate codes using database-driven approach
-	if err := g.generateMCCCodes(ctx, codes, keywordsLower, confidence); err != nil {
-		g.logger.Printf("⚠️ Failed to generate MCC codes: %v", err)
-	}
+	// Generate codes using parallel processing for better performance
+	g.generateCodesInParallel(ctx, codes, keywordsLower, detectedIndustry, confidence)
 
-	if err := g.generateSICCodes(ctx, codes, keywordsLower, detectedIndustry, confidence); err != nil {
-		g.logger.Printf("⚠️ Failed to generate SIC codes: %v", err)
-	}
+	// Record performance metrics
+	g.recordCodeGenerationMetrics(ctx, requestID, keywords, detectedIndustry, confidence, codes, time.Since(startTime), nil)
 
-	if err := g.generateNAICSCodes(ctx, codes, keywordsLower, detectedIndustry, confidence); err != nil {
-		g.logger.Printf("⚠️ Failed to generate NAICS codes: %v", err)
-	}
-
-	g.logger.Printf("✅ Generated %d MCC, %d SIC, %d NAICS codes",
-		len(codes.MCC), len(codes.SIC), len(codes.NAICS))
+	g.logger.Printf("✅ Generated %d MCC, %d SIC, %d NAICS codes (request: %s)",
+		len(codes.MCC), len(codes.SIC), len(codes.NAICS), requestID)
 
 	return codes, nil
 }
 
-// generateMCCCodes generates MCC codes based on keywords and industry
-func (g *ClassificationCodeGenerator) generateMCCCodes(ctx context.Context, codes *ClassificationCodesInfo, keywordsLower []string, confidence float64) error {
-	// Define keyword patterns for different MCC categories
-	mccPatterns := map[string][]string{
-		"financial":     {"bank", "finance", "credit", "loan", "mortgage", "investment", "insurance"},
-		"restaurant":    {"restaurant", "food", "dining", "menu", "cafe", "bar", "pub", "grill"},
-		"retail":        {"retail", "shop", "store", "merchandise", "clothing", "electronics", "grocery"},
-		"manufacturing": {"manufacturing", "factory", "production", "industrial", "assembly", "processing"},
-		"healthcare":    {"healthcare", "medical", "hospital", "pharmacy", "clinic", "doctor", "nurse"},
-		"technology":    {"search", "technology", "software", "platform", "digital", "online", "web", "internet", "app", "mobile", "cloud", "api", "data", "algorithm", "machine", "ai", "artificial", "intelligence", "images", "maps", "play", "youtube", "google"},
-	}
+// generateCodesInParallel generates MCC, SIC, and NAICS codes in parallel for better performance
+func (g *ClassificationCodeGenerator) generateCodesInParallel(ctx context.Context, codes *ClassificationCodesInfo, keywordsLower []string, detectedIndustry string, confidence float64) {
+	g.logger.Printf("🚀 Starting parallel code generation for MCC, SIC, and NAICS")
 
-	// Generate MCC codes based on keyword matches
-	for category, patterns := range mccPatterns {
-		if g.containsAny(keywordsLower, patterns) {
-			mccCodes, err := g.getMCCCodesForCategory(ctx, category, confidence, keywordsLower, patterns)
-			if err != nil {
-				g.logger.Printf("⚠️ Failed to get MCC codes for category %s: %v", category, err)
-				continue
+	// Create a WaitGroup to wait for all goroutines to complete
+	var wg sync.WaitGroup
+	var mu sync.Mutex // Mutex to protect shared data access
+
+	// Channel to collect errors from goroutines
+	errorChan := make(chan error, 3)
+
+	// Generate MCC codes in parallel
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		g.logger.Printf("🔄 Starting MCC code generation...")
+
+		mccCodes, err := g.repo.GetCachedClassificationCodesByType(ctx, "MCC")
+		if err != nil {
+			g.logger.Printf("⚠️ Failed to get MCC codes from database: %v", err)
+			errorChan <- fmt.Errorf("MCC codes: %w", err)
+			return
+		}
+
+		// Filter and convert MCC codes based on keyword matches
+		var mccResults []MCCCode
+		for _, code := range mccCodes {
+			if g.matchesKeywords(code, keywordsLower) {
+				mccResults = append(mccResults, MCCCode{
+					Code:        code.Code,
+					Description: code.Description,
+					Confidence:  confidence * 0.9,
+				})
 			}
-			codes.MCC = append(codes.MCC, mccCodes...)
 		}
+
+		// Thread-safe update of shared codes
+		mu.Lock()
+		codes.MCC = mccResults
+		mu.Unlock()
+
+		g.logger.Printf("✅ MCC code generation completed: %d codes", len(mccResults))
+	}()
+
+	// Generate SIC codes in parallel
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		g.logger.Printf("🔄 Starting SIC code generation...")
+
+		sicCodes, err := g.repo.GetCachedClassificationCodesByType(ctx, "SIC")
+		if err != nil {
+			g.logger.Printf("⚠️ Failed to get SIC codes from database: %v", err)
+			errorChan <- fmt.Errorf("SIC codes: %w", err)
+			return
+		}
+
+		// Filter and convert SIC codes based on keyword matches
+		var sicResults []SICCode
+		for _, code := range sicCodes {
+			if g.matchesKeywords(code, keywordsLower) {
+				sicResults = append(sicResults, SICCode{
+					Code:        code.Code,
+					Description: code.Description,
+					Confidence:  confidence * 0.9,
+				})
+			}
+		}
+
+		// Thread-safe update of shared codes
+		mu.Lock()
+		codes.SIC = sicResults
+		mu.Unlock()
+
+		g.logger.Printf("✅ SIC code generation completed: %d codes", len(sicResults))
+	}()
+
+	// Generate NAICS codes in parallel
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		g.logger.Printf("🔄 Starting NAICS code generation...")
+
+		// Get industry object for NAICS generation
+		industryObj, err := g.repo.GetIndustryByName(ctx, detectedIndustry)
+		if err != nil {
+			g.logger.Printf("⚠️ Failed to get industry for NAICS: %v", err)
+			errorChan <- fmt.Errorf("NAICS industry lookup: %w", err)
+			return
+		}
+
+		// Get NAICS codes for the industry
+		naicsCodes, err := g.repo.GetCachedClassificationCodes(ctx, industryObj.ID)
+		if err != nil {
+			g.logger.Printf("⚠️ Failed to get NAICS codes from database: %v", err)
+			errorChan <- fmt.Errorf("NAICS codes: %w", err)
+			return
+		}
+
+		// Filter NAICS codes by type
+		var naicsResults []NAICSCode
+		for _, code := range naicsCodes {
+			if code.CodeType == "NAICS" && g.matchesKeywords(code, keywordsLower) {
+				naicsResults = append(naicsResults, NAICSCode{
+					Code:        code.Code,
+					Description: code.Description,
+					Confidence:  confidence * 0.9,
+				})
+			}
+		}
+
+		// Thread-safe update of shared codes
+		mu.Lock()
+		codes.NAICS = naicsResults
+		mu.Unlock()
+
+		g.logger.Printf("✅ NAICS code generation completed: %d codes", len(naicsResults))
+	}()
+
+	// Wait for all goroutines to complete
+	wg.Wait()
+	close(errorChan)
+
+	// Log any errors that occurred
+	for err := range errorChan {
+		g.logger.Printf("⚠️ Error in parallel code generation: %v", err)
 	}
 
-	return nil
+	g.logger.Printf("🚀 Parallel code generation completed: %d MCC, %d SIC, %d NAICS codes",
+		len(codes.MCC), len(codes.SIC), len(codes.NAICS))
 }
 
-// generateSICCodes generates SIC codes based on detected industry and keywords
-func (g *ClassificationCodeGenerator) generateSICCodes(ctx context.Context, codes *ClassificationCodesInfo, keywordsLower []string, detectedIndustry string, confidence float64) error {
-	// Get SIC codes from database for the detected industry
-	sicCodes, err := g.getSICCodesForIndustry(ctx, detectedIndustry, confidence, keywordsLower)
+// =============================================================================
+// Performance Monitoring Helper Methods
+// =============================================================================
+
+// generateRequestID generates a unique request ID for tracking
+func (g *ClassificationCodeGenerator) generateRequestID() string {
+	return fmt.Sprintf("code_gen_%d", time.Now().UnixNano())
+}
+
+// recordCodeGenerationMetrics records code generation performance metrics
+func (g *ClassificationCodeGenerator) recordCodeGenerationMetrics(
+	ctx context.Context,
+	requestID string,
+	keywords []string,
+	detectedIndustry string,
+	confidence float64,
+	codes *ClassificationCodesInfo,
+	responseTime time.Duration,
+	err error,
+) {
+	if g.monitor == nil {
+		return // No monitoring configured
+	}
+
+	// Prepare metrics data
+	metrics := &ClassificationAccuracyMetrics{
+		Timestamp:            time.Now(),
+		RequestID:            requestID,
+		PredictedIndustry:    detectedIndustry,
+		PredictedConfidence:  confidence,
+		ResponseTimeMs:       float64(responseTime.Nanoseconds()) / 1e6, // Convert to milliseconds
+		ClassificationMethod: stringPtr("code_generation"),
+		KeywordsUsed:         keywords,
+		ConfidenceThreshold:  0.5, // Default threshold
+		CreatedAt:            time.Now(),
+	}
+
+	// Set error message if there was an error
 	if err != nil {
-		g.logger.Printf("⚠️ Failed to get SIC codes for industry %s: %v", detectedIndustry, err)
-		return err
+		errorMsg := err.Error()
+		metrics.ErrorMessage = &errorMsg
 	}
 
-	codes.SIC = sicCodes
-	return nil
+	// Record metrics asynchronously to avoid blocking the main flow
+	go func() {
+		// Note: This would call the actual monitoring method when implemented
+		// if err := g.monitor.RecordClassificationMetrics(ctx, metrics); err != nil {
+		//     g.logger.Printf("⚠️ Failed to record code generation metrics: %v", err)
+		// }
+	}()
 }
 
-// generateNAICSCodes generates NAICS codes based on detected industry and keywords
-func (g *ClassificationCodeGenerator) generateNAICSCodes(ctx context.Context, codes *ClassificationCodesInfo, keywordsLower []string, detectedIndustry string, confidence float64) error {
-	// Get NAICS codes from database for the detected industry
-	naicsCodes, err := g.getNAICSCodesForIndustry(ctx, detectedIndustry, confidence, keywordsLower)
-	if err != nil {
-		g.logger.Printf("⚠️ Failed to get NAICS codes for industry %s: %v", detectedIndustry, err)
-		return err
+// GetCodeGenerationMetrics returns current code generation performance metrics
+func (g *ClassificationCodeGenerator) GetCodeGenerationMetrics(ctx context.Context) (*ClassificationAccuracyStats, error) {
+	if g.monitor == nil {
+		return nil, fmt.Errorf("monitoring not configured")
 	}
 
-	codes.NAICS = naicsCodes
-	return nil
+	// Note: This would call the actual monitoring method when implemented
+	// return g.monitor.GetClassificationAccuracyStats(ctx, 24*time.Hour)
+	return nil, fmt.Errorf("monitoring not fully implemented")
 }
 
-// getMCCCodesForCategory retrieves MCC codes for a specific category from the database
-func (g *ClassificationCodeGenerator) getMCCCodesForCategory(ctx context.Context, category string, confidence float64, keywordsLower []string, patterns []string) ([]MCCCode, error) {
-	// This would typically query the database for MCC codes
-	// For now, we'll use hardcoded values as fallback, but this should be replaced with database queries
-
-	var mccCodes []MCCCode
-
-	switch category {
-	case "financial":
-		mccCodes = []MCCCode{
-			{
-				Code:        "6011",
-				Description: "Automated Teller Machine Services",
-				Confidence:  confidence * 0.9,
-				Keywords:    g.findMatchingKeywords(keywordsLower, patterns),
-			},
-			{
-				Code:        "6012",
-				Description: "Financial Institutions - Manual Cash Disbursements",
-				Confidence:  confidence * 0.85,
-				Keywords:    g.findMatchingKeywords(keywordsLower, patterns),
-			},
-		}
-	case "restaurant":
-		mccCodes = []MCCCode{
-			{
-				Code:        "5812",
-				Description: "Eating Places and Restaurants",
-				Confidence:  confidence * 0.9,
-				Keywords:    g.findMatchingKeywords(keywordsLower, patterns),
-			},
-		}
-	case "retail":
-		mccCodes = []MCCCode{
-			{
-				Code:        "5311",
-				Description: "Department Stores",
-				Confidence:  confidence * 0.8,
-				Keywords:    g.findMatchingKeywords(keywordsLower, patterns),
-			},
-		}
-	case "manufacturing":
-		mccCodes = []MCCCode{
-			{
-				Code:        "3999",
-				Description: "Manufacturing Industries, Not Elsewhere Classified",
-				Confidence:  confidence * 0.85,
-				Keywords:    g.findMatchingKeywords(keywordsLower, patterns),
-			},
-		}
-	case "healthcare":
-		mccCodes = []MCCCode{
-			{
-				Code:        "8099",
-				Description: "Health Practitioners, Not Elsewhere Classified",
-				Confidence:  confidence * 0.9,
-				Keywords:    g.findMatchingKeywords(keywordsLower, patterns),
-			},
-		}
-	case "technology":
-		mccCodes = []MCCCode{
-			{
-				Code:        "5734",
-				Description: "Computer Software Stores",
-				Confidence:  confidence * 0.9,
-				Keywords:    g.findMatchingKeywords(keywordsLower, patterns),
-			},
-			{
-				Code:        "7372",
-				Description: "Prepackaged Software",
-				Confidence:  confidence * 0.85,
-				Keywords:    g.findMatchingKeywords(keywordsLower, patterns),
-			},
-		}
-	}
-
-	return mccCodes, nil
+// stringPtr returns a pointer to a string
+func stringPtr(s string) *string {
+	return &s
 }
 
-// getSICCodesForIndustry retrieves SIC codes for a specific industry from the database
-func (g *ClassificationCodeGenerator) getSICCodesForIndustry(ctx context.Context, industry string, confidence float64, keywordsLower []string) ([]SICCode, error) {
-	// This would typically query the database for SIC codes
-	// For now, we'll use hardcoded values as fallback, but this should be replaced with database queries
+// matchesKeywords checks if a classification code matches any of the provided keywords
+func (g *ClassificationCodeGenerator) matchesKeywords(code *repository.ClassificationCode, keywordsLower []string) bool {
+	descriptionLower := strings.ToLower(code.Description)
 
-	var sicCodes []SICCode
-
-	switch industry {
-	case "Financial Services":
-		sicCodes = []SICCode{
-			{
-				Code:        "6021",
-				Description: "National Commercial Banks",
-				Confidence:  confidence * 0.9,
-				Keywords:    g.findMatchingKeywords(keywordsLower, []string{"bank", "finance", "credit"}),
-			},
-			{
-				Code:        "6022",
-				Description: "State Commercial Banks",
-				Confidence:  confidence * 0.85,
-				Keywords:    g.findMatchingKeywords(keywordsLower, []string{"bank", "finance", "credit"}),
-			},
-		}
-	case "Retail":
-		sicCodes = []SICCode{
-			{
-				Code:        "5311",
-				Description: "Department Stores",
-				Confidence:  confidence * 0.8,
-				Keywords:    g.findMatchingKeywords(keywordsLower, []string{"retail", "shop", "store"}),
-			},
-			{
-				Code:        "5812",
-				Description: "Eating Places",
-				Confidence:  confidence * 0.9,
-				Keywords:    g.findMatchingKeywords(keywordsLower, []string{"restaurant", "food", "dining"}),
-			},
-		}
-	case "Manufacturing":
-		sicCodes = []SICCode{
-			{
-				Code:        "3499",
-				Description: "Fabricated Metal Products, Not Elsewhere Classified",
-				Confidence:  confidence * 0.85,
-				Keywords:    g.findMatchingKeywords(keywordsLower, []string{"manufacturing", "factory", "production"}),
-			},
-		}
-	case "Technology":
-		sicCodes = []SICCode{
-			{
-				Code:        "7372",
-				Description: "Prepackaged Software",
-				Confidence:  confidence * 0.9,
-				Keywords:    g.findMatchingKeywords(keywordsLower, []string{"software", "platform", "digital", "images", "maps", "play", "youtube"}),
-			},
-			{
-				Code:        "7373",
-				Description: "Computer Integrated Systems Design",
-				Confidence:  confidence * 0.85,
-				Keywords:    g.findMatchingKeywords(keywordsLower, []string{"technology", "platform", "system", "images", "maps"}),
-			},
+	// Check if any of the provided keywords match
+	for _, keyword := range keywordsLower {
+		if strings.Contains(descriptionLower, keyword) {
+			return true
 		}
 	}
 
-	return sicCodes, nil
-}
-
-// getNAICSCodesForIndustry retrieves NAICS codes for a specific industry from the database
-func (g *ClassificationCodeGenerator) getNAICSCodesForIndustry(ctx context.Context, industry string, confidence float64, keywordsLower []string) ([]NAICSCode, error) {
-	// This would typically query the database for NAICS codes
-	// For now, we'll use hardcoded values as fallback, but this should be replaced with database queries
-
-	var naicsCodes []NAICSCode
-
-	switch industry {
-	case "Financial Services":
-		naicsCodes = []NAICSCode{
-			{
-				Code:        "522110",
-				Description: "Commercial Banking",
-				Confidence:  confidence * 0.9,
-				Keywords:    g.findMatchingKeywords(keywordsLower, []string{"bank", "finance", "credit"}),
-			},
-			{
-				Code:        "522120",
-				Description: "Savings Institutions",
-				Confidence:  confidence * 0.85,
-				Keywords:    g.findMatchingKeywords(keywordsLower, []string{"bank", "finance", "credit"}),
-			},
-		}
-	case "Retail":
-		naicsCodes = []NAICSCode{
-			{
-				Code:        "445110",
-				Description: "Supermarkets and Other Grocery (except Convenience) Stores",
-				Confidence:  confidence * 0.8,
-				Keywords:    g.findMatchingKeywords(keywordsLower, []string{"retail", "shop", "store"}),
-			},
-			{
-				Code:        "722511",
-				Description: "Full-Service Restaurants",
-				Confidence:  confidence * 0.9,
-				Keywords:    g.findMatchingKeywords(keywordsLower, []string{"restaurant", "food", "dining"}),
-			},
-		}
-	case "Manufacturing":
-		naicsCodes = []NAICSCode{
-			{
-				Code:        "332996",
-				Description: "Fabricated Pipe and Pipe Fitting Manufacturing",
-				Confidence:  confidence * 0.85,
-				Keywords:    g.findMatchingKeywords(keywordsLower, []string{"manufacturing", "factory", "production"}),
-			},
-		}
-	case "Technology":
-		naicsCodes = []NAICSCode{
-			{
-				Code:        "541511",
-				Description: "Custom Computer Programming Services",
-				Confidence:  confidence * 0.9,
-				Keywords:    g.findMatchingKeywords(keywordsLower, []string{"software", "platform", "digital", "images", "maps", "play", "youtube"}),
-			},
-			{
-				Code:        "541512",
-				Description: "Computer Systems Design Services",
-				Confidence:  confidence * 0.85,
-				Keywords:    g.findMatchingKeywords(keywordsLower, []string{"technology", "platform", "system", "images", "maps"}),
-			},
-		}
-	}
-
-	return naicsCodes, nil
+	return false
 }
 
 // ValidateClassificationCodes validates that the generated codes are consistent with the detected industry
@@ -446,37 +407,4 @@ func (g *ClassificationCodeGenerator) GetCodeStatistics(codes *ClassificationCod
 		"naics_count":    len(codes.NAICS),
 		"avg_confidence": avgConfidence,
 	}
-}
-
-// =============================================================================
-// Helper Methods
-// =============================================================================
-
-// containsAny checks if any of the target strings are contained in the source strings
-func (g *ClassificationCodeGenerator) containsAny(source []string, targets []string) bool {
-	for _, target := range targets {
-		for _, sourceStr := range source {
-			if strings.Contains(sourceStr, target) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// findMatchingKeywords finds keywords that match any of the target patterns
-func (g *ClassificationCodeGenerator) findMatchingKeywords(keywords []string, targets []string) []string {
-	if keywords == nil {
-		return []string{}
-	}
-
-	var matches []string
-	for _, target := range targets {
-		for _, keyword := range keywords {
-			if strings.Contains(keyword, target) {
-				matches = append(matches, keyword)
-			}
-		}
-	}
-	return matches
 }

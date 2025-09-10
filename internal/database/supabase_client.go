@@ -48,7 +48,15 @@ func NewSupabaseClient(cfg *SupabaseConfig, logger *log.Logger) (*SupabaseClient
 	}
 
 	// Create PostgREST client for direct database operations
-	postgrestClient := postgrest.NewClient(cfg.URL+"/rest/v1", cfg.APIKey, nil)
+	// Use service role key for better access to all tables
+	postgrestClient := postgrest.NewClient(
+		cfg.URL+"/rest/v1",
+		"public",
+		map[string]string{
+			"apikey":        cfg.ServiceRoleKey,
+			"Authorization": "Bearer " + cfg.ServiceRoleKey,
+		},
+	)
 
 	if logger == nil {
 		logger = log.Default()

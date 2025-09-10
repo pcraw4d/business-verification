@@ -39,7 +39,7 @@ func TestNewIntelligentCache(t *testing.T) {
 	zapLogger2, _ := zap.NewDevelopment()
 	logger2 := observability.NewLogger(zapLogger2)
 	tracer2 := trace.NewNoopTracerProvider().Tracer("test")
-	
+
 	cache = NewIntelligentCache(nil, logger2, tracer2)
 	if cache == nil {
 		t.Fatal("NewIntelligentCache with nil config returned nil")

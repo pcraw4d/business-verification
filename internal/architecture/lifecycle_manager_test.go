@@ -9,6 +9,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// FailingMockModule is a mock module that fails health checks
+type FailingMockModule struct {
+	MockModule
+}
+
+func (m *FailingMockModule) HealthCheck(ctx context.Context) error {
+	return fmt.Errorf("health check failed")
+}
+
 func TestNewLifecycleManager(t *testing.T) {
 	mm := NewModuleManager()
 	config := LifecycleConfig{
@@ -409,14 +418,10 @@ func TestPerformHealthCheckWithError(t *testing.T) {
 
 	lm := NewLifecycleManager(mm, config)
 
-	// Create a custom mock module that fails health checks
-	type FailingMockModule struct {
-		*MockModule
-	}
-
-	failingModule := &FailingMockModule{
-		MockModule: &MockModule{
-			id: "failing-module",
+	// Create a failing mock module
+	failingMockModule := &FailingMockModule{
+		MockModule: MockModule{
+			id: "failing_module",
 			metadata: ModuleMetadata{
 				Name:        "Failing Module",
 				Version:     "1.0.0",
@@ -426,13 +431,8 @@ func TestPerformHealthCheckWithError(t *testing.T) {
 		},
 	}
 
-	// Override the HealthCheck method
-	failingModule.HealthCheck = func(ctx context.Context) error {
-		return fmt.Errorf("health check failed")
-	}
-
 	// Register failing module
-	err := mm.RegisterModule(failingModule, failingModule.config)
+	err := mm.RegisterModule(failingMockModule, failingMockModule.config)
 	assert.NoError(t, err)
 
 	// Perform health check

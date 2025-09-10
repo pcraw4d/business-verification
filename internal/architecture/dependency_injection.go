@@ -16,10 +16,10 @@ type DependencyConfig struct {
 
 // DependencyTypeConfig represents configuration for a specific dependency type
 type DependencyTypeConfig struct {
-	Type        string
-	Interface   interface{}
+	Type           string
+	Interface      interface{}
 	Implementation interface{}
-	Singleton   bool
+	Singleton      bool
 }
 
 // DependencyContainer manages dependency injection
@@ -83,18 +83,18 @@ func (dc *DependencyContainer) Start(ctx context.Context) error {
 func (dc *DependencyContainer) Stop(ctx context.Context) error {
 	dc.mu.Lock()
 	defer dc.mu.Unlock()
-	
+
 	// Stop all modules
 	for _, module := range dc.modules {
 		if module.IsRunning() {
 			module.Stop(ctx)
 		}
 	}
-	
+
 	// Clear dependencies
 	dc.dependencies = make(map[string]interface{})
 	dc.modules = make(map[string]Module)
-	
+
 	return nil
 }
 
@@ -102,7 +102,7 @@ func (dc *DependencyContainer) Stop(ctx context.Context) error {
 func (dc *DependencyContainer) validateDependencies() error {
 	dc.mu.RLock()
 	defer dc.mu.RUnlock()
-	
+
 	// Basic validation - check that all dependencies are non-nil
 	for name, dependency := range dc.dependencies {
 		if dependency == nil {
@@ -112,7 +112,7 @@ func (dc *DependencyContainer) validateDependencies() error {
 			}
 		}
 	}
-	
+
 	return nil
 }
 

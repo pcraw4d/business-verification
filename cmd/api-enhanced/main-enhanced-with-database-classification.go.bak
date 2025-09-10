@@ -1,0 +1,306 @@
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"time"
+
+	"github.com/pcraw4d/business-verification/internal/architecture"
+	"github.com/pcraw4d/business-verification/internal/classification"
+	"github.com/pcraw4d/business-verification/internal/config"
+	"github.com/pcraw4d/business-verification/internal/database"
+	"github.com/pcraw4d/business-verification/internal/modules/database_classification"
+	"github.com/pcraw4d/business-verification/internal/routing"
+	"github.com/pcraw4d/business-verification/internal/shared"
+	"go.uber.org/zap"
+)
+
+// EnhancedDatabaseClassificationServer represents the enhanced server with database-driven classification
+type EnhancedDatabaseClassificationServer struct {
+	server                *http.Server
+	classificationService *classification.IntegrationService
+	databaseModule        *database_classification.DatabaseClassificationModule
+	intelligentRouter     *routing.IntelligentRouter
+	logger                *log.Logger
+	zapLogger             *zap.Logger
+}
+
+// NewEnhancedDatabaseClassificationServer creates a new server with database-driven classification
+func NewEnhancedDatabaseClassificationServer(port string) *EnhancedDatabaseClassificationServer {
+	logger := log.New(os.Stdout, "🚀 ", log.LstdFlags|log.Lshortfile)
+	zapLogger, _ := zap.NewProduction()
+
+	// Load configuration
+	cfg, err := config.Load()
+	if err != nil {
+		logger.Fatalf("Failed to load configuration: %v", err)
+	}
+
+	// Initialize Supabase client
+	supabaseConfig := &database.SupabaseConfig{
+		URL:            cfg.Supabase.URL,
+		APIKey:         cfg.Supabase.APIKey,
+		ServiceRoleKey: cfg.Supabase.ServiceRoleKey,
+		JWTSecret:      cfg.Supabase.JWTSecret,
+	}
+	supabaseClient, err := database.NewSupabaseClient(supabaseConfig, logger)
+	if err != nil {
+		logger.Fatalf("Failed to create Supabase client: %v", err)
+	}
+
+	// Connect to Supabase
+	ctx := context.Background()
+	if err := supabaseClient.Connect(ctx); err != nil {
+		logger.Fatalf("Failed to connect to Supabase: %v", err)
+	}
+	logger.Printf("✅ Successfully connected to Supabase")
+
+	// Create classification service
+	classificationService := classification.NewIntegrationService(supabaseClient, logger)
+
+	// Create database classification module
+	databaseModule, err := database_classification.NewDatabaseClassificationModule(
+		supabaseClient,
+		logger,
+		database_classification.DefaultConfig(),
+	)
+	if err != nil {
+		logger.Fatalf("Failed to create database classification module: %v", err)
+	}
+
+	// Start the database module
+	if err := databaseModule.Start(ctx); err != nil {
+		logger.Fatalf("Failed to start database classification module: %v", err)
+	}
+
+	// For now, we'll create a nil router since we're using the module directly
+	// TODO: Implement proper module manager and router integration
+	var intelligentRouter *routing.IntelligentRouter
+
+	// Register the database classification module with the router
+	// Note: This would need to be implemented in the intelligent router
+	// For now, we'll use the module directly in the handlers
+
+	// Create server
+	server := &EnhancedDatabaseClassificationServer{
+		classificationService: classificationService,
+		databaseModule:        databaseModule,
+		intelligentRouter:     intelligentRouter,
+		logger:                logger,
+		zapLogger:             zapLogger,
+	}
+
+	// Setup routes
+	mux := http.NewServeMux()
+	server.setupRoutes(mux)
+
+	// Create HTTP server
+	httpServer := &http.Server{
+		Addr:         ":" + port,
+		Handler:      mux,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	server.server = httpServer
+
+	logger.Printf("✅ Enhanced Database Classification Server initialized on port %s", port)
+	return server
+}
+
+// setupRoutes configures the HTTP routes
+func (s *EnhancedDatabaseClassificationServer) setupRoutes(mux *http.ServeMux) {
+	// Health check endpoint
+	mux.HandleFunc("/health", s.handleHealth)
+
+	// Classification endpoint using database module
+	mux.HandleFunc("/v1/classify", s.handleClassify)
+
+	// Legacy classification endpoint
+	mux.HandleFunc("/v1/classify-legacy", s.handleClassifyLegacy)
+
+	// Module status endpoint
+	mux.HandleFunc("/v1/modules/status", s.handleModuleStatus)
+
+	// Database status endpoint
+	mux.HandleFunc("/v1/database/status", s.handleDatabaseStatus)
+}
+
+// handleHealth handles health check requests
+func (s *EnhancedDatabaseClassificationServer) handleHealth(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	
+	health := map[string]interface{}{
+		"status":    "healthy",
+		"timestamp": time.Now().UTC(),
+		"version":   "1.0.0",
+		"services": map[string]interface{}{
+			"database_module": s.databaseModule.Health(),
+			"supabase":        "connected",
+		},
+	}
+	
+	json.NewEncoder(w).Encode(health)
+}
+
+// handleClassify handles classification requests using the database module
+func (s *EnhancedDatabaseClassificationServer) handleClassify(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse request
+	var req shared.BusinessClassificationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Set request ID if not provided
+	if req.ID == "" {
+		req.ID = fmt.Sprintf("req_%d", time.Now().UnixNano())
+	}
+
+	// Create module request
+	moduleReq := architecture.ModuleRequest{
+		ID:   req.ID,
+		Data: map[string]interface{}{
+			"business_name": req.BusinessName,
+			"description":   req.Description,
+			"website_url":   req.WebsiteURL,
+			"address":       req.Address,
+			"industry":      req.Industry,
+			"business_type": req.BusinessType,
+		},
+	}
+
+	// Process with database module
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+
+	response, err := s.databaseModule.Process(ctx, moduleReq)
+	if err != nil {
+		s.logger.Printf("❌ Classification failed: %v", err)
+		http.Error(w, "Classification failed", http.StatusInternalServerError)
+		return
+	}
+
+	// Set response headers
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	// Return the response
+	json.NewEncoder(w).Encode(response)
+}
+
+// handleClassifyLegacy handles classification requests using the legacy service
+func (s *EnhancedDatabaseClassificationServer) handleClassifyLegacy(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse request
+	var req shared.BusinessClassificationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Process with legacy service
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+
+	result := s.classificationService.ProcessBusinessClassification(
+		ctx,
+		req.BusinessName,
+		req.Description,
+		req.WebsiteURL,
+	)
+
+	// Set response headers
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	// Return the result
+	json.NewEncoder(w).Encode(result)
+}
+
+// handleModuleStatus handles module status requests
+func (s *EnhancedDatabaseClassificationServer) handleModuleStatus(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	
+	status := map[string]interface{}{
+		"database_classification_module": map[string]interface{}{
+			"id":          s.databaseModule.ID(),
+			"status":      s.databaseModule.Health(),
+			"is_running":  s.databaseModule.IsRunning(),
+			"metadata":    s.databaseModule.Metadata(),
+		},
+		"timestamp": time.Now().UTC(),
+	}
+	
+	json.NewEncoder(w).Encode(status)
+}
+
+// handleDatabaseStatus handles database status requests
+func (s *EnhancedDatabaseClassificationServer) handleDatabaseStatus(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	
+	// Get health status from classification service
+	healthStatus := s.classificationService.GetHealthStatus()
+	
+	status := map[string]interface{}{
+		"database_health": healthStatus,
+		"timestamp":       time.Now().UTC(),
+	}
+	
+	json.NewEncoder(w).Encode(status)
+}
+
+// Start starts the server
+func (s *EnhancedDatabaseClassificationServer) Start() error {
+	s.logger.Printf("🚀 Starting Enhanced Database Classification Server on %s", s.server.Addr)
+	return s.server.ListenAndServe()
+}
+
+// Stop gracefully stops the server
+func (s *EnhancedDatabaseClassificationServer) Stop(ctx context.Context) error {
+	s.logger.Printf("🛑 Stopping Enhanced Database Classification Server...")
+	
+	// Stop the database module
+	if err := s.databaseModule.Stop(ctx); err != nil {
+		s.logger.Printf("⚠️ Error stopping database module: %v", err)
+	}
+	
+	// Shutdown HTTP server
+	return s.server.Shutdown(ctx)
+}
+
+func main() {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	server := NewEnhancedDatabaseClassificationServer(port)
+	
+	// Handle graceful shutdown
+	go func() {
+		<-make(chan os.Signal, 1)
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		server.Stop(ctx)
+	}()
+
+	// Start server
+	if err := server.Start(); err != nil && err != http.ErrServerClosed {
+		log.Fatalf("Server failed to start: %v", err)
+	}
+}

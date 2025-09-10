@@ -9,17 +9,15 @@ import (
 // NewRepository creates a new keyword repository with the real Supabase client
 func NewRepository(supabaseClient *database.SupabaseClient, logger *log.Logger) KeywordRepository {
 	if supabaseClient == nil {
-		// Return a fallback repository that uses hardcoded data
-		return NewFallbackKeywordRepository(logger)
+		logger.Printf("⚠️ Supabase client is nil - classification will fail")
+		return nil
 	}
-	adapter := NewSupabaseClientAdapter(supabaseClient)
-	return NewSupabaseKeywordRepository(adapter, logger)
+	return NewSupabaseKeywordRepository(supabaseClient, logger)
 }
 
 // NewRepositoryWithDefaultLogger creates a new keyword repository with default logger
 func NewRepositoryWithDefaultLogger(supabaseClient *database.SupabaseClient) KeywordRepository {
-	adapter := NewSupabaseClientAdapter(supabaseClient)
-	return NewSupabaseKeywordRepository(adapter, log.Default())
+	return NewSupabaseKeywordRepository(supabaseClient, log.Default())
 }
 
 // Note: Mock repository creation is handled in the test files

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/pcraw4d/business-verification/internal/database"
+	postgrest "github.com/supabase-community/postgrest-go"
 )
 
 // SupabaseClientAdapter adapts the real Supabase client to our interface
@@ -48,9 +49,104 @@ type PostgrestClientAdapter struct {
 
 // From starts a query on a table
 func (a *PostgrestClientAdapter) From(table string) PostgrestQueryInterface {
-	// This is a placeholder - in practice, we'd need to use reflection or type assertion
-	// For now, return a basic implementation that will be overridden in tests
+	// Use type assertion to get the real PostgREST client
+	if client, ok := a.client.(*postgrest.Client); ok {
+		return &RealPostgrestQuery{client: client, table: table}
+	}
+	// Fallback to basic implementation for tests
 	return &BasicPostgrestQuery{}
+}
+
+// RealPostgrestQuery provides a real implementation using the actual PostgREST client
+type RealPostgrestQuery struct {
+	client *postgrest.Client
+	table  string
+	query  interface{} // This will hold the chained query
+}
+
+func (r *RealPostgrestQuery) Select(columns, count string, head bool) PostgrestQueryInterface {
+	r.query = r.client.From(r.table).Select(columns, count, head)
+	return r
+}
+
+func (r *RealPostgrestQuery) Eq(column, value string) PostgrestQueryInterface {
+	if r.query != nil {
+		// Use reflection to call the method on the chained query
+		if q, ok := r.query.(interface {
+			Eq(string, string) interface{}
+		}); ok {
+			r.query = q.Eq(column, value)
+		}
+	}
+	return r
+}
+
+func (r *RealPostgrestQuery) Ilike(column, value string) PostgrestQueryInterface {
+	if r.query != nil {
+		// Use reflection to call the method on the chained query
+		if q, ok := r.query.(interface {
+			Ilike(string, string) interface{}
+		}); ok {
+			r.query = q.Ilike(column, value)
+		}
+	}
+	return r
+}
+
+func (r *RealPostgrestQuery) In(column string, values ...string) PostgrestQueryInterface {
+	if r.query != nil {
+		// Use reflection to call the method on the chained query
+		if q, ok := r.query.(interface {
+			In(string, ...string) interface{}
+		}); ok {
+			r.query = q.In(column, values...)
+		}
+	}
+	return r
+}
+
+func (r *RealPostgrestQuery) Order(column string, ascending *map[string]string) PostgrestQueryInterface {
+	if r.query != nil {
+		// Use reflection to call the method on the chained query
+		if q, ok := r.query.(interface {
+			Order(string, *map[string]string) interface{}
+		}); ok {
+			r.query = q.Order(column, ascending)
+		}
+	}
+	return r
+}
+
+func (r *RealPostgrestQuery) Limit(count int, foreignTable string) PostgrestQueryInterface {
+	if r.query != nil {
+		// Use reflection to call the method on the chained query
+		if q, ok := r.query.(interface{ Limit(int, string) interface{} }); ok {
+			r.query = q.Limit(count, foreignTable)
+		}
+	}
+	return r
+}
+
+func (r *RealPostgrestQuery) Single() PostgrestQueryInterface {
+	if r.query != nil {
+		// Use reflection to call the method on the chained query
+		if q, ok := r.query.(interface{ Single() interface{} }); ok {
+			r.query = q.Single()
+		}
+	}
+	return r
+}
+
+func (r *RealPostgrestQuery) Execute() ([]byte, string, error) {
+	if r.query != nil {
+		// Use reflection to call the Execute method on the chained query
+		if q, ok := r.query.(interface {
+			Execute() ([]byte, string, error)
+		}); ok {
+			return q.Execute()
+		}
+	}
+	return []byte{}, "", nil
 }
 
 // BasicPostgrestQuery provides a basic implementation for the adapter
@@ -59,8 +155,9 @@ type BasicPostgrestQuery struct{}
 func (b *BasicPostgrestQuery) Select(columns, count string, head bool) PostgrestQueryInterface {
 	return b
 }
-func (b *BasicPostgrestQuery) Eq(column, value string) PostgrestQueryInterface    { return b }
-func (b *BasicPostgrestQuery) Ilike(column, value string) PostgrestQueryInterface { return b }
+func (b *BasicPostgrestQuery) Eq(column, value string) PostgrestQueryInterface            { return b }
+func (b *BasicPostgrestQuery) Ilike(column, value string) PostgrestQueryInterface         { return b }
+func (b *BasicPostgrestQuery) In(column string, values ...string) PostgrestQueryInterface { return b }
 func (b *BasicPostgrestQuery) Order(column string, ascending *map[string]string) PostgrestQueryInterface {
 	return b
 }

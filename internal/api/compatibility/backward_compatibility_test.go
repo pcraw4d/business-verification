@@ -2,12 +2,8 @@ package compatibility
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/pcraw4d/business-verification/internal/config"
 	"github.com/pcraw4d/business-verification/internal/shared"
@@ -53,6 +49,26 @@ func (m *MockLogger) WithComponent(component string) interface {
 	return &MockLoggerComponent{}
 }
 
+// Debug logs a debug level message
+func (m *MockLogger) Debug(msg string, fields ...interface{}) {
+	// Mock implementation - do nothing
+}
+
+// Info logs an info level message
+func (m *MockLogger) Info(msg string, fields ...interface{}) {
+	// Mock implementation - do nothing
+}
+
+// Warn logs a warning level message
+func (m *MockLogger) Warn(msg string, fields ...interface{}) {
+	// Mock implementation - do nothing
+}
+
+// Error logs an error level message
+func (m *MockLogger) Error(msg string, fields ...interface{}) {
+	// Mock implementation - do nothing
+}
+
 // MockLoggerComponent implements the component-specific logger interface
 type MockLoggerComponent struct{}
 
@@ -77,6 +93,21 @@ func (m *MockLoggerError) Error(msg string) {
 type MockMetrics struct{}
 
 func (m *MockMetrics) RecordBusinessClassification(metric string, value string) {}
+
+// IncrementCounter increments a counter metric
+func (m *MockMetrics) IncrementCounter(name string, labels map[string]string) {
+	// Mock implementation - do nothing
+}
+
+// RecordHistogram records a histogram metric
+func (m *MockMetrics) RecordHistogram(name string, value float64, labels map[string]string) {
+	// Mock implementation - do nothing
+}
+
+// SetGauge sets a gauge metric
+func (m *MockMetrics) SetGauge(name string, value float64, labels map[string]string) {
+	// Mock implementation - do nothing
+}
 
 func TestNewBackwardCompatibilityLayer(t *testing.T) {
 	featureFlagManager := config.NewFeatureFlagManager("test")
@@ -107,42 +138,14 @@ func TestBackwardCompatibilityLayer_GetAPIVersion(t *testing.T) {
 
 	bcl := NewBackwardCompatibilityLayer(featureFlagManager, logger, metrics, validator)
 
-	// Test Accept header
-	req := httptest.NewRequest("GET", "/test", nil)
-	req.Header.Set("Accept", "application/vnd.kyb.v2+json")
-
-	apiVersion := bcl.getAPIVersion(req)
-	if apiVersion != "v2" {
-		t.Errorf("Expected API version 'v2' from Accept header, got '%s'", apiVersion)
-	}
-
-	// Test X-API-Version header
-	req = httptest.NewRequest("GET", "/test", nil)
-	req.Header.Set("X-API-Version", "v1")
-
-	apiVersion = bcl.getAPIVersion(req)
-	if apiVersion != "v1" {
-		t.Errorf("Expected API version 'v1' from X-API-Version header, got '%s'", apiVersion)
-	}
-
-	// Test query parameter
-	req = httptest.NewRequest("GET", "/test?api_version=v2", nil)
-
-	apiVersion = bcl.getAPIVersion(req)
-	if apiVersion != "v2" {
-		t.Errorf("Expected API version 'v2' from query parameter, got '%s'", apiVersion)
-	}
-
-	// Test default
-	req = httptest.NewRequest("GET", "/test", nil)
-
-	apiVersion = bcl.getAPIVersion(req)
-	if apiVersion != "v2" {
-		t.Errorf("Expected default API version 'v2', got '%s'", apiVersion)
+	// Test API version (the method returns a fixed version)
+	apiVersion := bcl.GetAPIVersion()
+	if apiVersion != "v1.0.0" {
+		t.Errorf("Expected API version 'v1.0.0', got '%s'", apiVersion)
 	}
 }
 
-func TestBackwardCompatibilityLayer_ConvertToLegacyResponse(t *testing.T) {
+func TestBackwardCompatibilityLayer_ProcessLegacyRequest(t *testing.T) {
 	featureFlagManager := config.NewFeatureFlagManager("test")
 	logger := &MockLogger{}
 	metrics := &MockMetrics{}
@@ -150,46 +153,47 @@ func TestBackwardCompatibilityLayer_ConvertToLegacyResponse(t *testing.T) {
 
 	bcl := NewBackwardCompatibilityLayer(featureFlagManager, logger, metrics, validator)
 
-	// Test conversion
-	internalResponse := &classification.ClassificationResponse{
-		BusinessID: "test-business-123",
-		Classifications: []classification.IndustryClassification{
-			{
-				IndustryCode:    "541511",
-				IndustryName:    "Custom Computer Programming Services",
-				ConfidenceScore: 0.95,
-			},
+	// Test legacy request processing
+	req := &ClassificationRequest{
+		BusinessName:    "Test Company",
+		BusinessAddress: "123 Test St, Test City, TC 12345",
+		Industry:        "Technology",
+		Metadata: map[string]interface{}{
+			"test": true,
 		},
-		PrimaryClassification: &classification.IndustryClassification{
-			IndustryCode:    "541511",
-			IndustryName:    "Custom Computer Programming Services",
-			ConfidenceScore: 0.95,
-		},
-		ConfidenceScore:      0.95,
-		ClassificationMethod: "keyword_based",
-		ProcessingTime:       time.Millisecond * 150,
 	}
 
-	legacyResponse := bcl.convertToLegacyResponse(internalResponse)
+	// Enable legacy mode
+	legacyFlag := &config.FeatureFlag{
+		Name:    "legacy_classification",
+		Enabled: true,
+	}
+	featureFlagManager.SetFlag(legacyFlag)
 
-	if !legacyResponse.Success {
-		t.Error("Expected legacy response to be successful")
+	legacyResponse, err := bcl.ProcessRequest(context.Background(), req)
+
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
 	}
 
-	if legacyResponse.BusinessID != "test-business-123" {
-		t.Errorf("Expected BusinessID 'test-business-123', got '%s'", legacyResponse.BusinessID)
+	if legacyResponse == nil {
+		t.Error("Expected legacy response to not be nil")
 	}
 
-	if legacyResponse.ClassificationMethod != "keyword_based" {
-		t.Errorf("Expected ClassificationMethod 'keyword_based', got '%s'", legacyResponse.ClassificationMethod)
+	if legacyResponse.Version != "legacy" {
+		t.Errorf("Expected version 'legacy', got '%s'", legacyResponse.Version)
 	}
 
-	if legacyResponse.OverallConfidence != 0.95 {
-		t.Errorf("Expected OverallConfidence 0.95, got %f", legacyResponse.OverallConfidence)
+	if len(legacyResponse.ClassificationCodes) == 0 {
+		t.Error("Expected classification codes to be present")
+	}
+
+	if legacyResponse.Confidence <= 0 {
+		t.Errorf("Expected confidence > 0, got %f", legacyResponse.Confidence)
 	}
 }
 
-func TestBackwardCompatibilityLayer_ConvertToEnhancedResponse(t *testing.T) {
+func TestBackwardCompatibilityLayer_ProcessCurrentRequest(t *testing.T) {
 	featureFlagManager := config.NewFeatureFlagManager("test")
 	logger := &MockLogger{}
 	metrics := &MockMetrics{}
@@ -197,51 +201,47 @@ func TestBackwardCompatibilityLayer_ConvertToEnhancedResponse(t *testing.T) {
 
 	bcl := NewBackwardCompatibilityLayer(featureFlagManager, logger, metrics, validator)
 
-	// Test conversion
-	internalResponse := &classification.ClassificationResponse{
-		BusinessID: "test-business-123",
-		Classifications: []classification.IndustryClassification{
-			{
-				IndustryCode:    "541511",
-				IndustryName:    "Custom Computer Programming Services",
-				ConfidenceScore: 0.95,
-			},
-		},
-		PrimaryClassification: &classification.IndustryClassification{
-			IndustryCode:    "541511",
-			IndustryName:    "Custom Computer Programming Services",
-			ConfidenceScore: 0.95,
-		},
-		ConfidenceScore:      0.95,
-		ClassificationMethod: "ml_enhanced",
-		ProcessingTime:       time.Millisecond * 200,
-		RawData: map[string]interface{}{
-			"geographic_region": "North America",
-			"enhanced_metadata": map[string]interface{}{
-				"ml_model_version": "v2.1",
-			},
-			"industry_specific_data": map[string]interface{}{
-				"tech_stack": "Go, React, PostgreSQL",
-			},
+	// Test current request processing
+	req := &ClassificationRequest{
+		BusinessName:    "Test Company",
+		BusinessAddress: "123 Test St, Test City, TC 12345",
+		Industry:        "Technology",
+		Metadata: map[string]interface{}{
+			"test": true,
 		},
 	}
 
-	enhancedResponse := bcl.convertToEnhancedResponse(internalResponse, "v2")
+	// Disable legacy mode to use current processing
+	legacyFlag := &config.FeatureFlag{
+		Name:    "legacy_classification",
+		Enabled: false,
+	}
+	featureFlagManager.SetFlag(legacyFlag)
 
-	if !enhancedResponse.Success {
-		t.Error("Expected enhanced response to be successful")
+	enhancedResponse, err := bcl.ProcessRequest(context.Background(), req)
+
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
 	}
 
-	if enhancedResponse.APIVersion != "v2" {
-		t.Errorf("Expected APIVersion 'v2', got '%s'", enhancedResponse.APIVersion)
+	if enhancedResponse == nil {
+		t.Error("Expected enhanced response to not be nil")
 	}
 
-	if enhancedResponse.OverallConfidence != 0.95 {
-		t.Errorf("Expected OverallConfidence 0.95, got %f", enhancedResponse.OverallConfidence)
+	if enhancedResponse.Version != "v1.0.0" {
+		t.Errorf("Expected version 'v1.0.0', got '%s'", enhancedResponse.Version)
+	}
+
+	if len(enhancedResponse.ClassificationCodes) == 0 {
+		t.Error("Expected classification codes to be present")
+	}
+
+	if enhancedResponse.Confidence <= 0 {
+		t.Errorf("Expected confidence > 0, got %f", enhancedResponse.Confidence)
 	}
 }
 
-func TestBackwardCompatibilityLayer_CalculateRegionConfidence(t *testing.T) {
+func TestBackwardCompatibilityLayer_IsLegacyModeEnabled(t *testing.T) {
 	featureFlagManager := config.NewFeatureFlagManager("test")
 	logger := &MockLogger{}
 	metrics := &MockMetrics{}
@@ -249,35 +249,29 @@ func TestBackwardCompatibilityLayer_CalculateRegionConfidence(t *testing.T) {
 
 	bcl := NewBackwardCompatibilityLayer(featureFlagManager, logger, metrics, validator)
 
-	// Test region confidence calculation
-	response := &classification.ClassificationResponse{
-		ConfidenceScore: 0.85,
-		PrimaryClassification: &classification.IndustryClassification{
-			IndustryCode: "541511",
-		},
+	// Test legacy mode detection
+	legacyFlag := &config.FeatureFlag{
+		Name:    "legacy_classification",
+		Enabled: true,
+	}
+	featureFlagManager.SetFlag(legacyFlag)
+	isLegacy := bcl.IsLegacyModeEnabled()
+
+	if !isLegacy {
+		t.Error("Expected legacy mode to be enabled")
 	}
 
-	confidence := bcl.calculateRegionConfidence("North America", response)
+	// Test with legacy mode disabled
+	legacyFlag.Enabled = false
+	featureFlagManager.SetFlag(legacyFlag)
+	isLegacy = bcl.IsLegacyModeEnabled()
 
-	if confidence < 0.85 || confidence > 0.90 {
-		t.Errorf("Expected confidence between 0.85 and 0.90, got %f", confidence)
-	}
-
-	// Test with no region
-	confidence = bcl.calculateRegionConfidence("", response)
-	if confidence != 0.85 {
-		t.Errorf("Expected confidence 0.85 for no region, got %f", confidence)
-	}
-
-	// Test with high base confidence
-	response.ConfidenceScore = 0.98
-	confidence = bcl.calculateRegionConfidence("North America", response)
-	if confidence > 1.0 {
-		t.Errorf("Expected confidence <= 1.0, got %f", confidence)
+	if isLegacy {
+		t.Error("Expected legacy mode to be disabled")
 	}
 }
 
-func TestBackwardCompatibilityLayer_HandleAPIVersionInfo(t *testing.T) {
+func TestBackwardCompatibilityLayer_GetSupportedVersions(t *testing.T) {
 	featureFlagManager := config.NewFeatureFlagManager("test")
 	logger := &MockLogger{}
 	metrics := &MockMetrics{}
@@ -285,40 +279,25 @@ func TestBackwardCompatibilityLayer_HandleAPIVersionInfo(t *testing.T) {
 
 	bcl := NewBackwardCompatibilityLayer(featureFlagManager, logger, metrics, validator)
 
-	req := httptest.NewRequest("GET", "/api/versions", nil)
-	w := httptest.NewRecorder()
+	// Test getting supported versions
+	versions := bcl.GetSupportedVersions()
 
-	bcl.HandleAPIVersionInfo(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Errorf("Expected status OK, got %d", w.Code)
+	if len(versions) == 0 {
+		t.Error("Expected supported versions to be returned")
 	}
 
-	// Parse response
-	var versionInfo map[string]interface{}
-	if err := json.NewDecoder(w.Body).Decode(&versionInfo); err != nil {
-		t.Fatalf("Failed to decode version info: %v", err)
-	}
-
-	if versionInfo["current_version"] != "v2" {
-		t.Errorf("Expected current_version 'v2', got '%v'", versionInfo["current_version"])
-	}
-
-	supportedVersions, ok := versionInfo["supported_versions"].([]interface{})
-	if !ok {
-		t.Fatal("Expected supported_versions to be an array")
-	}
-
-	if len(supportedVersions) != 2 {
-		t.Errorf("Expected 2 supported versions, got %d", len(supportedVersions))
-	}
-
-	featureFlags, ok := versionInfo["feature_flags"].(map[string]interface{})
-	if !ok {
-		t.Fatal("Expected feature_flags to be a map")
-	}
-
-	if featureFlags["modular_architecture"] == nil {
-		t.Error("Expected modular_architecture feature flag")
+	// Check if expected versions are present
+	expectedVersions := []string{"v1.0.0", "legacy"}
+	for _, expected := range expectedVersions {
+		found := false
+		for _, version := range versions {
+			if version == expected {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("Expected version '%s' to be in supported versions", expected)
+		}
 	}
 }

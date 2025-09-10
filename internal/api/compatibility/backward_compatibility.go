@@ -41,9 +41,9 @@ type ClassificationRequest struct {
 
 // ClassificationResponse represents a classification response
 type ClassificationResponse struct {
-	ClassificationCodes []ClassificationCode `json:"classification_codes"`
-	Confidence          float64              `json:"confidence"`
-	Version             string               `json:"version"`
+	ClassificationCodes []ClassificationCode   `json:"classification_codes"`
+	Confidence          float64                `json:"confidence"`
+	Version             string                 `json:"version"`
 	Metadata            map[string]interface{} `json:"metadata,omitempty"`
 }
 
@@ -144,7 +144,7 @@ func (bcl *BackwardCompatibilityLayer) processLegacyRequest(
 		Confidence:          0.80,
 		Version:             "legacy",
 		Metadata: map[string]interface{}{
-			"legacy_mode": true,
+			"legacy_mode":  true,
 			"processed_at": "2025-01-01T00:00:00Z",
 		},
 	}, nil

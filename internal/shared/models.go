@@ -33,15 +33,25 @@ type BusinessClassificationRequest struct {
 type BusinessClassificationResponse struct {
 	ID                    string                   `json:"id"`
 	BusinessName          string                   `json:"business_name"`
+	DetectedIndustry      string                   `json:"detected_industry,omitempty"`
+	Confidence            float64                  `json:"confidence"`
 	Classifications       []IndustryClassification `json:"classifications"`
 	PrimaryClassification *IndustryClassification  `json:"primary_classification,omitempty"`
+	ClassificationCodes   ClassificationCodes      `json:"classification_codes,omitempty"`
 	OverallConfidence     float64                  `json:"overall_confidence"`
 	ClassificationMethod  string                   `json:"classification_method"`
 	ProcessingTime        time.Duration            `json:"processing_time"`
 	ModuleResults         map[string]ModuleResult  `json:"module_results,omitempty"`
 	RawData               map[string]interface{}   `json:"raw_data,omitempty"`
 	CreatedAt             time.Time                `json:"created_at"`
+	Timestamp             time.Time                `json:"timestamp"`
 	Metadata              map[string]interface{}   `json:"metadata,omitempty"`
+
+	// Enhanced multi-method classification fields
+	MethodBreakdown         []ClassificationMethodResult `json:"method_breakdown,omitempty"`
+	EnsembleConfidence      float64                      `json:"ensemble_confidence,omitempty"`
+	ClassificationReasoning string                       `json:"classification_reasoning,omitempty"`
+	QualityMetrics          *ClassificationQuality       `json:"quality_metrics,omitempty"`
 }
 
 // IndustryClassification represents a standardized industry classification result
@@ -69,6 +79,28 @@ type ModuleResult struct {
 	Confidence      float64                  `json:"confidence"`
 	RawData         map[string]interface{}   `json:"raw_data,omitempty"`
 	Metadata        map[string]interface{}   `json:"metadata,omitempty"`
+}
+
+// ClassificationMethodResult represents a classification method and its result
+type ClassificationMethodResult struct {
+	MethodName     string                  `json:"method_name"`
+	MethodType     string                  `json:"method_type"` // "keyword", "ml", "description"
+	Confidence     float64                 `json:"confidence"`
+	ProcessingTime time.Duration           `json:"processing_time"`
+	Result         *IndustryClassification `json:"result"`
+	Evidence       []string                `json:"evidence"`
+	Keywords       []string                `json:"keywords"`
+	Error          string                  `json:"error,omitempty"`
+	Success        bool                    `json:"success"`
+}
+
+// ClassificationQuality represents quality metrics for the classification
+type ClassificationQuality struct {
+	OverallQuality     float64 `json:"overall_quality"`
+	MethodAgreement    float64 `json:"method_agreement"`
+	ConfidenceVariance float64 `json:"confidence_variance"`
+	EvidenceStrength   float64 `json:"evidence_strength"`
+	DataCompleteness   float64 `json:"data_completeness"`
 }
 
 // =============================================================================
@@ -522,4 +554,116 @@ func IsValidIndustryType(industryType IndustryType) bool {
 		}
 	}
 	return false
+}
+
+// =============================================================================
+// Classification Code Types
+// =============================================================================
+
+// MCCCode represents a Merchant Category Code
+type MCCCode struct {
+	Code        string  `json:"code"`
+	Description string  `json:"description"`
+	Confidence  float64 `json:"confidence"`
+}
+
+// SICCode represents a Standard Industrial Classification code
+type SICCode struct {
+	Code        string  `json:"code"`
+	Description string  `json:"description"`
+	Confidence  float64 `json:"confidence"`
+}
+
+// NAICSCode represents a North American Industry Classification System code
+type NAICSCode struct {
+	Code        string  `json:"code"`
+	Description string  `json:"description"`
+	Confidence  float64 `json:"confidence"`
+}
+
+// ClassificationCodes represents all classification codes for a business
+type ClassificationCodes struct {
+	MCC   []MCCCode   `json:"mcc,omitempty"`
+	SIC   []SICCode   `json:"sic,omitempty"`
+	NAICS []NAICSCode `json:"naics,omitempty"`
+}
+
+// =============================================================================
+// Conversion Functions
+// =============================================================================
+
+// ConvertModuleDataToBusinessClassificationRequest converts module request data to business classification request
+func ConvertModuleDataToBusinessClassificationRequest(data map[string]interface{}) (*BusinessClassificationRequest, error) {
+	req := &BusinessClassificationRequest{}
+
+	if businessName, ok := data["business_name"].(string); ok {
+		req.BusinessName = businessName
+	}
+
+	if businessType, ok := data["business_type"].(string); ok {
+		req.BusinessType = businessType
+	}
+
+	if industry, ok := data["industry"].(string); ok {
+		req.Industry = industry
+	}
+
+	if description, ok := data["description"].(string); ok {
+		req.Description = description
+	}
+
+	if keywords, ok := data["keywords"].([]string); ok {
+		req.Keywords = keywords
+	}
+
+	if websiteURL, ok := data["website_url"].(string); ok {
+		req.WebsiteURL = websiteURL
+	}
+
+	if registrationNumber, ok := data["registration_number"].(string); ok {
+		req.RegistrationNumber = registrationNumber
+	}
+
+	if taxID, ok := data["tax_id"].(string); ok {
+		req.TaxID = taxID
+	}
+
+	if address, ok := data["address"].(string); ok {
+		req.Address = address
+	}
+
+	if geographicRegion, ok := data["geographic_region"].(string); ok {
+		req.GeographicRegion = geographicRegion
+	}
+
+	if metadata, ok := data["metadata"].(map[string]interface{}); ok {
+		req.Metadata = metadata
+	}
+
+	req.RequestedAt = time.Now()
+
+	return req, nil
+}
+
+// ConvertBusinessClassificationResponseToModuleData converts business classification response to module response data
+func ConvertBusinessClassificationResponseToModuleData(response *BusinessClassificationResponse) (map[string]interface{}, error) {
+	data := map[string]interface{}{
+		"id":                     response.ID,
+		"business_name":          response.BusinessName,
+		"detected_industry":      response.DetectedIndustry,
+		"confidence":             response.Confidence,
+		"classifications":        response.Classifications,
+		"primary_classification": response.PrimaryClassification,
+		"classification_codes":   response.ClassificationCodes,
+		"overall_confidence":     response.OverallConfidence,
+		"classification_method":  response.ClassificationMethod,
+		"processing_time":        response.ProcessingTime,
+		"module_results":         response.ModuleResults,
+		"raw_data":               response.RawData,
+		"created_at":             response.CreatedAt,
+		"timestamp":              response.Timestamp,
+		"metadata":               response.Metadata,
+	}
+
+	return data, nil
 }

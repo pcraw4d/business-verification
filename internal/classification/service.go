@@ -5,14 +5,17 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/pcraw4d/business-verification/internal/classification/repository"
 )
 
 // IndustryDetectionService provides database-driven industry classification
 type IndustryDetectionService struct {
-	repo   repository.KeywordRepository
-	logger *log.Logger
+	repo    repository.KeywordRepository
+	logger  *log.Logger
+	monitor *ClassificationAccuracyMonitoring
 }
 
 // NewIndustryDetectionService creates a new industry detection service
@@ -22,8 +25,22 @@ func NewIndustryDetectionService(repo repository.KeywordRepository, logger *log.
 	}
 
 	return &IndustryDetectionService{
-		repo:   repo,
-		logger: logger,
+		repo:    repo,
+		logger:  logger,
+		monitor: nil, // Will be set separately if monitoring is needed
+	}
+}
+
+// NewIndustryDetectionServiceWithMonitoring creates a new industry detection service with monitoring
+func NewIndustryDetectionServiceWithMonitoring(repo repository.KeywordRepository, logger *log.Logger, monitor *ClassificationAccuracyMonitoring) *IndustryDetectionService {
+	if logger == nil {
+		logger = log.Default()
+	}
+
+	return &IndustryDetectionService{
+		repo:    repo,
+		logger:  logger,
+		monitor: monitor,
 	}
 }
 
@@ -39,10 +56,15 @@ type IndustryDetectionResult struct {
 
 // DetectIndustryFromContent analyzes website content to detect industry using database keywords
 func (s *IndustryDetectionService) DetectIndustryFromContent(ctx context.Context, content string) (*IndustryDetectionResult, error) {
-	s.logger.Printf("🔍 Starting database-driven industry detection for content length: %d", len(content))
+	startTime := time.Now()
+	requestID := s.generateRequestID()
+
+	s.logger.Printf("🔍 Starting database-driven industry detection for content length: %d (request: %s)", len(content), requestID)
 
 	if content == "" {
-		return s.getDefaultResult("No content provided for analysis"), nil
+		result := s.getDefaultResult("No content provided for analysis")
+		s.recordClassificationMetrics(ctx, requestID, "", "", "", result, time.Since(startTime), "content_analysis", nil)
+		return result, nil
 	}
 
 	// Extract keywords from content
@@ -50,20 +72,24 @@ func (s *IndustryDetectionService) DetectIndustryFromContent(ctx context.Context
 	s.logger.Printf("🔍 Extracted %d keywords from content", len(keywords))
 
 	if len(keywords) == 0 {
-		return s.getDefaultResult("No meaningful keywords found in content"), nil
+		result := s.getDefaultResult("No meaningful keywords found in content")
+		s.recordClassificationMetrics(ctx, requestID, "", "", "", result, time.Since(startTime), "content_analysis", nil)
+		return result, nil
 	}
 
 	// Classify business using the repository
-	result, err := s.repo.ClassifyBusinessByKeywords(ctx, keywords)
+	repoResult, err := s.repo.ClassifyBusinessByKeywords(ctx, keywords)
 	if err != nil {
 		s.logger.Printf("⚠️ Repository classification failed: %v, falling back to default", err)
-		return s.getDefaultResult("Classification failed, using default"), nil
+		result := s.getDefaultResult("Classification failed, using default")
+		s.recordClassificationMetrics(ctx, requestID, "", "", "", result, time.Since(startTime), "content_analysis", err)
+		return result, nil
 	}
 
-	// Get classification codes for the detected industry
+	// Get classification codes for the detected industry (using cache)
 	var codes []*repository.ClassificationCode
-	if result.Industry != nil {
-		codes, err = s.repo.GetClassificationCodesByIndustry(ctx, result.Industry.ID)
+	if repoResult.Industry != nil {
+		codes, err = s.repo.GetCachedClassificationCodes(ctx, repoResult.Industry.ID)
 		if err != nil {
 			s.logger.Printf("⚠️ Failed to get classification codes: %v", err)
 			codes = []*repository.ClassificationCode{}
@@ -71,19 +97,22 @@ func (s *IndustryDetectionService) DetectIndustryFromContent(ctx context.Context
 	}
 
 	// Build evidence string
-	evidence := s.buildEvidenceString(keywords, result.Keywords, result.Reasoning)
+	evidence := s.buildEvidenceString(keywords, repoResult.Keywords, repoResult.Reasoning)
 
 	detectionResult := &IndustryDetectionResult{
-		Industry:            result.Industry,
-		Confidence:          result.Confidence,
+		Industry:            repoResult.Industry,
+		Confidence:          repoResult.Confidence,
 		KeywordsMatched:     keywords,
 		AnalysisMethod:      "database_keyword_classification",
 		Evidence:            evidence,
 		ClassificationCodes: codes,
 	}
 
-	s.logger.Printf("✅ Industry detected: %s (confidence: %.2f%%)",
-		detectionResult.Industry.Name, detectionResult.Confidence*100)
+	// Record performance metrics
+	s.recordClassificationMetrics(ctx, requestID, "", "", "", detectionResult, time.Since(startTime), "content_analysis", nil)
+
+	s.logger.Printf("✅ Industry detected: %s (confidence: %.2f%%) (request: %s)",
+		detectionResult.Industry.Name, detectionResult.Confidence*100, requestID)
 
 	return detectionResult, nil
 }
@@ -107,10 +136,10 @@ func (s *IndustryDetectionService) DetectIndustryFromBusinessInfo(ctx context.Co
 		return s.getDefaultResult("Classification failed, using default"), nil
 	}
 
-	// Get classification codes for the detected industry
+	// Get classification codes for the detected industry (using cache)
 	var codes []*repository.ClassificationCode
 	if result.Industry != nil {
-		codes, err = s.repo.GetClassificationCodesByIndustry(ctx, result.Industry.ID)
+		codes, err = s.repo.GetCachedClassificationCodes(ctx, result.Industry.ID)
 		if err != nil {
 			s.logger.Printf("⚠️ Failed to get classification codes: %v", err)
 			codes = []*repository.ClassificationCode{}
@@ -337,4 +366,346 @@ func (s *IndustryDetectionService) getDefaultResult(reason string) *IndustryDete
 		Evidence:            reason,
 		ClassificationCodes: []*repository.ClassificationCode{},
 	}
+}
+
+// =============================================================================
+// Parallel Processing Methods
+// =============================================================================
+
+// BusinessClassificationRequest represents a request for business classification
+type BusinessClassificationRequest struct {
+	ID           string
+	BusinessName string
+	Description  string
+	WebsiteURL   string
+}
+
+// BusinessClassificationResult represents the result of a business classification
+type BusinessClassificationResult struct {
+	RequestID string
+	Result    *IndustryDetectionResult
+	Error     error
+}
+
+// ClassifyMultipleBusinessesInParallel processes multiple business classifications in parallel
+func (s *IndustryDetectionService) ClassifyMultipleBusinessesInParallel(ctx context.Context, requests []BusinessClassificationRequest) []BusinessClassificationResult {
+	s.logger.Printf("🚀 Starting parallel classification for %d businesses", len(requests))
+
+	if len(requests) == 0 {
+		return []BusinessClassificationResult{}
+	}
+
+	// Create channels for results and errors
+	results := make([]BusinessClassificationResult, len(requests))
+	resultChan := make(chan BusinessClassificationResult, len(requests))
+
+	// Create a WaitGroup to wait for all goroutines to complete
+	var wg sync.WaitGroup
+
+	// Process each business classification in parallel
+	for i, request := range requests {
+		wg.Add(1)
+		go func(index int, req BusinessClassificationRequest) {
+			defer wg.Done()
+
+			s.logger.Printf("🔄 Processing business %d: %s", index+1, req.BusinessName)
+
+			var result *IndustryDetectionResult
+			var err error
+
+			// Choose classification method based on available data
+			if req.WebsiteURL != "" {
+				// Use website content analysis (simplified for parallel processing)
+				websiteContent := s.extractKeywordsFromBusinessInfo(req.BusinessName, req.Description, req.WebsiteURL)
+				result, err = s.DetectIndustryFromContent(ctx, strings.Join(websiteContent, " "))
+			} else {
+				// Use business information analysis
+				result, err = s.DetectIndustryFromBusinessInfo(ctx, req.BusinessName, req.Description, req.WebsiteURL)
+			}
+
+			// Send result to channel
+			resultChan <- BusinessClassificationResult{
+				RequestID: req.ID,
+				Result:    result,
+				Error:     err,
+			}
+
+			s.logger.Printf("✅ Completed business %d: %s", index+1, req.BusinessName)
+		}(i, request)
+	}
+
+	// Close the result channel when all goroutines are done
+	go func() {
+		wg.Wait()
+		close(resultChan)
+	}()
+
+	// Collect results from the channel
+	for result := range resultChan {
+		// Find the index for this result
+		for i, req := range requests {
+			if req.ID == result.RequestID {
+				results[i] = result
+				break
+			}
+		}
+	}
+
+	s.logger.Printf("🚀 Parallel classification completed for %d businesses", len(requests))
+	return results
+}
+
+// ClassifyBusinessWithMultipleMethods processes a single business using multiple classification methods in parallel
+func (s *IndustryDetectionService) ClassifyBusinessWithMultipleMethods(ctx context.Context, businessName, description, websiteURL string) (*IndustryDetectionResult, error) {
+	s.logger.Printf("🚀 Starting multi-method classification for: %s", businessName)
+
+	// Create channels for results
+	resultChan := make(chan *IndustryDetectionResult, 2)
+	errorChan := make(chan error, 2)
+
+	// Create a WaitGroup to wait for all goroutines to complete
+	var wg sync.WaitGroup
+
+	// Method 1: Business Information Analysis
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		s.logger.Printf("🔄 Method 1: Business information analysis")
+
+		result, err := s.DetectIndustryFromBusinessInfo(ctx, businessName, description, websiteURL)
+		if err != nil {
+			errorChan <- fmt.Errorf("business info analysis: %w", err)
+			return
+		}
+
+		resultChan <- result
+		s.logger.Printf("✅ Method 1 completed: %s (confidence: %.2f%%)", result.Industry.Name, result.Confidence*100)
+	}()
+
+	// Method 2: Website Content Analysis (if website URL is available)
+	if websiteURL != "" {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			s.logger.Printf("🔄 Method 2: Website content analysis")
+
+			// Use business info extraction for website content (simplified)
+			websiteContent := s.extractKeywordsFromBusinessInfo(businessName, description, websiteURL)
+			result, err := s.DetectIndustryFromContent(ctx, strings.Join(websiteContent, " "))
+			if err != nil {
+				errorChan <- fmt.Errorf("website content analysis: %w", err)
+				return
+			}
+
+			resultChan <- result
+			s.logger.Printf("✅ Method 2 completed: %s (confidence: %.2f%%)", result.Industry.Name, result.Confidence*100)
+		}()
+	}
+
+	// Wait for all goroutines to complete
+	wg.Wait()
+	close(resultChan)
+	close(errorChan)
+
+	// Collect results
+	var results []*IndustryDetectionResult
+	for result := range resultChan {
+		results = append(results, result)
+	}
+
+	// Log any errors
+	for err := range errorChan {
+		s.logger.Printf("⚠️ Error in multi-method classification: %v", err)
+	}
+
+	// Choose the best result based on confidence
+	if len(results) == 0 {
+		return s.getDefaultResult("All classification methods failed"), nil
+	}
+
+	// Find the result with highest confidence
+	bestResult := results[0]
+	for _, result := range results[1:] {
+		if result.Confidence > bestResult.Confidence {
+			bestResult = result
+		}
+	}
+
+	// Update analysis method to reflect multi-method approach
+	bestResult.AnalysisMethod = "multi_method_parallel_classification"
+	bestResult.Evidence = fmt.Sprintf("Multi-method analysis: %s (confidence: %.2f%%)", bestResult.Industry.Name, bestResult.Confidence*100)
+
+	s.logger.Printf("🚀 Multi-method classification completed: %s (confidence: %.2f%%)",
+		bestResult.Industry.Name, bestResult.Confidence*100)
+
+	return bestResult, nil
+}
+
+// GetTopIndustriesByKeywordsInParallel finds top industries for multiple keyword sets in parallel
+func (s *IndustryDetectionService) GetTopIndustriesByKeywordsInParallel(ctx context.Context, keywordSets [][]string, limit int) []*IndustryDetectionResult {
+	s.logger.Printf("🚀 Starting parallel top industries lookup for %d keyword sets", len(keywordSets))
+
+	if len(keywordSets) == 0 {
+		return []*IndustryDetectionResult{}
+	}
+
+	// Create channels for results
+	resultChan := make(chan *IndustryDetectionResult, len(keywordSets))
+
+	// Create a WaitGroup to wait for all goroutines to complete
+	var wg sync.WaitGroup
+
+	// Process each keyword set in parallel
+	for i, keywords := range keywordSets {
+		wg.Add(1)
+		go func(index int, keywordSet []string) {
+			defer wg.Done()
+
+			s.logger.Printf("🔄 Processing keyword set %d: %v", index+1, keywordSet)
+
+			result, err := s.repo.ClassifyBusinessByKeywords(ctx, keywordSet)
+			if err != nil {
+				s.logger.Printf("⚠️ Failed to classify keyword set %d: %v", index+1, err)
+				// Send default result
+				resultChan <- s.getDefaultResult(fmt.Sprintf("Classification failed for keyword set %d", index+1))
+				return
+			}
+
+			// Convert to IndustryDetectionResult
+			// Convert []ClassificationCode to []*ClassificationCode
+			var codes []*repository.ClassificationCode
+			for i := range result.Codes {
+				codes = append(codes, &result.Codes[i])
+			}
+
+			detectionResult := &IndustryDetectionResult{
+				Industry:            result.Industry,
+				Confidence:          result.Confidence,
+				KeywordsMatched:     keywordSet,
+				AnalysisMethod:      "parallel_keyword_classification",
+				Evidence:            result.Reasoning,
+				ClassificationCodes: codes,
+			}
+
+			resultChan <- detectionResult
+			s.logger.Printf("✅ Completed keyword set %d: %s (confidence: %.2f%%)",
+				index+1, result.Industry.Name, result.Confidence*100)
+		}(i, keywords)
+	}
+
+	// Close the result channel when all goroutines are done
+	go func() {
+		wg.Wait()
+		close(resultChan)
+	}()
+
+	// Collect results
+	var results []*IndustryDetectionResult
+	for result := range resultChan {
+		results = append(results, result)
+	}
+
+	// Sort results by confidence (highest first)
+	for i := 0; i < len(results)-1; i++ {
+		for j := i + 1; j < len(results); j++ {
+			if results[j].Confidence > results[i].Confidence {
+				results[i], results[j] = results[j], results[i]
+			}
+		}
+	}
+
+	// Limit results if requested
+	if limit > 0 && len(results) > limit {
+		results = results[:limit]
+	}
+
+	s.logger.Printf("🚀 Parallel top industries lookup completed: %d results", len(results))
+	return results
+}
+
+// =============================================================================
+// Performance Monitoring Helper Methods
+// =============================================================================
+
+// generateRequestID generates a unique request ID for tracking
+func (s *IndustryDetectionService) generateRequestID() string {
+	return fmt.Sprintf("req_%d", time.Now().UnixNano())
+}
+
+// recordClassificationMetrics records classification performance metrics
+func (s *IndustryDetectionService) recordClassificationMetrics(
+	ctx context.Context,
+	requestID string,
+	businessName, description, websiteURL string,
+	result *IndustryDetectionResult,
+	responseTime time.Duration,
+	method string,
+	err error,
+) {
+	if s.monitor == nil {
+		return // No monitoring configured
+	}
+
+	// Prepare metrics data
+	metrics := &ClassificationAccuracyMetrics{
+		Timestamp:            time.Now(),
+		RequestID:            requestID,
+		BusinessName:         &businessName,
+		BusinessDescription:  &description,
+		WebsiteURL:           &websiteURL,
+		PredictedIndustry:    result.Industry.Name,
+		PredictedConfidence:  result.Confidence,
+		ResponseTimeMs:       float64(responseTime.Nanoseconds()) / 1e6, // Convert to milliseconds
+		ClassificationMethod: &method,
+		KeywordsUsed:         result.KeywordsMatched,
+		ConfidenceThreshold:  0.5, // Default threshold
+		CreatedAt:            time.Now(),
+	}
+
+	// Set error message if there was an error
+	if err != nil {
+		errorMsg := err.Error()
+		metrics.ErrorMessage = &errorMsg
+	}
+
+	// Record metrics asynchronously to avoid blocking the main flow
+	go func() {
+		// Note: This would call the actual monitoring method when implemented
+		// if err := s.monitor.RecordClassificationMetrics(ctx, metrics); err != nil {
+		//     s.logger.Printf("⚠️ Failed to record classification metrics: %v", err)
+		// }
+	}()
+}
+
+// GetPerformanceMetrics returns current performance metrics
+func (s *IndustryDetectionService) GetPerformanceMetrics(ctx context.Context) (*ClassificationAccuracyStats, error) {
+	if s.monitor == nil {
+		return nil, fmt.Errorf("monitoring not configured")
+	}
+
+	// Note: This would call the actual monitoring method when implemented
+	// return s.monitor.GetClassificationAccuracyStats(ctx, 24*time.Hour)
+	return nil, fmt.Errorf("monitoring not fully implemented")
+}
+
+// GetPerformanceTrends returns performance trend data
+func (s *IndustryDetectionService) GetPerformanceTrends(ctx context.Context, hours int) ([]*ClassificationAccuracyTrend, error) {
+	if s.monitor == nil {
+		return nil, fmt.Errorf("monitoring not configured")
+	}
+
+	// Note: This would call the actual monitoring method when implemented
+	// return s.monitor.GetClassificationAccuracyTrends(ctx, time.Duration(hours)*time.Hour)
+	return nil, fmt.Errorf("monitoring not fully implemented")
+}
+
+// GetPerformanceAlerts returns current performance alerts
+func (s *IndustryDetectionService) GetPerformanceAlerts(ctx context.Context) ([]*ClassificationAccuracyAlert, error) {
+	if s.monitor == nil {
+		return nil, fmt.Errorf("monitoring not configured")
+	}
+
+	// Note: This would call the actual monitoring method when implemented
+	// return s.monitor.GetClassificationAccuracyAlerts(ctx)
+	return nil, fmt.Errorf("monitoring not fully implemented")
 }

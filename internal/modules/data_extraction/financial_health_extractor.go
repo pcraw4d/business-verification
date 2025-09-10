@@ -2,6 +2,7 @@ package data_extraction
 
 import (
 	"context"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -508,15 +509,103 @@ func (fd *FundingDetector) determineFundingType(text string) string {
 }
 
 func (fd *FundingDetector) extractFundingDate(text string) time.Time {
-	// Simple date extraction - in production, use more sophisticated date parsing
-	// For now, return current time as placeholder
+	// Extract funding date from text using common patterns
+	text = strings.ToLower(text)
+
+	// Common date patterns in funding announcements
+	datePatterns := []string{
+		"january", "february", "march", "april", "may", "june",
+		"july", "august", "september", "october", "november", "december",
+		"jan", "feb", "mar", "apr", "may", "jun",
+		"jul", "aug", "sep", "oct", "nov", "dec",
+	}
+
+	// Look for year patterns
+	yearPattern := regexp.MustCompile(`\b(20[0-9]{2})\b`)
+	yearMatches := yearPattern.FindStringSubmatch(text)
+
+	if len(yearMatches) > 1 {
+		year := yearMatches[1]
+		// Look for month patterns near the year
+		for _, month := range datePatterns {
+			if strings.Contains(text, month) {
+				// Try to parse a more specific date
+				dateStr := fmt.Sprintf("%s %s", month, year)
+				if parsedDate, err := time.Parse("January 2006", dateStr); err == nil {
+					return parsedDate
+				}
+				if parsedDate, err := time.Parse("Jan 2006", dateStr); err == nil {
+					return parsedDate
+				}
+			}
+		}
+		// If we found a year but no month, return January of that year
+		if parsedDate, err := time.Parse("2006", year); err == nil {
+			return parsedDate
+		}
+	}
+
+	// If no date found, return current time as fallback
 	return time.Now()
 }
 
 func (fd *FundingDetector) extractInvestors(text string) []string {
-	// Simple investor extraction - in production, use more sophisticated parsing
-	// For now, return empty slice as placeholder
-	return []string{}
+	// Extract investor names from funding text
+	text = strings.ToLower(text)
+	var investors []string
+
+	// Common investor patterns and keywords
+	investorKeywords := []string{
+		"led by", "co-led by", "participated by", "investors include",
+		"backed by", "funded by", "investment from", "investors:",
+		"venture capital", "vc", "private equity", "angel investor",
+	}
+
+	// Common investor company patterns
+	investorPatterns := []string{
+		"sequoia", "andreessen horowitz", "accel", "kleiner perkins",
+		"greylock", "benchmark", "index ventures", "first round",
+		"y combinator", "techstars", "500 startups", "general catalyst",
+		"insight partners", "tiger global", "softbank", "goldman sachs",
+		"morgan stanley", "jp morgan", "citi", "wells fargo",
+	}
+
+	// Look for investor keywords and extract nearby text
+	for _, keyword := range investorKeywords {
+		if strings.Contains(text, keyword) {
+			// Extract text around the keyword
+			index := strings.Index(text, keyword)
+			start := index - 50
+			if start < 0 {
+				start = 0
+			}
+			end := index + len(keyword) + 100
+			if end > len(text) {
+				end = len(text)
+			}
+
+			context := text[start:end]
+
+			// Look for known investor names in the context
+			for _, pattern := range investorPatterns {
+				if strings.Contains(context, pattern) {
+					investors = append(investors, pattern)
+				}
+			}
+		}
+	}
+
+	// Remove duplicates
+	uniqueInvestors := make([]string, 0)
+	seen := make(map[string]bool)
+	for _, investor := range investors {
+		if !seen[investor] {
+			uniqueInvestors = append(uniqueInvestors, investor)
+			seen[investor] = true
+		}
+	}
+
+	return uniqueInvestors
 }
 
 func (fd *FundingDetector) determineFundingRound(text string) string {
@@ -644,15 +733,128 @@ func (re *RevenueExtractor) determineRevenuePeriod(text string) string {
 }
 
 func (re *RevenueExtractor) calculateRevenueGrowth(text string) float64 {
-	// Simple growth calculation - in production, use more sophisticated analysis
-	// For now, return 0 as placeholder
+	// Extract revenue growth percentage from text
+	text = strings.ToLower(text)
+
+	// Look for growth percentage patterns
+	growthPatterns := []string{
+		"growth", "increase", "rise", "up", "grew", "growing",
+		"year over year", "yoy", "quarter over quarter", "qoq",
+		"month over month", "mom", "annual growth", "quarterly growth",
+	}
+
+	// Percentage patterns
+	percentagePattern := regexp.MustCompile(`(\d+(?:\.\d+)?)\s*%`)
+	percentageMatches := percentagePattern.FindAllStringSubmatch(text, -1)
+
+	// Look for growth-related text with percentages
+	for _, pattern := range growthPatterns {
+		if strings.Contains(text, pattern) {
+			// Find percentage near the growth keyword
+			index := strings.Index(text, pattern)
+			start := index - 100
+			if start < 0 {
+				start = 0
+			}
+			end := index + len(pattern) + 100
+			if end > len(text) {
+				end = len(text)
+			}
+
+			context := text[start:end]
+			contextMatches := percentagePattern.FindAllStringSubmatch(context, -1)
+
+			if len(contextMatches) > 0 {
+				// Take the first percentage found near growth keywords
+				if growth, err := strconv.ParseFloat(contextMatches[0][1], 64); err == nil {
+					return growth
+				}
+			}
+		}
+	}
+
+	// If no growth-specific percentage found, look for any percentage in the text
+	if len(percentageMatches) > 0 {
+		// Take the first percentage found
+		if growth, err := strconv.ParseFloat(percentageMatches[0][1], 64); err == nil {
+			// Cap at reasonable growth rates (1000% max)
+			if growth > 1000 {
+				return 1000
+			}
+			return growth
+		}
+	}
+
+	// If no percentage found, return 0
 	return 0.0
 }
 
 func (re *RevenueExtractor) extractRevenueSources(text string) []string {
-	// Simple revenue source extraction - in production, use more sophisticated parsing
-	// For now, return empty slice as placeholder
-	return []string{}
+	// Extract revenue sources from business text
+	text = strings.ToLower(text)
+	var sources []string
+
+	// Common revenue source patterns
+	revenueKeywords := []string{
+		"revenue", "income", "sales", "earnings", "proceeds", "income from",
+		"generated", "earned", "made", "brought in", "revenue from",
+	}
+
+	// Common revenue source types
+	revenueSources := []string{
+		"subscription", "subscriptions", "saas", "software as a service",
+		"licensing", "licenses", "royalties", "franchise", "franchising",
+		"advertising", "ads", "marketing", "sponsorship", "sponsorships",
+		"consulting", "services", "professional services", "support",
+		"maintenance", "training", "education", "courses", "certification",
+		"e-commerce", "online sales", "retail", "wholesale", "distribution",
+		"manufacturing", "production", "assembly", "fabrication",
+		"real estate", "property", "rental", "leasing", "property management",
+		"financial services", "banking", "insurance", "investment", "trading",
+		"healthcare", "medical", "pharmaceutical", "biotech", "telemedicine",
+		"transportation", "logistics", "shipping", "delivery", "freight",
+		"energy", "utilities", "power", "electricity", "gas", "oil",
+		"telecommunications", "telecom", "internet", "broadband", "wireless",
+		"media", "entertainment", "content", "streaming", "broadcasting",
+		"gaming", "mobile apps", "software", "platform", "marketplace",
+	}
+
+	// Look for revenue keywords and extract nearby sources
+	for _, keyword := range revenueKeywords {
+		if strings.Contains(text, keyword) {
+			// Extract text around the keyword
+			index := strings.Index(text, keyword)
+			start := index - 100
+			if start < 0 {
+				start = 0
+			}
+			end := index + len(keyword) + 200
+			if end > len(text) {
+				end = len(text)
+			}
+
+			context := text[start:end]
+
+			// Look for revenue sources in the context
+			for _, source := range revenueSources {
+				if strings.Contains(context, source) {
+					sources = append(sources, source)
+				}
+			}
+		}
+	}
+
+	// Remove duplicates
+	uniqueSources := make([]string, 0)
+	seen := make(map[string]bool)
+	for _, source := range sources {
+		if !seen[source] {
+			uniqueSources = append(uniqueSources, source)
+			seen[source] = true
+		}
+	}
+
+	return uniqueSources
 }
 
 func (re *RevenueExtractor) determineRevenueRange(amount float64) string {

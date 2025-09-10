@@ -6,12 +6,14 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/pcraw4d/business-verification/internal/compliance"
 	"github.com/pcraw4d/business-verification/internal/config"
 	"github.com/pcraw4d/business-verification/internal/observability"
+	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
 
@@ -217,13 +219,93 @@ func TestAuditHandler_GetAuditEvents(t *testing.T) {
 }
 
 func TestAuditHandler_GetAuditTrail(t *testing.T) {
-	// TODO: Implement test for GetAuditTrail
-	t.Skip("Test not implemented yet")
+	// Create test audit handler
+	handler := &AuditHandler{
+		auditService: &MockAuditService{},
+		logger:       &MockLogger{},
+	}
+
+	// Test successful audit trail retrieval
+	req := httptest.NewRequest("GET", "/audit/trail?limit=10&offset=0", nil)
+	w := httptest.NewRecorder()
+
+	handler.GetAuditTrail(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response map[string]interface{}
+	err := json.NewDecoder(w.Body).Decode(&response)
+	assert.NoError(t, err)
+	assert.Contains(t, response, "audit_entries")
+	assert.Contains(t, response, "total_count")
+}
+
+func TestAuditHandler_GetAuditTrailWithFilters(t *testing.T) {
+	// Create test audit handler
+	handler := &AuditHandler{
+		auditService: &MockAuditService{},
+		logger:       &MockLogger{},
+	}
+
+	// Test audit trail with filters
+	req := httptest.NewRequest("GET", "/audit/trail?action=create&resource_type=business&user_id=test-user", nil)
+	w := httptest.NewRecorder()
+
+	handler.GetAuditTrail(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response map[string]interface{}
+	err := json.NewDecoder(w.Body).Decode(&response)
+	assert.NoError(t, err)
+	assert.Contains(t, response, "audit_entries")
 }
 
 func TestAuditHandler_GenerateAuditReport(t *testing.T) {
-	// TODO: Implement test for GenerateAuditReport
-	t.Skip("Test not implemented yet")
+	// Create test audit handler
+	handler := &AuditHandler{
+		auditService: &MockAuditService{},
+		logger:       &MockLogger{},
+	}
+
+	// Test successful audit report generation
+	req := httptest.NewRequest("POST", "/audit/report", strings.NewReader(`{
+		"start_date": "2024-01-01",
+		"end_date": "2024-12-31",
+		"format": "json",
+		"include_details": true
+	}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handler.GenerateAuditReport(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response map[string]interface{}
+	err := json.NewDecoder(w.Body).Decode(&response)
+	assert.NoError(t, err)
+	assert.Contains(t, response, "report_id")
+	assert.Contains(t, response, "status")
+}
+
+func TestAuditHandler_GenerateAuditReportInvalidRequest(t *testing.T) {
+	// Create test audit handler
+	handler := &AuditHandler{
+		auditService: &MockAuditService{},
+		logger:       &MockLogger{},
+	}
+
+	// Test invalid request
+	req := httptest.NewRequest("POST", "/audit/report", strings.NewReader(`{
+		"invalid": "request"
+	}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handler.GenerateAuditReport(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 func TestAuditHandler_GetAuditMetrics(t *testing.T) {

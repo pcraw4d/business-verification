@@ -108,6 +108,18 @@ type KeywordRepository interface {
 	UpdateClassificationCode(ctx context.Context, code *ClassificationCode) error
 	DeleteClassificationCode(ctx context.Context, id int) error
 
+	// Cached Classification Codes
+	GetCachedClassificationCodes(ctx context.Context, industryID int) ([]*ClassificationCode, error)
+	GetCachedClassificationCodesByType(ctx context.Context, codeType string) ([]*ClassificationCode, error)
+	InitializeIndustryCodeCache(ctx context.Context) error
+	InvalidateIndustryCodeCache(ctx context.Context, patterns []string) error
+	GetIndustryCodeCacheStats() *IndustryCodeCacheStats
+
+	// Optimized Batch Queries
+	GetBatchClassificationCodes(ctx context.Context, industryIDs []int) (map[int][]*ClassificationCode, error)
+	GetBatchIndustries(ctx context.Context, industryIDs []int) (map[int]*Industry, error)
+	GetBatchKeywords(ctx context.Context, industryIDs []int) (map[int][]*KeywordWeight, error)
+
 	// Industry Patterns
 	GetPatternsByIndustry(ctx context.Context, industryID int) ([]*IndustryPattern, error)
 	AddPattern(ctx context.Context, pattern *IndustryPattern) error
