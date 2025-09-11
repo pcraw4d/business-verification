@@ -1,0 +1,13 @@
+{
+  "session_name": "Confidence Score Calibration Validation Session",
+  "validation_directory": "./confidence-calibration-validation",
+  "sample_size": 100,
+  "timeout": "30m",
+  "min_calibration_threshold": 0.80,
+  "include_reliability_diagram": true,
+  "include_calibration_curve": true,
+  "include_brier_score": true,
+  "include_expected_calibration_error": true,
+  "include_temperature_scaling": true,
+  "generate_detailed_report": true
+}

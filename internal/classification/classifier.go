@@ -363,6 +363,36 @@ func (g *ClassificationCodeGenerator) ValidateClassificationCodes(codes *Classif
 }
 
 // GetCodeStatistics returns statistics about the generated classification codes
+// containsAny checks if any of the source strings contain any of the target strings
+func (g *ClassificationCodeGenerator) containsAny(source []string, targets []string) bool {
+	for _, s := range source {
+		for _, t := range targets {
+			if strings.Contains(strings.ToLower(s), strings.ToLower(t)) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// findMatchingKeywords finds keywords that match any of the target strings
+func (g *ClassificationCodeGenerator) findMatchingKeywords(keywords []string, targets []string) []string {
+	if keywords == nil {
+		return []string{}
+	}
+
+	var matches []string
+	for _, keyword := range keywords {
+		for _, target := range targets {
+			if strings.Contains(strings.ToLower(keyword), strings.ToLower(target)) {
+				matches = append(matches, keyword)
+				break // Only add each keyword once
+			}
+		}
+	}
+	return matches
+}
+
 func (g *ClassificationCodeGenerator) GetCodeStatistics(codes *ClassificationCodesInfo) map[string]interface{} {
 	if codes == nil {
 		return map[string]interface{}{

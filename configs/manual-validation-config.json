@@ -1,0 +1,14 @@
+{
+  "session_name": "KYB Manual Validation Session",
+  "validation_dir": "./manual-validation",
+  "sample_size": 50,
+  "validation_timeout": "30m",
+  "auto_save_interval": "5m",
+  "require_validation": true,
+  "allow_disputes": true,
+  "min_accuracy_threshold": 0.8,
+  "include_edge_cases": true,
+  "include_high_confidence": true,
+  "include_low_confidence": true,
+  "validation_fields": ["industry", "mcc", "sic", "naics", "confidence"]
+}

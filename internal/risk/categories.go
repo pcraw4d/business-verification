@@ -68,6 +68,11 @@ func (r *RiskCategoryRegistry) RegisterCategory(definition *RiskCategoryDefiniti
 	}
 }
 
+// RegisterFactor registers a single risk factor definition
+func (r *RiskCategoryRegistry) RegisterFactor(factor *RiskFactorDefinition) {
+	r.factors[factor.ID] = factor
+}
+
 // GetCategory retrieves a risk category definition
 func (r *RiskCategoryRegistry) GetCategory(category RiskCategory) (*RiskCategoryDefinition, bool) {
 	definition, exists := r.categories[category]

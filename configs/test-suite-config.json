@@ -1,0 +1,16 @@
+{
+  "suite_name": "KYB Classification Accuracy Test Suite",
+  "output_directory": "./test-results",
+  "report_format": "json",
+  "verbose": true,
+  "parallel_tests": true,
+  "max_concurrency": 4,
+  "timeout": "30m",
+  "retry_count": 2,
+  "min_accuracy_threshold": 0.7,
+  "min_performance_threshold": 0.8,
+  "include_performance": true,
+  "include_accuracy": true,
+  "include_reliability": true,
+  "include_comparison": true
+}

@@ -66,7 +66,6 @@ func TestPerformanceMonitoringIntegration(t *testing.T) {
 // TestPerformanceThresholds tests performance threshold checking
 func TestPerformanceThresholds(t *testing.T) {
 	monitor := createMockPerformanceMonitoringService()
-	ctx := context.Background()
 
 	// Test normal performance
 	t.Run("NormalPerformance", func(t *testing.T) {

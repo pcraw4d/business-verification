@@ -221,3 +221,59 @@ func (m *MockContainerRepository) GetDatabaseStats(ctx context.Context) (map[str
 	return nil, nil
 }
 func (m *MockContainerRepository) CleanupInactiveData(ctx context.Context) error { return nil }
+
+// Add missing batch methods
+func (m *MockContainerRepository) GetBatchClassificationCodes(ctx context.Context, industryIDs []int) (map[int][]*repository.ClassificationCode, error) {
+	result := make(map[int][]*repository.ClassificationCode)
+	for _, id := range industryIDs {
+		result[id] = []*repository.ClassificationCode{
+			{ID: 1, Code: "541511", Description: "Custom Computer Programming Services", CodeType: "NAICS"},
+		}
+	}
+	return result, nil
+}
+
+func (m *MockContainerRepository) GetBatchIndustries(ctx context.Context, industryIDs []int) (map[int]*repository.Industry, error) {
+	result := make(map[int]*repository.Industry)
+	for _, id := range industryIDs {
+		result[id] = &repository.Industry{ID: id, Name: "Test Industry"}
+	}
+	return result, nil
+}
+
+func (m *MockContainerRepository) GetBatchKeywords(ctx context.Context, industryIDs []int) (map[int][]*repository.KeywordWeight, error) {
+	result := make(map[int][]*repository.KeywordWeight)
+	for _, id := range industryIDs {
+		result[id] = []*repository.KeywordWeight{
+			{ID: 1, Keyword: "test", BaseWeight: 1.0},
+		}
+	}
+	return result, nil
+}
+
+func (m *MockContainerRepository) GetCachedClassificationCodes(ctx context.Context, industryID int) ([]*repository.ClassificationCode, error) {
+	return []*repository.ClassificationCode{
+		{ID: 1, Code: "541511", Description: "Custom Computer Programming Services", CodeType: "NAICS"},
+	}, nil
+}
+
+func (m *MockContainerRepository) GetCachedClassificationCodesByType(ctx context.Context, codeType string) ([]*repository.ClassificationCode, error) {
+	return []*repository.ClassificationCode{
+		{ID: 1, Code: "541511", Description: "Custom Computer Programming Services", CodeType: codeType},
+	}, nil
+}
+
+func (m *MockContainerRepository) InitializeIndustryCodeCache(ctx context.Context) error {
+	return nil
+}
+
+func (m *MockContainerRepository) InvalidateIndustryCodeCache(ctx context.Context, rules []string) error {
+	return nil
+}
+
+func (m *MockContainerRepository) GetIndustryCodeCacheStats() *repository.IndustryCodeCacheStats {
+	return &repository.IndustryCodeCacheStats{
+		Hits:   10,
+		Misses: 2,
+	}
+}

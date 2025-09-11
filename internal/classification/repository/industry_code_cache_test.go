@@ -79,7 +79,7 @@ func TestCachedClassificationCodesByType(t *testing.T) {
 
 	// Test getting cached classification codes by type
 	codeType := "NAICS"
-	_, err = repo.GetCachedClassificationCodesByType(ctx, codeType)
+	codes, err := repo.GetCachedClassificationCodesByType(ctx, codeType)
 	if err != nil {
 		t.Logf("Note: Database not available for test, but caching logic is working")
 		return

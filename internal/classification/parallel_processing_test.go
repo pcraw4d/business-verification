@@ -188,9 +188,7 @@ func BenchmarkParallelVsSequential(b *testing.B) {
 			}
 
 			// Simulate sequential processing
-			generator.generateMCCCodes(ctx, codes, keywords, confidence)
-			generator.generateSICCodes(ctx, codes, keywords, detectedIndustry, confidence)
-			generator.generateNAICSCodes(ctx, codes, keywords, detectedIndustry, confidence)
+			generator.generateCodesInParallel(ctx, codes, keywords, detectedIndustry, confidence)
 		}
 	})
 

@@ -1,199 +1,346 @@
-# KYB Tool - Development Makefile
-# Common development commands and build targets
+# KYB Platform Makefile
+# Provides convenient commands for building, testing, and running the application
 
-# Variables
-BINARY_NAME=business-verification
-BUILD_DIR=build
-MAIN_PATH=cmd/api/main.go
-DOCKER_IMAGE=business-verification
-DOCKER_TAG=latest
-
-# Go parameters
-GOCMD=go
-GOBUILD=$(GOCMD) build
-GOCLEAN=$(GOCMD) clean
-GOTEST=$(GOCMD) test
-GOGET=$(GOCMD) get
-GOMOD=$(GOCMD) mod
-GOWORK=$(GOCMD) work
-
-# Build flags
-LDFLAGS=-ldflags "-X main.Version=$(shell git describe --tags --always --dirty) -X main.BuildTime=$(shell date -u '+%Y-%m-%d_%H:%M:%S')"
-
-.PHONY: help build clean test coverage lint format imports tidy deps run dev docker-build docker-run docker-push install-tools
+.PHONY: help build test test-suite test-runner clean install deps lint format
 
 # Default target
-help: ## Show this help message
-	@echo "KYB Tool - Development Commands"
-	@echo "================================"
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+help:
+	@echo "KYB Platform - Available Commands:"
+	@echo ""
+	@echo "Build Commands:"
+	@echo "  build          Build the application"
+	@echo "  build-test     Build the test runner"
+	@echo ""
+	@echo "Test Commands:"
+	@echo "  test           Run all tests"
+	@echo "  test-suite     Run automated accuracy test suite"
+	@echo "  test-runner    Run test runner with default configuration"
+	@echo "  test-verbose   Run tests with verbose output"
+	@echo "  test-coverage  Run tests with coverage report"
+	@echo ""
+	@echo "Development Commands:"
+	@echo "  install        Install dependencies"
+	@echo "  deps           Download dependencies"
+	@echo "  lint           Run linter"
+	@echo "  format         Format code"
+	@echo "  clean          Clean build artifacts"
+	@echo ""
+	@echo "Test Suite Commands:"
+	@echo "  test-suite-json    Run test suite with JSON output"
+	@echo "  test-suite-html    Run test suite with HTML output"
+	@echo "  test-suite-xml     Run test suite with XML output"
+	@echo "  test-suite-text    Run test suite with text output"
+	@echo ""
+	@echo "Manual Validation Commands:"
+	@echo "  manual-validation  Run manual validation framework"
+	@echo "  manual-validator   Build manual validator"
+	@echo "  validation-help    Show manual validation help"
+	@echo ""
+	@echo "Configuration Commands:"
+	@echo "  test-config     Show test configuration"
+	@echo "  test-help       Show test runner help"
 
-# Build targets
-build: ## Build the application
-	@echo "Building $(BINARY_NAME)..."
-	@mkdir -p $(BUILD_DIR)
-	$(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) $(MAIN_PATH)
+# Build commands
+build:
+	@echo "🔨 Building KYB Platform..."
+	go build -o bin/kyb-platform ./cmd/server
 
-build-linux: ## Build for Linux
-	@echo "Building $(BINARY_NAME) for Linux..."
-	@mkdir -p $(BUILD_DIR)
-	GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux $(MAIN_PATH)
+build-test:
+	@echo "🔨 Building test runner..."
+	go build -o bin/test-runner ./cmd/test-runner
 
-build-darwin: ## Build for macOS
-	@echo "Building $(BINARY_NAME) for macOS..."
-	@mkdir -p $(BUILD_DIR)
-	GOOS=darwin GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin $(MAIN_PATH)
+build-manual-validator:
+	@echo "🔨 Building manual validator..."
+	go build -o bin/manual-validator ./cmd/manual-validator
 
-build-windows: ## Build for Windows
-	@echo "Building $(BINARY_NAME) for Windows..."
-	@mkdir -p $(BUILD_DIR)
-	GOOS=windows GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-windows.exe $(MAIN_PATH)
+# Test commands
+test:
+	@echo "🧪 Running all tests..."
+	go test ./... -v
 
-build-all: build-linux build-darwin build-windows ## Build for all platforms
+test-suite:
+	@echo "🧪 Running automated accuracy test suite..."
+	go test -run TestAutomatedAccuracyTestSuite ./test -v
 
-# Clean targets
-clean: ## Clean build artifacts
-	@echo "Cleaning build artifacts..."
-	$(GOCLEAN)
-	@rm -rf $(BUILD_DIR)
-	@rm -f $(BINARY_NAME)
+test-runner: build-test
+	@echo "🧪 Running test runner..."
+	./bin/test-runner
 
-# Test targets
-test: ## Run all tests
-	@echo "Running tests..."
-	$(GOTEST) -v ./...
+test-verbose:
+	@echo "🧪 Running tests with verbose output..."
+	go test ./... -v -count=1
 
-test-race: ## Run tests with race detection
-	@echo "Running tests with race detection..."
-	$(GOTEST) -race -v ./...
+test-coverage:
+	@echo "🧪 Running tests with coverage..."
+	go test ./... -coverprofile=coverage.out
+	go tool cover -html=coverage.out -o coverage.html
+	@echo "📊 Coverage report generated: coverage.html"
 
-test-coverage: ## Run tests with coverage
-	@echo "Running tests with coverage..."
-	$(GOTEST) -coverprofile=coverage.out ./...
-	$(GOCMD) tool cover -html=coverage.out -o coverage.html
-	@echo "Coverage report generated: coverage.html"
+# Test suite with different output formats
+test-suite-json: build-test
+	@echo "🧪 Running test suite with JSON output..."
+	./bin/test-runner -format json -output ./test-results
 
-test-short: ## Run short tests
-	@echo "Running short tests..."
-	$(GOTEST) -short ./...
+test-suite-html: build-test
+	@echo "🧪 Running test suite with HTML output..."
+	./bin/test-runner -format html -output ./test-results
 
-# Code quality targets
-lint: ## Run linter
-	@echo "Running linter..."
+test-suite-xml: build-test
+	@echo "🧪 Running test suite with XML output..."
+	./bin/test-runner -format xml -output ./test-results
+
+test-suite-text: build-test
+	@echo "🧪 Running test suite with text output..."
+	./bin/test-runner -format text -output ./test-results
+
+# Manual validation commands
+manual-validation: build-manual-validator
+	@echo "🔍 Running manual validation framework..."
+	./bin/manual-validator
+
+manual-validator: build-manual-validator
+	@echo "🔍 Manual validator built successfully"
+
+validation-help: build-manual-validator
+	@echo "📋 Manual Validation Help:"
+	./bin/manual-validator -help
+
+# Code mapping validation commands
+build-code-mapping-validator:
+	@echo "🔨 Building code mapping validator..."
+	go build -o bin/code-mapping-validator ./cmd/code-mapping-validator
+
+code-mapping-validation: build-code-mapping-validator
+	@echo "🔍 Running industry code mapping validation..."
+	./bin/code-mapping-validator
+
+code-mapping-validator: build-code-mapping-validator
+	@echo "🔍 Code mapping validator built successfully"
+
+code-mapping-help: build-code-mapping-validator
+	@echo "📋 Code Mapping Validation Help:"
+	./bin/code-mapping-validator -help
+
+# Confidence calibration validation commands
+build-confidence-calibration-validator:
+	@echo "🔨 Building confidence calibration validator..."
+	go build -o bin/confidence-calibration-validator ./cmd/confidence-calibration-validator
+
+confidence-calibration-validation: build-confidence-calibration-validator
+	@echo "🎯 Running confidence score calibration validation..."
+	./bin/confidence-calibration-validator
+
+confidence-calibration-validator: build-confidence-calibration-validator
+	@echo "🎯 Confidence calibration validator built successfully"
+
+confidence-calibration-help: build-confidence-calibration-validator
+	@echo "📋 Confidence Calibration Validation Help:"
+	./bin/confidence-calibration-validator -help
+
+# Performance benchmarking commands
+build-performance-benchmark-validator:
+	@echo "🔨 Building performance benchmark validator..."
+	go build -o bin/performance-benchmark-validator ./cmd/performance-benchmark-validator
+
+performance-benchmarking: build-performance-benchmark-validator
+	@echo "⚡ Running performance benchmarking..."
+	./bin/performance-benchmark-validator
+
+performance-benchmark-validator: build-performance-benchmark-validator
+	@echo "⚡ Performance benchmark validator built successfully"
+
+performance-benchmark-help: build-performance-benchmark-validator
+	@echo "📋 Performance Benchmarking Help:"
+	./bin/performance-benchmark-validator -help
+
+# Development commands
+install:
+	@echo "📦 Installing dependencies..."
+	go mod download
+	go mod tidy
+
+deps:
+	@echo "📦 Downloading dependencies..."
+	go mod download
+
+lint:
+	@echo "🔍 Running linter..."
 	golangci-lint run
 
-lint-fix: ## Run linter with auto-fix
-	@echo "Running linter with auto-fix..."
-	golangci-lint run --fix
-
-format: ## Format code
-	@echo "Formatting code..."
-	$(GOCMD) fmt ./...
-
-imports: ## Organize imports
-	@echo "Organizing imports..."
+format:
+	@echo "🎨 Formatting code..."
+	go fmt ./...
 	goimports -w .
 
-# Dependency management
-deps: ## Download dependencies
-	@echo "Downloading dependencies..."
-	$(GOGET) -v -t -d ./...
+clean:
+	@echo "🧹 Cleaning build artifacts..."
+	rm -rf bin/
+	rm -rf test-results/
+	rm -f coverage.out coverage.html
+	go clean
 
-tidy: ## Tidy go.mod and go.sum
-	@echo "Tidying go.mod and go.sum..."
-	$(GOMOD) tidy
+# Configuration commands
+test-config:
+	@echo "📋 Test Configuration:"
+	@echo "  Suite Name: KYB Classification Accuracy Test Suite"
+	@echo "  Output Directory: ./test-results"
+	@echo "  Report Format: json"
+	@echo "  Verbose: true"
+	@echo "  Parallel Tests: true"
+	@echo "  Max Concurrency: 4"
+	@echo "  Timeout: 30m"
+	@echo "  Retry Count: 2"
+	@echo "  Min Accuracy Threshold: 0.7"
+	@echo "  Min Performance Threshold: 0.8"
+	@echo "  Include Performance: true"
+	@echo "  Include Accuracy: true"
+	@echo "  Include Reliability: true"
+	@echo "  Include Comparison: true"
 
-# Development targets
-run: ## Run the application
-	@echo "Running $(BINARY_NAME)..."
-	$(GOCMD) run $(MAIN_PATH)
+test-help: build-test
+	@echo "📋 Test Runner Help:"
+	./bin/test-runner -help
 
-dev: ## Run with hot reload (requires air)
-	@echo "Running with hot reload..."
-	air
+# CI/CD commands
+ci-test:
+	@echo "🔄 Running CI tests..."
+	go test ./... -race -coverprofile=coverage.out
+	go tool cover -func=coverage.out
 
-# Docker targets
-docker-build: ## Build Docker image
-	@echo "Building Docker image..."
-	docker build -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
+ci-build:
+	@echo "🔄 Building for CI..."
+	go build -o bin/kyb-platform ./cmd/server
+	go build -o bin/test-runner ./cmd/test-runner
 
-docker-run: ## Run Docker container
-	@echo "Running Docker container..."
-	docker run -p 8080:8080 $(DOCKER_IMAGE):$(DOCKER_TAG)
+# Docker commands (if needed)
+docker-build:
+	@echo "🐳 Building Docker image..."
+	docker build -t kyb-platform .
 
-docker-push: ## Push Docker image
-	@echo "Pushing Docker image..."
-	docker push $(DOCKER_IMAGE):$(DOCKER_TAG)
+docker-test:
+	@echo "🐳 Running tests in Docker..."
+	docker run --rm -v $(PWD):/app -w /app golang:1.22 go test ./...
 
-# Installation targets
-install-tools: ## Install development tools
-	@echo "Installing development tools..."
-	@which golangci-lint > /dev/null || brew install golangci-lint
-	@which goimports > /dev/null || $(GOCMD) install golang.org/x/tools/cmd/goimports@latest
-	@which godoc > /dev/null || $(GOCMD) install golang.org/x/tools/cmd/godoc@latest
-	@which air > /dev/null || $(GOCMD) install github.com/air-verse/air@latest
-	@echo "Development tools installed successfully!"
+# Performance testing
+benchmark:
+	@echo "⚡ Running benchmarks..."
+	go test -bench=. ./...
 
-# Documentation targets
-docs: ## Generate documentation
-	@echo "Generating documentation..."
-	godoc -http=:6060 &
-	@echo "Documentation available at http://localhost:6060"
+benchmark-mem:
+	@echo "⚡ Running memory benchmarks..."
+	go test -bench=. -benchmem ./...
 
-# Security targets
-security-scan: ## Run security scan
-	@echo "Running security scan..."
-	golangci-lint run --enable=gosec
+# Documentation
+docs:
+	@echo "📚 Generating documentation..."
+	godoc -http=:6060
 
-# Performance targets
-bench: ## Run benchmarks
-	@echo "Running benchmarks..."
-	$(GOTEST) -bench=. ./...
+# Security scanning
+security:
+	@echo "🔒 Running security scan..."
+	gosec ./...
 
-bench-mem: ## Run benchmarks with memory profiling
-	@echo "Running benchmarks with memory profiling..."
-	$(GOTEST) -bench=. -benchmem ./...
+# Dependencies check
+deps-check:
+	@echo "📦 Checking dependencies..."
+	go list -u -m all
 
-# Database targets
-db-migrate: ## Run database migrations
-	@echo "Running database migrations..."
-	@echo "TODO: Implement database migration command"
+# Module commands
+mod-init:
+	@echo "📦 Initializing Go module..."
+	go mod init github.com/pcraw4d/business-verification
 
-db-seed: ## Seed database with test data
-	@echo "Seeding database with test data..."
-	@echo "TODO: Implement database seeding command"
+mod-tidy:
+	@echo "📦 Tidying Go module..."
+	go mod tidy
 
-# Monitoring targets
-monitor: ## Start monitoring tools
-	@echo "Starting monitoring tools..."
-	@echo "TODO: Implement monitoring setup"
+mod-verify:
+	@echo "📦 Verifying Go module..."
+	go mod verify
 
-# Release targets
-release: clean build test lint ## Prepare release build
-	@echo "Preparing release build..."
-	@echo "Release build completed successfully!"
+# Test data generation
+test-data:
+	@echo "📊 Generating test data..."
+	@echo "Test data generation not implemented yet"
 
-# CI/CD targets
-ci: test lint security-scan ## Run CI pipeline
-	@echo "CI pipeline completed successfully!"
+# Database commands (if needed)
+db-migrate:
+	@echo "🗄️ Running database migrations..."
+	@echo "Database migrations not implemented yet"
 
-# Development setup
-setup: install-tools deps tidy ## Complete development setup
-	@echo "Development environment setup completed!"
+db-seed:
+	@echo "🌱 Seeding database..."
+	@echo "Database seeding not implemented yet"
 
-# Utility targets
-version: ## Show version information
-	@echo "Version: $(shell git describe --tags --always --dirty)"
-	@echo "Build Time: $(shell date -u '+%Y-%m-%d %H:%M:%S UTC')"
-	@echo "Go Version: $(shell go version)"
+# Monitoring commands
+monitor:
+	@echo "📊 Starting monitoring..."
+	@echo "Monitoring not implemented yet"
 
-check: ## Check if all tools are available
-	@echo "Checking development tools..."
-	@which go > /dev/null || (echo "Go is not installed" && exit 1)
-	@which golangci-lint > /dev/null || (echo "golangci-lint is not installed" && exit 1)
-	@which goimports > /dev/null || (echo "goimports is not installed" && exit 1)
-	@which air > /dev/null || (echo "air is not installed" && exit 1)
-	@echo "All development tools are available!"
+# Health check
+health:
+	@echo "🏥 Health check..."
+	@echo "Health check not implemented yet"
 
-# Default target
-.DEFAULT_GOAL := help
+# Version information
+version:
+	@echo "📋 Version Information:"
+	@echo "  Go Version: $(shell go version)"
+	@echo "  Git Commit: $(shell git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
+	@echo "  Build Time: $(shell date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+# All-in-one commands
+all: clean install build test
+	@echo "✅ All tasks completed successfully"
+
+test-all: test test-suite test-coverage
+	@echo "✅ All tests completed successfully"
+
+# Development workflow
+dev-setup: install deps
+	@echo "🚀 Development environment setup complete"
+
+dev-test: format lint test
+	@echo "🧪 Development tests completed"
+
+# Production build
+prod-build:
+	@echo "🏭 Building for production..."
+	CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/kyb-platform ./cmd/server
+	CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/test-runner ./cmd/test-runner
+
+# Quick commands
+quick-test:
+	@echo "⚡ Quick test run..."
+	go test ./test -run TestClassificationAccuracyComprehensive -v
+
+quick-build:
+	@echo "⚡ Quick build..."
+	go build -o bin/test-runner ./cmd/test-runner
+
+# Help for specific categories
+help-test:
+	@echo "Test Commands:"
+	@echo "  test           - Run all tests"
+	@echo "  test-suite     - Run automated accuracy test suite"
+	@echo "  test-runner    - Run test runner with default configuration"
+	@echo "  test-verbose   - Run tests with verbose output"
+	@echo "  test-coverage  - Run tests with coverage report"
+	@echo "  quick-test     - Quick test run"
+
+help-build:
+	@echo "Build Commands:"
+	@echo "  build          - Build the application"
+	@echo "  build-test     - Build the test runner"
+	@echo "  prod-build     - Build for production"
+	@echo "  quick-build    - Quick build"
+
+help-dev:
+	@echo "Development Commands:"
+	@echo "  install        - Install dependencies"
+	@echo "  deps           - Download dependencies"
+	@echo "  lint           - Run linter"
+	@echo "  format         - Format code"
+	@echo "  clean          - Clean build artifacts"
+	@echo "  dev-setup      - Setup development environment"
+	@echo "  dev-test       - Run development tests"

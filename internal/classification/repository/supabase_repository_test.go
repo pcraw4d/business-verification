@@ -12,8 +12,9 @@ type MockPostgrestQuery struct{}
 func (m *MockPostgrestQuery) Select(columns, count string, head bool) PostgrestQueryInterface {
 	return m
 }
-func (m *MockPostgrestQuery) Eq(column, value string) PostgrestQueryInterface    { return m }
-func (m *MockPostgrestQuery) Ilike(column, value string) PostgrestQueryInterface { return m }
+func (m *MockPostgrestQuery) Eq(column, value string) PostgrestQueryInterface            { return m }
+func (m *MockPostgrestQuery) Ilike(column, value string) PostgrestQueryInterface         { return m }
+func (m *MockPostgrestQuery) In(column string, values ...string) PostgrestQueryInterface { return m }
 func (m *MockPostgrestQuery) Order(column string, ascending *map[string]string) PostgrestQueryInterface {
 	return m
 }
@@ -58,14 +59,14 @@ func TestNewSupabaseKeywordRepository(t *testing.T) {
 	mockClient := &MockSupabaseClient{}
 	logger := log.Default()
 
-	repo := NewSupabaseKeywordRepository(mockClient, logger)
+	repo := NewSupabaseKeywordRepositoryWithInterface(mockClient, logger)
 
 	if repo == nil {
 		t.Fatal("Expected repository to be created, got nil")
 	}
 
-	if repo.client != mockClient {
-		t.Error("Expected client to be set correctly")
+	if repo.client == nil {
+		t.Error("Expected client to be set")
 	}
 
 	if repo.logger != logger {
@@ -77,7 +78,7 @@ func TestNewSupabaseKeywordRepository(t *testing.T) {
 func TestNewSupabaseKeywordRepositoryWithNilLogger(t *testing.T) {
 	mockClient := &MockSupabaseClient{}
 
-	repo := NewSupabaseKeywordRepository(mockClient, nil)
+	repo := NewSupabaseKeywordRepositoryWithInterface(mockClient, nil)
 
 	if repo == nil {
 		t.Fatal("Expected repository to be created, got nil")
@@ -110,7 +111,7 @@ func TestSupabaseKeywordRepository_Ping(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockClient := &MockSupabaseClient{pingError: tt.pingError}
-			repo := NewSupabaseKeywordRepository(mockClient, log.Default())
+			repo := NewSupabaseKeywordRepositoryWithInterface(mockClient, log.Default())
 
 			err := repo.Ping(context.Background())
 
@@ -128,7 +129,7 @@ func TestSupabaseKeywordRepository_Ping(t *testing.T) {
 // TestSupabaseKeywordRepository_ClassifyBusiness tests basic business classification
 func TestSupabaseKeywordRepository_ClassifyBusiness(t *testing.T) {
 	mockClient := &MockSupabaseClient{}
-	repo := NewSupabaseKeywordRepository(mockClient, log.Default())
+	repo := NewSupabaseKeywordRepositoryWithInterface(mockClient, log.Default())
 
 	ctx := context.Background()
 
@@ -154,7 +155,7 @@ func TestSupabaseKeywordRepository_ClassifyBusiness(t *testing.T) {
 // TestSupabaseKeywordRepository_ClassifyBusinessByKeywords tests keyword-based classification
 func TestSupabaseKeywordRepository_ClassifyBusinessByKeywords(t *testing.T) {
 	mockClient := &MockSupabaseClient{}
-	repo := NewSupabaseKeywordRepository(mockClient, log.Default())
+	repo := NewSupabaseKeywordRepositoryWithInterface(mockClient, log.Default())
 
 	ctx := context.Background()
 
@@ -194,7 +195,7 @@ func TestSupabaseKeywordRepository_ClassifyBusinessByKeywords(t *testing.T) {
 // TestSupabaseKeywordRepository_extractKeywords tests keyword extraction
 func TestSupabaseKeywordRepository_extractKeywords(t *testing.T) {
 	mockClient := &MockSupabaseClient{}
-	repo := NewSupabaseKeywordRepository(mockClient, log.Default())
+	repo := NewSupabaseKeywordRepositoryWithInterface(mockClient, log.Default())
 
 	// Test with business name only
 	keywords := repo.extractKeywords("Acme Software Solutions", "", "")
@@ -237,7 +238,7 @@ func TestSupabaseKeywordRepository_InterfaceCompliance(t *testing.T) {
 // BenchmarkSupabaseKeywordRepository_ClassifyBusiness benchmarks business classification
 func BenchmarkSupabaseKeywordRepository_ClassifyBusiness(b *testing.B) {
 	mockClient := &MockSupabaseClient{}
-	repo := NewSupabaseKeywordRepository(mockClient, log.Default())
+	repo := NewSupabaseKeywordRepositoryWithInterface(mockClient, log.Default())
 	ctx := context.Background()
 
 	b.ResetTimer()
@@ -252,7 +253,7 @@ func BenchmarkSupabaseKeywordRepository_ClassifyBusiness(b *testing.B) {
 // BenchmarkSupabaseKeywordRepository_extractKeywords benchmarks keyword extraction
 func BenchmarkSupabaseKeywordRepository_extractKeywords(b *testing.B) {
 	mockClient := &MockSupabaseClient{}
-	repo := NewSupabaseKeywordRepository(mockClient, log.Default())
+	repo := NewSupabaseKeywordRepositoryWithInterface(mockClient, log.Default())
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

@@ -1,0 +1,11 @@
+{
+  "session_name": "Industry Code Mapping Validation Session",
+  "validation_directory": "./code-mapping-validation",
+  "sample_size": 50,
+  "timeout": "30m",
+  "min_accuracy_threshold": 0.80,
+  "include_format_validation": true,
+  "include_structure_validation": true,
+  "include_cross_reference_validation": true,
+  "generate_detailed_report": true
+}

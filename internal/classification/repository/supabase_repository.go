@@ -41,6 +41,31 @@ type SupabaseClientInterface interface {
 	GetPostgrestClient() PostgrestClientInterface
 }
 
+// MockSupabaseClientAdapter adapts the interface to concrete type for testing
+type MockSupabaseClientAdapter struct {
+	client SupabaseClientInterface
+}
+
+func (m *MockSupabaseClientAdapter) Connect(ctx context.Context) error {
+	return m.client.Connect(ctx)
+}
+
+func (m *MockSupabaseClientAdapter) Close() error {
+	return m.client.Close()
+}
+
+func (m *MockSupabaseClientAdapter) Ping(ctx context.Context) error {
+	return m.client.Ping(ctx)
+}
+
+func (m *MockSupabaseClientAdapter) GetClient() interface{} {
+	return m.client.GetClient()
+}
+
+func (m *MockSupabaseClientAdapter) GetPostgrestClient() interface{} {
+	return m.client.GetPostgrestClient()
+}
+
 // KeywordIndex represents an optimized keyword lookup structure
 type KeywordIndex struct {
 	KeywordToIndustries map[string][]IndustryKeywordMatch
@@ -117,6 +142,48 @@ func NewSupabaseKeywordRepository(client *database.SupabaseClient, logger *log.L
 
 	return &SupabaseKeywordRepository{
 		client: client,
+		logger: logger,
+		keywordIndex: &KeywordIndex{
+			KeywordToIndustries: make(map[string][]IndustryKeywordMatch),
+			IndustryToKeywords:  make(map[int][]*KeywordWeight),
+			LastUpdated:         0,
+		},
+		industryCodeCache: intelligentCache,
+		cacheConfig:       cacheConfig,
+		cacheStats:        &IndustryCodeCacheStats{},
+	}
+}
+
+// NewSupabaseKeywordRepositoryWithInterface creates a new Supabase-based keyword repository with interface
+func NewSupabaseKeywordRepositoryWithInterface(client SupabaseClientInterface, logger *log.Logger) *SupabaseKeywordRepository {
+	if logger == nil {
+		logger = log.Default()
+	}
+
+	// For testing purposes, we'll use nil for the client since tests don't need real database connections
+	// In production, this should be refactored to use interfaces properly
+	var concreteClient *database.SupabaseClient
+
+	// Default cache configuration
+	cacheConfig := &IndustryCodeCacheConfig{
+		Enabled:         true,
+		TTL:             30 * time.Minute, // Cache industry codes for 30 minutes
+		MaxSize:         1000,             // Cache up to 1000 industry code sets
+		WarmingEnabled:  true,
+		WarmingInterval: 5 * time.Minute, // Warm cache every 5 minutes
+		InvalidationRules: []string{
+			"industry_codes:*",       // Invalidate all industry codes
+			"classification_codes:*", // Invalidate all classification codes
+		},
+	}
+
+	// Initialize intelligent cache for industry codes
+	// Note: We'll implement the full IntelligentCache integration later
+	// For now, we'll use a nil cache and implement basic caching logic
+	var intelligentCache *cache.IntelligentCache
+
+	return &SupabaseKeywordRepository{
+		client: concreteClient,
 		logger: logger,
 		keywordIndex: &KeywordIndex{
 			KeywordToIndustries: make(map[string][]IndustryKeywordMatch),

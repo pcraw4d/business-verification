@@ -266,7 +266,6 @@ func BenchmarkPerformanceTesting(b *testing.B) {
 
 	// Create performance test suite
 	pts := NewPerformanceTestSuite(service, classifier, repo, logger)
-	ctx := context.Background()
 
 	// Generate test keywords
 	keywords := pts.generateLargeKeywordDataset(100)

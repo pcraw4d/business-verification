@@ -648,3 +648,70 @@ func (m *MockE2ERepository) GetDatabaseStats(ctx context.Context) (map[string]in
 	return nil, nil
 }
 func (m *MockE2ERepository) CleanupInactiveData(ctx context.Context) error { return nil }
+
+// Add missing batch methods
+func (m *MockE2ERepository) GetBatchClassificationCodes(ctx context.Context, industryIDs []int) (map[int][]*repository.ClassificationCode, error) {
+	result := make(map[int][]*repository.ClassificationCode)
+	for _, id := range industryIDs {
+		if codes, exists := m.classificationCodes[id]; exists {
+			result[id] = codes
+		} else {
+			result[id] = []*repository.ClassificationCode{
+				{ID: 1, Code: "541511", Description: "Custom Computer Programming Services", CodeType: "NAICS"},
+			}
+		}
+	}
+	return result, nil
+}
+
+func (m *MockE2ERepository) GetBatchIndustries(ctx context.Context, industryIDs []int) (map[int]*repository.Industry, error) {
+	result := make(map[int]*repository.Industry)
+	for _, id := range industryIDs {
+		if industry, exists := m.industries[id]; exists {
+			result[id] = industry
+		} else {
+			result[id] = &repository.Industry{ID: id, Name: "Test Industry"}
+		}
+	}
+	return result, nil
+}
+
+func (m *MockE2ERepository) GetBatchKeywords(ctx context.Context, industryIDs []int) (map[int][]*repository.KeywordWeight, error) {
+	result := make(map[int][]*repository.KeywordWeight)
+	for _, id := range industryIDs {
+		result[id] = []*repository.KeywordWeight{
+			{ID: 1, Keyword: "test", BaseWeight: 1.0},
+		}
+	}
+	return result, nil
+}
+
+func (m *MockE2ERepository) GetCachedClassificationCodes(ctx context.Context, industryID int) ([]*repository.ClassificationCode, error) {
+	if codes, exists := m.classificationCodes[industryID]; exists {
+		return codes, nil
+	}
+	return []*repository.ClassificationCode{
+		{ID: 1, Code: "541511", Description: "Custom Computer Programming Services", CodeType: "NAICS"},
+	}, nil
+}
+
+func (m *MockE2ERepository) GetCachedClassificationCodesByType(ctx context.Context, codeType string) ([]*repository.ClassificationCode, error) {
+	return []*repository.ClassificationCode{
+		{ID: 1, Code: "541511", Description: "Custom Computer Programming Services", CodeType: codeType},
+	}, nil
+}
+
+func (m *MockE2ERepository) InitializeIndustryCodeCache(ctx context.Context) error {
+	return nil
+}
+
+func (m *MockE2ERepository) InvalidateIndustryCodeCache(ctx context.Context, rules []string) error {
+	return nil
+}
+
+func (m *MockE2ERepository) GetIndustryCodeCacheStats() *repository.IndustryCodeCacheStats {
+	return &repository.IndustryCodeCacheStats{
+		Hits:   10,
+		Misses: 2,
+	}
+}

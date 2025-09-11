@@ -1,0 +1,62 @@
+{
+  "name": "kyb-platform-visual-tests",
+  "version": "1.0.0",
+  "description": "Visual regression testing for KYB Platform dashboard components",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:update-snapshots": "playwright test --update-snapshots",
+    "test:report": "playwright show-report",
+    "test:cross-browser": "node web/tests/scripts/run-cross-browser-tests.js all",
+    "test:cross-browser:visual": "node web/tests/scripts/run-cross-browser-tests.js visual",
+    "test:cross-browser:chrome": "node web/tests/scripts/run-cross-browser-tests.js browser chrome",
+    "test:cross-browser:firefox": "node web/tests/scripts/run-cross-browser-tests.js browser firefox",
+    "test:cross-browser:safari": "node web/tests/scripts/run-cross-browser-tests.js browser safari",
+    "test:cross-browser:edge": "node web/tests/scripts/run-cross-browser-tests.js browser edge",
+    "test:cross-browser:headed": "node web/tests/scripts/run-cross-browser-tests.js all --headed",
+    "test:cross-browser:debug": "node web/tests/scripts/run-cross-browser-tests.js all --debug",
+    "test:cross-browser:ui": "node web/tests/scripts/run-cross-browser-tests.js all --ui",
+    "test:cross-browser:clean": "node web/tests/scripts/run-cross-browser-tests.js clean",
+    "test:state-based": "node web/tests/scripts/run-state-based-tests.js all",
+    "test:state-based:risk-levels": "node web/tests/scripts/run-state-based-tests.js risk-levels",
+    "test:state-based:loading": "node web/tests/scripts/run-state-based-tests.js loading",
+    "test:state-based:error": "node web/tests/scripts/run-state-based-tests.js error",
+    "test:state-based:empty-data": "node web/tests/scripts/run-state-based-tests.js empty-data",
+    "test:state-based:responsive": "node web/tests/scripts/run-state-based-tests.js responsive",
+    "test:state-based:headed": "node web/tests/scripts/run-state-based-tests.js all --headed",
+    "test:state-based:debug": "node web/tests/scripts/run-state-based-tests.js all --debug",
+    "test:state-based:ui": "node web/tests/scripts/run-state-based-tests.js all --ui",
+    "test:state-based:clean": "node web/tests/scripts/run-state-based-tests.js clean",
+    "test:interactive": "node web/tests/scripts/run-interactive-element-tests.js all",
+    "test:interactive:hover": "node web/tests/scripts/run-interactive-element-tests.js hover",
+    "test:interactive:tooltip": "node web/tests/scripts/run-interactive-element-tests.js tooltip",
+    "test:interactive:animation": "node web/tests/scripts/run-interactive-element-tests.js animation",
+    "test:interactive:focus": "node web/tests/scripts/run-interactive-element-tests.js focus",
+    "test:interactive:responsive": "node web/tests/scripts/run-interactive-element-tests.js responsive",
+    "test:interactive:accessibility": "node web/tests/scripts/run-interactive-element-tests.js accessibility",
+    "test:interactive:headed": "node web/tests/scripts/run-interactive-element-tests.js all --headed",
+    "test:interactive:debug": "node web/tests/scripts/run-interactive-element-tests.js all --debug",
+    "test:interactive:ui": "node web/tests/scripts/run-interactive-element-tests.js all --ui",
+    "test:interactive:clean": "node web/tests/scripts/run-interactive-element-tests.js clean",
+    "install-browsers": "playwright install",
+    "install-deps": "playwright install --with-deps"
+  },
+  "keywords": [
+    "visual-regression",
+    "playwright",
+    "testing",
+    "kyb-platform",
+    "dashboard"
+  ],
+  "author": "KYB Platform Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

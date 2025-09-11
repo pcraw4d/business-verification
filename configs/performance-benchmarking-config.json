@@ -1,0 +1,16 @@
+{
+  "session_name": "Performance Benchmarking Session",
+  "benchmark_directory": "./performance-benchmark",
+  "sample_size": 50,
+  "timeout": "30m",
+  "concurrency_levels": [1, 2, 4, 8, 16, 32],
+  "load_test_duration": "30s",
+  "stress_test_duration": "60s",
+  "include_memory_profiling": true,
+  "include_cpu_profiling": true,
+  "include_throughput_testing": true,
+  "include_latency_testing": true,
+  "include_scalability_testing": true,
+  "include_resource_monitoring": true,
+  "generate_detailed_report": true
+}
