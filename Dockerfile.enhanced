@@ -18,8 +18,8 @@ COPY internal/ internal/
 COPY pkg/ pkg/
 COPY web/ web/
 
-# Build the enhanced application with new classification system
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o kyb-platform ./cmd/api-enhanced/main-enhanced-classification.go
+# Build the minimal application for deployment
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o kyb-platform ./cmd/api-enhanced/main-minimal.go
 
 # Create final image
 FROM alpine:latest
