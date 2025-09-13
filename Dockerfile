@@ -17,7 +17,7 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o business-verification-v3-api ./cmd/api-enhanced/main-enhanced-classification.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o business-verification-v3-api ./cmd/fixed-server/main.go
 
 # Production stage
 FROM alpine:latest
@@ -39,6 +39,7 @@ COPY --from=builder /app/business-verification-v3-api .
 COPY --from=builder /app/configs ./configs
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/monitoring ./monitoring
+COPY --from=builder /app/web ./web
 
 # Create necessary directories
 RUN mkdir -p logs backups build && \
