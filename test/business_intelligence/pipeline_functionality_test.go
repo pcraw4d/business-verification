@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
-	"github.com/your-org/your-repo/internal/modules/business_intelligence"
+	"github.com/pcraw4d/business-verification/internal/modules/business_intelligence"
 )
 
 // MockBusinessDataAPI is a mock implementation of BusinessDataAPIService
