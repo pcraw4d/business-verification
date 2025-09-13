@@ -445,28 +445,300 @@ func (p *PostgresDB) DeleteBusinessClassification(ctx context.Context, id string
 }
 
 func (p *PostgresDB) CreateRiskAssessment(ctx context.Context, assessment *RiskAssessment) error {
-	// TODO: Implement
-	return fmt.Errorf("not implemented")
+	// Convert category scores to JSON
+	categoryScoresJSON, err := json.Marshal(assessment.CategoryScores)
+	if err != nil {
+		return fmt.Errorf("failed to marshal category scores: %w", err)
+	}
+
+	// Convert factor scores to JSON
+	factorScoresJSON, err := json.Marshal(assessment.FactorScores)
+	if err != nil {
+		return fmt.Errorf("failed to marshal factor scores: %w", err)
+	}
+
+	// Convert recommendations to JSON
+	recommendationsJSON, err := json.Marshal(assessment.Recommendations)
+	if err != nil {
+		return fmt.Errorf("failed to marshal recommendations: %w", err)
+	}
+
+	// Convert alerts to JSON
+	alertsJSON, err := json.Marshal(assessment.Alerts)
+	if err != nil {
+		return fmt.Errorf("failed to marshal alerts: %w", err)
+	}
+
+	// Convert metadata to JSON
+	metadataJSON, err := json.Marshal(assessment.Metadata)
+	if err != nil {
+		return fmt.Errorf("failed to marshal metadata: %w", err)
+	}
+
+	// Insert risk assessment
+	query := `
+		INSERT INTO risk_assessments (
+			id, business_id, business_name, overall_score, overall_level,
+			category_scores, factor_scores, recommendations, alerts,
+			assessment_method, source, metadata, assessed_at, valid_until,
+			created_at, updated_at
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
+		)
+	`
+
+	now := time.Now()
+	_, err = p.getDB().ExecContext(ctx, query,
+		assessment.ID,
+		assessment.BusinessID,
+		assessment.BusinessName,
+		assessment.OverallScore,
+		assessment.OverallLevel,
+		categoryScoresJSON,
+		factorScoresJSON,
+		recommendationsJSON,
+		alertsJSON,
+		assessment.AssessmentMethod,
+		assessment.Source,
+		metadataJSON,
+		assessment.AssessedAt,
+		assessment.ValidUntil,
+		now,
+		now,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to create risk assessment: %w", err)
+	}
+
+	return nil
 }
 
 func (p *PostgresDB) GetRiskAssessmentByID(ctx context.Context, id string) (*RiskAssessment, error) {
-	// TODO: Implement
-	return nil, fmt.Errorf("not implemented")
+	query := `
+		SELECT id, business_id, business_name, overall_score, overall_level,
+		       category_scores, factor_scores, recommendations, alerts,
+		       assessment_method, source, metadata, assessed_at, valid_until,
+		       created_at, updated_at
+		FROM risk_assessments
+		WHERE id = $1
+	`
+
+	row := p.getDB().QueryRowContext(ctx, query, id)
+
+	var assessment RiskAssessment
+	var categoryScoresStr, factorScoresStr, recommendationsStr, alertsStr, metadataStr string
+
+	err := row.Scan(
+		&assessment.ID,
+		&assessment.BusinessID,
+		&assessment.BusinessName,
+		&assessment.OverallScore,
+		&assessment.OverallLevel,
+		&categoryScoresStr,
+		&factorScoresStr,
+		&recommendationsStr,
+		&alertsStr,
+		&assessment.AssessmentMethod,
+		&assessment.Source,
+		&metadataStr,
+		&assessment.AssessedAt,
+		&assessment.ValidUntil,
+		&assessment.CreatedAt,
+		&assessment.UpdatedAt,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("risk assessment not found")
+		}
+		return nil, fmt.Errorf("failed to retrieve risk assessment: %w", err)
+	}
+
+	// Parse JSON fields
+	if err := json.Unmarshal([]byte(categoryScoresStr), &assessment.CategoryScores); err != nil {
+		assessment.CategoryScores = make(map[string]interface{})
+	}
+	if err := json.Unmarshal([]byte(factorScoresStr), &assessment.FactorScores); err != nil {
+		assessment.FactorScores = []string{}
+	}
+	if err := json.Unmarshal([]byte(recommendationsStr), &assessment.Recommendations); err != nil {
+		assessment.Recommendations = []string{}
+	}
+	if err := json.Unmarshal([]byte(alertsStr), &assessment.Alerts); err != nil {
+		assessment.Alerts = []string{}
+	}
+	if err := json.Unmarshal([]byte(metadataStr), &assessment.Metadata); err != nil {
+		assessment.Metadata = make(map[string]interface{})
+	}
+
+	return &assessment, nil
 }
 
 func (p *PostgresDB) GetRiskAssessmentsByBusinessID(ctx context.Context, businessID string) ([]*RiskAssessment, error) {
-	// TODO: Implement
-	return nil, fmt.Errorf("not implemented")
+	query := `
+		SELECT id, business_id, business_name, overall_score, overall_level,
+		       category_scores, factor_scores, recommendations, alerts,
+		       assessment_method, source, metadata, assessed_at, valid_until,
+		       created_at, updated_at
+		FROM risk_assessments
+		WHERE business_id = $1
+		ORDER BY assessed_at DESC
+	`
+
+	rows, err := p.getDB().QueryContext(ctx, query, businessID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query risk assessments: %w", err)
+	}
+	defer rows.Close()
+
+	var assessments []*RiskAssessment
+	for rows.Next() {
+		var assessment RiskAssessment
+		var categoryScoresStr, factorScoresStr, recommendationsStr, alertsStr, metadataStr string
+
+		err := rows.Scan(
+			&assessment.ID,
+			&assessment.BusinessID,
+			&assessment.BusinessName,
+			&assessment.OverallScore,
+			&assessment.OverallLevel,
+			&categoryScoresStr,
+			&factorScoresStr,
+			&recommendationsStr,
+			&alertsStr,
+			&assessment.AssessmentMethod,
+			&assessment.Source,
+			&metadataStr,
+			&assessment.AssessedAt,
+			&assessment.ValidUntil,
+			&assessment.CreatedAt,
+			&assessment.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan risk assessment: %w", err)
+		}
+
+		// Parse JSON fields
+		if err := json.Unmarshal([]byte(categoryScoresStr), &assessment.CategoryScores); err != nil {
+			assessment.CategoryScores = make(map[string]interface{})
+		}
+		if err := json.Unmarshal([]byte(factorScoresStr), &assessment.FactorScores); err != nil {
+			assessment.FactorScores = []string{}
+		}
+		if err := json.Unmarshal([]byte(recommendationsStr), &assessment.Recommendations); err != nil {
+			assessment.Recommendations = []string{}
+		}
+		if err := json.Unmarshal([]byte(alertsStr), &assessment.Alerts); err != nil {
+			assessment.Alerts = []string{}
+		}
+		if err := json.Unmarshal([]byte(metadataStr), &assessment.Metadata); err != nil {
+			assessment.Metadata = make(map[string]interface{})
+		}
+
+		assessments = append(assessments, &assessment)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating risk assessments: %w", err)
+	}
+
+	return assessments, nil
 }
 
 func (p *PostgresDB) UpdateRiskAssessment(ctx context.Context, assessment *RiskAssessment) error {
-	// TODO: Implement
-	return fmt.Errorf("not implemented")
+	// Convert data to JSON
+	categoryScoresJSON, err := json.Marshal(assessment.CategoryScores)
+	if err != nil {
+		return fmt.Errorf("failed to marshal category scores: %w", err)
+	}
+
+	factorScoresJSON, err := json.Marshal(assessment.FactorScores)
+	if err != nil {
+		return fmt.Errorf("failed to marshal factor scores: %w", err)
+	}
+
+	recommendationsJSON, err := json.Marshal(assessment.Recommendations)
+	if err != nil {
+		return fmt.Errorf("failed to marshal recommendations: %w", err)
+	}
+
+	alertsJSON, err := json.Marshal(assessment.Alerts)
+	if err != nil {
+		return fmt.Errorf("failed to marshal alerts: %w", err)
+	}
+
+	metadataJSON, err := json.Marshal(assessment.Metadata)
+	if err != nil {
+		return fmt.Errorf("failed to marshal metadata: %w", err)
+	}
+
+	query := `
+		UPDATE risk_assessments SET
+			business_name = $2,
+			overall_score = $3,
+			overall_level = $4,
+			category_scores = $5,
+			factor_scores = $6,
+			recommendations = $7,
+			alerts = $8,
+			metadata = $9,
+			assessed_at = $10,
+			valid_until = $11,
+			updated_at = $12
+		WHERE id = $1
+	`
+
+	now := time.Now()
+	result, err := p.getDB().ExecContext(ctx, query,
+		assessment.ID,
+		assessment.BusinessName,
+		assessment.OverallScore,
+		assessment.OverallLevel,
+		categoryScoresJSON,
+		factorScoresJSON,
+		recommendationsJSON,
+		alertsJSON,
+		metadataJSON,
+		assessment.AssessedAt,
+		assessment.ValidUntil,
+		now,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to update risk assessment: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("risk assessment not found")
+	}
+
+	return nil
 }
 
 func (p *PostgresDB) DeleteRiskAssessment(ctx context.Context, id string) error {
-	// TODO: Implement
-	return fmt.Errorf("not implemented")
+	query := `DELETE FROM risk_assessments WHERE id = $1`
+
+	result, err := p.getDB().ExecContext(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete risk assessment: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("risk assessment not found")
+	}
+
+	return nil
 }
 
 func (p *PostgresDB) CreateComplianceCheck(ctx context.Context, check *ComplianceCheck) error {

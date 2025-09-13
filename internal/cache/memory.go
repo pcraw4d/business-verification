@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 )
@@ -339,9 +340,15 @@ func (mc *MemoryCacheImpl) GetKeys(ctx context.Context, pattern string) ([]strin
 
 	keys := make([]string, 0, len(mc.data))
 	for key := range mc.data {
-		// Simple pattern matching - can be enhanced with regex
+		// Simple pattern matching with wildcard support
 		if pattern == "" || key == pattern {
 			keys = append(keys, key)
+		} else if strings.Contains(pattern, "*") {
+			// Convert wildcard pattern to simple prefix matching
+			prefix := strings.TrimSuffix(pattern, "*")
+			if strings.HasPrefix(key, prefix) {
+				keys = append(keys, key)
+			}
 		}
 	}
 

@@ -1,0 +1,1262 @@
+openapi: 3.0.3
+info:
+  title: Merchant Portfolio Management API
+  description: Comprehensive API for managing merchant portfolios in the KYB Platform
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: api-support@kyb-platform.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.kyb-platform.com/v1
+    description: Production server
+  - url: https://staging-api.kyb-platform.com/v1
+    description: Staging server
+
+security:
+  - BearerAuth: []
+
+paths:
+  /merchants:
+    post:
+      summary: Create a new merchant
+      description: Creates a new merchant in the portfolio
+      operationId: createMerchant
+      tags:
+        - Merchants
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMerchantRequest'
+            examples:
+              basic_merchant:
+                summary: Basic merchant creation
+                value:
+                  name: "Acme Corporation"
+                  legal_name: "Acme Corporation LLC"
+                  industry: "Technology"
+                  portfolio_type: "prospective"
+                  risk_level: "medium"
+                  address:
+                    street1: "123 Main Street"
+                    city: "San Francisco"
+                    state: "CA"
+                    postal_code: "94105"
+                    country: "United States"
+                    country_code: "US"
+                  contact_info:
+                    email: "contact@acme.com"
+                    phone: "+1-555-123-4567"
+      responses:
+        '201':
+          description: Merchant created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Merchant'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+        '409':
+          description: Merchant already exists
+        '429':
+          description: Rate limit exceeded
+
+    get:
+      summary: List merchants
+      description: Retrieves a paginated list of merchants with optional filtering
+      operationId: listMerchants
+      tags:
+        - Merchants
+      parameters:
+        - name: page
+          in: query
+          description: Page number
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: portfolio_type
+          in: query
+          description: Filter by portfolio type
+          required: false
+          schema:
+            $ref: '#/components/schemas/PortfolioType'
+        - name: risk_level
+          in: query
+          description: Filter by risk level
+          required: false
+          schema:
+            $ref: '#/components/schemas/RiskLevel'
+        - name: industry
+          in: query
+          description: Filter by industry
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Filter by status
+          required: false
+          schema:
+            type: string
+        - name: search
+          in: query
+          description: Search query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Merchants retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MerchantListResponse'
+        '400':
+          description: Invalid query parameters
+        '401':
+          description: Unauthorized
+        '429':
+          description: Rate limit exceeded
+
+  /merchants/{id}:
+    get:
+      summary: Get merchant by ID
+      description: Retrieves a specific merchant by ID
+      operationId: getMerchant
+      tags:
+        - Merchants
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Merchant ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Merchant retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Merchant'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Merchant not found
+        '429':
+          description: Rate limit exceeded
+
+    put:
+      summary: Update merchant
+      description: Updates an existing merchant
+      operationId: updateMerchant
+      tags:
+        - Merchants
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Merchant ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMerchantRequest'
+      responses:
+        '200':
+          description: Merchant updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Merchant'
+        '400':
+          description: Invalid request data
+        '401':
+          description: Unauthorized
+        '404':
+          description: Merchant not found
+        '429':
+          description: Rate limit exceeded
+
+    delete:
+      summary: Delete merchant
+      description: Deletes a merchant from the portfolio
+      operationId: deleteMerchant
+      tags:
+        - Merchants
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Merchant ID
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Merchant deleted successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Merchant not found
+        '429':
+          description: Rate limit exceeded
+
+  /merchants/search:
+    post:
+      summary: Advanced merchant search
+      description: Performs advanced search with complex filtering criteria
+      operationId: searchMerchants
+      tags:
+        - Merchants
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchRequest'
+      responses:
+        '200':
+          description: Search completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+        '400':
+          description: Invalid search criteria
+        '401':
+          description: Unauthorized
+        '429':
+          description: Rate limit exceeded
+
+  /merchants/bulk/portfolio-type:
+    post:
+      summary: Bulk update portfolio type
+      description: Updates the portfolio type for multiple merchants
+      operationId: bulkUpdatePortfolioType
+      tags:
+        - Bulk Operations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkPortfolioTypeRequest'
+      responses:
+        '200':
+          description: Bulk operation completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkOperationResult'
+        '400':
+          description: Invalid request data
+        '401':
+          description: Unauthorized
+        '429':
+          description: Rate limit exceeded
+
+  /merchants/bulk/risk-level:
+    post:
+      summary: Bulk update risk level
+      description: Updates the risk level for multiple merchants
+      operationId: bulkUpdateRiskLevel
+      tags:
+        - Bulk Operations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkRiskLevelRequest'
+      responses:
+        '200':
+          description: Bulk operation completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkOperationResult'
+        '400':
+          description: Invalid request data
+        '401':
+          description: Unauthorized
+        '429':
+          description: Rate limit exceeded
+
+  /merchants/bulk/{operation_id}:
+    get:
+      summary: Get bulk operation status
+      description: Retrieves the status of a bulk operation
+      operationId: getBulkOperationStatus
+      tags:
+        - Bulk Operations
+      parameters:
+        - name: operation_id
+          in: path
+          required: true
+          description: Bulk operation ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Operation status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkOperationStatus'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Operation not found
+        '429':
+          description: Rate limit exceeded
+
+  /merchants/{id}/session:
+    post:
+      summary: Start merchant session
+      description: Starts a session for a specific merchant
+      operationId: startMerchantSession
+      tags:
+        - Session Management
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Merchant ID
+          schema:
+            type: string
+      responses:
+        '201':
+          description: Session started successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MerchantSession'
+        '400':
+          description: Invalid merchant ID
+        '401':
+          description: Unauthorized
+        '404':
+          description: Merchant not found
+        '409':
+          description: Another merchant session is already active
+        '429':
+          description: Rate limit exceeded
+
+    delete:
+      summary: End merchant session
+      description: Ends the current merchant session
+      operationId: endMerchantSession
+      tags:
+        - Session Management
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Merchant ID
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Session ended successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Session not found
+        '429':
+          description: Rate limit exceeded
+
+  /merchants/session/active:
+    get:
+      summary: Get active session
+      description: Retrieves the currently active merchant session
+      operationId: getActiveSession
+      tags:
+        - Session Management
+      responses:
+        '200':
+          description: Active session retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MerchantSession'
+        '401':
+          description: Unauthorized
+        '404':
+          description: No active session
+        '429':
+          description: Rate limit exceeded
+
+  /merchants/analytics:
+    get:
+      summary: Get merchant analytics
+      description: Retrieves comprehensive analytics and insights
+      operationId: getMerchantAnalytics
+      tags:
+        - Analytics
+      parameters:
+        - name: period
+          in: query
+          description: Time period for analytics
+          required: false
+          schema:
+            type: string
+            enum: [7d, 30d, 90d, 1y]
+            default: 30d
+        - name: portfolio_type
+          in: query
+          description: Filter by portfolio type
+          required: false
+          schema:
+            $ref: '#/components/schemas/PortfolioType'
+        - name: risk_level
+          in: query
+          description: Filter by risk level
+          required: false
+          schema:
+            $ref: '#/components/schemas/RiskLevel'
+      responses:
+        '200':
+          description: Analytics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MerchantAnalytics'
+        '401':
+          description: Unauthorized
+        '429':
+          description: Rate limit exceeded
+
+  /merchants/portfolio-types:
+    get:
+      summary: Get portfolio types
+      description: Retrieves available portfolio types
+      operationId: getPortfolioTypes
+      tags:
+        - Analytics
+      responses:
+        '200':
+          description: Portfolio types retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioTypeList'
+        '401':
+          description: Unauthorized
+        '429':
+          description: Rate limit exceeded
+
+  /merchants/risk-levels:
+    get:
+      summary: Get risk levels
+      description: Retrieves available risk levels
+      operationId: getRiskLevels
+      tags:
+        - Analytics
+      responses:
+        '200':
+          description: Risk levels retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskLevelList'
+        '401':
+          description: Unauthorized
+        '429':
+          description: Rate limit exceeded
+
+  /merchants/statistics:
+    get:
+      summary: Get merchant statistics
+      description: Retrieves detailed statistics for the merchant portfolio
+      operationId: getMerchantStatistics
+      tags:
+        - Analytics
+      responses:
+        '200':
+          description: Statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MerchantStatistics'
+        '401':
+          description: Unauthorized
+        '429':
+          description: Rate limit exceeded
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Merchant:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique merchant identifier
+          example: "merchant_1234567890"
+        name:
+          type: string
+          description: Merchant name
+          example: "Acme Corporation"
+        legal_name:
+          type: string
+          description: Legal business name
+          example: "Acme Corporation LLC"
+        registration_number:
+          type: string
+          description: Business registration number
+          example: "REG123456"
+        tax_id:
+          type: string
+          description: Tax identification number
+          example: "TAX789012"
+        industry:
+          type: string
+          description: Business industry
+          example: "Technology"
+        industry_code:
+          type: string
+          description: Industry classification code
+          example: "541511"
+        business_type:
+          type: string
+          description: Type of business entity
+          example: "Corporation"
+        founded_date:
+          type: string
+          format: date-time
+          description: Date when business was founded
+          example: "2020-01-15T00:00:00Z"
+        employee_count:
+          type: integer
+          description: Number of employees
+          example: 25
+        annual_revenue:
+          type: number
+          format: float
+          description: Annual revenue in USD
+          example: 500000.00
+        address:
+          $ref: '#/components/schemas/Address'
+        contact_info:
+          $ref: '#/components/schemas/ContactInfo'
+        portfolio_type:
+          $ref: '#/components/schemas/PortfolioType'
+        risk_level:
+          $ref: '#/components/schemas/RiskLevel'
+        compliance_status:
+          type: string
+          description: Compliance status
+          example: "compliant"
+        status:
+          type: string
+          description: Merchant status
+          example: "active"
+        created_by:
+          type: string
+          description: User who created the merchant
+          example: "user_123"
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp
+          example: "2025-01-15T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2025-01-15T15:45:00Z"
+
+    Address:
+      type: object
+      properties:
+        street1:
+          type: string
+          description: Primary street address
+          example: "123 Main Street"
+        street2:
+          type: string
+          description: Secondary street address
+          example: "Suite 100"
+        city:
+          type: string
+          description: City
+          example: "San Francisco"
+        state:
+          type: string
+          description: State or province
+          example: "CA"
+        postal_code:
+          type: string
+          description: Postal or ZIP code
+          example: "94105"
+        country:
+          type: string
+          description: Country name
+          example: "United States"
+        country_code:
+          type: string
+          description: ISO country code
+          example: "US"
+
+    ContactInfo:
+      type: object
+      properties:
+        phone:
+          type: string
+          description: Business phone number
+          example: "+1-555-123-4567"
+        email:
+          type: string
+          format: email
+          description: Business email address
+          example: "contact@acme.com"
+        website:
+          type: string
+          format: uri
+          description: Business website URL
+          example: "https://www.acme.com"
+        primary_contact:
+          type: string
+          description: Primary contact person
+          example: "John Doe"
+
+    PortfolioType:
+      type: string
+      enum: [onboarded, deactivated, prospective, pending]
+      description: Type of merchant in the portfolio
+      example: "onboarded"
+
+    RiskLevel:
+      type: string
+      enum: [high, medium, low]
+      description: Risk level of the merchant
+      example: "medium"
+
+    CreateMerchantRequest:
+      type: object
+      required:
+        - name
+        - portfolio_type
+        - risk_level
+      properties:
+        name:
+          type: string
+          description: Merchant name
+          example: "Acme Corporation"
+        legal_name:
+          type: string
+          description: Legal business name
+          example: "Acme Corporation LLC"
+        registration_number:
+          type: string
+          description: Business registration number
+          example: "REG123456"
+        tax_id:
+          type: string
+          description: Tax identification number
+          example: "TAX789012"
+        industry:
+          type: string
+          description: Business industry
+          example: "Technology"
+        industry_code:
+          type: string
+          description: Industry classification code
+          example: "541511"
+        business_type:
+          type: string
+          description: Type of business entity
+          example: "Corporation"
+        founded_date:
+          type: string
+          format: date-time
+          description: Date when business was founded
+          example: "2020-01-15T00:00:00Z"
+        employee_count:
+          type: integer
+          description: Number of employees
+          example: 25
+        annual_revenue:
+          type: number
+          format: float
+          description: Annual revenue in USD
+          example: 500000.00
+        address:
+          $ref: '#/components/schemas/Address'
+        contact_info:
+          $ref: '#/components/schemas/ContactInfo'
+        portfolio_type:
+          $ref: '#/components/schemas/PortfolioType'
+        risk_level:
+          $ref: '#/components/schemas/RiskLevel'
+
+    UpdateMerchantRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Merchant name
+        legal_name:
+          type: string
+          description: Legal business name
+        registration_number:
+          type: string
+          description: Business registration number
+        tax_id:
+          type: string
+          description: Tax identification number
+        industry:
+          type: string
+          description: Business industry
+        industry_code:
+          type: string
+          description: Industry classification code
+        business_type:
+          type: string
+          description: Type of business entity
+        founded_date:
+          type: string
+          format: date-time
+          description: Date when business was founded
+        employee_count:
+          type: integer
+          description: Number of employees
+        annual_revenue:
+          type: number
+          format: float
+          description: Annual revenue in USD
+        address:
+          $ref: '#/components/schemas/Address'
+        contact_info:
+          $ref: '#/components/schemas/ContactInfo'
+        portfolio_type:
+          $ref: '#/components/schemas/PortfolioType'
+        risk_level:
+          $ref: '#/components/schemas/RiskLevel'
+        compliance_status:
+          type: string
+          description: Compliance status
+        status:
+          type: string
+          description: Merchant status
+
+    MerchantListResponse:
+      type: object
+      properties:
+        merchants:
+          type: array
+          items:
+            $ref: '#/components/schemas/Merchant'
+        total:
+          type: integer
+          description: Total number of merchants
+          example: 150
+        page:
+          type: integer
+          description: Current page number
+          example: 1
+        page_size:
+          type: integer
+          description: Number of items per page
+          example: 20
+        has_more:
+          type: boolean
+          description: Whether there are more pages
+          example: true
+
+    SearchRequest:
+      type: object
+      properties:
+        filters:
+          type: object
+          properties:
+            portfolio_type:
+              $ref: '#/components/schemas/PortfolioType'
+            risk_level:
+              $ref: '#/components/schemas/RiskLevel'
+            industry:
+              type: string
+            status:
+              type: string
+            search_query:
+              type: string
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+              minimum: 1
+              default: 1
+            page_size:
+              type: integer
+              minimum: 1
+              maximum: 100
+              default: 20
+        sorting:
+          type: object
+          properties:
+            field:
+              type: string
+              enum: [name, created_at, updated_at, portfolio_type, risk_level]
+            order:
+              type: string
+              enum: [asc, desc]
+
+    SearchResponse:
+      type: object
+      properties:
+        merchants:
+          type: array
+          items:
+            $ref: '#/components/schemas/Merchant'
+        total:
+          type: integer
+          description: Total number of matching merchants
+        page:
+          type: integer
+          description: Current page number
+        page_size:
+          type: integer
+          description: Number of items per page
+        has_more:
+          type: boolean
+          description: Whether there are more pages
+        filters_applied:
+          type: object
+          description: Filters that were applied to the search
+
+    BulkPortfolioTypeRequest:
+      type: object
+      required:
+        - merchant_ids
+        - portfolio_type
+      properties:
+        merchant_ids:
+          type: array
+          items:
+            type: string
+          description: List of merchant IDs to update
+          example: ["merchant_1234567890", "merchant_0987654321"]
+        portfolio_type:
+          $ref: '#/components/schemas/PortfolioType'
+
+    BulkRiskLevelRequest:
+      type: object
+      required:
+        - merchant_ids
+        - risk_level
+      properties:
+        merchant_ids:
+          type: array
+          items:
+            type: string
+          description: List of merchant IDs to update
+          example: ["merchant_1234567890", "merchant_0987654321"]
+        risk_level:
+          $ref: '#/components/schemas/RiskLevel'
+
+    BulkOperationResult:
+      type: object
+      properties:
+        operation_id:
+          type: string
+          description: Unique operation identifier
+          example: "bulk_op_7890123456"
+        status:
+          type: string
+          enum: [completed, in_progress, failed]
+          description: Operation status
+          example: "completed"
+        total_merchants:
+          type: integer
+          description: Total number of merchants in the operation
+          example: 3
+        successful_updates:
+          type: integer
+          description: Number of successful updates
+          example: 3
+        failed_updates:
+          type: integer
+          description: Number of failed updates
+          example: 0
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              merchant_id:
+                type: string
+              error:
+                type: string
+        started_at:
+          type: string
+          format: date-time
+          description: Operation start time
+        completed_at:
+          type: string
+          format: date-time
+          description: Operation completion time
+
+    BulkOperationStatus:
+      type: object
+      properties:
+        operation_id:
+          type: string
+          description: Unique operation identifier
+        status:
+          type: string
+          enum: [pending, in_progress, completed, failed]
+          description: Current operation status
+        total_merchants:
+          type: integer
+          description: Total number of merchants in the operation
+        processed_merchants:
+          type: integer
+          description: Number of merchants processed so far
+        successful_updates:
+          type: integer
+          description: Number of successful updates
+        failed_updates:
+          type: integer
+          description: Number of failed updates
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              merchant_id:
+                type: string
+              error:
+                type: string
+        started_at:
+          type: string
+          format: date-time
+          description: Operation start time
+        estimated_completion:
+          type: string
+          format: date-time
+          description: Estimated completion time
+
+    MerchantSession:
+      type: object
+      properties:
+        session_id:
+          type: string
+          description: Unique session identifier
+          example: "session_1234567890"
+        user_id:
+          type: string
+          description: User ID
+          example: "user_123"
+        merchant_id:
+          type: string
+          description: Merchant ID
+          example: "merchant_1234567890"
+        merchant_name:
+          type: string
+          description: Merchant name
+          example: "Acme Corporation"
+        started_at:
+          type: string
+          format: date-time
+          description: Session start time
+          example: "2025-01-15T16:40:00Z"
+        expires_at:
+          type: string
+          format: date-time
+          description: Session expiration time
+          example: "2025-01-15T20:40:00Z"
+
+    MerchantAnalytics:
+      type: object
+      properties:
+        summary:
+          type: object
+          properties:
+            total_merchants:
+              type: integer
+              example: 1250
+            onboarded:
+              type: integer
+              example: 800
+            deactivated:
+              type: integer
+              example: 150
+            prospective:
+              type: integer
+              example: 200
+            pending:
+              type: integer
+              example: 100
+            high_risk:
+              type: integer
+              example: 300
+            medium_risk:
+              type: integer
+              example: 600
+            low_risk:
+              type: integer
+              example: 350
+        trends:
+          type: object
+          properties:
+            new_merchants_7d:
+              type: integer
+              example: 25
+            new_merchants_30d:
+              type: integer
+              example: 120
+            deactivated_7d:
+              type: integer
+              example: 5
+            deactivated_30d:
+              type: integer
+              example: 20
+            risk_changes_7d:
+              type: integer
+              example: 15
+            risk_changes_30d:
+              type: integer
+              example: 80
+        industry_distribution:
+          type: array
+          items:
+            type: object
+            properties:
+              industry:
+                type: string
+                example: "Technology"
+              count:
+                type: integer
+                example: 400
+              percentage:
+                type: number
+                format: float
+                example: 32.0
+        risk_trends:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+                example: "2025-01-15"
+              high_risk:
+                type: integer
+                example: 300
+              medium_risk:
+                type: integer
+                example: 600
+              low_risk:
+                type: integer
+                example: 350
+        compliance_status:
+          type: object
+          properties:
+            compliant:
+              type: integer
+              example: 1000
+            pending:
+              type: integer
+              example: 200
+            non_compliant:
+              type: integer
+              example: 50
+
+    PortfolioTypeList:
+      type: object
+      properties:
+        portfolio_types:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                $ref: '#/components/schemas/PortfolioType'
+              name:
+                type: string
+                example: "Onboarded"
+              description:
+                type: string
+                example: "Active merchants in the portfolio"
+              count:
+                type: integer
+                example: 800
+
+    RiskLevelList:
+      type: object
+      properties:
+        risk_levels:
+          type: array
+          items:
+            type: object
+            properties:
+              level:
+                $ref: '#/components/schemas/RiskLevel'
+              name:
+                type: string
+                example: "High Risk"
+              description:
+                type: string
+                example: "High-risk merchants requiring additional monitoring"
+              count:
+                type: integer
+                example: 300
+              color:
+                type: string
+                example: "#dc3545"
+
+    MerchantStatistics:
+      type: object
+      properties:
+        portfolio_statistics:
+          type: object
+          properties:
+            total_merchants:
+              type: integer
+              example: 1250
+            active_merchants:
+              type: integer
+              example: 800
+            inactive_merchants:
+              type: integer
+              example: 450
+            average_employee_count:
+              type: number
+              format: float
+              example: 45.5
+            total_annual_revenue:
+              type: number
+              format: float
+              example: 1250000000.00
+            average_annual_revenue:
+              type: number
+              format: float
+              example: 1000000.00
+        geographic_distribution:
+          type: array
+          items:
+            type: object
+            properties:
+              country:
+                type: string
+                example: "United States"
+              count:
+                type: integer
+                example: 800
+              percentage:
+                type: number
+                format: float
+                example: 64.0
+        business_type_distribution:
+          type: array
+          items:
+            type: object
+            properties:
+              business_type:
+                type: string
+                example: "Corporation"
+              count:
+                type: integer
+                example: 600
+              percentage:
+                type: number
+                format: float
+                example: 48.0
+        compliance_metrics:
+          type: object
+          properties:
+            compliance_rate:
+              type: number
+              format: float
+              example: 80.0
+            pending_reviews:
+              type: integer
+              example: 200
+            overdue_reviews:
+              type: integer
+              example: 15
+            average_review_time_days:
+              type: number
+              format: float
+              example: 7.5
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: Error code
+              example: "VALIDATION_ERROR"
+            message:
+              type: string
+              description: Human-readable error message
+              example: "Request validation failed"
+            details:
+              type: string
+              description: Additional error details
+              example: "One or more fields contain invalid data"
+            validation_errors:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                    example: "name"
+                  message:
+                    type: string
+                    example: "merchant name is required and cannot be empty"
+            request_id:
+              type: string
+              description: Unique request identifier
+              example: "req_1234567890"
+            timestamp:
+              type: string
+              format: date-time
+              description: Error timestamp
+              example: "2025-01-15T16:45:00Z"
+
+tags:
+  - name: Merchants
+    description: Merchant CRUD operations and search
+  - name: Bulk Operations
+    description: Bulk operations for multiple merchants
+  - name: Session Management
+    description: Merchant session management
+  - name: Analytics
+    description: Analytics and reporting endpoints

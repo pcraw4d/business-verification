@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regulatory Requirement Checklist - KYB Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .progress-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+
+        .progress-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .progress-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .progress-card h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .progress-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .progress-number.completed { color: #27ae60; }
+        .progress-number.in-progress { color: #f39c12; }
+        .progress-number.pending { color: #e74c3c; }
+        .progress-number.overdue { color: #c0392b; }
+
+        .filters {
+            padding: 20px 30px;
+            background: white;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-btn {
+            padding: 10px 20px;
+            border: 2px solid #3498db;
+            background: white;
+            color: #3498db;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .filter-btn.active {
+            background: #3498db;
+            color: white;
+        }
+
+        .filter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            padding: 12px 20px;
+            border: 2px solid #ecf0f1;
+            border-radius: 25px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .requirements-section {
+            padding: 30px;
+        }
+
+        .framework-section {
+            margin-bottom: 40px;
+        }
+
+        .framework-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .framework-header:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(52, 152, 219, 0.3);
+        }
+
+        .framework-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .framework-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .framework-name {
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+
+        .framework-progress {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .progress-bar {
+            width: 150px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: white;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .toggle-icon {
+            font-size: 1.5rem;
+            transition: transform 0.3s ease;
+        }
+
+        .framework-header.collapsed .toggle-icon {
+            transform: rotate(-90deg);
+        }
+
+        .requirements-list {
+            display: none;
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .requirements-list.expanded {
+            display: block;
+        }
+
+        .requirement-item {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #ecf0f1;
+            transition: all 0.3s ease;
+        }
+
+        .requirement-item:hover {
+            background: #f8f9fa;
+        }
+
+        .requirement-item:last-child {
+            border-bottom: none;
+        }
+
+        .requirement-checkbox {
+            width: 24px;
+            height: 24px;
+            margin-right: 15px;
+            cursor: pointer;
+            accent-color: #27ae60;
+        }
+
+        .requirement-content {
+            flex: 1;
+        }
+
+        .requirement-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .requirement-description {
+            color: #7f8c8d;
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+
+        .requirement-meta {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .requirement-status {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-completed {
+            background: #d5f4e6;
+            color: #27ae60;
+        }
+
+        .status-in-progress {
+            background: #fef5e7;
+            color: #f39c12;
+        }
+
+        .status-pending {
+            background: #fadbd8;
+            color: #e74c3c;
+        }
+
+        .status-overdue {
+            background: #f8d7da;
+            color: #c0392b;
+        }
+
+        .requirement-deadline {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .requirement-priority {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .priority-high {
+            background: #f8d7da;
+            color: #c0392b;
+        }
+
+        .priority-medium {
+            background: #fef5e7;
+            color: #f39c12;
+        }
+
+        .priority-low {
+            background: #d5f4e6;
+            color: #27ae60;
+        }
+
+        .requirement-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-view {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-edit {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-document {
+            background: #9b59b6;
+            color: white;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .export-section {
+            padding: 30px;
+            background: #f8f9fa;
+            text-align: center;
+        }
+
+        .export-btn {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0 10px;
+        }
+
+        .export-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(39, 174, 96, 0.3);
+        }
+
+        .export-btn.secondary {
+            background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .progress-overview {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+                padding: 20px;
+            }
+
+            .filter-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-box {
+                min-width: auto;
+            }
+
+            .framework-header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .framework-progress {
+                justify-content: center;
+            }
+
+            .requirement-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .requirement-meta {
+                flex-wrap: wrap;
+            }
+
+            .requirement-actions {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #ecf0f1;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7f8c8d;
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: #27ae60;
+        }
+
+        .notification.error {
+            background: #e74c3c;
+        }
+
+        .notification.info {
+            background: #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Regulatory Requirement Checklist</h1>
+            <p>Comprehensive compliance tracking for all regulatory frameworks</p>
+        </div>
+
+        <div class="progress-overview">
+            <div class="progress-card">
+                <h3>Total Requirements</h3>
+                <div class="progress-number" id="total-requirements">0</div>
+                <p>All regulatory requirements</p>
+            </div>
+            <div class="progress-card">
+                <h3>Completed</h3>
+                <div class="progress-number completed" id="completed-requirements">0</div>
+                <p>Fully compliant</p>
+            </div>
+            <div class="progress-card">
+                <h3>In Progress</h3>
+                <div class="progress-number in-progress" id="in-progress-requirements">0</div>
+                <p>Under review</p>
+            </div>
+            <div class="progress-card">
+                <h3>Pending</h3>
+                <div class="progress-number pending" id="pending-requirements">0</div>
+                <p>Not started</p>
+            </div>
+            <div class="progress-card">
+                <h3>Overdue</h3>
+                <div class="progress-number overdue" id="overdue-requirements">0</div>
+                <p>Past deadline</p>
+            </div>
+        </div>
+
+        <div class="filters">
+            <div class="filter-group">
+                <button class="filter-btn active" data-filter="all">All Requirements</button>
+                <button class="filter-btn" data-filter="completed">Completed</button>
+                <button class="filter-btn" data-filter="in-progress">In Progress</button>
+                <button class="filter-btn" data-filter="pending">Pending</button>
+                <button class="filter-btn" data-filter="overdue">Overdue</button>
+                <input type="text" class="search-box" placeholder="Search requirements..." id="search-input">
+            </div>
+        </div>
+
+        <div class="requirements-section">
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Loading regulatory requirements...</p>
+            </div>
+
+            <div id="requirements-container">
+                <!-- Requirements will be loaded here -->
+            </div>
+        </div>
+
+        <div class="export-section">
+            <button class="export-btn" onclick="exportToPDF()">Export to PDF</button>
+            <button class="export-btn secondary" onclick="exportToExcel()">Export to Excel</button>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // Sample regulatory requirements data
+        const regulatoryRequirements = {
+            'SOC 2': {
+                name: 'SOC 2 Type II',
+                icon: '🔒',
+                requirements: [
+                    {
+                        id: 'soc2-1',
+                        title: 'Access Control Management',
+                        description: 'Implement and maintain access controls for all systems and data',
+                        status: 'completed',
+                        priority: 'high',
+                        deadline: '2024-12-31',
+                        completedDate: '2024-11-15'
+                    },
+                    {
+                        id: 'soc2-2',
+                        title: 'Data Encryption',
+                        description: 'Encrypt all sensitive data at rest and in transit',
+                        status: 'in-progress',
+                        priority: 'high',
+                        deadline: '2024-12-31'
+                    },
+                    {
+                        id: 'soc2-3',
+                        title: 'Incident Response Plan',
+                        description: 'Develop and maintain comprehensive incident response procedures',
+                        status: 'pending',
+                        priority: 'medium',
+                        deadline: '2025-01-15'
+                    },
+                    {
+                        id: 'soc2-4',
+                        title: 'Security Monitoring',
+                        description: 'Implement continuous security monitoring and logging',
+                        status: 'completed',
+                        priority: 'high',
+                        deadline: '2024-12-31',
+                        completedDate: '2024-10-20'
+                    },
+                    {
+                        id: 'soc2-5',
+                        title: 'Vendor Risk Management',
+                        description: 'Establish vendor risk assessment and management procedures',
+                        status: 'overdue',
+                        priority: 'medium',
+                        deadline: '2024-11-30'
+                    }
+                ]
+            },
+            'PCI DSS': {
+                name: 'PCI DSS v4.0',
+                icon: '💳',
+                requirements: [
+                    {
+                        id: 'pci-1',
+                        title: 'Network Security',
+                        description: 'Install and maintain network security controls',
+                        status: 'completed',
+                        priority: 'high',
+                        deadline: '2024-12-31',
+                        completedDate: '2024-09-10'
+                    },
+                    {
+                        id: 'pci-2',
+                        title: 'Cardholder Data Protection',
+                        description: 'Protect stored cardholder data with encryption',
+                        status: 'in-progress',
+                        priority: 'high',
+                        deadline: '2024-12-31'
+                    },
+                    {
+                        id: 'pci-3',
+                        title: 'Vulnerability Management',
+                        description: 'Regularly update anti-virus software and security patches',
+                        status: 'pending',
+                        priority: 'high',
+                        deadline: '2025-01-31'
+                    },
+                    {
+                        id: 'pci-4',
+                        title: 'Access Control',
+                        description: 'Restrict access to cardholder data by business need-to-know',
+                        status: 'completed',
+                        priority: 'high',
+                        deadline: '2024-12-31',
+                        completedDate: '2024-08-15'
+                    }
+                ]
+            },
+            'GDPR': {
+                name: 'GDPR Compliance',
+                icon: '🛡️',
+                requirements: [
+                    {
+                        id: 'gdpr-1',
+                        title: 'Data Processing Lawfulness',
+                        description: 'Ensure all data processing has a lawful basis',
+                        status: 'completed',
+                        priority: 'high',
+                        deadline: '2024-12-31',
+                        completedDate: '2024-07-20'
+                    },
+                    {
+                        id: 'gdpr-2',
+                        title: 'Data Subject Rights',
+                        description: 'Implement procedures for data subject rights requests',
+                        status: 'in-progress',
+                        priority: 'high',
+                        deadline: '2024-12-31'
+                    },
+                    {
+                        id: 'gdpr-3',
+                        title: 'Privacy by Design',
+                        description: 'Implement privacy by design and by default principles',
+                        status: 'pending',
+                        priority: 'medium',
+                        deadline: '2025-02-28'
+                    },
+                    {
+                        id: 'gdpr-4',
+                        title: 'Data Protection Impact Assessment',
+                        description: 'Conduct DPIAs for high-risk processing activities',
+                        status: 'overdue',
+                        priority: 'high',
+                        deadline: '2024-11-15'
+                    },
+                    {
+                        id: 'gdpr-5',
+                        title: 'Data Breach Notification',
+                        description: 'Establish data breach detection and notification procedures',
+                        status: 'completed',
+                        priority: 'high',
+                        deadline: '2024-12-31',
+                        completedDate: '2024-06-30'
+                    }
+                ]
+            },
+            'HIPAA': {
+                name: 'HIPAA Compliance',
+                icon: '🏥',
+                requirements: [
+                    {
+                        id: 'hipaa-1',
+                        title: 'Administrative Safeguards',
+                        description: 'Implement administrative safeguards for PHI protection',
+                        status: 'in-progress',
+                        priority: 'high',
+                        deadline: '2024-12-31'
+                    },
+                    {
+                        id: 'hipaa-2',
+                        title: 'Physical Safeguards',
+                        description: 'Implement physical safeguards for PHI protection',
+                        status: 'completed',
+                        priority: 'high',
+                        deadline: '2024-12-31',
+                        completedDate: '2024-05-15'
+                    },
+                    {
+                        id: 'hipaa-3',
+                        title: 'Technical Safeguards',
+                        description: 'Implement technical safeguards for PHI protection',
+                        status: 'pending',
+                        priority: 'high',
+                        deadline: '2025-01-31'
+                    },
+                    {
+                        id: 'hipaa-4',
+                        title: 'Business Associate Agreements',
+                        description: 'Execute BAAs with all business associates',
+                        status: 'overdue',
+                        priority: 'medium',
+                        deadline: '2024-10-31'
+                    }
+                ]
+            }
+        };
+
+        let currentFilter = 'all';
+        let searchTerm = '';
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            loadRequirements();
+            setupEventListeners();
+            updateProgressOverview();
+        });
+
+        function setupEventListeners() {
+            // Filter buttons
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentFilter = this.dataset.filter;
+                    filterRequirements();
+                });
+            });
+
+            // Search input
+            document.getElementById('search-input').addEventListener('input', function() {
+                searchTerm = this.value.toLowerCase();
+                filterRequirements();
+            });
+        }
+
+        function loadRequirements() {
+            const container = document.getElementById('requirements-container');
+            container.innerHTML = '';
+
+            Object.entries(regulatoryRequirements).forEach(([frameworkKey, framework]) => {
+                const frameworkSection = createFrameworkSection(frameworkKey, framework);
+                container.appendChild(frameworkSection);
+            });
+
+            // Show all frameworks expanded by default
+            document.querySelectorAll('.framework-header').forEach(header => {
+                header.classList.remove('collapsed');
+                const requirementsList = header.nextElementSibling;
+                requirementsList.classList.add('expanded');
+            });
+        }
+
+        function createFrameworkSection(frameworkKey, framework) {
+            const section = document.createElement('div');
+            section.className = 'framework-section';
+            section.dataset.framework = frameworkKey;
+
+            const completedCount = framework.requirements.filter(req => req.status === 'completed').length;
+            const totalCount = framework.requirements.length;
+            const progressPercentage = (completedCount / totalCount) * 100;
+
+            section.innerHTML = `
+                <div class="framework-header" onclick="toggleFramework('${frameworkKey}')">
+                    <div class="framework-title">
+                        <div class="framework-icon">${framework.icon}</div>
+                        <div class="framework-name">${framework.name}</div>
+                    </div>
+                    <div class="framework-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progressPercentage}%"></div>
+                        </div>
+                        <div class="progress-text">${completedCount}/${totalCount}</div>
+                    </div>
+                    <div class="toggle-icon">▼</div>
+                </div>
+                <div class="requirements-list" id="requirements-${frameworkKey}">
+                    ${framework.requirements.map(req => createRequirementItem(req)).join('')}
+                </div>
+            `;
+
+            return section;
+        }
+
+        function createRequirementItem(requirement) {
+            const statusClass = `status-${requirement.status}`;
+            const priorityClass = `priority-${requirement.priority}`;
+            const isOverdue = new Date(requirement.deadline) < new Date() && requirement.status !== 'completed';
+
+            return `
+                <div class="requirement-item" data-status="${requirement.status}" data-priority="${requirement.priority}">
+                    <input type="checkbox" class="requirement-checkbox" ${requirement.status === 'completed' ? 'checked' : ''} 
+                           onchange="updateRequirementStatus('${requirement.id}', this.checked)">
+                    <div class="requirement-content">
+                        <div class="requirement-title">${requirement.title}</div>
+                        <div class="requirement-description">${requirement.description}</div>
+                        <div class="requirement-meta">
+                            <span class="requirement-status ${statusClass}">${requirement.status.replace('-', ' ')}</span>
+                            <span class="requirement-priority ${priorityClass}">${requirement.priority} priority</span>
+                            <span class="requirement-deadline">Deadline: ${formatDate(requirement.deadline)}</span>
+                            ${requirement.completedDate ? `<span class="requirement-deadline">Completed: ${formatDate(requirement.completedDate)}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="requirement-actions">
+                        <button class="action-btn btn-view" onclick="viewRequirement('${requirement.id}')">View</button>
+                        <button class="action-btn btn-edit" onclick="editRequirement('${requirement.id}')">Edit</button>
+                        <button class="action-btn btn-document" onclick="viewDocumentation('${requirement.id}')">Docs</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleFramework(frameworkKey) {
+            const header = document.querySelector(`[data-framework="${frameworkKey}"] .framework-header`);
+            const requirementsList = document.getElementById(`requirements-${frameworkKey}`);
+            
+            header.classList.toggle('collapsed');
+            requirementsList.classList.toggle('expanded');
+        }
+
+        function updateRequirementStatus(requirementId, isCompleted) {
+            // Find and update the requirement in the data
+            Object.values(regulatoryRequirements).forEach(framework => {
+                const requirement = framework.requirements.find(req => req.id === requirementId);
+                if (requirement) {
+                    requirement.status = isCompleted ? 'completed' : 'pending';
+                    if (isCompleted) {
+                        requirement.completedDate = new Date().toISOString().split('T')[0];
+                    } else {
+                        delete requirement.completedDate;
+                    }
+                }
+            });
+
+            // Reload the requirements to reflect changes
+            loadRequirements();
+            updateProgressOverview();
+            filterRequirements();
+
+            showNotification(isCompleted ? 'Requirement marked as completed!' : 'Requirement marked as pending', 'success');
+        }
+
+        function filterRequirements() {
+            const sections = document.querySelectorAll('.framework-section');
+            
+            sections.forEach(section => {
+                const requirements = section.querySelectorAll('.requirement-item');
+                let visibleCount = 0;
+
+                requirements.forEach(req => {
+                    const status = req.dataset.status;
+                    const title = req.querySelector('.requirement-title').textContent.toLowerCase();
+                    const description = req.querySelector('.requirement-description').textContent.toLowerCase();
+                    
+                    const matchesFilter = currentFilter === 'all' || status === currentFilter;
+                    const matchesSearch = searchTerm === '' || title.includes(searchTerm) || description.includes(searchTerm);
+                    
+                    if (matchesFilter && matchesSearch) {
+                        req.style.display = 'flex';
+                        visibleCount++;
+                    } else {
+                        req.style.display = 'none';
+                    }
+                });
+
+                // Show/hide framework section based on visible requirements
+                if (visibleCount > 0) {
+                    section.style.display = 'block';
+                } else {
+                    section.style.display = 'none';
+                }
+            });
+        }
+
+        function updateProgressOverview() {
+            let total = 0, completed = 0, inProgress = 0, pending = 0, overdue = 0;
+
+            Object.values(regulatoryRequirements).forEach(framework => {
+                framework.requirements.forEach(req => {
+                    total++;
+                    if (req.status === 'completed') {
+                        completed++;
+                    } else if (req.status === 'in-progress') {
+                        inProgress++;
+                    } else if (req.status === 'pending') {
+                        pending++;
+                    }
+                    
+                    // Check if overdue
+                    if (new Date(req.deadline) < new Date() && req.status !== 'completed') {
+                        overdue++;
+                    }
+                });
+            });
+
+            document.getElementById('total-requirements').textContent = total;
+            document.getElementById('completed-requirements').textContent = completed;
+            document.getElementById('in-progress-requirements').textContent = inProgress;
+            document.getElementById('pending-requirements').textContent = pending;
+            document.getElementById('overdue-requirements').textContent = overdue;
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+            });
+        }
+
+        function viewRequirement(requirementId) {
+            showNotification('Opening requirement details...', 'info');
+            // Implementation for viewing requirement details
+        }
+
+        function editRequirement(requirementId) {
+            showNotification('Opening requirement editor...', 'info');
+            // Implementation for editing requirement
+        }
+
+        function viewDocumentation(requirementId) {
+            showNotification('Opening documentation...', 'info');
+            // Implementation for viewing documentation
+        }
+
+        function exportToPDF() {
+            showNotification('Generating PDF report...', 'info');
+            // Implementation for PDF export
+        }
+
+        function exportToExcel() {
+            showNotification('Generating Excel report...', 'info');
+            // Implementation for Excel export
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add('show');
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Initialize filtering
+        filterRequirements();
+    </script>
+</body>
+</html>

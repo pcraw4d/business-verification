@@ -1,0 +1,770 @@
+package services
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"log"
+	"strings"
+	"time"
+
+	"github.com/pcraw4d/business-verification/internal/models"
+)
+
+// MerchantPortfolioServiceInterface defines the interface for merchant portfolio operations
+type MerchantPortfolioServiceInterface interface {
+	GetMerchant(ctx context.Context, merchantID string) (*models.Merchant, error)
+}
+
+// ComparisonService provides business logic for merchant comparison functionality
+type ComparisonService struct {
+	portfolioService MerchantPortfolioServiceInterface
+	logger           *log.Logger
+}
+
+// NewComparisonService creates a new comparison service
+func NewComparisonService(portfolioService MerchantPortfolioServiceInterface, logger *log.Logger) *ComparisonService {
+	if logger == nil {
+		logger = log.Default()
+	}
+
+	return &ComparisonService{
+		portfolioService: portfolioService,
+		logger:           logger,
+	}
+}
+
+// ComparisonRequest represents a request to compare two merchants
+type ComparisonRequest struct {
+	Merchant1ID string `json:"merchant1_id"`
+	Merchant2ID string `json:"merchant2_id"`
+	UserID      string `json:"user_id"`
+}
+
+// ComparisonResult represents the result of a merchant comparison
+type ComparisonResult struct {
+	ID              string                 `json:"id"`
+	Merchant1       *models.Merchant       `json:"merchant1"`
+	Merchant2       *models.Merchant       `json:"merchant2"`
+	Differences     []ComparisonDifference `json:"differences"`
+	RiskComparison  RiskComparison         `json:"risk_comparison"`
+	Recommendations []Recommendation       `json:"recommendations"`
+	Summary         ComparisonSummary      `json:"summary"`
+	GeneratedAt     time.Time              `json:"generated_at"`
+	GeneratedBy     string                 `json:"generated_by"`
+}
+
+// ComparisonDifference represents a difference between two merchants
+type ComparisonDifference struct {
+	Category  string `json:"category"`
+	Merchant1 string `json:"merchant1"`
+	Merchant2 string `json:"merchant2"`
+	Impact    string `json:"impact"` // low, medium, high
+}
+
+// RiskComparison represents risk level comparison between merchants
+type RiskComparison struct {
+	Merchant1 RiskLevelInfo `json:"merchant1"`
+	Merchant2 RiskLevelInfo `json:"merchant2"`
+	Advantage string        `json:"advantage"` // merchant1, merchant2, or equal
+}
+
+// RiskLevelInfo represents risk level information for a merchant
+type RiskLevelInfo struct {
+	Level string  `json:"level"`
+	Value int     `json:"value"` // 1=low, 2=medium, 3=high
+	Score float64 `json:"score"` // 0.0-1.0 risk score
+}
+
+// Recommendation represents a recommendation based on comparison
+type Recommendation struct {
+	Type     string `json:"type"`     // risk, onboarding, diversification, compliance
+	Priority string `json:"priority"` // low, medium, high
+	Message  string `json:"message"`
+	Action   string `json:"action"`
+}
+
+// ComparisonSummary represents a summary of the comparison
+type ComparisonSummary struct {
+	TotalDifferences        int    `json:"total_differences"`
+	HighImpactDifferences   int    `json:"high_impact_differences"`
+	MediumImpactDifferences int    `json:"medium_impact_differences"`
+	LowImpactDifferences    int    `json:"low_impact_differences"`
+	RiskAdvantage           string `json:"risk_advantage"`
+	PortfolioAdvantage      string `json:"portfolio_advantage"`
+	OverallRecommendation   string `json:"overall_recommendation"`
+}
+
+// ComparisonReport represents an exportable comparison report
+type ComparisonReport struct {
+	ReportID         string           `json:"report_id"`
+	Title            string           `json:"title"`
+	GeneratedAt      time.Time        `json:"generated_at"`
+	GeneratedBy      string           `json:"generated_by"`
+	Merchants        ComparisonResult `json:"merchants"`
+	ExecutiveSummary string           `json:"executive_summary"`
+	DetailedAnalysis string           `json:"detailed_analysis"`
+	Format           string           `json:"format"` // json, pdf, html
+}
+
+// Common errors
+var (
+	ErrMerchantNotFound   = errors.New("merchant not found")
+	ErrInvalidComparison  = errors.New("invalid comparison request")
+	ErrSameMerchant       = errors.New("cannot compare merchant with itself")
+	ErrComparisonNotFound = errors.New("comparison not found")
+)
+
+// =============================================================================
+// Core Comparison Operations
+// =============================================================================
+
+// CompareMerchants performs a comprehensive comparison between two merchants
+func (s *ComparisonService) CompareMerchants(ctx context.Context, req *ComparisonRequest) (*ComparisonResult, error) {
+	s.logger.Printf("Starting merchant comparison: %s vs %s", req.Merchant1ID, req.Merchant2ID)
+
+	// Validate request
+	if err := s.validateComparisonRequest(req); err != nil {
+		return nil, fmt.Errorf("validation failed: %w", err)
+	}
+
+	// Retrieve merchants
+	merchant1, err := s.portfolioService.GetMerchant(ctx, req.Merchant1ID)
+	if err != nil {
+		if errors.Is(err, ErrMerchantNotFound) {
+			return nil, fmt.Errorf("merchant 1 not found: %w", err)
+		}
+		return nil, fmt.Errorf("failed to retrieve merchant 1: %w", err)
+	}
+
+	merchant2, err := s.portfolioService.GetMerchant(ctx, req.Merchant2ID)
+	if err != nil {
+		if errors.Is(err, ErrMerchantNotFound) {
+			return nil, fmt.Errorf("merchant 2 not found: %w", err)
+		}
+		return nil, fmt.Errorf("failed to retrieve merchant 2: %w", err)
+	}
+
+	// Generate comparison ID
+	comparisonID := s.generateComparisonID()
+
+	// Perform comparison analysis
+	differences := s.findDifferences(merchant1, merchant2)
+	riskComparison := s.compareRiskLevels(merchant1, merchant2)
+	recommendations := s.generateRecommendations(merchant1, merchant2, differences)
+	summary := s.generateSummary(merchant1, merchant2, differences, riskComparison)
+
+	// Create comparison result
+	result := &ComparisonResult{
+		ID:              comparisonID,
+		Merchant1:       merchant1,
+		Merchant2:       merchant2,
+		Differences:     differences,
+		RiskComparison:  riskComparison,
+		Recommendations: recommendations,
+		Summary:         summary,
+		GeneratedAt:     time.Now(),
+		GeneratedBy:     req.UserID,
+	}
+
+	// Log audit trail
+	if err := s.logComparisonEvent(ctx, req.UserID, comparisonID, "COMPARE_MERCHANTS",
+		fmt.Sprintf("Compared %s with %s", merchant1.Name, merchant2.Name)); err != nil {
+		s.logger.Printf("Warning: failed to log comparison event: %v", err)
+	}
+
+	s.logger.Printf("Successfully completed merchant comparison: %s", comparisonID)
+	return result, nil
+}
+
+// =============================================================================
+// Comparison Analysis Methods
+// =============================================================================
+
+// findDifferences identifies key differences between two merchants
+func (s *ComparisonService) findDifferences(merchant1, merchant2 *models.Merchant) []ComparisonDifference {
+	var differences []ComparisonDifference
+
+	// Portfolio type comparison
+	if merchant1.PortfolioType != merchant2.PortfolioType {
+		differences = append(differences, ComparisonDifference{
+			Category:  "Portfolio Type",
+			Merchant1: string(merchant1.PortfolioType),
+			Merchant2: string(merchant2.PortfolioType),
+			Impact:    "medium",
+		})
+	}
+
+	// Risk level comparison
+	if merchant1.RiskLevel != merchant2.RiskLevel {
+		differences = append(differences, ComparisonDifference{
+			Category:  "Risk Level",
+			Merchant1: string(merchant1.RiskLevel),
+			Merchant2: string(merchant2.RiskLevel),
+			Impact:    "high",
+		})
+	}
+
+	// Industry comparison
+	if merchant1.Industry != merchant2.Industry {
+		differences = append(differences, ComparisonDifference{
+			Category:  "Industry",
+			Merchant1: merchant1.Industry,
+			Merchant2: merchant2.Industry,
+			Impact:    "medium",
+		})
+	}
+
+	// Business type comparison
+	if merchant1.BusinessType != merchant2.BusinessType {
+		differences = append(differences, ComparisonDifference{
+			Category:  "Business Type",
+			Merchant1: merchant1.BusinessType,
+			Merchant2: merchant2.BusinessType,
+			Impact:    "low",
+		})
+	}
+
+	// Employee count comparison
+	if merchant1.EmployeeCount != merchant2.EmployeeCount {
+		differences = append(differences, ComparisonDifference{
+			Category:  "Employee Count",
+			Merchant1: fmt.Sprintf("%d", merchant1.EmployeeCount),
+			Merchant2: fmt.Sprintf("%d", merchant2.EmployeeCount),
+			Impact:    "low",
+		})
+	}
+
+	// Annual revenue comparison
+	if s.compareRevenue(merchant1.AnnualRevenue, merchant2.AnnualRevenue) {
+		differences = append(differences, ComparisonDifference{
+			Category:  "Annual Revenue",
+			Merchant1: s.formatRevenue(merchant1.AnnualRevenue),
+			Merchant2: s.formatRevenue(merchant2.AnnualRevenue),
+			Impact:    "medium",
+		})
+	}
+
+	// Compliance status comparison
+	if merchant1.ComplianceStatus != merchant2.ComplianceStatus {
+		differences = append(differences, ComparisonDifference{
+			Category:  "Compliance Status",
+			Merchant1: merchant1.ComplianceStatus,
+			Merchant2: merchant2.ComplianceStatus,
+			Impact:    "high",
+		})
+	}
+
+	// Address comparison (country/state level)
+	if s.compareAddresses(merchant1.Address, merchant2.Address) {
+		differences = append(differences, ComparisonDifference{
+			Category:  "Location",
+			Merchant1: s.formatLocation(merchant1.Address),
+			Merchant2: s.formatLocation(merchant2.Address),
+			Impact:    "low",
+		})
+	}
+
+	return differences
+}
+
+// compareRiskLevels compares risk levels between two merchants
+func (s *ComparisonService) compareRiskLevels(merchant1, merchant2 *models.Merchant) RiskComparison {
+	riskValues := map[models.RiskLevel]int{
+		models.RiskLevelLow:    1,
+		models.RiskLevelMedium: 2,
+		models.RiskLevelHigh:   3,
+	}
+
+	risk1 := RiskLevelInfo{
+		Level: string(merchant1.RiskLevel),
+		Value: riskValues[merchant1.RiskLevel],
+		Score: s.calculateRiskScore(merchant1.RiskLevel),
+	}
+
+	risk2 := RiskLevelInfo{
+		Level: string(merchant2.RiskLevel),
+		Value: riskValues[merchant2.RiskLevel],
+		Score: s.calculateRiskScore(merchant2.RiskLevel),
+	}
+
+	// Determine advantage
+	var advantage string
+	if risk1.Value < risk2.Value {
+		advantage = "merchant1"
+	} else if risk1.Value > risk2.Value {
+		advantage = "merchant2"
+	} else {
+		advantage = "equal"
+	}
+
+	return RiskComparison{
+		Merchant1: risk1,
+		Merchant2: risk2,
+		Advantage: advantage,
+	}
+}
+
+// generateRecommendations generates recommendations based on comparison
+func (s *ComparisonService) generateRecommendations(merchant1, merchant2 *models.Merchant, differences []ComparisonDifference) []Recommendation {
+	var recommendations []Recommendation
+
+	// Risk-based recommendations
+	if merchant1.RiskLevel == models.RiskLevelHigh && merchant2.RiskLevel != models.RiskLevelHigh {
+		recommendations = append(recommendations, Recommendation{
+			Type:     "risk",
+			Priority: "high",
+			Message:  fmt.Sprintf("%s requires enhanced monitoring due to high risk level", merchant1.Name),
+			Action:   "Implement additional compliance checks and regular reviews",
+		})
+	}
+
+	if merchant2.RiskLevel == models.RiskLevelHigh && merchant1.RiskLevel != models.RiskLevelHigh {
+		recommendations = append(recommendations, Recommendation{
+			Type:     "risk",
+			Priority: "high",
+			Message:  fmt.Sprintf("%s requires enhanced monitoring due to high risk level", merchant2.Name),
+			Action:   "Implement additional compliance checks and regular reviews",
+		})
+	}
+
+	// Portfolio type recommendations
+	if merchant1.PortfolioType == models.PortfolioTypeProspective && merchant2.PortfolioType == models.PortfolioTypeOnboarded {
+		recommendations = append(recommendations, Recommendation{
+			Type:     "onboarding",
+			Priority: "medium",
+			Message:  fmt.Sprintf("Consider accelerating onboarding process for %s", merchant1.Name),
+			Action:   "Review onboarding requirements and expedite approval process",
+		})
+	}
+
+	if merchant2.PortfolioType == models.PortfolioTypeProspective && merchant1.PortfolioType == models.PortfolioTypeOnboarded {
+		recommendations = append(recommendations, Recommendation{
+			Type:     "onboarding",
+			Priority: "medium",
+			Message:  fmt.Sprintf("Consider accelerating onboarding process for %s", merchant2.Name),
+			Action:   "Review onboarding requirements and expedite approval process",
+		})
+	}
+
+	// Industry diversification recommendations
+	if merchant1.Industry != merchant2.Industry {
+		recommendations = append(recommendations, Recommendation{
+			Type:     "diversification",
+			Priority: "low",
+			Message:  "Different industries provide portfolio diversification",
+			Action:   "Monitor industry-specific risks and compliance requirements",
+		})
+	}
+
+	// Compliance recommendations
+	if merchant1.ComplianceStatus != merchant2.ComplianceStatus {
+		recommendations = append(recommendations, Recommendation{
+			Type:     "compliance",
+			Priority: "high",
+			Message:  "Different compliance statuses require attention",
+			Action:   "Review compliance requirements and ensure consistent standards",
+		})
+	}
+
+	// Revenue-based recommendations
+	if merchant1.AnnualRevenue != nil && merchant2.AnnualRevenue != nil {
+		revenueDiff := *merchant1.AnnualRevenue - *merchant2.AnnualRevenue
+		if revenueDiff > 1000000 { // $1M difference
+			recommendations = append(recommendations, Recommendation{
+				Type:     "business",
+				Priority: "medium",
+				Message:  "Significant revenue difference may indicate different business models",
+				Action:   "Review business strategies and risk profiles",
+			})
+		}
+	}
+
+	return recommendations
+}
+
+// generateSummary generates a summary of the comparison
+func (s *ComparisonService) generateSummary(merchant1, merchant2 *models.Merchant, differences []ComparisonDifference, riskComparison RiskComparison) ComparisonSummary {
+	// Count differences by impact
+	highImpact := 0
+	mediumImpact := 0
+	lowImpact := 0
+
+	for _, diff := range differences {
+		switch diff.Impact {
+		case "high":
+			highImpact++
+		case "medium":
+			mediumImpact++
+		case "low":
+			lowImpact++
+		}
+	}
+
+	// Determine risk advantage
+	var riskAdvantage string
+	switch riskComparison.Advantage {
+	case "merchant1":
+		riskAdvantage = merchant1.Name
+	case "merchant2":
+		riskAdvantage = merchant2.Name
+	default:
+		riskAdvantage = "Equal"
+	}
+
+	// Determine portfolio advantage
+	var portfolioAdvantage string
+	if merchant1.PortfolioType == models.PortfolioTypeOnboarded && merchant2.PortfolioType != models.PortfolioTypeOnboarded {
+		portfolioAdvantage = merchant1.Name
+	} else if merchant2.PortfolioType == models.PortfolioTypeOnboarded && merchant1.PortfolioType != models.PortfolioTypeOnboarded {
+		portfolioAdvantage = merchant2.Name
+	} else {
+		portfolioAdvantage = "Equal"
+	}
+
+	// Generate overall recommendation
+	var overallRecommendation string
+	if highImpact > 0 {
+		overallRecommendation = "High priority review required due to significant differences"
+	} else if mediumImpact > 2 {
+		overallRecommendation = "Medium priority review recommended"
+	} else {
+		overallRecommendation = "Standard monitoring and review process"
+	}
+
+	return ComparisonSummary{
+		TotalDifferences:        len(differences),
+		HighImpactDifferences:   highImpact,
+		MediumImpactDifferences: mediumImpact,
+		LowImpactDifferences:    lowImpact,
+		RiskAdvantage:           riskAdvantage,
+		PortfolioAdvantage:      portfolioAdvantage,
+		OverallRecommendation:   overallRecommendation,
+	}
+}
+
+// =============================================================================
+// Report Generation
+// =============================================================================
+
+// GenerateComparisonReport generates an exportable comparison report
+func (s *ComparisonService) GenerateComparisonReport(ctx context.Context, comparison *ComparisonResult, format string) (*ComparisonReport, error) {
+	s.logger.Printf("Generating comparison report for comparison: %s", comparison.ID)
+
+	reportID := s.generateReportID()
+
+	// Generate executive summary
+	executiveSummary := s.generateExecutiveSummary(comparison)
+
+	// Generate detailed analysis
+	detailedAnalysis := s.generateDetailedAnalysis(comparison)
+
+	report := &ComparisonReport{
+		ReportID:         reportID,
+		Title:            fmt.Sprintf("Merchant Comparison Report: %s vs %s", comparison.Merchant1.Name, comparison.Merchant2.Name),
+		GeneratedAt:      time.Now(),
+		GeneratedBy:      comparison.GeneratedBy,
+		Merchants:        *comparison,
+		ExecutiveSummary: executiveSummary,
+		DetailedAnalysis: detailedAnalysis,
+		Format:           format,
+	}
+
+	// Log audit trail
+	if err := s.logComparisonEvent(ctx, comparison.GeneratedBy, reportID, "GENERATE_REPORT",
+		fmt.Sprintf("Generated %s report for comparison %s", format, comparison.ID)); err != nil {
+		s.logger.Printf("Warning: failed to log report generation event: %v", err)
+	}
+
+	s.logger.Printf("Successfully generated comparison report: %s", reportID)
+	return report, nil
+}
+
+// ExportComparisonReport exports a comparison report in the specified format
+func (s *ComparisonService) ExportComparisonReport(ctx context.Context, report *ComparisonReport) ([]byte, error) {
+	s.logger.Printf("Exporting comparison report: %s in %s format", report.ReportID, report.Format)
+
+	var exportData []byte
+	var err error
+
+	switch strings.ToLower(report.Format) {
+	case "json":
+		exportData, err = json.MarshalIndent(report, "", "  ")
+	case "html":
+		exportData = []byte(s.generateHTMLReport(report))
+	case "csv":
+		exportData = []byte(s.generateCSVReport(report))
+	default:
+		return nil, fmt.Errorf("unsupported export format: %s", report.Format)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to export report: %w", err)
+	}
+
+	// Log audit trail
+	if err := s.logComparisonEvent(ctx, report.GeneratedBy, report.ReportID, "EXPORT_REPORT",
+		fmt.Sprintf("Exported report in %s format", report.Format)); err != nil {
+		s.logger.Printf("Warning: failed to log export event: %v", err)
+	}
+
+	s.logger.Printf("Successfully exported comparison report: %s", report.ReportID)
+	return exportData, nil
+}
+
+// =============================================================================
+// Helper Methods
+// =============================================================================
+
+// validateComparisonRequest validates a comparison request
+func (s *ComparisonService) validateComparisonRequest(req *ComparisonRequest) error {
+	if req == nil {
+		return ErrInvalidComparison
+	}
+
+	if req.Merchant1ID == "" || req.Merchant2ID == "" {
+		return fmt.Errorf("both merchant IDs are required")
+	}
+
+	if req.Merchant1ID == req.Merchant2ID {
+		return ErrSameMerchant
+	}
+
+	if req.UserID == "" {
+		return fmt.Errorf("user ID is required")
+	}
+
+	return nil
+}
+
+// calculateRiskScore calculates a risk score based on risk level
+func (s *ComparisonService) calculateRiskScore(riskLevel models.RiskLevel) float64 {
+	switch riskLevel {
+	case models.RiskLevelLow:
+		return 0.2
+	case models.RiskLevelMedium:
+		return 0.5
+	case models.RiskLevelHigh:
+		return 0.8
+	default:
+		return 0.5
+	}
+}
+
+// compareRevenue compares annual revenue values
+func (s *ComparisonService) compareRevenue(revenue1, revenue2 *float64) bool {
+	if revenue1 == nil && revenue2 == nil {
+		return false
+	}
+	if revenue1 == nil || revenue2 == nil {
+		return true
+	}
+	return *revenue1 != *revenue2
+}
+
+// formatRevenue formats revenue for display
+func (s *ComparisonService) formatRevenue(revenue *float64) string {
+	if revenue == nil {
+		return "Not specified"
+	}
+	return fmt.Sprintf("$%.0f", *revenue)
+}
+
+// compareAddresses compares addresses at country/state level
+func (s *ComparisonService) compareAddresses(addr1, addr2 interface{}) bool {
+	// Simplified comparison - in a real implementation, this would properly compare address structs
+	// For MVP, we'll assume addresses are different if they exist
+	return true
+}
+
+// formatLocation formats location for display
+func (s *ComparisonService) formatLocation(address interface{}) string {
+	// Simplified formatting - in a real implementation, this would properly format address structs
+	return "Location data"
+}
+
+// generateComparisonID generates a unique comparison ID
+func (s *ComparisonService) generateComparisonID() string {
+	return fmt.Sprintf("comp_%d", time.Now().UnixNano())
+}
+
+// generateReportID generates a unique report ID
+func (s *ComparisonService) generateReportID() string {
+	return fmt.Sprintf("report_%d", time.Now().UnixNano())
+}
+
+// generateExecutiveSummary generates an executive summary for the report
+func (s *ComparisonService) generateExecutiveSummary(comparison *ComparisonResult) string {
+	summary := fmt.Sprintf("This report compares %s and %s across key business metrics. ",
+		comparison.Merchant1.Name, comparison.Merchant2.Name)
+
+	summary += fmt.Sprintf("The comparison identified %d key differences, with %d high-impact differences requiring attention. ",
+		comparison.Summary.TotalDifferences, comparison.Summary.HighImpactDifferences)
+
+	if comparison.Summary.RiskAdvantage != "Equal" {
+		summary += fmt.Sprintf("%s has a lower risk profile. ", comparison.Summary.RiskAdvantage)
+	}
+
+	if comparison.Summary.PortfolioAdvantage != "Equal" {
+		summary += fmt.Sprintf("%s has a more advanced portfolio status. ", comparison.Summary.PortfolioAdvantage)
+	}
+
+	summary += fmt.Sprintf("Overall recommendation: %s", comparison.Summary.OverallRecommendation)
+
+	return summary
+}
+
+// generateDetailedAnalysis generates detailed analysis for the report
+func (s *ComparisonService) generateDetailedAnalysis(comparison *ComparisonResult) string {
+	analysis := "DETAILED ANALYSIS\n\n"
+
+	analysis += "1. RISK ASSESSMENT\n"
+	analysis += fmt.Sprintf("   %s: %s (Score: %.1f%%)\n",
+		comparison.Merchant1.Name, comparison.RiskComparison.Merchant1.Level,
+		comparison.RiskComparison.Merchant1.Score*100)
+	analysis += fmt.Sprintf("   %s: %s (Score: %.1f%%)\n\n",
+		comparison.Merchant2.Name, comparison.RiskComparison.Merchant2.Level,
+		comparison.RiskComparison.Merchant2.Score*100)
+
+	analysis += "2. KEY DIFFERENCES\n"
+	for i, diff := range comparison.Differences {
+		analysis += fmt.Sprintf("   %d. %s: %s vs %s (Impact: %s)\n",
+			i+1, diff.Category, diff.Merchant1, diff.Merchant2, diff.Impact)
+	}
+
+	analysis += "\n3. RECOMMENDATIONS\n"
+	for i, rec := range comparison.Recommendations {
+		analysis += fmt.Sprintf("   %d. [%s] %s\n      Action: %s\n",
+			i+1, rec.Priority, rec.Message, rec.Action)
+	}
+
+	return analysis
+}
+
+// generateHTMLReport generates an HTML version of the report
+func (s *ComparisonService) generateHTMLReport(report *ComparisonReport) string {
+	html := fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <title>%s</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .merchant-section { margin-bottom: 30px; }
+        .comparison-table { width: 100%%; border-collapse: collapse; }
+        .comparison-table th, .comparison-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .comparison-table th { background-color: #f2f2f2; }
+        .recommendations { margin-top: 30px; }
+        .recommendation-item { margin-bottom: 15px; padding: 10px; border-left: 4px solid #007bff; }
+        .high-impact { border-left-color: #dc3545; }
+        .medium-impact { border-left-color: #ffc107; }
+        .low-impact { border-left-color: #28a745; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>%s</h1>
+        <p>Generated on: %s</p>
+        <p>Generated by: %s</p>
+    </div>
+    
+    <div class="merchant-section">
+        <h2>Executive Summary</h2>
+        <p>%s</p>
+    </div>
+    
+    <div class="merchant-section">
+        <h2>Merchants Compared</h2>
+        <table class="comparison-table">
+            <tr>
+                <th>Attribute</th>
+                <th>%s</th>
+                <th>%s</th>
+            </tr>
+            <tr><td>Portfolio Type</td><td>%s</td><td>%s</td></tr>
+            <tr><td>Risk Level</td><td>%s</td><td>%s</td></tr>
+            <tr><td>Industry</td><td>%s</td><td>%s</td></tr>
+            <tr><td>Employee Count</td><td>%d</td><td>%d</td></tr>
+            <tr><td>Annual Revenue</td><td>%s</td><td>%s</td></tr>
+        </table>
+    </div>
+    
+    <div class="recommendations">
+        <h2>Recommendations</h2>
+        %s
+    </div>
+</body>
+</html>`,
+		report.Title,
+		report.Title,
+		report.GeneratedAt.Format("2006-01-02 15:04:05"),
+		report.GeneratedBy,
+		report.ExecutiveSummary,
+		report.Merchants.Merchant1.Name,
+		report.Merchants.Merchant2.Name,
+		report.Merchants.Merchant1.PortfolioType,
+		report.Merchants.Merchant2.PortfolioType,
+		report.Merchants.Merchant1.RiskLevel,
+		report.Merchants.Merchant2.RiskLevel,
+		report.Merchants.Merchant1.Industry,
+		report.Merchants.Merchant2.Industry,
+		report.Merchants.Merchant1.EmployeeCount,
+		report.Merchants.Merchant2.EmployeeCount,
+		s.formatRevenue(report.Merchants.Merchant1.AnnualRevenue),
+		s.formatRevenue(report.Merchants.Merchant2.AnnualRevenue),
+		s.generateRecommendationsHTML(report.Merchants.Recommendations),
+	)
+
+	return html
+}
+
+// generateCSVReport generates a CSV version of the report
+func (s *ComparisonService) generateCSVReport(report *ComparisonReport) string {
+	csv := "Attribute,Merchant1,Merchant2\n"
+	csv += fmt.Sprintf("Name,%s,%s\n", report.Merchants.Merchant1.Name, report.Merchants.Merchant2.Name)
+	csv += fmt.Sprintf("Portfolio Type,%s,%s\n", report.Merchants.Merchant1.PortfolioType, report.Merchants.Merchant2.PortfolioType)
+	csv += fmt.Sprintf("Risk Level,%s,%s\n", report.Merchants.Merchant1.RiskLevel, report.Merchants.Merchant2.RiskLevel)
+	csv += fmt.Sprintf("Industry,%s,%s\n", report.Merchants.Merchant1.Industry, report.Merchants.Merchant2.Industry)
+	csv += fmt.Sprintf("Employee Count,%d,%d\n", report.Merchants.Merchant1.EmployeeCount, report.Merchants.Merchant2.EmployeeCount)
+	csv += fmt.Sprintf("Annual Revenue,%s,%s\n", s.formatRevenue(report.Merchants.Merchant1.AnnualRevenue), s.formatRevenue(report.Merchants.Merchant2.AnnualRevenue))
+
+	csv += "\nRecommendations\n"
+	csv += "Type,Priority,Message,Action\n"
+	for _, rec := range report.Merchants.Recommendations {
+		csv += fmt.Sprintf("%s,%s,\"%s\",\"%s\"\n", rec.Type, rec.Priority, rec.Message, rec.Action)
+	}
+
+	return csv
+}
+
+// generateRecommendationsHTML generates HTML for recommendations
+func (s *ComparisonService) generateRecommendationsHTML(recommendations []Recommendation) string {
+	var html string
+	for _, rec := range recommendations {
+		impactClass := fmt.Sprintf("%s-impact", rec.Priority)
+		html += fmt.Sprintf(`
+            <div class="recommendation-item %s">
+                <strong>%s - %s</strong><br>
+                %s<br>
+                <em>Action: %s</em>
+            </div>`,
+			impactClass,
+			strings.ToUpper(rec.Type),
+			strings.ToUpper(rec.Priority),
+			rec.Message,
+			rec.Action,
+		)
+	}
+	return html
+}
+
+// logComparisonEvent logs a comparison-related event
+func (s *ComparisonService) logComparisonEvent(ctx context.Context, userID, resourceID, action, details string) error {
+	// This would integrate with the audit service
+	// For MVP, we'll just log to the application logger
+	s.logger.Printf("Comparison Event - User: %s, Action: %s, Resource: %s, Details: %s",
+		userID, action, resourceID, details)
+	return nil
+}

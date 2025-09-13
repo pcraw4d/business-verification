@@ -1,0 +1,105 @@
+name: Update Visual Test Baselines
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Type of tests to update baselines for'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - baseline
+        - interactive
+        - state-based
+        - cross-browser
+        - responsive
+
+jobs:
+  update-baselines:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: 'web/package-lock.json'
+    
+    - name: Install dependencies
+      working-directory: ./web
+      run: npm ci
+    
+    - name: Install Playwright browsers
+      working-directory: ./web
+      run: npx playwright install --with-deps
+    
+    - name: Update baseline screenshots
+      working-directory: ./web
+      run: |
+        case "${{ github.event.inputs.test_type }}" in
+          "all")
+            echo "Updating all baseline screenshots..."
+            npx playwright test tests/visual/baseline-screenshots.spec.js --update-snapshots
+            npx playwright test tests/visual/interactive-element-tests.spec.js --update-snapshots
+            npx playwright test tests/visual/state-based-tests.spec.js --update-snapshots
+            npx playwright test tests/visual/cross-browser.spec.js --update-snapshots
+            npx playwright test tests/visual/responsive-design.spec.js --update-snapshots
+            ;;
+          "baseline")
+            npx playwright test tests/visual/baseline-screenshots.spec.js --update-snapshots
+            ;;
+          "interactive")
+            npx playwright test tests/visual/interactive-element-tests.spec.js --update-snapshots
+            ;;
+          "state-based")
+            npx playwright test tests/visual/state-based-tests.spec.js --update-snapshots
+            ;;
+          "cross-browser")
+            npx playwright test tests/visual/cross-browser.spec.js --update-snapshots
+            ;;
+          "responsive")
+            npx playwright test tests/visual/responsive-design.spec.js --update-snapshots
+            ;;
+        esac
+      env:
+        BASE_URL: https://shimmering-comfort-production.up.railway.app
+    
+    - name: Check for changes
+      id: check-changes
+      run: |
+        if git diff --staged --quiet; then
+          echo "changed=false" >> $GITHUB_OUTPUT
+        else
+          echo "changed=true" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Commit updated baselines
+      if: steps.check-changes.outputs.changed == 'true'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add web/tests/visual/*.spec.js-snapshots/
+        git commit -m "chore: update visual regression test baselines for ${{ github.event.inputs.test_type }} tests [skip ci]"
+        git push
+    
+    - name: Create summary
+      run: |
+        echo "## Baseline Update Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- **Test Type**: ${{ github.event.inputs.test_type }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Status**: ${{ steps.check-changes.outputs.changed == 'true' && 'Updated' || 'No changes needed' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ steps.check-changes.outputs.changed }}" == "true" ]; then
+          echo "✅ Baseline screenshots have been updated and committed." >> $GITHUB_STEP_SUMMARY
+        else
+          echo "ℹ️ No changes were needed to baseline screenshots." >> $GITHUB_STEP_SUMMARY
+        fi

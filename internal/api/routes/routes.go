@@ -13,6 +13,7 @@ import (
 // RouteConfig holds configuration for route registration
 type RouteConfig struct {
 	IntelligentRoutingHandler   *handlers.IntelligentRoutingHandler
+	BusinessIntelligenceHandler *handlers.BusinessIntelligenceHandler
 	AuthMiddleware              *middleware.AuthMiddleware
 	RateLimiter                 *middleware.RateLimiter
 	Logger                      *observability.Logger
@@ -59,7 +60,39 @@ func registerIntelligentRoutingRoutes(mux *http.ServeMux, config *RouteConfig) {
 
 // registerEnhancedBusinessIntelligenceRoutes registers enhanced business intelligence endpoints
 func registerEnhancedBusinessIntelligenceRoutes(mux *http.ServeMux, config *RouteConfig) {
-	// Enhanced business intelligence endpoints
+	// Market Analysis endpoints
+	mux.HandleFunc("POST /v2/business-intelligence/market-analysis", config.BusinessIntelligenceHandler.CreateMarketAnalysis)
+	mux.HandleFunc("GET /v2/business-intelligence/market-analysis", config.BusinessIntelligenceHandler.GetMarketAnalysis)
+	mux.HandleFunc("GET /v2/business-intelligence/market-analyses", config.BusinessIntelligenceHandler.ListMarketAnalyses)
+	mux.HandleFunc("POST /v2/business-intelligence/market-analysis/jobs", config.BusinessIntelligenceHandler.CreateMarketAnalysisJob)
+	mux.HandleFunc("GET /v2/business-intelligence/market-analysis/jobs", config.BusinessIntelligenceHandler.GetMarketAnalysisJob)
+	mux.HandleFunc("GET /v2/business-intelligence/market-analysis/jobs/list", config.BusinessIntelligenceHandler.ListMarketAnalysisJobs)
+
+	// Competitive Analysis endpoints
+	mux.HandleFunc("POST /v2/business-intelligence/competitive-analysis", config.BusinessIntelligenceHandler.CreateCompetitiveAnalysis)
+	mux.HandleFunc("GET /v2/business-intelligence/competitive-analysis", config.BusinessIntelligenceHandler.GetCompetitiveAnalysis)
+	mux.HandleFunc("GET /v2/business-intelligence/competitive-analyses", config.BusinessIntelligenceHandler.ListCompetitiveAnalyses)
+	mux.HandleFunc("POST /v2/business-intelligence/competitive-analysis/jobs", config.BusinessIntelligenceHandler.CreateCompetitiveAnalysisJob)
+	mux.HandleFunc("GET /v2/business-intelligence/competitive-analysis/jobs", config.BusinessIntelligenceHandler.GetCompetitiveAnalysisJob)
+	mux.HandleFunc("GET /v2/business-intelligence/competitive-analysis/jobs/list", config.BusinessIntelligenceHandler.ListCompetitiveAnalysisJobs)
+
+	// Growth Analytics endpoints
+	mux.HandleFunc("POST /v2/business-intelligence/growth-analytics", config.BusinessIntelligenceHandler.CreateGrowthAnalytics)
+	mux.HandleFunc("GET /v2/business-intelligence/growth-analytics", config.BusinessIntelligenceHandler.GetGrowthAnalytics)
+	mux.HandleFunc("GET /v2/business-intelligence/growth-analytics/list", config.BusinessIntelligenceHandler.ListGrowthAnalytics)
+	mux.HandleFunc("POST /v2/business-intelligence/growth-analytics/jobs", config.BusinessIntelligenceHandler.CreateGrowthAnalyticsJob)
+	mux.HandleFunc("GET /v2/business-intelligence/growth-analytics/jobs", config.BusinessIntelligenceHandler.GetGrowthAnalyticsJob)
+	mux.HandleFunc("GET /v2/business-intelligence/growth-analytics/jobs/list", config.BusinessIntelligenceHandler.ListGrowthAnalyticsJobs)
+
+	// Business Intelligence Aggregation endpoints
+	mux.HandleFunc("POST /v2/business-intelligence/aggregation", config.BusinessIntelligenceHandler.CreateBusinessIntelligenceAggregation)
+	mux.HandleFunc("GET /v2/business-intelligence/aggregation", config.BusinessIntelligenceHandler.GetBusinessIntelligenceAggregation)
+	mux.HandleFunc("GET /v2/business-intelligence/aggregations", config.BusinessIntelligenceHandler.ListBusinessIntelligenceAggregations)
+	mux.HandleFunc("POST /v2/business-intelligence/aggregation/jobs", config.BusinessIntelligenceHandler.CreateBusinessIntelligenceAggregationJob)
+	mux.HandleFunc("GET /v2/business-intelligence/aggregation/jobs", config.BusinessIntelligenceHandler.GetBusinessIntelligenceAggregationJob)
+	mux.HandleFunc("GET /v2/business-intelligence/aggregation/jobs/list", config.BusinessIntelligenceHandler.ListBusinessIntelligenceAggregationJobs)
+
+	// Enhanced business intelligence endpoints (legacy compatibility)
 	mux.HandleFunc("POST /v2/business-intelligence/enhanced-classify", config.IntelligentRoutingHandler.ClassifyBusiness)
 	mux.HandleFunc("POST /v2/business-intelligence/batch-enhanced", config.IntelligentRoutingHandler.ClassifyBusinessBatch)
 
@@ -99,6 +132,30 @@ func registerEnhancedBusinessIntelligenceRoutes(mux *http.ServeMux, config *Rout
 	config.Logger.Info("Enhanced business intelligence routes registered", map[string]interface{}{
 		"version": "v2",
 		"endpoints": []string{
+			"POST /v2/business-intelligence/market-analysis",
+			"GET /v2/business-intelligence/market-analysis",
+			"GET /v2/business-intelligence/market-analyses",
+			"POST /v2/business-intelligence/market-analysis/jobs",
+			"GET /v2/business-intelligence/market-analysis/jobs",
+			"GET /v2/business-intelligence/market-analysis/jobs/list",
+			"POST /v2/business-intelligence/competitive-analysis",
+			"GET /v2/business-intelligence/competitive-analysis",
+			"GET /v2/business-intelligence/competitive-analyses",
+			"POST /v2/business-intelligence/competitive-analysis/jobs",
+			"GET /v2/business-intelligence/competitive-analysis/jobs",
+			"GET /v2/business-intelligence/competitive-analysis/jobs/list",
+			"POST /v2/business-intelligence/growth-analytics",
+			"GET /v2/business-intelligence/growth-analytics",
+			"GET /v2/business-intelligence/growth-analytics/list",
+			"POST /v2/business-intelligence/growth-analytics/jobs",
+			"GET /v2/business-intelligence/growth-analytics/jobs",
+			"GET /v2/business-intelligence/growth-analytics/jobs/list",
+			"POST /v2/business-intelligence/aggregation",
+			"GET /v2/business-intelligence/aggregation",
+			"GET /v2/business-intelligence/aggregations",
+			"POST /v2/business-intelligence/aggregation/jobs",
+			"GET /v2/business-intelligence/aggregation/jobs",
+			"GET /v2/business-intelligence/aggregation/jobs/list",
 			"POST /v2/business-intelligence/enhanced-classify",
 			"POST /v2/business-intelligence/batch-enhanced",
 			"GET /v2/business-intelligence/analytics",
@@ -145,6 +202,11 @@ func CreateIntelligentRoutingHandler(
 	return handlers.NewIntelligentRoutingHandler(router, logger, metrics, tracer)
 }
 
+// CreateBusinessIntelligenceHandler creates and configures the business intelligence handler
+func CreateBusinessIntelligenceHandler() *handlers.BusinessIntelligenceHandler {
+	return handlers.NewBusinessIntelligenceHandler()
+}
+
 // RouteDocumentation provides documentation for all registered routes
 func RouteDocumentation() map[string]interface{} {
 	return map[string]interface{}{
@@ -181,6 +243,107 @@ func RouteDocumentation() map[string]interface{} {
 					},
 				},
 				"business_intelligence": map[string]interface{}{
+					"POST /v2/business-intelligence/market-analysis": map[string]interface{}{
+						"description": "Create and execute market analysis immediately",
+						"features": []string{
+							"Market size analysis",
+							"Market trends identification",
+							"Opportunity and threat assessment",
+							"Industry benchmarking",
+							"Strategic recommendations",
+						},
+					},
+					"GET /v2/business-intelligence/market-analysis": map[string]interface{}{
+						"description": "Retrieve specific market analysis by ID",
+					},
+					"GET /v2/business-intelligence/market-analyses": map[string]interface{}{
+						"description": "List all market analyses",
+					},
+					"POST /v2/business-intelligence/market-analysis/jobs": map[string]interface{}{
+						"description": "Create background market analysis job",
+					},
+					"GET /v2/business-intelligence/market-analysis/jobs": map[string]interface{}{
+						"description": "Get market analysis job status",
+					},
+					"GET /v2/business-intelligence/market-analysis/jobs/list": map[string]interface{}{
+						"description": "List all market analysis jobs",
+					},
+					"POST /v2/business-intelligence/competitive-analysis": map[string]interface{}{
+						"description": "Create and execute competitive analysis immediately",
+						"features": []string{
+							"Competitor analysis",
+							"Market position assessment",
+							"Competitive gap identification",
+							"Advantage and threat analysis",
+							"Strategic recommendations",
+						},
+					},
+					"GET /v2/business-intelligence/competitive-analysis": map[string]interface{}{
+						"description": "Retrieve specific competitive analysis by ID",
+					},
+					"GET /v2/business-intelligence/competitive-analyses": map[string]interface{}{
+						"description": "List all competitive analyses",
+					},
+					"POST /v2/business-intelligence/competitive-analysis/jobs": map[string]interface{}{
+						"description": "Create background competitive analysis job",
+					},
+					"GET /v2/business-intelligence/competitive-analysis/jobs": map[string]interface{}{
+						"description": "Get competitive analysis job status",
+					},
+					"GET /v2/business-intelligence/competitive-analysis/jobs/list": map[string]interface{}{
+						"description": "List all competitive analysis jobs",
+					},
+					"POST /v2/business-intelligence/growth-analytics": map[string]interface{}{
+						"description": "Create and execute growth analytics analysis immediately",
+						"features": []string{
+							"Growth trend analysis",
+							"Growth projections",
+							"Growth driver identification",
+							"Growth barrier assessment",
+							"Growth opportunity analysis",
+							"Strategic recommendations",
+						},
+					},
+					"GET /v2/business-intelligence/growth-analytics": map[string]interface{}{
+						"description": "Retrieve specific growth analytics analysis by ID",
+					},
+					"GET /v2/business-intelligence/growth-analytics/list": map[string]interface{}{
+						"description": "List all growth analytics analyses",
+					},
+					"POST /v2/business-intelligence/growth-analytics/jobs": map[string]interface{}{
+						"description": "Create background growth analytics job",
+					},
+					"GET /v2/business-intelligence/growth-analytics/jobs": map[string]interface{}{
+						"description": "Get growth analytics job status",
+					},
+					"GET /v2/business-intelligence/growth-analytics/jobs/list": map[string]interface{}{
+						"description": "List all growth analytics jobs",
+					},
+					"POST /v2/business-intelligence/aggregation": map[string]interface{}{
+						"description": "Create comprehensive business intelligence aggregation report",
+						"features": []string{
+							"Multi-analysis aggregation",
+							"Cross-analysis insights",
+							"Comprehensive recommendations",
+							"Executive summary",
+							"Strategic priorities",
+						},
+					},
+					"GET /v2/business-intelligence/aggregation": map[string]interface{}{
+						"description": "Retrieve specific business intelligence aggregation by ID",
+					},
+					"GET /v2/business-intelligence/aggregations": map[string]interface{}{
+						"description": "List all business intelligence aggregations",
+					},
+					"POST /v2/business-intelligence/aggregation/jobs": map[string]interface{}{
+						"description": "Create background business intelligence aggregation job",
+					},
+					"GET /v2/business-intelligence/aggregation/jobs": map[string]interface{}{
+						"description": "Get business intelligence aggregation job status",
+					},
+					"GET /v2/business-intelligence/aggregation/jobs/list": map[string]interface{}{
+						"description": "List all business intelligence aggregation jobs",
+					},
 					"POST /v2/business-intelligence/enhanced-classify": map[string]interface{}{
 						"description": "Enhanced classification with business intelligence features",
 					},

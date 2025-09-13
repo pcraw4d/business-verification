@@ -1,0 +1,748 @@
+# KYB Platform - Production Monitoring Configuration
+# Comprehensive monitoring, alerting, and observability for production deployment
+
+# General monitoring settings
+monitoring:
+  enabled: true
+  environment: "production"
+  service_name: "kyb-platform"
+  version: "${VERSION}"
+  deployment_id: "${DEPLOYMENT_ID}"
+  
+  # Production data collection settings
+  collection:
+    interval: "15s"  # More frequent collection for production
+    timeout: "10s"
+    retry_attempts: 3
+    retry_delay: "5s"
+    batch_size: 1000
+  
+  # Production storage settings
+  storage:
+    retention: "90d"  # Longer retention for production
+    max_samples: 10000000
+    max_series: 1000000
+    compression: true
+    backup_enabled: true
+
+# Metrics configuration
+metrics:
+  # Application metrics
+  application:
+    enabled: true
+    prefix: "kyb_prod_"
+    
+    # HTTP metrics
+    http:
+      enabled: true
+      buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]  # More granular buckets
+      labels: ["method", "endpoint", "status_code", "user_id", "tenant_id"]
+      slow_query_threshold: "1s"
+    
+    # Business metrics
+    business:
+      enabled: true
+      verification_requests: true
+      classification_accuracy: true
+      processing_time: true
+      merchant_portfolio_operations: true
+      bulk_operations: true
+      comparison_operations: true
+      session_management: true
+    
+    # System metrics
+    system:
+      enabled: true
+      memory: true
+      cpu: true
+      goroutines: true
+      gc: true
+      file_descriptors: true
+      network_connections: true
+      disk_usage: true
+  
+  # Database metrics
+  database:
+    enabled: true
+    connection_pool: true
+    query_duration: true
+    query_count: true
+    error_count: true
+    slow_queries: true
+    connection_usage: true
+    transaction_metrics: true
+  
+  # External API metrics
+  external_apis:
+    enabled: true
+    response_time: true
+    error_rate: true
+    rate_limits: true
+    circuit_breaker_status: true
+    retry_attempts: true
+  
+  # Cache metrics
+  cache:
+    enabled: true
+    hit_rate: true
+    miss_rate: true
+    eviction_rate: true
+    memory_usage: true
+    connection_pool: true
+  
+  # Security metrics
+  security:
+    enabled: true
+    authentication_attempts: true
+    authorization_failures: true
+    rate_limit_hits: true
+    suspicious_activities: true
+    security_events: true
+
+# Health check configuration
+health_checks:
+  enabled: true
+  interval: "15s"  # More frequent health checks
+  timeout: "5s"
+  
+  # Individual health checks
+  checks:
+    api_server:
+      enabled: true
+      endpoint: "/health"
+      timeout: "2s"
+      expected_status: 200
+    
+    database:
+      enabled: true
+      query: "SELECT 1"
+      timeout: "3s"
+      connection_pool_check: true
+    
+    cache:
+      enabled: true
+      operation: "ping"
+      timeout: "2s"
+      memory_check: true
+    
+    external_apis:
+      enabled: true
+      endpoints:
+        - "https://api.supabase.co/health"
+        - "https://verification-api.example.com/status"
+      timeout: "5s"
+      circuit_breaker_check: true
+    
+    filesystem:
+      enabled: true
+      path: "/app"
+      min_free_space: "1GB"
+      max_usage_percent: 90
+    
+    memory:
+      enabled: true
+      max_usage_percent: 85  # Stricter threshold for production
+    
+    disk:
+      enabled: true
+      max_usage_percent: 85
+      paths: ["/app", "/tmp", "/var/log"]
+    
+    network:
+      enabled: true
+      connectivity_checks: true
+      dns_resolution: true
+      latency_threshold: "100ms"
+
+# Alerting configuration
+alerting:
+  enabled: true
+  check_interval: "15s"  # More frequent alerting checks
+  
+  # Production thresholds (stricter than development)
+  thresholds:
+    error_rate: 1.0          # 1% (stricter than dev)
+    response_time: 1000      # 1 second (stricter than dev)
+    memory_usage: 80.0       # 80%
+    cpu_usage: 80.0          # 80%
+    disk_usage: 85.0         # 85%
+    active_users: 1000       # 1000 users (production scale)
+    request_rate: 1000.0     # 1000 req/s
+    database_connections: 80 # 80 connections
+    cache_hit_rate: 90.0     # 90% cache hit rate
+    slow_queries: 10.0       # 10 slow queries per minute
+  
+  # Production alert rules
+  rules:
+    - id: "critical_error_rate"
+      name: "Critical Error Rate"
+      description: "Error rate has exceeded critical threshold"
+      severity: "critical"
+      condition: "greater_than"
+      threshold: 5.0
+      duration: "1m"
+      labels:
+        service: "api"
+        type: "error_rate"
+      enabled: true
+    
+    - id: "high_error_rate"
+      name: "High Error Rate"
+      description: "Error rate has exceeded the threshold"
+      severity: "warning"
+      condition: "greater_than"
+      threshold: 1.0
+      duration: "2m"
+      labels:
+        service: "api"
+        type: "error_rate"
+      enabled: true
+    
+    - id: "critical_response_time"
+      name: "Critical Response Time"
+      description: "Response time has exceeded critical threshold"
+      severity: "critical"
+      condition: "greater_than"
+      threshold: 5000.0
+      duration: "2m"
+      labels:
+        service: "api"
+        type: "response_time"
+      enabled: true
+    
+    - id: "high_response_time"
+      name: "High Response Time"
+      description: "Response time has exceeded the threshold"
+      severity: "warning"
+      condition: "greater_than"
+      threshold: 1000.0
+      duration: "5m"
+      labels:
+        service: "api"
+        type: "response_time"
+      enabled: true
+    
+    - id: "critical_memory_usage"
+      name: "Critical Memory Usage"
+      description: "Memory usage has exceeded critical threshold"
+      severity: "critical"
+      condition: "greater_than"
+      threshold: 90.0
+      duration: "2m"
+      labels:
+        service: "system"
+        type: "memory"
+      enabled: true
+    
+    - id: "high_memory_usage"
+      name: "High Memory Usage"
+      description: "Memory usage has exceeded the threshold"
+      severity: "warning"
+      condition: "greater_than"
+      threshold: 80.0
+      duration: "5m"
+      labels:
+        service: "system"
+        type: "memory"
+      enabled: true
+    
+    - id: "critical_cpu_usage"
+      name: "Critical CPU Usage"
+      description: "CPU usage has exceeded critical threshold"
+      severity: "critical"
+      condition: "greater_than"
+      threshold: 90.0
+      duration: "2m"
+      labels:
+        service: "system"
+        type: "cpu"
+      enabled: true
+    
+    - id: "high_cpu_usage"
+      name: "High CPU Usage"
+      description: "CPU usage has exceeded the threshold"
+      severity: "warning"
+      condition: "greater_than"
+      threshold: 80.0
+      duration: "5m"
+      labels:
+        service: "system"
+        type: "cpu"
+      enabled: true
+    
+    - id: "service_down"
+      name: "Service Down"
+      description: "Service is not responding"
+      severity: "critical"
+      condition: "equals"
+      threshold: 0.0
+      duration: "30s"
+      labels:
+        service: "api"
+        type: "availability"
+      enabled: true
+    
+    - id: "database_connection_high"
+      name: "High Database Connections"
+      description: "Database connection usage is high"
+      severity: "warning"
+      condition: "greater_than"
+      threshold: 80.0
+      duration: "5m"
+      labels:
+        service: "database"
+        type: "connections"
+      enabled: true
+    
+    - id: "cache_hit_rate_low"
+      name: "Low Cache Hit Rate"
+      description: "Cache hit rate is below threshold"
+      severity: "warning"
+      condition: "less_than"
+      threshold: 90.0
+      duration: "10m"
+      labels:
+        service: "cache"
+        type: "performance"
+      enabled: true
+    
+    - id: "slow_queries_high"
+      name: "High Slow Query Count"
+      description: "Number of slow queries is high"
+      severity: "warning"
+      condition: "greater_than"
+      threshold: 10.0
+      duration: "5m"
+      labels:
+        service: "database"
+        type: "performance"
+      enabled: true
+    
+    - id: "security_incident"
+      name: "Security Incident Detected"
+      description: "Security incident has been detected"
+      severity: "critical"
+      condition: "greater_than"
+      threshold: 0.0
+      duration: "0s"
+      labels:
+        service: "security"
+        type: "incident"
+      enabled: true
+  
+  # Production notification channels
+  notifiers:
+    - type: "email"
+      name: "admin-email"
+      enabled: true
+      config:
+        smtp_host: "${SMTP_HOST}"
+        smtp_port: 587
+        smtp_username: "${SMTP_USERNAME}"
+        smtp_password: "${SMTP_PASSWORD}"
+        from: "alerts@kyb-platform.com"
+        to: ["admin@kyb-platform.com", "ops@kyb-platform.com"]
+        tls: true
+      severities: ["critical", "warning"]
+    
+    - type: "slack"
+      name: "team-slack"
+      enabled: true
+      config:
+        webhook_url: "${SLACK_WEBHOOK_URL}"
+        channel: "#alerts"
+        username: "KYB Platform Alerts"
+        icon_emoji: ":warning:"
+      severities: ["critical", "warning"]
+    
+    - type: "pagerduty"
+      name: "pagerduty"
+      enabled: true
+      config:
+        integration_key: "${PAGERDUTY_INTEGRATION_KEY}"
+        service_key: "${PAGERDUTY_SERVICE_KEY}"
+      severities: ["critical"]
+    
+    - type: "webhook"
+      name: "custom-webhook"
+      enabled: true
+      config:
+        url: "${ALERT_WEBHOOK_URL}"
+        method: "POST"
+        headers:
+          Content-Type: "application/json"
+          Authorization: "Bearer ${ALERT_WEBHOOK_TOKEN}"
+        timeout: "10s"
+      severities: ["critical", "warning"]
+  
+  # Production alert suppression rules
+  suppression_rules:
+    - id: "maintenance_window"
+      name: "Maintenance Window"
+      description: "Suppress alerts during scheduled maintenance"
+      conditions:
+        time: "02:00-04:00"  # 2 AM to 4 AM
+        day: "sunday"        # Sunday only
+      duration: "2h"
+      enabled: true
+    
+    - id: "deployment_suppression"
+      name: "Deployment Suppression"
+      description: "Suppress alerts during deployments"
+      conditions:
+        environment: "production"
+        deployment: "true"
+      duration: "30m"
+      enabled: true
+    
+    - id: "known_issue_suppression"
+      name: "Known Issue Suppression"
+      description: "Suppress alerts for known issues"
+      conditions:
+        issue_id: "${KNOWN_ISSUE_ID}"
+      duration: "24h"
+      enabled: false
+
+# Dashboard configuration
+dashboards:
+  enabled: true
+  
+  # Grafana settings
+  grafana:
+    enabled: true
+    url: "${GRAFANA_URL}"
+    username: "${GRAFANA_USERNAME}"
+    password: "${GRAFANA_PASSWORD}"
+    dashboard_id: "kyb-platform-production"
+    api_key: "${GRAFANA_API_KEY}"
+    
+    # Production dashboard panels
+    panels:
+      - title: "Request Rate"
+        type: "stat"
+        query: "rate(kyb_prod_http_requests_total[5m])"
+        unit: "reqps"
+        thresholds:
+          warning: 500
+          critical: 1000
+      
+      - title: "Response Time (95th percentile)"
+        type: "stat"
+        query: "histogram_quantile(0.95, rate(kyb_prod_http_request_duration_seconds_bucket[5m]))"
+        unit: "s"
+        thresholds:
+          warning: 1
+          critical: 2
+      
+      - title: "Error Rate"
+        type: "stat"
+        query: "rate(kyb_prod_http_requests_total{status=~\"5..\"}[5m]) / rate(kyb_prod_http_requests_total[5m]) * 100"
+        unit: "percent"
+        thresholds:
+          warning: 1
+          critical: 5
+      
+      - title: "Active Users"
+        type: "stat"
+        query: "kyb_prod_active_users"
+        unit: "short"
+        thresholds:
+          warning: 800
+          critical: 1000
+      
+      - title: "Memory Usage"
+        type: "stat"
+        query: "kyb_prod_memory_usage_bytes / 1024 / 1024 / 1024"
+        unit: "GB"
+        thresholds:
+          warning: 1.6
+          critical: 1.8
+      
+      - title: "CPU Usage"
+        type: "stat"
+        query: "100 - (avg by(instance) (irate(kyb_prod_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)"
+        unit: "percent"
+        thresholds:
+          warning: 80
+          critical: 90
+      
+      - title: "Database Connections"
+        type: "stat"
+        query: "kyb_prod_database_connections_active"
+        unit: "short"
+        thresholds:
+          warning: 80
+          critical: 90
+      
+      - title: "Cache Hit Rate"
+        type: "stat"
+        query: "kyb_prod_cache_hits_total / (kyb_prod_cache_hits_total + kyb_prod_cache_misses_total) * 100"
+        unit: "percent"
+        thresholds:
+          warning: 90
+          critical: 85
+
+# Logging configuration
+logging:
+  enabled: true
+  level: "info"  # Production logging level
+  
+  # Log formats
+  formats:
+    console: "json"
+    file: "json"
+    syslog: "json"
+  
+  # Log destinations
+  destinations:
+    console: true
+    file: true
+    syslog: true
+    elasticsearch: true
+  
+  # Log files
+  files:
+    access_log: "/app/logs/access.log"
+    error_log: "/app/logs/error.log"
+    audit_log: "/app/logs/audit.log"
+    security_log: "/app/logs/security.log"
+    application_log: "/app/logs/application.log"
+  
+  # Log rotation
+  rotation:
+    enabled: true
+    max_size: "100MB"
+    max_age: "7d"
+    max_backups: 30  # More backups for production
+    compress: true
+  
+  # Log aggregation
+  aggregation:
+    enabled: true
+    elasticsearch:
+      url: "${ELASTICSEARCH_URL}"
+      index: "kyb-platform-logs"
+      username: "${ELASTICSEARCH_USERNAME}"
+      password: "${ELASTICSEARCH_PASSWORD}"
+    fluentd:
+      enabled: true
+      host: "fluentd"
+      port: 24224
+
+# Performance monitoring
+performance:
+  enabled: true
+  
+  # Profiling
+  profiling:
+    enabled: false  # Disabled in production for security
+    port: 6060
+    endpoints:
+      - "cpu"
+      - "memory"
+      - "goroutine"
+      - "block"
+      - "mutex"
+  
+  # Tracing
+  tracing:
+    enabled: true
+    sample_rate: 0.1  # 10% sampling rate for production
+    jaeger_endpoint: "${JAEGER_ENDPOINT}"
+    zipkin_endpoint: "${ZIPKIN_ENDPOINT}"
+    otlp_endpoint: "${OTLP_ENDPOINT}"
+  
+  # Metrics collection
+  metrics_collection:
+    enabled: true
+    interval: "15s"  # More frequent collection
+    export_interval: "30s"
+    batch_size: 1000
+
+# Security settings
+security:
+  # Authentication
+  authentication:
+    enabled: true
+    type: "jwt"
+    mfa_required: true
+    
+  # Authorization
+  authorization:
+    enabled: true
+    roles:
+      - name: "admin"
+        permissions: ["read", "write", "delete", "admin"]
+      - name: "operator"
+        permissions: ["read", "write"]
+      - name: "viewer"
+        permissions: ["read"]
+      - name: "auditor"
+        permissions: ["read", "audit"]
+  
+  # Rate limiting
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 1000
+    burst_size: 100
+    per_user_limits: true
+    per_ip_limits: true
+  
+  # CORS
+  cors:
+    enabled: true
+    allowed_origins: ["${CORS_ALLOWED_ORIGINS}"]
+    allowed_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    allowed_headers: ["Content-Type", "Authorization", "X-API-Key"]
+
+# Integration settings
+integrations:
+  # Prometheus
+  prometheus:
+    enabled: true
+    url: "${PROMETHEUS_URL}"
+    scrape_interval: "15s"
+    scrape_timeout: "10s"
+    remote_write:
+      enabled: true
+      url: "${PROMETHEUS_REMOTE_WRITE_URL}"
+      username: "${PROMETHEUS_USERNAME}"
+      password: "${PROMETHEUS_PASSWORD}"
+  
+  # Grafana
+  grafana:
+    enabled: true
+    url: "${GRAFANA_URL}"
+    api_key: "${GRAFANA_API_KEY}"
+    provisioning:
+      enabled: true
+      dashboards_path: "/etc/grafana/provisioning/dashboards"
+      datasources_path: "/etc/grafana/provisioning/datasources"
+  
+  # AlertManager
+  alertmanager:
+    enabled: true
+    url: "${ALERTMANAGER_URL}"
+    api_version: "v2"
+    cluster_mode: true
+  
+  # External monitoring services
+  external:
+    datadog:
+      enabled: false
+      api_key: "${DATADOG_API_KEY}"
+      site: "datadoghq.com"
+      tags: ["env:production", "service:kyb-platform"]
+    
+    newrelic:
+      enabled: false
+      license_key: "${NEWRELIC_LICENSE_KEY}"
+      app_name: "KYB Platform Production"
+    
+    sentry:
+      enabled: true
+      dsn: "${SENTRY_DSN}"
+      environment: "production"
+      sample_rate: 0.1
+      traces_sample_rate: 0.1
+    
+    honeycomb:
+      enabled: false
+      api_key: "${HONEYCOMB_API_KEY}"
+      dataset: "kyb-platform-production"
+
+# Business Intelligence Configuration
+business_intelligence:
+  enabled: true
+  
+  # Analytics
+  analytics:
+    enabled: true
+    collection_interval: "60s"
+    batch_size: 1000
+    retention_days: 365
+    
+    # Key metrics
+    metrics:
+      - "user_engagement"
+      - "feature_usage"
+      - "conversion_rates"
+      - "business_metrics"
+      - "performance_metrics"
+  
+  # Reporting
+  reporting:
+    enabled: true
+    scheduled_reports:
+      - name: "daily_summary"
+        schedule: "0 8 * * *"  # 8 AM daily
+        recipients: ["admin@kyb-platform.com"]
+      - name: "weekly_analytics"
+        schedule: "0 9 * * 1"  # 9 AM Monday
+        recipients: ["analytics@kyb-platform.com"]
+      - name: "monthly_business_review"
+        schedule: "0 10 1 * *"  # 10 AM 1st of month
+        recipients: ["executives@kyb-platform.com"]
+
+# Disaster Recovery Configuration
+disaster_recovery:
+  enabled: true
+  
+  # Backup
+  backup:
+    enabled: true
+    schedule: "0 2 * * *"  # 2 AM daily
+    retention_days: 30
+    encryption: true
+    compression: true
+    storage:
+      type: "s3"
+      bucket: "${BACKUP_S3_BUCKET}"
+      region: "${BACKUP_S3_REGION}"
+      access_key: "${BACKUP_S3_ACCESS_KEY}"
+      secret_key: "${BACKUP_S3_SECRET_KEY}"
+  
+  # Recovery
+  recovery:
+    enabled: true
+    rto: "4h"  # Recovery Time Objective
+    rpo: "1h"  # Recovery Point Objective
+    testing_schedule: "monthly"
+    automation_level: "semi-automated"
+
+# Compliance and Audit Configuration
+compliance:
+  enabled: true
+  
+  # Audit logging
+  audit:
+    enabled: true
+    log_all_operations: true
+    sensitive_data_masking: true
+    retention_days: 2555  # 7 years
+    encryption: true
+    
+    # Audit events
+    events:
+      - "authentication"
+      - "authorization"
+      - "data_access"
+      - "configuration_changes"
+      - "security_events"
+      - "business_operations"
+  
+  # Compliance frameworks
+  frameworks:
+    soc2:
+      enabled: true
+      controls_monitoring: true
+      reporting_frequency: "quarterly"
+    pci_dss:
+      enabled: true
+      cardholder_data_protection: true
+      network_security: true
+    gdpr:
+      enabled: true
+      data_protection: true
+      privacy_by_design: true
+      consent_management: true

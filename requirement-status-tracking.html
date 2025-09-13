@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Requirement Status Tracking - KYB Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .tracking-dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+
+        .status-overview {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .status-overview h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .status-card {
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .status-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .status-card.completed {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+        }
+
+        .status-card.in-progress {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            color: white;
+        }
+
+        .status-card.pending {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+        }
+
+        .status-card.overdue {
+            background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);
+            color: white;
+        }
+
+        .status-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .status-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .progress-timeline {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .progress-timeline h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .timeline-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+
+        .timeline-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .timeline-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 1.2rem;
+            color: white;
+        }
+
+        .timeline-icon.completed {
+            background: #27ae60;
+        }
+
+        .timeline-icon.in-progress {
+            background: #f39c12;
+        }
+
+        .timeline-icon.pending {
+            background: #e74c3c;
+        }
+
+        .timeline-content {
+            flex: 1;
+        }
+
+        .timeline-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .timeline-meta {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .content-tabs {
+            display: flex;
+            border-bottom: 2px solid #ecf0f1;
+            margin-bottom: 30px;
+        }
+
+        .tab-btn {
+            padding: 15px 25px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #7f8c8d;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            color: #3498db;
+            border-bottom-color: #3498db;
+        }
+
+        .tab-btn:hover {
+            color: #3498db;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .requirements-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .requirements-table th {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            padding: 20px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .requirements-table td {
+            padding: 20px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .requirements-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .requirement-id {
+            font-weight: 600;
+            color: #3498db;
+        }
+
+        .requirement-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .requirement-description {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-badge.completed {
+            background: #d5f4e6;
+            color: #27ae60;
+        }
+
+        .status-badge.in-progress {
+            background: #fef5e7;
+            color: #f39c12;
+        }
+
+        .status-badge.pending {
+            background: #fadbd8;
+            color: #e74c3c;
+        }
+
+        .status-badge.overdue {
+            background: #f8d7da;
+            color: #c0392b;
+        }
+
+        .priority-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .priority-badge.high {
+            background: #f8d7da;
+            color: #c0392b;
+        }
+
+        .priority-badge.medium {
+            background: #fef5e7;
+            color: #f39c12;
+        }
+
+        .priority-badge.low {
+            background: #d5f4e6;
+            color: #27ae60;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #ecf0f1;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db 0%, #2ecc71 100%);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-update {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-history {
+            background: #9b59b6;
+            color: white;
+        }
+
+        .btn-details {
+            background: #27ae60;
+            color: white;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .status-history {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            margin-top: 20px;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            background: #f8f9fa;
+            margin-bottom: 10px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .history-date {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-right: 15px;
+            min-width: 120px;
+        }
+
+        .history-status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-right: 15px;
+        }
+
+        .history-comment {
+            color: #7f8c8d;
+            flex: 1;
+        }
+
+        .automated-alerts {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .alert-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid;
+        }
+
+        .alert-item.warning {
+            background: #fef5e7;
+            border-left-color: #f39c12;
+        }
+
+        .alert-item.danger {
+            background: #f8d7da;
+            border-left-color: #e74c3c;
+        }
+
+        .alert-item.info {
+            background: #e3f2fd;
+            border-left-color: #3498db;
+        }
+
+        .alert-icon {
+            font-size: 1.5rem;
+            margin-right: 15px;
+        }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .alert-message {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #7f8c8d;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+
+        .btn-primary {
+            padding: 12px 24px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary {
+            padding: 12px 24px;
+            background: #95a5a6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover, .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .tracking-dashboard {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                padding: 20px;
+            }
+
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .content-tabs {
+                flex-wrap: wrap;
+            }
+
+            .requirements-table {
+                font-size: 0.9rem;
+            }
+
+            .requirements-table th,
+            .requirements-table td {
+                padding: 15px 10px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            z-index: 1001;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: #27ae60;
+        }
+
+        .notification.error {
+            background: #e74c3c;
+        }
+
+        .notification.info {
+            background: #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Requirement Status Tracking</h1>
+            <p>Advanced tracking and monitoring for regulatory compliance requirements</p>
+        </div>
+
+        <div class="tracking-dashboard">
+            <div class="status-overview">
+                <h2>Status Overview</h2>
+                <div class="status-grid">
+                    <div class="status-card completed">
+                        <div class="status-number" id="completed-count">0</div>
+                        <div class="status-label">Completed</div>
+                    </div>
+                    <div class="status-card in-progress">
+                        <div class="status-number" id="in-progress-count">0</div>
+                        <div class="status-label">In Progress</div>
+                    </div>
+                    <div class="status-card pending">
+                        <div class="status-number" id="pending-count">0</div>
+                        <div class="status-label">Pending</div>
+                    </div>
+                    <div class="status-card overdue">
+                        <div class="status-number" id="overdue-count">0</div>
+                        <div class="status-label">Overdue</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="progress-timeline">
+                <h2>Recent Activity</h2>
+                <div id="recent-activity">
+                    <!-- Recent activity items will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="content-tabs">
+                <button class="tab-btn active" onclick="showTab('requirements')">All Requirements</button>
+                <button class="tab-btn" onclick="showTab('history')">Status History</button>
+                <button class="tab-btn" onclick="showTab('alerts')">Automated Alerts</button>
+            </div>
+
+            <div id="requirements-tab" class="tab-content active">
+                <table class="requirements-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Requirement</th>
+                            <th>Framework</th>
+                            <th>Status</th>
+                            <th>Priority</th>
+                            <th>Progress</th>
+                            <th>Deadline</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="requirements-table-body">
+                        <!-- Requirements will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="history-tab" class="tab-content">
+                <div class="status-history">
+                    <h2>Status Change History</h2>
+                    <div id="status-history-list">
+                        <!-- Status history will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <div id="alerts-tab" class="tab-content">
+                <div class="automated-alerts">
+                    <h2>Automated Alerts</h2>
+                    <div id="alerts-list">
+                        <!-- Alerts will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Update Modal -->
+    <div id="status-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Update Requirement Status</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="status-form">
+                <div class="form-group">
+                    <label class="form-label">Requirement</label>
+                    <input type="text" class="form-input" id="requirement-name" readonly>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Current Status</label>
+                    <input type="text" class="form-input" id="current-status" readonly>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">New Status</label>
+                    <select class="form-select" id="new-status" required>
+                        <option value="">Select Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                        <option value="on-hold">On Hold</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Progress Percentage</label>
+                    <input type="range" class="form-input" id="progress-percentage" min="0" max="100" value="0">
+                    <span id="progress-value">0%</span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Comments</label>
+                    <textarea class="form-textarea" id="status-comments" placeholder="Add comments about this status change..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn-primary">Update Status</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // Enhanced requirements data with tracking information
+        const requirementsData = [
+            {
+                id: 'SOC2-001',
+                title: 'Access Control Management',
+                description: 'Implement and maintain access controls for all systems and data',
+                framework: 'SOC 2',
+                status: 'completed',
+                priority: 'high',
+                progress: 100,
+                deadline: '2024-12-31',
+                assignedTo: 'Security Team',
+                lastUpdated: '2024-11-15',
+                statusHistory: [
+                    { date: '2024-11-15', status: 'completed', comment: 'All access controls implemented and tested', user: 'John Doe' },
+                    { date: '2024-11-10', status: 'in-progress', comment: 'Implementation in progress', user: 'Jane Smith' },
+                    { date: '2024-11-01', status: 'pending', comment: 'Requirement assigned to security team', user: 'Admin' }
+                ]
+            },
+            {
+                id: 'SOC2-002',
+                title: 'Data Encryption',
+                description: 'Encrypt all sensitive data at rest and in transit',
+                framework: 'SOC 2',
+                status: 'in-progress',
+                priority: 'high',
+                progress: 75,
+                deadline: '2024-12-31',
+                assignedTo: 'DevOps Team',
+                lastUpdated: '2024-11-20',
+                statusHistory: [
+                    { date: '2024-11-20', status: 'in-progress', comment: '75% complete - implementing database encryption', user: 'Mike Johnson' },
+                    { date: '2024-11-15', status: 'in-progress', comment: 'Started implementation', user: 'Mike Johnson' },
+                    { date: '2024-11-01', status: 'pending', comment: 'Requirement assigned', user: 'Admin' }
+                ]
+            },
+            {
+                id: 'PCI-001',
+                title: 'Network Security',
+                description: 'Install and maintain network security controls',
+                framework: 'PCI DSS',
+                status: 'completed',
+                priority: 'high',
+                progress: 100,
+                deadline: '2024-12-31',
+                assignedTo: 'Network Team',
+                lastUpdated: '2024-09-10',
+                statusHistory: [
+                    { date: '2024-09-10', status: 'completed', comment: 'Network security controls fully implemented', user: 'Sarah Wilson' },
+                    { date: '2024-08-15', status: 'in-progress', comment: 'Installing security controls', user: 'Sarah Wilson' },
+                    { date: '2024-08-01', status: 'pending', comment: 'Requirement assigned', user: 'Admin' }
+                ]
+            },
+            {
+                id: 'GDPR-001',
+                title: 'Data Subject Rights',
+                description: 'Implement procedures for data subject rights requests',
+                framework: 'GDPR',
+                status: 'in-progress',
+                priority: 'high',
+                progress: 60,
+                deadline: '2024-12-31',
+                assignedTo: 'Legal Team',
+                lastUpdated: '2024-11-18',
+                statusHistory: [
+                    { date: '2024-11-18', status: 'in-progress', comment: '60% complete - procedures drafted', user: 'Legal Team' },
+                    { date: '2024-11-01', status: 'pending', comment: 'Requirement assigned', user: 'Admin' }
+                ]
+            },
+            {
+                id: 'HIPAA-001',
+                title: 'Administrative Safeguards',
+                description: 'Implement administrative safeguards for PHI protection',
+                framework: 'HIPAA',
+                status: 'overdue',
+                priority: 'high',
+                progress: 40,
+                deadline: '2024-11-30',
+                assignedTo: 'Compliance Team',
+                lastUpdated: '2024-11-25',
+                statusHistory: [
+                    { date: '2024-11-25', status: 'overdue', comment: 'Deadline missed - need additional resources', user: 'Compliance Team' },
+                    { date: '2024-11-15', status: 'in-progress', comment: 'Working on safeguards', user: 'Compliance Team' },
+                    { date: '2024-11-01', status: 'pending', comment: 'Requirement assigned', user: 'Admin' }
+                ]
+            }
+        ];
+
+        let currentRequirementId = null;
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            loadRequirements();
+            loadRecentActivity();
+            loadStatusHistory();
+            loadAlerts();
+            updateStatusOverview();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Progress slider
+            document.getElementById('progress-percentage').addEventListener('input', function() {
+                document.getElementById('progress-value').textContent = this.value + '%';
+            });
+
+            // Status form submission
+            document.getElementById('status-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                updateRequirementStatus();
+            });
+        }
+
+        function loadRequirements() {
+            const tbody = document.getElementById('requirements-table-body');
+            tbody.innerHTML = '';
+
+            requirementsData.forEach(req => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="requirement-id">${req.id}</td>
+                    <td>
+                        <div class="requirement-title">${req.title}</div>
+                        <div class="requirement-description">${req.description}</div>
+                    </td>
+                    <td>${req.framework}</td>
+                    <td><span class="status-badge ${req.status}">${req.status.replace('-', ' ')}</span></td>
+                    <td><span class="priority-badge ${req.priority}">${req.priority}</span></td>
+                    <td>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${req.progress}%"></div>
+                        </div>
+                        <small>${req.progress}%</small>
+                    </td>
+                    <td>${formatDate(req.deadline)}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="action-btn btn-update" onclick="openStatusModal('${req.id}')">Update</button>
+                            <button class="action-btn btn-history" onclick="viewHistory('${req.id}')">History</button>
+                            <button class="action-btn btn-details" onclick="viewDetails('${req.id}')">Details</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function loadRecentActivity() {
+            const container = document.getElementById('recent-activity');
+            container.innerHTML = '';
+
+            // Get recent status changes from all requirements
+            const recentChanges = [];
+            requirementsData.forEach(req => {
+                req.statusHistory.forEach(history => {
+                    recentChanges.push({
+                        ...history,
+                        requirementId: req.id,
+                        requirementTitle: req.title,
+                        framework: req.framework
+                    });
+                });
+            });
+
+            // Sort by date (most recent first)
+            recentChanges.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            // Show only the 5 most recent
+            recentChanges.slice(0, 5).forEach(change => {
+                const item = document.createElement('div');
+                item.className = 'timeline-item';
+                item.innerHTML = `
+                    <div class="timeline-icon ${change.status}">
+                        ${getStatusIcon(change.status)}
+                    </div>
+                    <div class="timeline-content">
+                        <div class="timeline-title">${change.requirementTitle}</div>
+                        <div class="timeline-meta">
+                            ${change.framework} • ${formatDate(change.date)} • ${change.user}
+                        </div>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function loadStatusHistory() {
+            const container = document.getElementById('status-history-list');
+            container.innerHTML = '';
+
+            // Get all status changes
+            const allChanges = [];
+            requirementsData.forEach(req => {
+                req.statusHistory.forEach(history => {
+                    allChanges.push({
+                        ...history,
+                        requirementId: req.id,
+                        requirementTitle: req.title,
+                        framework: req.framework
+                    });
+                });
+            });
+
+            // Sort by date (most recent first)
+            allChanges.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            allChanges.forEach(change => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.innerHTML = `
+                    <div class="history-date">${formatDate(change.date)}</div>
+                    <div class="history-status status-badge ${change.status}">${change.status.replace('-', ' ')}</div>
+                    <div class="history-comment">
+                        <strong>${change.requirementTitle}</strong> (${change.framework}) - ${change.comment}
+                        <br><small>by ${change.user}</small>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function loadAlerts() {
+            const container = document.getElementById('alerts-list');
+            container.innerHTML = '';
+
+            const alerts = [
+                {
+                    type: 'danger',
+                    icon: '⚠️',
+                    title: 'Overdue Requirement',
+                    message: 'HIPAA-001: Administrative Safeguards is overdue (deadline: Nov 30, 2024)'
+                },
+                {
+                    type: 'warning',
+                    icon: '⏰',
+                    title: 'Upcoming Deadline',
+                    message: 'SOC2-002: Data Encryption deadline approaching (Dec 31, 2024)'
+                },
+                {
+                    type: 'info',
+                    icon: 'ℹ️',
+                    title: 'Status Update',
+                    message: 'GDPR-001: Data Subject Rights progress updated to 60%'
+                }
+            ];
+
+            alerts.forEach(alert => {
+                const item = document.createElement('div');
+                item.className = `alert-item ${alert.type}`;
+                item.innerHTML = `
+                    <div class="alert-icon">${alert.icon}</div>
+                    <div class="alert-content">
+                        <div class="alert-title">${alert.title}</div>
+                        <div class="alert-message">${alert.message}</div>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function updateStatusOverview() {
+            const counts = {
+                completed: 0,
+                'in-progress': 0,
+                pending: 0,
+                overdue: 0
+            };
+
+            requirementsData.forEach(req => {
+                if (req.status === 'overdue') {
+                    counts.overdue++;
+                } else {
+                    counts[req.status] = (counts[req.status] || 0) + 1;
+                }
+            });
+
+            document.getElementById('completed-count').textContent = counts.completed;
+            document.getElementById('in-progress-count').textContent = counts['in-progress'];
+            document.getElementById('pending-count').textContent = counts.pending;
+            document.getElementById('overdue-count').textContent = counts.overdue;
+        }
+
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function openStatusModal(requirementId) {
+            currentRequirementId = requirementId;
+            const requirement = requirementsData.find(req => req.id === requirementId);
+            
+            document.getElementById('requirement-name').value = requirement.title;
+            document.getElementById('current-status').value = requirement.status;
+            document.getElementById('progress-percentage').value = requirement.progress;
+            document.getElementById('progress-value').textContent = requirement.progress + '%';
+            document.getElementById('status-comments').value = '';
+
+            document.getElementById('status-modal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('status-modal').style.display = 'none';
+            currentRequirementId = null;
+        }
+
+        function updateRequirementStatus() {
+            const newStatus = document.getElementById('new-status').value;
+            const progress = document.getElementById('progress-percentage').value;
+            const comments = document.getElementById('status-comments').value;
+
+            if (!newStatus) {
+                showNotification('Please select a new status', 'error');
+                return;
+            }
+
+            // Find and update the requirement
+            const requirement = requirementsData.find(req => req.id === currentRequirementId);
+            if (requirement) {
+                const oldStatus = requirement.status;
+                requirement.status = newStatus;
+                requirement.progress = parseInt(progress);
+                requirement.lastUpdated = new Date().toISOString().split('T')[0];
+
+                // Add to status history
+                requirement.statusHistory.unshift({
+                    date: new Date().toISOString().split('T')[0],
+                    status: newStatus,
+                    comment: comments || `Status changed from ${oldStatus} to ${newStatus}`,
+                    user: 'Current User'
+                });
+
+                // Reload all data
+                loadRequirements();
+                loadRecentActivity();
+                loadStatusHistory();
+                updateStatusOverview();
+
+                showNotification('Status updated successfully!', 'success');
+                closeModal();
+            }
+        }
+
+        function viewHistory(requirementId) {
+            showNotification('Opening status history for ' + requirementId, 'info');
+            // Implementation for viewing detailed history
+        }
+
+        function viewDetails(requirementId) {
+            showNotification('Opening details for ' + requirementId, 'info');
+            // Implementation for viewing requirement details
+        }
+
+        function getStatusIcon(status) {
+            const icons = {
+                'completed': '✓',
+                'in-progress': '⏳',
+                'pending': '⏸️',
+                'overdue': '⚠️',
+                'on-hold': '⏸️',
+                'cancelled': '✗'
+            };
+            return icons[status] || '?';
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+            });
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add('show');
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('status-modal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>

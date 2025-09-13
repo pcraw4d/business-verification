@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Requirement Compliance Reports - KYB Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .reports-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+
+        .overview-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .overview-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3498db 0%, #2ecc71 100%);
+        }
+
+        .overview-card.compliant::before {
+            background: linear-gradient(90deg, #27ae60 0%, #2ecc71 100%);
+        }
+
+        .overview-card.non-compliant::before {
+            background: linear-gradient(90deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .overview-card.partial::before {
+            background: linear-gradient(90deg, #f39c12 0%, #e67e22 100%);
+        }
+
+        .overview-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .card-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .card-label {
+            font-size: 1.1rem;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+
+        .card-description {
+            font-size: 0.9rem;
+            color: #95a5a6;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .content-tabs {
+            display: flex;
+            border-bottom: 2px solid #ecf0f1;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 15px 25px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #7f8c8d;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            color: #3498db;
+            border-bottom-color: #3498db;
+        }
+
+        .tab-btn:hover {
+            color: #3498db;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .report-generator {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            margin-bottom: 30px;
+        }
+
+        .generator-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .generator-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .generator-actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .action-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .report-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .option-group {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .option-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #3498db;
+        }
+
+        .checkbox-item label {
+            font-size: 0.95rem;
+            color: #2c3e50;
+            cursor: pointer;
+        }
+
+        .compliance-summary {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            margin-bottom: 30px;
+        }
+
+        .summary-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .summary-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+
+        .framework-breakdown {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .framework-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .framework-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #ecf0f1;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db 0%, #2ecc71 100%);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-fill.compliant {
+            background: linear-gradient(90deg, #27ae60 0%, #2ecc71 100%);
+        }
+
+        .progress-fill.partial {
+            background: linear-gradient(90deg, #f39c12 0%, #e67e22 100%);
+        }
+
+        .progress-fill.non-compliant {
+            background: linear-gradient(90deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .framework-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+
+        .detailed-reports {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .reports-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .report-card {
+            background: #f8f9fa;
+            border: 1px solid #ecf0f1;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .report-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border-color: #3498db;
+        }
+
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .report-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .report-type {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .type-executive {
+            background: #e3f2fd;
+            color: #3498db;
+        }
+
+        .type-detailed {
+            background: #f3e5f5;
+            color: #9b59b6;
+        }
+
+        .type-audit {
+            background: #e8f5e8;
+            color: #27ae60;
+        }
+
+        .report-description {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .report-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            color: #95a5a6;
+        }
+
+        .report-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .report-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-generate {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-preview {
+            background: #9b59b6;
+            color: white;
+        }
+
+        .btn-download {
+            background: #27ae60;
+            color: white;
+        }
+
+        .report-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .executive-dashboard {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .dashboard-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #3498db;
+        }
+
+        .dashboard-card.compliant {
+            border-left-color: #27ae60;
+        }
+
+        .dashboard-card.warning {
+            border-left-color: #f39c12;
+        }
+
+        .dashboard-card.critical {
+            border-left-color: #e74c3c;
+        }
+
+        .dashboard-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .dashboard-content {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #7f8c8d;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+
+        .btn-primary {
+            padding: 12px 24px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary {
+            padding: 12px 24px;
+            background: #95a5a6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover, .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            z-index: 1001;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: #27ae60;
+        }
+
+        .notification.error {
+            background: #e74c3c;
+        }
+
+        .notification.info {
+            background: #3498db;
+        }
+
+        @media (max-width: 768px) {
+            .reports-overview {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+                padding: 20px;
+            }
+
+            .content-tabs {
+                flex-wrap: wrap;
+            }
+
+            .report-options {
+                grid-template-columns: 1fr;
+            }
+
+            .reports-list {
+                grid-template-columns: 1fr;
+            }
+
+            .generator-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: stretch;
+            }
+
+            .generator-actions {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Requirement Compliance Reports</h1>
+            <p>Comprehensive compliance reporting and executive dashboards for regulatory requirements</p>
+        </div>
+
+        <div class="reports-overview">
+            <div class="overview-card compliant">
+                <div class="card-icon">✅</div>
+                <div class="card-number" id="compliant-count">0</div>
+                <div class="card-label">Compliant</div>
+                <div class="card-description">Fully compliant requirements</div>
+            </div>
+            <div class="overview-card partial">
+                <div class="card-icon">⚠️</div>
+                <div class="card-number" id="partial-count">0</div>
+                <div class="card-label">Partial</div>
+                <div class="card-description">Partially compliant</div>
+            </div>
+            <div class="overview-card non-compliant">
+                <div class="card-icon">❌</div>
+                <div class="card-number" id="non-compliant-count">0</div>
+                <div class="card-label">Non-Compliant</div>
+                <div class="card-description">Non-compliant requirements</div>
+            </div>
+            <div class="overview-card">
+                <div class="card-icon">📊</div>
+                <div class="card-number" id="total-requirements">0</div>
+                <div class="card-label">Total</div>
+                <div class="card-description">All requirements</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="content-tabs">
+                <button class="tab-btn active" onclick="showTab('generator')">Report Generator</button>
+                <button class="tab-btn" onclick="showTab('summary')">Compliance Summary</button>
+                <button class="tab-btn" onclick="showTab('reports')">Detailed Reports</button>
+                <button class="tab-btn" onclick="showTab('executive')">Executive Dashboard</button>
+            </div>
+
+            <div id="generator-tab" class="tab-content active">
+                <div class="report-generator">
+                    <div class="generator-header">
+                        <h3 class="generator-title">Custom Report Generator</h3>
+                        <div class="generator-actions">
+                            <button class="action-btn btn-primary" onclick="generateCustomReport()">Generate Report</button>
+                            <button class="action-btn btn-secondary" onclick="saveReportTemplate()">Save Template</button>
+                        </div>
+                    </div>
+
+                    <div class="report-options">
+                        <div class="option-group">
+                            <div class="option-title">Report Scope</div>
+                            <div class="checkbox-group">
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="scope-all" checked>
+                                    <label for="scope-all">All Requirements</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="scope-soc2">
+                                    <label for="scope-soc2">SOC 2 Only</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="scope-pci">
+                                    <label for="scope-pci">PCI DSS Only</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="scope-gdpr">
+                                    <label for="scope-gdpr">GDPR Only</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="scope-hipaa">
+                                    <label for="scope-hipaa">HIPAA Only</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="option-group">
+                            <div class="option-title">Report Content</div>
+                            <div class="checkbox-group">
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="content-summary" checked>
+                                    <label for="content-summary">Executive Summary</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="content-details" checked>
+                                    <label for="content-details">Detailed Requirements</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="content-gaps">
+                                    <label for="content-gaps">Compliance Gaps</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="content-recommendations" checked>
+                                    <label for="content-recommendations">Recommendations</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="content-timeline">
+                                    <label for="content-timeline">Implementation Timeline</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="option-group">
+                            <div class="option-title">Report Format</div>
+                            <div class="checkbox-group">
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="format-pdf" checked>
+                                    <label for="format-pdf">PDF Document</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="format-excel">
+                                    <label for="format-excel">Excel Spreadsheet</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="format-powerpoint">
+                                    <label for="format-powerpoint">PowerPoint Presentation</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="format-csv">
+                                    <label for="format-csv">CSV Data Export</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="summary-tab" class="tab-content">
+                <div class="compliance-summary">
+                    <div class="summary-header">
+                        <h3 class="summary-title">Compliance Summary</h3>
+                        <button class="action-btn btn-success" onclick="exportSummary()">Export Summary</button>
+                    </div>
+
+                    <div class="summary-stats">
+                        <div class="stat-card">
+                            <div class="stat-number" id="summary-compliant">0</div>
+                            <div class="stat-label">Compliant Requirements</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="summary-partial">0</div>
+                            <div class="stat-label">Partial Compliance</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="summary-non-compliant">0</div>
+                            <div class="stat-label">Non-Compliant</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="summary-overall">0%</div>
+                            <div class="stat-label">Overall Compliance</div>
+                        </div>
+                    </div>
+
+                    <div class="framework-breakdown">
+                        <div class="framework-card">
+                            <div class="framework-title">SOC 2 Compliance</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill compliant" style="width: 85%"></div>
+                            </div>
+                            <div class="framework-stats">
+                                <span>85% Compliant</span>
+                                <span>17/20 Requirements</span>
+                            </div>
+                        </div>
+
+                        <div class="framework-card">
+                            <div class="framework-title">PCI DSS Compliance</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill partial" style="width: 60%"></div>
+                            </div>
+                            <div class="framework-stats">
+                                <span>60% Compliant</span>
+                                <span>12/20 Requirements</span>
+                            </div>
+                        </div>
+
+                        <div class="framework-card">
+                            <div class="framework-title">GDPR Compliance</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill partial" style="width: 70%"></div>
+                            </div>
+                            <div class="framework-stats">
+                                <span>70% Compliant</span>
+                                <span>14/20 Requirements</span>
+                            </div>
+                        </div>
+
+                        <div class="framework-card">
+                            <div class="framework-title">HIPAA Compliance</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill non-compliant" style="width: 40%"></div>
+                            </div>
+                            <div class="framework-stats">
+                                <span>40% Compliant</span>
+                                <span>8/20 Requirements</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="reports-tab" class="tab-content">
+                <div class="detailed-reports">
+                    <h3>Available Reports</h3>
+                    <div class="reports-list" id="reports-list">
+                        <!-- Reports will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <div id="executive-tab" class="tab-content">
+                <div class="executive-dashboard">
+                    <h3>Executive Dashboard</h3>
+                    <div class="dashboard-grid">
+                        <div class="dashboard-card compliant">
+                            <div class="dashboard-title">Overall Compliance Status</div>
+                            <div class="dashboard-content">
+                                The organization maintains 75% overall compliance across all regulatory frameworks. 
+                                SOC 2 compliance is strongest at 85%, while HIPAA requires immediate attention at 40%.
+                            </div>
+                        </div>
+
+                        <div class="dashboard-card warning">
+                            <div class="dashboard-title">Critical Issues</div>
+                            <div class="dashboard-content">
+                                3 requirements are overdue and require immediate attention. 
+                                HIPAA administrative safeguards and PCI DSS network security need urgent remediation.
+                            </div>
+                        </div>
+
+                        <div class="dashboard-card">
+                            <div class="dashboard-title">Upcoming Deadlines</div>
+                            <div class="dashboard-content">
+                                5 requirements have deadlines within the next 30 days. 
+                                Data encryption procedures and incident response plans need completion.
+                            </div>
+                        </div>
+
+                        <div class="dashboard-card compliant">
+                            <div class="dashboard-title">Recent Achievements</div>
+                            <div class="dashboard-content">
+                                Successfully completed access control management and network security requirements. 
+                                Data subject rights procedures are 60% complete and on track.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Generation Modal -->
+    <div id="report-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Generate Custom Report</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="report-form">
+                <div class="form-group">
+                    <label class="form-label">Report Title</label>
+                    <input type="text" class="form-input" id="report-title" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Report Description</label>
+                    <textarea class="form-textarea" id="report-description" placeholder="Describe the purpose and scope of this report..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Recipients (Email)</label>
+                    <input type="text" class="form-input" id="report-recipients" placeholder="Enter email addresses separated by commas">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Schedule</label>
+                    <select class="form-select" id="report-schedule">
+                        <option value="once">Generate Once</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="quarterly">Quarterly</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn-primary">Generate Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // Sample compliance data
+        const complianceData = {
+            'SOC 2': {
+                total: 20,
+                compliant: 17,
+                partial: 2,
+                nonCompliant: 1,
+                percentage: 85
+            },
+            'PCI DSS': {
+                total: 20,
+                compliant: 12,
+                partial: 5,
+                nonCompliant: 3,
+                percentage: 60
+            },
+            'GDPR': {
+                total: 20,
+                compliant: 14,
+                partial: 4,
+                nonCompliant: 2,
+                percentage: 70
+            },
+            'HIPAA': {
+                total: 20,
+                compliant: 8,
+                partial: 6,
+                nonCompliant: 6,
+                percentage: 40
+            }
+        };
+
+        // Sample reports data
+        const reportsData = [
+            {
+                id: 'RPT-001',
+                title: 'Executive Compliance Summary',
+                type: 'executive',
+                description: 'High-level overview of compliance status across all frameworks',
+                lastGenerated: '2024-11-20',
+                frequency: 'Monthly',
+                status: 'Current'
+            },
+            {
+                id: 'RPT-002',
+                title: 'Detailed SOC 2 Compliance Report',
+                type: 'detailed',
+                description: 'Comprehensive SOC 2 compliance assessment with gap analysis',
+                lastGenerated: '2024-11-18',
+                frequency: 'Quarterly',
+                status: 'Current'
+            },
+            {
+                id: 'RPT-003',
+                title: 'Audit Trail Report',
+                type: 'audit',
+                description: 'Complete audit trail of compliance activities and changes',
+                lastGenerated: '2024-11-15',
+                frequency: 'On-Demand',
+                status: 'Current'
+            },
+            {
+                id: 'RPT-004',
+                title: 'Risk Assessment Report',
+                type: 'detailed',
+                description: 'Risk assessment and mitigation strategies for compliance gaps',
+                lastGenerated: '2024-11-10',
+                frequency: 'Monthly',
+                status: 'Current'
+            },
+            {
+                id: 'RPT-005',
+                title: 'Regulatory Change Impact Analysis',
+                type: 'executive',
+                description: 'Analysis of regulatory changes and their impact on compliance',
+                lastGenerated: '2024-11-05',
+                frequency: 'Quarterly',
+                status: 'Current'
+            }
+        ];
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            updateOverview();
+            loadReports();
+            updateSummary();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Report form submission
+            document.getElementById('report-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                generateReport();
+            });
+        }
+
+        function updateOverview() {
+            let totalCompliant = 0, totalPartial = 0, totalNonCompliant = 0, totalRequirements = 0;
+
+            Object.values(complianceData).forEach(framework => {
+                totalCompliant += framework.compliant;
+                totalPartial += framework.partial;
+                totalNonCompliant += framework.nonCompliant;
+                totalRequirements += framework.total;
+            });
+
+            document.getElementById('compliant-count').textContent = totalCompliant;
+            document.getElementById('partial-count').textContent = totalPartial;
+            document.getElementById('non-compliant-count').textContent = totalNonCompliant;
+            document.getElementById('total-requirements').textContent = totalRequirements;
+        }
+
+        function updateSummary() {
+            let totalCompliant = 0, totalPartial = 0, totalNonCompliant = 0, totalRequirements = 0;
+
+            Object.values(complianceData).forEach(framework => {
+                totalCompliant += framework.compliant;
+                totalPartial += framework.partial;
+                totalNonCompliant += framework.nonCompliant;
+                totalRequirements += framework.total;
+            });
+
+            const overallPercentage = Math.round(((totalCompliant + totalPartial * 0.5) / totalRequirements) * 100);
+
+            document.getElementById('summary-compliant').textContent = totalCompliant;
+            document.getElementById('summary-partial').textContent = totalPartial;
+            document.getElementById('summary-non-compliant').textContent = totalNonCompliant;
+            document.getElementById('summary-overall').textContent = overallPercentage + '%';
+        }
+
+        function loadReports() {
+            const container = document.getElementById('reports-list');
+            container.innerHTML = '';
+
+            reportsData.forEach(report => {
+                const card = document.createElement('div');
+                card.className = 'report-card';
+                card.innerHTML = `
+                    <div class="report-header">
+                        <div class="report-title">${report.title}</div>
+                        <div class="report-type type-${report.type}">${report.type}</div>
+                    </div>
+                    <div class="report-description">${report.description}</div>
+                    <div class="report-meta">
+                        <span>Last Generated: ${formatDate(report.lastGenerated)}</span>
+                        <span>Frequency: ${report.frequency}</span>
+                    </div>
+                    <div class="report-actions">
+                        <button class="report-btn btn-generate" onclick="generateReport('${report.id}')">Generate</button>
+                        <button class="report-btn btn-preview" onclick="previewReport('${report.id}')">Preview</button>
+                        <button class="report-btn btn-download" onclick="downloadReport('${report.id}')">Download</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function generateCustomReport() {
+            document.getElementById('report-modal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('report-modal').style.display = 'none';
+            document.getElementById('report-form').reset();
+        }
+
+        function generateReport(reportId = null) {
+            if (reportId) {
+                showNotification('Generating report: ' + reportId, 'info');
+            } else {
+                const title = document.getElementById('report-title').value;
+                const description = document.getElementById('report-description').value;
+                const recipients = document.getElementById('report-recipients').value;
+                const schedule = document.getElementById('report-schedule').value;
+
+                if (!title) {
+                    showNotification('Please enter a report title', 'error');
+                    return;
+                }
+
+                showNotification('Generating custom report: ' + title, 'success');
+                closeModal();
+            }
+        }
+
+        function previewReport(reportId) {
+            showNotification('Opening preview for report: ' + reportId, 'info');
+        }
+
+        function downloadReport(reportId) {
+            showNotification('Downloading report: ' + reportId, 'info');
+        }
+
+        function saveReportTemplate() {
+            showNotification('Saving report template...', 'info');
+        }
+
+        function exportSummary() {
+            showNotification('Exporting compliance summary...', 'info');
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+            });
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add('show');
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('report-modal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>

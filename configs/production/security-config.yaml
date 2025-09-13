@@ -1,0 +1,510 @@
+# KYB Platform - Production Security Configuration
+# Comprehensive security policies and configurations for production deployment
+
+# Security Policy Configuration
+security_policy:
+  # Critical security requirements for production
+  critical_requirements:
+    - "No hardcoded secrets in code or configuration"
+    - "All external dependencies must be scanned for vulnerabilities"
+    - "All API endpoints must be authenticated and authorized"
+    - "All user input must be validated and sanitized"
+    - "All sensitive data must be encrypted at rest and in transit"
+    - "All security vulnerabilities must be patched within 24 hours"
+    - "All production secrets must be stored in secure secret management"
+    - "All production access must be logged and monitored"
+  
+  # Production security scanning thresholds (stricter than development)
+  thresholds:
+    critical_vulnerabilities: 0
+    high_vulnerabilities: 0
+    medium_vulnerabilities: 5
+    low_vulnerabilities: 20
+  
+  # Production compliance frameworks
+  compliance_frameworks:
+    - "SOC 2 Type II"
+    - "PCI DSS Level 1"
+    - "GDPR"
+    - "ISO 27001"
+    - "FISMA"
+    - "HIPAA"
+
+# Static Code Analysis Configuration
+static_analysis:
+  # Go security scanning with gosec (production settings)
+  gosec:
+    enabled: true
+    severity: "high"  # Only high and critical issues
+    confidence: "high"  # Only high confidence issues
+    rules:
+      - "G101"  # Look for hardcoded passwords
+      - "G102"  # Bind to all interfaces
+      - "G103"  # Audit the use of unsafe block
+      - "G104"  # Audit errors not checked
+      - "G105"  # Audit the use of math/big.Int.Exp
+      - "G106"  # Audit the use of ssh.InsecureIgnoreHostKey
+      - "G107"  # Url provided to HTTP request as taint input
+      - "G108"  # Use of net/http serve function that has no support for setting timeouts
+      - "G109"  # Converting strconv.Atoi result to int32/int16
+      - "G110"  # Detect infinite loop in range over map or array
+      - "G111"  # Detect http.Dir("/") as a potential risk
+      - "G112"  # Detect ReadHeaderTimeout not being set
+      - "G113"  # Usage of http.ListenAndServe instead of http.Server
+      - "G114"  # Use of net/http serve function that has no support for setting timeouts
+      - "G201"  # SQL query construction using format string
+      - "G202"  # SQL query construction using string concatenation
+      - "G203"  # Use of unescaped data in HTML templates
+      - "G204"  # Audit use of command execution
+      - "G301"  # Poor file permissions used when creating a directory
+      - "G302"  # Poor file permissions used with chmod
+      - "G303"  # Creating tempfile using a predictable path
+      - "G304"  # File path provided as taint input
+      - "G305"  # File path traversal when extracting zip/tar archive
+      - "G306"  # Poor file permissions used when writing to a file
+      - "G307"  # Poor file permissions used when creating a file with os.Create
+      - "G401"  # Detect the usage of DES, RC4, MD5 or SHA1
+      - "G402"  # Look for bad TLS connection settings
+      - "G403"  # Ensure minimum RSA key length of 2048 bits
+      - "G404"  # Insecure random number source (rand)
+      - "G501"  # Import blacklist: crypto/md5
+      - "G502"  # Import blacklist: crypto/des
+      - "G503"  # Import blacklist: crypto/rc4
+      - "G504"  # Import blacklist: net/http/cgi
+      - "G505"  # Import blacklist: crypto/sha1
+      - "G601"  # Implicit memory aliasing in for loop
+    exclude:
+      - "vendor/"
+      - "test/"
+      - "third-party/"
+      - "mocks/"
+  
+  # Production dependency vulnerability scanning
+  dependency_scanning:
+    enabled: true
+    tools:
+      - "govulncheck"  # Go vulnerability checker
+      - "trivy"        # Multi-language vulnerability scanner
+      - "safety"       # Python dependency scanner
+      - "npm audit"    # Node.js dependency scanner
+    frequency: "daily"
+    fail_on_critical: true
+    fail_on_high: true
+    fail_on_medium: false
+    auto_update: false  # Manual approval required for production
+
+# Container Security Configuration
+container_security:
+  # Docker security scanning for production
+  docker:
+    enabled: true
+    scan_images: true
+    scan_dockerfiles: true
+    scan_compose_files: true
+    base_image_requirements:
+      - "Use official base images only"
+      - "Pin base image versions with specific tags"
+      - "Use minimal base images (alpine, distroless)"
+      - "Regularly update base images"
+    runtime_security:
+      - "Run containers as non-root user"
+      - "Disable unnecessary capabilities"
+      - "Use read-only root filesystem"
+      - "Set resource limits"
+      - "Disable privilege escalation"
+      - "Use security contexts"
+    image_security:
+      - "Scan for vulnerabilities in base images"
+      - "Use multi-stage builds to reduce attack surface"
+      - "Remove unnecessary packages and files"
+      - "Use specific image tags, not 'latest'"
+  
+  # Kubernetes security for production
+  kubernetes:
+    enabled: true
+    security_context:
+      run_as_non_root: true
+      run_as_user: 1001
+      run_as_group: 1001
+      read_only_root_filesystem: true
+      allow_privilege_escalation: false
+      capabilities:
+        drop: ["ALL"]
+    network_policies:
+      enabled: true
+      default_deny: true
+      allow_egress: false
+    pod_security_standards:
+      level: "restricted"
+    service_account:
+      automount_service_account_token: false
+    resource_limits:
+      enabled: true
+      cpu_limit: "2"
+      memory_limit: "2Gi"
+      cpu_request: "1"
+      memory_request: "1Gi"
+
+# Infrastructure Security Configuration
+infrastructure_security:
+  # Production Terraform security
+  terraform:
+    enabled: true
+    security_checks:
+      - "No hardcoded secrets"
+      - "Proper IAM permissions with least privilege"
+      - "Encryption at rest enabled for all storage"
+      - "Network security groups configured"
+      - "Logging and monitoring enabled"
+      - "Backup and disaster recovery configured"
+      - "Multi-factor authentication enabled"
+      - "Regular security updates scheduled"
+  
+  # Production cloud security
+  cloud_security:
+    aws:
+      security_requirements:
+        - "Use IAM roles instead of access keys"
+        - "Enable CloudTrail logging with encryption"
+        - "Use VPC with private subnets"
+        - "Enable encryption for all storage (S3, RDS, EBS)"
+        - "Use security groups with minimal access"
+        - "Enable GuardDuty for threat detection"
+        - "Use AWS Config for compliance monitoring"
+        - "Enable AWS Shield for DDoS protection"
+        - "Use AWS WAF for web application protection"
+    azure:
+      security_requirements:
+        - "Use managed identities"
+        - "Enable Azure Monitor with security insights"
+        - "Use virtual networks with network security groups"
+        - "Enable encryption for all storage"
+        - "Use Azure Security Center"
+        - "Enable Azure DDoS Protection"
+        - "Use Azure Application Gateway with WAF"
+        - "Enable Azure Key Vault for secrets management"
+
+# API Security Configuration
+api_security:
+  # Production authentication requirements
+  authentication:
+    required: true
+    methods:
+      - "JWT tokens with strong secrets"
+      - "API keys with rotation"
+      - "OAuth 2.0 with PKCE"
+    token_requirements:
+      - "Secure token generation with cryptographically secure random"
+      - "Token expiration with refresh tokens"
+      - "Token rotation every 24 hours"
+      - "Secure token storage in HTTP-only cookies"
+      - "Token revocation on logout"
+    session_management:
+      - "Secure session cookies"
+      - "Session timeout after inactivity"
+      - "Session invalidation on logout"
+      - "Concurrent session limits"
+  
+  # Production authorization requirements
+  authorization:
+    required: true
+    models:
+      - "Role-based access control (RBAC)"
+      - "Attribute-based access control (ABAC)"
+    permission_requirements:
+      - "Principle of least privilege"
+      - "Regular permission reviews"
+      - "Audit logging for all access"
+      - "Multi-factor authentication for admin access"
+  
+  # Production input validation
+  input_validation:
+    required: true
+    rules:
+      - "Validate all user inputs with strict schemas"
+      - "Sanitize data before processing"
+      - "Use parameterized queries for database access"
+      - "Implement rate limiting per user/IP"
+      - "Validate file uploads with type checking"
+      - "Implement request size limits"
+      - "Use Content Security Policy headers"
+      - "Implement CSRF protection"
+
+# Data Security Configuration
+data_security:
+  # Production encryption requirements
+  encryption:
+    at_rest:
+      required: true
+      algorithms:
+        - "AES-256-GCM"
+        - "ChaCha20-Poly1305"
+      key_management:
+        - "Use hardware security modules (HSM)"
+        - "Implement key rotation policies"
+        - "Separate encryption keys from data"
+    in_transit:
+      required: true
+      protocols:
+        - "TLS 1.3"
+        - "TLS 1.2"
+      minimum_tls_version: "1.2"
+      cipher_suites:
+        - "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+        - "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305"
+        - "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+  
+  # Production data classification
+  classification:
+    levels:
+      - "public"
+      - "internal"
+      - "confidential"
+      - "restricted"
+    handling_requirements:
+      public:
+        encryption: false
+        access_control: "minimal"
+        retention: "indefinite"
+      internal:
+        encryption: "in_transit"
+        access_control: "authenticated"
+        retention: "7_years"
+      confidential:
+        encryption: "at_rest_and_in_transit"
+        access_control: "authorized"
+        retention: "7_years"
+        audit_logging: true
+      restricted:
+        encryption: "at_rest_and_in_transit"
+        access_control: "strict"
+        retention: "7_years"
+        audit_logging: true
+        data_masking: true
+
+# Monitoring and Alerting Configuration
+security_monitoring:
+  # Production security event monitoring
+  events:
+    authentication_failures: true
+    authorization_failures: true
+    data_access_patterns: true
+    configuration_changes: true
+    vulnerability_detection: true
+    suspicious_activities: true
+    privilege_escalation_attempts: true
+    data_exfiltration_attempts: true
+  
+  # Production alerting thresholds
+  alerts:
+    critical:
+      - "Authentication bypass attempts"
+      - "Unauthorized data access"
+      - "Critical vulnerability detection"
+      - "Configuration drift"
+      - "Privilege escalation attempts"
+      - "Data exfiltration attempts"
+    high:
+      - "Multiple failed login attempts (>5 in 5 minutes)"
+      - "Unusual data access patterns"
+      - "High severity vulnerability detection"
+      - "Suspicious API usage patterns"
+    medium:
+      - "Failed authorization attempts"
+      - "Medium severity vulnerability detection"
+      - "Unusual login times/locations"
+  
+  # Production incident response
+  incident_response:
+    automated_response: true
+    escalation_procedures: true
+    notification_channels:
+      - "email"
+      - "slack"
+      - "pagerduty"
+      - "sms"
+    response_time:
+      critical: "5 minutes"
+      high: "15 minutes"
+      medium: "1 hour"
+    playbooks:
+      - "data_breach_response"
+      - "vulnerability_response"
+      - "insider_threat_response"
+      - "ddos_response"
+
+# Compliance Configuration
+compliance:
+  # SOC 2 requirements for production
+  soc2:
+    enabled: true
+    controls:
+      - "Access Control"
+      - "Change Management"
+      - "Risk Assessment"
+      - "Security Monitoring"
+      - "Incident Response"
+      - "Business Continuity"
+      - "Data Protection"
+      - "System Operations"
+    audit_frequency: "annually"
+    documentation_requirements:
+      - "Security policies and procedures"
+      - "Risk assessment reports"
+      - "Incident response logs"
+      - "Access control matrices"
+  
+  # PCI DSS requirements for production
+  pci_dss:
+    enabled: true
+    level: 1
+    requirements:
+      - "Build and Maintain a Secure Network"
+      - "Protect Cardholder Data"
+      - "Maintain Vulnerability Management Program"
+      - "Implement Strong Access Control Measures"
+      - "Regularly Monitor and Test Networks"
+      - "Maintain an Information Security Policy"
+    compliance_validation: "quarterly"
+  
+  # GDPR requirements for production
+  gdpr:
+    enabled: true
+    requirements:
+      - "Data Protection by Design and Default"
+      - "Data Minimization"
+      - "Purpose Limitation"
+      - "Storage Limitation"
+      - "Accuracy"
+      - "Integrity and Confidentiality"
+      - "Accountability"
+    data_protection_officer: true
+    privacy_impact_assessments: true
+    data_breach_notification: "72_hours"
+
+# Security Testing Configuration
+security_testing:
+  # Production automated security testing
+  automated:
+    enabled: true
+    frequency: "daily"
+    tools:
+      - "OWASP ZAP"
+      - "SonarQube"
+      - "Snyk"
+      - "Trivy"
+      - "Nessus"
+    fail_on_critical: true
+    fail_on_high: true
+  
+  # Production manual security testing
+  manual:
+    enabled: true
+    frequency: "quarterly"
+    types:
+      - "Penetration testing"
+      - "Security code review"
+      - "Architecture review"
+      - "Threat modeling"
+      - "Red team exercises"
+    external_testing: true
+  
+  # Production bug bounty program
+  bug_bounty:
+    enabled: true
+    scope: "public APIs and web applications"
+    rewards:
+      critical: "$10000"
+      high: "$5000"
+      medium: "$2000"
+      low: "$500"
+    responsible_disclosure: true
+
+# Security Training and Awareness
+security_training:
+  # Production developer security training
+  developers:
+    required: true
+    frequency: "quarterly"
+    topics:
+      - "Secure coding practices"
+      - "OWASP Top 10"
+      - "Authentication and authorization"
+      - "Data protection"
+      - "Incident response"
+      - "Threat modeling"
+    certification_required: true
+  
+  # Production security awareness training
+  awareness:
+    required: true
+    frequency: "annually"
+    topics:
+      - "Phishing awareness"
+      - "Password security"
+      - "Social engineering"
+      - "Data handling"
+      - "Incident reporting"
+      - "Physical security"
+    testing_required: true
+
+# Security Metrics and KPIs
+security_metrics:
+  # Production key performance indicators
+  kpis:
+    - "Mean time to detect (MTTD) < 5 minutes"
+    - "Mean time to respond (MTTR) < 15 minutes"
+    - "Vulnerability remediation time < 24 hours"
+    - "Security incident frequency < 1 per month"
+    - "Compliance score > 95%"
+    - "Security training completion rate > 95%"
+    - "Failed authentication rate < 5%"
+    - "Privilege escalation attempts = 0"
+  
+  # Production reporting frequency
+  reporting:
+    real_time: "Critical security incidents"
+    hourly: "Security event summaries"
+    daily: "Security metrics dashboard"
+    weekly: "Vulnerability status report"
+    monthly: "Compliance status report"
+    quarterly: "Security program review"
+
+# Production Security Headers
+security_headers:
+  enabled: true
+  headers:
+    - "Strict-Transport-Security: max-age=31536000; includeSubDomains; preload"
+    - "X-Frame-Options: DENY"
+    - "X-Content-Type-Options: nosniff"
+    - "X-XSS-Protection: 1; mode=block"
+    - "Referrer-Policy: strict-origin-when-cross-origin"
+    - "Permissions-Policy: geolocation=(), microphone=(), camera=()"
+    - "Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none';"
+
+# Production Network Security
+network_security:
+  firewall:
+    enabled: true
+    default_policy: "deny"
+    allowed_ports:
+      - "80"   # HTTP (redirect to HTTPS)
+      - "443"  # HTTPS
+      - "8080" # Application (internal only)
+      - "9090" # Metrics (internal only)
+    blocked_ports:
+      - "22"   # SSH (use bastion host)
+      - "3389" # RDP
+      - "5432" # PostgreSQL (use connection pooling)
+  
+  dns:
+    enabled: true
+    dns_over_https: true
+    dns_over_tls: true
+    block_malicious_domains: true
+  
+  ddos_protection:
+    enabled: true
+    rate_limiting: true
+    connection_limiting: true
+    geographic_blocking: true

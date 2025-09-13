@@ -1,0 +1,453 @@
+package services
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"log"
+	"sync"
+	"time"
+
+	"github.com/pcraw4d/business-verification/internal/database"
+)
+
+// QueryPerformanceService monitors and optimizes database query performance
+type QueryPerformanceService struct {
+	db                 *sql.DB
+	logger             *log.Logger
+	metrics            map[string]*QueryMetrics
+	metricsMutex       sync.RWMutex
+	slowQueryThreshold time.Duration
+}
+
+// QueryMetrics tracks performance metrics for individual queries
+type QueryMetrics struct {
+	QueryName      string
+	ExecutionCount int64
+	TotalTime      time.Duration
+	AverageTime    time.Duration
+	MinTime        time.Duration
+	MaxTime        time.Duration
+	LastExecuted   time.Time
+	ErrorCount     int64
+	CacheHitRate   float64
+}
+
+// PerformanceReport represents a comprehensive performance report
+type PerformanceReport struct {
+	GeneratedAt     time.Time
+	TotalQueries    int64
+	AverageTime     time.Duration
+	SlowQueries     []*QueryMetrics
+	TopQueries      []*QueryMetrics
+	CacheStats      *database.CacheMetrics
+	IndexUsage      []database.QueryPerformanceMetrics
+	Recommendations []string
+}
+
+// NewQueryPerformanceService creates a new query performance service
+func NewQueryPerformanceService(db *sql.DB, logger *log.Logger) *QueryPerformanceService {
+	return &QueryPerformanceService{
+		db:                 db,
+		logger:             logger,
+		metrics:            make(map[string]*QueryMetrics),
+		slowQueryThreshold: 1 * time.Second,
+	}
+}
+
+// =============================================================================
+// QUERY MONITORING
+// =============================================================================
+
+// MonitorQuery wraps a query execution with performance monitoring
+func (s *QueryPerformanceService) MonitorQuery(ctx context.Context, queryName string, queryFunc func() error) error {
+	start := time.Now()
+
+	err := queryFunc()
+
+	duration := time.Since(start)
+	s.recordQueryMetrics(queryName, duration, err == nil)
+
+	// Log slow queries
+	if duration > s.slowQueryThreshold {
+		s.logger.Printf("SLOW QUERY: %s took %v", queryName, duration)
+	}
+
+	return err
+}
+
+// MonitorQueryWithResult wraps a query execution that returns a result
+func (s *QueryPerformanceService) MonitorQueryWithResult(ctx context.Context, queryName string, queryFunc func() (interface{}, error)) (interface{}, error) {
+	start := time.Now()
+
+	result, err := queryFunc()
+
+	duration := time.Since(start)
+	s.recordQueryMetrics(queryName, duration, err == nil)
+
+	// Log slow queries
+	if duration > s.slowQueryThreshold {
+		s.logger.Printf("SLOW QUERY: %s took %v", queryName, duration)
+	}
+
+	return result, err
+}
+
+// recordQueryMetrics records performance metrics for a query
+func (s *QueryPerformanceService) recordQueryMetrics(queryName string, duration time.Duration, success bool) {
+	s.metricsMutex.Lock()
+	defer s.metricsMutex.Unlock()
+
+	metrics, exists := s.metrics[queryName]
+	if !exists {
+		metrics = &QueryMetrics{
+			QueryName:    queryName,
+			MinTime:      duration,
+			MaxTime:      duration,
+			LastExecuted: time.Now(),
+		}
+		s.metrics[queryName] = metrics
+	}
+
+	// Update metrics
+	metrics.ExecutionCount++
+	metrics.TotalTime += duration
+	metrics.AverageTime = metrics.TotalTime / time.Duration(metrics.ExecutionCount)
+	metrics.LastExecuted = time.Now()
+
+	if duration < metrics.MinTime {
+		metrics.MinTime = duration
+	}
+	if duration > metrics.MaxTime {
+		metrics.MaxTime = duration
+	}
+
+	if !success {
+		metrics.ErrorCount++
+	}
+}
+
+// =============================================================================
+// PERFORMANCE ANALYSIS
+// =============================================================================
+
+// GeneratePerformanceReport generates a comprehensive performance report
+func (s *QueryPerformanceService) GeneratePerformanceReport(ctx context.Context, cache *database.RedisCache) (*PerformanceReport, error) {
+	report := &PerformanceReport{
+		GeneratedAt: time.Now(),
+	}
+
+	// Collect query metrics
+	s.metricsMutex.RLock()
+	allMetrics := make([]*QueryMetrics, 0, len(s.metrics))
+	for _, metrics := range s.metrics {
+		allMetrics = append(allMetrics, metrics)
+		report.TotalQueries += metrics.ExecutionCount
+		report.AverageTime += metrics.TotalTime
+	}
+	s.metricsMutex.RUnlock()
+
+	if report.TotalQueries > 0 {
+		report.AverageTime = report.AverageTime / time.Duration(report.TotalQueries)
+	}
+
+	// Identify slow queries
+	for _, metrics := range allMetrics {
+		if metrics.AverageTime > s.slowQueryThreshold {
+			report.SlowQueries = append(report.SlowQueries, metrics)
+		}
+	}
+
+	// Get top queries by execution count
+	report.TopQueries = s.getTopQueriesByExecution(allMetrics, 10)
+
+	// Get cache statistics if available
+	if cache != nil {
+		cacheStats, err := cache.GetCacheMetrics(ctx)
+		if err != nil {
+			s.logger.Printf("Warning: failed to get cache metrics: %v", err)
+		} else {
+			report.CacheStats = cacheStats
+		}
+	}
+
+	// Get index usage statistics
+	indexStats, err := s.getIndexUsageStats(ctx)
+	if err != nil {
+		s.logger.Printf("Warning: failed to get index usage stats: %v", err)
+	} else {
+		report.IndexUsage = indexStats
+	}
+
+	// Generate recommendations
+	report.Recommendations = s.generateRecommendations(report)
+
+	return report, nil
+}
+
+// getTopQueriesByExecution returns the top N queries by execution count
+func (s *QueryPerformanceService) getTopQueriesByExecution(metrics []*QueryMetrics, limit int) []*QueryMetrics {
+	// Sort by execution count (descending)
+	for i := 0; i < len(metrics)-1; i++ {
+		for j := i + 1; j < len(metrics); j++ {
+			if metrics[i].ExecutionCount < metrics[j].ExecutionCount {
+				metrics[i], metrics[j] = metrics[j], metrics[i]
+			}
+		}
+	}
+
+	if len(metrics) > limit {
+		return metrics[:limit]
+	}
+	return metrics
+}
+
+// getIndexUsageStats retrieves index usage statistics from the database
+func (s *QueryPerformanceService) getIndexUsageStats(ctx context.Context) ([]database.QueryPerformanceMetrics, error) {
+	// This would typically query the database's system tables for index usage
+	// For PostgreSQL, we can use pg_stat_user_indexes
+	query := `
+		SELECT 
+			schemaname||'.'||tablename as table_name,
+			indexname as index_name,
+			pg_size_pretty(pg_relation_size(indexrelid)) as index_size,
+			idx_tup_read as index_usage_count,
+			idx_tup_fetch as index_fetch_count
+		FROM pg_stat_user_indexes 
+		WHERE schemaname = 'public'
+		ORDER BY idx_tup_read DESC
+		LIMIT 20
+	`
+
+	rows, err := s.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query index usage stats: %w", err)
+	}
+	defer rows.Close()
+
+	var stats []database.QueryPerformanceMetrics
+	for rows.Next() {
+		var stat database.QueryPerformanceMetrics
+		var tableName, indexName, indexSize string
+		var usageCount, fetchCount int64
+
+		err := rows.Scan(&tableName, &indexName, &indexSize, &usageCount, &fetchCount)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan index usage stat: %w", err)
+		}
+
+		stat.QueryName = tableName + "." + indexName
+		stat.RowsReturned = int(usageCount)
+		stats = append(stats, stat)
+	}
+
+	return stats, nil
+}
+
+// generateRecommendations generates performance optimization recommendations
+func (s *QueryPerformanceService) generateRecommendations(report *PerformanceReport) []string {
+	var recommendations []string
+
+	// Analyze slow queries
+	if len(report.SlowQueries) > 0 {
+		recommendations = append(recommendations,
+			fmt.Sprintf("Found %d slow queries (>%v). Consider adding indexes or optimizing query logic.",
+				len(report.SlowQueries), s.slowQueryThreshold))
+	}
+
+	// Analyze cache performance
+	if report.CacheStats != nil {
+		if report.CacheStats.HitRate < 0.8 {
+			recommendations = append(recommendations,
+				fmt.Sprintf("Cache hit rate is %.2f%%. Consider increasing cache TTL or adding more cacheable queries.",
+					report.CacheStats.HitRate*100))
+		}
+
+		if report.CacheStats.Evictions > 0 {
+			recommendations = append(recommendations,
+				fmt.Sprintf("Cache evictions detected (%d). Consider increasing cache memory or optimizing cache keys.",
+					report.CacheStats.Evictions))
+		}
+	}
+
+	// Analyze index usage
+	unusedIndexes := 0
+	for _, indexStat := range report.IndexUsage {
+		if indexStat.RowsReturned == 0 {
+			unusedIndexes++
+		}
+	}
+
+	if unusedIndexes > 0 {
+		recommendations = append(recommendations,
+			fmt.Sprintf("Found %d potentially unused indexes. Consider removing them to improve write performance.", unusedIndexes))
+	}
+
+	// General recommendations
+	if report.AverageTime > 500*time.Millisecond {
+		recommendations = append(recommendations,
+			"Average query time is high. Consider database optimization or query caching.")
+	}
+
+	if report.TotalQueries > 10000 {
+		recommendations = append(recommendations,
+			"High query volume detected. Consider implementing connection pooling and query batching.")
+	}
+
+	return recommendations
+}
+
+// =============================================================================
+// PERFORMANCE OPTIMIZATION
+// =============================================================================
+
+// OptimizeSlowQueries identifies and suggests optimizations for slow queries
+func (s *QueryPerformanceService) OptimizeSlowQueries(ctx context.Context) ([]string, error) {
+	var optimizations []string
+
+	s.metricsMutex.RLock()
+	defer s.metricsMutex.RUnlock()
+
+	for queryName, metrics := range s.metrics {
+		if metrics.AverageTime > s.slowQueryThreshold {
+			optimization := s.analyzeQueryForOptimization(queryName, metrics)
+			if optimization != "" {
+				optimizations = append(optimizations, optimization)
+			}
+		}
+	}
+
+	return optimizations, nil
+}
+
+// analyzeQueryForOptimization analyzes a specific query for optimization opportunities
+func (s *QueryPerformanceService) analyzeQueryForOptimization(queryName string, metrics *QueryMetrics) string {
+	// This is a simplified analysis - in a real implementation, you would
+	// analyze the actual query text and execution plan
+
+	if metrics.AverageTime > 5*time.Second {
+		return fmt.Sprintf("Query '%s' is very slow (avg: %v). Consider adding indexes or rewriting the query.",
+			queryName, metrics.AverageTime)
+	}
+
+	if metrics.ErrorCount > 0 && float64(metrics.ErrorCount)/float64(metrics.ExecutionCount) > 0.1 {
+		return fmt.Sprintf("Query '%s' has high error rate (%.2f%%). Check for data consistency issues.",
+			queryName, float64(metrics.ErrorCount)/float64(metrics.ExecutionCount)*100)
+	}
+
+	if metrics.ExecutionCount > 1000 && metrics.AverageTime > 100*time.Millisecond {
+		return fmt.Sprintf("Query '%s' is frequently executed and moderately slow. Consider caching results.",
+			queryName)
+	}
+
+	return ""
+}
+
+// =============================================================================
+// MONITORING AND ALERTING
+// =============================================================================
+
+// SetSlowQueryThreshold sets the threshold for slow query detection
+func (s *QueryPerformanceService) SetSlowQueryThreshold(threshold time.Duration) {
+	s.slowQueryThreshold = threshold
+}
+
+// GetSlowQueries returns queries that exceed the slow query threshold
+func (s *QueryPerformanceService) GetSlowQueries() []*QueryMetrics {
+	s.metricsMutex.RLock()
+	defer s.metricsMutex.RUnlock()
+
+	var slowQueries []*QueryMetrics
+	for _, metrics := range s.metrics {
+		if metrics.AverageTime > s.slowQueryThreshold {
+			slowQueries = append(slowQueries, metrics)
+		}
+	}
+
+	return slowQueries
+}
+
+// GetQueryMetrics returns metrics for a specific query
+func (s *QueryPerformanceService) GetQueryMetrics(queryName string) (*QueryMetrics, bool) {
+	s.metricsMutex.RLock()
+	defer s.metricsMutex.RUnlock()
+
+	metrics, exists := s.metrics[queryName]
+	return metrics, exists
+}
+
+// GetAllMetrics returns all query metrics
+func (s *QueryPerformanceService) GetAllMetrics() map[string]*QueryMetrics {
+	s.metricsMutex.RLock()
+	defer s.metricsMutex.RUnlock()
+
+	// Return a copy to avoid race conditions
+	metricsCopy := make(map[string]*QueryMetrics)
+	for k, v := range s.metrics {
+		metricsCopy[k] = v
+	}
+
+	return metricsCopy
+}
+
+// ResetMetrics resets all performance metrics
+func (s *QueryPerformanceService) ResetMetrics() {
+	s.metricsMutex.Lock()
+	defer s.metricsMutex.Unlock()
+
+	s.metrics = make(map[string]*QueryMetrics)
+	s.logger.Printf("Query performance metrics reset")
+}
+
+// =============================================================================
+// DATABASE MAINTENANCE
+// =============================================================================
+
+// AnalyzeTables updates table statistics for better query planning
+func (s *QueryPerformanceService) AnalyzeTables(ctx context.Context) error {
+	tables := []string{
+		"merchants",
+		"portfolio_types",
+		"risk_levels",
+		"merchant_sessions",
+		"merchant_audit_logs",
+		"compliance_records",
+		"merchant_analytics",
+		"merchant_notifications",
+		"bulk_operations",
+		"bulk_operation_items",
+	}
+
+	for _, table := range tables {
+		query := fmt.Sprintf("ANALYZE %s", table)
+		if _, err := s.db.ExecContext(ctx, query); err != nil {
+			s.logger.Printf("Warning: failed to analyze table %s: %v", table, err)
+		} else {
+			s.logger.Printf("Analyzed table: %s", table)
+		}
+	}
+
+	return nil
+}
+
+// VacuumTables performs VACUUM on tables to reclaim space and update statistics
+func (s *QueryPerformanceService) VacuumTables(ctx context.Context) error {
+	tables := []string{
+		"merchants",
+		"merchant_audit_logs",
+		"compliance_records",
+		"merchant_analytics",
+		"merchant_notifications",
+	}
+
+	for _, table := range tables {
+		query := fmt.Sprintf("VACUUM ANALYZE %s", table)
+		if _, err := s.db.ExecContext(ctx, query); err != nil {
+			s.logger.Printf("Warning: failed to vacuum table %s: %v", table, err)
+		} else {
+			s.logger.Printf("Vacuumed table: %s", table)
+		}
+	}
+
+	return nil
+}

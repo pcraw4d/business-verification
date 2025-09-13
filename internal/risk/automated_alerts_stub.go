@@ -66,22 +66,25 @@ type NotificationProvider interface {
 }
 
 // ExportService provides export functionality
-type ExportService struct {
-	logger Logger
-}
+// Note: ExportService is now defined in export_service.go
+// type ExportService struct {
+//	logger Logger
+// }
 
 // NewExportService creates a new export service
-func NewExportService(logger Logger) *ExportService {
-	return &ExportService{
-		logger: logger,
-	}
-}
+// Note: NewExportService is now defined in export_service.go
+// func NewExportService(logger Logger) *ExportService {
+//	return &ExportService{
+//		logger: logger,
+//	}
+// }
 
 // ExportData exports data in the specified format
-func (es *ExportService) ExportData(ctx context.Context, data interface{}, format string) ([]byte, error) {
-	// Stub implementation
-	return []byte{}, nil
-}
+// Note: ExportData is now defined in export_service.go
+// func (es *ExportService) ExportData(ctx context.Context, data interface{}, format string) ([]byte, error) {
+//	// Stub implementation
+//	return []byte{}, nil
+// }
 
 // FinancialProviderManager manages financial data providers
 type FinancialProviderManager struct {

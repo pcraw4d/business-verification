@@ -1,0 +1,92 @@
+# Multi-stage production build for KYB Platform
+# Optimized for security, performance, and minimal attack surface
+
+# Build stage
+FROM golang:1.22-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache \
+    git \
+    ca-certificates \
+    tzdata \
+    make \
+    gcc \
+    musl-dev
+
+# Set working directory
+WORKDIR /app
+
+# Copy go mod files first for better caching
+COPY go.mod go.sum go.work go.work.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the application with optimizations
+RUN CGO_ENABLED=0 \
+    GOOS=linux \
+    GOARCH=amd64 \
+    go build \
+    -ldflags="-s -w -X main.version=$(git rev-parse --short HEAD) -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    -a -installsuffix cgo \
+    -o kyb-platform \
+    ./cmd/api-enhanced/main-enhanced-classification.go
+
+# Security scan stage
+FROM aquasec/trivy:latest AS security-scanner
+COPY --from=builder /app/kyb-platform /kyb-platform
+RUN trivy fs --exit-code 0 --no-progress --format json /kyb-platform > /security-report.json || true
+
+# Production stage
+FROM alpine:3.19
+
+# Install runtime dependencies
+RUN apk --no-cache add \
+    ca-certificates \
+    tzdata \
+    curl \
+    dumb-init \
+    && rm -rf /var/cache/apk/*
+
+# Create non-root user with specific UID/GID
+RUN addgroup -g 1001 -S kybgroup && \
+    adduser -u 1001 -S kybuser -G kybgroup -h /app -s /bin/sh
+
+# Set working directory
+WORKDIR /app
+
+# Copy binary from builder stage
+COPY --from=builder /app/kyb-platform .
+
+# Copy configuration files
+COPY --from=builder /app/configs ./configs
+COPY --from=builder /app/scripts ./scripts
+COPY --from=builder /app/monitoring ./monitoring
+COPY --from=builder /app/web ./web
+
+# Create necessary directories with proper permissions
+RUN mkdir -p logs backups build tmp && \
+    chown -R kybuser:kybgroup /app && \
+    chmod -R 755 /app
+
+# Copy security report
+COPY --from=security-scanner /security-report.json ./security-report.json
+
+# Switch to non-root user
+USER kybuser
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+
+# Run the application
+CMD ["./kyb-platform"]

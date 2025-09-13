@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KYB Platform - Dashboard Hub</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="components/navigation.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .hero-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 25px;
+            padding: 40px;
+            margin-bottom: 40px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .hero-section h1 {
+            color: #2c3e50;
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .hero-section h1 i {
+            color: #3498db;
+            font-size: 2.8rem;
+        }
+
+        .hero-section p {
+            color: #7f8c8d;
+            font-size: 1.2rem;
+            max-width: 600px;
+            margin: 0 auto 30px;
+            line-height: 1.6;
+        }
+
+        .status-badges {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-badge.live {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            color: white;
+        }
+
+        .status-badge.enhanced {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+
+        .status-badge.beta {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            color: white;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .dashboard-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.15);
+        }
+
+        .dashboard-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .dashboard-card.core::before {
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+        }
+
+        .dashboard-card.compliance::before {
+            background: linear-gradient(90deg, #e74c3c, #f39c12);
+        }
+
+        .dashboard-card.intelligence::before {
+            background: linear-gradient(90deg, #9b59b6, #8e44ad);
+        }
+
+        .dashboard-card.merchant::before {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .card-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            color: white;
+        }
+
+        .card-icon.core {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+        }
+
+        .card-icon.compliance {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+
+        .card-icon.intelligence {
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+        }
+
+        .card-icon.merchant {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .card-badges {
+            display: flex;
+            gap: 8px;
+        }
+
+        .card-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .card-badge.new {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+        }
+
+        .card-badge.enhanced {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            color: white;
+        }
+
+        .card-badge.beta {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            color: white;
+        }
+
+        .card-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .card-description {
+            color: #7f8c8d;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .card-features {
+            list-style: none;
+            margin-bottom: 20px;
+        }
+
+        .card-features li {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 5px 0;
+            color: #5a6c7d;
+            font-size: 0.9rem;
+        }
+
+        .card-features li i {
+            color: #2ecc71;
+            font-size: 0.8rem;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2980b9, #1f4e79);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #7f8c8d, #6c7b7d);
+            transform: translateY(-2px);
+        }
+
+        .stats-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 25px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.9rem;
+        }
+
+        .stat-item.compliance .stat-number {
+            color: #e74c3c;
+        }
+
+        .stat-item.risk .stat-number {
+            color: #f39c12;
+        }
+
+        .stat-item.intelligence .stat-number {
+            color: #9b59b6;
+        }
+
+        .stat-item.growth .stat-number {
+            color: #2ecc71;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.6s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .hero-section {
+                padding: 30px 20px;
+            }
+
+            .hero-section h1 {
+                font-size: 2.2rem;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .hero-section h1 i {
+                font-size: 2rem;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .dashboard-card {
+                padding: 25px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+            }
+
+            .stat-item {
+                padding: 15px;
+            }
+
+            .stat-number {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Hero Section -->
+        <div class="hero-section fade-in">
+            <h1>
+                <i class="fas fa-shield-alt"></i>
+                KYB Platform Dashboard Hub
+            </h1>
+            <p>Comprehensive business intelligence, risk assessment, and compliance management tools for modern enterprises.</p>
+            <div class="status-badges">
+                <span class="status-badge live">Live</span>
+                <span class="status-badge enhanced">Enhanced</span>
+                <span class="status-badge beta">Beta Testing</span>
+            </div>
+        </div>
+
+        <!-- Statistics Section -->
+        <div class="stats-section fade-in">
+            <h2 style="text-align: center; color: #2c3e50; margin-bottom: 30px; font-size: 1.8rem;">Platform Overview</h2>
+            <div class="stats-grid">
+                <div class="stat-item compliance">
+                    <div class="stat-number">5</div>
+                    <div class="stat-label">Compliance Frameworks</div>
+                </div>
+                <div class="stat-item risk">
+                    <div class="stat-number">12</div>
+                    <div class="stat-label">Risk Assessment Tools</div>
+                </div>
+                <div class="stat-item intelligence">
+                    <div class="stat-number">8</div>
+                    <div class="stat-label">Analytics Dashboards</div>
+                </div>
+                <div class="stat-item growth">
+                    <div class="stat-number">99.9%</div>
+                    <div class="stat-label">Uptime</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Grid -->
+        <div class="dashboard-grid">
+            <!-- Merchant Management -->
+            <a href="merchant-portfolio.html" class="dashboard-card merchant fade-in">
+                <div class="card-header">
+                    <div class="card-icon merchant">
+                        <i class="fas fa-store"></i>
+                    </div>
+                    <div class="card-badges">
+                        <span class="card-badge new">NEW</span>
+                    </div>
+                </div>
+                <h3 class="card-title">Merchant Portfolio</h3>
+                <p class="card-description">Comprehensive merchant management with portfolio tracking, risk assessment, and compliance monitoring.</p>
+                <ul class="card-features">
+                    <li><i class="fas fa-check"></i> Portfolio management</li>
+                    <li><i class="fas fa-check"></i> Risk level tracking</li>
+                    <li><i class="fas fa-check"></i> Bulk operations</li>
+                    <li><i class="fas fa-check"></i> Merchant comparison</li>
+                </ul>
+                <div class="card-actions">
+                    <span class="btn btn-primary">
+                        <i class="fas fa-arrow-right"></i>
+                        Access Dashboard
+                    </span>
+                </div>
+            </a>
+
+            <!-- Core Analytics -->
+            <a href="dashboard.html" class="dashboard-card core fade-in">
+                <div class="card-header">
+                    <div class="card-icon core">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="card-badges">
+                        <span class="card-badge enhanced">Enhanced</span>
+                    </div>
+                </div>
+                <h3 class="card-title">Business Intelligence</h3>
+                <p class="card-description">Comprehensive business analysis with market insights, competitive intelligence, and growth analytics.</p>
+                <ul class="card-features">
+                    <li><i class="fas fa-check"></i> Market analysis and trends</li>
+                    <li><i class="fas fa-check"></i> Competitive benchmarking</li>
+                    <li><i class="fas fa-check"></i> Growth projections</li>
+                    <li><i class="fas fa-check"></i> Performance metrics</li>
+                </ul>
+                <div class="card-actions">
+                    <span class="btn btn-primary">
+                        <i class="fas fa-arrow-right"></i>
+                        Access Dashboard
+                    </span>
+                </div>
+            </a>
+
+            <a href="risk-dashboard.html" class="dashboard-card core fade-in">
+                <div class="card-header">
+                    <div class="card-icon core">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="card-badges">
+                        <span class="card-badge enhanced">Enhanced</span>
+                    </div>
+                </div>
+                <h3 class="card-title">Risk Assessment</h3>
+                <p class="card-description">Advanced risk analysis with real-time monitoring, factor breakdown, and mitigation recommendations.</p>
+                <ul class="card-features">
+                    <li><i class="fas fa-check"></i> Real-time risk scoring</li>
+                    <li><i class="fas fa-check"></i> Factor analysis</li>
+                    <li><i class="fas fa-check"></i> Trend monitoring</li>
+                    <li><i class="fas fa-check"></i> Mitigation plans</li>
+                </ul>
+                <div class="card-actions">
+                    <span class="btn btn-primary">
+                        <i class="fas fa-arrow-right"></i>
+                        Access Dashboard
+                    </span>
+                </div>
+            </a>
+
+            <a href="enhanced-risk-indicators.html" class="dashboard-card core fade-in">
+                <div class="card-header">
+                    <div class="card-icon core">
+                        <i class="fas fa-gauge-high"></i>
+                    </div>
+                    <div class="card-badges">
+                        <span class="card-badge enhanced">Enhanced</span>
+                    </div>
+                </div>
+                <h3 class="card-title">Risk Indicators</h3>
+                <p class="card-description">Enhanced risk level indicators with interactive visualizations and comprehensive monitoring tools.</p>
+                <ul class="card-features">
+                    <li><i class="fas fa-check"></i> Interactive risk gauges</li>
+                    <li><i class="fas fa-check"></i> Heat map visualization</li>
+                    <li><i class="fas fa-check"></i> Trend indicators</li>
+                    <li><i class="fas fa-check"></i> Industry benchmarks</li>
+                </ul>
+                <div class="card-actions">
+                    <span class="btn btn-primary">
+                        <i class="fas fa-arrow-right"></i>
+                        Access Dashboard
+                    </span>
+                </div>
+            </a>
+
+            <!-- Compliance -->
+            <a href="compliance-dashboard.html" class="dashboard-card compliance fade-in">
+                <div class="card-header">
+                    <div class="card-icon compliance">
+                        <i class="fas fa-clipboard-check"></i>
+                    </div>
+                    <div class="card-badges">
+                        <span class="card-badge enhanced">Enhanced</span>
+                    </div>
+                </div>
+                <h3 class="card-title">Compliance Status</h3>
+                <p class="card-description">Monitor compliance across multiple frameworks including SOC 2, PCI DSS, GDPR, HIPAA, and ISO 27001.</p>
+                <ul class="card-features">
+                    <li><i class="fas fa-check"></i> Multi-framework support</li>
+                    <li><i class="fas fa-check"></i> Progress tracking</li>
+                    <li><i class="fas fa-check"></i> Alert system</li>
+                    <li><i class="fas fa-check"></i> Compliance reports</li>
+                </ul>
+                <div class="card-actions">
+                    <span class="btn btn-primary">
+                        <i class="fas fa-arrow-right"></i>
+                        Access Dashboard
+                    </span>
+                </div>
+            </a>
+
+            <a href="compliance-gap-analysis.html" class="dashboard-card compliance fade-in">
+                <div class="card-header">
+                    <div class="card-icon compliance">
+                        <i class="fas fa-search-minus"></i>
+                    </div>
+                    <div class="card-badges">
+                        <span class="card-badge new">New</span>
+                    </div>
+                </div>
+                <h3 class="card-title">Gap Analysis</h3>
+                <p class="card-description">Identify, assess, and track compliance gaps with detailed remediation plans and progress monitoring.</p>
+                <ul class="card-features">
+                    <li><i class="fas fa-check"></i> Gap identification</li>
+                    <li><i class="fas fa-check"></i> Severity assessment</li>
+                    <li><i class="fas fa-check"></i> Remediation plans</li>
+                    <li><i class="fas fa-check"></i> Progress tracking</li>
+                </ul>
+                <div class="card-actions">
+                    <span class="btn btn-primary">
+                        <i class="fas fa-arrow-right"></i>
+                        Access Dashboard
+                    </span>
+                </div>
+            </a>
+
+            <a href="compliance-progress-tracking.html" class="dashboard-card compliance fade-in">
+                <div class="card-header">
+                    <div class="card-icon compliance">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    <div class="card-badges">
+                        <span class="card-badge beta">Beta</span>
+                    </div>
+                </div>
+                <h3 class="card-title">Progress Tracking</h3>
+                <p class="card-description">Track compliance progress with deadline monitoring, task management, and milestone tracking.</p>
+                <ul class="card-features">
+                    <li><i class="fas fa-check"></i> Deadline monitoring</li>
+                    <li><i class="fas fa-check"></i> Task management</li>
+                    <li><i class="fas fa-check"></i> Milestone tracking</li>
+                    <li><i class="fas fa-check"></i> Progress reports</li>
+                </ul>
+                <div class="card-actions">
+                    <span class="btn btn-primary">
+                        <i class="fas fa-arrow-right"></i>
+                        Access Dashboard
+                    </span>
+                </div>
+            </a>
+
+            <!-- Market Intelligence -->
+            <a href="market-analysis-dashboard.html" class="dashboard-card intelligence fade-in">
+                <div class="card-header">
+                    <div class="card-icon intelligence">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <div class="card-badges">
+                        <span class="card-badge enhanced">Enhanced</span>
+                    </div>
+                </div>
+                <h3 class="card-title">Market Analysis</h3>
+                <p class="card-description">Comprehensive market analysis with industry benchmarking, trend analysis, and opportunity identification.</p>
+                <ul class="card-features">
+                    <li><i class="fas fa-check"></i> Industry benchmarking</li>
+                    <li><i class="fas fa-check"></i> Market trends</li>
+                    <li><i class="fas fa-check"></i> Opportunity analysis</li>
+                    <li><i class="fas fa-check"></i> Competitive insights</li>
+                </ul>
+                <div class="card-actions">
+                    <span class="btn btn-primary">
+                        <i class="fas fa-arrow-right"></i>
+                        Access Dashboard
+                    </span>
+                </div>
+            </a>
+
+            <a href="competitive-analysis-dashboard.html" class="dashboard-card intelligence fade-in">
+                <div class="card-header">
+                    <div class="card-icon intelligence">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="card-badges">
+                        <span class="card-badge enhanced">Enhanced</span>
+                    </div>
+                </div>
+                <h3 class="card-title">Competitive Analysis</h3>
+                <p class="card-description">Analyze competitive landscape with positioning charts, advantage indicators, and intelligence reports.</p>
+                <ul class="card-features">
+                    <li><i class="fas fa-check"></i> Competitor comparison</li>
+                    <li><i class="fas fa-check"></i> Positioning analysis</li>
+                    <li><i class="fas fa-check"></i> Advantage indicators</li>
+                    <li><i class="fas fa-check"></i> Intelligence reports</li>
+                </ul>
+                <div class="card-actions">
+                    <span class="btn btn-primary">
+                        <i class="fas fa-arrow-right"></i>
+                        Access Dashboard
+                    </span>
+                </div>
+            </a>
+
+            <a href="business-growth-analytics.html" class="dashboard-card intelligence fade-in">
+                <div class="card-header">
+                    <div class="card-icon intelligence">
+                        <i class="fas fa-trending-up"></i>
+                    </div>
+                    <div class="card-badges">
+                        <span class="card-badge enhanced">Enhanced</span>
+                    </div>
+                </div>
+                <h3 class="card-title">Growth Analytics</h3>
+                <p class="card-description">Track business growth with trend analysis, projection charts, and strategy recommendations.</p>
+                <ul class="card-features">
+                    <li><i class="fas fa-check"></i> Growth trends</li>
+                    <li><i class="fas fa-check"></i> Projection models</li>
+                    <li><i class="fas fa-check"></i> Opportunity identification</li>
+                    <li><i class="fas fa-check"></i> Strategy recommendations</li>
+                </ul>
+                <div class="card-actions">
+                    <span class="btn btn-primary">
+                        <i class="fas fa-arrow-right"></i>
+                        Access Dashboard
+                    </span>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Add loading animation
+        setTimeout(() => {
+            document.querySelectorAll('.fade-in').forEach((element, index) => {
+                setTimeout(() => {
+                    element.style.opacity = '1';
+                    element.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        }, 100);
+
+        // Add click tracking for analytics
+        document.querySelectorAll('.dashboard-card').forEach(card => {
+            card.addEventListener('click', function(e) {
+                const dashboardName = this.querySelector('.card-title').textContent;
+                console.log(`Navigating to: ${dashboardName}`);
+                
+                // In a real implementation, you would send this to analytics
+                // analytics.track('dashboard_navigation', { dashboard: dashboardName });
+            });
+        });
+    </script>
+</body>
+</html>

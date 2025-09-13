@@ -411,7 +411,7 @@ spec:
 ### Manual Rollback Script
 ```bash
 #!/bin/bash
-# rollback.sh - Manual rollback script
+# scripts/rollback/application-rollback.sh - Manual rollback script
 
 set -euo pipefail
 

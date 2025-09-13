@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deadline Monitoring System - KYB Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .deadline-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+
+        .overview-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .overview-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3498db 0%, #2ecc71 100%);
+        }
+
+        .overview-card.overdue::before {
+            background: linear-gradient(90deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .overview-card.warning::before {
+            background: linear-gradient(90deg, #f39c12 0%, #e67e22 100%);
+        }
+
+        .overview-card.completed::before {
+            background: linear-gradient(90deg, #27ae60 0%, #2ecc71 100%);
+        }
+
+        .overview-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .card-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .card-label {
+            font-size: 1.1rem;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+
+        .card-description {
+            font-size: 0.9rem;
+            color: #95a5a6;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .content-tabs {
+            display: flex;
+            border-bottom: 2px solid #ecf0f1;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 15px 25px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #7f8c8d;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            color: #3498db;
+            border-bottom-color: #3498db;
+        }
+
+        .tab-btn:hover {
+            color: #3498db;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .deadline-calendar {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            margin-bottom: 30px;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .calendar-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .calendar-nav {
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-btn {
+            padding: 8px 12px;
+            border: 2px solid #3498db;
+            background: white;
+            color: #3498db;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            background: #3498db;
+            color: white;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background: #ecf0f1;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .calendar-day {
+            background: white;
+            padding: 15px 10px;
+            text-align: center;
+            min-height: 80px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .calendar-day:hover {
+            background: #f8f9fa;
+        }
+
+        .calendar-day.other-month {
+            background: #f8f9fa;
+            color: #bdc3c7;
+        }
+
+        .calendar-day.today {
+            background: #e3f2fd;
+            border: 2px solid #3498db;
+        }
+
+        .calendar-day.has-deadline {
+            background: #fff3cd;
+            border-left: 4px solid #f39c12;
+        }
+
+        .calendar-day.overdue {
+            background: #f8d7da;
+            border-left: 4px solid #e74c3c;
+        }
+
+        .calendar-day.completed {
+            background: #d5f4e6;
+            border-left: 4px solid #27ae60;
+        }
+
+        .day-number {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .day-deadlines {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+        }
+
+        .deadline-item {
+            background: #3498db;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            margin: 1px 0;
+            cursor: pointer;
+        }
+
+        .deadline-item.overdue {
+            background: #e74c3c;
+        }
+
+        .deadline-item.warning {
+            background: #f39c12;
+        }
+
+        .deadline-item.completed {
+            background: #27ae60;
+        }
+
+        .deadline-list {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .deadline-item-card {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            border: 1px solid #ecf0f1;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .deadline-item-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .deadline-item-card.overdue {
+            border-left: 4px solid #e74c3c;
+            background: #fdf2f2;
+        }
+
+        .deadline-item-card.warning {
+            border-left: 4px solid #f39c12;
+            background: #fefbf3;
+        }
+
+        .deadline-item-card.completed {
+            border-left: 4px solid #27ae60;
+            background: #f0f9f4;
+        }
+
+        .deadline-priority {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 20px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .deadline-priority.high {
+            background: #e74c3c;
+        }
+
+        .deadline-priority.medium {
+            background: #f39c12;
+        }
+
+        .deadline-priority.low {
+            background: #27ae60;
+        }
+
+        .deadline-content {
+            flex: 1;
+        }
+
+        .deadline-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .deadline-description {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        .deadline-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 0.9rem;
+            color: #95a5a6;
+        }
+
+        .deadline-date {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 100px;
+        }
+
+        .deadline-date-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .deadline-date-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        .deadline-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-extend {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-complete {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-view {
+            background: #9b59b6;
+            color: white;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .alert-system {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .alert-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 4px solid;
+        }
+
+        .alert-item.critical {
+            background: #f8d7da;
+            border-left-color: #e74c3c;
+        }
+
+        .alert-item.warning {
+            background: #fef5e7;
+            border-left-color: #f39c12;
+        }
+
+        .alert-item.info {
+            background: #e3f2fd;
+            border-left-color: #3498db;
+        }
+
+        .alert-icon {
+            font-size: 1.5rem;
+            margin-right: 15px;
+        }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .alert-message {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .alert-time {
+            font-size: 0.8rem;
+            color: #95a5a6;
+        }
+
+        .deadline-settings {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .settings-group {
+            margin-bottom: 25px;
+        }
+
+        .settings-label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .settings-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .settings-input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .settings-checkbox {
+            margin-right: 10px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #7f8c8d;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+
+        .btn-primary {
+            padding: 12px 24px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary {
+            padding: 12px 24px;
+            background: #95a5a6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover, .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            z-index: 1001;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: #27ae60;
+        }
+
+        .notification.error {
+            background: #e74c3c;
+        }
+
+        .notification.info {
+            background: #3498db;
+        }
+
+        @media (max-width: 768px) {
+            .deadline-overview {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+                padding: 20px;
+            }
+
+            .content-tabs {
+                flex-wrap: wrap;
+            }
+
+            .deadline-item-card {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .deadline-actions {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .calendar-grid {
+                font-size: 0.8rem;
+            }
+
+            .calendar-day {
+                min-height: 60px;
+                padding: 10px 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Deadline Monitoring System</h1>
+            <p>Advanced deadline tracking and automated alert management for regulatory compliance</p>
+        </div>
+
+        <div class="deadline-overview">
+            <div class="overview-card overdue">
+                <div class="card-icon">⚠️</div>
+                <div class="card-number" id="overdue-count">0</div>
+                <div class="card-label">Overdue</div>
+                <div class="card-description">Requirements past deadline</div>
+            </div>
+            <div class="overview-card warning">
+                <div class="card-icon">⏰</div>
+                <div class="card-number" id="warning-count">0</div>
+                <div class="card-label">Due Soon</div>
+                <div class="card-description">Within 7 days</div>
+            </div>
+            <div class="overview-card">
+                <div class="card-icon">📅</div>
+                <div class="card-number" id="upcoming-count">0</div>
+                <div class="card-label">Upcoming</div>
+                <div class="card-description">Next 30 days</div>
+            </div>
+            <div class="overview-card completed">
+                <div class="card-icon">✅</div>
+                <div class="card-number" id="completed-count">0</div>
+                <div class="card-label">Completed</div>
+                <div class="card-description">On time</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="content-tabs">
+                <button class="tab-btn active" onclick="showTab('calendar')">Calendar View</button>
+                <button class="tab-btn" onclick="showTab('list')">Deadline List</button>
+                <button class="tab-btn" onclick="showTab('alerts')">Alert Center</button>
+                <button class="tab-btn" onclick="showTab('settings')">Settings</button>
+            </div>
+
+            <div id="calendar-tab" class="tab-content active">
+                <div class="deadline-calendar">
+                    <div class="calendar-header">
+                        <h3 class="calendar-title" id="calendar-title">December 2024</h3>
+                        <div class="calendar-nav">
+                            <button class="nav-btn" onclick="previousMonth()">‹</button>
+                            <button class="nav-btn" onclick="nextMonth()">›</button>
+                        </div>
+                    </div>
+                    <div class="calendar-grid" id="calendar-grid">
+                        <!-- Calendar will be generated here -->
+                    </div>
+                </div>
+            </div>
+
+            <div id="list-tab" class="tab-content">
+                <div class="deadline-list">
+                    <h3>All Deadlines</h3>
+                    <div id="deadline-list-container">
+                        <!-- Deadline list will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <div id="alerts-tab" class="tab-content">
+                <div class="alert-system">
+                    <h3>Alert Center</h3>
+                    <div id="alerts-container">
+                        <!-- Alerts will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <div id="settings-tab" class="tab-content">
+                <div class="deadline-settings">
+                    <h3>Deadline Monitoring Settings</h3>
+                    <div class="settings-group">
+                        <label class="settings-label">Warning Threshold (days before deadline)</label>
+                        <input type="number" class="settings-input" id="warning-threshold" value="7" min="1" max="30">
+                    </div>
+                    <div class="settings-group">
+                        <label class="settings-label">Critical Alert Threshold (days before deadline)</label>
+                        <input type="number" class="settings-input" id="critical-threshold" value="3" min="1" max="7">
+                    </div>
+                    <div class="settings-group">
+                        <label class="settings-label">Email Notifications</label>
+                        <input type="checkbox" class="settings-checkbox" id="email-notifications" checked>
+                        <span>Enable email notifications for deadline alerts</span>
+                    </div>
+                    <div class="settings-group">
+                        <label class="settings-label">Auto-escalation</label>
+                        <input type="checkbox" class="settings-checkbox" id="auto-escalation" checked>
+                        <span>Automatically escalate overdue items to management</span>
+                    </div>
+                    <div class="settings-group">
+                        <label class="settings-label">Daily Digest</label>
+                        <input type="checkbox" class="settings-checkbox" id="daily-digest" checked>
+                        <span>Send daily digest of upcoming deadlines</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Extend Deadline Modal -->
+    <div id="extend-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Extend Deadline</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="extend-form">
+                <div class="form-group">
+                    <label class="form-label">Requirement</label>
+                    <input type="text" class="form-input" id="extend-requirement" readonly>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Current Deadline</label>
+                    <input type="text" class="form-input" id="extend-current-deadline" readonly>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">New Deadline</label>
+                    <input type="date" class="form-input" id="extend-new-deadline" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Reason for Extension</label>
+                    <textarea class="form-input" id="extend-reason" rows="3" placeholder="Please provide a reason for extending this deadline..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn-primary">Extend Deadline</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // Sample deadline data
+        const deadlineData = [
+            {
+                id: 'SOC2-001',
+                title: 'Access Control Management',
+                description: 'Implement and maintain access controls for all systems and data',
+                framework: 'SOC 2',
+                deadline: '2024-12-31',
+                priority: 'high',
+                status: 'completed',
+                assignedTo: 'Security Team',
+                completedDate: '2024-11-15'
+            },
+            {
+                id: 'SOC2-002',
+                title: 'Data Encryption',
+                description: 'Encrypt all sensitive data at rest and in transit',
+                framework: 'SOC 2',
+                deadline: '2024-12-31',
+                priority: 'high',
+                status: 'in-progress',
+                assignedTo: 'DevOps Team',
+                progress: 75
+            },
+            {
+                id: 'PCI-001',
+                title: 'Network Security',
+                description: 'Install and maintain network security controls',
+                framework: 'PCI DSS',
+                deadline: '2024-12-31',
+                priority: 'high',
+                status: 'completed',
+                assignedTo: 'Network Team',
+                completedDate: '2024-09-10'
+            },
+            {
+                id: 'GDPR-001',
+                title: 'Data Subject Rights',
+                description: 'Implement procedures for data subject rights requests',
+                framework: 'GDPR',
+                deadline: '2024-12-31',
+                priority: 'high',
+                status: 'in-progress',
+                assignedTo: 'Legal Team',
+                progress: 60
+            },
+            {
+                id: 'HIPAA-001',
+                title: 'Administrative Safeguards',
+                description: 'Implement administrative safeguards for PHI protection',
+                framework: 'HIPAA',
+                deadline: '2024-11-30',
+                priority: 'high',
+                status: 'overdue',
+                assignedTo: 'Compliance Team',
+                progress: 40
+            },
+            {
+                id: 'SOC2-003',
+                title: 'Incident Response Plan',
+                description: 'Develop and maintain comprehensive incident response procedures',
+                framework: 'SOC 2',
+                deadline: '2025-01-15',
+                priority: 'medium',
+                status: 'pending',
+                assignedTo: 'Security Team'
+            },
+            {
+                id: 'PCI-002',
+                title: 'Cardholder Data Protection',
+                description: 'Protect stored cardholder data with encryption',
+                framework: 'PCI DSS',
+                deadline: '2024-12-31',
+                priority: 'high',
+                status: 'in-progress',
+                assignedTo: 'DevOps Team',
+                progress: 80
+            }
+        ];
+
+        let currentDate = new Date();
+        let currentRequirementId = null;
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            generateCalendar();
+            loadDeadlineList();
+            loadAlerts();
+            updateOverview();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Extend form submission
+            document.getElementById('extend-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                extendDeadline();
+            });
+
+            // Settings change handlers
+            document.getElementById('warning-threshold').addEventListener('change', updateSettings);
+            document.getElementById('critical-threshold').addEventListener('change', updateSettings);
+            document.getElementById('email-notifications').addEventListener('change', updateSettings);
+            document.getElementById('auto-escalation').addEventListener('change', updateSettings);
+            document.getElementById('daily-digest').addEventListener('change', updateSettings);
+        }
+
+        function generateCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            document.getElementById('calendar-title').textContent = 
+                new Date(year, month).toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
+
+            const calendarGrid = document.getElementById('calendar-grid');
+            calendarGrid.innerHTML = '';
+
+            // Add day headers
+            const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            dayHeaders.forEach(day => {
+                const header = document.createElement('div');
+                header.style.background = '#3498db';
+                header.style.color = 'white';
+                header.style.fontWeight = 'bold';
+                header.style.padding = '10px';
+                header.style.textAlign = 'center';
+                header.textContent = day;
+                calendarGrid.appendChild(header);
+            });
+
+            // Generate calendar days
+            const currentDateObj = new Date();
+            for (let i = 0; i < 42; i++) {
+                const date = new Date(startDate);
+                date.setDate(startDate.getDate() + i);
+
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day';
+
+                if (date.getMonth() !== month) {
+                    dayElement.classList.add('other-month');
+                }
+
+                if (date.toDateString() === currentDateObj.toDateString()) {
+                    dayElement.classList.add('today');
+                }
+
+                const dayNumber = document.createElement('div');
+                dayNumber.className = 'day-number';
+                dayNumber.textContent = date.getDate();
+                dayElement.appendChild(dayNumber);
+
+                // Add deadlines for this date
+                const dateString = date.toISOString().split('T')[0];
+                const dayDeadlines = deadlineData.filter(deadline => deadline.deadline === dateString);
+                
+                if (dayDeadlines.length > 0) {
+                    const deadlinesContainer = document.createElement('div');
+                    deadlinesContainer.className = 'day-deadlines';
+                    
+                    dayDeadlines.forEach(deadline => {
+                        const deadlineElement = document.createElement('div');
+                        deadlineElement.className = `deadline-item ${deadline.status}`;
+                        deadlineElement.textContent = deadline.id;
+                        deadlineElement.title = deadline.title;
+                        deadlineElement.onclick = () => viewDeadlineDetails(deadline.id);
+                        deadlinesContainer.appendChild(deadlineElement);
+                    });
+                    
+                    dayElement.appendChild(deadlinesContainer);
+                    
+                    // Add appropriate class based on deadline status
+                    if (dayDeadlines.some(d => d.status === 'overdue')) {
+                        dayElement.classList.add('overdue');
+                    } else if (dayDeadlines.some(d => d.status === 'completed')) {
+                        dayElement.classList.add('completed');
+                    } else {
+                        dayElement.classList.add('has-deadline');
+                    }
+                }
+
+                calendarGrid.appendChild(dayElement);
+            }
+        }
+
+        function previousMonth() {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            generateCalendar();
+        }
+
+        function nextMonth() {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            generateCalendar();
+        }
+
+        function loadDeadlineList() {
+            const container = document.getElementById('deadline-list-container');
+            container.innerHTML = '';
+
+            // Sort deadlines by date
+            const sortedDeadlines = [...deadlineData].sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+
+            sortedDeadlines.forEach(deadline => {
+                const daysUntilDeadline = Math.ceil((new Date(deadline.deadline) - new Date()) / (1000 * 60 * 60 * 24));
+                const isOverdue = daysUntilDeadline < 0 && deadline.status !== 'completed';
+                const isWarning = daysUntilDeadline <= 7 && daysUntilDeadline >= 0 && deadline.status !== 'completed';
+
+                const card = document.createElement('div');
+                card.className = `deadline-item-card ${isOverdue ? 'overdue' : isWarning ? 'warning' : deadline.status === 'completed' ? 'completed' : ''}`;
+                
+                card.innerHTML = `
+                    <div class="deadline-priority ${deadline.priority}">
+                        ${deadline.priority.charAt(0).toUpperCase()}
+                    </div>
+                    <div class="deadline-content">
+                        <div class="deadline-title">${deadline.title}</div>
+                        <div class="deadline-description">${deadline.description}</div>
+                        <div class="deadline-meta">
+                            <span><strong>Framework:</strong> ${deadline.framework}</span>
+                            <span><strong>Assigned:</strong> ${deadline.assignedTo}</span>
+                            <span><strong>Status:</strong> ${deadline.status.replace('-', ' ')}</span>
+                            ${deadline.progress ? `<span><strong>Progress:</strong> ${deadline.progress}%</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="deadline-date">
+                        <div class="deadline-date-value">${formatDate(deadline.deadline)}</div>
+                        <div class="deadline-date-label">
+                            ${isOverdue ? 'Overdue' : isWarning ? 'Due Soon' : 'Due'}
+                        </div>
+                    </div>
+                    <div class="deadline-actions">
+                        ${deadline.status !== 'completed' ? `
+                            <button class="action-btn btn-extend" onclick="openExtendModal('${deadline.id}')">Extend</button>
+                            <button class="action-btn btn-complete" onclick="markComplete('${deadline.id}')">Complete</button>
+                        ` : ''}
+                        <button class="action-btn btn-view" onclick="viewDeadlineDetails('${deadline.id}')">View</button>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+
+        function loadAlerts() {
+            const container = document.getElementById('alerts-container');
+            container.innerHTML = '';
+
+            const alerts = generateAlerts();
+
+            alerts.forEach(alert => {
+                const alertElement = document.createElement('div');
+                alertElement.className = `alert-item ${alert.type}`;
+                alertElement.innerHTML = `
+                    <div class="alert-icon">${alert.icon}</div>
+                    <div class="alert-content">
+                        <div class="alert-title">${alert.title}</div>
+                        <div class="alert-message">${alert.message}</div>
+                        <div class="alert-time">${alert.time}</div>
+                    </div>
+                `;
+                container.appendChild(alertElement);
+            });
+        }
+
+        function generateAlerts() {
+            const alerts = [];
+            const now = new Date();
+
+            deadlineData.forEach(deadline => {
+                const deadlineDate = new Date(deadline.deadline);
+                const daysUntilDeadline = Math.ceil((deadlineDate - now) / (1000 * 60 * 60 * 24));
+
+                if (daysUntilDeadline < 0 && deadline.status !== 'completed') {
+                    alerts.push({
+                        type: 'critical',
+                        icon: '🚨',
+                        title: 'Overdue Deadline',
+                        message: `${deadline.title} (${deadline.id}) is ${Math.abs(daysUntilDeadline)} days overdue`,
+                        time: 'Just now'
+                    });
+                } else if (daysUntilDeadline <= 3 && daysUntilDeadline >= 0 && deadline.status !== 'completed') {
+                    alerts.push({
+                        type: 'critical',
+                        icon: '⚠️',
+                        title: 'Critical Deadline',
+                        message: `${deadline.title} (${deadline.id}) is due in ${daysUntilDeadline} days`,
+                        time: 'Just now'
+                    });
+                } else if (daysUntilDeadline <= 7 && daysUntilDeadline >= 0 && deadline.status !== 'completed') {
+                    alerts.push({
+                        type: 'warning',
+                        icon: '⏰',
+                        title: 'Upcoming Deadline',
+                        message: `${deadline.title} (${deadline.id}) is due in ${daysUntilDeadline} days`,
+                        time: '1 hour ago'
+                    });
+                }
+            });
+
+            return alerts.sort((a, b) => {
+                const priority = { critical: 3, warning: 2, info: 1 };
+                return priority[b.type] - priority[a.type];
+            });
+        }
+
+        function updateOverview() {
+            const now = new Date();
+            let overdue = 0, warning = 0, upcoming = 0, completed = 0;
+
+            deadlineData.forEach(deadline => {
+                const deadlineDate = new Date(deadline.deadline);
+                const daysUntilDeadline = Math.ceil((deadlineDate - now) / (1000 * 60 * 60 * 24));
+
+                if (deadline.status === 'completed') {
+                    completed++;
+                } else if (daysUntilDeadline < 0) {
+                    overdue++;
+                } else if (daysUntilDeadline <= 7) {
+                    warning++;
+                } else if (daysUntilDeadline <= 30) {
+                    upcoming++;
+                }
+            });
+
+            document.getElementById('overdue-count').textContent = overdue;
+            document.getElementById('warning-count').textContent = warning;
+            document.getElementById('upcoming-count').textContent = upcoming;
+            document.getElementById('completed-count').textContent = completed;
+        }
+
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function openExtendModal(requirementId) {
+            currentRequirementId = requirementId;
+            const requirement = deadlineData.find(req => req.id === requirementId);
+            
+            document.getElementById('extend-requirement').value = requirement.title;
+            document.getElementById('extend-current-deadline').value = formatDate(requirement.deadline);
+            document.getElementById('extend-new-deadline').value = '';
+            document.getElementById('extend-reason').value = '';
+
+            document.getElementById('extend-modal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('extend-modal').style.display = 'none';
+            currentRequirementId = null;
+        }
+
+        function extendDeadline() {
+            const newDeadline = document.getElementById('extend-new-deadline').value;
+            const reason = document.getElementById('extend-reason').value;
+
+            if (!newDeadline) {
+                showNotification('Please select a new deadline', 'error');
+                return;
+            }
+
+            // Find and update the requirement
+            const requirement = deadlineData.find(req => req.id === currentRequirementId);
+            if (requirement) {
+                requirement.deadline = newDeadline;
+                
+                // Reload all data
+                generateCalendar();
+                loadDeadlineList();
+                loadAlerts();
+                updateOverview();
+
+                showNotification('Deadline extended successfully!', 'success');
+                closeModal();
+            }
+        }
+
+        function markComplete(requirementId) {
+            const requirement = deadlineData.find(req => req.id === requirementId);
+            if (requirement) {
+                requirement.status = 'completed';
+                requirement.completedDate = new Date().toISOString().split('T')[0];
+                
+                // Reload all data
+                generateCalendar();
+                loadDeadlineList();
+                loadAlerts();
+                updateOverview();
+
+                showNotification('Requirement marked as completed!', 'success');
+            }
+        }
+
+        function viewDeadlineDetails(requirementId) {
+            showNotification('Opening details for ' + requirementId, 'info');
+            // Implementation for viewing deadline details
+        }
+
+        function updateSettings() {
+            const warningThreshold = document.getElementById('warning-threshold').value;
+            const criticalThreshold = document.getElementById('critical-threshold').value;
+            const emailNotifications = document.getElementById('email-notifications').checked;
+            const autoEscalation = document.getElementById('auto-escalation').checked;
+            const dailyDigest = document.getElementById('daily-digest').checked;
+
+            // Save settings (in a real application, this would be sent to the server)
+            const settings = {
+                warningThreshold: parseInt(warningThreshold),
+                criticalThreshold: parseInt(criticalThreshold),
+                emailNotifications,
+                autoEscalation,
+                dailyDigest
+            };
+
+            localStorage.setItem('deadlineSettings', JSON.stringify(settings));
+            showNotification('Settings saved successfully!', 'success');
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+            });
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add('show');
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Load saved settings
+        function loadSettings() {
+            const savedSettings = localStorage.getItem('deadlineSettings');
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                document.getElementById('warning-threshold').value = settings.warningThreshold || 7;
+                document.getElementById('critical-threshold').value = settings.criticalThreshold || 3;
+                document.getElementById('email-notifications').checked = settings.emailNotifications !== false;
+                document.getElementById('auto-escalation').checked = settings.autoEscalation !== false;
+                document.getElementById('daily-digest').checked = settings.dailyDigest !== false;
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('extend-modal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        // Load settings on page load
+        loadSettings();
+    </script>
+</body>
+</html>

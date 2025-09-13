@@ -1,0 +1,406 @@
+# KYB Platform Monitoring Configuration
+# This file contains all monitoring-related configuration settings
+
+# General monitoring settings
+monitoring:
+  enabled: true
+  environment: "development"  # development, staging, production
+  service_name: "kyb-platform"
+  version: "1.0.0"
+  
+  # Data collection settings
+  collection:
+    interval: "30s"
+    timeout: "10s"
+    retry_attempts: 3
+    retry_delay: "5s"
+  
+  # Storage settings
+  storage:
+    retention: "15d"
+    max_samples: 1000000
+    max_series: 100000
+
+# Metrics configuration
+metrics:
+  # Application metrics
+  application:
+    enabled: true
+    prefix: "kyb_"
+    
+    # HTTP metrics
+    http:
+      enabled: true
+      buckets: [0.1, 0.5, 1, 2, 5, 10]  # Response time buckets in seconds
+      labels: ["method", "endpoint", "status_code"]
+    
+    # Business metrics
+    business:
+      enabled: true
+      verification_requests: true
+      classification_accuracy: true
+      processing_time: true
+    
+    # System metrics
+    system:
+      enabled: true
+      memory: true
+      cpu: true
+      goroutines: true
+      gc: true
+  
+  # Database metrics
+  database:
+    enabled: true
+    connection_pool: true
+    query_duration: true
+    query_count: true
+    error_count: true
+  
+  # External API metrics
+  external_apis:
+    enabled: true
+    response_time: true
+    error_rate: true
+    rate_limits: true
+
+# Health check configuration
+health_checks:
+  enabled: true
+  interval: "30s"
+  timeout: "5s"
+  
+  # Individual health checks
+  checks:
+    api_server:
+      enabled: true
+      endpoint: "/health"
+      timeout: "2s"
+    
+    database:
+      enabled: true
+      query: "SELECT 1"
+      timeout: "3s"
+    
+    cache:
+      enabled: true
+      operation: "ping"
+      timeout: "2s"
+    
+    external_apis:
+      enabled: true
+      endpoints:
+        - "https://api.example.com/health"
+        - "https://verification-api.example.com/status"
+      timeout: "5s"
+    
+    filesystem:
+      enabled: true
+      path: "/tmp"
+      min_free_space: "1GB"
+    
+    memory:
+      enabled: true
+      max_usage_percent: 90
+
+# Alerting configuration
+alerting:
+  enabled: true
+  check_interval: "30s"
+  
+  # Default thresholds
+  thresholds:
+    error_rate: 5.0          # 5%
+    response_time: 2000      # 2 seconds in milliseconds
+    memory_usage: 80.0       # 80%
+    cpu_usage: 80.0          # 80%
+    disk_usage: 90.0         # 90%
+    active_users: 20         # 20 users
+    request_rate: 100.0      # 100 req/s
+    database_connections: 50 # 50 connections
+  
+  # Alert rules
+  rules:
+    - id: "high_error_rate"
+      name: "High Error Rate"
+      description: "Error rate has exceeded the threshold"
+      severity: "critical"
+      condition: "greater_than"
+      threshold: 5.0
+      duration: "2m"
+      labels:
+        service: "api"
+        type: "error_rate"
+      enabled: true
+    
+    - id: "high_response_time"
+      name: "High Response Time"
+      description: "Response time has exceeded the threshold"
+      severity: "warning"
+      condition: "greater_than"
+      threshold: 2000.0
+      duration: "5m"
+      labels:
+        service: "api"
+        type: "response_time"
+      enabled: true
+    
+    - id: "high_memory_usage"
+      name: "High Memory Usage"
+      description: "Memory usage has exceeded the threshold"
+      severity: "warning"
+      condition: "greater_than"
+      threshold: 80.0
+      duration: "5m"
+      labels:
+        service: "system"
+        type: "memory"
+      enabled: true
+    
+    - id: "high_cpu_usage"
+      name: "High CPU Usage"
+      description: "CPU usage has exceeded the threshold"
+      severity: "warning"
+      condition: "greater_than"
+      threshold: 80.0
+      duration: "5m"
+      labels:
+        service: "system"
+        type: "cpu"
+      enabled: true
+    
+    - id: "service_down"
+      name: "Service Down"
+      description: "Service is not responding"
+      severity: "critical"
+      condition: "equals"
+      threshold: 0.0
+      duration: "1m"
+      labels:
+        service: "api"
+        type: "availability"
+      enabled: true
+  
+  # Notification channels
+  notifiers:
+    - type: "email"
+      name: "admin-email"
+      enabled: true
+      config:
+        smtp_host: "localhost"
+        smtp_port: 587
+        smtp_username: "alerts@kyb-platform.com"
+        smtp_password: "password"
+        from: "alerts@kyb-platform.com"
+        to: ["admin@kyb-platform.com"]
+      severities: ["critical", "warning"]
+    
+    - type: "slack"
+      name: "team-slack"
+      enabled: true
+      config:
+        webhook_url: "YOUR_SLACK_WEBHOOK_URL"
+        channel: "#alerts"
+        username: "KYB Platform Alerts"
+      severities: ["critical", "warning"]
+    
+    - type: "webhook"
+      name: "custom-webhook"
+      enabled: false
+      config:
+        url: "http://localhost:5001/alerts"
+        method: "POST"
+        headers:
+          Content-Type: "application/json"
+          Authorization: "Bearer YOUR_TOKEN"
+      severities: ["critical"]
+  
+  # Alert suppression rules
+  suppression_rules:
+    - id: "maintenance_window"
+      name: "Maintenance Window"
+      description: "Suppress alerts during scheduled maintenance"
+      conditions:
+        time: "02:00-04:00"  # 2 AM to 4 AM
+        day: "sunday"        # Sunday only
+      duration: "2h"
+      enabled: false
+    
+    - id: "deployment_suppression"
+      name: "Deployment Suppression"
+      description: "Suppress alerts during deployments"
+      conditions:
+        environment: "staging"
+        deployment: "true"
+      duration: "30m"
+      enabled: true
+
+# Dashboard configuration
+dashboards:
+  enabled: true
+  
+  # Grafana settings
+  grafana:
+    enabled: true
+    url: "http://localhost:3000"
+    username: "admin"
+    password: "admin123"
+    dashboard_id: "kyb-platform"
+    
+    # Dashboard panels
+    panels:
+      - title: "Request Rate"
+        type: "stat"
+        query: "rate(http_requests_total[5m])"
+        unit: "reqps"
+      
+      - title: "Response Time"
+        type: "stat"
+        query: "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))"
+        unit: "s"
+      
+      - title: "Error Rate"
+        type: "stat"
+        query: "rate(http_requests_total{status=~\"5..\"}[5m]) / rate(http_requests_total[5m]) * 100"
+        unit: "percent"
+      
+      - title: "Active Users"
+        type: "stat"
+        query: "active_users"
+        unit: "short"
+      
+      - title: "Memory Usage"
+        type: "stat"
+        query: "go_memstats_heap_alloc_bytes / 1024 / 1024"
+        unit: "MB"
+      
+      - title: "CPU Usage"
+        type: "stat"
+        query: "100 - (avg by(instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)"
+        unit: "percent"
+
+# Logging configuration
+logging:
+  enabled: true
+  level: "info"  # debug, info, warn, error
+  
+  # Log formats
+  formats:
+    console: "json"
+    file: "json"
+  
+  # Log destinations
+  destinations:
+    console: true
+    file: true
+    syslog: false
+  
+  # Log files
+  files:
+    access_log: "logs/access.log"
+    error_log: "logs/error.log"
+    audit_log: "logs/audit.log"
+  
+  # Log rotation
+  rotation:
+    enabled: true
+    max_size: "100MB"
+    max_age: "7d"
+    max_backups: 10
+    compress: true
+
+# Performance monitoring
+performance:
+  enabled: true
+  
+  # Profiling
+  profiling:
+    enabled: true
+    port: 6060
+    endpoints:
+      - "cpu"
+      - "memory"
+      - "goroutine"
+      - "block"
+      - "mutex"
+  
+  # Tracing
+  tracing:
+    enabled: true
+    sample_rate: 0.1  # 10% sampling rate
+    jaeger_endpoint: "http://localhost:14268/api/traces"
+  
+  # Metrics collection
+  metrics_collection:
+    enabled: true
+    interval: "30s"
+    export_interval: "60s"
+
+# Security settings
+security:
+  # Authentication
+  authentication:
+    enabled: true
+    type: "jwt"  # jwt, basic, oauth2
+    
+  # Authorization
+  authorization:
+    enabled: true
+    roles:
+      - name: "admin"
+        permissions: ["read", "write", "delete"]
+      - name: "operator"
+        permissions: ["read", "write"]
+      - name: "viewer"
+        permissions: ["read"]
+  
+  # Rate limiting
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 100
+    burst_size: 20
+  
+  # CORS
+  cors:
+    enabled: true
+    allowed_origins: ["http://localhost:3000", "http://localhost:8080"]
+    allowed_methods: ["GET", "POST", "PUT", "DELETE"]
+    allowed_headers: ["Content-Type", "Authorization"]
+
+# Integration settings
+integrations:
+  # Prometheus
+  prometheus:
+    enabled: true
+    url: "http://localhost:9090"
+    scrape_interval: "15s"
+    scrape_timeout: "10s"
+  
+  # Grafana
+  grafana:
+    enabled: true
+    url: "http://localhost:3000"
+    api_key: "YOUR_GRAFANA_API_KEY"
+  
+  # AlertManager
+  alertmanager:
+    enabled: true
+    url: "http://localhost:9093"
+    api_version: "v2"
+  
+  # External monitoring services
+  external:
+    datadog:
+      enabled: false
+      api_key: "YOUR_DATADOG_API_KEY"
+      site: "datadoghq.com"
+    
+    newrelic:
+      enabled: false
+      license_key: "YOUR_NEWRELIC_LICENSE_KEY"
+      app_name: "KYB Platform"
+    
+    sentry:
+      enabled: false
+      dsn: "YOUR_SENTRY_DSN"
+      environment: "development"

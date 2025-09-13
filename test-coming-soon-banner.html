@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coming Soon Banner Test</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-controls {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .test-controls h3 {
+            margin-top: 0;
+        }
+        .btn {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        .btn-warning {
+            background: #ffc107;
+            color: black;
+        }
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Coming Soon Banner Component Test</h1>
+        
+        <div class="test-controls">
+            <h3>Test Controls</h3>
+            <button class="btn btn-primary" onclick="testSpecificFeature()">Test Specific Feature</button>
+            <button class="btn btn-secondary" onclick="testCategory()">Test Analytics Category</button>
+            <button class="btn btn-success" onclick="testComingSoon()">Test Coming Soon Status</button>
+            <button class="btn btn-warning" onclick="testInDevelopment()">Test In Development</button>
+            <button class="btn btn-info" onclick="testAutoRefresh()">Test Auto Refresh</button>
+            <button class="btn btn-secondary" onclick="hideBanner()">Hide Banner</button>
+        </div>
+
+        <div class="test-controls">
+            <h3>Mock API Responses</h3>
+            <p>This test uses mock API responses. In a real implementation, these would come from the placeholder service.</p>
+            <div id="apiLog" style="background: #e9ecef; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto;"></div>
+        </div>
+
+        <div class="test-controls">
+            <h3>Component Status</h3>
+            <div id="componentStatus">Banner not initialized</div>
+        </div>
+    </div>
+
+    <!-- Banner Container -->
+    <div id="comingSoonBannerContainer"></div>
+
+    <script>
+        // Mock fetch for testing
+        const originalFetch = window.fetch;
+        window.fetch = function(url, options) {
+            logApiCall(url, options);
+            return mockFetch(url, options);
+        };
+
+        function logApiCall(url, options) {
+            const log = document.getElementById('apiLog');
+            const timestamp = new Date().toLocaleTimeString();
+            log.innerHTML += `[${timestamp}] ${options?.method || 'GET'} ${url}<br>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function mockFetch(url, options) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    let responseData;
+                    
+                    if (url.includes('/features/advanced_analytics')) {
+                        responseData = {
+                            success: true,
+                            data: {
+                                id: 'advanced_analytics',
+                                name: 'Advanced Analytics Dashboard',
+                                description: 'Comprehensive analytics and reporting dashboard with real-time insights and advanced data visualization capabilities.',
+                                status: 'coming_soon',
+                                category: 'analytics',
+                                priority: 1,
+                                eta: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                                mock_data: {
+                                    sample_charts: ['Revenue Trend', 'User Growth', 'Conversion Rate'],
+                                    mock_metrics: {
+                                        total_revenue: 125000.50,
+                                        user_count: 1250,
+                                        conversion: 0.15
+                                    }
+                                },
+                                created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+                                updated_at: new Date().toISOString()
+                            }
+                        };
+                    } else if (url.includes('/features/category/analytics')) {
+                        responseData = {
+                            success: true,
+                            data: {
+                                features: [
+                                    {
+                                        id: 'advanced_analytics',
+                                        name: 'Advanced Analytics Dashboard',
+                                        description: 'Comprehensive analytics and reporting dashboard',
+                                        status: 'coming_soon',
+                                        category: 'analytics',
+                                        priority: 1,
+                                        eta: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                                        created_at: new Date().toISOString(),
+                                        updated_at: new Date().toISOString()
+                                    },
+                                    {
+                                        id: 'real_time_analytics',
+                                        name: 'Real-time Analytics',
+                                        description: 'Real-time data processing and visualization',
+                                        status: 'in_development',
+                                        category: 'analytics',
+                                        priority: 2,
+                                        eta: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+                                        created_at: new Date().toISOString(),
+                                        updated_at: new Date().toISOString()
+                                    }
+                                ]
+                            }
+                        };
+                    } else if (url.includes('/features/status/coming_soon')) {
+                        responseData = {
+                            success: true,
+                            data: {
+                                features: [
+                                    {
+                                        id: 'advanced_analytics',
+                                        name: 'Advanced Analytics Dashboard',
+                                        description: 'Comprehensive analytics and reporting dashboard',
+                                        status: 'coming_soon',
+                                        category: 'analytics',
+                                        priority: 1,
+                                        eta: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                                        created_at: new Date().toISOString(),
+                                        updated_at: new Date().toISOString()
+                                    },
+                                    {
+                                        id: 'external_api_integration',
+                                        name: 'External API Integration',
+                                        description: 'Integrate with external data sources and third-party APIs',
+                                        status: 'coming_soon',
+                                        category: 'integration',
+                                        priority: 3,
+                                        eta: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString(),
+                                        created_at: new Date().toISOString(),
+                                        updated_at: new Date().toISOString()
+                                    }
+                                ]
+                            }
+                        };
+                    } else if (url.includes('/features/status/in_development')) {
+                        responseData = {
+                            success: true,
+                            data: {
+                                features: [
+                                    {
+                                        id: 'bulk_operations',
+                                        name: 'Bulk Operations Management',
+                                        description: 'Perform bulk operations on multiple merchants with progress tracking',
+                                        status: 'in_development',
+                                        category: 'automation',
+                                        priority: 2,
+                                        eta: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+                                        created_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+                                        updated_at: new Date().toISOString()
+                                    }
+                                ]
+                            }
+                        };
+                    } else {
+                        responseData = {
+                            success: false,
+                            error: 'Feature not found'
+                        };
+                    }
+
+                    resolve({
+                        ok: true,
+                        json: () => Promise.resolve(responseData)
+                    });
+                }, 500); // Simulate network delay
+            });
+        }
+
+        // Initialize banner
+        let banner;
+        
+        function updateComponentStatus(status) {
+            document.getElementById('componentStatus').textContent = status;
+        }
+
+        function testSpecificFeature() {
+            if (banner) banner.destroy();
+            
+            banner = new ComingSoonBanner({
+                container: document.getElementById('comingSoonBannerContainer'),
+                featureId: 'advanced_analytics',
+                onFeatureClick: (action, feature) => {
+                    console.log('Feature click:', action, feature);
+                    alert(`Feature action: ${action}\nFeature: ${feature?.name || 'N/A'}`);
+                },
+                onBannerClose: () => {
+                    console.log('Banner closed');
+                    updateComponentStatus('Banner closed');
+                },
+                onMockDataWarning: (feature) => {
+                    console.log('Mock data warning:', feature);
+                    updateComponentStatus('Mock data warning shown');
+                }
+            });
+            
+            updateComponentStatus('Testing specific feature: Advanced Analytics');
+        }
+
+        function testCategory() {
+            if (banner) banner.destroy();
+            
+            banner = new ComingSoonBanner({
+                container: document.getElementById('comingSoonBannerContainer'),
+                category: 'analytics',
+                onFeatureClick: (action, feature) => {
+                    console.log('Feature click:', action, feature);
+                }
+            });
+            
+            updateComponentStatus('Testing analytics category');
+        }
+
+        function testComingSoon() {
+            if (banner) banner.destroy();
+            
+            banner = new ComingSoonBanner({
+                container: document.getElementById('comingSoonBannerContainer'),
+                status: 'coming_soon',
+                onFeatureClick: (action, feature) => {
+                    console.log('Feature click:', action, feature);
+                }
+            });
+            
+            updateComponentStatus('Testing coming soon status');
+        }
+
+        function testInDevelopment() {
+            if (banner) banner.destroy();
+            
+            banner = new ComingSoonBanner({
+                container: document.getElementById('comingSoonBannerContainer'),
+                status: 'in_development',
+                onFeatureClick: (action, feature) => {
+                    console.log('Feature click:', action, feature);
+                }
+            });
+            
+            updateComponentStatus('Testing in development status');
+        }
+
+        function testAutoRefresh() {
+            if (banner) banner.destroy();
+            
+            banner = new ComingSoonBanner({
+                container: document.getElementById('comingSoonBannerContainer'),
+                status: 'coming_soon',
+                autoRefresh: true,
+                refreshInterval: 10000, // 10 seconds for testing
+                onFeatureClick: (action, feature) => {
+                    console.log('Feature click:', action, feature);
+                }
+            });
+            
+            updateComponentStatus('Testing auto refresh (10s interval)');
+        }
+
+        function hideBanner() {
+            if (banner) {
+                banner.hide();
+                updateComponentStatus('Banner hidden');
+            }
+        }
+
+        // Initialize with default test
+        document.addEventListener('DOMContentLoaded', () => {
+            updateComponentStatus('Ready for testing');
+        });
+    </script>
+
+    <!-- Load the component -->
+    <script src="web/components/coming-soon-banner.js"></script>
+</body>
+</html>

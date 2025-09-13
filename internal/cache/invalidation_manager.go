@@ -17,9 +17,7 @@ type CacheInvalidationManager struct {
 	config CacheConfig
 
 	// Cache layers for invalidation
-	memoryCache *MemoryCacheImpl
-	diskCache   *DiskCache
-	redisCache  interface{} // Will be properly typed when Redis is implemented
+	caches []Cache
 
 	// Invalidation patterns and rules
 	invalidationRules []InvalidationRule
@@ -63,14 +61,12 @@ func NewCacheInvalidationManager(config CacheConfig, logger *zap.Logger) *CacheI
 	}
 }
 
-// SetCacheLayers sets the cache layers for invalidation
-func (cim *CacheInvalidationManager) SetCacheLayers(memoryCache *MemoryCacheImpl, diskCache *DiskCache, redisCache interface{}) {
+// SetCaches sets the cache layers for invalidation
+func (cim *CacheInvalidationManager) SetCaches(caches ...Cache) {
 	cim.mu.Lock()
 	defer cim.mu.Unlock()
 
-	cim.memoryCache = memoryCache
-	cim.diskCache = diskCache
-	cim.redisCache = redisCache
+	cim.caches = caches
 }
 
 // AddInvalidationRule adds a new invalidation rule
@@ -128,31 +124,18 @@ func (cim *CacheInvalidationManager) InvalidateByPattern(ctx context.Context, pa
 
 	var invalidatedCount int64
 
-	// Invalidate from memory cache
-	if cim.memoryCache != nil {
-		keys, err := cim.memoryCache.GetKeys(ctx, pattern)
+	// Invalidate from all cache layers
+	for _, cache := range cim.caches {
+		keys, err := cache.GetKeys(ctx, pattern)
 		if err == nil {
 			for _, key := range keys {
 				if regex.MatchString(key) {
-					if err := cim.memoryCache.Delete(ctx, key); err == nil {
+					if err := cache.Delete(ctx, key); err == nil {
 						invalidatedCount++
 					}
 				}
 			}
 		}
-	}
-
-	// Invalidate from disk cache
-	if cim.diskCache != nil {
-		// For disk cache, we need to scan files and match patterns
-		// This is a simplified implementation
-		cim.logger.Debug("Disk cache pattern invalidation not fully implemented")
-	}
-
-	// Invalidate from Redis cache (if implemented)
-	if cim.redisCache != nil {
-		// This would be implemented when Redis cache is properly integrated
-		cim.logger.Debug("Redis cache pattern invalidation not fully implemented")
 	}
 
 	// Update statistics
@@ -181,31 +164,19 @@ func (cim *CacheInvalidationManager) InvalidateByTags(ctx context.Context, tags 
 		return fmt.Errorf("invalid tag pattern: %w", err)
 	}
 
-	// Invalidate from memory cache
-	if cim.memoryCache != nil {
-		keys, err := cim.memoryCache.GetKeys(ctx, "*")
+	// Invalidate from all cache layers
+	for _, cache := range cim.caches {
+		keys, err := cache.GetKeys(ctx, "*")
 		if err == nil {
 			for _, key := range keys {
 				// Check if key contains any of the tags
 				if regex.MatchString(key) {
-					if err := cim.memoryCache.Delete(ctx, key); err == nil {
+					if err := cache.Delete(ctx, key); err == nil {
 						invalidatedCount++
 					}
 				}
 			}
 		}
-	}
-
-	// Invalidate from disk cache
-	if cim.diskCache != nil {
-		// Simplified implementation for disk cache
-		cim.logger.Debug("Disk cache tag invalidation not fully implemented")
-	}
-
-	// Invalidate from Redis cache (if implemented)
-	if cim.redisCache != nil {
-		// This would be implemented when Redis cache is properly integrated
-		cim.logger.Debug("Redis cache tag invalidation not fully implemented")
 	}
 
 	// Update statistics
@@ -227,24 +198,10 @@ func (cim *CacheInvalidationManager) InvalidateByTTL(ctx context.Context) error 
 
 	var invalidatedCount int64
 
-	// Invalidate from memory cache
-	if cim.memoryCache != nil {
-		// Memory cache handles TTL automatically, but we can force cleanup
-		// This is a simplified implementation
-		cim.logger.Debug("Memory cache TTL invalidation handled automatically")
-	}
-
-	// Invalidate from disk cache
-	if cim.diskCache != nil {
-		// Disk cache has its own cleanup mechanism
-		cim.logger.Debug("Disk cache TTL invalidation handled automatically")
-	}
-
-	// Invalidate from Redis cache (if implemented)
-	if cim.redisCache != nil {
-		// Redis handles TTL automatically
-		cim.logger.Debug("Redis cache TTL invalidation handled automatically")
-	}
+	// TTL invalidation is handled automatically by cache implementations
+	// This method is mainly for statistics and monitoring
+	_ = cim.caches // Acknowledge that we're checking caches but not using them
+	cim.logger.Debug("TTL invalidation handled automatically by cache implementation")
 
 	// Update statistics
 	cim.updateInvalidationStats("ttl", invalidatedCount, time.Since(start))
@@ -264,24 +221,11 @@ func (cim *CacheInvalidationManager) InvalidateAll(ctx context.Context) error {
 
 	var invalidatedCount int64
 
-	// Invalidate from memory cache
-	if cim.memoryCache != nil {
-		if err := cim.memoryCache.Clear(ctx); err == nil {
+	// Invalidate from all cache layers
+	for _, cache := range cim.caches {
+		if err := cache.Clear(ctx); err == nil {
 			invalidatedCount++
 		}
-	}
-
-	// Invalidate from disk cache
-	if cim.diskCache != nil {
-		if err := cim.diskCache.Clear(ctx); err == nil {
-			invalidatedCount++
-		}
-	}
-
-	// Invalidate from Redis cache (if implemented)
-	if cim.redisCache != nil {
-		// This would be implemented when Redis cache is properly integrated
-		cim.logger.Debug("Redis cache clear not fully implemented")
 	}
 
 	// Update statistics

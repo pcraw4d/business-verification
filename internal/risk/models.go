@@ -19,6 +19,7 @@ const (
 type RiskLevel string
 
 const (
+	RiskLevelMinimal  RiskLevel = "minimal"
 	RiskLevelLow      RiskLevel = "low"
 	RiskLevelMedium   RiskLevel = "medium"
 	RiskLevelHigh     RiskLevel = "high"
