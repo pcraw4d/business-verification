@@ -42,4 +42,3 @@ func SkipIfNoDatabase(t *testing.T) {
 		t.Skip("skipping database tests")
 	}
 }
-

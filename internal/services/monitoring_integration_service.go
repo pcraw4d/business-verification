@@ -8,7 +8,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/company/kyb-platform/internal/config"
+	"github.com/pcraw4d/business-verification/internal/config"
 )
 
 // MonitoringIntegrationService integrates all monitoring components
