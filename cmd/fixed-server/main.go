@@ -101,7 +101,7 @@ func NewSimplifiedServer(port string) *SimplifiedServer {
 
 	server.server = httpServer
 
-	logger.Printf("✅ Simplified Server initialized on port %s", port)
+	logger.Printf("✅ Fixed Server initialized on port %s", port)
 	return server
 }
 
@@ -624,13 +624,13 @@ func (s *SimplifiedServer) handleMerchantsStatistics(w http.ResponseWriter, r *h
 
 // Start starts the server
 func (s *SimplifiedServer) Start() error {
-	s.logger.Printf("🚀 Starting Simplified Server on %s", s.server.Addr)
+	s.logger.Printf("🚀 Starting Fixed Server on %s", s.server.Addr)
 	return s.server.ListenAndServe()
 }
 
 // Stop gracefully stops the server
 func (s *SimplifiedServer) Stop(ctx context.Context) error {
-	s.logger.Printf("🛑 Stopping Simplified Server...")
+	s.logger.Printf("🛑 Stopping Fixed Server...")
 
 	// Stop the database module
 	if err := s.databaseModule.Stop(ctx); err != nil {
