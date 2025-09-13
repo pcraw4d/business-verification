@@ -142,6 +142,10 @@ func (s *EnhancedClassificationServer) setupRoutes(mux *http.ServeMux) {
 		}
 		json.NewEncoder(w).Encode(healthStatus)
 	})
+
+	// Serve static files from web directory
+	fs := http.FileServer(http.Dir("web/"))
+	mux.Handle("/", fs)
 }
 
 // handleClassify handles the /v1/classify endpoint with database-driven classification
