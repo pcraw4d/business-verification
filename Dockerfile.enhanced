@@ -18,8 +18,8 @@ COPY internal/ internal/
 COPY pkg/ pkg/
 COPY web/ web/
 
-# Build the minimal application for deployment
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o kyb-platform ./cmd/api-enhanced/main-minimal.go
+# Build the fixed application for deployment
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o kyb-platform ./cmd/fixed-server/main.go
 
 # Create final image
 FROM alpine:latest
