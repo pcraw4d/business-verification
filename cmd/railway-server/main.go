@@ -281,7 +281,12 @@ func (s *RailwayServer) handleClassify(w http.ResponseWriter, r *http.Request) {
 
 // getFallbackClassification returns mock classification data
 func (s *RailwayServer) getFallbackClassification(businessName, description, websiteURL string) map[string]interface{} {
+	// Generate a business ID for tracking
+	businessID := fmt.Sprintf("biz_%d", time.Now().Unix())
+	
 	return map[string]interface{}{
+		"success":       true,
+		"business_id":   businessID,
 		"business_name": businessName,
 		"description":   description,
 		"website_url":   websiteURL,
