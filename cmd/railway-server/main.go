@@ -55,8 +55,13 @@ func NewRailwayServer() (*RailwayServer, error) {
 		supabaseClient = nil
 	}
 
-	// Initialize classification service
-	classificationService := classification.NewIntegrationService(supabaseClient, logger)
+	// Initialize classification service only if Supabase client is available
+	var classificationService *classification.IntegrationService
+	if supabaseClient != nil {
+		classificationService = classification.NewIntegrationService(supabaseClient, logger)
+	} else {
+		logger.Printf("⚠️ Classification service will use fallback mode (no Supabase)")
+	}
 
 	// Initialize database module
 	databaseModuleConfig := &database_classification.Config{
@@ -209,8 +214,8 @@ func (s *RailwayServer) handleClassify(w http.ResponseWriter, r *http.Request) {
 				},
 			},
 			"confidence_score": 0.94,
-			"status":          "success",
-			"timestamp":       time.Now().UTC().Format(time.RFC3339),
+			"status":           "success",
+			"timestamp":        time.Now().UTC().Format(time.RFC3339),
 		}
 	}
 
