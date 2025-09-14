@@ -2,6 +2,7 @@ package classification
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -99,9 +100,13 @@ func (s *IntegrationService) ProcessBusinessClassification(
 	//     codeStats = codeGenerator.GetCodeStatistics(classificationCodes)
 	// }
 
+	// Generate a business ID for tracking
+	businessID := fmt.Sprintf("biz_%d", time.Now().Unix())
+	
 	// Build response in the format expected by the frontend
 	response := map[string]interface{}{
-		"success": true,
+		"success":       true,
+		"business_id":   businessID,
 		"business_name": businessName,
 		"description":   description,
 		"website_url":   websiteURL,

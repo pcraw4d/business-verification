@@ -695,6 +695,30 @@
             if (score <= 75) return 'orange-600';
             return 'red-600';
         }
+
+        // Auto-analyze on page load if URL parameters are present
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const businessName = urlParams.get('businessName');
+            const country = urlParams.get('country');
+            const analysisType = urlParams.get('analysisType');
+            const websiteUrl = urlParams.get('websiteUrl');
+            const description = urlParams.get('description');
+
+            if (businessName) {
+                // Pre-fill the form with URL parameters
+                document.getElementById('businessName').value = businessName || '';
+                document.getElementById('country').value = country || 'us';
+                document.getElementById('analysisType').value = analysisType || 'comprehensive';
+                document.getElementById('websiteUrl').value = websiteUrl || '';
+                document.getElementById('description').value = description || '';
+
+                // Automatically trigger analysis
+                setTimeout(() => {
+                    handleAnalysis({ preventDefault: () => {} });
+                }, 500);
+            }
+        });
     </script>
 </body>
 </html>
