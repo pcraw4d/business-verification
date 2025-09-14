@@ -465,10 +465,12 @@
                 });
 
                 const result = await response.json();
+                console.log('API Response:', result);
                 
-                if (result.success && result.business_id) {
+                if (result.success) {
                     displayDashboardResults(result);
                 } else {
+                    console.error('Analysis failed:', result);
                     showError('Analysis failed. Please try again.');
                 }
                 
@@ -706,6 +708,8 @@
             const description = urlParams.get('description');
 
             if (businessName) {
+                console.log('Auto-analyzing with parameters:', { businessName, country, analysisType, websiteUrl, description });
+                
                 // Pre-fill the form with URL parameters
                 document.getElementById('businessName').value = businessName || '';
                 document.getElementById('country').value = country || 'us';
@@ -715,6 +719,7 @@
 
                 // Automatically trigger analysis
                 setTimeout(() => {
+                    console.log('Triggering automatic analysis...');
                     handleAnalysis({ preventDefault: () => {} });
                 }, 500);
             }

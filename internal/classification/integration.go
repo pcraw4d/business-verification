@@ -102,7 +102,7 @@ func (s *IntegrationService) ProcessBusinessClassification(
 
 	// Generate a business ID for tracking
 	businessID := fmt.Sprintf("biz_%d", time.Now().Unix())
-	
+
 	// Build response in the format expected by the frontend
 	response := map[string]interface{}{
 		"success":       true,
