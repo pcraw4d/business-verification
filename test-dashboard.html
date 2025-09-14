@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard Test</title>
+</head>
+<body>
+    <h1>Dashboard API Test</h1>
+    <div id="result"></div>
+    
+    <script>
+        async function testAPI() {
+            try {
+                const response = await fetch('/v1/classify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        business_name: 'The Greene Grape',
+                        description: 'Wine shop',
+                        website_url: 'https://greenegrape.com/'
+                    })
+                });
+                
+                const result = await response.json();
+                console.log('API Response:', result);
+                
+                document.getElementById('result').innerHTML = `
+                    <h2>API Response:</h2>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                    <h3>Success: ${result.success}</h3>
+                    <h3>Business ID: ${result.business_id}</h3>
+                    <h3>Confidence Score: ${result.confidence_score}</h3>
+                    <h3>Classification Keys: ${result.classification ? Object.keys(result.classification).join(', ') : 'None'}</h3>
+                `;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('result').innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+        
+        // Test on page load
+        testAPI();
+    </script>
+</body>
+</html>

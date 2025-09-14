@@ -724,18 +724,39 @@
             if (businessName) {
                 console.log('Auto-analyzing with parameters:', { businessName, country, analysisType, websiteUrl, description });
                 
+                // Check if form elements exist
+                const businessNameEl = document.getElementById('businessName');
+                const countryEl = document.getElementById('country');
+                const analysisTypeEl = document.getElementById('analysisType');
+                const websiteUrlEl = document.getElementById('websiteUrl');
+                const descriptionEl = document.getElementById('description');
+                
+                console.log('Form elements found:', {
+                    businessName: !!businessNameEl,
+                    country: !!countryEl,
+                    analysisType: !!analysisTypeEl,
+                    websiteUrl: !!websiteUrlEl,
+                    description: !!descriptionEl
+                });
+                
                 // Pre-fill the form with URL parameters
-                document.getElementById('businessName').value = businessName || '';
-                document.getElementById('country').value = country || 'us';
-                document.getElementById('analysisType').value = analysisType || 'comprehensive';
-                document.getElementById('websiteUrl').value = websiteUrl || '';
-                document.getElementById('description').value = description || '';
+                if (businessNameEl) businessNameEl.value = businessName || '';
+                if (countryEl) countryEl.value = country || 'us';
+                if (analysisTypeEl) analysisTypeEl.value = analysisType || 'comprehensive';
+                if (websiteUrlEl) websiteUrlEl.value = websiteUrl || '';
+                if (descriptionEl) descriptionEl.value = description || '';
 
                 // Automatically trigger analysis
                 setTimeout(() => {
                     console.log('Triggering automatic analysis...');
-                    handleAnalysis({ preventDefault: () => {} });
+                    try {
+                        handleAnalysis({ preventDefault: () => {} });
+                    } catch (error) {
+                        console.error('Error in handleAnalysis:', error);
+                    }
                 }, 500);
+            } else {
+                console.log('No businessName parameter found in URL');
             }
         });
     </script>
