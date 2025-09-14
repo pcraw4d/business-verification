@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple KYB Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-3xl font-bold text-gray-900 mb-8">KYB Intelligence Dashboard</h1>
+            
+            <!-- Loading State -->
+            <div id="loadingState" class="hidden text-center py-8">
+                <div class="inline-flex items-center">
+                    <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span class="text-lg text-gray-700">Analyzing business intelligence...</span>
+                </div>
+            </div>
+
+            <!-- Error State -->
+            <div id="errorState" class="hidden bg-red-50 border border-red-200 rounded-lg p-6">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-triangle text-red-400"></i>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-red-800">Analysis Error</h3>
+                        <div class="mt-2 text-sm text-red-700">
+                            <p id="errorMessage">An error occurred during analysis. Please try again.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results -->
+            <div id="results" class="hidden space-y-6">
+                <!-- Business Info -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">Business Information</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Business Name</label>
+                            <p id="businessName" class="mt-1 text-sm text-gray-900"></p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Confidence Score</label>
+                            <p id="confidenceScore" class="mt-1 text-sm text-gray-900"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Classification Results -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">Classification Results</h2>
+                    <div id="classificationResults" class="space-y-4">
+                        <!-- Results will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API Base URL
+        const API_BASE_URL = window.location.origin + '/v1';
+        
+        // DOM Elements
+        const loadingState = document.getElementById('loadingState');
+        const errorState = document.getElementById('errorState');
+        const results = document.getElementById('results');
+        const businessNameEl = document.getElementById('businessName');
+        const confidenceScoreEl = document.getElementById('confidenceScore');
+        const classificationResultsEl = document.getElementById('classificationResults');
+
+        // Auto-analyze on page load if URL parameters are present
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const businessName = urlParams.get('businessName');
+            const country = urlParams.get('country');
+            const analysisType = urlParams.get('analysisType');
+            const websiteUrl = urlParams.get('websiteUrl');
+            const description = urlParams.get('description');
+
+            console.log('URL Parameters:', { businessName, country, analysisType, websiteUrl, description });
+
+            if (businessName) {
+                console.log('Starting auto-analysis...');
+                performAnalysis({
+                    business_name: businessName,
+                    geographic_region: country || 'us',
+                    website_url: websiteUrl || '',
+                    description: description || '',
+                    analysis_type: analysisType || 'comprehensive'
+                });
+            } else {
+                console.log('No business name found in URL parameters');
+                showError('No business information provided in URL parameters.');
+            }
+        });
+
+        async function performAnalysis(data) {
+            console.log('Performing analysis with data:', data);
+            
+            showLoading();
+            hideError();
+            hideResults();
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/classify`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                console.log('Response status:', response.status);
+                const result = await response.json();
+                console.log('API Response:', result);
+                
+                if (result.success) {
+                    displayResults(result);
+                } else {
+                    console.error('Analysis failed:', result);
+                    showError('Analysis failed. Please try again.');
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showError('An error occurred during analysis. Please try again.');
+            }
+        }
+
+        function displayResults(result) {
+            console.log('Displaying results:', result);
+            
+            hideLoading();
+            hideError();
+            results.classList.remove('hidden');
+            
+            // Display business info
+            businessNameEl.textContent = result.business_name || 'N/A';
+            confidenceScoreEl.textContent = `${Math.round((result.confidence_score || 0) * 100)}%`;
+            
+            // Display classification results
+            let classificationHTML = '';
+            
+            if (result.classification) {
+                // MCC Codes
+                if (result.classification.mcc_codes && result.classification.mcc_codes.length > 0) {
+                    classificationHTML += createClassificationSection('MCC Codes', result.classification.mcc_codes);
+                }
+                
+                // SIC Codes
+                if (result.classification.sic_codes && result.classification.sic_codes.length > 0) {
+                    classificationHTML += createClassificationSection('SIC Codes', result.classification.sic_codes);
+                }
+                
+                // NAICS Codes
+                if (result.classification.naics_codes && result.classification.naics_codes.length > 0) {
+                    classificationHTML += createClassificationSection('NAICS Codes', result.classification.naics_codes);
+                }
+            }
+            
+            if (classificationHTML === '') {
+                classificationHTML = '<p class="text-gray-500">No classification results available.</p>';
+            }
+            
+            classificationResultsEl.innerHTML = classificationHTML;
+        }
+
+        function createClassificationSection(title, codes) {
+            const codesHTML = codes.slice(0, 5).map(code => `
+                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <div>
+                        <div class="font-medium text-gray-900">${code.code}</div>
+                        <div class="text-sm text-gray-600">${code.description}</div>
+                    </div>
+                    <div class="text-sm font-medium text-blue-600">
+                        ${Math.round(code.confidence * 100)}%
+                    </div>
+                </div>
+            `).join('');
+            
+            return `
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">${title}</h3>
+                    <div class="space-y-2">
+                        ${codesHTML}
+                    </div>
+                </div>
+            `;
+        }
+
+        function showLoading() {
+            loadingState.classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            loadingState.classList.add('hidden');
+        }
+
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            errorState.classList.remove('hidden');
+        }
+
+        function hideError() {
+            errorState.classList.add('hidden');
+        }
+
+        function hideResults() {
+            results.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
