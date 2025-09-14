@@ -624,7 +624,7 @@ func (s *SimplifiedServer) handleMerchantsStatistics(w http.ResponseWriter, r *h
 
 // Start starts the server
 func (s *SimplifiedServer) Start() error {
-	s.logger.Printf("🚀 Starting PRODUCTION Fixed Server on %s", s.server.Addr)
+		s.logger.Printf("🚀 Starting PRODUCTION Fixed Server v2.0 on %s", s.server.Addr)
 	return s.server.ListenAndServe()
 }
 
