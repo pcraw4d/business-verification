@@ -112,6 +112,9 @@
             hideResults();
 
             try {
+                console.log('Making API request to:', `${API_BASE_URL}/classify`);
+                console.log('Request data:', data);
+                
                 const response = await fetch(`${API_BASE_URL}/classify`, {
                     method: 'POST',
                     headers: {
@@ -121,6 +124,12 @@
                 });
 
                 console.log('Response status:', response.status);
+                console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const result = await response.json();
                 console.log('API Response:', result);
                 
@@ -128,12 +137,12 @@
                     displayResults(result);
                 } else {
                     console.error('Analysis failed:', result);
-                    showError('Analysis failed. Please try again.');
+                    showError(`Analysis failed: ${result.message || 'Unknown error'}`);
                 }
                 
             } catch (error) {
-                console.error('Error:', error);
-                showError('An error occurred during analysis. Please try again.');
+                console.error('Error details:', error);
+                showError(`An error occurred during analysis: ${error.message}`);
             }
         }
 
