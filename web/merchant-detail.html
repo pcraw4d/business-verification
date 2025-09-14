@@ -7,9 +7,9 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="components/navigation.js"></script>
     <script src="components/session-manager.js"></script>
-    <script src="components/risk-level-indicator.js"></script>
     <script src="components/coming-soon-banner.js"></script>
     <script src="components/mock-data-warning.js"></script>
+    <script src="merchant-detail.js"></script>
     <style>
         * {
             margin: 0;
@@ -25,85 +25,112 @@
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
         }
 
         /* Header Section */
-        .merchant-header {
+        .detail-header {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             border-radius: 20px;
             padding: 30px;
             margin-bottom: 30px;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .merchant-info {
             display: flex;
             align-items: center;
-            gap: 30px;
-            flex-wrap: wrap;
+            gap: 20px;
         }
 
         .merchant-avatar {
             width: 80px;
             height: 80px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, #3498db, #2980b9);
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
+            font-weight: 600;
             font-size: 2rem;
-            font-weight: bold;
             flex-shrink: 0;
         }
 
-        .merchant-info {
+        .merchant-details {
             flex: 1;
-            min-width: 300px;
         }
 
         .merchant-name {
-            font-size: 2.5rem;
+            font-size: 2rem;
             font-weight: 700;
             color: #2c3e50;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
+            margin-bottom: 8px;
         }
 
-        .merchant-legal-name {
-            font-size: 1.2rem;
+        .merchant-industry {
+            font-size: 1.1rem;
             color: #7f8c8d;
-            margin-bottom: 15px;
-        }
-
-        .merchant-meta {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .meta-item {
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 8px 16px;
-            background: rgba(52, 152, 219, 0.1);
-            border-radius: 20px;
-            color: #2c3e50;
-            font-weight: 500;
+            margin-bottom: 15px;
         }
 
-        .meta-item i {
-            color: #3498db;
-        }
-
-        .merchant-actions {
+        .merchant-badges {
             display: flex;
-            gap: 15px;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-portfolio {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .badge-risk-low {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .badge-risk-medium {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .badge-risk-high {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+
+        .badge-status {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
             flex-wrap: wrap;
         }
 
@@ -152,19 +179,28 @@
             color: white;
         }
 
-        .btn-danger {
-            background: linear-gradient(135deg, #e74c3c, #c0392b);
-            color: white;
-        }
-
-        /* Main Content Grid */
-        .merchant-content {
+        /* Content Grid */
+        .content-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 2fr 1fr;
             gap: 30px;
-            margin-bottom: 30px;
         }
 
+        /* Main Content */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        /* Content Cards */
         .content-card {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
@@ -176,7 +212,7 @@
         .card-header {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 12px;
             margin-bottom: 25px;
             padding-bottom: 15px;
             border-bottom: 2px solid #ecf0f1;
@@ -191,31 +227,46 @@
         .card-icon {
             width: 40px;
             height: 40px;
-            border-radius: 10px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 1.2rem;
+            font-weight: 600;
+            font-size: 1.1rem;
         }
 
-        .card-icon.blue { background: linear-gradient(135deg, #3498db, #2980b9); }
-        .card-icon.green { background: linear-gradient(135deg, #27ae60, #229954); }
-        .card-icon.orange { background: linear-gradient(135deg, #f39c12, #e67e22); }
-        .card-icon.purple { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
-        .card-icon.red { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .card-icon.overview {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+        }
+
+        .card-icon.contact {
+            background: linear-gradient(135deg, #27ae60, #229954);
+        }
+
+        .card-icon.financial {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+
+        .card-icon.activity {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+        }
+
+        .card-icon.risk {
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+        }
 
         /* Info Grid */
         .info-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
         }
 
         .info-item {
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 8px;
         }
 
         .info-label {
@@ -227,217 +278,91 @@
         }
 
         .info-value {
-            font-size: 1.1rem;
+            font-size: 1rem;
             color: #2c3e50;
             font-weight: 500;
         }
 
-        .info-value.large {
-            font-size: 1.3rem;
-            font-weight: 700;
+        /* Activity List */
+        .activity-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
 
-        /* Status Indicators */
-        .status-badge {
-            display: inline-flex;
+        .activity-item {
+            display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 0.9rem;
+            gap: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #3498db;
         }
 
-        .status-onboarded {
-            background: rgba(39, 174, 96, 0.1);
-            color: #27ae60;
-        }
-
-        .status-deactivated {
-            background: rgba(231, 76, 60, 0.1);
-            color: #e74c3c;
-        }
-
-        .status-prospective {
-            background: rgba(243, 156, 18, 0.1);
-            color: #f39c12;
-        }
-
-        .status-pending {
-            background: rgba(52, 152, 219, 0.1);
-            color: #3498db;
-        }
-
-        /* Risk Level Styling */
-        .risk-high {
-            background: rgba(231, 76, 60, 0.1);
-            color: #e74c3c;
-        }
-
-        .risk-medium {
-            background: rgba(243, 156, 18, 0.1);
-            color: #f39c12;
-        }
-
-        .risk-low {
-            background: rgba(39, 174, 96, 0.1);
-            color: #27ae60;
-        }
-
-        /* Compliance Section */
-        .compliance-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-        }
-
-        .compliance-item {
-            text-align: center;
-            padding: 20px;
-            background: rgba(52, 152, 219, 0.05);
-            border-radius: 15px;
-            border: 2px solid rgba(52, 152, 219, 0.1);
-        }
-
-        .compliance-icon {
-            font-size: 2rem;
-            color: #3498db;
-            margin-bottom: 10px;
-        }
-
-        .compliance-label {
-            font-size: 0.9rem;
-            color: #7f8c8d;
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .compliance-value {
-            font-size: 1.2rem;
-            color: #2c3e50;
-            font-weight: 700;
-        }
-
-        /* Timeline Section */
-        .timeline {
-            position: relative;
-            padding-left: 30px;
-        }
-
-        .timeline::before {
-            content: '';
-            position: absolute;
-            left: 15px;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background: #ecf0f1;
-        }
-
-        .timeline-item {
-            position: relative;
-            margin-bottom: 25px;
-            padding-left: 30px;
-        }
-
-        .timeline-item::before {
-            content: '';
-            position: absolute;
-            left: -22px;
-            top: 5px;
-            width: 12px;
-            height: 12px;
+        .activity-icon {
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            background: #3498db;
-            border: 3px solid white;
-            box-shadow: 0 0 0 3px #ecf0f1;
+            background: #e3f2fd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1976d2;
+            flex-shrink: 0;
         }
 
-        .timeline-date {
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 4px;
+        }
+
+        .activity-description {
             font-size: 0.9rem;
             color: #7f8c8d;
+            margin-bottom: 4px;
+        }
+
+        .activity-date {
+            font-size: 0.8rem;
+            color: #95a5a6;
+        }
+
+        .activity-amount {
             font-weight: 600;
+            color: #27ae60;
         }
 
-        .timeline-title {
-            font-size: 1.1rem;
-            color: #2c3e50;
-            font-weight: 600;
-            margin: 5px 0;
+        /* Risk Factors */
+        .risk-factors {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
 
-        .timeline-description {
-            font-size: 0.95rem;
-            color: #7f8c8d;
-            line-height: 1.5;
+        .risk-factor {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: #fff3e0;
+            border-radius: 8px;
+            border-left: 4px solid #f39c12;
         }
 
-        /* Full Width Cards */
-        .full-width-card {
-            grid-column: 1 / -1;
+        .risk-icon {
+            color: #f39c12;
+            font-size: 1.2rem;
         }
 
-        /* Responsive Design */
-        @media (max-width: 1200px) {
-            .merchant-content {
-                grid-template-columns: 1fr;
-            }
-            
-            .info-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 15px;
-            }
-            
-            .merchant-header {
-                flex-direction: column;
-                text-align: center;
-                gap: 20px;
-            }
-            
-            .merchant-name {
-                font-size: 2rem;
-            }
-            
-            .merchant-meta {
-                justify-content: center;
-            }
-            
-            .merchant-actions {
-                justify-content: center;
-            }
-            
-            .content-card {
-                padding: 20px;
-            }
-            
-            .compliance-grid {
-                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            }
-        }
-
-        @media (max-width: 480px) {
-            .merchant-name {
-                font-size: 1.5rem;
-            }
-            
-            .merchant-meta {
-                flex-direction: column;
-                gap: 10px;
-            }
-            
-            .merchant-actions {
-                flex-direction: column;
-                width: 100%;
-            }
-            
-            .btn {
-                justify-content: center;
-            }
+        .risk-text {
+            color: #e67e22;
+            font-weight: 500;
         }
 
         /* Loading States */
@@ -445,7 +370,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 40px;
+            padding: 60px;
             color: #7f8c8d;
         }
 
@@ -461,22 +386,53 @@
 
         /* Error States */
         .error {
-            background: rgba(231, 76, 60, 0.1);
-            color: #e74c3c;
+            background: #ffebee;
+            border: 2px solid #f44336;
+            border-radius: 15px;
             padding: 20px;
-            border-radius: 10px;
+            color: #c62828;
             text-align: center;
-            margin: 20px 0;
         }
 
-        /* Success States */
-        .success {
-            background: rgba(39, 174, 96, 0.1);
-            color: #27ae60;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            margin: 20px 0;
+        .error i {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .merchant-info {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .merchant-name {
+                font-size: 1.5rem;
+            }
+            
+            .header-actions {
+                justify-content: center;
+            }
+            
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -494,204 +450,107 @@
     <div id="sessionManager"></div>
 
     <div class="container">
-        <!-- Merchant Header -->
-        <div class="merchant-header" id="merchantHeader">
-            <div class="merchant-avatar" id="merchantAvatar">
-                <i class="fas fa-building"></i>
-            </div>
-            <div class="merchant-info">
-                <h1 class="merchant-name" id="merchantName">
-                    <span id="merchantNameText">Loading...</span>
-                    <span class="status-badge" id="portfolioTypeBadge"></span>
-                </h1>
-                <div class="merchant-legal-name" id="merchantLegalName">Loading legal name...</div>
-                <div class="merchant-meta">
-                    <div class="meta-item">
-                        <i class="fas fa-industry"></i>
-                        <span id="merchantIndustry">Loading...</span>
-                    </div>
-                    <div class="meta-item">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <span id="merchantLocation">Loading...</span>
-                    </div>
-                    <div class="meta-item">
-                        <i class="fas fa-calendar"></i>
-                        <span id="merchantFounded">Loading...</span>
-                    </div>
-                    <div class="meta-item">
-                        <i class="fas fa-users"></i>
-                        <span id="merchantEmployees">Loading...</span>
+        <!-- Detail Header -->
+        <div class="detail-header">
+            <div class="header-content">
+                <div class="merchant-info">
+                    <div class="merchant-avatar" id="merchantAvatar">?</div>
+                    <div class="merchant-details">
+                        <div class="merchant-name" id="merchantName">Loading...</div>
+                        <div class="merchant-industry" id="merchantIndustry">
+                            <i class="fas fa-industry"></i>
+                            <span>Loading...</span>
+                        </div>
+                        <div class="merchant-badges" id="merchantBadges">
+                            <!-- Badges will be populated here -->
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="merchant-actions">
-                <button class="btn btn-primary" id="editMerchantBtn">
-                    <i class="fas fa-edit"></i>
-                    Edit Merchant
-                </button>
-                <button class="btn btn-outline" id="compareMerchantBtn">
-                    <i class="fas fa-balance-scale"></i>
-                    Compare
-                </button>
-                <button class="btn btn-success" id="exportReportBtn">
-                    <i class="fas fa-download"></i>
-                    Export Report
-                </button>
+                <div class="header-actions">
+                    <button class="btn btn-outline" id="editMerchantBtn">
+                        <i class="fas fa-edit"></i>
+                        Edit Merchant
+                    </button>
+                    <button class="btn btn-primary" id="viewPortfolioBtn">
+                        <i class="fas fa-chart-line"></i>
+                        View Portfolio
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- Main Content Grid -->
-        <div class="merchant-content">
-            <!-- Business Information -->
-            <div class="content-card">
-                <div class="card-header">
-                    <div class="card-icon blue">
-                        <i class="fas fa-building"></i>
-                    </div>
-                    <h2 class="card-title">Business Information</h2>
-                </div>
-                <div class="info-grid" id="businessInfo">
-                    <div class="info-item">
-                        <div class="info-label">Registration Number</div>
-                        <div class="info-value" id="registrationNumber">Loading...</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Tax ID</div>
-                        <div class="info-value" id="taxId">Loading...</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Business Type</div>
-                        <div class="info-value" id="businessType">Loading...</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Industry Code</div>
-                        <div class="info-value" id="industryCode">Loading...</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Annual Revenue</div>
-                        <div class="info-value large" id="annualRevenue">Loading...</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Employee Count</div>
-                        <div class="info-value large" id="employeeCount">Loading...</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Contact Information -->
-            <div class="content-card">
-                <div class="card-header">
-                    <div class="card-icon green">
-                        <i class="fas fa-address-book"></i>
-                    </div>
-                    <h2 class="card-title">Contact Information</h2>
-                </div>
-                <div class="info-grid" id="contactInfo">
-                    <div class="info-item">
-                        <div class="info-label">Phone</div>
-                        <div class="info-value" id="contactPhone">Loading...</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Email</div>
-                        <div class="info-value" id="contactEmail">Loading...</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Website</div>
-                        <div class="info-value" id="contactWebsite">Loading...</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Primary Contact</div>
-                        <div class="info-value" id="primaryContact">Loading...</div>
-                    </div>
-                </div>
-                <div class="info-item" style="margin-top: 20px;">
-                    <div class="info-label">Address</div>
-                    <div class="info-value" id="fullAddress">Loading...</div>
-                </div>
-            </div>
-
-            <!-- Risk Assessment -->
-            <div class="content-card">
-                <div class="card-header">
-                    <div class="card-icon orange">
-                        <i class="fas fa-shield-alt"></i>
-                    </div>
-                    <h2 class="card-title">Risk Assessment</h2>
-                </div>
-                <div class="info-grid" id="riskAssessment">
-                    <div class="info-item">
-                        <div class="info-label">Risk Level</div>
-                        <div class="info-value">
-                            <span class="status-badge" id="riskLevelBadge">Loading...</span>
+        <!-- Content Grid -->
+        <div class="content-grid">
+            <!-- Main Content -->
+            <div class="main-content">
+                <!-- Overview Card -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <div class="card-icon overview">
+                            <i class="fas fa-info-circle"></i>
                         </div>
+                        <div class="card-title">Business Overview</div>
                     </div>
-                    <div class="info-item">
-                        <div class="info-label">Compliance Status</div>
-                        <div class="info-value" id="complianceStatus">Loading...</div>
+                    <div class="info-grid" id="overviewGrid">
+                        <!-- Overview info will be populated here -->
                     </div>
-                    <div class="info-item">
-                        <div class="info-label">Last Assessment</div>
-                        <div class="info-value" id="lastAssessment">Loading...</div>
+                </div>
+
+                <!-- Recent Activity Card -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <div class="card-icon activity">
+                            <i class="fas fa-history"></i>
+                        </div>
+                        <div class="card-title">Recent Activity</div>
                     </div>
-                    <div class="info-item">
-                        <div class="info-label">Next Review</div>
-                        <div class="info-value" id="nextReview">Loading...</div>
+                    <div class="activity-list" id="activityList">
+                        <!-- Activity items will be populated here -->
                     </div>
                 </div>
             </div>
 
-            <!-- Compliance Overview -->
-            <div class="content-card">
-                <div class="card-header">
-                    <div class="card-icon purple">
-                        <i class="fas fa-clipboard-check"></i>
-                    </div>
-                    <h2 class="card-title">Compliance Overview</h2>
-                </div>
-                <div class="compliance-grid" id="complianceOverview">
-                    <div class="compliance-item">
-                        <div class="compliance-icon">
-                            <i class="fas fa-check-circle"></i>
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <!-- Contact Information Card -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <div class="card-icon contact">
+                            <i class="fas fa-address-book"></i>
                         </div>
-                        <div class="compliance-label">KYC Status</div>
-                        <div class="compliance-value" id="kycStatus">Loading...</div>
+                        <div class="card-title">Contact Information</div>
                     </div>
-                    <div class="compliance-item">
-                        <div class="compliance-icon">
+                    <div class="info-grid" id="contactGrid">
+                        <!-- Contact info will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Financial Information Card -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <div class="card-icon financial">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <div class="card-title">Financial Information</div>
+                    </div>
+                    <div class="info-grid" id="financialGrid">
+                        <!-- Financial info will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Risk Assessment Card -->
+                <div class="content-card">
+                    <div class="card-header">
+                        <div class="card-icon risk">
                             <i class="fas fa-shield-alt"></i>
                         </div>
-                        <div class="compliance-label">AML Status</div>
-                        <div class="compliance-value" id="amlStatus">Loading...</div>
+                        <div class="card-title">Risk Assessment</div>
                     </div>
-                    <div class="compliance-item">
-                        <div class="compliance-icon">
-                            <i class="fas fa-file-contract"></i>
-                        </div>
-                        <div class="compliance-label">Documentation</div>
-                        <div class="compliance-value" id="documentationStatus">Loading...</div>
+                    <div class="info-grid" id="riskGrid">
+                        <!-- Risk info will be populated here -->
                     </div>
-                    <div class="compliance-item">
-                        <div class="compliance-icon">
-                            <i class="fas fa-calendar-check"></i>
-                        </div>
-                        <div class="compliance-label">Last Review</div>
-                        <div class="compliance-value" id="lastComplianceReview">Loading...</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Activity Timeline -->
-            <div class="content-card full-width-card">
-                <div class="card-header">
-                    <div class="card-icon red">
-                        <i class="fas fa-history"></i>
-                    </div>
-                    <h2 class="card-title">Activity Timeline</h2>
-                </div>
-                <div class="timeline" id="activityTimeline">
-                    <div class="loading">
-                        <i class="fas fa-spinner"></i>
-                        Loading activity timeline...
+                    <div class="risk-factors" id="riskFactors">
+                        <!-- Risk factors will be populated here -->
                     </div>
                 </div>
             </div>
@@ -699,387 +558,347 @@
     </div>
 
     <script>
-        /**
-         * Merchant Detail Dashboard
-         * Provides holistic merchant view with all merchant information in single view
-         * Implements responsive design and real-time data updates
-         */
-        class MerchantDetailDashboard {
+        // Merchant Detail JavaScript
+        class MerchantDetail {
             constructor() {
-                this.merchantId = this.getMerchantIdFromUrl();
                 this.apiBaseUrl = '/api/v1';
+                this.merchantId = this.getMerchantIdFromURL();
                 this.merchant = null;
-                this.sessionManager = null;
-                this.riskIndicator = null;
-                this.comingSoonBanner = null;
-                this.mockDataWarning = null;
                 
                 this.init();
             }
 
             init() {
-                this.initializeComponents();
-                this.bindEvents();
-                this.loadMerchantData();
-            }
+                if (!this.merchantId) {
+                    this.showErrorState('No merchant ID provided');
+                    return;
+                }
 
-            getMerchantIdFromUrl() {
-                const urlParams = new URLSearchParams(window.location.search);
-                return urlParams.get('id') || 'demo-merchant-001';
+                this.bindEvents();
+                this.loadMerchantDetails();
+                this.initializeComponents();
             }
 
             initializeComponents() {
-                // Initialize session manager
-                this.sessionManager = new SessionManager({
-                    container: document.getElementById('sessionManager'),
-                    onSessionStart: (session) => this.onSessionStart(session),
-                    onSessionEnd: () => this.onSessionEnd(),
-                    onSessionSwitch: (session) => this.onSessionSwitch(session)
-                });
+                // Initialize navigation if available
+                if (typeof Navigation !== 'undefined') {
+                    new Navigation();
+                }
 
-                // Initialize risk level indicator
-                this.riskIndicator = new RiskLevelIndicator({
-                    container: document.body
-                });
+                // Initialize session manager if available
+                if (typeof SessionManager !== 'undefined') {
+                    new SessionManager();
+                }
 
-                // Initialize coming soon banner
-                this.comingSoonBanner = new ComingSoonBanner({
-                    container: document.getElementById('comingSoonBanner'),
-                    features: [
-                        {
-                            name: 'Advanced Analytics',
-                            description: 'Detailed merchant analytics and insights',
-                            timeline: 'Q2 2025'
-                        },
-                        {
-                            name: 'Real-time Monitoring',
-                            description: 'Live merchant activity monitoring',
-                            timeline: 'Q2 2025'
-                        }
-                    ]
-                });
+                // Initialize mock data warning if available
+                if (typeof MockDataWarning !== 'undefined') {
+                    new MockDataWarning();
+                }
 
-                // Initialize mock data warning
-                this.mockDataWarning = new MockDataWarning({
-                    container: document.getElementById('mockDataWarning'),
-                    message: 'This merchant detail view is using mock data for demonstration purposes.'
-                });
+                // Initialize coming soon banner if available
+                if (typeof ComingSoonBanner !== 'undefined') {
+                    new ComingSoonBanner();
+                }
+            }
+
+            getMerchantIdFromURL() {
+                const urlParams = new URLSearchParams(window.location.search);
+                return urlParams.get('id');
             }
 
             bindEvents() {
-                // Edit merchant button
-                document.getElementById('editMerchantBtn').addEventListener('click', () => {
-                    this.editMerchant();
-                });
+                const editBtn = document.getElementById('editMerchantBtn');
+                const portfolioBtn = document.getElementById('viewPortfolioBtn');
 
-                // Compare merchant button
-                document.getElementById('compareMerchantBtn').addEventListener('click', () => {
-                    this.compareMerchant();
-                });
+                if (editBtn) {
+                    editBtn.addEventListener('click', () => {
+                        this.editMerchant();
+                    });
+                }
 
-                // Export report button
-                document.getElementById('exportReportBtn').addEventListener('click', () => {
-                    this.exportReport();
-                });
-
-                // Handle browser back/forward
-                window.addEventListener('popstate', () => {
-                    this.merchantId = this.getMerchantIdFromUrl();
-                    this.loadMerchantData();
-                });
+                if (portfolioBtn) {
+                    portfolioBtn.addEventListener('click', () => {
+                        this.viewPortfolio();
+                    });
+                }
             }
 
-            async loadMerchantData() {
+            async loadMerchantDetails() {
                 try {
                     this.showLoadingState();
                     
-                    // Load merchant data from API
                     const response = await fetch(`${this.apiBaseUrl}/merchants/${this.merchantId}`);
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
-                    
+
                     this.merchant = await response.json();
-                    this.renderMerchantData();
-                    this.loadActivityTimeline();
-                    
+                    this.renderMerchantDetails();
+
                 } catch (error) {
-                    console.error('Error loading merchant data:', error);
-                    this.showErrorState('Failed to load merchant data. Please try again.');
+                    console.error('Error loading merchant details:', error);
+                    this.showErrorState('Failed to load merchant details. Please try again.');
                 }
             }
 
             showLoadingState() {
-                // Show loading indicators
-                document.getElementById('merchantNameText').textContent = 'Loading...';
-                document.getElementById('merchantLegalName').textContent = 'Loading legal name...';
-                
-                // Show loading in all info sections
-                const loadingElements = document.querySelectorAll('.info-value, .compliance-value');
-                loadingElements.forEach(el => {
-                    el.textContent = 'Loading...';
-                });
+                const container = document.querySelector('.container');
+                if (container) {
+                    container.innerHTML = `
+                        <div class="loading">
+                            <i class="fas fa-spinner"></i>
+                            Loading merchant details...
+                        </div>
+                    `;
+                }
             }
 
             showErrorState(message) {
-                // Show error message
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'error';
-                errorDiv.innerHTML = `
-                    <i class="fas fa-exclamation-triangle"></i>
-                    ${message}
-                `;
-                
                 const container = document.querySelector('.container');
-                container.insertBefore(errorDiv, container.firstChild);
+                if (container) {
+                    container.innerHTML = `
+                        <div class="error">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <h3>Error Loading Merchant</h3>
+                            <p>${message}</p>
+                        </div>
+                    `;
+                }
             }
 
-            renderMerchantData() {
+            renderMerchantDetails() {
                 if (!this.merchant) return;
 
                 // Update header
-                this.updateMerchantHeader();
+                this.updateHeader();
                 
-                // Update business information
-                this.updateBusinessInfo();
+                // Update overview
+                this.updateOverview();
                 
                 // Update contact information
                 this.updateContactInfo();
                 
+                // Update financial information
+                this.updateFinancialInfo();
+                
                 // Update risk assessment
                 this.updateRiskAssessment();
                 
-                // Update compliance overview
-                this.updateComplianceOverview();
+                // Update recent activity
+                this.updateRecentActivity();
             }
 
-            updateMerchantHeader() {
-                const merchant = this.merchant;
-                
-                // Update merchant name and avatar
-                document.getElementById('merchantNameText').textContent = merchant.name;
-                document.getElementById('merchantLegalName').textContent = merchant.legal_name || merchant.name;
-                
-                // Update avatar with first letter
+            updateHeader() {
                 const avatar = document.getElementById('merchantAvatar');
-                avatar.textContent = merchant.name.charAt(0).toUpperCase();
-                
-                // Update portfolio type badge
-                const portfolioTypeBadge = document.getElementById('portfolioTypeBadge');
-                portfolioTypeBadge.textContent = merchant.portfolio_type;
-                portfolioTypeBadge.className = `status-badge status-${merchant.portfolio_type}`;
-                
-                // Update meta information
-                document.getElementById('merchantIndustry').textContent = merchant.industry || 'Not specified';
-                document.getElementById('merchantLocation').textContent = 
-                    `${merchant.address.city}, ${merchant.address.state}`;
-                document.getElementById('merchantFounded').textContent = 
-                    merchant.founded_date ? new Date(merchant.founded_date).getFullYear() : 'Unknown';
-                document.getElementById('merchantEmployees').textContent = 
-                    merchant.employee_count ? `${merchant.employee_count} employees` : 'Unknown';
+                const name = document.getElementById('merchantName');
+                const industry = document.getElementById('merchantIndustry');
+                const badges = document.getElementById('merchantBadges');
+
+                if (avatar) {
+                    avatar.textContent = this.merchant.name.charAt(0).toUpperCase();
+                }
+
+                if (name) {
+                    name.textContent = this.merchant.name;
+                }
+
+                if (industry) {
+                    industry.innerHTML = `
+                        <i class="fas fa-industry"></i>
+                        <span>${this.merchant.industry || 'Not specified'}</span>
+                    `;
+                }
+
+                if (badges) {
+                    badges.innerHTML = `
+                        <span class="badge badge-portfolio">${this.formatPortfolioType(this.merchant.portfolio_type)}</span>
+                        <span class="badge badge-risk-${this.merchant.risk_level.toLowerCase()}">${this.formatRiskLevel(this.merchant.risk_level)}</span>
+                        <span class="badge badge-status">${this.merchant.status}</span>
+                    `;
+                }
             }
 
-            updateBusinessInfo() {
-                const merchant = this.merchant;
-                
-                document.getElementById('registrationNumber').textContent = 
-                    merchant.registration_number || 'Not provided';
-                document.getElementById('taxId').textContent = 
-                    merchant.tax_id || 'Not provided';
-                document.getElementById('businessType').textContent = 
-                    merchant.business_type || 'Not specified';
-                document.getElementById('industryCode').textContent = 
-                    merchant.industry_code || 'Not specified';
-                document.getElementById('annualRevenue').textContent = 
-                    merchant.annual_revenue ? `$${merchant.annual_revenue.toLocaleString()}` : 'Not disclosed';
-                document.getElementById('employeeCount').textContent = 
-                    merchant.employee_count ? merchant.employee_count.toLocaleString() : 'Not disclosed';
+            updateOverview() {
+                const grid = document.getElementById('overviewGrid');
+                if (!grid) return;
+
+                grid.innerHTML = `
+                    <div class="info-item">
+                        <div class="info-label">Business ID</div>
+                        <div class="info-value">${this.merchant.id}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Industry</div>
+                        <div class="info-value">${this.merchant.industry || 'Not specified'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Portfolio Type</div>
+                        <div class="info-value">${this.formatPortfolioType(this.merchant.portfolio_type)}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Risk Level</div>
+                        <div class="info-value">${this.formatRiskLevel(this.merchant.risk_level)}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Status</div>
+                        <div class="info-value">${this.merchant.status}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Created Date</div>
+                        <div class="info-value">${new Date(this.merchant.created_at).toLocaleDateString()}</div>
+                    </div>
+                `;
             }
 
             updateContactInfo() {
-                const merchant = this.merchant;
-                
-                document.getElementById('contactPhone').textContent = 
-                    merchant.contact_info.phone || 'Not provided';
-                document.getElementById('contactEmail').textContent = 
-                    merchant.contact_info.email || 'Not provided';
-                document.getElementById('contactWebsite').textContent = 
-                    merchant.contact_info.website || 'Not provided';
-                document.getElementById('primaryContact').textContent = 
-                    merchant.contact_info.primary_contact || 'Not specified';
-                
-                // Update full address
-                const address = merchant.address;
-                const fullAddress = [
-                    address.street1,
-                    address.street2,
-                    address.city,
-                    address.state,
-                    address.postal_code,
-                    address.country
-                ].filter(Boolean).join(', ');
-                
-                document.getElementById('fullAddress').textContent = fullAddress || 'Address not provided';
+                const grid = document.getElementById('contactGrid');
+                if (!grid) return;
+
+                grid.innerHTML = `
+                    <div class="info-item">
+                        <div class="info-label">Address</div>
+                        <div class="info-value">${this.merchant.address || 'Not provided'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Phone</div>
+                        <div class="info-value">${this.merchant.phone || 'Not provided'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Email</div>
+                        <div class="info-value">${this.merchant.email || 'Not provided'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Website</div>
+                        <div class="info-value">
+                            ${this.merchant.website ? 
+                                `<a href="${this.merchant.website}" target="_blank" rel="noopener noreferrer">${this.merchant.website}</a>` : 
+                                'Not provided'
+                            }
+                        </div>
+                    </div>
+                `;
+            }
+
+            updateFinancialInfo() {
+                const grid = document.getElementById('financialGrid');
+                if (!grid) return;
+
+                grid.innerHTML = `
+                    <div class="info-item">
+                        <div class="info-label">Annual Revenue</div>
+                        <div class="info-value">$${this.merchant.revenue ? this.merchant.revenue.toLocaleString() : 'Not disclosed'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Employee Count</div>
+                        <div class="info-value">${this.merchant.employees || 'Not disclosed'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Founded Year</div>
+                        <div class="info-value">${this.merchant.founded || 'Not disclosed'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Compliance Score</div>
+                        <div class="info-value">${this.merchant.compliance_score || 'Not available'}%</div>
+                    </div>
+                `;
             }
 
             updateRiskAssessment() {
-                const merchant = this.merchant;
+                const grid = document.getElementById('riskGrid');
+                const factors = document.getElementById('riskFactors');
                 
-                // Update risk level badge
-                const riskLevelBadge = document.getElementById('riskLevelBadge');
-                riskLevelBadge.textContent = merchant.risk_level;
-                riskLevelBadge.className = `status-badge risk-${merchant.risk_level}`;
-                
-                document.getElementById('complianceStatus').textContent = 
-                    merchant.compliance_status || 'Pending';
-                document.getElementById('lastAssessment').textContent = 
-                    merchant.updated_at ? new Date(merchant.updated_at).toLocaleDateString() : 'Never';
-                document.getElementById('nextReview').textContent = 
-                    this.calculateNextReviewDate(merchant.updated_at);
-            }
-
-            updateComplianceOverview() {
-                const merchant = this.merchant;
-                
-                // Mock compliance data - in real implementation, this would come from API
-                document.getElementById('kycStatus').textContent = 'Completed';
-                document.getElementById('amlStatus').textContent = 'Passed';
-                document.getElementById('documentationStatus').textContent = 'Complete';
-                document.getElementById('lastComplianceReview').textContent = 
-                    merchant.updated_at ? new Date(merchant.updated_at).toLocaleDateString() : 'Never';
-            }
-
-            async loadActivityTimeline() {
-                try {
-                    // Load activity timeline from API
-                    const response = await fetch(`${this.apiBaseUrl}/merchants/${this.merchantId}/activity`);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    
-                    const activities = await response.json();
-                    this.renderActivityTimeline(activities);
-                    
-                } catch (error) {
-                    console.error('Error loading activity timeline:', error);
-                    this.renderMockActivityTimeline();
-                }
-            }
-
-            renderActivityTimeline(activities) {
-                const timeline = document.getElementById('activityTimeline');
-                
-                if (!activities || activities.length === 0) {
-                    timeline.innerHTML = `
-                        <div class="timeline-item">
-                            <div class="timeline-date">No activity recorded</div>
-                            <div class="timeline-title">No recent activity</div>
-                            <div class="timeline-description">This merchant has no recorded activity yet.</div>
+                if (grid) {
+                    grid.innerHTML = `
+                        <div class="info-item">
+                            <div class="info-label">Risk Level</div>
+                            <div class="info-value">${this.formatRiskLevel(this.merchant.risk_level)}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Verification Status</div>
+                            <div class="info-value">${this.merchant.verification_status || 'Not verified'}</div>
                         </div>
                     `;
-                    return;
                 }
-                
-                timeline.innerHTML = activities.map(activity => `
-                    <div class="timeline-item">
-                        <div class="timeline-date">${new Date(activity.timestamp).toLocaleDateString()}</div>
-                        <div class="timeline-title">${activity.title}</div>
-                        <div class="timeline-description">${activity.description}</div>
-                    </div>
-                `).join('');
+
+                if (factors && this.merchant.risk_factors) {
+                    factors.innerHTML = this.merchant.risk_factors.map(factor => `
+                        <div class="risk-factor">
+                            <i class="fas fa-exclamation-triangle risk-icon"></i>
+                            <span class="risk-text">${factor}</span>
+                        </div>
+                    `).join('');
+                }
             }
 
-            renderMockActivityTimeline() {
-                const timeline = document.getElementById('activityTimeline');
-                const mockActivities = [
-                    {
-                        timestamp: new Date().toISOString(),
-                        title: 'Merchant Profile Updated',
-                        description: 'Business information and contact details were updated.'
-                    },
-                    {
-                        timestamp: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-                        title: 'Risk Assessment Completed',
-                        description: 'Risk level assessment was completed and updated to current level.'
-                    },
-                    {
-                        timestamp: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-                        title: 'Compliance Review',
-                        description: 'Annual compliance review was completed successfully.'
-                    },
-                    {
-                        timestamp: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-                        title: 'Merchant Onboarded',
-                        description: 'Merchant was successfully onboarded to the platform.'
-                    }
-                ];
-                
-                this.renderActivityTimeline(mockActivities);
+            updateRecentActivity() {
+                const list = document.getElementById('activityList');
+                if (!list) return;
+
+                if (this.merchant.recent_activity && this.merchant.recent_activity.length > 0) {
+                    list.innerHTML = this.merchant.recent_activity.map(activity => `
+                        <div class="activity-item">
+                            <div class="activity-icon">
+                                <i class="fas fa-${this.getActivityIcon(activity.type)}"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-title">${activity.description}</div>
+                                <div class="activity-description">${activity.type}</div>
+                                <div class="activity-date">${new Date(activity.date).toLocaleString()}</div>
+                            </div>
+                            ${activity.amount > 0 ? `<div class="activity-amount">$${activity.amount.toLocaleString()}</div>` : ''}
+                        </div>
+                    `).join('');
+                } else {
+                    list.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-history"></i>
+                            <h3>No Recent Activity</h3>
+                            <p>No recent activity recorded for this merchant</p>
+                        </div>
+                    `;
+                }
             }
 
-            calculateNextReviewDate(lastUpdate) {
-                if (!lastUpdate) return 'Not scheduled';
-                
-                const lastDate = new Date(lastUpdate);
-                const nextDate = new Date(lastDate.getTime() + 365 * 24 * 60 * 60 * 1000); // 1 year
-                return nextDate.toLocaleDateString();
+            getActivityIcon(type) {
+                const icons = {
+                    'Transaction': 'credit-card',
+                    'Verification': 'check-circle',
+                    'Update': 'edit',
+                    'Alert': 'exclamation-triangle'
+                };
+                return icons[type] || 'circle';
             }
 
             editMerchant() {
-                // Navigate to edit merchant page
                 window.location.href = `merchant-edit.html?id=${this.merchantId}`;
             }
 
-            compareMerchant() {
-                // Navigate to comparison page with current merchant
-                window.location.href = `merchant-comparison.html?merchant1=${this.merchantId}`;
+            viewPortfolio() {
+                window.location.href = 'merchant-portfolio.html';
             }
 
-            exportReport() {
-                // Generate and download merchant report
-                const reportData = {
-                    merchant: this.merchant,
-                    generatedAt: new Date().toISOString(),
-                    reportType: 'merchant_detail'
+            formatPortfolioType(type) {
+                const types = {
+                    'High Volume': 'High Volume',
+                    'Standard': 'Standard',
+                    'Low Volume': 'Low Volume'
                 };
-                
-                const blob = new Blob([JSON.stringify(reportData, null, 2)], {
-                    type: 'application/json'
-                });
-                
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `merchant-report-${this.merchantId}-${new Date().toISOString().split('T')[0]}.json`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
+                return types[type] || type;
             }
 
-            onSessionStart(session) {
-                console.log('Session started:', session);
-                // Update UI to reflect active session
-            }
-
-            onSessionEnd() {
-                console.log('Session ended');
-                // Update UI to reflect no active session
-            }
-
-            onSessionSwitch(session) {
-                console.log('Session switched:', session);
-                // Update merchant data if different merchant
-                if (session.merchantId !== this.merchantId) {
-                    this.merchantId = session.merchantId;
-                    this.loadMerchantData();
-                }
+            formatRiskLevel(level) {
+                const levels = {
+                    'Low': 'Low Risk',
+                    'Medium': 'Medium Risk',
+                    'High': 'High Risk'
+                };
+                return levels[level] || level;
             }
         }
 
-        // Initialize the dashboard when DOM is loaded
+        // Initialize when DOM is loaded
         document.addEventListener('DOMContentLoaded', () => {
-            new MerchantDetailDashboard();
+            new MerchantDetail();
         });
     </script>
 </body>

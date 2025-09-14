@@ -93,30 +93,78 @@ func (s *IntegrationService) ProcessBusinessClassification(
 		}
 	}
 
-	// Get code statistics
-	var codeStats map[string]interface{}
-	if classificationCodes != nil {
-		codeStats = codeGenerator.GetCodeStatistics(classificationCodes)
-	}
+	// Get code statistics (for future use)
+	// var codeStats map[string]interface{}
+	// if classificationCodes != nil {
+	//     codeStats = codeGenerator.GetCodeStatistics(classificationCodes)
+	// }
 
-	// Build response
+	// Build response in the format expected by the frontend
 	response := map[string]interface{}{
 		"success": true,
-		"classification_data": map[string]interface{}{
-			"industry_detection": map[string]interface{}{
-				"detected_industry": industryResult.Industry.Name,
-				"confidence":        industryResult.Confidence,
-				"keywords_matched":  industryResult.KeywordsMatched,
-				"analysis_method":   industryResult.AnalysisMethod,
-				"evidence":          industryResult.Evidence,
-			},
-			"classification_codes": classificationCodes,
-			"code_statistics":      codeStats,
+		"business_name": businessName,
+		"description":   description,
+		"website_url":   websiteURL,
+		"classification": map[string]interface{}{
+			"mcc_codes":   []map[string]interface{}{},
+			"sic_codes":   []map[string]interface{}{},
+			"naics_codes": []map[string]interface{}{},
 		},
+		"confidence_score": 0.5,
+		"status":           "success",
+		"timestamp":        time.Now().UTC().Format(time.RFC3339),
+		"data_source":      "database_driven",
 		"enhanced_features": map[string]string{
 			"database_driven_classification": "active",
 			"modular_architecture":           "active",
 		},
+	}
+
+	// Add classification codes if available
+	if classificationCodes != nil {
+		// Convert MCC codes
+		if classificationCodes.MCC != nil {
+			mccCodes := make([]map[string]interface{}, 0, len(classificationCodes.MCC))
+			for _, code := range classificationCodes.MCC {
+				mccCodes = append(mccCodes, map[string]interface{}{
+					"code":        code.Code,
+					"description": code.Description,
+					"confidence":  code.Confidence,
+				})
+			}
+			response["classification"].(map[string]interface{})["mcc_codes"] = mccCodes
+		}
+
+		// Convert SIC codes
+		if classificationCodes.SIC != nil {
+			sicCodes := make([]map[string]interface{}, 0, len(classificationCodes.SIC))
+			for _, code := range classificationCodes.SIC {
+				sicCodes = append(sicCodes, map[string]interface{}{
+					"code":        code.Code,
+					"description": code.Description,
+					"confidence":  code.Confidence,
+				})
+			}
+			response["classification"].(map[string]interface{})["sic_codes"] = sicCodes
+		}
+
+		// Convert NAICS codes
+		if classificationCodes.NAICS != nil {
+			naicsCodes := make([]map[string]interface{}, 0, len(classificationCodes.NAICS))
+			for _, code := range classificationCodes.NAICS {
+				naicsCodes = append(naicsCodes, map[string]interface{}{
+					"code":        code.Code,
+					"description": code.Description,
+					"confidence":  code.Confidence,
+				})
+			}
+			response["classification"].(map[string]interface{})["naics_codes"] = naicsCodes
+		}
+
+		// Update confidence score based on industry detection
+		if industryResult != nil {
+			response["confidence_score"] = industryResult.Confidence
+		}
 	}
 
 	return response

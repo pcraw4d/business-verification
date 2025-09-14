@@ -99,6 +99,8 @@ type AuthConfig struct {
 	JWTSecret         string        `json:"jwt_secret" yaml:"jwt_secret"`
 	JWTExpiration     time.Duration `json:"jwt_expiration" yaml:"jwt_expiration"`
 	RefreshExpiration time.Duration `json:"refresh_expiration" yaml:"refresh_expiration"`
+	APIKeySecret      string        `json:"api_key_secret" yaml:"api_key_secret"`
+	RequireAuth       bool          `json:"require_auth" yaml:"require_auth"`
 	MinPasswordLength int           `json:"min_password_length" yaml:"min_password_length"`
 	RequireUppercase  bool          `json:"require_uppercase" yaml:"require_uppercase"`
 	RequireLowercase  bool          `json:"require_lowercase" yaml:"require_lowercase"`
@@ -248,7 +250,7 @@ func getProviderConfig() ProviderConfig {
 func getSupabaseConfig() SupabaseConfig {
 	return SupabaseConfig{
 		URL:            getEnvAsString("SUPABASE_URL", ""),
-		APIKey:         getEnvAsString("SUPABASE_API_KEY", ""), // Standardized to SUPABASE_API_KEY
+		APIKey:         getEnvAsString("SUPABASE_ANON_KEY", getEnvAsString("SUPABASE_API_KEY", "")), // Support both SUPABASE_ANON_KEY and SUPABASE_API_KEY
 		ServiceRoleKey: getEnvAsString("SUPABASE_SERVICE_ROLE_KEY", ""),
 		JWTSecret:      getEnvAsString("SUPABASE_JWT_SECRET", ""),
 	}
@@ -292,6 +294,8 @@ func getAuthConfig() AuthConfig {
 		JWTSecret:         getEnvAsString("JWT_SECRET", ""),
 		JWTExpiration:     getEnvAsDuration("JWT_EXPIRATION", 24*time.Hour),
 		RefreshExpiration: getEnvAsDuration("REFRESH_EXPIRATION", 168*time.Hour),
+		APIKeySecret:      getEnvAsString("API_KEY_SECRET", ""),
+		RequireAuth:       getEnvAsBool("REQUIRE_AUTH", false),
 		MinPasswordLength: getEnvAsInt("MIN_PASSWORD_LENGTH", 8),
 		RequireUppercase:  getEnvAsBool("REQUIRE_UPPERCASE", true),
 		RequireLowercase:  getEnvAsBool("REQUIRE_LOWERCASE", true),

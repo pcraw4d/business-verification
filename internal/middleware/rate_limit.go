@@ -3,6 +3,7 @@ package middleware
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -48,6 +49,16 @@ func getClientIdentifier(r *http.Request) string {
 
 	// Fall back to RemoteAddr
 	return r.RemoteAddr
+}
+
+// isExemptPath checks if a path is exempt from rate limiting
+func isExemptPath(path string, exemptPaths []string) bool {
+	for _, exemptPath := range exemptPaths {
+		if strings.HasPrefix(path, exemptPath) {
+			return true
+		}
+	}
+	return false
 }
 
 // RateLimitMiddleware provides rate limiting for API endpoints
