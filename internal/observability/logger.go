@@ -119,6 +119,9 @@ func (l *Logger) WithComponent(component string) *Logger {
 
 // Info logs an info level message
 func (l *Logger) Info(msg string, fields map[string]interface{}) {
+	if l.zapLogger == nil {
+		return
+	}
 	zapFields := make([]zap.Field, 0, len(fields))
 	for k, v := range fields {
 		zapFields = append(zapFields, zap.Any(k, v))
@@ -128,6 +131,9 @@ func (l *Logger) Info(msg string, fields map[string]interface{}) {
 
 // Warn logs a warning level message
 func (l *Logger) Warn(msg string, fields map[string]interface{}) {
+	if l.zapLogger == nil {
+		return
+	}
 	zapFields := make([]zap.Field, 0, len(fields))
 	for k, v := range fields {
 		zapFields = append(zapFields, zap.Any(k, v))
@@ -137,6 +143,9 @@ func (l *Logger) Warn(msg string, fields map[string]interface{}) {
 
 // Error logs an error level message
 func (l *Logger) Error(msg string, fields map[string]interface{}) {
+	if l.zapLogger == nil {
+		return
+	}
 	zapFields := make([]zap.Field, 0, len(fields))
 	for k, v := range fields {
 		zapFields = append(zapFields, zap.Any(k, v))
@@ -146,6 +155,9 @@ func (l *Logger) Error(msg string, fields map[string]interface{}) {
 
 // Debug logs a debug level message
 func (l *Logger) Debug(msg string, fields map[string]interface{}) {
+	if l.zapLogger == nil {
+		return
+	}
 	zapFields := make([]zap.Field, 0, len(fields))
 	for k, v := range fields {
 		zapFields = append(zapFields, zap.Any(k, v))
@@ -155,6 +167,9 @@ func (l *Logger) Debug(msg string, fields map[string]interface{}) {
 
 // Fatal logs a fatal level message
 func (l *Logger) Fatal(msg string, fields map[string]interface{}) {
+	if l.zapLogger == nil {
+		return
+	}
 	zapFields := make([]zap.Field, 0, len(fields))
 	for k, v := range fields {
 		zapFields = append(zapFields, zap.Any(k, v))

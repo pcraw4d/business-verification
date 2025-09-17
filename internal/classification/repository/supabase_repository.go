@@ -81,6 +81,12 @@ type IndustryKeywordMatch struct {
 	Keyword    string
 }
 
+// ContextualKeyword represents a keyword with its source context
+type ContextualKeyword struct {
+	Keyword string `json:"keyword"`
+	Context string `json:"context"` // "business_name", "description", "website_url"
+}
+
 // IndustryCodeCacheConfig holds configuration for industry code caching
 type IndustryCodeCacheConfig struct {
 	Enabled           bool
@@ -706,6 +712,28 @@ func (r *SupabaseKeywordRepository) GetIndustryByName(ctx context.Context, name 
 	return &industry, nil
 }
 
+// GetAllIndustries retrieves all active industries
+func (r *SupabaseKeywordRepository) GetAllIndustries(ctx context.Context) ([]*Industry, error) {
+	r.logger.Printf("🔍 Getting all industries")
+
+	// Use the existing ListIndustries method with no category filter
+	industries, err := r.ListIndustries(ctx, "")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get all industries: %w", err)
+	}
+
+	// Filter to only active industries
+	var activeIndustries []*Industry
+	for _, industry := range industries {
+		if industry.IsActive {
+			activeIndustries = append(activeIndustries, industry)
+		}
+	}
+
+	r.logger.Printf("✅ Retrieved %d active industries", len(activeIndustries))
+	return activeIndustries, nil
+}
+
 // ListIndustries retrieves all industries, optionally filtered by category
 func (r *SupabaseKeywordRepository) ListIndustries(ctx context.Context, category string) ([]*Industry, error) {
 	r.logger.Printf("🔍 Listing industries, category: %s", category)
@@ -1010,11 +1038,11 @@ func (r *SupabaseKeywordRepository) IncrementUsageCount(ctx context.Context, key
 func (r *SupabaseKeywordRepository) ClassifyBusiness(ctx context.Context, businessName, description, websiteURL string) (*ClassificationResult, error) {
 	r.logger.Printf("🔍 Classifying business: %s", businessName)
 
-	// Extract keywords from business information
-	keywords := r.extractKeywords(businessName, description, websiteURL)
+	// Extract contextual keywords from business information
+	contextualKeywords := r.extractKeywords(businessName, description, websiteURL)
 
-	// Classify based on keywords
-	return r.ClassifyBusinessByKeywords(ctx, keywords)
+	// Classify based on contextual keywords
+	return r.ClassifyBusinessByContextualKeywords(ctx, contextualKeywords)
 }
 
 // ClassifyBusinessByKeywords classifies a business based on extracted keywords using optimized algorithm
@@ -1048,21 +1076,49 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByKeywords(ctx context.Conte
 	industryScores := make(map[int]float64)
 	industryMatches := make(map[int][]string)
 
-	// Process each input keyword once
+	// Process each input keyword once with enhanced phrase matching
 	for _, inputKeyword := range keywords {
 		normalizedKeyword := strings.ToLower(strings.TrimSpace(inputKeyword))
+
+		// Determine if this is a phrase (multi-word) or single word
+		isPhrase := strings.Contains(normalizedKeyword, " ")
+		phraseMultiplier := 1.0
+
+		// Higher weight for phrase matches
+		if isPhrase {
+			phraseMultiplier = 1.5 // 50% boost for phrase matches
+		}
 
 		// Direct lookup in keyword index - O(1) average case
 		if matches, exists := index.KeywordToIndustries[normalizedKeyword]; exists {
 			for _, match := range matches {
-				industryScores[match.IndustryID] += match.Weight
+				// Apply phrase multiplier for exact phrase matches
+				weight := match.Weight * phraseMultiplier
+				industryScores[match.IndustryID] += weight
 				industryMatches[match.IndustryID] = append(industryMatches[match.IndustryID], match.Keyword)
 			}
 		}
 
-		// Also check for partial matches (substring matching)
+		// Enhanced partial matching with phrase awareness
 		for keyword, matches := range index.KeywordToIndustries {
-			if strings.Contains(normalizedKeyword, keyword) || strings.Contains(keyword, normalizedKeyword) {
+			// Check for exact phrase matches first
+			if normalizedKeyword == keyword {
+				continue // Already handled above
+			}
+
+			// Check for phrase-to-phrase partial matches
+			if isPhrase && strings.Contains(keyword, " ") {
+				// Both are phrases - check for phrase overlap
+				if r.hasPhraseOverlap(normalizedKeyword, keyword) {
+					for _, match := range matches {
+						// Higher weight for phrase-to-phrase matches
+						partialWeight := match.Weight * 0.8
+						industryScores[match.IndustryID] += partialWeight
+						industryMatches[match.IndustryID] = append(industryMatches[match.IndustryID], match.Keyword)
+					}
+				}
+			} else if strings.Contains(normalizedKeyword, keyword) || strings.Contains(keyword, normalizedKeyword) {
+				// Traditional substring matching
 				for _, match := range matches {
 					// Reduce weight for partial matches
 					partialWeight := match.Weight * 0.5
@@ -1117,8 +1173,16 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByKeywords(ctx context.Conte
 		}
 	}
 
-	// Calculate confidence based on score
-	confidence := bestScore
+	// Calculate simple confidence score (will be enhanced by confidence service at higher level)
+	var confidence float64
+	var reasoning string
+
+	// Simple confidence calculation based on match ratio and score
+	matchRatio := float64(len(bestMatchedKeywords)) / float64(len(keywords))
+	scoreRatio := bestScore / float64(len(keywords))
+	confidence = (matchRatio * 0.6) + (scoreRatio * 0.4)
+
+	// Ensure confidence is within bounds
 	if confidence > 1.0 {
 		confidence = 1.0
 	}
@@ -1126,8 +1190,11 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByKeywords(ctx context.Conte
 		confidence = 0.1
 	}
 
-	reasoning := fmt.Sprintf("Optimized classification matched %d keywords with industry '%s' (score: %.2f)",
-		len(bestMatchedKeywords), bestIndustry.Name, bestScore)
+	r.logger.Printf("📊 Simple confidence calculated: %.3f (match_ratio: %.3f, score_ratio: %.3f)",
+		confidence, matchRatio, scoreRatio)
+
+	reasoning = fmt.Sprintf("Simple classification matched %d keywords with industry '%s' (score: %.2f, confidence: %.3f)",
+		len(bestMatchedKeywords), bestIndustry.Name, bestScore, confidence)
 
 	return &ClassificationResult{
 		Industry:   bestIndustry,
@@ -1149,6 +1216,229 @@ func (r *SupabaseKeywordRepository) fallbackClassification(keywords []string, re
 		Codes:      []ClassificationCode{},
 		Reasoning:  reason,
 	}
+}
+
+// ClassifyBusinessByContextualKeywords classifies a business based on contextual keywords with enhanced scoring algorithm
+func (r *SupabaseKeywordRepository) ClassifyBusinessByContextualKeywords(ctx context.Context, contextualKeywords []ContextualKeyword) (*ClassificationResult, error) {
+	r.logger.Printf("🔍 Classifying business by contextual keywords with enhanced scoring: %d keywords", len(contextualKeywords))
+
+	if len(contextualKeywords) == 0 {
+		// Return default classification
+		return &ClassificationResult{
+			Industry:   &Industry{Name: "General Business", ID: 26},
+			Confidence: 0.50,
+			Keywords:   []string{},
+			Patterns:   []string{},
+			Codes:      []ClassificationCode{},
+			Reasoning:  "No contextual keywords provided for classification",
+		}, nil
+	}
+
+	// Ensure keyword index is built
+	index := r.GetKeywordIndex()
+	if len(index.KeywordToIndustries) == 0 {
+		r.logger.Printf("⚠️ Keyword index is empty, building it now...")
+		if err := r.BuildKeywordIndex(ctx); err != nil {
+			r.logger.Printf("⚠️ Failed to build keyword index: %v", err)
+			// Convert contextual keywords to strings for fallback
+			keywords := make([]string, len(contextualKeywords))
+			for i, ck := range contextualKeywords {
+				keywords[i] = ck.Keyword
+			}
+			return r.fallbackClassification(keywords, "Failed to build keyword index"), nil
+		}
+		index = r.GetKeywordIndex()
+	}
+
+	// Use enhanced scoring algorithm for improved accuracy and performance
+	enhancedScorer := NewEnhancedScoringAlgorithm(r.logger, DefaultEnhancedScoringConfig())
+	enhancedResult, err := enhancedScorer.CalculateEnhancedScore(ctx, contextualKeywords, index)
+	if err != nil {
+		r.logger.Printf("⚠️ Enhanced scoring failed, falling back to basic algorithm: %v", err)
+		return r.classifyBusinessByContextualKeywordsBasic(ctx, contextualKeywords, index)
+	}
+
+	// Get industry information
+	var bestIndustry *Industry
+	if enhancedResult.IndustryID != 26 {
+		industry, err := r.GetIndustryByID(ctx, enhancedResult.IndustryID)
+		if err != nil {
+			r.logger.Printf("⚠️ Failed to get industry %d: %v", enhancedResult.IndustryID, err)
+			bestIndustry = &Industry{Name: "General Business", ID: 26}
+		} else {
+			bestIndustry = industry
+		}
+	} else {
+		bestIndustry = &Industry{Name: "General Business", ID: 26}
+	}
+
+	// Get classification codes for the best industry
+	codesPtr, err := r.GetCachedClassificationCodes(ctx, enhancedResult.IndustryID)
+	if err != nil {
+		r.logger.Printf("⚠️ Failed to get classification codes for industry %d: %v", enhancedResult.IndustryID, err)
+		codesPtr = []*ClassificationCode{}
+	}
+
+	// Convert []*ClassificationCode to []ClassificationCode
+	codes := make([]ClassificationCode, len(codesPtr))
+	for i, codePtr := range codesPtr {
+		codes[i] = *codePtr
+	}
+
+	// Extract matched keywords for backward compatibility
+	matchedKeywords := make([]string, len(enhancedResult.MatchedKeywords))
+	for i, match := range enhancedResult.MatchedKeywords {
+		matchedKeywords[i] = match.MatchedKeyword
+	}
+
+	// Build enhanced reasoning with detailed breakdown
+	reasoning := fmt.Sprintf("Enhanced classification as %s with confidence %.3f based on %d contextual keywords. "+
+		"Score breakdown: Direct(%.3f), Phrase(%.3f), Partial(%.3f), Context(%.3f). "+
+		"Quality indicators: Diversity(%.3f), Relevance(%.3f), Overall(%.3f). "+
+		"Processing time: %v. Matched %d keywords: %v",
+		bestIndustry.Name, enhancedResult.Confidence, len(contextualKeywords),
+		enhancedResult.ScoreBreakdown.DirectMatchScore,
+		enhancedResult.ScoreBreakdown.PhraseMatchScore,
+		enhancedResult.ScoreBreakdown.PartialMatchScore,
+		enhancedResult.ScoreBreakdown.ContextScore,
+		enhancedResult.QualityIndicators.MatchDiversity,
+		enhancedResult.QualityIndicators.KeywordRelevance,
+		enhancedResult.QualityIndicators.OverallQuality,
+		enhancedResult.ProcessingTime,
+		len(matchedKeywords), matchedKeywords)
+
+	return &ClassificationResult{
+		Industry:   bestIndustry,
+		Confidence: enhancedResult.Confidence,
+		Keywords:   matchedKeywords,
+		Patterns:   []string{},
+		Codes:      codes,
+		Reasoning:  reasoning,
+	}, nil
+}
+
+// classifyBusinessByContextualKeywordsBasic provides fallback basic classification algorithm
+func (r *SupabaseKeywordRepository) classifyBusinessByContextualKeywordsBasic(ctx context.Context, contextualKeywords []ContextualKeyword, index *KeywordIndex) (*ClassificationResult, error) {
+	r.logger.Printf("🔄 Using basic classification algorithm as fallback")
+
+	// Use optimized O(k) algorithm with context multipliers
+	industryScores := make(map[int]float64)
+	industryMatches := make(map[int][]string)
+
+	// Process each contextual keyword with context-aware multipliers
+	for _, contextualKeyword := range contextualKeywords {
+		normalizedKeyword := strings.ToLower(strings.TrimSpace(contextualKeyword.Keyword))
+
+		// Apply context multiplier based on source
+		contextMultiplier := r.getContextMultiplier(contextualKeyword.Context)
+
+		// Determine if this is a phrase (multi-word) or single word
+		isPhrase := strings.Contains(normalizedKeyword, " ")
+		phraseMultiplier := 1.0
+
+		// Higher weight for phrase matches
+		if isPhrase {
+			phraseMultiplier = 1.5 // 50% boost for phrase matches
+		}
+
+		// Direct lookup in keyword index - O(1) average case
+		if matches, exists := index.KeywordToIndustries[normalizedKeyword]; exists {
+			for _, match := range matches {
+				// Apply both phrase and context multipliers
+				weight := match.Weight * phraseMultiplier * contextMultiplier
+				industryScores[match.IndustryID] += weight
+				industryMatches[match.IndustryID] = append(industryMatches[match.IndustryID], match.Keyword)
+			}
+		}
+
+		// Enhanced partial matching with phrase awareness and context multipliers
+		for keyword, matches := range index.KeywordToIndustries {
+			// Check for exact phrase matches first
+			if normalizedKeyword == keyword {
+				continue // Already handled above
+			}
+
+			// Check for phrase-to-phrase partial matches
+			if isPhrase && strings.Contains(keyword, " ") {
+				// Both are phrases - check for phrase overlap
+				if r.hasPhraseOverlap(normalizedKeyword, keyword) {
+					for _, match := range matches {
+						// Higher weight for phrase-to-phrase matches with context multiplier
+						partialWeight := match.Weight * 0.8 * contextMultiplier
+						industryScores[match.IndustryID] += partialWeight
+						industryMatches[match.IndustryID] = append(industryMatches[match.IndustryID], match.Keyword)
+					}
+				}
+			} else if strings.Contains(normalizedKeyword, keyword) || strings.Contains(keyword, normalizedKeyword) {
+				// Traditional substring matching with context multiplier
+				for _, match := range matches {
+					// Reduce weight for partial matches but apply context multiplier
+					partialWeight := match.Weight * 0.5 * contextMultiplier
+					industryScores[match.IndustryID] += partialWeight
+					industryMatches[match.IndustryID] = append(industryMatches[match.IndustryID], match.Keyword)
+				}
+			}
+		}
+	}
+
+	// Find best industry
+	bestIndustryID := 26 // Default industry
+	bestScore := 0.0
+	var bestMatchedKeywords []string
+
+	for industryID, score := range industryScores {
+		// Normalize score by number of input keywords
+		normalizedScore := score / float64(len(contextualKeywords))
+
+		if normalizedScore > bestScore {
+			bestScore = normalizedScore
+			bestIndustryID = industryID
+			bestMatchedKeywords = industryMatches[industryID]
+		}
+	}
+
+	// Get industry information
+	var bestIndustry *Industry
+	if bestIndustryID != 26 {
+		industry, err := r.GetIndustryByID(ctx, bestIndustryID)
+		if err != nil {
+			r.logger.Printf("⚠️ Failed to get industry %d: %v", bestIndustryID, err)
+			bestIndustry = &Industry{Name: "General Business", ID: 26}
+		} else {
+			bestIndustry = industry
+		}
+	} else {
+		bestIndustry = &Industry{Name: "General Business", ID: 26}
+	}
+
+	// Calculate confidence using dynamic confidence calculation
+	confidence := r.calculateDynamicConfidence(bestScore, len(bestMatchedKeywords), len(contextualKeywords))
+
+	// Get classification codes for the best industry
+	codesPtr, err := r.GetCachedClassificationCodes(ctx, bestIndustryID)
+	if err != nil {
+		r.logger.Printf("⚠️ Failed to get classification codes for industry %d: %v", bestIndustryID, err)
+		codesPtr = []*ClassificationCode{}
+	}
+
+	// Convert []*ClassificationCode to []ClassificationCode
+	codes := make([]ClassificationCode, len(codesPtr))
+	for i, codePtr := range codesPtr {
+		codes[i] = *codePtr
+	}
+
+	// Build reasoning
+	reasoning := fmt.Sprintf("Basic classification as %s with confidence %.2f based on %d contextual keywords. Context multipliers applied: business_name (1.2x), description (1.0x), website_url (1.0x). Matched %d keywords: %v",
+		bestIndustry.Name, confidence, len(contextualKeywords), len(bestMatchedKeywords), bestMatchedKeywords)
+
+	return &ClassificationResult{
+		Industry:   bestIndustry,
+		Confidence: confidence,
+		Keywords:   bestMatchedKeywords,
+		Patterns:   []string{},
+		Codes:      codes,
+		Reasoning:  reasoning,
+	}, nil
 }
 
 // GetTopIndustriesByKeywords finds the top industries matching given keywords
@@ -1244,48 +1534,306 @@ func (r *SupabaseKeywordRepository) CleanupInactiveData(ctx context.Context) err
 // Helper Methods
 // =============================================================================
 
-// extractKeywords extracts keywords from business information
-func (r *SupabaseKeywordRepository) extractKeywords(businessName, description, websiteURL string) []string {
-	var keywords []string
-
-	// Extract from business name
-	if businessName != "" {
-		words := strings.Fields(strings.ToLower(businessName))
-		keywords = append(keywords, words...)
-	}
-
-	// Extract from description
-	if description != "" {
-		words := strings.Fields(strings.ToLower(description))
-		keywords = append(keywords, words...)
-	}
-
-	// Extract from website URL (basic extraction)
-	if websiteURL != "" {
-		// Remove common URL parts and extract domain keywords
-		cleanURL := strings.TrimPrefix(websiteURL, "https://")
-		cleanURL = strings.TrimPrefix(cleanURL, "http://")
-		cleanURL = strings.TrimPrefix(cleanURL, "www.")
-
-		parts := strings.Split(cleanURL, ".")
-		if len(parts) > 0 {
-			domainWords := strings.Fields(strings.ReplaceAll(parts[0], "-", " "))
-			keywords = append(keywords, domainWords...)
-		}
-	}
-
-	// Remove duplicates and common words
+// extractKeywords extracts keywords from business information with enhanced phrase matching and context tracking
+func (r *SupabaseKeywordRepository) extractKeywords(businessName, description, websiteURL string) []ContextualKeyword {
+	var keywords []ContextualKeyword
 	seen := make(map[string]bool)
-	var uniqueKeywords []string
 
-	for _, keyword := range keywords {
-		if len(keyword) > 2 && !seen[keyword] {
-			seen[keyword] = true
-			uniqueKeywords = append(uniqueKeywords, keyword)
+	// Extract keywords from business name (highest priority context)
+	if businessName != "" {
+		nameKeywords := r.extractKeywordsFromText(businessName, "business_name")
+		for _, keyword := range nameKeywords {
+			if !seen[keyword.Keyword] {
+				seen[keyword.Keyword] = true
+				keywords = append(keywords, keyword)
+			}
 		}
 	}
 
-	return uniqueKeywords
+	// Extract keywords from description (medium priority context)
+	if description != "" {
+		descKeywords := r.extractKeywordsFromText(description, "description")
+		for _, keyword := range descKeywords {
+			if !seen[keyword.Keyword] {
+				seen[keyword.Keyword] = true
+				keywords = append(keywords, keyword)
+			}
+		}
+	}
+
+	// Extract keywords from website URL (lowest priority context)
+	if websiteURL != "" {
+		urlKeywords := r.extractKeywordsFromText(websiteURL, "website_url")
+		for _, keyword := range urlKeywords {
+			if !seen[keyword.Keyword] {
+				seen[keyword.Keyword] = true
+				keywords = append(keywords, keyword)
+			}
+		}
+	}
+
+	return keywords
+}
+
+// extractKeywordsFromText extracts keywords from a specific text source with context
+func (r *SupabaseKeywordRepository) extractKeywordsFromText(text, context string) []ContextualKeyword {
+	var keywords []ContextualKeyword
+	seen := make(map[string]bool)
+
+	// Normalize text
+	normalizedText := strings.ToLower(text)
+
+	// Extract individual words first
+	words := strings.Fields(normalizedText)
+	for _, word := range words {
+		cleanWord := strings.Trim(word, ".,!?;:\"'()[]{}")
+		if len(cleanWord) > 2 && !seen[cleanWord] {
+			seen[cleanWord] = true
+			keywords = append(keywords, ContextualKeyword{
+				Keyword: cleanWord,
+				Context: context,
+			})
+		}
+	}
+
+	// Extract 2-word phrases
+	phrases := r.extractPhrases(normalizedText, 2)
+	for _, phrase := range phrases {
+		if !seen[phrase] {
+			seen[phrase] = true
+			keywords = append(keywords, ContextualKeyword{
+				Keyword: phrase,
+				Context: context,
+			})
+		}
+	}
+
+	// Extract 3-word phrases (for specific industry terms)
+	phrases3 := r.extractPhrases(normalizedText, 3)
+	for _, phrase := range phrases3 {
+		if !seen[phrase] {
+			seen[phrase] = true
+			keywords = append(keywords, ContextualKeyword{
+				Keyword: phrase,
+				Context: context,
+			})
+		}
+	}
+
+	return keywords
+}
+
+// getContextMultiplier returns the appropriate multiplier based on keyword context
+func (r *SupabaseKeywordRepository) getContextMultiplier(context string) float64 {
+	switch context {
+	case "business_name":
+		return 1.2 // 20% boost for business name keywords (highest priority)
+	case "description":
+		return 1.0 // No boost for description keywords (baseline)
+	case "website_url":
+		return 1.0 // No boost for website URL keywords (baseline)
+	default:
+		return 1.0 // Default to no boost for unknown contexts
+	}
+}
+
+// calculateDynamicConfidence calculates confidence based on match quality and context
+func (r *SupabaseKeywordRepository) calculateDynamicConfidence(score float64, matchedKeywords int, totalKeywords int) float64 {
+	// Base confidence from score (normalized to 0-1 range)
+	baseConfidence := score
+
+	// Apply match ratio factor (30% weight)
+	matchRatio := float64(matchedKeywords) / float64(totalKeywords)
+	matchRatioFactor := matchRatio * 0.3
+
+	// Apply score strength factor (40% weight)
+	scoreStrengthFactor := baseConfidence * 0.4
+
+	// Apply specificity factor (20% weight) - more matched keywords = higher specificity
+	specificityFactor := float64(matchedKeywords) * 0.02
+	if specificityFactor > 0.2 {
+		specificityFactor = 0.2 // Cap at 20%
+	}
+
+	// Apply keyword quality factor (10% weight) - based on total keywords processed
+	qualityFactor := float64(totalKeywords) * 0.01
+	if qualityFactor > 0.1 {
+		qualityFactor = 0.1 // Cap at 10%
+	}
+
+	// Combine all factors
+	confidence := matchRatioFactor + scoreStrengthFactor + specificityFactor + qualityFactor
+
+	// Ensure confidence is within bounds
+	if confidence > 1.0 {
+		confidence = 1.0
+	}
+	if confidence < 0.1 {
+		confidence = 0.1
+	}
+
+	return confidence
+}
+
+// extractKeywordsAndPhrases extracts both individual keywords and multi-word phrases
+func (r *SupabaseKeywordRepository) extractKeywordsAndPhrases(text string) []string {
+	var keywords []string
+	seen := make(map[string]bool)
+
+	// Normalize text
+	normalizedText := strings.ToLower(text)
+
+	// Extract individual words first
+	words := strings.Fields(normalizedText)
+	for _, word := range words {
+		cleanWord := strings.Trim(word, ".,!?;:\"'()[]{}")
+		if len(cleanWord) > 2 && !seen[cleanWord] {
+			seen[cleanWord] = true
+			keywords = append(keywords, cleanWord)
+		}
+	}
+
+	// Extract 2-word phrases
+	phrases := r.extractPhrases(normalizedText, 2)
+	for _, phrase := range phrases {
+		if !seen[phrase] {
+			seen[phrase] = true
+			keywords = append(keywords, phrase)
+		}
+	}
+
+	// Extract 3-word phrases (for specific industry terms)
+	phrases3 := r.extractPhrases(normalizedText, 3)
+	for _, phrase := range phrases3 {
+		if !seen[phrase] {
+			seen[phrase] = true
+			keywords = append(keywords, phrase)
+		}
+	}
+
+	return keywords
+}
+
+// extractPhrases extracts n-word phrases from text
+func (r *SupabaseKeywordRepository) extractPhrases(text string, phraseLength int) []string {
+	var phrases []string
+	words := strings.Fields(text)
+
+	// Clean words
+	var cleanWords []string
+	for _, word := range words {
+		cleanWord := strings.Trim(word, ".,!?;:\"'()[]{}")
+		if len(cleanWord) > 1 { // Allow shorter words in phrases
+			cleanWords = append(cleanWords, cleanWord)
+		}
+	}
+
+	// Extract phrases of specified length
+	for i := 0; i <= len(cleanWords)-phraseLength; i++ {
+		phrase := strings.Join(cleanWords[i:i+phraseLength], " ")
+		if r.isValidPhrase(phrase) {
+			phrases = append(phrases, phrase)
+		}
+	}
+
+	return phrases
+}
+
+// isValidPhrase checks if a phrase is valid for classification
+func (r *SupabaseKeywordRepository) isValidPhrase(phrase string) bool {
+	// Filter out phrases that are too short or contain only common words
+	if len(phrase) < 4 {
+		return false
+	}
+
+	// Check if phrase contains meaningful business terms
+	words := strings.Fields(phrase)
+	meaningfulWords := 0
+
+	for _, word := range words {
+		if !r.isCommonWord(word) && len(word) > 2 {
+			meaningfulWords++
+		}
+	}
+
+	// At least half the words should be meaningful
+	return meaningfulWords >= (len(words)+1)/2
+}
+
+// isCommonWord checks if a word is a common word that should be filtered out
+func (r *SupabaseKeywordRepository) isCommonWord(word string) bool {
+	commonWords := map[string]bool{
+		// Articles and basic words
+		"the": true, "and": true, "or": true, "but": true, "in": true, "on": true, "at": true,
+		"to": true, "for": true, "of": true, "with": true, "by": true, "from": true, "up": true,
+		"about": true, "into": true, "through": true, "during": true, "before": true, "after": true,
+		"above": true, "below": true, "between": true, "among": true, "within": true, "without": true,
+
+		// Verbs
+		"is": true, "are": true, "was": true, "were": true, "be": true, "been": true, "being": true,
+		"have": true, "has": true, "had": true, "do": true, "does": true, "did": true, "will": true,
+		"would": true, "could": true, "should": true, "may": true, "might": true, "must": true,
+		"can": true,
+
+		// Pronouns and determiners
+		"this": true, "that": true, "these": true, "those": true, "a": true, "an": true,
+		"our": true, "your": true, "their": true, "my": true, "his": true, "her": true, "its": true,
+		"we": true, "you": true, "they": true, "i": true, "he": true, "she": true, "it": true,
+		"me": true, "him": true, "us": true, "them": true,
+
+		// Quantifiers
+		"all": true, "any": true, "some": true, "many": true, "much": true, "few": true,
+		"more": true, "most": true, "another": true, "each": true, "every": true, "both": true,
+		"either": true, "neither": true, "one": true, "two": true,
+
+		// Adjectives
+		"first": true, "second": true, "last": true, "next": true, "new": true, "old": true,
+		"good": true, "bad": true, "big": true, "small": true, "long": true, "short": true,
+		"high": true, "low": true, "great": true, "little": true, "own": true, "just": true,
+		"like": true, "over": true, "also": true, "back": true, "well": true, "even": true,
+		"still": true,
+
+		// Adverbs and prepositions
+		"here": true, "there": true, "where": true, "when": true, "why": true, "how": true,
+		"what": true, "who": true, "which": true,
+
+		// Internet and domain related
+		"www": true, "com": true, "org": true, "net": true, "uk": true, "ca": true, "au": true,
+		"de": true, "fr": true, "jp": true, "cn": true, "ru": true, "br": true, "mx": true,
+		"es": true, "nl": true, "se": true, "no": true, "dk": true, "fi": true, "pl": true,
+		"tr": true, "ar": true, "cl": true, "pe": true, "ve": true, "ec": true, "uy": true,
+		"py": true, "bo": true, "gt": true, "hn": true, "ni": true, "cr": true, "pa": true,
+		"cu": true, "ht": true, "jm": true, "tt": true, "bb": true, "gd": true, "lc": true,
+		"vc": true, "ag": true, "bs": true, "bz": true, "dm": true, "kn": true, "sr": true,
+		"gy": true, "fk": true, "gs": true, "sh": true, "ac": true, "ta": true, "bv": true,
+		"hm": true, "nf": true, "aq": true, "tf": true, "pf": true, "nc": true, "vu": true,
+		"sb": true, "tv": true, "ki": true, "nr": true, "fm": true, "mh": true, "pw": true,
+		"mp": true, "gu": true, "as": true, "vi": true, "pr": true, "um": true,
+	}
+
+	return commonWords[word]
+}
+
+// hasPhraseOverlap checks if two phrases have meaningful overlap
+func (r *SupabaseKeywordRepository) hasPhraseOverlap(phrase1, phrase2 string) bool {
+	words1 := strings.Fields(phrase1)
+	words2 := strings.Fields(phrase2)
+
+	// Count meaningful word overlaps
+	overlaps := 0
+	for _, word1 := range words1 {
+		if !r.isCommonWord(word1) && len(word1) > 2 {
+			for _, word2 := range words2 {
+				if !r.isCommonWord(word2) && len(word2) > 2 && word1 == word2 {
+					overlaps++
+					break
+				}
+			}
+		}
+	}
+
+	// At least one meaningful word should overlap
+	return overlaps > 0
 }
 
 // parseClassificationCodesResponse parses the Supabase response for classification codes

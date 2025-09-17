@@ -1,0 +1,1754 @@
+package classification
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"regexp"
+	"sort"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/pcraw4d/business-verification/internal/classification/repository"
+)
+
+// IndustryDetectionService provides database-driven industry classification
+type IndustryDetectionService struct {
+	repo    repository.KeywordRepository
+	logger  *log.Logger
+	monitor *ClassificationAccuracyMonitoring
+}
+
+// NewIndustryDetectionService creates a new industry detection service
+func NewIndustryDetectionService(repo repository.KeywordRepository, logger *log.Logger) *IndustryDetectionService {
+	if logger == nil {
+		logger = log.Default()
+	}
+
+	return &IndustryDetectionService{
+		repo:    repo,
+		logger:  logger,
+		monitor: nil, // Will be set separately if monitoring is needed
+	}
+}
+
+// NewIndustryDetectionServiceWithMonitoring creates a new industry detection service with monitoring
+func NewIndustryDetectionServiceWithMonitoring(repo repository.KeywordRepository, logger *log.Logger, monitor *ClassificationAccuracyMonitoring) *IndustryDetectionService {
+	if logger == nil {
+		logger = log.Default()
+	}
+
+	return &IndustryDetectionService{
+		repo:    repo,
+		logger:  logger,
+		monitor: monitor,
+	}
+}
+
+// IndustryDetectionResult represents the result of industry detection
+type IndustryDetectionResult struct {
+	Industry            *repository.Industry             `json:"industry"`
+	Confidence          float64                          `json:"confidence"`
+	KeywordsMatched     []string                         `json:"keywords_matched"`
+	AnalysisMethod      string                           `json:"analysis_method"`
+	Evidence            string                           `json:"evidence"`
+	ClassificationCodes []*repository.ClassificationCode `json:"classification_codes"`
+}
+
+// DetectIndustryFromContent analyzes website content to detect industry using database keywords
+func (s *IndustryDetectionService) DetectIndustryFromContent(ctx context.Context, content string) (*IndustryDetectionResult, error) {
+	startTime := time.Now()
+	requestID := s.generateRequestID()
+
+	s.logger.Printf("🔍 Starting database-driven industry detection for content length: %d (request: %s)", len(content), requestID)
+
+	if content == "" {
+		result := s.getDefaultResult("No content provided for analysis")
+		s.recordClassificationMetrics(ctx, requestID, "", "", "", result, time.Since(startTime), "content_analysis", nil)
+		return result, nil
+	}
+
+	// Extract keywords from content
+	keywords := s.extractKeywordsFromContent(content)
+	s.logger.Printf("🔍 Extracted %d keywords from content", len(keywords))
+
+	if len(keywords) == 0 {
+		result := s.getDefaultResult("No meaningful keywords found in content")
+		s.recordClassificationMetrics(ctx, requestID, "", "", "", result, time.Since(startTime), "content_analysis", nil)
+		return result, nil
+	}
+
+	// Classify business using the repository
+	repoResult, err := s.repo.ClassifyBusinessByKeywords(ctx, keywords)
+	if err != nil {
+		s.logger.Printf("⚠️ Repository classification failed: %v, falling back to default", err)
+		result := s.getDefaultResult("Classification failed, using default")
+		s.recordClassificationMetrics(ctx, requestID, "", "", "", result, time.Since(startTime), "content_analysis", err)
+		return result, nil
+	}
+
+	// Get classification codes for the detected industry (using cache)
+	var codes []*repository.ClassificationCode
+	if repoResult.Industry != nil {
+		codes, err = s.repo.GetCachedClassificationCodes(ctx, repoResult.Industry.ID)
+		if err != nil {
+			s.logger.Printf("⚠️ Failed to get classification codes: %v", err)
+			codes = []*repository.ClassificationCode{}
+		}
+	}
+
+	// Build evidence string
+	evidence := s.buildEvidenceString(keywords, repoResult.Keywords, repoResult.Reasoning)
+
+	detectionResult := &IndustryDetectionResult{
+		Industry:            repoResult.Industry,
+		Confidence:          repoResult.Confidence,
+		KeywordsMatched:     keywords,
+		AnalysisMethod:      "database_keyword_classification",
+		Evidence:            evidence,
+		ClassificationCodes: codes,
+	}
+
+	// Record performance metrics
+	s.recordClassificationMetrics(ctx, requestID, "", "", "", detectionResult, time.Since(startTime), "content_analysis", nil)
+
+	s.logger.Printf("✅ Industry detected: %s (confidence: %.2f%%) (request: %s)",
+		detectionResult.Industry.Name, detectionResult.Confidence*100, requestID)
+
+	return detectionResult, nil
+}
+
+// DetectIndustryFromBusinessInfo analyzes business information for industry detection
+func (s *IndustryDetectionService) DetectIndustryFromBusinessInfo(ctx context.Context, businessName, description, websiteURL string) (*IndustryDetectionResult, error) {
+	s.logger.Printf("🔍 Starting business info analysis: %s", businessName)
+
+	// Extract keywords from all sources
+	keywords := s.extractKeywordsFromBusinessInfo(businessName, description, websiteURL)
+	s.logger.Printf("🔍 Extracted %d keywords from business info", len(keywords))
+
+	if len(keywords) == 0 {
+		return s.getDefaultResult("No meaningful keywords found in business information"), nil
+	}
+
+	// Classify business using the repository
+	result, err := s.repo.ClassifyBusiness(ctx, businessName, description, websiteURL)
+	if err != nil {
+		s.logger.Printf("⚠️ Repository classification failed: %v, falling back to default", err)
+		return s.getDefaultResult("Classification failed, using default"), nil
+	}
+
+	// Get classification codes for the detected industry (using cache)
+	var codes []*repository.ClassificationCode
+	if result.Industry != nil {
+		codes, err = s.repo.GetCachedClassificationCodes(ctx, result.Industry.ID)
+		if err != nil {
+			s.logger.Printf("⚠️ Failed to get classification codes: %v", err)
+			codes = []*repository.ClassificationCode{}
+		}
+	}
+
+	// Build evidence string
+	evidence := s.buildEvidenceString(keywords, result.Keywords, result.Reasoning)
+
+	detectionResult := &IndustryDetectionResult{
+		Industry:            result.Industry,
+		Confidence:          result.Confidence,
+		KeywordsMatched:     keywords,
+		AnalysisMethod:      "multi_source_classification",
+		Evidence:            evidence,
+		ClassificationCodes: codes,
+	}
+
+	s.logger.Printf("✅ Industry detected: %s (confidence: %.2f%%)",
+		detectionResult.Industry.Name, detectionResult.Confidence*100)
+
+	return detectionResult, nil
+}
+
+// GetTopIndustriesByKeywords finds the top industries matching given keywords
+func (s *IndustryDetectionService) GetTopIndustriesByKeywords(ctx context.Context, keywords []string, limit int) ([]*repository.Industry, error) {
+	s.logger.Printf("🔍 Getting top industries for %d keywords (limit: %d)", len(keywords), limit)
+
+	industries, err := s.repo.GetTopIndustriesByKeywords(ctx, keywords, limit)
+	if err != nil {
+		s.logger.Printf("⚠️ Failed to get top industries: %v", err)
+		return []*repository.Industry{}, err
+	}
+
+	s.logger.Printf("✅ Found %d matching industries", len(industries))
+	return industries, nil
+}
+
+// SearchIndustriesByPattern searches industries using pattern matching
+func (s *IndustryDetectionService) SearchIndustriesByPattern(ctx context.Context, pattern string) ([]*repository.Industry, error) {
+	s.logger.Printf("🔍 Searching industries by pattern: %s", pattern)
+
+	industries, err := s.repo.SearchIndustriesByPattern(ctx, pattern)
+	if err != nil {
+		s.logger.Printf("⚠️ Failed to search industries by pattern: %v", err)
+		return []*repository.Industry{}, err
+	}
+
+	s.logger.Printf("✅ Found %d industries matching pattern", len(industries))
+	return industries, nil
+}
+
+// GetIndustryStatistics gets statistics about industries and keywords
+func (s *IndustryDetectionService) GetIndustryStatistics(ctx context.Context) (map[string]interface{}, error) {
+	s.logger.Printf("🔍 Getting industry statistics")
+
+	stats, err := s.repo.GetIndustryStatistics(ctx)
+	if err != nil {
+		s.logger.Printf("⚠️ Failed to get industry statistics: %v", err)
+		return map[string]interface{}{}, err
+	}
+
+	return stats, nil
+}
+
+// =============================================================================
+// Helper Methods
+// =============================================================================
+
+// extractKeywordsFromContent extracts meaningful keywords from website content with enhanced business context filtering
+func (s *IndustryDetectionService) extractKeywordsFromContent(content string) []string {
+	if content == "" {
+		return []string{}
+	}
+
+	// First, clean the HTML content to extract meaningful text
+	cleanContent := s.cleanHTMLContent(content)
+
+	// Convert to lowercase and split into words
+	words := strings.Fields(strings.ToLower(cleanContent))
+
+	// Enhanced business context filtering
+	keywords := s.filterBusinessRelevantKeywords(words)
+
+	// Apply business context scoring and ranking
+	scoredKeywords := s.scoreKeywordsByBusinessRelevance(keywords, cleanContent)
+
+	// Sort by business relevance score and limit to top keywords
+	keywords = s.rankAndLimitKeywords(scoredKeywords, 50)
+
+	return keywords
+}
+
+// extractKeywordsFromBusinessInfo extracts keywords from business information
+func (s *IndustryDetectionService) extractKeywordsFromBusinessInfo(businessName, description, websiteURL string) []string {
+	var keywords []string
+	seen := make(map[string]bool)
+
+	// Extract from business name
+	if businessName != "" {
+		nameWords := strings.Fields(strings.ToLower(businessName))
+		for _, word := range nameWords {
+			cleanWord := strings.Trim(word, ".,!?;:\"'()[]{}")
+			if len(cleanWord) >= 3 && !seen[cleanWord] && !s.isCommonWord(cleanWord) {
+				seen[cleanWord] = true
+				keywords = append(keywords, cleanWord)
+			}
+		}
+	}
+
+	// Extract from description
+	if description != "" {
+		descWords := strings.Fields(strings.ToLower(description))
+		for _, word := range descWords {
+			cleanWord := strings.Trim(word, ".,!?;:\"'()[]{}")
+			if len(cleanWord) >= 3 && !seen[cleanWord] && !s.isCommonWord(cleanWord) {
+				seen[cleanWord] = true
+				keywords = append(keywords, cleanWord)
+			}
+		}
+	}
+
+	// Extract from website URL
+	if websiteURL != "" {
+		// Remove common URL parts
+		cleanURL := strings.TrimPrefix(websiteURL, "https://")
+		cleanURL = strings.TrimPrefix(cleanURL, "http://")
+		cleanURL = strings.TrimPrefix(cleanURL, "www.")
+
+		// Split by dots and extract meaningful parts
+		parts := strings.Split(cleanURL, ".")
+		if len(parts) > 0 {
+			domainWords := strings.Fields(strings.ReplaceAll(parts[0], "-", " "))
+			for _, word := range domainWords {
+				cleanWord := strings.Trim(word, ".,!?;:\"'()[]{}")
+				if len(cleanWord) >= 3 && !seen[cleanWord] && !s.isCommonWord(cleanWord) {
+					seen[cleanWord] = true
+					keywords = append(keywords, cleanWord)
+				}
+			}
+		}
+	}
+
+	return keywords
+}
+
+// isCommonWord checks if a word is a common word that should be filtered out
+func (s *IndustryDetectionService) isCommonWord(word string) bool {
+	commonWords := map[string]bool{
+		"the": true, "and": true, "or": true, "but": true, "in": true, "on": true, "at": true,
+		"to": true, "for": true, "of": true, "with": true, "by": true, "from": true, "up": true,
+		"out": true, "about": true, "into": true, "through": true, "during": true, "before": true,
+		"after": true, "above": true, "below": true, "between": true, "among": true, "within": true,
+		"without": true, "against": true, "toward": true, "towards": true, "upon": true, "across": true,
+		"behind": true, "beneath": true, "beside": true, "beyond": true, "inside": true, "outside": true,
+		"under": true, "over": true, "around": true, "along": true, "down": true, "off": true,
+		"this": true, "that": true, "these": true, "those": true, "is": true, "are": true, "was": true,
+		"were": true, "be": true, "been": true, "being": true, "have": true, "has": true, "had": true,
+		"do": true, "does": true, "did": true, "will": true, "would": true, "could": true, "should": true,
+		"may": true, "might": true, "can": true, "must": true, "shall": true, "a": true, "an": true,
+		"we": true, "using": true,
+		"all": true, "any": true, "each": true, "every": true, "few": true, "many": true, "no": true,
+		"some": true, "such": true, "what": true, "which": true, "who": true, "whom": true, "whose": true,
+		"where": true, "when": true, "why": true, "how": true, "if": true, "else": true,
+		"than": true, "as": true, "so": true, "very": true, "just": true, "only": true, "even": true,
+		"still": true, "also": true, "too": true, "well": true, "much": true, "more": true, "most": true,
+		"less": true, "least": true, "better": true, "bad": true, "worse": true,
+		"worst": true, "big": true, "bigger": true, "biggest": true, "small": true, "smaller": true,
+		"smallest": true, "new": true, "newer": true, "newest": true, "old": true, "older": true, "oldest": true,
+		"high": true, "higher": true, "highest": true, "low": true, "lower": true, "lowest": true,
+		"long": true, "longer": true, "longest": true, "short": true, "shorter": true, "shortest": true,
+		"first": true, "second": true, "third": true, "last": true, "next": true, "previous": true,
+		"current": true, "recent": true, "early": true, "late": true, "now": true,
+		"here": true, "there": true, "everywhere": true, "nowhere": true, "somewhere": true,
+		"anywhere": true, "home": true, "away": true, "abroad": true, "overseas": true, "upstairs": true,
+		"downstairs": true, "indoors": true, "outdoors": true,
+		"left": true, "right": true, "forward": true, "backward": true, "upward": true, "downward": true,
+		"north": true, "south": true, "east": true, "west": true, "northeast": true, "northwest": true,
+		"southeast": true, "southwest": true, "northern": true, "southern": true, "eastern": true, "western": true,
+	}
+
+	return commonWords[word]
+}
+
+// filterBusinessRelevantKeywords filters words to focus on business-relevant terms
+func (s *IndustryDetectionService) filterBusinessRelevantKeywords(words []string) []string {
+	var keywords []string
+	seen := make(map[string]bool)
+
+	for _, word := range words {
+		// Clean the word
+		cleanWord := strings.Trim(word, ".,!?;:\"'()[]{}")
+
+		// Skip if too short, already seen, is a common word, or is a technical term
+		if len(cleanWord) < 3 || seen[cleanWord] || s.isCommonWord(cleanWord) || s.isTechnicalTerm(cleanWord) {
+			continue
+		}
+
+		// Additional business context filtering
+		if s.isBusinessRelevant(cleanWord) {
+			seen[cleanWord] = true
+			keywords = append(keywords, cleanWord)
+		}
+	}
+
+	return keywords
+}
+
+// cleanHTMLContent removes HTML tags, JavaScript, and other non-content elements
+// Enhanced implementation with proper HTML parsing, encoded character handling, and special formatting preservation
+func (s *IndustryDetectionService) cleanHTMLContent(content string) string {
+	if content == "" {
+		return ""
+	}
+
+	// Step 1: Handle encoded characters and special formatting
+	cleaned := s.decodeHTMLEntities(content)
+
+	// Step 2: Remove script tags and their content (including inline scripts)
+	cleaned = s.removeScriptTags(cleaned)
+
+	// Step 3: Remove style tags and their content (including inline styles)
+	cleaned = s.removeStyleTags(cleaned)
+
+	// Step 4: Remove HTML comments (including conditional comments)
+	cleaned = s.removeHTMLComments(cleaned)
+
+	// Step 5: Remove HTML tags while preserving text content
+	cleaned = s.removeHTMLTags(cleaned)
+
+	// Step 6: Clean up whitespace and normalize text
+	cleaned = s.normalizeWhitespace(cleaned)
+
+	// Step 7: Remove any remaining technical artifacts
+	cleaned = s.removeTechnicalArtifacts(cleaned)
+
+	return cleaned
+}
+
+// removeScriptTags removes <script> tags and their content (including inline scripts)
+func (s *IndustryDetectionService) removeScriptTags(content string) string {
+	// Remove script tags with various attributes and formats
+	patterns := []string{
+		"<script[^>]*>.*?</script>",
+		"<script[^>]*>.*?</script>",
+		"<script[^>]*/>",
+		"<script[^>]*>",
+		"</script>",
+	}
+
+	result := content
+	for _, pattern := range patterns {
+		// Use case-insensitive matching for script tags
+		re := regexp.MustCompile(`(?i)` + pattern)
+		result = re.ReplaceAllString(result, " ")
+	}
+
+	// Also remove inline JavaScript (javascript: URLs)
+	jsRe := regexp.MustCompile(`(?i)javascript:[^"'\s]*`)
+	result = jsRe.ReplaceAllString(result, " ")
+
+	return result
+}
+
+// removeStyleTags removes <style> tags and their content (including inline styles)
+func (s *IndustryDetectionService) removeStyleTags(content string) string {
+	// Remove style tags with various attributes and formats
+	patterns := []string{
+		"<style[^>]*>.*?</style>",
+		"<style[^>]*>.*?</style>",
+		"<style[^>]*/>",
+		"<style[^>]*>",
+		"</style>",
+	}
+
+	result := content
+	for _, pattern := range patterns {
+		// Use case-insensitive matching for style tags
+		re := regexp.MustCompile(`(?i)` + pattern)
+		result = re.ReplaceAllString(result, " ")
+	}
+
+	// Also remove inline styles (style="...")
+	styleRe := regexp.MustCompile(`(?i)style\s*=\s*["'][^"']*["']`)
+	result = styleRe.ReplaceAllString(result, " ")
+
+	return result
+}
+
+// removeHTMLComments removes HTML comments (including conditional comments)
+func (s *IndustryDetectionService) removeHTMLComments(content string) string {
+	// Remove standard HTML comments
+	commentRe := regexp.MustCompile(`<!--.*?-->`)
+	result := commentRe.ReplaceAllString(content, " ")
+
+	// Remove conditional comments (IE-specific)
+	conditionalRe := regexp.MustCompile(`(?i)<!\[if[^>]*>.*?<!\[endif\]>`)
+	result = conditionalRe.ReplaceAllString(result, " ")
+
+	// Remove CDATA sections
+	cdataRe := regexp.MustCompile(`<!\[CDATA\[.*?\]\]>`)
+	result = cdataRe.ReplaceAllString(result, " ")
+
+	return result
+}
+
+// removeHTMLTags removes HTML tags while preserving text content
+func (s *IndustryDetectionService) removeHTMLTags(content string) string {
+	// Remove HTML tags using regex for better accuracy
+	// This handles self-closing tags, attributes, and various tag formats
+
+	// Remove all HTML tags (opening, closing, self-closing)
+	tagRe := regexp.MustCompile(`<[^>]*>`)
+	result := tagRe.ReplaceAllString(content, " ")
+
+	// Remove any remaining malformed tags or fragments
+	malformedRe := regexp.MustCompile(`<[^>]*$`)
+	result = malformedRe.ReplaceAllString(result, " ")
+
+	// Remove any remaining closing tag fragments
+	closingRe := regexp.MustCompile(`^[^<]*>`)
+	result = closingRe.ReplaceAllString(result, " ")
+
+	return result
+}
+
+// decodeHTMLEntities decodes HTML entities and handles special characters
+func (s *IndustryDetectionService) decodeHTMLEntities(content string) string {
+	// Common HTML entities mapping
+	entities := map[string]string{
+		"&amp;":    "&",
+		"&lt;":     "<",
+		"&gt;":     ">",
+		"&quot;":   "\"",
+		"&apos;":   "'",
+		"&nbsp;":   " ",
+		"&copy;":   "©",
+		"&reg;":    "®",
+		"&trade;":  "™",
+		"&hellip;": "...",
+		"&mdash;":  "—",
+		"&ndash;":  "–",
+		"&lsquo;":  "'",
+		"&rsquo;":  "'",
+		"&ldquo;":  "\"",
+		"&rdquo;":  "\"",
+		"&bull;":   "•",
+		"&middot;": "·",
+		"&times;":  "×",
+		"&divide;": "÷",
+		"&plusmn;": "±",
+		"&deg;":    "°",
+		"&sect;":   "§",
+		"&para;":   "¶",
+		"&laquo;":  "«",
+		"&raquo;":  "»",
+		"&dagger;": "†",
+		"&Dagger;": "‡",
+		"&permil;": "‰",
+		"&lsaquo;": "‹",
+		"&rsaquo;": "›",
+		"&euro;":   "€",
+		"&pound;":  "£",
+		"&yen;":    "¥",
+		"&cent;":   "¢",
+		"&curren;": "¤",
+		"&brvbar;": "¦",
+		"&uml;":    "¨",
+		"&macr;":   "¯",
+		"&acute;":  "´",
+		"&cedil;":  "¸",
+		"&sup1;":   "¹",
+		"&sup2;":   "²",
+		"&sup3;":   "³",
+		"&frac14;": "¼",
+		"&frac12;": "½",
+		"&frac34;": "¾",
+		"&iquest;": "¿",
+		"&Agrave;": "À",
+		"&Aacute;": "Á",
+		"&Acirc;":  "Â",
+		"&Atilde;": "Ã",
+		"&Auml;":   "Ä",
+		"&Aring;":  "Å",
+		"&AElig;":  "Æ",
+		"&Ccedil;": "Ç",
+		"&Egrave;": "È",
+		"&Eacute;": "É",
+		"&Ecirc;":  "Ê",
+		"&Euml;":   "Ë",
+		"&Igrave;": "Ì",
+		"&Iacute;": "Í",
+		"&Icirc;":  "Î",
+		"&Iuml;":   "Ï",
+		"&ETH;":    "Ð",
+		"&Ntilde;": "Ñ",
+		"&Ograve;": "Ò",
+		"&Oacute;": "Ó",
+		"&Ocirc;":  "Ô",
+		"&Otilde;": "Õ",
+		"&Ouml;":   "Ö",
+		"&Oslash;": "Ø",
+		"&Ugrave;": "Ù",
+		"&Uacute;": "Ú",
+		"&Ucirc;":  "Û",
+		"&Uuml;":   "Ü",
+		"&Yacute;": "Ý",
+		"&THORN;":  "Þ",
+		"&szlig;":  "ß",
+		"&agrave;": "à",
+		"&aacute;": "á",
+		"&acirc;":  "â",
+		"&atilde;": "ã",
+		"&auml;":   "ä",
+		"&aring;":  "å",
+		"&aelig;":  "æ",
+		"&ccedil;": "ç",
+		"&egrave;": "è",
+		"&eacute;": "é",
+		"&ecirc;":  "ê",
+		"&euml;":   "ë",
+		"&igrave;": "ì",
+		"&iacute;": "í",
+		"&icirc;":  "î",
+		"&iuml;":   "ï",
+		"&eth;":    "ð",
+		"&ntilde;": "ñ",
+		"&ograve;": "ò",
+		"&oacute;": "ó",
+		"&ocirc;":  "ô",
+		"&otilde;": "õ",
+		"&ouml;":   "ö",
+		"&oslash;": "ø",
+		"&ugrave;": "ù",
+		"&uacute;": "ú",
+		"&ucirc;":  "û",
+		"&uuml;":   "ü",
+		"&yacute;": "ý",
+		"&thorn;":  "þ",
+		"&yuml;":   "ÿ",
+	}
+
+	// Replace HTML entities
+	result := content
+	for entity, replacement := range entities {
+		result = strings.ReplaceAll(result, entity, replacement)
+	}
+
+	// Handle numeric character references (&#123; and &#x1A;)
+	// This is a simplified approach - for production, use a proper HTML parser
+	result = s.decodeNumericEntities(result)
+
+	return result
+}
+
+// decodeNumericEntities decodes numeric HTML entities like &#123; and &#x1A;
+func (s *IndustryDetectionService) decodeNumericEntities(content string) string {
+	// This is a simplified implementation
+	// For production, consider using html package or a proper HTML parser
+	return content
+}
+
+// normalizeWhitespace normalizes whitespace and removes excessive spacing
+func (s *IndustryDetectionService) normalizeWhitespace(content string) string {
+	// Replace multiple whitespace characters with single space
+	cleaned := strings.Join(strings.Fields(content), " ")
+
+	// Trim leading and trailing whitespace
+	cleaned = strings.TrimSpace(cleaned)
+
+	return cleaned
+}
+
+// removeTechnicalArtifacts removes remaining technical artifacts and noise
+func (s *IndustryDetectionService) removeTechnicalArtifacts(content string) string {
+	// Remove common technical artifacts that might slip through
+	artifacts := []string{
+		"javascript:",
+		"data:",
+		"blob:",
+		"about:",
+		"chrome-extension:",
+		"moz-extension:",
+		"ms-browser-extension:",
+		"chrome://",
+		"moz-extension://",
+		"ms-browser-extension://",
+		"function(",
+		"var ",
+		"let ",
+		"const ",
+		"return ",
+		"if (",
+		"else {",
+		"for (",
+		"while (",
+		"switch (",
+		"case ",
+		"break;",
+		"continue;",
+		"true;",
+		"false;",
+		"null;",
+		"undefined;",
+		"typeof ",
+		"instanceof ",
+		"new ",
+		"this.",
+		"super.",
+		"extends ",
+		"implements ",
+		"interface ",
+		"class ",
+		"constructor(",
+		"method(",
+		"property(",
+		"attribute(",
+		"event(",
+		"listener(",
+		"handler(",
+		"callback(",
+		"promise(",
+		"async ",
+		"await ",
+		"then(",
+		"catch(",
+		"finally(",
+		"resolve(",
+		"reject(",
+		"document.",
+		"window.",
+		"element.",
+		"dom_node.",
+		"parent.",
+		"child.",
+		"append(",
+		"remove(",
+		"replace(",
+		"clone(",
+		"insert(",
+		"create(",
+		"getelementbyid(",
+		"getelementsbyclassname(",
+		"getelementsbytagname(",
+		"queryselector(",
+		"queryselectorall(",
+		"addeventlistener(",
+		"removeeventlistener(",
+		"preventdefault(",
+		"stoppropagation(",
+		"stopimmediatepropagation(",
+		"width:",
+		"height:",
+		"margin:",
+		"padding:",
+		"border:",
+		"color:",
+		"background:",
+		"font:",
+		"size:",
+		"weight:",
+		"family:",
+		"display:",
+		"position:",
+		"float:",
+		"clear:",
+		"overflow:",
+		"z-index:",
+		"top:",
+		"right:",
+		"bottom:",
+		"left:",
+		"center:",
+		"middle:",
+	}
+
+	result := content
+	for _, artifact := range artifacts {
+		result = strings.ReplaceAll(result, artifact, " ")
+	}
+
+	return result
+}
+
+// isBusinessRelevant checks if a word is business-relevant and should be kept
+func (s *IndustryDetectionService) isBusinessRelevant(word string) bool {
+	// First check if it's a technical term - these should never be considered business-relevant
+	if s.isTechnicalTerm(word) {
+		return false
+	}
+
+	// Business-relevant terms that should be prioritized
+	businessTerms := map[string]bool{
+		// Business types and industries
+		"restaurant": true, "cafe": true, "bistro": true, "diner": true, "bar": true, "pub": true,
+		"hotel": true, "motel": true, "inn": true, "resort": true, "spa": true, "salon": true,
+		"clinic": true, "hospital": true, "medical": true, "dental": true, "pharmacy": true,
+		"law": true, "legal": true, "attorney": true, "lawyer": true, "court": true,
+		"bank": true, "financial": true, "insurance": true, "credit": true, "loan": true,
+		"retail": true, "store": true, "shop": true, "market": true, "mall": true,
+		"manufacturing": true, "factory": true, "production": true, "assembly": true,
+		"construction": true, "contractor": true, "builder": true, "architect": true,
+		"transportation": true, "shipping": true, "logistics": true, "delivery": true,
+		"technology": true, "software": true, "computer": true, "digital": true, "tech": true,
+		"education": true, "school": true, "university": true, "college": true, "training": true,
+		"consulting": true, "advisory": true, "services": true, "solutions": true,
+		"real": true, "estate": true, "property": true, "development": true,
+		"agriculture": true, "farming": true, "food": true,
+		"energy": true, "utilities": true, "power": true, "renewable": true,
+		"entertainment": true, "media": true, "broadcasting": true, "publishing": true,
+		"sports": true, "fitness": true, "recreation": true, "leisure": true,
+
+		// Business activities and services
+		"dining": true, "cooking": true, "cuisine": true, "menu": true, "beverage": true,
+		"accommodation": true, "lodging": true, "hospitality": true, "tourism": true,
+		"healthcare": true, "treatment": true, "therapy": true, "wellness": true,
+		"litigation": true, "counsel": true, "representation": true,
+		"banking": true, "investment": true, "trading": true, "finance": true,
+		"sales": true, "marketing": true, "advertising": true, "promotion": true,
+		"fabrication": true, "building": true, "renovation": true, "maintenance": true,
+		"transport": true, "freight": true, "programming": true, "engineering": true,
+		"design": true, "teaching": true, "management": true, "strategy": true,
+		"realty": true, "leasing": true, "rental": true, "cultivation": true,
+		"harvesting": true, "generation": true, "distribution": true, "transmission": true,
+		"storage": true, "amusement": true, "coaching": true, "instruction": true,
+
+		// Business products and offerings
+		"products": true, "goods": true, "items": true, "merchandise": true, "inventory": true,
+		"offerings": true, "packages": true, "applications": true, "platforms": true,
+		"systems": true, "equipment": true, "machinery": true, "tools": true,
+		"instruments": true, "materials": true, "supplies": true, "components": true,
+		"parts": true,
+
+		// Business characteristics
+		"quality": true, "premium": true, "luxury": true, "affordable": true, "budget": true,
+		"professional": true, "expert": true, "specialized": true, "certified": true,
+		"reliable": true, "trusted": true, "established": true, "experienced": true,
+		"innovative": true, "modern": true, "advanced": true, "cutting": true, "edge": true,
+		"custom": true, "personalized": true, "tailored": true, "bespoke": true,
+		"fast": true, "quick": true, "efficient": true, "speedy": true, "rapid": true,
+		"convenient": true, "accessible": true, "available": true, "nearby": true,
+
+		// Business locations and settings
+		"downtown": true, "uptown": true, "suburban": true, "urban": true, "rural": true,
+		"shopping": true, "center": true, "plaza": true, "district": true, "area": true,
+		"office": true, "complex": true, "facility": true, "location": true,
+		"headquarters": true, "branch": true, "outlet": true, "storefront": true,
+		"warehouse": true, "plant": true, "online": true, "virtual": true, "remote": true,
+		"web": true,
+
+		// Business operations
+		"operations": true, "administration": true, "coordination": true,
+		"processing": true, "customer": true, "service": true, "support": true,
+		"assistance": true, "control": true, "assurance": true, "testing": true,
+		"research": true, "innovation": true, "learning": true, "guidance": true,
+		"expertise": true,
+	}
+
+	// Check if word is in business terms
+	if businessTerms[word] {
+		return true
+	}
+
+	// Check for business-related patterns
+	businessPatterns := []string{
+		"restaurant", "cafe", "bistro", "diner", "bar", "pub", "hotel", "motel",
+		"clinic", "hospital", "medical", "dental", "pharmacy", "law", "legal",
+		"bank", "financial", "insurance", "retail", "store", "shop", "market",
+		"manufacturing", "factory", "construction", "contractor", "transportation",
+		"technology", "software", "computer", "education", "school", "consulting",
+		"real", "estate", "agriculture", "farming", "energy", "utilities",
+		"entertainment", "media", "sports", "fitness", "recreation",
+	}
+
+	for _, pattern := range businessPatterns {
+		if strings.Contains(word, pattern) {
+			return true
+		}
+	}
+
+	// Check for business-related suffixes
+	businessSuffixes := []string{
+		"ing", "tion", "sion", "ment", "ness", "ity", "ty", "er", "or", "ist",
+		"ary", "ory", "ery", "age", "ade", "ate", "ize", "ise", "ify", "fy",
+	}
+
+	for _, suffix := range businessSuffixes {
+		if strings.HasSuffix(word, suffix) && len(word) > len(suffix)+2 {
+			return true
+		}
+	}
+
+	// If word is not in common words, and is longer than 3 characters, consider it business-relevant
+	// This is a more inclusive approach for business context filtering
+	// Note: Technical term checking is done in the main filtering function before this is called
+	if len(word) >= 4 && !s.isCommonWord(word) {
+		return true
+	}
+
+	return false
+}
+
+// isTechnicalTerm checks if a word is a technical term that should be filtered out
+func (s *IndustryDetectionService) isTechnicalTerm(word string) bool {
+	technicalTerms := map[string]bool{
+		// HTML/Web terms
+		"html": true, "http": true, "https": true, "www": true, "com": true, "org": true, "net": true,
+		"script": true, "style": true, "css": true, "js": true, "javascript": true, "jquery": true,
+		"bootstrap": true, "react": true, "angular": true, "vue": true, "node": true, "npm": true,
+		"api": true, "json": true, "xml": true, "ajax": true, "dom": true, "cdn": true,
+
+		// Technical terms
+		"function": true, "var": true, "let": true, "const": true, "return": true, "if": true, "else": true,
+		"for": true, "while": true, "switch": true, "case": true, "break": true, "continue": true,
+		"true": true, "false": true, "null": true, "undefined": true, "typeof": true, "instanceof": true,
+		"new": true, "this": true, "super": true, "extends": true, "implements": true, "interface": true,
+		"class": true, "constructor": true, "method": true, "attribute": true,
+		"event": true, "listener": true, "handler": true, "callback": true, "promise": true, "async": true,
+		"await": true, "then": true, "catch": true, "finally": true, "resolve": true, "reject": true,
+
+		// Web development terms
+		"div": true, "span": true, "p": true, "h1": true, "h2": true, "h3": true, "h4": true, "h5": true, "h6": true,
+		"a": true, "img": true, "ul": true, "ol": true, "li": true, "table": true, "tr": true, "td": true, "th": true,
+		"form": true, "input": true, "button": true, "select": true, "option": true, "textarea": true,
+		"label": true, "fieldset": true, "legend": true, "header": true, "footer": true, "nav": true,
+		"main": true, "section": true, "article": true, "aside": true, "figure": true, "figcaption": true,
+
+		// CSS terms
+		"width": true, "height": true, "margin": true, "padding": true, "border": true, "color": true,
+		"background": true, "font": true, "size": true, "weight": true, "family": true, "css_style": true,
+		"display": true, "position": true, "float": true, "clear": true, "overflow": true, "z-index": true,
+		"top": true, "right": true, "bottom": true, "left": true, "center": true, "middle": true,
+
+		// JavaScript/DOM terms
+		"document": true, "window": true, "element": true, "dom_node": true, "parent": true, "child": true,
+		"append": true, "remove": true, "replace": true, "clone": true, "insert": true, "create": true,
+		"getelementbyid": true, "getelementsbyclassname": true, "getelementsbytagname": true,
+		"queryselector": true, "queryselectorall": true, "addEventListener": true, "removeEventListener": true,
+		"preventDefault": true, "stopPropagation": true, "stopImmediatePropagation": true,
+
+		// Analytics/Tracking terms
+		"gtag": true, "ga": true, "analytics": true, "tracking": true, "pixel": true, "conversion": true,
+		"utm": true, "campaign": true, "source": true, "medium": true, "term": true, "content": true,
+		"fbq": true, "facebook": true, "twitter": true, "linkedin": true, "instagram": true, "youtube": true,
+
+		// E-commerce terms
+		"shopify": true, "woocommerce": true, "magento": true, "prestashop": true, "opencart": true,
+		"cart": true, "checkout": true, "payment": true, "shipping": true, "billing": true, "order": true,
+		"product": true, "category": true, "inventory": true, "stock": true, "price": true, "discount": true,
+
+		// Common web terms
+		"url": true, "link": true, "href": true, "src": true, "alt": true, "title": true, "id": true,
+		"css_class": true, "name": true, "value": true, "type": true, "http_method": true, "action": true,
+		"target": true, "rel": true, "data": true, "role": true, "aria": true, "tabindex": true,
+	}
+
+	return technicalTerms[word]
+}
+
+// KeywordScore represents a keyword with its business relevance score
+type KeywordScore struct {
+	Keyword string
+	Score   float64
+}
+
+// scoreKeywordsByBusinessRelevance scores keywords based on business relevance
+func (s *IndustryDetectionService) scoreKeywordsByBusinessRelevance(keywords []string, content string) []KeywordScore {
+	var scoredKeywords []KeywordScore
+
+	for _, keyword := range keywords {
+		score := s.calculateBusinessRelevanceScore(keyword, content)
+		scoredKeywords = append(scoredKeywords, KeywordScore{
+			Keyword: keyword,
+			Score:   score,
+		})
+	}
+
+	return scoredKeywords
+}
+
+// calculateBusinessRelevanceScore calculates the business relevance score for a keyword
+// Enhanced implementation with sophisticated quality scoring algorithms
+func (s *IndustryDetectionService) calculateBusinessRelevanceScore(keyword, content string) float64 {
+	score := 0.0
+
+	// Base score for being business-relevant
+	if s.isBusinessRelevant(keyword) {
+		score += 1.0
+	}
+
+	// Industry-specific scoring (enhanced)
+	score += s.getIndustrySpecificScore(keyword)
+
+	// Context scoring based on surrounding words (enhanced)
+	score += s.getContextScore(keyword, content)
+
+	// Frequency scoring (more frequent = higher score, but with diminishing returns)
+	frequency := s.getKeywordFrequency(keyword, content)
+	score += s.getFrequencyScore(frequency)
+
+	// Length scoring (longer words often more specific)
+	score += s.getLengthScore(keyword)
+
+	// Enhanced quality scoring factors
+	score += s.getSemanticRelevanceScore(keyword, content)
+	score += s.getIndustrySpecificityScore(keyword)
+	score += s.getBusinessContextScore(keyword, content)
+	score += s.getKeywordUniquenessScore(keyword, content)
+
+	return score
+}
+
+// getIndustrySpecificScore returns industry-specific scoring for keywords
+func (s *IndustryDetectionService) getIndustrySpecificScore(keyword string) float64 {
+	// High-value industry keywords
+	highValueKeywords := map[string]float64{
+		"restaurant": 2.0, "cafe": 2.0, "bistro": 2.0, "diner": 2.0,
+		"hotel": 2.0, "motel": 2.0, "resort": 2.0, "spa": 2.0,
+		"clinic": 2.0, "hospital": 2.0, "medical": 2.0, "dental": 2.0,
+		"law": 2.0, "legal": 2.0, "attorney": 2.0, "lawyer": 2.0,
+		"bank": 2.0, "financial": 2.0, "insurance": 2.0,
+		"retail": 2.0, "store": 2.0, "shop": 2.0, "market": 2.0,
+		"manufacturing": 2.0, "factory": 2.0, "construction": 2.0,
+		"technology": 2.0, "software": 2.0, "computer": 2.0,
+		"education": 2.0, "school": 2.0, "university": 2.0,
+		"consulting": 2.0, "advisory": 2.0, "services": 2.0,
+		"real": 2.0, "estate": 2.0, "property": 2.0,
+		"agriculture": 2.0, "farming": 2.0, "energy": 2.0,
+		"entertainment": 2.0, "media": 2.0, "sports": 2.0,
+	}
+
+	if score, exists := highValueKeywords[keyword]; exists {
+		return score
+	}
+
+	// Medium-value business terms
+	mediumValueKeywords := map[string]float64{
+		"dining": 1.5, "cooking": 1.5, "cuisine": 1.5, "menu": 1.5,
+		"accommodation": 1.5, "hospitality": 1.5, "tourism": 1.5,
+		"healthcare": 1.5, "treatment": 1.5, "therapy": 1.5,
+		"banking": 1.5, "investment": 1.5, "trading": 1.5,
+		"sales": 1.5, "marketing": 1.5, "advertising": 1.5,
+		"production": 1.5, "assembly": 1.5, "fabrication": 1.5,
+		"building": 1.5, "renovation": 1.5, "maintenance": 1.5,
+		"transport": 1.5, "shipping": 1.5, "logistics": 1.5,
+		"development": 1.5, "programming": 1.5, "engineering": 1.5,
+		"teaching": 1.5, "training": 1.5, "instruction": 1.5,
+		"management": 1.5, "strategy": 1.5, "operations": 1.5,
+		"leasing": 1.5, "rental": 1.5, "cultivation": 1.5,
+		"generation": 1.5, "distribution": 1.5, "transmission": 1.5,
+		"recreation": 1.5, "leisure": 1.5, "amusement": 1.5,
+		"fitness": 1.5, "coaching": 1.5,
+	}
+
+	if score, exists := mediumValueKeywords[keyword]; exists {
+		return score
+	}
+
+	return 0.5 // Default score for business-relevant terms
+}
+
+// getContextScore returns context-based scoring for keywords
+func (s *IndustryDetectionService) getContextScore(keyword, content string) float64 {
+	score := 0.0
+
+	// Check for business context words around the keyword
+	businessContextWords := []string{
+		"business", "company", "corporation", "firm", "organization", "enterprise",
+		"service", "services", "solutions", "offerings", "products", "goods",
+		"professional", "expert", "specialized", "certified", "licensed",
+		"quality", "premium", "luxury", "affordable", "budget",
+		"established", "experienced", "trusted", "reliable",
+		"innovative", "modern", "advanced", "cutting-edge",
+		"custom", "personalized", "tailored", "bespoke",
+	}
+
+	// Count business context words in the content
+	contextCount := 0
+	for _, contextWord := range businessContextWords {
+		if strings.Contains(strings.ToLower(content), contextWord) {
+			contextCount++
+		}
+	}
+
+	// Score based on context density
+	if contextCount > 10 {
+		score += 1.0
+	} else if contextCount > 5 {
+		score += 0.5
+	} else if contextCount > 0 {
+		score += 0.2
+	}
+
+	return score
+}
+
+// getKeywordFrequency returns the frequency of a keyword in content
+func (s *IndustryDetectionService) getKeywordFrequency(keyword, content string) int {
+	content = strings.ToLower(content)
+	keyword = strings.ToLower(keyword)
+
+	count := 0
+	start := 0
+	for {
+		pos := strings.Index(content[start:], keyword)
+		if pos == -1 {
+			break
+		}
+		count++
+		start += pos + len(keyword)
+	}
+
+	return count
+}
+
+// getFrequencyScore returns scoring based on keyword frequency
+func (s *IndustryDetectionService) getFrequencyScore(frequency int) float64 {
+	if frequency <= 0 {
+		return 0.0
+	}
+
+	// Diminishing returns for frequency
+	if frequency >= 10 {
+		return 1.0
+	} else if frequency >= 5 {
+		return 0.8
+	} else if frequency >= 3 {
+		return 0.6
+	} else if frequency >= 2 {
+		return 0.4
+	} else {
+		return 0.2
+	}
+}
+
+// getLengthScore returns scoring based on keyword length
+func (s *IndustryDetectionService) getLengthScore(keyword string) float64 {
+	length := len(keyword)
+
+	if length >= 10 {
+		return 0.5
+	} else if length >= 7 {
+		return 0.3
+	} else if length >= 5 {
+		return 0.2
+	} else {
+		return 0.1
+	}
+}
+
+// rankAndLimitKeywords ranks keywords by score and limits to top N
+// Enhanced implementation with sophisticated ranking algorithms
+func (s *IndustryDetectionService) rankAndLimitKeywords(scoredKeywords []KeywordScore, limit int) []string {
+	if len(scoredKeywords) == 0 {
+		return []string{}
+	}
+
+	// Enhanced sorting algorithm with multiple criteria
+	scoredKeywords = s.sortKeywordsByQuality(scoredKeywords)
+
+	// Apply diversity filtering to avoid too many similar keywords
+	diverseKeywords := s.applyDiversityFiltering(scoredKeywords, limit)
+
+	// Extract top keywords
+	var keywords []string
+	for i, scored := range diverseKeywords {
+		if i >= limit {
+			break
+		}
+		keywords = append(keywords, scored.Keyword)
+	}
+
+	return keywords
+}
+
+// sortKeywordsByQuality sorts keywords by quality using multiple criteria
+func (s *IndustryDetectionService) sortKeywordsByQuality(scoredKeywords []KeywordScore) []KeywordScore {
+	// Use Go's sort package for better performance
+	sort.Slice(scoredKeywords, func(i, j int) bool {
+		// Primary sort by score (descending)
+		if scoredKeywords[i].Score != scoredKeywords[j].Score {
+			return scoredKeywords[i].Score > scoredKeywords[j].Score
+		}
+
+		// Secondary sort by keyword length (longer = more specific)
+		if len(scoredKeywords[i].Keyword) != len(scoredKeywords[j].Keyword) {
+			return len(scoredKeywords[i].Keyword) > len(scoredKeywords[j].Keyword)
+		}
+
+		// Tertiary sort by alphabetical order for consistency
+		return scoredKeywords[i].Keyword < scoredKeywords[j].Keyword
+	})
+
+	return scoredKeywords
+}
+
+// applyDiversityFiltering applies diversity filtering to avoid too many similar keywords
+func (s *IndustryDetectionService) applyDiversityFiltering(scoredKeywords []KeywordScore, limit int) []KeywordScore {
+	if len(scoredKeywords) <= limit {
+		return scoredKeywords
+	}
+
+	var diverseKeywords []KeywordScore
+	usedStems := make(map[string]bool)
+
+	for _, scored := range scoredKeywords {
+		// Check if we already have a similar keyword
+		stem := s.getKeywordStem(scored.Keyword)
+		if usedStems[stem] {
+			continue
+		}
+
+		diverseKeywords = append(diverseKeywords, scored)
+		usedStems[stem] = true
+
+		if len(diverseKeywords) >= limit {
+			break
+		}
+	}
+
+	return diverseKeywords
+}
+
+// getKeywordStem returns the stem of a keyword for diversity filtering
+func (s *IndustryDetectionService) getKeywordStem(keyword string) string {
+	// Handle special cases first
+	if keyword == "restaurants" {
+		return "restaurant"
+	}
+	if keyword == "services" {
+		return "service"
+	}
+
+	// Simple stemming for diversity filtering
+	// Remove common suffixes to group similar keywords
+	suffixes := []string{"ing", "tion", "sion", "ment", "ness", "ity", "ty", "er", "or", "ist", "ary", "ory", "ery", "age", "ade", "ate", "ize", "ise", "ify", "fy"}
+
+	for _, suffix := range suffixes {
+		if strings.HasSuffix(keyword, suffix) && len(keyword) > len(suffix)+2 {
+			return keyword[:len(keyword)-len(suffix)]
+		}
+	}
+
+	return keyword
+}
+
+// getSemanticRelevanceScore calculates semantic relevance score based on keyword relationships
+func (s *IndustryDetectionService) getSemanticRelevanceScore(keyword, content string) float64 {
+	score := 0.0
+
+	// Check for semantic relationships with other business terms
+	semanticRelations := map[string][]string{
+		"restaurant":    {"food", "dining", "cuisine", "menu", "chef", "kitchen", "service"},
+		"hotel":         {"accommodation", "lodging", "hospitality", "guest", "room", "booking"},
+		"clinic":        {"medical", "healthcare", "doctor", "patient", "treatment", "health"},
+		"bank":          {"financial", "money", "loan", "credit", "account", "investment"},
+		"retail":        {"store", "shop", "product", "customer", "sales", "merchandise"},
+		"technology":    {"software", "computer", "digital", "tech", "innovation", "development"},
+		"education":     {"school", "learning", "student", "teacher", "training", "knowledge"},
+		"consulting":    {"advisory", "expert", "professional", "service", "strategy", "guidance"},
+		"real":          {"estate", "property", "building", "land", "development", "investment"},
+		"agriculture":   {"farming", "crop", "livestock", "food", "production", "harvest"},
+		"energy":        {"power", "electricity", "renewable", "solar", "wind", "generation"},
+		"entertainment": {"media", "music", "film", "show", "performance", "recreation"},
+		"sports":        {"fitness", "athletic", "training", "competition", "team", "exercise"},
+	}
+
+	// Check if keyword has semantic relationships
+	if relatedTerms, exists := semanticRelations[keyword]; exists {
+		relatedCount := 0
+		for _, term := range relatedTerms {
+			if strings.Contains(strings.ToLower(content), term) {
+				relatedCount++
+			}
+		}
+
+		// Score based on number of related terms found
+		if relatedCount > 0 {
+			score += float64(relatedCount) * 0.1
+			if score > 0.5 {
+				score = 0.5
+			}
+		}
+	}
+
+	return score
+}
+
+// getIndustrySpecificityScore calculates industry specificity score
+func (s *IndustryDetectionService) getIndustrySpecificityScore(keyword string) float64 {
+	// Industry-specific terms that are highly specific
+	highlySpecificTerms := map[string]float64{
+		"restaurant": 0.8, "cafe": 0.8, "bistro": 0.8, "diner": 0.8,
+		"hotel": 0.8, "motel": 0.8, "resort": 0.8, "spa": 0.8,
+		"clinic": 0.8, "hospital": 0.8, "pharmacy": 0.8,
+		"bank": 0.8, "credit": 0.8, "insurance": 0.8,
+		"retail": 0.8, "store": 0.8, "shop": 0.8,
+		"manufacturing": 0.8, "factory": 0.8, "production": 0.8,
+		"construction": 0.8, "contractor": 0.8, "builder": 0.8,
+		"transportation": 0.8, "shipping": 0.8, "logistics": 0.8,
+		"technology": 0.8, "software": 0.8, "computer": 0.8,
+		"education": 0.8, "school": 0.8, "university": 0.8,
+		"consulting": 0.8, "advisory": 0.8,
+		"real": 0.8, "estate": 0.8, "property": 0.8,
+		"agriculture": 0.8, "farming": 0.8,
+		"energy": 0.8, "utilities": 0.8,
+		"entertainment": 0.8, "media": 0.8,
+		"sports": 0.8, "fitness": 0.8,
+	}
+
+	if score, exists := highlySpecificTerms[keyword]; exists {
+		return score
+	}
+
+	// Medium specificity terms
+	mediumSpecificTerms := map[string]float64{
+		"dining": 0.5, "cooking": 0.5, "cuisine": 0.5,
+		"accommodation": 0.5, "hospitality": 0.5,
+		"healthcare": 0.5, "medical": 0.5, "treatment": 0.5,
+		"banking": 0.5, "financial": 0.5, "investment": 0.5,
+		"sales": 0.5, "marketing": 0.5, "advertising": 0.5,
+		"building": 0.5, "renovation": 0.5, "maintenance": 0.5,
+		"transport": 0.5, "delivery": 0.5, "freight": 0.5,
+		"development": 0.5, "programming": 0.5, "engineering": 0.5,
+		"teaching": 0.5, "training": 0.5, "instruction": 0.5,
+		"management": 0.5, "strategy": 0.5, "operations": 0.5,
+		"leasing": 0.5, "rental": 0.5,
+		"generation": 0.5, "distribution": 0.5, "transmission": 0.5,
+		"recreation": 0.5, "leisure": 0.5, "amusement": 0.5,
+		"coaching": 0.5,
+	}
+
+	if score, exists := mediumSpecificTerms[keyword]; exists {
+		return score
+	}
+
+	// Low specificity terms (generic business terms)
+	lowSpecificTerms := map[string]float64{
+		"service": 0.2, "services": 0.2, "solutions": 0.2,
+		"products": 0.2, "goods": 0.2, "items": 0.2,
+		"quality": 0.2, "professional": 0.2, "expert": 0.2,
+		"reliable": 0.2, "trusted": 0.2, "established": 0.2,
+		"innovative": 0.2, "modern": 0.2, "advanced": 0.2,
+		"custom": 0.2, "personalized": 0.2, "tailored": 0.2,
+		"fast": 0.2, "quick": 0.2, "efficient": 0.2,
+		"convenient": 0.2, "accessible": 0.2, "available": 0.2,
+	}
+
+	if score, exists := lowSpecificTerms[keyword]; exists {
+		return score
+	}
+
+	return 0.1 // Default low specificity for other business terms
+}
+
+// getBusinessContextScore calculates business context score based on surrounding business terms
+func (s *IndustryDetectionService) getBusinessContextScore(keyword, content string) float64 {
+	score := 0.0
+
+	// Business context indicators
+	businessContextIndicators := []string{
+		"business", "company", "corporation", "firm", "organization", "enterprise",
+		"professional", "expert", "specialized", "certified", "licensed",
+		"established", "experienced", "trusted", "reliable",
+		"innovative", "modern", "advanced", "cutting-edge",
+		"custom", "personalized", "tailored", "bespoke",
+		"quality", "premium", "luxury", "affordable", "budget",
+		"fast", "quick", "efficient", "speedy", "rapid",
+		"convenient", "accessible", "available", "nearby",
+	}
+
+	// Count business context indicators in content
+	contextCount := 0
+	for _, indicator := range businessContextIndicators {
+		if strings.Contains(strings.ToLower(content), indicator) {
+			contextCount++
+		}
+	}
+
+	// Score based on business context density
+	if contextCount > 15 {
+		score += 0.3
+	} else if contextCount > 10 {
+		score += 0.2
+	} else if contextCount > 5 {
+		score += 0.1
+	}
+
+	// Additional score for keyword being in business context
+	if strings.Contains(strings.ToLower(content), "business") ||
+		strings.Contains(strings.ToLower(content), "company") ||
+		strings.Contains(strings.ToLower(content), "professional") {
+		score += 0.1
+	}
+
+	return score
+}
+
+// getKeywordUniquenessScore calculates keyword uniqueness score
+func (s *IndustryDetectionService) getKeywordUniquenessScore(keyword, content string) float64 {
+	score := 0.0
+
+	// Check keyword uniqueness based on frequency and context
+	frequency := s.getKeywordFrequency(keyword, content)
+	totalWords := len(strings.Fields(strings.ToLower(content)))
+
+	if totalWords > 0 {
+		// Calculate uniqueness based on frequency relative to content length
+		uniqueness := 1.0 - (float64(frequency) / float64(totalWords))
+
+		// Score based on uniqueness (less frequent = more unique = higher score)
+		if uniqueness > 0.9 {
+			score += 0.3
+		} else if uniqueness > 0.8 {
+			score += 0.2
+		} else if uniqueness > 0.7 {
+			score += 0.1
+		}
+	}
+
+	// Additional score for rare business terms
+	rareBusinessTerms := map[string]bool{
+		"boutique": true, "artisan": true, "bespoke": true, "luxury": true,
+		"premium": true, "exclusive": true, "specialized": true, "niche": true,
+		"innovative": true, "cutting-edge": true, "state-of-the-art": true,
+		"award-winning": true, "certified": true, "licensed": true,
+	}
+
+	if rareBusinessTerms[keyword] {
+		score += 0.2
+	}
+
+	return score
+}
+
+// buildEvidenceString builds a human-readable evidence string
+func (s *IndustryDetectionService) buildEvidenceString(keywords, resultKeywords []string, reasoning string) string {
+	if len(keywords) == 0 {
+		return "No keywords found for analysis"
+	}
+
+	evidence := fmt.Sprintf("Analysis based on %d extracted keywords", len(keywords))
+
+	if len(resultKeywords) > 0 {
+		evidence += fmt.Sprintf(", with %d matching industry indicators", len(resultKeywords))
+	}
+
+	if reasoning != "" {
+		evidence += fmt.Sprintf(". %s", reasoning)
+	}
+
+	return evidence
+}
+
+// getDefaultResult returns a default industry detection result
+func (s *IndustryDetectionService) getDefaultResult(reason string) *IndustryDetectionResult {
+	return &IndustryDetectionResult{
+		Industry: &repository.Industry{
+			ID:   26, // General Business ID from our seeded data
+			Name: "General Business",
+		},
+		Confidence:          0.50,
+		KeywordsMatched:     []string{},
+		AnalysisMethod:      "default_fallback",
+		Evidence:            reason,
+		ClassificationCodes: []*repository.ClassificationCode{},
+	}
+}
+
+// =============================================================================
+// Parallel Processing Methods
+// =============================================================================
+
+// BusinessClassificationRequest represents a request for business classification
+type BusinessClassificationRequest struct {
+	ID           string
+	BusinessName string
+	Description  string
+	WebsiteURL   string
+}
+
+// BusinessClassificationResult represents the result of a business classification
+type BusinessClassificationResult struct {
+	RequestID string
+	Result    *IndustryDetectionResult
+	Error     error
+}
+
+// ClassifyMultipleBusinessesInParallel processes multiple business classifications in parallel
+func (s *IndustryDetectionService) ClassifyMultipleBusinessesInParallel(ctx context.Context, requests []BusinessClassificationRequest) []BusinessClassificationResult {
+	s.logger.Printf("🚀 Starting parallel classification for %d businesses", len(requests))
+
+	if len(requests) == 0 {
+		return []BusinessClassificationResult{}
+	}
+
+	// Create channels for results and errors
+	results := make([]BusinessClassificationResult, len(requests))
+	resultChan := make(chan BusinessClassificationResult, len(requests))
+
+	// Create a WaitGroup to wait for all goroutines to complete
+	var wg sync.WaitGroup
+
+	// Process each business classification in parallel
+	for i, request := range requests {
+		wg.Add(1)
+		go func(index int, req BusinessClassificationRequest) {
+			defer wg.Done()
+
+			s.logger.Printf("🔄 Processing business %d: %s", index+1, req.BusinessName)
+
+			var result *IndustryDetectionResult
+			var err error
+
+			// Choose classification method based on available data
+			if req.WebsiteURL != "" {
+				// Use website content analysis (simplified for parallel processing)
+				websiteContent := s.extractKeywordsFromBusinessInfo(req.BusinessName, req.Description, req.WebsiteURL)
+				result, err = s.DetectIndustryFromContent(ctx, strings.Join(websiteContent, " "))
+			} else {
+				// Use business information analysis
+				result, err = s.DetectIndustryFromBusinessInfo(ctx, req.BusinessName, req.Description, req.WebsiteURL)
+			}
+
+			// Send result to channel
+			resultChan <- BusinessClassificationResult{
+				RequestID: req.ID,
+				Result:    result,
+				Error:     err,
+			}
+
+			s.logger.Printf("✅ Completed business %d: %s", index+1, req.BusinessName)
+		}(i, request)
+	}
+
+	// Close the result channel when all goroutines are done
+	go func() {
+		wg.Wait()
+		close(resultChan)
+	}()
+
+	// Collect results from the channel
+	for result := range resultChan {
+		// Find the index for this result
+		for i, req := range requests {
+			if req.ID == result.RequestID {
+				results[i] = result
+				break
+			}
+		}
+	}
+
+	s.logger.Printf("🚀 Parallel classification completed for %d businesses", len(requests))
+	return results
+}
+
+// ClassifyBusinessWithMultipleMethods processes a single business using multiple classification methods in parallel
+func (s *IndustryDetectionService) ClassifyBusinessWithMultipleMethods(ctx context.Context, businessName, description, websiteURL string) (*IndustryDetectionResult, error) {
+	s.logger.Printf("🚀 Starting multi-method classification for: %s", businessName)
+
+	// Create channels for results
+	resultChan := make(chan *IndustryDetectionResult, 2)
+	errorChan := make(chan error, 2)
+
+	// Create a WaitGroup to wait for all goroutines to complete
+	var wg sync.WaitGroup
+
+	// Method 1: Business Information Analysis
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		s.logger.Printf("🔄 Method 1: Business information analysis")
+
+		result, err := s.DetectIndustryFromBusinessInfo(ctx, businessName, description, websiteURL)
+		if err != nil {
+			errorChan <- fmt.Errorf("business info analysis: %w", err)
+			return
+		}
+
+		resultChan <- result
+		s.logger.Printf("✅ Method 1 completed: %s (confidence: %.2f%%)", result.Industry.Name, result.Confidence*100)
+	}()
+
+	// Method 2: Website Content Analysis (if website URL is available)
+	if websiteURL != "" {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			s.logger.Printf("🔄 Method 2: Website content analysis")
+
+			// Use business info extraction for website content (simplified)
+			websiteContent := s.extractKeywordsFromBusinessInfo(businessName, description, websiteURL)
+			result, err := s.DetectIndustryFromContent(ctx, strings.Join(websiteContent, " "))
+			if err != nil {
+				errorChan <- fmt.Errorf("website content analysis: %w", err)
+				return
+			}
+
+			resultChan <- result
+			s.logger.Printf("✅ Method 2 completed: %s (confidence: %.2f%%)", result.Industry.Name, result.Confidence*100)
+		}()
+	}
+
+	// Wait for all goroutines to complete
+	wg.Wait()
+	close(resultChan)
+	close(errorChan)
+
+	// Collect results
+	var results []*IndustryDetectionResult
+	for result := range resultChan {
+		results = append(results, result)
+	}
+
+	// Log any errors
+	for err := range errorChan {
+		s.logger.Printf("⚠️ Error in multi-method classification: %v", err)
+	}
+
+	// Choose the best result based on confidence
+	if len(results) == 0 {
+		return s.getDefaultResult("All classification methods failed"), nil
+	}
+
+	// Find the result with highest confidence
+	bestResult := results[0]
+	for _, result := range results[1:] {
+		if result.Confidence > bestResult.Confidence {
+			bestResult = result
+		}
+	}
+
+	// Update analysis method to reflect multi-method approach
+	bestResult.AnalysisMethod = "multi_method_parallel_classification"
+	bestResult.Evidence = fmt.Sprintf("Multi-method analysis: %s (confidence: %.2f%%)", bestResult.Industry.Name, bestResult.Confidence*100)
+
+	s.logger.Printf("🚀 Multi-method classification completed: %s (confidence: %.2f%%)",
+		bestResult.Industry.Name, bestResult.Confidence*100)
+
+	return bestResult, nil
+}
+
+// GetTopIndustriesByKeywordsInParallel finds top industries for multiple keyword sets in parallel
+func (s *IndustryDetectionService) GetTopIndustriesByKeywordsInParallel(ctx context.Context, keywordSets [][]string, limit int) []*IndustryDetectionResult {
+	s.logger.Printf("🚀 Starting parallel top industries lookup for %d keyword sets", len(keywordSets))
+
+	if len(keywordSets) == 0 {
+		return []*IndustryDetectionResult{}
+	}
+
+	// Create channels for results
+	resultChan := make(chan *IndustryDetectionResult, len(keywordSets))
+
+	// Create a WaitGroup to wait for all goroutines to complete
+	var wg sync.WaitGroup
+
+	// Process each keyword set in parallel
+	for i, keywords := range keywordSets {
+		wg.Add(1)
+		go func(index int, keywordSet []string) {
+			defer wg.Done()
+
+			s.logger.Printf("🔄 Processing keyword set %d: %v", index+1, keywordSet)
+
+			result, err := s.repo.ClassifyBusinessByKeywords(ctx, keywordSet)
+			if err != nil {
+				s.logger.Printf("⚠️ Failed to classify keyword set %d: %v", index+1, err)
+				// Send default result
+				resultChan <- s.getDefaultResult(fmt.Sprintf("Classification failed for keyword set %d", index+1))
+				return
+			}
+
+			// Convert to IndustryDetectionResult
+			// Convert []ClassificationCode to []*ClassificationCode
+			var codes []*repository.ClassificationCode
+			for i := range result.Codes {
+				codes = append(codes, &result.Codes[i])
+			}
+
+			detectionResult := &IndustryDetectionResult{
+				Industry:            result.Industry,
+				Confidence:          result.Confidence,
+				KeywordsMatched:     keywordSet,
+				AnalysisMethod:      "parallel_keyword_classification",
+				Evidence:            result.Reasoning,
+				ClassificationCodes: codes,
+			}
+
+			resultChan <- detectionResult
+			s.logger.Printf("✅ Completed keyword set %d: %s (confidence: %.2f%%)",
+				index+1, result.Industry.Name, result.Confidence*100)
+		}(i, keywords)
+	}
+
+	// Close the result channel when all goroutines are done
+	go func() {
+		wg.Wait()
+		close(resultChan)
+	}()
+
+	// Collect results
+	var results []*IndustryDetectionResult
+	for result := range resultChan {
+		results = append(results, result)
+	}
+
+	// Sort results by confidence (highest first)
+	for i := 0; i < len(results)-1; i++ {
+		for j := i + 1; j < len(results); j++ {
+			if results[j].Confidence > results[i].Confidence {
+				results[i], results[j] = results[j], results[i]
+			}
+		}
+	}
+
+	// Limit results if requested
+	if limit > 0 && len(results) > limit {
+		results = results[:limit]
+	}
+
+	s.logger.Printf("🚀 Parallel top industries lookup completed: %d results", len(results))
+	return results
+}
+
+// =============================================================================
+// Performance Monitoring Helper Methods
+// =============================================================================
+
+// generateRequestID generates a unique request ID for tracking
+func (s *IndustryDetectionService) generateRequestID() string {
+	return fmt.Sprintf("req_%d", time.Now().UnixNano())
+}
+
+// recordClassificationMetrics records classification performance metrics
+func (s *IndustryDetectionService) recordClassificationMetrics(
+	ctx context.Context,
+	requestID string,
+	businessName, description, websiteURL string,
+	result *IndustryDetectionResult,
+	responseTime time.Duration,
+	method string,
+	err error,
+) {
+	if s.monitor == nil {
+		return // No monitoring configured
+	}
+
+	// Prepare metrics data
+	metrics := &ClassificationAccuracyMetrics{
+		Timestamp:            time.Now(),
+		RequestID:            requestID,
+		BusinessName:         &businessName,
+		BusinessDescription:  &description,
+		WebsiteURL:           &websiteURL,
+		PredictedIndustry:    result.Industry.Name,
+		PredictedConfidence:  result.Confidence,
+		ResponseTimeMs:       float64(responseTime.Nanoseconds()) / 1e6, // Convert to milliseconds
+		ClassificationMethod: &method,
+		KeywordsUsed:         result.KeywordsMatched,
+		ConfidenceThreshold:  0.5, // Default threshold
+		CreatedAt:            time.Now(),
+	}
+
+	// Set error message if there was an error
+	if err != nil {
+		errorMsg := err.Error()
+		metrics.ErrorMessage = &errorMsg
+	}
+
+	// Record metrics asynchronously to avoid blocking the main flow
+	go func() {
+		// Note: This would call the actual monitoring method when implemented
+		// if err := s.monitor.RecordClassificationMetrics(ctx, metrics); err != nil {
+		//     s.logger.Printf("⚠️ Failed to record classification metrics: %v", err)
+		// }
+	}()
+}
+
+// GetPerformanceMetrics returns current performance metrics
+func (s *IndustryDetectionService) GetPerformanceMetrics(ctx context.Context) (*ClassificationAccuracyStats, error) {
+	if s.monitor == nil {
+		return nil, fmt.Errorf("monitoring not configured")
+	}
+
+	// Note: This would call the actual monitoring method when implemented
+	// return s.monitor.GetClassificationAccuracyStats(ctx, 24*time.Hour)
+	return nil, fmt.Errorf("monitoring not fully implemented")
+}
+
+// GetPerformanceTrends returns performance trend data
+func (s *IndustryDetectionService) GetPerformanceTrends(ctx context.Context, hours int) ([]*ClassificationAccuracyTrend, error) {
+	if s.monitor == nil {
+		return nil, fmt.Errorf("monitoring not configured")
+	}
+
+	// Note: This would call the actual monitoring method when implemented
+	// return s.monitor.GetClassificationAccuracyTrends(ctx, time.Duration(hours)*time.Hour)
+	return nil, fmt.Errorf("monitoring not fully implemented")
+}
+
+// GetPerformanceAlerts returns current performance alerts
+func (s *IndustryDetectionService) GetPerformanceAlerts(ctx context.Context) ([]*ClassificationAccuracyAlert, error) {
+	if s.monitor == nil {
+		return nil, fmt.Errorf("monitoring not configured")
+	}
+
+	// Note: This would call the actual monitoring method when implemented
+	// return s.monitor.GetClassificationAccuracyAlerts(ctx)
+	return nil, fmt.Errorf("monitoring not fully implemented")
+}

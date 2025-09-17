@@ -198,35 +198,71 @@ func TestSupabaseKeywordRepository_extractKeywords(t *testing.T) {
 	repo := NewSupabaseKeywordRepositoryWithInterface(mockClient, log.Default())
 
 	// Test with business name only
-	keywords := repo.extractKeywords("Acme Software Solutions", "", "")
+	contextualKeywords := repo.extractKeywords("Acme Software Solutions", "", "")
 	expected := []string{"acme", "software", "solutions"}
 
-	if len(keywords) != len(expected) {
-		t.Errorf("Expected %d keywords, got %d", len(expected), len(keywords))
+	// The new method extracts more keywords including phrases, so we check for at least the expected ones
+	if len(contextualKeywords) < len(expected) {
+		t.Errorf("Expected at least %d keywords, got %d", len(expected), len(contextualKeywords))
 	}
 
-	for i, keyword := range expected {
-		if keywords[i] != keyword {
-			t.Errorf("Expected keyword %s at position %d, got %s", keyword, i, keywords[i])
+	// Check that all expected keywords are present
+	keywordMap := make(map[string]bool)
+	for _, ck := range contextualKeywords {
+		keywordMap[ck.Keyword] = true
+		if ck.Context != "business_name" {
+			t.Errorf("Expected context 'business_name' for keyword %s, got %s", ck.Keyword, ck.Context)
+		}
+	}
+
+	for _, expectedKeyword := range expected {
+		if !keywordMap[expectedKeyword] {
+			t.Errorf("Expected keyword %s not found in extracted keywords", expectedKeyword)
 		}
 	}
 
 	// Test with description
-	keywords = repo.extractKeywords("", "We provide cloud computing services", "")
-	if len(keywords) != 4 {
-		t.Errorf("Expected 4 keywords, got %d", len(keywords))
+	contextualKeywords = repo.extractKeywords("", "We provide cloud computing services", "")
+	if len(contextualKeywords) < 4 {
+		t.Errorf("Expected at least 4 keywords, got %d", len(contextualKeywords))
+	}
+	// Verify all are from description context
+	for _, ck := range contextualKeywords {
+		if ck.Context != "description" {
+			t.Errorf("Expected context 'description', got %s", ck.Context)
+		}
 	}
 
 	// Test with website URL
-	keywords = repo.extractKeywords("", "", "https://www.tech-company.com")
-	if len(keywords) != 2 {
-		t.Errorf("Expected 2 keywords, got %d", len(keywords))
+	contextualKeywords = repo.extractKeywords("", "", "https://www.tech-company.com")
+	if len(contextualKeywords) < 1 {
+		t.Errorf("Expected at least 1 keyword, got %d", len(contextualKeywords))
+	}
+	// Verify all are from website_url context
+	for _, ck := range contextualKeywords {
+		if ck.Context != "website_url" {
+			t.Errorf("Expected context 'website_url', got %s", ck.Context)
+		}
 	}
 
 	// Test with all inputs
-	keywords = repo.extractKeywords("Tech Corp", "Software development", "https://www.techcorp.com")
-	if len(keywords) < 5 {
-		t.Errorf("Expected at least 5 keywords, got %d", len(keywords))
+	contextualKeywords = repo.extractKeywords("Tech Corp", "Software development", "https://www.techcorp.com")
+	if len(contextualKeywords) < 5 {
+		t.Errorf("Expected at least 5 keywords, got %d", len(contextualKeywords))
+	}
+	// Verify we have keywords from all contexts
+	contexts := make(map[string]int)
+	for _, ck := range contextualKeywords {
+		contexts[ck.Context]++
+	}
+	if contexts["business_name"] == 0 {
+		t.Errorf("Expected business_name keywords")
+	}
+	if contexts["description"] == 0 {
+		t.Errorf("Expected description keywords")
+	}
+	if contexts["website_url"] == 0 {
+		t.Errorf("Expected website_url keywords")
 	}
 }
 

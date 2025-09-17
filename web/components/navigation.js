@@ -418,10 +418,11 @@ class KYBNavigation {
                     min-height: 100vh;
                 }
 
-                /* Mobile Responsive */
+                /* Enhanced Mobile Responsive Design */
                 @media (max-width: 1024px) {
                     .kyb-sidebar {
                         transform: translateX(-100%);
+                        transition: transform 0.3s ease-in-out;
                     }
 
                     .kyb-sidebar.open {
@@ -434,6 +435,10 @@ class KYBNavigation {
 
                     .sidebar-toggle {
                         display: block;
+                        min-width: 44px;
+                        min-height: 44px;
+                        touch-action: manipulation;
+                        -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
                     }
 
                     .brand-text {
@@ -442,6 +447,19 @@ class KYBNavigation {
 
                     .kyb-sidebar {
                         width: 260px;
+                    }
+
+                    /* Enhanced touch interactions */
+                    .nav-link {
+                        min-height: 44px;
+                        touch-action: manipulation;
+                        -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+                        transition: background-color 0.2s ease;
+                    }
+
+                    .nav-link:active {
+                        background-color: rgba(52, 152, 219, 0.1);
+                        transform: scale(0.98);
                     }
                 }
 
@@ -452,15 +470,20 @@ class KYBNavigation {
                     }
 
                     .sidebar-header {
-                        padding: 15px;
+                        padding: 16px 20px;
+                        min-height: 60px;
                     }
 
                     .brand-link {
                         font-size: 1.2rem;
+                        min-height: 44px;
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
                     }
 
                     .brand-link i {
-                        font-size: 1.4rem;
+                        font-size: 1.5rem;
                     }
 
                     .nav-section {
@@ -469,6 +492,8 @@ class KYBNavigation {
 
                     .nav-section-title {
                         margin: 0 15px 12px;
+                        font-size: 0.9rem;
+                        padding: 12px 20px 8px;
                     }
 
                     .nav-item {
@@ -476,7 +501,83 @@ class KYBNavigation {
                     }
 
                     .nav-link {
-                        padding: 14px 16px;
+                        padding: 16px 20px;
+                        font-size: 16px;
+                        min-height: 48px;
+                    }
+
+                    .nav-text {
+                        font-size: 1rem;
+                    }
+
+                    /* Enhanced mobile sidebar toggle */
+                    .sidebar-toggle {
+                        min-width: 48px;
+                        min-height: 48px;
+                        font-size: 1.3rem;
+                        border-radius: 12px;
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    .kyb-sidebar {
+                        width: 100%;
+                        max-width: 100%;
+                    }
+
+                    .sidebar-header {
+                        padding: 20px;
+                        min-height: 70px;
+                    }
+
+                    .brand-link {
+                        font-size: 1.3rem;
+                    }
+
+                    .brand-link i {
+                        font-size: 1.8rem;
+                    }
+
+                    .nav-section-title {
+                        font-size: 1rem;
+                        padding: 16px 20px 12px;
+                    }
+
+                    .nav-link {
+                        padding: 18px 20px;
+                        min-height: 52px;
+                    }
+
+                    .nav-text {
+                        font-size: 1.1rem;
+                    }
+
+                    .sidebar-toggle {
+                        min-width: 52px;
+                        min-height: 52px;
+                        font-size: 1.4rem;
+                    }
+                }
+
+                /* Landscape mobile optimization */
+                @media (max-width: 768px) and (orientation: landscape) {
+                    .kyb-sidebar {
+                        width: 280px;
+                        max-width: 280px;
+                    }
+
+                    .nav-link {
+                        padding: 12px 20px;
+                        min-height: 44px;
+                    }
+
+                    .nav-text {
+                        font-size: 0.95rem;
+                    }
+
+                    .sidebar-header {
+                        padding: 12px 20px;
+                        min-height: 50px;
                     }
                 }
 

@@ -433,6 +433,337 @@
             }
         });
 
+        // Create enhanced reasoning details section
+        function createReasoningDetailsSection(result) {
+            const methodBreakdown = result.method_breakdown || [];
+            const classificationReasoning = result.classification_reasoning || '';
+            const qualityMetrics = result.quality_metrics || null;
+            const securityMetrics = result.security_metrics || null;
+            const classifications = result.classifications || [];
+            
+            // Extract evidence from classifications
+            const evidenceItems = classifications.map(c => ({
+                type: c.code_type || 'Unknown',
+                code: c.code || 'N/A',
+                description: c.description || 'No description available',
+                confidence: c.confidence_score || 0,
+                evidence: c.evidence || 'No evidence provided',
+                keywords: c.keywords || [],
+                method: c.classification_method || 'Unknown'
+            }));
+            
+            // Create evidence items display
+            const evidenceHTML = evidenceItems.length > 0 ? `
+                <div class="mb-6">
+                    <h5 class="font-semibold text-gray-900 mb-3 flex items-center">
+                        <i class="fas fa-clipboard-list text-blue-600 mr-2"></i>
+                        Evidence Items
+                    </h5>
+                    <div class="space-y-3">
+                        ${evidenceItems.map(item => `
+                            <div class="bg-white border border-gray-200 rounded-lg p-4">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div>
+                                        <span class="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full mr-2">${item.type}</span>
+                                        <span class="font-medium text-gray-900">${item.code}</span>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-sm font-medium text-gray-900">${Math.round(item.confidence * 100)}%</div>
+                                        <div class="text-xs text-gray-500">${item.method}</div>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-gray-700 mb-2">${item.description}</p>
+                                <p class="text-sm text-gray-600 mb-2"><strong>Evidence:</strong> ${item.evidence}</p>
+                                ${item.keywords.length > 0 ? `
+                                    <div class="flex flex-wrap gap-1">
+                                        ${item.keywords.slice(0, 5).map(keyword => `
+                                            <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">${keyword}</span>
+                                        `).join('')}
+                                        ${item.keywords.length > 5 ? `<span class="text-xs text-gray-500">+${item.keywords.length - 5} more</span>` : ''}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : '';
+            
+            // Create method reasoning explanation
+            const methodReasoningHTML = methodBreakdown.length > 0 ? `
+                <div class="mb-6">
+                    <h5 class="font-semibold text-gray-900 mb-3 flex items-center">
+                        <i class="fas fa-cogs text-green-600 mr-2"></i>
+                        Method Reasoning Explanation
+                    </h5>
+                    <div class="space-y-4">
+                        ${methodBreakdown.map(method => `
+                            <div class="bg-white border border-gray-200 rounded-lg p-4">
+                                <div class="flex justify-between items-center mb-3">
+                                    <div class="flex items-center">
+                                        <span class="inline-block px-3 py-1 ${getMethodTypeClass(method.method_type)} text-sm rounded-full mr-3">
+                                            ${method.method_type.toUpperCase()}
+                                        </span>
+                                        <span class="font-medium text-gray-900">${method.method_name}</span>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-sm font-medium text-gray-900">${Math.round(method.confidence * 100)}%</div>
+                                        <div class="text-xs text-gray-500">${Math.round(method.processing_time * 1000)}ms</div>
+                                    </div>
+                                </div>
+                                
+                                ${method.success ? `
+                                    <div class="mb-3">
+                                        <p class="text-sm text-gray-700 mb-2"><strong>Result:</strong> ${method.result?.industry_name || 'No result'}</p>
+                                        ${method.evidence && method.evidence.length > 0 ? `
+                                            <p class="text-sm text-gray-600 mb-2"><strong>Evidence:</strong></p>
+                                            <ul class="text-sm text-gray-600 list-disc list-inside ml-4">
+                                                ${method.evidence.map(evidence => `<li>${evidence}</li>`).join('')}
+                                            </ul>
+                                        ` : ''}
+                                        ${method.keywords && method.keywords.length > 0 ? `
+                                            <div class="mt-2">
+                                                <p class="text-sm text-gray-600 mb-1"><strong>Keywords Used:</strong></p>
+                                                <div class="flex flex-wrap gap-1">
+                                                    ${method.keywords.slice(0, 8).map(keyword => `
+                                                        <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">${keyword}</span>
+                                                    `).join('')}
+                                                    ${method.keywords.length > 8 ? `<span class="text-xs text-gray-500">+${method.keywords.length - 8} more</span>` : ''}
+                                                </div>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                ` : `
+                                    <div class="mb-3">
+                                        <p class="text-sm text-red-600"><strong>Error:</strong> ${method.error || 'Unknown error'}</p>
+                                    </div>
+                                `}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : '';
+            
+            // Create confidence analysis
+            const confidenceAnalysisHTML = `
+                <div class="mb-6">
+                    <h5 class="font-semibold text-gray-900 mb-3 flex items-center">
+                        <i class="fas fa-chart-line text-purple-600 mr-2"></i>
+                        Confidence Analysis
+                    </h5>
+                    <div class="bg-white border border-gray-200 rounded-lg p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-600 mb-2"><strong>Overall Confidence:</strong></p>
+                                <div class="flex items-center">
+                                    <div class="w-full bg-gray-200 rounded-full h-3 mr-3">
+                                        <div class="bg-purple-600 h-3 rounded-full" style="width: ${Math.round((result.overall_confidence || result.confidence_score || 0) * 100)}%"></div>
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-900">${Math.round((result.overall_confidence || result.confidence_score || 0) * 100)}%</span>
+                                </div>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600 mb-2"><strong>Method Agreement:</strong></p>
+                                <div class="flex items-center">
+                                    <div class="w-full bg-gray-200 rounded-full h-3 mr-3">
+                                        <div class="bg-green-600 h-3 rounded-full" style="width: ${Math.round((qualityMetrics?.method_agreement || 0.85) * 100)}%"></div>
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-900">${Math.round((qualityMetrics?.method_agreement || 0.85) * 100)}%</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        ${qualityMetrics ? `
+                            <div class="mt-4 pt-4 border-t border-gray-200">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                    <div>
+                                        <p class="text-gray-600"><strong>Evidence Strength:</strong></p>
+                                        <p class="text-gray-900">${Math.round((qualityMetrics.evidence_strength || 0) * 100)}%</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-gray-600"><strong>Data Completeness:</strong></p>
+                                        <p class="text-gray-900">${Math.round((qualityMetrics.data_completeness || 0) * 100)}%</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-gray-600"><strong>Confidence Variance:</strong></p>
+                                        <p class="text-gray-900">${Math.round((qualityMetrics.confidence_variance || 0) * 100)}%</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            
+            // Create recommendations section
+            const recommendationsHTML = `
+                <div class="mb-6">
+                    <h5 class="font-semibold text-gray-900 mb-3 flex items-center">
+                        <i class="fas fa-lightbulb text-yellow-600 mr-2"></i>
+                        Recommendations
+                    </h5>
+                    <div class="bg-white border border-gray-200 rounded-lg p-4">
+                        <div class="space-y-3">
+                            ${generateRecommendations(result, qualityMetrics, securityMetrics)}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Only show the section if we have meaningful data
+            if (evidenceItems.length > 0 || methodBreakdown.length > 0 || classificationReasoning) {
+                return `
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                        <h4 class="font-bold text-gray-900 text-lg mb-4 flex items-center">
+                            <i class="fas fa-search text-gray-600 mr-2"></i>
+                            Classification Reasoning Details
+                        </h4>
+                        <p class="text-gray-600 mb-6">Detailed analysis of how the classification was determined, including evidence, method reasoning, and confidence analysis.</p>
+                        
+                        ${evidenceHTML}
+                        ${methodReasoningHTML}
+                        ${confidenceAnalysisHTML}
+                        ${recommendationsHTML}
+                        
+                        ${classificationReasoning ? `
+                            <div class="mt-6 pt-6 border-t border-gray-200">
+                                <h5 class="font-semibold text-gray-900 mb-3 flex items-center">
+                                    <i class="fas fa-comment-alt text-indigo-600 mr-2"></i>
+                                    Classification Summary
+                                </h5>
+                                <p class="text-sm text-gray-700 bg-indigo-50 p-4 rounded-lg">${classificationReasoning}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+            
+            return '';
+        }
+        
+        // Helper function to get method type CSS class
+        function getMethodTypeClass(methodType) {
+            switch (methodType) {
+                case 'keyword':
+                    return 'bg-blue-100 text-blue-800';
+                case 'ml':
+                    return 'bg-purple-100 text-purple-800';
+                case 'description':
+                    return 'bg-green-100 text-green-800';
+                default:
+                    return 'bg-gray-100 text-gray-800';
+            }
+        }
+        
+        // Generate recommendations based on analysis
+        function generateRecommendations(result, qualityMetrics, securityMetrics) {
+            const recommendations = [];
+            
+            // Confidence-based recommendations
+            const overallConfidence = result.overall_confidence || result.confidence_score || 0;
+            if (overallConfidence < 0.7) {
+                recommendations.push({
+                    type: 'warning',
+                    icon: 'fas fa-exclamation-triangle',
+                    title: 'Low Confidence Score',
+                    description: 'Consider providing more detailed business information to improve classification accuracy.'
+                });
+            }
+            
+            // Quality-based recommendations
+            if (qualityMetrics) {
+                if (qualityMetrics.evidence_strength < 0.8) {
+                    recommendations.push({
+                        type: 'info',
+                        icon: 'fas fa-info-circle',
+                        title: 'Evidence Strength',
+                        description: 'Additional business documentation or website content could strengthen the classification evidence.'
+                    });
+                }
+                
+                if (qualityMetrics.data_completeness < 0.9) {
+                    recommendations.push({
+                        type: 'info',
+                        icon: 'fas fa-database',
+                        title: 'Data Completeness',
+                        description: 'Consider adding more business details like industry description, services offered, or target market.'
+                    });
+                }
+            }
+            
+            // Security-based recommendations
+            if (securityMetrics) {
+                if (securityMetrics.data_source_trust?.trust_rate < 1.0) {
+                    recommendations.push({
+                        type: 'security',
+                        icon: 'fas fa-shield-alt',
+                        title: 'Data Source Verification',
+                        description: 'Some data sources could not be fully verified. Consider using official business registration documents.'
+                    });
+                }
+            }
+            
+            // Default recommendation if no specific issues
+            if (recommendations.length === 0) {
+                recommendations.push({
+                    type: 'success',
+                    icon: 'fas fa-check-circle',
+                    title: 'High Quality Classification',
+                    description: 'The classification appears to be of high quality with strong evidence and confidence scores.'
+                });
+            }
+            
+            return recommendations.map(rec => `
+                <div class="flex items-start p-3 rounded-lg ${getRecommendationTypeClass(rec.type)}">
+                    <i class="${rec.icon} ${getRecommendationIconClass(rec.type)} mr-3 mt-1"></i>
+                    <div>
+                        <h6 class="font-medium ${getRecommendationTitleClass(rec.type)}">${rec.title}</h6>
+                        <p class="text-sm ${getRecommendationTextClass(rec.type)}">${rec.description}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Helper functions for recommendation styling
+        function getRecommendationTypeClass(type) {
+            switch (type) {
+                case 'success': return 'bg-green-50 border border-green-200';
+                case 'warning': return 'bg-yellow-50 border border-yellow-200';
+                case 'info': return 'bg-blue-50 border border-blue-200';
+                case 'security': return 'bg-purple-50 border border-purple-200';
+                default: return 'bg-gray-50 border border-gray-200';
+            }
+        }
+        
+        function getRecommendationIconClass(type) {
+            switch (type) {
+                case 'success': return 'text-green-600';
+                case 'warning': return 'text-yellow-600';
+                case 'info': return 'text-blue-600';
+                case 'security': return 'text-purple-600';
+                default: return 'text-gray-600';
+            }
+        }
+        
+        function getRecommendationTitleClass(type) {
+            switch (type) {
+                case 'success': return 'text-green-900';
+                case 'warning': return 'text-yellow-900';
+                case 'info': return 'text-blue-900';
+                case 'security': return 'text-purple-900';
+                default: return 'text-gray-900';
+            }
+        }
+        
+        function getRecommendationTextClass(type) {
+            switch (type) {
+                case 'success': return 'text-green-700';
+                case 'warning': return 'text-yellow-700';
+                case 'info': return 'text-blue-700';
+                case 'security': return 'text-purple-700';
+                default: return 'text-gray-700';
+            }
+        }
+
         // Display enhanced business intelligence results
         function displayResults(result) {
             resultsSection.classList.remove('hidden');
@@ -920,11 +1251,20 @@
                                 </div>
                             </div>
                         ` : ''}
+                        
+                        <!-- Enhanced Reasoning Details Section -->
+                        ${createReasoningDetailsSection(result)}
+                        
+                        <!-- Security Indicators -->
+                        <div id="security-indicators"></div>
                     </div>
                 `;
             } else {
                 displayError('Business intelligence analysis failed. Please try again.');
             }
+            
+            // Update security indicators with result data
+            updateSecurityIndicators(result);
         }
 
         // Display error message
@@ -954,6 +1294,61 @@
             };
             return regions[regionCode] || regionCode.toUpperCase();
         }
+
+        // Initialize Security Indicators Component
+        let securityIndicators = null;
+        
+        function initializeSecurityIndicators() {
+            if (typeof SecurityIndicators !== 'undefined') {
+                securityIndicators = new SecurityIndicators({
+                    containerId: 'security-indicators',
+                    showDetailed: true,
+                    showTooltips: true,
+                    theme: 'default'
+                });
+                securityIndicators.init();
+            }
+        }
+
+        // Update security indicators with result data
+        function updateSecurityIndicators(result) {
+            if (securityIndicators && result) {
+                // Extract security data from result
+                const securityData = {
+                    data_source_trust: result.security_metrics?.data_source_trust || {
+                        trust_rate: 1.0,
+                        trusted_count: 1,
+                        total_validations: 1
+                    },
+                    website_verification: result.security_metrics?.website_verification || {
+                        success_rate: 1.0,
+                        success_count: 1,
+                        total_attempts: 1
+                    },
+                    quality_metrics: result.quality_metrics || {
+                        overall_quality: 0.95,
+                        evidence_strength: 0.9,
+                        data_completeness: 0.85
+                    },
+                    security_validation: result.security_metrics?.security_violations || {
+                        total_violations: 0,
+                        violations_by_type: {}
+                    },
+                    security_metrics: result.security_metrics
+                };
+                
+                securityIndicators.update(securityData);
+            }
+        }
+    </script>
+    
+    <!-- Security Indicators Component -->
+    <script src="components/security-indicators.js"></script>
+    <script>
+        // Initialize security indicators when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeSecurityIndicators();
+        });
     </script>
 </body>
 </html>

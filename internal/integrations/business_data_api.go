@@ -115,6 +115,7 @@ type BusinessSearchQuery struct {
 	CompanyName       string         `json:"company_name"`
 	BusinessNumber    string         `json:"business_number"`
 	TaxID             string         `json:"tax_id"`
+	Website           string         `json:"website"`
 	Country           string         `json:"country"`
 	State             string         `json:"state"`
 	City              string         `json:"city"`
@@ -184,6 +185,15 @@ type BusinessData struct {
 	// News and media
 	NewsData []NewsItem `json:"news_data,omitempty"`
 
+	// Industry codes
+	IndustryCodes []IndustryCode `json:"industry_codes,omitempty"`
+
+	// Data sources
+	DataSources []DataSource `json:"data_sources,omitempty"`
+
+	// Founded date
+	FoundedDate *time.Time `json:"founded_date,omitempty"`
+
 	// Metadata
 	LastUpdated time.Time `json:"last_updated"`
 	DataQuality float64   `json:"data_quality"`
@@ -243,27 +253,34 @@ type ContactInfo struct {
 
 // FinancialData represents financial information
 type FinancialData struct {
-	FiscalYear       int       `json:"fiscal_year"`
-	Revenue          float64   `json:"revenue"`
-	NetIncome        float64   `json:"net_income"`
-	TotalAssets      float64   `json:"total_assets"`
-	TotalLiabilities float64   `json:"total_liabilities"`
-	Equity           float64   `json:"equity"`
-	CashFlow         float64   `json:"cash_flow"`
-	EBITDA           float64   `json:"ebitda"`
-	DebtToEquity     float64   `json:"debt_to_equity"`
-	CurrentRatio     float64   `json:"current_ratio"`
-	QuickRatio       float64   `json:"quick_ratio"`
-	ROE              float64   `json:"roe"`
-	ROA              float64   `json:"roa"`
-	GrossMargin      float64   `json:"gross_margin"`
-	NetMargin        float64   `json:"net_margin"`
-	Currency         string    `json:"currency"`
-	LastUpdated      time.Time `json:"last_updated"`
+	ProviderID       string       `json:"provider_id"`
+	ProviderName     string       `json:"provider_name"`
+	FiscalYear       int          `json:"fiscal_year"`
+	Revenue          float64      `json:"revenue"`
+	NetIncome        float64      `json:"net_income"`
+	TotalAssets      float64      `json:"total_assets"`
+	TotalLiabilities float64      `json:"total_liabilities"`
+	Equity           float64      `json:"equity"`
+	CashFlow         float64      `json:"cash_flow"`
+	EBITDA           float64      `json:"ebitda"`
+	DebtToEquity     float64      `json:"debt_to_equity"`
+	CurrentRatio     float64      `json:"current_ratio"`
+	QuickRatio       float64      `json:"quick_ratio"`
+	ROE              float64      `json:"roe"`
+	ROA              float64      `json:"roa"`
+	GrossMargin      float64      `json:"gross_margin"`
+	NetMargin        float64      `json:"net_margin"`
+	Currency         string       `json:"currency"`
+	DataQuality      float64      `json:"data_quality"`
+	Confidence       float64      `json:"confidence"`
+	DataSources      []DataSource `json:"data_sources,omitempty"`
+	LastUpdated      time.Time    `json:"last_updated"`
 }
 
 // ComplianceData represents compliance information
 type ComplianceData struct {
+	ProviderID       string        `json:"provider_id"`
+	ProviderName     string        `json:"provider_name"`
 	RegulatoryStatus string        `json:"regulatory_status"`
 	LicenseNumbers   []string      `json:"license_numbers"`
 	Certifications   []string      `json:"certifications"`
@@ -271,6 +288,9 @@ type ComplianceData struct {
 	AuditReports     []AuditReport `json:"audit_reports"`
 	ComplianceScore  float64       `json:"compliance_score"`
 	RiskLevel        string        `json:"risk_level"`
+	DataQuality      float64       `json:"data_quality"`
+	Confidence       float64       `json:"confidence"`
+	DataSources      []DataSource  `json:"data_sources,omitempty"`
 	LastUpdated      time.Time     `json:"last_updated"`
 }
 
@@ -339,11 +359,12 @@ type QuotaInfo struct {
 
 // DataValidationResult represents data validation results
 type DataValidationResult struct {
-	IsValid      bool              `json:"is_valid"`
-	QualityScore float64           `json:"quality_score"`
-	Issues       []ValidationIssue `json:"issues"`
-	Suggestions  []string          `json:"suggestions"`
-	Confidence   float64           `json:"confidence"`
+	IsValid       bool              `json:"is_valid"`
+	QualityScore  float64           `json:"quality_score"`
+	Issues        []ValidationIssue `json:"issues"`
+	Suggestions   []string          `json:"suggestions"`
+	Confidence    float64           `json:"confidence"`
+	LastValidated time.Time         `json:"last_validated"`
 }
 
 // ValidationIssue represents a data validation issue
@@ -353,6 +374,21 @@ type ValidationIssue struct {
 	Severity       string `json:"severity"` // low, medium, high, critical
 	Description    string `json:"description"`
 	SuggestedValue string `json:"suggested_value,omitempty"`
+}
+
+// IndustryCode represents an industry classification code
+type IndustryCode struct {
+	Type        string `json:"type"`        // SIC, NAICS, MCC, etc.
+	Code        string `json:"code"`        // The actual code
+	Description string `json:"description"` // Description of the code
+}
+
+// DataSource represents a data source
+type DataSource struct {
+	Name        string    `json:"name"`        // Name of the data source
+	Type        string    `json:"type"`        // government, commercial, domain_registry, etc.
+	TrustLevel  string    `json:"trust_level"` // high, medium, low
+	LastUpdated time.Time `json:"last_updated"`
 }
 
 // RateLimiter manages API rate limiting

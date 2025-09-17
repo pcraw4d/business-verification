@@ -224,12 +224,16 @@ func (s *SimplifiedServer) handleClassify(w http.ResponseWriter, r *http.Request
 	defer cancel()
 
 	// Use the classification service directly
-	result := s.classificationService.ProcessBusinessClassification(
+	result, err := s.classificationService.ProcessBusinessClassification(
 		ctx,
 		req.BusinessName,
 		req.Description,
 		req.WebsiteURL,
 	)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Classification failed: %v", err), http.StatusInternalServerError)
+		return
+	}
 
 	// Set response headers
 	w.Header().Set("Content-Type", "application/json")
@@ -257,12 +261,16 @@ func (s *SimplifiedServer) handleClassifyLegacy(w http.ResponseWriter, r *http.R
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
 
-	result := s.classificationService.ProcessBusinessClassification(
+	result, err := s.classificationService.ProcessBusinessClassification(
 		ctx,
 		req.BusinessName,
 		req.Description,
 		req.WebsiteURL,
 	)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Classification failed: %v", err), http.StatusInternalServerError)
+		return
+	}
 
 	// Set response headers
 	w.Header().Set("Content-Type", "application/json")

@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/pcraw4d/business-verification/internal/classification/repository"
 )
@@ -539,5 +540,193 @@ func TestGetDefaultResult(t *testing.T) {
 
 	if result.AnalysisMethod != "default_fallback" {
 		t.Errorf("Expected analysis method 'default_fallback', got: %s", result.AnalysisMethod)
+	}
+}
+
+// TestHTMLContentCleaning tests the enhanced HTML content cleaning functionality
+func TestHTMLContentCleaning(t *testing.T) {
+	service := &IndustryDetectionService{}
+
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "Basic HTML with script tags",
+			input:    `<html><head><script>alert('test');</script></head><body><h1>Restaurant</h1><p>Fine dining establishment</p></body></html>`,
+			expected: "Restaurant Fine dining establishment",
+		},
+		{
+			name:     "HTML with style tags",
+			input:    `<div style="color: red;">Italian Restaurant</div><style>body { margin: 0; }</style><p>Authentic pasta and wine</p>`,
+			expected: "Italian Restaurant Authentic pasta and wine",
+		},
+		{
+			name:     "HTML with comments",
+			input:    `<!-- This is a comment --><h1>Pizza Place</h1><!-- Another comment --><p>Best pizza in town</p>`,
+			expected: "Pizza Place Best pizza in town",
+		},
+		{
+			name:     "HTML with encoded entities",
+			input:    `<h1>Mario&apos;s Italian Bistro</h1><p>Fine dining &amp; authentic cuisine</p>`,
+			expected: "Mario's Italian Bistro Fine dining & authentic cuisine",
+		},
+		{
+			name:     "Complex HTML structure",
+			input:    `<!DOCTYPE html><html><head><script src="app.js"></script><style>body{font-family:Arial;}</style></head><body><header><h1>Restaurant Name</h1></header><main><p>We serve <strong>authentic Italian</strong> cuisine with <em>fresh ingredients</em>.</p></main><footer><!-- Footer content --></footer></body></html>`,
+			expected: "Restaurant Name We serve authentic Italian cuisine with fresh ingredients .",
+		},
+		{
+			name:     "Empty input",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "Plain text without HTML",
+			input:    "This is just plain text about a restaurant",
+			expected: "This is just plain text about a restaurant",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := service.cleanHTMLContent(tt.input)
+
+			// Normalize whitespace for comparison
+			result = strings.Join(strings.Fields(result), " ")
+			expected := strings.Join(strings.Fields(tt.expected), " ")
+
+			if result != expected {
+				t.Errorf("cleanHTMLContent() = %q, want %q", result, expected)
+			}
+		})
+	}
+}
+
+// TestHTMLContentCleaningPerformance tests the performance of HTML content cleaning
+func TestHTMLContentCleaningPerformance(t *testing.T) {
+	service := &IndustryDetectionService{}
+
+	// Create a large HTML document
+	largeHTML := strings.Repeat(`<html><head><script>alert('test');</script><style>body{color:red;}</style></head><body><h1>Restaurant</h1><p>Fine dining establishment with authentic cuisine</p></body></html>`, 100)
+
+	// Test performance
+	start := time.Now()
+	result := service.cleanHTMLContent(largeHTML)
+	duration := time.Since(start)
+
+	// Verify result is not empty
+	if result == "" {
+		t.Error("cleanHTMLContent() returned empty result for large HTML")
+	}
+
+	// Verify performance (should be under 100ms for large HTML)
+	if duration > 100*time.Millisecond {
+		t.Errorf("cleanHTMLContent() took too long: %v", duration)
+	}
+
+	t.Logf("HTML cleaning performance: %v for %d characters", duration, len(largeHTML))
+}
+
+// TestHTMLContentCleaningEdgeCases tests edge cases and error scenarios
+func TestHTMLContentCleaningEdgeCases(t *testing.T) {
+	service := &IndustryDetectionService{}
+
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "HTML with nested tags",
+			input:    `<div><span><strong>Restaurant</strong></span></div>`,
+			expected: "Restaurant",
+		},
+		{
+			name:     "HTML with self-closing tags",
+			input:    `<img src="logo.jpg" alt="Restaurant Logo"/><p>Welcome to our restaurant</p>`,
+			expected: "Welcome to our restaurant",
+		},
+		{
+			name:     "HTML with attributes containing quotes",
+			input:    `<div class="restaurant-info" data-name="Mario's Bistro">Italian Restaurant</div>`,
+			expected: "Italian Restaurant",
+		},
+		{
+			name:     "HTML with mixed case tags",
+			input:    `<HTML><HEAD><SCRIPT>alert('test');</SCRIPT></HEAD><BODY><H1>Restaurant</H1></BODY></HTML>`,
+			expected: "Restaurant",
+		},
+		{
+			name:     "HTML with unicode characters",
+			input:    `<h1>Restaurante Español</h1><p>Comida auténtica</p>`,
+			expected: "Restaurante Español Comida auténtica",
+		},
+		{
+			name:     "HTML with only whitespace",
+			input:    `   <div>   </div>   `,
+			expected: "",
+		},
+		{
+			name:     "HTML with only tags",
+			input:    `<div></div><span></span><p></p>`,
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := service.cleanHTMLContent(tt.input)
+
+			// Normalize whitespace for comparison
+			result = strings.Join(strings.Fields(result), " ")
+			expected := strings.Join(strings.Fields(tt.expected), " ")
+
+			if result != expected {
+				t.Errorf("cleanHTMLContent() = %q, want %q", result, expected)
+			}
+		})
+	}
+}
+
+// TestHTMLContentCleaningBusinessRelevance tests that business-relevant content is preserved
+func TestHTMLContentCleaningBusinessRelevance(t *testing.T) {
+	service := &IndustryDetectionService{}
+
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "Restaurant website content",
+			input:    `<html><head><script>trackPageView();</script></head><body><h1>Mario's Italian Bistro</h1><p>We serve authentic Italian cuisine with fresh ingredients. Our restaurant offers fine dining experience with traditional recipes.</p><div class="menu"><h2>Our Menu</h2><ul><li>Pasta</li><li>Pizza</li><li>Wine</li></ul></div></body></html>`,
+			expected: "Mario's Italian Bistro We serve authentic Italian cuisine with fresh ingredients. Our restaurant offers fine dining experience with traditional recipes. Our Menu Pasta Pizza Wine",
+		},
+		{
+			name:     "Fast food restaurant content",
+			input:    `<div><h1>Quick Burger</h1><p>Fast food restaurant serving burgers, fries, and drinks. Open 24/7 for your convenience.</p><script>loadMenu();</script></div>`,
+			expected: "Quick Burger Fast food restaurant serving burgers, fries, and drinks. Open 24/7 for your convenience.",
+		},
+		{
+			name:     "Café content with special characters",
+			input:    `<h1>Caf&eacute; Central</h1><p>French café serving coffee, pastries &amp; light meals. Open daily 7am &ndash; 7pm.</p>`,
+			expected: "Café Central French café serving coffee, pastries & light meals. Open daily 7am – 7pm.",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := service.cleanHTMLContent(tt.input)
+
+			// Normalize whitespace for comparison
+			result = strings.Join(strings.Fields(result), " ")
+			expected := strings.Join(strings.Fields(tt.expected), " ")
+
+			if result != expected {
+				t.Errorf("cleanHTMLContent() = %q, want %q", result, expected)
+			}
+		})
 	}
 }

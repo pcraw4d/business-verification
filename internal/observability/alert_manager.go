@@ -170,12 +170,14 @@ func (enc *EmailNotificationChannel) Send(alert *Alert) error {
 		return fmt.Errorf("email notification channel is disabled")
 	}
 
-	enc.logger.Info("Sending email notification", map[string]interface{}{
-		"alert_id":   alert.ID,
-		"alert_name": alert.Name,
-		"severity":   alert.Severity,
-		"to":         enc.config.To,
-	})
+	if enc.logger != nil {
+		enc.logger.Info("Sending email notification", map[string]interface{}{
+			"alert_id":   alert.ID,
+			"alert_name": alert.Name,
+			"severity":   alert.Severity,
+			"to":         enc.config.To,
+		})
+	}
 
 	// In a real implementation, this would send an actual email
 	return nil
@@ -227,12 +229,14 @@ func (snc *SlackNotificationChannel) Send(alert *Alert) error {
 		return fmt.Errorf("slack notification channel is disabled")
 	}
 
-	snc.logger.Info("Sending Slack notification", map[string]interface{}{
-		"alert_id":   alert.ID,
-		"alert_name": alert.Name,
-		"severity":   alert.Severity,
-		"channel":    snc.config.Channel,
-	})
+	if snc.logger != nil {
+		snc.logger.Info("Sending Slack notification", map[string]interface{}{
+			"alert_id":   alert.ID,
+			"alert_name": alert.Name,
+			"severity":   alert.Severity,
+			"channel":    snc.config.Channel,
+		})
+	}
 
 	// In a real implementation, this would send an actual Slack message
 	return nil
@@ -284,12 +288,14 @@ func (wnc *WebhookNotificationChannel) Send(alert *Alert) error {
 		return fmt.Errorf("webhook notification channel is disabled")
 	}
 
-	wnc.logger.Info("Sending webhook notification", map[string]interface{}{
-		"alert_id":   alert.ID,
-		"alert_name": alert.Name,
-		"severity":   alert.Severity,
-		"url":        wnc.config.URL,
-	})
+	if wnc.logger != nil {
+		wnc.logger.Info("Sending webhook notification", map[string]interface{}{
+			"alert_id":   alert.ID,
+			"alert_name": alert.Name,
+			"severity":   alert.Severity,
+			"url":        wnc.config.URL,
+		})
+	}
 
 	// In a real implementation, this would send an actual HTTP request
 	return nil
@@ -329,11 +335,12 @@ func NewAlertManager(logger *Logger, config *AlertConfig) *AlertManager {
 // Start starts the alert manager
 func (am *AlertManager) Start() error {
 	am.mu.Lock()
-	defer am.mu.Unlock()
-
 	if am.started {
+		am.mu.Unlock()
 		return fmt.Errorf("alert manager already started")
 	}
+	am.started = true
+	am.mu.Unlock()
 
 	am.logger.Info("Starting alert manager", map[string]interface{}{
 		"service_name": am.config.ServiceName,
@@ -343,12 +350,26 @@ func (am *AlertManager) Start() error {
 
 	// Initialize default alert rules
 	if err := am.initializeDefaultAlertRules(); err != nil {
+		am.mu.Lock()
+		am.started = false
+		am.mu.Unlock()
 		return fmt.Errorf("failed to initialize default alert rules: %w", err)
 	}
 
 	// Initialize default escalation policies
 	if err := am.initializeDefaultEscalationPolicies(); err != nil {
+		am.mu.Lock()
+		am.started = false
+		am.mu.Unlock()
 		return fmt.Errorf("failed to initialize default escalation policies: %w", err)
+	}
+
+	// Initialize default notification channels
+	if err := am.initializeDefaultNotificationChannels(); err != nil {
+		am.mu.Lock()
+		am.started = false
+		am.mu.Unlock()
+		return fmt.Errorf("failed to initialize default notification channels: %w", err)
 	}
 
 	// Start alert evaluation
@@ -1058,4 +1079,40 @@ func (am *AlertManager) sendEscalationNotification(alert *Alert, level *Escalati
 			})
 		}
 	}
+}
+
+// initializeDefaultNotificationChannels initializes default notification channels
+func (am *AlertManager) initializeDefaultNotificationChannels() error {
+	// Create default email channel
+	emailConfig := &EmailConfig{
+		SMTPHost: "localhost",
+		SMTPPort: 587,
+		Username: "alerts@kyb-platform.com",
+		Password: "password",
+		From:     "alerts@kyb-platform.com",
+		To:       []string{"admin@kyb-platform.com"},
+	}
+	emailChannel := NewEmailNotificationChannel(am.logger, emailConfig)
+	am.AddNotificationChannel("email", emailChannel)
+
+	// Create default Slack channel
+	slackConfig := &SlackConfig{
+		WebhookURL: "https://hooks.slack.com/services/default",
+		Channel:    "#alerts",
+		Username:   "KYB Platform",
+		IconEmoji:  ":warning:",
+	}
+	slackChannel := NewSlackNotificationChannel(am.logger, slackConfig)
+	am.AddNotificationChannel("slack", slackChannel)
+
+	// Create default webhook channel
+	webhookConfig := &WebhookConfig{
+		URL:     "https://webhook.kyb-platform.com/alerts",
+		Method:  "POST",
+		Headers: map[string]string{"Content-Type": "application/json"},
+	}
+	webhookChannel := NewWebhookNotificationChannel(am.logger, webhookConfig)
+	am.AddNotificationChannel("webhook", webhookChannel)
+
+	return nil
 }

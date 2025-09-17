@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/pcraw4d/business-verification/internal/architecture"
@@ -163,48 +164,132 @@ func (m *DatabaseClassificationModule) Process(ctx context.Context, req architec
 	}
 
 	// Process the business classification
-	rawResult := m.classificationService.ProcessBusinessClassification(
+	rawResult, err := m.classificationService.ProcessBusinessClassification(
 		processCtx,
 		businessReq.BusinessName,
 		businessReq.Description,
 		businessReq.WebsiteURL,
 	)
-
-	// Convert raw result to shared response format
-	response, err := m.convertRawResultToBusinessClassificationResponse(rawResult, businessReq, startTime)
 	if err != nil {
-		m.logger.Printf("❌ Failed to convert result: %v", err)
 		return architecture.ModuleResponse{
 			ID:      req.ID,
 			Success: false,
-			Error:   fmt.Sprintf("failed to convert result: %v", err),
+			Data: map[string]interface{}{
+				"error": fmt.Sprintf("classification failed: %v", err),
+			},
+			Confidence: 0.0,
+			Latency:    time.Since(startTime),
+			Metadata: map[string]interface{}{
+				"processing_time_ms": time.Since(startTime).Milliseconds(),
+				"module_id":          m.id,
+				"module_type":        "database_classification",
+				"error":              err.Error(),
+			},
 		}, err
 	}
 
-	// Convert response to map for ModuleResponse.Data
-	responseData, err := shared.ConvertBusinessClassificationResponseToModuleData(response)
-	if err != nil {
-		m.logger.Printf("❌ Failed to convert response to module data: %v", err)
-		return architecture.ModuleResponse{
-			ID:      req.ID,
-			Success: false,
-			Error:   fmt.Sprintf("failed to convert response to module data: %v", err),
-		}, err
+	// Convert MultiMethodClassificationResult to BusinessClassificationResponse
+	responseData := rawResult
+
+	// Extract website keywords from the actual scraped content, not just the domain name
+	var websiteKeywords []string
+	if businessReq.WebsiteURL != "" {
+		// Use keywords from the primary classification result
+		websiteKeywords = responseData.PrimaryClassification.Keywords
+
+		// Fallback: if no keywords from content, extract from domain name
+		if len(websiteKeywords) == 0 {
+			cleanURL := strings.TrimPrefix(businessReq.WebsiteURL, "https://")
+			cleanURL = strings.TrimPrefix(cleanURL, "http://")
+			cleanURL = strings.TrimPrefix(cleanURL, "www.")
+
+			parts := strings.Split(cleanURL, ".")
+			if len(parts) > 0 {
+				domainWords := strings.Fields(strings.ReplaceAll(parts[0], "-", " "))
+				for _, word := range domainWords {
+					if len(word) > 2 {
+						websiteKeywords = append(websiteKeywords, strings.ToLower(word))
+					}
+				}
+			}
+		}
 	}
 
-	m.logger.Printf("✅ Classification completed successfully: %s (%.2f%% confidence, %dms)",
-		response.DetectedIndustry, response.Confidence*100, time.Since(startTime).Milliseconds())
+	// Convert MultiMethodClassificationResult to the expected response format
+	var classifications []shared.IndustryClassification
+	var primaryClassification *shared.IndustryClassification
+
+	// Use the primary classification from the multi-method result
+	primaryClassification = responseData.PrimaryClassification
+
+	// Add to classifications list
+	classifications = append(classifications, *primaryClassification)
+
+	// Create classification codes from the result if available
+	var classificationCodes shared.ClassificationCodes
+	if primaryClassification.Metadata != nil {
+		if codes, exists := primaryClassification.Metadata["classification_codes"]; exists {
+			if codesMap, ok := codes.(shared.ClassificationCodes); ok {
+				classificationCodes = codesMap
+			}
+		}
+	}
+
+	// If no codes found, create empty structure
+	if classificationCodes.MCC == nil {
+		classificationCodes = shared.ClassificationCodes{
+			MCC:   []shared.MCCCode{},
+			NAICS: []shared.NAICSCode{},
+			SIC:   []shared.SICCode{},
+		}
+	}
+
+	// Create the response with the correct structure for the frontend
+	response := &shared.BusinessClassificationResponse{
+		ID:                    businessReq.ID,
+		BusinessName:          businessReq.BusinessName,
+		DetectedIndustry:      responseData.PrimaryClassification.IndustryName,
+		Confidence:            responseData.EnsembleConfidence,
+		Classifications:       classifications,
+		PrimaryClassification: primaryClassification,
+		ClassificationCodes:   classificationCodes,
+		OverallConfidence:     responseData.EnsembleConfidence,
+		ClassificationMethod:  "multi_method_ensemble",
+		ProcessingTime:        responseData.ProcessingTime,
+		ModuleResults:         make(map[string]shared.ModuleResult),
+		RawData: map[string]interface{}{
+			"multi_method_result": responseData,
+			"method_results":      responseData.MethodResults,
+			"quality_metrics":     responseData.QualityMetrics,
+			"reasoning":           responseData.ClassificationReasoning,
+		},
+		CreatedAt: responseData.CreatedAt,
+		Timestamp: time.Now(),
+		Metadata: map[string]interface{}{
+			"website_keywords":    websiteKeywords,
+			"module_id":           m.id,
+			"module_type":         "multi_method_classification",
+			"processing_time_ms":  time.Since(startTime).Milliseconds(),
+			"method_count":        len(responseData.MethodResults),
+			"ensemble_confidence": responseData.EnsembleConfidence,
+		},
+	}
+
+	m.logger.Printf("✅ Classification completed successfully: %s (%dms)",
+		businessReq.BusinessName, time.Since(startTime).Milliseconds())
 
 	return architecture.ModuleResponse{
-		ID:         req.ID,
-		Success:    true,
-		Data:       responseData,
-		Confidence: response.Confidence,
+		ID:      req.ID,
+		Success: true,
+		Data: map[string]interface{}{
+			"response": response,
+		},
+		Confidence: responseData.EnsembleConfidence,
 		Latency:    time.Since(startTime),
 		Metadata: map[string]interface{}{
 			"processing_time_ms": time.Since(startTime).Milliseconds(),
-			"confidence":         response.Confidence,
-			"industry":           response.DetectedIndustry,
+			"module_id":          m.id,
+			"module_type":        "multi_method_classification",
 		},
 	}, nil
 }
@@ -364,6 +449,25 @@ func (m *DatabaseClassificationModule) convertRawResultToBusinessClassificationR
 		}
 	}
 
+	// Extract website keywords from the request
+	var websiteKeywords []string
+	if businessReq.WebsiteURL != "" {
+		// Extract keywords from website URL (domain name)
+		cleanURL := strings.TrimPrefix(businessReq.WebsiteURL, "https://")
+		cleanURL = strings.TrimPrefix(cleanURL, "http://")
+		cleanURL = strings.TrimPrefix(cleanURL, "www.")
+
+		parts := strings.Split(cleanURL, ".")
+		if len(parts) > 0 {
+			domainWords := strings.Fields(strings.ReplaceAll(parts[0], "-", " "))
+			for _, word := range domainWords {
+				if len(word) > 2 {
+					websiteKeywords = append(websiteKeywords, strings.ToLower(word))
+				}
+			}
+		}
+	}
+
 	// Create the response
 	response := &shared.BusinessClassificationResponse{
 		ID:                  businessReq.ID,
@@ -378,6 +482,7 @@ func (m *DatabaseClassificationModule) convertRawResultToBusinessClassificationR
 			"module_id":          m.id,
 			"module_type":        "database_classification",
 			"keywords_used":      keywordsMatched,
+			"website_keywords":   websiteKeywords,
 			"processing_time_ms": time.Since(startTime).Milliseconds(),
 			"raw_result":         rawResult,
 		},

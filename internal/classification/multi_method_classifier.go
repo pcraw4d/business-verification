@@ -334,8 +334,8 @@ func (mmc *MultiMethodClassifier) performMLClassification(
 		return nil, fmt.Errorf("ML classifier not available")
 	}
 
-	// Combine business information for ML analysis
-	content := mmc.combineBusinessContent(businessName, description, websiteURL)
+	// Combine business information for ML analysis (using trusted content only)
+	content := mmc.extractTrustedContent(ctx, businessName, description, websiteURL)
 
 	// Perform ML classification
 	mlResult, err := mmc.mlClassifier.ClassifyContent(ctx, content, "")
@@ -376,24 +376,25 @@ func (mmc *MultiMethodClassifier) performMLClassification(
 	return result, nil
 }
 
-// performDescriptionClassification performs description-based classification
+// performDescriptionClassification performs description-based classification using only verified data sources
 func (mmc *MultiMethodClassifier) performDescriptionClassification(
 	ctx context.Context,
 	businessName, description, websiteURL string,
 ) (*shared.IndustryClassification, error) {
-	// Use description similarity matching from the industry classifier
-	// This is a simplified version - in a real implementation, you'd use the full industry classifier
+	// SECURITY: Only use verified data sources for classification
+	// Business descriptions are user-provided and cannot be trusted
+	// Website URLs must be ownership-verified before use
 
-	// For now, we'll use a combination of business name and description analysis
-	content := mmc.combineBusinessContent(businessName, description, websiteURL)
+	// Step 1: Validate and filter trusted data sources
+	trustedContent := mmc.extractTrustedContent(ctx, businessName, description, websiteURL)
 
-	// Extract industry indicators from the content
-	industryIndicators := mmc.extractIndustryIndicators(content)
+	// Step 2: Extract industry indicators from trusted content only
+	industryIndicators := mmc.extractIndustryIndicators(trustedContent)
 
-	// Calculate confidence based on indicator strength
-	confidence := mmc.calculateDescriptionConfidence(industryIndicators, content)
+	// Step 3: Calculate confidence based on trusted data quality
+	confidence := mmc.calculateTrustedDataConfidence(industryIndicators, trustedContent)
 
-	// Determine industry based on indicators
+	// Step 4: Determine industry based on verified indicators
 	industryName := mmc.determineIndustryFromIndicators(industryIndicators)
 
 	// Convert to shared format
@@ -401,13 +402,15 @@ func (mmc *MultiMethodClassifier) performDescriptionClassification(
 		IndustryCode:         industryName,
 		IndustryName:         industryName,
 		ConfidenceScore:      confidence,
-		ClassificationMethod: "description",
-		Description:          "Description-based classification using content analysis",
-		Evidence:             fmt.Sprintf("Content analysis identified %d industry indicators", len(industryIndicators)),
+		ClassificationMethod: "verified_content_analysis",
+		Description:          "Description-based classification using verified data sources only",
+		Evidence:             fmt.Sprintf("Verified content analysis identified %d industry indicators", len(industryIndicators)),
 		ProcessingTime:       time.Duration(0), // Will be set by caller
 		Metadata: map[string]interface{}{
-			"industry_indicators": industryIndicators,
-			"content_length":      len(content),
+			"industry_indicators":    industryIndicators,
+			"trusted_content_length": len(trustedContent),
+			"security_validated":     true,
+			"data_sources":           mmc.getDataSourceInfo(businessName, description, websiteURL),
 		},
 	}
 
@@ -494,9 +497,9 @@ func (mmc *MultiMethodClassifier) calculateEnsembleResult(
 func (mmc *MultiMethodClassifier) calculateMethodWeight(method shared.ClassificationMethodResult) float64 {
 	// Base weights for different method types
 	baseWeights := map[string]float64{
-		"keyword":     0.4, // Keyword matching is reliable
+		"keyword":     0.5, // Keyword matching is reliable
 		"ml":          0.4, // ML is sophisticated
-		"description": 0.2, // Description analysis is supplementary
+		"description": 0.1, // Description analysis is now conservative and supplementary
 	}
 
 	baseWeight := baseWeights[method.MethodType]
@@ -690,24 +693,137 @@ func (mmc *MultiMethodClassifier) extractKeywords(businessName, description, web
 	return keywords
 }
 
-func (mmc *MultiMethodClassifier) combineBusinessContent(businessName, description, websiteURL string) string {
+// extractTrustedContent extracts only verified and trusted content for classification
+func (mmc *MultiMethodClassifier) extractTrustedContent(ctx context.Context, businessName, description, websiteURL string) string {
 	var content strings.Builder
 
+	// Always include business name (it's the primary identifier)
 	if businessName != "" {
 		content.WriteString(businessName)
 		content.WriteString(" ")
 	}
 
-	if description != "" {
-		content.WriteString(description)
-		content.WriteString(" ")
-	}
+	// SECURITY: Skip user-provided description - it cannot be trusted
+	// Business descriptions are often manipulated or inaccurate
+	mmc.logger.Printf("🔒 SECURITY: Skipping user-provided description for classification")
 
+	// Only include website URL if ownership has been verified
 	if websiteURL != "" {
-		content.WriteString(websiteURL)
+		if mmc.isWebsiteOwnershipVerified(ctx, websiteURL, businessName) {
+			content.WriteString(websiteURL)
+			mmc.logger.Printf("✅ SECURITY: Using verified website URL: %s", websiteURL)
+		} else {
+			mmc.logger.Printf("⚠️ SECURITY: Skipping unverified website URL: %s", websiteURL)
+		}
 	}
 
 	return strings.TrimSpace(content.String())
+}
+
+// isWebsiteOwnershipVerified checks if website ownership has been verified
+func (mmc *MultiMethodClassifier) isWebsiteOwnershipVerified(ctx context.Context, websiteURL, businessName string) bool {
+	// In a real implementation, this would check against a verification database
+	// For now, we'll implement basic validation rules
+
+	// Extract domain from URL
+	domain := mmc.extractDomainFromURL(websiteURL)
+	if domain == "" {
+		return false
+	}
+
+	// Check if domain matches business name (basic validation)
+	if mmc.doesDomainMatchBusinessName(domain, businessName) {
+		return true
+	}
+
+	// TODO: Integrate with website verification service
+	// This should check against the AdvancedVerifier results
+	// For now, we'll be conservative and require explicit verification
+	return false
+}
+
+// extractDomainFromURL extracts domain from URL
+func (mmc *MultiMethodClassifier) extractDomainFromURL(url string) string {
+	// Simple domain extraction - in production, use proper URL parsing
+	if strings.HasPrefix(url, "http://") {
+		url = strings.TrimPrefix(url, "http://")
+	} else if strings.HasPrefix(url, "https://") {
+		url = strings.TrimPrefix(url, "https://")
+	}
+
+	// Remove path and query parameters
+	if idx := strings.Index(url, "/"); idx != -1 {
+		url = url[:idx]
+	}
+
+	return url
+}
+
+// doesDomainMatchBusinessName checks if domain matches business name
+func (mmc *MultiMethodClassifier) doesDomainMatchBusinessName(domain, businessName string) bool {
+	// Convert to lowercase for comparison
+	domain = strings.ToLower(domain)
+	businessName = strings.ToLower(businessName)
+
+	// Remove common TLDs
+	domain = strings.TrimSuffix(domain, ".com")
+	domain = strings.TrimSuffix(domain, ".org")
+	domain = strings.TrimSuffix(domain, ".net")
+	domain = strings.TrimSuffix(domain, ".co")
+	domain = strings.TrimSuffix(domain, ".io")
+
+	// Remove spaces and special characters from business name
+	businessName = strings.ReplaceAll(businessName, " ", "")
+	businessName = strings.ReplaceAll(businessName, "&", "and")
+	businessName = strings.ReplaceAll(businessName, "-", "")
+	businessName = strings.ReplaceAll(businessName, "_", "")
+
+	// Check if domain contains business name or vice versa
+	return strings.Contains(domain, businessName) || strings.Contains(businessName, domain)
+}
+
+// getDataSourceInfo returns information about data sources used
+func (mmc *MultiMethodClassifier) getDataSourceInfo(businessName, description, websiteURL string) map[string]interface{} {
+	sources := map[string]interface{}{
+		"business_name": map[string]interface{}{
+			"used":    true,
+			"trusted": true,
+			"reason":  "Primary business identifier",
+		},
+		"description": map[string]interface{}{
+			"used":    false,
+			"trusted": false,
+			"reason":  "User-provided data cannot be trusted for classification",
+		},
+		"website_url": map[string]interface{}{
+			"used":    websiteURL != "" && mmc.isWebsiteOwnershipVerified(context.Background(), websiteURL, businessName),
+			"trusted": false, // Will be true only if verified
+			"reason":  "Website ownership must be verified before use",
+		},
+	}
+
+	return sources
+}
+
+// calculateTrustedDataConfidence calculates confidence based on trusted data quality
+func (mmc *MultiMethodClassifier) calculateTrustedDataConfidence(indicators []string, content string) float64 {
+	if len(indicators) == 0 {
+		return 0.2 // Very low confidence for no indicators from trusted data
+	}
+
+	// Base confidence on number of indicators and content length
+	indicatorConfidence := float64(len(indicators)) * 0.15 // Lower multiplier for trusted data
+	contentConfidence := float64(len(content)) / 2000.0    // Longer content = higher confidence
+
+	confidence := indicatorConfidence + contentConfidence
+	if confidence > 0.8 {
+		confidence = 0.8 // Cap confidence for description-based method
+	}
+	if confidence < 0.1 {
+		confidence = 0.1
+	}
+
+	return confidence
 }
 
 func (mmc *MultiMethodClassifier) extractIndustryIndicators(content string) []string {

@@ -13,6 +13,7 @@ import (
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 
+	"github.com/pcraw4d/business-verification/internal/architecture"
 	"github.com/pcraw4d/business-verification/internal/classification"
 	"github.com/pcraw4d/business-verification/internal/config"
 	"github.com/pcraw4d/business-verification/internal/database"
@@ -102,6 +103,11 @@ func NewRailwayServer() (*RailwayServer, error) {
 	databaseModule, err := database_classification.NewDatabaseClassificationModule(supabaseClient, logger, databaseModuleConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize database module: %w", err)
+	}
+
+	// Start the database module
+	if err := databaseModule.Start(context.Background()); err != nil {
+		return nil, fmt.Errorf("failed to start database module: %w", err)
 	}
 
 	// Initialize authentication middleware
@@ -261,17 +267,35 @@ func (s *RailwayServer) handleClassify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Process classification
+	// Process classification using database module
 	var result map[string]interface{}
-	if s.classificationService != nil {
-		result = s.classificationService.ProcessBusinessClassification(
-			context.Background(),
-			req.BusinessName,
-			req.Description,
-			req.WebsiteURL,
-		)
+	if s.databaseModule != nil {
+		// Create module request
+		moduleReq := architecture.ModuleRequest{
+			ID: fmt.Sprintf("req_%d", time.Now().Unix()),
+			Data: map[string]interface{}{
+				"business_name": req.BusinessName,
+				"description":   req.Description,
+				"website_url":   req.WebsiteURL,
+			},
+		}
+
+		// Process through database module
+		moduleResp, err := s.databaseModule.Process(context.Background(), moduleReq)
+		if err != nil {
+			s.logger.Printf("❌ Database module processing failed: %v", err)
+			// Fallback to mock classification
+			result = s.getFallbackClassification(req.BusinessName, req.Description, req.WebsiteURL)
+		} else if moduleResp.Success {
+			// Use the module response data
+			result = moduleResp.Data
+		} else {
+			s.logger.Printf("❌ Database module returned error: %s", moduleResp.Error)
+			// Fallback to mock classification
+			result = s.getFallbackClassification(req.BusinessName, req.Description, req.WebsiteURL)
+		}
 	} else {
-		// Fallback mock classification when Supabase is not available
+		// Fallback mock classification when database module is not available
 		result = s.getFallbackClassification(req.BusinessName, req.Description, req.WebsiteURL)
 	}
 
@@ -283,7 +307,7 @@ func (s *RailwayServer) handleClassify(w http.ResponseWriter, r *http.Request) {
 func (s *RailwayServer) getFallbackClassification(businessName, description, websiteURL string) map[string]interface{} {
 	// Generate a business ID for tracking
 	businessID := fmt.Sprintf("biz_%d", time.Now().Unix())
-	
+
 	return map[string]interface{}{
 		"success":       true,
 		"business_id":   businessID,
