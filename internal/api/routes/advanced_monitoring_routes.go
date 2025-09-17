@@ -258,4 +258,3 @@ func AdvancedMonitoringRoutesV3(
 
 	logger.Info("advanced monitoring v3 routes configured successfully")
 }
-

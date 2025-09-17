@@ -17,10 +17,10 @@ type UncertaintyQuantificationMonitor struct {
 	mu     sync.RWMutex
 
 	// Uncertainty tracking
-	uncertaintyData    []*UncertaintyDataPoint
-	calibrationData    []*CalibrationDataPoint
-	reliabilityData    []*ReliabilityDataPoint
-	uncertaintyAlerts  []*UncertaintyAlert
+	uncertaintyData   []*UncertaintyDataPoint
+	calibrationData   []*CalibrationDataPoint
+	reliabilityData   []*ReliabilityDataPoint
+	uncertaintyAlerts []*UncertaintyAlert
 
 	// Analysis components
 	calibrationAnalyzer *UncertaintyCalibrationAnalyzer
@@ -31,9 +31,9 @@ type UncertaintyQuantificationMonitor struct {
 // UncertaintyQuantificationConfig holds configuration for uncertainty quantification monitoring
 type UncertaintyQuantificationConfig struct {
 	// Data collection
-	DataCollectionEnabled    bool          `json:"data_collection_enabled"`
-	MaxDataPoints           int           `json:"max_data_points"`
-	CollectionInterval      time.Duration `json:"collection_interval"`
+	DataCollectionEnabled bool          `json:"data_collection_enabled"`
+	MaxDataPoints         int           `json:"max_data_points"`
+	CollectionInterval    time.Duration `json:"collection_interval"`
 
 	// Calibration analysis
 	CalibrationAnalysisEnabled bool    `json:"calibration_analysis_enabled"`
@@ -58,46 +58,46 @@ type UncertaintyQuantificationConfig struct {
 	AlertRetentionPeriod time.Duration `json:"alert_retention_period"`
 
 	// Monitoring intervals
-	MonitoringInterval    time.Duration `json:"monitoring_interval"`
-	AnalysisInterval      time.Duration `json:"analysis_interval"`
-	ValidationInterval    time.Duration `json:"validation_interval"`
+	MonitoringInterval time.Duration `json:"monitoring_interval"`
+	AnalysisInterval   time.Duration `json:"analysis_interval"`
+	ValidationInterval time.Duration `json:"validation_interval"`
 }
 
 // CalibrationDataPoint represents a calibration measurement
 type CalibrationDataPoint struct {
-	Timestamp        time.Time `json:"timestamp"`
-	ConfidenceBin    int       `json:"confidence_bin"`
-	ConfidenceRange  string    `json:"confidence_range"`
-	PredictedAccuracy float64  `json:"predicted_accuracy"`
-	ActualAccuracy   float64   `json:"actual_accuracy"`
-	CalibrationError float64   `json:"calibration_error"`
-	SampleSize       int       `json:"sample_size"`
+	Timestamp         time.Time `json:"timestamp"`
+	ConfidenceBin     int       `json:"confidence_bin"`
+	ConfidenceRange   string    `json:"confidence_range"`
+	PredictedAccuracy float64   `json:"predicted_accuracy"`
+	ActualAccuracy    float64   `json:"actual_accuracy"`
+	CalibrationError  float64   `json:"calibration_error"`
+	SampleSize        int       `json:"sample_size"`
 }
 
 // ReliabilityDataPoint represents a reliability measurement
 type ReliabilityDataPoint struct {
-	Timestamp           time.Time `json:"timestamp"`
-	UncertaintyScore    float64   `json:"uncertainty_score"`
-	ConfidenceScore     float64   `json:"confidence_score"`
-	PredictionAccuracy  float64   `json:"prediction_accuracy"`
-	ReliabilityScore    float64   `json:"reliability_score"`
-	CalibrationScore    float64   `json:"calibration_score"`
-	SampleSize          int       `json:"sample_size"`
+	Timestamp          time.Time `json:"timestamp"`
+	UncertaintyScore   float64   `json:"uncertainty_score"`
+	ConfidenceScore    float64   `json:"confidence_score"`
+	PredictionAccuracy float64   `json:"prediction_accuracy"`
+	ReliabilityScore   float64   `json:"reliability_score"`
+	CalibrationScore   float64   `json:"calibration_score"`
+	SampleSize         int       `json:"sample_size"`
 }
 
 // UncertaintyAlert represents an alert about uncertainty quantification issues
 type UncertaintyAlert struct {
-	ID              string    `json:"id"`
-	AlertType       string    `json:"alert_type"` // "poor_calibration", "low_reliability", "accuracy_mismatch", "uncertainty_drift"
-	Severity        string    `json:"severity"`   // "warning", "critical"
-	Message         string    `json:"message"`
-	Details         string    `json:"details"`
-	Metrics         map[string]float64 `json:"metrics"`
-	Timestamp       time.Time `json:"timestamp"`
-	Acknowledged    bool      `json:"acknowledged"`
-	AcknowledgedAt  time.Time `json:"acknowledged_at,omitempty"`
-	Resolved        bool      `json:"resolved"`
-	ResolvedAt      time.Time `json:"resolved_at,omitempty"`
+	ID             string             `json:"id"`
+	AlertType      string             `json:"alert_type"` // "poor_calibration", "low_reliability", "accuracy_mismatch", "uncertainty_drift"
+	Severity       string             `json:"severity"`   // "warning", "critical"
+	Message        string             `json:"message"`
+	Details        string             `json:"details"`
+	Metrics        map[string]float64 `json:"metrics"`
+	Timestamp      time.Time          `json:"timestamp"`
+	Acknowledged   bool               `json:"acknowledged"`
+	AcknowledgedAt time.Time          `json:"acknowledged_at,omitempty"`
+	Resolved       bool               `json:"resolved"`
+	ResolvedAt     time.Time          `json:"resolved_at,omitempty"`
 }
 
 // UncertaintyCalibrationAnalyzer analyzes uncertainty calibration
@@ -129,12 +129,12 @@ func NewUncertaintyQuantificationMonitor(config *UncertaintyQuantificationConfig
 	}
 
 	return &UncertaintyQuantificationMonitor{
-		config:              config,
-		logger:              logger,
-		uncertaintyData:     make([]*UncertaintyDataPoint, 0),
-		calibrationData:     make([]*CalibrationDataPoint, 0),
-		reliabilityData:     make([]*ReliabilityDataPoint, 0),
-		uncertaintyAlerts:   make([]*UncertaintyAlert, 0),
+		config:            config,
+		logger:            logger,
+		uncertaintyData:   make([]*UncertaintyDataPoint, 0),
+		calibrationData:   make([]*CalibrationDataPoint, 0),
+		reliabilityData:   make([]*ReliabilityDataPoint, 0),
+		uncertaintyAlerts: make([]*UncertaintyAlert, 0),
 		calibrationAnalyzer: &UncertaintyCalibrationAnalyzer{
 			config: config,
 			logger: logger,
@@ -153,26 +153,26 @@ func NewUncertaintyQuantificationMonitor(config *UncertaintyQuantificationConfig
 // DefaultUncertaintyQuantificationConfig returns default configuration
 func DefaultUncertaintyQuantificationConfig() *UncertaintyQuantificationConfig {
 	return &UncertaintyQuantificationConfig{
-		DataCollectionEnabled:     true,
-		MaxDataPoints:            10000,
-		CollectionInterval:       1 * time.Minute,
+		DataCollectionEnabled:      true,
+		MaxDataPoints:              10000,
+		CollectionInterval:         1 * time.Minute,
 		CalibrationAnalysisEnabled: true,
-		CalibrationBins:          10,
-		CalibrationThreshold:     0.1, // 10% calibration error threshold
-		MinSamplesPerBin:         20,
+		CalibrationBins:            10,
+		CalibrationThreshold:       0.1, // 10% calibration error threshold
+		MinSamplesPerBin:           20,
 		ReliabilityTrackingEnabled: true,
-		ReliabilityWindowSize:     1000,
-		ReliabilityThreshold:      0.7, // 70% reliability threshold
-		AccuracyValidationEnabled: true,
-		AccuracyThreshold:         0.8, // 80% accuracy threshold
-		ValidationWindowSize:      500,
-		AlertingEnabled:           true,
-		AlertCooldownPeriod:       15 * time.Minute,
-		MaxAlertsPerType:         20,
-		AlertRetentionPeriod:      24 * time.Hour,
-		MonitoringInterval:        1 * time.Minute,
-		AnalysisInterval:          5 * time.Minute,
-		ValidationInterval:        10 * time.Minute,
+		ReliabilityWindowSize:      1000,
+		ReliabilityThreshold:       0.7, // 70% reliability threshold
+		AccuracyValidationEnabled:  true,
+		AccuracyThreshold:          0.8, // 80% accuracy threshold
+		ValidationWindowSize:       500,
+		AlertingEnabled:            true,
+		AlertCooldownPeriod:        15 * time.Minute,
+		MaxAlertsPerType:           20,
+		AlertRetentionPeriod:       24 * time.Hour,
+		MonitoringInterval:         1 * time.Minute,
+		AnalysisInterval:           5 * time.Minute,
+		ValidationInterval:         10 * time.Minute,
 	}
 }
 
@@ -254,30 +254,30 @@ func (uqm *UncertaintyQuantificationMonitor) analyzeCalibration(point *Uncertain
 
 	if calibrationPoint == nil {
 		calibrationPoint = &CalibrationDataPoint{
-			Timestamp:        time.Now(),
-			ConfidenceBin:    binIndex,
-			ConfidenceRange:  fmt.Sprintf("%.2f-%.2f", float64(binIndex)*binSize, float64(binIndex+1)*binSize),
+			Timestamp:         time.Now(),
+			ConfidenceBin:     binIndex,
+			ConfidenceRange:   fmt.Sprintf("%.2f-%.2f", float64(binIndex)*binSize, float64(binIndex+1)*binSize),
 			PredictedAccuracy: 0.0,
-			ActualAccuracy:   0.0,
-			CalibrationError: 0.0,
-			SampleSize:       0,
+			ActualAccuracy:    0.0,
+			CalibrationError:  0.0,
+			SampleSize:        0,
 		}
 		uqm.calibrationData = append(uqm.calibrationData, calibrationPoint)
 	}
 
 	// Update calibration data
 	calibrationPoint.SampleSize++
-	
+
 	// Update predicted accuracy (confidence should predict accuracy)
 	calibrationPoint.PredictedAccuracy = (calibrationPoint.PredictedAccuracy*float64(calibrationPoint.SampleSize-1) + point.Confidence) / float64(calibrationPoint.SampleSize)
-	
+
 	// Update actual accuracy
 	accuracy := 0.0
 	if isCorrect {
 		accuracy = 1.0
 	}
 	calibrationPoint.ActualAccuracy = (calibrationPoint.ActualAccuracy*float64(calibrationPoint.SampleSize-1) + accuracy) / float64(calibrationPoint.SampleSize)
-	
+
 	// Calculate calibration error
 	calibrationPoint.CalibrationError = math.Abs(calibrationPoint.PredictedAccuracy - calibrationPoint.ActualAccuracy)
 
@@ -308,7 +308,7 @@ func (uqm *UncertaintyQuantificationMonitor) trackReliability(point *Uncertainty
 	if isCorrect {
 		accuracyScore = 1.0
 	}
-	
+
 	// Reliability is the weighted combination of calibration and accuracy
 	reliabilityScore := (calibrationScore * 0.6) + (accuracyScore * 0.4)
 
@@ -491,16 +491,16 @@ func (uqm *UncertaintyQuantificationMonitor) GetUncertaintyMetrics() *Uncertaint
 	defer uqm.mu.RUnlock()
 
 	metrics := &UncertaintyQuantificationMetrics{
-		Timestamp:           time.Now(),
-		TotalPredictions:    len(uqm.uncertaintyData),
-		CalibrationBins:     uqm.config.CalibrationBins,
-		CalibrationData:     make([]*CalibrationDataPoint, len(uqm.calibrationData)),
-		ReliabilityData:     make([]*ReliabilityDataPoint, len(uqm.reliabilityData)),
-		OverallCalibration:  0.0,
-		OverallReliability:  0.0,
-		OverallAccuracy:     0.0,
-		AlertsCount:         len(uqm.uncertaintyAlerts),
-		HealthStatus:        "healthy",
+		Timestamp:          time.Now(),
+		TotalPredictions:   len(uqm.uncertaintyData),
+		CalibrationBins:    uqm.config.CalibrationBins,
+		CalibrationData:    make([]*CalibrationDataPoint, len(uqm.calibrationData)),
+		ReliabilityData:    make([]*ReliabilityDataPoint, len(uqm.reliabilityData)),
+		OverallCalibration: 0.0,
+		OverallReliability: 0.0,
+		OverallAccuracy:    0.0,
+		AlertsCount:        len(uqm.uncertaintyAlerts),
+		HealthStatus:       "healthy",
 	}
 
 	// Copy calibration data
@@ -522,16 +522,16 @@ func (uqm *UncertaintyQuantificationMonitor) GetUncertaintyMetrics() *Uncertaint
 
 // UncertaintyQuantificationMetrics represents comprehensive uncertainty quantification metrics
 type UncertaintyQuantificationMetrics struct {
-	Timestamp           time.Time                `json:"timestamp"`
-	TotalPredictions    int                      `json:"total_predictions"`
-	CalibrationBins     int                      `json:"calibration_bins"`
-	CalibrationData     []*CalibrationDataPoint  `json:"calibration_data"`
-	ReliabilityData     []*ReliabilityDataPoint  `json:"reliability_data"`
-	OverallCalibration  float64                  `json:"overall_calibration"`
-	OverallReliability  float64                  `json:"overall_reliability"`
-	OverallAccuracy     float64                  `json:"overall_accuracy"`
-	AlertsCount         int                      `json:"alerts_count"`
-	HealthStatus        string                   `json:"health_status"`
+	Timestamp          time.Time               `json:"timestamp"`
+	TotalPredictions   int                     `json:"total_predictions"`
+	CalibrationBins    int                     `json:"calibration_bins"`
+	CalibrationData    []*CalibrationDataPoint `json:"calibration_data"`
+	ReliabilityData    []*ReliabilityDataPoint `json:"reliability_data"`
+	OverallCalibration float64                 `json:"overall_calibration"`
+	OverallReliability float64                 `json:"overall_reliability"`
+	OverallAccuracy    float64                 `json:"overall_accuracy"`
+	AlertsCount        int                     `json:"alerts_count"`
+	HealthStatus       string                  `json:"health_status"`
 }
 
 // calculateOverallCalibration calculates overall calibration score
@@ -659,19 +659,19 @@ func (uqm *UncertaintyQuantificationMonitor) GetCalibrationReport() *Calibration
 	defer uqm.mu.RUnlock()
 
 	report := &CalibrationReport{
-		Timestamp:        time.Now(),
-		TotalBins:        uqm.config.CalibrationBins,
-		AnalyzedBins:     0,
+		Timestamp:          time.Now(),
+		TotalBins:          uqm.config.CalibrationBins,
+		AnalyzedBins:       0,
 		OverallCalibration: uqm.calculateOverallCalibration(),
-		BinDetails:       make([]*CalibrationBinDetail, 0),
-		Recommendations:  make([]string, 0),
+		BinDetails:         make([]*CalibrationBinDetail, 0),
+		Recommendations:    make([]string, 0),
 	}
 
 	// Analyze each calibration bin
 	for _, point := range uqm.calibrationData {
 		if point.SampleSize >= uqm.config.MinSamplesPerBin {
 			report.AnalyzedBins++
-			
+
 			binDetail := &CalibrationBinDetail{
 				ConfidenceBin:     point.ConfidenceBin,
 				ConfidenceRange:   point.ConfidenceRange,
@@ -707,12 +707,12 @@ func (uqm *UncertaintyQuantificationMonitor) GetCalibrationReport() *Calibration
 
 // CalibrationReport represents a detailed calibration report
 type CalibrationReport struct {
-	Timestamp          time.Time                `json:"timestamp"`
-	TotalBins          int                      `json:"total_bins"`
-	AnalyzedBins       int                      `json:"analyzed_bins"`
-	OverallCalibration float64                  `json:"overall_calibration"`
-	BinDetails         []*CalibrationBinDetail  `json:"bin_details"`
-	Recommendations    []string                 `json:"recommendations"`
+	Timestamp          time.Time               `json:"timestamp"`
+	TotalBins          int                     `json:"total_bins"`
+	AnalyzedBins       int                     `json:"analyzed_bins"`
+	OverallCalibration float64                 `json:"overall_calibration"`
+	BinDetails         []*CalibrationBinDetail `json:"bin_details"`
+	Recommendations    []string                `json:"recommendations"`
 }
 
 // CalibrationBinDetail represents details for a calibration bin

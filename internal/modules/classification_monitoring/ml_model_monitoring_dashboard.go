@@ -16,11 +16,11 @@ type MLModelMonitoringDashboard struct {
 	mu     sync.RWMutex
 
 	// Monitoring components
-	bertMonitor              *BERTModelMonitor
-	ensembleWeightMonitor    *EnsembleWeightMonitor
-	uncertaintyMonitor       *UncertaintyQuantificationMonitor
+	bertMonitor               *BERTModelMonitor
+	ensembleWeightMonitor     *EnsembleWeightMonitor
+	uncertaintyMonitor        *UncertaintyQuantificationMonitor
 	securityProcessingMonitor *SecurityProcessingTimeMonitor
-	accuracyTracker          *AdvancedAccuracyTracker
+	accuracyTracker           *AdvancedAccuracyTracker
 
 	// Dashboard state
 	lastUpdateTime time.Time
@@ -31,80 +31,80 @@ type MLModelMonitoringDashboard struct {
 // MLModelDashboardConfig holds configuration for the ML model monitoring dashboard
 type MLModelDashboardConfig struct {
 	// Dashboard settings
-	DashboardEnabled        bool          `json:"dashboard_enabled"`
-	UpdateInterval          time.Duration `json:"update_interval"`
-	HealthCheckInterval     time.Duration `json:"health_check_interval"`
-	AlertSummaryInterval    time.Duration `json:"alert_summary_interval"`
+	DashboardEnabled     bool          `json:"dashboard_enabled"`
+	UpdateInterval       time.Duration `json:"update_interval"`
+	HealthCheckInterval  time.Duration `json:"health_check_interval"`
+	AlertSummaryInterval time.Duration `json:"alert_summary_interval"`
 
 	// Display settings
-	MaxAlertsDisplayed      int           `json:"max_alerts_displayed"`
-	MaxMetricsHistory       int           `json:"max_metrics_history"`
-	ShowDetailedMetrics     bool          `json:"show_detailed_metrics"`
-	ShowTrendAnalysis       bool          `json:"show_trend_analysis"`
+	MaxAlertsDisplayed  int  `json:"max_alerts_displayed"`
+	MaxMetricsHistory   int  `json:"max_metrics_history"`
+	ShowDetailedMetrics bool `json:"show_detailed_metrics"`
+	ShowTrendAnalysis   bool `json:"show_trend_analysis"`
 
 	// Integration settings
-	IntegrateBERTMonitoring      bool `json:"integrate_bert_monitoring"`
-	IntegrateEnsembleMonitoring  bool `json:"integrate_ensemble_monitoring"`
+	IntegrateBERTMonitoring        bool `json:"integrate_bert_monitoring"`
+	IntegrateEnsembleMonitoring    bool `json:"integrate_ensemble_monitoring"`
 	IntegrateUncertaintyMonitoring bool `json:"integrate_uncertainty_monitoring"`
-	IntegrateSecurityMonitoring  bool `json:"integrate_security_monitoring"`
-	IntegrateAccuracyTracking    bool `json:"integrate_accuracy_tracking"`
+	IntegrateSecurityMonitoring    bool `json:"integrate_security_monitoring"`
+	IntegrateAccuracyTracking      bool `json:"integrate_accuracy_tracking"`
 }
 
 // AlertsSummary represents a summary of all alerts across monitoring components
 type AlertsSummary struct {
-	Timestamp           time.Time `json:"timestamp"`
-	TotalAlerts         int       `json:"total_alerts"`
-	CriticalAlerts      int       `json:"critical_alerts"`
-	WarningAlerts       int       `json:"warning_alerts"`
-	UnacknowledgedAlerts int      `json:"unacknowledged_alerts"`
-	ResolvedAlerts      int       `json:"resolved_alerts"`
-	AlertBreakdown      map[string]int `json:"alert_breakdown"`
+	Timestamp            time.Time      `json:"timestamp"`
+	TotalAlerts          int            `json:"total_alerts"`
+	CriticalAlerts       int            `json:"critical_alerts"`
+	WarningAlerts        int            `json:"warning_alerts"`
+	UnacknowledgedAlerts int            `json:"unacknowledged_alerts"`
+	ResolvedAlerts       int            `json:"resolved_alerts"`
+	AlertBreakdown       map[string]int `json:"alert_breakdown"`
 }
 
 // MLModelDashboardMetrics represents comprehensive metrics for the dashboard
 type MLModelDashboardMetrics struct {
-	Timestamp           time.Time                           `json:"timestamp"`
-	OverallHealth       string                              `json:"overall_health"`
-	HealthScore         float64                             `json:"health_score"`
-	
+	Timestamp     time.Time `json:"timestamp"`
+	OverallHealth string    `json:"overall_health"`
+	HealthScore   float64   `json:"health_score"`
+
 	// BERT Model Metrics
-	BERTMetrics         map[string]*BERTModelMetrics        `json:"bert_metrics,omitempty"`
-	BERTHealth          string                              `json:"bert_health,omitempty"`
-	
+	BERTMetrics map[string]*BERTModelMetrics `json:"bert_metrics,omitempty"`
+	BERTHealth  string                       `json:"bert_health,omitempty"`
+
 	// Ensemble Weight Metrics
-	EnsembleWeights     map[string]float64                  `json:"ensemble_weights,omitempty"`
-	WeightDistributionHealth string                         `json:"weight_distribution_health,omitempty"`
-	
+	EnsembleWeights          map[string]float64 `json:"ensemble_weights,omitempty"`
+	WeightDistributionHealth string             `json:"weight_distribution_health,omitempty"`
+
 	// Uncertainty Quantification Metrics
-	UncertaintyMetrics  *UncertaintyQuantificationMetrics   `json:"uncertainty_metrics,omitempty"`
-	UncertaintyHealth   string                              `json:"uncertainty_health,omitempty"`
-	
+	UncertaintyMetrics *UncertaintyQuantificationMetrics `json:"uncertainty_metrics,omitempty"`
+	UncertaintyHealth  string                            `json:"uncertainty_health,omitempty"`
+
 	// Security Processing Metrics
-	SecurityMetrics     *SecurityProcessingMetrics          `json:"security_metrics,omitempty"`
-	SecurityHealth      string                              `json:"security_health,omitempty"`
-	
+	SecurityMetrics *SecurityProcessingMetrics `json:"security_metrics,omitempty"`
+	SecurityHealth  string                     `json:"security_health,omitempty"`
+
 	// Accuracy Tracking Metrics
-	AccuracyMetrics     *RealTimeMetrics                    `json:"accuracy_metrics,omitempty"`
-	AccuracyHealth      string                              `json:"accuracy_health,omitempty"`
-	
+	AccuracyMetrics *RealTimeMetrics `json:"accuracy_metrics,omitempty"`
+	AccuracyHealth  string           `json:"accuracy_health,omitempty"`
+
 	// Alerts Summary
-	AlertsSummary       *AlertsSummary                      `json:"alerts_summary"`
-	
+	AlertsSummary *AlertsSummary `json:"alerts_summary"`
+
 	// Performance Summary
-	PerformanceSummary  *PerformanceSummary                 `json:"performance_summary"`
-	
+	PerformanceSummary *PerformanceSummary `json:"performance_summary"`
+
 	// Recommendations
-	Recommendations     []string                            `json:"recommendations"`
+	Recommendations []string `json:"recommendations"`
 }
 
 // PerformanceSummary represents overall performance summary
 type PerformanceSummary struct {
-	OverallAccuracy     float64   `json:"overall_accuracy"`
-	AverageLatency      time.Duration `json:"average_latency"`
-	Throughput          float64   `json:"throughput"`
-	ErrorRate           float64   `json:"error_rate"`
-	Uptime              float64   `json:"uptime"`
-	LastUpdated         time.Time `json:"last_updated"`
+	OverallAccuracy float64       `json:"overall_accuracy"`
+	AverageLatency  time.Duration `json:"average_latency"`
+	Throughput      float64       `json:"throughput"`
+	ErrorRate       float64       `json:"error_rate"`
+	Uptime          float64       `json:"uptime"`
+	LastUpdated     time.Time     `json:"last_updated"`
 }
 
 // NewMLModelMonitoringDashboard creates a new ML model monitoring dashboard
@@ -126,35 +126,35 @@ func NewMLModelMonitoringDashboard(
 	}
 
 	return &MLModelMonitoringDashboard{
-		config:                   config,
-		logger:                   logger,
-		bertMonitor:              bertMonitor,
-		ensembleWeightMonitor:    ensembleWeightMonitor,
-		uncertaintyMonitor:       uncertaintyMonitor,
+		config:                    config,
+		logger:                    logger,
+		bertMonitor:               bertMonitor,
+		ensembleWeightMonitor:     ensembleWeightMonitor,
+		uncertaintyMonitor:        uncertaintyMonitor,
 		securityProcessingMonitor: securityProcessingMonitor,
-		accuracyTracker:          accuracyTracker,
-		lastUpdateTime:           time.Now(),
-		healthStatus:             "unknown",
-		alertsSummary:            &AlertsSummary{},
+		accuracyTracker:           accuracyTracker,
+		lastUpdateTime:            time.Now(),
+		healthStatus:              "unknown",
+		alertsSummary:             &AlertsSummary{},
 	}
 }
 
 // DefaultMLModelDashboardConfig returns default configuration
 func DefaultMLModelDashboardConfig() *MLModelDashboardConfig {
 	return &MLModelDashboardConfig{
-		DashboardEnabled:              true,
-		UpdateInterval:                30 * time.Second,
-		HealthCheckInterval:           1 * time.Minute,
-		AlertSummaryInterval:          5 * time.Minute,
-		MaxAlertsDisplayed:            50,
-		MaxMetricsHistory:             1000,
-		ShowDetailedMetrics:           true,
-		ShowTrendAnalysis:             true,
-		IntegrateBERTMonitoring:       true,
-		IntegrateEnsembleMonitoring:   true,
+		DashboardEnabled:               true,
+		UpdateInterval:                 30 * time.Second,
+		HealthCheckInterval:            1 * time.Minute,
+		AlertSummaryInterval:           5 * time.Minute,
+		MaxAlertsDisplayed:             50,
+		MaxMetricsHistory:              1000,
+		ShowDetailedMetrics:            true,
+		ShowTrendAnalysis:              true,
+		IntegrateBERTMonitoring:        true,
+		IntegrateEnsembleMonitoring:    true,
 		IntegrateUncertaintyMonitoring: true,
-		IntegrateSecurityMonitoring:   true,
-		IntegrateAccuracyTracking:     true,
+		IntegrateSecurityMonitoring:    true,
+		IntegrateAccuracyTracking:      true,
 	}
 }
 
@@ -164,12 +164,12 @@ func (dashboard *MLModelMonitoringDashboard) GetDashboardMetrics(ctx context.Con
 	defer dashboard.mu.Unlock()
 
 	metrics := &MLModelDashboardMetrics{
-		Timestamp:      time.Now(),
-		OverallHealth:  "unknown",
-		HealthScore:    0.0,
-		AlertsSummary:  &AlertsSummary{},
+		Timestamp:          time.Now(),
+		OverallHealth:      "unknown",
+		HealthScore:        0.0,
+		AlertsSummary:      &AlertsSummary{},
 		PerformanceSummary: &PerformanceSummary{},
-		Recommendations: make([]string, 0),
+		Recommendations:    make([]string, 0),
 	}
 
 	// Collect BERT model metrics
@@ -274,13 +274,13 @@ func (dashboard *MLModelMonitoringDashboard) assessAccuracyHealth(accuracyMetric
 // collectAlertsSummary collects alerts from all monitoring components
 func (dashboard *MLModelMonitoringDashboard) collectAlertsSummary() *AlertsSummary {
 	summary := &AlertsSummary{
-		Timestamp:           time.Now(),
-		TotalAlerts:         0,
-		CriticalAlerts:      0,
-		WarningAlerts:       0,
+		Timestamp:            time.Now(),
+		TotalAlerts:          0,
+		CriticalAlerts:       0,
+		WarningAlerts:        0,
 		UnacknowledgedAlerts: 0,
-		ResolvedAlerts:      0,
-		AlertBreakdown:      make(map[string]int),
+		ResolvedAlerts:       0,
+		AlertBreakdown:       make(map[string]int),
 	}
 
 	// Collect BERT model alerts
@@ -386,20 +386,20 @@ func (dashboard *MLModelMonitoringDashboard) collectPerformanceSummary() *Perfor
 // determineOverallHealth determines overall system health
 func (dashboard *MLModelMonitoringDashboard) determineOverallHealth(metrics *MLModelDashboardMetrics) string {
 	// Check for critical health status in any component
-	if metrics.BERTHealth == "critical" || 
-	   metrics.WeightDistributionHealth == "critical" ||
-	   metrics.UncertaintyHealth == "critical" ||
-	   metrics.SecurityHealth == "critical" ||
-	   metrics.AccuracyHealth == "critical" {
+	if metrics.BERTHealth == "critical" ||
+		metrics.WeightDistributionHealth == "critical" ||
+		metrics.UncertaintyHealth == "critical" ||
+		metrics.SecurityHealth == "critical" ||
+		metrics.AccuracyHealth == "critical" {
 		return "critical"
 	}
 
 	// Check for warning health status in any component
-	if metrics.BERTHealth == "warning" || 
-	   metrics.WeightDistributionHealth == "warning" ||
-	   metrics.UncertaintyHealth == "warning" ||
-	   metrics.SecurityHealth == "warning" ||
-	   metrics.AccuracyHealth == "warning" {
+	if metrics.BERTHealth == "warning" ||
+		metrics.WeightDistributionHealth == "warning" ||
+		metrics.UncertaintyHealth == "warning" ||
+		metrics.SecurityHealth == "warning" ||
+		metrics.AccuracyHealth == "warning" {
 		return "warning"
 	}
 
@@ -644,28 +644,28 @@ func (dashboard *MLModelMonitoringDashboard) GetDetailedReport(ctx context.Conte
 
 // MLModelDetailedReport represents a detailed monitoring report
 type MLModelDetailedReport struct {
-	Timestamp           time.Time                 `json:"timestamp"`
-	DashboardMetrics    *MLModelDashboardMetrics  `json:"dashboard_metrics"`
-	ComponentReports    map[string]interface{}    `json:"component_reports"`
-	HealthAnalysis      *HealthAnalysis           `json:"health_analysis"`
-	PerformanceAnalysis *MLPerformanceAnalysis    `json:"performance_analysis"`
-	Recommendations     []string                  `json:"recommendations"`
+	Timestamp           time.Time                `json:"timestamp"`
+	DashboardMetrics    *MLModelDashboardMetrics `json:"dashboard_metrics"`
+	ComponentReports    map[string]interface{}   `json:"component_reports"`
+	HealthAnalysis      *HealthAnalysis          `json:"health_analysis"`
+	PerformanceAnalysis *MLPerformanceAnalysis   `json:"performance_analysis"`
+	Recommendations     []string                 `json:"recommendations"`
 }
 
 // HealthAnalysis represents health analysis results
 type HealthAnalysis struct {
-	OverallHealth       string   `json:"overall_health"`
-	HealthScore         float64  `json:"health_score"`
-	CriticalIssues      []string `json:"critical_issues"`
-	WarningIssues       []string `json:"warning_issues"`
-	HealthyComponents   []string `json:"healthy_components"`
+	OverallHealth     string   `json:"overall_health"`
+	HealthScore       float64  `json:"health_score"`
+	CriticalIssues    []string `json:"critical_issues"`
+	WarningIssues     []string `json:"warning_issues"`
+	HealthyComponents []string `json:"healthy_components"`
 }
 
 // MLPerformanceAnalysis represents performance analysis results
 type MLPerformanceAnalysis struct {
-	OverallPerformance  string   `json:"overall_performance"`
-	PerformanceScore    float64  `json:"performance_score"`
-	Bottlenecks         []string `json:"bottlenecks"`
+	OverallPerformance        string   `json:"overall_performance"`
+	PerformanceScore          float64  `json:"performance_score"`
+	Bottlenecks               []string `json:"bottlenecks"`
 	OptimizationOpportunities []string `json:"optimization_opportunities"`
 }
 
@@ -727,8 +727,8 @@ func (dashboard *MLModelMonitoringDashboard) generateHealthAnalysis(metrics *MLM
 func (dashboard *MLModelMonitoringDashboard) generatePerformanceAnalysis(metrics *MLModelDashboardMetrics) *MLPerformanceAnalysis {
 	analysis := &MLPerformanceAnalysis{
 		OverallPerformance:        "unknown",
-		PerformanceScore:         0.0,
-		Bottlenecks:              make([]string, 0),
+		PerformanceScore:          0.0,
+		Bottlenecks:               make([]string, 0),
 		OptimizationOpportunities: make([]string, 0),
 	}
 

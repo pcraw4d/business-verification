@@ -63,7 +63,7 @@ type PerformanceIntegrationHealth struct {
 // NewPerformanceIntegrationService creates a new performance integration service
 func NewPerformanceIntegrationService(db *sql.DB, logger *zap.Logger, config *PerformanceIntegrationServiceConfig) (*PerformanceIntegrationService, error) {
 	if config == nil {
-		config = DefaultPerformanceIntegrationConfig()
+		config = DefaultPerformanceIntegrationServiceConfig()
 	}
 
 	// Create unified performance monitor
@@ -425,8 +425,8 @@ type DatabaseQueryExecution struct {
 	ErrorMessage  string        `json:"error_message,omitempty"`
 }
 
-// DefaultPerformanceIntegrationConfig returns a default configuration for the performance integration service
-func DefaultPerformanceIntegrationConfig() *PerformanceIntegrationServiceConfig {
+// DefaultPerformanceIntegrationServiceConfig returns a default configuration for the performance integration service
+func DefaultPerformanceIntegrationServiceConfig() *PerformanceIntegrationServiceConfig {
 	return &PerformanceIntegrationServiceConfig{
 		Enabled:                  true,
 		AutoStart:                true,

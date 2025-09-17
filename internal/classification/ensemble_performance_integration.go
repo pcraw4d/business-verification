@@ -213,26 +213,18 @@ func (epi *EnsemblePerformanceIntegration) trackClassificationPerformance(
 	processingTime time.Duration,
 	err error,
 ) {
-	// Extract method results from ensemble result metadata
-	if result.Metadata == nil {
+	// Extract method results from ensemble result
+	if result.MethodResults == nil {
 		return
 	}
 
-	methodResults, exists := result.Metadata["method_results"]
-	if !exists {
-		return
-	}
-
-	// Type assert to get the actual method results
-	if results, ok := methodResults.([]shared.ClassificationMethodResult); ok {
-		for _, methodResult := range results {
-			// Record performance for each method
-			epi.performanceTracker.RecordResult(methodResult.MethodType, &methodResult)
-		}
+	// Record performance for each method
+	for _, methodResult := range result.MethodResults {
+		epi.performanceTracker.RecordResult(methodResult.MethodType, &methodResult)
 	}
 
 	epi.logger.Printf("📊 Tracked performance for ensemble classification: processing_time=%v, confidence=%.3f",
-		processingTime, result.FinalResult.ConfidenceScore)
+		processingTime, result.PrimaryClassification.ConfidenceScore)
 }
 
 // performanceTrackingLoop runs the performance tracking loop

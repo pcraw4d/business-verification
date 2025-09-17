@@ -19,17 +19,17 @@ type WHOISProvider struct {
 
 // WHOISData represents domain registration information
 type WHOISData struct {
-	Domain         string     `json:"domain"`
-	Registrar      string     `json:"registrar"`
-	RegistrantName string     `json:"registrant_name"`
-	RegistrantOrg  string     `json:"registrant_org"`
-	RegistrantEmail string    `json:"registrant_email"`
-	CreationDate   *time.Time `json:"creation_date"`
-	ExpirationDate *time.Time `json:"expiration_date"`
-	UpdatedDate    *time.Time `json:"updated_date"`
-	NameServers    []string   `json:"name_servers"`
-	Status         []string   `json:"status"`
-	Country        string     `json:"country"`
+	Domain          string     `json:"domain"`
+	Registrar       string     `json:"registrar"`
+	RegistrantName  string     `json:"registrant_name"`
+	RegistrantOrg   string     `json:"registrant_org"`
+	RegistrantEmail string     `json:"registrant_email"`
+	CreationDate    *time.Time `json:"creation_date"`
+	ExpirationDate  *time.Time `json:"expiration_date"`
+	UpdatedDate     *time.Time `json:"updated_date"`
+	NameServers     []string   `json:"name_servers"`
+	Status          []string   `json:"status"`
+	Country         string     `json:"country"`
 }
 
 // NewWHOISProvider creates a new WHOIS provider
@@ -51,16 +51,16 @@ func NewWHOISProvider(config ProviderConfig) *WHOISProvider {
 	if config.RetryDelay == 0 {
 		config.RetryDelay = 2 * time.Second // Longer delay for WHOIS
 	}
-	
+
 	// WHOIS is completely free
 	config.CostPerRequest = 0.0
 	config.CostPerSearch = 0.0
 	config.CostPerDetail = 0.0
 	config.CostPerFinancial = 0.0
-	
+
 	// Set provider type
 	config.Type = "whois"
-	
+
 	return &WHOISProvider{
 		config: config,
 		client: &net.Dialer{
@@ -108,19 +108,19 @@ func (w *WHOISProvider) SearchBusiness(ctx context.Context, query BusinessSearch
 	if query.Website == "" {
 		return nil, fmt.Errorf("WHOIS provider requires a website/domain for lookup")
 	}
-	
+
 	// Extract domain from website URL
 	domain, err := w.extractDomain(query.Website)
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract domain from website: %w", err)
 	}
-	
+
 	// Perform WHOIS lookup
 	whoisData, err := w.performWHOISLookup(ctx, domain)
 	if err != nil {
 		return nil, fmt.Errorf("WHOIS lookup failed: %w", err)
 	}
-	
+
 	// Convert WHOIS data to BusinessData
 	businessData := &BusinessData{
 		ID:             fmt.Sprintf("whois_%s", domain),
@@ -146,25 +146,25 @@ func (w *WHOISProvider) SearchBusiness(ctx context.Context, query BusinessSearch
 			},
 		},
 	}
-	
+
 	// Add domain-specific information
 	if whoisData.CreationDate != nil {
 		businessData.FoundedDate = whoisData.CreationDate
 	}
-	
+
 	return businessData, nil
 }
 
 func (w *WHOISProvider) GetBusinessDetails(ctx context.Context, businessID string) (*BusinessData, error) {
 	// Extract domain from business ID
 	domain := strings.TrimPrefix(businessID, "whois_")
-	
+
 	// Perform WHOIS lookup
 	whoisData, err := w.performWHOISLookup(ctx, domain)
 	if err != nil {
 		return nil, fmt.Errorf("WHOIS lookup failed: %w", err)
 	}
-	
+
 	// Convert WHOIS data to BusinessData
 	businessData := &BusinessData{
 		ID:             fmt.Sprintf("whois_%s", domain),
@@ -190,12 +190,12 @@ func (w *WHOISProvider) GetBusinessDetails(ctx context.Context, businessID strin
 			},
 		},
 	}
-	
+
 	// Add domain-specific information
 	if whoisData.CreationDate != nil {
 		businessData.FoundedDate = whoisData.CreationDate
 	}
-	
+
 	return businessData, nil
 }
 
@@ -245,7 +245,7 @@ func (w *WHOISProvider) GetNewsData(ctx context.Context, businessID string) ([]N
 func (w *WHOISProvider) ValidateData(data *BusinessData) (*DataValidationResult, error) {
 	// WHOIS data is domain registry data, not business data
 	issues := []ValidationIssue{}
-	
+
 	// Check for required fields
 	if data.Website == "" {
 		issues = append(issues, ValidationIssue{
@@ -255,7 +255,7 @@ func (w *WHOISProvider) ValidateData(data *BusinessData) (*DataValidationResult,
 			Description: "Website is required for WHOIS data",
 		})
 	}
-	
+
 	if data.ProviderID == "" {
 		issues = append(issues, ValidationIssue{
 			Field:       "provider_id",
@@ -264,17 +264,17 @@ func (w *WHOISProvider) ValidateData(data *BusinessData) (*DataValidationResult,
 			Description: "Provider ID (domain) is required",
 		})
 	}
-	
+
 	// Calculate quality score
 	qualityScore := 0.80 // Good for domain data
 	if len(issues) > 0 {
 		qualityScore = 0.60
 	}
-	
+
 	return &DataValidationResult{
-		IsValid:      len(issues) == 0,
-		QualityScore: qualityScore,
-		Issues:       issues,
+		IsValid:       len(issues) == 0,
+		QualityScore:  qualityScore,
+		Issues:        issues,
 		LastValidated: time.Now(),
 	}, nil
 }
@@ -283,29 +283,29 @@ func (w *WHOISProvider) ValidateData(data *BusinessData) (*DataValidationResult,
 func (w *WHOISProvider) performWHOISLookup(ctx context.Context, domain string) (*WHOISData, error) {
 	// This is a simplified WHOIS implementation
 	// In production, you would use a proper WHOIS library or service
-	
+
 	// For now, we'll return mock data that represents typical WHOIS information
 	// In a real implementation, you would:
 	// 1. Determine the appropriate WHOIS server for the TLD
 	// 2. Connect to the WHOIS server on port 43
 	// 3. Send the domain query
 	// 4. Parse the response
-	
+
 	// Mock WHOIS data for demonstration
 	whoisData := &WHOISData{
-		Domain:         domain,
-		Registrar:      "Example Registrar Inc.",
-		RegistrantName: "John Doe",
-		RegistrantOrg:  "Example Company Inc.",
+		Domain:          domain,
+		Registrar:       "Example Registrar Inc.",
+		RegistrantName:  "John Doe",
+		RegistrantOrg:   "Example Company Inc.",
 		RegistrantEmail: "admin@example.com",
-		CreationDate:   timePtr(time.Now().AddDate(-2, 0, 0)), // 2 years ago
-		ExpirationDate: timePtr(time.Now().AddDate(1, 0, 0)),  // 1 year from now
-		UpdatedDate:    timePtr(time.Now().AddDate(-1, 0, 0)), // 1 year ago
-		NameServers:    []string{"ns1.example.com", "ns2.example.com"},
-		Status:         []string{"clientTransferProhibited", "clientUpdateProhibited"},
-		Country:        "US",
+		CreationDate:    timePtr(time.Now().AddDate(-2, 0, 0)), // 2 years ago
+		ExpirationDate:  timePtr(time.Now().AddDate(1, 0, 0)),  // 1 year from now
+		UpdatedDate:     timePtr(time.Now().AddDate(-1, 0, 0)), // 1 year ago
+		NameServers:     []string{"ns1.example.com", "ns2.example.com"},
+		Status:          []string{"clientTransferProhibited", "clientUpdateProhibited"},
+		Country:         "US",
 	}
-	
+
 	return whoisData, nil
 }
 
@@ -315,22 +315,22 @@ func (w *WHOISProvider) extractDomain(website string) (string, error) {
 	if !strings.HasPrefix(website, "http://") && !strings.HasPrefix(website, "https://") {
 		website = "https://" + website
 	}
-	
+
 	// Parse URL
 	u, err := url.Parse(website)
 	if err != nil {
 		return "", fmt.Errorf("invalid URL: %w", err)
 	}
-	
+
 	// Extract domain
 	domain := u.Hostname()
 	if domain == "" {
 		return "", fmt.Errorf("no domain found in URL")
 	}
-	
+
 	// Remove www. prefix if present
 	domain = strings.TrimPrefix(domain, "www.")
-	
+
 	return domain, nil
 }
 
@@ -347,7 +347,7 @@ func (w *WHOISProvider) determineDomainStatus(domainStatuses []string) string {
 			return "protected"
 		}
 	}
-	
+
 	// Default to active if no specific status found
 	return "active"
 }

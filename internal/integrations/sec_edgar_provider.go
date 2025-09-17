@@ -19,14 +19,14 @@ type SECEdgarProvider struct {
 
 // SECEdgarCompany represents a company from SEC EDGAR API
 type SECEdgarCompany struct {
-	CIK        string `json:"cik"`
-	EntityType string `json:"entityType"`
-	SIC        string `json:"sic"`
-	SICDescription string `json:"sicDescription"`
-	StateOfIncorporation string `json:"stateOfIncorporation"`
-	StateOfIncorporationDescription string `json:"stateOfIncorporationDescription"`
-	Tickers    []string `json:"tickers"`
-	Title      string   `json:"title"`
+	CIK                             string   `json:"cik"`
+	EntityType                      string   `json:"entityType"`
+	SIC                             string   `json:"sic"`
+	SICDescription                  string   `json:"sicDescription"`
+	StateOfIncorporation            string   `json:"stateOfIncorporation"`
+	StateOfIncorporationDescription string   `json:"stateOfIncorporationDescription"`
+	Tickers                         []string `json:"tickers"`
+	Title                           string   `json:"title"`
 }
 
 // SECEdgarResponse represents the response from SEC EDGAR API
@@ -54,21 +54,21 @@ func NewSECEdgarProvider(config ProviderConfig) *SECEdgarProvider {
 	if config.RetryDelay == 0 {
 		config.RetryDelay = 1 * time.Second
 	}
-	
+
 	// SEC EDGAR is completely free
 	config.CostPerRequest = 0.0
 	config.CostPerSearch = 0.0
 	config.CostPerDetail = 0.0
 	config.CostPerFinancial = 0.0
-	
+
 	// Set base URL for SEC EDGAR API
 	if config.BaseURL == "" {
 		config.BaseURL = "https://data.sec.gov"
 	}
-	
+
 	// Set provider type
 	config.Type = "sec_edgar"
-	
+
 	return &SECEdgarProvider{
 		config: config,
 		client: &http.Client{
@@ -114,45 +114,45 @@ func (s *SECEdgarProvider) SearchBusiness(ctx context.Context, query BusinessSea
 	// SEC EDGAR API endpoint for company search
 	// Documentation: https://www.sec.gov/edgar/sec-api-documentation
 	searchURL := fmt.Sprintf("%s/api/xbrl/companyfacts/CIK%s.json", s.config.BaseURL, s.normalizeCIK(query.CompanyName))
-	
+
 	// For general company search, we use the company tickers endpoint
 	if query.CompanyName != "" {
 		searchURL = fmt.Sprintf("%s/api/xbrl/companyfacts/", s.config.BaseURL)
 		// Note: SEC EDGAR doesn't have a direct company name search API
 		// We would need to implement a different approach or use company tickers
 	}
-	
+
 	req, err := http.NewRequestWithContext(ctx, "GET", searchURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	// SEC EDGAR requires a User-Agent header
 	req.Header.Set("User-Agent", "KYB-Platform/1.0 (contact@kyb-platform.com)")
 	req.Header.Set("Accept", "application/json")
-	
+
 	resp, err := s.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("SEC EDGAR API returned status %d", resp.StatusCode)
 	}
-	
+
 	var secResponse SECEdgarResponse
 	if err := json.NewDecoder(resp.Body).Decode(&secResponse); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
-	
+
 	// Convert SEC EDGAR response to our BusinessData format
 	if len(secResponse.Results) == 0 {
 		return nil, fmt.Errorf("no companies found for query")
 	}
-	
+
 	company := secResponse.Results[0] // Take the first result
-	
+
 	businessData := &BusinessData{
 		ID:             fmt.Sprintf("sec_%s", company.CIK),
 		ProviderID:     company.CIK,
@@ -163,11 +163,11 @@ func (s *SECEdgarProvider) SearchBusiness(ctx context.Context, query BusinessSea
 		Address: Address{
 			Country: "US", // SEC EDGAR is US-only
 		},
-		Industry:      company.SICDescription,
-		Status:        "active", // Assume active if in SEC database
-		LastUpdated:   time.Now(),
-		DataQuality:   0.95, // Government data is high quality
-		Confidence:    0.90, // High confidence for government data
+		Industry:    company.SICDescription,
+		Status:      "active", // Assume active if in SEC database
+		LastUpdated: time.Now(),
+		DataQuality: 0.95, // Government data is high quality
+		Confidence:  0.90, // High confidence for government data
 		DataSources: []DataSource{
 			{
 				Name:        "SEC EDGAR",
@@ -177,54 +177,54 @@ func (s *SECEdgarProvider) SearchBusiness(ctx context.Context, query BusinessSea
 			},
 		},
 	}
-	
+
 	// Add additional SEC-specific data
 	if company.SIC != "" {
 		businessData.IndustryCodes = append(businessData.IndustryCodes, IndustryCode{
-			Type:  "SIC",
-			Code:  company.SIC,
+			Type:        "SIC",
+			Code:        company.SIC,
 			Description: company.SICDescription,
 		})
 	}
-	
+
 	return businessData, nil
 }
 
 func (s *SECEdgarProvider) GetBusinessDetails(ctx context.Context, businessID string) (*BusinessData, error) {
 	// Extract CIK from business ID
 	cik := strings.TrimPrefix(businessID, "sec_")
-	
+
 	// Get detailed company facts from SEC EDGAR
 	detailsURL := fmt.Sprintf("%s/api/xbrl/companyfacts/CIK%s.json", s.config.BaseURL, s.normalizeCIK(cik))
-	
+
 	req, err := http.NewRequestWithContext(ctx, "GET", detailsURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	req.Header.Set("User-Agent", "KYB-Platform/1.0 (contact@kyb-platform.com)")
 	req.Header.Set("Accept", "application/json")
-	
+
 	resp, err := s.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("SEC EDGAR API returned status %d", resp.StatusCode)
 	}
-	
+
 	// Parse the detailed company facts response
 	var companyFacts map[string]interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&companyFacts); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
-	
+
 	// Extract company information from the response
 	entityName, _ := companyFacts["entityName"].(string)
 	cikStr, _ := companyFacts["cik"].(string)
-	
+
 	businessData := &BusinessData{
 		ID:             fmt.Sprintf("sec_%s", cikStr),
 		ProviderID:     cikStr,
@@ -248,7 +248,7 @@ func (s *SECEdgarProvider) GetBusinessDetails(ctx context.Context, businessID st
 			},
 		},
 	}
-	
+
 	return businessData, nil
 }
 
@@ -299,7 +299,7 @@ func (s *SECEdgarProvider) GetNewsData(ctx context.Context, businessID string) (
 func (s *SECEdgarProvider) ValidateData(data *BusinessData) (*DataValidationResult, error) {
 	// SEC EDGAR data is government-verified, so it's generally high quality
 	issues := []ValidationIssue{}
-	
+
 	// Check for required fields
 	if data.CompanyName == "" {
 		issues = append(issues, ValidationIssue{
@@ -309,7 +309,7 @@ func (s *SECEdgarProvider) ValidateData(data *BusinessData) (*DataValidationResu
 			Description: "Company name is required",
 		})
 	}
-	
+
 	if data.ProviderID == "" {
 		issues = append(issues, ValidationIssue{
 			Field:       "provider_id",
@@ -318,17 +318,17 @@ func (s *SECEdgarProvider) ValidateData(data *BusinessData) (*DataValidationResu
 			Description: "Provider ID (CIK) is required",
 		})
 	}
-	
+
 	// Calculate quality score
 	qualityScore := 1.0
 	if len(issues) > 0 {
 		qualityScore = 0.8 // Still high because it's government data
 	}
-	
+
 	return &DataValidationResult{
-		IsValid:      len(issues) == 0,
-		QualityScore: qualityScore,
-		Issues:       issues,
+		IsValid:       len(issues) == 0,
+		QualityScore:  qualityScore,
+		Issues:        issues,
 		LastValidated: time.Now(),
 	}, nil
 }
@@ -338,11 +338,11 @@ func (s *SECEdgarProvider) normalizeCIK(cik string) string {
 	// Remove any non-numeric characters
 	cik = strings.ReplaceAll(cik, "-", "")
 	cik = strings.ReplaceAll(cik, " ", "")
-	
+
 	// Pad with leading zeros to 10 digits
 	for len(cik) < 10 {
 		cik = "0" + cik
 	}
-	
+
 	return cik
 }

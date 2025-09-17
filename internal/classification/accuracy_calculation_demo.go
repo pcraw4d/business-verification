@@ -15,7 +15,7 @@ func DemoAccuracyCalculation() {
 	logger.Println("=====================================")
 
 	// Create the service (with nil DB for demo)
-	acs := NewAccuracyCalculationService(nil, logger)
+	_ = NewAccuracyCalculationService(nil, logger)
 
 	logger.Println("✅ AccuracyCalculationService created successfully")
 	logger.Println("")

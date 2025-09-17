@@ -232,4 +232,3 @@ func ExampleAdvancedMonitoringDashboardIntegration() {
 		}
 	}
 }
-

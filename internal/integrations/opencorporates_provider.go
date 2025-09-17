@@ -21,13 +21,13 @@ type OpenCorporatesProvider struct {
 // OpenCorporatesCompany represents a company from OpenCorporates API
 type OpenCorporatesCompany struct {
 	Company struct {
-		CompanyNumber string `json:"company_number"`
-		Name          string `json:"name"`
-		JurisdictionCode string `json:"jurisdiction_code"`
-		CompanyType   string `json:"company_type"`
-		Status        string `json:"current_status"`
+		CompanyNumber     string `json:"company_number"`
+		Name              string `json:"name"`
+		JurisdictionCode  string `json:"jurisdiction_code"`
+		CompanyType       string `json:"company_type"`
+		Status            string `json:"current_status"`
 		IncorporationDate string `json:"incorporation_date"`
-		DissolutionDate string `json:"dissolution_date"`
+		DissolutionDate   string `json:"dissolution_date"`
 		RegisteredAddress struct {
 			StreetAddress string `json:"street_address"`
 			Locality      string `json:"locality"`
@@ -70,21 +70,21 @@ func NewOpenCorporatesProvider(config ProviderConfig) *OpenCorporatesProvider {
 	if config.RetryDelay == 0 {
 		config.RetryDelay = 1 * time.Second
 	}
-	
+
 	// OpenCorporates is free (with limits)
 	config.CostPerRequest = 0.0
 	config.CostPerSearch = 0.0
 	config.CostPerDetail = 0.0
 	config.CostPerFinancial = 0.0
-	
+
 	// Set base URL for OpenCorporates API
 	if config.BaseURL == "" {
 		config.BaseURL = "https://api.opencorporates.com"
 	}
-	
+
 	// Set provider type
 	config.Type = "opencorporates"
-	
+
 	return &OpenCorporatesProvider{
 		config: config,
 		client: &http.Client{
@@ -130,7 +130,7 @@ func (o *OpenCorporatesProvider) SearchBusiness(ctx context.Context, query Busin
 	// OpenCorporates API endpoint for company search
 	// Documentation: https://api.opencorporates.com/documentation/API-Reference
 	searchURL := fmt.Sprintf("%s/v0.4/companies/search", o.config.BaseURL)
-	
+
 	// Build query parameters
 	params := url.Values{}
 	if query.CompanyName != "" {
@@ -139,44 +139,44 @@ func (o *OpenCorporatesProvider) SearchBusiness(ctx context.Context, query Busin
 	if query.Country != "" {
 		params.Add("jurisdiction_code", o.mapCountryToJurisdiction(query.Country))
 	}
-	
+
 	// Add API token if available (for higher rate limits)
 	if o.config.APIKey != "" {
 		params.Add("api_token", o.config.APIKey)
 	}
-	
+
 	searchURL += "?" + params.Encode()
-	
+
 	req, err := http.NewRequestWithContext(ctx, "GET", searchURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "KYB-Platform/1.0")
-	
+
 	resp, err := o.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("OpenCorporates API returned status %d", resp.StatusCode)
 	}
-	
+
 	var ocResponse OpenCorporatesResponse
 	if err := json.NewDecoder(resp.Body).Decode(&ocResponse); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
-	
+
 	// Convert OpenCorporates response to our BusinessData format
 	if len(ocResponse.Results.Companies) == 0 {
 		return nil, fmt.Errorf("no companies found for query")
 	}
-	
+
 	company := ocResponse.Results.Companies[0] // Take the first result
-	
+
 	businessData := &BusinessData{
 		ID:             fmt.Sprintf("oc_%s_%s", company.Company.JurisdictionCode, company.Company.CompanyNumber),
 		ProviderID:     company.Company.CompanyNumber,
@@ -185,11 +185,11 @@ func (o *OpenCorporatesProvider) SearchBusiness(ctx context.Context, query Busin
 		LegalName:      company.Company.Name,
 		BusinessNumber: company.Company.CompanyNumber,
 		Address: Address{
-			Street1: company.Company.RegisteredAddress.StreetAddress,
-			City:    company.Company.RegisteredAddress.Locality,
-			State:   company.Company.RegisteredAddress.Region,
+			Street1:    company.Company.RegisteredAddress.StreetAddress,
+			City:       company.Company.RegisteredAddress.Locality,
+			State:      company.Company.RegisteredAddress.Region,
 			PostalCode: company.Company.RegisteredAddress.PostalCode,
-			Country: o.mapJurisdictionToCountry(company.Company.JurisdictionCode),
+			Country:    o.mapJurisdictionToCountry(company.Company.JurisdictionCode),
 		},
 		Status:      o.mapCompanyStatus(company.Company.Status),
 		LastUpdated: time.Now(),
@@ -204,7 +204,7 @@ func (o *OpenCorporatesProvider) SearchBusiness(ctx context.Context, query Busin
 			},
 		},
 	}
-	
+
 	// Add industry codes if available
 	for _, code := range company.Company.IndustryCodes {
 		businessData.IndustryCodes = append(businessData.IndustryCodes, IndustryCode{
@@ -213,14 +213,14 @@ func (o *OpenCorporatesProvider) SearchBusiness(ctx context.Context, query Busin
 			Description: code.Description,
 		})
 	}
-	
+
 	// Parse incorporation date
 	if company.Company.IncorporationDate != "" {
 		if incorporationDate, err := time.Parse("2006-01-02", company.Company.IncorporationDate); err == nil {
 			businessData.FoundedDate = &incorporationDate
 		}
 	}
-	
+
 	return businessData, nil
 }
 
@@ -230,41 +230,41 @@ func (o *OpenCorporatesProvider) GetBusinessDetails(ctx context.Context, busines
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("invalid business ID format")
 	}
-	
+
 	jurisdictionCode := parts[0]
 	companyNumber := parts[1]
-	
+
 	// Get detailed company information from OpenCorporates
 	detailsURL := fmt.Sprintf("%s/v0.4/companies/%s/%s", o.config.BaseURL, jurisdictionCode, companyNumber)
-	
+
 	// Add API token if available
 	if o.config.APIKey != "" {
 		detailsURL += "?api_token=" + o.config.APIKey
 	}
-	
+
 	req, err := http.NewRequestWithContext(ctx, "GET", detailsURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "KYB-Platform/1.0")
-	
+
 	resp, err := o.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("OpenCorporates API returned status %d", resp.StatusCode)
 	}
-	
+
 	var company OpenCorporatesCompany
 	if err := json.NewDecoder(resp.Body).Decode(&company); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
-	
+
 	businessData := &BusinessData{
 		ID:             fmt.Sprintf("oc_%s_%s", company.Company.JurisdictionCode, company.Company.CompanyNumber),
 		ProviderID:     company.Company.CompanyNumber,
@@ -273,11 +273,11 @@ func (o *OpenCorporatesProvider) GetBusinessDetails(ctx context.Context, busines
 		LegalName:      company.Company.Name,
 		BusinessNumber: company.Company.CompanyNumber,
 		Address: Address{
-			Street1: company.Company.RegisteredAddress.StreetAddress,
-			City:    company.Company.RegisteredAddress.Locality,
-			State:   company.Company.RegisteredAddress.Region,
+			Street1:    company.Company.RegisteredAddress.StreetAddress,
+			City:       company.Company.RegisteredAddress.Locality,
+			State:      company.Company.RegisteredAddress.Region,
 			PostalCode: company.Company.RegisteredAddress.PostalCode,
-			Country: o.mapJurisdictionToCountry(company.Company.JurisdictionCode),
+			Country:    o.mapJurisdictionToCountry(company.Company.JurisdictionCode),
 		},
 		Status:      o.mapCompanyStatus(company.Company.Status),
 		LastUpdated: time.Now(),
@@ -292,7 +292,7 @@ func (o *OpenCorporatesProvider) GetBusinessDetails(ctx context.Context, busines
 			},
 		},
 	}
-	
+
 	// Add industry codes
 	for _, code := range company.Company.IndustryCodes {
 		businessData.IndustryCodes = append(businessData.IndustryCodes, IndustryCode{
@@ -301,14 +301,14 @@ func (o *OpenCorporatesProvider) GetBusinessDetails(ctx context.Context, busines
 			Description: code.Description,
 		})
 	}
-	
+
 	// Parse incorporation date
 	if company.Company.IncorporationDate != "" {
 		if incorporationDate, err := time.Parse("2006-01-02", company.Company.IncorporationDate); err == nil {
 			businessData.FoundedDate = &incorporationDate
 		}
 	}
-	
+
 	return businessData, nil
 }
 
@@ -358,7 +358,7 @@ func (o *OpenCorporatesProvider) GetNewsData(ctx context.Context, businessID str
 func (o *OpenCorporatesProvider) ValidateData(data *BusinessData) (*DataValidationResult, error) {
 	// OpenCorporates data is commercial but generally reliable
 	issues := []ValidationIssue{}
-	
+
 	// Check for required fields
 	if data.CompanyName == "" {
 		issues = append(issues, ValidationIssue{
@@ -368,7 +368,7 @@ func (o *OpenCorporatesProvider) ValidateData(data *BusinessData) (*DataValidati
 			Description: "Company name is required",
 		})
 	}
-	
+
 	if data.ProviderID == "" {
 		issues = append(issues, ValidationIssue{
 			Field:       "provider_id",
@@ -377,17 +377,17 @@ func (o *OpenCorporatesProvider) ValidateData(data *BusinessData) (*DataValidati
 			Description: "Provider ID (company number) is required",
 		})
 	}
-	
+
 	// Calculate quality score
 	qualityScore := 0.85 // Good but not government-verified
 	if len(issues) > 0 {
 		qualityScore = 0.70
 	}
-	
+
 	return &DataValidationResult{
-		IsValid:      len(issues) == 0,
-		QualityScore: qualityScore,
-		Issues:       issues,
+		IsValid:       len(issues) == 0,
+		QualityScore:  qualityScore,
+		Issues:        issues,
 		LastValidated: time.Now(),
 	}, nil
 }

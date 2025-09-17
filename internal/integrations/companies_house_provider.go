@@ -20,11 +20,11 @@ type CompaniesHouseProvider struct {
 
 // CompaniesHouseCompany represents a company from Companies House API
 type CompaniesHouseCompany struct {
-	CompanyNumber   string `json:"company_number"`
-	CompanyName     string `json:"title"`
-	CompanyStatus   string `json:"company_status"`
-	CompanyType     string `json:"company_type"`
-	DateOfCreation  string `json:"date_of_creation"`
+	CompanyNumber           string `json:"company_number"`
+	CompanyName             string `json:"title"`
+	CompanyStatus           string `json:"company_status"`
+	CompanyType             string `json:"company_type"`
+	DateOfCreation          string `json:"date_of_creation"`
 	RegisteredOfficeAddress struct {
 		AddressLine1 string `json:"address_line_1"`
 		AddressLine2 string `json:"address_line_2"`
@@ -63,21 +63,21 @@ func NewCompaniesHouseProvider(config ProviderConfig) *CompaniesHouseProvider {
 	if config.RetryDelay == 0 {
 		config.RetryDelay = 1 * time.Second
 	}
-	
+
 	// Companies House is completely free
 	config.CostPerRequest = 0.0
 	config.CostPerSearch = 0.0
 	config.CostPerDetail = 0.0
 	config.CostPerFinancial = 0.0
-	
+
 	// Set base URL for Companies House API
 	if config.BaseURL == "" {
 		config.BaseURL = "https://api.company-information.service.gov.uk"
 	}
-	
+
 	// Set provider type
 	config.Type = "companies_house"
-	
+
 	return &CompaniesHouseProvider{
 		config: config,
 		client: &http.Client{
@@ -123,7 +123,7 @@ func (c *CompaniesHouseProvider) SearchBusiness(ctx context.Context, query Busin
 	// Companies House API endpoint for company search
 	// Documentation: https://developer.company-information.service.gov.uk/
 	searchURL := fmt.Sprintf("%s/search/companies", c.config.BaseURL)
-	
+
 	// Build query parameters
 	params := url.Values{}
 	if query.CompanyName != "" {
@@ -132,44 +132,44 @@ func (c *CompaniesHouseProvider) SearchBusiness(ctx context.Context, query Busin
 	if query.City != "" {
 		params.Add("location", query.City)
 	}
-	
+
 	searchURL += "?" + params.Encode()
-	
+
 	req, err := http.NewRequestWithContext(ctx, "GET", searchURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	// Companies House requires API key authentication
 	if c.config.APIKey == "" {
 		return nil, fmt.Errorf("Companies House API key is required")
 	}
-	
+
 	req.SetBasicAuth(c.config.APIKey, "")
 	req.Header.Set("Accept", "application/json")
-	
+
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("Companies House API returned status %d", resp.StatusCode)
 	}
-	
+
 	var chResponse CompaniesHouseResponse
 	if err := json.NewDecoder(resp.Body).Decode(&chResponse); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
-	
+
 	// Convert Companies House response to our BusinessData format
 	if len(chResponse.Items) == 0 {
 		return nil, fmt.Errorf("no companies found for query")
 	}
-	
+
 	company := chResponse.Items[0] // Take the first result
-	
+
 	businessData := &BusinessData{
 		ID:             fmt.Sprintf("ch_%s", company.CompanyNumber),
 		ProviderID:     company.CompanyNumber,
@@ -178,11 +178,11 @@ func (c *CompaniesHouseProvider) SearchBusiness(ctx context.Context, query Busin
 		LegalName:      company.CompanyName,
 		BusinessNumber: company.CompanyNumber,
 		Address: Address{
-			Street1: company.RegisteredOfficeAddress.AddressLine1,
-			Street2: company.RegisteredOfficeAddress.AddressLine2,
-			City:    company.RegisteredOfficeAddress.Locality,
+			Street1:    company.RegisteredOfficeAddress.AddressLine1,
+			Street2:    company.RegisteredOfficeAddress.AddressLine2,
+			City:       company.RegisteredOfficeAddress.Locality,
 			PostalCode: company.RegisteredOfficeAddress.PostalCode,
-			Country: "GB", // Companies House is UK-only
+			Country:    "GB", // Companies House is UK-only
 		},
 		Status:      c.mapCompanyStatus(company.CompanyStatus),
 		LastUpdated: time.Now(),
@@ -197,7 +197,7 @@ func (c *CompaniesHouseProvider) SearchBusiness(ctx context.Context, query Busin
 			},
 		},
 	}
-	
+
 	// Add SIC codes if available
 	for _, sic := range company.SICCodes {
 		businessData.IndustryCodes = append(businessData.IndustryCodes, IndustryCode{
@@ -206,47 +206,47 @@ func (c *CompaniesHouseProvider) SearchBusiness(ctx context.Context, query Busin
 			Description: sic.SICDescription,
 		})
 	}
-	
+
 	// Parse creation date
 	if company.DateOfCreation != "" {
 		if creationDate, err := time.Parse("2006-01-02", company.DateOfCreation); err == nil {
 			businessData.FoundedDate = &creationDate
 		}
 	}
-	
+
 	return businessData, nil
 }
 
 func (c *CompaniesHouseProvider) GetBusinessDetails(ctx context.Context, businessID string) (*BusinessData, error) {
 	// Extract company number from business ID
 	companyNumber := strings.TrimPrefix(businessID, "ch_")
-	
+
 	// Get detailed company information from Companies House
 	detailsURL := fmt.Sprintf("%s/company/%s", c.config.BaseURL, companyNumber)
-	
+
 	req, err := http.NewRequestWithContext(ctx, "GET", detailsURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	req.SetBasicAuth(c.config.APIKey, "")
 	req.Header.Set("Accept", "application/json")
-	
+
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("Companies House API returned status %d", resp.StatusCode)
 	}
-	
+
 	var company CompaniesHouseCompany
 	if err := json.NewDecoder(resp.Body).Decode(&company); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
-	
+
 	businessData := &BusinessData{
 		ID:             fmt.Sprintf("ch_%s", company.CompanyNumber),
 		ProviderID:     company.CompanyNumber,
@@ -255,11 +255,11 @@ func (c *CompaniesHouseProvider) GetBusinessDetails(ctx context.Context, busines
 		LegalName:      company.CompanyName,
 		BusinessNumber: company.CompanyNumber,
 		Address: Address{
-			Street1: company.RegisteredOfficeAddress.AddressLine1,
-			Street2: company.RegisteredOfficeAddress.AddressLine2,
-			City:    company.RegisteredOfficeAddress.Locality,
+			Street1:    company.RegisteredOfficeAddress.AddressLine1,
+			Street2:    company.RegisteredOfficeAddress.AddressLine2,
+			City:       company.RegisteredOfficeAddress.Locality,
 			PostalCode: company.RegisteredOfficeAddress.PostalCode,
-			Country: "GB",
+			Country:    "GB",
 		},
 		Status:      c.mapCompanyStatus(company.CompanyStatus),
 		LastUpdated: time.Now(),
@@ -274,7 +274,7 @@ func (c *CompaniesHouseProvider) GetBusinessDetails(ctx context.Context, busines
 			},
 		},
 	}
-	
+
 	// Add SIC codes
 	for _, sic := range company.SICCodes {
 		businessData.IndustryCodes = append(businessData.IndustryCodes, IndustryCode{
@@ -283,14 +283,14 @@ func (c *CompaniesHouseProvider) GetBusinessDetails(ctx context.Context, busines
 			Description: sic.SICDescription,
 		})
 	}
-	
+
 	// Parse creation date
 	if company.DateOfCreation != "" {
 		if creationDate, err := time.Parse("2006-01-02", company.DateOfCreation); err == nil {
 			businessData.FoundedDate = &creationDate
 		}
 	}
-	
+
 	return businessData, nil
 }
 
@@ -341,7 +341,7 @@ func (c *CompaniesHouseProvider) GetNewsData(ctx context.Context, businessID str
 func (c *CompaniesHouseProvider) ValidateData(data *BusinessData) (*DataValidationResult, error) {
 	// Companies House data is government-verified, so it's generally high quality
 	issues := []ValidationIssue{}
-	
+
 	// Check for required fields
 	if data.CompanyName == "" {
 		issues = append(issues, ValidationIssue{
@@ -351,7 +351,7 @@ func (c *CompaniesHouseProvider) ValidateData(data *BusinessData) (*DataValidati
 			Description: "Company name is required",
 		})
 	}
-	
+
 	if data.ProviderID == "" {
 		issues = append(issues, ValidationIssue{
 			Field:       "provider_id",
@@ -360,17 +360,17 @@ func (c *CompaniesHouseProvider) ValidateData(data *BusinessData) (*DataValidati
 			Description: "Provider ID (company number) is required",
 		})
 	}
-	
+
 	// Calculate quality score
 	qualityScore := 1.0
 	if len(issues) > 0 {
 		qualityScore = 0.8 // Still high because it's government data
 	}
-	
+
 	return &DataValidationResult{
-		IsValid:      len(issues) == 0,
-		QualityScore: qualityScore,
-		Issues:       issues,
+		IsValid:       len(issues) == 0,
+		QualityScore:  qualityScore,
+		Issues:        issues,
 		LastValidated: time.Now(),
 	}, nil
 }

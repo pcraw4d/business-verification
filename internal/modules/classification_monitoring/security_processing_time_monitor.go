@@ -30,19 +30,19 @@ type SecurityProcessingTimeMonitor struct {
 // SecurityProcessingTimeConfig holds configuration for security processing time monitoring
 type SecurityProcessingTimeConfig struct {
 	// Data collection
-	DataCollectionEnabled    bool          `json:"data_collection_enabled"`
-	MaxDataPointsPerMethod   int           `json:"max_data_points_per_method"`
-	CollectionInterval       time.Duration `json:"collection_interval"`
+	DataCollectionEnabled  bool          `json:"data_collection_enabled"`
+	MaxDataPointsPerMethod int           `json:"max_data_points_per_method"`
+	CollectionInterval     time.Duration `json:"collection_interval"`
 
 	// Performance thresholds
-	SlowProcessingThreshold    time.Duration `json:"slow_processing_threshold"`
+	SlowProcessingThreshold     time.Duration `json:"slow_processing_threshold"`
 	CriticalProcessingThreshold time.Duration `json:"critical_processing_threshold"`
 	AverageProcessingThreshold  time.Duration `json:"average_processing_threshold"`
 
 	// Trend analysis
-	TrendAnalysisEnabled     bool          `json:"trend_analysis_enabled"`
-	TrendWindowSize          int           `json:"trend_window_size"`
-	MinSamplesForTrend       int           `json:"min_samples_for_trend"`
+	TrendAnalysisEnabled            bool    `json:"trend_analysis_enabled"`
+	TrendWindowSize                 int     `json:"trend_window_size"`
+	MinSamplesForTrend              int     `json:"min_samples_for_trend"`
 	PerformanceDegradationThreshold float64 `json:"performance_degradation_threshold"`
 
 	// Alerting
@@ -52,56 +52,56 @@ type SecurityProcessingTimeConfig struct {
 	AlertRetentionPeriod time.Duration `json:"alert_retention_period"`
 
 	// Monitoring intervals
-	MonitoringInterval    time.Duration `json:"monitoring_interval"`
-	AnalysisInterval      time.Duration `json:"analysis_interval"`
-	CleanupInterval       time.Duration `json:"cleanup_interval"`
+	MonitoringInterval time.Duration `json:"monitoring_interval"`
+	AnalysisInterval   time.Duration `json:"analysis_interval"`
+	CleanupInterval    time.Duration `json:"cleanup_interval"`
 }
 
 // SecurityProcessingTimeData represents a security processing time measurement
 type SecurityProcessingTimeData struct {
-	Timestamp       time.Time `json:"timestamp"`
-	MethodName      string    `json:"method_name"`
-	ValidationType  string    `json:"validation_type"`
-	ProcessingTime  time.Duration `json:"processing_time"`
-	Success         bool      `json:"success"`
-	ErrorType       string    `json:"error_type,omitempty"`
-	ResourceUsage   float64   `json:"resource_usage,omitempty"`
-	ConcurrentLoad  int       `json:"concurrent_load"`
-	SampleSize      int       `json:"sample_size"`
+	Timestamp      time.Time     `json:"timestamp"`
+	MethodName     string        `json:"method_name"`
+	ValidationType string        `json:"validation_type"`
+	ProcessingTime time.Duration `json:"processing_time"`
+	Success        bool          `json:"success"`
+	ErrorType      string        `json:"error_type,omitempty"`
+	ResourceUsage  float64       `json:"resource_usage,omitempty"`
+	ConcurrentLoad int           `json:"concurrent_load"`
+	SampleSize     int           `json:"sample_size"`
 }
 
 // SecurityPerformanceMetrics represents performance metrics for a security method
 type SecurityPerformanceMetrics struct {
-	MethodName              string        `json:"method_name"`
-	TotalExecutions         int64         `json:"total_executions"`
-	SuccessfulExecutions    int64         `json:"successful_executions"`
-	FailedExecutions        int64         `json:"failed_executions"`
-	AverageProcessingTime   time.Duration `json:"average_processing_time"`
-	MinProcessingTime       time.Duration `json:"min_processing_time"`
-	MaxProcessingTime       time.Duration `json:"max_processing_time"`
-	P95ProcessingTime       time.Duration `json:"p95_processing_time"`
-	P99ProcessingTime       time.Duration `json:"p99_processing_time"`
-	SuccessRate             float64       `json:"success_rate"`
-	ErrorRate               float64       `json:"error_rate"`
-	PerformanceTrend        string        `json:"performance_trend"` // "improving", "stable", "degrading"
-	StabilityScore          float64       `json:"stability_score"`
-	LastUpdated             time.Time     `json:"last_updated"`
+	MethodName            string        `json:"method_name"`
+	TotalExecutions       int64         `json:"total_executions"`
+	SuccessfulExecutions  int64         `json:"successful_executions"`
+	FailedExecutions      int64         `json:"failed_executions"`
+	AverageProcessingTime time.Duration `json:"average_processing_time"`
+	MinProcessingTime     time.Duration `json:"min_processing_time"`
+	MaxProcessingTime     time.Duration `json:"max_processing_time"`
+	P95ProcessingTime     time.Duration `json:"p95_processing_time"`
+	P99ProcessingTime     time.Duration `json:"p99_processing_time"`
+	SuccessRate           float64       `json:"success_rate"`
+	ErrorRate             float64       `json:"error_rate"`
+	PerformanceTrend      string        `json:"performance_trend"` // "improving", "stable", "degrading"
+	StabilityScore        float64       `json:"stability_score"`
+	LastUpdated           time.Time     `json:"last_updated"`
 }
 
 // SecurityProcessingAlert represents an alert about security processing time issues
 type SecurityProcessingAlert struct {
-	ID              string    `json:"id"`
-	AlertType       string    `json:"alert_type"` // "slow_processing", "critical_processing", "performance_degradation", "high_error_rate"
-	Severity        string    `json:"severity"`   // "warning", "critical"
-	MethodName      string    `json:"method_name"`
-	Message         string    `json:"message"`
-	Details         string    `json:"details"`
-	Metrics         map[string]interface{} `json:"metrics"`
-	Timestamp       time.Time `json:"timestamp"`
-	Acknowledged    bool      `json:"acknowledged"`
-	AcknowledgedAt  time.Time `json:"acknowledged_at,omitempty"`
-	Resolved        bool      `json:"resolved"`
-	ResolvedAt      time.Time `json:"resolved_at,omitempty"`
+	ID             string                 `json:"id"`
+	AlertType      string                 `json:"alert_type"` // "slow_processing", "critical_processing", "performance_degradation", "high_error_rate"
+	Severity       string                 `json:"severity"`   // "warning", "critical"
+	MethodName     string                 `json:"method_name"`
+	Message        string                 `json:"message"`
+	Details        string                 `json:"details"`
+	Metrics        map[string]interface{} `json:"metrics"`
+	Timestamp      time.Time              `json:"timestamp"`
+	Acknowledged   bool                   `json:"acknowledged"`
+	AcknowledgedAt time.Time              `json:"acknowledged_at,omitempty"`
+	Resolved       bool                   `json:"resolved"`
+	ResolvedAt     time.Time              `json:"resolved_at,omitempty"`
 }
 
 // SecurityPerformanceAnalyzer analyzes security processing performance
@@ -133,11 +133,11 @@ func NewSecurityProcessingTimeMonitor(config *SecurityProcessingTimeConfig, logg
 	}
 
 	return &SecurityProcessingTimeMonitor{
-		config:              config,
-		logger:              logger,
-		processingTimes:     make(map[string][]*SecurityProcessingTimeData),
-		performanceMetrics:  make(map[string]*SecurityPerformanceMetrics),
-		processingAlerts:    make([]*SecurityProcessingAlert, 0),
+		config:             config,
+		logger:             logger,
+		processingTimes:    make(map[string][]*SecurityProcessingTimeData),
+		performanceMetrics: make(map[string]*SecurityPerformanceMetrics),
+		processingAlerts:   make([]*SecurityProcessingAlert, 0),
 		performanceAnalyzer: &SecurityPerformanceAnalyzer{
 			config: config,
 			logger: logger,
@@ -156,23 +156,23 @@ func NewSecurityProcessingTimeMonitor(config *SecurityProcessingTimeConfig, logg
 // DefaultSecurityProcessingTimeConfig returns default configuration
 func DefaultSecurityProcessingTimeConfig() *SecurityProcessingTimeConfig {
 	return &SecurityProcessingTimeConfig{
-		DataCollectionEnabled:     true,
-		MaxDataPointsPerMethod:   1000,
-		CollectionInterval:       1 * time.Minute,
-		SlowProcessingThreshold:   500 * time.Millisecond,
-		CriticalProcessingThreshold: 2 * time.Second,
-		AverageProcessingThreshold: 200 * time.Millisecond,
-		TrendAnalysisEnabled:      true,
-		TrendWindowSize:           100,
-		MinSamplesForTrend:        20,
+		DataCollectionEnabled:           true,
+		MaxDataPointsPerMethod:          1000,
+		CollectionInterval:              1 * time.Minute,
+		SlowProcessingThreshold:         500 * time.Millisecond,
+		CriticalProcessingThreshold:     2 * time.Second,
+		AverageProcessingThreshold:      200 * time.Millisecond,
+		TrendAnalysisEnabled:            true,
+		TrendWindowSize:                 100,
+		MinSamplesForTrend:              20,
 		PerformanceDegradationThreshold: 0.2, // 20% degradation threshold
-		AlertingEnabled:           true,
-		AlertCooldownPeriod:       15 * time.Minute,
-		MaxAlertsPerMethod:        20,
-		AlertRetentionPeriod:      24 * time.Hour,
-		MonitoringInterval:        1 * time.Minute,
-		AnalysisInterval:          5 * time.Minute,
-		CleanupInterval:           1 * time.Hour,
+		AlertingEnabled:                 true,
+		AlertCooldownPeriod:             15 * time.Minute,
+		MaxAlertsPerMethod:              20,
+		AlertRetentionPeriod:            24 * time.Hour,
+		MonitoringInterval:              1 * time.Minute,
+		AnalysisInterval:                5 * time.Minute,
+		CleanupInterval:                 1 * time.Hour,
 	}
 }
 
@@ -647,13 +647,13 @@ func (sptm *SecurityProcessingTimeMonitor) GetSecurityProcessingMetrics() *Secur
 
 // SecurityProcessingMetrics represents comprehensive security processing metrics
 type SecurityProcessingMetrics struct {
-	Timestamp           time.Time                           `json:"timestamp"`
-	TotalMethods        int                                 `json:"total_methods"`
+	Timestamp           time.Time                              `json:"timestamp"`
+	TotalMethods        int                                    `json:"total_methods"`
 	PerformanceMetrics  map[string]*SecurityPerformanceMetrics `json:"performance_metrics"`
-	OverallHealth       string                              `json:"overall_health"`
-	AlertsCount         int                                 `json:"alerts_count"`
-	CriticalAlertsCount int                                 `json:"critical_alerts_count"`
-	WarningAlertsCount  int                                 `json:"warning_alerts_count"`
+	OverallHealth       string                                 `json:"overall_health"`
+	AlertsCount         int                                    `json:"alerts_count"`
+	CriticalAlertsCount int                                    `json:"critical_alerts_count"`
+	WarningAlertsCount  int                                    `json:"warning_alerts_count"`
 }
 
 // determineOverallHealth determines overall health status
@@ -745,11 +745,11 @@ func (sptm *SecurityProcessingTimeMonitor) GetMethodPerformanceReport(methodName
 	}
 
 	report := &SecurityMethodPerformanceReport{
-		MethodName:           methodName,
-		Timestamp:            time.Now(),
-		PerformanceMetrics:   metrics,
+		MethodName:            methodName,
+		Timestamp:             time.Now(),
+		PerformanceMetrics:    metrics,
 		RecentProcessingTimes: make([]time.Duration, 0),
-		Recommendations:      make([]string, 0),
+		Recommendations:       make([]string, 0),
 	}
 
 	// Get recent processing times (last 50)
@@ -791,9 +791,9 @@ func (sptm *SecurityProcessingTimeMonitor) GetMethodPerformanceReport(methodName
 
 // SecurityMethodPerformanceReport represents a detailed performance report for a security method
 type SecurityMethodPerformanceReport struct {
-	MethodName            string          `json:"method_name"`
-	Timestamp             time.Time       `json:"timestamp"`
+	MethodName            string                      `json:"method_name"`
+	Timestamp             time.Time                   `json:"timestamp"`
 	PerformanceMetrics    *SecurityPerformanceMetrics `json:"performance_metrics"`
-	RecentProcessingTimes []time.Duration `json:"recent_processing_times"`
-	Recommendations       []string        `json:"recommendations"`
+	RecentProcessingTimes []time.Duration             `json:"recent_processing_times"`
+	Recommendations       []string                    `json:"recommendations"`
 }
