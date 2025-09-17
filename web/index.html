@@ -435,11 +435,25 @@
 
         // Create enhanced reasoning details section
         function createReasoningDetailsSection(result) {
-            const methodBreakdown = result.method_breakdown || [];
-            const classificationReasoning = result.classification_reasoning || '';
-            const qualityMetrics = result.quality_metrics || null;
-            const securityMetrics = result.security_metrics || null;
-            const classifications = result.classifications || [];
+            // Handle Railway API response format
+            let processedResult = result;
+            if (result.response && result.response.classifications) {
+                const response = result.response;
+                const primaryClassification = response.primary_classification;
+                
+                processedResult = {
+                    method_breakdown: result.raw_data?.method_results || [],
+                    classification_reasoning: primaryClassification?.metadata?.detailed_reasoning?.summary || '',
+                    quality_metrics: primaryClassification?.metadata?.comprehensive_quality_metrics || null,
+                    classifications: response.classifications || []
+                };
+            }
+            
+            const methodBreakdown = processedResult.method_breakdown || [];
+            const classificationReasoning = processedResult.classification_reasoning || '';
+            const qualityMetrics = processedResult.quality_metrics || null;
+            const securityMetrics = processedResult.security_metrics || null;
+            const classifications = processedResult.classifications || [];
             
             // Extract evidence from classifications
             const evidenceItems = classifications.map(c => ({
@@ -768,10 +782,29 @@
         function displayResults(result) {
             resultsSection.classList.remove('hidden');
             
-            if (result.success && result.business_id) {
-                const primaryIndustry = result.primary_industry || result.classifications?.[0]?.industry_name || 'Technology';
-                const classifications = result.classifications || [];
-                const overallConfidence = result.overall_confidence || result.confidence_score || 0;
+            // Handle Railway API response format
+            let processedResult = result;
+            if (result.response && result.response.classifications) {
+                const response = result.response;
+                const primaryClassification = response.primary_classification;
+                
+                processedResult = {
+                    success: true,
+                    business_id: response.id || 'unknown',
+                    primary_industry: primaryClassification?.industry_name || response.detected_industry || 'Unknown',
+                    classifications: response.classifications || [],
+                    overall_confidence: primaryClassification?.confidence_score || response.overall_confidence || 0,
+                    confidence_score: primaryClassification?.confidence_score || response.overall_confidence || 0,
+                    method_breakdown: result.raw_data?.method_results || [],
+                    classification_reasoning: primaryClassification?.metadata?.detailed_reasoning?.summary || '',
+                    quality_metrics: primaryClassification?.metadata?.comprehensive_quality_metrics || null
+                };
+            }
+            
+            if (processedResult.success && processedResult.business_id) {
+                const primaryIndustry = processedResult.primary_industry || processedResult.classifications?.[0]?.industry_name || 'Technology';
+                const classifications = processedResult.classifications || [];
+                const overallConfidence = processedResult.overall_confidence || processedResult.confidence_score || 0;
                 
                 // Group classifications by code type
                 const naicsCodes = classifications.filter(c => c.code_type === 'NAICS').slice(0, 3);

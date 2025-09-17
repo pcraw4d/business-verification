@@ -2184,7 +2184,7 @@
         // Business Intelligence Classification JavaScript
         class BusinessIntelligence {
             constructor() {
-                this.apiBaseUrl = '/v1';
+                this.apiBaseUrl = window.location.origin + '/v1';
                 this.init();
             }
 
@@ -2335,8 +2335,45 @@
                 let securityMetrics = null;
                 let costOptimization = null;
 
-                // Check for new format first
-                if (result.classification && result.classification.mcc_codes) {
+                // Check for Railway API format first
+                if (result.response && result.response.classifications) {
+                    const response = result.response;
+                    const primaryClassification = response.primary_classification;
+                    
+                    // Extract classification data
+                    mccCodes = [];
+                    sicCodes = [];
+                    naicsCodes = [];
+                    
+                    // Get confidence and industry from primary classification
+                    confidenceScore = primaryClassification?.confidence_score || response.overall_confidence || 0.5;
+                    detectedIndustry = primaryClassification?.industry_name || response.detected_industry || '';
+                    
+                    // Extract method breakdown from raw data
+                    if (result.raw_data && result.raw_data.method_results) {
+                        methodBreakdown = result.raw_data.method_results.map(method => ({
+                            method_name: method.method_name,
+                            method_type: method.method_type,
+                            success: method.success,
+                            confidence: method.confidence,
+                            processing_time: method.processing_time,
+                            reasoning: method.reasoning || '',
+                            evidence: method.evidence || []
+                        }));
+                    }
+                    
+                    // Extract quality metrics
+                    if (primaryClassification?.metadata?.comprehensive_quality_metrics) {
+                        qualityMetrics = primaryClassification.metadata.comprehensive_quality_metrics;
+                    }
+                    
+                    // Extract classification reasoning
+                    if (primaryClassification?.metadata?.detailed_reasoning) {
+                        classificationReasoning = primaryClassification.metadata.detailed_reasoning.summary || '';
+                    }
+                }
+                // Check for new format
+                else if (result.classification && result.classification.mcc_codes) {
                     mccCodes = result.classification.mcc_codes;
                     sicCodes = result.classification.sic_codes || [];
                     naicsCodes = result.classification.naics_codes || [];
