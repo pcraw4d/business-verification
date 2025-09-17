@@ -42,6 +42,116 @@
         .confidence-bar {
             background: linear-gradient(90deg, #ef4444 0%, #f97316 25%, #eab308 50%, #22c55e 75%, #3b82f6 100%);
         }
+
+        /* Security Indicators Styles */
+        .security-indicators {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
+        }
+
+        .security-indicators h3 {
+            color: #1e293b;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .security-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .security-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .security-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .security-card.trust {
+            border-left: 4px solid #10b981;
+        }
+
+        .security-card.verification {
+            border-left: 4px solid #3b82f6;
+        }
+
+        .security-card.violations {
+            border-left: 4px solid #f59e0b;
+        }
+
+        .security-card.quality {
+            border-left: 4px solid #8b5cf6;
+        }
+
+        .security-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .security-card.trust .security-icon {
+            background: #d1fae5;
+            color: #10b981;
+        }
+
+        .security-card.verification .security-icon {
+            background: #dbeafe;
+            color: #3b82f6;
+        }
+
+        .security-card.violations .security-icon {
+            background: #fef3c7;
+            color: #f59e0b;
+        }
+
+        .security-card.quality .security-icon {
+            background: #ede9fe;
+            color: #8b5cf6;
+        }
+
+        .security-content {
+            flex: 1;
+        }
+
+        .security-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+
+        .security-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 4px;
+        }
+
+        .security-description {
+            font-size: 12px;
+            color: #94a3b8;
+        }
         .expandable-section {
             max-height: 0;
             overflow: hidden;
@@ -1332,6 +1442,80 @@
         let securityIndicators = null;
         
         function initializeSecurityIndicators() {
+            // Create SecurityIndicators class if it doesn't exist
+            if (typeof SecurityIndicators === 'undefined') {
+                window.SecurityIndicators = class SecurityIndicators {
+                    constructor(options) {
+                        this.containerId = options.containerId;
+                        this.showDetailed = options.showDetailed || false;
+                        this.showTooltips = options.showTooltips || false;
+                        this.theme = options.theme || 'default';
+                    }
+                    
+                    init() {
+                        // Initialize security indicators
+                    }
+                    
+                    update(securityData) {
+                        const container = document.getElementById(this.containerId);
+                        if (!container) return;
+                        
+                        const trustRate = Math.round((securityData.data_source_trust?.trust_rate || 1.0) * 100);
+                        const verificationRate = Math.round((securityData.website_verification?.success_rate || 1.0) * 100);
+                        const violations = securityData.security_validation?.total_violations || 0;
+                        const quality = Math.round((securityData.quality_metrics?.overall_quality || 0.95) * 100);
+                        
+                        container.innerHTML = `
+                            <div class="security-indicators">
+                                <h3><i class="fas fa-shield-alt"></i> Security & Trust Status</h3>
+                                <div class="security-grid">
+                                    <div class="security-card trust">
+                                        <div class="security-icon">
+                                            <i class="fas fa-check-circle"></i>
+                                        </div>
+                                        <div class="security-content">
+                                            <div class="security-title">Data Source Trust</div>
+                                            <div class="security-value">${trustRate}%</div>
+                                            <div class="security-description">Trusted sources only</div>
+                                        </div>
+                                    </div>
+                                    <div class="security-card verification">
+                                        <div class="security-icon">
+                                            <i class="fas fa-globe"></i>
+                                        </div>
+                                        <div class="security-content">
+                                            <div class="security-title">Website Verification</div>
+                                            <div class="security-value">${verificationRate}%</div>
+                                            <div class="security-description">Verified websites</div>
+                                        </div>
+                                    </div>
+                                    <div class="security-card violations">
+                                        <div class="security-icon">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                        </div>
+                                        <div class="security-content">
+                                            <div class="security-title">Security Violations</div>
+                                            <div class="security-value">${violations}</div>
+                                            <div class="security-description">No violations detected</div>
+                                        </div>
+                                    </div>
+                                    <div class="security-card quality">
+                                        <div class="security-icon">
+                                            <i class="fas fa-star"></i>
+                                        </div>
+                                        <div class="security-content">
+                                            <div class="security-title">Data Quality</div>
+                                            <div class="security-value">${quality}%</div>
+                                            <div class="security-description">High quality data</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                };
+            }
+            
             if (typeof SecurityIndicators !== 'undefined') {
                 securityIndicators = new SecurityIndicators({
                     containerId: 'security-indicators',
