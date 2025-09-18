@@ -690,7 +690,8 @@
                 console.log('API Response:', result);
                 console.log('Result success:', result.success);
                 
-                if (result.success) {
+                // Check if we have a valid response (either with success flag or with response data)
+                if (result.success || result.response) {
                     console.log('Calling displayDashboardResults...');
                     displayDashboardResults(result);
                 } else {
