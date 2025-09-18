@@ -986,6 +986,8 @@
             }
 
             async callBusinessIntelligenceAPI(apiData) {
+                console.log('🔍 Making Business Intelligence API call with data:', apiData);
+                
                 const response = await fetch('/v1/classify', {
                     method: 'POST',
                     headers: {
@@ -994,11 +996,17 @@
                     body: JSON.stringify(apiData)
                 });
 
+                console.log('🔍 Business Intelligence API response status:', response.status);
+
                 if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('🔍 Business Intelligence API error response:', errorText);
                     throw new Error(`Business Intelligence API error: ${response.status}`);
                 }
 
-                return await response.json();
+                const result = await response.json();
+                console.log('🔍 Business Intelligence API result:', result);
+                return result;
             }
 
             async callRiskAssessmentAPI(apiData) {

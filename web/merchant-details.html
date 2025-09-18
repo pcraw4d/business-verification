@@ -2222,13 +2222,19 @@
                     const merchantDataStr = sessionStorage.getItem('merchantData');
                     const apiResultsStr = sessionStorage.getItem('merchantApiResults');
                     
+                    console.log('🔍 Loading merchant data from session storage:');
+                    console.log('🔍 merchantDataStr:', merchantDataStr);
+                    console.log('🔍 apiResultsStr:', apiResultsStr);
+                    
                     if (merchantDataStr) {
                         this.merchantData = JSON.parse(merchantDataStr);
+                        console.log('🔍 Parsed merchant data:', this.merchantData);
                         this.populateMerchantDetails();
                     }
                     
                     if (apiResultsStr) {
                         this.apiResults = JSON.parse(apiResultsStr);
+                        console.log('🔍 Parsed API results:', this.apiResults);
                         this.populateApiResults();
                     }
                     
@@ -2284,11 +2290,66 @@
                 // This will be implemented with the exact same logic as the dashboard page
                 console.log('Populating Business Intelligence results:', data);
                 
-                // Populate all sections with the same logic as dashboard.html
-                populateCoreResults(data);
-                populateEnhancedClassificationResults(data);
-                populateRiskAssessment(data);
-                populateBusinessIntelligence(data);
+                // Process the data the same way as dashboard.html does
+                let processedResult = data;
+                
+                // Handle Railway API response format (same logic as dashboard.html)
+                if (data.response && data.response.primary_classification) {
+                    const response = data.response;
+                    const primaryClassification = response.primary_classification;
+                    const rawData = response.raw_data || {};
+                    
+                    processedResult = {
+                        success: true,
+                        business_id: response.id || 'unknown',
+                        primary_industry: primaryClassification?.industry_name || response.detected_industry || 'Unknown',
+                        classifications: response.classifications || [],
+                        overall_confidence: primaryClassification?.confidence_score || response.overall_confidence || 0,
+                        confidence_score: primaryClassification?.confidence_score || response.overall_confidence || 0,
+                        method_breakdown: rawData?.method_results || [],
+                        classification_reasoning: primaryClassification?.metadata?.detailed_reasoning?.summary || '',
+                        quality_metrics: primaryClassification?.metadata?.comprehensive_quality_metrics || null,
+                        security_metrics: data.security_metrics || null,
+                        cost_optimization: data.cost_optimization || null,
+                        classification: {
+                            mcc_codes: response.classification_codes?.mcc || response.classifications?.filter(c => c.code_type === 'MCC') || [],
+                            sic_codes: response.classification_codes?.sic || response.classifications?.filter(c => c.code_type === 'SIC') || [],
+                            naics_codes: response.classification_codes?.naics || response.classifications?.filter(c => c.code_type === 'NAICS') || []
+                        }
+                    };
+                }
+                // Handle legacy response format
+                else if (data.response && data.response.classifications) {
+                    const response = data.response;
+                    const primaryClassification = response.primary_classification;
+
+                    processedResult = {
+                        success: true,
+                        business_id: response.id || 'unknown',
+                        primary_industry: primaryClassification?.industry_name || response.detected_industry || 'Unknown',
+                        classifications: response.classifications || [],
+                        overall_confidence: primaryClassification?.confidence_score || response.overall_confidence || 0,
+                        confidence_score: primaryClassification?.confidence_score || response.overall_confidence || 0,
+                        method_breakdown: data.raw_data?.method_results || [],
+                        classification_reasoning: primaryClassification?.metadata?.detailed_reasoning?.summary || '',
+                        quality_metrics: primaryClassification?.metadata?.comprehensive_quality_metrics || null,
+                        security_metrics: data.security_metrics || null,
+                        cost_optimization: data.cost_optimization || null,
+                        classification: {
+                            mcc_codes: response.classification_codes?.mcc || response.classifications?.filter(c => c.code_type === 'MCC') || [],
+                            sic_codes: response.classification_codes?.sic || response.classifications?.filter(c => c.code_type === 'SIC') || [],
+                            naics_codes: response.classification_codes?.naics || response.classifications?.filter(c => c.code_type === 'NAICS') || []
+                        }
+                    };
+                }
+                
+                console.log('Processed result for population:', processedResult);
+                
+                // Populate all sections with the processed data
+                populateCoreResults(processedResult);
+                populateEnhancedClassificationResults(processedResult);
+                populateRiskAssessment(processedResult);
+                populateBusinessIntelligence(processedResult);
                 
                 // Show progressive disclosure sections
                 setTimeout(() => {
@@ -2389,6 +2450,10 @@
         // Populate Core Results
         function populateCoreResults(result) {
             console.log('📊 populateCoreResults called with:', result);
+            console.log('📊 result.primary_industry:', result.primary_industry);
+            console.log('📊 result.classification:', result.classification);
+            console.log('📊 result.confidence_score:', result.confidence_score);
+            console.log('📊 result.overall_confidence:', result.overall_confidence);
             
             // Extract primary industry from classification codes or primary classification
             let primaryIndustry = 'Technology';
