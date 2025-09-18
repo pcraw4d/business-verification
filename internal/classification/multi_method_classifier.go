@@ -3,7 +3,10 @@ package classification
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -677,20 +680,164 @@ func (mmc *MultiMethodClassifier) extractKeywords(businessName, description, web
 		keywords = append(keywords, words...)
 	}
 
-	// Extract from website URL (domain name)
+	// Extract from website URL - now with actual content scraping
 	if websiteURL != "" {
-		// Simple domain extraction
-		if strings.Contains(websiteURL, "://") {
-			parts := strings.Split(websiteURL, "://")
-			if len(parts) > 1 {
-				domain := strings.Split(parts[1], "/")[0]
-				domainParts := strings.Split(domain, ".")
-				keywords = append(keywords, domainParts[0])
+		// First, try to scrape actual website content
+		scrapedKeywords := mmc.extractKeywordsFromWebsite(context.Background(), websiteURL)
+		if len(scrapedKeywords) > 0 {
+			keywords = append(keywords, scrapedKeywords...)
+			mmc.logger.Printf("✅ Extracted %d keywords from website content: %v", len(scrapedKeywords), scrapedKeywords)
+		} else {
+			// Fallback to domain name extraction if scraping fails
+			if strings.Contains(websiteURL, "://") {
+				parts := strings.Split(websiteURL, "://")
+				if len(parts) > 1 {
+					domain := strings.Split(parts[1], "/")[0]
+					domainParts := strings.Split(domain, ".")
+					keywords = append(keywords, domainParts[0])
+					mmc.logger.Printf("⚠️ Website scraping failed, using domain name: %s", domainParts[0])
+				}
 			}
 		}
 	}
 
 	return keywords
+}
+
+// extractKeywordsFromWebsite scrapes website content and extracts business-relevant keywords
+func (mmc *MultiMethodClassifier) extractKeywordsFromWebsite(ctx context.Context, websiteURL string) []string {
+	// Create a simple HTTP client for scraping
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	// Create request
+	req, err := http.NewRequestWithContext(ctx, "GET", websiteURL, nil)
+	if err != nil {
+		mmc.logger.Printf("⚠️ Failed to create request for %s: %v", websiteURL, err)
+		return []string{}
+	}
+
+	// Set user agent to avoid blocking
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+
+	// Make request
+	resp, err := client.Do(req)
+	if err != nil {
+		mmc.logger.Printf("⚠️ Failed to fetch website %s: %v", websiteURL, err)
+		return []string{}
+	}
+	defer resp.Body.Close()
+
+	// Check status code
+	if resp.StatusCode >= 400 {
+		mmc.logger.Printf("⚠️ Website %s returned status %d", websiteURL, resp.StatusCode)
+		return []string{}
+	}
+
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		mmc.logger.Printf("⚠️ Failed to read response body from %s: %v", websiteURL, err)
+		return []string{}
+	}
+
+	// Extract text content from HTML
+	textContent := mmc.extractTextFromHTML(string(body))
+	
+	// Extract business-relevant keywords
+	keywords := mmc.extractBusinessKeywords(textContent)
+	
+	mmc.logger.Printf("🔍 Scraped %d characters from %s, extracted %d keywords", len(textContent), websiteURL, len(keywords))
+	
+	return keywords
+}
+
+// extractTextFromHTML extracts clean text content from HTML
+func (mmc *MultiMethodClassifier) extractTextFromHTML(htmlContent string) string {
+	// Simple HTML tag removal (for production, consider using a proper HTML parser)
+	// Remove script and style tags completely
+	htmlContent = regexp.MustCompile(`(?i)<script[^>]*>.*?</script>`).ReplaceAllString(htmlContent, "")
+	htmlContent = regexp.MustCompile(`(?i)<style[^>]*>.*?</style>`).ReplaceAllString(htmlContent, "")
+	
+	// Remove HTML tags
+	htmlContent = regexp.MustCompile(`<[^>]*>`).ReplaceAllString(htmlContent, " ")
+	
+	// Clean up whitespace
+	htmlContent = regexp.MustCompile(`\s+`).ReplaceAllString(htmlContent, " ")
+	
+	return strings.TrimSpace(htmlContent)
+}
+
+// extractBusinessKeywords extracts business-relevant keywords from text content
+func (mmc *MultiMethodClassifier) extractBusinessKeywords(textContent string) []string {
+	var keywords []string
+	
+	// Convert to lowercase for processing
+	text := strings.ToLower(textContent)
+	
+	// Business-relevant keyword patterns
+	businessPatterns := []string{
+		// Industry keywords
+		`\b(restaurant|cafe|coffee|food|dining|kitchen|catering|bakery|bar|pub|brewery|winery)\b`,
+		`\b(technology|software|tech|app|digital|web|mobile|cloud|ai|ml|data|cyber|security)\b`,
+		`\b(healthcare|medical|clinic|hospital|doctor|dentist|therapy|wellness|pharmacy)\b`,
+		`\b(legal|law|attorney|lawyer|court|litigation|patent|trademark|copyright)\b`,
+		`\b(retail|store|shop|ecommerce|online|fashion|clothing|electronics|beauty)\b`,
+		`\b(finance|banking|investment|insurance|accounting|tax|financial|credit|loan)\b`,
+		`\b(real estate|property|construction|building|architecture|design|interior)\b`,
+		`\b(education|school|university|training|learning|course|academy|institute)\b`,
+		`\b(consulting|advisory|strategy|management|business|corporate|professional)\b`,
+		`\b(manufacturing|production|factory|industrial|automotive|machinery|equipment)\b`,
+		`\b(transportation|logistics|shipping|delivery|freight|warehouse|supply chain)\b`,
+		`\b(entertainment|media|marketing|advertising|design|creative|art|music|film)\b`,
+		`\b(energy|utilities|renewable|solar|wind|oil|gas|power|electricity)\b`,
+		`\b(agriculture|farming|food production|crop|livestock|organic|sustainable)\b`,
+		`\b(travel|tourism|hospitality|hotel|accommodation|vacation|booking|trip)\b`,
+	}
+	
+	// Extract keywords using patterns
+	for _, pattern := range businessPatterns {
+		matches := regexp.MustCompile(pattern).FindAllString(text, -1)
+		for _, match := range matches {
+			// Remove duplicates and add to keywords
+			if !mmc.containsKeyword(keywords, match) {
+				keywords = append(keywords, match)
+			}
+		}
+	}
+	
+	// Also extract common business words
+	commonBusinessWords := []string{
+		"service", "services", "company", "business", "corp", "corporation", "inc", "llc", "ltd",
+		"enterprise", "solutions", "systems", "group", "associates", "partners", "consulting",
+		"management", "development", "production", "distribution", "marketing", "sales",
+		"customer", "clients", "professional", "expert", "specialist", "quality", "premium",
+		"innovative", "leading", "trusted", "reliable", "experienced", "established",
+	}
+	
+	for _, word := range commonBusinessWords {
+		if strings.Contains(text, word) && !mmc.containsKeyword(keywords, word) {
+			keywords = append(keywords, word)
+		}
+	}
+	
+	// Limit to top 20 keywords to avoid noise
+	if len(keywords) > 20 {
+		keywords = keywords[:20]
+	}
+	
+	return keywords
+}
+
+// containsKeyword checks if a keyword already exists in the slice
+func (mmc *MultiMethodClassifier) containsKeyword(keywords []string, keyword string) bool {
+	for _, k := range keywords {
+		if k == keyword {
+			return true
+		}
+	}
+	return false
 }
 
 // extractTrustedContent extracts only verified and trusted content for classification
