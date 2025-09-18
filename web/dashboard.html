@@ -1303,6 +1303,15 @@
             const websiteUrl = document.getElementById('websiteUrl')?.value || '';
             const scrapingStatus = result.response?.metadata?.website_scraping || result.metadata?.website_scraping || {};
             
+            // Debug logging
+            console.log('Website keywords debug:', {
+                keywords: keywords,
+                keywordsLength: keywords.length,
+                websiteUrl: websiteUrl,
+                resultResponse: result.response,
+                resultMetadata: result.metadata
+            });
+            
             if (keywords.length === 0 && !websiteUrl) {
                 section.style.display = 'none';
                 return;
