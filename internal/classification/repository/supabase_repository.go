@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"regexp"
 	"sort"
 	"strings"
@@ -1598,49 +1599,111 @@ func (r *SupabaseKeywordRepository) extractKeywords(businessName, description, w
 
 // extractKeywordsFromWebsite scrapes website content and extracts business-relevant keywords
 func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Context, websiteURL string) []string {
-	// Create a simple HTTP client for scraping
-	client := &http.Client{
-		Timeout: 10 * time.Second,
+	startTime := time.Now()
+	r.logger.Printf("🌐 [Supabase] Starting website scraping for: %s", websiteURL)
+	
+	// Validate URL
+	parsedURL, err := url.Parse(websiteURL)
+	if err != nil {
+		r.logger.Printf("❌ [Supabase] Invalid URL format for %s: %v", websiteURL, err)
+		return []string{}
+	}
+	
+	if parsedURL.Scheme == "" {
+		websiteURL = "https://" + websiteURL
+		r.logger.Printf("🔧 [Supabase] Added HTTPS scheme: %s", websiteURL)
 	}
 
-	// Create request
+	// Create HTTP client with enhanced configuration
+	client := &http.Client{
+		Timeout: 15 * time.Second,
+		Transport: &http.Transport{
+			MaxIdleConns:        10,
+			IdleConnTimeout:     30 * time.Second,
+			DisableCompression:  false,
+		},
+	}
+
+	// Create request with enhanced headers
 	req, err := http.NewRequestWithContext(ctx, "GET", websiteURL, nil)
 	if err != nil {
-		r.logger.Printf("⚠️ Failed to create request for %s: %v", websiteURL, err)
+		r.logger.Printf("❌ [Supabase] Failed to create request for %s: %v", websiteURL, err)
 		return []string{}
 	}
 
-	// Set user agent to avoid blocking
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+	// Set comprehensive headers to mimic a real browser
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8")
+	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
+	req.Header.Set("Accept-Encoding", "gzip, deflate, br")
+	req.Header.Set("DNT", "1")
+	req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("Upgrade-Insecure-Requests", "1")
+	req.Header.Set("Sec-Fetch-Dest", "document")
+	req.Header.Set("Sec-Fetch-Mode", "navigate")
+	req.Header.Set("Sec-Fetch-Site", "none")
+	req.Header.Set("Cache-Control", "max-age=0")
 
-	// Make request
+	r.logger.Printf("📡 [Supabase] Making HTTP request to: %s", websiteURL)
+
+	// Make request with timeout context
+	reqCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	req = req.WithContext(reqCtx)
+
 	resp, err := client.Do(req)
 	if err != nil {
-		r.logger.Printf("⚠️ Failed to fetch website %s: %v", websiteURL, err)
+		r.logger.Printf("❌ [Supabase] HTTP request failed for %s: %v", websiteURL, err)
 		return []string{}
 	}
 	defer resp.Body.Close()
 
-	// Check status code
+	// Log response details
+	r.logger.Printf("📊 [Supabase] Response received - Status: %d, Content-Type: %s, Content-Length: %d", 
+		resp.StatusCode, resp.Header.Get("Content-Type"), resp.ContentLength)
+
+	// Check status code with detailed logging
 	if resp.StatusCode >= 400 {
-		r.logger.Printf("⚠️ Website %s returned status %d", websiteURL, resp.StatusCode)
+		r.logger.Printf("❌ [Supabase] HTTP error for %s: %d %s", websiteURL, resp.StatusCode, resp.Status)
+		// Try to read error response body
+		if body, readErr := io.ReadAll(resp.Body); readErr == nil && len(body) > 0 {
+			r.logger.Printf("📄 [Supabase] Error response body (first 500 chars): %s", string(body[:min(500, len(body))]))
+		}
 		return []string{}
 	}
 
-	// Read response body
-	body, err := io.ReadAll(resp.Body)
+	// Check content type
+	contentType := resp.Header.Get("Content-Type")
+	if !strings.Contains(contentType, "text/html") && !strings.Contains(contentType, "application/xhtml") {
+		r.logger.Printf("⚠️ [Supabase] Unexpected content type for %s: %s", websiteURL, contentType)
+	}
+
+	// Read response body with size limit
+	maxSize := int64(5 * 1024 * 1024) // 5MB limit
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxSize))
 	if err != nil {
-		r.logger.Printf("⚠️ Failed to read response body from %s: %v", websiteURL, err)
+		r.logger.Printf("❌ [Supabase] Failed to read response body from %s: %v", websiteURL, err)
 		return []string{}
 	}
+
+	r.logger.Printf("📄 [Supabase] Read %d bytes from %s", len(body), websiteURL)
 
 	// Extract text content from HTML
 	textContent := r.extractTextFromHTML(string(body))
+	r.logger.Printf("🧹 [Supabase] Extracted %d characters of text content from HTML", len(textContent))
+	
+	// Log sample of extracted text for debugging
+	if len(textContent) > 0 {
+		sampleText := textContent[:min(200, len(textContent))]
+		r.logger.Printf("📝 [Supabase] Sample extracted text: %s...", sampleText)
+	}
 	
 	// Extract business-relevant keywords
 	keywords := r.extractBusinessKeywords(textContent)
 	
-	r.logger.Printf("🔍 Scraped %d characters from %s, extracted %d keywords", len(textContent), websiteURL, len(keywords))
+	duration := time.Since(startTime)
+	r.logger.Printf("✅ [Supabase] Website scraping completed for %s in %v - extracted %d keywords: %v", 
+		websiteURL, duration, len(keywords), keywords)
 	
 	return keywords
 }
@@ -1651,23 +1714,23 @@ func (r *SupabaseKeywordRepository) extractTextFromHTML(htmlContent string) stri
 	// Remove script and style tags completely
 	htmlContent = regexp.MustCompile(`(?i)<script[^>]*>.*?</script>`).ReplaceAllString(htmlContent, "")
 	htmlContent = regexp.MustCompile(`(?i)<style[^>]*>.*?</style>`).ReplaceAllString(htmlContent, "")
-	
+
 	// Remove HTML tags
 	htmlContent = regexp.MustCompile(`<[^>]*>`).ReplaceAllString(htmlContent, " ")
-	
+
 	// Clean up whitespace
 	htmlContent = regexp.MustCompile(`\s+`).ReplaceAllString(htmlContent, " ")
-	
+
 	return strings.TrimSpace(htmlContent)
 }
 
 // extractBusinessKeywords extracts business-relevant keywords from text content
 func (r *SupabaseKeywordRepository) extractBusinessKeywords(textContent string) []string {
 	var keywords []string
-	
+
 	// Convert to lowercase for processing
 	text := strings.ToLower(textContent)
-	
+
 	// Business-relevant keyword patterns
 	businessPatterns := []string{
 		// Industry keywords
@@ -1687,7 +1750,7 @@ func (r *SupabaseKeywordRepository) extractBusinessKeywords(textContent string) 
 		`\b(agriculture|farming|food production|crop|livestock|organic|sustainable)\b`,
 		`\b(travel|tourism|hospitality|hotel|accommodation|vacation|booking|trip)\b`,
 	}
-	
+
 	// Extract keywords using patterns
 	for _, pattern := range businessPatterns {
 		matches := regexp.MustCompile(pattern).FindAllString(text, -1)
@@ -1698,7 +1761,7 @@ func (r *SupabaseKeywordRepository) extractBusinessKeywords(textContent string) 
 			}
 		}
 	}
-	
+
 	// Also extract common business words
 	commonBusinessWords := []string{
 		"service", "services", "company", "business", "corp", "corporation", "inc", "llc", "ltd",
@@ -1707,18 +1770,18 @@ func (r *SupabaseKeywordRepository) extractBusinessKeywords(textContent string) 
 		"customer", "clients", "professional", "expert", "specialist", "quality", "premium",
 		"innovative", "leading", "trusted", "reliable", "experienced", "established",
 	}
-	
+
 	for _, word := range commonBusinessWords {
 		if strings.Contains(text, word) && !r.containsKeyword(keywords, word) {
 			keywords = append(keywords, word)
 		}
 	}
-	
+
 	// Limit to top 20 keywords to avoid noise
 	if len(keywords) > 20 {
 		keywords = keywords[:20]
 	}
-	
+
 	return keywords
 }
 
