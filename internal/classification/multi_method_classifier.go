@@ -312,6 +312,14 @@ func (mmc *MultiMethodClassifier) performKeywordClassification(
 		return nil, fmt.Errorf("keyword classification failed: %w", err)
 	}
 
+	// Convert classification codes to the expected format
+	// Convert []ClassificationCode to []*ClassificationCode
+	codePointers := make([]*repository.ClassificationCode, len(classificationResult.Codes))
+	for i := range classificationResult.Codes {
+		codePointers[i] = &classificationResult.Codes[i]
+	}
+	classificationCodes := mmc.convertClassificationCodes(codePointers)
+
 	// Convert to shared format
 	result := &shared.IndustryClassification{
 		IndustryCode:         classificationResult.Industry.Name,
@@ -324,7 +332,7 @@ func (mmc *MultiMethodClassifier) performKeywordClassification(
 		ProcessingTime:       time.Duration(0), // Will be set by caller
 		Metadata: map[string]interface{}{
 			"keywords_matched":     len(keywords),
-			"classification_codes": classificationResult.Codes,
+			"classification_codes": classificationCodes,
 		},
 	}
 
@@ -362,6 +370,14 @@ func (mmc *MultiMethodClassifier) performMLClassification(
 		}
 	}
 
+	// Get classification codes for the ML-detected industry
+	var classificationCodes shared.ClassificationCodes
+	if bestClassification.Label != "unknown" {
+		// Try to get classification codes based on the ML-detected industry
+		// For now, we'll use a simple mapping - in production this should be more sophisticated
+		classificationCodes = mmc.getClassificationCodesForIndustry(ctx, bestClassification.Label)
+	}
+
 	// Convert to shared format
 	result := &shared.IndustryClassification{
 		IndustryCode:         bestClassification.Label,
@@ -372,10 +388,11 @@ func (mmc *MultiMethodClassifier) performMLClassification(
 		Evidence:             fmt.Sprintf("ML model prediction with confidence %.2f%%", bestClassification.Confidence*100),
 		ProcessingTime:       mlResult.ProcessingTime,
 		Metadata: map[string]interface{}{
-			"model_id":        mlResult.ModelID,
-			"model_version":   mlResult.ModelVersion,
-			"all_predictions": mlResult.Classifications,
-			"quality_score":   mlResult.QualityScore,
+			"model_id":             mlResult.ModelID,
+			"model_version":        mlResult.ModelVersion,
+			"all_predictions":      mlResult.Classifications,
+			"quality_score":        mlResult.QualityScore,
+			"classification_codes": classificationCodes,
 		},
 	}
 
@@ -403,6 +420,9 @@ func (mmc *MultiMethodClassifier) performDescriptionClassification(
 	// Step 4: Determine industry based on verified indicators
 	industryName := mmc.determineIndustryFromIndicators(industryIndicators)
 
+	// Get classification codes for the detected industry
+	classificationCodes := mmc.getClassificationCodesForIndustry(ctx, industryName)
+
 	// Convert to shared format
 	result := &shared.IndustryClassification{
 		IndustryCode:         industryName,
@@ -417,6 +437,7 @@ func (mmc *MultiMethodClassifier) performDescriptionClassification(
 			"trusted_content_length": len(trustedContent),
 			"security_validated":     true,
 			"data_sources":           mmc.getDataSourceInfo(businessName, description, websiteURL),
+			"classification_codes":   classificationCodes,
 		},
 	}
 
@@ -481,6 +502,9 @@ func (mmc *MultiMethodClassifier) calculateEnsembleResult(
 	// Calculate ensemble confidence
 	ensembleConfidence := mmc.calculateEnsembleConfidence(successfulResults, bestIndustry)
 
+	// Get classification codes for the best industry
+	classificationCodes := mmc.getClassificationCodesForIndustry(context.Background(), bestIndustry)
+
 	// Create ensemble result
 	result := &shared.IndustryClassification{
 		IndustryCode:         bestIndustry,
@@ -490,9 +514,10 @@ func (mmc *MultiMethodClassifier) calculateEnsembleResult(
 		Description:          fmt.Sprintf("Ensemble classification from %d methods", len(successfulResults)),
 		Evidence:             fmt.Sprintf("Combined results from %d classification methods", len(successfulResults)),
 		Metadata: map[string]interface{}{
-			"method_count":    len(successfulResults),
-			"method_results":  successfulResults,
-			"weighted_scores": weightedIndustryScores,
+			"method_count":         len(successfulResults),
+			"method_results":       successfulResults,
+			"weighted_scores":      weightedIndustryScores,
+			"classification_codes": classificationCodes,
 		},
 	}
 
@@ -689,7 +714,7 @@ func (mmc *MultiMethodClassifier) extractKeywords(businessName, description, web
 		scrapingResult := mmc.enhancedScraper.ScrapeWebsite(context.Background(), websiteURL)
 		if scrapingResult.Success && len(scrapingResult.Keywords) > 0 {
 			keywords = append(keywords, scrapingResult.Keywords...)
-			mmc.logger.Printf("✅ Enhanced scraper extracted %d keywords from website content: %v", 
+			mmc.logger.Printf("✅ Enhanced scraper extracted %d keywords from website content: %v",
 				len(scrapingResult.Keywords), scrapingResult.Keywords)
 		} else {
 			// Fallback to domain name extraction if enhanced scraping fails
@@ -699,7 +724,7 @@ func (mmc *MultiMethodClassifier) extractKeywords(businessName, description, web
 					domain := strings.Split(parts[1], "/")[0]
 					domainParts := strings.Split(domain, ".")
 					keywords = append(keywords, domainParts[0])
-					mmc.logger.Printf("⚠️ Enhanced website scraping failed (%s), using domain name: %s", 
+					mmc.logger.Printf("⚠️ Enhanced website scraping failed (%s), using domain name: %s",
 						scrapingResult.Error, domainParts[0])
 				}
 			}
@@ -1151,6 +1176,89 @@ func (mmc *MultiMethodClassifier) calculateVariance(values []float64) float64 {
 
 func (mmc *MultiMethodClassifier) generateRequestID() string {
 	return fmt.Sprintf("multi_method_%d", time.Now().UnixNano())
+}
+
+// convertClassificationCodes converts database classification codes to the expected format
+func (mmc *MultiMethodClassifier) convertClassificationCodes(codes []*repository.ClassificationCode) shared.ClassificationCodes {
+	classificationCodes := shared.ClassificationCodes{
+		MCC:   []shared.MCCCode{},
+		SIC:   []shared.SICCode{},
+		NAICS: []shared.NAICSCode{},
+	}
+
+	for _, code := range codes {
+		if code == nil {
+			continue
+		}
+
+		// Calculate confidence based on the classification result
+		confidence := 0.8 // Default confidence for database codes
+
+		switch strings.ToUpper(code.CodeType) {
+		case "MCC":
+			classificationCodes.MCC = append(classificationCodes.MCC, shared.MCCCode{
+				Code:        code.Code,
+				Description: code.Description,
+				Confidence:  confidence,
+			})
+		case "SIC":
+			classificationCodes.SIC = append(classificationCodes.SIC, shared.SICCode{
+				Code:        code.Code,
+				Description: code.Description,
+				Confidence:  confidence,
+			})
+		case "NAICS":
+			classificationCodes.NAICS = append(classificationCodes.NAICS, shared.NAICSCode{
+				Code:        code.Code,
+				Description: code.Description,
+				Confidence:  confidence,
+			})
+		}
+	}
+
+	// Limit to top 3 codes per type for better performance
+	if len(classificationCodes.MCC) > 3 {
+		classificationCodes.MCC = classificationCodes.MCC[:3]
+	}
+	if len(classificationCodes.SIC) > 3 {
+		classificationCodes.SIC = classificationCodes.SIC[:3]
+	}
+	if len(classificationCodes.NAICS) > 3 {
+		classificationCodes.NAICS = classificationCodes.NAICS[:3]
+	}
+
+	mmc.logger.Printf("✅ Converted %d classification codes: %d MCC, %d SIC, %d NAICS",
+		len(codes), len(classificationCodes.MCC), len(classificationCodes.SIC), len(classificationCodes.NAICS))
+
+	return classificationCodes
+}
+
+// getClassificationCodesForIndustry retrieves classification codes for a given industry name
+func (mmc *MultiMethodClassifier) getClassificationCodesForIndustry(ctx context.Context, industryName string) shared.ClassificationCodes {
+	// Try to find the industry by name
+	industry, err := mmc.keywordRepo.GetIndustryByName(ctx, industryName)
+	if err != nil {
+		mmc.logger.Printf("⚠️ Failed to get industry by name '%s': %v", industryName, err)
+		return shared.ClassificationCodes{
+			MCC:   []shared.MCCCode{},
+			SIC:   []shared.SICCode{},
+			NAICS: []shared.NAICSCode{},
+		}
+	}
+
+	// Get classification codes for the industry
+	codes, err := mmc.keywordRepo.GetCachedClassificationCodes(ctx, industry.ID)
+	if err != nil {
+		mmc.logger.Printf("⚠️ Failed to get classification codes for industry %d: %v", industry.ID, err)
+		return shared.ClassificationCodes{
+			MCC:   []shared.MCCCode{},
+			SIC:   []shared.SICCode{},
+			NAICS: []shared.NAICSCode{},
+		}
+	}
+
+	// Convert to the expected format
+	return mmc.convertClassificationCodes(codes)
 }
 
 func (mmc *MultiMethodClassifier) recordMultiMethodMetrics(

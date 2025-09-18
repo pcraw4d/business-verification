@@ -794,9 +794,9 @@
                     },
                     cost_optimization: response.cost_optimization || null,
                     classification: {
-                        mcc_codes: response.classification_codes?.MCC || getMockClassificationCodes(primaryClassification.industry_name, 'MCC'),
-                        sic_codes: response.classification_codes?.SIC || getMockClassificationCodes(primaryClassification.industry_name, 'SIC'),
-                        naics_codes: response.classification_codes?.NAICS || getMockClassificationCodes(primaryClassification.industry_name, 'NAICS')
+                        mcc_codes: response.classification_codes?.mcc || getMockClassificationCodes(primaryClassification.industry_name, 'MCC'),
+                        sic_codes: response.classification_codes?.sic || getMockClassificationCodes(primaryClassification.industry_name, 'SIC'),
+                        naics_codes: response.classification_codes?.naics || getMockClassificationCodes(primaryClassification.industry_name, 'NAICS')
                     },
                     // Preserve the original response structure for website keywords
                     response: response,
@@ -831,9 +831,9 @@
                     },
                     cost_optimization: result.cost_optimization || null,
                     classification: {
-                        mcc_codes: result.classification_codes?.MCC || getMockClassificationCodes(primaryClassification.industry_name, 'MCC'),
-                        sic_codes: result.classification_codes?.SIC || getMockClassificationCodes(primaryClassification.industry_name, 'SIC'),
-                        naics_codes: result.classification_codes?.NAICS || getMockClassificationCodes(primaryClassification.industry_name, 'NAICS')
+                        mcc_codes: result.classification_codes?.mcc || getMockClassificationCodes(primaryClassification.industry_name, 'MCC'),
+                        sic_codes: result.classification_codes?.sic || getMockClassificationCodes(primaryClassification.industry_name, 'SIC'),
+                        naics_codes: result.classification_codes?.naics || getMockClassificationCodes(primaryClassification.industry_name, 'NAICS')
                     },
                     // Preserve the original response structure for website keywords
                     response: result,
@@ -858,9 +858,9 @@
                     security_metrics: result.security_metrics || null,
                     cost_optimization: result.cost_optimization || null,
                     classification: {
-                        mcc_codes: result.classification_codes?.MCC || getMockClassificationCodes(primaryClassification.industry_name, 'MCC'),
-                        sic_codes: result.classification_codes?.SIC || getMockClassificationCodes(primaryClassification.industry_name, 'SIC'),
-                        naics_codes: result.classification_codes?.NAICS || getMockClassificationCodes(primaryClassification.industry_name, 'NAICS')
+                        mcc_codes: result.classification_codes?.mcc || getMockClassificationCodes(primaryClassification.industry_name, 'MCC'),
+                        sic_codes: result.classification_codes?.sic || getMockClassificationCodes(primaryClassification.industry_name, 'SIC'),
+                        naics_codes: result.classification_codes?.naics || getMockClassificationCodes(primaryClassification.industry_name, 'NAICS')
                     }
                 };
             }
@@ -882,9 +882,9 @@
                     security_metrics: result.security_metrics || null,
                     cost_optimization: result.cost_optimization || null,
                     classification: {
-                        mcc_codes: response.classifications?.filter(c => c.code_type === 'MCC') || [],
-                        sic_codes: response.classifications?.filter(c => c.code_type === 'SIC') || [],
-                        naics_codes: response.classifications?.filter(c => c.code_type === 'NAICS') || []
+                        mcc_codes: response.classification_codes?.mcc || response.classifications?.filter(c => c.code_type === 'MCC') || [],
+                        sic_codes: response.classification_codes?.sic || response.classifications?.filter(c => c.code_type === 'SIC') || [],
+                        naics_codes: response.classification_codes?.naics || response.classifications?.filter(c => c.code_type === 'NAICS') || []
                     }
                 };
             }
