@@ -1601,14 +1601,14 @@ func (r *SupabaseKeywordRepository) extractKeywords(businessName, description, w
 func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Context, websiteURL string) []string {
 	startTime := time.Now()
 	r.logger.Printf("🌐 [Supabase] Starting website scraping for: %s", websiteURL)
-	
+
 	// Validate URL
 	parsedURL, err := url.Parse(websiteURL)
 	if err != nil {
 		r.logger.Printf("❌ [Supabase] Invalid URL format for %s: %v", websiteURL, err)
 		return []string{}
 	}
-	
+
 	if parsedURL.Scheme == "" {
 		websiteURL = "https://" + websiteURL
 		r.logger.Printf("🔧 [Supabase] Added HTTPS scheme: %s", websiteURL)
@@ -1618,9 +1618,9 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 	client := &http.Client{
 		Timeout: 15 * time.Second,
 		Transport: &http.Transport{
-			MaxIdleConns:        10,
-			IdleConnTimeout:     30 * time.Second,
-			DisableCompression:  false,
+			MaxIdleConns:       10,
+			IdleConnTimeout:    30 * time.Second,
+			DisableCompression: false,
 		},
 	}
 
@@ -1659,7 +1659,7 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 	defer resp.Body.Close()
 
 	// Log response details
-	r.logger.Printf("📊 [Supabase] Response received - Status: %d, Content-Type: %s, Content-Length: %d", 
+	r.logger.Printf("📊 [Supabase] Response received - Status: %d, Content-Type: %s, Content-Length: %d",
 		resp.StatusCode, resp.Header.Get("Content-Type"), resp.ContentLength)
 
 	// Check status code with detailed logging
@@ -1691,20 +1691,20 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 	// Extract text content from HTML
 	textContent := r.extractTextFromHTML(string(body))
 	r.logger.Printf("🧹 [Supabase] Extracted %d characters of text content from HTML", len(textContent))
-	
+
 	// Log sample of extracted text for debugging
 	if len(textContent) > 0 {
 		sampleText := textContent[:min(200, len(textContent))]
 		r.logger.Printf("📝 [Supabase] Sample extracted text: %s...", sampleText)
 	}
-	
+
 	// Extract business-relevant keywords
 	keywords := r.extractBusinessKeywords(textContent)
-	
+
 	duration := time.Since(startTime)
-	r.logger.Printf("✅ [Supabase] Website scraping completed for %s in %v - extracted %d keywords: %v", 
+	r.logger.Printf("✅ [Supabase] Website scraping completed for %s in %v - extracted %d keywords: %v",
 		websiteURL, duration, len(keywords), keywords)
-	
+
 	return keywords
 }
 

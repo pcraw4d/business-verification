@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merchant Details - KYB Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="components/navigation.js"></script>
+    <script src="components/merchant-context.js"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-hover {
+            transition: all 0.3s ease-in-out;
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .confidence-bar {
+            background: linear-gradient(90deg, #ef4444 0%, #f97316 25%, #eab308 50%, #22c55e 75%, #3b82f6 100%);
+        }
+        .risk-gauge {
+            background: conic-gradient(from 0deg, #ef4444 0deg, #f97316 72deg, #eab308 144deg, #22c55e 216deg, #3b82f6 288deg, #ef4444 360deg);
+        }
+        .expandable-section {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out;
+        }
+        .expandable-section.expanded {
+            max-height: 1000px;
+        }
+        .skeleton-loading {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .progressive-disclosure {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.4s ease-in-out;
+        }
+        .progressive-disclosure.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        /* Enhanced Risk Level Styles */
+        .risk-indicator {
+            position: relative;
+            transition: all 0.3s ease-in-out;
+        }
+        .risk-indicator:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        .risk-badge {
+            position: relative;
+            overflow: hidden;
+            border: 2px solid;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .risk-badge::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+        .risk-badge:hover::before {
+            left: 100%;
+        }
+        .risk-low {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-color: #047857;
+            color: white;
+        }
+        .risk-medium {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            border-color: #b45309;
+            color: white;
+        }
+        .risk-high {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            border-color: #c2410c;
+            color: white;
+        }
+        .risk-critical {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border-color: #b91c1c;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        .risk-trend {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .trend-up {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+        .trend-down {
+            background: #f0fdf4;
+            color: #16a34a;
+        }
+        .trend-stable {
+            background: #f8fafc;
+            color: #6b7280;
+        }
+        /* Tab Styles */
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .tab-button {
+            background: none;
+            border: none;
+            padding: 12px 24px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .tab-button.active {
+            border-bottom-color: #3498db;
+            color: #3498db;
+            font-weight: 600;
+        }
+        .tab-button:hover {
+            background: rgba(52, 152, 219, 0.1);
+        }
+
+        .header-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-title i {
+            font-size: 2.5rem;
+            color: #3498db;
+        }
+
+        .header-subtitle {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+            margin-top: 10px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            min-height: 48px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: #6c757d;
+            border: 2px solid #6c757d;
+        }
+
+        .btn-outline:hover {
+            background: #6c757d;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* Tabbed Interface */
+        .tabbed-interface {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .tab-navigation {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            overflow-x: auto;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 20px 25px;
+            background: none;
+            border: none;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #6c757d;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            min-width: 200px;
+            white-space: nowrap;
+        }
+
+        .tab-button:hover {
+            background: rgba(52, 152, 219, 0.1);
+            color: #3498db;
+        }
+
+        .tab-button.active {
+            background: white;
+            color: #3498db;
+            border-bottom: 3px solid #3498db;
+        }
+
+        .tab-button i {
+            font-size: 1.2rem;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 40px;
+            min-height: 500px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Merchant Details Tab */
+        .merchant-info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .info-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+        }
+
+        .info-section h3 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin: 0 0 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-section h3 i {
+            color: #3498db;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 12px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #495057;
+            min-width: 120px;
+        }
+
+        .info-value {
+            color: #2c3e50;
+            text-align: right;
+            flex: 1;
+            margin-left: 15px;
+        }
+
+        .info-value.empty {
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        /* Analytics Tabs */
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .analytics-card {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .analytics-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .analytics-card h4 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin: 0 0 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .analytics-card h4 i {
+            color: #3498db;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .metric:last-child {
+            border-bottom: none;
+        }
+
+        .metric-label {
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .metric-value {
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .metric-value.score {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .metric-value.score.high {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .metric-value.score.medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .metric-value.score.low {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        /* Risk Assessment Specific */
+        .risk-indicator {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .risk-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: white;
+        }
+
+        .risk-icon.low {
+            background: #28a745;
+        }
+
+        .risk-icon.medium {
+            background: #ffc107;
+        }
+
+        .risk-icon.high {
+            background: #dc3545;
+        }
+
+        .risk-content {
+            flex: 1;
+        }
+
+        .risk-title {
+            font-weight: 700;
+            color: #2c3e50;
+            margin: 0 0 5px 0;
+        }
+
+        .risk-description {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        /* Classification Results */
+        .classification-results {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .classification-results h4 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin: 0 0 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .classification-results h4 i {
+            color: #3498db;
+        }
+
+        .classification-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .classification-item {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .classification-item h5 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin: 0 0 10px 0;
+        }
+
+        .classification-item p {
+            color: #6c757d;
+            margin: 0 0 10px 0;
+            font-size: 0.9rem;
+        }
+
+        .confidence-score {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .confidence-bar {
+            flex: 1;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #e74c3c, #f39c12, #27ae60);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .confidence-text {
+            font-weight: 700;
+            color: #2c3e50;
+            min-width: 50px;
+        }
+
+        /* Loading States */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            color: #3498db;
+            font-weight: 600;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Enhanced Mobile Responsive Design */
+        @media (max-width: 768px) {
+            .header-section, .tabbed-interface {
+                margin: 15px;
+                border-radius: 15px;
+            }
+
+            .header-title {
+                font-size: 2rem;
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+
+            .header-actions {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .tab-navigation {
+                flex-direction: column;
+            }
+
+            .tab-button {
+                min-width: auto;
+                padding: 16px 20px;
+                border-bottom: 1px solid #e9ecef;
+            }
+
+            .tab-content {
+                padding: 25px;
+            }
+
+            .merchant-info-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .analytics-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .classification-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .info-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+
+            .info-value {
+                text-align: left;
+                margin-left: 0;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header-section, .tabbed-interface {
+                margin: 10px;
+                padding: 20px;
+            }
+
+            .header-title {
+                font-size: 1.8rem;
+            }
+
+            .tab-content {
+                padding: 20px;
+            }
+
+            .info-section {
+                padding: 20px;
+            }
+        }
+
+        /* Enhanced Accessibility */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        .tab-button:focus, .btn:focus {
+            outline: 2px solid #3498db;
+            outline-offset: 2px;
+        }
+
+        /* Enhanced Touch Targets for Mobile */
+        @media (max-width: 768px) {
+            .tab-button, .btn {
+                min-height: 48px;
+                touch-action: manipulation;
+                -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-xl font-bold text-gray-900" id="merchantNameText">Loading...</h1>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">ENHANCED</span>
+                    <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">LIVE</span>
+                    <button id="helpBtn" class="text-gray-600 hover:text-gray-900">
+                        <i class="fas fa-question-circle"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Tab Navigation -->
+        <div class="bg-white rounded-lg shadow-lg mb-8">
+            <div class="border-b border-gray-200">
+                <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                    <button class="tab-button active" data-tab="merchant-details" class="whitespace-nowrap py-2 px-1 border-b-2 border-blue-500 font-medium text-sm text-blue-600">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        Merchant Details
+                    </button>
+                    <button class="tab-button" data-tab="business-analytics" class="whitespace-nowrap py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        <i class="fas fa-chart-line mr-2"></i>
+                        Business Analytics
+                    </button>
+                    <button class="tab-button" data-tab="risk-assessment" class="whitespace-nowrap py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        Risk Assessment
+                    </button>
+                    <button class="tab-button" data-tab="risk-indicators" class="whitespace-nowrap py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        <i class="fas fa-gauge-high mr-2"></i>
+                        Risk Indicators
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Tab Content -->
+
+        <!-- Merchant Details Tab -->
+        <div class="tab-content active" id="merchant-details">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">Merchant Information</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Business Information -->
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                            <i class="fas fa-building mr-2 text-blue-600"></i>
+                            Business Information
+                        </h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Business Name</label>
+                                <p class="mt-1 text-sm text-gray-900" id="businessName">-</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Website</label>
+                                <p class="mt-1 text-sm text-gray-900" id="websiteUrl">-</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Description</label>
+                                <p class="mt-1 text-sm text-gray-900" id="businessDescription">-</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Registration Number</label>
+                                <p class="mt-1 text-sm text-gray-900" id="registrationNumber">-</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Address Information -->
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                            <i class="fas fa-map-marker-alt mr-2 text-green-600"></i>
+                            Address Information
+                        </h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Street Address</label>
+                                <p class="mt-1 text-sm text-gray-900" id="streetAddress">-</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">City</label>
+                                <p class="mt-1 text-sm text-gray-900" id="city">-</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">State/Province</label>
+                                <p class="mt-1 text-sm text-gray-900" id="state">-</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Postal Code</label>
+                                <p class="mt-1 text-sm text-gray-900" id="postalCode">-</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Country</label>
+                                <p class="mt-1 text-sm text-gray-900" id="country">-</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact Information -->
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800 flex items-center mb-4">
+                        <i class="fas fa-phone mr-2 text-purple-600"></i>
+                        Contact Information
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Phone Number</label>
+                            <p class="mt-1 text-sm text-gray-900" id="phoneNumber">-</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Email Address</label>
+                            <p class="mt-1 text-sm text-gray-900" id="email">-</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+            <!-- Business Analytics Tab -->
+            <div class="tab-content" id="business-analytics">
+                <div class="loading" id="analyticsLoading">
+                    <div class="spinner"></div>
+                    Loading business analytics...
+                </div>
+                <div id="analyticsContent" style="display: none;">
+                    <div class="classification-results">
+                        <h4>
+                            <i class="fas fa-search"></i>
+                            Business Classification Results
+                        </h4>
+                        <div class="classification-grid" id="classificationResults">
+                            <!-- Classification results will be populated here -->
+                        </div>
+                    </div>
+
+                    <div class="analytics-grid">
+                        <div class="analytics-card">
+                            <h4>
+                                <i class="fas fa-chart-pie"></i>
+                                Industry Analysis
+                            </h4>
+                            <div class="metric">
+                                <span class="metric-label">Primary Industry:</span>
+                                <span class="metric-value" id="primaryIndustry">Technology</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Confidence Score:</span>
+                                <span class="metric-value score high" id="industryConfidence">95%</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Market Size:</span>
+                                <span class="metric-value" id="marketSize">Large</span>
+                            </div>
+                        </div>
+
+                        <div class="analytics-card">
+                            <h4>
+                                <i class="fas fa-globe"></i>
+                                Digital Presence
+                            </h4>
+                            <div class="metric">
+                                <span class="metric-label">Website Status:</span>
+                                <span class="metric-value score high" id="websiteStatus">Active</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">SSL Certificate:</span>
+                                <span class="metric-value score high" id="sslStatus">Valid</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Domain Age:</span>
+                                <span class="metric-value" id="domainAge">5 years</span>
+                            </div>
+                        </div>
+
+                        <div class="analytics-card">
+                            <h4>
+                                <i class="fas fa-database"></i>
+                                Data Quality
+                            </h4>
+                            <div class="metric">
+                                <span class="metric-label">Completeness:</span>
+                                <span class="metric-value score high" id="dataCompleteness">92%</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Accuracy:</span>
+                                <span class="metric-value score high" id="dataAccuracy">95%</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Freshness:</span>
+                                <span class="metric-value score medium" id="dataFreshness">85%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Risk Assessment Tab -->
+            <div class="tab-content" id="risk-assessment">
+                <div class="loading" id="riskLoading">
+                    <div class="spinner"></div>
+                    Analyzing risk factors...
+                </div>
+                <div id="riskContent" style="display: none;">
+                    <div class="analytics-grid">
+                        <div class="analytics-card">
+                            <h4>
+                                <i class="fas fa-shield-alt"></i>
+                                Overall Risk Score
+                            </h4>
+                            <div class="metric">
+                                <span class="metric-label">Risk Level:</span>
+                                <span class="metric-value score low" id="overallRisk">Low</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Risk Score:</span>
+                                <span class="metric-value" id="riskScore">25/100</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Last Updated:</span>
+                                <span class="metric-value" id="riskLastUpdated">Just now</span>
+                            </div>
+                        </div>
+
+                        <div class="analytics-card">
+                            <h4>
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Risk Factors
+                            </h4>
+                            <div class="metric">
+                                <span class="metric-label">Financial Risk:</span>
+                                <span class="metric-value score low" id="financialRisk">Low</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Operational Risk:</span>
+                                <span class="metric-value score medium" id="operationalRisk">Medium</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Compliance Risk:</span>
+                                <span class="metric-value score low" id="complianceRisk">Low</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-section">
+                        <h3>
+                            <i class="fas fa-list"></i>
+                            Risk Indicators
+                        </h3>
+                        <div class="risk-indicator">
+                            <div class="risk-icon low">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <div class="risk-content">
+                                <h5 class="risk-title">Website Verification</h5>
+                                <p class="risk-description">Website is active and properly configured with valid SSL certificate</p>
+                            </div>
+                        </div>
+                        <div class="risk-indicator">
+                            <div class="risk-icon low">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <div class="risk-content">
+                                <h5 class="risk-title">Business Registration</h5>
+                                <p class="risk-description">Business appears to be properly registered and compliant</p>
+                            </div>
+                        </div>
+                        <div class="risk-indicator">
+                            <div class="risk-icon medium">
+                                <i class="fas fa-exclamation"></i>
+                            </div>
+                            <div class="risk-content">
+                                <h5 class="risk-title">Industry Risk</h5>
+                                <p class="risk-description">Operating in a medium-risk industry with standard compliance requirements</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Risk Indicators Tab -->
+            <div class="tab-content" id="risk-indicators">
+                <div class="loading" id="indicatorsLoading">
+                    <div class="spinner"></div>
+                    Calculating risk indicators...
+                </div>
+                <div id="indicatorsContent" style="display: none;">
+                    <div class="analytics-grid">
+                        <div class="analytics-card">
+                            <h4>
+                                <i class="fas fa-chart-bar"></i>
+                                Risk Metrics
+                            </h4>
+                            <div class="metric">
+                                <span class="metric-label">Credit Risk:</span>
+                                <span class="metric-value score low" id="creditRisk">Low</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Market Risk:</span>
+                                <span class="metric-value score medium" id="marketRisk">Medium</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Liquidity Risk:</span>
+                                <span class="metric-value score low" id="liquidityRisk">Low</span>
+                            </div>
+                        </div>
+
+                        <div class="analytics-card">
+                            <h4>
+                                <i class="fas fa-balance-scale"></i>
+                                Compliance Score
+                            </h4>
+                            <div class="metric">
+                                <span class="metric-label">Regulatory:</span>
+                                <span class="metric-value score high" id="regulatoryScore">95%</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Industry Standards:</span>
+                                <span class="metric-value score high" id="industryScore">90%</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Best Practices:</span>
+                                <span class="metric-value score medium" id="bestPracticesScore">85%</span>
+                            </div>
+                        </div>
+
+                        <div class="analytics-card">
+                            <h4>
+                                <i class="fas fa-trending-up"></i>
+                                Performance Indicators
+                            </h4>
+                            <div class="metric">
+                                <span class="metric-label">Growth Potential:</span>
+                                <span class="metric-value score high" id="growthPotential">High</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Stability:</span>
+                                <span class="metric-value score high" id="stability">High</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Innovation:</span>
+                                <span class="metric-value score medium" id="innovation">Medium</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-section">
+                        <h3>
+                            <i class="fas fa-chart-line"></i>
+                            Risk Trend Analysis
+                        </h3>
+                        <div class="analytics-grid">
+                            <div class="analytics-card">
+                                <h4>
+                                    <i class="fas fa-clock"></i>
+                                    Historical Trends
+                                </h4>
+                                <div class="metric">
+                                    <span class="metric-label">30-Day Trend:</span>
+                                    <span class="metric-value score low" id="trend30Day">Improving</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="metric-label">90-Day Trend:</span>
+                                    <span class="metric-value score low" id="trend90Day">Stable</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="metric-label">1-Year Trend:</span>
+                                    <span class="metric-value score medium" id="trend1Year">Moderate</span>
+                                </div>
+                            </div>
+
+                            <div class="analytics-card">
+                                <h4>
+                                    <i class="fas fa-eye"></i>
+                                    Monitoring Status
+                                </h4>
+                                <div class="metric">
+                                    <span class="metric-label">Active Monitoring:</span>
+                                    <span class="metric-value score high" id="monitoringStatus">Active</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="metric-label">Alert Level:</span>
+                                    <span class="metric-value score low" id="alertLevel">Low</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="metric-label">Next Review:</span>
+                                    <span class="metric-value" id="nextReview">30 days</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Enhanced Merchant Details Handler
+        class MerchantDetailsHandler {
+            constructor() {
+                this.merchantData = null;
+                this.currentTab = 'merchant-details';
+                this.init();
+            }
+
+            init() {
+                this.loadMerchantData();
+                this.bindEvents();
+                this.initializeMobileOptimization();
+            }
+
+            loadMerchantData() {
+                // Load merchant data from session storage
+                const storedData = sessionStorage.getItem('merchantData');
+                if (storedData) {
+                    this.merchantData = JSON.parse(storedData);
+                    this.populateMerchantDetails();
+                    this.updatePageTitle();
+                } else {
+                    // No data found, redirect to add merchant page
+                    this.showNotification('No merchant data found. Redirecting to add merchant page.', 'info');
+                    setTimeout(() => {
+                        window.location.href = 'add-merchant.html';
+                    }, 2000);
+                }
+            }
+
+            populateMerchantDetails() {
+                if (!this.merchantData) return;
+
+                // Populate merchant details
+                document.getElementById('businessName').textContent = this.merchantData.businessName || 'Not provided';
+                document.getElementById('websiteUrl').textContent = this.merchantData.websiteUrl || 'Not provided';
+                document.getElementById('businessDescription').textContent = this.merchantData.businessDescription || 'Not provided';
+                document.getElementById('registrationNumber').textContent = this.merchantData.registrationNumber || 'Not provided';
+                
+                // Populate address information
+                document.getElementById('streetAddress').textContent = this.merchantData.streetAddress || 'Not provided';
+                document.getElementById('city').textContent = this.merchantData.city || 'Not provided';
+                document.getElementById('state').textContent = this.merchantData.state || 'Not provided';
+                document.getElementById('postalCode').textContent = this.merchantData.postalCode || 'Not provided';
+                document.getElementById('country').textContent = this.getCountryName(this.merchantData.country) || 'Not provided';
+                
+                // Populate contact information
+                document.getElementById('phoneNumber').textContent = this.merchantData.phoneNumber || 'Not provided';
+                document.getElementById('email').textContent = this.merchantData.email || 'Not provided';
+
+                // Add empty class for styling
+                this.addEmptyStyling();
+            }
+
+            addEmptyStyling() {
+                const fields = ['websiteUrl', 'businessDescription', 'registrationNumber', 'streetAddress', 'city', 'state', 'postalCode', 'phoneNumber', 'email'];
+                fields.forEach(fieldId => {
+                    const element = document.getElementById(fieldId);
+                    if (element && element.textContent === 'Not provided') {
+                        element.classList.add('empty');
+                    }
+                });
+            }
+
+            getCountryName(countryCode) {
+                const countries = {
+                    'US': 'United States',
+                    'CA': 'Canada',
+                    'GB': 'United Kingdom',
+                    'AU': 'Australia',
+                    'DE': 'Germany',
+                    'FR': 'France',
+                    'IT': 'Italy',
+                    'ES': 'Spain',
+                    'NL': 'Netherlands',
+                    'BE': 'Belgium',
+                    'CH': 'Switzerland',
+                    'AT': 'Austria',
+                    'SE': 'Sweden',
+                    'NO': 'Norway',
+                    'DK': 'Denmark',
+                    'FI': 'Finland',
+                    'IE': 'Ireland',
+                    'PT': 'Portugal',
+                    'LU': 'Luxembourg',
+                    'JP': 'Japan',
+                    'KR': 'South Korea',
+                    'SG': 'Singapore',
+                    'HK': 'Hong Kong',
+                    'NZ': 'New Zealand',
+                    'BR': 'Brazil',
+                    'MX': 'Mexico',
+                    'AR': 'Argentina',
+                    'CL': 'Chile',
+                    'CO': 'Colombia',
+                    'PE': 'Peru',
+                    'ZA': 'South Africa',
+                    'EG': 'Egypt',
+                    'NG': 'Nigeria',
+                    'KE': 'Kenya',
+                    'MA': 'Morocco',
+                    'TN': 'Tunisia',
+                    'IN': 'India',
+                    'CN': 'China',
+                    'TH': 'Thailand',
+                    'MY': 'Malaysia',
+                    'ID': 'Indonesia',
+                    'PH': 'Philippines',
+                    'VN': 'Vietnam',
+                    'TW': 'Taiwan',
+                    'IL': 'Israel',
+                    'AE': 'United Arab Emirates',
+                    'SA': 'Saudi Arabia',
+                    'TR': 'Turkey',
+                    'RU': 'Russia',
+                    'PL': 'Poland',
+                    'CZ': 'Czech Republic',
+                    'HU': 'Hungary',
+                    'RO': 'Romania',
+                    'BG': 'Bulgaria',
+                    'HR': 'Croatia',
+                    'SI': 'Slovenia',
+                    'SK': 'Slovakia',
+                    'LT': 'Lithuania',
+                    'LV': 'Latvia',
+                    'EE': 'Estonia',
+                    'GR': 'Greece',
+                    'CY': 'Cyprus',
+                    'MT': 'Malta'
+                };
+                return countries[countryCode] || countryCode;
+            }
+
+            updatePageTitle() {
+                if (this.merchantData && this.merchantData.businessName) {
+                    document.getElementById('merchantNameText').textContent = this.merchantData.businessName;
+                    document.title = `${this.merchantData.businessName} - Merchant Details - KYB Platform`;
+                }
+            }
+
+            bindEvents() {
+                // Tab navigation
+                document.querySelectorAll('.tab-button').forEach(button => {
+                    button.addEventListener('click', (e) => this.switchTab(e.target.dataset.tab));
+                });
+
+                // Action buttons
+                document.getElementById('editMerchantBtn').addEventListener('click', () => {
+                    this.showNotification('Edit functionality coming soon!', 'info');
+                });
+
+                document.getElementById('newMerchantBtn').addEventListener('click', () => {
+                    window.location.href = 'add-merchant.html';
+                });
+            }
+
+            switchTab(tabName) {
+                // Update tab buttons
+                document.querySelectorAll('.tab-button').forEach(button => {
+                    button.classList.remove('active');
+                });
+                document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+
+                // Update tab content
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.getElementById(tabName).classList.add('active');
+
+                this.currentTab = tabName;
+
+                // Load tab-specific data
+                this.loadTabData(tabName);
+            }
+
+            async loadTabData(tabName) {
+                switch (tabName) {
+                    case 'business-analytics':
+                        await this.loadBusinessAnalytics();
+                        break;
+                    case 'risk-assessment':
+                        await this.loadRiskAssessment();
+                        break;
+                    case 'risk-indicators':
+                        await this.loadRiskIndicators();
+                        break;
+                }
+            }
+
+            async loadBusinessAnalytics() {
+                const loading = document.getElementById('analyticsLoading');
+                const content = document.getElementById('analyticsContent');
+                
+                loading.style.display = 'flex';
+                content.style.display = 'none';
+
+                // Simulate API call
+                await new Promise(resolve => setTimeout(resolve, 1500));
+
+                // Populate classification results
+                this.populateClassificationResults();
+
+                loading.style.display = 'none';
+                content.style.display = 'block';
+            }
+
+            populateClassificationResults() {
+                const container = document.getElementById('classificationResults');
+                const mockResults = [
+                    {
+                        type: 'MCC',
+                        code: '7372',
+                        description: 'Computer Programming Services',
+                        confidence: 95
+                    },
+                    {
+                        type: 'NAICS',
+                        code: '541511',
+                        description: 'Custom Computer Programming Services',
+                        confidence: 92
+                    },
+                    {
+                        type: 'SIC',
+                        code: '7372',
+                        description: 'Prepackaged Software',
+                        confidence: 88
+                    }
+                ];
+
+                container.innerHTML = mockResults.map(result => `
+                    <div class="classification-item">
+                        <h5>${result.type} Code: ${result.code}</h5>
+                        <p>${result.description}</p>
+                        <div class="confidence-score">
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" style="width: ${result.confidence}%"></div>
+                            </div>
+                            <span class="confidence-text">${result.confidence}%</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            async loadRiskAssessment() {
+                const loading = document.getElementById('riskLoading');
+                const content = document.getElementById('riskContent');
+                
+                loading.style.display = 'flex';
+                content.style.display = 'none';
+
+                // Simulate API call
+                await new Promise(resolve => setTimeout(resolve, 1200));
+
+                loading.style.display = 'none';
+                content.style.display = 'block';
+            }
+
+            async loadRiskIndicators() {
+                const loading = document.getElementById('indicatorsLoading');
+                const content = document.getElementById('indicatorsContent');
+                
+                loading.style.display = 'flex';
+                content.style.display = 'none';
+
+                // Simulate API call
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                loading.style.display = 'none';
+                content.style.display = 'block';
+            }
+
+            initializeMobileOptimization() {
+                if (typeof MobileOptimization !== 'undefined') {
+                    const mobileOpt = new MobileOptimization({
+                        touchTargetSize: 48,
+                        enableTouchOptimization: true,
+                        enableProgressiveEnhancement: true
+                    });
+                    mobileOpt.optimizeForMobile();
+                }
+            }
+
+            showNotification(message, type = 'info') {
+                // Create notification element
+                const notification = document.createElement('div');
+                notification.className = `notification notification-${type}`;
+                notification.innerHTML = `
+                    <i class="fas fa-${type === 'error' ? 'exclamation-circle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+                    ${message}
+                `;
+                
+                // Add styles
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: ${type === 'error' ? '#e74c3c' : type === 'success' ? '#27ae60' : '#3498db'};
+                    color: white;
+                    padding: 15px 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    z-index: 10000;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    max-width: 400px;
+                    animation: slideIn 0.3s ease;
+                `;
+                
+                document.body.appendChild(notification);
+                
+                // Remove after 5 seconds
+                setTimeout(() => {
+                    notification.style.animation = 'slideOut 0.3s ease';
+                    setTimeout(() => notification.remove(), 300);
+                }, 5000);
+            }
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new MerchantDetailsHandler();
+        });
+
+        // Add notification animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

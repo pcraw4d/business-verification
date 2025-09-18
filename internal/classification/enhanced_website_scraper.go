@@ -191,13 +191,13 @@ func (ews *EnhancedWebsiteScraper) createRequest(ctx context.Context, websiteURL
 // readResponseBody reads the response body with size limiting and decompression
 func (ews *EnhancedWebsiteScraper) readResponseBody(resp *http.Response) ([]byte, error) {
 	maxSize := int64(10 * 1024 * 1024) // 10MB limit
-	
+
 	// Check if content is compressed
 	contentEncoding := resp.Header.Get("Content-Encoding")
 	ews.logger.Printf("📦 [Enhanced] Content-Encoding: %s", contentEncoding)
-	
+
 	var reader io.Reader = resp.Body
-	
+
 	// Handle different compression types
 	switch contentEncoding {
 	case "gzip":
@@ -228,7 +228,7 @@ func (ews *EnhancedWebsiteScraper) readResponseBody(resp *http.Response) ([]byte
 	default:
 		ews.logger.Printf("📦 [Enhanced] No compression or unsupported compression: %s", contentEncoding)
 	}
-	
+
 	body, err := io.ReadAll(io.LimitReader(reader, maxSize))
 	if err != nil {
 		return nil, err
@@ -241,17 +241,17 @@ func (ews *EnhancedWebsiteScraper) readResponseBody(resp *http.Response) ([]byte
 // decompressBrotli attempts to decompress Brotli-compressed content
 func (ews *EnhancedWebsiteScraper) decompressBrotli(body io.Reader, maxSize int64) ([]byte, error) {
 	ews.logger.Printf("📦 [Enhanced] Attempting Brotli decompression")
-	
+
 	// Create a Brotli reader
 	brotliReader := brotli.NewReader(io.LimitReader(body, maxSize))
-	
+
 	// Read the decompressed data
 	decompressedData, err := io.ReadAll(brotliReader)
 	if err != nil {
 		ews.logger.Printf("⚠️ [Enhanced] Brotli decompression failed: %v", err)
 		return nil, fmt.Errorf("Brotli decompression failed: %w", err)
 	}
-	
+
 	ews.logger.Printf("📦 [Enhanced] Brotli decompression successful - %d bytes decompressed", len(decompressedData))
 	return decompressedData, nil
 }
@@ -260,16 +260,16 @@ func (ews *EnhancedWebsiteScraper) decompressBrotli(body io.Reader, maxSize int6
 func (ews *EnhancedWebsiteScraper) isLikelyHTML(data []byte) bool {
 	// Convert to string and check for HTML indicators
 	content := string(data)
-	
+
 	// Check for common HTML tags
 	htmlIndicators := []string{"<html", "<head", "<body", "<div", "<span", "<p", "<h1", "<h2", "<h3", "<title", "<meta", "<script", "<style"}
-	
+
 	for _, indicator := range htmlIndicators {
 		if strings.Contains(strings.ToLower(content), indicator) {
 			return true
 		}
 	}
-	
+
 	// Check for high ratio of printable characters
 	printableCount := 0
 	for _, b := range data {
@@ -277,7 +277,7 @@ func (ews *EnhancedWebsiteScraper) isLikelyHTML(data []byte) bool {
 			printableCount++
 		}
 	}
-	
+
 	// If more than 70% of characters are printable, it's likely text/HTML
 	return float64(printableCount)/float64(len(data)) > 0.7
 }

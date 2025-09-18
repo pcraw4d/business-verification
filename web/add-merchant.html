@@ -602,6 +602,49 @@
                     >
                     <div class="error-message" id="registrationNumberError"></div>
                 </div>
+
+                <!-- Analysis Configuration -->
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="analysisType">
+                            <i class="fas fa-chart-line"></i>
+                            Analysis Type
+                        </label>
+                        <select 
+                            id="analysisType" 
+                            name="analysisType"
+                            class="form-select" 
+                            autocomplete="off"
+                        >
+                            <option value="comprehensive">Comprehensive Analysis</option>
+                            <option value="basic">Basic Classification</option>
+                            <option value="risk">Risk Assessment</option>
+                            <option value="compliance">Compliance Check</option>
+                        </select>
+                        <div class="error-message" id="analysisTypeError"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="assessmentType">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Risk Assessment Type
+                        </label>
+                        <select 
+                            id="assessmentType" 
+                            name="assessmentType"
+                            class="form-select" 
+                            autocomplete="off"
+                        >
+                            <option value="comprehensive">Comprehensive Assessment</option>
+                            <option value="financial">Financial Risk Only</option>
+                            <option value="operational">Operational Risk Only</option>
+                            <option value="regulatory">Regulatory Risk Only</option>
+                            <option value="reputational">Reputational Risk Only</option>
+                            <option value="cybersecurity">Cybersecurity Risk Only</option>
+                        </select>
+                        <div class="error-message" id="assessmentTypeError"></div>
+                    </div>
+                </div>
                 
                 <!-- Form Actions -->
                 <div class="form-actions">
@@ -825,11 +868,82 @@
                     data[key] = value.trim();
                 }
                 
-                // Add timestamp
+                // Generate business ID for API calls
+                data.businessId = this.generateBusinessId(data.businessName);
+                
+                // Add timestamp and session info
                 data.timestamp = new Date().toISOString();
                 data.sessionId = this.generateSessionId();
                 
+                // Structure data for API calls
+                data.apiData = {
+                    // Business Intelligence API data
+                    businessIntelligence: {
+                        business_name: data.businessName,
+                        geographic_region: data.country || 'us',
+                        website_url: data.websiteUrl || '',
+                        description: data.businessDescription || 'Business analysis request',
+                        analysis_type: data.analysisType || 'comprehensive'
+                    },
+                    // Risk Assessment API data
+                    riskAssessment: {
+                        business_id: data.businessId,
+                        business_name: data.businessName,
+                        categories: this.getSelectedCategories(data.assessmentType),
+                        include_history: true,
+                        include_predictions: true
+                    },
+                    // Risk Indicators API data
+                    riskIndicators: {
+                        business_id: data.businessId,
+                        business_name: data.businessName,
+                        merchant_data: {
+                            name: data.businessName,
+                            website: data.websiteUrl,
+                            description: data.businessDescription,
+                            address: this.formatAddress(data),
+                            phone: data.phoneNumber,
+                            email: data.email,
+                            registration: data.registrationNumber,
+                            country: data.country
+                        }
+                    }
+                };
+                
                 return data;
+            }
+
+            generateBusinessId(businessName) {
+                // Generate a unique business ID based on name and timestamp
+                const timestamp = Date.now();
+                const nameHash = businessName.toLowerCase()
+                    .replace(/[^a-z0-9]/g, '')
+                    .substring(0, 8);
+                return `biz_${nameHash}_${timestamp}`;
+            }
+
+            getSelectedCategories(assessmentType) {
+                const categoryMap = {
+                    'comprehensive': ['financial', 'operational', 'regulatory', 'reputational', 'cybersecurity'],
+                    'financial': ['financial'],
+                    'operational': ['operational'],
+                    'regulatory': ['regulatory'],
+                    'reputational': ['reputational'],
+                    'cybersecurity': ['cybersecurity']
+                };
+                return categoryMap[assessmentType] || ['financial', 'operational', 'regulatory'];
+            }
+
+            formatAddress(data) {
+                const addressParts = [
+                    data.streetAddress,
+                    data.city,
+                    data.state,
+                    data.postalCode,
+                    data.country
+                ].filter(part => part && part.trim());
+                
+                return addressParts.join(', ');
             }
 
             generateSessionId() {
@@ -837,14 +951,95 @@
             }
 
             async processMerchantVerification(data) {
-                // Store data in session storage for the merchant details page
-                sessionStorage.setItem('merchantData', JSON.stringify(data));
-                
-                // Simulate API call delay
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                
-                // Redirect to merchant details page
-                window.location.href = 'merchant-details.html';
+                try {
+                    // Store base data in session storage
+                    sessionStorage.setItem('merchantData', JSON.stringify(data));
+                    
+                    // Make API calls in parallel for all three analyses
+                    const [businessIntelligenceResult, riskAssessmentResult, riskIndicatorsResult] = await Promise.allSettled([
+                        this.callBusinessIntelligenceAPI(data.apiData.businessIntelligence),
+                        this.callRiskAssessmentAPI(data.apiData.riskAssessment),
+                        this.callRiskIndicatorsAPI(data.apiData.riskIndicators)
+                    ]);
+                    
+                    // Store API results in session storage
+                    const apiResults = {
+                        businessIntelligence: businessIntelligenceResult.status === 'fulfilled' ? businessIntelligenceResult.value : null,
+                        riskAssessment: riskAssessmentResult.status === 'fulfilled' ? riskAssessmentResult.value : null,
+                        riskIndicators: riskIndicatorsResult.status === 'fulfilled' ? riskIndicatorsResult.value : null,
+                        errors: {
+                            businessIntelligence: businessIntelligenceResult.status === 'rejected' ? businessIntelligenceResult.reason : null,
+                            riskAssessment: riskAssessmentResult.status === 'rejected' ? riskAssessmentResult.reason : null,
+                            riskIndicators: riskIndicatorsResult.status === 'rejected' ? riskIndicatorsResult.reason : null
+                        }
+                    };
+                    
+                    sessionStorage.setItem('merchantApiResults', JSON.stringify(apiResults));
+                    
+                    // Redirect to merchant details page
+                    window.location.href = 'merchant-details.html';
+                    
+                } catch (error) {
+                    console.error('Error in merchant verification process:', error);
+                    throw error;
+                }
+            }
+
+            async callBusinessIntelligenceAPI(apiData) {
+                const response = await fetch('/v1/classify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(apiData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Business Intelligence API error: ${response.status}`);
+                }
+
+                return await response.json();
+            }
+
+            async callRiskAssessmentAPI(apiData) {
+                const response = await fetch('/v1/risk/assess', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(apiData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Risk Assessment API error: ${response.status}`);
+                }
+
+                return await response.json();
+            }
+
+            async callRiskIndicatorsAPI(apiData) {
+                // For now, we'll use mock data since the risk indicators page uses mock data
+                // In the future, this could be replaced with a real API call
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        resolve({
+                            success: true,
+                            risk_indicators: {
+                                financial: 15,
+                                operational: 35,
+                                regulatory: 65,
+                                cybersecurity: 85,
+                                overall: 50
+                            },
+                            trends: {
+                                financial: 'improving',
+                                operational: 'stable',
+                                regulatory: 'rising',
+                                cybersecurity: 'escalating'
+                            }
+                        });
+                    }, 1000);
+                });
             }
 
             setLoading(loading) {
