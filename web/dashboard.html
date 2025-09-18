@@ -797,7 +797,11 @@
                         mcc_codes: response.classification_codes?.MCC || getMockClassificationCodes(primaryClassification.industry_name, 'MCC'),
                         sic_codes: response.classification_codes?.SIC || getMockClassificationCodes(primaryClassification.industry_name, 'SIC'),
                         naics_codes: response.classification_codes?.NAICS || getMockClassificationCodes(primaryClassification.industry_name, 'NAICS')
-                    }
+                    },
+                    // Preserve the original response structure for website keywords
+                    response: response,
+                    metadata: response.metadata || {},
+                    primary_classification: primaryClassification
                 };
             }
             // Check if this is the direct API response format (without response wrapper)
@@ -830,7 +834,11 @@
                         mcc_codes: result.classification_codes?.MCC || getMockClassificationCodes(primaryClassification.industry_name, 'MCC'),
                         sic_codes: result.classification_codes?.SIC || getMockClassificationCodes(primaryClassification.industry_name, 'SIC'),
                         naics_codes: result.classification_codes?.NAICS || getMockClassificationCodes(primaryClassification.industry_name, 'NAICS')
-                    }
+                    },
+                    // Preserve the original response structure for website keywords
+                    response: result,
+                    metadata: result.metadata || {},
+                    primary_classification: primaryClassification
                 };
             }
             // Check if this is the direct Railway API response format
@@ -1303,14 +1311,6 @@
             const websiteUrl = document.getElementById('websiteUrl')?.value || '';
             const scrapingStatus = result.response?.metadata?.website_scraping || result.metadata?.website_scraping || {};
             
-            // Debug logging
-            console.log('Website keywords debug:', {
-                keywords: keywords,
-                keywordsLength: keywords.length,
-                websiteUrl: websiteUrl,
-                resultResponse: result.response,
-                resultMetadata: result.metadata
-            });
             
             if (keywords.length === 0 && !websiteUrl) {
                 section.style.display = 'none';
