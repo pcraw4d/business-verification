@@ -6,6 +6,7 @@
     <title>Merchant Details - KYB Platform</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="components/navigation.js"></script>
     <script src="components/merchant-context.js"></script>
     <style>
@@ -148,6 +149,223 @@
         }
         .tab-button:hover {
             background: rgba(52, 152, 219, 0.1);
+        }
+        /* Risk Assessment Styles */
+        .risk-gauge {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+        }
+        .gauge-background {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(from 0deg, #ef4444 0deg, #f97316 72deg, #eab308 144deg, #22c55e 216deg, #3b82f6 288deg, #ef4444 360deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .gauge-inner {
+            width: 80%;
+            height: 80%;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 2;
+        }
+        .gauge-needle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 2px;
+            height: 80px;
+            background: #1f2937;
+            transform-origin: bottom center;
+            transform: translate(-50%, -100%) rotate(0deg);
+            transition: transform 0.5s ease;
+            z-index: 3;
+        }
+        .gauge-needle::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-bottom: 8px solid #1f2937;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ef4444 0%, #f97316 25%, #eab308 50%, #22c55e 75%, #3b82f6 100%);
+            transition: width 0.5s ease;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .slide-up {
+            animation: slideUp 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Risk Indicators Styles */
+        .risk-indicator {
+            position: relative;
+        }
+        .risk-tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1f2937;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+        .risk-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: #1f2937;
+        }
+        .risk-indicator:hover .risk-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+        .risk-trend {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .trend-down {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .trend-stable {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .trend-up {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .risk-heatmap {
+            display: flex;
+            gap: 2px;
+        }
+        .heatmap-cell {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        .heatmap-cell:hover {
+            transform: scale(1.2);
+        }
+        .heatmap-low {
+            background: #dcfce7;
+        }
+        .heatmap-medium {
+            background: #fef3c7;
+        }
+        .heatmap-high {
+            background: #fed7aa;
+        }
+        .heatmap-critical {
+            background: #fecaca;
+        }
+        .risk-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 8px;
+        }
+        .risk-icon-low {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .risk-icon-medium {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .risk-icon-high {
+            background: #fed7aa;
+            color: #c2410c;
+        }
+        .risk-icon-critical {
+            background: #fecaca;
+            color: #991b1b;
+        }
+        .enhanced-progress {
+            width: 100%;
+            height: 12px;
+            background: #f3f4f6;
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+        .enhanced-progress-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+        .enhanced-progress-fill.risk-low {
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+        }
+        .enhanced-progress-fill.risk-medium {
+            background: linear-gradient(90deg, #eab308, #ca8a04);
+        }
+        .enhanced-progress-fill.risk-high {
+            background: linear-gradient(90deg, #f97316, #ea580c);
+        }
+        .enhanced-progress-fill.risk-critical {
+            background: linear-gradient(90deg, #ef4444, #dc2626);
+        }
+        .radar-container {
+            position: relative;
+            height: 400px;
+        }
+        .risk-level-change {
+            transition: all 0.3s ease;
         }
     </style>
 </head>
@@ -722,19 +940,636 @@
 
         <!-- Risk Assessment Tab -->
         <div class="tab-content" id="risk-assessment">
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6">Risk Assessment</h2>
-                <p class="text-gray-600">Risk assessment content will be implemented here with identical UI to the risk dashboard page.</p>
+            <div id="riskDashboardResults" class="space-y-8">
+                <!-- Overall Risk Score -->
+                <div id="overallRiskScore" class="fade-in">
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold text-gray-900">Overall Risk Assessment</h3>
+                            <div class="flex items-center space-x-2">
+                                <span id="riskLevelBadge" class="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">Low Risk</span>
+                                <span id="confidenceBadge" class="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">High Confidence</span>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <!-- Risk Gauge -->
+                            <div class="text-center">
+                                <div class="risk-gauge">
+                                    <div class="gauge-background">
+                                        <div class="gauge-inner">
+                                            <span id="riskScoreValue" class="text-3xl font-bold text-gray-900">25</span>
+                                            <span class="text-sm text-gray-500">Risk Score</span>
+                                        </div>
+                                        <div id="gaugeNeedle" class="gauge-needle" style="transform: translate(-50%, -100%) rotate(90deg);"></div>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-gray-600 mt-4">Overall Risk Level</p>
+                            </div>
+                            
+                            <!-- Risk Summary -->
+                            <div class="space-y-4">
+                                <div>
+                                    <h4 class="font-medium text-gray-900 mb-2">Risk Summary</h4>
+                                    <p id="riskSummary" class="text-sm text-gray-600">The business shows a low overall risk profile with strong financial health and operational stability. However, there are some regulatory compliance concerns that require attention.</p>
+                                </div>
+                                
+                                <div>
+                                    <h4 class="font-medium text-gray-900 mb-2">Key Risk Factors</h4>
+                                    <div id="keyRiskFactors" class="space-y-2">
+                                        <div class="flex items-center text-sm">
+                                            <i class="fas fa-exclamation-triangle text-yellow-500 mr-2"></i>
+                                            <span>Regulatory compliance issues detected</span>
+                                        </div>
+                                        <div class="flex items-center text-sm">
+                                            <i class="fas fa-shield-alt text-red-500 mr-2"></i>
+                                            <span>Cybersecurity vulnerabilities identified</span>
+                                        </div>
+                                        <div class="flex items-center text-sm">
+                                            <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                                            <span>Strong financial position maintained</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <h4 class="font-medium text-gray-900 mb-2">Assessment Details</h4>
+                                    <div class="grid grid-cols-2 gap-4 text-sm">
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">Assessed At:</span>
+                                            <span id="assessedAt" class="font-medium">Just now</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">Valid Until:</span>
+                                            <span id="validUntil" class="font-medium">30 days</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">Confidence:</span>
+                                            <span id="confidenceScore" class="font-medium">92%</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">Alert Level:</span>
+                                            <span id="alertLevel" class="font-medium">Medium</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Risk Category Breakdown -->
+                <div id="riskCategoryBreakdown" class="slide-up">
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold text-gray-900">Risk Category Breakdown</h3>
+                            <button class="text-blue-600 hover:text-blue-800 text-sm font-medium" onclick="toggleSection('categoryDetails')">
+                                <i class="fas fa-chevron-down mr-1"></i>
+                                Show Details
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- Financial Risk -->
+                            <div class="p-4 border rounded-lg card-hover">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                                            <i class="fas fa-dollar-sign text-green-600 text-xs"></i>
+                                        </div>
+                                        <h4 class="font-medium text-gray-900">Financial Risk</h4>
+                                    </div>
+                                    <span id="financialRiskLevel" class="risk-badge px-3 py-1 text-xs font-bold risk-low">Low</span>
+                                </div>
+                                <div class="progress-bar mb-2">
+                                    <div id="financialRiskProgress" class="progress-fill" style="width: 15%"></div>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Score:</span>
+                                    <span id="financialRiskScore" class="font-medium">15</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Operational Risk -->
+                            <div class="p-4 border rounded-lg card-hover">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center mr-3">
+                                            <i class="fas fa-cogs text-yellow-600 text-xs"></i>
+                                        </div>
+                                        <h4 class="font-medium text-gray-900">Operational Risk</h4>
+                                    </div>
+                                    <span id="operationalRiskLevel" class="risk-badge px-3 py-1 text-xs font-bold risk-medium">Medium</span>
+                                </div>
+                                <div class="progress-bar mb-2">
+                                    <div id="operationalRiskProgress" class="progress-fill" style="width: 35%"></div>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Score:</span>
+                                    <span id="operationalRiskScore" class="font-medium">35</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Regulatory Risk -->
+                            <div class="p-4 border rounded-lg card-hover">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center mr-3">
+                                            <i class="fas fa-gavel text-red-600 text-xs"></i>
+                                        </div>
+                                        <h4 class="font-medium text-gray-900">Regulatory Risk</h4>
+                                    </div>
+                                    <span id="regulatoryRiskLevel" class="risk-badge px-3 py-1 text-xs font-bold risk-high">High</span>
+                                </div>
+                                <div class="progress-bar mb-2">
+                                    <div id="regulatoryRiskProgress" class="progress-fill" style="width: 65%"></div>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Score:</span>
+                                    <span id="regulatoryRiskScore" class="font-medium">65</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Reputational Risk -->
+                            <div class="p-4 border rounded-lg card-hover">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                                            <i class="fas fa-star text-blue-600 text-xs"></i>
+                                        </div>
+                                        <h4 class="font-medium text-gray-900">Reputational Risk</h4>
+                                    </div>
+                                    <span id="reputationalRiskLevel" class="risk-badge px-3 py-1 text-xs font-bold risk-low">Low</span>
+                                </div>
+                                <div class="progress-bar mb-2">
+                                    <div id="reputationalRiskProgress" class="progress-fill" style="width: 25%"></div>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Score:</span>
+                                    <span id="reputationalRiskScore" class="font-medium">25</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Cybersecurity Risk -->
+                            <div class="p-4 border rounded-lg card-hover">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+                                            <i class="fas fa-shield-alt text-purple-600 text-xs"></i>
+                                        </div>
+                                        <h4 class="font-medium text-gray-900">Cybersecurity Risk</h4>
+                                    </div>
+                                    <span id="cybersecurityRiskLevel" class="risk-badge px-3 py-1 text-xs font-bold risk-critical">Critical</span>
+                                </div>
+                                <div class="progress-bar mb-2">
+                                    <div id="cybersecurityRiskProgress" class="progress-fill" style="width: 85%"></div>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Score:</span>
+                                    <span id="cybersecurityRiskScore" class="font-medium">85</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Expandable Category Details -->
+                        <div id="categoryDetails" class="expandable-section mt-6">
+                            <div class="border-t pt-6">
+                                <div id="categoryDetailsContent">
+                                    <p class="text-gray-600">Detailed risk category analysis will be displayed here.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Risk Indicators Tab -->
-        <div class="tab-content" id="risk-indicators">
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6">Risk Indicators</h2>
-                <p class="text-gray-600">Risk indicators content will be implemented here with identical UI to the enhanced risk indicators page.</p>
-            </div>
-        </div>
+                    <!-- Risk Indicators Tab -->
+                    <div class="tab-content" id="risk-indicators">
+                        <div id="riskIndicatorsResults" class="space-y-8">
+                            <!-- Enhanced Risk Level Indicators Demo -->
+                            <div class="space-y-8">
+                                
+                                <!-- 1. Enhanced Risk Level Badges -->
+                                <div class="bg-white rounded-lg shadow-lg p-6">
+                                    <h2 class="text-xl font-bold text-gray-900 mb-6">Enhanced Risk Level Badges</h2>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                        <!-- Low Risk -->
+                                        <div class="risk-indicator text-center">
+                                            <div class="risk-badge risk-low px-4 py-2 rounded-lg text-sm font-bold mb-2 inline-block">
+                                                <i class="fas fa-check-circle mr-2"></i>
+                                                LOW RISK
+                                            </div>
+                                            <div class="risk-tooltip">
+                                                Risk Score: 0-25 | Minimal business impact expected
+                                            </div>
+                                            <p class="text-sm text-gray-600">Score: 15</p>
+                                            <div class="risk-trend trend-down mt-2">
+                                                <i class="fas fa-arrow-down mr-1"></i>
+                                                Improving
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Medium Risk -->
+                                        <div class="risk-indicator text-center">
+                                            <div class="risk-badge risk-medium px-4 py-2 rounded-lg text-sm font-bold mb-2 inline-block">
+                                                <i class="fas fa-exclamation-triangle mr-2"></i>
+                                                MEDIUM RISK
+                                            </div>
+                                            <div class="risk-tooltip">
+                                                Risk Score: 26-50 | Moderate business impact possible
+                                            </div>
+                                            <p class="text-sm text-gray-600">Score: 35</p>
+                                            <div class="risk-trend trend-stable mt-2">
+                                                <i class="fas fa-minus mr-1"></i>
+                                                Stable
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- High Risk -->
+                                        <div class="risk-indicator text-center">
+                                            <div class="risk-badge risk-high px-4 py-2 rounded-lg text-sm font-bold mb-2 inline-block">
+                                                <i class="fas fa-exclamation-circle mr-2"></i>
+                                                HIGH RISK
+                                            </div>
+                                            <div class="risk-tooltip">
+                                                Risk Score: 51-75 | Significant business impact likely
+                                            </div>
+                                            <p class="text-sm text-gray-600">Score: 65</p>
+                                            <div class="risk-trend trend-up mt-2">
+                                                <i class="fas fa-arrow-up mr-1"></i>
+                                                Rising
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Critical Risk -->
+                                        <div class="risk-indicator text-center">
+                                            <div class="risk-badge risk-critical px-4 py-2 rounded-lg text-sm font-bold mb-2 inline-block">
+                                                <i class="fas fa-skull-crossbones mr-2"></i>
+                                                CRITICAL RISK
+                                            </div>
+                                            <div class="risk-tooltip">
+                                                Risk Score: 76-100 | Severe business impact expected
+                                            </div>
+                                            <p class="text-sm text-gray-600">Score: 85</p>
+                                            <div class="risk-trend trend-up mt-2">
+                                                <i class="fas fa-arrow-up mr-1"></i>
+                                                Escalating
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 2. Risk Heat Map -->
+                                <div class="bg-white rounded-lg shadow-lg p-6">
+                                    <h2 class="text-xl font-bold text-gray-900 mb-6">Risk Heat Map</h2>
+                                    
+                                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                        <div>
+                                            <h3 class="font-medium text-gray-900 mb-4">Risk Intensity by Category</h3>
+                                            <div class="space-y-4">
+                                                <div class="flex items-center justify-between">
+                                                    <div class="flex items-center">
+                                                        <div class="risk-icon risk-icon-low">
+                                                            <i class="fas fa-dollar-sign text-xs"></i>
+                                                        </div>
+                                                        <span class="text-sm font-medium">Financial</span>
+                                                    </div>
+                                                    <div class="risk-heatmap">
+                                                        <div class="heatmap-cell heatmap-low" title="Revenue Risk: Low"></div>
+                                                        <div class="heatmap-cell heatmap-low" title="Cash Flow Risk: Low"></div>
+                                                        <div class="heatmap-cell heatmap-medium" title="Debt Risk: Medium"></div>
+                                                        <div class="heatmap-cell heatmap-low" title="Credit Risk: Low"></div>
+                                                        <div class="heatmap-cell heatmap-low" title="Market Risk: Low"></div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="flex items-center justify-between">
+                                                    <div class="flex items-center">
+                                                        <div class="risk-icon risk-icon-medium">
+                                                            <i class="fas fa-cogs text-xs"></i>
+                                                        </div>
+                                                        <span class="text-sm font-medium">Operational</span>
+                                                    </div>
+                                                    <div class="risk-heatmap">
+                                                        <div class="heatmap-cell heatmap-medium" title="Process Risk: Medium"></div>
+                                                        <div class="heatmap-cell heatmap-high" title="Staff Risk: High"></div>
+                                                        <div class="heatmap-cell heatmap-medium" title="Technology Risk: Medium"></div>
+                                                        <div class="heatmap-cell heatmap-low" title="Supply Chain Risk: Low"></div>
+                                                        <div class="heatmap-cell heatmap-medium" title="Quality Risk: Medium"></div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="flex items-center justify-between">
+                                                    <div class="flex items-center">
+                                                        <div class="risk-icon risk-icon-high">
+                                                            <i class="fas fa-gavel text-xs"></i>
+                                                        </div>
+                                                        <span class="text-sm font-medium">Regulatory</span>
+                                                    </div>
+                                                    <div class="risk-heatmap">
+                                                        <div class="heatmap-cell heatmap-high" title="Compliance Risk: High"></div>
+                                                        <div class="heatmap-cell heatmap-critical" title="License Risk: Critical"></div>
+                                                        <div class="heatmap-cell heatmap-medium" title="Audit Risk: Medium"></div>
+                                                        <div class="heatmap-cell heatmap-high" title="Legal Risk: High"></div>
+                                                        <div class="heatmap-cell heatmap-medium" title="Policy Risk: Medium"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div>
+                                            <h3 class="font-medium text-gray-900 mb-4">Risk Level Legend</h3>
+                                            <div class="space-y-3">
+                                                <div class="flex items-center">
+                                                    <div class="w-4 h-4 bg-green-200 rounded mr-3"></div>
+                                                    <span class="text-sm text-gray-600">Low Risk (0-25)</span>
+                                                </div>
+                                                <div class="flex items-center">
+                                                    <div class="w-4 h-4 bg-yellow-200 rounded mr-3"></div>
+                                                    <span class="text-sm text-gray-600">Medium Risk (26-50)</span>
+                                                </div>
+                                                <div class="flex items-center">
+                                                    <div class="w-4 h-4 bg-orange-200 rounded mr-3"></div>
+                                                    <span class="text-sm text-gray-600">High Risk (51-75)</span>
+                                                </div>
+                                                <div class="flex items-center">
+                                                    <div class="w-4 h-4 bg-red-200 rounded mr-3"></div>
+                                                    <span class="text-sm text-gray-600">Critical Risk (76-100)</span>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="mt-6">
+                                                <h4 class="font-medium text-gray-900 mb-2">Risk Trend Indicators</h4>
+                                                <div class="space-y-2">
+                                                    <div class="flex items-center">
+                                                        <div class="risk-trend trend-down mr-3">
+                                                            <i class="fas fa-arrow-down mr-1"></i>
+                                                            Improving
+                                                        </div>
+                                                        <span class="text-sm text-gray-600">Risk level decreasing</span>
+                                                    </div>
+                                                    <div class="flex items-center">
+                                                        <div class="risk-trend trend-stable mr-3">
+                                                            <i class="fas fa-minus mr-1"></i>
+                                                            Stable
+                                                        </div>
+                                                        <span class="text-sm text-gray-600">Risk level unchanged</span>
+                                                    </div>
+                                                    <div class="flex items-center">
+                                                        <div class="risk-trend trend-up mr-3">
+                                                            <i class="fas fa-arrow-up mr-1"></i>
+                                                            Rising
+                                                        </div>
+                                                        <span class="text-sm text-gray-600">Risk level increasing</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 3. Enhanced Progress Bars -->
+                                <div class="bg-white rounded-lg shadow-lg p-6">
+                                    <h2 class="text-xl font-bold text-gray-900 mb-6">Enhanced Risk Progress Indicators</h2>
+                                    
+                                    <div class="space-y-6">
+                                        <div>
+                                            <div class="flex items-center justify-between mb-2">
+                                                <div class="flex items-center">
+                                                    <div class="risk-icon risk-icon-low">
+                                                        <i class="fas fa-dollar-sign text-xs"></i>
+                                                    </div>
+                                                    <span class="font-medium text-gray-900">Financial Risk</span>
+                                                </div>
+                                                <div class="flex items-center space-x-2">
+                                                    <span class="text-sm font-medium text-gray-900">15/100</span>
+                                                    <span class="risk-badge risk-low px-2 py-1 rounded text-xs font-bold">LOW</span>
+                                                </div>
+                                            </div>
+                                            <div class="enhanced-progress">
+                                                <div class="enhanced-progress-fill risk-low" style="width: 15%"></div>
+                                            </div>
+                                            <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                                <span>Excellent financial health</span>
+                                                <span>Last updated: 2 hours ago</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div>
+                                            <div class="flex items-center justify-between mb-2">
+                                                <div class="flex items-center">
+                                                    <div class="risk-icon risk-icon-medium">
+                                                        <i class="fas fa-cogs text-xs"></i>
+                                                    </div>
+                                                    <span class="font-medium text-gray-900">Operational Risk</span>
+                                                </div>
+                                                <div class="flex items-center space-x-2">
+                                                    <span class="text-sm font-medium text-gray-900">35/100</span>
+                                                    <span class="risk-badge risk-medium px-2 py-1 rounded text-xs font-bold">MEDIUM</span>
+                                                </div>
+                                            </div>
+                                            <div class="enhanced-progress">
+                                                <div class="enhanced-progress-fill risk-medium" style="width: 35%"></div>
+                                            </div>
+                                            <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                                <span>Some operational challenges</span>
+                                                <span>Last updated: 1 hour ago</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div>
+                                            <div class="flex items-center justify-between mb-2">
+                                                <div class="flex items-center">
+                                                    <div class="risk-icon risk-icon-high">
+                                                        <i class="fas fa-gavel text-xs"></i>
+                                                    </div>
+                                                    <span class="font-medium text-gray-900">Regulatory Risk</span>
+                                                </div>
+                                                <div class="flex items-center space-x-2">
+                                                    <span class="text-sm font-medium text-gray-900">65/100</span>
+                                                    <span class="risk-badge risk-high px-2 py-1 rounded text-xs font-bold">HIGH</span>
+                                                </div>
+                                            </div>
+                                            <div class="enhanced-progress">
+                                                <div class="enhanced-progress-fill risk-high" style="width: 65%"></div>
+                                            </div>
+                                            <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                                <span>Compliance issues detected</span>
+                                                <span>Last updated: 30 minutes ago</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div>
+                                            <div class="flex items-center justify-between mb-2">
+                                                <div class="flex items-center">
+                                                    <div class="risk-icon risk-icon-critical">
+                                                        <i class="fas fa-shield-alt text-xs"></i>
+                                                    </div>
+                                                    <span class="font-medium text-gray-900">Cybersecurity Risk</span>
+                                                </div>
+                                                <div class="flex items-center space-x-2">
+                                                    <span class="text-sm font-medium text-gray-900">85/100</span>
+                                                    <span class="risk-badge risk-critical px-2 py-1 rounded text-xs font-bold">CRITICAL</span>
+                                                </div>
+                                            </div>
+                                            <div class="enhanced-progress">
+                                                <div class="enhanced-progress-fill risk-critical" style="width: 85%"></div>
+                                            </div>
+                                            <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                                <span>Security vulnerabilities found</span>
+                                                <span>Last updated: 5 minutes ago</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 4. Risk Radar Chart -->
+                                <div class="bg-white rounded-lg shadow-lg p-6">
+                                    <h2 class="text-xl font-bold text-gray-900 mb-6">Risk Radar Chart</h2>
+                                    
+                                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                        <div class="radar-container">
+                                            <canvas id="riskRadarChart"></canvas>
+                                        </div>
+                                        
+                                        <div>
+                                            <h3 class="font-medium text-gray-900 mb-4">Risk Category Analysis</h3>
+                                            <div class="space-y-4">
+                                                <div class="flex items-center justify-between p-3 border rounded-lg">
+                                                    <div class="flex items-center">
+                                                        <div class="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                                                        <span class="text-sm font-medium">Financial Risk</span>
+                                                    </div>
+                                                    <div class="text-right">
+                                                        <span class="text-sm font-bold text-gray-900">15</span>
+                                                        <span class="text-xs text-gray-500 ml-1">/100</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="flex items-center justify-between p-3 border rounded-lg">
+                                                    <div class="flex items-center">
+                                                        <div class="w-3 h-3 bg-yellow-500 rounded-full mr-3"></div>
+                                                        <span class="text-sm font-medium">Operational Risk</span>
+                                                    </div>
+                                                    <div class="text-right">
+                                                        <span class="text-sm font-bold text-gray-900">35</span>
+                                                        <span class="text-xs text-gray-500 ml-1">/100</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="flex items-center justify-between p-3 border rounded-lg">
+                                                    <div class="flex items-center">
+                                                        <div class="w-3 h-3 bg-orange-500 rounded-full mr-3"></div>
+                                                        <span class="text-sm font-medium">Regulatory Risk</span>
+                                                    </div>
+                                                    <div class="text-right">
+                                                        <span class="text-sm font-bold text-gray-900">65</span>
+                                                        <span class="text-xs text-gray-500 ml-1">/100</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="flex items-center justify-between p-3 border rounded-lg">
+                                                    <div class="flex items-center">
+                                                        <div class="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                                                        <span class="text-sm font-medium">Reputational Risk</span>
+                                                    </div>
+                                                    <div class="text-right">
+                                                        <span class="text-sm font-bold text-gray-900">25</span>
+                                                        <span class="text-xs text-gray-500 ml-1">/100</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="flex items-center justify-between p-3 border rounded-lg">
+                                                    <div class="flex items-center">
+                                                        <div class="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
+                                                        <span class="text-sm font-medium">Cybersecurity Risk</span>
+                                                    </div>
+                                                    <div class="text-right">
+                                                        <span class="text-sm font-bold text-gray-900">85</span>
+                                                        <span class="text-xs text-gray-500 ml-1">/100</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+                                                <h4 class="font-medium text-gray-900 mb-2">Risk Summary</h4>
+                                                <p class="text-sm text-gray-600">
+                                                    Overall risk profile shows elevated cybersecurity and regulatory concerns. 
+                                                    Financial and reputational risks are well-managed. Immediate attention 
+                                                    required for compliance and security issues.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 5. Interactive Risk Level Demo -->
+                                <div class="bg-white rounded-lg shadow-lg p-6">
+                                    <h2 class="text-xl font-bold text-gray-900 mb-6">Interactive Risk Level Demo</h2>
+                                    
+                                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                        <div>
+                                            <h3 class="font-medium text-gray-900 mb-4">Risk Level Controls</h3>
+                                            <div class="space-y-4">
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700 mb-2">Financial Risk</label>
+                                                    <input type="range" id="financialRisk" min="0" max="100" value="15" 
+                                                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                                        <span>0</span>
+                                                        <span>50</span>
+                                                        <span>100</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700 mb-2">Operational Risk</label>
+                                                    <input type="range" id="operationalRisk" min="0" max="100" value="35" 
+                                                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                                        <span>0</span>
+                                                        <span>50</span>
+                                                        <span>100</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700 mb-2">Regulatory Risk</label>
+                                                    <input type="range" id="regulatoryRisk" min="0" max="100" value="65" 
+                                                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                                        <span>0</span>
+                                                        <span>50</span>
+                                                        <span>100</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700 mb-2">Cybersecurity Risk</label>
+                                                    <input type="range" id="cybersecurityRisk" min="0" max="100" value="85" 
+                                                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                                        <span>0</span>
+                                                        <span>50</span>
+                                                        <span>100</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div>
+                                            <h3 class="font-medium text-gray-900 mb-4">Live Risk Indicators</h3>
+                                            <div id="liveRiskIndicators" class="space-y-4">
+                                                <!-- Populated by JavaScript -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
     </div>
 
     <script>
@@ -900,8 +1735,165 @@
         }
 
         // Initialize when DOM is loaded
+        // Risk Indicators JavaScript Functions
+        function initRiskRadarChart() {
+            const ctx = document.getElementById('riskRadarChart');
+            if (!ctx) return;
+            
+            const data = {
+                labels: ['Financial', 'Operational', 'Regulatory', 'Reputational', 'Cybersecurity'],
+                datasets: [{
+                    label: 'Current Risk Level',
+                    data: [15, 35, 65, 25, 85],
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 6
+                }, {
+                    label: 'Industry Average',
+                    data: [30, 40, 45, 35, 50],
+                    backgroundColor: 'rgba(156, 163, 175, 0.2)',
+                    borderColor: 'rgba(156, 163, 175, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(156, 163, 175, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4
+                }]
+            };
+            
+            const config = {
+                type: 'radar',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                stepSize: 20
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            };
+            
+            new Chart(ctx, config);
+        }
+        
+        function initLiveRiskIndicators() {
+            const indicators = [
+                { id: 'financial', name: 'Financial Risk', value: 15 },
+                { id: 'operational', name: 'Operational Risk', value: 35 },
+                { id: 'regulatory', name: 'Regulatory Risk', value: 65 },
+                { id: 'cybersecurity', name: 'Cybersecurity Risk', value: 85 }
+            ];
+            
+            const container = document.getElementById('liveRiskIndicators');
+            if (!container) return;
+            
+            container.innerHTML = indicators.map(indicator => `
+                <div class="flex items-center justify-between p-3 border rounded-lg">
+                    <div class="flex items-center">
+                        <div class="risk-icon ${getRiskIconClass(indicator.value)}">
+                            <i class="fas fa-${getRiskIcon(indicator.id)} text-xs"></i>
+                        </div>
+                        <span class="text-sm font-medium ml-3">${indicator.name}</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm font-bold text-gray-900">${indicator.value}</span>
+                        <span class="risk-badge ${getRiskBadgeClass(indicator.value)} px-2 py-1 rounded text-xs font-bold">
+                            ${getRiskLevel(indicator.value)}
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function getRiskLevel(score) {
+            if (score <= 25) return 'LOW';
+            if (score <= 50) return 'MEDIUM';
+            if (score <= 75) return 'HIGH';
+            return 'CRITICAL';
+        }
+        
+        function getRiskBadgeClass(score) {
+            if (score <= 25) return 'risk-low';
+            if (score <= 50) return 'risk-medium';
+            if (score <= 75) return 'risk-high';
+            return 'risk-critical';
+        }
+        
+        function getRiskIconClass(score) {
+            if (score <= 25) return 'risk-icon-low';
+            if (score <= 50) return 'risk-icon-medium';
+            if (score <= 75) return 'risk-icon-high';
+            return 'risk-icon-critical';
+        }
+        
+        function getRiskIcon(category) {
+            const icons = {
+                financial: 'dollar-sign',
+                operational: 'cogs',
+                regulatory: 'gavel',
+                cybersecurity: 'shield-alt'
+            };
+            return icons[category] || 'exclamation-triangle';
+        }
+        
+        function updateLiveIndicators() {
+            const indicators = [
+                { id: 'financial', name: 'Financial Risk', value: parseInt(document.getElementById('financialRisk').value) },
+                { id: 'operational', name: 'Operational Risk', value: parseInt(document.getElementById('operationalRisk').value) },
+                { id: 'regulatory', name: 'Regulatory Risk', value: parseInt(document.getElementById('regulatoryRisk').value) },
+                { id: 'cybersecurity', name: 'Cybersecurity Risk', value: parseInt(document.getElementById('cybersecurityRisk').value) }
+            ];
+            
+            const container = document.getElementById('liveRiskIndicators');
+            if (!container) return;
+            
+            container.innerHTML = indicators.map(indicator => `
+                <div class="flex items-center justify-between p-3 border rounded-lg risk-level-change">
+                    <div class="flex items-center">
+                        <div class="risk-icon ${getRiskIconClass(indicator.value)}">
+                            <i class="fas fa-${getRiskIcon(indicator.id)} text-xs"></i>
+                        </div>
+                        <span class="text-sm font-medium ml-3">${indicator.name}</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm font-bold text-gray-900">${indicator.value}</span>
+                        <span class="risk-badge ${getRiskBadgeClass(indicator.value)} px-2 py-1 rounded text-xs font-bold">
+                            ${getRiskLevel(indicator.value)}
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             new MerchantDetails();
+            
+            // Initialize Risk Indicators components
+            initRiskRadarChart();
+            initLiveRiskIndicators();
+            
+            // Add event listeners to sliders
+            ['financialRisk', 'operationalRisk', 'regulatoryRisk', 'cybersecurityRisk'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('input', updateLiveIndicators);
+                }
+            });
         });
     </script>
 </body>
