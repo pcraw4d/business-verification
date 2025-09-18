@@ -19,6 +19,8 @@ class KYBNavigation {
         const pageMap = {
             'index': 'home',
             'dashboard-hub': 'home',
+            'add-merchant': 'add-merchant',
+            'merchant-details': 'merchant-details',
             'dashboard': 'business-intelligence',
             'risk-dashboard': 'risk-assessment',
             'compliance-dashboard': 'compliance-status',
@@ -69,8 +71,15 @@ class KYBNavigation {
                     </div>
                     
                     <div class="nav-section">
-                        <h3 class="nav-section-title">Core Analytics</h3>
+                        <h3 class="nav-section-title">Merchant Verification & Risk</h3>
                         <ul class="nav-list">
+                            <li class="nav-item">
+                                <a href="add-merchant.html" class="nav-link" data-page="add-merchant">
+                                    <i class="fas fa-plus-circle"></i>
+                                    <span class="nav-text">Add Merchant</span>
+                                    <span class="nav-badge new">NEW</span>
+                                </a>
+                            </li>
                             <li class="nav-item">
                                 <a href="dashboard.html" class="nav-link" data-page="business-intelligence">
                                     <i class="fas fa-chart-line"></i>

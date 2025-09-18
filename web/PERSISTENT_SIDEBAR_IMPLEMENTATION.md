@@ -40,6 +40,8 @@ The navigation system automatically detects the current page and highlights the 
 const pageMap = {
     'index': 'home',
     'dashboard-hub': 'home',
+    'add-merchant': 'add-merchant',
+    'merchant-details': 'merchant-details',
     'dashboard': 'business-intelligence',
     'risk-dashboard': 'risk-assessment',
     'compliance-dashboard': 'compliance-status',
@@ -66,7 +68,8 @@ The navigation system automatically restructures each page to include:
 - **Home** - Main landing page (`index.html`)
 - **Dashboard Hub** - Central navigation hub (`dashboard-hub.html`)
 
-### Core Analytics Section
+### Merchant Verification & Risk Section
+- **Add Merchant** - New merchant verification form (`add-merchant.html`) *NEW*
 - **Business Intelligence** - Main analytics dashboard (`dashboard.html`)
 - **Risk Assessment** - Risk analysis tools (`risk-dashboard.html`)
 - **Risk Indicators** - Enhanced risk visualizations (`enhanced-risk-indicators.html`)

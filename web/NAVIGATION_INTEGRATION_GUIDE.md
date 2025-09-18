@@ -39,7 +39,8 @@ Each dashboard includes breadcrumb navigation showing:
 
 ```
 Dashboard Hub (dashboard-hub.html)
-├── Core Analytics
+├── Merchant Verification & Risk
+│   ├── Add Merchant (add-merchant.html) ← NEW
 │   ├── Business Intelligence (dashboard.html)
 │   ├── Risk Assessment (risk-dashboard.html)
 │   └── Risk Indicators (enhanced-risk-indicators.html)
@@ -60,12 +61,17 @@ Dashboard Hub (dashboard-hub.html)
 Dashboard Hub → Compliance Status → Gap Analysis → Progress Tracking
 ```
 
-#### 2. Risk Assessment Workflow
+#### 2. Merchant Verification Workflow
+```
+Dashboard Hub → Add Merchant → Merchant Details → Business Analytics/Risk Assessment
+```
+
+#### 3. Risk Assessment Workflow
 ```
 Dashboard Hub → Risk Assessment → Risk Indicators → Business Intelligence
 ```
 
-#### 3. Market Analysis Workflow
+#### 4. Market Analysis Workflow
 ```
 Dashboard Hub → Market Analysis → Competitive Analysis → Growth Analytics
 ```
