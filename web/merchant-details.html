@@ -2525,32 +2525,69 @@
 
         // Populate code type results (MCC, SIC, NAICS)
         function populateCodeTypeResults(codeType, codes) {
+            console.log(`📊 populateCodeTypeResults called for ${codeType} with:`, codes);
             const container = document.getElementById(`${codeType}CodesList`);
-            if (!container) return;
+            if (!container) {
+                console.log(`📊 Container not found: ${codeType}CodesList`);
+                return;
+            }
             
             if (!codes || codes.length === 0) {
+                console.log(`📊 No codes found for ${codeType}`);
                 container.innerHTML = '<p class="text-sm text-gray-500">No codes found</p>';
                 return;
             }
             
             // Show top 3 results
             const topCodes = codes.slice(0, 3);
+            console.log(`📊 Top codes for ${codeType}:`, topCodes);
+            
             const codesHTML = topCodes.map((code, index) => {
-                const confidence = Math.round((code.confidence || 0) * 100);
-                const confidenceColor = confidence >= 80 ? 'text-green-600' : confidence >= 60 ? 'text-yellow-600' : 'text-red-600';
+                const riskLevel = calculateRiskLevel(code);
+                const riskClass = getRiskClass(riskLevel);
                 
                 return `
-                    <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
-                        <div>
-                            <span class="font-medium text-gray-900">${code.code}</span>
-                            <p class="text-sm text-gray-600">${code.description}</p>
+                    <div class="bg-white rounded-lg p-4 border border-gray-200">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex items-center">
+                                <span class="bg-blue-100 text-blue-600 text-xs font-bold px-2 py-1 rounded-full mr-2">#${index + 1}</span>
+                                <span class="bg-green-100 text-green-600 text-xs font-medium px-2 py-1 rounded-full">
+                                    ${Math.round((code.confidence || 0) * 100)}%
+                                </span>
+                            </div>
+                            <span class="text-xs text-gray-500">Risk: <span class="font-medium ${riskClass}">${riskLevel}</span></span>
                         </div>
-                        <span class="text-sm font-medium ${confidenceColor}">${confidence}%</span>
+                        <h6 class="font-medium text-gray-900 mb-2 text-sm leading-tight">${code.description}</h6>
+                        <p class="text-xs text-gray-600 mb-3 font-mono">${code.code}</p>
+                        ${code.matched_on && code.matched_on.length > 0 ? 
+                            `<div class="text-xs text-gray-500">
+                                <span class="font-medium">Matched on:</span> ${code.matched_on.join(', ')}
+                            </div>` : ''
+                        }
                     </div>
                 `;
             }).join('');
             
             container.innerHTML = codesHTML;
+        }
+        
+        // Helper functions for risk calculation
+        function calculateRiskLevel(code) {
+            const confidence = code.confidence || 0;
+            if (confidence >= 0.8) return 'Low';
+            if (confidence >= 0.6) return 'Medium';
+            if (confidence >= 0.4) return 'High';
+            return 'Critical';
+        }
+        
+        function getRiskClass(riskLevel) {
+            switch(riskLevel) {
+                case 'Low': return 'text-green-600';
+                case 'Medium': return 'text-yellow-600';
+                case 'High': return 'text-orange-600';
+                case 'Critical': return 'text-red-600';
+                default: return 'text-gray-600';
+            }
         }
 
         // Populate method breakdown
@@ -2585,16 +2622,134 @@
 
         // Populate website keywords
         function populateWebsiteKeywords(result) {
+            console.log('📊 populateWebsiteKeywords called with:', result);
             const container = document.getElementById('websiteKeywords');
-            if (!container) return;
+            const section = document.getElementById('websiteKeywordsSection');
+            if (!container || !section) return;
             
-            const keywords = result.website_keywords || ['technology', 'software', 'development', 'solutions', 'services'];
+            // Extract website keywords from the correct location in API response
+            const keywords = result.response?.metadata?.website_keywords || result.metadata?.website_keywords || [];
+            const websiteUrl = window.merchantDetailsInstance?.merchantData?.websiteUrl || '';
+            const scrapingStatus = result.response?.metadata?.website_scraping || result.metadata?.website_scraping || {};
             
-            const keywordsHTML = keywords.map(keyword => 
-                `<span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mr-2 mb-2">${keyword}</span>`
-            ).join('');
+            console.log('📊 Website keywords extracted:', keywords);
+            console.log('📊 Website URL:', websiteUrl);
+            console.log('📊 Scraping status:', scrapingStatus);
+            
+            if (keywords.length === 0 && !websiteUrl) {
+                section.style.display = 'none';
+                return;
+            }
+            
+            section.style.display = 'block';
+            
+            let keywordsHTML = '';
+            
+            if (websiteUrl) {
+                keywordsHTML += `
+                    <div class="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-globe text-blue-600 mr-2"></i>
+                            <span class="text-sm font-medium text-blue-800">Website Analyzed:</span>
+                        </div>
+                        <a href="${websiteUrl}" target="_blank" class="text-sm text-blue-600 hover:text-blue-800 underline break-all">
+                            ${websiteUrl}
+                        </a>
+                        ${scrapingStatus.status ? `
+                            <div class="mt-2 flex items-center">
+                                <span class="text-xs text-gray-600 mr-2">Status:</span>
+                                <span class="text-xs px-2 py-1 rounded-full ${scrapingStatus.status === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                    ${scrapingStatus.status}
+                                </span>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+                
+                if (scrapingStatus.error) {
+                    keywordsHTML += `
+                        <div class="mb-4 p-3 bg-red-50 rounded-lg border border-red-200">
+                            <div class="flex items-center mb-2">
+                                <i class="fas fa-exclamation-triangle text-red-600 mr-2"></i>
+                                <span class="text-sm font-medium text-red-800">Scraping Error:</span>
+                            </div>
+                            <p class="text-sm text-red-700">${scrapingStatus.error}</p>
+                        </div>
+                    `;
+                }
+            }
+            
+            if (keywords.length > 0) {
+                keywordsHTML += `
+                    <div class="mb-2">
+                        <span class="text-sm font-medium text-gray-700">Website Keywords Extracted:</span>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        ${keywords.map(keyword => 
+                            `<span class="bg-blue-100 text-blue-800 text-xs font-medium px-3 py-1 rounded-full">${keyword}</span>`
+                        ).join('')}
+                    </div>
+                `;
+                
+                // Also show keywords from the classification evidence
+                const evidence = result.primary_classification?.metadata?.detailed_reasoning?.evidence || [];
+                const classificationKeywords = [];
+                evidence.forEach(item => {
+                    if (item.keywords && item.keywords.length > 0) {
+                        classificationKeywords.push(...item.keywords);
+                    }
+                });
+                
+                if (classificationKeywords.length > 0) {
+                    keywordsHTML += `
+                        <div class="mt-4 mb-2">
+                            <span class="text-sm font-medium text-gray-700">Classification Keywords Used:</span>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            ${classificationKeywords.map(keyword => 
+                                `<span class="bg-green-100 text-green-800 text-xs font-medium px-3 py-1 rounded-full">${keyword}</span>`
+                            ).join('')}
+                        </div>
+                    `;
+                }
+            } else if (websiteUrl) {
+                keywordsHTML += `
+                    <div class="text-sm text-gray-500 italic">
+                        No specific keywords were extracted from the website URL for this classification.
+                    </div>
+                `;
+            }
             
             container.innerHTML = keywordsHTML;
+            
+            // Set up toggle functionality
+            setupKeywordsToggle();
+        }
+        
+        // Set up keywords toggle functionality
+        function setupKeywordsToggle() {
+            const toggleBtn = document.getElementById('toggleKeywordsBtn');
+            const toggleText = document.getElementById('toggleKeywordsText');
+            const toggleIcon = document.getElementById('toggleKeywordsIcon');
+            const keywordsContainer = document.getElementById('websiteKeywords');
+            
+            if (!toggleBtn || !toggleText || !toggleIcon || !keywordsContainer) return;
+            
+            toggleBtn.addEventListener('click', function() {
+                const isVisible = keywordsContainer.style.display !== 'none';
+                
+                if (isVisible) {
+                    // Hide keywords
+                    keywordsContainer.style.display = 'none';
+                    toggleText.textContent = 'Show Keywords';
+                    toggleIcon.style.transform = 'rotate(0deg)';
+                } else {
+                    // Show keywords
+                    keywordsContainer.style.display = 'flex';
+                    toggleText.textContent = 'Hide Keywords';
+                    toggleIcon.style.transform = 'rotate(180deg)';
+                }
+            });
         }
 
         // Populate classification reasoning
@@ -3003,7 +3158,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            new MerchantDetails();
+            window.merchantDetailsInstance = new MerchantDetails();
             
             // Initialize Risk Indicators components
             initRiskRadarChart();
