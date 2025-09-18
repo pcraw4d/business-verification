@@ -1298,9 +1298,10 @@
             const section = document.getElementById('websiteKeywordsSection');
             if (!container || !section) return;
             
-            const keywords = result.metadata?.website_keywords || [];
+            // Extract website keywords from the correct location in API response
+            const keywords = result.response?.metadata?.website_keywords || result.metadata?.website_keywords || [];
             const websiteUrl = document.getElementById('websiteUrl')?.value || '';
-            const scrapingStatus = result.metadata?.website_scraping || {};
+            const scrapingStatus = result.response?.metadata?.website_scraping || result.metadata?.website_scraping || {};
             
             if (keywords.length === 0 && !websiteUrl) {
                 section.style.display = 'none';
@@ -1367,14 +1368,36 @@
             if (keywords.length > 0) {
                 keywordsHTML += `
                     <div class="mb-2">
-                        <span class="text-sm font-medium text-gray-700">Keywords extracted and used for classification:</span>
+                        <span class="text-sm font-medium text-gray-700">Website Keywords Extracted:</span>
                     </div>
                     <div class="flex flex-wrap gap-2">
                         ${keywords.map(keyword => 
-                            `<span class="bg-green-100 text-green-800 text-xs font-medium px-3 py-1 rounded-full">${keyword}</span>`
+                            `<span class="bg-blue-100 text-blue-800 text-xs font-medium px-3 py-1 rounded-full">${keyword}</span>`
                         ).join('')}
                     </div>
                 `;
+                
+                // Also show keywords from the classification evidence
+                const evidence = result.primary_classification?.metadata?.detailed_reasoning?.evidence || [];
+                const classificationKeywords = [];
+                evidence.forEach(item => {
+                    if (item.keywords && item.keywords.length > 0) {
+                        classificationKeywords.push(...item.keywords);
+                    }
+                });
+                
+                if (classificationKeywords.length > 0) {
+                    keywordsHTML += `
+                        <div class="mt-4 mb-2">
+                            <span class="text-sm font-medium text-gray-700">Classification Keywords Used:</span>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            ${classificationKeywords.map(keyword => 
+                                `<span class="bg-green-100 text-green-800 text-xs font-medium px-3 py-1 rounded-full">${keyword}</span>`
+                            ).join('')}
+                        </div>
+                    `;
+                }
             } else if (websiteUrl) {
                 keywordsHTML += `
                     <div class="text-sm text-gray-500 italic">
@@ -1421,11 +1444,128 @@
             const section = document.getElementById('classificationReasoningSection');
             if (!container || !section) return;
             
-            const reasoning = result.classification_reasoning || 
-                result.raw_data?.reasoning?.summary ||
-                'Classification based on business description analysis, keyword matching, and industry pattern recognition.';
+            // Extract comprehensive reasoning data
+            const detailedReasoning = result.primary_classification?.metadata?.detailed_reasoning || {};
+            const evidence = detailedReasoning.evidence || [];
+            const methodBreakdown = detailedReasoning.method_breakdown || [];
+            const confidenceAnalysis = detailedReasoning.confidence_analysis || {};
+            const qualityAssessment = detailedReasoning.quality_assessment || {};
             
-            container.innerHTML = `<p class="text-sm text-gray-700">${reasoning}</p>`;
+            // Build comprehensive reasoning display
+            let reasoningHTML = '';
+            
+            // Summary
+            const summary = detailedReasoning.summary || result.classification_reasoning || 
+                'Classification based on business description analysis, keyword matching, and industry pattern recognition.';
+            reasoningHTML += `<div class="mb-4"><h6 class="font-medium text-gray-900 mb-2">Summary</h6><p class="text-sm text-gray-700">${summary}</p></div>`;
+            
+            // Evidence
+            if (evidence.length > 0) {
+                reasoningHTML += `<div class="mb-4"><h6 class="font-medium text-gray-900 mb-2">Supporting Evidence</h6>`;
+                evidence.forEach((item, index) => {
+                    const strengthColor = item.strength >= 0.8 ? 'text-green-600' : item.strength >= 0.5 ? 'text-yellow-600' : 'text-red-600';
+                    reasoningHTML += `
+                        <div class="bg-gray-50 rounded-lg p-3 mb-2">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-sm font-medium text-gray-900">${item.type.charAt(0).toUpperCase() + item.type.slice(1)} Evidence</span>
+                                <span class="text-sm ${strengthColor} font-medium">${Math.round(item.strength * 100)}% strength</span>
+                            </div>
+                            <p class="text-sm text-gray-600">${item.description}</p>
+                            ${item.keywords ? `<div class="mt-2"><span class="text-xs text-gray-500">Keywords: </span><span class="text-xs text-blue-600">${item.keywords.join(', ')}</span></div>` : ''}
+                        </div>
+                    `;
+                });
+                reasoningHTML += `</div>`;
+            }
+            
+            // Method Breakdown
+            if (methodBreakdown.length > 0) {
+                reasoningHTML += `<div class="mb-4"><h6 class="font-medium text-gray-900 mb-2">Method Performance</h6>`;
+                methodBreakdown.forEach((method, index) => {
+                    const successIcon = method.success ? 'check-circle' : 'times-circle';
+                    const successColor = method.success ? 'text-green-600' : 'text-red-600';
+                    const confidence = Math.round((method.confidence || 0) * 100);
+                    
+                    reasoningHTML += `
+                        <div class="bg-gray-50 rounded-lg p-3 mb-2">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-sm font-medium text-gray-900">${method.method_name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+                                <div class="flex items-center">
+                                    <i class="fas fa-${successIcon} ${successColor} mr-2"></i>
+                                    <span class="text-sm font-medium">${confidence}%</span>
+                                </div>
+                            </div>
+                            <p class="text-sm text-gray-600">${method.reasoning}</p>
+                            ${method.error ? `<div class="mt-1 text-xs text-red-600">Error: ${method.error}</div>` : ''}
+                        </div>
+                    `;
+                });
+                reasoningHTML += `</div>`;
+            }
+            
+            // Confidence Analysis
+            if (confidenceAnalysis.overall_confidence) {
+                reasoningHTML += `<div class="mb-4"><h6 class="font-medium text-gray-900 mb-2">Confidence Analysis</h6>`;
+                reasoningHTML += `
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span class="text-gray-600">Overall Confidence:</span>
+                            <span class="font-medium text-green-600">${Math.round(confidenceAnalysis.overall_confidence * 100)}%</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Uncertainty Level:</span>
+                            <span class="font-medium">${confidenceAnalysis.uncertainty_level || 'Unknown'}</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Reliability Score:</span>
+                            <span class="font-medium">${Math.round((confidenceAnalysis.reliability_score || 0) * 100)}%</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Confidence Range:</span>
+                            <span class="font-medium">${Math.round((confidenceAnalysis.confidence_range?.min || 0) * 100)}% - ${Math.round((confidenceAnalysis.confidence_range?.max || 0) * 100)}%</span>
+                        </div>
+                    </div>
+                `;
+                reasoningHTML += `</div>`;
+            }
+            
+            // Quality Assessment
+            if (qualityAssessment.overall_quality) {
+                reasoningHTML += `<div class="mb-4"><h6 class="font-medium text-gray-900 mb-2">Quality Assessment</h6>`;
+                reasoningHTML += `
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span class="text-gray-600">Overall Quality:</span>
+                            <span class="font-medium text-green-600">${Math.round(qualityAssessment.overall_quality * 100)}% (${qualityAssessment.quality_grade || 'A'})</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Method Agreement:</span>
+                            <span class="font-medium">${Math.round((qualityAssessment.method_agreement || 0) * 100)}%</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Evidence Strength:</span>
+                            <span class="font-medium">${(qualityAssessment.evidence_strength || 0).toFixed(1)}</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Data Completeness:</span>
+                            <span class="font-medium">${Math.round((qualityAssessment.data_completeness || 0) * 100)}%</span>
+                        </div>
+                    </div>
+                `;
+                
+                // Quality Recommendations
+                if (qualityAssessment.recommendations && qualityAssessment.recommendations.length > 0) {
+                    reasoningHTML += `<div class="mt-3"><h6 class="text-sm font-medium text-gray-900 mb-1">Recommendations</h6>`;
+                    qualityAssessment.recommendations.forEach(rec => {
+                        reasoningHTML += `<div class="text-xs text-blue-600 mb-1">• ${rec}</div>`;
+                    });
+                    reasoningHTML += `</div>`;
+                }
+                
+                reasoningHTML += `</div>`;
+            }
+            
+            container.innerHTML = reasoningHTML;
         }
 
         // Calculate risk level for a code
