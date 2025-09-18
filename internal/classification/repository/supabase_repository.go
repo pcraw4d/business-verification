@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -1563,16 +1566,170 @@ func (r *SupabaseKeywordRepository) extractKeywords(businessName, description, w
 
 	// Extract keywords from website URL (lowest priority context)
 	if websiteURL != "" {
-		urlKeywords := r.extractKeywordsFromText(websiteURL, "website_url")
-		for _, keyword := range urlKeywords {
-			if !seen[keyword.Keyword] {
-				seen[keyword.Keyword] = true
-				keywords = append(keywords, keyword)
+		// First, try to scrape actual website content for keywords
+		scrapedKeywords := r.extractKeywordsFromWebsite(context.Background(), websiteURL)
+		if len(scrapedKeywords) > 0 {
+			// Add scraped keywords with website content context
+			for _, keyword := range scrapedKeywords {
+				if !seen[keyword] {
+					seen[keyword] = true
+					keywords = append(keywords, ContextualKeyword{
+						Keyword: keyword,
+						Context: "website_content",
+					})
+				}
 			}
+			r.logger.Printf("✅ Extracted %d keywords from website content: %v", len(scrapedKeywords), scrapedKeywords)
+		} else {
+			// Fallback to URL text extraction if scraping fails
+			urlKeywords := r.extractKeywordsFromText(websiteURL, "website_url")
+			for _, keyword := range urlKeywords {
+				if !seen[keyword.Keyword] {
+					seen[keyword.Keyword] = true
+					keywords = append(keywords, keyword)
+				}
+			}
+			r.logger.Printf("⚠️ Website scraping failed, using URL text extraction")
 		}
 	}
 
 	return keywords
+}
+
+// extractKeywordsFromWebsite scrapes website content and extracts business-relevant keywords
+func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Context, websiteURL string) []string {
+	// Create a simple HTTP client for scraping
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	// Create request
+	req, err := http.NewRequestWithContext(ctx, "GET", websiteURL, nil)
+	if err != nil {
+		r.logger.Printf("⚠️ Failed to create request for %s: %v", websiteURL, err)
+		return []string{}
+	}
+
+	// Set user agent to avoid blocking
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+
+	// Make request
+	resp, err := client.Do(req)
+	if err != nil {
+		r.logger.Printf("⚠️ Failed to fetch website %s: %v", websiteURL, err)
+		return []string{}
+	}
+	defer resp.Body.Close()
+
+	// Check status code
+	if resp.StatusCode >= 400 {
+		r.logger.Printf("⚠️ Website %s returned status %d", websiteURL, resp.StatusCode)
+		return []string{}
+	}
+
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		r.logger.Printf("⚠️ Failed to read response body from %s: %v", websiteURL, err)
+		return []string{}
+	}
+
+	// Extract text content from HTML
+	textContent := r.extractTextFromHTML(string(body))
+	
+	// Extract business-relevant keywords
+	keywords := r.extractBusinessKeywords(textContent)
+	
+	r.logger.Printf("🔍 Scraped %d characters from %s, extracted %d keywords", len(textContent), websiteURL, len(keywords))
+	
+	return keywords
+}
+
+// extractTextFromHTML extracts clean text content from HTML
+func (r *SupabaseKeywordRepository) extractTextFromHTML(htmlContent string) string {
+	// Simple HTML tag removal (for production, consider using a proper HTML parser)
+	// Remove script and style tags completely
+	htmlContent = regexp.MustCompile(`(?i)<script[^>]*>.*?</script>`).ReplaceAllString(htmlContent, "")
+	htmlContent = regexp.MustCompile(`(?i)<style[^>]*>.*?</style>`).ReplaceAllString(htmlContent, "")
+	
+	// Remove HTML tags
+	htmlContent = regexp.MustCompile(`<[^>]*>`).ReplaceAllString(htmlContent, " ")
+	
+	// Clean up whitespace
+	htmlContent = regexp.MustCompile(`\s+`).ReplaceAllString(htmlContent, " ")
+	
+	return strings.TrimSpace(htmlContent)
+}
+
+// extractBusinessKeywords extracts business-relevant keywords from text content
+func (r *SupabaseKeywordRepository) extractBusinessKeywords(textContent string) []string {
+	var keywords []string
+	
+	// Convert to lowercase for processing
+	text := strings.ToLower(textContent)
+	
+	// Business-relevant keyword patterns
+	businessPatterns := []string{
+		// Industry keywords
+		`\b(restaurant|cafe|coffee|food|dining|kitchen|catering|bakery|bar|pub|brewery|winery)\b`,
+		`\b(technology|software|tech|app|digital|web|mobile|cloud|ai|ml|data|cyber|security)\b`,
+		`\b(healthcare|medical|clinic|hospital|doctor|dentist|therapy|wellness|pharmacy)\b`,
+		`\b(legal|law|attorney|lawyer|court|litigation|patent|trademark|copyright)\b`,
+		`\b(retail|store|shop|ecommerce|online|fashion|clothing|electronics|beauty)\b`,
+		`\b(finance|banking|investment|insurance|accounting|tax|financial|credit|loan)\b`,
+		`\b(real estate|property|construction|building|architecture|design|interior)\b`,
+		`\b(education|school|university|training|learning|course|academy|institute)\b`,
+		`\b(consulting|advisory|strategy|management|business|corporate|professional)\b`,
+		`\b(manufacturing|production|factory|industrial|automotive|machinery|equipment)\b`,
+		`\b(transportation|logistics|shipping|delivery|freight|warehouse|supply chain)\b`,
+		`\b(entertainment|media|marketing|advertising|design|creative|art|music|film)\b`,
+		`\b(energy|utilities|renewable|solar|wind|oil|gas|power|electricity)\b`,
+		`\b(agriculture|farming|food production|crop|livestock|organic|sustainable)\b`,
+		`\b(travel|tourism|hospitality|hotel|accommodation|vacation|booking|trip)\b`,
+	}
+	
+	// Extract keywords using patterns
+	for _, pattern := range businessPatterns {
+		matches := regexp.MustCompile(pattern).FindAllString(text, -1)
+		for _, match := range matches {
+			// Remove duplicates and add to keywords
+			if !r.containsKeyword(keywords, match) {
+				keywords = append(keywords, match)
+			}
+		}
+	}
+	
+	// Also extract common business words
+	commonBusinessWords := []string{
+		"service", "services", "company", "business", "corp", "corporation", "inc", "llc", "ltd",
+		"enterprise", "solutions", "systems", "group", "associates", "partners", "consulting",
+		"management", "development", "production", "distribution", "marketing", "sales",
+		"customer", "clients", "professional", "expert", "specialist", "quality", "premium",
+		"innovative", "leading", "trusted", "reliable", "experienced", "established",
+	}
+	
+	for _, word := range commonBusinessWords {
+		if strings.Contains(text, word) && !r.containsKeyword(keywords, word) {
+			keywords = append(keywords, word)
+		}
+	}
+	
+	// Limit to top 20 keywords to avoid noise
+	if len(keywords) > 20 {
+		keywords = keywords[:20]
+	}
+	
+	return keywords
+}
+
+// containsKeyword checks if a keyword already exists in the slice
+func (r *SupabaseKeywordRepository) containsKeyword(keywords []string, keyword string) bool {
+	for _, k := range keywords {
+		if k == keyword {
+			return true
+		}
+	}
+	return false
 }
 
 // extractKeywordsFromText extracts keywords from a specific text source with context
