@@ -367,6 +367,336 @@
         .risk-level-change {
             transition: all 0.3s ease;
         }
+
+        /* Risk Assessment Additional Styles */
+        .risk-heatmap {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .heatmap-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .heatmap-title {
+            display: flex;
+            align-items: center;
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .heatmap-title i {
+            margin-right: 8px;
+            color: #3b82f6;
+        }
+        .heatmap-legend {
+            display: flex;
+            gap: 16px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #6b7280;
+        }
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+        .heat-low { background: #dcfce7; }
+        .heat-medium-low { background: #fef3c7; }
+        .heat-medium { background: #fed7aa; }
+        .heat-medium-high { background: #fecaca; }
+        .heat-high { background: #fca5a5; }
+        .heat-critical { background: #ef4444; }
+        .heatmap-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+        .risk-radar-container {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-top: 24px;
+        }
+        .radar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .radar-title {
+            display: flex;
+            align-items: center;
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .radar-title i {
+            margin-right: 8px;
+            color: #3b82f6;
+        }
+        .radar-controls {
+            display: flex;
+            gap: 8px;
+        }
+        .radar-toggle {
+            display: flex;
+            background: #f3f4f6;
+            border-radius: 6px;
+            padding: 2px;
+        }
+        .radar-toggle button {
+            padding: 6px 12px;
+            border: none;
+            background: transparent;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .radar-toggle button.active {
+            background: white;
+            color: #1f2937;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        .radar-chart-container {
+            position: relative;
+            height: 400px;
+            margin: 20px 0;
+        }
+        .radar-legend {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 16px;
+        }
+        .legend-item-radar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #6b7280;
+        }
+        .legend-color-radar {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .legend-current { background: #3b82f6; }
+        .legend-benchmark { background: #9ca3af; }
+        .benchmark-container {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-top: 24px;
+        }
+        .benchmark-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .benchmark-title {
+            display: flex;
+            align-items: center;
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .benchmark-title i {
+            margin-right: 8px;
+            color: #3b82f6;
+        }
+        .benchmark-industry-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #6b7280;
+        }
+        .benchmark-select {
+            padding: 6px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+            font-size: 14px;
+        }
+        .benchmark-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .benchmark-legend {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+        }
+        .legend-item-benchmark {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #6b7280;
+        }
+        .legend-color-benchmark {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+        .legend-current { background: #3b82f6; }
+        .legend-industry { background: #9ca3af; }
+        .threshold-container {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-top: 24px;
+        }
+        .threshold-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .threshold-title {
+            display: flex;
+            align-items: center;
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .threshold-title i {
+            margin-right: 8px;
+            color: #3b82f6;
+        }
+        .threshold-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #6b7280;
+        }
+        .threshold-switch {
+            width: 40px;
+            height: 20px;
+            background: #d1d5db;
+            border-radius: 10px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        .threshold-switch.active {
+            background: #3b82f6;
+        }
+        .threshold-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s ease;
+        }
+        .threshold-switch.active::after {
+            transform: translateX(20px);
+        }
+        .threshold-scale {
+            position: relative;
+            height: 60px;
+            margin: 20px 0;
+        }
+        .threshold-marker {
+            position: absolute;
+            top: 0;
+            width: 4px;
+            height: 100%;
+            background: #1f2937;
+            border-radius: 2px;
+            transition: left 0.3s ease;
+        }
+        .threshold-levels {
+            display: flex;
+            height: 100%;
+        }
+        .threshold-level {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .threshold-color {
+            width: 100%;
+            height: 20px;
+            border-radius: 4px;
+            margin-bottom: 4px;
+        }
+        .threshold-low .threshold-color { background: #22c55e; }
+        .threshold-medium .threshold-color { background: #eab308; }
+        .threshold-high .threshold-color { background: #f97316; }
+        .threshold-critical .threshold-color { background: #ef4444; }
+        .threshold-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: #1f2937;
+        }
+        .threshold-range {
+            font-size: 10px;
+            color: #6b7280;
+        }
+        .threshold-details {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+        }
+        .threshold-explanation h4 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 16px;
+        }
+        .explanation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+        }
+        .explanation-item {
+            padding: 16px;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        .explanation-level {
+            font-size: 14px;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            display: inline-block;
+        }
+        .explanation-level.low { background: #dcfce7; color: #166534; }
+        .explanation-level.medium { background: #fef3c7; color: #92400e; }
+        .explanation-level.high { background: #fed7aa; color: #c2410c; }
+        .explanation-level.critical { background: #fecaca; color: #991b1b; }
+        .explanation-item p {
+            font-size: 13px;
+            color: #6b7280;
+            line-height: 1.4;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -1258,6 +1588,188 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Risk Heat Map -->
+                <div class="mt-8">
+                    <div class="risk-heatmap">
+                        <div class="heatmap-header">
+                            <div class="heatmap-title">
+                                <i class="fas fa-th"></i>
+                                Risk Factor Heat Map
+                            </div>
+                            <div class="heatmap-legend">
+                                <div class="legend-item">
+                                    <div class="legend-color heat-low"></div>
+                                    <span>Low (0-20)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color heat-medium-low"></div>
+                                    <span>Med-Low (21-40)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color heat-medium"></div>
+                                    <span>Medium (41-60)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color heat-medium-high"></div>
+                                    <span>Med-High (61-80)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color heat-high"></div>
+                                    <span>High (81-95)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color heat-critical"></div>
+                                    <span>Critical (96-100)</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="heatmapGrid" class="heatmap-grid">
+                            <!-- Heat map categories will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Risk Radar Chart -->
+                <div class="risk-radar-container">
+                    <div class="radar-header">
+                        <div class="radar-title">
+                            <i class="fas fa-chart-radar"></i>
+                            Multi-Dimensional Risk Analysis
+                        </div>
+                        <div class="radar-controls">
+                            <div class="radar-toggle">
+                                <button class="active" data-view="current">Current</button>
+                                <button data-view="historical">Historical</button>
+                                <button data-view="projected">Projected</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="radar-chart-container">
+                        <canvas id="riskRadarChartRiskAssessment" width="400" height="400"></canvas>
+                        <div class="radar-grid">
+                            <!-- Grid circles will be created by JavaScript -->
+                        </div>
+                        <div class="radar-labels">
+                            <!-- Labels will be created by JavaScript -->
+                        </div>
+                        <div class="radar-data-points">
+                            <!-- Data points will be created by JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <div class="radar-legend">
+                        <div class="legend-item-radar">
+                            <div class="legend-color-radar legend-current"></div>
+                            <span>Current Risk</span>
+                        </div>
+                        <div class="legend-item-radar">
+                            <div class="legend-color-radar legend-benchmark"></div>
+                            <span>Industry Benchmark</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Industry Benchmark Comparison -->
+                <div class="benchmark-container">
+                    <div class="benchmark-header">
+                        <div class="benchmark-title">
+                            <i class="fas fa-chart-line"></i>
+                            Industry Benchmark Comparison
+                        </div>
+                        <div class="benchmark-industry-selector">
+                            <span>Industry:</span>
+                            <select id="industrySelector" class="benchmark-select">
+                                <option value="technology">Technology</option>
+                                <option value="finance">Financial Services</option>
+                                <option value="healthcare">Healthcare</option>
+                                <option value="manufacturing">Manufacturing</option>
+                                <option value="retail">Retail</option>
+                                <option value="energy">Energy</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="benchmarkGrid" class="benchmark-grid">
+                        <!-- Benchmark cards will be populated by JavaScript -->
+                    </div>
+                    
+                    <div class="benchmark-legend">
+                        <div class="legend-item-benchmark">
+                            <div class="legend-color-benchmark legend-current"></div>
+                            <span>Your Business</span>
+                        </div>
+                        <div class="legend-item-benchmark">
+                            <div class="legend-color-benchmark legend-industry"></div>
+                            <span>Industry Average</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Risk Level Threshold Display -->
+                <div class="threshold-container">
+                    <div class="threshold-header">
+                        <div class="threshold-title">
+                            <i class="fas fa-layer-group"></i>
+                            Risk Level Thresholds & Explanations
+                        </div>
+                        <div class="threshold-toggle">
+                            <span>Show Details</span>
+                            <div id="thresholdSwitch" class="threshold-switch active"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="threshold-scale">
+                        <div id="thresholdMarker" class="threshold-marker" style="left: 0%;"></div>
+                        <div class="threshold-levels">
+                            <div class="threshold-level threshold-low">
+                                <div class="threshold-color"></div>
+                                <span class="threshold-label">Low Risk</span>
+                                <span class="threshold-range">0-25</span>
+                            </div>
+                            <div class="threshold-level threshold-medium">
+                                <div class="threshold-color"></div>
+                                <span class="threshold-label">Medium Risk</span>
+                                <span class="threshold-range">26-50</span>
+                            </div>
+                            <div class="threshold-level threshold-high">
+                                <div class="threshold-color"></div>
+                                <span class="threshold-label">High Risk</span>
+                                <span class="threshold-range">51-75</span>
+                            </div>
+                            <div class="threshold-level threshold-critical">
+                                <div class="threshold-color"></div>
+                                <span class="threshold-label">Critical Risk</span>
+                                <span class="threshold-range">76-100</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="thresholdDetails" class="threshold-details">
+                        <div class="threshold-explanation">
+                            <h4>Risk Level Explanations</h4>
+                            <div class="explanation-grid">
+                                <div class="explanation-item">
+                                    <div class="explanation-level low">Low Risk</div>
+                                    <p>Minimal business impact expected. Normal operations with standard monitoring.</p>
+                                </div>
+                                <div class="explanation-item">
+                                    <div class="explanation-level medium">Medium Risk</div>
+                                    <p>Moderate business impact possible. Enhanced monitoring and basic mitigation recommended.</p>
+                                </div>
+                                <div class="explanation-item">
+                                    <div class="explanation-level high">High Risk</div>
+                                    <p>Significant business impact likely. Immediate attention and comprehensive mitigation required.</p>
+                                </div>
+                                <div class="explanation-item">
+                                    <div class="explanation-level critical">Critical Risk</div>
+                                    <p>Severe business impact expected. Urgent action and emergency protocols required.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1806,10 +2318,27 @@
 
             populateRiskAssessmentResults(data) {
                 console.log('Populating Risk Assessment results:', data);
+                
+                // Populate all Risk Assessment sections
+                populateRiskAssessment(data);
+                populateRiskHeatMap(data);
+                initRiskRadarChartRiskAssessment();
+                populateIndustryBenchmark(data);
+                updateThresholdMarker(data);
             }
 
             populateRiskIndicatorsResults(data) {
                 console.log('Populating Risk Indicators results:', data);
+                
+                // The Risk Indicators tab already has all the content and JavaScript functions
+                // from enhanced-risk-indicators.html, so we just need to ensure the components
+                // are initialized when the tab is loaded
+                
+                // Initialize the radar chart and live indicators
+                setTimeout(() => {
+                    initRiskRadarChart();
+                    initLiveRiskIndicators();
+                }, 100);
             }
 
             bindEvents() {
@@ -2074,6 +2603,168 @@
             return 'Critical';
         }
 
+        // Risk Assessment Additional Functions
+        function populateRiskHeatMap(result) {
+            const container = document.getElementById('heatmapGrid');
+            if (!container) return;
+            
+            const riskData = {
+                'Financial Risk': [
+                    { factor: 'Revenue Risk', score: 15 },
+                    { factor: 'Cash Flow Risk', score: 20 },
+                    { factor: 'Debt Risk', score: 35 },
+                    { factor: 'Credit Risk', score: 10 },
+                    { factor: 'Market Risk', score: 25 }
+                ],
+                'Operational Risk': [
+                    { factor: 'Process Risk', score: 40 },
+                    { factor: 'Staff Risk', score: 65 },
+                    { factor: 'Technology Risk', score: 45 },
+                    { factor: 'Supply Chain Risk', score: 20 },
+                    { factor: 'Quality Risk', score: 35 }
+                ],
+                'Regulatory Risk': [
+                    { factor: 'Compliance Risk', score: 70 },
+                    { factor: 'License Risk', score: 90 },
+                    { factor: 'Audit Risk', score: 50 },
+                    { factor: 'Legal Risk', score: 75 },
+                    { factor: 'Policy Risk', score: 45 }
+                ]
+            };
+            
+            let heatmapHTML = '';
+            Object.entries(riskData).forEach(([category, factors]) => {
+                heatmapHTML += `
+                    <div class="heatmap-category">
+                        <h4 class="font-medium text-gray-900 mb-3">${category}</h4>
+                        <div class="heatmap-factors">
+                            ${factors.map(factor => {
+                                const heatClass = getHeatClass(factor.score);
+                                return `
+                                    <div class="heatmap-factor">
+                                        <span class="factor-name">${factor.factor}</span>
+                                        <div class="heatmap-cell ${heatClass}" title="${factor.factor}: ${factor.score}"></div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = heatmapHTML;
+        }
+        
+        function getHeatClass(score) {
+            if (score <= 20) return 'heat-low';
+            if (score <= 40) return 'heat-medium-low';
+            if (score <= 60) return 'heat-medium';
+            if (score <= 80) return 'heat-medium-high';
+            if (score <= 95) return 'heat-high';
+            return 'heat-critical';
+        }
+        
+        function initRiskRadarChartRiskAssessment() {
+            const ctx = document.getElementById('riskRadarChartRiskAssessment');
+            if (!ctx) return;
+            
+            const data = {
+                labels: ['Financial', 'Operational', 'Regulatory', 'Reputational', 'Cybersecurity'],
+                datasets: [{
+                    label: 'Current Risk Level',
+                    data: [15, 35, 65, 25, 85],
+                    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                    borderColor: 'rgba(239, 68, 68, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(239, 68, 68, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 6
+                }, {
+                    label: 'Industry Benchmark',
+                    data: [30, 40, 45, 35, 50],
+                    backgroundColor: 'rgba(156, 163, 175, 0.2)',
+                    borderColor: 'rgba(156, 163, 175, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(156, 163, 175, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4
+                }]
+            };
+            
+            const config = {
+                type: 'radar',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                stepSize: 20
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            };
+            
+            new Chart(ctx, config);
+        }
+        
+        function populateIndustryBenchmark(result) {
+            const container = document.getElementById('benchmarkGrid');
+            if (!container) return;
+            
+            const benchmarkData = [
+                { category: 'Financial Risk', current: 15, industry: 30 },
+                { category: 'Operational Risk', current: 35, industry: 40 },
+                { category: 'Regulatory Risk', current: 65, industry: 45 },
+                { category: 'Reputational Risk', current: 25, industry: 35 },
+                { category: 'Cybersecurity Risk', current: 85, industry: 50 }
+            ];
+            
+            const benchmarkHTML = benchmarkData.map(item => `
+                <div class="benchmark-card">
+                    <h5 class="font-medium text-gray-900 mb-3">${item.category}</h5>
+                    <div class="benchmark-bars">
+                        <div class="benchmark-bar">
+                            <span class="bar-label">Your Business</span>
+                            <div class="bar-container">
+                                <div class="bar-fill current" style="width: ${item.current}%"></div>
+                                <span class="bar-value">${item.current}</span>
+                            </div>
+                        </div>
+                        <div class="benchmark-bar">
+                            <span class="bar-label">Industry Avg</span>
+                            <div class="bar-container">
+                                <div class="bar-fill industry" style="width: ${item.industry}%"></div>
+                                <span class="bar-value">${item.industry}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            container.innerHTML = benchmarkHTML;
+        }
+        
+        function updateThresholdMarker(result) {
+            const marker = document.getElementById('thresholdMarker');
+            if (!marker) return;
+            
+            const riskScore = result.risk_score || 25;
+            const position = (riskScore / 100) * 100;
+            marker.style.left = `${position}%`;
+        }
+
         // Initialize when DOM is loaded
         // Risk Indicators JavaScript Functions
         function initRiskRadarChart() {
@@ -2226,6 +2917,9 @@
             // Initialize Risk Indicators components
             initRiskRadarChart();
             initLiveRiskIndicators();
+            
+            // Initialize Risk Assessment components
+            initRiskRadarChartRiskAssessment();
             
             // Add event listeners to sliders
             ['financialRisk', 'operationalRisk', 'regulatoryRisk', 'cybersecurityRisk'].forEach(id => {
