@@ -24,6 +24,7 @@ type MultiMethodClassifier struct {
 	weightedConfidenceScorer *WeightedConfidenceScorer
 	reasoningEngine          *ReasoningEngine
 	qualityMetricsService    *QualityMetricsService
+	enhancedScraper          *EnhancedWebsiteScraper
 	logger                   *log.Logger
 	monitor                  *ClassificationAccuracyMonitoring
 }
@@ -44,6 +45,7 @@ func NewMultiMethodClassifier(
 		weightedConfidenceScorer: NewWeightedConfidenceScorer(logger),
 		reasoningEngine:          NewReasoningEngine(logger),
 		qualityMetricsService:    NewQualityMetricsService(logger),
+		enhancedScraper:          NewEnhancedWebsiteScraper(logger),
 		logger:                   logger,
 		monitor:                  nil, // Will be set separately if monitoring is needed
 	}
@@ -681,22 +683,24 @@ func (mmc *MultiMethodClassifier) extractKeywords(businessName, description, web
 		keywords = append(keywords, words...)
 	}
 
-	// Extract from website URL - now with actual content scraping
+	// Extract from website URL - now with enhanced content scraping
 	if websiteURL != "" {
-		// First, try to scrape actual website content
-		scrapedKeywords := mmc.extractKeywordsFromWebsite(context.Background(), websiteURL)
-		if len(scrapedKeywords) > 0 {
-			keywords = append(keywords, scrapedKeywords...)
-			mmc.logger.Printf("✅ Extracted %d keywords from website content: %v", len(scrapedKeywords), scrapedKeywords)
+		// Use enhanced scraper for better results
+		scrapingResult := mmc.enhancedScraper.ScrapeWebsite(context.Background(), websiteURL)
+		if scrapingResult.Success && len(scrapingResult.Keywords) > 0 {
+			keywords = append(keywords, scrapingResult.Keywords...)
+			mmc.logger.Printf("✅ Enhanced scraper extracted %d keywords from website content: %v", 
+				len(scrapingResult.Keywords), scrapingResult.Keywords)
 		} else {
-			// Fallback to domain name extraction if scraping fails
+			// Fallback to domain name extraction if enhanced scraping fails
 			if strings.Contains(websiteURL, "://") {
 				parts := strings.Split(websiteURL, "://")
 				if len(parts) > 1 {
 					domain := strings.Split(parts[1], "/")[0]
 					domainParts := strings.Split(domain, ".")
 					keywords = append(keywords, domainParts[0])
-					mmc.logger.Printf("⚠️ Website scraping failed, using domain name: %s", domainParts[0])
+					mmc.logger.Printf("⚠️ Enhanced website scraping failed (%s), using domain name: %s", 
+						scrapingResult.Error, domainParts[0])
 				}
 			}
 		}
@@ -709,14 +713,14 @@ func (mmc *MultiMethodClassifier) extractKeywords(businessName, description, web
 func (mmc *MultiMethodClassifier) extractKeywordsFromWebsite(ctx context.Context, websiteURL string) []string {
 	startTime := time.Now()
 	mmc.logger.Printf("🌐 Starting website scraping for: %s", websiteURL)
-	
+
 	// Validate URL
 	parsedURL, err := url.Parse(websiteURL)
 	if err != nil {
 		mmc.logger.Printf("❌ Invalid URL format for %s: %v", websiteURL, err)
 		return []string{}
 	}
-	
+
 	if parsedURL.Scheme == "" {
 		websiteURL = "https://" + websiteURL
 		mmc.logger.Printf("🔧 Added HTTPS scheme: %s", websiteURL)
@@ -726,9 +730,9 @@ func (mmc *MultiMethodClassifier) extractKeywordsFromWebsite(ctx context.Context
 	client := &http.Client{
 		Timeout: 15 * time.Second,
 		Transport: &http.Transport{
-			MaxIdleConns:        10,
-			IdleConnTimeout:     30 * time.Second,
-			DisableCompression:  false,
+			MaxIdleConns:       10,
+			IdleConnTimeout:    30 * time.Second,
+			DisableCompression: false,
 		},
 	}
 
@@ -767,7 +771,7 @@ func (mmc *MultiMethodClassifier) extractKeywordsFromWebsite(ctx context.Context
 	defer resp.Body.Close()
 
 	// Log response details
-	mmc.logger.Printf("📊 Response received - Status: %d, Content-Type: %s, Content-Length: %d", 
+	mmc.logger.Printf("📊 Response received - Status: %d, Content-Type: %s, Content-Length: %d",
 		resp.StatusCode, resp.Header.Get("Content-Type"), resp.ContentLength)
 
 	// Check status code with detailed logging
@@ -799,23 +803,22 @@ func (mmc *MultiMethodClassifier) extractKeywordsFromWebsite(ctx context.Context
 	// Extract text content from HTML
 	textContent := mmc.extractTextFromHTML(string(body))
 	mmc.logger.Printf("🧹 Extracted %d characters of text content from HTML", len(textContent))
-	
+
 	// Log sample of extracted text for debugging
 	if len(textContent) > 0 {
 		sampleText := textContent[:min(200, len(textContent))]
 		mmc.logger.Printf("📝 Sample extracted text: %s...", sampleText)
 	}
-	
+
 	// Extract business-relevant keywords
 	keywords := mmc.extractBusinessKeywords(textContent)
-	
+
 	duration := time.Since(startTime)
-	mmc.logger.Printf("✅ Website scraping completed for %s in %v - extracted %d keywords: %v", 
+	mmc.logger.Printf("✅ Website scraping completed for %s in %v - extracted %d keywords: %v",
 		websiteURL, duration, len(keywords), keywords)
-	
+
 	return keywords
 }
-
 
 // extractTextFromHTML extracts clean text content from HTML
 func (mmc *MultiMethodClassifier) extractTextFromHTML(htmlContent string) string {
