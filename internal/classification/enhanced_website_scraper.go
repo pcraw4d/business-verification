@@ -1,6 +1,7 @@
 package classification
 
 import (
+	"compress/gzip"
 	"context"
 	"fmt"
 	"io"
@@ -10,6 +11,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/andybalholm/brotli"
 )
 
 // EnhancedWebsiteScraper provides advanced website scraping capabilities
@@ -101,7 +104,7 @@ func (ews *EnhancedWebsiteScraper) ScrapeWebsite(ctx context.Context, websiteURL
 		}
 	}
 
-	ews.logger.Printf("📊 [Enhanced] Response received - Status: %d, Content-Type: %s, Final URL: %s", 
+	ews.logger.Printf("📊 [Enhanced] Response received - Status: %d, Content-Type: %s, Final URL: %s",
 		result.StatusCode, result.ContentType, result.FinalURL)
 
 	// Check for errors
@@ -185,16 +188,98 @@ func (ews *EnhancedWebsiteScraper) createRequest(ctx context.Context, websiteURL
 	return req, nil
 }
 
-// readResponseBody reads the response body with size limiting
+// readResponseBody reads the response body with size limiting and decompression
 func (ews *EnhancedWebsiteScraper) readResponseBody(resp *http.Response) ([]byte, error) {
 	maxSize := int64(10 * 1024 * 1024) // 10MB limit
-	body, err := io.ReadAll(io.LimitReader(resp.Body, maxSize))
+	
+	// Check if content is compressed
+	contentEncoding := resp.Header.Get("Content-Encoding")
+	ews.logger.Printf("📦 [Enhanced] Content-Encoding: %s", contentEncoding)
+	
+	var reader io.Reader = resp.Body
+	
+	// Handle different compression types
+	switch contentEncoding {
+	case "gzip":
+		gzipReader, err := gzip.NewReader(resp.Body)
+		if err != nil {
+			ews.logger.Printf("⚠️ [Enhanced] Failed to create gzip reader: %v", err)
+			// Fallback to reading without decompression
+		} else {
+			defer gzipReader.Close()
+			reader = gzipReader
+			ews.logger.Printf("📦 [Enhanced] Using gzip decompression")
+		}
+	case "br":
+		// Handle Brotli compression
+		ews.logger.Printf("📦 [Enhanced] Brotli compression detected - attempting decompression")
+		body, err := ews.decompressBrotli(resp.Body, maxSize)
+		if err != nil {
+			ews.logger.Printf("⚠️ [Enhanced] Brotli decompression failed: %v", err)
+			// Fallback to reading without decompression
+			reader = resp.Body
+		} else {
+			ews.logger.Printf("📦 [Enhanced] Brotli decompression successful")
+			return body, nil
+		}
+	case "deflate":
+		ews.logger.Printf("📦 [Enhanced] Deflate compression detected - using raw reader")
+		// For deflate, we'll read as-is since Go's deflate support is limited
+	default:
+		ews.logger.Printf("📦 [Enhanced] No compression or unsupported compression: %s", contentEncoding)
+	}
+	
+	body, err := io.ReadAll(io.LimitReader(reader, maxSize))
 	if err != nil {
 		return nil, err
 	}
 
-	ews.logger.Printf("📄 [Enhanced] Read %d bytes from response", len(body))
+	ews.logger.Printf("📄 [Enhanced] Read %d bytes from response (decompressed)", len(body))
 	return body, nil
+}
+
+// decompressBrotli attempts to decompress Brotli-compressed content
+func (ews *EnhancedWebsiteScraper) decompressBrotli(body io.Reader, maxSize int64) ([]byte, error) {
+	ews.logger.Printf("📦 [Enhanced] Attempting Brotli decompression")
+	
+	// Create a Brotli reader
+	brotliReader := brotli.NewReader(io.LimitReader(body, maxSize))
+	
+	// Read the decompressed data
+	decompressedData, err := io.ReadAll(brotliReader)
+	if err != nil {
+		ews.logger.Printf("⚠️ [Enhanced] Brotli decompression failed: %v", err)
+		return nil, fmt.Errorf("Brotli decompression failed: %w", err)
+	}
+	
+	ews.logger.Printf("📦 [Enhanced] Brotli decompression successful - %d bytes decompressed", len(decompressedData))
+	return decompressedData, nil
+}
+
+// isLikelyHTML checks if the data looks like HTML content
+func (ews *EnhancedWebsiteScraper) isLikelyHTML(data []byte) bool {
+	// Convert to string and check for HTML indicators
+	content := string(data)
+	
+	// Check for common HTML tags
+	htmlIndicators := []string{"<html", "<head", "<body", "<div", "<span", "<p", "<h1", "<h2", "<h3", "<title", "<meta", "<script", "<style"}
+	
+	for _, indicator := range htmlIndicators {
+		if strings.Contains(strings.ToLower(content), indicator) {
+			return true
+		}
+	}
+	
+	// Check for high ratio of printable characters
+	printableCount := 0
+	for _, b := range data {
+		if b >= 32 && b <= 126 { // Printable ASCII range
+			printableCount++
+		}
+	}
+	
+	// If more than 70% of characters are printable, it's likely text/HTML
+	return float64(printableCount)/float64(len(data)) > 0.7
 }
 
 // extractTextFromHTML extracts clean text content from HTML
@@ -203,13 +288,13 @@ func (ews *EnhancedWebsiteScraper) extractTextFromHTML(htmlContent string) strin
 	htmlContent = regexp.MustCompile(`(?i)<script[^>]*>.*?</script>`).ReplaceAllString(htmlContent, "")
 	htmlContent = regexp.MustCompile(`(?i)<style[^>]*>.*?</style>`).ReplaceAllString(htmlContent, "")
 	htmlContent = regexp.MustCompile(`(?i)<noscript[^>]*>.*?</noscript>`).ReplaceAllString(htmlContent, "")
-	
+
 	// Remove HTML comments
 	htmlContent = regexp.MustCompile(`<!--.*?-->`).ReplaceAllString(htmlContent, "")
-	
+
 	// Remove HTML tags
 	htmlContent = regexp.MustCompile(`<[^>]*>`).ReplaceAllString(htmlContent, " ")
-	
+
 	// Decode HTML entities (basic ones)
 	htmlContent = strings.ReplaceAll(htmlContent, "&amp;", "&")
 	htmlContent = strings.ReplaceAll(htmlContent, "&lt;", "<")
@@ -217,20 +302,20 @@ func (ews *EnhancedWebsiteScraper) extractTextFromHTML(htmlContent string) strin
 	htmlContent = strings.ReplaceAll(htmlContent, "&quot;", "\"")
 	htmlContent = strings.ReplaceAll(htmlContent, "&#39;", "'")
 	htmlContent = strings.ReplaceAll(htmlContent, "&nbsp;", " ")
-	
+
 	// Clean up whitespace
 	htmlContent = regexp.MustCompile(`\s+`).ReplaceAllString(htmlContent, " ")
-	
+
 	return strings.TrimSpace(htmlContent)
 }
 
 // extractBusinessKeywords extracts business-relevant keywords from text content
 func (ews *EnhancedWebsiteScraper) extractBusinessKeywords(textContent string) []string {
 	var keywords []string
-	
+
 	// Convert to lowercase for processing
 	text := strings.ToLower(textContent)
-	
+
 	// Enhanced business-relevant keyword patterns
 	businessPatterns := []string{
 		// Food & Beverage
@@ -264,7 +349,7 @@ func (ews *EnhancedWebsiteScraper) extractBusinessKeywords(textContent string) [
 		// Travel & Hospitality
 		`\b(travel|tourism|hospitality|hotel|accommodation|vacation|booking|trip|travel|tourism|hospitality|hotel|accommodation)\b`,
 	}
-	
+
 	// Extract keywords using patterns
 	for _, pattern := range businessPatterns {
 		matches := regexp.MustCompile(pattern).FindAllString(text, -1)
@@ -275,7 +360,7 @@ func (ews *EnhancedWebsiteScraper) extractBusinessKeywords(textContent string) [
 			}
 		}
 	}
-	
+
 	// Also extract common business words
 	commonBusinessWords := []string{
 		"service", "services", "company", "business", "corp", "corporation", "inc", "llc", "ltd",
@@ -286,18 +371,18 @@ func (ews *EnhancedWebsiteScraper) extractBusinessKeywords(textContent string) [
 		"support", "help", "contact", "about", "team", "staff", "employees", "office",
 		"location", "address", "phone", "email", "website", "online", "digital",
 	}
-	
+
 	for _, word := range commonBusinessWords {
 		if strings.Contains(text, word) && !ews.containsKeyword(keywords, word) {
 			keywords = append(keywords, word)
 		}
 	}
-	
+
 	// Limit to top 25 keywords to avoid noise
 	if len(keywords) > 25 {
 		keywords = keywords[:25]
 	}
-	
+
 	return keywords
 }
 
