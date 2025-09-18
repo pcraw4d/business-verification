@@ -2270,19 +2270,22 @@
             populateApiResults() {
                 if (!this.apiResults) return;
 
-                // Populate Business Intelligence results
+                console.log('🔍 API Results loaded, data will be populated when tabs are accessed');
+                
+                // Don't populate tab data immediately - let it be populated when user switches to tabs
+                // This ensures the data is populated when the tab elements are visible
+                
+                // Only populate merchant details (which is always visible)
                 if (this.apiResults.businessIntelligence) {
-                    this.populateBusinessIntelligenceResults(this.apiResults.businessIntelligence);
+                    console.log('🔍 Business Intelligence data available for tab population');
                 }
-
-                // Populate Risk Assessment results
+                
                 if (this.apiResults.riskAssessment) {
-                    this.populateRiskAssessmentResults(this.apiResults.riskAssessment);
+                    console.log('🔍 Risk Assessment data available for tab population');
                 }
-
-                // Populate Risk Indicators results
+                
                 if (this.apiResults.riskIndicators) {
-                    this.populateRiskIndicatorsResults(this.apiResults.riskIndicators);
+                    console.log('🔍 Risk Indicators data available for tab population');
                 }
             }
 
@@ -2424,6 +2427,18 @@
                 // Add active class to selected tab and button
                 document.getElementById(tabId).classList.add('active');
                 document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+                
+                // Populate data when switching to specific tabs
+                if (tabId === 'business-analytics' && this.apiResults?.businessIntelligence) {
+                    console.log('🔍 Switching to Business Analytics tab, populating data...');
+                    this.populateBusinessIntelligenceResults(this.apiResults.businessIntelligence);
+                } else if (tabId === 'risk-assessment' && this.apiResults?.riskAssessment) {
+                    console.log('🔍 Switching to Risk Assessment tab, populating data...');
+                    this.populateRiskAssessmentResults(this.apiResults.riskAssessment);
+                } else if (tabId === 'risk-indicators' && this.apiResults?.riskIndicators) {
+                    console.log('🔍 Switching to Risk Indicators tab, populating data...');
+                    this.populateRiskIndicatorsResults(this.apiResults.riskIndicators);
+                }
             }
 
             initializeComponents() {
@@ -2526,11 +2541,14 @@
         // Populate code type results (MCC, SIC, NAICS)
         function populateCodeTypeResults(codeType, codes) {
             console.log(`📊 populateCodeTypeResults called for ${codeType} with:`, codes);
+            console.log(`📊 Looking for container: ${codeType}CodesList`);
             const container = document.getElementById(`${codeType}CodesList`);
             if (!container) {
                 console.log(`📊 Container not found: ${codeType}CodesList`);
+                console.log(`📊 Available elements with similar names:`, document.querySelectorAll('[id*="Codes"]'));
                 return;
             }
+            console.log(`📊 Found container for ${codeType}:`, container);
             
             if (!codes || codes.length === 0) {
                 console.log(`📊 No codes found for ${codeType}`);
