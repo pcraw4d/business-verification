@@ -2684,8 +2684,19 @@
         // Global functions for expandable sections
         function toggleSection(sectionId) {
             const section = document.getElementById(sectionId);
-            if (section) {
-                section.classList.toggle('expanded');
+            const button = event.target;
+            const icon = button.querySelector('i');
+            
+            if (section.classList.contains('expanded')) {
+                section.classList.remove('expanded');
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+                button.innerHTML = '<i class="fas fa-chevron-down mr-1"></i>Show Details';
+            } else {
+                section.classList.add('expanded');
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+                button.innerHTML = '<i class="fas fa-chevron-up mr-1"></i>Hide Details';
             }
         }
 
