@@ -1258,7 +1258,7 @@
                         <!-- Expandable Verification Details -->
                         <div id="verificationDetails" class="expandable-section mt-6">
                             <div class="border-t pt-6">
-                                <div id="verificationDetailsContent">
+                                <div id="verificationDetailsContent" class="space-y-4">
                                     <!-- Populated by JavaScript -->
                                 </div>
                             </div>
@@ -2990,7 +2990,7 @@
             if (dataSourcesEl) dataSourcesEl.textContent = '5 sources';
             
             // Populate verification checks
-            const checksContainer = document.getElementById('verificationChecks');
+            const checksContainer = document.getElementById('verificationDetailsContent');
             if (checksContainer) {
                 checksContainer.innerHTML = `
                 <div class="flex justify-between items-center p-3 bg-green-50 rounded-lg">
