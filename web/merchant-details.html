@@ -828,6 +828,154 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Risk Overview Dashboard Section -->
+            <div id="riskOverviewDashboard" class="progressive-disclosure mt-8">
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-900">Risk Overview Dashboard</h3>
+                            <p class="text-sm text-gray-600 mt-1">Quick risk assessment for immediate decision-making</p>
+                        </div>
+                        <button class="text-blue-600 hover:text-blue-800 text-sm font-medium" onclick="toggleSection('riskOverviewDetails')">
+                            <i class="fas fa-chevron-down mr-1"></i>
+                            Show Details
+                        </button>
+                    </div>
+                    
+                    <!-- Risk Status Overview -->
+                    <div class="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6 mb-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="text-lg font-semibold text-gray-900">Overall Risk Status</h4>
+                                <p class="text-sm text-gray-600">Based on comprehensive risk analysis</p>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-3xl font-bold text-green-600" id="overallRiskStatus">LOW RISK</div>
+                                <div class="text-sm text-gray-500" id="riskStatusLabel">Safe to Proceed</div>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-gradient-to-r from-green-500 to-green-600 h-2 rounded-full transition-all duration-1000" 
+                                     style="width: 25%" id="riskStatusBar"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Key Risk Indicators -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                        <!-- Risk Alerts -->
+                        <div class="text-center p-4 bg-red-50 rounded-lg">
+                            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <i class="fas fa-exclamation-triangle text-red-600 text-lg"></i>
+                            </div>
+                            <h4 class="font-medium text-gray-900 text-sm">Risk Alerts</h4>
+                            <p class="text-sm text-red-600 font-semibold" id="riskAlerts">0 Active</p>
+                            <p class="text-xs text-gray-500 mt-1" id="alertDetails">No critical issues</p>
+                        </div>
+                        
+                        <!-- Risk Trend -->
+                        <div class="text-center p-4 bg-blue-50 rounded-lg">
+                            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <i class="fas fa-chart-line text-blue-600 text-lg"></i>
+                            </div>
+                            <h4 class="font-medium text-gray-900 text-sm">Risk Trend</h4>
+                            <p class="text-sm text-blue-600 font-semibold" id="riskTrend">Improving</p>
+                            <p class="text-xs text-gray-500 mt-1" id="trendDetails">-5% vs last month</p>
+                        </div>
+                        
+                        <!-- Mitigation Status -->
+                        <div class="text-center p-4 bg-green-50 rounded-lg">
+                            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <i class="fas fa-shield-check text-green-600 text-lg"></i>
+                            </div>
+                            <h4 class="font-medium text-gray-900 text-sm">Mitigation</h4>
+                            <p class="text-sm text-green-600 font-semibold" id="mitigationStatus">Active</p>
+                            <p class="text-xs text-gray-500 mt-1" id="mitigationDetails">3 measures in place</p>
+                        </div>
+                        
+                        <!-- Industry Comparison -->
+                        <div class="text-center p-4 bg-purple-50 rounded-lg">
+                            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <i class="fas fa-chart-bar text-purple-600 text-lg"></i>
+                            </div>
+                            <h4 class="font-medium text-gray-900 text-sm">vs Industry</h4>
+                            <p class="text-sm text-purple-600 font-semibold" id="industryComparison">Below Average</p>
+                            <p class="text-xs text-gray-500 mt-1" id="comparisonDetails">25% lower risk</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Expandable Risk Overview Details -->
+                    <div id="riskOverviewDetails" class="expandable-section mt-6">
+                        <div class="border-t pt-6 pb-6">
+                            <div id="riskOverviewDetailsContent">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Verification Status Section -->
+            <div id="verificationStatusSection" class="progressive-disclosure mt-8">
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-gray-900">Verification Status</h3>
+                        <button class="text-blue-600 hover:text-blue-800 text-sm font-medium" onclick="toggleSection('verificationDetails')">
+                            <i class="fas fa-chevron-down mr-1"></i>
+                            Show Details
+                        </button>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <!-- Verification Status -->
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                            </div>
+                            <h4 class="font-medium text-gray-900">Status</h4>
+                            <p class="text-sm text-gray-500" id="verificationStatus">Complete</p>
+                        </div>
+                        
+                        <!-- Processing Time -->
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <i class="fas fa-clock text-blue-600 text-xl"></i>
+                            </div>
+                            <h4 class="font-medium text-gray-900">Processing Time</h4>
+                            <p class="text-sm text-gray-500" id="processingTime">0.5s</p>
+                        </div>
+                        
+                        <!-- Data Sources -->
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <i class="fas fa-database text-purple-600 text-xl"></i>
+                            </div>
+                            <h4 class="font-medium text-gray-900">Data Sources</h4>
+                            <p class="text-sm text-gray-500" id="dataSources">5 sources</p>
+                        </div>
+                        
+                        <!-- Last Updated -->
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <i class="fas fa-sync text-yellow-600 text-xl"></i>
+                            </div>
+                            <h4 class="font-medium text-gray-900">Last Updated</h4>
+                            <p class="text-sm text-gray-500" id="lastUpdated">Just now</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Expandable Verification Details -->
+                    <div id="verificationDetails" class="expandable-section mt-6">
+                        <div class="border-t pt-6">
+                            <div id="verificationDetailsContent" class="space-y-4">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Business Analytics Tab -->
@@ -1133,93 +1281,6 @@
                     </div>
                 </div>
 
-                <!-- Risk Overview Dashboard Section -->
-                <div id="riskOverviewDashboard" class="progressive-disclosure">
-                    <div class="bg-white rounded-lg shadow-lg p-6">
-                        <div class="flex justify-between items-center mb-6">
-                            <div>
-                                <h3 class="text-xl font-bold text-gray-900">Risk Overview Dashboard</h3>
-                                <p class="text-sm text-gray-600 mt-1">Quick risk assessment for immediate decision-making</p>
-                            </div>
-                            <button class="text-blue-600 hover:text-blue-800 text-sm font-medium" onclick="toggleSection('riskOverviewDetails')">
-                                <i class="fas fa-chevron-down mr-1"></i>
-                                Show Details
-                            </button>
-                        </div>
-                        
-                        <!-- Risk Status Overview -->
-                        <div class="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6 mb-6">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <h4 class="text-lg font-semibold text-gray-900">Overall Risk Status</h4>
-                                    <p class="text-sm text-gray-600">Based on comprehensive risk analysis</p>
-                                </div>
-                                <div class="text-right">
-                                    <div class="text-3xl font-bold text-green-600" id="overallRiskStatus">LOW RISK</div>
-                                    <div class="text-sm text-gray-500" id="riskStatusLabel">Safe to Proceed</div>
-                                </div>
-                            </div>
-                            <div class="mt-4">
-                                <div class="w-full bg-gray-200 rounded-full h-2">
-                                    <div class="bg-gradient-to-r from-green-500 to-green-600 h-2 rounded-full transition-all duration-1000" 
-                                         style="width: 25%" id="riskStatusBar"></div>
-                                </div>
-                            </div>
-                            </div>
-                            
-                        <!-- Key Risk Indicators -->
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-                            <!-- Risk Alerts -->
-                            <div class="text-center p-4 bg-red-50 rounded-lg">
-                                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <i class="fas fa-exclamation-triangle text-red-600 text-lg"></i>
-                                </div>
-                                <h4 class="font-medium text-gray-900 text-sm">Risk Alerts</h4>
-                                <p class="text-sm text-red-600 font-semibold" id="riskAlerts">0 Active</p>
-                                <p class="text-xs text-gray-500 mt-1" id="alertDetails">No critical issues</p>
-                            </div>
-                            
-                            <!-- Risk Trend -->
-                            <div class="text-center p-4 bg-blue-50 rounded-lg">
-                                <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <i class="fas fa-chart-line text-blue-600 text-lg"></i>
-                                </div>
-                                <h4 class="font-medium text-gray-900 text-sm">Risk Trend</h4>
-                                <p class="text-sm text-blue-600 font-semibold" id="riskTrend">Improving</p>
-                                <p class="text-xs text-gray-500 mt-1" id="trendDetails">-5% vs last month</p>
-                            </div>
-                            
-                            <!-- Mitigation Status -->
-                            <div class="text-center p-4 bg-green-50 rounded-lg">
-                                <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <i class="fas fa-shield-check text-green-600 text-lg"></i>
-                                </div>
-                                <h4 class="font-medium text-gray-900 text-sm">Mitigation</h4>
-                                <p class="text-sm text-green-600 font-semibold" id="mitigationStatus">Active</p>
-                                <p class="text-xs text-gray-500 mt-1" id="mitigationDetails">3 measures in place</p>
-                            </div>
-                            
-                            <!-- Industry Comparison -->
-                            <div class="text-center p-4 bg-purple-50 rounded-lg">
-                                <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <i class="fas fa-chart-bar text-purple-600 text-lg"></i>
-                                </div>
-                                <h4 class="font-medium text-gray-900 text-sm">vs Industry</h4>
-                                <p class="text-sm text-purple-600 font-semibold" id="industryComparison">Below Average</p>
-                                <p class="text-xs text-gray-500 mt-1" id="comparisonDetails">25% lower risk</p>
-                            </div>
-                        </div>
-                        
-                        <!-- Expandable Risk Overview Details -->
-                        <div id="riskOverviewDetails" class="expandable-section mt-6">
-                            <div class="border-t pt-6 pb-6">
-                                <div id="riskOverviewDetailsContent">
-                                    <!-- Populated by JavaScript -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- Business Intelligence Section -->
                 <div id="businessIntelligence" class="progressive-disclosure">
@@ -1515,65 +1576,6 @@
                     </div>
                 </div>
 
-                <!-- Verification Status Section -->
-                <div id="verificationStatusSection" class="progressive-disclosure">
-                    <div class="bg-white rounded-lg shadow-lg p-6">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-xl font-bold text-gray-900">Verification Status</h3>
-                            <button class="text-blue-600 hover:text-blue-800 text-sm font-medium" onclick="toggleSection('verificationDetails')">
-                                <i class="fas fa-chevron-down mr-1"></i>
-                                Show Details
-                            </button>
-                        </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                            <!-- Verification Status -->
-                            <div class="text-center">
-                                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <i class="fas fa-check-circle text-green-600 text-xl"></i>
-                                </div>
-                                <h4 class="font-medium text-gray-900">Status</h4>
-                                <p class="text-sm text-gray-500" id="verificationStatus">Complete</p>
-                            </div>
-                            
-                            <!-- Processing Time -->
-                            <div class="text-center">
-                                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <i class="fas fa-clock text-blue-600 text-xl"></i>
-                                </div>
-                                <h4 class="font-medium text-gray-900">Processing Time</h4>
-                                <p class="text-sm text-gray-500" id="processingTime">0.5s</p>
-                            </div>
-                            
-                            <!-- Data Sources -->
-                            <div class="text-center">
-                                <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <i class="fas fa-database text-purple-600 text-xl"></i>
-                                </div>
-                                <h4 class="font-medium text-gray-900">Data Sources</h4>
-                                <p class="text-sm text-gray-500" id="dataSources">5 sources</p>
-                            </div>
-                            
-                            <!-- Last Updated -->
-                            <div class="text-center">
-                                <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <i class="fas fa-sync text-yellow-600 text-xl"></i>
-                                </div>
-                                <h4 class="font-medium text-gray-900">Last Updated</h4>
-                                <p class="text-sm text-gray-500" id="lastUpdated">Just now</p>
-                            </div>
-                        </div>
-                        
-                        <!-- Expandable Verification Details -->
-                        <div id="verificationDetails" class="expandable-section mt-6">
-                            <div class="border-t pt-6">
-                                <div id="verificationDetailsContent" class="space-y-4">
-                                    <!-- Populated by JavaScript -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <!-- Risk Assessment -->
@@ -2871,12 +2873,8 @@
                 }, 300);
                 
                 setTimeout(() => {
-                    document.getElementById('riskOverviewDashboard').classList.add('visible');
-                }, 400);
-                
-                setTimeout(() => {
                     document.getElementById('businessIntelligence').classList.add('visible');
-                }, 500);
+                }, 400);
                 
                 setTimeout(() => {
                     document.getElementById('businessRegistrationSection').classList.add('visible');
@@ -2942,6 +2940,29 @@
                 // Add active class to selected tab and button
                 document.getElementById(tabId).classList.add('active');
                 document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+                
+                // Progressive disclosure for sections in Merchant Details tab
+                if (tabId === 'merchant-details') {
+                    // Reset all sections to hidden first
+                    document.querySelectorAll('#merchant-details .progressive-disclosure').forEach(section => {
+                        section.classList.remove('visible');
+                    });
+                    
+                    // Show sections with progressive timing
+                    setTimeout(() => {
+                        const riskOverviewSection = document.getElementById('riskOverviewDashboard');
+                        if (riskOverviewSection) {
+                            riskOverviewSection.classList.add('visible');
+                        }
+                    }, 100);
+                    
+                    setTimeout(() => {
+                        const verificationStatusSection = document.getElementById('verificationStatusSection');
+                        if (verificationStatusSection) {
+                            verificationStatusSection.classList.add('visible');
+                        }
+                    }, 200);
+                }
                 
                 // Populate data when switching to specific tabs
                 if (tabId === 'business-analytics' && this.apiResults?.businessIntelligence) {
