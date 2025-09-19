@@ -1192,7 +1192,7 @@
                                 <h3 class="text-xl font-bold text-gray-900">Verification Confidence & Trust Insights</h3>
                                 <p class="text-sm text-gray-600 mt-1">Transparency in data verification and trustworthiness assessment</p>
                             </div>
-                            <button class="text-blue-600 hover:text-blue-800 text-sm font-medium" onclick="toggleSection('verificationDetails')">
+                            <button class="text-blue-600 hover:text-blue-800 text-sm font-medium" onclick="toggleSection('verificationInsightsDetails')">
                                 <i class="fas fa-chevron-down mr-1"></i>
                                 Show Details
                             </button>
@@ -1262,9 +1262,9 @@
                         </div>
                         
                         <!-- Expandable Verification Details -->
-                        <div id="verificationDetails" class="expandable-section mt-6">
+                        <div id="verificationInsightsDetails" class="expandable-section mt-6">
                             <div class="border-t pt-6">
-                                <div id="verificationDetailsContent">
+                                <div id="verificationInsightsDetailsContent">
                                     <!-- Populated by JavaScript -->
                                 </div>
                             </div>
@@ -3222,7 +3222,7 @@
         
         // Populate detailed verification insights
         function populateDetailedVerificationInsights(securityMetrics, qualityMetrics, verificationData) {
-            const verificationDetailsContent = document.getElementById('verificationDetailsContent');
+            const verificationDetailsContent = document.getElementById('verificationInsightsDetailsContent');
             if (!verificationDetailsContent) return;
             
             verificationDetailsContent.innerHTML = `
