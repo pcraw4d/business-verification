@@ -1339,6 +1339,64 @@
                     </div>
                 </div>
 
+                <!-- Business Intelligence Section -->
+                <div id="businessIntelligence" class="progressive-disclosure">
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold text-gray-900">Business Intelligence</h3>
+                            <button class="text-blue-600 hover:text-blue-800 text-sm font-medium" onclick="toggleSection('intelligenceDetails')">
+                                <i class="fas fa-chevron-down mr-1"></i>
+                                Show Details
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <!-- Employee Count -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-users text-blue-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Employee Count</h4>
+                                <p class="text-sm text-gray-500" id="employeeCount">50-100</p>
+                            </div>
+                            
+                            <!-- Revenue Range -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-dollar-sign text-green-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Revenue Range</h4>
+                                <p class="text-sm text-gray-500" id="revenueRange">$1M-$10M</p>
+                            </div>
+                            
+                            <!-- Founded Year -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-calendar-alt text-purple-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Founded Year</h4>
+                                <p class="text-sm text-gray-500" id="foundedYear">2015</p>
+                            </div>
+                            
+                            <!-- Business Location -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-map-marker-alt text-orange-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Business Location</h4>
+                                <p class="text-sm text-gray-500" id="businessLocation">San Francisco</p>
+                            </div>
+                        </div>
+                        
+                        <div id="intelligenceDetails" class="expandable-section">
+                            <div class="border-t pt-6">
+                                <div id="intelligenceDetailsContent">
+                                    <!-- Populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Verification Confidence & Trust Insights Section -->
                 <div id="verificationInsights" class="progressive-disclosure">
@@ -1509,67 +1567,6 @@
                         <div id="dataReliabilityDetails" class="expandable-section mt-6">
                             <div class="border-t pt-6">
                                 <div id="dataReliabilityDetailsContent">
-                                    <!-- Populated by JavaScript -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-
-                <!-- Business Intelligence Section -->
-                <div id="businessIntelligence" class="progressive-disclosure">
-                    <div class="bg-white rounded-lg shadow-lg p-6">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-xl font-bold text-gray-900">Business Intelligence</h3>
-                            <button class="text-blue-600 hover:text-blue-800 text-sm font-medium" onclick="toggleSection('intelligenceDetails')">
-                                <i class="fas fa-chevron-down mr-1"></i>
-                                Show Details
-                            </button>
-                        </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                            <!-- Employee Count -->
-                            <div class="text-center">
-                                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <i class="fas fa-users text-blue-600 text-xl"></i>
-                                </div>
-                                <h4 class="font-medium text-gray-900">Employees</h4>
-                                <p class="text-sm text-gray-500" id="employeeCount">50-100</p>
-                            </div>
-                            
-                            <!-- Revenue Range -->
-                            <div class="text-center">
-                                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <i class="fas fa-chart-line text-green-600 text-xl"></i>
-                                </div>
-                                <h4 class="font-medium text-gray-900">Revenue</h4>
-                                <p class="text-sm text-gray-500" id="revenueRange">$1M-$10M</p>
-                            </div>
-                            
-                            <!-- Founded Year -->
-                            <div class="text-center">
-                                <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <i class="fas fa-calendar text-purple-600 text-xl"></i>
-                                </div>
-                                <h4 class="font-medium text-gray-900">Founded</h4>
-                                <p class="text-sm text-gray-500" id="foundedYear">2015</p>
-                            </div>
-                            
-                            <!-- Location -->
-                            <div class="text-center">
-                                <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <i class="fas fa-map-marker-alt text-yellow-600 text-xl"></i>
-                                </div>
-                                <h4 class="font-medium text-gray-900">Location</h4>
-                                <p class="text-sm text-gray-500" id="businessLocation">San Francisco</p>
-                            </div>
-                        </div>
-                        
-                        <!-- Expandable Intelligence Details -->
-                        <div id="intelligenceDetails" class="expandable-section mt-6">
-                            <div class="border-t pt-6">
-                                <div id="intelligenceDetailsContent">
                                     <!-- Populated by JavaScript -->
                                 </div>
                             </div>
