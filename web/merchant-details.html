@@ -1212,7 +1212,7 @@
                         
                         <!-- Expandable Risk Overview Details -->
                         <div id="riskOverviewDetails" class="expandable-section mt-6">
-                            <div class="border-t pt-6">
+                            <div class="border-t pt-6 pb-6">
                                 <div id="riskOverviewDetailsContent">
                                     <!-- Populated by JavaScript -->
                                 </div>
@@ -4810,14 +4810,14 @@
             if (!riskOverviewDetailsContent) return;
             
             riskOverviewDetailsContent.innerHTML = `
-                <div class="space-y-8">
+                <div class="space-y-6 pb-4">
                     <!-- Risk Alerts & Warnings -->
                     <div>
-                        <h5 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <h5 class="text-lg font-semibold text-gray-900 mb-3 flex items-center">
                             <i class="fas fa-exclamation-triangle text-red-600 mr-2"></i>
                             Risk Alerts & Warnings
                         </h5>
-                        <div class="bg-white border border-gray-200 rounded-lg p-4">
+                        <div class="bg-white border border-gray-200 rounded-lg p-3">
                             <div id="riskAlertsList">
                                 ${generateRiskAlertsList(riskFactors)}
                             </div>
@@ -4826,13 +4826,13 @@
                     
                     <!-- Risk Trend Analysis -->
                     <div>
-                        <h5 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <h5 class="text-lg font-semibold text-gray-900 mb-3 flex items-center">
                             <i class="fas fa-chart-line text-blue-600 mr-2"></i>
                             Risk Trend Analysis
                         </h5>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="bg-white border border-gray-200 rounded-lg p-4">
-                                <h6 class="font-medium text-gray-900 mb-3">Risk Movement</h6>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-white border border-gray-200 rounded-lg p-3">
+                                <h6 class="font-medium text-gray-900 mb-2">Risk Movement</h6>
                                 <div class="space-y-3">
                                     <div class="flex items-center justify-between text-sm">
                                         <span class="text-gray-600">Current Risk Score</span>
@@ -4850,8 +4850,8 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="bg-white border border-gray-200 rounded-lg p-4">
-                                <h6 class="font-medium text-gray-900 mb-3">Trend Indicators</h6>
+                            <div class="bg-white border border-gray-200 rounded-lg p-3">
+                                <h6 class="font-medium text-gray-900 mb-2">Trend Indicators</h6>
                                 <div class="space-y-2">
                                     <div class="flex items-center text-sm">
                                         <i class="fas fa-arrow-up text-green-500 mr-2"></i>
@@ -4872,11 +4872,11 @@
                     
                     <!-- Active Mitigation Measures -->
                     <div>
-                        <h5 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <h5 class="text-lg font-semibold text-gray-900 mb-3 flex items-center">
                             <i class="fas fa-shield-check text-green-600 mr-2"></i>
                             Active Mitigation Measures
                         </h5>
-                        <div class="bg-white border border-gray-200 rounded-lg p-4">
+                        <div class="bg-white border border-gray-200 rounded-lg p-3">
                             <div id="mitigationMeasuresList">
                                 ${generateMitigationMeasuresList(recommendations)}
                             </div>
@@ -4885,13 +4885,13 @@
                     
                     <!-- Industry Benchmarking -->
                     <div>
-                        <h5 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <h5 class="text-lg font-semibold text-gray-900 mb-3 flex items-center">
                             <i class="fas fa-chart-bar text-purple-600 mr-2"></i>
                             Industry Benchmarking
                         </h5>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="bg-white border border-gray-200 rounded-lg p-4">
-                                <h6 class="font-medium text-gray-900 mb-3">Risk Comparison</h6>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-white border border-gray-200 rounded-lg p-3">
+                                <h6 class="font-medium text-gray-900 mb-2">Risk Comparison</h6>
                                 <div class="space-y-3">
                                     <div>
                                         <div class="flex justify-between text-sm mb-1">
@@ -4913,8 +4913,8 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="bg-white border border-gray-200 rounded-lg p-4">
-                                <h6 class="font-medium text-gray-900 mb-3">Performance Metrics</h6>
+                            <div class="bg-white border border-gray-200 rounded-lg p-3">
+                                <h6 class="font-medium text-gray-900 mb-2">Performance Metrics</h6>
                                 <div class="space-y-2">
                                     <div class="flex items-center justify-between text-sm">
                                         <span class="text-gray-600">Risk Level</span>
@@ -4935,14 +4935,14 @@
                     
                     <!-- Quick Actions & Recommendations -->
                     <div>
-                        <h5 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <h5 class="text-lg font-semibold text-gray-900 mb-3 flex items-center">
                             <i class="fas fa-lightbulb text-yellow-600 mr-2"></i>
                             Quick Actions & Recommendations
                         </h5>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                                <h6 class="font-medium text-green-900 mb-3">Immediate Actions</h6>
-                                <ul class="space-y-2 text-sm text-green-800">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                                <h6 class="font-medium text-green-900 mb-2">Immediate Actions</h6>
+                                <ul class="space-y-1 text-sm text-green-800">
                                     <li class="flex items-start">
                                         <i class="fas fa-check-circle text-green-600 mr-2 mt-0.5"></i>
                                         <span>Continue current risk mitigation measures</span>
@@ -4957,9 +4957,9 @@
                                     </li>
                                 </ul>
                             </div>
-                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                                <h6 class="font-medium text-yellow-900 mb-3">Future Considerations</h6>
-                                <ul class="space-y-2 text-sm text-yellow-800">
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                <h6 class="font-medium text-yellow-900 mb-2">Future Considerations</h6>
+                                <ul class="space-y-1 text-sm text-yellow-800">
                                     <li class="flex items-start">
                                         <i class="fas fa-info-circle text-yellow-600 mr-2 mt-0.5"></i>
                                         <span>Consider additional risk monitoring tools</span>
