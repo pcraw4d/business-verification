@@ -1209,60 +1209,49 @@
                 <!-- Business Registration Verification Section -->
                 <div id="businessRegistrationSection" class="progressive-disclosure">
                     <div class="bg-white rounded-lg shadow-lg p-6">
-                        <div class="flex justify-between items-start mb-6">
-                            <div class="flex-1">
-                                <h3 class="text-xl font-bold text-gray-900 mb-4">Business Registration</h3>
-                                <div class="flex items-center space-x-8">
-                                    <!-- Status Icon -->
-                                    <div class="text-center">
-                                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                                            <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
-                                                <i class="fas fa-check text-white text-lg"></i>
-                                            </div>
-                                        </div>
-                                        <div class="text-sm font-medium text-gray-500">Status</div>
-                                        <div class="text-lg font-semibold text-gray-900">Active & Verified</div>
-                                    </div>
-                                    
-                                    <!-- Compliance Icon -->
-                                    <div class="text-center">
-                                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                                            <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
-                                                <i class="fas fa-shield-alt text-white text-lg"></i>
-                                            </div>
-                                        </div>
-                                        <div class="text-sm font-medium text-gray-500">Compliance</div>
-                                        <div class="text-lg font-semibold text-gray-900">No violations</div>
-                                    </div>
-                                    
-                                    <!-- Type Icon -->
-                                    <div class="text-center">
-                                        <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                                            <div class="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center">
-                                                <i class="fas fa-building text-white text-lg"></i>
-                                            </div>
-                                        </div>
-                                        <div class="text-sm font-medium text-gray-500">Type</div>
-                                        <div class="text-lg font-semibold text-gray-900">Corporation/LLC</div>
-                                    </div>
-                                    
-                                    <!-- Confidence Icon -->
-                                    <div class="text-center">
-                                        <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                                            <div class="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center">
-                                                <i class="fas fa-chart-line text-white text-lg"></i>
-                                            </div>
-                                        </div>
-                                        <div class="text-sm font-medium text-gray-500">Confidence</div>
-                                        <div class="text-lg font-semibold text-gray-900">95%</div>
-                                    </div>
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold text-gray-900">Business Registration</h3>
+                            <button class="text-blue-600 hover:text-blue-800 text-sm font-medium" onclick="toggleSection('businessRegistrationDetails')">
+                                <i class="fas fa-chevron-down mr-1"></i>
+                                Show Details
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <!-- Status Icon -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-check text-green-600 text-xl"></i>
                                 </div>
+                                <h4 class="font-medium text-gray-900">Status</h4>
+                                <p class="text-sm text-gray-500">Active & Verified</p>
                             </div>
-                            <div class="text-right">
-                                <button class="text-blue-600 hover:text-blue-800 text-sm font-medium" onclick="toggleSection('businessRegistrationDetails')">
-                                    <i class="fas fa-chevron-down mr-1"></i>
-                                    Show Details
-                                </button>
+                            
+                            <!-- Compliance Icon -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-shield-alt text-blue-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Compliance</h4>
+                                <p class="text-sm text-gray-500">No violations</p>
+                            </div>
+                            
+                            <!-- Type Icon -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-building text-purple-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Type</h4>
+                                <p class="text-sm text-gray-500">Corporation/LLC</p>
+                            </div>
+                            
+                            <!-- Confidence Icon -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-chart-line text-orange-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Confidence</h4>
+                                <p class="text-sm text-gray-500">95%</p>
                             </div>
                         </div>
                         
@@ -1298,60 +1287,49 @@
                 <!-- Online Presence Verification Section -->
                 <div id="onlinePresenceSection" class="progressive-disclosure">
                     <div class="bg-white rounded-lg shadow-lg p-6">
-                        <div class="flex justify-between items-start mb-6">
-                            <div class="flex-1">
-                                <h3 class="text-xl font-bold text-gray-900 mb-4">Online Presence</h3>
-                                <div class="flex items-center space-x-8">
-                                    <!-- Domain Icon -->
-                                    <div class="text-center">
-                                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                                            <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
-                                                <i class="fas fa-globe text-white text-lg"></i>
-                                            </div>
-                                        </div>
-                                        <div class="text-sm font-medium text-gray-500">Domain</div>
-                                        <div class="text-lg font-semibold text-gray-900" id="onlinePresenceDomain">Verified</div>
-                                    </div>
-                                    
-                                    <!-- SSL Icon -->
-                                    <div class="text-center">
-                                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                                            <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
-                                                <i class="fas fa-shield-alt text-white text-lg"></i>
-                                            </div>
-                                        </div>
-                                        <div class="text-sm font-medium text-gray-500">SSL</div>
-                                        <div class="text-lg font-semibold text-gray-900">Valid Certificate</div>
-                                    </div>
-                                    
-                                    <!-- Social Icon -->
-                                    <div class="text-center">
-                                        <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                                            <div class="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center">
-                                                <i class="fas fa-share-alt text-white text-lg"></i>
-                                            </div>
-                                        </div>
-                                        <div class="text-sm font-medium text-gray-500">Social</div>
-                                        <div class="text-lg font-semibold text-gray-900">Active Profiles</div>
-                                    </div>
-                                    
-                                    <!-- Confidence Icon -->
-                                    <div class="text-center">
-                                        <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                                            <div class="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center">
-                                                <i class="fas fa-chart-line text-white text-lg"></i>
-                                            </div>
-                                        </div>
-                                        <div class="text-sm font-medium text-gray-500">Confidence</div>
-                                        <div class="text-lg font-semibold text-gray-900">92%</div>
-                                    </div>
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold text-gray-900">Online Presence</h3>
+                            <button class="text-blue-600 hover:text-blue-800 text-sm font-medium" onclick="toggleSection('onlinePresenceDetails')">
+                                <i class="fas fa-chevron-down mr-1"></i>
+                                Show Details
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <!-- Domain Icon -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-globe text-blue-600 text-xl"></i>
                                 </div>
+                                <h4 class="font-medium text-gray-900">Domain</h4>
+                                <p class="text-sm text-gray-500" id="onlinePresenceDomain">Verified</p>
                             </div>
-                            <div class="text-right">
-                                <button class="text-blue-600 hover:text-blue-800 text-sm font-medium" onclick="toggleSection('onlinePresenceDetails')">
-                                    <i class="fas fa-chevron-down mr-1"></i>
-                                    Show Details
-                                </button>
+                            
+                            <!-- SSL Icon -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-shield-alt text-green-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">SSL</h4>
+                                <p class="text-sm text-gray-500">Valid Certificate</p>
+                            </div>
+                            
+                            <!-- Social Icon -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-share-alt text-purple-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Social</h4>
+                                <p class="text-sm text-gray-500">Active Profiles</p>
+                            </div>
+                            
+                            <!-- Confidence Icon -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-chart-line text-orange-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Confidence</h4>
+                                <p class="text-sm text-gray-500">92%</p>
                             </div>
                         </div>
                         
@@ -1387,60 +1365,49 @@
                 <!-- Address Verification Section -->
                 <div id="addressVerificationSection" class="progressive-disclosure">
                     <div class="bg-white rounded-lg shadow-lg p-6">
-                        <div class="flex justify-between items-start mb-6">
-                            <div class="flex-1">
-                                <h3 class="text-xl font-bold text-gray-900 mb-4">Address Verification</h3>
-                                <div class="flex items-center space-x-8">
-                                    <!-- Location Icon -->
-                                    <div class="text-center">
-                                        <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                                            <div class="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center">
-                                                <i class="fas fa-map-marker-alt text-white text-lg"></i>
-                                            </div>
-                                        </div>
-                                        <div class="text-sm font-medium text-gray-500">Location</div>
-                                        <div class="text-lg font-semibold text-gray-900" id="addressVerificationLocation">Verified</div>
-                                    </div>
-                                    
-                                    <!-- Deliverable Icon -->
-                                    <div class="text-center">
-                                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                                            <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
-                                                <i class="fas fa-truck text-white text-lg"></i>
-                                            </div>
-                                        </div>
-                                        <div class="text-sm font-medium text-gray-500">Deliverable</div>
-                                        <div class="text-lg font-semibold text-gray-900">Yes</div>
-                                    </div>
-                                    
-                                    <!-- Zoning Icon -->
-                                    <div class="text-center">
-                                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                                            <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
-                                                <i class="fas fa-building text-white text-lg"></i>
-                                            </div>
-                                        </div>
-                                        <div class="text-sm font-medium text-gray-500">Zoning</div>
-                                        <div class="text-lg font-semibold text-gray-900">Commercial</div>
-                                    </div>
-                                    
-                                    <!-- Confidence Icon -->
-                                    <div class="text-center">
-                                        <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                                            <div class="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center">
-                                                <i class="fas fa-chart-line text-white text-lg"></i>
-                                            </div>
-                                        </div>
-                                        <div class="text-sm font-medium text-gray-500">Confidence</div>
-                                        <div class="text-lg font-semibold text-gray-900">89%</div>
-                                    </div>
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold text-gray-900">Address Verification</h3>
+                            <button class="text-blue-600 hover:text-blue-800 text-sm font-medium" onclick="toggleSection('addressVerificationDetails')">
+                                <i class="fas fa-chevron-down mr-1"></i>
+                                Show Details
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <!-- Location Icon -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-map-marker-alt text-purple-600 text-xl"></i>
                                 </div>
+                                <h4 class="font-medium text-gray-900">Location</h4>
+                                <p class="text-sm text-gray-500" id="addressVerificationLocation">Verified</p>
                             </div>
-                            <div class="text-right">
-                                <button class="text-blue-600 hover:text-blue-800 text-sm font-medium" onclick="toggleSection('addressVerificationDetails')">
-                                    <i class="fas fa-chevron-down mr-1"></i>
-                                    Show Details
-                                </button>
+                            
+                            <!-- Deliverable Icon -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-truck text-green-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Deliverable</h4>
+                                <p class="text-sm text-gray-500">Yes</p>
+                            </div>
+                            
+                            <!-- Zoning Icon -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-building text-blue-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Zoning</h4>
+                                <p class="text-sm text-gray-500">Commercial</p>
+                            </div>
+                            
+                            <!-- Confidence Icon -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-chart-line text-orange-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Confidence</h4>
+                                <p class="text-sm text-gray-500">89%</p>
                             </div>
                         </div>
                         
