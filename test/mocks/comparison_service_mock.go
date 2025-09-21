@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/services"
+	"kyb-platform/internal/services"
 )
 
 // MockComparisonService provides a mock implementation for E2E tests

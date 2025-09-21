@@ -142,7 +142,15 @@ func (cam *ClassificationAccuracyMonitoring) LogClassificationAccuracyMetrics(
 	errorMessage *string,
 	userFeedback *string,
 ) (int, error) {
-	query := `SELECT log_classification_accuracy_metrics($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`
+	query := `
+		INSERT INTO unified_performance_metrics (
+			component, component_instance, service_name, metric_type, metric_category,
+			metric_name, metric_value, metric_unit, tags, metadata, data_source, created_at
+		) VALUES (
+			'classification', 'accuracy_monitor', 'classification_accuracy', 'accuracy', 'classification',
+			'classification_accuracy', $1, 'percentage', $2, $3, 'classification_accuracy_monitoring', NOW()
+		) RETURNING id
+	`
 
 	var logID int
 	var keywordsArray pq.StringArray
@@ -370,18 +378,26 @@ func (cam *ClassificationAccuracyMonitoring) AnalyzeClassificationPerformance(ct
 	return results, nil
 }
 
-// CleanupClassificationAccuracyMetrics cleans up old classification accuracy metrics
+// CleanupClassificationAccuracyMetrics cleans up old classification accuracy metrics from unified table
 func (cam *ClassificationAccuracyMonitoring) CleanupClassificationAccuracyMetrics(ctx context.Context, daysToKeep int) (int, error) {
-	query := `SELECT cleanup_classification_accuracy_metrics($1)`
+	query := `
+		DELETE FROM unified_performance_metrics 
+		WHERE component = 'classification' 
+		AND metric_category = 'classification'
+		AND created_at < NOW() - INTERVAL '%d days'
+	`
 
-	var deletedCount int
-	err := cam.db.QueryRowContext(ctx, query, daysToKeep).Scan(&deletedCount)
-
+	result, err := cam.db.ExecContext(ctx, fmt.Sprintf(query, daysToKeep))
 	if err != nil {
 		return 0, fmt.Errorf("failed to cleanup classification accuracy metrics: %w", err)
 	}
 
-	return deletedCount, nil
+	deletedCount, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get deleted count: %w", err)
+	}
+
+	return int(deletedCount), nil
 }
 
 // ValidateClassificationAccuracyMonitoringSetup validates classification accuracy monitoring setup

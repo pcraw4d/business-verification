@@ -105,10 +105,12 @@ func (acs *AccuracyCalculationService) CalculateOverallAccuracy(ctx context.Cont
 	query := `
 		SELECT 
 			COUNT(*) as total_classifications,
-			COUNT(CASE WHEN is_correct = true THEN 1 END) as correct_classifications
-		FROM classification_accuracy_metrics 
-		WHERE created_at >= NOW() - INTERVAL '%d hours'
-		AND actual_industry IS NOT NULL
+			COUNT(CASE WHEN metadata->>'is_correct' = 'true' THEN 1 END) as correct_classifications
+		FROM unified_performance_metrics 
+		WHERE component = 'classification' 
+		AND metric_category = 'classification'
+		AND created_at >= NOW() - INTERVAL '%d hours'
+		AND metadata->>'actual_industry' IS NOT NULL
 	`
 
 	var totalClassifications, correctClassifications int64
@@ -519,7 +521,7 @@ func (acs *AccuracyCalculationService) CalculateComprehensiveAccuracy(ctx contex
 
 	// Get total data points analyzed
 	var totalDataPoints int64
-	query := `SELECT COUNT(*) FROM classification_accuracy_metrics WHERE created_at >= NOW() - INTERVAL '%d hours'`
+	query := `SELECT COUNT(*) FROM unified_performance_metrics WHERE component = 'classification' AND metric_category = 'classification' AND created_at >= NOW() - INTERVAL '%d hours'`
 	err = acs.db.QueryRowContext(ctx, fmt.Sprintf(query, hoursBack)).Scan(&totalDataPoints)
 	if err != nil {
 		acs.logger.Printf("Warning: failed to get total data points: %v", err)
@@ -644,7 +646,7 @@ func (acs *AccuracyCalculationService) ValidateAccuracyCalculation(ctx context.C
 
 	// Check if we have any data to analyze
 	var count int64
-	query := `SELECT COUNT(*) FROM classification_accuracy_metrics`
+	query := `SELECT COUNT(*) FROM unified_performance_metrics WHERE component = 'classification' AND metric_category = 'classification'`
 	err := acs.db.QueryRowContext(ctx, query).Scan(&count)
 	if err != nil {
 		return fmt.Errorf("failed to check data availability: %w", err)

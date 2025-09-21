@@ -1,0 +1,305 @@
+# KYB Platform - Query Cache Configuration
+# This configuration file defines the caching strategy for the KYB Platform
+# to optimize database query performance and reduce system load.
+
+# Redis Configuration
+redis:
+  host: "localhost"
+  port: 6379
+  password: ""
+  db: 0
+  pool_size: 10
+  min_idle_conns: 5
+  max_retries: 3
+  dial_timeout: "5s"
+  read_timeout: "3s"
+  write_timeout: "3s"
+  pool_timeout: "4s"
+  idle_timeout: "5m"
+  max_conn_age: "30m"
+
+# Cache TTL Settings (Time To Live)
+ttl:
+  # Default TTL for general queries
+  default: "15m"
+  
+  # Classification queries (frequently accessed, moderate change rate)
+  classification: "30m"
+  
+  # Risk assessment queries (moderate access, low change rate)
+  risk_assessment: "1h"
+  
+  # User data queries (frequent access, low change rate)
+  user_data: "2h"
+  
+  # Business data queries (moderate access, moderate change rate)
+  business_data: "1h"
+  
+  # Time-based queries (frequent access, high change rate)
+  time_based: "5m"
+  
+  # Industry-based queries (moderate access, low change rate)
+  industry_based: "15m"
+  
+  # Complex join queries (low access, moderate change rate)
+  complex_join: "10m"
+  
+  # JSONB queries (low access, low change rate)
+  jsonb_query: "30m"
+  
+  # Array queries (low access, low change rate)
+  array_query: "1h"
+
+# Local Cache Settings
+local_cache:
+  # Maximum number of entries in local cache
+  max_size: 1000
+  
+  # TTL for local cache entries
+  ttl: "5m"
+  
+  # Cleanup interval for expired entries
+  cleanup_interval: "1m"
+  
+  # Enable local cache
+  enabled: true
+
+# Cache Invalidation Settings
+invalidation:
+  # Enable cache invalidation
+  enabled: true
+  
+  # Delay before invalidation (to handle rapid updates)
+  delay: "1s"
+  
+  # Patterns for automatic invalidation
+  patterns:
+    # Invalidate classification cache when business data changes
+    - pattern: "kyb:cache:classification:*business_id*{business_id}*"
+      trigger: "business_update"
+    
+    # Invalidate risk assessment cache when business data changes
+    - pattern: "kyb:cache:risk_assessment:*business_id*{business_id}*"
+      trigger: "business_update"
+    
+    # Invalidate user data cache when user profile changes
+    - pattern: "kyb:cache:user_data:*user_id*{user_id}*"
+      trigger: "user_update"
+    
+    # Invalidate business data cache when business profile changes
+    - pattern: "kyb:cache:business_data:*business_id*{business_id}*"
+      trigger: "business_update"
+
+# Performance Settings
+performance:
+  # Enable query compression
+  enable_compression: false
+  
+  # Enable performance metrics collection
+  enable_metrics: true
+  
+  # Metrics collection interval
+  metrics_interval: "1m"
+  
+  # Maximum cache size (in MB)
+  max_cache_size_mb: 100
+  
+  # Enable query logging
+  enable_query_logging: true
+  
+  # Log slow queries (queries taking longer than this threshold)
+  slow_query_threshold: "1s"
+
+# Cache Strategy Settings
+strategy:
+  # Cache strategy for different query types
+  query_types:
+    # Classification queries - cache aggressively
+    classification:
+      strategy: "aggressive"
+      ttl_multiplier: 1.0
+      cache_on_error: false
+    
+    # Risk assessment queries - cache moderately
+    risk_assessment:
+      strategy: "moderate"
+      ttl_multiplier: 1.0
+      cache_on_error: false
+    
+    # User data queries - cache aggressively
+    user_data:
+      strategy: "aggressive"
+      ttl_multiplier: 1.0
+      cache_on_error: false
+    
+    # Business data queries - cache moderately
+    business_data:
+      strategy: "moderate"
+      ttl_multiplier: 1.0
+      cache_on_error: false
+    
+    # Time-based queries - cache lightly
+    time_based:
+      strategy: "light"
+      ttl_multiplier: 0.5
+      cache_on_error: false
+    
+    # Industry-based queries - cache moderately
+    industry_based:
+      strategy: "moderate"
+      ttl_multiplier: 1.0
+      cache_on_error: false
+    
+    # Complex join queries - cache lightly
+    complex_join:
+      strategy: "light"
+      ttl_multiplier: 0.7
+      cache_on_error: false
+    
+    # JSONB queries - cache moderately
+    jsonb_query:
+      strategy: "moderate"
+      ttl_multiplier: 1.0
+      cache_on_error: false
+    
+    # Array queries - cache moderately
+    array_query:
+      strategy: "moderate"
+      ttl_multiplier: 1.0
+      cache_on_error: false
+
+# Monitoring and Alerting
+monitoring:
+  # Enable cache monitoring
+  enabled: true
+  
+  # Cache hit rate thresholds
+  hit_rate:
+    warning: 70.0    # Warning if hit rate drops below 70%
+    critical: 50.0   # Critical if hit rate drops below 50%
+  
+  # Cache size thresholds
+  size:
+    warning: 80      # Warning if cache size exceeds 80% of max
+    critical: 95     # Critical if cache size exceeds 95% of max
+  
+  # Query performance thresholds
+  performance:
+    warning: "500ms"   # Warning if average query time exceeds 500ms
+    critical: "1s"     # Critical if average query time exceeds 1s
+  
+  # Alert channels
+  alerts:
+    - type: "log"
+      level: "warning"
+    - type: "log"
+      level: "critical"
+
+# Development and Testing
+development:
+  # Enable debug logging
+  debug: false
+  
+  # Enable cache statistics
+  enable_stats: true
+  
+  # Stats collection interval
+  stats_interval: "30s"
+  
+  # Enable cache warming
+  enable_warming: false
+  
+  # Cache warming queries
+  warming_queries:
+    - query: "SELECT * FROM classifications ORDER BY created_at DESC LIMIT 100"
+      query_type: "time_based"
+      ttl: "5m"
+    - query: "SELECT * FROM business_classifications LIMIT 50"
+      query_type: "classification"
+      ttl: "30m"
+
+# Production Settings
+production:
+  # Enable Redis clustering
+  enable_clustering: false
+  
+  # Redis cluster nodes
+  cluster_nodes: []
+  
+  # Enable Redis persistence
+  enable_persistence: true
+  
+  # Redis persistence settings
+  persistence:
+    rdb_save: "900 1 300 10 60 10000"
+    aof_enabled: true
+    aof_fsync: "everysec"
+  
+  # Enable Redis replication
+  enable_replication: false
+  
+  # Redis master/slave configuration
+  replication:
+    master_host: ""
+    master_port: 6379
+    slave_hosts: []
+
+# Security Settings
+security:
+  # Enable Redis authentication
+  enable_auth: false
+  
+  # Redis password
+  password: ""
+  
+  # Enable TLS
+  enable_tls: false
+  
+  # TLS configuration
+  tls:
+    cert_file: ""
+    key_file: ""
+    ca_file: ""
+    server_name: ""
+
+# Backup and Recovery
+backup:
+  # Enable cache backup
+  enabled: false
+  
+  # Backup interval
+  interval: "1h"
+  
+  # Backup retention
+  retention: "24h"
+  
+  # Backup location
+  location: "/tmp/cache_backup"
+
+# Cache Warming Strategy
+warming:
+  # Enable cache warming
+  enabled: false
+  
+  # Warming schedule (cron format)
+  schedule: "0 */6 * * *"  # Every 6 hours
+  
+  # Warming queries
+  queries:
+    - name: "recent_classifications"
+      query: "SELECT * FROM classifications WHERE created_at >= NOW() - INTERVAL '1 day' ORDER BY created_at DESC LIMIT 1000"
+      query_type: "time_based"
+      ttl: "5m"
+      priority: "high"
+    
+    - name: "active_businesses"
+      query: "SELECT * FROM businesses WHERE is_active = true ORDER BY updated_at DESC LIMIT 500"
+      query_type: "business_data"
+      ttl: "1h"
+      priority: "medium"
+    
+    - name: "high_risk_assessments"
+      query: "SELECT * FROM business_risk_assessments WHERE risk_level IN ('high', 'critical') ORDER BY assessment_date DESC LIMIT 200"
+      query_type: "risk_assessment"
+      ttl: "1h"
+      priority: "high"

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/shared"
+	"kyb-platform/internal/shared"
 )
 
 // MockClassificationService provides a mock implementation of classification service for E2E tests

@@ -6,22 +6,75 @@ DROP TABLE IF EXISTS public.feedback CASCADE;
 DROP TABLE IF EXISTS public.compliance_checks CASCADE;
 DROP TABLE IF EXISTS public.risk_assessments CASCADE;
 DROP TABLE IF EXISTS public.business_classifications CASCADE;
-DROP TABLE IF EXISTS public.profiles CASCADE;
+DROP TABLE IF EXISTS public.users_consolidated CASCADE;
 
--- Users table (extends Supabase auth.users)
-CREATE TABLE IF NOT EXISTS public.profiles (
-    id UUID REFERENCES auth.users(id) PRIMARY KEY,
-    email TEXT UNIQUE NOT NULL,
-    full_name TEXT,
-    role TEXT CHECK (role IN ('compliance_officer', 'risk_manager', 'business_analyst', 'developer', 'other')),
+-- Enable necessary extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- Consolidated Users table (extends Supabase auth.users)
+CREATE TABLE IF NOT EXISTS public.users_consolidated (
+    -- Primary identification
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Authentication fields
+    email VARCHAR(255) UNIQUE NOT NULL,
+    username VARCHAR(100) UNIQUE,
+    password_hash VARCHAR(255),
+    
+    -- Profile information
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    full_name VARCHAR(255), -- Computed field for compatibility
+    name VARCHAR(255), -- Single name field for compatibility
+    
+    -- Business information
+    company VARCHAR(255),
+    
+    -- Role and permissions
+    role VARCHAR(50) NOT NULL DEFAULT 'user' CHECK (role IN (
+        'user', 'admin', 'compliance_officer', 'risk_manager', 
+        'business_analyst', 'developer', 'other'
+    )),
+    
+    -- Account status and security
+    status VARCHAR(50) NOT NULL DEFAULT 'active' CHECK (status IN (
+        'active', 'inactive', 'suspended', 'pending_verification'
+    )),
+    is_active BOOLEAN DEFAULT TRUE,
+    
+    -- Email verification
+    email_verified BOOLEAN DEFAULT FALSE,
+    email_verified_at TIMESTAMP WITH TIME ZONE,
+    
+    -- Security features
+    failed_login_attempts INTEGER DEFAULT 0,
+    locked_until TIMESTAMP WITH TIME ZONE,
+    
+    -- Activity tracking
+    last_login_at TIMESTAMP WITH TIME ZONE,
+    
+    -- Metadata and extensibility
+    metadata JSONB DEFAULT '{}',
+    
+    -- Audit fields
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    -- Constraints
+    CONSTRAINT users_consolidated_email_check CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),
+    CONSTRAINT users_consolidated_username_check CHECK (username IS NULL OR length(username) >= 3),
+    CONSTRAINT users_consolidated_name_check CHECK (
+        (first_name IS NOT NULL AND last_name IS NOT NULL) OR 
+        (full_name IS NOT NULL) OR 
+        (name IS NOT NULL)
+    )
 );
 
 -- Business classifications table
 CREATE TABLE IF NOT EXISTS public.business_classifications (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id UUID REFERENCES public.profiles(id) NOT NULL,
+    user_id UUID REFERENCES public.users_consolidated(id) NOT NULL,
     business_name TEXT NOT NULL,
     website_url TEXT,
     description TEXT,
@@ -36,7 +89,7 @@ CREATE TABLE IF NOT EXISTS public.business_classifications (
 -- Risk assessments table
 CREATE TABLE IF NOT EXISTS public.risk_assessments (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id UUID REFERENCES public.profiles(id) NOT NULL,
+    user_id UUID REFERENCES public.users_consolidated(id) NOT NULL,
     business_id UUID REFERENCES public.business_classifications(id) ON DELETE CASCADE NOT NULL,
     risk_factors JSONB,
     risk_score DECIMAL(3,2) CHECK (risk_score >= 0 AND risk_score <= 1),
@@ -49,7 +102,7 @@ CREATE TABLE IF NOT EXISTS public.risk_assessments (
 -- Compliance checks table
 CREATE TABLE IF NOT EXISTS public.compliance_checks (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id UUID REFERENCES public.profiles(id) NOT NULL,
+    user_id UUID REFERENCES public.users_consolidated(id) NOT NULL,
     business_id UUID REFERENCES public.business_classifications(id) ON DELETE CASCADE NOT NULL,
     compliance_frameworks JSONB,
     compliance_status JSONB,
@@ -61,7 +114,7 @@ CREATE TABLE IF NOT EXISTS public.compliance_checks (
 -- Feedback table
 CREATE TABLE IF NOT EXISTS public.feedback (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id UUID REFERENCES public.profiles(id) NOT NULL,
+    user_id UUID REFERENCES public.users_consolidated(id) NOT NULL,
     feedback_type TEXT CHECK (feedback_type IN ('bug', 'feature', 'improvement', 'general')),
     message TEXT NOT NULL,
     status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'reviewed', 'resolved')),
@@ -70,7 +123,7 @@ CREATE TABLE IF NOT EXISTS public.feedback (
 );
 
 -- Enable Row Level Security (RLS) after all tables are created
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.users_consolidated ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.business_classifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.risk_assessments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.compliance_checks ENABLE ROW LEVEL SECURITY;
@@ -105,7 +158,7 @@ END;
 $$ language 'plpgsql';
 
 -- Create triggers for updated_at columns
-CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles
+CREATE TRIGGER update_users_consolidated_updated_at BEFORE UPDATE ON public.users_consolidated
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_business_classifications_updated_at BEFORE UPDATE ON public.business_classifications
@@ -194,10 +247,10 @@ GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 
 -- Create RLS policies (after tables, indexes, and data are created)
 -- Drop existing policies if they exist (to avoid conflicts)
-DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
-DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
-DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
-DROP POLICY IF EXISTS "Users can delete own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can view own profile" ON public.users_consolidated;
+DROP POLICY IF EXISTS "Users can update own profile" ON public.users_consolidated;
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.users_consolidated;
+DROP POLICY IF EXISTS "Users can delete own profile" ON public.users_consolidated;
 
 DROP POLICY IF EXISTS "Users can view own classifications" ON public.business_classifications;
 DROP POLICY IF EXISTS "Users can insert own classifications" ON public.business_classifications;
@@ -219,17 +272,17 @@ DROP POLICY IF EXISTS "Users can insert own feedback" ON public.feedback;
 DROP POLICY IF EXISTS "Users can update own feedback" ON public.feedback;
 DROP POLICY IF EXISTS "Users can delete own feedback" ON public.feedback;
 
--- Create comprehensive policies for profiles
-CREATE POLICY "Users can view own profile" ON public.profiles
+-- Create comprehensive policies for users_consolidated
+CREATE POLICY "Users can view own profile" ON public.users_consolidated
     FOR SELECT USING (auth.uid() = id);
 
-CREATE POLICY "Users can insert own profile" ON public.profiles
+CREATE POLICY "Users can insert own profile" ON public.users_consolidated
     FOR INSERT WITH CHECK (auth.uid() = id);
 
-CREATE POLICY "Users can update own profile" ON public.profiles
+CREATE POLICY "Users can update own profile" ON public.users_consolidated
     FOR UPDATE USING (auth.uid() = id);
 
-CREATE POLICY "Users can delete own profile" ON public.profiles
+CREATE POLICY "Users can delete own profile" ON public.users_consolidated
     FOR DELETE USING (auth.uid() = id);
 
 -- Create comprehensive policies for business_classifications
@@ -325,5 +378,46 @@ CREATE TRIGGER refresh_business_classification_stats_trigger
 -- 1. Go to Authentication > Users in your Supabase dashboard
 -- 2. Create a new user or use an existing one
 -- 3. Then manually insert a profile record for that user:
---    INSERT INTO public.profiles (id, email, full_name, role) 
+--    INSERT INTO public.users_consolidated (id, email, full_name, role) 
 --    VALUES ('actual-user-uuid-from-auth', 'user@example.com', 'Test User', 'compliance_officer');
+
+-- Create indexes for performance
+CREATE INDEX IF NOT EXISTS idx_users_consolidated_email ON users_consolidated(email);
+CREATE INDEX IF NOT EXISTS idx_users_consolidated_username ON users_consolidated(username) WHERE username IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_users_consolidated_role ON users_consolidated(role);
+CREATE INDEX IF NOT EXISTS idx_users_consolidated_status ON users_consolidated(status);
+CREATE INDEX IF NOT EXISTS idx_users_consolidated_is_active ON users_consolidated(is_active);
+CREATE INDEX IF NOT EXISTS idx_users_consolidated_created_at ON users_consolidated(created_at);
+CREATE INDEX IF NOT EXISTS idx_users_consolidated_last_login ON users_consolidated(last_login_at);
+
+-- Create compatibility views for backward compatibility
+CREATE OR REPLACE VIEW users AS
+SELECT 
+    id,
+    email,
+    username,
+    password_hash,
+    first_name,
+    last_name,
+    full_name as name, -- Map full_name to name for compatibility
+    company,
+    role,
+    status,
+    email_verified,
+    email_verified_at,
+    last_login_at,
+    is_active,
+    metadata,
+    created_at,
+    updated_at
+FROM users_consolidated;
+
+CREATE OR REPLACE VIEW profiles AS
+SELECT 
+    id,
+    email,
+    full_name,
+    role,
+    created_at,
+    updated_at
+FROM users_consolidated;

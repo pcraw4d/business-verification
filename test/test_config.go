@@ -1,113 +1,258 @@
 package test
 
 import (
-	"context"
-	"fmt"
-	"log"
 	"os"
-	"testing"
+	"strconv"
 	"time"
-
-	"github.com/pcraw4d/business-verification/internal/config"
-	"github.com/pcraw4d/business-verification/internal/database"
-	"github.com/pcraw4d/business-verification/internal/observability"
-	"go.uber.org/zap"
 )
 
-// TestConfig holds test configuration
+// TestConfig holds configuration for test execution
 type TestConfig struct {
-	Database *config.DatabaseConfig
-	Logger   *observability.Logger
-	DB       database.Database
-	Cleanup  func()
+	// Database configuration
+	DatabaseURL string
+
+	// Test timeouts
+	DefaultTimeout     time.Duration
+	LongTestTimeout    time.Duration
+	PerformanceTimeout time.Duration
+
+	// Test data configuration
+	LargeContentSize    int
+	ConcurrentTestCount int
+
+	// Performance thresholds
+	MaxRiskDetectionTime  time.Duration
+	MaxCrosswalkQueryTime time.Duration
+	MaxRiskAssessmentTime time.Duration
+	MaxConcurrentTestTime time.Duration
+
+	// Test data paths
+	TestDataDir string
+
+	// Logging configuration
+	VerboseLogging bool
+	LogLevel       string
 }
 
-// TestSuite provides common testing utilities
-type TestSuite struct {
-	config *TestConfig
-	t      *testing.T
-}
-
-// NewTestSuite creates a new test suite
-func NewTestSuite(t *testing.T) *TestSuite {
-	config := setupTestConfig(t)
-	return &TestSuite{
-		config: config,
-		t:      t,
-	}
-}
-
-// setupTestConfig sets up test configuration
-func setupTestConfig(t *testing.T) *TestConfig {
-	// Load test environment variables
-	loadTestEnv()
-
-	// Create test database configuration
-	dbConfig := &config.DatabaseConfig{
-		Driver:          "postgres",
-		Host:            getEnvOrDefault("TEST_DB_HOST", "localhost"),
-		Port:            getEnvIntOrDefault("TEST_DB_PORT", 5432),
-		Username:        getEnvOrDefault("TEST_DB_USER", "test_user"),
-		Password:        getEnvOrDefault("TEST_DB_PASSWORD", "test_password"),
-		Database:        getEnvOrDefault("TEST_DB_NAME", "kyb_test"),
-		SSLMode:         "disable",
-		MaxOpenConns:    10,
-		MaxIdleConns:    5,
-		ConnMaxLifetime: time.Hour,
-	}
-
-	// Create logger
-	zapLogger, _ := zap.NewDevelopment()
-	logger := observability.NewLogger(zapLogger)
-
-	// Create database connection
-	db, err := database.NewDatabaseWithConnection(context.Background(), dbConfig)
-	if err != nil {
-		t.Skipf("Skipping test - cannot connect to test database: %v", err)
-		return &TestConfig{
-			Database: dbConfig,
-			Logger:   logger,
-			DB:       nil,
-			Cleanup:  func() {},
-		}
-	}
-
-	// Setup cleanup function
-	cleanup := func() {
-		if db != nil {
-			db.Close()
-		}
-	}
-
+// DefaultTestConfig returns default test configuration
+func DefaultTestConfig() *TestConfig {
 	return &TestConfig{
-		Database: dbConfig,
-		Logger:   logger,
-		DB:       db,
-		Cleanup:  cleanup,
+		DatabaseURL:           getEnvOrDefault("DATABASE_URL", ""),
+		DefaultTimeout:        getDurationEnvOrDefault("TEST_DEFAULT_TIMEOUT", 30*time.Second),
+		LongTestTimeout:       getDurationEnvOrDefault("TEST_LONG_TIMEOUT", 60*time.Second),
+		PerformanceTimeout:    getDurationEnvOrDefault("TEST_PERFORMANCE_TIMEOUT", 120*time.Second),
+		LargeContentSize:      getIntEnvOrDefault("TEST_LARGE_CONTENT_SIZE", 10000),
+		ConcurrentTestCount:   getIntEnvOrDefault("TEST_CONCURRENT_COUNT", 10),
+		MaxRiskDetectionTime:  getDurationEnvOrDefault("TEST_MAX_RISK_DETECTION_TIME", 1*time.Second),
+		MaxCrosswalkQueryTime: getDurationEnvOrDefault("TEST_MAX_CROSSWALK_TIME", 2*time.Second),
+		MaxRiskAssessmentTime: getDurationEnvOrDefault("TEST_MAX_RISK_ASSESSMENT_TIME", 5*time.Second),
+		MaxConcurrentTestTime: getDurationEnvOrDefault("TEST_MAX_CONCURRENT_TIME", 15*time.Second),
+		TestDataDir:           getEnvOrDefault("TEST_DATA_DIR", "testdata"),
+		VerboseLogging:        getBoolEnvOrDefault("TEST_VERBOSE_LOGGING", false),
+		LogLevel:              getEnvOrDefault("TEST_LOG_LEVEL", "info"),
 	}
 }
 
-// loadTestEnv loads test environment variables
-func loadTestEnv() {
-	// Set default test environment variables if not already set
-	if os.Getenv("TEST_DB_HOST") == "" {
-		os.Setenv("TEST_DB_HOST", "localhost")
-	}
-	if os.Getenv("TEST_DB_PORT") == "" {
-		os.Setenv("TEST_DB_PORT", "5432")
-	}
-	if os.Getenv("TEST_DB_USER") == "" {
-		os.Setenv("TEST_DB_USER", "test_user")
-	}
-	if os.Getenv("TEST_DB_PASSWORD") == "" {
-		os.Setenv("TEST_DB_PASSWORD", "test_password")
-	}
-	if os.Getenv("TEST_DB_NAME") == "" {
-		os.Setenv("TEST_DB_NAME", "kyb_test")
+// TestData provides test data for various scenarios
+type TestData struct {
+	// High-risk business test data
+	HighRiskBusinesses []BusinessTestData
+
+	// Low-risk business test data
+	LowRiskBusinesses []BusinessTestData
+
+	// Medium-risk business test data
+	MediumRiskBusinesses []BusinessTestData
+
+	// Risk keywords test data
+	RiskKeywords []RiskKeywordTestData
+
+	// Crosswalk test data
+	CrosswalkMappings []CrosswalkTestData
+}
+
+// BusinessTestData represents test data for business assessment
+type BusinessTestData struct {
+	Name              string
+	WebsiteURL        string
+	DomainName        string
+	Industry          string
+	BusinessType      string
+	Description       string
+	ExpectedRiskLevel string
+	ExpectedRiskScore float64
+}
+
+// RiskKeywordTestData represents test data for risk keyword detection
+type RiskKeywordTestData struct {
+	Content            string
+	Source             string
+	ExpectedKeywords   []string
+	ExpectedRiskLevel  string
+	ExpectedRiskScore  float64
+	ExpectedCategories []string
+}
+
+// CrosswalkTestData represents test data for crosswalk validation
+type CrosswalkTestData struct {
+	SourceCode         string
+	SourceSystem       string
+	TargetCode         string
+	TargetSystem       string
+	ExpectedMapping    bool
+	ExpectedConfidence float64
+}
+
+// GetTestData returns comprehensive test data
+func GetTestData() *TestData {
+	return &TestData{
+		HighRiskBusinesses: []BusinessTestData{
+			{
+				Name:              "Online Casino & Gambling Platform",
+				WebsiteURL:        "https://example-casino.com",
+				DomainName:        "example-casino.com",
+				Industry:          "Gambling",
+				BusinessType:      "Online Gaming",
+				Description:       "Online casino offering poker, blackjack, and slot games",
+				ExpectedRiskLevel: "high",
+				ExpectedRiskScore: 0.8,
+			},
+			{
+				Name:              "Adult Entertainment Services",
+				WebsiteURL:        "https://adult-entertainment.com",
+				DomainName:        "adult-entertainment.com",
+				Industry:          "Adult Entertainment",
+				BusinessType:      "Adult Services",
+				Description:       "Adult entertainment and escort services",
+				ExpectedRiskLevel: "high",
+				ExpectedRiskScore: 0.9,
+			},
+			{
+				Name:              "Cryptocurrency Exchange",
+				WebsiteURL:        "https://crypto-exchange.com",
+				DomainName:        "crypto-exchange.com",
+				Industry:          "Financial Services",
+				BusinessType:      "Cryptocurrency Exchange",
+				Description:       "Digital currency exchange platform",
+				ExpectedRiskLevel: "medium",
+				ExpectedRiskScore: 0.6,
+			},
+		},
+
+		LowRiskBusinesses: []BusinessTestData{
+			{
+				Name:              "Family Restaurant & Catering",
+				WebsiteURL:        "https://family-restaurant.com",
+				DomainName:        "family-restaurant.com",
+				Industry:          "Food Service",
+				BusinessType:      "Restaurant",
+				Description:       "Family-owned restaurant serving local cuisine",
+				ExpectedRiskLevel: "low",
+				ExpectedRiskScore: 0.1,
+			},
+			{
+				Name:              "Technology Consulting Services",
+				WebsiteURL:        "https://tech-consulting.com",
+				DomainName:        "tech-consulting.com",
+				Industry:          "Technology",
+				BusinessType:      "Consulting",
+				Description:       "IT consulting and software development services",
+				ExpectedRiskLevel: "low",
+				ExpectedRiskScore: 0.2,
+			},
+			{
+				Name:              "Local Bookstore",
+				WebsiteURL:        "https://local-bookstore.com",
+				DomainName:        "local-bookstore.com",
+				Industry:          "Retail",
+				BusinessType:      "Bookstore",
+				Description:       "Independent bookstore selling books and educational materials",
+				ExpectedRiskLevel: "low",
+				ExpectedRiskScore: 0.1,
+			},
+		},
+
+		MediumRiskBusinesses: []BusinessTestData{
+			{
+				Name:              "Pharmaceutical Distributor",
+				WebsiteURL:        "https://pharma-distributor.com",
+				DomainName:        "pharma-distributor.com",
+				Industry:          "Healthcare",
+				BusinessType:      "Pharmaceutical Distribution",
+				Description:       "Licensed pharmaceutical distribution services",
+				ExpectedRiskLevel: "medium",
+				ExpectedRiskScore: 0.4,
+			},
+			{
+				Name:              "Money Transfer Services",
+				WebsiteURL:        "https://money-transfer.com",
+				DomainName:        "money-transfer.com",
+				Industry:          "Financial Services",
+				BusinessType:      "Money Transfer",
+				Description:       "International money transfer and remittance services",
+				ExpectedRiskLevel: "medium",
+				ExpectedRiskScore: 0.5,
+			},
+		},
+
+		RiskKeywords: []RiskKeywordTestData{
+			{
+				Content:            "Welcome to our online casino and gambling platform. We offer the best poker, blackjack, and slot games.",
+				Source:             "website",
+				ExpectedKeywords:   []string{"casino", "gambling", "poker", "blackjack", "slot games"},
+				ExpectedRiskLevel:  "high",
+				ExpectedRiskScore:  0.8,
+				ExpectedCategories: []string{"prohibited", "high_risk"},
+			},
+			{
+				Content:            "We provide digital currency exchange services. Our platform supports Bitcoin, Ethereum, and other cryptocurrencies.",
+				Source:             "website",
+				ExpectedKeywords:   []string{"digital currency", "cryptocurrency", "Bitcoin", "Ethereum"},
+				ExpectedRiskLevel:  "medium",
+				ExpectedRiskScore:  0.6,
+				ExpectedCategories: []string{"high_risk"},
+			},
+			{
+				Content:            "Welcome to our family restaurant. We serve delicious meals and provide excellent customer service.",
+				Source:             "website",
+				ExpectedKeywords:   []string{},
+				ExpectedRiskLevel:  "low",
+				ExpectedRiskScore:  0.1,
+				ExpectedCategories: []string{},
+			},
+		},
+
+		CrosswalkMappings: []CrosswalkTestData{
+			{
+				SourceCode:         "5734",
+				SourceSystem:       "MCC",
+				TargetCode:         "1",
+				TargetSystem:       "INDUSTRY",
+				ExpectedMapping:    true,
+				ExpectedConfidence: 0.8,
+			},
+			{
+				SourceCode:         "541511",
+				SourceSystem:       "NAICS",
+				TargetCode:         "1",
+				TargetSystem:       "INDUSTRY",
+				ExpectedMapping:    true,
+				ExpectedConfidence: 0.9,
+			},
+			{
+				SourceCode:         "7372",
+				SourceSystem:       "SIC",
+				TargetCode:         "1",
+				TargetSystem:       "INDUSTRY",
+				ExpectedMapping:    true,
+				ExpectedConfidence: 0.85,
+			},
+		},
 	}
 }
 
-// getEnvOrDefault gets environment variable or returns default
+// Helper functions for environment variable handling
+
 func getEnvOrDefault(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
@@ -115,255 +260,112 @@ func getEnvOrDefault(key, defaultValue string) string {
 	return defaultValue
 }
 
-// getEnvIntOrDefault gets environment variable as int or returns default
-func getEnvIntOrDefault(key string, defaultValue int) int {
+func getIntEnvOrDefault(key string, defaultValue int) int {
 	if value := os.Getenv(key); value != "" {
-		if intValue, err := fmt.Sscanf(value, "%d", &defaultValue); err == nil && intValue == 1 {
-			return defaultValue
+		if intValue, err := strconv.Atoi(value); err == nil {
+			return intValue
 		}
 	}
 	return defaultValue
 }
 
-// SetupTestDatabase sets up a test database
-func (ts *TestSuite) SetupTestDatabase() {
-	if ts.config.DB == nil {
-		ts.t.Skip("Database not available for testing")
-		return
+func getBoolEnvOrDefault(key string, defaultValue bool) bool {
+	if value := os.Getenv(key); value != "" {
+		if boolValue, err := strconv.ParseBool(value); err == nil {
+			return boolValue
+		}
+	}
+	return defaultValue
+}
+
+func getDurationEnvOrDefault(key string, defaultValue time.Duration) time.Duration {
+	if value := os.Getenv(key); value != "" {
+		if duration, err := time.ParseDuration(value); err == nil {
+			return duration
+		}
+	}
+	return defaultValue
+}
+
+// Test utilities
+
+// AssertRiskLevel asserts that the actual risk level matches expected
+func AssertRiskLevel(actual, expected string) bool {
+	return actual == expected
+}
+
+// AssertRiskScore asserts that the actual risk score is within acceptable range
+func AssertRiskScore(actual, expected float64, tolerance float64) bool {
+	diff := actual - expected
+	if diff < 0 {
+		diff = -diff
+	}
+	return diff <= tolerance
+}
+
+// AssertKeywordsDetected asserts that expected keywords are detected
+func AssertKeywordsDetected(actualKeywords []string, expectedKeywords []string) bool {
+	if len(expectedKeywords) == 0 {
+		return len(actualKeywords) == 0
 	}
 
-	// Run migrations
-	ts.runMigrations()
-
-	// Seed test data
-	ts.seedTestData()
-}
-
-// CleanupTestDatabase cleans up test database
-func (ts *TestSuite) CleanupTestDatabase() {
-	if ts.config.DB == nil {
-		return
-	}
-
-	// Clean up test data
-	ts.cleanupTestData()
-}
-
-// runMigrations runs database migrations for testing
-func (ts *TestSuite) runMigrations() {
-	// This would run the migration system
-	// For now, we'll just log that migrations would run
-	log.Println("Running test database migrations...")
-}
-
-// seedTestData seeds the test database with minimal test data
-func (ts *TestSuite) seedTestData() {
-	// This would seed the database with test data
-	// For now, we'll just log that seeding would occur
-	log.Println("Seeding test database...")
-}
-
-// cleanupTestData cleans up test data
-func (ts *TestSuite) cleanupTestData() {
-	// This would clean up test data
-	// For now, we'll just log that cleanup would occur
-	log.Println("Cleaning up test database...")
-}
-
-// GetTestDB returns the test database instance
-func (ts *TestSuite) GetTestDB() database.Database {
-	return ts.config.DB
-}
-
-// GetTestLogger returns the test logger
-func (ts *TestSuite) GetTestLogger() *observability.Logger {
-	return ts.config.Logger
-}
-
-// GetTestConfig returns the test configuration
-func (ts *TestSuite) GetTestConfig() *TestConfig {
-	return ts.config
-}
-
-// AssertNoError asserts that there is no error
-func (ts *TestSuite) AssertNoError(err error) {
-	if err != nil {
-		ts.t.Fatalf("Expected no error, got: %v", err)
-	}
-}
-
-// AssertError asserts that there is an error
-func (ts *TestSuite) AssertError(err error) {
-	if err == nil {
-		ts.t.Fatal("Expected error, got nil")
-	}
-}
-
-// AssertEqual asserts that two values are equal
-func (ts *TestSuite) AssertEqual(expected, actual interface{}) {
-	if expected != actual {
-		ts.t.Fatalf("Expected %v, got %v", expected, actual)
-	}
-}
-
-// AssertNotNil asserts that a value is not nil
-func (ts *TestSuite) AssertNotNil(value interface{}) {
-	if value == nil {
-		ts.t.Fatal("Expected non-nil value, got nil")
-	}
-}
-
-// AssertNil asserts that a value is nil
-func (ts *TestSuite) AssertNil(value interface{}) {
-	if value != nil {
-		ts.t.Fatalf("Expected nil value, got %v", value)
-	}
-}
-
-// TestMain runs before all tests
-func TestMain(m *testing.M) {
-	// Setup test environment
-	setupTestEnvironment()
-
-	// Run tests
-	code := m.Run()
-
-	// Cleanup
-	cleanupTestEnvironment()
-
-	// Exit with test result code
-	os.Exit(code)
-}
-
-// setupTestEnvironment sets up the test environment
-func setupTestEnvironment() {
-	log.Println("Setting up test environment...")
-
-	// Load test environment variables
-	loadTestEnv()
-
-	// Set test-specific configurations
-	os.Setenv("ENV", "test")
-	os.Setenv("LOG_LEVEL", "debug")
-}
-
-// cleanupTestEnvironment cleans up the test environment
-func cleanupTestEnvironment() {
-	log.Println("Cleaning up test environment...")
-}
-
-// TestDatabaseConnection tests database connectivity
-func TestDatabaseConnection(t *testing.T) {
-	ts := NewTestSuite(t)
-	defer ts.config.Cleanup()
-
-	if ts.config.DB == nil {
-		t.Skip("Database not available for testing")
-		return
-	}
-
-	ctx := context.Background()
-	err := ts.config.DB.Ping(ctx)
-	ts.AssertNoError(err)
-}
-
-// TestDatabaseMigrations tests database migrations
-func TestDatabaseMigrations(t *testing.T) {
-	ts := NewTestSuite(t)
-	defer ts.config.Cleanup()
-
-	if ts.config.DB == nil {
-		t.Skip("Database not available for testing")
-		return
-	}
-
-	// Test that migrations can be run
-	ts.SetupTestDatabase()
-	ts.CleanupTestDatabase()
-}
-
-// TestDataSeeding tests data seeding functionality
-func TestDataSeeding(t *testing.T) {
-	ts := NewTestSuite(t)
-	defer ts.config.Cleanup()
-
-	if ts.config.DB == nil {
-		t.Skip("Database not available for testing")
-		return
-	}
-
-	// Test that data can be seeded
-	ts.SetupTestDatabase()
-
-	// Verify seeded data exists
-	// This would check that test data was properly seeded
-
-	ts.CleanupTestDatabase()
-}
-
-// TestConfiguration tests configuration loading
-func TestConfiguration(t *testing.T) {
-	// Test that configuration can be loaded
-	cfg, err := config.Load()
-	if err != nil {
-		t.Skipf("Skipping test - cannot load configuration: %v", err)
-		return
-	}
-
-	// Verify configuration is valid
-	if cfg == nil {
-		t.Fatal("Expected non-nil configuration")
-	}
-}
-
-// TestLogger tests logger functionality
-func TestLogger(t *testing.T) {
-	ts := NewTestSuite(t)
-	defer ts.config.Cleanup()
-
-	logger := ts.GetTestLogger()
-	ts.AssertNotNil(logger)
-
-	// Test logging functionality
-	logger.Info("Test log message", map[string]interface{}{
-		"test_key": "test_value",
-	})
-}
-
-// BenchmarkDatabaseOperations benchmarks database operations
-func BenchmarkDatabaseOperations(b *testing.B) {
-	ts := NewTestSuite(&testing.T{})
-	defer ts.config.Cleanup()
-
-	if ts.config.DB == nil {
-		b.Skip("Database not available for benchmarking")
-		return
-	}
-
-	ctx := context.Background()
-
-	b.Run("Ping", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			err := ts.config.DB.Ping(ctx)
-			if err != nil {
-				b.Fatalf("Database ping failed: %v", err)
+	for _, expected := range expectedKeywords {
+		found := false
+		for _, actual := range actualKeywords {
+			if actual == expected {
+				found = true
+				break
 			}
 		}
-	})
+		if !found {
+			return false
+		}
+	}
+	return true
 }
 
-// BenchmarkLoggerOperations benchmarks logger operations
-func BenchmarkLoggerOperations(b *testing.B) {
-	ts := NewTestSuite(&testing.T{})
-	defer ts.config.Cleanup()
+// AssertCategoriesDetected asserts that expected categories are detected
+func AssertCategoriesDetected(actualCategories []string, expectedCategories []string) bool {
+	if len(expectedCategories) == 0 {
+		return len(actualCategories) == 0
+	}
 
-	logger := ts.GetTestLogger()
-
-	b.Run("InfoLogging", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			logger.Info("Benchmark log message", map[string]interface{}{
-				"iteration": i,
-			})
+	for _, expected := range expectedCategories {
+		found := false
+		for _, actual := range actualCategories {
+			if actual == expected {
+				found = true
+				break
+			}
 		}
-	})
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
+// AssertPerformanceRequirement asserts that performance meets requirements
+func AssertPerformanceRequirement(actualDuration, maxDuration time.Duration) bool {
+	return actualDuration <= maxDuration
+}
+
+// GenerateTestContent generates test content of specified size
+func GenerateTestContent(size int) string {
+	baseContent := "This is a legitimate technology company providing software solutions. "
+	content := ""
+	for len(content) < size {
+		content += baseContent
+	}
+	return content[:size]
+}
+
+// GenerateRiskContent generates content with risk keywords
+func GenerateRiskContent(riskKeywords []string) string {
+	content := "Welcome to our business. "
+	for _, keyword := range riskKeywords {
+		content += "We provide " + keyword + " services. "
+	}
+	content += "Contact us for more information."
+	return content
 }

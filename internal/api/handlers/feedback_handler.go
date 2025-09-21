@@ -3,520 +3,337 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
-	"go.uber.org/zap"
-
-	"github.com/pcraw4d/business-verification/internal/feedback"
+	"github.com/gorilla/mux"
+	"github.com/petercrawford/kyb-platform/internal/feedback"
 )
 
-// FeedbackHandler handles feedback-related HTTP requests
+// FeedbackHandler handles HTTP requests for user feedback collection
 type FeedbackHandler struct {
-	feedbackService feedback.FeedbackService
-	logger          *zap.Logger
+	collector *feedback.UserFeedbackCollector
+	logger    *log.Logger
 }
 
 // NewFeedbackHandler creates a new feedback handler
-func NewFeedbackHandler(feedbackService feedback.FeedbackService, logger *zap.Logger) *FeedbackHandler {
+func NewFeedbackHandler(collector *feedback.UserFeedbackCollector, logger *log.Logger) *FeedbackHandler {
 	return &FeedbackHandler{
-		feedbackService: feedbackService,
-		logger:          logger,
+		collector: collector,
+		logger:    logger,
 	}
 }
 
-// CollectUserFeedback handles user feedback collection requests
-func (h *FeedbackHandler) CollectUserFeedback(w http.ResponseWriter, r *http.Request) {
+// FeedbackRequest represents the request payload for feedback submission
+type FeedbackRequest struct {
+	UserID                 string                        `json:"user_id" validate:"required"`
+	Category               feedback.FeedbackCategory     `json:"category" validate:"required"`
+	Rating                 int                           `json:"rating" validate:"required,min=1,max=5"`
+	Comments               string                        `json:"comments"`
+	SpecificFeatures       []string                      `json:"specific_features"`
+	ImprovementAreas       []string                      `json:"improvement_areas"`
+	ClassificationAccuracy float64                       `json:"classification_accuracy" validate:"min=0,max=1"`
+	PerformanceRating      int                           `json:"performance_rating" validate:"required,min=1,max=5"`
+	UsabilityRating        int                           `json:"usability_rating" validate:"required,min=1,max=5"`
+	BusinessImpact         feedback.BusinessImpactRating `json:"business_impact"`
+}
+
+// FeedbackResponse represents the response for feedback submission
+type FeedbackResponse struct {
+	Success    bool      `json:"success"`
+	Message    string    `json:"message"`
+	FeedbackID string    `json:"feedback_id,omitempty"`
+	Timestamp  time.Time `json:"timestamp"`
+}
+
+// FeedbackAnalysisResponse represents the response for feedback analysis
+type FeedbackAnalysisResponse struct {
+	Success   bool                       `json:"success"`
+	Analysis  *feedback.FeedbackAnalysis `json:"analysis,omitempty"`
+	Message   string                     `json:"message,omitempty"`
+	Timestamp time.Time                  `json:"timestamp"`
+}
+
+// FeedbackStatsResponse represents the response for feedback statistics
+type FeedbackStatsResponse struct {
+	Success   bool                    `json:"success"`
+	Stats     *feedback.FeedbackStats `json:"stats,omitempty"`
+	Message   string                  `json:"message,omitempty"`
+	Timestamp time.Time               `json:"timestamp"`
+}
+
+// SubmitFeedback handles POST /api/feedback/submit
+func (fh *FeedbackHandler) SubmitFeedback(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	startTime := time.Now()
 
-	h.logger.Info("handling user feedback collection request",
-		zap.String("method", r.Method),
-		zap.String("path", r.URL.Path),
-		zap.String("remote_addr", r.RemoteAddr))
-
-	// Set CORS headers
-	h.setCORSHeaders(w)
-
-	// Only allow POST requests
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Parse request body
-	var request feedback.FeedbackCollectionRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		h.logger.Error("failed to decode request body",
-			zap.Error(err))
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	// Parse request
+	var req FeedbackRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		fh.logger.Printf("Failed to decode feedback request: %v", err)
+		http.Error(w, "Invalid request format", http.StatusBadRequest)
 		return
 	}
 
 	// Validate request
-	if err := h.validateFeedbackRequest(&request); err != nil {
-		h.logger.Error("request validation failed",
-			zap.Error(err))
-		http.Error(w, fmt.Sprintf("Validation failed: %v", err), http.StatusBadRequest)
+	if err := fh.validateFeedbackRequest(&req); err != nil {
+		fh.logger.Printf("Feedback request validation failed: %v", err)
+		http.Error(w, fmt.Sprintf("Validation error: %v", err), http.StatusBadRequest)
 		return
+	}
+
+	// Convert to UserFeedback
+	userFeedback := &feedback.UserFeedback{
+		UserID:                 req.UserID,
+		Category:               req.Category,
+		Rating:                 req.Rating,
+		Comments:               req.Comments,
+		SpecificFeatures:       req.SpecificFeatures,
+		ImprovementAreas:       req.ImprovementAreas,
+		ClassificationAccuracy: req.ClassificationAccuracy,
+		PerformanceRating:      req.PerformanceRating,
+		UsabilityRating:        req.UsabilityRating,
+		BusinessImpact:         req.BusinessImpact,
 	}
 
 	// Collect feedback
-	response, err := h.feedbackService.CollectUserFeedback(ctx, request)
-	if err != nil {
-		h.logger.Error("failed to collect user feedback",
-			zap.String("user_id", request.UserID),
-			zap.Error(err))
-		http.Error(w, "Failed to collect feedback", http.StatusInternalServerError)
+	if err := fh.collector.CollectFeedback(ctx, userFeedback); err != nil {
+		fh.logger.Printf("Failed to collect feedback: %v", err)
+		http.Error(w, "Failed to submit feedback", http.StatusInternalServerError)
 		return
 	}
-
-	// Set response headers
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-
-	// Encode response
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Error("failed to encode response",
-			zap.Error(err))
-		return
-	}
-
-	processingTime := time.Since(startTime)
-	h.logger.Info("user feedback collection completed",
-		zap.String("feedback_id", response.ID),
-		zap.Duration("processing_time", processingTime))
-}
-
-// CollectMLModelFeedback handles ML model feedback collection requests
-func (h *FeedbackHandler) CollectMLModelFeedback(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	startTime := time.Now()
-
-	h.logger.Info("handling ML model feedback collection request",
-		zap.String("method", r.Method),
-		zap.String("path", r.URL.Path))
-
-	// Set CORS headers
-	h.setCORSHeaders(w)
-
-	// Only allow POST requests
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Parse request body
-	var mlFeedback feedback.MLModelFeedback
-	if err := json.NewDecoder(r.Body).Decode(&mlFeedback); err != nil {
-		h.logger.Error("failed to decode ML model feedback request body",
-			zap.Error(err))
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	// Collect ML model feedback
-	if err := h.feedbackService.CollectMLModelFeedback(ctx, mlFeedback); err != nil {
-		h.logger.Error("failed to collect ML model feedback",
-			zap.String("model_version_id", mlFeedback.ModelVersionID),
-			zap.Error(err))
-		http.Error(w, "Failed to collect ML model feedback", http.StatusInternalServerError)
-		return
-	}
-
-	// Set response headers
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
 
 	// Return success response
-	response := map[string]interface{}{
-		"status":      "success",
-		"message":     "ML model feedback collected successfully",
-		"feedback_id": mlFeedback.ID,
-		"timestamp":   time.Now().Format(time.RFC3339),
+	response := FeedbackResponse{
+		Success:    true,
+		Message:    "Feedback submitted successfully",
+		FeedbackID: userFeedback.ID.String(),
+		Timestamp:  time.Now(),
 	}
 
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Error("failed to encode ML model feedback response",
-			zap.Error(err))
-		return
-	}
-
-	processingTime := time.Since(startTime)
-	h.logger.Info("ML model feedback collection completed",
-		zap.String("feedback_id", mlFeedback.ID),
-		zap.Duration("processing_time", processingTime))
-}
-
-// CollectSecurityValidationFeedback handles security validation feedback collection requests
-func (h *FeedbackHandler) CollectSecurityValidationFeedback(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	startTime := time.Now()
-
-	h.logger.Info("handling security validation feedback collection request",
-		zap.String("method", r.Method),
-		zap.String("path", r.URL.Path))
-
-	// Set CORS headers
-	h.setCORSHeaders(w)
-
-	// Only allow POST requests
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Parse request body
-	var securityFeedback feedback.SecurityValidationFeedback
-	if err := json.NewDecoder(r.Body).Decode(&securityFeedback); err != nil {
-		h.logger.Error("failed to decode security validation feedback request body",
-			zap.Error(err))
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	// Collect security validation feedback
-	if err := h.feedbackService.CollectSecurityValidationFeedback(ctx, securityFeedback); err != nil {
-		h.logger.Error("failed to collect security validation feedback",
-			zap.String("validation_type", securityFeedback.ValidationType),
-			zap.Error(err))
-		http.Error(w, "Failed to collect security validation feedback", http.StatusInternalServerError)
-		return
-	}
-
-	// Set response headers
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(response)
 
-	// Return success response
-	response := map[string]interface{}{
-		"status":      "success",
-		"message":     "Security validation feedback collected successfully",
-		"feedback_id": securityFeedback.ID,
-		"timestamp":   time.Now().Format(time.RFC3339),
-	}
-
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Error("failed to encode security validation feedback response",
-			zap.Error(err))
-		return
-	}
-
-	processingTime := time.Since(startTime)
-	h.logger.Info("security validation feedback collection completed",
-		zap.String("feedback_id", securityFeedback.ID),
-		zap.Duration("processing_time", processingTime))
+	fh.logger.Printf("Feedback submitted successfully: ID=%s, User=%s, Category=%s",
+		userFeedback.ID, req.UserID, req.Category)
 }
 
-// CollectBatchFeedback handles batch feedback collection requests
-func (h *FeedbackHandler) CollectBatchFeedback(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	startTime := time.Now()
-
-	h.logger.Info("handling batch feedback collection request",
-		zap.String("method", r.Method),
-		zap.String("path", r.URL.Path))
-
-	// Set CORS headers
-	h.setCORSHeaders(w)
-
-	// Only allow POST requests
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Parse request body
-	var requests []feedback.FeedbackCollectionRequest
-	if err := json.NewDecoder(r.Body).Decode(&requests); err != nil {
-		h.logger.Error("failed to decode batch feedback request body",
-			zap.Error(err))
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	// Validate batch size
-	if len(requests) > 100 {
-		http.Error(w, "Batch size cannot exceed 100 requests", http.StatusBadRequest)
-		return
-	}
-
-	// Collect batch feedback
-	responses, err := h.feedbackService.CollectBatchFeedback(ctx, requests)
-	if err != nil {
-		h.logger.Error("failed to collect batch feedback",
-			zap.Int("request_count", len(requests)),
-			zap.Error(err))
-		http.Error(w, "Failed to collect batch feedback", http.StatusInternalServerError)
-		return
-	}
-
-	// Set response headers
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-
-	// Return batch response
-	response := map[string]interface{}{
-		"status":      "success",
-		"message":     "Batch feedback collection completed",
-		"responses":   responses,
-		"total_count": len(responses),
-		"timestamp":   time.Now().Format(time.RFC3339),
-	}
-
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Error("failed to encode batch feedback response",
-			zap.Error(err))
-		return
-	}
-
-	processingTime := time.Since(startTime)
-	h.logger.Info("batch feedback collection completed",
-		zap.Int("request_count", len(requests)),
-		zap.Int("response_count", len(responses)),
-		zap.Duration("processing_time", processingTime))
-}
-
-// AnalyzeFeedbackTrends handles feedback trends analysis requests
-func (h *FeedbackHandler) AnalyzeFeedbackTrends(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	startTime := time.Now()
-
-	h.logger.Info("handling feedback trends analysis request",
-		zap.String("method", r.Method),
-		zap.String("path", r.URL.Path))
-
-	// Set CORS headers
-	h.setCORSHeaders(w)
-
-	// Only allow GET requests
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Parse query parameters
-	request := h.parseFeedbackAnalysisRequest(r)
-
-	// Analyze feedback trends
-	response, err := h.feedbackService.AnalyzeFeedbackTrends(ctx, request)
-	if err != nil {
-		h.logger.Error("failed to analyze feedback trends",
-			zap.Error(err))
-		http.Error(w, "Failed to analyze feedback trends", http.StatusInternalServerError)
-		return
-	}
-
-	// Set response headers
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-	// Encode response
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Error("failed to encode feedback trends response",
-			zap.Error(err))
-		return
-	}
-
-	processingTime := time.Since(startTime)
-	h.logger.Info("feedback trends analysis completed",
-		zap.Int("trend_count", len(response.Trends)),
-		zap.Duration("processing_time", processingTime))
-}
-
-// GetFeedbackInsights handles feedback insights requests
-func (h *FeedbackHandler) GetFeedbackInsights(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	startTime := time.Now()
-
-	h.logger.Info("handling feedback insights request",
-		zap.String("method", r.Method),
-		zap.String("path", r.URL.Path))
-
-	// Set CORS headers
-	h.setCORSHeaders(w)
-
-	// Only allow GET requests
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Parse method from query parameters
-	methodStr := r.URL.Query().Get("method")
-	if methodStr == "" {
-		http.Error(w, "Method parameter is required", http.StatusBadRequest)
-		return
-	}
-
-	method := feedback.ClassificationMethod(methodStr)
-
-	// Generate feedback insights
-	insights, err := h.feedbackService.GenerateFeedbackInsights(ctx, method)
-	if err != nil {
-		h.logger.Error("failed to generate feedback insights",
-			zap.String("method", string(method)),
-			zap.Error(err))
-		http.Error(w, "Failed to generate feedback insights", http.StatusInternalServerError)
-		return
-	}
-
-	// Set response headers
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-	// Encode response
-	if err := json.NewEncoder(w).Encode(insights); err != nil {
-		h.logger.Error("failed to encode feedback insights response",
-			zap.Error(err))
-		return
-	}
-
-	processingTime := time.Since(startTime)
-	h.logger.Info("feedback insights generation completed",
-		zap.String("method", string(method)),
-		zap.Duration("processing_time", processingTime))
-}
-
-// GetServiceHealth handles service health check requests
-func (h *FeedbackHandler) GetServiceHealth(w http.ResponseWriter, r *http.Request) {
+// GetFeedbackAnalysis handles GET /api/feedback/analysis/{category}
+func (fh *FeedbackHandler) GetFeedbackAnalysis(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	h.logger.Info("handling service health check request",
-		zap.String("method", r.Method),
-		zap.String("path", r.URL.Path))
+	// Get category from URL
+	vars := mux.Vars(r)
+	category := feedback.FeedbackCategory(vars["category"])
 
-	// Set CORS headers
-	h.setCORSHeaders(w)
-
-	// Only allow GET requests
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	// Validate category
+	if !fh.isValidCategory(category) {
+		http.Error(w, "Invalid feedback category", http.StatusBadRequest)
 		return
 	}
 
-	// Get service health
-	health, err := h.feedbackService.GetServiceHealth(ctx)
+	// Get analysis
+	analysis, err := fh.collector.GetFeedbackAnalysis(ctx, category)
 	if err != nil {
-		h.logger.Error("failed to get service health",
-			zap.Error(err))
-		http.Error(w, "Failed to get service health", http.StatusInternalServerError)
+		fh.logger.Printf("Failed to get feedback analysis: %v", err)
+		http.Error(w, "Failed to retrieve feedback analysis", http.StatusInternalServerError)
 		return
 	}
 
-	// Set response headers
+	// Return analysis response
+	response := FeedbackAnalysisResponse{
+		Success:   true,
+		Analysis:  analysis,
+		Timestamp: time.Now(),
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-	// Encode response
-	if err := json.NewEncoder(w).Encode(health); err != nil {
-		h.logger.Error("failed to encode service health response",
-			zap.Error(err))
-		return
-	}
+	json.NewEncoder(w).Encode(response)
 }
 
-// GetServiceMetrics handles service metrics requests
-func (h *FeedbackHandler) GetServiceMetrics(w http.ResponseWriter, r *http.Request) {
+// GetFeedbackStats handles GET /api/feedback/stats
+func (fh *FeedbackHandler) GetFeedbackStats(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	h.logger.Info("handling service metrics request",
-		zap.String("method", r.Method),
-		zap.String("path", r.URL.Path))
-
-	// Set CORS headers
-	h.setCORSHeaders(w)
-
-	// Only allow GET requests
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Get service metrics
-	metrics, err := h.feedbackService.GetServiceMetrics(ctx)
+	// Get statistics
+	stats, err := fh.collector.GetFeedbackStats(ctx)
 	if err != nil {
-		h.logger.Error("failed to get service metrics",
-			zap.Error(err))
-		http.Error(w, "Failed to get service metrics", http.StatusInternalServerError)
+		fh.logger.Printf("Failed to get feedback stats: %v", err)
+		http.Error(w, "Failed to retrieve feedback statistics", http.StatusInternalServerError)
 		return
 	}
 
-	// Set response headers
+	// Return stats response
+	response := FeedbackStatsResponse{
+		Success:   true,
+		Stats:     stats,
+		Timestamp: time.Now(),
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+}
 
-	// Encode response
-	if err := json.NewEncoder(w).Encode(metrics); err != nil {
-		h.logger.Error("failed to encode service metrics response",
-			zap.Error(err))
+// ExportFeedback handles GET /api/feedback/export/{category}?format={json|csv}
+func (fh *FeedbackHandler) ExportFeedback(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// Get category from URL
+	vars := mux.Vars(r)
+	category := feedback.FeedbackCategory(vars["category"])
+
+	// Validate category
+	if !fh.isValidCategory(category) {
+		http.Error(w, "Invalid feedback category", http.StatusBadRequest)
 		return
 	}
+
+	// Get format from query parameter
+	format := r.URL.Query().Get("format")
+	if format == "" {
+		format = "json" // Default format
+	}
+
+	// Validate format
+	if format != "json" && format != "csv" {
+		http.Error(w, "Invalid export format. Supported formats: json, csv", http.StatusBadRequest)
+		return
+	}
+
+	// Export feedback
+	data, err := fh.collector.ExportFeedback(ctx, format, category)
+	if err != nil {
+		fh.logger.Printf("Failed to export feedback: %v", err)
+		http.Error(w, "Failed to export feedback", http.StatusInternalServerError)
+		return
+	}
+
+	// Set appropriate headers
+	if format == "csv" {
+		w.Header().Set("Content-Type", "text/csv")
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=feedback_%s.csv", category))
+	} else {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=feedback_%s.json", category))
+	}
+
+	w.Write(data)
 }
 
-// Helper methods
+// GetFeedbackByTimeRange handles GET /api/feedback/range?start={timestamp}&end={timestamp}
+func (fh *FeedbackHandler) GetFeedbackByTimeRange(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 
-// setCORSHeaders sets CORS headers for cross-origin requests
-func (h *FeedbackHandler) setCORSHeaders(w http.ResponseWriter) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	// Parse time range parameters
+	startStr := r.URL.Query().Get("start")
+	endStr := r.URL.Query().Get("end")
+
+	if startStr == "" || endStr == "" {
+		http.Error(w, "Both start and end timestamps are required", http.StatusBadRequest)
+		return
+	}
+
+	// Parse timestamps
+	start, err := time.Parse(time.RFC3339, startStr)
+	if err != nil {
+		http.Error(w, "Invalid start timestamp format. Use RFC3339 format", http.StatusBadRequest)
+		return
+	}
+
+	end, err := time.Parse(time.RFC3339, endStr)
+	if err != nil {
+		http.Error(w, "Invalid end timestamp format. Use RFC3339 format", http.StatusBadRequest)
+		return
+	}
+
+	// Validate time range
+	if start.After(end) {
+		http.Error(w, "Start time must be before end time", http.StatusBadRequest)
+		return
+	}
+
+	// Get feedback by time range
+	feedbackData, err := fh.collector.GetFeedbackByTimeRange(ctx, start, end)
+	if err != nil {
+		fh.logger.Printf("Failed to get feedback by time range: %v", err)
+		http.Error(w, "Failed to retrieve feedback", http.StatusInternalServerError)
+		return
+	}
+
+	// Return feedback data
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":   true,
+		"feedback":  feedbackData,
+		"count":     len(feedbackData),
+		"timestamp": time.Now(),
+	})
 }
 
-// validateFeedbackRequest validates a feedback collection request
-func (h *FeedbackHandler) validateFeedbackRequest(request *feedback.FeedbackCollectionRequest) error {
-	if request.UserID == "" {
+// validateFeedbackRequest validates the feedback request
+func (fh *FeedbackHandler) validateFeedbackRequest(req *FeedbackRequest) error {
+	if req.UserID == "" {
 		return fmt.Errorf("user ID is required")
 	}
 
-	if request.BusinessName == "" {
-		return fmt.Errorf("business name is required")
+	if req.Category == "" {
+		return fmt.Errorf("category is required")
 	}
 
-	if request.OriginalClassificationID == "" {
-		return fmt.Errorf("original classification ID is required")
+	if req.Rating < 1 || req.Rating > 5 {
+		return fmt.Errorf("rating must be between 1 and 5")
 	}
 
-	if request.FeedbackType == "" {
-		return fmt.Errorf("feedback type is required")
+	if req.PerformanceRating < 1 || req.PerformanceRating > 5 {
+		return fmt.Errorf("performance rating must be between 1 and 5")
+	}
+
+	if req.UsabilityRating < 1 || req.UsabilityRating > 5 {
+		return fmt.Errorf("usability rating must be between 1 and 5")
+	}
+
+	if req.ClassificationAccuracy < 0 || req.ClassificationAccuracy > 1 {
+		return fmt.Errorf("classification accuracy must be between 0 and 1")
 	}
 
 	return nil
 }
 
-// parseFeedbackAnalysisRequest parses query parameters into a feedback analysis request
-func (h *FeedbackHandler) parseFeedbackAnalysisRequest(r *http.Request) feedback.FeedbackAnalysisRequest {
-	request := feedback.FeedbackAnalysisRequest{}
-
-	if method := r.URL.Query().Get("method"); method != "" {
-		request.Method = feedback.ClassificationMethod(method)
+// isValidCategory checks if the category is valid
+func (fh *FeedbackHandler) isValidCategory(category feedback.FeedbackCategory) bool {
+	validCategories := []feedback.FeedbackCategory{
+		feedback.CategoryDatabasePerformance,
+		feedback.CategoryClassificationAccuracy,
+		feedback.CategoryUserExperience,
+		feedback.CategoryRiskDetection,
+		feedback.CategoryOverallSatisfaction,
+		feedback.CategoryFeatureRequest,
+		feedback.CategoryBugReport,
 	}
 
-	if timeWindow := r.URL.Query().Get("time_window"); timeWindow != "" {
-		request.TimeWindow = timeWindow
-	}
-
-	if feedbackType := r.URL.Query().Get("feedback_type"); feedbackType != "" {
-		request.FeedbackType = feedback.FeedbackType(feedbackType)
-	}
-
-	if startDateStr := r.URL.Query().Get("start_date"); startDateStr != "" {
-		if startDate, err := time.Parse(time.RFC3339, startDateStr); err == nil {
-			request.StartDate = &startDate
+	for _, valid := range validCategories {
+		if category == valid {
+			return true
 		}
 	}
-
-	if endDateStr := r.URL.Query().Get("end_date"); endDateStr != "" {
-		if endDate, err := time.Parse(time.RFC3339, endDateStr); err == nil {
-			request.EndDate = &endDate
-		}
-	}
-
-	return request
+	return false
 }
 
-// HandleOptions handles CORS preflight requests
-func (h *FeedbackHandler) HandleOptions(w http.ResponseWriter, r *http.Request) {
-	h.setCORSHeaders(w)
-	w.WriteHeader(http.StatusOK)
+// RegisterFeedbackRoutes registers all feedback-related routes
+func RegisterFeedbackRoutes(router *mux.Router, handler *FeedbackHandler) {
+	// Feedback submission
+	router.HandleFunc("/api/feedback/submit", handler.SubmitFeedback).Methods("POST")
+
+	// Feedback analysis
+	router.HandleFunc("/api/feedback/analysis/{category}", handler.GetFeedbackAnalysis).Methods("GET")
+
+	// Feedback statistics
+	router.HandleFunc("/api/feedback/stats", handler.GetFeedbackStats).Methods("GET")
+
+	// Feedback export
+	router.HandleFunc("/api/feedback/export/{category}", handler.ExportFeedback).Methods("GET")
+
+	// Feedback by time range
+	router.HandleFunc("/api/feedback/range", handler.GetFeedbackByTimeRange).Methods("GET")
 }

@@ -17,23 +17,50 @@ var (
 	ErrInvalidCredentials     = errors.New("invalid credentials")
 )
 
-// User represents a user in the system
+// User represents a consolidated user in the system
+// This struct matches the users_consolidated table schema
 type User struct {
-	ID                  string     `json:"id" db:"id"`
-	Email               string     `json:"email" db:"email"`
-	Username            string     `json:"username" db:"username"`
-	PasswordHash        string     `json:"-" db:"password_hash"`
-	FirstName           string     `json:"first_name" db:"first_name"`
-	LastName            string     `json:"last_name" db:"last_name"`
-	Company             string     `json:"company" db:"company"`
-	Role                string     `json:"role" db:"role"`
-	Status              string     `json:"status" db:"status"`
-	EmailVerified       bool       `json:"email_verified" db:"email_verified"`
-	LastLoginAt         *time.Time `json:"last_login_at" db:"last_login_at"`
+	// Primary identification
+	ID       string `json:"id" db:"id"`
+	Email    string `json:"email" db:"email"`
+	Username string `json:"username" db:"username"`
+
+	// Authentication
+	PasswordHash string `json:"-" db:"password_hash"`
+
+	// Profile information (multiple name fields for compatibility)
+	FirstName string `json:"first_name" db:"first_name"`
+	LastName  string `json:"last_name" db:"last_name"`
+	FullName  string `json:"full_name" db:"full_name"`
+	Name      string `json:"name" db:"name"` // Computed field for backward compatibility
+
+	// Business information
+	Company string `json:"company" db:"company"`
+
+	// Role and permissions
+	Role string `json:"role" db:"role"`
+
+	// Account status and security
+	Status   string `json:"status" db:"status"`
+	IsActive bool   `json:"is_active" db:"is_active"`
+
+	// Email verification
+	EmailVerified   bool       `json:"email_verified" db:"email_verified"`
+	EmailVerifiedAt *time.Time `json:"email_verified_at" db:"email_verified_at"`
+
+	// Security features
 	FailedLoginAttempts int        `json:"failed_login_attempts" db:"failed_login_attempts"`
 	LockedUntil         *time.Time `json:"locked_until" db:"locked_until"`
-	CreatedAt           time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt           time.Time  `json:"updated_at" db:"updated_at"`
+
+	// Activity tracking
+	LastLoginAt *time.Time `json:"last_login_at" db:"last_login_at"`
+
+	// Metadata and extensibility
+	Metadata map[string]interface{} `json:"metadata" db:"metadata"`
+
+	// Audit fields
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // Business represents a business entity

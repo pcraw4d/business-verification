@@ -231,23 +231,58 @@ func (p *PostgresDB) ListUsers(ctx context.Context, limit, offset int) ([]*User,
 	return users, nil
 }
 
-// CreateBusiness creates a new business
+// CreateBusiness creates a new business (now stored in merchants table)
 func (p *PostgresDB) CreateBusiness(ctx context.Context, business *Business) error {
+	// Get default portfolio type and risk level IDs
+	var portfolioTypeID, riskLevelID string
+
+	// Get default portfolio type (prospective)
+	err := p.getDB().QueryRowContext(ctx,
+		"SELECT id FROM portfolio_types WHERE type = 'prospective' LIMIT 1").Scan(&portfolioTypeID)
+	if err != nil {
+		// Fallback to first available portfolio type
+		err = p.getDB().QueryRowContext(ctx,
+			"SELECT id FROM portfolio_types LIMIT 1").Scan(&portfolioTypeID)
+		if err != nil {
+			return fmt.Errorf("failed to get default portfolio type: %w", err)
+		}
+	}
+
+	// Get default risk level (medium)
+	err = p.getDB().QueryRowContext(ctx,
+		"SELECT id FROM risk_levels WHERE level = 'medium' LIMIT 1").Scan(&riskLevelID)
+	if err != nil {
+		// Fallback to first available risk level
+		err = p.getDB().QueryRowContext(ctx,
+			"SELECT id FROM risk_levels LIMIT 1").Scan(&riskLevelID)
+		if err != nil {
+			return fmt.Errorf("failed to get default risk level: %w", err)
+		}
+	}
+
 	query := `
-		INSERT INTO businesses (
+		INSERT INTO merchants (
 			id, name, legal_name, registration_number, tax_id, industry, industry_code,
 			business_type, founded_date, employee_count, annual_revenue,
 			address_street1, address_street2, address_city, address_state,
 			address_postal_code, address_country, address_country_code,
 			contact_phone, contact_email, contact_website, contact_primary_contact,
-			status, risk_level, compliance_status, created_by
+			portfolio_type_id, risk_level_id, compliance_status, status, created_by,
+			metadata, website_url, description
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
-			$16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26
+			$16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30
 		)
 	`
 
-	_, err := p.getDB().ExecContext(ctx, query,
+	// Convert risk level string to appropriate format for metadata
+	metadata := map[string]interface{}{
+		"original_risk_level": business.RiskLevel,
+		"migrated_from":       "businesses_table",
+	}
+	metadataJSON, _ := json.Marshal(metadata)
+
+	_, err = p.getDB().ExecContext(ctx, query,
 		business.ID, business.Name, business.LegalName, business.RegistrationNumber,
 		business.TaxID, business.Industry, business.IndustryCode, business.BusinessType,
 		business.FoundedDate, business.EmployeeCount, business.AnnualRevenue,
@@ -255,18 +290,33 @@ func (p *PostgresDB) CreateBusiness(ctx context.Context, business *Business) err
 		business.Address.State, business.Address.PostalCode, business.Address.Country,
 		business.Address.CountryCode, business.ContactInfo.Phone, business.ContactInfo.Email,
 		business.ContactInfo.Website, business.ContactInfo.PrimaryContact,
-		business.Status, business.RiskLevel, business.ComplianceStatus, business.CreatedBy)
+		portfolioTypeID, riskLevelID, business.ComplianceStatus, business.Status, business.CreatedBy,
+		metadataJSON, business.ContactInfo.Website, "")
 
 	return err
 }
 
-// GetBusinessByID retrieves a business by ID
+// GetBusinessByID retrieves a business by ID (now from merchants table)
 func (p *PostgresDB) GetBusinessByID(ctx context.Context, id string) (*Business, error) {
-	query := `SELECT * FROM businesses WHERE id = $1`
+	query := `
+		SELECT 
+			m.id, m.name, m.legal_name, m.registration_number, m.tax_id, 
+			m.industry, m.industry_code, m.business_type, m.founded_date, 
+			m.employee_count, m.annual_revenue,
+			m.address_street1, m.address_street2, m.address_city, m.address_state,
+			m.address_postal_code, m.address_country, m.address_country_code,
+			m.contact_phone, m.contact_email, m.contact_website, m.contact_primary_contact,
+			m.status, m.compliance_status, m.created_by, m.created_at, m.updated_at,
+			rl.level as risk_level
+		FROM merchants m
+		LEFT JOIN risk_levels rl ON m.risk_level_id = rl.id
+		WHERE m.id = $1
+	`
 
 	row := p.getDB().QueryRowContext(ctx, query, id)
 
 	var business Business
+	var riskLevel sql.NullString
 	err := row.Scan(
 		&business.ID, &business.Name, &business.LegalName, &business.RegistrationNumber,
 		&business.TaxID, &business.Industry, &business.IndustryCode, &business.BusinessType,
@@ -275,23 +325,44 @@ func (p *PostgresDB) GetBusinessByID(ctx context.Context, id string) (*Business,
 		&business.Address.State, &business.Address.PostalCode, &business.Address.Country,
 		&business.Address.CountryCode, &business.ContactInfo.Phone, &business.ContactInfo.Email,
 		&business.ContactInfo.Website, &business.ContactInfo.PrimaryContact,
-		&business.Status, &business.RiskLevel, &business.ComplianceStatus, &business.CreatedBy,
-		&business.CreatedAt, &business.UpdatedAt)
+		&business.Status, &business.ComplianceStatus, &business.CreatedBy,
+		&business.CreatedAt, &business.UpdatedAt, &riskLevel)
 
 	if err != nil {
 		return nil, err
 	}
 
+	// Set risk level from lookup table or default
+	if riskLevel.Valid {
+		business.RiskLevel = riskLevel.String
+	} else {
+		business.RiskLevel = "medium" // default
+	}
+
 	return &business, nil
 }
 
-// GetBusinessByRegistrationNumber retrieves a business by registration number
+// GetBusinessByRegistrationNumber retrieves a business by registration number (now from merchants table)
 func (p *PostgresDB) GetBusinessByRegistrationNumber(ctx context.Context, regNumber string) (*Business, error) {
-	query := `SELECT * FROM businesses WHERE registration_number = $1`
+	query := `
+		SELECT 
+			m.id, m.name, m.legal_name, m.registration_number, m.tax_id, 
+			m.industry, m.industry_code, m.business_type, m.founded_date, 
+			m.employee_count, m.annual_revenue,
+			m.address_street1, m.address_street2, m.address_city, m.address_state,
+			m.address_postal_code, m.address_country, m.address_country_code,
+			m.contact_phone, m.contact_email, m.contact_website, m.contact_primary_contact,
+			m.status, m.compliance_status, m.created_by, m.created_at, m.updated_at,
+			rl.level as risk_level
+		FROM merchants m
+		LEFT JOIN risk_levels rl ON m.risk_level_id = rl.id
+		WHERE m.registration_number = $1
+	`
 
 	row := p.getDB().QueryRowContext(ctx, query, regNumber)
 
 	var business Business
+	var riskLevel sql.NullString
 	err := row.Scan(
 		&business.ID, &business.Name, &business.LegalName, &business.RegistrationNumber,
 		&business.TaxID, &business.Industry, &business.IndustryCode, &business.BusinessType,
@@ -300,20 +371,40 @@ func (p *PostgresDB) GetBusinessByRegistrationNumber(ctx context.Context, regNum
 		&business.Address.State, &business.Address.PostalCode, &business.Address.Country,
 		&business.Address.CountryCode, &business.ContactInfo.Phone, &business.ContactInfo.Email,
 		&business.ContactInfo.Website, &business.ContactInfo.PrimaryContact,
-		&business.Status, &business.RiskLevel, &business.ComplianceStatus, &business.CreatedBy,
-		&business.CreatedAt, &business.UpdatedAt)
+		&business.Status, &business.ComplianceStatus, &business.CreatedBy,
+		&business.CreatedAt, &business.UpdatedAt, &riskLevel)
 
 	if err != nil {
 		return nil, err
 	}
 
+	// Set risk level from lookup table or default
+	if riskLevel.Valid {
+		business.RiskLevel = riskLevel.String
+	} else {
+		business.RiskLevel = "medium" // default
+	}
+
 	return &business, nil
 }
 
-// UpdateBusiness updates an existing business
+// UpdateBusiness updates an existing business (now in merchants table)
 func (p *PostgresDB) UpdateBusiness(ctx context.Context, business *Business) error {
+	// Get risk level ID from the risk level string
+	var riskLevelID string
+	err := p.getDB().QueryRowContext(ctx,
+		"SELECT id FROM risk_levels WHERE level = $1 LIMIT 1", business.RiskLevel).Scan(&riskLevelID)
+	if err != nil {
+		// Fallback to medium risk level
+		err = p.getDB().QueryRowContext(ctx,
+			"SELECT id FROM risk_levels WHERE level = 'medium' LIMIT 1").Scan(&riskLevelID)
+		if err != nil {
+			return fmt.Errorf("failed to get risk level ID: %w", err)
+		}
+	}
+
 	query := `
-		UPDATE businesses 
+		UPDATE merchants 
 		SET name = $2, legal_name = $3, registration_number = $4, tax_id = $5,
 		    industry = $6, industry_code = $7, business_type = $8, founded_date = $9,
 		    employee_count = $10, annual_revenue = $11,
@@ -321,12 +412,12 @@ func (p *PostgresDB) UpdateBusiness(ctx context.Context, business *Business) err
 		    address_state = $15, address_postal_code = $16, address_country = $17,
 		    address_country_code = $18, contact_phone = $19, contact_email = $20,
 		    contact_website = $21, contact_primary_contact = $22,
-		    status = $23, risk_level = $24, compliance_status = $25,
+		    status = $23, risk_level_id = $24, compliance_status = $25,
 		    updated_at = CURRENT_TIMESTAMP
 		WHERE id = $1
 	`
 
-	_, err := p.getDB().ExecContext(ctx, query,
+	_, err = p.getDB().ExecContext(ctx, query,
 		business.ID, business.Name, business.LegalName, business.RegistrationNumber,
 		business.TaxID, business.Industry, business.IndustryCode, business.BusinessType,
 		business.FoundedDate, business.EmployeeCount, business.AnnualRevenue,
@@ -334,22 +425,35 @@ func (p *PostgresDB) UpdateBusiness(ctx context.Context, business *Business) err
 		business.Address.State, business.Address.PostalCode, business.Address.Country,
 		business.Address.CountryCode, business.ContactInfo.Phone, business.ContactInfo.Email,
 		business.ContactInfo.Website, business.ContactInfo.PrimaryContact,
-		business.Status, business.RiskLevel, business.ComplianceStatus)
+		business.Status, riskLevelID, business.ComplianceStatus)
 
 	return err
 }
 
-// DeleteBusiness deletes a business by ID
+// DeleteBusiness deletes a business by ID (now from merchants table)
 func (p *PostgresDB) DeleteBusiness(ctx context.Context, id string) error {
-	query := `DELETE FROM businesses WHERE id = $1`
+	query := `DELETE FROM merchants WHERE id = $1`
 
 	_, err := p.getDB().ExecContext(ctx, query, id)
 	return err
 }
 
-// ListBusinesses retrieves a list of businesses with pagination
+// ListBusinesses retrieves a list of businesses with pagination (now from merchants table)
 func (p *PostgresDB) ListBusinesses(ctx context.Context, limit, offset int) ([]*Business, error) {
-	query := `SELECT * FROM businesses ORDER BY created_at DESC LIMIT $1 OFFSET $2`
+	query := `
+		SELECT 
+			m.id, m.name, m.legal_name, m.registration_number, m.tax_id, 
+			m.industry, m.industry_code, m.business_type, m.founded_date, 
+			m.employee_count, m.annual_revenue,
+			m.address_street1, m.address_street2, m.address_city, m.address_state,
+			m.address_postal_code, m.address_country, m.address_country_code,
+			m.contact_phone, m.contact_email, m.contact_website, m.contact_primary_contact,
+			m.status, m.compliance_status, m.created_by, m.created_at, m.updated_at,
+			rl.level as risk_level
+		FROM merchants m
+		LEFT JOIN risk_levels rl ON m.risk_level_id = rl.id
+		ORDER BY m.created_at DESC LIMIT $1 OFFSET $2
+	`
 
 	rows, err := p.getDB().QueryContext(ctx, query, limit, offset)
 	if err != nil {
@@ -360,6 +464,7 @@ func (p *PostgresDB) ListBusinesses(ctx context.Context, limit, offset int) ([]*
 	var businesses []*Business
 	for rows.Next() {
 		var business Business
+		var riskLevel sql.NullString
 		err := rows.Scan(
 			&business.ID, &business.Name, &business.LegalName, &business.RegistrationNumber,
 			&business.TaxID, &business.Industry, &business.IndustryCode, &business.BusinessType,
@@ -368,23 +473,41 @@ func (p *PostgresDB) ListBusinesses(ctx context.Context, limit, offset int) ([]*
 			&business.Address.State, &business.Address.PostalCode, &business.Address.Country,
 			&business.Address.CountryCode, &business.ContactInfo.Phone, &business.ContactInfo.Email,
 			&business.ContactInfo.Website, &business.ContactInfo.PrimaryContact,
-			&business.Status, &business.RiskLevel, &business.ComplianceStatus, &business.CreatedBy,
-			&business.CreatedAt, &business.UpdatedAt)
+			&business.Status, &business.ComplianceStatus, &business.CreatedBy,
+			&business.CreatedAt, &business.UpdatedAt, &riskLevel)
 		if err != nil {
 			return nil, err
 		}
+
+		// Set risk level from lookup table or default
+		if riskLevel.Valid {
+			business.RiskLevel = riskLevel.String
+		} else {
+			business.RiskLevel = "medium" // default
+		}
+
 		businesses = append(businesses, &business)
 	}
 
 	return businesses, nil
 }
 
-// SearchBusinesses searches businesses by query
+// SearchBusinesses searches businesses by query (now from merchants table)
 func (p *PostgresDB) SearchBusinesses(ctx context.Context, query string, limit, offset int) ([]*Business, error) {
 	searchQuery := `
-		SELECT * FROM businesses 
-		WHERE name ILIKE $1 OR legal_name ILIKE $1 OR registration_number ILIKE $1
-		ORDER BY created_at DESC LIMIT $2 OFFSET $3
+		SELECT 
+			m.id, m.name, m.legal_name, m.registration_number, m.tax_id, 
+			m.industry, m.industry_code, m.business_type, m.founded_date, 
+			m.employee_count, m.annual_revenue,
+			m.address_street1, m.address_street2, m.address_city, m.address_state,
+			m.address_postal_code, m.address_country, m.address_country_code,
+			m.contact_phone, m.contact_email, m.contact_website, m.contact_primary_contact,
+			m.status, m.compliance_status, m.created_by, m.created_at, m.updated_at,
+			rl.level as risk_level
+		FROM merchants m
+		LEFT JOIN risk_levels rl ON m.risk_level_id = rl.id
+		WHERE m.name ILIKE $1 OR m.legal_name ILIKE $1 OR m.registration_number ILIKE $1
+		ORDER BY m.created_at DESC LIMIT $2 OFFSET $3
 	`
 
 	searchTerm := "%" + query + "%"
@@ -397,6 +520,7 @@ func (p *PostgresDB) SearchBusinesses(ctx context.Context, query string, limit, 
 	var businesses []*Business
 	for rows.Next() {
 		var business Business
+		var riskLevel sql.NullString
 		err := rows.Scan(
 			&business.ID, &business.Name, &business.LegalName, &business.RegistrationNumber,
 			&business.TaxID, &business.Industry, &business.IndustryCode, &business.BusinessType,
@@ -405,11 +529,19 @@ func (p *PostgresDB) SearchBusinesses(ctx context.Context, query string, limit, 
 			&business.Address.State, &business.Address.PostalCode, &business.Address.Country,
 			&business.Address.CountryCode, &business.ContactInfo.Phone, &business.ContactInfo.Email,
 			&business.ContactInfo.Website, &business.ContactInfo.PrimaryContact,
-			&business.Status, &business.RiskLevel, &business.ComplianceStatus, &business.CreatedBy,
-			&business.CreatedAt, &business.UpdatedAt)
+			&business.Status, &business.ComplianceStatus, &business.CreatedBy,
+			&business.CreatedAt, &business.UpdatedAt, &riskLevel)
 		if err != nil {
 			return nil, err
 		}
+
+		// Set risk level from lookup table or default
+		if riskLevel.Valid {
+			business.RiskLevel = riskLevel.String
+		} else {
+			business.RiskLevel = "medium" // default
+		}
+
 		businesses = append(businesses, &business)
 	}
 

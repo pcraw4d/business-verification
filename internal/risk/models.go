@@ -26,6 +26,12 @@ const (
 	RiskLevelCritical RiskLevel = "critical"
 )
 
+// DateRange represents a date range for filtering
+type DateRange struct {
+	StartDate time.Time `json:"start_date"`
+	EndDate   time.Time `json:"end_date"`
+}
+
 // RiskFactor represents a specific risk factor that contributes to overall risk assessment
 type RiskFactor struct {
 	ID          string                 `json:"id"`

@@ -3,12 +3,21 @@ package classification
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
 
 	"github.com/lib/pq" // For array scanning
 )
+
+// parseJSONField parses a JSON field from database result
+func parseJSONField(data []byte, target interface{}) error {
+	if len(data) == 0 {
+		return nil
+	}
+	return json.Unmarshal(data, target)
+}
 
 // PerformanceAlerting provides comprehensive performance alerting and monitoring
 type PerformanceAlerting struct {
@@ -127,9 +136,19 @@ func (pa *PerformanceAlerting) GeneratePerformanceAlert(
 	return alertID, nil
 }
 
-// CheckDatabasePerformanceAlerts checks for database performance alerts
+// CheckDatabasePerformanceAlerts checks for database performance alerts using unified table
 func (pa *PerformanceAlerting) CheckDatabasePerformanceAlerts(ctx context.Context) ([]PerformanceAlert, error) {
-	query := `SELECT * FROM check_database_performance_alerts()`
+	query := `
+		SELECT 
+			id, timestamp, component, component_instance, service_name,
+			alert_type, severity, status, title, description,
+			metric_name, metric_value, threshold_value,
+			tags, metadata, request_id, operation_id, user_id,
+			resolved_at, created_at
+		FROM unified_performance_alerts 
+		WHERE component = 'database' AND (status = 'active' OR status = 'warning')
+		ORDER BY timestamp DESC
+	`
 
 	rows, err := pa.db.QueryContext(ctx, query)
 	if err != nil {

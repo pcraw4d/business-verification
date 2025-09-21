@@ -265,18 +265,26 @@ func (qpm *QueryPerformanceMonitoring) GetQueryPerformanceDashboard(ctx context.
 	return results, nil
 }
 
-// CleanupQueryPerformanceLogs cleans up old query performance logs
+// CleanupQueryPerformanceLogs cleans up old query performance logs from unified table
 func (qpm *QueryPerformanceMonitoring) CleanupQueryPerformanceLogs(ctx context.Context, daysToKeep int) (int, error) {
-	query := `SELECT cleanup_query_performance_logs($1)`
+	query := `
+		DELETE FROM unified_performance_metrics 
+		WHERE component = 'database' 
+		AND metric_category = 'query'
+		AND created_at < NOW() - INTERVAL '%d days'
+	`
 
-	var deletedCount int
-	err := qpm.db.QueryRowContext(ctx, query, daysToKeep).Scan(&deletedCount)
-
+	result, err := qpm.db.ExecContext(ctx, fmt.Sprintf(query, daysToKeep))
 	if err != nil {
 		return 0, fmt.Errorf("failed to cleanup query performance logs: %w", err)
 	}
 
-	return deletedCount, nil
+	deletedCount, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get deleted count: %w", err)
+	}
+
+	return int(deletedCount), nil
 }
 
 // GetQueryPerformanceInsights gets query performance insights
@@ -478,10 +486,12 @@ func (qpm *QueryPerformanceMonitoring) AnalyzeSlowQueries(ctx context.Context, m
 			performance_category,
 			recommendations,
 			executed_at
-		FROM query_performance_log
-		WHERE execution_time_ms >= $1
-		AND executed_at >= NOW() - INTERVAL '24 hours'
-		ORDER BY execution_time_ms DESC
+		FROM unified_performance_metrics
+		WHERE component = 'database' 
+		AND metric_category = 'query'
+		AND metric_value >= $1
+		AND created_at >= NOW() - INTERVAL '24 hours'
+		ORDER BY metric_value DESC
 		LIMIT 50
 	`
 
@@ -528,8 +538,10 @@ func (qpm *QueryPerformanceMonitoring) GetQueryPerformanceMetrics(ctx context.Co
 			COUNT(CASE WHEN execution_time_ms > 1000 THEN 1 END) as slow_queries,
 			ROUND(AVG(index_usage_score), 2) as avg_index_usage,
 			ROUND(AVG(cache_hit_ratio), 2) as avg_cache_hit_ratio
-		FROM query_performance_log
-		WHERE executed_at >= NOW() - INTERVAL '1 hour'
+		FROM unified_performance_metrics
+		WHERE component = 'database' 
+		AND metric_category = 'query'
+		AND created_at >= NOW() - INTERVAL '1 hour'
 	`
 
 	var totalQueries int64

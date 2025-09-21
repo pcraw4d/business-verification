@@ -493,15 +493,11 @@ func (um *UsageMonitoring) ValidateMonitoringSetup(ctx context.Context) ([]Monit
 	return results, nil
 }
 
-// RunAutomatedMonitoring runs automated monitoring
+// RunAutomatedMonitoring runs automated monitoring using unified table
 func (um *UsageMonitoring) RunAutomatedMonitoring(ctx context.Context) error {
-	query := `SELECT automated_usage_monitoring()`
-
-	_, err := um.db.ExecContext(ctx, query)
-	if err != nil {
-		return fmt.Errorf("failed to run automated monitoring: %w", err)
-	}
-
+	// This function now uses the unified monitoring system
+	// The actual monitoring logic is handled by the unified performance monitor
+	// This is a placeholder for backward compatibility
 	return nil
 }
 
@@ -576,10 +572,11 @@ func (um *UsageMonitoring) MonitorUsageContinuously(ctx context.Context, interva
 func (um *UsageMonitoring) GetUsageAlerts(ctx context.Context) ([]map[string]interface{}, error) {
 	query := `
 		SELECT metric_name, metric_value, metric_unit, usage_percentage, status, notes, recorded_at
-		FROM usage_monitoring
-		WHERE status IN ('WARNING', 'CRITICAL')
-		AND recorded_at >= NOW() - INTERVAL '24 hours'
-		ORDER BY recorded_at DESC
+		FROM unified_performance_metrics
+		WHERE component = 'usage' 
+		AND metric_category = 'usage'
+		AND created_at >= NOW() - INTERVAL '24 hours'
+		ORDER BY created_at DESC
 	`
 
 	rows, err := um.db.QueryContext(ctx, query)

@@ -1,9 +1,16 @@
 #!/bin/bash
 
-# Performance Testing Script for KYB Platform Classification System
-# This script runs comprehensive performance tests for the classification optimizations
+# KYB Platform Performance Testing Script
+# This script provides a comprehensive interface for running performance tests
 
 set -e
+
+# Configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+DEFAULT_BASE_URL="http://localhost:8080"
+DEFAULT_REPORT_PATH="./performance-reports"
+DEFAULT_ENVIRONMENT="development"
 
 # Colors for output
 RED='\033[0;31m'
@@ -12,291 +19,307 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Configuration
-TEST_DIR="internal/classification"
-REPORT_DIR="reports/performance"
-TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-REPORT_FILE="${REPORT_DIR}/performance_test_report_${TIMESTAMP}.json"
-
-# Create report directory if it doesn't exist
-mkdir -p "$REPORT_DIR"
-
-echo -e "${BLUE}🚀 Starting KYB Platform Performance Testing Suite${NC}"
-echo -e "${BLUE}================================================${NC}"
-echo ""
-
-# Function to print test header
-print_test_header() {
-    echo -e "${YELLOW}📊 Running: $1${NC}"
-    echo -e "${YELLOW}----------------------------------------${NC}"
+# Logging functions
+log_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
 }
 
-# Function to print test result
-print_test_result() {
-    if [ $1 -eq 0 ]; then
-        echo -e "${GREEN}✅ $2 completed successfully${NC}"
-    else
-        echo -e "${RED}❌ $2 failed with exit code $1${NC}"
-    fi
-    echo ""
+log_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
 }
 
-# Function to run Go tests with coverage
-run_go_test() {
-    local test_name="$1"
-    local test_pattern="$2"
-    local coverage_file="${REPORT_DIR}/coverage_${test_name}_${TIMESTAMP}.out"
-    
-    print_test_header "$test_name"
-    
-    go test -v -race -coverprofile="$coverage_file" -covermode=atomic \
-        -timeout=10m \
-        -run="$test_pattern" \
-        ./$TEST_DIR
-    
-    local exit_code=$?
-    print_test_result $exit_code "$test_name"
-    
-    # Generate coverage report
-    if [ -f "$coverage_file" ]; then
-        go tool cover -html="$coverage_file" -o "${REPORT_DIR}/coverage_${test_name}_${TIMESTAMP}.html"
-        echo -e "${BLUE}📈 Coverage report generated: ${REPORT_DIR}/coverage_${test_name}_${TIMESTAMP}.html${NC}"
-    fi
-    
-    return $exit_code
+log_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
 }
 
-# Function to run benchmarks
-run_benchmark() {
-    local benchmark_name="$1"
-    local benchmark_pattern="$2"
-    local benchmark_file="${REPORT_DIR}/benchmark_${benchmark_name}_${TIMESTAMP}.txt"
-    
-    print_test_header "$benchmark_name"
-    
-    go test -bench="$benchmark_pattern" -benchmem -benchtime=30s \
-        -run=^$ \
-        ./$TEST_DIR > "$benchmark_file" 2>&1
-    
-    local exit_code=$?
-    print_test_result $exit_code "$benchmark_name"
-    
-    if [ -f "$benchmark_file" ]; then
-        echo -e "${BLUE}📊 Benchmark results saved: $benchmark_file${NC}"
-        # Show summary of benchmark results
-        echo -e "${BLUE}📈 Benchmark Summary:${NC}"
-        grep -E "Benchmark|ns/op|B/op|allocs/op" "$benchmark_file" | head -20
-    fi
-    
-    return $exit_code
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Function to run memory profiling
-run_memory_profile() {
-    local profile_name="$1"
-    local profile_file="${REPORT_DIR}/memory_profile_${profile_name}_${TIMESTAMP}.prof"
-    
-    print_test_header "$profile_name"
-    
-    go test -memprofile="$profile_file" -run="^$" -bench="BenchmarkMemory" \
-        ./$TEST_DIR
-    
-    local exit_code=$?
-    print_test_result $exit_code "$profile_name"
-    
-    if [ -f "$profile_file" ]; then
-        echo -e "${BLUE}🧠 Memory profile saved: $profile_file${NC}"
-        # Show memory profile summary
-        go tool pprof -top "$profile_file" | head -20
-    fi
-    
-    return $exit_code
-}
+# Help function
+show_help() {
+    cat << EOF
+KYB Platform Performance Testing Script
 
-# Function to run CPU profiling
-run_cpu_profile() {
-    local profile_name="$1"
-    local profile_file="${REPORT_DIR}/cpu_profile_${profile_name}_${TIMESTAMP}.prof"
-    
-    print_test_header "$profile_name"
-    
-    go test -cpuprofile="$profile_file" -run="^$" -bench="BenchmarkPerformance" \
-        ./$TEST_DIR
-    
-    local exit_code=$?
-    print_test_result $exit_code "$profile_name"
-    
-    if [ -f "$profile_file" ]; then
-        echo -e "${BLUE}⚡ CPU profile saved: $profile_file${NC}"
-        # Show CPU profile summary
-        go tool pprof -top "$profile_file" | head -20
-    fi
-    
-    return $exit_code
-}
+Usage: $0 [OPTIONS] [TEST_TYPE]
 
-# Function to run load testing
-run_load_test() {
-    local load_test_name="$1"
-    local load_test_file="${REPORT_DIR}/load_test_${load_test_name}_${TIMESTAMP}.txt"
-    
-    print_test_header "$load_test_name"
-    
-    # Run load test with different concurrency levels
-    for concurrency in 1 5 10 20 50; do
-        echo -e "${BLUE}🔄 Testing with $concurrency concurrent requests...${NC}"
-        
-        go test -run="^$" -bench="BenchmarkLoadTest" -benchtime=10s \
-            -concurrency="$concurrency" \
-            ./$TEST_DIR >> "$load_test_file" 2>&1
-        
-        echo "Concurrency: $concurrency" >> "$load_test_file"
-        echo "---" >> "$load_test_file"
-    done
-    
-    local exit_code=$?
-    print_test_result $exit_code "$load_test_name"
-    
-    if [ -f "$load_test_file" ]; then
-        echo -e "${BLUE}📊 Load test results saved: $load_test_file${NC}"
-    fi
-    
-    return $exit_code
-}
+OPTIONS:
+    -u, --base-url URL        Base URL for KYB platform API (default: $DEFAULT_BASE_URL)
+    -r, --report-path PATH    Path to save performance reports (default: $DEFAULT_REPORT_PATH)
+    -e, --environment ENV     Environment: development, staging, production (default: $DEFAULT_ENVIRONMENT)
+    -t, --timeout SECONDS     Timeout for tests in seconds (default: 1800)
+    -v, --verbose             Enable verbose output
+    -h, --help                Show this help message
 
-# Function to generate performance report
-generate_performance_report() {
-    local report_file="$1"
-    
-    print_test_header "Performance Report Generation"
-    
-    cat > "$report_file" << EOF
-{
-  "test_suite": "KYB Platform Performance Testing",
-  "timestamp": "$TIMESTAMP",
-  "test_results": {
-    "large_keyword_dataset": {
-      "status": "completed",
-      "description": "Performance testing with large keyword datasets"
-    },
-    "cache_performance": {
-      "status": "completed", 
-      "description": "Cache hit/miss ratio testing"
-    },
-    "classification_accuracy": {
-      "status": "completed",
-      "description": "Classification accuracy benchmarking"
-    },
-    "load_testing": {
-      "status": "completed",
-      "description": "Load testing for concurrent requests"
-    },
-    "memory_optimization": {
-      "status": "completed",
-      "description": "Memory usage optimization testing"
-    }
-  },
-  "performance_metrics": {
-    "optimization_improvements": {
-      "keyword_search": "3x faster with optimized algorithms",
-      "caching": "80%+ cache hit ratio achieved",
-      "database_queries": "50% reduction in query time",
-      "parallel_processing": "2x improvement in code generation",
-      "memory_usage": "30% reduction in memory footprint"
-    }
-  },
-  "test_coverage": {
-    "unit_tests": "95%+",
-    "integration_tests": "90%+",
-    "performance_tests": "100%"
-  }
-}
+TEST_TYPE:
+    load                     Run load test only
+    stress                   Run stress test only
+    memory                   Run memory test only
+    response-time            Run response time test only
+    end-to-end               Run end-to-end test only
+    comprehensive            Run all performance tests (default)
+    quick                    Run quick validation test
+    custom                   Run custom test configuration
+
+EXAMPLES:
+    $0                                    # Run comprehensive tests
+    $0 load                              # Run load test only
+    $0 -u https://api.kyb-platform.com   # Run against production API
+    $0 -e staging -t 3600                # Run against staging with 1 hour timeout
+    $0 -v comprehensive                  # Run comprehensive tests with verbose output
+
+PERFORMANCE TARGETS:
+    - API response times: <200ms average
+    - ML model inference: <100ms for classification, <50ms for risk detection
+    - Database query performance: 50% improvement
+    - System uptime: 99.9%
+    - Error rate: <1%
+    - Throughput: >100 req/s
+
 EOF
-    
-    echo -e "${GREEN}✅ Performance report generated: $report_file${NC}"
 }
 
-# Main test execution
-echo -e "${BLUE}🔧 Setting up test environment...${NC}"
+# Parse command line arguments
+parse_arguments() {
+    BASE_URL="$DEFAULT_BASE_URL"
+    REPORT_PATH="$DEFAULT_REPORT_PATH"
+    ENVIRONMENT="$DEFAULT_ENVIRONMENT"
+    TIMEOUT=1800
+    VERBOSE=false
+    TEST_TYPE="comprehensive"
+    
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -u|--base-url)
+                BASE_URL="$2"
+                shift 2
+                ;;
+            -r|--report-path)
+                REPORT_PATH="$2"
+                shift 2
+                ;;
+            -e|--environment)
+                ENVIRONMENT="$2"
+                shift 2
+                ;;
+            -t|--timeout)
+                TIMEOUT="$2"
+                shift 2
+                ;;
+            -v|--verbose)
+                VERBOSE=true
+                shift
+                ;;
+            -h|--help)
+                show_help
+                exit 0
+                ;;
+            load|stress|memory|response-time|end-to-end|comprehensive|quick|custom)
+                TEST_TYPE="$1"
+                shift
+                ;;
+            *)
+                log_error "Unknown option: $1"
+                show_help
+                exit 1
+                ;;
+        esac
+    done
+}
 
-# Check if Go is installed
-if ! command -v go &> /dev/null; then
-    echo -e "${RED}❌ Go is not installed or not in PATH${NC}"
-    exit 1
-fi
+# Validate environment
+validate_environment() {
+    log_info "Validating environment..."
+    
+    # Check if Go is installed
+    if ! command -v go &> /dev/null; then
+        log_error "Go is not installed or not in PATH"
+        exit 1
+    fi
+    
+    # Check if we're in the project root
+    if [ ! -f "go.mod" ]; then
+        log_error "go.mod not found. Please run this script from the project root."
+        exit 1
+    fi
+    
+    # Check if performance testing framework exists
+    if [ ! -d "internal/testing/performance" ]; then
+        log_error "Performance testing framework not found"
+        exit 1
+    fi
+    
+    # Check if configuration file exists
+    if [ ! -f "configs/performance-test-config.json" ]; then
+        log_warning "Performance test configuration file not found"
+    fi
+    
+    log_success "Environment validation passed"
+}
 
-# Check if we're in the right directory
-if [ ! -f "go.mod" ]; then
-    echo -e "${RED}❌ go.mod not found. Please run this script from the project root.${NC}"
-    exit 1
-fi
+# Setup test environment
+setup_test_environment() {
+    log_info "Setting up test environment..."
+    
+    # Create report directory
+    mkdir -p "$REPORT_PATH"
+    
+    # Create bin directory
+    mkdir -p "./bin"
+    
+    # Download dependencies
+    log_info "Downloading Go dependencies..."
+    go mod download
+    go mod tidy
+    
+    log_success "Test environment setup completed"
+}
 
-echo -e "${GREEN}✅ Test environment ready${NC}"
-echo ""
+# Build performance test binary
+build_performance_test_binary() {
+    log_info "Building performance test binary..."
+    
+    if [ -f "./bin/performance-test" ] && [ "./bin/performance-test" -nt "./cmd/performance-test/main.go" ]; then
+        log_info "Performance test binary is up to date"
+        return
+    fi
+    
+    go build -o "./bin/performance-test" ./cmd/performance-test
+    
+    if [ $? -eq 0 ]; then
+        log_success "Performance test binary built successfully"
+    else
+        log_error "Failed to build performance test binary"
+        exit 1
+    fi
+}
 
-# Run performance tests
-echo -e "${BLUE}🧪 Running Performance Test Suite${NC}"
-echo -e "${BLUE}=================================${NC}"
-echo ""
+# Run performance test
+run_performance_test() {
+    local test_type="$1"
+    local base_url="$2"
+    local report_path="$3"
+    local timeout="$4"
+    local verbose="$5"
+    
+    log_info "Running $test_type performance test..."
+    log_info "Base URL: $base_url"
+    log_info "Report Path: $report_path"
+    log_info "Timeout: ${timeout}s"
+    
+    # Build command
+    local cmd="./bin/performance-test -base-url $base_url -report-path $report_path -test-type $test_type"
+    
+    if [ "$verbose" = true ]; then
+        cmd="$cmd -v"
+    fi
+    
+    # Run test with timeout
+    if timeout "$timeout" $cmd; then
+        log_success "$test_type test completed successfully"
+        return 0
+    else
+        local exit_code=$?
+        if [ $exit_code -eq 124 ]; then
+            log_error "$test_type test timed out after ${timeout}s"
+        else
+            log_error "$test_type test failed with exit code $exit_code"
+        fi
+        return $exit_code
+    fi
+}
 
-# Test 1: Large Keyword Dataset Performance
-run_go_test "Large Keyword Dataset Performance" "TestLargeKeywordDatasetPerformance"
+# Generate test summary
+generate_test_summary() {
+    local report_path="$1"
+    
+    log_info "Generating test summary..."
+    
+    if [ ! -d "$report_path" ]; then
+        log_warning "No report directory found: $report_path"
+        return
+    fi
+    
+    # Count test reports
+    local json_reports=$(find "$report_path" -name "*.json" | wc -l)
+    local markdown_reports=$(find "$report_path" -name "*.md" | wc -l)
+    
+    log_info "Test reports generated:"
+    log_info "  JSON reports: $json_reports"
+    log_info "  Markdown reports: $markdown_reports"
+    
+    # Show latest report
+    local latest_report=$(find "$report_path" -name "*.json" -type f -printf '%T@ %p\n' | sort -n | tail -1 | cut -d' ' -f2-)
+    if [ -n "$latest_report" ]; then
+        log_info "Latest report: $latest_report"
+        
+        # Show summary if jq is available
+        if command -v jq &> /dev/null; then
+            log_info "Report summary:"
+            jq -r '.summary // empty' "$latest_report" 2>/dev/null || log_warning "Could not parse report summary"
+        else
+            log_warning "Install jq for pretty JSON output and report parsing"
+        fi
+    fi
+}
 
-# Test 2: Cache Performance
-run_go_test "Cache Performance" "TestCachePerformance"
+# Cleanup function
+cleanup() {
+    log_info "Cleaning up..."
+    # Add any cleanup tasks here
+}
 
-# Test 3: Classification Accuracy Benchmark
-run_go_test "Classification Accuracy Benchmark" "TestClassificationAccuracyBenchmark"
+# Main function
+main() {
+    # Set up signal handling
+    trap cleanup EXIT
+    
+    # Parse arguments
+    parse_arguments "$@"
+    
+    # Show configuration
+    log_info "Performance Test Configuration:"
+    log_info "  Base URL: $BASE_URL"
+    log_info "  Report Path: $REPORT_PATH"
+    log_info "  Environment: $ENVIRONMENT"
+    log_info "  Test Type: $TEST_TYPE"
+    log_info "  Timeout: ${TIMEOUT}s"
+    log_info "  Verbose: $VERBOSE"
+    
+    # Validate environment
+    validate_environment
+    
+    # Setup test environment
+    setup_test_environment
+    
+    # Build performance test binary
+    build_performance_test_binary
+    
+    # Run the specified test
+    case "$TEST_TYPE" in
+        load|stress|memory|response-time|end-to-end|comprehensive)
+            run_performance_test "$TEST_TYPE" "$BASE_URL" "$REPORT_PATH" "$TIMEOUT" "$VERBOSE"
+            ;;
+        quick)
+            run_performance_test "response-time" "$BASE_URL" "$REPORT_PATH" 300 "$VERBOSE"
+            ;;
+        custom)
+            log_info "Custom test configuration not implemented yet"
+            log_info "Please use one of the predefined test types"
+            exit 1
+            ;;
+        *)
+            log_error "Unknown test type: $TEST_TYPE"
+            show_help
+            exit 1
+            ;;
+    esac
+    
+    # Generate test summary
+    generate_test_summary "$REPORT_PATH"
+    
+    log_success "Performance testing completed!"
+}
 
-# Test 4: Load Testing with Concurrent Requests
-run_go_test "Load Testing Concurrent Requests" "TestLoadTestingConcurrentRequests"
-
-# Test 5: Memory Usage Optimization
-run_go_test "Memory Usage Optimization" "TestMemoryUsageOptimization"
-
-# Run benchmarks
-echo -e "${BLUE}🏃 Running Performance Benchmarks${NC}"
-echo -e "${BLUE}=================================${NC}"
-echo ""
-
-run_benchmark "Performance Testing" "BenchmarkPerformance"
-run_benchmark "Memory Usage" "BenchmarkMemory"
-run_benchmark "Load Testing" "BenchmarkLoadTest"
-
-# Run profiling
-echo -e "${BLUE}🔍 Running Performance Profiling${NC}"
-echo -e "${BLUE}===============================${NC}"
-echo ""
-
-run_memory_profile "Memory Profiling"
-run_cpu_profile "CPU Profiling"
-
-# Run load testing
-echo -e "${BLUE}⚡ Running Load Testing${NC}"
-echo -e "${BLUE}======================${NC}"
-echo ""
-
-run_load_test "Concurrent Load Testing"
-
-# Generate comprehensive report
-echo -e "${BLUE}📊 Generating Performance Report${NC}"
-echo -e "${BLUE}================================${NC}"
-echo ""
-
-generate_performance_report "$REPORT_FILE"
-
-# Summary
-echo -e "${GREEN}🎉 Performance Testing Suite Completed!${NC}"
-echo -e "${GREEN}======================================${NC}"
-echo ""
-echo -e "${BLUE}📁 Test Results Location: $REPORT_DIR${NC}"
-echo -e "${BLUE}📄 Main Report: $REPORT_FILE${NC}"
-echo ""
-echo -e "${YELLOW}📈 Performance Improvements Achieved:${NC}"
-echo -e "${YELLOW}  • Keyword Search: 3x faster with optimized algorithms${NC}"
-echo -e "${YELLOW}  • Caching: 80%+ cache hit ratio${NC}"
-echo -e "${YELLOW}  • Database Queries: 50% reduction in query time${NC}"
-echo -e "${YELLOW}  • Parallel Processing: 2x improvement in code generation${NC}"
-echo -e "${YELLOW}  • Memory Usage: 30% reduction in memory footprint${NC}"
-echo ""
-echo -e "${GREEN}✅ All performance tests completed successfully!${NC}"
+# Run main function
+main "$@"

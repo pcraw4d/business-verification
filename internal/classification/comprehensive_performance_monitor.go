@@ -231,7 +231,7 @@ type QueryPerformanceMonitor struct {
 	db     *sql.DB
 	logger *zap.Logger
 	mu     sync.RWMutex
-	stats  map[string]*QueryPerformanceStats
+	stats  map[string]*ComprehensiveQueryPerformanceStats
 }
 
 // ComprehensiveQueryPerformanceStats represents query performance statistics
@@ -511,31 +511,38 @@ func (cpm *ComprehensivePerformanceMonitor) determineSeverity(actual, threshold 
 	return "low"
 }
 
-// storeMetricInDatabase stores a metric in the database
+// storeMetricInDatabase stores a metric in the unified performance metrics table
 func (cpm *ComprehensivePerformanceMonitor) storeMetricInDatabase(metric *ComprehensivePerformanceMetric) error {
 	query := `
-		INSERT INTO performance_metrics (
-			metric_name, metric_value, metric_unit, metric_category,
-			threshold_warning, threshold_critical, status, recorded_at, details
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		INSERT INTO unified_performance_metrics (
+			component, component_instance, service_name, metric_type, metric_category,
+			metric_name, metric_value, metric_unit, tags, metadata, data_source, created_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 	`
 
-	// Convert metric to database format
+	// Convert metric to unified database format
+	component := "classification"
+	componentInstance := metric.ServiceName
+	serviceName := metric.ServiceName
+	metricType := "performance"
+	metricCategory := metric.MetricType
 	metricName := fmt.Sprintf("%s_%s", metric.MetricType, metric.ServiceName)
 	metricValue := cpm.getMetricValue(metric)
 	metricUnit := cpm.getMetricUnit(metric)
-	metricCategory := metric.MetricType
-	status := "OK"
-	if metric.ErrorOccurred {
-		status = "CRITICAL"
-	}
 
-	details, _ := json.Marshal(metric.Metadata)
+	// Create tags and metadata
+	tags, _ := json.Marshal(map[string]string{
+		"service": metric.ServiceName,
+		"type":    metric.MetricType,
+	})
+
+	metadata, _ := json.Marshal(metric.Metadata)
+	dataSource := "comprehensive_performance_monitor"
+	createdAt := time.Now()
 
 	_, err := cpm.db.ExecContext(context.Background(), query,
-		metricName, metricValue, metricUnit, metricCategory,
-		cpm.getWarningThreshold(metric), cpm.getCriticalThreshold(metric),
-		status, metric.Timestamp, details)
+		component, componentInstance, serviceName, metricType, metricCategory,
+		metricName, metricValue, metricUnit, tags, metadata, dataSource, createdAt)
 
 	return err
 }
@@ -989,7 +996,7 @@ func NewQueryPerformanceMonitor(db *sql.DB, logger *zap.Logger) *QueryPerformanc
 	return &QueryPerformanceMonitor{
 		db:     db,
 		logger: logger,
-		stats:  make(map[string]*QueryPerformanceStats),
+		stats:  make(map[string]*ComprehensiveQueryPerformanceStats),
 	}
 }
 

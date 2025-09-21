@@ -1,0 +1,470 @@
+# KYB Platform Monitoring Dashboards Configuration
+# This file contains dashboard configurations for performance monitoring
+
+# Dashboard configuration
+dashboards:
+  # Main performance dashboard
+  performance_overview:
+    name: "KYB Platform Performance Overview"
+    description: "Comprehensive performance monitoring dashboard"
+    refresh_interval: "30s"
+    time_range: "1h"
+    panels:
+      # System metrics row
+      - row: "System Metrics"
+        panels:
+          - title: "Memory Usage"
+            type: "stat"
+            query: "kyb_memory_usage_bytes / 1024 / 1024"
+            unit: "MB"
+            thresholds:
+              warning: 80
+              critical: 95
+            color_mode: "background"
+            graph_mode: "area"
+            span: 4
+
+          - title: "CPU Usage"
+            type: "stat"
+            query: "kyb_cpu_usage_percent"
+            unit: "percent"
+            thresholds:
+              warning: 80
+              critical: 95
+            color_mode: "background"
+            graph_mode: "area"
+            span: 4
+
+          - title: "Goroutines"
+            type: "stat"
+            query: "kyb_goroutines_total"
+            unit: "short"
+            thresholds:
+              warning: 1000
+              critical: 5000
+            color_mode: "background"
+            graph_mode: "area"
+            span: 4
+
+      # Database metrics row
+      - row: "Database Metrics"
+        panels:
+          - title: "Active Connections"
+            type: "stat"
+            query: "kyb_database_connections_active"
+            unit: "short"
+            thresholds:
+              warning: 80
+              critical: 95
+            color_mode: "background"
+            graph_mode: "area"
+            span: 6
+
+          - title: "Query Duration"
+            type: "stat"
+            query: "histogram_quantile(0.95, rate(kyb_database_query_duration_seconds_bucket[5m]))"
+            unit: "s"
+            thresholds:
+              warning: 1
+              critical: 5
+            color_mode: "background"
+            graph_mode: "area"
+            span: 6
+
+      # Business metrics row
+      - row: "Business Metrics"
+        panels:
+          - title: "Classification Accuracy"
+            type: "stat"
+            query: "kyb_classification_accuracy_percent"
+            unit: "percent"
+            thresholds:
+              warning: 90
+              critical: 80
+            color_mode: "background"
+            graph_mode: "area"
+            span: 4
+
+          - title: "Risk Detection Latency"
+            type: "stat"
+            query: "histogram_quantile(0.95, rate(kyb_risk_detection_latency_seconds_bucket[5m]))"
+            unit: "s"
+            thresholds:
+              warning: 2
+              critical: 5
+            color_mode: "background"
+            graph_mode: "area"
+            span: 4
+
+          - title: "API Response Time"
+            type: "stat"
+            query: "histogram_quantile(0.95, rate(kyb_api_response_time_seconds_bucket[5m]))"
+            unit: "s"
+            thresholds:
+              warning: 1
+              critical: 3
+            color_mode: "background"
+            graph_mode: "area"
+            span: 4
+
+      # Request metrics row
+      - row: "Request Metrics"
+        panels:
+          - title: "Request Rate"
+            type: "graph"
+            query: "rate(kyb_http_requests_total[5m])"
+            unit: "reqps"
+            span: 6
+            y_axes:
+              left:
+                min: 0
+                max: null
+
+          - title: "Error Rate"
+            type: "graph"
+            query: "rate(kyb_errors_total[5m])"
+            unit: "reqps"
+            span: 6
+            y_axes:
+              left:
+                min: 0
+                max: null
+
+      # Detailed graphs row
+      - row: "Detailed Performance Graphs"
+        panels:
+          - title: "Memory Usage Over Time"
+            type: "graph"
+            query: "kyb_memory_usage_bytes / 1024 / 1024"
+            unit: "MB"
+            span: 12
+            y_axes:
+              left:
+                min: 0
+                max: null
+            lines: true
+            points: false
+            bars: false
+            stack: false
+
+          - title: "Database Query Duration Distribution"
+            type: "graph"
+            query: "histogram_quantile(0.50, rate(kyb_database_query_duration_seconds_bucket[5m])), histogram_quantile(0.95, rate(kyb_database_query_duration_seconds_bucket[5m])), histogram_quantile(0.99, rate(kyb_database_query_duration_seconds_bucket[5m]))"
+            unit: "s"
+            span: 12
+            y_axes:
+              left:
+                min: 0
+                max: null
+            lines: true
+            points: false
+            bars: false
+            stack: false
+
+  # Database performance dashboard
+  database_performance:
+    name: "Database Performance"
+    description: "Detailed database performance monitoring"
+    refresh_interval: "30s"
+    time_range: "1h"
+    panels:
+      - row: "Connection Metrics"
+        panels:
+          - title: "Connection Pool Usage"
+            type: "graph"
+            query: "kyb_database_connections_active"
+            unit: "short"
+            span: 12
+            y_axes:
+              left:
+                min: 0
+                max: 100
+
+      - row: "Query Performance"
+        panels:
+          - title: "Query Duration by Type"
+            type: "graph"
+            query: "rate(kyb_database_query_duration_seconds_sum[5m]) / rate(kyb_database_query_duration_seconds_count[5m])"
+            unit: "s"
+            span: 12
+            y_axes:
+              left:
+                min: 0
+                max: null
+
+      - row: "Query Volume"
+        panels:
+          - title: "Queries per Second"
+            type: "graph"
+            query: "rate(kyb_database_query_duration_seconds_count[5m])"
+            unit: "reqps"
+            span: 12
+            y_axes:
+              left:
+                min: 0
+                max: null
+
+  # Business metrics dashboard
+  business_metrics:
+    name: "Business Metrics"
+    description: "Business-specific performance metrics"
+    refresh_interval: "30s"
+    time_range: "1h"
+    panels:
+      - row: "Classification Performance"
+        panels:
+          - title: "Classification Accuracy"
+            type: "graph"
+            query: "kyb_classification_accuracy_percent"
+            unit: "percent"
+            span: 6
+            y_axes:
+              left:
+                min: 0
+                max: 100
+
+          - title: "Classification Requests"
+            type: "graph"
+            query: "rate(kyb_classification_requests_total[5m])"
+            unit: "reqps"
+            span: 6
+            y_axes:
+              left:
+                min: 0
+                max: null
+
+      - row: "Risk Detection Performance"
+        panels:
+          - title: "Risk Detection Latency"
+            type: "graph"
+            query: "histogram_quantile(0.95, rate(kyb_risk_detection_latency_seconds_bucket[5m]))"
+            unit: "s"
+            span: 6
+            y_axes:
+              left:
+                min: 0
+                max: null
+
+          - title: "Risk Detection Requests"
+            type: "graph"
+            query: "rate(kyb_risk_detection_requests_total[5m])"
+            unit: "reqps"
+            span: 6
+            y_axes:
+              left:
+                min: 0
+                max: null
+
+      - row: "API Performance"
+        panels:
+          - title: "API Response Time"
+            type: "graph"
+            query: "histogram_quantile(0.95, rate(kyb_api_response_time_seconds_bucket[5m]))"
+            unit: "s"
+            span: 6
+            y_axes:
+              left:
+                min: 0
+                max: null
+
+          - title: "API Error Rate"
+            type: "graph"
+            query: "rate(kyb_errors_total{component=\"api\"}[5m])"
+            unit: "reqps"
+            span: 6
+            y_axes:
+              left:
+                min: 0
+                max: null
+
+  # Alert dashboard
+  alerts:
+    name: "Alerts and Notifications"
+    description: "Current alerts and notification status"
+    refresh_interval: "10s"
+    time_range: "1h"
+    panels:
+      - row: "Active Alerts"
+        panels:
+          - title: "Critical Alerts"
+            type: "table"
+            query: "kyb_alerts_total{severity=\"critical\"}"
+            span: 4
+            columns:
+              - "timestamp"
+              - "alert_name"
+              - "severity"
+              - "description"
+              - "current_value"
+              - "threshold"
+
+          - title: "Warning Alerts"
+            type: "table"
+            query: "kyb_alerts_total{severity=\"warning\"}"
+            span: 4
+            columns:
+              - "timestamp"
+              - "alert_name"
+              - "severity"
+              - "description"
+              - "current_value"
+              - "threshold"
+
+          - title: "Info Alerts"
+            type: "table"
+            query: "kyb_alerts_total{severity=\"info\"}"
+            span: 4
+            columns:
+              - "timestamp"
+              - "alert_name"
+              - "severity"
+              - "description"
+              - "current_value"
+              - "threshold"
+
+      - row: "Alert History"
+        panels:
+          - title: "Alert Frequency"
+            type: "graph"
+            query: "rate(kyb_alerts_total[5m])"
+            unit: "alerts/s"
+            span: 12
+            y_axes:
+              left:
+                min: 0
+                max: null
+
+# Dashboard settings
+dashboard_settings:
+  # Default time range
+  default_time_range: "1h"
+  
+  # Auto-refresh intervals
+  refresh_intervals:
+    - "5s"
+    - "10s"
+    - "30s"
+    - "1m"
+    - "5m"
+    - "15m"
+    - "30m"
+    - "1h"
+    - "2h"
+    - "1d"
+
+  # Time range options
+  time_range_options:
+    - "5m"
+    - "15m"
+    - "1h"
+    - "6h"
+    - "12h"
+    - "24h"
+    - "2d"
+    - "7d"
+    - "30d"
+
+  # Panel defaults
+  panel_defaults:
+    line_width: 1
+    fill: 0
+    point_radius: 2
+    point_size: 5
+    line_interpolation: "linear"
+    span: 12
+    height: "200px"
+    min_span: 1
+    max_span: 12
+
+  # Color schemes
+  color_schemes:
+    - name: "KYB Default"
+      colors:
+        - "#1f77b4"
+        - "#ff7f0e"
+        - "#2ca02c"
+        - "#d62728"
+        - "#9467bd"
+        - "#8c564b"
+        - "#e377c2"
+        - "#7f7f7f"
+        - "#bcbd22"
+        - "#17becf"
+
+# Export settings
+export:
+  # Grafana integration
+  grafana:
+    enabled: true
+    url: "http://localhost:3000"
+    username: "admin"
+    password: "admin123"
+    api_key: "YOUR_GRAFANA_API_KEY"
+    
+    # Dashboard provisioning
+    provisioning:
+      enabled: true
+      path: "/etc/grafana/provisioning/dashboards"
+      config_file: "kyb-dashboards.yml"
+
+  # Prometheus integration
+  prometheus:
+    enabled: true
+    url: "http://localhost:9090"
+    query_timeout: "30s"
+    
+    # Recording rules
+    recording_rules:
+      enabled: true
+      rules_file: "kyb-recording-rules.yml"
+
+  # AlertManager integration
+  alertmanager:
+    enabled: true
+    url: "http://localhost:9093"
+    api_version: "v2"
+    
+    # Alert rules
+    alert_rules:
+      enabled: true
+      rules_file: "kyb-alert-rules.yml"
+
+# Dashboard templates
+templates:
+  # Performance overview template
+  performance_overview_template:
+    name: "Performance Overview Template"
+    description: "Template for performance overview dashboards"
+    variables:
+      - name: "environment"
+        type: "query"
+        query: "label_values(kyb_memory_usage_bytes, environment)"
+        refresh: "time"
+        include_all: true
+        multi: true
+
+      - name: "service"
+        type: "query"
+        query: "label_values(kyb_memory_usage_bytes, service)"
+        refresh: "time"
+        include_all: true
+        multi: true
+
+  # Business metrics template
+  business_metrics_template:
+    name: "Business Metrics Template"
+    description: "Template for business metrics dashboards"
+    variables:
+      - name: "business_type"
+        type: "query"
+        query: "label_values(kyb_classification_accuracy_percent, business_type)"
+        refresh: "time"
+        include_all: true
+        multi: true
+
+      - name: "classification_method"
+        type: "query"
+        query: "label_values(kyb_classification_accuracy_percent, method)"
+        refresh: "time"
+        include_all: true
+        multi: true

@@ -1,0 +1,1104 @@
+{
+  "test_cases": [
+    {
+      "business_name": "TechCorp Solutions",
+      "business_description": "Custom software development and cloud solutions",
+      "keywords": [
+        "software",
+        "development",
+        "cloud",
+        "custom",
+        "solutions"
+      ],
+      "expected_industry": "Software Development",
+      "expected_category": "emerging",
+      "test_type": "exact"
+    },
+    {
+      "business_name": "AgileDev Inc",
+      "business_description": "Agile software development and DevOps consulting",
+      "keywords": [
+        "agile",
+        "devops",
+        "consulting",
+        "software"
+      ],
+      "expected_industry": "Software Development",
+      "expected_category": "emerging",
+      "test_type": "phrase"
+    },
+    {
+      "business_name": "CloudNative Systems",
+      "business_description": "Microservices and API development",
+      "keywords": [
+        "microservices",
+        "api",
+        "cloud",
+        "native"
+      ],
+      "expected_industry": "Software Development",
+      "expected_category": "emerging",
+      "test_type": "synonym"
+    },
+    {
+      "business_name": "Metro Medical Center",
+      "business_description": "Primary care and family medicine practice",
+      "keywords": [
+        "medical",
+        "primary",
+        "care",
+        "family",
+        "medicine"
+      ],
+      "expected_industry": "Medical Practices",
+      "expected_category": "traditional",
+      "test_type": "exact"
+    },
+    {
+      "business_name": "Wellness Clinic",
+      "business_description": "Mental health counseling and therapy services",
+      "keywords": [
+        "mental",
+        "health",
+        "counseling",
+        "therapy"
+      ],
+      "expected_industry": "Mental Health",
+      "expected_category": "traditional",
+      "test_type": "exact"
+    },
+    {
+      "business_name": "HealthTech Innovations",
+      "business_description": "Healthcare technology and medical software",
+      "keywords": [
+        "healthcare",
+        "technology",
+        "medical",
+        "software"
+      ],
+      "expected_industry": "Healthcare Technology",
+      "expected_category": "emerging",
+      "test_type": "phrase"
+    },
+    {
+      "business_name": "First National Bank",
+      "business_description": "Commercial banking and financial services",
+      "keywords": [
+        "banking",
+        "commercial",
+        "financial",
+        "services"
+      ],
+      "expected_industry": "Banking",
+      "expected_category": "traditional",
+      "test_type": "exact"
+    },
+    {
+      "business_name": "Secure Insurance Group",
+      "business_description": "Life and health insurance coverage",
+      "keywords": [
+        "insurance",
+        "life",
+        "health",
+        "coverage"
+      ],
+      "expected_industry": "Insurance",
+      "expected_category": "traditional",
+      "test_type": "exact"
+    },
+    {
+      "business_name": "Investment Advisors LLC",
+      "business_description": "Financial planning and investment management",
+      "keywords": [
+        "investment",
+        "financial",
+        "planning",
+        "management"
+      ],
+      "expected_industry": "Investment Services",
+      "expected_category": "traditional",
+      "test_type": "synonym"
+    },
+    {
+      "business_name": "Bella Vista Restaurant",
+      "business_description": "Fine dining Italian cuisine",
+      "keywords": [
+        "restaurant",
+        "dining",
+        "italian",
+        "cuisine"
+      ],
+      "expected_industry": "Restaurants",
+      "expected_category": "traditional",
+      "test_type": "exact"
+    },
+    {
+      "business_name": "Craft Brewery Co",
+      "business_description": "Artisanal beer brewing and tasting room",
+      "keywords": [
+        "brewery",
+        "beer",
+        "brewing",
+        "craft"
+      ],
+      "expected_industry": "Breweries",
+      "expected_category": "traditional",
+      "test_type": "exact"
+    },
+    {
+      "business_name": "Coffee Corner",
+      "business_description": "Specialty coffee and light breakfast",
+      "keywords": [
+        "coffee",
+        "specialty",
+        "breakfast",
+        "cafe"
+      ],
+      "expected_industry": "Cafes \u0026 Coffee Shops",
+      "expected_category": "traditional",
+      "test_type": "synonym"
+    },
+    {
+      "business_name": "Legal Associates",
+      "business_description": "Corporate law and legal consulting",
+      "keywords": [
+        "legal",
+        "law",
+        "corporate",
+        "consulting"
+      ],
+      "expected_industry": "Legal Services",
+      "expected_category": "traditional",
+      "test_type": "exact"
+    },
+    {
+      "business_name": "CPA Partners",
+      "business_description": "Accounting and tax preparation services",
+      "keywords": [
+        "accounting",
+        "tax",
+        "preparation",
+        "cpa"
+      ],
+      "expected_industry": "Financial Services",
+      "expected_category": "traditional",
+      "test_type": "exact"
+    },
+    {
+      "business_name": "Marketing Pro",
+      "business_description": "Digital marketing and advertising agency",
+      "keywords": [
+        "marketing",
+        "digital",
+        "advertising",
+        "agency"
+      ],
+      "expected_industry": "Digital Services",
+      "expected_category": "emerging",
+      "test_type": "phrase"
+    },
+    {
+      "business_name": "Precision Manufacturing",
+      "business_description": "Custom metal fabrication and machining",
+      "keywords": [
+        "manufacturing",
+        "metal",
+        "fabrication",
+        "machining"
+      ],
+      "expected_industry": "Manufacturing",
+      "expected_category": "traditional",
+      "test_type": "exact"
+    },
+    {
+      "business_name": "Auto Parts Inc",
+      "business_description": "Automotive parts manufacturing and distribution",
+      "keywords": [
+        "automotive",
+        "parts",
+        "manufacturing",
+        "distribution"
+      ],
+      "expected_industry": "Consumer Manufacturing",
+      "expected_category": "traditional",
+      "test_type": "synonym"
+    },
+    {
+      "business_name": "Fashion Forward",
+      "business_description": "Women's clothing and accessories retail",
+      "keywords": [
+        "fashion",
+        "clothing",
+        "accessories",
+        "retail"
+      ],
+      "expected_industry": "Retail",
+      "expected_category": "traditional",
+      "test_type": "exact"
+    },
+    {
+      "business_name": "Electronics Plus",
+      "business_description": "Consumer electronics and technology retail",
+      "keywords": [
+        "electronics",
+        "consumer",
+        "technology",
+        "retail"
+      ],
+      "expected_industry": "Technology",
+      "expected_category": "traditional",
+      "test_type": "phrase"
+    },
+    {
+      "business_name": "Tech Solutions",
+      "business_description": "IT consulting and system integration",
+      "keywords": [
+        "tech",
+        "solutions",
+        "it",
+        "consulting"
+      ],
+      "expected_industry": "Technology Services",
+      "expected_category": "emerging",
+      "test_type": "partial"
+    },
+    {
+      "business_name": "Health \u0026 Wellness",
+      "business_description": "Holistic health and wellness services",
+      "keywords": [
+        "health",
+        "wellness",
+        "holistic",
+        "services"
+      ],
+      "expected_industry": "Healthcare Services",
+      "expected_category": "traditional",
+      "test_type": "partial"
+    },
+    {
+      "business_name": "Financial Planning",
+      "business_description": "Personal finance and wealth management",
+      "keywords": [
+        "financial",
+        "planning",
+        "personal",
+        "wealth"
+      ],
+      "expected_industry": "Investment Services",
+      "expected_category": "traditional",
+      "test_type": "partial"
+    }
+  ],
+  "test_results": [
+    {
+      "test_case": {
+        "business_name": "TechCorp Solutions",
+        "business_description": "Custom software development and cloud solutions",
+        "keywords": [
+          "software",
+          "development",
+          "cloud",
+          "custom",
+          "solutions"
+        ],
+        "expected_industry": "Software Development",
+        "expected_category": "emerging",
+        "test_type": "exact"
+      },
+      "actual_industry": "Technology",
+      "actual_category": "traditional",
+      "confidence": 0.2,
+      "matched_keywords": [
+        "software"
+      ],
+      "is_correct": false
+    },
+    {
+      "test_case": {
+        "business_name": "AgileDev Inc",
+        "business_description": "Agile software development and DevOps consulting",
+        "keywords": [
+          "agile",
+          "devops",
+          "consulting",
+          "software"
+        ],
+        "expected_industry": "Software Development",
+        "expected_category": "emerging",
+        "test_type": "phrase"
+      },
+      "actual_industry": "Technology Services",
+      "actual_category": "emerging",
+      "confidence": 0.3375,
+      "matched_keywords": [
+        "tech consulting",
+        "IT consulting",
+        "technology consulting"
+      ],
+      "is_correct": true
+    },
+    {
+      "test_case": {
+        "business_name": "CloudNative Systems",
+        "business_description": "Microservices and API development",
+        "keywords": [
+          "microservices",
+          "api",
+          "cloud",
+          "native"
+        ],
+        "expected_industry": "Software Development",
+        "expected_category": "emerging",
+        "test_type": "synonym"
+      },
+      "actual_industry": "Mental Health",
+      "actual_category": "traditional",
+      "confidence": 0.39375,
+      "matched_keywords": [
+        "licensed therapist",
+        "psychotherapist",
+        "behavioral therapist",
+        "therapist"
+      ],
+      "is_correct": false
+    },
+    {
+      "test_case": {
+        "business_name": "Metro Medical Center",
+        "business_description": "Primary care and family medicine practice",
+        "keywords": [
+          "medical",
+          "primary",
+          "care",
+          "family",
+          "medicine"
+        ],
+        "expected_industry": "Medical Practices",
+        "expected_category": "traditional",
+        "test_type": "exact"
+      },
+      "actual_industry": "Healthcare Services",
+      "actual_category": "traditional",
+      "confidence": 1,
+      "matched_keywords": [
+        "medical care",
+        "medical facility",
+        "medical center",
+        "medical administration",
+        "medical services",
+        "primary care",
+        "specialty care",
+        "healthcare management",
+        "patient care services",
+        "healthcare center",
+        "care coordination",
+        "healthcare delivery",
+        "healthcare facility",
+        "healthcare administration",
+        "urgent care",
+        "care management",
+        "home healthcare",
+        "healthcare coordination",
+        "healthcare services",
+        "primary care",
+        "healthcare support",
+        "medical care"
+      ],
+      "is_correct": true
+    },
+    {
+      "test_case": {
+        "business_name": "Wellness Clinic",
+        "business_description": "Mental health counseling and therapy services",
+        "keywords": [
+          "mental",
+          "health",
+          "counseling",
+          "therapy"
+        ],
+        "expected_industry": "Mental Health",
+        "expected_category": "traditional",
+        "test_type": "exact"
+      },
+      "actual_industry": "Mental Health",
+      "actual_category": "traditional",
+      "confidence": 1,
+      "matched_keywords": [
+        "mental health services",
+        "mental wellness",
+        "mental health professional",
+        "mental health",
+        "mental health care",
+        "mental health counselor",
+        "mental health treatment",
+        "mental health services",
+        "mental health professional",
+        "mental health",
+        "mental health care",
+        "mental health counselor",
+        "mental health treatment",
+        "behavioral health",
+        "counseling",
+        "therapy",
+        "family therapy",
+        "psychotherapy",
+        "cognitive therapy",
+        "individual therapy",
+        "behavioral therapy",
+        "trauma therapy",
+        "group therapy",
+        "couples therapy"
+      ],
+      "is_correct": true
+    },
+    {
+      "test_case": {
+        "business_name": "HealthTech Innovations",
+        "business_description": "Healthcare technology and medical software",
+        "keywords": [
+          "healthcare",
+          "technology",
+          "medical",
+          "software"
+        ],
+        "expected_industry": "Healthcare Technology",
+        "expected_category": "emerging",
+        "test_type": "phrase"
+      },
+      "actual_industry": "Healthcare Services",
+      "actual_category": "traditional",
+      "confidence": 1,
+      "matched_keywords": [
+        "healthcare management",
+        "healthcare delivery",
+        "healthcare administration",
+        "healthcare services",
+        "healthcare center",
+        "home healthcare",
+        "healthcare coordination",
+        "healthcare support",
+        "healthcare facility",
+        "medical center",
+        "medical administration",
+        "medical services",
+        "medical facility",
+        "medical care"
+      ],
+      "is_correct": false
+    },
+    {
+      "test_case": {
+        "business_name": "First National Bank",
+        "business_description": "Commercial banking and financial services",
+        "keywords": [
+          "banking",
+          "commercial",
+          "financial",
+          "services"
+        ],
+        "expected_industry": "Banking",
+        "expected_category": "traditional",
+        "test_type": "exact"
+      },
+      "actual_industry": "Banking",
+      "actual_category": "traditional",
+      "confidence": 1,
+      "matched_keywords": [
+        "banking",
+        "mobile banking",
+        "bank",
+        "banking operations",
+        "banking services",
+        "business banking",
+        "personal banking",
+        "retail banking",
+        "online banking",
+        "commercial bank",
+        "financial planning",
+        "financial institution",
+        "financial services",
+        "banking services",
+        "financial services",
+        "ATM services",
+        "investment services"
+      ],
+      "is_correct": true
+    },
+    {
+      "test_case": {
+        "business_name": "Secure Insurance Group",
+        "business_description": "Life and health insurance coverage",
+        "keywords": [
+          "insurance",
+          "life",
+          "health",
+          "coverage"
+        ],
+        "expected_industry": "Insurance",
+        "expected_category": "traditional",
+        "test_type": "exact"
+      },
+      "actual_industry": "Insurance",
+      "actual_category": "traditional",
+      "confidence": 1,
+      "matched_keywords": [
+        "insurance",
+        "insurance coverage",
+        "business insurance",
+        "insurance administration",
+        "insurance quote",
+        "insurance claim",
+        "auto insurance",
+        "insurance sales",
+        "disability insurance",
+        "insurance services",
+        "insurance policy",
+        "insurance broker",
+        "insurance consulting",
+        "insurance company",
+        "property insurance",
+        "travel insurance",
+        "health insurance",
+        "life insurance",
+        "insurance premium",
+        "insurance provider",
+        "insurance agency",
+        "liability insurance",
+        "home insurance",
+        "life insurance",
+        "health insurance",
+        "insurance coverage",
+        "coverage limit"
+      ],
+      "is_correct": true
+    },
+    {
+      "test_case": {
+        "business_name": "Investment Advisors LLC",
+        "business_description": "Financial planning and investment management",
+        "keywords": [
+          "investment",
+          "financial",
+          "planning",
+          "management"
+        ],
+        "expected_industry": "Investment Services",
+        "expected_category": "traditional",
+        "test_type": "synonym"
+      },
+      "actual_industry": "Investment Services",
+      "actual_category": "traditional",
+      "confidence": 1,
+      "matched_keywords": [
+        "investment research",
+        "investment account",
+        "investment management",
+        "investment services",
+        "investment advisory",
+        "real estate investment",
+        "investment portfolio",
+        "investment consulting",
+        "financial planning",
+        "financial advisory",
+        "retirement planning",
+        "financial planning",
+        "investment management",
+        "portfolio management",
+        "asset management",
+        "wealth management",
+        "risk management"
+      ],
+      "is_correct": true
+    },
+    {
+      "test_case": {
+        "business_name": "Bella Vista Restaurant",
+        "business_description": "Fine dining Italian cuisine",
+        "keywords": [
+          "restaurant",
+          "dining",
+          "italian",
+          "cuisine"
+        ],
+        "expected_industry": "Restaurants",
+        "expected_category": "traditional",
+        "test_type": "exact"
+      },
+      "actual_industry": "Restaurants",
+      "actual_category": "traditional",
+      "confidence": 1,
+      "matched_keywords": [
+        "restaurant",
+        "restaurant operations",
+        "restaurant management",
+        "italian restaurant",
+        "restaurant service",
+        "japanese restaurant",
+        "mexican restaurant",
+        "chinese restaurant",
+        "family restaurant",
+        "restaurant staff",
+        "seafood restaurant",
+        "restaurant business",
+        "dining",
+        "fine dining",
+        "casual dining",
+        "private dining",
+        "dining establishment",
+        "dining experience",
+        "italian restaurant"
+      ],
+      "is_correct": true
+    },
+    {
+      "test_case": {
+        "business_name": "Craft Brewery Co",
+        "business_description": "Artisanal beer brewing and tasting room",
+        "keywords": [
+          "brewery",
+          "beer",
+          "brewing",
+          "craft"
+        ],
+        "expected_industry": "Breweries",
+        "expected_category": "traditional",
+        "test_type": "exact"
+      },
+      "actual_industry": "Breweries",
+      "actual_category": "traditional",
+      "confidence": 1,
+      "matched_keywords": [
+        "brewery",
+        "local brewery",
+        "microbrewery",
+        "beer",
+        "beer production",
+        "beer garden",
+        "craft beer",
+        "artisanal beer",
+        "beer tasting",
+        "wheat beer",
+        "beer distribution",
+        "beer sales",
+        "brewing",
+        "craft beer"
+      ],
+      "is_correct": true
+    },
+    {
+      "test_case": {
+        "business_name": "Coffee Corner",
+        "business_description": "Specialty coffee and light breakfast",
+        "keywords": [
+          "coffee",
+          "specialty",
+          "breakfast",
+          "cafe"
+        ],
+        "expected_industry": "Cafes \u0026 Coffee Shops",
+        "expected_category": "traditional",
+        "test_type": "synonym"
+      },
+      "actual_industry": "Cafes \u0026 Coffee Shops",
+      "actual_category": "traditional",
+      "confidence": 1,
+      "matched_keywords": [
+        "coffee",
+        "coffee roasting",
+        "coffee culture",
+        "coffee beans",
+        "coffee shop atmosphere",
+        "coffee meeting",
+        "coffee service",
+        "coffee time",
+        "specialty coffee",
+        "coffee drinks",
+        "coffee break",
+        "coffee shop",
+        "coffee house",
+        "coffee community",
+        "coffee bar",
+        "coffee experience",
+        "specialty coffee",
+        "cafe"
+      ],
+      "is_correct": true
+    },
+    {
+      "test_case": {
+        "business_name": "Legal Associates",
+        "business_description": "Corporate law and legal consulting",
+        "keywords": [
+          "legal",
+          "law",
+          "corporate",
+          "consulting"
+        ],
+        "expected_industry": "Legal Services",
+        "expected_category": "traditional",
+        "test_type": "exact"
+      },
+      "actual_industry": "Legal Services",
+      "actual_category": "traditional",
+      "confidence": 1,
+      "matched_keywords": [
+        "legal",
+        "legal advice",
+        "legal consultation",
+        "legal document",
+        "legal services",
+        "legal counsel",
+        "legal assistance",
+        "legal support",
+        "legal representation",
+        "law",
+        "family law",
+        "immigration law",
+        "contract law",
+        "corporate law",
+        "law firm",
+        "employment law",
+        "real estate law",
+        "patent law",
+        "lawyer",
+        "criminal law",
+        "corporate law"
+      ],
+      "is_correct": true
+    },
+    {
+      "test_case": {
+        "business_name": "CPA Partners",
+        "business_description": "Accounting and tax preparation services",
+        "keywords": [
+          "accounting",
+          "tax",
+          "preparation",
+          "cpa"
+        ],
+        "expected_industry": "Financial Services",
+        "expected_category": "traditional",
+        "test_type": "exact"
+      },
+      "actual_industry": "Fast Food",
+      "actual_category": "traditional",
+      "confidence": 0.1,
+      "matched_keywords": [
+        "food preparation"
+      ],
+      "is_correct": true
+    },
+    {
+      "test_case": {
+        "business_name": "Marketing Pro",
+        "business_description": "Digital marketing and advertising agency",
+        "keywords": [
+          "marketing",
+          "digital",
+          "advertising",
+          "agency"
+        ],
+        "expected_industry": "Digital Services",
+        "expected_category": "emerging",
+        "test_type": "phrase"
+      },
+      "actual_industry": "Digital Services",
+      "actual_category": "emerging",
+      "confidence": 1,
+      "matched_keywords": [
+        "digital marketing",
+        "digital technology",
+        "digital strategy",
+        "digital business",
+        "digital workflow",
+        "digital agency",
+        "digital solutions",
+        "digital platform",
+        "digital optimization",
+        "digital content",
+        "digital automation",
+        "digital integration",
+        "digital advertising",
+        "digital marketing",
+        "digital experience",
+        "digital communication",
+        "digital process",
+        "digital media",
+        "digital analytics",
+        "digital transformation",
+        "digital innovation",
+        "digital consulting",
+        "digital services",
+        "digital branding",
+        "digital tools",
+        "digital advertising",
+        "digital agency"
+      ],
+      "is_correct": true
+    },
+    {
+      "test_case": {
+        "business_name": "Precision Manufacturing",
+        "business_description": "Custom metal fabrication and machining",
+        "keywords": [
+          "manufacturing",
+          "metal",
+          "fabrication",
+          "machining"
+        ],
+        "expected_industry": "Manufacturing",
+        "expected_category": "traditional",
+        "test_type": "exact"
+      },
+      "actual_industry": "Industrial Manufacturing",
+      "actual_category": "traditional",
+      "confidence": 0.42500000000000004,
+      "matched_keywords": [
+        "industrial manufacturing equipment",
+        "industrial manufacturing",
+        "industrial manufacturing facility",
+        "industrial manufacturing process"
+      ],
+      "is_correct": true
+    },
+    {
+      "test_case": {
+        "business_name": "Auto Parts Inc",
+        "business_description": "Automotive parts manufacturing and distribution",
+        "keywords": [
+          "automotive",
+          "parts",
+          "manufacturing",
+          "distribution"
+        ],
+        "expected_industry": "Consumer Manufacturing",
+        "expected_category": "traditional",
+        "test_type": "synonym"
+      },
+      "actual_industry": "Industrial Manufacturing",
+      "actual_category": "traditional",
+      "confidence": 0.42500000000000004,
+      "matched_keywords": [
+        "industrial manufacturing facility",
+        "industrial manufacturing equipment",
+        "industrial manufacturing process",
+        "industrial manufacturing"
+      ],
+      "is_correct": true
+    },
+    {
+      "test_case": {
+        "business_name": "Fashion Forward",
+        "business_description": "Women's clothing and accessories retail",
+        "keywords": [
+          "fashion",
+          "clothing",
+          "accessories",
+          "retail"
+        ],
+        "expected_industry": "Retail",
+        "expected_category": "traditional",
+        "test_type": "exact"
+      },
+      "actual_industry": "Retail",
+      "actual_category": "traditional",
+      "confidence": 0.25,
+      "matched_keywords": [
+        "retail"
+      ],
+      "is_correct": true
+    },
+    {
+      "test_case": {
+        "business_name": "Electronics Plus",
+        "business_description": "Consumer electronics and technology retail",
+        "keywords": [
+          "electronics",
+          "consumer",
+          "technology",
+          "retail"
+        ],
+        "expected_industry": "Technology",
+        "expected_category": "traditional",
+        "test_type": "phrase"
+      },
+      "actual_industry": "Consumer Goods",
+      "actual_category": "traditional",
+      "confidence": 1,
+      "matched_keywords": [
+        "consumer items",
+        "consumer quality",
+        "consumer satisfaction",
+        "consumer market",
+        "consumer products",
+        "consumer demand",
+        "consumer behavior",
+        "consumer packaging",
+        "consumer merchandise",
+        "consumer trends",
+        "consumer distribution",
+        "consumer sales",
+        "consumer goods",
+        "consumer brands",
+        "retail products"
+      ],
+      "is_correct": true
+    },
+    {
+      "test_case": {
+        "business_name": "Tech Solutions",
+        "business_description": "IT consulting and system integration",
+        "keywords": [
+          "tech",
+          "solutions",
+          "it",
+          "consulting"
+        ],
+        "expected_industry": "Technology Services",
+        "expected_category": "emerging",
+        "test_type": "partial"
+      },
+      "actual_industry": "Digital Services",
+      "actual_category": "emerging",
+      "confidence": 1,
+      "matched_keywords": [
+        "digital technology",
+        "digital solutions",
+        "digital communication",
+        "digital experience",
+        "digital workflow",
+        "digital strategy",
+        "digital process",
+        "digital tools",
+        "digital content",
+        "digital analytics",
+        "digital platform",
+        "digital marketing",
+        "digital media",
+        "digital services",
+        "digital innovation",
+        "digital transformation",
+        "digital solutions",
+        "digital integration",
+        "digital consulting",
+        "digital business",
+        "digital technology",
+        "digital branding",
+        "digital advertising",
+        "digital optimization",
+        "digital agency",
+        "digital automation",
+        "digital consulting"
+      ],
+      "is_correct": true
+    },
+    {
+      "test_case": {
+        "business_name": "Health \u0026 Wellness",
+        "business_description": "Holistic health and wellness services",
+        "keywords": [
+          "health",
+          "wellness",
+          "holistic",
+          "services"
+        ],
+        "expected_industry": "Healthcare Services",
+        "expected_category": "traditional",
+        "test_type": "partial"
+      },
+      "actual_industry": "Healthcare Services",
+      "actual_category": "traditional",
+      "confidence": 1,
+      "matched_keywords": [
+        "healthcare services",
+        "healthcare administration",
+        "healthcare center",
+        "healthcare coordination",
+        "healthcare management",
+        "health services",
+        "health center",
+        "healthcare facility",
+        "healthcare support",
+        "healthcare delivery",
+        "telehealth",
+        "home healthcare",
+        "wellness center",
+        "patient care services",
+        "healthcare services",
+        "rehabilitation services",
+        "outpatient services",
+        "hospital services",
+        "emergency services",
+        "patient services",
+        "medical services",
+        "inpatient services",
+        "health services",
+        "clinic services"
+      ],
+      "is_correct": true
+    },
+    {
+      "test_case": {
+        "business_name": "Financial Planning",
+        "business_description": "Personal finance and wealth management",
+        "keywords": [
+          "financial",
+          "planning",
+          "personal",
+          "wealth"
+        ],
+        "expected_industry": "Investment Services",
+        "expected_category": "traditional",
+        "test_type": "partial"
+      },
+      "actual_industry": "Fintech",
+      "actual_category": "emerging",
+      "confidence": 0.7687500000000002,
+      "matched_keywords": [
+        "financial data",
+        "financial software",
+        "financial technology",
+        "financial innovation",
+        "financial API",
+        "financial analytics",
+        "financial app",
+        "wealthtech"
+      ],
+      "is_correct": false
+    }
+  ],
+  "summary": {
+    "total_tests": 22,
+    "passed_tests": 18,
+    "failed_tests": 4,
+    "accuracy_rate": 81.81818181818183,
+    "average_confidence": 0.7681818181818183,
+    "by_test_type": {
+      "exact": {
+        "total": 11,
+        "passed": 10,
+        "failed": 1,
+        "accuracy": 90.9090909090909
+      },
+      "partial": {
+        "total": 3,
+        "passed": 2,
+        "failed": 1,
+        "accuracy": 66.66666666666666
+      },
+      "phrase": {
+        "total": 4,
+        "passed": 3,
+        "failed": 1,
+        "accuracy": 75
+      },
+      "synonym": {
+        "total": 4,
+        "passed": 3,
+        "failed": 1,
+        "accuracy": 75
+      }
+    }
+  },
+  "timestamp": "2025-09-19T18:07:23.844117-04:00"
+}

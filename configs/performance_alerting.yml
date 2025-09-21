@@ -1,0 +1,404 @@
+# KYB Platform Performance Alerting Configuration
+# This file contains alerting thresholds and rules for performance monitoring
+
+# Performance monitoring configuration
+performance_monitoring:
+  # Collection settings
+  collection_interval: "30s"
+  cache_timeout: "5m"
+  batch_size: 1000
+
+  # Database monitoring
+  database_monitoring:
+    enabled: true
+    query_timeout: "10s"
+    connection_timeout: "5s"
+    max_connections: 100
+
+  # Application monitoring
+  application_monitoring:
+    enabled: true
+    memory_threshold: 80.0  # 80% memory usage
+    cpu_threshold: 80.0     # 80% CPU usage
+    goroutine_threshold: 1000
+    gc_threshold: "100ms"
+
+  # Business metrics monitoring
+  business_metrics_monitoring:
+    enabled: true
+    classification_accuracy_min: 90.0    # 90% minimum accuracy
+    risk_detection_latency_max: 2.0      # 2 seconds max latency
+    api_response_time_max: 1.0           # 1 second max response time
+    error_rate_max: 5.0                  # 5% max error rate
+
+  # Alerting configuration
+  alerting:
+    enabled: true
+    cooldown_period: "5m"
+    notification_channels:
+      - "email"
+      - "slack"
+      - "webhook"
+
+    # Alert thresholds
+    thresholds:
+      # Database performance alerts
+      high_database_connections:
+        metric_name: "database_connections"
+        condition: "gt"
+        value: 80.0
+        severity: "warning"
+        duration: "2m"
+        cooldown: "10m"
+        enabled: true
+        description: "Database connection pool usage is high"
+
+      database_connection_exhausted:
+        metric_name: "database_connections"
+        condition: "gt"
+        value: 95.0
+        severity: "critical"
+        duration: "1m"
+        cooldown: "5m"
+        enabled: true
+        description: "Database connection pool is nearly exhausted"
+
+      slow_database_queries:
+        metric_name: "database_query_duration"
+        condition: "gt"
+        value: 5.0
+        severity: "warning"
+        duration: "3m"
+        cooldown: "15m"
+        enabled: true
+        description: "Database queries are running slowly"
+
+      # Application performance alerts
+      high_memory_usage:
+        metric_name: "memory_usage"
+        condition: "gt"
+        value: 80.0
+        severity: "warning"
+        duration: "5m"
+        cooldown: "10m"
+        enabled: true
+        description: "Memory usage is high"
+
+      critical_memory_usage:
+        metric_name: "memory_usage"
+        condition: "gt"
+        value: 95.0
+        severity: "critical"
+        duration: "2m"
+        cooldown: "5m"
+        enabled: true
+        description: "Memory usage is critically high"
+
+      high_cpu_usage:
+        metric_name: "cpu_usage"
+        condition: "gt"
+        value: 80.0
+        severity: "warning"
+        duration: "5m"
+        cooldown: "10m"
+        enabled: true
+        description: "CPU usage is high"
+
+      critical_cpu_usage:
+        metric_name: "cpu_usage"
+        condition: "gt"
+        value: 95.0
+        severity: "critical"
+        duration: "2m"
+        cooldown: "5m"
+        enabled: true
+        description: "CPU usage is critically high"
+
+      high_goroutine_count:
+        metric_name: "goroutine_count"
+        condition: "gt"
+        value: 1000.0
+        severity: "warning"
+        duration: "3m"
+        cooldown: "15m"
+        enabled: true
+        description: "Goroutine count is high"
+
+      excessive_goroutine_count:
+        metric_name: "goroutine_count"
+        condition: "gt"
+        value: 5000.0
+        severity: "critical"
+        duration: "1m"
+        cooldown: "5m"
+        enabled: true
+        description: "Goroutine count is excessive"
+
+      long_gc_duration:
+        metric_name: "gc_duration"
+        condition: "gt"
+        value: 0.1
+        severity: "warning"
+        duration: "2m"
+        cooldown: "10m"
+        enabled: true
+        description: "Garbage collection duration is long"
+
+      # Business metrics alerts
+      low_classification_accuracy:
+        metric_name: "classification_accuracy"
+        condition: "lt"
+        value: 90.0
+        severity: "warning"
+        duration: "5m"
+        cooldown: "15m"
+        enabled: true
+        description: "Classification accuracy is below acceptable threshold"
+
+      critical_classification_accuracy:
+        metric_name: "classification_accuracy"
+        condition: "lt"
+        value: 80.0
+        severity: "critical"
+        duration: "2m"
+        cooldown: "5m"
+        enabled: true
+        description: "Classification accuracy is critically low"
+
+      high_risk_detection_latency:
+        metric_name: "risk_detection_latency"
+        condition: "gt"
+        value: 2.0
+        severity: "warning"
+        duration: "3m"
+        cooldown: "10m"
+        enabled: true
+        description: "Risk detection latency is high"
+
+      critical_risk_detection_latency:
+        metric_name: "risk_detection_latency"
+        condition: "gt"
+        value: 5.0
+        severity: "critical"
+        duration: "1m"
+        cooldown: "5m"
+        enabled: true
+        description: "Risk detection latency is critically high"
+
+      high_api_response_time:
+        metric_name: "api_response_time"
+        condition: "gt"
+        value: 1.0
+        severity: "warning"
+        duration: "3m"
+        cooldown: "10m"
+        enabled: true
+        description: "API response time is high"
+
+      critical_api_response_time:
+        metric_name: "api_response_time"
+        condition: "gt"
+        value: 3.0
+        severity: "critical"
+        duration: "1m"
+        cooldown: "5m"
+        enabled: true
+        description: "API response time is critically high"
+
+      high_error_rate:
+        metric_name: "error_rate"
+        condition: "gt"
+        value: 5.0
+        severity: "warning"
+        duration: "2m"
+        cooldown: "10m"
+        enabled: true
+        description: "Error rate is high"
+
+      critical_error_rate:
+        metric_name: "error_rate"
+        condition: "gt"
+        value: 10.0
+        severity: "critical"
+        duration: "1m"
+        cooldown: "5m"
+        enabled: true
+        description: "Error rate is critically high"
+
+      low_request_rate:
+        metric_name: "request_rate"
+        condition: "lt"
+        value: 1.0
+        severity: "warning"
+        duration: "5m"
+        cooldown: "15m"
+        enabled: true
+        description: "Request rate is unusually low"
+
+      # System health alerts
+      no_active_users:
+        metric_name: "active_users"
+        condition: "eq"
+        value: 0.0
+        severity: "info"
+        duration: "10m"
+        cooldown: "30m"
+        enabled: true
+        description: "No active users detected"
+
+      high_active_users:
+        metric_name: "active_users"
+        condition: "gt"
+        value: 100.0
+        severity: "info"
+        duration: "5m"
+        cooldown: "15m"
+        enabled: true
+        description: "High number of active users"
+
+# Notification channels configuration
+notification_channels:
+  email:
+    enabled: true
+    smtp_host: "localhost"
+    smtp_port: 587
+    smtp_username: "alerts@kyb-platform.com"
+    smtp_password: "password"
+    from: "alerts@kyb-platform.com"
+    to:
+      - "admin@kyb-platform.com"
+      - "devops@kyb-platform.com"
+    subject_prefix: "[KYB Platform Alert]"
+
+  slack:
+    enabled: true
+    webhook_url: "YOUR_SLACK_WEBHOOK_URL"
+    channel: "#alerts"
+    username: "KYB Platform Alerts"
+    icon_emoji: ":warning:"
+
+  webhook:
+    enabled: true
+    url: "http://localhost:5001/alerts"
+    method: "POST"
+    headers:
+      Content-Type: "application/json"
+      Authorization: "Bearer YOUR_TOKEN"
+    timeout: "10s"
+    retry_attempts: 3
+    retry_delay: "5s"
+
+# Alert suppression rules
+suppression_rules:
+  maintenance_window:
+    name: "Maintenance Window"
+    description: "Suppress alerts during scheduled maintenance"
+    conditions:
+      time: "02:00-04:00"  # 2 AM to 4 AM
+      day: "sunday"        # Sunday only
+    duration: "2h"
+    enabled: false
+
+  deployment_suppression:
+    name: "Deployment Suppression"
+    description: "Suppress alerts during deployments"
+    conditions:
+      environment: "staging"
+      deployment: "true"
+    duration: "30m"
+    enabled: true
+
+  business_hours:
+    name: "Business Hours Suppression"
+    description: "Suppress non-critical alerts during business hours"
+    conditions:
+      time: "09:00-17:00"  # 9 AM to 5 PM
+      day: "monday-friday" # Monday to Friday
+    severity: ["info", "warning"]
+    duration: "8h"
+    enabled: false
+
+# Escalation policies
+escalation_policies:
+  default:
+    name: "Default Escalation"
+    steps:
+      - delay: "5m"
+        channels: ["email"]
+      - delay: "10m"
+        channels: ["slack"]
+      - delay: "15m"
+        channels: ["webhook"]
+
+  critical:
+    name: "Critical Alert Escalation"
+    steps:
+      - delay: "1m"
+        channels: ["slack", "email"]
+      - delay: "3m"
+        channels: ["webhook"]
+      - delay: "5m"
+        channels: ["email", "slack"]
+
+  business_hours:
+    name: "Business Hours Escalation"
+    steps:
+      - delay: "2m"
+        channels: ["email"]
+      - delay: "5m"
+        channels: ["slack"]
+      - delay: "10m"
+        channels: ["webhook"]
+
+# Alert grouping and routing
+alert_grouping:
+  enabled: true
+  group_by:
+    - "severity"
+    - "component"
+    - "environment"
+  group_interval: "5m"
+  repeat_interval: "1h"
+
+alert_routing:
+  rules:
+    - match:
+        severity: "critical"
+      receiver: "critical-alerts"
+      group_wait: "10s"
+      group_interval: "5m"
+      repeat_interval: "1h"
+
+    - match:
+        severity: "warning"
+      receiver: "warning-alerts"
+      group_wait: "30s"
+      group_interval: "10m"
+      repeat_interval: "2h"
+
+    - match:
+        severity: "info"
+      receiver: "info-alerts"
+      group_wait: "1m"
+      group_interval: "30m"
+      repeat_interval: "4h"
+
+# Performance thresholds for different environments
+environment_thresholds:
+  development:
+    memory_threshold: 90.0
+    cpu_threshold: 90.0
+    error_rate_threshold: 10.0
+    response_time_threshold: 2.0
+
+  staging:
+    memory_threshold: 85.0
+    cpu_threshold: 85.0
+    error_rate_threshold: 7.0
+    response_time_threshold: 1.5
+
+  production:
+    memory_threshold: 80.0
+    cpu_threshold: 80.0
+    error_rate_threshold: 5.0
+    response_time_threshold: 1.0
