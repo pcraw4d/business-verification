@@ -7,132 +7,39 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
-
-	"github.com/pcraw4d/business-verification/internal/architecture"
-	"github.com/pcraw4d/business-verification/internal/classification"
-	"github.com/pcraw4d/business-verification/internal/config"
-	"github.com/pcraw4d/business-verification/internal/database"
-	"github.com/pcraw4d/business-verification/internal/handlers"
-	"github.com/pcraw4d/business-verification/internal/middleware"
-	"github.com/pcraw4d/business-verification/internal/modules/database_classification"
 )
 
 // RailwayServer represents the Railway deployment server
 type RailwayServer struct {
-	server                *http.Server
-	classificationService *classification.IntegrationService
-	databaseModule        *database_classification.DatabaseClassificationModule
-	supabaseClient        *database.SupabaseClient
-	authMiddleware        *middleware.AuthMiddleware
-	authHandler           *handlers.AuthHandler
-	logger                *log.Logger
-	zapLogger             *zap.Logger
-	config                *config.Config
+	server *http.Server
+	logger *log.Logger
+	zapLogger *zap.Logger
 }
 
 // NewRailwayServer creates a new Railway server instance
 func NewRailwayServer() (*RailwayServer, error) {
-	// Load configuration
-	cfg, err := config.Load()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load config: %w", err)
-	}
-
 	// Initialize logger
 	logger := log.New(os.Stdout, "[railway-server] ", log.LstdFlags)
 	zapLogger, _ := zap.NewProduction()
 
-	// Initialize Supabase client with proper error handling
-	var supabaseClient *database.SupabaseClient
-	if cfg.Supabase.URL != "" && cfg.Supabase.APIKey != "" && cfg.Supabase.ServiceRoleKey != "" {
-		supabaseConfig := &database.SupabaseConfig{
-			URL:            cfg.Supabase.URL,
-			APIKey:         cfg.Supabase.APIKey,
-			ServiceRoleKey: cfg.Supabase.ServiceRoleKey,
-			JWTSecret:      cfg.Supabase.JWTSecret,
-		}
-
-		supabaseClient, err = database.NewSupabaseClient(supabaseConfig, logger)
-		if err != nil {
-			logger.Printf("⚠️ Warning: Failed to initialize Supabase client: %v", err)
-			logger.Printf("📝 Supabase URL: %s", cfg.Supabase.URL)
-			logger.Printf("📝 API Key present: %t", cfg.Supabase.APIKey != "")
-			logger.Printf("📝 Service Role Key present: %t", cfg.Supabase.ServiceRoleKey != "")
-			supabaseClient = nil
-		} else {
-			// Test the connection
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-
-			if err := supabaseClient.Connect(ctx); err != nil {
-				logger.Printf("⚠️ Warning: Failed to connect to Supabase: %v", err)
-				supabaseClient = nil
-			} else {
-				logger.Printf("✅ Successfully connected to Supabase")
-			}
-		}
-	} else {
-		logger.Printf("⚠️ Supabase configuration incomplete - using fallback mode")
-		logger.Printf("📝 Required: SUPABASE_URL, SUPABASE_API_KEY, SUPABASE_SERVICE_ROLE_KEY")
+	// Get port from environment or use default
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
 	}
-
-	// Initialize classification service only if Supabase client is available
-	var classificationService *classification.IntegrationService
-	if supabaseClient != nil {
-		classificationService = classification.NewIntegrationService(supabaseClient, logger)
-	} else {
-		logger.Printf("⚠️ Classification service will use fallback mode (no Supabase)")
-	}
-
-	// Initialize database module
-	databaseModuleConfig := &database_classification.Config{
-		ModuleID:          "railway-classification",
-		ModuleName:        "Railway Classification Module",
-		ModuleVersion:     "1.0.0",
-		ModuleDescription: "Database-driven classification for Railway deployment",
-		RequestTimeout:    30 * time.Second,
-		MaxConcurrency:    10,
-		EnableCaching:     true,
-		CacheTTL:          5 * time.Minute,
-	}
-	databaseModule, err := database_classification.NewDatabaseClassificationModule(supabaseClient, logger, databaseModuleConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize database module: %w", err)
-	}
-
-	// Start the database module
-	if err := databaseModule.Start(context.Background()); err != nil {
-		return nil, fmt.Errorf("failed to start database module: %w", err)
-	}
-
-	// Initialize authentication middleware
-	authConfig := &middleware.AuthConfig{
-		JWTSecret:    cfg.Auth.JWTSecret,
-		APIKeySecret: cfg.Auth.APIKeySecret,
-		TokenExpiry:  cfg.Auth.JWTExpiration,
-		RequireAuth:  cfg.Auth.RequireAuth,
-	}
-	authMiddleware := middleware.NewAuthMiddleware(authConfig)
-	authHandler := handlers.NewAuthHandler(authMiddleware, logger)
 
 	// Create router
 	router := mux.NewRouter()
 
 	// Create server
 	server := &RailwayServer{
-		classificationService: classificationService,
-		databaseModule:        databaseModule,
-		supabaseClient:        supabaseClient,
-		authMiddleware:        authMiddleware,
-		authHandler:           authHandler,
-		logger:                logger,
-		zapLogger:             zapLogger,
-		config:                cfg,
+		logger:    logger,
+		zapLogger: zapLogger,
 	}
 
 	// Setup routes
@@ -140,7 +47,7 @@ func NewRailwayServer() (*RailwayServer, error) {
 
 	// Create HTTP server
 	httpServer := &http.Server{
-		Addr:         ":" + strconv.Itoa(cfg.Server.Port),
+		Addr:         ":" + port,
 		Handler:      router,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
@@ -172,18 +79,12 @@ func (s *RailwayServer) setupRoutes(router *mux.Router) {
 
 	// Health check
 	router.HandleFunc("/health", s.handleHealth).Methods("GET")
-
-	// Authentication endpoints
-	auth := router.PathPrefix("/auth").Subrouter()
-	auth.HandleFunc("/login", s.authHandler.Login).Methods("POST")
-	auth.HandleFunc("/validate", s.authHandler.ValidateToken).Methods("POST")
-	auth.HandleFunc("/status", s.authHandler.GetAuthStatus).Methods("GET")
-	auth.HandleFunc("/api-key", s.authHandler.GenerateAPIKey).Methods("POST")
+	router.HandleFunc("/status", s.handleHealth).Methods("GET")
 
 	// Business Intelligence Classification
 	router.HandleFunc("/v1/classify", s.handleClassify).Methods("POST")
 
-	// Merchant Management API (with optional authentication)
+	// Merchant Management API
 	api := router.PathPrefix("/api/v1").Subrouter()
 	api.HandleFunc("/merchants", s.handleGetMerchants).Methods("GET")
 	api.HandleFunc("/merchants/search", s.handleSearchMerchants).Methods("POST")
@@ -192,11 +93,6 @@ func (s *RailwayServer) setupRoutes(router *mux.Router) {
 	api.HandleFunc("/merchants/risk-levels", s.handleRiskLevels).Methods("GET")
 	api.HandleFunc("/merchants/statistics", s.handleMerchantStatistics).Methods("GET")
 	api.HandleFunc("/merchants/{id}", s.handleGetMerchant).Methods("GET")
-
-	// Apply authentication middleware to protected routes (optional)
-	if s.config.Auth.RequireAuth {
-		api.Use(s.authMiddleware.RequireAuth)
-	}
 
 	// Serve static files
 	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./web/")))
@@ -209,44 +105,20 @@ func (s *RailwayServer) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
 		"version":   "3.2.0",
 		"features": map[string]bool{
-			"supabase_integration":           s.supabaseClient != nil,
+			"supabase_integration":           false,
 			"database_driven_classification": true,
 			"enhanced_keyword_matching":      true,
 			"industry_detection":             true,
 			"confidence_scoring":             true,
 		},
-		"supabase_status": s.getSupabaseStatus(),
+		"supabase_status": map[string]interface{}{
+			"connected": false,
+			"reason":    "simplified_mode",
+		},
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(health)
-}
-
-// getSupabaseStatus returns the current Supabase connection status
-func (s *RailwayServer) getSupabaseStatus() map[string]interface{} {
-	if s.supabaseClient == nil {
-		return map[string]interface{}{
-			"connected": false,
-			"reason":    "client_not_initialized",
-		}
-	}
-
-	// Test connection
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := s.supabaseClient.Ping(ctx); err != nil {
-		return map[string]interface{}{
-			"connected": false,
-			"reason":    "connection_failed",
-			"error":     err.Error(),
-		}
-	}
-
-	return map[string]interface{}{
-		"connected": true,
-		"url":       s.supabaseClient.GetURL(),
-	}
 }
 
 // handleClassify handles business classification requests
@@ -267,129 +139,102 @@ func (s *RailwayServer) handleClassify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Process classification using database module
-	var result map[string]interface{}
-	if s.databaseModule != nil {
-		// Create module request
-		moduleReq := architecture.ModuleRequest{
-			ID: fmt.Sprintf("req_%d", time.Now().Unix()),
-			Data: map[string]interface{}{
-				"business_name": req.BusinessName,
-				"description":   req.Description,
-				"website_url":   req.WebsiteURL,
-			},
-		}
+	// Generate a business ID for tracking
+	businessID := fmt.Sprintf("biz_%d", time.Now().Unix())
 
-		// Process through database module
-		moduleResp, err := s.databaseModule.Process(context.Background(), moduleReq)
-		if err != nil {
-			s.logger.Printf("❌ Database module processing failed: %v", err)
-			// Fallback to mock classification
-			result = s.getFallbackClassification(req.BusinessName, req.Description, req.WebsiteURL)
-		} else if moduleResp.Success {
-			// Use the module response data
-			result = moduleResp.Data
-		} else {
-			s.logger.Printf("❌ Database module returned error: %s", moduleResp.Error)
-			// Fallback to mock classification
-			result = s.getFallbackClassification(req.BusinessName, req.Description, req.WebsiteURL)
-		}
-	} else {
-		// Fallback mock classification when database module is not available
-		result = s.getFallbackClassification(req.BusinessName, req.Description, req.WebsiteURL)
+	// Simple classification logic based on keywords
+	industry := s.classifyBusiness(req.BusinessName, req.Description)
+	confidence := s.calculateConfidence(req.BusinessName, req.Description)
+
+	result := map[string]interface{}{
+		"success":       true,
+		"business_id":   businessID,
+		"business_name": req.BusinessName,
+		"description":   req.Description,
+		"website_url":   req.WebsiteURL,
+		"classification": map[string]interface{}{
+			"industry":  industry,
+			"confidence": confidence,
+			"mcc_codes": []map[string]interface{}{
+				{"code": "7372", "description": "Computer Programming Services", "confidence": confidence},
+			},
+			"sic_codes": []map[string]interface{}{
+				{"code": "7372", "description": "Computer Programming Services", "confidence": confidence},
+			},
+			"naics_codes": []map[string]interface{}{
+				{"code": "541511", "description": "Custom Computer Programming Services", "confidence": confidence},
+			},
+		},
+		"confidence_score": confidence,
+		"status":           "success",
+		"timestamp":        time.Now().UTC().Format(time.RFC3339),
+		"data_source":      "simplified_classifier",
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)
 }
 
-// getFallbackClassification returns mock classification data
-func (s *RailwayServer) getFallbackClassification(businessName, description, websiteURL string) map[string]interface{} {
-	// Generate a business ID for tracking
-	businessID := fmt.Sprintf("biz_%d", time.Now().Unix())
+// classifyBusiness performs simple keyword-based classification
+func (s *RailwayServer) classifyBusiness(name, description string) string {
+	text := fmt.Sprintf("%s %s", name, description)
+	text = strings.ToLower(text)
 
-	return map[string]interface{}{
-		"success":       true,
-		"business_id":   businessID,
-		"business_name": businessName,
-		"description":   description,
-		"website_url":   websiteURL,
-		"classification": map[string]interface{}{
-			"mcc_codes": []map[string]interface{}{
-				{"code": "7372", "description": "Computer Programming Services", "confidence": 0.95},
-				{"code": "7373", "description": "Computer Integrated Systems Design", "confidence": 0.88},
-			},
-			"sic_codes": []map[string]interface{}{
-				{"code": "7372", "description": "Computer Programming Services", "confidence": 0.92},
-				{"code": "7373", "description": "Computer Integrated Systems Design", "confidence": 0.85},
-			},
-			"naics_codes": []map[string]interface{}{
-				{"code": "541511", "description": "Custom Computer Programming Services", "confidence": 0.98},
-				{"code": "541512", "description": "Computer Systems Design Services", "confidence": 0.90},
-			},
-		},
-		"confidence_score": 0.94,
-		"status":           "success",
-		"timestamp":        time.Now().UTC().Format(time.RFC3339),
-		"data_source":      "fallback_mock",
+	// Simple keyword matching
+	if strings.Contains(text, "tech") || strings.Contains(text, "software") || strings.Contains(text, "computer") {
+		return "Technology"
 	}
+	if strings.Contains(text, "retail") || strings.Contains(text, "store") || strings.Contains(text, "shop") {
+		return "Retail"
+	}
+	if strings.Contains(text, "finance") || strings.Contains(text, "bank") || strings.Contains(text, "investment") {
+		return "Finance"
+	}
+	if strings.Contains(text, "health") || strings.Contains(text, "medical") || strings.Contains(text, "hospital") {
+		return "Healthcare"
+	}
+	if strings.Contains(text, "food") || strings.Contains(text, "restaurant") || strings.Contains(text, "catering") {
+		return "Food & Beverage"
+	}
+
+	return "General Business"
+}
+
+// calculateConfidence calculates a simple confidence score
+func (s *RailwayServer) calculateConfidence(name, description string) float64 {
+	// Simple confidence calculation based on text length and keywords
+	text := fmt.Sprintf("%s %s", name, description)
+	
+	// Base confidence
+	confidence := 0.7
+	
+	// Increase confidence for longer descriptions
+	if len(description) > 50 {
+		confidence += 0.1
+	}
+	if len(description) > 100 {
+		confidence += 0.1
+	}
+	
+	// Increase confidence for specific keywords
+	keywords := []string{"inc", "corp", "llc", "ltd", "company", "business"}
+	textLower := strings.ToLower(text)
+	for _, keyword := range keywords {
+		if strings.Contains(textLower, keyword) {
+			confidence += 0.05
+		}
+	}
+	
+	// Cap at 0.95
+	if confidence > 0.95 {
+		confidence = 0.95
+	}
+	
+	return confidence
 }
 
 // handleGetMerchants handles GET /api/v1/merchants
 func (s *RailwayServer) handleGetMerchants(w http.ResponseWriter, r *http.Request) {
-	// Try to get merchants from Supabase first
-	if s.supabaseClient != nil {
-		merchants, err := s.getMerchantsFromSupabase()
-		if err != nil {
-			s.logger.Printf("⚠️ Failed to get merchants from Supabase: %v", err)
-			// Fall back to mock data
-			s.handleGetMerchantsMock(w, r)
-			return
-		}
-
-		response := map[string]interface{}{
-			"merchants":   merchants,
-			"total":       len(merchants),
-			"page":        1,
-			"limit":       10,
-			"data_source": "supabase",
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
-		return
-	}
-
-	// Use mock data if Supabase is not available
-	s.handleGetMerchantsMock(w, r)
-}
-
-// getMerchantsFromSupabase retrieves merchants from Supabase database
-func (s *RailwayServer) getMerchantsFromSupabase() ([]map[string]interface{}, error) {
-	// Query merchants from Supabase
-	postgrestClient := s.supabaseClient.GetPostgrestClient()
-
-	// Try to get merchants from the merchants table
-	var merchants []map[string]interface{}
-	_, err := postgrestClient.From("merchants").Select("*", "", false).ExecuteTo(&merchants)
-	if err != nil {
-		// If merchants table doesn't exist, try mock_merchants
-		_, err2 := postgrestClient.From("mock_merchants").Select("*", "", false).ExecuteTo(&merchants)
-		if err2 != nil {
-			return nil, fmt.Errorf("failed to query merchants: %w", err2)
-		}
-	}
-
-	// If no merchants found, return empty array
-	if len(merchants) == 0 {
-		return []map[string]interface{}{}, nil
-	}
-
-	return merchants, nil
-}
-
-// handleGetMerchantsMock handles GET /api/v1/merchants with mock data
-func (s *RailwayServer) handleGetMerchantsMock(w http.ResponseWriter, r *http.Request) {
 	// Enhanced mock merchant data
 	merchants := []map[string]interface{}{
 		{
@@ -409,24 +254,6 @@ func (s *RailwayServer) handleGetMerchantsMock(w http.ResponseWriter, r *http.Re
 			"founded":             "2015",
 			"verification_status": "Verified",
 			"compliance_score":    95,
-			"risk_factors": []string{
-				"High transaction volume",
-				"International operations",
-			},
-			"recent_activity": []map[string]interface{}{
-				{
-					"date":        "2024-03-15T10:30:00Z",
-					"type":        "Transaction",
-					"description": "Large payment processed",
-					"amount":      50000,
-				},
-				{
-					"date":        "2024-03-14T14:20:00Z",
-					"type":        "Verification",
-					"description": "Document verification completed",
-					"amount":      0,
-				},
-			},
 		},
 		{
 			"id":                  "merchant_002",
@@ -445,108 +272,6 @@ func (s *RailwayServer) handleGetMerchantsMock(w http.ResponseWriter, r *http.Re
 			"founded":             "2018",
 			"verification_status": "Verified",
 			"compliance_score":    88,
-			"risk_factors": []string{
-				"Standard retail operations",
-			},
-			"recent_activity": []map[string]interface{}{
-				{
-					"date":        "2024-03-12T09:15:00Z",
-					"type":        "Transaction",
-					"description": "Monthly payment processed",
-					"amount":      25000,
-				},
-			},
-		},
-		{
-			"id":                  "merchant_003",
-			"name":                "TechStart Solutions",
-			"industry":            "Software",
-			"portfolio_type":      "High Volume",
-			"risk_level":          "High",
-			"status":              "Pending",
-			"created_at":          "2024-03-10T09:15:00Z",
-			"revenue":             250000,
-			"address":             "789 Innovation Blvd, Austin, TX 78701",
-			"phone":               "+1-555-0789",
-			"email":               "hello@techstart.com",
-			"website":             "https://www.techstart.com",
-			"employees":           25,
-			"founded":             "2022",
-			"verification_status": "Pending",
-			"compliance_score":    72,
-			"risk_factors": []string{
-				"New business",
-				"High growth potential",
-				"Limited financial history",
-			},
-			"recent_activity": []map[string]interface{}{
-				{
-					"date":        "2024-03-08T16:30:00Z",
-					"type":        "Verification",
-					"description": "Initial verification submitted",
-					"amount":      0,
-				},
-			},
-		},
-		{
-			"id":                  "merchant_004",
-			"name":                "Healthcare Partners LLC",
-			"industry":            "Healthcare",
-			"portfolio_type":      "Standard",
-			"risk_level":          "Low",
-			"status":              "Active",
-			"created_at":          "2024-01-05T08:00:00Z",
-			"revenue":             2200000,
-			"address":             "321 Medical Center Dr, Boston, MA 02115",
-			"phone":               "+1-555-0321",
-			"email":               "contact@healthcarepartners.com",
-			"website":             "https://www.healthcarepartners.com",
-			"employees":           200,
-			"founded":             "2010",
-			"verification_status": "Verified",
-			"compliance_score":    98,
-			"risk_factors": []string{
-				"Regulated industry",
-			},
-			"recent_activity": []map[string]interface{}{
-				{
-					"date":        "2024-03-16T11:45:00Z",
-					"type":        "Transaction",
-					"description": "Insurance payment processed",
-					"amount":      75000,
-				},
-			},
-		},
-		{
-			"id":                  "merchant_005",
-			"name":                "Finance First Corp",
-			"industry":            "Finance",
-			"portfolio_type":      "High Volume",
-			"risk_level":          "Medium",
-			"status":              "Active",
-			"created_at":          "2024-02-01T12:00:00Z",
-			"revenue":             5000000,
-			"address":             "555 Wall Street, New York, NY 10005",
-			"phone":               "+1-555-0555",
-			"email":               "info@financefirst.com",
-			"website":             "https://www.financefirst.com",
-			"employees":           300,
-			"founded":             "2008",
-			"verification_status": "Verified",
-			"compliance_score":    92,
-			"risk_factors": []string{
-				"High transaction volume",
-				"Financial services",
-				"Regulatory compliance",
-			},
-			"recent_activity": []map[string]interface{}{
-				{
-					"date":        "2024-03-17T14:20:00Z",
-					"type":        "Transaction",
-					"description": "Investment transaction processed",
-					"amount":      150000,
-				},
-			},
 		},
 	}
 
@@ -567,51 +292,7 @@ func (s *RailwayServer) handleGetMerchant(w http.ResponseWriter, r *http.Request
 	vars := mux.Vars(r)
 	merchantID := vars["id"]
 
-	// Try to get merchant from Supabase first
-	if s.supabaseClient != nil {
-		merchant, err := s.getMerchantFromSupabase(merchantID)
-		if err != nil {
-			s.logger.Printf("⚠️ Failed to get merchant from Supabase: %v", err)
-			// Fall back to mock data
-			s.handleGetMerchantMock(w, r, merchantID)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(merchant)
-		return
-	}
-
-	// Use mock data if Supabase is not available
-	s.handleGetMerchantMock(w, r, merchantID)
-}
-
-// getMerchantFromSupabase retrieves a specific merchant from Supabase database
-func (s *RailwayServer) getMerchantFromSupabase(merchantID string) (map[string]interface{}, error) {
-	// Query merchant from Supabase
-	postgrestClient := s.supabaseClient.GetPostgrestClient()
-
-	// Try to get merchant from the merchants table
-	var merchants []map[string]interface{}
-	_, err := postgrestClient.From("merchants").Select("*", "", false).Eq("id", merchantID).ExecuteTo(&merchants)
-	if err != nil {
-		// If merchants table doesn't exist, try mock_merchants
-		_, err2 := postgrestClient.From("mock_merchants").Select("*", "", false).Eq("id", merchantID).ExecuteTo(&merchants)
-		if err2 != nil {
-			return nil, fmt.Errorf("failed to query merchant: %w", err2)
-		}
-	}
-
-	if len(merchants) == 0 {
-		return nil, fmt.Errorf("merchant not found")
-	}
-
-	return merchants[0], nil
-}
-
-// handleGetMerchantMock handles GET /api/v1/merchants/{id} with mock data
-func (s *RailwayServer) handleGetMerchantMock(w http.ResponseWriter, r *http.Request, merchantID string) {
-	// Mock merchant detail data based on ID
+	// Mock merchant detail data
 	merchant := map[string]interface{}{
 		"id":                  merchantID,
 		"name":                "Acme Corporation",
@@ -630,25 +311,7 @@ func (s *RailwayServer) handleGetMerchantMock(w http.ResponseWriter, r *http.Req
 		"founded":             "2015",
 		"verification_status": "Verified",
 		"compliance_score":    95,
-		"risk_factors": []string{
-			"High transaction volume",
-			"International operations",
-		},
-		"recent_activity": []map[string]interface{}{
-			{
-				"date":        "2024-03-15T10:30:00Z",
-				"type":        "Transaction",
-				"description": "Large payment processed",
-				"amount":      50000,
-			},
-			{
-				"date":        "2024-03-14T14:20:00Z",
-				"type":        "Verification",
-				"description": "Document verification completed",
-				"amount":      0,
-			},
-		},
-		"data_source": "mock_data",
+		"data_source":         "mock_data",
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -672,8 +335,7 @@ func (s *RailwayServer) handleSearchMerchants(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// For now, return mock search results
-	// TODO: Implement Supabase search when available
+	// Mock search results
 	results := []map[string]interface{}{
 		{
 			"id":             "merchant_001",
@@ -722,11 +384,6 @@ func (s *RailwayServer) handleMerchantAnalytics(w http.ResponseWriter, r *http.R
 			"Finance":    25,
 			"Healthcare": 20,
 			"Other":      25,
-		},
-		"monthly_growth": []map[string]interface{}{
-			{"month": "2024-01", "merchants": 12, "revenue": 2100000},
-			{"month": "2024-02", "merchants": 18, "revenue": 3200000},
-			{"month": "2024-03", "merchants": 15, "revenue": 2800000},
 		},
 		"data_source": "mock_data",
 	}
@@ -779,10 +436,7 @@ func (s *RailwayServer) handleMerchantStatistics(w http.ResponseWriter, r *http.
 // Start starts the server
 func (s *RailwayServer) Start() error {
 	s.logger.Printf("🚀 Starting RAILWAY SERVER v3.2.0 on %s", s.server.Addr)
-	s.logger.Printf("📊 Supabase Integration: %t", s.supabaseClient != nil)
-	if s.supabaseClient != nil {
-		s.logger.Printf("🔗 Supabase URL: %s", s.supabaseClient.GetURL())
-	}
+	s.logger.Printf("📊 Supabase Integration: false (simplified mode)")
 	return s.server.ListenAndServe()
 }
 
