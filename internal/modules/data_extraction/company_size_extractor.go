@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/observability"
-	"github.com/pcraw4d/business-verification/internal/shared"
+	"kyb-platform/internal/observability"
+	"kyb-platform/internal/shared"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"

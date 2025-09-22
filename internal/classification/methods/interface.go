@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/shared"
+	"kyb-platform/internal/shared"
 )
 
 // ClassificationMethod defines the interface that all classification methods must implement

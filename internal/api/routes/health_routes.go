@@ -7,8 +7,8 @@ import (
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 
-	"github.com/pcraw4d/business-verification/internal/api/handlers"
-	"github.com/pcraw4d/business-verification/internal/services"
+	"kyb-platform/internal/api/handlers"
+	"kyb-platform/internal/services"
 )
 
 // SetupHealthRoutes sets up health check API routes

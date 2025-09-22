@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kyb-platform/internal/models"
+	"kyb-platform/internal/models"
 )
 
 // KeywordRelationshipRepository defines the interface for keyword relationship operations

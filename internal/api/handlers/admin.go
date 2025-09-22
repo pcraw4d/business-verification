@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/pcraw4d/business-verification/internal/api/middleware"
-	"github.com/pcraw4d/business-verification/internal/auth"
-	"github.com/pcraw4d/business-verification/internal/observability"
+	"kyb-platform/internal/api/middleware"
+	"kyb-platform/internal/auth"
+	"kyb-platform/internal/observability"
 )
 
 // AdminHandler handles admin API endpoints

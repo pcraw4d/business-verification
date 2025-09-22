@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 
-	"github.com/pcraw4d/business-verification/internal/modules/classification_monitoring"
+	"kyb-platform/internal/modules/classification_monitoring"
 )
 
 // ClassificationMonitoringHandler handles HTTP requests for classification monitoring

@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/pcraw4d/business-verification/internal/external"
+	"kyb-platform/internal/external"
 	"go.uber.org/zap"
 )
 

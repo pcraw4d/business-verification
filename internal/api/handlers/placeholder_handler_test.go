@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/placeholders"
+	"kyb-platform/internal/placeholders"
 )
 
 // mockPlaceholderService is a mock implementation of PlaceholderServiceInterface

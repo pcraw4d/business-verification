@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/observability"
+	"kyb-platform/internal/observability"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )

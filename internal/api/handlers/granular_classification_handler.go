@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/api/routing"
-	"github.com/pcraw4d/business-verification/internal/classification"
-	"github.com/pcraw4d/business-verification/internal/config"
-	"github.com/pcraw4d/business-verification/internal/modules/risk_assessment"
+	"kyb-platform/internal/api/routing"
+	"kyb-platform/internal/classification"
+	"kyb-platform/internal/config"
+	"kyb-platform/internal/modules/risk_assessment"
 )
 
 // GranularClassificationHandler handles classification requests with granular feature flag support

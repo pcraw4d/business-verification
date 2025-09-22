@@ -3,7 +3,7 @@ package ml_classification
 import (
 	"testing"
 
-	"github.com/pcraw4d/business-verification/internal/architecture"
+	"kyb-platform/internal/architecture"
 	"github.com/stretchr/testify/assert"
 )
 

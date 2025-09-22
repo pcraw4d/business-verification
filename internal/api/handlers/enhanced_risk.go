@@ -10,7 +10,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/pcraw4d/business-verification/internal/risk"
+	"kyb-platform/internal/risk"
 )
 
 // EnhancedRiskHandler handles enhanced risk assessment API endpoints

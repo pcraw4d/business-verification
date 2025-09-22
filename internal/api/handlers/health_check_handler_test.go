@@ -9,7 +9,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/pcraw4d/business-verification/internal/services"
+	"kyb-platform/internal/services"
 )
 
 // MockHealthCheckService is a mock implementation of HealthCheckService

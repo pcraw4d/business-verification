@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/company/kyb-platform/internal/testing/performance"
+	"kyb-platform/internal/testing/performance"
 )
 
 func main() {

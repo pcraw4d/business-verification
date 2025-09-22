@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/models"
+	"kyb-platform/internal/models"
 )
 
 // UnifiedAuditRepository handles unified audit log operations

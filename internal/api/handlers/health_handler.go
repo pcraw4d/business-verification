@@ -7,7 +7,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/pcraw4d/business-verification/internal/services"
+	"kyb-platform/internal/services"
 )
 
 // HealthHandler handles health check API endpoints

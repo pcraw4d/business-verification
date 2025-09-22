@@ -6,7 +6,7 @@ import (
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 
-	"github.com/pcraw4d/business-verification/internal/api/handlers"
+	"kyb-platform/internal/api/handlers"
 )
 
 // SetupMonitoringRoutes sets up monitoring API routes

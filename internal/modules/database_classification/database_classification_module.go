@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/architecture"
-	"github.com/pcraw4d/business-verification/internal/classification"
-	"github.com/pcraw4d/business-verification/internal/database"
-	"github.com/pcraw4d/business-verification/internal/shared"
+	"kyb-platform/internal/architecture"
+	"kyb-platform/internal/classification"
+	"kyb-platform/internal/database"
+	"kyb-platform/internal/shared"
 )
 
 // DatabaseClassificationModule implements the architecture.Module interface

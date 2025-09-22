@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/observability"
+	"kyb-platform/internal/observability"
 )
 
 // AlertService provides comprehensive risk alert functionality

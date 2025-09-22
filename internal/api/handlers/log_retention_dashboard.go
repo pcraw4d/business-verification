@@ -6,7 +6,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/pcraw4d/business-verification/internal/observability"
+	"kyb-platform/internal/observability"
 )
 
 // LogRetentionDashboardHandler handles HTTP requests for log retention and archival

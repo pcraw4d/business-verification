@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/company/kyb-platform/internal/classification/multi_method_classifier"
-	"github.com/company/kyb-platform/internal/config"
-	"github.com/company/kyb-platform/internal/testing"
+	"kyb-platform/internal/classification/multi_method_classifier"
+	"kyb-platform/internal/config"
+	"kyb-platform/internal/testing"
 	_ "github.com/lib/pq"
 )
 

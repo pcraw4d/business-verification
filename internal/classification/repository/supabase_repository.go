@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/cache"
-	"github.com/pcraw4d/business-verification/internal/database"
+	"kyb-platform/internal/cache"
+	"kyb-platform/internal/database"
 	postgrest "github.com/supabase-community/postgrest-go"
 )
 

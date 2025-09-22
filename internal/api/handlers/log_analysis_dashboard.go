@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/observability"
+	"kyb-platform/internal/observability"
 )
 
 // LogAnalysisDashboardHandler handles log analysis and monitoring dashboard API endpoints

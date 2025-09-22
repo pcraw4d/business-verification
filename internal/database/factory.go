@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pcraw4d/business-verification/internal/config"
+	"kyb-platform/internal/config"
 )
 
 // NewDatabase creates a new database instance based on configuration

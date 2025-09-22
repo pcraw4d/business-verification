@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/pcraw4d/business-verification/internal/external"
+	"kyb-platform/internal/external"
 	"go.uber.org/zap"
 )
 

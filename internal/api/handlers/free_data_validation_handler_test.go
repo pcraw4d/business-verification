@@ -11,7 +11,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/pcraw4d/business-verification/internal/integrations"
+	"kyb-platform/internal/integrations"
 )
 
 // MockFreeDataValidationService is a mock implementation of the validation service

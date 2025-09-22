@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/classification"
-	"github.com/pcraw4d/business-verification/internal/shared"
+	"kyb-platform/internal/classification"
+	"kyb-platform/internal/shared"
 
 	"go.uber.org/zap"
 )

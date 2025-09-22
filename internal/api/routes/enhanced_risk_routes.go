@@ -3,8 +3,8 @@ package routes
 import (
 	"net/http"
 
-	"github.com/pcraw4d/business-verification/internal/api/handlers"
-	"github.com/pcraw4d/business-verification/internal/api/middleware"
+	"kyb-platform/internal/api/handlers"
+	"kyb-platform/internal/api/middleware"
 )
 
 // RegisterEnhancedRiskRoutes registers enhanced risk assessment routes

@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/classification/methods"
-	"github.com/pcraw4d/business-verification/internal/classification/repository"
-	"github.com/pcraw4d/business-verification/internal/machine_learning"
-	"github.com/pcraw4d/business-verification/internal/shared"
+	"kyb-platform/internal/classification/methods"
+	"kyb-platform/internal/classification/repository"
+	"kyb-platform/internal/machine_learning"
+	"kyb-platform/internal/shared"
 )
 
 // MockKeywordRepository for testing

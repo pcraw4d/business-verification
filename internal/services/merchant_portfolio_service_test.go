@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/database"
+	"kyb-platform/internal/database"
 )
 
 // MockDatabase implements the database.Database interface for testing

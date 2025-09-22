@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/shared"
+	"kyb-platform/internal/shared"
 )
 
 // TestPerformanceBasedWeightAdjusterIntegration tests the integration of the performance-based weight adjustment system

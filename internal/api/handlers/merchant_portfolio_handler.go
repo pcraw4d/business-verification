@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/database"
-	"github.com/pcraw4d/business-verification/internal/models"
-	"github.com/pcraw4d/business-verification/internal/services"
+	"kyb-platform/internal/database"
+	"kyb-platform/internal/models"
+	"kyb-platform/internal/services"
 )
 
 // MerchantPortfolioServiceInterface defines the interface for merchant portfolio service

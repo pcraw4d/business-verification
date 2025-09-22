@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/shared"
+	"kyb-platform/internal/shared"
 )
 
 // NewMethodPerformanceTracker creates a new method performance tracker

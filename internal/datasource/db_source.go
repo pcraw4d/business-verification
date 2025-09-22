@@ -3,7 +3,7 @@ package datasource
 import (
 	"context"
 
-	"github.com/pcraw4d/business-verification/internal/database"
+	"kyb-platform/internal/database"
 )
 
 // DBSource enriches data using our primary application database

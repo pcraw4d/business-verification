@@ -8,7 +8,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/pcraw4d/business-verification/internal/integrations"
+	"kyb-platform/internal/integrations"
 )
 
 // FreeDataValidationHandler handles free data validation requests

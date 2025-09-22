@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/database"
-	"github.com/pcraw4d/business-verification/internal/external"
-	"github.com/pcraw4d/business-verification/internal/modules/website_analysis"
+	"kyb-platform/internal/database"
+	"kyb-platform/internal/external"
+	"kyb-platform/internal/modules/website_analysis"
 
 	"go.uber.org/zap"
 )

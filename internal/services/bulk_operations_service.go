@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/database"
+	"kyb-platform/internal/database"
 )
 
 // BulkOperationsService provides business logic for bulk merchant operations

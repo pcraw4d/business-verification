@@ -12,10 +12,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/architecture"
-	"github.com/pcraw4d/business-verification/internal/config"
-	"github.com/pcraw4d/business-verification/internal/database"
-	"github.com/pcraw4d/business-verification/internal/observability"
+	"kyb-platform/internal/architecture"
+	"kyb-platform/internal/config"
+	"kyb-platform/internal/database"
+	"kyb-platform/internal/observability"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"

@@ -10,7 +10,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/company/kyb-platform/internal/classification"
+	"kyb-platform/internal/classification"
 )
 
 // ClassificationReportingHandler handles classification reporting API endpoints

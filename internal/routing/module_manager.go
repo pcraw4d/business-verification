@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/architecture"
-	"github.com/pcraw4d/business-verification/internal/modules/database_classification"
-	"github.com/pcraw4d/business-verification/internal/observability"
+	"kyb-platform/internal/architecture"
+	"kyb-platform/internal/modules/database_classification"
+	"kyb-platform/internal/observability"
 )
 
 // DefaultModuleManager implements the ModuleManager interface

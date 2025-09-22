@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/pcraw4d/business-verification/internal/classification/repository"
+	"kyb-platform/internal/classification/repository"
 )
 
 // TestEndToEndClassificationFlow tests the complete classification flow with various industries

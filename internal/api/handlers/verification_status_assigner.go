@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/pcraw4d/business-verification/internal/external"
+	"kyb-platform/internal/external"
 	"go.uber.org/zap"
 )
 

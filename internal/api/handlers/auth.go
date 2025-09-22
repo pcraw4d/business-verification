@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/auth"
-	"github.com/pcraw4d/business-verification/internal/config"
-	"github.com/pcraw4d/business-verification/internal/observability"
+	"kyb-platform/internal/auth"
+	"kyb-platform/internal/config"
+	"kyb-platform/internal/observability"
 	"go.uber.org/zap"
 )
 

@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/database"
-	"github.com/pcraw4d/business-verification/internal/models"
-	"github.com/pcraw4d/business-verification/internal/services"
+	"kyb-platform/internal/database"
+	"kyb-platform/internal/models"
+	"kyb-platform/internal/services"
 )
 
 // MockMerchantPortfolioService is a mock implementation of MerchantPortfolioService

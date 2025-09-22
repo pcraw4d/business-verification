@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/disaster_recovery"
-	"github.com/pcraw4d/business-verification/internal/observability"
+	"kyb-platform/internal/disaster_recovery"
+	"kyb-platform/internal/observability"
 )
 
 // DisasterRecoveryHandler handles disaster recovery HTTP requests

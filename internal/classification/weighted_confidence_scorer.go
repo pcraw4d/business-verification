@@ -7,7 +7,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/shared"
+	"kyb-platform/internal/shared"
 )
 
 // WeightedConfidenceScorer provides sophisticated weighted confidence scoring across multiple classification methods

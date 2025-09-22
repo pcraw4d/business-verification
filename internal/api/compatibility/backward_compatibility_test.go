@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/pcraw4d/business-verification/internal/config"
-	"github.com/pcraw4d/business-verification/internal/shared"
-	"github.com/pcraw4d/business-verification/pkg/validators"
+	"kyb-platform/internal/config"
+	"kyb-platform/internal/shared"
+	"kyb-platform/pkg/validators"
 )
 
 // MockClassificationProcessor implements ClassificationProcessor for testing

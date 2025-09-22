@@ -7,8 +7,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/company/kyb-platform/internal/config"
-	"github.com/company/kyb-platform/internal/testing"
+	"kyb-platform/internal/config"
+	"kyb-platform/internal/testing"
 	_ "github.com/lib/pq"
 )
 

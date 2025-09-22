@@ -3,10 +3,10 @@ package routes
 import (
 	"net/http"
 
-	"github.com/pcraw4d/business-verification/internal/api/handlers"
-	"github.com/pcraw4d/business-verification/internal/api/middleware"
-	"github.com/pcraw4d/business-verification/internal/observability"
-	"github.com/pcraw4d/business-verification/internal/routing"
+	"kyb-platform/internal/api/handlers"
+	"kyb-platform/internal/api/middleware"
+	"kyb-platform/internal/observability"
+	"kyb-platform/internal/routing"
 	"go.opentelemetry.io/otel/trace"
 )
 

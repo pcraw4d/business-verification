@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/classification/repository"
-	"github.com/pcraw4d/business-verification/internal/database"
+	"kyb-platform/internal/classification/repository"
+	"kyb-platform/internal/database"
 )
 
 // TestDatabaseIntegration runs integration tests against the actual Supabase database

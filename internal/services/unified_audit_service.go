@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/compliance"
-	"github.com/pcraw4d/business-verification/internal/models"
-	"github.com/pcraw4d/business-verification/internal/observability"
+	"kyb-platform/internal/compliance"
+	"kyb-platform/internal/models"
+	"kyb-platform/internal/observability"
 )
 
 // UnifiedAuditService provides comprehensive audit logging using the unified audit system

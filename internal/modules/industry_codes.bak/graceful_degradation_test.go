@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/integrations"
+	"kyb-platform/internal/integrations"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"

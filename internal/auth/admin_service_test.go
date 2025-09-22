@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/database"
+	"kyb-platform/internal/database"
 )
 
 // MockAdminDatabase implements database.Database for testing

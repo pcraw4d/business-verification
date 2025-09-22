@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 
-	"github.com/pcraw4d/business-verification/internal/modules/classification_monitoring"
+	"kyb-platform/internal/modules/classification_monitoring"
 )
 
 func TestNewAlgorithmOptimizer(t *testing.T) {

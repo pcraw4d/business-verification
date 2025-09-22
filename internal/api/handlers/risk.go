@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/observability"
-	"github.com/pcraw4d/business-verification/internal/risk"
+	"kyb-platform/internal/observability"
+	"kyb-platform/internal/risk"
 )
 
 // RiskHandler handles risk assessment API requests

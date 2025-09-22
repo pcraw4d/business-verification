@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kyb-platform/internal/cache"
+	"kyb-platform/internal/cache"
 )
 
 // QueryPerformanceTestSuite provides comprehensive testing for query optimizations

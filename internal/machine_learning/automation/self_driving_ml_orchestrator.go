@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/company/kyb-platform/internal/config"
-	"github.com/company/kyb-platform/internal/machine_learning/infrastructure"
+	"kyb-platform/internal/config"
+	"kyb-platform/internal/machine_learning/infrastructure"
 )
 
 // SelfDrivingMLOrchestrator orchestrates all self-driving ML operations

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/middleware"
+	"kyb-platform/internal/middleware"
 )
 
 // AuthHandler handles authentication-related endpoints

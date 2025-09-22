@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/shared"
+	"kyb-platform/internal/shared"
 )
 
 // NewCostTracker creates a new cost tracker

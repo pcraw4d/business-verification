@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/models"
+	"kyb-platform/internal/models"
 )
 
 // MockMerchantDatabase provides an in-memory mock database for testing

@@ -14,8 +14,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/kyb-platform/internal/cache"
-	"github.com/kyb-platform/internal/testing"
+	"kyb-platform/internal/cache"
+	"kyb-platform/internal/testing"
 	_ "github.com/lib/pq"
 )
 

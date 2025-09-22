@@ -3,7 +3,7 @@ package repository
 import (
 	"log"
 
-	"github.com/pcraw4d/business-verification/internal/database"
+	"kyb-platform/internal/database"
 )
 
 // NewRepository creates a new keyword repository with the real Supabase client

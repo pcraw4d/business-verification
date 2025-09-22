@@ -5,8 +5,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/pcraw4d/business-verification/internal/api/handlers"
-	"github.com/pcraw4d/business-verification/internal/feedback"
+	"kyb-platform/internal/api/handlers"
+	"kyb-platform/internal/feedback"
 )
 
 // RegisterFeedbackRoutes registers all feedback-related routes

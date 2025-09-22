@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/database"
+	"kyb-platform/internal/database"
 )
 
 // TestIndustryCodeCaching tests the industry code caching functionality

@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/pcraw4d/business-verification/internal/classification/repository"
+	"kyb-platform/internal/classification/repository"
 )
 
 // TestCrossIndustryKeywordValidation validates that keywords don't create conflicts between industries

@@ -9,7 +9,7 @@ import (
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 
-	"github.com/pcraw4d/business-verification/internal/modules/classification_optimization"
+	"kyb-platform/internal/modules/classification_optimization"
 )
 
 // ClassificationOptimizationValidationHandler handles HTTP requests for classification optimization accuracy validation

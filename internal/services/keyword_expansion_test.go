@@ -5,7 +5,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/kyb-platform/internal/models"
+	"kyb-platform/internal/models"
 )
 
 // MockKeywordRelationshipRepository provides a mock implementation for testing

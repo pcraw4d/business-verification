@@ -6,8 +6,8 @@ import (
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 
-	"github.com/pcraw4d/business-verification/internal/api/handlers"
-	"github.com/pcraw4d/business-verification/internal/observability"
+	"kyb-platform/internal/api/handlers"
+	"kyb-platform/internal/observability"
 )
 
 // AdvancedMonitoringRoutes sets up routes for advanced monitoring dashboard

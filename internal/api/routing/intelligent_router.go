@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/config"
+	"kyb-platform/internal/config"
 )
 
 // IntelligentRouter provides intelligent routing based on feature flags and performance metrics

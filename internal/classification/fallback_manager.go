@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pcraw4d/business-verification/internal/shared"
+	"kyb-platform/internal/shared"
 )
 
 // NewFallbackManager creates a new fallback manager

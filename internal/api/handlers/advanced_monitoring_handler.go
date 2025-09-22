@@ -8,7 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 
-	"github.com/pcraw4d/business-verification/internal/observability"
+	"kyb-platform/internal/observability"
 )
 
 // AdvancedMonitoringHandler handles advanced monitoring dashboard requests

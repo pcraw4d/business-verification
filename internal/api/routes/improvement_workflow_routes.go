@@ -3,7 +3,7 @@ package routes
 import (
 	"github.com/gorilla/mux"
 
-	"github.com/pcraw4d/business-verification/internal/api/handlers"
+	"kyb-platform/internal/api/handlers"
 )
 
 // RegisterImprovementWorkflowRoutes registers all improvement workflow API routes

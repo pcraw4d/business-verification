@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/classification"
-	"github.com/pcraw4d/business-verification/internal/observability"
-	"github.com/pcraw4d/business-verification/pkg/validators"
+	"kyb-platform/internal/classification"
+	"kyb-platform/internal/observability"
+	"kyb-platform/pkg/validators"
 )
 
 // AccuracyValidationHandler handles accuracy validation requests

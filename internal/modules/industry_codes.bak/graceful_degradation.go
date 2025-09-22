@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/integrations"
+	"kyb-platform/internal/integrations"
 	"go.uber.org/zap"
 )
 

@@ -3,9 +3,9 @@ package routes
 import (
 	"net/http"
 
-	"github.com/pcraw4d/business-verification/internal/api/handlers"
-	"github.com/pcraw4d/business-verification/internal/api/middleware"
-	"github.com/pcraw4d/business-verification/internal/observability"
+	"kyb-platform/internal/api/handlers"
+	"kyb-platform/internal/api/middleware"
+	"kyb-platform/internal/observability"
 )
 
 // MerchantRouteConfig holds configuration for merchant route registration

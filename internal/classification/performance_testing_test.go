@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/classification/repository"
+	"kyb-platform/internal/classification/repository"
 )
 
 // TestPerformanceTestingSuite tests the performance testing suite functionality

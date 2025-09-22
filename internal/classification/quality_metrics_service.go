@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/shared"
+	"kyb-platform/internal/shared"
 )
 
 // QualityMetricsService provides comprehensive quality metrics for classification results

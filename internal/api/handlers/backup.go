@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/database"
-	"github.com/pcraw4d/business-verification/internal/observability"
+	"kyb-platform/internal/database"
+	"kyb-platform/internal/observability"
 )
 
 // BackupHandler handles backup-related HTTP requests

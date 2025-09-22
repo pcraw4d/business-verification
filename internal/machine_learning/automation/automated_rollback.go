@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/company/kyb-platform/internal/machine_learning/infrastructure"
+	"kyb-platform/internal/machine_learning/infrastructure"
 )
 
 // AutomatedRollbackManager manages automated rollback mechanisms for performance degradation

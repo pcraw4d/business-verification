@@ -3,8 +3,8 @@ package classification
 import (
 	"log"
 
-	"github.com/pcraw4d/business-verification/internal/classification/repository"
-	"github.com/pcraw4d/business-verification/internal/database"
+	"kyb-platform/internal/classification/repository"
+	"kyb-platform/internal/database"
 )
 
 // ClassificationContainer manages all classification service dependencies

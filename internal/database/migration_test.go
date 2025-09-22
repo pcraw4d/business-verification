@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/config"
+	"kyb-platform/internal/config"
 )
 
 // TestMigrationSystem tests the migration system functionality

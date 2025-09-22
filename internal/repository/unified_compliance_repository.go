@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/observability"
-	"github.com/pcraw4d/business-verification/internal/services"
+	"kyb-platform/internal/observability"
+	"kyb-platform/internal/services"
 )
 
 // UnifiedComplianceRepository implements the UnifiedComplianceRepository interface

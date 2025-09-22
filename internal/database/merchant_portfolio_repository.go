@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/models"
+	"kyb-platform/internal/models"
 )
 
 // MerchantPortfolioRepository provides data access operations for merchant portfolio

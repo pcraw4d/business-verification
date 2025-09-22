@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/observability"
-	"github.com/pcraw4d/business-verification/internal/risk"
+	"kyb-platform/internal/observability"
+	"kyb-platform/internal/risk"
 )
 
 // DashboardHandler handles dashboard-related API endpoints

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pcraw4d/business-verification/internal/classification/repository"
+	"kyb-platform/internal/classification/repository"
 )
 
 // SupabaseRepositoryInterface defines the interface for Supabase repository operations needed by the threshold service

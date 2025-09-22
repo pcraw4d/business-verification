@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/observability"
+	"kyb-platform/internal/observability"
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/trace"
 )

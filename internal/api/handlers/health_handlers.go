@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/health"
+	"kyb-platform/internal/health"
 	"go.uber.org/zap"
 )
 

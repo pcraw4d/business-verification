@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/pcraw4d/business-verification/internal/models"
-	"github.com/pcraw4d/business-verification/internal/observability"
+	"kyb-platform/internal/models"
+	"kyb-platform/internal/observability"
 )
 
 // ComplianceService provides comprehensive compliance checking and regulatory requirement validation

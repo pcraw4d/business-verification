@@ -8,7 +8,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/pcraw4d/business-verification/internal/external"
+	"kyb-platform/internal/external"
 )
 
 // VerificationSuccessMonitorHandler handles HTTP requests for verification success monitoring

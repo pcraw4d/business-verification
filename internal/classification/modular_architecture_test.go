@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/classification/methods"
+	"kyb-platform/internal/classification/methods"
 )
 
 func TestModularArchitecture_Integration(t *testing.T) {

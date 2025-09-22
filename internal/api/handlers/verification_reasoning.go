@@ -8,7 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 
-	"github.com/pcraw4d/business-verification/internal/external"
+	"kyb-platform/internal/external"
 )
 
 // VerificationReasoningGenerateReportRequest represents a request to generate a verification reasoning report

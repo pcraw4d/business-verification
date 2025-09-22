@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/shared"
+	"kyb-platform/internal/shared"
 )
 
 // EnsemblePerformanceIntegration integrates performance-based weight adjustment with the ensemble system

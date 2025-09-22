@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/external"
-	"github.com/pcraw4d/business-verification/internal/modules/success_monitoring"
+	"kyb-platform/internal/external"
+	"kyb-platform/internal/modules/success_monitoring"
 	"go.uber.org/zap"
 )
 

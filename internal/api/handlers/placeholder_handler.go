@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/placeholders"
+	"kyb-platform/internal/placeholders"
 )
 
 // PlaceholderServiceInterface defines the interface for placeholder service

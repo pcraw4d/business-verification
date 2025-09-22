@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/compliance"
-	"github.com/pcraw4d/business-verification/internal/observability"
+	"kyb-platform/internal/compliance"
+	"kyb-platform/internal/observability"
 )
 
 // ComplianceFrameworkHandler handles compliance framework API endpoints

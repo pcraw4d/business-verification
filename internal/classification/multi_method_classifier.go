@@ -12,9 +12,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/classification/repository"
-	"github.com/pcraw4d/business-verification/internal/machine_learning"
-	"github.com/pcraw4d/business-verification/internal/shared"
+	"kyb-platform/internal/classification/repository"
+	"kyb-platform/internal/machine_learning"
+	"kyb-platform/internal/shared"
 )
 
 // MultiMethodClassifier provides enhanced classification using multiple methods

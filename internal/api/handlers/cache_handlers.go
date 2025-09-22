@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 
-	"github.com/pcraw4d/business-verification/internal/modules/caching"
+	"kyb-platform/internal/modules/caching"
 )
 
 // CacheHandler handles HTTP requests for cache operations

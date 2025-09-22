@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/pcraw4d/business-verification/internal/config"
-	"github.com/pcraw4d/business-verification/pkg/validators"
+	"kyb-platform/internal/config"
+	"kyb-platform/pkg/validators"
 )
 
 // BackwardCompatibilityLayer handles backward compatibility for API versions

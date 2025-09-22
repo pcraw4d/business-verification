@@ -12,13 +12,15 @@ import (
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
+	"github.com/supabase-community/supabase-go"
 )
 
 // RailwayServer represents the Railway deployment server
 type RailwayServer struct {
-	server *http.Server
-	logger *log.Logger
-	zapLogger *zap.Logger
+	server        *http.Server
+	supabaseClient *supabase.Client
+	logger        *log.Logger
+	zapLogger     *zap.Logger
 }
 
 // NewRailwayServer creates a new Railway server instance
@@ -26,6 +28,25 @@ func NewRailwayServer() (*RailwayServer, error) {
 	// Initialize logger
 	logger := log.New(os.Stdout, "[railway-server] ", log.LstdFlags)
 	zapLogger, _ := zap.NewProduction()
+
+	// Initialize Supabase client
+	var supabaseClient *supabase.Client
+	supabaseURL := os.Getenv("SUPABASE_URL")
+	supabaseKey := os.Getenv("SUPABASE_ANON_KEY")
+	
+	if supabaseURL != "" && supabaseKey != "" {
+		client, err := supabase.NewClient(supabaseURL, supabaseKey, nil)
+		if err != nil {
+			logger.Printf("⚠️ Warning: Failed to initialize Supabase client: %v", err)
+			supabaseClient = nil
+		} else {
+			supabaseClient = client
+			logger.Printf("✅ Successfully initialized Supabase client")
+		}
+	} else {
+		logger.Printf("⚠️ Supabase configuration incomplete - using fallback mode")
+		logger.Printf("📝 Required: SUPABASE_URL, SUPABASE_ANON_KEY")
+	}
 
 	// Get port from environment or use default
 	port := os.Getenv("PORT")
@@ -38,8 +59,9 @@ func NewRailwayServer() (*RailwayServer, error) {
 
 	// Create server
 	server := &RailwayServer{
-		logger:    logger,
-		zapLogger: zapLogger,
+		supabaseClient: supabaseClient,
+		logger:         logger,
+		zapLogger:      zapLogger,
 	}
 
 	// Setup routes
@@ -79,7 +101,6 @@ func (s *RailwayServer) setupRoutes(router *mux.Router) {
 
 	// Health check
 	router.HandleFunc("/health", s.handleHealth).Methods("GET")
-	router.HandleFunc("/status", s.handleHealth).Methods("GET")
 
 	// Business Intelligence Classification
 	router.HandleFunc("/v1/classify", s.handleClassify).Methods("POST")
@@ -105,20 +126,32 @@ func (s *RailwayServer) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
 		"version":   "3.2.0",
 		"features": map[string]bool{
-			"supabase_integration":           false,
+			"supabase_integration":           s.supabaseClient != nil,
 			"database_driven_classification": true,
 			"enhanced_keyword_matching":      true,
 			"industry_detection":             true,
 			"confidence_scoring":             true,
 		},
-		"supabase_status": map[string]interface{}{
-			"connected": false,
-			"reason":    "simplified_mode",
-		},
+		"supabase_status": s.getSupabaseStatus(),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(health)
+}
+
+// getSupabaseStatus returns the current Supabase connection status
+func (s *RailwayServer) getSupabaseStatus() map[string]interface{} {
+	if s.supabaseClient == nil {
+		return map[string]interface{}{
+			"connected": false,
+			"reason":    "client_not_initialized",
+		}
+	}
+
+	return map[string]interface{}{
+		"connected": true,
+		"url":       os.Getenv("SUPABASE_URL"),
+	}
 }
 
 // handleClassify handles business classification requests
@@ -139,40 +172,98 @@ func (s *RailwayServer) handleClassify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate a business ID for tracking
-	businessID := fmt.Sprintf("biz_%d", time.Now().Unix())
-
-	// Simple classification logic based on keywords
-	industry := s.classifyBusiness(req.BusinessName, req.Description)
-	confidence := s.calculateConfidence(req.BusinessName, req.Description)
-
-	result := map[string]interface{}{
-		"success":       true,
-		"business_id":   businessID,
-		"business_name": req.BusinessName,
-		"description":   req.Description,
-		"website_url":   req.WebsiteURL,
-		"classification": map[string]interface{}{
-			"industry":  industry,
-			"confidence": confidence,
-			"mcc_codes": []map[string]interface{}{
-				{"code": "7372", "description": "Computer Programming Services", "confidence": confidence},
-			},
-			"sic_codes": []map[string]interface{}{
-				{"code": "7372", "description": "Computer Programming Services", "confidence": confidence},
-			},
-			"naics_codes": []map[string]interface{}{
-				{"code": "541511", "description": "Custom Computer Programming Services", "confidence": confidence},
-			},
-		},
-		"confidence_score": confidence,
-		"status":           "success",
-		"timestamp":        time.Now().UTC().Format(time.RFC3339),
-		"data_source":      "simplified_classifier",
+	// Process classification using Supabase if available
+	var result map[string]interface{}
+	if s.supabaseClient != nil {
+		// Try to use Supabase for classification
+		result = s.processClassificationWithSupabase(req.BusinessName, req.Description, req.WebsiteURL)
+	} else {
+		// Fallback to mock classification
+		result = s.getFallbackClassification(req.BusinessName, req.Description, req.WebsiteURL)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)
+}
+
+// processClassificationWithSupabase processes classification using Supabase
+func (s *RailwayServer) processClassificationWithSupabase(businessName, description, websiteURL string) map[string]interface{} {
+	// Generate a business ID for tracking
+	businessID := fmt.Sprintf("biz_%d", time.Now().Unix())
+
+	// Try to query classification data from Supabase
+	var classifications []map[string]interface{}
+	_, err := s.supabaseClient.From("classifications").Select("*", "", false).Eq("business_name", businessName).ExecuteTo(&classifications)
+	
+	if err != nil || len(classifications) == 0 {
+		// If no existing classification, create a new one
+		s.logger.Printf("📝 No existing classification found, creating new one")
+		return s.createNewClassification(businessName, description, websiteURL, businessID)
+	}
+
+	// Return existing classification
+	classification := classifications[0]
+	return map[string]interface{}{
+		"success":       true,
+		"business_id":   businessID,
+		"business_name": businessName,
+		"description":   description,
+		"website_url":   websiteURL,
+		"classification": classification,
+		"confidence_score": 0.95,
+		"status":           "success",
+		"timestamp":        time.Now().UTC().Format(time.RFC3339),
+		"data_source":      "supabase",
+	}
+}
+
+// createNewClassification creates a new classification and stores it in Supabase
+func (s *RailwayServer) createNewClassification(businessName, description, websiteURL, businessID string) map[string]interface{} {
+	// Simple classification logic based on keywords
+	industry := s.classifyBusiness(businessName, description)
+	confidence := s.calculateConfidence(businessName, description)
+
+	classification := map[string]interface{}{
+		"mcc_codes": []map[string]interface{}{
+			{"code": "7372", "description": "Computer Programming Services", "confidence": confidence},
+		},
+		"sic_codes": []map[string]interface{}{
+			{"code": "7372", "description": "Computer Programming Services", "confidence": confidence},
+		},
+		"naics_codes": []map[string]interface{}{
+			{"code": "541511", "description": "Custom Computer Programming Services", "confidence": confidence},
+		},
+		"industry": industry,
+	}
+
+	// Try to store in Supabase
+	newClassification := map[string]interface{}{
+		"business_id":   businessID,
+		"business_name": businessName,
+		"description":   description,
+		"website_url":   websiteURL,
+		"classification": classification,
+		"confidence_score": confidence,
+		"created_at":      time.Now().UTC().Format(time.RFC3339),
+	}
+
+	_, _, err := s.supabaseClient.From("classifications").Insert(newClassification, false, "", "", "").Execute()
+	if err != nil {
+		s.logger.Printf("⚠️ Failed to store classification in Supabase: %v", err)
+	}
+
+	return map[string]interface{}{
+		"success":       true,
+		"business_id":   businessID,
+		"business_name": businessName,
+		"description":   description,
+		"website_url":   websiteURL,
+		"classification": classification,
+		"confidence_score": confidence,
+		"status":           "success",
+		"timestamp":        time.Now().UTC().Format(time.RFC3339),
+		"data_source":      "supabase_new",
+	}
 }
 
 // classifyBusiness performs simple keyword-based classification
@@ -233,8 +324,92 @@ func (s *RailwayServer) calculateConfidence(name, description string) float64 {
 	return confidence
 }
 
+// getFallbackClassification returns mock classification data
+func (s *RailwayServer) getFallbackClassification(businessName, description, websiteURL string) map[string]interface{} {
+	// Generate a business ID for tracking
+	businessID := fmt.Sprintf("biz_%d", time.Now().Unix())
+
+	// Simple classification logic
+	industry := s.classifyBusiness(businessName, description)
+	confidence := s.calculateConfidence(businessName, description)
+
+	return map[string]interface{}{
+		"success":       true,
+		"business_id":   businessID,
+		"business_name": businessName,
+		"description":   description,
+		"website_url":   websiteURL,
+		"classification": map[string]interface{}{
+			"mcc_codes": []map[string]interface{}{
+				{"code": "7372", "description": "Computer Programming Services", "confidence": confidence},
+			},
+			"sic_codes": []map[string]interface{}{
+				{"code": "7372", "description": "Computer Programming Services", "confidence": confidence},
+			},
+			"naics_codes": []map[string]interface{}{
+				{"code": "541511", "description": "Custom Computer Programming Services", "confidence": confidence},
+			},
+			"industry": industry,
+		},
+		"confidence_score": confidence,
+		"status":           "success",
+		"timestamp":        time.Now().UTC().Format(time.RFC3339),
+		"data_source":      "fallback_mock",
+	}
+}
+
 // handleGetMerchants handles GET /api/v1/merchants
 func (s *RailwayServer) handleGetMerchants(w http.ResponseWriter, r *http.Request) {
+	// Try to get merchants from Supabase first
+	if s.supabaseClient != nil {
+		merchants, err := s.getMerchantsFromSupabase()
+		if err != nil {
+			s.logger.Printf("⚠️ Failed to get merchants from Supabase: %v", err)
+			// Fall back to mock data
+			s.handleGetMerchantsMock(w, r)
+			return
+		}
+
+		response := map[string]interface{}{
+			"merchants":   merchants,
+			"total":       len(merchants),
+			"page":        1,
+			"limit":       10,
+			"data_source": "supabase",
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Use mock data if Supabase is not available
+	s.handleGetMerchantsMock(w, r)
+}
+
+// getMerchantsFromSupabase retrieves merchants from Supabase database
+func (s *RailwayServer) getMerchantsFromSupabase() ([]map[string]interface{}, error) {
+	// Query merchants from Supabase
+	var merchants []map[string]interface{}
+	_, err := s.supabaseClient.From("merchants").Select("*", "", false).ExecuteTo(&merchants)
+	if err != nil {
+		// If merchants table doesn't exist, try mock_merchants
+		_, err2 := s.supabaseClient.From("mock_merchants").Select("*", "", false).ExecuteTo(&merchants)
+		if err2 != nil {
+			return nil, fmt.Errorf("failed to query merchants: %w", err2)
+		}
+	}
+
+	// If no merchants found, return empty array
+	if len(merchants) == 0 {
+		return []map[string]interface{}{}, nil
+	}
+
+	return merchants, nil
+}
+
+// handleGetMerchantsMock handles GET /api/v1/merchants with mock data
+func (s *RailwayServer) handleGetMerchantsMock(w http.ResponseWriter, r *http.Request) {
 	// Enhanced mock merchant data
 	merchants := []map[string]interface{}{
 		{
@@ -292,7 +467,48 @@ func (s *RailwayServer) handleGetMerchant(w http.ResponseWriter, r *http.Request
 	vars := mux.Vars(r)
 	merchantID := vars["id"]
 
-	// Mock merchant detail data
+	// Try to get merchant from Supabase first
+	if s.supabaseClient != nil {
+		merchant, err := s.getMerchantFromSupabase(merchantID)
+		if err != nil {
+			s.logger.Printf("⚠️ Failed to get merchant from Supabase: %v", err)
+			// Fall back to mock data
+			s.handleGetMerchantMock(w, r, merchantID)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(merchant)
+		return
+	}
+
+	// Use mock data if Supabase is not available
+	s.handleGetMerchantMock(w, r, merchantID)
+}
+
+// getMerchantFromSupabase retrieves a specific merchant from Supabase database
+func (s *RailwayServer) getMerchantFromSupabase(merchantID string) (map[string]interface{}, error) {
+	// Query merchant from Supabase
+	var merchants []map[string]interface{}
+	_, err := s.supabaseClient.From("merchants").Select("*", "", false).Eq("id", merchantID).ExecuteTo(&merchants)
+	if err != nil {
+		// If merchants table doesn't exist, try mock_merchants
+		_, err2 := s.supabaseClient.From("mock_merchants").Select("*", "", false).Eq("id", merchantID).ExecuteTo(&merchants)
+		if err2 != nil {
+			return nil, fmt.Errorf("failed to query merchant: %w", err2)
+		}
+	}
+
+	if len(merchants) == 0 {
+		return nil, fmt.Errorf("merchant not found")
+	}
+
+	return merchants[0], nil
+}
+
+// handleGetMerchantMock handles GET /api/v1/merchants/{id} with mock data
+func (s *RailwayServer) handleGetMerchantMock(w http.ResponseWriter, r *http.Request, merchantID string) {
+	// Mock merchant detail data based on ID
 	merchant := map[string]interface{}{
 		"id":                  merchantID,
 		"name":                "Acme Corporation",
@@ -335,7 +551,8 @@ func (s *RailwayServer) handleSearchMerchants(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Mock search results
+	// For now, return mock search results
+	// TODO: Implement Supabase search when available
 	results := []map[string]interface{}{
 		{
 			"id":             "merchant_001",
@@ -436,7 +653,10 @@ func (s *RailwayServer) handleMerchantStatistics(w http.ResponseWriter, r *http.
 // Start starts the server
 func (s *RailwayServer) Start() error {
 	s.logger.Printf("🚀 Starting RAILWAY SERVER v3.2.0 on %s", s.server.Addr)
-	s.logger.Printf("📊 Supabase Integration: false (simplified mode)")
+	s.logger.Printf("📊 Supabase Integration: %t", s.supabaseClient != nil)
+	if s.supabaseClient != nil {
+		s.logger.Printf("🔗 Supabase URL: %s", os.Getenv("SUPABASE_URL"))
+	}
 	return s.server.ListenAndServe()
 }
 

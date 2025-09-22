@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/classification/repository"
+	"kyb-platform/internal/classification/repository"
 )
 
 // BenchmarkIndustryDetection benchmarks the industry detection performance

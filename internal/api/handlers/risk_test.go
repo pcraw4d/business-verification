@@ -8,9 +8,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/pcraw4d/business-verification/internal/config"
-	"github.com/pcraw4d/business-verification/internal/observability"
-	"github.com/pcraw4d/business-verification/internal/risk"
+	"kyb-platform/internal/config"
+	"kyb-platform/internal/observability"
+	"kyb-platform/internal/risk"
 )
 
 // createTestRiskService creates a test risk service with all required components

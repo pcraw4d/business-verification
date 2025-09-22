@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/architecture"
-	"github.com/pcraw4d/business-verification/internal/config"
-	"github.com/pcraw4d/business-verification/internal/observability"
-	"github.com/pcraw4d/business-verification/internal/shared"
+	"kyb-platform/internal/architecture"
+	"kyb-platform/internal/config"
+	"kyb-platform/internal/observability"
+	"kyb-platform/internal/shared"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 

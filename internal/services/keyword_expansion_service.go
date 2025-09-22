@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kyb-platform/internal/models"
-	"github.com/kyb-platform/internal/repository"
+	"kyb-platform/internal/models"
+	"kyb-platform/internal/repository"
 )
 
 // KeywordExpansionService provides keyword expansion and relationship mapping functionality

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/api/compatibility"
+	"kyb-platform/internal/api/compatibility"
 	"go.uber.org/zap"
 )
 

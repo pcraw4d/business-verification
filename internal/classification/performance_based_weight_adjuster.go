@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/shared"
+	"kyb-platform/internal/shared"
 )
 
 // PerformanceBasedWeightAdjuster manages dynamic weight adjustment based on method performance

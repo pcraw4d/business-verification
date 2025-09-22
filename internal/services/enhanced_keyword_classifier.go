@@ -7,8 +7,8 @@ import (
 	"math"
 	"strings"
 
-	"github.com/kyb-platform/internal/models"
-	"github.com/kyb-platform/internal/repository"
+	"kyb-platform/internal/models"
+	"kyb-platform/internal/repository"
 )
 
 // EnhancedKeywordClassifier provides advanced keyword classification with relationship mapping

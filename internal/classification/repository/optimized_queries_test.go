@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/database"
+	"kyb-platform/internal/database"
 )
 
 // TestOptimizedDatabaseQueries tests the optimized database query methods

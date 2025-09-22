@@ -8,7 +8,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/pcraw4d/business-verification/internal/modules/success_monitoring"
+	"kyb-platform/internal/modules/success_monitoring"
 )
 
 // SuccessRateMonitorHandler handles HTTP requests for success rate monitoring

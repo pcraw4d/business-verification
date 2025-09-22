@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/config"
+	"kyb-platform/internal/config"
 )
 
 // FeatureFlagMiddleware adds feature flag context to requests

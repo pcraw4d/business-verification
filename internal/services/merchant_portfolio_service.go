@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/database"
+	"kyb-platform/internal/database"
 )
 
 // MerchantPortfolioService provides core business logic for merchant portfolio management

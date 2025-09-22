@@ -3,9 +3,9 @@ package routes
 import (
 	"net/http"
 
-	"github.com/pcraw4d/business-verification/internal/api/handlers"
-	"github.com/pcraw4d/business-verification/internal/compliance"
-	"github.com/pcraw4d/business-verification/internal/observability"
+	"kyb-platform/internal/api/handlers"
+	"kyb-platform/internal/compliance"
+	"kyb-platform/internal/observability"
 )
 
 // RegisterComplianceTrackingRoutes registers compliance tracking API routes using Go 1.22 ServeMux

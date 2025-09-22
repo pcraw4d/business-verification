@@ -1,7 +1,7 @@
 package classification
 
 import (
-	"github.com/pcraw4d/business-verification/internal/classification/methods"
+	"kyb-platform/internal/classification/methods"
 )
 
 // ClassificationMethod is an alias for the methods.ClassificationMethod interface

@@ -6,8 +6,8 @@ import (
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 
-	"github.com/pcraw4d/business-verification/internal/api/handlers"
-	"github.com/pcraw4d/business-verification/internal/modules/success_monitoring"
+	"kyb-platform/internal/api/handlers"
+	"kyb-platform/internal/modules/success_monitoring"
 )
 
 // RegisterSuccessRateBenchmarkingRoutes registers all success rate benchmarking routes

@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/pcraw4d/business-verification/internal/database"
+	"kyb-platform/internal/database"
 	postgrest "github.com/supabase-community/postgrest-go"
 )
 

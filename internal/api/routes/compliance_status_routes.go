@@ -3,8 +3,8 @@ package routes
 import (
 	"net/http"
 
-	"github.com/pcraw4d/business-verification/internal/api/handlers"
-	"github.com/pcraw4d/business-verification/internal/observability"
+	"kyb-platform/internal/api/handlers"
+	"kyb-platform/internal/observability"
 )
 
 // RegisterComplianceStatusRoutes registers compliance status API routes using Go 1.22 ServeMux

@@ -5,9 +5,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/classification/repository"
-	"github.com/pcraw4d/business-verification/internal/database"
-	"github.com/pcraw4d/business-verification/internal/machine_learning"
+	"kyb-platform/internal/classification/repository"
+	"kyb-platform/internal/database"
+	"kyb-platform/internal/machine_learning"
 )
 
 // IntegrationService provides a sophisticated interface for integrating multi-method classification services

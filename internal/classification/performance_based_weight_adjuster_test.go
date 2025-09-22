@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/shared"
+	"kyb-platform/internal/shared"
 )
 
 func TestPerformanceBasedWeightAdjuster(t *testing.T) {

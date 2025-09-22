@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/shared"
+	"kyb-platform/internal/shared"
 )
 
 // ReasoningEngine provides sophisticated classification reasoning and evidence generation

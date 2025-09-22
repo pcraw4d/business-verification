@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/machine_learning"
-	"github.com/pcraw4d/business-verification/internal/shared"
+	"kyb-platform/internal/machine_learning"
+	"kyb-platform/internal/shared"
 )
 
 // MLClassificationMethod implements the ClassificationMethod interface for ML-based classification

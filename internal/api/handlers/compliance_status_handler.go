@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/observability"
+	"kyb-platform/internal/observability"
 )
 
 // ComplianceStatusHandler handles compliance status endpoints

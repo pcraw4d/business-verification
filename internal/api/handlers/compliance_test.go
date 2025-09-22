@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/compliance"
-	"github.com/pcraw4d/business-verification/internal/config"
-	"github.com/pcraw4d/business-verification/internal/observability"
+	"kyb-platform/internal/compliance"
+	"kyb-platform/internal/config"
+	"kyb-platform/internal/observability"
 )
 
 // MockCheckEngine is a mock implementation of the CheckEngine for testing

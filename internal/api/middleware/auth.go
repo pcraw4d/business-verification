@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/pcraw4d/business-verification/internal/auth"
+	"kyb-platform/internal/auth"
 	"go.uber.org/zap"
 )
 

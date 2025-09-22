@@ -9,7 +9,7 @@ import (
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 
-	"github.com/pcraw4d/business-verification/internal/external"
+	"kyb-platform/internal/external"
 )
 
 // AuditTrailHandler handles audit trail API requests

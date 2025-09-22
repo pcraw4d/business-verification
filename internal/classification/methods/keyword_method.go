@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/classification/repository"
-	"github.com/pcraw4d/business-verification/internal/shared"
+	"kyb-platform/internal/classification/repository"
+	"kyb-platform/internal/shared"
 )
 
 // KeywordClassificationMethod implements the ClassificationMethod interface for keyword-based classification

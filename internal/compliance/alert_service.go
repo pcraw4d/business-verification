@@ -6,7 +6,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/observability"
+	"kyb-platform/internal/observability"
 )
 
 // ComplianceAlertService provides comprehensive compliance alerting and notification capabilities

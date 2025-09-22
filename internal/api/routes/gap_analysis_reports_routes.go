@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/pcraw4d/business-verification/internal/api/handlers"
+	"kyb-platform/internal/api/handlers"
 )
 
 // RegisterGapAnalysisReportsRoutes registers all gap analysis reports-related routes

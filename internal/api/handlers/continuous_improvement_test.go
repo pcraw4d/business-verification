@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 
-	"github.com/pcraw4d/business-verification/internal/external"
+	"kyb-platform/internal/external"
 )
 
 func TestNewContinuousImprovementHandler(t *testing.T) {
