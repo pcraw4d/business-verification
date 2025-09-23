@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/classification"
-	"github.com/pcraw4d/business-verification/internal/config"
-	"github.com/pcraw4d/business-verification/internal/database"
+	"github.com/pcraw4d/kyb-platform/internal/classification"
+	"github.com/pcraw4d/kyb-platform/internal/config"
+	"github.com/pcraw4d/kyb-platform/internal/database"
 )
 
 func main() {

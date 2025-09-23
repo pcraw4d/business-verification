@@ -1,7 +1,5 @@
-FROM golang:1.24-alpine AS builder
-
-# Install build dependencies
-RUN apk add --no-cache git ca-certificates tzdata
+# Multi-stage build for KYB Platform Beta
+FROM golang:1.22-alpine AS builder
 
 WORKDIR /app
 
@@ -15,33 +13,24 @@ COPY . .
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o kyb-platform ./cmd/api
 
-# Create final image
+# Final stage
 FROM alpine:latest
 
-# Install runtime dependencies including PostgreSQL client
-RUN apk --no-cache add ca-certificates tzdata postgresql-client
+RUN apk --no-cache add ca-certificates
 
 WORKDIR /root/
 
-# Copy binary, configs, scripts, and data files
+# Copy the binary from builder stage
 COPY --from=builder /app/kyb-platform .
-COPY --from=builder /app/configs ./configs
-COPY --from=builder /app/web ./web
-COPY --from=builder /app/Codes ./Codes
-COPY --from=builder /app/scripts/railway-startup.sh ./railway-startup.sh
 
-# Create non-root user
-RUN addgroup -g 1001 -S appgroup && \
-  adduser -u 1001 -S appuser -G appgroup
+# Copy configuration files
+COPY --from=builder /app/configs/beta ./configs/beta
 
-# Change ownership
-RUN chown -R appuser:appgroup /root/
+# Copy static files for web interface
+COPY --from=builder /app/web/dist ./web/dist
 
-USER appuser
-
+# Expose port
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
-
-CMD ["./railway-startup.sh"]
+# Run the application
+CMD ["./kyb-platform"]

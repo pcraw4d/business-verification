@@ -717,15 +717,24 @@ func (mmc *MultiMethodClassifier) extractKeywords(businessName, description, web
 			mmc.logger.Printf("✅ Enhanced scraper extracted %d keywords from website content: %v",
 				len(scrapingResult.Keywords), scrapingResult.Keywords)
 		} else {
-			// Fallback to domain name extraction if enhanced scraping fails
-			if strings.Contains(websiteURL, "://") {
-				parts := strings.Split(websiteURL, "://")
-				if len(parts) > 1 {
-					domain := strings.Split(parts[1], "/")[0]
-					domainParts := strings.Split(domain, ".")
-					keywords = append(keywords, domainParts[0])
-					mmc.logger.Printf("⚠️ Enhanced website scraping failed (%s), using domain name: %s",
-						scrapingResult.Error, domainParts[0])
+			// Enhanced fallback: try to extract meaningful keywords from domain name
+			domainKeywords := mmc.extractDomainKeywords(websiteURL)
+			if len(domainKeywords) > 0 {
+				keywords = append(keywords, domainKeywords...)
+				mmc.logger.Printf("⚠️ Enhanced website scraping failed (%s), extracted domain keywords: %v",
+					scrapingResult.Error, domainKeywords)
+			} else {
+				// Final fallback: basic domain name extraction
+				if strings.Contains(websiteURL, "://") {
+					parts := strings.Split(websiteURL, "://")
+					if len(parts) > 1 {
+						domain := strings.Split(parts[1], "/")[0]
+						domainParts := strings.Split(domain, ".")
+						if len(domainParts) > 0 {
+							keywords = append(keywords, domainParts[0])
+							mmc.logger.Printf("⚠️ Using basic domain name extraction: %s", domainParts[0])
+						}
+					}
 				}
 			}
 		}
@@ -930,6 +939,50 @@ func (mmc *MultiMethodClassifier) containsKeyword(keywords []string, keyword str
 		}
 	}
 	return false
+}
+
+// extractDomainKeywords extracts meaningful keywords from a domain name
+func (mmc *MultiMethodClassifier) extractDomainKeywords(websiteURL string) []string {
+	var keywords []string
+
+	// Clean the URL
+	cleanURL := strings.TrimPrefix(websiteURL, "https://")
+	cleanURL = strings.TrimPrefix(cleanURL, "http://")
+	cleanURL = strings.TrimPrefix(cleanURL, "www.")
+
+	// Extract domain name
+	parts := strings.Split(cleanURL, ".")
+	if len(parts) == 0 {
+		return keywords
+	}
+
+	domain := parts[0]
+
+	// Split domain by common separators and extract meaningful words
+	domainWords := strings.Fields(strings.ReplaceAll(domain, "-", " "))
+	domainWords = append(domainWords, strings.Fields(strings.ReplaceAll(domain, "_", " "))...)
+
+	// Filter out common non-meaningful words and add meaningful ones
+	commonWords := map[string]bool{
+		"the": true, "and": true, "or": true, "of": true, "in": true, "on": true,
+		"at": true, "to": true, "for": true, "with": true, "by": true, "from": true,
+		"com": true, "net": true, "org": true, "co": true, "inc": true, "llc": true,
+		"corp": true, "ltd": true, "group": true, "company": true, "business": true,
+	}
+
+	for _, word := range domainWords {
+		word = strings.ToLower(strings.TrimSpace(word))
+		if len(word) > 2 && !commonWords[word] && !mmc.containsKeyword(keywords, word) {
+			keywords = append(keywords, word)
+		}
+	}
+
+	// If no meaningful words found, use the domain as a single keyword
+	if len(keywords) == 0 && len(domain) > 2 {
+		keywords = append(keywords, strings.ToLower(domain))
+	}
+
+	return keywords
 }
 
 // extractTrustedContent extracts only verified and trusted content for classification

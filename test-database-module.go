@@ -6,10 +6,10 @@ import (
 	"log"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/architecture"
-	"github.com/pcraw4d/business-verification/internal/config"
-	"github.com/pcraw4d/business-verification/internal/database"
-	"github.com/pcraw4d/business-verification/internal/modules/database_classification"
+	"github.com/pcraw4d/kyb-platform/internal/architecture"
+	"github.com/pcraw4d/kyb-platform/internal/config"
+	"github.com/pcraw4d/kyb-platform/internal/database"
+	"github.com/pcraw4d/kyb-platform/internal/modules/database_classification"
 )
 
 func main() {

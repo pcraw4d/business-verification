@@ -1178,14 +1178,28 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByKeywords(ctx context.Conte
 		}
 	}
 
-	// Calculate simple confidence score (will be enhanced by confidence service at higher level)
+	// Calculate enhanced confidence score with dynamic factors
 	var confidence float64
 	var reasoning string
 
-	// Simple confidence calculation based on match ratio and score
+	// Enhanced confidence calculation with multiple factors
 	matchRatio := float64(len(bestMatchedKeywords)) / float64(len(keywords))
 	scoreRatio := bestScore / float64(len(keywords))
-	confidence = (matchRatio * 0.6) + (scoreRatio * 0.4)
+
+	// Base confidence from match quality
+	baseConfidence := (matchRatio * 0.6) + (scoreRatio * 0.4)
+
+	// Apply keyword quality factor
+	keywordQualityFactor := r.calculateKeywordQualityFactor(bestMatchedKeywords, keywords)
+
+	// Apply industry specificity factor
+	industrySpecificityFactor := r.calculateIndustrySpecificityFactor(bestIndustryID, bestMatchedKeywords)
+
+	// Apply match diversity factor
+	matchDiversityFactor := r.calculateMatchDiversityFactor(bestMatchedKeywords)
+
+	// Calculate final confidence with all factors
+	confidence = baseConfidence * keywordQualityFactor * industrySpecificityFactor * matchDiversityFactor
 
 	// Ensure confidence is within bounds
 	if confidence > 1.0 {
@@ -1195,8 +1209,8 @@ func (r *SupabaseKeywordRepository) ClassifyBusinessByKeywords(ctx context.Conte
 		confidence = 0.1
 	}
 
-	r.logger.Printf("📊 Simple confidence calculated: %.3f (match_ratio: %.3f, score_ratio: %.3f)",
-		confidence, matchRatio, scoreRatio)
+	r.logger.Printf("📊 Enhanced confidence calculated: %.3f (base: %.3f, quality: %.3f, specificity: %.3f, diversity: %.3f)",
+		confidence, baseConfidence, keywordQualityFactor, industrySpecificityFactor, matchDiversityFactor)
 
 	reasoning = fmt.Sprintf("Simple classification matched %d keywords with industry '%s' (score: %.2f, confidence: %.3f)",
 		len(bestMatchedKeywords), bestIndustry.Name, bestScore, confidence)
@@ -2118,4 +2132,88 @@ func (r *SupabaseKeywordRepository) parseClassificationCodesResponse(response []
 	}
 
 	return nil
+}
+
+// calculateKeywordQualityFactor calculates the quality factor based on keyword relevance
+func (r *SupabaseKeywordRepository) calculateKeywordQualityFactor(matchedKeywords, allKeywords []string) float64 {
+	if len(allKeywords) == 0 {
+		return 0.5 // Default factor
+	}
+
+	// Calculate the ratio of matched keywords to total keywords
+	matchRatio := float64(len(matchedKeywords)) / float64(len(allKeywords))
+
+	// Apply quality boost for high match ratios
+	if matchRatio > 0.8 {
+		return 1.2 // 20% boost for high match ratios
+	} else if matchRatio > 0.5 {
+		return 1.1 // 10% boost for medium match ratios
+	} else if matchRatio > 0.2 {
+		return 1.0 // No boost for low match ratios
+	} else {
+		return 0.8 // 20% penalty for very low match ratios
+	}
+}
+
+// calculateIndustrySpecificityFactor calculates the specificity factor based on industry relevance
+func (r *SupabaseKeywordRepository) calculateIndustrySpecificityFactor(industryID int, matchedKeywords []string) float64 {
+	// Define industry-specific keyword weights
+	industryWeights := map[int]float64{
+		1:  1.2, // Technology - high specificity
+		2:  1.1, // Healthcare - medium-high specificity
+		3:  1.0, // Finance - medium specificity
+		4:  1.1, // Retail - medium-high specificity
+		5:  1.0, // Manufacturing - medium specificity
+		6:  1.2, // Restaurant - high specificity
+		7:  1.0, // Professional Services - medium specificity
+		8:  1.1, // Construction - medium-high specificity
+		9:  1.0, // Transportation - medium specificity
+		10: 1.1, // Education - medium-high specificity
+		26: 0.8, // General Business - low specificity
+	}
+
+	weight, exists := industryWeights[industryID]
+	if !exists {
+		weight = 1.0 // Default weight
+	}
+
+	// Apply keyword count factor
+	keywordCountFactor := 1.0
+	if len(matchedKeywords) > 5 {
+		keywordCountFactor = 1.1 // Boost for many keywords
+	} else if len(matchedKeywords) < 2 {
+		keywordCountFactor = 0.9 // Penalty for few keywords
+	}
+
+	return weight * keywordCountFactor
+}
+
+// calculateMatchDiversityFactor calculates the diversity factor based on keyword variety
+func (r *SupabaseKeywordRepository) calculateMatchDiversityFactor(matchedKeywords []string) float64 {
+	if len(matchedKeywords) == 0 {
+		return 0.5
+	}
+
+	// Calculate diversity based on keyword length and variety
+	avgLength := 0.0
+	uniqueChars := make(map[rune]bool)
+
+	for _, keyword := range matchedKeywords {
+		avgLength += float64(len(keyword))
+		for _, char := range keyword {
+			uniqueChars[char] = true
+		}
+	}
+
+	avgLength /= float64(len(matchedKeywords))
+	charDiversity := float64(len(uniqueChars)) / (avgLength * float64(len(matchedKeywords)))
+
+	// Apply diversity factor
+	if charDiversity > 0.7 {
+		return 1.1 // 10% boost for high diversity
+	} else if charDiversity > 0.5 {
+		return 1.0 // No change for medium diversity
+	} else {
+		return 0.9 // 10% penalty for low diversity
+	}
 }
