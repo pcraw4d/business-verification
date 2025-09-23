@@ -16,6 +16,7 @@ import (
 
 	"kyb-platform/internal/cache"
 	"kyb-platform/internal/testing"
+
 	_ "github.com/lib/pq"
 )
 

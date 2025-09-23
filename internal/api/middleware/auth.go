@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"kyb-platform/internal/auth"
+
 	"go.uber.org/zap"
 )
 

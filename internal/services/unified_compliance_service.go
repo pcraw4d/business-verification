@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"kyb-platform/internal/observability"
+
+	"github.com/google/uuid"
 )
 
 // UnifiedComplianceService provides comprehensive compliance tracking and management

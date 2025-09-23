@@ -9,6 +9,7 @@ import (
 	"kyb-platform/internal/config"
 	"kyb-platform/internal/observability"
 	"kyb-platform/internal/shared"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 

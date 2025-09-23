@@ -13,6 +13,7 @@ import (
 	"kyb-platform/internal/compliance"
 	"kyb-platform/internal/config"
 	"kyb-platform/internal/observability"
+
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )

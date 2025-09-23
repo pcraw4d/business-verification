@@ -7,6 +7,7 @@ import (
 	"kyb-platform/internal/api/middleware"
 	"kyb-platform/internal/observability"
 	"kyb-platform/internal/routing"
+
 	"go.opentelemetry.io/otel/trace"
 )
 

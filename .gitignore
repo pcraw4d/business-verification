@@ -1,32 +1,24 @@
-# Dependencies
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+kyb-platform
+kyb-platform-*
 
-# Playwright test results
-test-results/
-playwright-report/
-playwright/.cache/
+# Test binary, built with `go test -c`
+*.test
 
-# Screenshots and videos
-*.png
-*.jpg
-*.jpeg
-*.gif
-*.mp4
-*.webm
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+coverage.html
 
-# Test artifacts
-coverage/
-.nyc_output/
+# Dependency directories (remove the comment below to include it)
+# vendor/
 
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# Go workspace file
+go.work.sum
 
 # IDE files
 .vscode/
@@ -44,6 +36,19 @@ coverage/
 ehthumbs.db
 Thumbs.db
 
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Frontend build artifacts
+web/dist/
+web/node_modules/
+web/coverage/
+web/.nyc_output/
+
 # Logs
 logs/
 *.log
@@ -58,8 +63,29 @@ pids/
 coverage/
 *.lcov
 
+# nyc test coverage
+.nyc_output
+
+# Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
+.grunt
+
+# Bower dependency directory (https://bower.io/)
+bower_components
+
+# node-waf configuration
+.lock-wscript
+
+# Compiled binary addons (https://nodejs.org/api/addons.html)
+build/Release
+
 # Dependency directories
 jspm_packages/
+
+# TypeScript v1 declaration files
+typings/
+
+# TypeScript cache
+*.tsbuildinfo
 
 # Optional npm cache directory
 .npm
@@ -82,27 +108,87 @@ jspm_packages/
 # Yarn Integrity file
 .yarn-integrity
 
+# dotenv environment variables file
+.env
+.env.test
+.env.local
+.env.production
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache
 
-# next.js build output
+# Next.js build output
 .next
 
-# nuxt.js build output
+# Nuxt.js build / generate output
 .nuxt
+dist
 
-# vuepress build output
-.vuepress/dist
+# Gatsby files
+.cache/
+public
 
-# Serverless directories
-.serverless
+# Storybook build outputs
+.out
+.storybook-out
 
-# FuseBox cache
-.fusebox/
+# Temporary folders
+tmp/
+temp/
 
-# DynamoDB Local files
-.dynamodb/
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
-# TernJS port file
-.tern-port
+# Railway
+.railway/
+
+# Supabase
+supabase/.branches
+supabase/.temp
+
+# Test files
+test-results/
+playwright-report/
+test-results.xml
+
+# Build artifacts
+build/
+dist/
+
+# Security scan results
+trivy-results.sarif
+security-report.txt
+
+# Performance test results
+performance-report.txt
+
+# Local development files
+local.env
+dev.env
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Archive files
+*.tar.gz
+*.zip
+*.rar
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Configuration files with secrets
+config.local.json
+secrets.json

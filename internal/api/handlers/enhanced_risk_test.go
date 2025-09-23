@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"kyb-platform/internal/risk"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"go.uber.org/zap"

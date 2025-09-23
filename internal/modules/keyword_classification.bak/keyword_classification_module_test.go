@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"kyb-platform/internal/architecture"
+
 	"github.com/stretchr/testify/assert"
 )
 

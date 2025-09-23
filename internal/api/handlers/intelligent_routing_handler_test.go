@@ -12,6 +12,7 @@ import (
 
 	"kyb-platform/internal/observability"
 	"kyb-platform/internal/shared"
+
 	"go.opentelemetry.io/otel/codes"
 
 	"github.com/stretchr/testify/assert"

@@ -7,6 +7,7 @@ import (
 	"kyb-platform/internal/database"
 	"kyb-platform/internal/modules/database_classification"
 	"kyb-platform/internal/observability"
+
 	"go.opentelemetry.io/otel/trace"
 )
 

@@ -13,6 +13,7 @@ import (
 	"kyb-platform/internal/classification/multi_method_classifier"
 	"kyb-platform/internal/config"
 	"kyb-platform/internal/testing"
+
 	_ "github.com/lib/pq"
 )
 

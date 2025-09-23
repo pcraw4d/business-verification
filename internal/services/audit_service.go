@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"kyb-platform/internal/compliance"
 	"kyb-platform/internal/models"
 	"kyb-platform/internal/observability"
+
+	"github.com/google/uuid"
 )
 
 // ComplianceSystem defines the interface for compliance audit operations

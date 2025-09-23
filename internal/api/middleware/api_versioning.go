@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"kyb-platform/internal/api/compatibility"
+
 	"go.uber.org/zap"
 )
 

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"kyb-platform/internal/architecture"
+
 	"github.com/stretchr/testify/assert"
 )
 

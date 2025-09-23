@@ -55,6 +55,14 @@
                     </div>
                 </div>
 
+                <!-- Risk Assessment -->
+                <div id="riskAssessment" class="bg-white rounded-lg shadow p-6 hidden">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">Risk Assessment</h2>
+                    <div id="riskAssessmentContent" class="space-y-4">
+                        <!-- Risk assessment will be populated here -->
+                    </div>
+                </div>
+
                 <!-- Classification Results -->
                 <div class="bg-white rounded-lg shadow p-6">
                     <h2 class="text-xl font-bold text-gray-900 mb-4">Classification Results</h2>
@@ -77,6 +85,8 @@
         const businessNameEl = document.getElementById('businessName');
         const confidenceScoreEl = document.getElementById('confidenceScore');
         const classificationResultsEl = document.getElementById('classificationResults');
+        const riskAssessmentEl = document.getElementById('riskAssessment');
+        const riskAssessmentContentEl = document.getElementById('riskAssessmentContent');
 
         // Auto-analyze on page load if URL parameters are present
         document.addEventListener('DOMContentLoaded', function() {
@@ -183,6 +193,9 @@
             
             classificationResultsEl.innerHTML = classificationHTML;
 
+            // Display risk assessment if available
+            displayRiskAssessment(result);
+
             // Add enhanced sections if available
             let enhancedHTML = '';
             
@@ -218,6 +231,137 @@
             
             // Add security indicators
             addSecurityIndicators(result);
+        }
+
+        function displayRiskAssessment(result) {
+            const riskAssessment = result.risk_assessment;
+            
+            if (!riskAssessment) {
+                riskAssessmentEl.classList.add('hidden');
+                return;
+            }
+            
+            // Show risk assessment section
+            riskAssessmentEl.classList.remove('hidden');
+            
+            const riskLevel = riskAssessment.risk_level || 'low';
+            const riskScore = riskAssessment.risk_score || 0;
+            const riskFactors = riskAssessment.risk_factors || {};
+            const detectedRisks = riskAssessment.detected_risks || [];
+            const prohibitedKeywords = riskAssessment.prohibited_keywords_found || [];
+            
+            // Get risk level styling
+            const riskLevelConfig = getRiskLevelConfig(riskLevel);
+            
+            let riskHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Risk Overview -->
+                    <div class="space-y-4">
+                        <div class="p-4 rounded-lg ${riskLevelConfig.bgColor} border ${riskLevelConfig.borderColor}">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-lg font-semibold ${riskLevelConfig.textColor}">Risk Level</h3>
+                                <i class="fas ${riskLevelConfig.icon} ${riskLevelConfig.textColor} text-xl"></i>
+                            </div>
+                            <div class="text-2xl font-bold ${riskLevelConfig.textColor} mb-1">${riskLevelConfig.label}</div>
+                            <div class="text-sm ${riskLevelConfig.textColor} opacity-80">Score: ${Math.round(riskScore * 100)}%</div>
+                        </div>
+                        
+                        <!-- Risk Score Bar -->
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">Risk Score</span>
+                                <span class="font-medium">${Math.round(riskScore * 100)}%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="h-2 rounded-full ${riskLevelConfig.barColor}" style="width: ${Math.min(riskScore * 100, 100)}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Risk Details -->
+                    <div class="space-y-4">
+                        ${detectedRisks.length > 0 ? `
+                            <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                <h4 class="font-semibold text-yellow-800 mb-2">⚠️ Detected Risks</h4>
+                                <ul class="text-sm text-yellow-700 space-y-1">
+                                    ${detectedRisks.map(risk => `<li>• ${formatRiskType(risk)}</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                        
+                        ${prohibitedKeywords.length > 0 ? `
+                            <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+                                <h4 class="font-semibold text-red-800 mb-2">🚫 Prohibited Keywords</h4>
+                                <div class="text-sm text-red-700">
+                                    ${prohibitedKeywords.map(keyword => `<span class="inline-block bg-red-100 text-red-800 px-2 py-1 rounded text-xs mr-1 mb-1">${keyword}</span>`).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        ${Object.keys(riskFactors).length > 0 ? `
+                            <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                <h4 class="font-semibold text-blue-800 mb-2">📊 Risk Factors</h4>
+                                <div class="text-sm text-blue-700 space-y-1">
+                                    ${Object.entries(riskFactors).map(([key, value]) => 
+                                        `<div><span class="font-medium">${formatRiskFactor(key)}:</span> ${value}</div>`
+                                    ).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            
+            riskAssessmentContentEl.innerHTML = riskHTML;
+        }
+
+        function getRiskLevelConfig(riskLevel) {
+            switch (riskLevel) {
+                case 'critical':
+                    return {
+                        label: 'CRITICAL',
+                        bgColor: 'bg-red-50',
+                        borderColor: 'border-red-200',
+                        textColor: 'text-red-800',
+                        barColor: 'bg-red-500',
+                        icon: 'fa-exclamation-triangle'
+                    };
+                case 'high':
+                    return {
+                        label: 'HIGH',
+                        bgColor: 'bg-orange-50',
+                        borderColor: 'border-orange-200',
+                        textColor: 'text-orange-800',
+                        barColor: 'bg-orange-500',
+                        icon: 'fa-exclamation-circle'
+                    };
+                case 'medium':
+                    return {
+                        label: 'MEDIUM',
+                        bgColor: 'bg-yellow-50',
+                        borderColor: 'border-yellow-200',
+                        textColor: 'text-yellow-800',
+                        barColor: 'bg-yellow-500',
+                        icon: 'fa-exclamation-triangle'
+                    };
+                default:
+                    return {
+                        label: 'LOW',
+                        bgColor: 'bg-green-50',
+                        borderColor: 'border-green-200',
+                        textColor: 'text-green-800',
+                        barColor: 'bg-green-500',
+                        icon: 'fa-shield-check'
+                    };
+            }
+        }
+
+        function formatRiskType(riskType) {
+            return riskType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        function formatRiskFactor(factor) {
+            return factor.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
         }
 
         function createClassificationSection(title, codes) {

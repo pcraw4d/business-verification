@@ -17,11 +17,16 @@ module.exports = (env, argv) => {
         mode: isProduction ? 'production' : 'development',
         
         entry: {
-            // Core application entry points
-            'merchant-portfolio': './components/merchant-portfolio.js',
-            'merchant-dashboard': './components/merchant-dashboard.js',
+            // Core application entry points with real data integration
+            'merchant-dashboard': './merchant-dashboard-real-data.js',
+            'monitoring-dashboard': './monitoring-dashboard-real-data.js',
+            'merchant-bulk-operations': './merchant-bulk-operations-real-data.js',
+            'dashboard': './dashboard-real-data.js',
+            'real-data-integration': './components/real-data-integration.js',
+            
+            // Legacy components (kept for compatibility)
+            'merchant-portfolio': './merchant-portfolio.js',
             'merchant-comparison': './components/merchant-comparison.js',
-            'bulk-operations': './components/bulk-operations.js',
             
             // Utility modules
             'lazy-loader': './components/lazy-loader.js',
@@ -34,11 +39,7 @@ module.exports = (env, argv) => {
             'risk-level-indicator': './components/risk-level-indicator.js',
             'session-manager': './components/session-manager.js',
             'coming-soon-banner': './components/coming-soon-banner.js',
-            'mock-data-warning': './components/mock-data-warning.js',
-            
-            // Main application bundles
-            'app': './index.js',
-            'dashboard-hub': './dashboard-hub.js'
+            'mock-data-warning': './components/mock-data-warning.js'
         },
 
         output: {
@@ -93,6 +94,15 @@ module.exports = (env, argv) => {
                         minChunks: 2,
                         chunks: 'all',
                         priority: 5,
+                        reuseExistingChunk: true
+                    },
+                    
+                    // Real-data integration modules
+                    realData: {
+                        test: /(real-data-integration|.*-real-data\.js)/,
+                        name: 'real-data',
+                        chunks: 'all',
+                        priority: 9,
                         reuseExistingChunk: true
                     },
                     
@@ -282,7 +292,8 @@ module.exports = (env, argv) => {
                 '@': path.resolve(__dirname, 'components'),
                 '@utils': path.resolve(__dirname, 'components/utils'),
                 '@merchant': path.resolve(__dirname, 'components/merchant'),
-                '@styles': path.resolve(__dirname, 'styles')
+                '@styles': path.resolve(__dirname, 'styles'),
+                '@realdata': path.resolve(__dirname, 'components/real-data-integration.js')
             }
         },
 

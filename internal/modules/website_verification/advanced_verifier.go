@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"kyb-platform/internal/observability"
+
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )

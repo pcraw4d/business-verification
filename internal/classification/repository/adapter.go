@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"kyb-platform/internal/database"
+
 	postgrest "github.com/supabase-community/postgrest-go"
 )
 

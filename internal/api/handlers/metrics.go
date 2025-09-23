@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"kyb-platform/internal/observability"
+
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 

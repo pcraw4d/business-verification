@@ -4,23 +4,25 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
-	"go.uber.org/zap"
 	"github.com/supabase-community/supabase-go"
+	"go.uber.org/zap"
 )
 
 // RailwayServer represents the Railway deployment server
 type RailwayServer struct {
-	server        *http.Server
+	server         *http.Server
 	supabaseClient *supabase.Client
-	logger        *log.Logger
-	zapLogger     *zap.Logger
+	logger         *log.Logger
+	zapLogger      *zap.Logger
 }
 
 // NewRailwayServer creates a new Railway server instance
@@ -33,7 +35,7 @@ func NewRailwayServer() (*RailwayServer, error) {
 	var supabaseClient *supabase.Client
 	supabaseURL := os.Getenv("SUPABASE_URL")
 	supabaseKey := os.Getenv("SUPABASE_ANON_KEY")
-	
+
 	if supabaseURL != "" && supabaseKey != "" {
 		client, err := supabase.NewClient(supabaseURL, supabaseKey, nil)
 		if err != nil {
@@ -194,7 +196,7 @@ func (s *RailwayServer) processClassificationWithSupabase(businessName, descript
 	// Try to query classification data from Supabase
 	var classifications []map[string]interface{}
 	_, err := s.supabaseClient.From("classifications").Select("*", "", false).Eq("business_name", businessName).ExecuteTo(&classifications)
-	
+
 	if err != nil || len(classifications) == 0 {
 		// If no existing classification, create a new one
 		s.logger.Printf("📝 No existing classification found, creating new one")
@@ -204,12 +206,12 @@ func (s *RailwayServer) processClassificationWithSupabase(businessName, descript
 	// Return existing classification
 	classification := classifications[0]
 	return map[string]interface{}{
-		"success":       true,
-		"business_id":   businessID,
-		"business_name": businessName,
-		"description":   description,
-		"website_url":   websiteURL,
-		"classification": classification,
+		"success":          true,
+		"business_id":      businessID,
+		"business_name":    businessName,
+		"description":      description,
+		"website_url":      websiteURL,
+		"classification":   classification,
 		"confidence_score": 0.95,
 		"status":           "success",
 		"timestamp":        time.Now().UTC().Format(time.RFC3339),
@@ -219,9 +221,31 @@ func (s *RailwayServer) processClassificationWithSupabase(businessName, descript
 
 // createNewClassification creates a new classification and stores it in Supabase
 func (s *RailwayServer) createNewClassification(businessName, description, websiteURL, businessID string) map[string]interface{} {
-	// Simple classification logic based on keywords
+	// Enhanced classification with website scraping and risk detection
 	industry := s.classifyBusiness(businessName, description)
 	confidence := s.calculateConfidence(businessName, description)
+
+	// Scrape website content if URL provided
+	var websiteContent string
+	var scrapedKeywords []string
+	if websiteURL != "" {
+		websiteContent, scrapedKeywords = s.scrapeWebsite(websiteURL)
+		s.logger.Printf("🌐 Scraped website content: %d characters, %d keywords", len(websiteContent), len(scrapedKeywords))
+	}
+
+	// Combine all text for risk analysis
+	allText := fmt.Sprintf("%s %s %s", businessName, description, websiteContent)
+
+	// Perform risk assessment
+	riskAssessment := s.performRiskAssessment(businessName, allText, scrapedKeywords)
+
+	// Log risk detection results
+	if riskAssessment["risk_level"] != "low" {
+		s.logger.Printf("⚠️ Risk detected: %s (score: %.2f) - %s",
+			riskAssessment["risk_level"],
+			riskAssessment["risk_score"],
+			riskAssessment["risk_factors"])
+	}
 
 	classification := map[string]interface{}{
 		"mcc_codes": []map[string]interface{}{
@@ -233,18 +257,24 @@ func (s *RailwayServer) createNewClassification(businessName, description, websi
 		"naics_codes": []map[string]interface{}{
 			{"code": "541511", "description": "Custom Computer Programming Services", "confidence": confidence},
 		},
-		"industry": industry,
+		"industry":        industry,
+		"risk_assessment": riskAssessment,
+		"website_content": map[string]interface{}{
+			"scraped":        len(websiteContent) > 0,
+			"content_length": len(websiteContent),
+			"keywords_found": len(scrapedKeywords),
+		},
 	}
 
 	// Try to store in Supabase
 	newClassification := map[string]interface{}{
-		"business_id":   businessID,
-		"business_name": businessName,
-		"description":   description,
-		"website_url":   websiteURL,
-		"classification": classification,
+		"business_id":      businessID,
+		"business_name":    businessName,
+		"description":      description,
+		"website_url":      websiteURL,
+		"classification":   classification,
 		"confidence_score": confidence,
-		"created_at":      time.Now().UTC().Format(time.RFC3339),
+		"created_at":       time.Now().UTC().Format(time.RFC3339),
 	}
 
 	_, _, err := s.supabaseClient.From("classifications").Insert(newClassification, false, "", "", "").Execute()
@@ -252,14 +282,18 @@ func (s *RailwayServer) createNewClassification(businessName, description, websi
 		s.logger.Printf("⚠️ Failed to store classification in Supabase: %v", err)
 	}
 
+	// Store risk assessment separately
+	s.storeRiskAssessment(businessID, businessName, riskAssessment)
+
 	return map[string]interface{}{
-		"success":       true,
-		"business_id":   businessID,
-		"business_name": businessName,
-		"description":   description,
-		"website_url":   websiteURL,
-		"classification": classification,
+		"success":          true,
+		"business_id":      businessID,
+		"business_name":    businessName,
+		"description":      description,
+		"website_url":      websiteURL,
+		"classification":   classification,
 		"confidence_score": confidence,
+		"risk_assessment":  riskAssessment,
 		"status":           "success",
 		"timestamp":        time.Now().UTC().Format(time.RFC3339),
 		"data_source":      "supabase_new",
@@ -295,10 +329,10 @@ func (s *RailwayServer) classifyBusiness(name, description string) string {
 func (s *RailwayServer) calculateConfidence(name, description string) float64 {
 	// Simple confidence calculation based on text length and keywords
 	text := fmt.Sprintf("%s %s", name, description)
-	
+
 	// Base confidence
 	confidence := 0.7
-	
+
 	// Increase confidence for longer descriptions
 	if len(description) > 50 {
 		confidence += 0.1
@@ -306,7 +340,7 @@ func (s *RailwayServer) calculateConfidence(name, description string) float64 {
 	if len(description) > 100 {
 		confidence += 0.1
 	}
-	
+
 	// Increase confidence for specific keywords
 	keywords := []string{"inc", "corp", "llc", "ltd", "company", "business"}
 	textLower := strings.ToLower(text)
@@ -315,12 +349,12 @@ func (s *RailwayServer) calculateConfidence(name, description string) float64 {
 			confidence += 0.05
 		}
 	}
-	
+
 	// Cap at 0.95
 	if confidence > 0.95 {
 		confidence = 0.95
 	}
-	
+
 	return confidence
 }
 
@@ -664,6 +698,322 @@ func (s *RailwayServer) Start() error {
 func (s *RailwayServer) Stop(ctx context.Context) error {
 	s.logger.Printf("🛑 Stopping RAILWAY SERVER...")
 	return s.server.Shutdown(ctx)
+}
+
+// scrapeWebsite scrapes content from a website URL
+func (s *RailwayServer) scrapeWebsite(url string) (string, []string) {
+	// Add http:// if no protocol specified
+	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
+		url = "https://" + url
+	}
+
+	// Create HTTP client with timeout
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	// Make request
+	resp, err := client.Get(url)
+	if err != nil {
+		s.logger.Printf("⚠️ Failed to scrape website %s: %v", url, err)
+		return "", []string{}
+	}
+	defer resp.Body.Close()
+
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		s.logger.Printf("⚠️ Failed to read website content: %v", err)
+		return "", []string{}
+	}
+
+	// Extract text content (simple HTML tag removal)
+	content := string(body)
+	content = s.extractTextFromHTML(content)
+
+	// Extract keywords (simple approach)
+	keywords := s.extractKeywords(content)
+
+	s.logger.Printf("🌐 Successfully scraped %s: %d characters, %d keywords", url, len(content), len(keywords))
+
+	return content, keywords
+}
+
+// extractTextFromHTML removes HTML tags and extracts text content
+func (s *RailwayServer) extractTextFromHTML(html string) string {
+	// Remove HTML tags
+	re := regexp.MustCompile(`<[^>]*>`)
+	text := re.ReplaceAllString(html, " ")
+
+	// Remove extra whitespace
+	re = regexp.MustCompile(`\s+`)
+	text = re.ReplaceAllString(text, " ")
+
+	// Remove common HTML entities
+	text = strings.ReplaceAll(text, "&nbsp;", " ")
+	text = strings.ReplaceAll(text, "&amp;", "&")
+	text = strings.ReplaceAll(text, "&lt;", "<")
+	text = strings.ReplaceAll(text, "&gt;", ">")
+	text = strings.ReplaceAll(text, "&quot;", "\"")
+
+	return strings.TrimSpace(text)
+}
+
+// extractKeywords extracts relevant keywords from text
+func (s *RailwayServer) extractKeywords(text string) []string {
+	// Convert to lowercase
+	text = strings.ToLower(text)
+
+	// Define business-related keywords to look for
+	businessKeywords := []string{
+		"business", "company", "corp", "inc", "llc", "ltd", "services", "solutions",
+		"technology", "software", "tech", "digital", "online", "web", "app",
+		"finance", "banking", "investment", "trading", "crypto", "bitcoin",
+		"retail", "store", "shop", "ecommerce", "marketplace", "sales",
+		"healthcare", "medical", "health", "hospital", "clinic", "pharmacy",
+		"food", "restaurant", "catering", "delivery", "dining",
+		"education", "school", "university", "training", "learning",
+		"real estate", "property", "construction", "building", "development",
+		"consulting", "advisory", "professional", "expert", "specialist",
+	}
+
+	var foundKeywords []string
+	for _, keyword := range businessKeywords {
+		if strings.Contains(text, keyword) {
+			foundKeywords = append(foundKeywords, keyword)
+		}
+	}
+
+	return foundKeywords
+}
+
+// performRiskAssessment performs comprehensive risk assessment
+func (s *RailwayServer) performRiskAssessment(businessName, allText string, scrapedKeywords []string) map[string]interface{} {
+	// Get risk keywords from database
+	riskKeywords := s.getRiskKeywords()
+
+	// Analyze text for risk indicators
+	riskScore := 0.0
+	var detectedRisks []string
+	var riskFactors map[string]interface{}
+
+	// Check for prohibited keywords
+	prohibitedKeywords := s.checkProhibitedKeywords(allText, riskKeywords)
+	if len(prohibitedKeywords) > 0 {
+		riskScore += 0.4
+		detectedRisks = append(detectedRisks, "prohibited_keywords")
+		riskFactors = map[string]interface{}{
+			"prohibited_keywords": prohibitedKeywords,
+			"risk_category":       "prohibited",
+		}
+	}
+
+	// Check for high-risk keywords
+	highRiskKeywords := s.checkHighRiskKeywords(allText, riskKeywords)
+	if len(highRiskKeywords) > 0 {
+		riskScore += 0.3
+		detectedRisks = append(detectedRisks, "high_risk_keywords")
+		if riskFactors == nil {
+			riskFactors = map[string]interface{}{}
+		}
+		riskFactors["high_risk_keywords"] = highRiskKeywords
+		riskFactors["risk_category"] = "high_risk"
+	}
+
+	// Check for fraud indicators
+	fraudKeywords := s.checkFraudKeywords(allText, riskKeywords)
+	if len(fraudKeywords) > 0 {
+		riskScore += 0.5
+		detectedRisks = append(detectedRisks, "fraud_indicators")
+		if riskFactors == nil {
+			riskFactors = map[string]interface{}{}
+		}
+		riskFactors["fraud_indicators"] = fraudKeywords
+		riskFactors["risk_category"] = "fraud"
+	}
+
+	// Check business name patterns
+	nameRisk := s.analyzeBusinessNameRisk(businessName)
+	riskScore += nameRisk
+
+	// Determine risk level
+	riskLevel := s.determineRiskLevel(riskScore)
+
+	// Set default risk factors if none detected
+	if riskFactors == nil {
+		riskFactors = map[string]interface{}{
+			"industry":   "general",
+			"geographic": "low_risk",
+			"regulatory": "compliant",
+		}
+	}
+
+	return map[string]interface{}{
+		"risk_score":                riskScore,
+		"risk_level":                riskLevel,
+		"risk_factors":              riskFactors,
+		"detected_risks":            detectedRisks,
+		"prohibited_keywords_found": prohibitedKeywords,
+		"assessment_methodology":    "automated",
+		"assessment_timestamp":      time.Now().UTC().Format(time.RFC3339),
+	}
+}
+
+// getRiskKeywords retrieves risk keywords from database
+func (s *RailwayServer) getRiskKeywords() []map[string]interface{} {
+	if s.supabaseClient == nil {
+		// Return default risk keywords if no database connection
+		return []map[string]interface{}{
+			{"keyword": "gambling", "risk_category": "prohibited", "risk_severity": "high", "risk_score_weight": 1.5},
+			{"keyword": "casino", "risk_category": "prohibited", "risk_severity": "high", "risk_score_weight": 1.5},
+			{"keyword": "betting", "risk_category": "prohibited", "risk_severity": "high", "risk_score_weight": 1.5},
+			{"keyword": "cryptocurrency", "risk_category": "high_risk", "risk_severity": "medium", "risk_score_weight": 1.3},
+			{"keyword": "bitcoin", "risk_category": "high_risk", "risk_severity": "medium", "risk_score_weight": 1.3},
+			{"keyword": "trading", "risk_category": "high_risk", "risk_severity": "low", "risk_score_weight": 1.1},
+			{"keyword": "scam", "risk_category": "fraud", "risk_severity": "high", "risk_score_weight": 1.6},
+		}
+	}
+
+	var riskKeywords []map[string]interface{}
+	_, err := s.supabaseClient.From("risk_keywords").Select("*", "", false).ExecuteTo(&riskKeywords)
+	if err != nil {
+		s.logger.Printf("⚠️ Failed to get risk keywords from database: %v", err)
+		return []map[string]interface{}{}
+	}
+
+	return riskKeywords
+}
+
+// checkProhibitedKeywords checks for prohibited business keywords
+func (s *RailwayServer) checkProhibitedKeywords(text string, riskKeywords []map[string]interface{}) []string {
+	var found []string
+	textLower := strings.ToLower(text)
+
+	for _, keyword := range riskKeywords {
+		if category, ok := keyword["risk_category"].(string); ok && category == "prohibited" {
+			if kw, ok := keyword["keyword"].(string); ok {
+				if strings.Contains(textLower, strings.ToLower(kw)) {
+					found = append(found, kw)
+				}
+			}
+		}
+	}
+
+	return found
+}
+
+// checkHighRiskKeywords checks for high-risk business keywords
+func (s *RailwayServer) checkHighRiskKeywords(text string, riskKeywords []map[string]interface{}) []string {
+	var found []string
+	textLower := strings.ToLower(text)
+
+	for _, keyword := range riskKeywords {
+		if category, ok := keyword["risk_category"].(string); ok && category == "high_risk" {
+			if kw, ok := keyword["keyword"].(string); ok {
+				if strings.Contains(textLower, strings.ToLower(kw)) {
+					found = append(found, kw)
+				}
+			}
+		}
+	}
+
+	return found
+}
+
+// checkFraudKeywords checks for fraud-related keywords
+func (s *RailwayServer) checkFraudKeywords(text string, riskKeywords []map[string]interface{}) []string {
+	var found []string
+	textLower := strings.ToLower(text)
+
+	for _, keyword := range riskKeywords {
+		if category, ok := keyword["risk_category"].(string); ok && category == "fraud" {
+			if kw, ok := keyword["keyword"].(string); ok {
+				if strings.Contains(textLower, strings.ToLower(kw)) {
+					found = append(found, kw)
+				}
+			}
+		}
+	}
+
+	return found
+}
+
+// analyzeBusinessNameRisk analyzes business name for risk patterns
+func (s *RailwayServer) analyzeBusinessNameRisk(businessName string) float64 {
+	nameLower := strings.ToLower(businessName)
+	riskScore := 0.0
+
+	// Check for suspicious patterns
+	suspiciousPatterns := []string{
+		"investment", "trading", "crypto", "bitcoin", "forex", "gambling", "casino",
+		"betting", "lottery", "scam", "fraud", "ponzi", "pyramid",
+	}
+
+	for _, pattern := range suspiciousPatterns {
+		if strings.Contains(nameLower, pattern) {
+			riskScore += 0.1
+		}
+	}
+
+	// Check for generic names (potential shell companies)
+	genericNames := []string{
+		"holdings", "investments", "ventures", "capital", "fund", "group",
+		"enterprises", "international", "global", "worldwide",
+	}
+
+	genericCount := 0
+	for _, generic := range genericNames {
+		if strings.Contains(nameLower, generic) {
+			genericCount++
+		}
+	}
+
+	if genericCount >= 2 {
+		riskScore += 0.2
+	}
+
+	return riskScore
+}
+
+// determineRiskLevel determines risk level based on score
+func (s *RailwayServer) determineRiskLevel(riskScore float64) string {
+	if riskScore >= 0.8 {
+		return "critical"
+	} else if riskScore >= 0.6 {
+		return "high"
+	} else if riskScore >= 0.3 {
+		return "medium"
+	} else {
+		return "low"
+	}
+}
+
+// storeRiskAssessment stores risk assessment in database
+func (s *RailwayServer) storeRiskAssessment(businessID, businessName string, riskAssessment map[string]interface{}) {
+	if s.supabaseClient == nil {
+		return
+	}
+
+	// Prepare risk assessment data
+	riskData := map[string]interface{}{
+		"business_id":               businessID,
+		"business_name":             businessName,
+		"risk_score":                riskAssessment["risk_score"],
+		"risk_level":                riskAssessment["risk_level"],
+		"risk_factors":              riskAssessment["risk_factors"],
+		"prohibited_keywords_found": riskAssessment["prohibited_keywords_found"],
+		"assessment_methodology":    riskAssessment["assessment_methodology"],
+		"created_at":                time.Now().UTC().Format(time.RFC3339),
+	}
+
+	// Store in database
+	_, _, err := s.supabaseClient.From("business_risk_assessments").Insert(riskData, false, "", "", "").Execute()
+	if err != nil {
+		s.logger.Printf("⚠️ Failed to store risk assessment: %v", err)
+	} else {
+		s.logger.Printf("✅ Risk assessment stored for %s: %s (score: %.2f)",
+			businessName, riskAssessment["risk_level"], riskAssessment["risk_score"])
+	}
 }
 
 func main() {

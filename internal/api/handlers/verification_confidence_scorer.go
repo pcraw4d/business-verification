@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/gorilla/mux"
 	"kyb-platform/internal/external"
+
+	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
 

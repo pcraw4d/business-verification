@@ -3,8 +3,9 @@ package routes
 import (
 	"net/http"
 
-	"github.com/gorilla/mux"
 	"kyb-platform/internal/api/handlers"
+
+	"github.com/gorilla/mux"
 )
 
 // RegisterGapAnalysisReportsRoutes registers all gap analysis reports-related routes

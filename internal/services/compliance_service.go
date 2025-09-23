@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"kyb-platform/internal/models"
 	"kyb-platform/internal/observability"
+
+	"github.com/google/uuid"
 )
 
 // ComplianceService provides comprehensive compliance checking and regulatory requirement validation

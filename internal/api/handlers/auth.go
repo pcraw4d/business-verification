@@ -11,6 +11,7 @@ import (
 	"kyb-platform/internal/auth"
 	"kyb-platform/internal/config"
 	"kyb-platform/internal/observability"
+
 	"go.uber.org/zap"
 )
 

@@ -7,8 +7,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gorilla/mux"
 	"kyb-platform/internal/feedback"
+
+	"github.com/gorilla/mux"
 )
 
 // FeedbackHandler handles HTTP requests for user feedback collection

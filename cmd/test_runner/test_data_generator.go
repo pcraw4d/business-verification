@@ -9,6 +9,7 @@ import (
 
 	"kyb-platform/internal/config"
 	"kyb-platform/internal/testing"
+
 	_ "github.com/lib/pq"
 )
 

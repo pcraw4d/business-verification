@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"kyb-platform/internal/health"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"

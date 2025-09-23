@@ -9,6 +9,7 @@ import (
 	"kyb-platform/internal/api/middleware"
 	"kyb-platform/internal/observability"
 	"kyb-platform/internal/services"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"go.uber.org/zap"
