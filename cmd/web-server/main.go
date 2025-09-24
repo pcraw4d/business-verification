@@ -43,7 +43,7 @@ func main() {
 	log.Printf("🌐 Starting Web Frontend Server on port %s", port)
 	log.Printf("📁 Serving files from ./web/ directory")
 	log.Printf("🔗 API Server: https://shimmering-comfort-production.up.railway.app")
-	
+
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatal("Failed to start server:", err)
 	}
