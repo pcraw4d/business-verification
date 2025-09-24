@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -104,6 +103,9 @@ func (s *RailwayServer) setupRoutes(router *mux.Router) {
 
 	// Health check
 	router.HandleFunc("/health", s.handleHealth).Methods("GET")
+	
+	// Debug endpoint to check web directory
+	router.HandleFunc("/debug/web", s.handleDebugWeb).Methods("GET")
 
 	// Business Intelligence Classification
 	router.HandleFunc("/v1/classify", s.handleClassify).Methods("POST")
@@ -121,7 +123,7 @@ func (s *RailwayServer) setupRoutes(router *mux.Router) {
 	// Serve static files from web directory
 	// Create a file server for the web directory
 	fileServer := http.FileServer(http.Dir("./web/"))
-	
+
 	// Serve static files with debugging
 	router.PathPrefix("/").Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s.logger.Printf("📁 Serving static file: %s", r.URL.Path)
@@ -129,18 +131,56 @@ func (s *RailwayServer) setupRoutes(router *mux.Router) {
 	}))
 }
 
+// handleDebugWeb handles debug requests to check web directory
+func (s *RailwayServer) handleDebugWeb(w http.ResponseWriter, r *http.Request) {
+	// Check if web directory exists
+	webDir := "./web"
+	if _, err := os.Stat(webDir); os.IsNotExist(err) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error": "web directory does not exist",
+			"path":  webDir,
+		})
+		return
+	}
+	
+	// List files in web directory
+	files, err := os.ReadDir(webDir)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error": "failed to read web directory",
+			"path":  webDir,
+			"err":   err.Error(),
+		})
+		return
+	}
+	
+	var fileList []string
+	for _, file := range files {
+		fileList = append(fileList, file.Name())
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"web_directory": webDir,
+		"files":         fileList,
+		"count":         len(fileList),
+	})
+}
+
 // handleHealth handles health check requests
 func (s *RailwayServer) handleHealth(w http.ResponseWriter, r *http.Request) {
 	health := map[string]interface{}{
-		"status":  "healthy",
-		"version": "3.2.0",
+		"status":    "healthy",
+		"version":   "3.2.0",
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
 		"features": map[string]bool{
-			"confidence_scoring":           true,
+			"confidence_scoring":             true,
 			"database_driven_classification": true,
-			"enhanced_keyword_matching":    true,
-			"industry_detection":           true,
-			"supabase_integration":         s.supabaseClient != nil,
+			"enhanced_keyword_matching":      true,
+			"industry_detection":             true,
+			"supabase_integration":           s.supabaseClient != nil,
 		},
 	}
 
@@ -229,7 +269,7 @@ func (s *RailwayServer) createNewClassification(businessName, description, websi
 	var scrapedKeywords []string
 	if websiteURL != "" {
 		websiteContent, scrapedKeywords = s.scrapeWebsite(websiteURL)
-		s.logger.Printf("🌐 Enhanced scraper extracted %d characters, %d keywords from %s", 
+		s.logger.Printf("🌐 Enhanced scraper extracted %d characters, %d keywords from %s",
 			len(websiteContent), len(scrapedKeywords), websiteURL)
 	}
 
@@ -372,7 +412,7 @@ func (s *RailwayServer) getFallbackClassification(businessName, description, web
 	var scrapedKeywords []string
 	if websiteURL != "" {
 		websiteContent, scrapedKeywords = s.scrapeWebsite(websiteURL)
-		s.logger.Printf("🌐 Enhanced scraper (fallback) extracted %d characters, %d keywords from %s", 
+		s.logger.Printf("🌐 Enhanced scraper (fallback) extracted %d characters, %d keywords from %s",
 			len(websiteContent), len(scrapedKeywords), websiteURL)
 	}
 
@@ -469,7 +509,7 @@ func (s *RailwayServer) extractTextFromHTML(html string) string {
 func (s *RailwayServer) extractKeywords(text string) []string {
 	// Simple keyword extraction
 	words := strings.Fields(strings.ToLower(text))
-	
+
 	// Filter out common words and keep business-relevant terms
 	stopWords := map[string]bool{
 		"the": true, "a": true, "an": true, "and": true, "or": true, "but": true,
@@ -512,7 +552,7 @@ func (s *RailwayServer) performRiskAssessment(businessName, allText string, keyw
 	// Check for high-risk keywords
 	highRiskKeywords := []string{"crypto", "bitcoin", "gambling", "casino", "adult", "weapon"}
 	textLower := strings.ToLower(allText)
-	
+
 	for _, keyword := range highRiskKeywords {
 		if strings.Contains(textLower, keyword) {
 			riskScore += 0.3
@@ -527,13 +567,13 @@ func (s *RailwayServer) performRiskAssessment(businessName, allText string, keyw
 	}
 
 	return map[string]interface{}{
-		"risk_level":                    riskLevel,
-		"risk_score":                    riskScore,
-		"risk_factors":                  riskFactors,
-		"detected_risks":                nil,
-		"prohibited_keywords_found":     nil,
-		"assessment_methodology":        "automated",
-		"assessment_timestamp":          time.Now().UTC().Format(time.RFC3339),
+		"risk_level":                riskLevel,
+		"risk_score":                riskScore,
+		"risk_factors":              riskFactors,
+		"detected_risks":            nil,
+		"prohibited_keywords_found": nil,
+		"assessment_methodology":    "automated",
+		"assessment_timestamp":      time.Now().UTC().Format(time.RFC3339),
 	}
 }
 
@@ -542,19 +582,19 @@ func (s *RailwayServer) storeRiskAssessment(businessID, businessName string, ris
 	// Store risk assessment in Supabase if available
 	if s.supabaseClient != nil {
 		riskData := map[string]interface{}{
-			"business_id":      businessID,
-			"business_name":    businessName,
-			"risk_level":       riskAssessment["risk_level"],
-			"risk_score":       riskAssessment["risk_score"],
-			"risk_factors":     riskAssessment["risk_factors"],
-			"assessment_time":  time.Now().UTC().Format(time.RFC3339),
+			"business_id":     businessID,
+			"business_name":   businessName,
+			"risk_level":      riskAssessment["risk_level"],
+			"risk_score":      riskAssessment["risk_score"],
+			"risk_factors":    riskAssessment["risk_factors"],
+			"assessment_time": time.Now().UTC().Format(time.RFC3339),
 		}
 
 		_, _, err := s.supabaseClient.From("risk_assessments").Insert(riskData, false, "", "", "").Execute()
 		if err != nil {
 			s.logger.Printf("⚠️ Failed to store risk assessment: %v", err)
 		} else {
-			s.logger.Printf("✅ Risk assessment stored for %s: %s (score: %.2f)", 
+			s.logger.Printf("✅ Risk assessment stored for %s: %s (score: %.2f)",
 				businessName, riskAssessment["risk_level"], riskAssessment["risk_score"])
 		}
 	}
@@ -565,20 +605,20 @@ func (s *RailwayServer) handleGetMerchants(w http.ResponseWriter, r *http.Reques
 	// Mock merchant data
 	merchants := []map[string]interface{}{
 		{
-			"id":           "merchant_1",
-			"name":         "TechCorp Solutions",
-			"industry":     "Technology",
-			"risk_level":   "low",
-			"status":       "active",
-			"created_at":   time.Now().AddDate(0, -1, 0).Format(time.RFC3339),
+			"id":         "merchant_1",
+			"name":       "TechCorp Solutions",
+			"industry":   "Technology",
+			"risk_level": "low",
+			"status":     "active",
+			"created_at": time.Now().AddDate(0, -1, 0).Format(time.RFC3339),
 		},
 		{
-			"id":           "merchant_2",
-			"name":         "Retail Store Inc",
-			"industry":     "Retail",
-			"risk_level":   "medium",
-			"status":       "active",
-			"created_at":   time.Now().AddDate(0, -2, 0).Format(time.RFC3339),
+			"id":         "merchant_2",
+			"name":       "Retail Store Inc",
+			"industry":   "Retail",
+			"risk_level": "medium",
+			"status":     "active",
+			"created_at": time.Now().AddDate(0, -2, 0).Format(time.RFC3339),
 		},
 	}
 
@@ -656,13 +696,13 @@ func (s *RailwayServer) handleGetMerchant(w http.ResponseWriter, r *http.Request
 	merchantID := vars["id"]
 
 	merchant := map[string]interface{}{
-		"id":           merchantID,
-		"name":         "Sample Merchant",
-		"industry":     "Technology",
-		"risk_level":   "low",
-		"status":       "active",
-		"created_at":   time.Now().AddDate(0, -1, 0).Format(time.RFC3339),
-		"description":  "A sample merchant for testing purposes",
+		"id":          merchantID,
+		"name":        "Sample Merchant",
+		"industry":    "Technology",
+		"risk_level":  "low",
+		"status":      "active",
+		"created_at":  time.Now().AddDate(0, -1, 0).Format(time.RFC3339),
+		"description": "A sample merchant for testing purposes",
 	}
 
 	w.Header().Set("Content-Type", "application/json")
