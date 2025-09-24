@@ -119,7 +119,14 @@ func (s *RailwayServer) setupRoutes(router *mux.Router) {
 	api.HandleFunc("/merchants/{id}", s.handleGetMerchant).Methods("GET")
 
 	// Serve static files from web directory
-	router.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("./web/"))))
+	// Create a file server for the web directory
+	fileServer := http.FileServer(http.Dir("./web/"))
+	
+	// Serve static files with debugging
+	router.PathPrefix("/").Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.logger.Printf("📁 Serving static file: %s", r.URL.Path)
+		fileServer.ServeHTTP(w, r)
+	}))
 }
 
 // handleHealth handles health check requests
