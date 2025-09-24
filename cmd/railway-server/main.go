@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -117,8 +118,8 @@ func (s *RailwayServer) setupRoutes(router *mux.Router) {
 	api.HandleFunc("/merchants/statistics", s.handleMerchantStatistics).Methods("GET")
 	api.HandleFunc("/merchants/{id}", s.handleGetMerchant).Methods("GET")
 
-	// Serve static files
-	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./web/")))
+	// Serve static files from web directory
+	router.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("./web/"))))
 }
 
 // handleHealth handles health check requests
