@@ -103,7 +103,7 @@ func (s *RailwayServer) setupRoutes(router *mux.Router) {
 
 	// Health check
 	router.HandleFunc("/health", s.handleHealth).Methods("GET")
-	
+
 	// Debug endpoint to check web directory
 	router.HandleFunc("/debug/web", s.handleDebugWeb).Methods("GET")
 
@@ -143,7 +143,7 @@ func (s *RailwayServer) handleDebugWeb(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	// List files in web directory
 	files, err := os.ReadDir(webDir)
 	if err != nil {
@@ -155,12 +155,12 @@ func (s *RailwayServer) handleDebugWeb(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	var fileList []string
 	for _, file := range files {
 		fileList = append(fileList, file.Name())
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"web_directory": webDir,

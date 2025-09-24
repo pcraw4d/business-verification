@@ -19,7 +19,7 @@ func main() {
 
 	log.Printf("🌐 Frontend server starting on port %s", port)
 	log.Printf("📁 Serving files from ./web/ directory")
-	
+
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatal("❌ Server failed to start:", err)
 	}
