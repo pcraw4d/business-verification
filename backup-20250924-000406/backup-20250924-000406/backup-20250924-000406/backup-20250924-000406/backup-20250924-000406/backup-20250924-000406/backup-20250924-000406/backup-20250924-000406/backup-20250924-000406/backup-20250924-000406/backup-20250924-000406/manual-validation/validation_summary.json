@@ -1,0 +1,29 @@
+{
+  "case_files": [
+    "case_case_Software_Development_Company_1757524686.json",
+    "case_case_Cloud_Computing_Provider_1757524686.json",
+    "case_case_AI_ML_Startup_1757524686.json",
+    "case_case_Medical_Center_1757524686.json",
+    "case_case_Medical_Technology_Company_1757524686.json",
+    "case_case_Pharmaceutical_Company_1757524686.json",
+    "case_case_Commercial_Bank_1757524686.json",
+    "case_case_Fintech_Startup_1757524686.json",
+    "case_case_Insurance_Company_1757524686.json",
+    "case_case_Online_Retail_Store_1757524686.json",
+    "case_case_E_commerce_Platform_1757524686.json",
+    "case_case_Industrial_Manufacturing_1757524686.json",
+    "case_case_Food_Manufacturing_1757524686.json",
+    "case_case_Management_Consulting_1757524686.json",
+    "case_case_Legal_Services_1757524686.json",
+    "case_case_Real_Estate_Agency_1757524686.json",
+    "case_case_Educational_Technology_1757524686.json",
+    "case_case_Renewable_Energy_1757524686.json",
+    "case_case_Mixed_Industry_Business_1757524686.json",
+    "case_case_Generic_Business_1757524686.json",
+    "case_case_Very_Short_Description_1757524686.json"
+  ],
+  "created_at": "2025-09-10T13:18:06.328015-04:00",
+  "session_id": "session_1757524686",
+  "total_cases": 21,
+  "validation_dir": "./manual-validation"
+}

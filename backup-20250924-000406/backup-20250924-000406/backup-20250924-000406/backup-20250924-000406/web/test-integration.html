@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KYB Platform - Integration Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .loading { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        .data-display {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 KYB Platform Integration Test</h1>
+    
+    <div class="test-section">
+        <h2>1. Real Data Integration Test</h2>
+        <button onclick="testRealDataIntegration()">Test Real Data Integration</button>
+        <div id="realDataResult" class="test-result loading">Click button to test...</div>
+        <div id="realDataDisplay" class="data-display" style="display: none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. API Endpoints Test</h2>
+        <button onclick="testAPIEndpoints()">Test API Endpoints</button>
+        <div id="apiResult" class="test-result loading">Click button to test...</div>
+        <div id="apiDisplay" class="data-display" style="display: none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Component Loading Test</h2>
+        <button onclick="testComponentLoading()">Test Component Loading</button>
+        <div id="componentResult" class="test-result loading">Click button to test...</div>
+        <div id="componentDisplay" class="data-display" style="display: none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. End-to-End Integration Test</h2>
+        <button onclick="testEndToEnd()">Test End-to-End Flow</button>
+        <div id="e2eResult" class="test-result loading">Click button to test...</div>
+        <div id="e2eDisplay" class="data-display" style="display: none;"></div>
+    </div>
+
+    <!-- Load the real data integration -->
+    <script src="components/real-data-integration.js"></script>
+    
+    <script>
+        const API_BASE_URL = 'https://shimmering-comfort-production.up.railway.app';
+        
+        async function testRealDataIntegration() {
+            const resultDiv = document.getElementById('realDataResult');
+            const displayDiv = document.getElementById('realDataDisplay');
+            
+            try {
+                resultDiv.className = 'test-result loading';
+                resultDiv.textContent = 'Testing Real Data Integration...';
+                
+                // Test if RealDataIntegration class is available
+                if (typeof RealDataIntegration === 'undefined') {
+                    throw new Error('RealDataIntegration class not found');
+                }
+                
+                const dataIntegration = new RealDataIntegration();
+                
+                // Test basic functionality
+                const testResults = {
+                    classAvailable: typeof RealDataIntegration !== 'undefined',
+                    instanceCreated: dataIntegration instanceof RealDataIntegration,
+                    methodsAvailable: {
+                        getMerchants: typeof dataIntegration.getMerchants === 'function',
+                        getMerchantAnalytics: typeof dataIntegration.getMerchantAnalytics === 'function',
+                        getSystemMetrics: typeof dataIntegration.getSystemMetrics === 'function'
+                    }
+                };
+                
+                resultDiv.className = 'test-result success';
+                resultDiv.textContent = '✅ Real Data Integration loaded successfully!';
+                
+                displayDiv.style.display = 'block';
+                displayDiv.textContent = JSON.stringify(testResults, null, 2);
+                
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.textContent = `❌ Error: ${error.message}`;
+                
+                displayDiv.style.display = 'block';
+                displayDiv.textContent = error.stack || error.message;
+            }
+        }
+        
+        async function testAPIEndpoints() {
+            const resultDiv = document.getElementById('apiResult');
+            const displayDiv = document.getElementById('apiDisplay');
+            
+            try {
+                resultDiv.className = 'test-result loading';
+                resultDiv.textContent = 'Testing API Endpoints...';
+                
+                const endpoints = [
+                    { name: 'Health Check', url: `${API_BASE_URL}/health` },
+                    { name: 'Merchants', url: `${API_BASE_URL}/api/v1/merchants` },
+                    { name: 'Analytics', url: `${API_BASE_URL}/api/v1/merchants/analytics` },
+                    { name: 'Statistics', url: `${API_BASE_URL}/api/v1/merchants/statistics` }
+                ];
+                
+                const results = {};
+                
+                for (const endpoint of endpoints) {
+                    try {
+                        const response = await fetch(endpoint.url);
+                        const data = await response.json();
+                        
+                        results[endpoint.name] = {
+                            status: response.status,
+                            success: response.ok,
+                            dataSource: data.data_source || 'unknown',
+                            hasData: Object.keys(data).length > 0
+                        };
+                    } catch (error) {
+                        results[endpoint.name] = {
+                            status: 'error',
+                            success: false,
+                            error: error.message
+                        };
+                    }
+                }
+                
+                const allSuccessful = Object.values(results).every(r => r.success);
+                
+                resultDiv.className = allSuccessful ? 'test-result success' : 'test-result error';
+                resultDiv.textContent = allSuccessful ? 
+                    '✅ All API endpoints working!' : 
+                    '⚠️ Some API endpoints have issues';
+                
+                displayDiv.style.display = 'block';
+                displayDiv.textContent = JSON.stringify(results, null, 2);
+                
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.textContent = `❌ Error: ${error.message}`;
+                
+                displayDiv.style.display = 'block';
+                displayDiv.textContent = error.stack || error.message;
+            }
+        }
+        
+        async function testComponentLoading() {
+            const resultDiv = document.getElementById('componentResult');
+            const displayDiv = document.getElementById('componentDisplay');
+            
+            try {
+                resultDiv.className = 'test-result loading';
+                resultDiv.textContent = 'Testing Component Loading...';
+                
+                const components = [
+                    'MerchantDashboardRealData',
+                    'MonitoringDashboardRealData', 
+                    'MerchantBulkOperationsRealData',
+                    'DashboardRealData'
+                ];
+                
+                const results = {};
+                
+                for (const componentName of components) {
+                    results[componentName] = {
+                        available: typeof window[componentName] !== 'undefined',
+                        isFunction: typeof window[componentName] === 'function'
+                    };
+                }
+                
+                const allAvailable = Object.values(results).every(r => r.available);
+                
+                resultDiv.className = allAvailable ? 'test-result success' : 'test-result error';
+                resultDiv.textContent = allAvailable ? 
+                    '✅ All components loaded successfully!' : 
+                    '⚠️ Some components not available';
+                
+                displayDiv.style.display = 'block';
+                displayDiv.textContent = JSON.stringify(results, null, 2);
+                
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.textContent = `❌ Error: ${error.message}`;
+                
+                displayDiv.style.display = 'block';
+                displayDiv.textContent = error.stack || error.message;
+            }
+        }
+        
+        async function testEndToEnd() {
+            const resultDiv = document.getElementById('e2eResult');
+            const displayDiv = document.getElementById('e2eDisplay');
+            
+            try {
+                resultDiv.className = 'test-result loading';
+                resultDiv.textContent = 'Testing End-to-End Integration...';
+                
+                const results = {
+                    step1: 'Testing data integration...',
+                    step2: 'Testing API connection...',
+                    step3: 'Testing data flow...',
+                    step4: 'Testing UI rendering...'
+                };
+                
+                // Step 1: Test data integration
+                if (typeof RealDataIntegration !== 'undefined') {
+                    results.step1 = '✅ Data integration available';
+                } else {
+                    results.step1 = '❌ Data integration not available';
+                }
+                
+                // Step 2: Test API connection
+                try {
+                    const healthResponse = await fetch(`${API_BASE_URL}/health`);
+                    const healthData = await healthResponse.json();
+                    results.step2 = healthData.supabase_status?.connected ? 
+                        '✅ API connected to Supabase' : 
+                        '❌ API not connected to Supabase';
+                } catch (error) {
+                    results.step2 = `❌ API connection failed: ${error.message}`;
+                }
+                
+                // Step 3: Test data flow
+                try {
+                    const merchantsResponse = await fetch(`${API_BASE_URL}/api/v1/merchants`);
+                    const merchantsData = await merchantsResponse.json();
+                    results.step3 = merchantsData.merchants?.length > 0 ? 
+                        `✅ Data flow working (${merchantsData.merchants.length} merchants)` : 
+                        '❌ No data returned';
+                } catch (error) {
+                    results.step3 = `❌ Data flow failed: ${error.message}`;
+                }
+                
+                // Step 4: Test UI rendering capability
+                const componentsAvailable = [
+                    'MerchantDashboardRealData',
+                    'MonitoringDashboardRealData',
+                    'MerchantBulkOperationsRealData',
+                    'DashboardRealData'
+                ].every(name => typeof window[name] !== 'undefined');
+                
+                results.step4 = componentsAvailable ? 
+                    '✅ UI components ready for rendering' : 
+                    '❌ UI components not available';
+                
+                const allStepsSuccessful = Object.values(results).every(step => step.startsWith('✅'));
+                
+                resultDiv.className = allStepsSuccessful ? 'test-result success' : 'test-result error';
+                resultDiv.textContent = allStepsSuccessful ? 
+                    '✅ End-to-End Integration Working!' : 
+                    '⚠️ Some integration steps have issues';
+                
+                displayDiv.style.display = 'block';
+                displayDiv.textContent = JSON.stringify(results, null, 2);
+                
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.textContent = `❌ Error: ${error.message}`;
+                
+                displayDiv.style.display = 'block';
+                displayDiv.textContent = error.stack || error.message;
+            }
+        }
+        
+        // Auto-run basic tests on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🧪 Integration Test Page Loaded');
+            console.log('Available components:', {
+                RealDataIntegration: typeof RealDataIntegration !== 'undefined',
+                MerchantDashboardRealData: typeof MerchantDashboardRealData !== 'undefined',
+                MonitoringDashboardRealData: typeof MonitoringDashboardRealData !== 'undefined',
+                MerchantBulkOperationsRealData: typeof MerchantBulkOperationsRealData !== 'undefined',
+                DashboardRealData: typeof DashboardRealData !== 'undefined'
+            });
+        });
+    </script>
+</body>
+</html>

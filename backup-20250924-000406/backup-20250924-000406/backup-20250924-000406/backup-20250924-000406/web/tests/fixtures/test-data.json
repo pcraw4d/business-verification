@@ -1,0 +1,102 @@
+{
+  "riskStates": {
+    "low": {
+      "score": 25,
+      "level": "low",
+      "color": "#22c55e",
+      "description": "Low Risk - Minimal concerns identified"
+    },
+    "medium": {
+      "score": 50,
+      "level": "medium", 
+      "color": "#eab308",
+      "description": "Medium Risk - Some concerns identified"
+    },
+    "high": {
+      "score": 75,
+      "level": "high",
+      "color": "#f97316", 
+      "description": "High Risk - Significant concerns identified"
+    },
+    "critical": {
+      "score": 95,
+      "level": "critical",
+      "color": "#ef4444",
+      "description": "Critical Risk - Immediate attention required"
+    }
+  },
+  "testBusinesses": {
+    "lowRisk": {
+      "name": "Acme Corporation",
+      "industry": "Technology",
+      "riskScore": 25,
+      "riskLevel": "low",
+      "description": "Established technology company with strong financials"
+    },
+    "mediumRisk": {
+      "name": "Beta Industries",
+      "industry": "Manufacturing", 
+      "riskScore": 50,
+      "riskLevel": "medium",
+      "description": "Manufacturing company with moderate risk factors"
+    },
+    "highRisk": {
+      "name": "Gamma Ventures",
+      "industry": "Finance",
+      "riskScore": 75,
+      "riskLevel": "high", 
+      "description": "Financial services company with elevated risk"
+    },
+    "criticalRisk": {
+      "name": "Delta Corp",
+      "industry": "Healthcare",
+      "riskScore": 95,
+      "riskLevel": "critical",
+      "description": "Healthcare company requiring immediate attention"
+    }
+  },
+  "viewportSizes": {
+    "mobile": {
+      "width": 375,
+      "height": 667,
+      "device": "iPhone"
+    },
+    "tablet": {
+      "width": 768,
+      "height": 1024,
+      "device": "iPad"
+    },
+    "desktop": {
+      "width": 1920,
+      "height": 1080,
+      "device": "Desktop"
+    },
+    "large": {
+      "width": 2560,
+      "height": 1440,
+      "device": "Large Screen"
+    }
+  },
+  "testUrls": {
+    "riskDashboard": "risk-dashboard.html",
+    "enhancedIndicators": "enhanced-risk-indicators.html",
+    "dashboard": "dashboard.html",
+    "index": "index.html",
+    "realTimeScraping": "real-time-scraping.html"
+  },
+  "chartTypes": [
+    "risk-gauge",
+    "risk-trend",
+    "risk-heatmap", 
+    "risk-radar",
+    "risk-comparison"
+  ],
+  "interactiveElements": [
+    ".risk-badge",
+    ".risk-gauge",
+    ".risk-card",
+    ".tooltip-trigger",
+    ".hover-target",
+    ".click-target"
+  ]
+}

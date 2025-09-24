@@ -1,0 +1,46 @@
+name: API Service CI/CD
+
+on:
+  push:
+    paths:
+      - "services/api/**"
+      - "shared/**"
+  pull_request:
+    paths:
+      - "services/api/**"
+      - "shared/**"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.25"
+
+      - name: Test API
+        run: |
+          cd services/api
+          go test ./...
+
+      - name: Build API
+        run: |
+          cd services/api
+          go build -o server ./cmd/server/main.go
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy API to Railway
+        run: |
+          cd services/api
+          railway up --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

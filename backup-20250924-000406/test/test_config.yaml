@@ -1,0 +1,371 @@
+# Feature Functionality Testing Configuration
+# This configuration file defines all settings for comprehensive feature functionality testing
+
+# Test Execution Settings
+test_execution:
+  timeout: "30m"                    # Maximum test execution time
+  parallel_tests: true              # Enable parallel test execution
+  verbose_output: true              # Enable verbose test output
+  generate_report: true             # Generate comprehensive test report
+  report_format: "json"             # Report format: json, html, xml
+  report_path: "./test-reports"     # Directory for test reports
+
+# Service Configuration
+services:
+  classification:
+    enabled: true
+    timeout: "30s"
+    confidence_threshold: 0.8
+    methods:
+      keyword: true
+      ml: true
+      similarity: true
+      ensemble: true
+    mock_data: true
+    real_data: false
+    
+  risk_assessment:
+    enabled: true
+    timeout: "60s"
+    risk_threshold: 0.7
+    analyzers:
+      security: true
+      domain: true
+      reputation: true
+      compliance: true
+      financial: true
+    mock_data: true
+    real_data: false
+    
+  compliance:
+    enabled: true
+    timeout: "30s"
+    frameworks:
+      aml: true
+      kyc: true
+      kyb: true
+      gdpr: true
+      pci: true
+      soc2: true
+    mock_data: true
+    real_data: false
+    
+  merchant_management:
+    enabled: true
+    timeout: "10s"
+    operations:
+      create: true
+      read: true
+      update: true
+      delete: true
+      search: true
+      bulk_operations: true
+      portfolio_management: true
+    mock_data: true
+    real_data: false
+
+# Test Data Configuration
+test_data:
+  path: "./testdata"
+  mock_data_enabled: true
+  real_data_enabled: false
+  data_sources:
+    - name: "business_classification"
+      path: "./testdata/business_classification.json"
+      type: "mock"
+    - name: "risk_assessment"
+      path: "./testdata/risk_assessment.json"
+      type: "mock"
+    - name: "compliance_checks"
+      path: "./testdata/compliance_checks.json"
+      type: "mock"
+    - name: "merchant_data"
+      path: "./testdata/merchant_data.json"
+      type: "mock"
+
+# Performance Testing Configuration
+performance:
+  load_test_enabled: false
+  load_test_duration: "5m"
+  load_test_concurrency: 10
+  stress_test_enabled: false
+  stress_test_duration: "2m"
+  stress_test_concurrency: 50
+  benchmark_enabled: true
+  benchmark_iterations: 1000
+
+# Test Categories
+test_categories:
+  business_classification:
+    enabled: true
+    tests:
+      - "MultiMethodClassification"
+      - "KeywordBasedClassification"
+      - "MLBasedClassification"
+      - "EnsembleClassification"
+      - "ConfidenceScoring"
+    expected_accuracy: 0.95
+    expected_response_time: "1s"
+    
+  risk_assessment:
+    enabled: true
+    tests:
+      - "ComprehensiveRiskAssessment"
+      - "SecurityAnalysis"
+      - "DomainAnalysis"
+      - "ReputationAnalysis"
+      - "ComplianceAnalysis"
+      - "FinancialAnalysis"
+      - "RiskScoring"
+    expected_accuracy: 0.90
+    expected_response_time: "3s"
+    
+  compliance_checking:
+    enabled: true
+    tests:
+      - "AMLCompliance"
+      - "KYCCompliance"
+      - "KYBCompliance"
+      - "GDPRCompliance"
+      - "PCICompliance"
+      - "SOC2Compliance"
+    expected_accuracy: 0.95
+    expected_response_time: "2s"
+    
+  merchant_management:
+    enabled: true
+    tests:
+      - "CreateMerchant"
+      - "GetMerchant"
+      - "UpdateMerchant"
+      - "DeleteMerchant"
+      - "SearchMerchants"
+      - "BulkOperations"
+      - "PortfolioManagement"
+    expected_accuracy: 1.0
+    expected_response_time: "500ms"
+
+# Test Scenarios
+test_scenarios:
+  # Business Classification Scenarios
+  business_classification:
+    technology_company:
+      name: "TechCorp Solutions"
+      description: "Software development and IT consulting services"
+      website: "https://techcorp.com"
+      expected_industry: "Technology"
+      expected_confidence: 0.9
+      
+    retail_business:
+      name: "Fashion Store"
+      description: "Clothing and accessories retail store"
+      website: "https://fashionstore.com"
+      expected_industry: "Retail"
+      expected_confidence: 0.8
+      
+    financial_services:
+      name: "Investment Bank"
+      description: "Investment banking and financial advisory services"
+      website: "https://investmentbank.com"
+      expected_industry: "Financial Services"
+      expected_confidence: 0.9
+      
+    healthcare_services:
+      name: "Medical Clinic"
+      description: "Primary healthcare and medical services"
+      website: "https://medicalclinic.com"
+      expected_industry: "Healthcare"
+      expected_confidence: 0.8
+      
+    manufacturing_company:
+      name: "Industrial Manufacturing"
+      description: "Heavy machinery and industrial equipment manufacturing"
+      website: "https://industrialmfg.com"
+      expected_industry: "Manufacturing"
+      expected_confidence: 0.8
+
+  # Risk Assessment Scenarios
+  risk_assessment:
+    low_risk_technology:
+      name: "Microsoft Corporation"
+      website: "https://microsoft.com"
+      industry: "Technology"
+      expected_risk_level: "low"
+      expected_risk_score: 0.2
+      
+    medium_risk_ecommerce:
+      name: "Online Marketplace"
+      website: "https://onlinemarketplace.com"
+      industry: "E-commerce"
+      expected_risk_level: "medium"
+      expected_risk_score: 0.5
+      
+    high_risk_cryptocurrency:
+      name: "Crypto Exchange"
+      website: "https://cryptoexchange.com"
+      industry: "Cryptocurrency"
+      expected_risk_level: "high"
+      expected_risk_score: 0.8
+      
+    critical_risk_adult_entertainment:
+      name: "Adult Entertainment Site"
+      website: "https://adultsite.com"
+      industry: "Adult Entertainment"
+      expected_risk_level: "critical"
+      expected_risk_score: 0.9
+
+  # Compliance Checking Scenarios
+  compliance_checking:
+    financial_institution_aml:
+      name: "Bank of America"
+      industry: "Financial Services"
+      compliance_type: "aml"
+      expected_status: "compliant"
+      
+    money_services_aml:
+      name: "Western Union"
+      industry: "Money Services"
+      compliance_type: "aml"
+      expected_status: "compliant"
+      
+    high_risk_business_aml:
+      name: "Cryptocurrency Exchange"
+      industry: "Cryptocurrency"
+      compliance_type: "aml"
+      expected_status: "requires_review"
+      
+    individual_customer_kyc:
+      name: "Individual Customer"
+      customer_type: "individual"
+      compliance_type: "kyc"
+      expected_status: "compliant"
+      
+    corporation_kyb:
+      name: "Microsoft Corporation"
+      business_type: "corporation"
+      compliance_type: "kyb"
+      expected_status: "compliant"
+
+  # Merchant Management Scenarios
+  merchant_management:
+    valid_merchant_creation:
+      name: "Test Business"
+      legal_name: "Test Business LLC"
+      industry: "Technology"
+      business_type: "LLC"
+      expected_status: 201
+      
+    invalid_merchant_creation:
+      name: ""
+      legal_name: "Test Business LLC"
+      expected_status: 400
+      
+    merchant_search_by_industry:
+      filters:
+        industry: "Technology"
+        page: 1
+        limit: 10
+      expected_count: 5
+      
+    bulk_portfolio_update:
+      merchant_ids: ["merchant-1", "merchant-2", "merchant-3"]
+      portfolio_type: "active"
+      expected_success: true
+
+# Assertion Configuration
+assertions:
+  # Business Classification Assertions
+  business_classification:
+    confidence_threshold: 0.8
+    response_time_threshold: "1s"
+    accuracy_threshold: 0.95
+    required_fields:
+      - "industry_name"
+      - "confidence_score"
+      - "classification_codes"
+      - "reasoning"
+      
+  # Risk Assessment Assertions
+  risk_assessment:
+    risk_score_range: [0.0, 1.0]
+    response_time_threshold: "3s"
+    accuracy_threshold: 0.90
+    required_fields:
+      - "risk_level"
+      - "risk_score"
+      - "risk_factors"
+      - "recommendations"
+      
+  # Compliance Checking Assertions
+  compliance_checking:
+    compliance_score_range: [0.0, 1.0]
+    response_time_threshold: "2s"
+    accuracy_threshold: 0.95
+    required_fields:
+      - "compliance_status"
+      - "compliance_score"
+      - "required_actions"
+      
+  # Merchant Management Assertions
+  merchant_management:
+    response_time_threshold: "500ms"
+    accuracy_threshold: 1.0
+    required_fields:
+      - "id"
+      - "name"
+      - "legal_name"
+      - "created_at"
+
+# Error Handling Configuration
+error_handling:
+  timeout_errors: true
+  validation_errors: true
+  service_errors: true
+  network_errors: true
+  retry_attempts: 3
+  retry_delay: "1s"
+
+# Logging Configuration
+logging:
+  level: "info"                     # debug, info, warn, error
+  format: "json"                    # json, text
+  output: "stdout"                  # stdout, file, both
+  file_path: "./test-logs/test.log"
+  max_size: "100MB"
+  max_age: "7d"
+  max_backups: 3
+
+# Database Configuration (for integration tests)
+database:
+  enabled: false
+  type: "postgresql"
+  host: "localhost"
+  port: 5432
+  database: "kyb_test"
+  username: "test_user"
+  password: "test_password"
+  ssl_mode: "disable"
+  max_connections: 10
+  connection_timeout: "30s"
+
+# External Service Configuration (for integration tests)
+external_services:
+  enabled: false
+  services:
+    - name: "classification_api"
+      url: "http://localhost:8080"
+      timeout: "30s"
+    - name: "risk_assessment_api"
+      url: "http://localhost:8081"
+      timeout: "60s"
+    - name: "compliance_api"
+      url: "http://localhost:8082"
+      timeout: "30s"
+
+# Cleanup Configuration
+cleanup:
+  enabled: true
+  cleanup_test_data: true
+  cleanup_temp_files: true
+  cleanup_logs: false
+  cleanup_reports: false

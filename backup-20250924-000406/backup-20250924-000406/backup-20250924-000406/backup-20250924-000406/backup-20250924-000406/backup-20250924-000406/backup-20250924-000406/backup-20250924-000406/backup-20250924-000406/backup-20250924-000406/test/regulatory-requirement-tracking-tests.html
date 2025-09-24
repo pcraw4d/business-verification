@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regulatory Requirement Tracking - Test Suite</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .test-dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+
+        .test-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .test-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .test-card.passed {
+            border-left: 4px solid #27ae60;
+        }
+
+        .test-card.failed {
+            border-left: 4px solid #e74c3c;
+        }
+
+        .test-card.running {
+            border-left: 4px solid #f39c12;
+        }
+
+        .test-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .test-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .test-number.passed { color: #27ae60; }
+        .test-number.failed { color: #e74c3c; }
+        .test-number.running { color: #f39c12; }
+
+        .test-label {
+            font-size: 1.1rem;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+
+        .test-description {
+            font-size: 0.9rem;
+            color: #95a5a6;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .test-sections {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+        }
+
+        .test-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .test-list {
+            list-style: none;
+        }
+
+        .test-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid #ecf0f1;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .test-item:hover {
+            background: #f8f9fa;
+            border-color: #3498db;
+        }
+
+        .test-item.passed {
+            background: #d5f4e6;
+            border-color: #27ae60;
+        }
+
+        .test-item.failed {
+            background: #fadbd8;
+            border-color: #e74c3c;
+        }
+
+        .test-item.running {
+            background: #fef5e7;
+            border-color: #f39c12;
+        }
+
+        .test-status {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: white;
+        }
+
+        .test-status.passed {
+            background: #27ae60;
+        }
+
+        .test-status.failed {
+            background: #e74c3c;
+        }
+
+        .test-status.running {
+            background: #f39c12;
+        }
+
+        .test-status.pending {
+            background: #95a5a6;
+        }
+
+        .test-info {
+            flex: 1;
+        }
+
+        .test-name {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .test-description {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+
+        .test-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .test-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-run {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-view {
+            background: #9b59b6;
+            color: white;
+        }
+
+        .btn-details {
+            background: #27ae60;
+            color: white;
+        }
+
+        .test-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .test-results {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            margin-top: 30px;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .results-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .results-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .test-output {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            z-index: 1001;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: #27ae60;
+        }
+
+        .notification.error {
+            background: #e74c3c;
+        }
+
+        .notification.info {
+            background: #3498db;
+        }
+
+        @media (max-width: 768px) {
+            .test-dashboard {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+                padding: 20px;
+            }
+
+            .test-sections {
+                grid-template-columns: 1fr;
+            }
+
+            .test-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .test-actions {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Regulatory Requirement Tracking - Test Suite</h1>
+            <p>Comprehensive testing for compliance tracking and reporting systems</p>
+        </div>
+
+        <div class="test-dashboard">
+            <div class="test-card passed">
+                <div class="test-icon">✅</div>
+                <div class="test-number passed" id="passed-tests">0</div>
+                <div class="test-label">Tests Passed</div>
+                <div class="test-description">Successfully completed</div>
+            </div>
+            <div class="test-card failed">
+                <div class="test-icon">❌</div>
+                <div class="test-number failed" id="failed-tests">0</div>
+                <div class="test-label">Tests Failed</div>
+                <div class="test-description">Require attention</div>
+            </div>
+            <div class="test-card running">
+                <div class="test-icon">⏳</div>
+                <div class="test-number running" id="running-tests">0</div>
+                <div class="test-label">Tests Running</div>
+                <div class="test-description">Currently executing</div>
+            </div>
+            <div class="test-card">
+                <div class="test-icon">📊</div>
+                <div class="test-number" id="total-tests">0</div>
+                <div class="test-label">Total Tests</div>
+                <div class="test-description">All test cases</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="test-sections">
+                <div class="test-section">
+                    <h3 class="section-title">
+                        <span>📋</span>
+                        Requirement Tracking Tests
+                    </h3>
+                    <ul class="test-list" id="tracking-tests">
+                        <!-- Tracking tests will be loaded here -->
+                    </ul>
+                </div>
+
+                <div class="test-section">
+                    <h3 class="section-title">
+                        <span>⏰</span>
+                        Deadline Monitoring Tests
+                    </h3>
+                    <ul class="test-list" id="deadline-tests">
+                        <!-- Deadline tests will be loaded here -->
+                    </ul>
+                </div>
+
+                <div class="test-section">
+                    <h3 class="section-title">
+                        <span>📄</span>
+                        Documentation System Tests
+                    </h3>
+                    <ul class="test-list" id="documentation-tests">
+                        <!-- Documentation tests will be loaded here -->
+                    </ul>
+                </div>
+
+                <div class="test-section">
+                    <h3 class="section-title">
+                        <span>📊</span>
+                        Compliance Report Tests
+                    </h3>
+                    <ul class="test-list" id="report-tests">
+                        <!-- Report tests will be loaded here -->
+                    </ul>
+                </div>
+            </div>
+
+            <div class="test-results">
+                <div class="results-header">
+                    <h3 class="results-title">Test Results</h3>
+                    <div class="results-actions">
+                        <button class="action-btn btn-primary" onclick="runAllTests()">Run All Tests</button>
+                        <button class="action-btn btn-secondary" onclick="clearResults()">Clear Results</button>
+                    </div>
+                </div>
+                <div class="test-output" id="test-output">
+                    Test results will appear here...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // Test data structure
+        const testSuites = {
+            tracking: [
+                {
+                    id: 'TRK-001',
+                    name: 'Requirement Status Updates',
+                    description: 'Test requirement status change functionality',
+                    status: 'pending',
+                    category: 'tracking'
+                },
+                {
+                    id: 'TRK-002',
+                    name: 'Status History Tracking',
+                    description: 'Verify status change history is properly recorded',
+                    status: 'pending',
+                    category: 'tracking'
+                },
+                {
+                    id: 'TRK-003',
+                    name: 'Progress Calculation',
+                    description: 'Test progress percentage calculations',
+                    status: 'pending',
+                    category: 'tracking'
+                },
+                {
+                    id: 'TRK-004',
+                    name: 'Filter and Search',
+                    description: 'Test filtering and search functionality',
+                    status: 'pending',
+                    category: 'tracking'
+                },
+                {
+                    id: 'TRK-005',
+                    name: 'Data Validation',
+                    description: 'Test input validation and error handling',
+                    status: 'pending',
+                    category: 'tracking'
+                }
+            ],
+            deadline: [
+                {
+                    id: 'DLN-001',
+                    name: 'Deadline Calculation',
+                    description: 'Test deadline calculation and display',
+                    status: 'pending',
+                    category: 'deadline'
+                },
+                {
+                    id: 'DLN-002',
+                    name: 'Overdue Detection',
+                    description: 'Test overdue requirement detection',
+                    status: 'pending',
+                    category: 'deadline'
+                },
+                {
+                    id: 'DLN-003',
+                    name: 'Alert Generation',
+                    description: 'Test automated alert generation',
+                    status: 'pending',
+                    category: 'deadline'
+                },
+                {
+                    id: 'DLN-004',
+                    name: 'Calendar Integration',
+                    description: 'Test calendar view and deadline display',
+                    status: 'pending',
+                    category: 'deadline'
+                },
+                {
+                    id: 'DLN-005',
+                    name: 'Deadline Extension',
+                    description: 'Test deadline extension functionality',
+                    status: 'pending',
+                    category: 'deadline'
+                }
+            ],
+            documentation: [
+                {
+                    id: 'DOC-001',
+                    name: 'Document Upload',
+                    description: 'Test document upload functionality',
+                    status: 'pending',
+                    category: 'documentation'
+                },
+                {
+                    id: 'DOC-002',
+                    name: 'Version Control',
+                    description: 'Test document versioning system',
+                    status: 'pending',
+                    category: 'documentation'
+                },
+                {
+                    id: 'DOC-003',
+                    name: 'Document Search',
+                    description: 'Test document search and filtering',
+                    status: 'pending',
+                    category: 'documentation'
+                },
+                {
+                    id: 'DOC-004',
+                    name: 'Metadata Management',
+                    description: 'Test document metadata handling',
+                    status: 'pending',
+                    category: 'documentation'
+                },
+                {
+                    id: 'DOC-005',
+                    name: 'Compliance Matrix',
+                    description: 'Test compliance documentation matrix',
+                    status: 'pending',
+                    category: 'documentation'
+                }
+            ],
+            reports: [
+                {
+                    id: 'RPT-001',
+                    name: 'Report Generation',
+                    description: 'Test report generation functionality',
+                    status: 'pending',
+                    category: 'reports'
+                },
+                {
+                    id: 'RPT-002',
+                    name: 'Data Accuracy',
+                    description: 'Test report data accuracy and calculations',
+                    status: 'pending',
+                    category: 'reports'
+                },
+                {
+                    id: 'RPT-003',
+                    name: 'Export Formats',
+                    description: 'Test multiple export format generation',
+                    status: 'pending',
+                    category: 'reports'
+                },
+                {
+                    id: 'RPT-004',
+                    name: 'Compliance Summary',
+                    description: 'Test compliance summary calculations',
+                    status: 'pending',
+                    category: 'reports'
+                },
+                {
+                    id: 'RPT-005',
+                    name: 'Executive Dashboard',
+                    description: 'Test executive dashboard functionality',
+                    status: 'pending',
+                    category: 'reports'
+                }
+            ]
+        };
+
+        let testResults = [];
+        let isRunning = false;
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTests();
+            updateDashboard();
+        });
+
+        function loadTests() {
+            // Load tracking tests
+            const trackingList = document.getElementById('tracking-tests');
+            trackingList.innerHTML = '';
+            testSuites.tracking.forEach(test => {
+                const item = createTestItem(test);
+                trackingList.appendChild(item);
+            });
+
+            // Load deadline tests
+            const deadlineList = document.getElementById('deadline-tests');
+            deadlineList.innerHTML = '';
+            testSuites.deadline.forEach(test => {
+                const item = createTestItem(test);
+                deadlineList.appendChild(item);
+            });
+
+            // Load documentation tests
+            const documentationList = document.getElementById('documentation-tests');
+            documentationList.innerHTML = '';
+            testSuites.documentation.forEach(test => {
+                const item = createTestItem(test);
+                documentationList.appendChild(item);
+            });
+
+            // Load report tests
+            const reportList = document.getElementById('report-tests');
+            reportList.innerHTML = '';
+            testSuites.reports.forEach(test => {
+                const item = createTestItem(test);
+                reportList.appendChild(item);
+            });
+        }
+
+        function createTestItem(test) {
+            const item = document.createElement('li');
+            item.className = `test-item ${test.status}`;
+            item.innerHTML = `
+                <div class="test-status ${test.status}">
+                    ${getStatusIcon(test.status)}
+                </div>
+                <div class="test-info">
+                    <div class="test-name">${test.name}</div>
+                    <div class="test-description">${test.description}</div>
+                </div>
+                <div class="test-actions">
+                    <button class="test-btn btn-run" onclick="runTest('${test.id}')">Run</button>
+                    <button class="test-btn btn-view" onclick="viewTest('${test.id}')">View</button>
+                    <button class="test-btn btn-details" onclick="showDetails('${test.id}')">Details</button>
+                </div>
+            `;
+            return item;
+        }
+
+        function getStatusIcon(status) {
+            const icons = {
+                'passed': '✓',
+                'failed': '✗',
+                'running': '⏳',
+                'pending': '○'
+            };
+            return icons[status] || '○';
+        }
+
+        function runTest(testId) {
+            if (isRunning) {
+                showNotification('Tests are already running. Please wait.', 'info');
+                return;
+            }
+
+            // Find the test
+            let test = null;
+            Object.values(testSuites).forEach(suite => {
+                const found = suite.find(t => t.id === testId);
+                if (found) test = found;
+            });
+
+            if (!test) {
+                showNotification('Test not found: ' + testId, 'error');
+                return;
+            }
+
+            // Update test status to running
+            test.status = 'running';
+            updateTestItem(testId);
+            updateDashboard();
+
+            // Simulate test execution
+            const testDuration = Math.random() * 3000 + 1000; // 1-4 seconds
+            const success = Math.random() > 0.2; // 80% success rate
+
+            setTimeout(() => {
+                test.status = success ? 'passed' : 'failed';
+                updateTestItem(testId);
+                updateDashboard();
+
+                // Add to test results
+                const result = {
+                    id: testId,
+                    name: test.name,
+                    status: test.status,
+                    timestamp: new Date().toISOString(),
+                    duration: testDuration,
+                    output: success ? 
+                        `✓ Test ${testId} passed successfully\n  - ${test.description}\n  - Duration: ${Math.round(testDuration)}ms` :
+                        `✗ Test ${testId} failed\n  - ${test.description}\n  - Duration: ${Math.round(testDuration)}ms\n  - Error: Simulated test failure`
+                };
+
+                testResults.unshift(result);
+                updateTestOutput();
+
+                showNotification(
+                    success ? `Test ${testId} passed!` : `Test ${testId} failed!`,
+                    success ? 'success' : 'error'
+                );
+            }, testDuration);
+        }
+
+        function runAllTests() {
+            if (isRunning) {
+                showNotification('Tests are already running. Please wait.', 'info');
+                return;
+            }
+
+            isRunning = true;
+            showNotification('Starting all tests...', 'info');
+
+            // Get all tests
+            const allTests = [];
+            Object.values(testSuites).forEach(suite => {
+                allTests.push(...suite);
+            });
+
+            let completedTests = 0;
+            const totalTests = allTests.length;
+
+            // Run tests sequentially
+            function runNextTest(index) {
+                if (index >= allTests.length) {
+                    isRunning = false;
+                    showNotification(`All tests completed! ${completedTests}/${totalTests} passed.`, 'success');
+                    return;
+                }
+
+                const test = allTests[index];
+                runTest(test.id);
+
+                // Wait for test to complete, then run next
+                setTimeout(() => {
+                    completedTests++;
+                    runNextTest(index + 1);
+                }, 4000); // Wait 4 seconds between tests
+            }
+
+            runNextTest(0);
+        }
+
+        function updateTestItem(testId) {
+            // Find and update the test item in the DOM
+            const testItems = document.querySelectorAll('.test-item');
+            testItems.forEach(item => {
+                const runBtn = item.querySelector('.btn-run');
+                if (runBtn && runBtn.onclick.toString().includes(testId)) {
+                    // Find the test data
+                    let test = null;
+                    Object.values(testSuites).forEach(suite => {
+                        const found = suite.find(t => t.id === testId);
+                        if (found) test = found;
+                    });
+
+                    if (test) {
+                        item.className = `test-item ${test.status}`;
+                        const statusElement = item.querySelector('.test-status');
+                        statusElement.className = `test-status ${test.status}`;
+                        statusElement.textContent = getStatusIcon(test.status);
+                    }
+                }
+            });
+        }
+
+        function updateDashboard() {
+            let passed = 0, failed = 0, running = 0, total = 0;
+
+            Object.values(testSuites).forEach(suite => {
+                suite.forEach(test => {
+                    total++;
+                    if (test.status === 'passed') passed++;
+                    else if (test.status === 'failed') failed++;
+                    else if (test.status === 'running') running++;
+                });
+            });
+
+            document.getElementById('passed-tests').textContent = passed;
+            document.getElementById('failed-tests').textContent = failed;
+            document.getElementById('running-tests').textContent = running;
+            document.getElementById('total-tests').textContent = total;
+        }
+
+        function updateTestOutput() {
+            const output = document.getElementById('test-output');
+            const outputText = testResults.map(result => 
+                `[${new Date(result.timestamp).toLocaleTimeString()}] ${result.output}`
+            ).join('\n\n');
+            
+            output.textContent = outputText || 'No test results yet...';
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function viewTest(testId) {
+            showNotification('Viewing test details for: ' + testId, 'info');
+        }
+
+        function showDetails(testId) {
+            showNotification('Showing detailed information for: ' + testId, 'info');
+        }
+
+        function clearResults() {
+            testResults = [];
+            updateTestOutput();
+            showNotification('Test results cleared', 'info');
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add('show');
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Auto-run tests on page load (demo mode)
+        setTimeout(() => {
+            showNotification('Test suite loaded. Click "Run All Tests" to begin testing.', 'info');
+        }, 1000);
+    </script>
+</body>
+</html>

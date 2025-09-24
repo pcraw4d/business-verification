@@ -1,0 +1,235 @@
+# End-to-End Test Configuration
+# Configuration for merchant portfolio management E2E tests
+
+# Test Environment Settings
+environment:
+  # Test database configuration
+  database:
+    type: "mock"  # Use mock database for E2E tests
+    connection_timeout: "30s"
+    query_timeout: "10s"
+  
+  # Test server configuration
+  server:
+    host: "localhost"
+    port: 0  # Use random port for test server
+    timeout: "60s"
+    read_timeout: "30s"
+    write_timeout: "30s"
+  
+  # Test client configuration
+  client:
+    timeout: "30s"
+    max_retries: 3
+    retry_delay: "1s"
+
+# Test Data Configuration
+test_data:
+  # Merchant test data
+  merchants:
+    count: 50  # Number of test merchants to create
+    industries:
+      - "Technology"
+      - "Retail"
+      - "Manufacturing"
+      - "Services"
+      - "Healthcare"
+    
+    portfolio_types:
+      - "onboarded"
+      - "prospective"
+      - "pending"
+      - "deactivated"
+    
+    risk_levels:
+      - "low"
+      - "medium"
+      - "high"
+  
+  # Bulk operations test data
+  bulk_operations:
+    small_batch: 5
+    medium_batch: 20
+    large_batch: 100
+    max_batch_size: 1000
+  
+  # Comparison test data
+  comparisons:
+    max_comparisons: 2  # Limit to 2 merchants per comparison
+    report_formats:
+      - "pdf"
+      - "csv"
+      - "json"
+
+# Test Execution Settings
+execution:
+  # Test timeouts
+  timeouts:
+    individual_test: "5m"
+    test_suite: "30m"
+    setup: "2m"
+    teardown: "1m"
+  
+  # Parallel execution
+  parallel:
+    enabled: false  # E2E tests should run sequentially
+    max_workers: 1
+  
+  # Retry settings
+  retries:
+    max_attempts: 3
+    delay: "2s"
+    backoff_multiplier: 2.0
+
+# Coverage and Reporting
+reporting:
+  # Coverage settings
+  coverage:
+    enabled: true
+    threshold: 80  # Minimum coverage percentage
+    output_format: "html"
+    output_file: "test/e2e/results/coverage.html"
+  
+  # Test results
+  results:
+    output_dir: "test/e2e/results"
+    include_logs: true
+    include_screenshots: false  # Not applicable for API tests
+    format: "json"
+  
+  # Notifications
+  notifications:
+    enabled: false
+    webhook_url: ""
+    email: ""
+
+# Performance Testing
+performance:
+  # Load testing settings
+  load_testing:
+    enabled: false
+    concurrent_users: 20
+    duration: "5m"
+    ramp_up_time: "1m"
+  
+  # Performance thresholds
+  thresholds:
+    response_time_p95: "2s"
+    response_time_p99: "5s"
+    error_rate: 0.01  # 1%
+    throughput: 100   # requests per second
+
+# Security Testing
+security:
+  # Security test settings
+  enabled: true
+  tests:
+    - "authentication"
+    - "authorization"
+    - "input_validation"
+    - "sql_injection"
+    - "xss_protection"
+  
+  # Security thresholds
+  thresholds:
+    max_vulnerabilities: 0
+    max_high_severity: 0
+    max_medium_severity: 5
+
+# Mock Services Configuration
+mocks:
+  # External service mocks
+  external_services:
+    enabled: true
+    services:
+      - "classification_service"
+      - "compliance_service"
+      - "notification_service"
+      - "audit_service"
+  
+  # Mock data generation
+  data_generation:
+    enabled: true
+    realistic_data: true
+    data_volume: "medium"  # small, medium, large
+
+# Test Categories
+categories:
+  # Test categories and their settings
+  smoke_tests:
+    enabled: true
+    timeout: "2m"
+    tests:
+      - "health_check"
+      - "basic_merchant_crud"
+      - "authentication"
+  
+  integration_tests:
+    enabled: true
+    timeout: "10m"
+    tests:
+      - "merchant_workflow"
+      - "bulk_operations"
+      - "session_management"
+  
+  regression_tests:
+    enabled: true
+    timeout: "15m"
+    tests:
+      - "user_journey"
+      - "comparison_functionality"
+      - "compliance_monitoring"
+  
+  performance_tests:
+    enabled: false
+    timeout: "30m"
+    tests:
+      - "load_testing"
+      - "stress_testing"
+      - "endurance_testing"
+
+# Environment Variables
+environment_variables:
+  # Required environment variables for E2E tests
+  required:
+    - "E2E_TESTS=true"
+    - "TEST_MODE=true"
+    - "LOG_LEVEL=info"
+  
+  # Optional environment variables
+  optional:
+    - "TEST_DATABASE_URL"
+    - "TEST_REDIS_URL"
+    - "TEST_API_KEY"
+    - "TEST_WEBHOOK_URL"
+
+# Cleanup Settings
+cleanup:
+  # Test data cleanup
+  test_data:
+    enabled: true
+    cleanup_after_test: true
+    cleanup_on_failure: true
+  
+  # Resource cleanup
+  resources:
+    enabled: true
+    cleanup_containers: true
+    cleanup_networks: true
+    cleanup_volumes: false  # Keep volumes for debugging
+
+# Debugging and Troubleshooting
+debugging:
+  # Debug settings
+  enabled: false
+  verbose_logging: false
+  debug_ports:
+    - 2345  # Delve debugger
+    - 8080  # Application debug
+  
+  # Test isolation
+  isolation:
+    enabled: true
+    separate_database: true
+    separate_redis: true
+    separate_containers: true

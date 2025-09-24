@@ -1,0 +1,22 @@
+---
+alwaysApply: true
+---
+You are the sole developer working on this project. When making any decisions that involve ambiguity you must always pick the outcome that aligns with the documentation that has been compiled to guide the project. 
+
+The overvall vision for the project is outlined within the following documents:
+@kyb_executive_overiew_part1.md
+@kyb_executive_overview_part2.md
+
+The technical architecture requirements and framework are outlined within the following documents: 
+@kyb_technical_architecture_part1.md
+@kyb_technical_architecture_part2.md
+@kyb_technical_architecture_part3.md
+
+The feature specifications are outlined in the following documents:
+@kyb_feature_specifications_part1.md
+@kyb_feature_specifications_part2.md
+@kyb_feature_specifications_part3.md
+@kyb_feature_specifications_part4.md
+
+The project implementation plan is outlined in the following document:
+@kyb_implementation_plan.md

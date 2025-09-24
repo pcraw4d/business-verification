@@ -1,0 +1,94 @@
+{
+  "overall_status": "PASSED",
+  "total_tests": 5,
+  "passed_tests": 5,
+  "failed_tests": 0,
+  "success_rate": 1.0,
+  "timestamp": "2025-09-19 23:43:32",
+  "test_results": {
+    "dataset_generation": {
+      "status": "PASSED",
+      "message": "Generated dataset with 100 samples",
+      "details": {
+        "total_samples": 100,
+        "columns": [
+          "id",
+          "business_name",
+          "description",
+          "website_url",
+          "website_content",
+          "risk_category",
+          "risk_subcategory",
+          "risk_level",
+          "risk_severity",
+          "risk_score",
+          "is_risk",
+          "created_at"
+        ],
+        "risk_levels": {
+          "high": 40,
+          "low": 30,
+          "medium": 30
+        },
+        "risk_categories": {
+          "low_risk": 30,
+          "fraud": 15,
+          "sanctions": 13,
+          "illegal": 13,
+          "high_risk": 11,
+          "tbml": 9,
+          "prohibited": 9
+        }
+      }
+    },
+    "pattern_recognition": {
+      "status": "PASSED",
+      "message": "5/5 test cases passed",
+      "details": {
+        "passed": 5,
+        "total": 5,
+        "success_rate": 1.0
+      }
+    },
+    "anomaly_detection": {
+      "status": "PASSED",
+      "message": "5/5 test cases passed",
+      "details": {
+        "passed": 5,
+        "total": 5,
+        "success_rate": 1.0,
+        "model_fitted": true
+      }
+    },
+    "risk_scoring_logic": {
+      "status": "PASSED",
+      "message": "3/3 test cases passed",
+      "details": {
+        "passed": 3,
+        "total": 3,
+        "success_rate": 1.0
+      }
+    },
+    "file_structure": {
+      "status": "PASSED",
+      "message": "All files and imports working correctly",
+      "details": {
+        "missing_files": [],
+        "import_errors": [],
+        "missing_dirs": [],
+        "required_files": [
+          "risk_detection_models.py",
+          "risk_detection_dataset.py",
+          "app.py",
+          "test_risk_detection.py",
+          "requirements.txt"
+        ],
+        "required_dirs": [
+          "models",
+          "cache",
+          "data"
+        ]
+      }
+    }
+  }
+}

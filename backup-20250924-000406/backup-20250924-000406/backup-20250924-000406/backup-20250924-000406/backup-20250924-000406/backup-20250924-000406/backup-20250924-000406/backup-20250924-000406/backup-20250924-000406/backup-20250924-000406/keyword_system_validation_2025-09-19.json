@@ -1,0 +1,61 @@
+{
+  "validation_results": [
+    {
+      "test_name": "Database Connectivity",
+      "status": "PASS",
+      "message": "Database connection successful",
+      "details": "Connection time: 30.381238ms",
+      "timestamp": "2025-09-19T18:07:19.169062-04:00"
+    },
+    {
+      "test_name": "Schema Integrity",
+      "status": "PASS",
+      "message": "Schema integrity validated",
+      "details": "All required tables and columns exist",
+      "timestamp": "2025-09-19T18:07:19.834639-04:00"
+    },
+    {
+      "test_name": "Keyword Coverage",
+      "status": "PASS",
+      "message": "Keyword coverage adequate",
+      "details": "Total keywords: 752, Industries with keywords: 39/43 (90.7%)",
+      "timestamp": "2025-09-19T18:07:19.927268-04:00"
+    },
+    {
+      "test_name": "Keyword Weighting",
+      "status": "PASS",
+      "message": "Keyword weighting validated",
+      "details": "Keywords with zero weight: 0",
+      "timestamp": "2025-09-19T18:07:19.988616-04:00"
+    },
+    {
+      "test_name": "Industry Coverage",
+      "status": "PASS",
+      "message": "Industry coverage adequate",
+      "details": "Industries without keywords: 4",
+      "timestamp": "2025-09-19T18:07:20.01977-04:00"
+    },
+    {
+      "test_name": "Performance",
+      "status": "PASS",
+      "message": "Performance adequate",
+      "details": "Query time: 30.535458ms",
+      "timestamp": "2025-09-19T18:07:20.050312-04:00"
+    },
+    {
+      "test_name": "Data Consistency",
+      "status": "FAIL",
+      "message": "Failed to check for duplicates",
+      "details": "Error: pq: function count(integer, character varying) does not exist",
+      "timestamp": "2025-09-19T18:07:20.397885-04:00"
+    }
+  ],
+  "summary": {
+    "total_tests": 7,
+    "passed_tests": 6,
+    "failed_tests": 1,
+    "warning_tests": 0,
+    "pass_rate": 85.71428571428571
+  },
+  "timestamp": "2025-09-19T18:07:19.138672-04:00"
+}

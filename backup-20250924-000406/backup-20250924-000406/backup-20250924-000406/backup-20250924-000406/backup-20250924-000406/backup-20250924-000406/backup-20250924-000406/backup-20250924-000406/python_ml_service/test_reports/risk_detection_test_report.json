@@ -1,0 +1,90 @@
+{
+  "overall_status": "FAILED",
+  "total_tests": 9,
+  "passed_tests": 0,
+  "failed_tests": 9,
+  "success_rate": 0.0,
+  "timestamp": "2025-09-19 23:41:31",
+  "test_results": {
+    "model_initialization": {
+      "status": "FAILED",
+      "message": "Model initialization failed: name 're' is not defined",
+      "error": "name 're' is not defined"
+    },
+    "bert_risk_classification": {
+      "status": "FAILED",
+      "message": "0/5 test cases passed",
+      "details": {
+        "passed": 0,
+        "total": 5,
+        "success_rate": 0.0
+      }
+    },
+    "anomaly_detection": {
+      "status": "FAILED",
+      "message": "0/5 test cases passed",
+      "details": {
+        "passed": 0,
+        "total": 5,
+        "success_rate": 0.0,
+        "model_fitted": true
+      }
+    },
+    "pattern_recognition": {
+      "status": "FAILED",
+      "message": "0/5 test cases passed",
+      "details": {
+        "passed": 0,
+        "total": 5,
+        "success_rate": 0.0
+      }
+    },
+    "risk_scoring": {
+      "status": "FAILED",
+      "message": "0/5 test cases passed",
+      "details": {
+        "passed": 0,
+        "total": 5,
+        "success_rate": 0.0
+      }
+    },
+    "real_time_assessment": {
+      "status": "FAILED",
+      "message": "0/5 test cases passed",
+      "details": {
+        "passed": 0,
+        "total": 5,
+        "success_rate": 0.0,
+        "average_processing_time": 0.0,
+        "target_time": 0.1
+      }
+    },
+    "api_integration": {
+      "status": "FAILED",
+      "message": "API integration test failed: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /health (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x11276b250>: Failed to establish a new connection: [Errno 61] Connection refused'))",
+      "error": "HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /health (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x11276b250>: Failed to establish a new connection: [Errno 61] Connection refused'))"
+    },
+    "performance": {
+      "status": "FAILED",
+      "message": "0/50 requests processed within time limit",
+      "details": {
+        "passed": 0,
+        "total": 50,
+        "success_rate": 0.0,
+        "total_time": 20.214801788330078,
+        "average_time": 0.40429603576660156,
+        "requests_per_second": 2.473435086010331
+      }
+    },
+    "accuracy": {
+      "status": "FAILED",
+      "message": "Accuracy: 0.00% (0/200)",
+      "details": {
+        "correct_predictions": 0,
+        "total_predictions": 200,
+        "accuracy": 0.0,
+        "target_accuracy": 0.9
+      }
+    }
+  }
+}

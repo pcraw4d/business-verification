@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Generation Testing - KYB Platform</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .header h1 i {
+            color: #9b59b6;
+            font-size: 2.2rem;
+        }
+
+        .testing-dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .test-controls {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .test-results {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .report-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .section-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .generation-icon { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+        .export-icon { background: linear-gradient(135deg, #2ecc71, #27ae60); }
+        .accuracy-icon { background: linear-gradient(135deg, #3498db, #2980b9); }
+
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .test-item {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+        }
+
+        .test-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .test-passed { border-left-color: #2ecc71; }
+        .test-failed { border-left-color: #e74c3c; }
+        .test-pending { border-left-color: #f39c12; }
+
+        .test-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .test-name {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1.1rem;
+        }
+
+        .test-status {
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-passed { background: #2ecc71; color: white; }
+        .status-failed { background: #e74c3c; color: white; }
+        .status-pending { background: #f39c12; color: white; }
+
+        .test-description {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+
+        .test-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+            color: white;
+        }
+
+        .summary-stats {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .report-demo {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .report-preview {
+            border: 2px dashed #bdc3c7;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            margin: 15px 0;
+            background: #f8f9fa;
+        }
+
+        .report-preview h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .report-preview p {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .report-types {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .report-type {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .report-type:hover {
+            border-color: #3498db;
+            transform: translateY(-2px);
+        }
+
+        .report-type.active {
+            border-color: #3498db;
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+        }
+
+        .report-type-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .executive-icon { color: #2ecc71; }
+        .detailed-icon { color: #3498db; }
+        .audit-icon { color: #f39c12; }
+        .gap-icon { color: #e74c3c; }
+
+        .report-type-name {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .report-type-desc {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+        }
+
+        .export-options {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+
+        .export-btn {
+            padding: 8px 16px;
+            border: 2px solid #3498db;
+            border-radius: 20px;
+            background: white;
+            color: #3498db;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .export-btn:hover {
+            background: #3498db;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .fade-in {
+            animation: fadeIn 0.6s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .testing-dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            .test-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .report-types {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <div class="header fade-in">
+            <h1>
+                <i class="fas fa-file-alt"></i>
+                Report Generation Testing
+            </h1>
+            <p>Comprehensive testing suite for compliance report generation and export functionality. Validate report creation, data accuracy, export formats, and report management capabilities.</p>
+        </div>
+
+        <!-- Testing Dashboard -->
+        <div class="testing-dashboard">
+            <!-- Test Controls -->
+            <div class="test-controls fade-in">
+                <h2 style="color: #2c3e50; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-cogs"></i>
+                    Test Controls
+                </h2>
+
+                <div style="margin-bottom: 20px;">
+                    <button class="btn btn-primary" id="runAllReportTests">
+                        <i class="fas fa-play"></i>
+                        Run All Tests
+                    </button>
+                    <button class="btn btn-success" id="runGenerationTests">
+                        <i class="fas fa-file-plus"></i>
+                        Generation
+                    </button>
+                    <button class="btn btn-primary" id="runExportTests">
+                        <i class="fas fa-download"></i>
+                        Export
+                    </button>
+                    <button class="btn btn-danger" id="runAccuracyTests">
+                        <i class="fas fa-check-circle"></i>
+                        Accuracy
+                    </button>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <button class="btn btn-secondary" id="exportReportResults">
+                        <i class="fas fa-download"></i>
+                        Export Results
+                    </button>
+                    <button class="btn btn-secondary" id="clearReportResults">
+                        <i class="fas fa-trash"></i>
+                        Clear Results
+                    </button>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <h3 style="color: #2c3e50; margin-bottom: 10px;">Report Demo</h3>
+                    <div class="report-demo">
+                        <div class="report-types">
+                            <div class="report-type active" data-type="executive">
+                                <div class="report-type-icon executive-icon">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <div class="report-type-name">Executive Summary</div>
+                                <div class="report-type-desc">High-level overview</div>
+                            </div>
+                            <div class="report-type" data-type="detailed">
+                                <div class="report-type-icon detailed-icon">
+                                    <i class="fas fa-list-alt"></i>
+                                </div>
+                                <div class="report-type-name">Detailed Analysis</div>
+                                <div class="report-type-desc">Comprehensive report</div>
+                            </div>
+                            <div class="report-type" data-type="audit">
+                                <div class="report-type-icon audit-icon">
+                                    <i class="fas fa-clipboard-check"></i>
+                                </div>
+                                <div class="report-type-name">Audit Report</div>
+                                <div class="report-type-desc">Audit findings</div>
+                            </div>
+                            <div class="report-type" data-type="gap">
+                                <div class="report-type-icon gap-icon">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <div class="report-type-name">Gap Analysis</div>
+                                <div class="report-type-desc">Compliance gaps</div>
+                            </div>
+                        </div>
+
+                        <div class="report-preview" id="reportPreview">
+                            <h3>Executive Summary Report</h3>
+                            <p>High-level compliance overview with key metrics and recommendations</p>
+                        </div>
+
+                        <div class="export-options">
+                            <button class="export-btn" onclick="testExport('pdf')">
+                                <i class="fas fa-file-pdf"></i>
+                                PDF
+                            </button>
+                            <button class="export-btn" onclick="testExport('excel')">
+                                <i class="fas fa-file-excel"></i>
+                                Excel
+                            </button>
+                            <button class="export-btn" onclick="testExport('csv')">
+                                <i class="fas fa-file-csv"></i>
+                                CSV
+                            </button>
+                            <button class="export-btn" onclick="testExport('json')">
+                                <i class="fas fa-file-code"></i>
+                                JSON
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Results Summary -->
+            <div class="test-results fade-in">
+                <h2 style="color: #2c3e50; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-chart-bar"></i>
+                    Test Results Summary
+                </h2>
+
+                <div class="summary-stats">
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-number" id="totalReportTests">0</div>
+                            <div class="stat-label">Total Tests</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="passedReportTests">0</div>
+                            <div class="stat-label">Passed</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="failedReportTests">0</div>
+                            <div class="stat-label">Failed</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="pendingReportTests">0</div>
+                            <div class="stat-label">Pending</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report Generation Testing -->
+        <div class="report-section fade-in">
+            <div class="section-header">
+                <div class="section-icon generation-icon">
+                    <i class="fas fa-file-plus"></i>
+                </div>
+                <div class="section-title">Report Generation Testing</div>
+            </div>
+
+            <div class="test-grid">
+                <div class="test-item test-pending" data-test="executive-report-generation">
+                    <div class="test-header">
+                        <div class="test-name">Executive Summary Generation</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Test that executive summary reports are generated correctly with high-level compliance metrics and recommendations.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runReportTest('executive-report-generation')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewReportDetails('executive-report-generation')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <div class="test-item test-pending" data-test="detailed-report-generation">
+                    <div class="test-header">
+                        <div class="test-name">Detailed Analysis Generation</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Validate that detailed analysis reports include comprehensive compliance data, findings, and detailed recommendations.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runReportTest('detailed-report-generation')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewReportDetails('detailed-report-generation')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <div class="test-item test-pending" data-test="audit-report-generation">
+                    <div class="test-header">
+                        <div class="test-name">Audit Report Generation</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Test that audit reports are generated with proper audit findings, evidence, and compliance assessments.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runReportTest('audit-report-generation')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewReportDetails('audit-report-generation')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <div class="test-item test-pending" data-test="gap-analysis-generation">
+                    <div class="test-header">
+                        <div class="test-name">Gap Analysis Generation</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Validate that gap analysis reports identify compliance gaps, severity levels, and remediation recommendations.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runReportTest('gap-analysis-generation')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewReportDetails('gap-analysis-generation')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <div class="test-item test-pending" data-test="report-formatting">
+                    <div class="test-header">
+                        <div class="test-name">Report Formatting</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Test that reports are properly formatted with consistent styling, headers, footers, and page layouts.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runReportTest('report-formatting')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewReportDetails('report-formatting')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <div class="test-item test-pending" data-test="report-performance">
+                    <div class="test-header">
+                        <div class="test-name">Report Generation Performance</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Validate that reports are generated within acceptable time limits and don't impact system performance.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runReportTest('report-performance')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewReportDetails('report-performance')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Functionality Testing -->
+        <div class="report-section fade-in">
+            <div class="section-header">
+                <div class="section-icon export-icon">
+                    <i class="fas fa-download"></i>
+                </div>
+                <div class="section-title">Export Functionality Testing</div>
+            </div>
+
+            <div class="test-grid">
+                <div class="test-item test-pending" data-test="pdf-export">
+                    <div class="test-header">
+                        <div class="test-name">PDF Export</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Test that reports can be exported to PDF format with proper formatting, charts, and professional appearance.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runReportTest('pdf-export')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewReportDetails('pdf-export')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <div class="test-item test-pending" data-test="excel-export">
+                    <div class="test-header">
+                        <div class="test-name">Excel Export</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Validate that reports can be exported to Excel format with proper data organization and formatting.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runReportTest('excel-export')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewReportDetails('excel-export')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <div class="test-item test-pending" data-test="csv-export">
+                    <div class="test-header">
+                        <div class="test-name">CSV Export</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Test that reports can be exported to CSV format with proper data structure and encoding.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runReportTest('csv-export')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewReportDetails('csv-export')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <div class="test-item test-pending" data-test="json-export">
+                    <div class="test-header">
+                        <div class="test-name">JSON Export</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Validate that reports can be exported to JSON format with proper data structure and validation.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runReportTest('json-export')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewReportDetails('json-export')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <div class="test-item test-pending" data-test="export-file-naming">
+                    <div class="test-header">
+                        <div class="test-name">Export File Naming</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Test that exported files have proper naming conventions with timestamps and report type identifiers.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runReportTest('export-file-naming')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewReportDetails('export-file-naming')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <div class="test-item test-pending" data-test="export-error-handling">
+                    <div class="test-header">
+                        <div class="test-name">Export Error Handling</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Validate that export errors are handled gracefully with appropriate error messages and fallback options.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runReportTest('export-error-handling')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewReportDetails('export-error-handling')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report Data Accuracy Testing -->
+        <div class="report-section fade-in">
+            <div class="section-header">
+                <div class="section-icon accuracy-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="section-title">Report Data Accuracy Testing</div>
+            </div>
+
+            <div class="test-grid">
+                <div class="test-item test-pending" data-test="data-consistency">
+                    <div class="test-header">
+                        <div class="test-name">Data Consistency</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Test that report data is consistent with dashboard data and reflects current compliance status accurately.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runReportTest('data-consistency')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewReportDetails('data-consistency')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <div class="test-item test-pending" data-test="calculation-accuracy">
+                    <div class="test-header">
+                        <div class="test-name">Calculation Accuracy</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Validate that all calculations in reports (percentages, scores, trends) are mathematically accurate.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runReportTest('calculation-accuracy')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewReportDetails('calculation-accuracy')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <div class="test-item test-pending" data-test="date-time-accuracy">
+                    <div class="test-header">
+                        <div class="test-name">Date/Time Accuracy</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Test that dates and timestamps in reports are accurate and properly formatted across time zones.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runReportTest('date-time-accuracy')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewReportDetails('date-time-accuracy')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <div class="test-item test-pending" data-test="chart-data-accuracy">
+                    <div class="test-header">
+                        <div class="test-name">Chart Data Accuracy</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Validate that charts and graphs in reports display accurate data with proper scaling and labels.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runReportTest('chart-data-accuracy')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewReportDetails('chart-data-accuracy')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <div class="test-item test-pending" data-test="summary-accuracy">
+                    <div class="test-header">
+                        <div class="test-name">Summary Accuracy</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Test that executive summaries accurately reflect the detailed findings and recommendations in reports.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runReportTest('summary-accuracy')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewReportDetails('summary-accuracy')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <div class="test-item test-pending" data-test="recommendation-accuracy">
+                    <div class="test-header">
+                        <div class="test-name">Recommendation Accuracy</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Validate that recommendations in reports are relevant, actionable, and based on accurate compliance assessments.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runReportTest('recommendation-accuracy')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewReportDetails('recommendation-accuracy')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Report test data and results
+        let reportTestResults = {
+            total: 0,
+            passed: 0,
+            failed: 0,
+            pending: 0
+        };
+
+        // Report test execution functions
+        function runReportTest(testId) {
+            const testItem = document.querySelector(`[data-test="${testId}"]`);
+            const statusElement = testItem.querySelector('.test-status');
+            const button = testItem.querySelector('.btn-primary');
+            
+            // Update UI to show test is running
+            statusElement.textContent = 'Running';
+            statusElement.className = 'test-status status-pending';
+            button.innerHTML = '<span class="loading"></span> Testing...';
+            button.disabled = true;
+            
+            // Simulate test execution
+            setTimeout(() => {
+                // Simulate test result (random pass/fail for demo)
+                const passed = Math.random() > 0.08; // 92% pass rate
+                
+                if (passed) {
+                    testItem.className = 'test-item test-passed';
+                    statusElement.textContent = 'Passed';
+                    statusElement.className = 'test-status status-passed';
+                    reportTestResults.passed++;
+                } else {
+                    testItem.className = 'test-item test-failed';
+                    statusElement.textContent = 'Failed';
+                    statusElement.className = 'test-status status-failed';
+                    reportTestResults.failed++;
+                }
+                
+                reportTestResults.total++;
+                reportTestResults.pending--;
+                
+                // Reset button
+                button.innerHTML = '<i class="fas fa-play"></i> Test';
+                button.disabled = false;
+                
+                // Update summary
+                updateReportTestSummary();
+            }, 2000 + Math.random() * 3000); // 2-5 second test duration
+        }
+
+        function runAllReportTests() {
+            const allTestButtons = document.querySelectorAll('.test-item .btn-primary');
+            allTestButtons.forEach((button, index) => {
+                setTimeout(() => {
+                    button.click();
+                }, index * 1000); // Stagger test execution
+            });
+        }
+
+        function runGenerationTests() {
+            const generationButtons = document.querySelectorAll('[data-test*="generation"], [data-test*="formatting"], [data-test*="performance"] .btn-primary');
+            generationButtons.forEach((button, index) => {
+                setTimeout(() => {
+                    button.click();
+                }, index * 800);
+            });
+        }
+
+        function runExportTests() {
+            const exportButtons = document.querySelectorAll('[data-test*="export"] .btn-primary');
+            exportButtons.forEach((button, index) => {
+                setTimeout(() => {
+                    button.click();
+                }, index * 800);
+            });
+        }
+
+        function runAccuracyTests() {
+            const accuracyButtons = document.querySelectorAll('[data-test*="accuracy"], [data-test*="consistency"], [data-test*="calculation"] .btn-primary');
+            accuracyButtons.forEach((button, index) => {
+                setTimeout(() => {
+                    button.click();
+                }, index * 800);
+            });
+        }
+
+        function updateReportTestSummary() {
+            document.getElementById('totalReportTests').textContent = reportTestResults.total;
+            document.getElementById('passedReportTests').textContent = reportTestResults.passed;
+            document.getElementById('failedReportTests').textContent = reportTestResults.failed;
+            document.getElementById('pendingReportTests').textContent = reportTestResults.pending;
+        }
+
+        function viewReportDetails(testId) {
+            alert(`Report Test Details for: ${testId}\n\nThis would show detailed test results, report configurations, and validation data.`);
+        }
+
+        function testExport(format) {
+            alert(`Testing ${format.toUpperCase()} export functionality...\n\nThis would simulate the export process and validate the generated file.`);
+        }
+
+        function exportReportResults() {
+            const results = {
+                timestamp: new Date().toISOString(),
+                summary: reportTestResults,
+                tests: Array.from(document.querySelectorAll('.test-item')).map(item => ({
+                    name: item.querySelector('.test-name').textContent,
+                    status: item.querySelector('.test-status').textContent,
+                    description: item.querySelector('.test-description').textContent
+                }))
+            };
+            
+            const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'report-generation-test-results.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function clearReportResults() {
+            if (confirm('Are you sure you want to clear all report test results?')) {
+                reportTestResults = { total: 0, passed: 0, failed: 0, pending: 0 };
+                updateReportTestSummary();
+                
+                document.querySelectorAll('.test-item').forEach(item => {
+                    item.className = 'test-item test-pending';
+                    const statusElement = item.querySelector('.test-status');
+                    statusElement.textContent = 'Pending';
+                    statusElement.className = 'test-status status-pending';
+                });
+            }
+        }
+
+        // Initialize report testing system
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize test counts
+            const allTests = document.querySelectorAll('.test-item');
+            reportTestResults.pending = allTests.length;
+            updateReportTestSummary();
+
+            // Button event listeners
+            document.getElementById('runAllReportTests').addEventListener('click', runAllReportTests);
+            document.getElementById('runGenerationTests').addEventListener('click', runGenerationTests);
+            document.getElementById('runExportTests').addEventListener('click', runExportTests);
+            document.getElementById('runAccuracyTests').addEventListener('click', runAccuracyTests);
+            document.getElementById('exportReportResults').addEventListener('click', exportReportResults);
+            document.getElementById('clearReportResults').addEventListener('click', clearReportResults);
+
+            // Report type switching
+            document.querySelectorAll('.report-type').forEach(type => {
+                type.addEventListener('click', function() {
+                    // Remove active class from all types
+                    document.querySelectorAll('.report-type').forEach(t => t.classList.remove('active'));
+                    // Add active class to clicked type
+                    this.classList.add('active');
+
+                    const reportType = this.getAttribute('data-type');
+                    const preview = document.getElementById('reportPreview');
+                    
+                    const reportData = {
+                        executive: {
+                            title: 'Executive Summary Report',
+                            description: 'High-level compliance overview with key metrics and recommendations'
+                        },
+                        detailed: {
+                            title: 'Detailed Analysis Report',
+                            description: 'Comprehensive compliance analysis with detailed findings and recommendations'
+                        },
+                        audit: {
+                            title: 'Audit Report',
+                            description: 'Detailed audit findings with evidence and compliance assessments'
+                        },
+                        gap: {
+                            title: 'Gap Analysis Report',
+                            description: 'Compliance gap identification with severity levels and remediation plans'
+                        }
+                    };
+
+                    preview.innerHTML = `
+                        <h3>${reportData[reportType].title}</h3>
+                        <p>${reportData[reportType].description}</p>
+                    `;
+                });
+            });
+
+            // Add hover effects
+            document.querySelectorAll('.test-item').forEach(item => {
+                item.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-3px)';
+                });
+                item.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
+            });
+
+            // Export button interactions
+            document.querySelectorAll('.export-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    this.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        this.style.transform = 'scale(1)';
+                    }, 150);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

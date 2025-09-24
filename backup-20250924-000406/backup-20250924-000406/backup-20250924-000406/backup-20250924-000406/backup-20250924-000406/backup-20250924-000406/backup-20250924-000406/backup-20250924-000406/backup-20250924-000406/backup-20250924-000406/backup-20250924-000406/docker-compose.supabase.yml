@@ -1,0 +1,87 @@
+version: "3.8"
+
+services:
+  kyb-platform-supabase:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    ports:
+      - "8081:8080" # Different port to avoid conflicts with local
+    environment:
+      - ENV=development
+      - PROVIDER_DATABASE=supabase
+      - PROVIDER_AUTH=supabase
+      - PROVIDER_CACHE=supabase
+      - PROVIDER_STORAGE=supabase
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_API_KEY=${SUPABASE_API_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_SSL_MODE=${DB_SSL_MODE}
+      - JWT_SECRET=${JWT_SECRET}
+      - LOG_LEVEL=debug
+      - METRICS_ENABLED=true
+      - TRACING_ENABLED=true
+    volumes:
+      - ./configs:/app/configs
+      - ./Codes:/app/Codes
+      - ./.env:/app/.env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Monitoring stack for Supabase environment
+  prometheus-supabase:
+    image: prom/prometheus:latest
+    ports:
+      - "9091:9090" # Different port to avoid conflicts
+    volumes:
+      - ./deployments/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./deployments/prometheus/alerts.yml:/etc/prometheus/alerts.yml
+      - prometheus_supabase_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--storage.tsdb.retention.time=200h"
+      - "--web.enable-lifecycle"
+    restart: unless-stopped
+
+  grafana-supabase:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000" # Different port to avoid conflicts
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_supabase_data:/var/lib/grafana
+      - ./deployments/grafana/dashboards:/etc/grafana/provisioning/dashboards
+    restart: unless-stopped
+    depends_on:
+      - prometheus-supabase
+
+  alertmanager-supabase:
+    image: prom/alertmanager:latest
+    ports:
+      - "9094:9093" # Different port to avoid conflicts
+    volumes:
+      - ./deployments/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+    restart: unless-stopped
+
+volumes:
+  prometheus_supabase_data:
+  grafana_supabase_data:

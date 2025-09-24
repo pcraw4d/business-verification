@@ -1,149 +1,88 @@
-# KYB Platform - Enhanced Business Intelligence System
+# KYB Platform
 
-## 🚀 **Current Status: MVP Ready**
+A comprehensive Know Your Business (KYB) platform providing enhanced business classification, risk assessment, and compliance verification.
 
-The KYB Platform is currently running as an **MVP (Minimum Viable Product)** with core business intelligence classification functionality. The system provides:
+## Architecture
 
-- **Real-time business classification** using weighted analysis from multiple data sources
-- **Website scraping and content analysis** for enhanced accuracy
-- **Comprehensive industry code mapping** (NAICS, MCC, SIC)
-- **Confidence scoring** with realistic confidence levels
-- **Beta testing UI** accessible via Railway deployment
+This project follows a microservices architecture with clear separation between frontend and backend services:
 
-## 🎯 **MVP Features**
-
-### **Core Classification System**
-- **Multi-source analysis**: Business name, website content, and description validation
-- **Weighted voting system**: Website analysis prioritized over business names
-- **Industry detection**: 10+ major industries with keyword-based classification
-- **Confidence scoring**: Realistic confidence levels (60-95%) based on data source quality
-
-### **Enhanced Business Intelligence**
-- **Company size extraction**: Employee count and size category detection
-- **Business model identification**: B2B, B2C, SaaS, and other model types
-- **Technology stack analysis**: Platform and technology detection
-- **Financial health assessment**: Basic financial indicators
-- **Compliance detection**: Industry-specific compliance requirements
-- **Market presence analysis**: Geographic and market positioning
-
-### **User Interface**
-- **Beta testing UI**: Comprehensive web interface for testing all features
-- **Real-time results**: Immediate classification results with detailed breakdowns
-- **Industry code grouping**: Top 3 results for each code type (NAICS, MCC, SIC)
-- **Processing information**: Debug information and analysis method details
-
-## 🔧 **Technical Architecture**
-
-### **Current Implementation**
-- **Stateless architecture**: No database dependency for MVP
-- **In-memory processing**: All classification logic runs in memory
-- **Go 1.24+**: Built with latest Go features and standard library
-- **HTTP/2 support**: Modern web standards with ServeMux routing
-- **Docker deployment**: Containerized for Railway cloud deployment
-
-### **Performance Characteristics**
-- **Response time**: 1.3-1.4 seconds average
-- **Throughput**: Handles concurrent requests efficiently
-- **Memory usage**: Optimized for cloud deployment
-- **Scalability**: Ready for horizontal scaling
-
-## 🌐 **Deployment**
-
-### **Production Environment**
-- **Platform**: Railway (cloud deployment)
-- **URL**: https://shimmering-comfort-production.up.railway.app
-- **Status**: Live and fully functional
-- **Features**: All 14 enhanced features active
-
-### **Local Development**
-```bash
-# Build the application
-go build -o kyb-platform ./cmd/api/main-enhanced.go
-
-# Run locally
-./kyb-platform
-
-# Access UI at http://localhost:8080
+```
+kyb-platform/
+├── services/
+│   ├── api/          # Backend API service
+│   └── frontend/     # Frontend web service
+├── shared/           # Shared utilities and types
+├── docs/            # Documentation
+└── scripts/         # Build and deployment scripts
 ```
 
-## 📋 **Post-MVP Roadmap**
+## Services
 
-### **Supabase Integration (Planned)**
-The system is designed with Supabase integration in mind but currently runs without database dependencies for MVP stability. See [POST_MVP_SUPABASE_INTEGRATION_PLAN.md](./POST_MVP_SUPABASE_INTEGRATION_PLAN.md) for the complete reactivation plan.
+### API Service (`services/api/`)
+- **Purpose**: Backend API providing business classification and risk assessment
+- **Technology**: Go with enhanced classification algorithms
+- **Database**: Supabase integration
+- **Deployment**: Railway (shimmering-comfort service)
 
-**Key post-MVP features**:
-- **User authentication and management**
-- **Data persistence and historical analysis**
-- **Real-time collaboration features**
-- **Machine learning and accuracy improvement**
-- **Advanced analytics and reporting**
+### Frontend Service (`services/frontend/`)
+- **Purpose**: Web interface for business classification
+- **Technology**: HTML/CSS/JS with Go static file server
+- **Deployment**: Railway (frontend-UI service)
 
-### **Implementation Timeline**
-- **Phase 1**: Core database integration (Weeks 1-2)
-- **Phase 2**: Authentication & security (Weeks 3-4)
-- **Phase 3**: Advanced features (Weeks 5-6)
-- **Phase 4**: Machine learning integration (Weeks 7-8)
+## Quick Start
 
-## 🧪 **Testing the System**
+### Prerequisites
+- Go 1.25+
+- Railway CLI
+- Docker (for local development)
 
-### **API Endpoints**
+### Local Development
 ```bash
-# Health check
-curl https://shimmering-comfort-production.up.railway.app/health
+# Start both services locally
+make dev-api      # API on :8080
+make dev-frontend # Frontend on :3000
 
-# Business classification
-curl -X POST https://shimmering-comfort-production.up.railway.app/v1/classify \
-  -H "Content-Type: application/json" \
-  -d '{"business_name":"The Greene Grape","website_url":"","description":"Wine shop"}'
-
-# Batch processing
-curl -X POST https://shimmering-comfort-production.up.railway.app/v1/classify/batch \
-  -H "Content-Type: application/json" \
-  -d '{"businesses":[{"name":"Test Business","description":"Test"}]}'
+# Or use Docker Compose
+docker-compose up
 ```
 
-### **Test Cases**
-- **"The Greene Grape"** (No website): Should classify as "Retail" with 65% confidence
-- **"Test Business"** (With website): Should prioritize website analysis with 85-95% confidence
-- **"ABC Manufacturing"**: Should classify as "Manufacturing" with appropriate confidence
+### Testing
+```bash
+make test-api      # Test API service
+make test-frontend # Test frontend service
+```
 
-## 📚 **Documentation**
+### Deployment
+```bash
+make deploy-api      # Deploy API to Railway
+make deploy-frontend # Deploy frontend to Railway
+```
 
-### **Core Documentation**
-- [Enhanced Business Intelligence Tasks](./tasks/enhanced-business-intelligence-implementation-tasks.md)
-- [Technical Architecture](./docs/technical-architecture.md)
-- [Feature Specifications](./docs/feature-specifications.md)
+## Production URLs
+- **API**: https://shimmering-comfort-production.up.railway.app
+- **Frontend**: https://frontend-ui-production-e727.up.railway.app
 
-### **Implementation Summaries**
-- [Beta Testing Launch](./task-completion-summaries/beta-testing-launch-completion.md)
-- [Cloud Deployment](./task-completion-summaries/cloud-beta-testing-deployment-completion.md)
-- [Weighted Classification System](./WEIGHTED_CLASSIFICATION_SYSTEM_IMPROVEMENTS.md)
+## Development Workflow
 
-### **Post-MVP Planning**
-- [Supabase Integration Plan](./POST_MVP_SUPABASE_INTEGRATION_PLAN.md)
+### Making Changes
+1. **API Changes**: Edit files in `services/api/` - only API service will redeploy
+2. **Frontend Changes**: Edit files in `services/frontend/` - only frontend service will redeploy
+3. **Shared Changes**: Edit files in `shared/` - both services may redeploy
 
-## 🤝 **Contributing**
+### CI/CD
+- **API Service**: Triggered by changes to `services/api/` or `shared/`
+- **Frontend Service**: Triggered by changes to `services/frontend/`
+- **Independent Deployments**: Each service deploys independently
 
-### **Current Development Status**
-- **MVP Phase**: Complete and deployed
-- **Next Phase**: Post-MVP Supabase integration
-- **Development Approach**: Incremental feature addition
+## Contributing
 
-### **Getting Started**
-1. **Fork the repository**
-2. **Create a feature branch**
-3. **Implement changes following Go best practices**
-4. **Test thoroughly with existing test cases**
-5. **Submit a pull request**
+1. Create feature branch from `main`
+2. Make changes in appropriate service directory
+3. Test locally with `make test-<service>`
+4. Submit pull request
+5. CI/CD will automatically test and deploy
 
-## 📄 **License**
-
-This project is proprietary and confidential. All rights reserved.
-
----
-
-**Last Updated**: August 24, 2025  
-**Version**: 3.0.0 - MVP Release  
-**Status**: Production Ready
-# Force rebuild Sat Sep 13 16:04:40 EDT 2025
-# Frontend deployment trigger
+## Documentation
+- [API Service](services/api/README.md)
+- [Frontend Service](services/frontend/README.md)
+- [Development Guidelines](docs/development-guidelines.md)

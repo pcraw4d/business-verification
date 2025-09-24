@@ -1,0 +1,110 @@
+[
+  {
+    "httpRequest": {
+      "method": "GET",
+      "path": "/health"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "body": {
+        "status": "healthy",
+        "timestamp": "2024-01-01T00:00:00Z",
+        "version": "1.0.0"
+      },
+      "headers": {
+        "Content-Type": ["application/json"]
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/v1/classify"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "body": {
+        "success": true,
+        "classifications": [
+          {
+            "industry_code": "541511",
+            "industry_name": "Custom Computer Programming Services",
+            "confidence_score": 0.92,
+            "classification_method": "external_api",
+            "keywords": ["software", "development", "programming"],
+            "description": "Software development and programming services",
+            "evidence": "External API classification result"
+          }
+        ],
+        "overall_confidence": 0.92,
+        "processing_time": "150ms",
+        "metadata": {
+          "source": "external_api",
+          "version": "1.0.0",
+          "test_mode": true
+        }
+      },
+      "headers": {
+        "Content-Type": ["application/json"]
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "GET",
+      "path": "/api/v1/industries"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "body": {
+        "industries": [
+          {
+            "code": "541511",
+            "name": "Custom Computer Programming Services",
+            "description": "Software development and programming services"
+          },
+          {
+            "code": "541512",
+            "name": "Computer Systems Design Services",
+            "description": "Computer systems design and consulting services"
+          },
+          {
+            "code": "541611",
+            "name": "Management Consulting Services",
+            "description": "Business consulting and advisory services"
+          }
+        ]
+      },
+      "headers": {
+        "Content-Type": ["application/json"]
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/v1/validate"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "body": {
+        "valid": true,
+        "validation_results": [
+          {
+            "field": "business_name",
+            "valid": true,
+            "message": "Business name is valid"
+          },
+          {
+            "field": "industry",
+            "valid": true,
+            "message": "Industry classification is valid"
+          }
+        ]
+      },
+      "headers": {
+        "Content-Type": ["application/json"]
+      }
+    }
+  }
+]

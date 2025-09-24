@@ -1,0 +1,185 @@
+{
+  "survey_id": "onboarding_survey_v1",
+  "survey_name": "KYB Platform Onboarding Experience Survey",
+  "survey_type": "onboarding",
+  "target_audience": "beta_users",
+  "timing": "after_first_week",
+  "estimated_completion_time": "5-7 minutes",
+  "questions": [
+    {
+      "question_id": "onboarding_001",
+      "question_type": "rating",
+      "question_text": "How easy was the onboarding process?",
+      "description": "Rate your overall experience with the platform setup and initial training",
+      "required": true,
+      "options": {
+        "min": 1,
+        "max": 10,
+        "labels": {
+          "1": "Very Difficult",
+          "5": "Neutral",
+          "10": "Very Easy"
+        }
+      },
+      "category": "usability"
+    },
+    {
+      "question_id": "onboarding_002",
+      "question_type": "boolean",
+      "question_text": "Were the training materials helpful?",
+      "description": "Did the provided documentation, videos, and guides help you understand the platform?",
+      "required": true,
+      "options": {
+        "true_label": "Yes, very helpful",
+        "false_label": "No, not helpful"
+      },
+      "category": "training"
+    },
+    {
+      "question_id": "onboarding_003",
+      "question_type": "rating",
+      "question_text": "How confident do you feel using the platform?",
+      "description": "Rate your confidence level in using the platform's core features",
+      "required": true,
+      "options": {
+        "min": 1,
+        "max": 10,
+        "labels": {
+          "1": "Not Confident",
+          "5": "Somewhat Confident",
+          "10": "Very Confident"
+        }
+      },
+      "category": "confidence"
+    },
+    {
+      "question_id": "onboarding_004",
+      "question_type": "multiple_choice",
+      "question_text": "Which onboarding materials were most helpful?",
+      "description": "Select all that apply",
+      "required": false,
+      "options": {
+        "choices": [
+          "Video tutorials",
+          "Written documentation",
+          "Interactive walkthrough",
+          "Sample data and examples",
+          "Live training session",
+          "FAQ section",
+          "Support team assistance",
+          "None of the above"
+        ],
+        "allow_multiple": true
+      },
+      "category": "training"
+    },
+    {
+      "question_id": "onboarding_005",
+      "question_type": "text",
+      "question_text": "What challenges did you encounter during onboarding?",
+      "description": "Please describe any difficulties or issues you faced",
+      "required": false,
+      "options": {
+        "max_length": 500,
+        "placeholder": "Describe any challenges you encountered..."
+      },
+      "category": "challenges"
+    },
+    {
+      "question_id": "onboarding_006",
+      "question_type": "text",
+      "question_text": "What would improve the onboarding experience?",
+      "description": "Please share your suggestions for making the onboarding process better",
+      "required": false,
+      "options": {
+        "max_length": 500,
+        "placeholder": "Share your suggestions for improvement..."
+      },
+      "category": "improvements"
+    },
+    {
+      "question_id": "onboarding_007",
+      "question_type": "rating",
+      "question_text": "How satisfied are you with the support provided during onboarding?",
+      "description": "Rate your satisfaction with the support team and resources",
+      "required": true,
+      "options": {
+        "min": 1,
+        "max": 10,
+        "labels": {
+          "1": "Very Dissatisfied",
+          "5": "Neutral",
+          "10": "Very Satisfied"
+        }
+      },
+      "category": "support"
+    },
+    {
+      "question_id": "onboarding_008",
+      "question_type": "multiple_choice",
+      "question_text": "How long did it take you to complete the onboarding process?",
+      "description": "From initial access to feeling comfortable using the platform",
+      "required": true,
+      "options": {
+        "choices": [
+          "Less than 1 hour",
+          "1-2 hours",
+          "2-4 hours",
+          "4-8 hours",
+          "More than 8 hours"
+        ],
+        "allow_multiple": false
+      },
+      "category": "time"
+    },
+    {
+      "question_id": "onboarding_009",
+      "question_type": "boolean",
+      "question_text": "Would you recommend the onboarding process to others?",
+      "description": "Based on your experience, would you recommend this onboarding process to colleagues?",
+      "required": true,
+      "options": {
+        "true_label": "Yes, I would recommend it",
+        "false_label": "No, I would not recommend it"
+      },
+      "category": "recommendation"
+    },
+    {
+      "question_id": "onboarding_010",
+      "question_type": "text",
+      "question_text": "Additional comments about your onboarding experience",
+      "description": "Any other feedback or comments you'd like to share",
+      "required": false,
+      "options": {
+        "max_length": 1000,
+        "placeholder": "Share any additional thoughts or feedback..."
+      },
+      "category": "general"
+    }
+  ],
+  "metadata": {
+    "version": "1.0",
+    "created_date": "2025-08-11",
+    "target_response_rate": "> 80%",
+    "success_criteria": {
+      "ease_of_onboarding": "> 7.0/10",
+      "training_helpfulness": "> 80% positive",
+      "confidence_level": "> 7.0/10",
+      "support_satisfaction": "> 7.0/10"
+    },
+    "analysis_framework": {
+      "quantitative_metrics": [
+        "average_rating",
+        "response_distribution",
+        "completion_rate",
+        "time_to_complete"
+      ],
+      "qualitative_insights": [
+        "common_challenges",
+        "improvement_suggestions",
+        "training_preferences",
+        "support_needs"
+      ]
+    }
+  }
+}

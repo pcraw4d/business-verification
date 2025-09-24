@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gap Tracking System - KYB Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="components/navigation.js"></script>
+    <style>
+        /* Custom styles for gap tracking system */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s ease;
+        }
+
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .tracking-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.95));
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tracking-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            border-color: #3498db;
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, #e9ecef, #f8f9fa);
+            border-radius: 10px;
+            height: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.8s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-open { background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; }
+        .status-in-progress { background: linear-gradient(135deg, #f39c12, #e67e22); color: white; }
+        .status-review { background: linear-gradient(135deg, #3498db, #2980b9); color: white; }
+        .status-completed { background: linear-gradient(135deg, #27ae60, #229954); color: white; }
+        .status-overdue { background: linear-gradient(135deg, #8e44ad, #7d3c98); color: white; }
+
+        .priority-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .priority-critical { background: #e74c3c; }
+        .priority-high { background: #f39c12; }
+        .priority-medium { background: #3498db; }
+        .priority-low { background: #95a5a6; }
+
+        .timeline-item {
+            position: relative;
+            padding-left: 30px;
+            margin-bottom: 20px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 8px;
+            top: 8px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #3498db;
+            border: 3px solid white;
+            box-shadow: 0 0 0 3px #3498db;
+        }
+
+        .timeline-item::after {
+            content: '';
+            position: absolute;
+            left: 13px;
+            top: 20px;
+            width: 2px;
+            height: calc(100% + 10px);
+            background: #e9ecef;
+        }
+
+        .timeline-item:last-child::after {
+            display: none;
+        }
+
+        .gantt-chart {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .gantt-bar {
+            height: 30px;
+            border-radius: 15px;
+            margin: 5px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .gantt-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            padding: 10px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            background: white;
+            color: #6c757d;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .filter-tab.active {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border-color: #3498db;
+        }
+
+        .filter-tab:hover {
+            border-color: #3498db;
+            color: #3498db;
+        }
+
+        .filter-tab.active:hover {
+            color: white;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-3px);
+            border-color: #3498db;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .team-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.8rem;
+            margin-right: 8px;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #e74c3c;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .action-button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2980b9, #1f4e79);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #7f8c8d, #6c7b7d);
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60, #229954);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(135deg, #229954, #1e8449);
+            transform: translateY(-1px);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: linear-gradient(135deg, #e67e22, #d35400);
+            transform: translateY(-1px);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .filter-tabs {
+                flex-direction: column;
+            }
+            
+            .filter-tab {
+                text-align: center;
+            }
+            
+            .metric-value {
+                font-size: 2rem;
+            }
+            
+            .tracking-card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <div class="tracking-card fade-in">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                        <i class="fas fa-tasks text-blue-600 mr-3"></i>
+                        Gap Tracking System
+                    </h1>
+                    <p class="text-gray-600">Monitor and track compliance gap remediation progress</p>
+                </div>
+                <div class="flex gap-3">
+                    <button class="action-button btn-primary" onclick="exportTrackingReport()">
+                        <i class="fas fa-download"></i> Export Report
+                    </button>
+                    <button class="action-button btn-success" onclick="addNewGap()">
+                        <i class="fas fa-plus"></i> Add Gap
+                    </button>
+                </div>
+            </div>
+
+            <!-- Key Metrics -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div class="metric-card">
+                    <div class="metric-value text-red-600" id="totalGaps">24</div>
+                    <div class="metric-label">Total Gaps</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value text-orange-600" id="inProgressGaps">8</div>
+                    <div class="metric-label">In Progress</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value text-green-600" id="completedGaps">12</div>
+                    <div class="metric-label">Completed</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value text-purple-600" id="overdueGaps">4</div>
+                    <div class="metric-label">Overdue</div>
+                </div>
+            </div>
+
+            <!-- Filter Tabs -->
+            <div class="filter-tabs">
+                <div class="filter-tab active" data-filter="all" onclick="filterGaps('all')">
+                    <i class="fas fa-list mr-2"></i>All Gaps
+                </div>
+                <div class="filter-tab" data-filter="critical" onclick="filterGaps('critical')">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>Critical
+                </div>
+                <div class="filter-tab" data-filter="in-progress" onclick="filterGaps('in-progress')">
+                    <i class="fas fa-play mr-2"></i>In Progress
+                </div>
+                <div class="filter-tab" data-filter="overdue" onclick="filterGaps('overdue')">
+                    <i class="fas fa-clock mr-2"></i>Overdue
+                </div>
+                <div class="filter-tab" data-filter="completed" onclick="filterGaps('completed')">
+                    <i class="fas fa-check mr-2"></i>Completed
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Gap List -->
+            <div class="lg:col-span-2">
+                <div class="tracking-card fade-in">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">
+                        <i class="fas fa-clipboard-list text-blue-600 mr-2"></i>
+                        Active Gaps
+                    </h2>
+                    <div id="gapsList">
+                        <!-- Gap items will be dynamically loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Overview -->
+            <div class="space-y-6">
+                <!-- Progress Chart -->
+                <div class="tracking-card fade-in">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">
+                        <i class="fas fa-chart-pie text-green-600 mr-2"></i>
+                        Progress Overview
+                    </h3>
+                    <canvas id="progressChart" width="300" height="200"></canvas>
+                </div>
+
+                <!-- Timeline -->
+                <div class="tracking-card fade-in">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">
+                        <i class="fas fa-timeline text-orange-600 mr-2"></i>
+                        Recent Activity
+                    </h3>
+                    <div id="timelineList">
+                        <!-- Timeline items will be dynamically loaded here -->
+                    </div>
+                </div>
+
+                <!-- Team Assignments -->
+                <div class="tracking-card fade-in">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">
+                        <i class="fas fa-users text-purple-600 mr-2"></i>
+                        Team Assignments
+                    </h3>
+                    <div id="teamAssignments">
+                        <!-- Team assignments will be dynamically loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gantt Chart Section -->
+        <div class="tracking-card fade-in">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-chart-gantt text-indigo-600 mr-2"></i>
+                Project Timeline
+            </h2>
+            <div class="gantt-chart">
+                <div id="ganttChart">
+                    <!-- Gantt chart will be dynamically loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gap Details Modal -->
+    <div id="gapModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 id="modalTitle" class="text-2xl font-bold text-gray-800">Gap Details</h3>
+                        <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-2xl">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div id="modalContent">
+                        <!-- Dynamic content will be inserted here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample gap tracking data
+        const gapTrackingData = [
+            {
+                id: 'gap-001',
+                title: 'Multi-Factor Authentication Implementation',
+                description: 'Deploy MFA across all critical systems and user accounts',
+                priority: 'critical',
+                status: 'in-progress',
+                progress: 65,
+                assignedTo: 'Security Team',
+                dueDate: '2025-02-15',
+                startDate: '2025-01-01',
+                framework: 'SOC 2',
+                milestones: [
+                    { name: 'System Evaluation', completed: true, date: '2025-01-05' },
+                    { name: 'Vendor Selection', completed: true, date: '2025-01-12' },
+                    { name: 'Pilot Implementation', completed: false, date: '2025-01-25' },
+                    { name: 'Full Rollout', completed: false, date: '2025-02-15' }
+                ],
+                team: ['John Smith', 'Sarah Johnson', 'Mike Chen']
+            },
+            {
+                id: 'gap-002',
+                title: 'Data Encryption Standards',
+                description: 'Implement comprehensive data encryption for data at rest and in transit',
+                priority: 'high',
+                status: 'in-progress',
+                progress: 40,
+                assignedTo: 'DevOps Team',
+                dueDate: '2025-03-01',
+                startDate: '2025-01-10',
+                framework: 'GDPR',
+                milestones: [
+                    { name: 'Encryption Audit', completed: true, date: '2025-01-15' },
+                    { name: 'Standards Definition', completed: true, date: '2025-01-20' },
+                    { name: 'Database Encryption', completed: false, date: '2025-02-10' },
+                    { name: 'TLS Configuration', completed: false, date: '2025-02-25' }
+                ],
+                team: ['Alex Rodriguez', 'Emma Wilson', 'David Kim']
+            },
+            {
+                id: 'gap-003',
+                title: 'Security Awareness Training',
+                description: 'Develop and implement comprehensive security awareness training',
+                priority: 'medium',
+                status: 'open',
+                progress: 15,
+                assignedTo: 'HR Team',
+                dueDate: '2025-04-01',
+                startDate: '2025-01-20',
+                framework: 'PCI DSS',
+                milestones: [
+                    { name: 'Curriculum Design', completed: false, date: '2025-02-01' },
+                    { name: 'Content Creation', completed: false, date: '2025-02-15' },
+                    { name: 'Pilot Training', completed: false, date: '2025-03-01' },
+                    { name: 'Full Deployment', completed: false, date: '2025-04-01' }
+                ],
+                team: ['Lisa Brown', 'Tom Anderson']
+            },
+            {
+                id: 'gap-004',
+                title: 'Access Control Monitoring',
+                description: 'Deploy comprehensive access logging and monitoring system',
+                priority: 'high',
+                status: 'review',
+                progress: 85,
+                assignedTo: 'IT Operations',
+                dueDate: '2025-02-01',
+                startDate: '2024-12-01',
+                framework: 'SOC 2',
+                milestones: [
+                    { name: 'Tool Installation', completed: true, date: '2024-12-15' },
+                    { name: 'Log Configuration', completed: true, date: '2024-12-22' },
+                    { name: 'Alerting Setup', completed: true, date: '2025-01-05' },
+                    { name: 'Staff Training', completed: false, date: '2025-01-25' }
+                ],
+                team: ['Robert Taylor', 'Jennifer Lee', 'Chris Martinez']
+            },
+            {
+                id: 'gap-005',
+                title: 'Privacy Policy Updates',
+                description: 'Revise privacy documentation to reflect current data processing activities',
+                priority: 'medium',
+                status: 'completed',
+                progress: 100,
+                assignedTo: 'Legal Team',
+                dueDate: '2025-01-15',
+                startDate: '2024-12-01',
+                framework: 'GDPR',
+                milestones: [
+                    { name: 'Policy Review', completed: true, date: '2024-12-10' },
+                    { name: 'Legal Drafting', completed: true, date: '2024-12-20' },
+                    { name: 'Stakeholder Review', completed: true, date: '2025-01-05' },
+                    { name: 'Publication', completed: true, date: '2025-01-15' }
+                ],
+                team: ['Amanda Clark', 'James Wilson']
+            }
+        ];
+
+        // Initialize the tracking system
+        document.addEventListener('DOMContentLoaded', function() {
+            loadGapsList();
+            loadProgressChart();
+            loadTimeline();
+            loadTeamAssignments();
+            loadGanttChart();
+            initializeAnimations();
+        });
+
+        // Load gaps list
+        function loadGapsList() {
+            const gapsList = document.getElementById('gapsList');
+            gapsList.innerHTML = '';
+
+            gapTrackingData.forEach(gap => {
+                const gapElement = createGapElement(gap);
+                gapsList.appendChild(gapElement);
+            });
+        }
+
+        // Create gap element
+        function createGapElement(gap) {
+            const div = document.createElement('div');
+            div.className = 'border border-gray-200 rounded-lg p-4 mb-4 hover:shadow-md transition-shadow';
+            div.setAttribute('data-gap-id', gap.id);
+            div.setAttribute('data-priority', gap.priority);
+            div.setAttribute('data-status', gap.status);
+
+            const isOverdue = new Date(gap.dueDate) < new Date() && gap.status !== 'completed';
+            const statusClass = isOverdue ? 'status-overdue' : `status-${gap.status.replace('-', '-')}`;
+            const priorityClass = `priority-${gap.priority}`;
+
+            div.innerHTML = `
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex-1">
+                        <div class="flex items-center mb-2">
+                            <span class="priority-indicator ${priorityClass}"></span>
+                            <h4 class="text-lg font-semibold text-gray-800">${gap.title}</h4>
+                            <span class="status-badge ${statusClass} ml-3">${gap.status.replace('-', ' ')}</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-3">${gap.description}</p>
+                        <div class="flex items-center text-sm text-gray-500 mb-3">
+                            <i class="fas fa-user mr-2"></i>
+                            <span class="mr-4">${gap.assignedTo}</span>
+                            <i class="fas fa-calendar mr-2"></i>
+                            <span class="mr-4">Due: ${formatDate(gap.dueDate)}</span>
+                            <i class="fas fa-shield-alt mr-2"></i>
+                            <span>${gap.framework}</span>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 ml-4">
+                        <button class="action-button btn-primary" onclick="viewGapDetails('${gap.id}')">
+                            <i class="fas fa-eye"></i> View
+                        </button>
+                        <button class="action-button btn-secondary" onclick="updateGapProgress('${gap.id}')">
+                            <i class="fas fa-edit"></i> Update
+                        </button>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="flex justify-between text-sm text-gray-600 mb-1">
+                        <span>Progress</span>
+                        <span>${gap.progress}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${gap.progress}%; background: ${getProgressColor(gap.progress)};"></div>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <span class="text-sm text-gray-500 mr-3">Team:</span>
+                        <div class="flex">
+                            ${gap.team.map(member => `
+                                <div class="team-avatar" title="${member}">
+                                    ${member.split(' ').map(n => n[0]).join('')}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                        ${gap.milestones.filter(m => m.completed).length}/${gap.milestones.length} milestones
+                    </div>
+                </div>
+            `;
+
+            return div;
+        }
+
+        // Load progress chart
+        function loadProgressChart() {
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            
+            const completed = gapTrackingData.filter(g => g.status === 'completed').length;
+            const inProgress = gapTrackingData.filter(g => g.status === 'in-progress').length;
+            const open = gapTrackingData.filter(g => g.status === 'open').length;
+            const review = gapTrackingData.filter(g => g.status === 'review').length;
+            const overdue = gapTrackingData.filter(g => {
+                const dueDate = new Date(g.dueDate);
+                return dueDate < new Date() && g.status !== 'completed';
+            }).length;
+
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Completed', 'In Progress', 'Open', 'Review', 'Overdue'],
+                    datasets: [{
+                        data: [completed, inProgress, open, review, overdue],
+                        backgroundColor: [
+                            '#27ae60',
+                            '#f39c12',
+                            '#3498db',
+                            '#9b59b6',
+                            '#e74c3c'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Load timeline
+        function loadTimeline() {
+            const timelineList = document.getElementById('timelineList');
+            timelineList.innerHTML = '';
+
+            const activities = [
+                { action: 'Gap completed', gap: 'Privacy Policy Updates', user: 'Amanda Clark', time: '2 hours ago', type: 'success' },
+                { action: 'Progress updated', gap: 'Access Control Monitoring', user: 'Robert Taylor', time: '4 hours ago', type: 'info' },
+                { action: 'New gap assigned', gap: 'Security Awareness Training', user: 'Lisa Brown', time: '1 day ago', type: 'warning' },
+                { action: 'Milestone reached', gap: 'Data Encryption Standards', user: 'Alex Rodriguez', time: '2 days ago', type: 'success' },
+                { action: 'Gap created', gap: 'Multi-Factor Authentication', user: 'John Smith', time: '3 days ago', type: 'info' }
+            ];
+
+            activities.forEach(activity => {
+                const div = document.createElement('div');
+                div.className = 'timeline-item';
+                div.innerHTML = `
+                    <div class="bg-white p-3 rounded-lg border border-gray-200">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="font-semibold text-gray-800">${activity.action}</span>
+                            <span class="text-xs text-gray-500">${activity.time}</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-1">${activity.gap}</p>
+                        <p class="text-xs text-gray-500">by ${activity.user}</p>
+                    </div>
+                `;
+                timelineList.appendChild(div);
+            });
+        }
+
+        // Load team assignments
+        function loadTeamAssignments() {
+            const teamAssignments = document.getElementById('teamAssignments');
+            teamAssignments.innerHTML = '';
+
+            const teamData = [
+                { name: 'Security Team', gaps: 3, members: 4, avatar: 'ST' },
+                { name: 'DevOps Team', gaps: 2, members: 3, avatar: 'DT' },
+                { name: 'HR Team', gaps: 1, members: 2, avatar: 'HT' },
+                { name: 'IT Operations', gaps: 2, members: 3, avatar: 'IT' },
+                { name: 'Legal Team', gaps: 1, members: 2, avatar: 'LT' }
+            ];
+
+            teamData.forEach(team => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg mb-3';
+                div.innerHTML = `
+                    <div class="flex items-center">
+                        <div class="team-avatar mr-3">${team.avatar}</div>
+                        <div>
+                            <div class="font-semibold text-gray-800">${team.name}</div>
+                            <div class="text-sm text-gray-500">${team.members} members</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-semibold text-blue-600">${team.gaps}</div>
+                        <div class="text-xs text-gray-500">gaps</div>
+                    </div>
+                `;
+                teamAssignments.appendChild(div);
+            });
+        }
+
+        // Load Gantt chart
+        function loadGanttChart() {
+            const ganttChart = document.getElementById('ganttChart');
+            ganttChart.innerHTML = '';
+
+            gapTrackingData.forEach(gap => {
+                const div = document.createElement('div');
+                div.className = 'mb-4';
+                
+                const startDate = new Date(gap.startDate);
+                const dueDate = new Date(gap.dueDate);
+                const today = new Date();
+                const totalDays = Math.ceil((dueDate - startDate) / (1000 * 60 * 60 * 24));
+                const elapsedDays = Math.ceil((today - startDate) / (1000 * 60 * 60 * 24));
+                const progressWidth = Math.min(Math.max((elapsedDays / totalDays) * 100, 0), 100);
+
+                div.innerHTML = `
+                    <div class="flex items-center mb-2">
+                        <div class="w-48 text-sm font-medium text-gray-700 truncate">${gap.title}</div>
+                        <div class="flex-1 ml-4">
+                            <div class="gantt-bar" style="background: ${getProgressColor(gap.progress)};">
+                                <div class="absolute inset-0 flex items-center justify-center text-white text-xs font-semibold">
+                                    ${gap.progress}%
+                                </div>
+                            </div>
+                        </div>
+                        <div class="w-20 text-xs text-gray-500 text-right ml-4">
+                            ${formatDate(gap.dueDate)}
+                        </div>
+                    </div>
+                `;
+                ganttChart.appendChild(div);
+            });
+        }
+
+        // Filter gaps
+        function filterGaps(filter) {
+            // Update active tab
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[data-filter="${filter}"]`).classList.add('active');
+
+            // Filter gaps
+            const gaps = document.querySelectorAll('[data-gap-id]');
+            gaps.forEach(gap => {
+                const priority = gap.getAttribute('data-priority');
+                const status = gap.getAttribute('data-status');
+                const isOverdue = new Date(gap.querySelector('.text-gray-500').textContent.split('Due: ')[1]) < new Date() && status !== 'completed';
+
+                let show = false;
+                switch(filter) {
+                    case 'all':
+                        show = true;
+                        break;
+                    case 'critical':
+                        show = priority === 'critical';
+                        break;
+                    case 'in-progress':
+                        show = status === 'in-progress';
+                        break;
+                    case 'overdue':
+                        show = isOverdue;
+                        break;
+                    case 'completed':
+                        show = status === 'completed';
+                        break;
+                }
+
+                gap.style.display = show ? 'block' : 'none';
+            });
+        }
+
+        // View gap details
+        function viewGapDetails(gapId) {
+            const gap = gapTrackingData.find(g => g.id === gapId);
+            if (!gap) return;
+
+            const modal = document.getElementById('gapModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalContent = document.getElementById('modalContent');
+
+            modalTitle.textContent = gap.title;
+            modalContent.innerHTML = `
+                <div class="space-y-6">
+                    <div>
+                        <h4 class="font-semibold text-gray-800 mb-2">Description</h4>
+                        <p class="text-gray-600">${gap.description}</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <h4 class="font-semibold text-gray-800 mb-2">Status</h4>
+                            <span class="status-badge status-${gap.status.replace('-', '-')}">${gap.status.replace('-', ' ')}</span>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-800 mb-2">Priority</h4>
+                            <span class="priority-indicator priority-${gap.priority}"></span>
+                            <span class="ml-2 capitalize">${gap.priority}</span>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-800 mb-2">Assigned To</h4>
+                            <p class="text-gray-600">${gap.assignedTo}</p>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-800 mb-2">Due Date</h4>
+                            <p class="text-gray-600">${formatDate(gap.dueDate)}</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="font-semibold text-gray-800 mb-2">Progress</h4>
+                        <div class="progress-bar mb-2">
+                            <div class="progress-fill" style="width: ${gap.progress}%; background: ${getProgressColor(gap.progress)};"></div>
+                        </div>
+                        <p class="text-sm text-gray-600">${gap.progress}% complete</p>
+                    </div>
+
+                    <div>
+                        <h4 class="font-semibold text-gray-800 mb-2">Milestones</h4>
+                        <div class="space-y-2">
+                            ${gap.milestones.map(milestone => `
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-${milestone.completed ? 'check-circle text-green-500' : 'circle text-gray-400'} mr-3"></i>
+                                        <span class="${milestone.completed ? 'line-through text-gray-500' : 'text-gray-800'}">${milestone.name}</span>
+                                    </div>
+                                    <span class="text-sm text-gray-500">${formatDate(milestone.date)}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="font-semibold text-gray-800 mb-2">Team Members</h4>
+                        <div class="flex flex-wrap gap-2">
+                            ${gap.team.map(member => `
+                                <div class="flex items-center bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+                                    <div class="team-avatar mr-2" style="width: 20px; height: 20px; font-size: 0.7rem;">
+                                        ${member.split(' ').map(n => n[0]).join('')}
+                                    </div>
+                                    ${member}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            modal.classList.remove('hidden');
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('gapModal').classList.add('hidden');
+        }
+
+        // Update gap progress
+        function updateGapProgress(gapId) {
+            alert(`Updating progress for gap: ${gapId}\n\nThis would open a progress update form with:\n- Progress percentage slider\n- Milestone completion checkboxes\n- Comments and notes\n- File attachments\n- Team member notifications`);
+        }
+
+        // Export tracking report
+        function exportTrackingReport() {
+            alert('Exporting gap tracking report...\n\nThis would generate a comprehensive report including:\n- Executive summary\n- Progress overview\n- Team performance metrics\n- Timeline analysis\n- Risk assessment\n- Recommendations');
+        }
+
+        // Add new gap
+        function addNewGap() {
+            alert('Adding new compliance gap...\n\nThis would open a form to:\n- Define gap details\n- Assign priority and framework\n- Set timeline and milestones\n- Assign team members\n- Create tracking plan');
+        }
+
+        // Helper functions
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+            });
+        }
+
+        function getProgressColor(progress) {
+            if (progress >= 80) return 'linear-gradient(90deg, #27ae60, #229954)';
+            if (progress >= 60) return 'linear-gradient(90deg, #f39c12, #e67e22)';
+            if (progress >= 40) return 'linear-gradient(90deg, #3498db, #2980b9)';
+            return 'linear-gradient(90deg, #e74c3c, #c0392b)';
+        }
+
+        function initializeAnimations() {
+            setTimeout(() => {
+                document.querySelectorAll('.fade-in').forEach((element, index) => {
+                    setTimeout(() => {
+                        element.classList.add('visible');
+                    }, index * 100);
+                });
+            }, 100);
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('gapModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>

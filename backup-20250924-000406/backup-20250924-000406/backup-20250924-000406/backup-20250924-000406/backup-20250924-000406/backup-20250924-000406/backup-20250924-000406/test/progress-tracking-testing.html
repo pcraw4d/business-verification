@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progress Tracking Testing - KYB Platform</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .header h1 i {
+            color: #f39c12;
+            font-size: 2.2rem;
+        }
+
+        .testing-dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .test-controls {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .test-results {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .progress-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .section-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .progress-icon { background: linear-gradient(135deg, #f39c12, #e67e22); }
+        .trend-icon { background: linear-gradient(135deg, #2ecc71, #27ae60); }
+        .milestone-icon { background: linear-gradient(135deg, #3498db, #2980b9); }
+
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .test-item {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+        }
+
+        .test-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .test-passed { border-left-color: #2ecc71; }
+        .test-failed { border-left-color: #e74c3c; }
+        .test-pending { border-left-color: #f39c12; }
+
+        .test-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .test-name {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1.1rem;
+        }
+
+        .test-status {
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-passed { background: #2ecc71; color: white; }
+        .status-failed { background: #e74c3c; color: white; }
+        .status-pending { background: #f39c12; color: white; }
+
+        .test-description {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+
+        .test-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+            color: white;
+        }
+
+        .summary-stats {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .progress-demo {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #ecf0f1;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2ecc71, #27ae60);
+            border-radius: 10px;
+            transition: width 2s ease-in-out;
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .progress-text {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .progress-percentage {
+            font-weight: 700;
+            color: #2ecc71;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            height: 300px;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.6s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .testing-dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            .test-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <div class="header fade-in">
+            <h1>
+                <i class="fas fa-chart-line"></i>
+                Progress Tracking Testing
+            </h1>
+            <p>Comprehensive testing suite for compliance progress tracking mechanisms. Validate progress bars, trend calculations, milestone tracking, and visual progress indicators.</p>
+        </div>
+
+        <!-- Testing Dashboard -->
+        <div class="testing-dashboard">
+            <!-- Test Controls -->
+            <div class="test-controls fade-in">
+                <h2 style="color: #2c3e50; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-cogs"></i>
+                    Test Controls
+                </h2>
+
+                <div style="margin-bottom: 20px;">
+                    <button class="btn btn-primary" id="runAllProgressTests">
+                        <i class="fas fa-play"></i>
+                        Run All Tests
+                    </button>
+                    <button class="btn btn-success" id="runProgressBarTests">
+                        <i class="fas fa-tasks"></i>
+                        Progress Bars
+                    </button>
+                    <button class="btn btn-primary" id="runTrendTests">
+                        <i class="fas fa-chart-line"></i>
+                        Trend Tests
+                    </button>
+                    <button class="btn btn-danger" id="runMilestoneTests">
+                        <i class="fas fa-flag"></i>
+                        Milestones
+                    </button>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <button class="btn btn-secondary" id="exportProgressResults">
+                        <i class="fas fa-download"></i>
+                        Export Results
+                    </button>
+                    <button class="btn btn-secondary" id="clearProgressResults">
+                        <i class="fas fa-trash"></i>
+                        Clear Results
+                    </button>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <h3 style="color: #2c3e50; margin-bottom: 10px;">Progress Demo</h3>
+                    <div class="progress-demo">
+                        <div class="progress-label">
+                            <span class="progress-text">Overall Compliance</span>
+                            <span class="progress-percentage" id="demoPercentage">78%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="demoProgress" style="width: 78%"></div>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="animateProgress()">
+                        <i class="fas fa-play"></i>
+                        Animate Progress
+                    </button>
+                </div>
+            </div>
+
+            <!-- Test Results Summary -->
+            <div class="test-results fade-in">
+                <h2 style="color: #2c3e50; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-chart-bar"></i>
+                    Test Results Summary
+                </h2>
+
+                <div class="summary-stats">
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-number" id="totalProgressTests">0</div>
+                            <div class="stat-label">Total Tests</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="passedProgressTests">0</div>
+                            <div class="stat-label">Passed</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="failedProgressTests">0</div>
+                            <div class="stat-label">Failed</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="pendingProgressTests">0</div>
+                            <div class="stat-label">Pending</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="progressChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Bar Testing -->
+        <div class="progress-section fade-in">
+            <div class="section-header">
+                <div class="section-icon progress-icon">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <div class="section-title">Progress Bar Testing</div>
+            </div>
+
+            <div class="test-grid">
+                <div class="test-item test-pending" data-test="overall-progress-bar">
+                    <div class="test-header">
+                        <div class="test-name">Overall Progress Bar</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Test that overall compliance progress bar displays 78% with correct animation and visual styling.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runProgressTest('overall-progress-bar')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewProgressDetails('overall-progress-bar')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <div class="test-item test-pending" data-test="soc2-progress-bar">
+                    <div class="test-header">
+                        <div class="test-name">SOC 2 Progress Bar</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Validate SOC 2 progress bar shows 85% completion with proper color coding and animation.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runProgressTest('soc2-progress-bar')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewProgressDetails('soc2-progress-bar')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <div class="test-item test-pending" data-test="pci-progress-bar">
+                    <div class="test-header">
+                        <div class="test-name">PCI DSS Progress Bar</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Test PCI DSS progress bar displays 72% with correct visual representation and smooth animation.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runProgressTest('pci-progress-bar')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewProgressDetails('pci-progress-bar')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <div class="test-item test-pending" data-test="gdpr-progress-bar">
+                    <div class="test-header">
+                        <div class="test-name">GDPR Progress Bar</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Validate GDPR progress bar shows 78% completion with proper styling and responsive behavior.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runProgressTest('gdpr-progress-bar')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewProgressDetails('gdpr-progress-bar')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <div class="test-item test-pending" data-test="progress-animation">
+                    <div class="test-header">
+                        <div class="test-name">Progress Animation</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Test that progress bars animate smoothly from 0% to target percentage with proper timing.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runProgressTest('progress-animation')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewProgressDetails('progress-animation')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <div class="test-item test-pending" data-test="progress-responsiveness">
+                    <div class="test-header">
+                        <div class="test-name">Progress Responsiveness</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Validate that progress bars maintain proper appearance and functionality across different screen sizes.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runProgressTest('progress-responsiveness')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewProgressDetails('progress-responsiveness')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trend Calculations Testing -->
+        <div class="progress-section fade-in">
+            <div class="section-header">
+                <div class="section-icon trend-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="section-title">Trend Calculations Testing</div>
+            </div>
+
+            <div class="test-grid">
+                <div class="test-item test-pending" data-test="monthly-trend">
+                    <div class="test-header">
+                        <div class="test-name">Monthly Trend Calculation</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Test that monthly trend shows +5% improvement with correct calculation and display.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runProgressTest('monthly-trend')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewProgressDetails('monthly-trend')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <div class="test-item test-pending" data-test="trend-chart">
+                    <div class="test-header">
+                        <div class="test-name">Trend Chart Display</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Validate that 12-month trend chart displays correctly with proper data points and styling.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runProgressTest('trend-chart')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewProgressDetails('trend-chart')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <div class="test-item test-pending" data-test="trend-accuracy">
+                    <div class="test-header">
+                        <div class="test-name">Trend Data Accuracy</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Test that trend calculations are mathematically accurate and consistent with historical data.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runProgressTest('trend-accuracy')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewProgressDetails('trend-accuracy')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <div class="test-item test-pending" data-test="trend-interactivity">
+                    <div class="test-header">
+                        <div class="test-name">Trend Chart Interactivity</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Validate that trend chart responds to user interactions (hover, click) with proper tooltips and data display.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runProgressTest('trend-interactivity')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewProgressDetails('trend-interactivity')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Milestone Tracking Testing -->
+        <div class="progress-section fade-in">
+            <div class="section-header">
+                <div class="section-icon milestone-icon">
+                    <i class="fas fa-flag"></i>
+                </div>
+                <div class="section-title">Milestone Tracking Testing</div>
+            </div>
+
+            <div class="test-grid">
+                <div class="test-item test-pending" data-test="milestone-timeline">
+                    <div class="test-header">
+                        <div class="test-name">Milestone Timeline</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Test that milestone timeline displays past, current, and upcoming compliance events correctly.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runProgressTest('milestone-timeline')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewProgressDetails('milestone-timeline')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <div class="test-item test-pending" data-test="milestone-status">
+                    <div class="test-header">
+                        <div class="test-name">Milestone Status Indicators</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Validate that milestone status indicators (completed, in-progress, upcoming) display correctly.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runProgressTest('milestone-status')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewProgressDetails('milestone-status')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <div class="test-item test-pending" data-test="milestone-dates">
+                    <div class="test-header">
+                        <div class="test-name">Milestone Date Accuracy</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Test that milestone dates are accurate and properly formatted for display.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runProgressTest('milestone-dates')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewProgressDetails('milestone-dates')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <div class="test-item test-pending" data-test="milestone-progress">
+                    <div class="test-header">
+                        <div class="test-name">Milestone Progress Updates</div>
+                        <div class="test-status status-pending">Pending</div>
+                    </div>
+                    <div class="test-description">
+                        Validate that milestone progress updates automatically based on completion status.
+                    </div>
+                    <div class="test-actions">
+                        <button class="btn btn-primary" onclick="runProgressTest('milestone-progress')">
+                            <i class="fas fa-play"></i>
+                            Test
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewProgressDetails('milestone-progress')">
+                            <i class="fas fa-eye"></i>
+                            Details
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Progress test data and results
+        let progressTestResults = {
+            total: 0,
+            passed: 0,
+            failed: 0,
+            pending: 0
+        };
+
+        // Progress test execution functions
+        function runProgressTest(testId) {
+            const testItem = document.querySelector(`[data-test="${testId}"]`);
+            const statusElement = testItem.querySelector('.test-status');
+            const button = testItem.querySelector('.btn-primary');
+            
+            // Update UI to show test is running
+            statusElement.textContent = 'Running';
+            statusElement.className = 'test-status status-pending';
+            button.innerHTML = '<span class="loading"></span> Testing...';
+            button.disabled = true;
+            
+            // Simulate test execution
+            setTimeout(() => {
+                // Simulate test result (random pass/fail for demo)
+                const passed = Math.random() > 0.1; // 90% pass rate
+                
+                if (passed) {
+                    testItem.className = 'test-item test-passed';
+                    statusElement.textContent = 'Passed';
+                    statusElement.className = 'test-status status-passed';
+                    progressTestResults.passed++;
+                } else {
+                    testItem.className = 'test-item test-failed';
+                    statusElement.textContent = 'Failed';
+                    statusElement.className = 'test-status status-failed';
+                    progressTestResults.failed++;
+                }
+                
+                progressTestResults.total++;
+                progressTestResults.pending--;
+                
+                // Reset button
+                button.innerHTML = '<i class="fas fa-play"></i> Test';
+                button.disabled = false;
+                
+                // Update summary
+                updateProgressTestSummary();
+            }, 2000 + Math.random() * 3000); // 2-5 second test duration
+        }
+
+        function runAllProgressTests() {
+            const allTestButtons = document.querySelectorAll('.test-item .btn-primary');
+            allTestButtons.forEach((button, index) => {
+                setTimeout(() => {
+                    button.click();
+                }, index * 1000); // Stagger test execution
+            });
+        }
+
+        function runProgressBarTests() {
+            const progressBarButtons = document.querySelectorAll('[data-test*="progress-bar"] .btn-primary');
+            progressBarButtons.forEach((button, index) => {
+                setTimeout(() => {
+                    button.click();
+                }, index * 800);
+            });
+        }
+
+        function runTrendTests() {
+            const trendButtons = document.querySelectorAll('[data-test*="trend"] .btn-primary');
+            trendButtons.forEach((button, index) => {
+                setTimeout(() => {
+                    button.click();
+                }, index * 800);
+            });
+        }
+
+        function runMilestoneTests() {
+            const milestoneButtons = document.querySelectorAll('[data-test*="milestone"] .btn-primary');
+            milestoneButtons.forEach((button, index) => {
+                setTimeout(() => {
+                    button.click();
+                }, index * 800);
+            });
+        }
+
+        function updateProgressTestSummary() {
+            document.getElementById('totalProgressTests').textContent = progressTestResults.total;
+            document.getElementById('passedProgressTests').textContent = progressTestResults.passed;
+            document.getElementById('failedProgressTests').textContent = progressTestResults.failed;
+            document.getElementById('pendingProgressTests').textContent = progressTestResults.pending;
+        }
+
+        function viewProgressDetails(testId) {
+            alert(`Progress Test Details for: ${testId}\n\nThis would show detailed test results, progress measurements, and validation data.`);
+        }
+
+        function animateProgress() {
+            const progressBar = document.getElementById('demoProgress');
+            const percentage = document.getElementById('demoPercentage');
+            
+            // Reset to 0
+            progressBar.style.width = '0%';
+            percentage.textContent = '0%';
+            
+            // Animate to 78%
+            setTimeout(() => {
+                progressBar.style.width = '78%';
+                percentage.textContent = '78%';
+            }, 100);
+        }
+
+        function exportProgressResults() {
+            const results = {
+                timestamp: new Date().toISOString(),
+                summary: progressTestResults,
+                tests: Array.from(document.querySelectorAll('.test-item')).map(item => ({
+                    name: item.querySelector('.test-name').textContent,
+                    status: item.querySelector('.test-status').textContent,
+                    description: item.querySelector('.test-description').textContent
+                }))
+            };
+            
+            const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'progress-tracking-test-results.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function clearProgressResults() {
+            if (confirm('Are you sure you want to clear all progress test results?')) {
+                progressTestResults = { total: 0, passed: 0, failed: 0, pending: 0 };
+                updateProgressTestSummary();
+                
+                document.querySelectorAll('.test-item').forEach(item => {
+                    item.className = 'test-item test-pending';
+                    const statusElement = item.querySelector('.test-status');
+                    statusElement.textContent = 'Pending';
+                    statusElement.className = 'test-status status-pending';
+                });
+            }
+        }
+
+        // Initialize progress testing system
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize test counts
+            const allTests = document.querySelectorAll('.test-item');
+            progressTestResults.pending = allTests.length;
+            updateProgressTestSummary();
+
+            // Button event listeners
+            document.getElementById('runAllProgressTests').addEventListener('click', runAllProgressTests);
+            document.getElementById('runProgressBarTests').addEventListener('click', runProgressBarTests);
+            document.getElementById('runTrendTests').addEventListener('click', runTrendTests);
+            document.getElementById('runMilestoneTests').addEventListener('click', runMilestoneTests);
+            document.getElementById('exportProgressResults').addEventListener('click', exportProgressResults);
+            document.getElementById('clearProgressResults').addEventListener('click', clearProgressResults);
+
+            // Initialize progress chart
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [{
+                        label: 'Compliance Progress',
+                        data: [65, 68, 70, 72, 75, 73, 76, 78, 80, 78, 82, 78],
+                        borderColor: '#2ecc71',
+                        backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Add hover effects
+            document.querySelectorAll('.test-item').forEach(item => {
+                item.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-3px)';
+                });
+                item.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
+            });
+        });
+    </script>
+</body>
+</html>

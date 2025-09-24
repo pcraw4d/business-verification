@@ -1,0 +1,65 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Manual Validation Report - Manual Validation Session</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { background-color: #f0f0f0; padding: 20px; border-radius: 5px; }
+        .summary { background-color: #e8f5e8; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        .case { margin: 10px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .case.validated { border-left: 4px solid #4CAF50; }
+        .case.disputed { border-left: 4px solid #f44336; }
+        .case.pending { border-left: 4px solid #ff9800; }
+        .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0; }
+        .metric-card { background-color: #f9f9f9; padding: 15px; border-radius: 5px; }
+        .recommendations { background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Manual Validation Report</h1>
+        <p>Session: session_1757524686</p>
+        <p>Generated: 0001-01-01 00:00:00</p>
+        <p>Duration: 0s</p>
+    </div>
+    
+    <div class="summary">
+        <h2>Validation Summary</h2>
+        <p><strong>Total Cases:</strong> 0</p>
+        <p><strong>Validated:</strong> 0</p>
+        <p><strong>Pending:</strong> 0</p>
+        <p><strong>Disputed:</strong> 0</p>
+        <p><strong>Overall Accuracy:</strong> 0.00%</p>
+    </div>
+    
+    <div class="metrics">
+        <div class="metric-card">
+            <h3>Accuracy Metrics</h3>
+            <p>Industry Accuracy: 0.00%</p>
+            <p>Code Accuracy: 0.00%</p>
+            <p>Confidence Accuracy: 0.00%</p>
+        </div>
+        <div class="metric-card">
+            <h3>Issues</h3>
+            <p>Critical: 0</p>
+            <p>High: 0</p>
+            <p>Medium: 0</p>
+            <p>Low: 0</p>
+        </div>
+    </div>
+    
+    <h2>Validation Cases</h2>
+
+    <div class="recommendations">
+        <h2>Recommendations</h2>
+        <ul>
+            <li>Overall accuracy (0.00%) is below threshold (80.00%). Review classification algorithms.</li>
+            <li>Industry classification accuracy is below 90%. Review industry detection algorithms and keyword matching.</li>
+            <li>Code mapping accuracy is below 80%. Review MCC, SIC, and NAICS code mapping algorithms.</li>
+
+        </ul>
+    </div>
+
+</body>
+</html>

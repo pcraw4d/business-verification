@@ -1,0 +1,193 @@
+{
+  "session_id": "performance_benchmark_1757526472",
+  "start_time": "2025-09-10T13:47:52.455055-04:00",
+  "end_time": "2025-09-10T13:51:06.821231-04:00",
+  "duration": 194366259770,
+  "total_benchmarks": 7,
+  "performance_summary": {
+    "overall_performance": 0.7309573126359701,
+    "average_response_time": 0.048589809523809514,
+    "peak_throughput": 63.65729652627574,
+    "average_throughput": 63.65729652627574,
+    "max_concurrency": 16,
+    "memory_usage": 0.40892791748046875,
+    "cpu_usage": 80,
+    "error_rate": 0,
+    "performance_grade": "C",
+    "is_performance_acceptable": true
+  },
+  "throughput_results": {
+    "max_throughput": 63.65729652627574,
+    "average_throughput": 63.65729652627574,
+    "throughput_at_95th_percentile": 60.474431699961954,
+    "throughput_at_99th_percentile": 63.020723561012986,
+    "throughput_stability": 0.95,
+    "throughput_variance": 0.05,
+    "throughput_trend": "stable"
+  },
+  "latency_results": {
+    "min_latency": 0.034164,
+    "max_latency": 0.070754,
+    "average_latency": 0.048589809523809514,
+    "median_latency": 0.048589809523809514,
+    "p95_latency": 0.07288471428571427,
+    "p99_latency": 0.09717961904761903,
+    "p999_latency": 0.14576942857142855,
+    "latency_variance": 0.1,
+    "latency_stability": 0.95
+  },
+  "scalability_results": {
+    "linear_scalability": true,
+    "scalability_factor": 0.9448300232516763,
+    "max_scalable_concurrency": 16,
+    "performance_degradation_point": 32,
+    "scalability_efficiency": 0.85,
+    "bottleneck_identification": "CPU bound"
+  },
+  "resource_usage_results": {
+    "peak_memory_usage": 0.40892791748046875,
+    "average_memory_usage": 0.32714233398437503,
+    "memory_leak_detected": false,
+    "peak_cpu_usage": 80,
+    "average_cpu_usage": 60,
+    "cpu_utilization_efficiency": 0.75,
+    "gc_pause_time": 0.000157574,
+    "gc_pause_count": 1,
+    "resource_utilization_grade": "good"
+  },
+  "load_test_results": {
+    "load_test_duration": 31036934057,
+    "total_requests": 1785,
+    "successful_requests": 1785,
+    "failed_requests": 0,
+    "requests_per_second": 57.512123997873275,
+    "average_response_time": 100,
+    "error_rate": 0,
+    "load_test_stability": 0.95
+  },
+  "stress_test_results": {
+    "stress_test_duration": 74896810327,
+    "breaking_point": 1000,
+    "recovery_time": 5000000000,
+    "stress_test_stability": 0.9,
+    "failure_mode": "graceful degradation",
+    "recovery_capability": "automatic"
+  },
+  "concurrency_results": [
+    {
+      "concurrency_level": 1,
+      "throughput": 47.80942938337118,
+      "average_latency": 0.048292333333333326,
+      "p95_latency": 0.07243849999999999,
+      "p99_latency": 0.09658466666666665,
+      "error_rate": 0.01,
+      "resource_usage": 50,
+      "efficiency": 0.85
+    },
+    {
+      "concurrency_level": 2,
+      "throughput": 59.15462324168424,
+      "average_latency": 0.061040523809523815,
+      "p95_latency": 0.09156078571428572,
+      "p99_latency": 0.12208104761904763,
+      "error_rate": 0.01,
+      "resource_usage": 50,
+      "efficiency": 0.85
+    },
+    {
+      "concurrency_level": 4,
+      "throughput": 62.45462200171353,
+      "average_latency": 0.2564635238095238,
+      "p95_latency": 0.3846952857142857,
+      "p99_latency": 0.5129270476190476,
+      "error_rate": 0.01,
+      "resource_usage": 50,
+      "efficiency": 0.85
+    },
+    {
+      "concurrency_level": 8,
+      "throughput": 56.02492013933644,
+      "average_latency": 0.3137287619047619,
+      "p95_latency": 0.4705931428571428,
+      "p99_latency": 0.6274575238095238,
+      "error_rate": 0.01,
+      "resource_usage": 50,
+      "efficiency": 0.85
+    },
+    {
+      "concurrency_level": 16,
+      "throughput": 68.9122268866483,
+      "average_latency": 99.90021161904758,
+      "p95_latency": 149.85031742857137,
+      "p99_latency": 199.80042323809516,
+      "error_rate": 0.01,
+      "resource_usage": 50,
+      "efficiency": 0.85
+    },
+    {
+      "concurrency_level": 32,
+      "throughput": 61.4899141419504,
+      "average_latency": 0.1073002380952381,
+      "p95_latency": 0.16095035714285716,
+      "p99_latency": 0.2146004761904762,
+      "error_rate": 0.01,
+      "resource_usage": 50,
+      "efficiency": 0.85
+    }
+  ],
+  "performance_metrics": {
+    "response_time_metrics": {
+      "min_response_time": 0.034164,
+      "max_response_time": 0.070754,
+      "average_response_time": 0.048589809523809514,
+      "median_response_time": 0.048589809523809514,
+      "p95_response_time": 0.07288471428571427,
+      "p99_response_time": 0.09717961904761903,
+      "p999_response_time": 0.14576942857142855,
+      "response_time_variance": 0.1,
+      "response_time_stability": 0.95
+    },
+    "throughput_metrics": {
+      "max_throughput": 63.65729652627574,
+      "average_throughput": 63.65729652627574,
+      "throughput_variance": 0.05,
+      "throughput_stability": 0.95,
+      "throughput_efficiency": 0.85
+    },
+    "resource_metrics": {
+      "memory_metrics": {
+        "peak_memory_usage": 0.40892791748046875,
+        "average_memory_usage": 0.32714233398437503,
+        "memory_leak_detected": false,
+        "memory_efficiency": 0.8
+      },
+      "cpu_metrics": {
+        "peak_cpu_usage": 80,
+        "average_cpu_usage": 60,
+        "cpu_utilization_efficiency": 0.75
+      },
+      "gc_metrics": {
+        "gc_pause_time": 0.000157574,
+        "gc_pause_count": 1,
+        "gc_efficiency": 0.9
+      }
+    },
+    "concurrency_metrics": {
+      "max_concurrency": 16,
+      "optimal_concurrency": 8,
+      "concurrency_efficiency": 0.85,
+      "scalability_factor": 0.9448300232516763
+    },
+    "stability_metrics": {
+      "overall_stability": 0.9,
+      "response_time_stability": 0.95,
+      "throughput_stability": 0.95,
+      "resource_stability": 0.85,
+      "error_rate_stability": 0.95
+    }
+  },
+  "recommendations": [
+    "Overall performance is below threshold. Consider optimizing critical paths."
+  ],
+  "issues": []
+}

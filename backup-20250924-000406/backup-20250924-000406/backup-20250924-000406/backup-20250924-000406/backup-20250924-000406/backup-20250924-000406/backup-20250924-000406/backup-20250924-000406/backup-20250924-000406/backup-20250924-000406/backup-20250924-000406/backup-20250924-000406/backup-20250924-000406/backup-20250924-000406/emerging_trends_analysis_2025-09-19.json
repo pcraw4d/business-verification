@@ -1,0 +1,610 @@
+{
+  "analysis_date": "2025-09-19T17:43:37.534985-04:00",
+  "total_trends": 15,
+  "trends_by_category": {
+    "Finance": {
+      "category": "Finance",
+      "trend_count": 1,
+      "critical_count": 0,
+      "high_count": 1,
+      "explosive_growth_count": 0,
+      "high_growth_count": 1,
+      "avg_implementation_effort": 2,
+      "avg_expected_impact": 3
+    },
+    "Healthcare": {
+      "category": "Healthcare",
+      "trend_count": 1,
+      "critical_count": 1,
+      "high_count": 0,
+      "explosive_growth_count": 1,
+      "high_growth_count": 1,
+      "avg_implementation_effort": 3,
+      "avg_expected_impact": 4
+    },
+    "Other": {
+      "category": "Other",
+      "trend_count": 3,
+      "critical_count": 0,
+      "high_count": 1,
+      "explosive_growth_count": 0,
+      "high_growth_count": 2,
+      "avg_implementation_effort": 3.5,
+      "avg_expected_impact": 2.5
+    },
+    "Retail": {
+      "category": "Retail",
+      "trend_count": 2,
+      "critical_count": 0,
+      "high_count": 2,
+      "explosive_growth_count": 0,
+      "high_growth_count": 2,
+      "avg_implementation_effort": 2,
+      "avg_expected_impact": 3
+    },
+    "Technology": {
+      "category": "Technology",
+      "trend_count": 8,
+      "critical_count": 3,
+      "high_count": 3,
+      "explosive_growth_count": 2,
+      "high_growth_count": 6,
+      "avg_implementation_effort": 2.5,
+      "avg_expected_impact": 3.5
+    }
+  },
+  "high_priority_trends": [
+    {
+      "trend_name": "Artificial Intelligence \u0026 Machine Learning",
+      "description": "AI/ML services, automation, intelligent systems, and machine learning platforms",
+      "category": "Technology",
+      "market_size": "Large",
+      "growth_rate": "Explosive Growth",
+      "adoption_rate": "Growing",
+      "priority": "Critical",
+      "expected_keywords": [
+        "artificial intelligence",
+        "machine learning",
+        "ai",
+        "ml",
+        "automation",
+        "neural networks",
+        "deep learning",
+        "chatbot",
+        "robotics",
+        "intelligent systems",
+        "predictive analytics",
+        "computer vision",
+        "nlp",
+        "natural language processing"
+      ],
+      "suggested_codes": [
+        "NAICS:541511",
+        "NAICS:541512",
+        "NAICS:541330",
+        "SIC:7372",
+        "SIC:7373",
+        "MCC:5734",
+        "MCC:7372"
+      ],
+      "market_indicators": "Market Value: $500B, Annual Growth: 35%, Key Players: OpenAI, Google, Microsoft, Amazon",
+      "implementation_effort": "Medium",
+      "expected_impact": "Very High"
+    },
+    {
+      "trend_name": "Cloud Computing \u0026 Infrastructure",
+      "description": "Cloud platforms, infrastructure as a service, and cloud-based solutions",
+      "category": "Technology",
+      "market_size": "Very Large",
+      "growth_rate": "High Growth",
+      "adoption_rate": "Mainstream",
+      "priority": "Critical",
+      "expected_keywords": [
+        "cloud computing",
+        "aws",
+        "azure",
+        "google cloud",
+        "cloud infrastructure",
+        "saas",
+        "paas",
+        "iaas",
+        "cloud migration",
+        "containerization",
+        "kubernetes",
+        "docker",
+        "microservices",
+        "serverless"
+      ],
+      "suggested_codes": [
+        "NAICS:518210",
+        "NAICS:541512",
+        "NAICS:541519",
+        "SIC:7373",
+        "SIC:7374",
+        "MCC:7372",
+        "MCC:7373"
+      ],
+      "market_indicators": "Market Value: $800B, Annual Growth: 25%, Key Players: AWS, Microsoft Azure, Google Cloud, IBM",
+      "implementation_effort": "Low",
+      "expected_impact": "Very High"
+    },
+    {
+      "trend_name": "Digital Health \u0026 Telemedicine",
+      "description": "Digital health solutions, telemedicine, and remote healthcare services",
+      "category": "Healthcare",
+      "market_size": "Large",
+      "growth_rate": "Explosive Growth",
+      "adoption_rate": "Growing",
+      "priority": "Critical",
+      "expected_keywords": [
+        "digital health",
+        "telemedicine",
+        "telehealth",
+        "remote healthcare",
+        "health tech",
+        "health monitoring",
+        "wearable devices",
+        "health apps",
+        "virtual care",
+        "remote patient monitoring",
+        "health informatics",
+        "electronic health records"
+      ],
+      "suggested_codes": [
+        "NAICS:621111",
+        "NAICS:621112",
+        "NAICS:541511",
+        "NAICS:541512",
+        "SIC:8011",
+        "SIC:7372",
+        "MCC:8062",
+        "MCC:8069"
+      ],
+      "market_indicators": "Market Value: $400B, Annual Growth: 40%, Key Players: Teladoc, Amwell, Doctor on Demand, MDLive",
+      "implementation_effort": "High",
+      "expected_impact": "Very High"
+    },
+    {
+      "trend_name": "Remote Work \u0026 Collaboration",
+      "description": "Remote work tools, collaboration platforms, and virtual services",
+      "category": "Technology",
+      "market_size": "Large",
+      "growth_rate": "Explosive Growth",
+      "adoption_rate": "Mainstream",
+      "priority": "Critical",
+      "expected_keywords": [
+        "remote work",
+        "work from home",
+        "telecommuting",
+        "collaboration tools",
+        "virtual meetings",
+        "video conferencing",
+        "project management",
+        "team collaboration",
+        "virtual office",
+        "remote team",
+        "distributed workforce",
+        "hybrid work"
+      ],
+      "suggested_codes": [
+        "NAICS:541511",
+        "NAICS:541512",
+        "NAICS:518210",
+        "SIC:7372",
+        "SIC:7373",
+        "MCC:7372",
+        "MCC:7373"
+      ],
+      "market_indicators": "Market Value: $150B, Annual Growth: 45%, Key Players: Zoom, Microsoft Teams, Slack, Google Workspace",
+      "implementation_effort": "Low",
+      "expected_impact": "Very High"
+    },
+    {
+      "trend_name": "Cybersecurity \u0026 Information Security",
+      "description": "Information security, cybersecurity services, and data protection solutions",
+      "category": "Technology",
+      "market_size": "Large",
+      "growth_rate": "High Growth",
+      "adoption_rate": "Growing",
+      "priority": "High",
+      "expected_keywords": [
+        "cybersecurity",
+        "information security",
+        "cyber security",
+        "network security",
+        "data protection",
+        "penetration testing",
+        "vulnerability assessment",
+        "security audit",
+        "firewall",
+        "encryption",
+        "compliance",
+        "risk assessment",
+        "security monitoring",
+        "threat detection"
+      ],
+      "suggested_codes": [
+        "NAICS:541511",
+        "NAICS:541512",
+        "NAICS:541519",
+        "SIC:7372",
+        "SIC:7373",
+        "MCC:7372",
+        "MCC:7373"
+      ],
+      "market_indicators": "Market Value: $200B, Annual Growth: 30%, Key Players: CrowdStrike, Palo Alto Networks, Fortinet, Check Point",
+      "implementation_effort": "Medium",
+      "expected_impact": "High"
+    },
+    {
+      "trend_name": "Fintech \u0026 Digital Banking",
+      "description": "Financial technology, digital banking, and payment solutions",
+      "category": "Finance",
+      "market_size": "Large",
+      "growth_rate": "High Growth",
+      "adoption_rate": "Growing",
+      "priority": "High",
+      "expected_keywords": [
+        "fintech",
+        "financial technology",
+        "digital banking",
+        "mobile banking",
+        "online banking",
+        "payment solutions",
+        "digital payments",
+        "mobile payments",
+        "payment gateway",
+        "robo advisor",
+        "insurtech",
+        "regtech",
+        "wealthtech",
+        "lending platform"
+      ],
+      "suggested_codes": [
+        "NAICS:522110",
+        "NAICS:523110",
+        "NAICS:541511",
+        "SIC:6021",
+        "SIC:6022",
+        "MCC:6010",
+        "MCC:6011"
+      ],
+      "market_indicators": "Market Value: $300B, Annual Growth: 25%, Key Players: Stripe, Square, PayPal, Adyen",
+      "implementation_effort": "Medium",
+      "expected_impact": "High"
+    },
+    {
+      "trend_name": "E-commerce \u0026 Digital Commerce",
+      "description": "Online retail, digital marketplaces, and e-commerce platforms",
+      "category": "Retail",
+      "market_size": "Very Large",
+      "growth_rate": "High Growth",
+      "adoption_rate": "Mainstream",
+      "priority": "High",
+      "expected_keywords": [
+        "ecommerce",
+        "e-commerce",
+        "online retail",
+        "digital commerce",
+        "online marketplace",
+        "digital marketplace",
+        "online shopping",
+        "digital storefront",
+        "omnichannel",
+        "social commerce",
+        "mobile commerce",
+        "subscription commerce"
+      ],
+      "suggested_codes": [
+        "NAICS:454110",
+        "NAICS:541511",
+        "NAICS:541512",
+        "SIC:5961",
+        "SIC:7372",
+        "MCC:5310",
+        "MCC:5311"
+      ],
+      "market_indicators": "Market Value: $600B, Annual Growth: 20%, Key Players: Amazon, Shopify, WooCommerce, Magento",
+      "implementation_effort": "Low",
+      "expected_impact": "High"
+    },
+    {
+      "trend_name": "Green Energy \u0026 Sustainability",
+      "description": "Renewable energy, sustainability solutions, and environmental technology",
+      "category": "Technology",
+      "market_size": "Large",
+      "growth_rate": "High Growth",
+      "adoption_rate": "Growing",
+      "priority": "High",
+      "expected_keywords": [
+        "renewable energy",
+        "solar energy",
+        "wind energy",
+        "green energy",
+        "sustainability",
+        "environmental technology",
+        "clean energy",
+        "carbon neutral",
+        "green technology",
+        "sustainable development",
+        "energy efficiency",
+        "solar panels",
+        "wind turbines"
+      ],
+      "suggested_codes": [
+        "NAICS:221114",
+        "NAICS:221115",
+        "NAICS:541330",
+        "SIC:4911",
+        "SIC:4953",
+        "MCC:4900",
+        "MCC:9399"
+      ],
+      "market_indicators": "Market Value: $250B, Annual Growth: 30%, Key Players: Tesla, First Solar, Vestas, Siemens Gamesa",
+      "implementation_effort": "High",
+      "expected_impact": "High"
+    },
+    {
+      "trend_name": "Food Technology \u0026 Delivery",
+      "description": "Food delivery platforms, food technology, and meal services",
+      "category": "Retail",
+      "market_size": "Large",
+      "growth_rate": "High Growth",
+      "adoption_rate": "Growing",
+      "priority": "High",
+      "expected_keywords": [
+        "food delivery",
+        "meal delivery",
+        "food tech",
+        "online food ordering",
+        "food app",
+        "meal kit",
+        "food subscription",
+        "ghost kitchen",
+        "virtual restaurant",
+        "food automation",
+        "smart kitchen",
+        "food robotics"
+      ],
+      "suggested_codes": [
+        "NAICS:722513",
+        "NAICS:454110",
+        "NAICS:541511",
+        "SIC:5812",
+        "SIC:5961",
+        "MCC:5812",
+        "MCC:5814"
+      ],
+      "market_indicators": "Market Value: $200B, Annual Growth: 25%, Key Players: DoorDash, Uber Eats, Grubhub, Postmates",
+      "implementation_effort": "Medium",
+      "expected_impact": "High"
+    }
+  ],
+  "implementation_roadmap": [
+    {
+      "trend_name": "Cloud Computing \u0026 Infrastructure",
+      "priority": "Critical",
+      "growth_rate": "High Growth",
+      "adoption_rate": "Mainstream",
+      "implementation_effort": "Low",
+      "expected_impact": "Very High",
+      "recommended_timeline": "Immediate",
+      "implementation_recommendation": "High ROI - Implement First"
+    },
+    {
+      "trend_name": "Remote Work \u0026 Collaboration",
+      "priority": "Critical",
+      "growth_rate": "Explosive Growth",
+      "adoption_rate": "Mainstream",
+      "implementation_effort": "Low",
+      "expected_impact": "Very High",
+      "recommended_timeline": "Immediate",
+      "implementation_recommendation": "High ROI - Implement First"
+    },
+    {
+      "trend_name": "E-commerce \u0026 Digital Commerce",
+      "priority": "High",
+      "growth_rate": "High Growth",
+      "adoption_rate": "Mainstream",
+      "implementation_effort": "Low",
+      "expected_impact": "High",
+      "recommended_timeline": "Short-term (1-3 months)",
+      "implementation_recommendation": "Good ROI - Implement Early"
+    },
+    {
+      "trend_name": "Artificial Intelligence \u0026 Machine Learning",
+      "priority": "Critical",
+      "growth_rate": "Explosive Growth",
+      "adoption_rate": "Growing",
+      "implementation_effort": "Medium",
+      "expected_impact": "Very High",
+      "recommended_timeline": "Short-term (1-3 months)",
+      "implementation_recommendation": "High ROI - Plan Implementation"
+    },
+    {
+      "trend_name": "Digital Health \u0026 Telemedicine",
+      "priority": "Critical",
+      "growth_rate": "Explosive Growth",
+      "adoption_rate": "Growing",
+      "implementation_effort": "High",
+      "expected_impact": "Very High",
+      "recommended_timeline": "Medium-term (3-6 months)",
+      "implementation_recommendation": "High ROI - Plan Implementation"
+    },
+    {
+      "trend_name": "Cybersecurity \u0026 Information Security",
+      "priority": "High",
+      "growth_rate": "High Growth",
+      "adoption_rate": "Growing",
+      "implementation_effort": "Medium",
+      "expected_impact": "High",
+      "recommended_timeline": "Medium-term (3-6 months)",
+      "implementation_recommendation": "Good ROI - Consider Implementation"
+    },
+    {
+      "trend_name": "Fintech \u0026 Digital Banking",
+      "priority": "High",
+      "growth_rate": "High Growth",
+      "adoption_rate": "Growing",
+      "implementation_effort": "Medium",
+      "expected_impact": "High",
+      "recommended_timeline": "Medium-term (3-6 months)",
+      "implementation_recommendation": "Good ROI - Consider Implementation"
+    },
+    {
+      "trend_name": "Green Energy \u0026 Sustainability",
+      "priority": "High",
+      "growth_rate": "High Growth",
+      "adoption_rate": "Growing",
+      "implementation_effort": "High",
+      "expected_impact": "High",
+      "recommended_timeline": "Long-term (6-12 months)",
+      "implementation_recommendation": "Good ROI - Consider Implementation"
+    },
+    {
+      "trend_name": "Food Technology \u0026 Delivery",
+      "priority": "High",
+      "growth_rate": "High Growth",
+      "adoption_rate": "Growing",
+      "implementation_effort": "Medium",
+      "expected_impact": "High",
+      "recommended_timeline": "Medium-term (3-6 months)",
+      "implementation_recommendation": "Good ROI - Consider Implementation"
+    }
+  ],
+  "market_opportunities": [
+    {
+      "opportunity_name": "AI-Powered Business Classification",
+      "description": "Leverage AI/ML for advanced business classification and risk assessment",
+      "market_size": "Large",
+      "growth_rate": "Explosive Growth",
+      "competition_level": "Medium",
+      "barriers_to_entry": "Medium",
+      "recommended_keywords": [
+        "ai classification",
+        "ml business analysis",
+        "intelligent classification",
+        "automated business assessment"
+      ],
+      "priority": "Critical"
+    },
+    {
+      "opportunity_name": "Green Business Verification",
+      "description": "Specialized verification for green energy and sustainability businesses",
+      "market_size": "Medium",
+      "growth_rate": "High Growth",
+      "competition_level": "Low",
+      "barriers_to_entry": "Low",
+      "recommended_keywords": [
+        "green business",
+        "sustainable business",
+        "renewable energy business",
+        "eco-friendly business"
+      ],
+      "priority": "High"
+    },
+    {
+      "opportunity_name": "Remote Work Business Support",
+      "description": "Specialized services for remote work and collaboration businesses",
+      "market_size": "Large",
+      "growth_rate": "Explosive Growth",
+      "competition_level": "Medium",
+      "barriers_to_entry": "Low",
+      "recommended_keywords": [
+        "remote work business",
+        "collaboration tools",
+        "virtual services",
+        "distributed workforce"
+      ],
+      "priority": "High"
+    },
+    {
+      "opportunity_name": "Digital Health Business Verification",
+      "description": "Specialized verification for digital health and telemedicine businesses",
+      "market_size": "Large",
+      "growth_rate": "Explosive Growth",
+      "competition_level": "Medium",
+      "barriers_to_entry": "Medium",
+      "recommended_keywords": [
+        "digital health business",
+        "telemedicine business",
+        "health tech business",
+        "remote healthcare business"
+      ],
+      "priority": "High"
+    },
+    {
+      "opportunity_name": "E-commerce Business Intelligence",
+      "description": "Advanced analytics and intelligence for e-commerce businesses",
+      "market_size": "Very Large",
+      "growth_rate": "High Growth",
+      "competition_level": "High",
+      "barriers_to_entry": "Medium",
+      "recommended_keywords": [
+        "ecommerce business",
+        "online retail business",
+        "digital marketplace business",
+        "online shopping business"
+      ],
+      "priority": "High"
+    }
+  ],
+  "recommendations": [
+    {
+      "recommendation": "Implement AI/ML-powered business classification system",
+      "priority": "Critical",
+      "impact": "Very High",
+      "effort": "High",
+      "timeline": "6-12 months",
+      "expected_roi": "Very High - 300%+ ROI"
+    },
+    {
+      "recommendation": "Add comprehensive cloud computing and remote work keywords",
+      "priority": "Critical",
+      "impact": "Very High",
+      "effort": "Low",
+      "timeline": "1-3 months",
+      "expected_roi": "Very High - 200%+ ROI"
+    },
+    {
+      "recommendation": "Create specialized e-commerce and digital commerce classification",
+      "priority": "High",
+      "impact": "High",
+      "effort": "Medium",
+      "timeline": "3-6 months",
+      "expected_roi": "High - 150%+ ROI"
+    },
+    {
+      "recommendation": "Develop digital health and telemedicine business verification",
+      "priority": "High",
+      "impact": "Very High",
+      "effort": "High",
+      "timeline": "6-12 months",
+      "expected_roi": "Very High - 250%+ ROI"
+    },
+    {
+      "recommendation": "Add green energy and sustainability business coverage",
+      "priority": "High",
+      "impact": "High",
+      "effort": "Medium",
+      "timeline": "3-6 months",
+      "expected_roi": "High - 120%+ ROI"
+    },
+    {
+      "recommendation": "Implement emerging trends monitoring and gap analysis",
+      "priority": "Medium",
+      "impact": "Medium",
+      "effort": "Medium",
+      "timeline": "3-6 months",
+      "expected_roi": "Medium - 100%+ ROI"
+    },
+    {
+      "recommendation": "Create trend-based business intelligence and analytics",
+      "priority": "Medium",
+      "impact": "Medium",
+      "effort": "High",
+      "timeline": "6-12 months",
+      "expected_roi": "Medium - 80%+ ROI"
+    }
+  ]
+}

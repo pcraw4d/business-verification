@@ -1,0 +1,81 @@
+{
+  "session_id": "calibration_1757525825",
+  "start_time": "2025-09-10T13:37:05.180223-04:00",
+  "end_time": "2025-09-10T13:37:05.182043-04:00",
+  "duration": 1819676,
+  "total_validations": 21,
+  "calibration_summary": {
+    "overall_calibration": 1,
+    "reliability_diagram_slope": 0,
+    "reliability_diagram_intercept": 0,
+    "calibration_error": 0,
+    "brier_score": 0,
+    "expected_calibration_error": 0,
+    "temperature_scaling_factor": 0,
+    "is_well_calibrated": true,
+    "calibration_quality": "excellent"
+  },
+  "reliability_diagram": {
+    "bins": null,
+    "slope": 0,
+    "intercept": 0,
+    "r2": 0,
+    "calibration_error": 0,
+    "reliability_error": 0,
+    "resolution_error": 0
+  },
+  "calibration_curve": {
+    "points": null,
+    "perfect_calibration_line": null,
+    "calibration_error": 0,
+    "area_under_curve": 0
+  },
+  "brier_score": {
+    "overall_brier_score": 0,
+    "reliability_component": 0,
+    "resolution_component": 0,
+    "uncertainty_component": 0,
+    "brier_score_by_bin": null
+  },
+  "expected_calibration_error": {
+    "overall_ece": 0,
+    "ece_by_bin": null,
+    "weighted_ece": 0,
+    "unweighted_ece": 0
+  },
+  "temperature_scaling": {
+    "optimal_temperature": 0,
+    "calibration_improvement": 0,
+    "before_calibration_ece": 0,
+    "after_calibration_ece": 0,
+    "temperature_optimization": null
+  },
+  "confidence_bins": [
+    {
+      "bin_index": 0,
+      "confidence_min": 0,
+      "confidence_max": 0.1,
+      "confidence_center": 0.05,
+      "sample_count": 21,
+      "actual_accuracy": 0,
+      "predicted_confidence": 0,
+      "calibration_error": 0,
+      "brier_score": 0
+    }
+  ],
+  "calibration_metrics": {
+    "calibration_error": 0,
+    "reliability_error": 0,
+    "resolution_error": 0,
+    "sharpness": 0,
+    "resolution": 0,
+    "reliability": 0,
+    "calibration_slope": 0,
+    "calibration_intercept": 0,
+    "r2": 0,
+    "mean_absolute_error": 0,
+    "root_mean_square_error": 0
+  },
+  "recommendations": [],
+  "issues": []
+}

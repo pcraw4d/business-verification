@@ -1,0 +1,44 @@
+name: Frontend Service CI/CD
+
+on:
+  push:
+    paths:
+      - "services/frontend/**"
+  pull_request:
+    paths:
+      - "services/frontend/**"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.25"
+
+      - name: Test Frontend
+        run: |
+          cd services/frontend
+          go test ./...
+
+      - name: Build Frontend
+        run: |
+          cd services/frontend
+          go build -o frontend-server ./cmd/main.go
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy Frontend to Railway
+        run: |
+          cd services/frontend
+          railway up --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

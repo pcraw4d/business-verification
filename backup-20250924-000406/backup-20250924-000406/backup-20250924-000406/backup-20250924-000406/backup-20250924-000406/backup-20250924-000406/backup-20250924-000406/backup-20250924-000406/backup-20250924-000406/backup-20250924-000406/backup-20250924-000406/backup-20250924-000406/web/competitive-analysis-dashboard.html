@@ -1,0 +1,3530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KYB Platform - Competitive Analysis Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="components/navigation.js"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-hover {
+            transition: all 0.3s ease-in-out;
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Competitive Analysis Specific Styles */
+        .competitor-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e5e7eb;
+            transition: all 0.3s ease-in-out;
+        }
+        
+        .competitor-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .competitive-strength-high {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+        .competitive-strength-medium {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+        .competitive-strength-low {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        
+        .market-position-leader {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+        }
+        .market-position-challenger {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+        }
+        .market-position-follower {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            color: white;
+        }
+        .market-position-niche {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+        
+        .advantage-indicator {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            margin: 2px;
+        }
+        
+        .advantage-cost {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+        .advantage-differentiation {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+        }
+        .advantage-focus {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+        }
+        .advantage-innovation {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+        
+        .skeleton-loading {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        .progressive-disclosure {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.4s ease-in-out;
+        }
+        .progressive-disclosure.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+        
+        .metric-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e5e7eb;
+        }
+        
+        .trend-indicator {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .trend-up {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+        .trend-down {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        .trend-stable {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            color: white;
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+        
+        .comparison-table th,
+        .comparison-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .comparison-table th {
+            background-color: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .comparison-table tr:hover {
+            background-color: #f9fafb;
+        }
+        
+        .score-bar {
+            width: 100%;
+            height: 8px;
+            background-color: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .score-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease-in-out;
+        }
+        
+        .score-excellent { background: linear-gradient(90deg, #10b981, #059669); }
+        .score-good { background: linear-gradient(90deg, #22c55e, #16a34a); }
+        .score-average { background: linear-gradient(90deg, #eab308, #ca8a04); }
+        .score-below-average { background: linear-gradient(90deg, #f97316, #ea580c); }
+        .score-poor { background: linear-gradient(90deg, #ef4444, #dc2626); }
+        
+        .filter-btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease-in-out;
+            border: 1px solid #e5e7eb;
+            background: white;
+            color: #6b7280;
+        }
+        
+        .filter-btn.active {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border-color: #3b82f6;
+        }
+        
+        .filter-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .intelligence-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e5e7eb;
+            margin-bottom: 16px;
+        }
+        
+        .intelligence-card h4 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 8px;
+        }
+        
+        .intelligence-card p {
+            color: #6b7280;
+            line-height: 1.5;
+        }
+        
+        .intelligence-card .timestamp {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-top: 8px;
+        }
+        
+        .positioning-matrix {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            background: #f9fafb;
+        }
+        
+        .positioning-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                linear-gradient(to right, #e5e7eb 1px, transparent 1px),
+                linear-gradient(to bottom, #e5e7eb 1px, transparent 1px);
+            background-size: 20% 20%;
+            opacity: 0.3;
+        }
+        
+        .positioning-point {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease-in-out;
+        }
+        
+        .positioning-point:hover {
+            transform: scale(1.2);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .positioning-point.leader { background: #3b82f6; }
+        .positioning-point.challenger { background: #8b5cf6; }
+        .positioning-point.follower { background: #6b7280; }
+        .positioning-point.niche { background: #f59e0b; }
+        
+        .positioning-label {
+            position: absolute;
+            font-size: 12px;
+            font-weight: 600;
+            color: #374151;
+            background: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            pointer-events: none;
+        }
+        
+        .axis-label {
+            position: absolute;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .axis-label.x-axis {
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .axis-label.y-axis {
+            left: -30px;
+            top: 50%;
+            transform: translateY(-50%) rotate(-90deg);
+        }
+        
+        /* Comparison Tools Specific Styles */
+        .comparison-checkbox {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: white;
+            transition: all 0.3s ease-in-out;
+            cursor: pointer;
+        }
+        
+        .comparison-checkbox:hover {
+            border-color: #3b82f6;
+            background: #f8fafc;
+        }
+        
+        .comparison-checkbox.selected {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+        
+        .comparison-checkbox input[type="checkbox"] {
+            margin-right: 8px;
+            accent-color: #3b82f6;
+        }
+        
+        .comparison-table th.sticky {
+            position: sticky;
+            left: 0;
+            z-index: 10;
+            background: white;
+            border-right: 2px solid #e5e7eb;
+        }
+        
+        .gap-analysis-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .gap-analysis-item.strength {
+            border-left-color: #10b981;
+        }
+        
+        .gap-analysis-item.improvement {
+            border-left-color: #f59e0b;
+        }
+        
+        .gap-analysis-item.warning {
+            border-left-color: #ef4444;
+        }
+        
+        .benchmark-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            transition: all 0.3s ease-in-out;
+        }
+        
+        .benchmark-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .benchmark-score {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 8px 0;
+        }
+        
+        .benchmark-score.excellent { color: #10b981; }
+        .benchmark-score.good { color: #22c55e; }
+        .benchmark-score.average { color: #eab308; }
+        .benchmark-score.below-average { color: #f97316; }
+        .benchmark-score.poor { color: #ef4444; }
+        
+        .comparison-mode-active {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+        }
+        
+        .comparison-mode-active .competitor-card {
+            border: 2px solid #3b82f6;
+            background: #eff6ff;
+        }
+        
+        .comparison-mode-active .competitor-card.selected {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+        
+        .metric-comparison-row {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        
+        .metric-comparison-row:last-child {
+            border-bottom: none;
+        }
+        
+        .metric-label {
+            flex: 1;
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        .metric-values {
+            display: flex;
+            gap: 16px;
+            flex: 2;
+        }
+        
+        .metric-value {
+            flex: 1;
+            text-align: center;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        
+        .metric-value.best {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .metric-value.worst {
+            background: #fef2f2;
+            color: #991b1b;
+        }
+        
+        .metric-value.average {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .export-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease-in-out;
+        }
+        
+        .export-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .export-modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        /* Competitive Advantage Indicators Styles */
+        .advantage-indicator-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease-in-out;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .advantage-indicator-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .advantage-indicator-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+        }
+        
+        .advantage-indicator-card.cost::before {
+            background: linear-gradient(90deg, #10b981, #059669);
+        }
+        
+        .advantage-indicator-card.differentiation::before {
+            background: linear-gradient(90deg, #3b82f6, #2563eb);
+        }
+        
+        .advantage-indicator-card.focus::before {
+            background: linear-gradient(90deg, #8b5cf6, #7c3aed);
+        }
+        
+        .advantage-indicator-card.innovation::before {
+            background: linear-gradient(90deg, #f59e0b, #d97706);
+        }
+        
+        .advantage-score {
+            font-size: 32px;
+            font-weight: bold;
+            margin: 12px 0;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .advantage-score.cost {
+            background: linear-gradient(135deg, #10b981, #059669);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .advantage-score.differentiation {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .advantage-score.focus {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .advantage-score.innovation {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .advantage-trend {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+        
+        .advantage-trend.up {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .advantage-trend.down {
+            background: #fef2f2;
+            color: #991b1b;
+        }
+        
+        .advantage-trend.stable {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .advantage-category-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 8px;
+            transition: all 0.3s ease-in-out;
+        }
+        
+        .advantage-category-item:hover {
+            border-color: #3b82f6;
+            background: #f8fafc;
+        }
+        
+        .advantage-category-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 18px;
+            color: white;
+        }
+        
+        .advantage-category-icon.cost {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+        
+        .advantage-category-icon.differentiation {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+        }
+        
+        .advantage-category-icon.focus {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        }
+        
+        .advantage-category-icon.innovation {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+        
+        .advantage-recommendation-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease-in-out;
+        }
+        
+        .advantage-recommendation-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .advantage-recommendation-card.high-priority {
+            border-left: 4px solid #ef4444;
+        }
+        
+        .advantage-recommendation-card.medium-priority {
+            border-left: 4px solid #f59e0b;
+        }
+        
+        .advantage-recommendation-card.low-priority {
+            border-left: 4px solid #10b981;
+        }
+        
+        .recommendation-priority {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .recommendation-priority.high {
+            background: #fef2f2;
+            color: #991b1b;
+        }
+        
+        .recommendation-priority.medium {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .recommendation-priority.low {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .action-button {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            border: 1px solid #e5e7eb;
+            background: white;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.3s ease-in-out;
+        }
+        
+        .action-button:hover {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        
+        .action-button.primary {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        
+        .action-button.primary:hover {
+            background: #2563eb;
+        }
+        
+        /* Competitive Intelligence Reports Styles */
+        .report-category-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease-in-out;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .report-category-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .report-category-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+        }
+        
+        .report-category-card.market::before {
+            background: linear-gradient(90deg, #10b981, #059669);
+        }
+        
+        .report-category-card.competitor::before {
+            background: linear-gradient(90deg, #3b82f6, #2563eb);
+        }
+        
+        .report-category-card.trends::before {
+            background: linear-gradient(90deg, #8b5cf6, #7c3aed);
+        }
+        
+        .report-category-card.threats::before {
+            background: linear-gradient(90deg, #ef4444, #dc2626);
+        }
+        
+        .report-count {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 12px 0;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .report-count.market {
+            background: linear-gradient(135deg, #10b981, #059669);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .report-count.competitor {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .report-count.trends {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .report-count.threats {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .intelligence-insight-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 16px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 12px;
+            transition: all 0.3s ease-in-out;
+        }
+        
+        .intelligence-insight-item:hover {
+            border-color: #3b82f6;
+            background: #f8fafc;
+        }
+        
+        .insight-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 18px;
+            color: white;
+            flex-shrink: 0;
+        }
+        
+        .insight-icon.high {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+        
+        .insight-icon.medium {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+        
+        .insight-icon.low {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+        
+        .insight-icon.info {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+        }
+        
+        .report-generation-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease-in-out;
+        }
+        
+        .report-generation-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .report-generation-content {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .report-parameter-group {
+            margin-bottom: 20px;
+        }
+        
+        .report-parameter-group label {
+            display: block;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+        
+        .report-parameter-group select,
+        .report-parameter-group input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .report-parameter-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 250px;
+            }
+            
+            .positioning-matrix {
+                height: 300px;
+            }
+            
+            .competitor-card {
+                padding: 16px;
+            }
+            
+            .comparison-table {
+                font-size: 14px;
+            }
+            
+            .metric-values {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .benchmark-card {
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="gradient-bg text-white py-6">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <i class="fas fa-chart-line text-3xl"></i>
+                    <div>
+                        <h1 class="text-2xl font-bold">Competitive Analysis Dashboard</h1>
+                        <p class="text-blue-100">Comprehensive competitive landscape analysis and intelligence</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button class="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg transition-all duration-300">
+                        <i class="fas fa-download mr-2"></i>Export Report
+                    </button>
+                    <button class="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg transition-all duration-300">
+                        <i class="fas fa-cog mr-2"></i>Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b">
+        <div class="container mx-auto px-4">
+            <div class="flex space-x-8">
+                <a href="dashboard.html" class="py-4 px-2 text-gray-600 hover:text-blue-600 transition-colors">
+                    <i class="fas fa-home mr-2"></i>Dashboard
+                </a>
+                <a href="risk-dashboard.html" class="py-4 px-2 text-gray-600 hover:text-blue-600 transition-colors">
+                    <i class="fas fa-shield-alt mr-2"></i>Risk Assessment
+                </a>
+                <a href="market-analysis-dashboard.html" class="py-4 px-2 text-gray-600 hover:text-blue-600 transition-colors">
+                    <i class="fas fa-chart-bar mr-2"></i>Market Analysis
+                </a>
+                <a href="competitive-analysis-dashboard.html" class="py-4 px-2 text-blue-600 border-b-2 border-blue-600">
+                    <i class="fas fa-users mr-2"></i>Competitive Analysis
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Key Metrics Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Market Position Card -->
+            <div class="metric-card card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Market Position</p>
+                        <p class="text-2xl font-bold text-gray-900" id="marketPosition">#3</p>
+                        <div class="flex items-center mt-2">
+                            <span class="trend-indicator trend-up">
+                                <i class="fas fa-arrow-up mr-1"></i>+1
+                            </span>
+                            <span class="text-xs text-gray-500 ml-2">vs last quarter</span>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-blue-100 rounded-full">
+                        <i class="fas fa-trophy text-blue-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Competitive Strength Card -->
+            <div class="metric-card card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Competitive Strength</p>
+                        <p class="text-2xl font-bold text-gray-900" id="competitiveStrength">8.2/10</p>
+                        <div class="flex items-center mt-2">
+                            <span class="trend-indicator trend-up">
+                                <i class="fas fa-arrow-up mr-1"></i>+0.5
+                            </span>
+                            <span class="text-xs text-gray-500 ml-2">vs last quarter</span>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-green-100 rounded-full">
+                        <i class="fas fa-fist-raised text-green-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Market Share Card -->
+            <div class="metric-card card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Market Share</p>
+                        <p class="text-2xl font-bold text-gray-900" id="marketShare">12.4%</p>
+                        <div class="flex items-center mt-2">
+                            <span class="trend-indicator trend-up">
+                                <i class="fas fa-arrow-up mr-1"></i>+1.2%
+                            </span>
+                            <span class="text-xs text-gray-500 ml-2">vs last year</span>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-purple-100 rounded-full">
+                        <i class="fas fa-pie-chart text-purple-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Threat Level Card -->
+            <div class="metric-card card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Competitive Threat</p>
+                        <p class="text-2xl font-bold text-gray-900" id="threatLevel">Medium</p>
+                        <div class="flex items-center mt-2">
+                            <span class="trend-indicator trend-stable">
+                                <i class="fas fa-minus mr-1"></i>0
+                            </span>
+                            <span class="text-xs text-gray-500 ml-2">vs last quarter</span>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-orange-100 rounded-full">
+                        <i class="fas fa-exclamation-triangle text-orange-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Dashboard Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Enhanced Competitive Positioning Matrix -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-bold text-gray-900">Competitive Positioning Matrix</h3>
+                    <div class="flex space-x-2">
+                        <button id="positioningPrice" class="filter-btn active">Price vs Quality</button>
+                        <button id="positioningInnovation" class="filter-btn">Innovation vs Market Share</button>
+                        <button id="positioningService" class="filter-btn">Service vs Cost</button>
+                        <button id="positioningCustom" class="filter-btn">Custom View</button>
+                    </div>
+                </div>
+                <div class="positioning-matrix" id="positioningMatrix">
+                    <!-- Positioning points will be dynamically placed -->
+                    <div class="axis-label x-axis">Quality/Innovation/Service</div>
+                    <div class="axis-label y-axis">Price/Market Share/Cost</div>
+                    <!-- Grid lines for better visualization -->
+                    <div class="positioning-grid"></div>
+                </div>
+                <div class="mt-4 grid grid-cols-2 gap-4">
+                    <div class="text-center">
+                        <p class="text-sm text-gray-600">Your Position</p>
+                        <p class="text-lg font-bold text-blue-600" id="yourPosition">High Quality, Medium Price</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-sm text-gray-600">Market Leader</p>
+                        <p class="text-lg font-bold text-green-600" id="marketLeader">TechCorp Solutions</p>
+                    </div>
+                </div>
+                <!-- Positioning Insights -->
+                <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+                    <h4 class="text-sm font-semibold text-gray-700 mb-2">Positioning Insights</h4>
+                    <div class="text-sm text-gray-600" id="positioningInsights">
+                        Your company is positioned in the premium quality segment with competitive pricing, creating a strong value proposition.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Competitor Comparison Chart -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-bold text-gray-900">Competitor Comparison</h3>
+                    <div class="flex space-x-2">
+                        <button id="compareRevenue" class="filter-btn active">Revenue</button>
+                        <button id="compareGrowth" class="filter-btn">Growth</button>
+                        <button id="compareMarketShare" class="filter-btn">Market Share</button>
+                        <button id="compareInnovation" class="filter-btn">Innovation</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="competitorChart"></canvas>
+                </div>
+                <div class="mt-4 flex justify-center space-x-4">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                        <span class="text-sm text-gray-600">Your Company</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                        <span class="text-sm text-gray-600">TechCorp Solutions</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>
+                        <span class="text-sm text-gray-600">InnovateNow Inc</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 bg-orange-500 rounded-full mr-2"></div>
+                        <span class="text-sm text-gray-600">FutureTech Ltd</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Positioning Charts Section -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-gray-900">Advanced Positioning Charts</h3>
+                <div class="flex space-x-2">
+                    <button id="chartRadar" class="filter-btn active">Radar Chart</button>
+                    <button id="chartBubble" class="filter-btn">Bubble Chart</button>
+                    <button id="chartHeatmap" class="filter-btn">Heat Map</button>
+                    <button id="chartScatter" class="filter-btn">Scatter Plot</button>
+                </div>
+            </div>
+            
+            <!-- Chart Container -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Primary Chart -->
+                <div>
+                    <h4 class="text-lg font-semibold text-gray-900 mb-4" id="primaryChartTitle">Competitive Radar Analysis</h4>
+                    <div class="chart-container">
+                        <canvas id="primaryPositioningChart"></canvas>
+                    </div>
+                    <div class="mt-4 text-center">
+                        <p class="text-sm text-gray-600" id="primaryChartDescription">
+                            Multi-dimensional analysis showing competitive strengths across key performance areas.
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Secondary Chart -->
+                <div>
+                    <h4 class="text-lg font-semibold text-gray-900 mb-4" id="secondaryChartTitle">Market Share vs Growth</h4>
+                    <div class="chart-container">
+                        <canvas id="secondaryPositioningChart"></canvas>
+                    </div>
+                    <div class="mt-4 text-center">
+                        <p class="text-sm text-gray-600" id="secondaryChartDescription">
+                            Bubble chart showing market position with size representing revenue and color indicating threat level.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Positioning Analysis Summary -->
+            <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="p-4 bg-blue-50 rounded-lg">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-chart-line text-blue-600 mr-2"></i>
+                        <h5 class="font-semibold text-blue-900">Market Position</h5>
+                    </div>
+                    <p class="text-sm text-blue-700" id="marketPositionSummary">
+                        Positioned as a strong challenger with above-average growth and innovation scores.
+                    </p>
+                </div>
+                
+                <div class="p-4 bg-green-50 rounded-lg">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-trophy text-green-600 mr-2"></i>
+                        <h5 class="font-semibold text-green-900">Competitive Advantages</h5>
+                    </div>
+                    <p class="text-sm text-green-700" id="advantagesSummary">
+                        Strong innovation capabilities and customer service excellence differentiate from competitors.
+                    </p>
+                </div>
+                
+                <div class="p-4 bg-orange-50 rounded-lg">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-target text-orange-600 mr-2"></i>
+                        <h5 class="font-semibold text-orange-900">Strategic Opportunities</h5>
+                    </div>
+                    <p class="text-sm text-orange-700" id="opportunitiesSummary">
+                        Opportunities to expand market share through strategic partnerships and geographic expansion.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Competitor Comparison Tools -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-gray-900">Advanced Competitor Comparison Tools</h3>
+                <div class="flex space-x-2">
+                    <button id="comparisonMode" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                        <i class="fas fa-balance-scale mr-2"></i>Comparison Mode
+                    </button>
+                    <button id="exportComparison" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors">
+                        <i class="fas fa-download mr-2"></i>Export Comparison
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Competitor Selection Panel -->
+            <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">Select Competitors for Comparison</h4>
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4" id="competitorSelection">
+                    <!-- Competitor selection checkboxes will be dynamically generated -->
+                </div>
+                <div class="mt-4 flex space-x-2">
+                    <button id="selectAll" class="text-sm text-blue-600 hover:text-blue-800">Select All</button>
+                    <button id="selectNone" class="text-sm text-gray-600 hover:text-gray-800">Select None</button>
+                    <button id="selectLeaders" class="text-sm text-green-600 hover:text-green-800">Select Leaders Only</button>
+                </div>
+            </div>
+            
+            <!-- Side-by-Side Comparison Table -->
+            <div class="mb-6" id="comparisonTableContainer">
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">Side-by-Side Comparison</h4>
+                <div class="overflow-x-auto">
+                    <table class="comparison-table w-full" id="comparisonTable">
+                        <thead>
+                            <tr>
+                                <th class="sticky left-0 bg-white">Metric</th>
+                                <!-- Competitor columns will be dynamically generated -->
+                            </tr>
+                        </thead>
+                        <tbody id="comparisonTableBody">
+                            <!-- Comparison rows will be dynamically generated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Competitive Gap Analysis -->
+            <div class="mb-6" id="gapAnalysisContainer">
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">Competitive Gap Analysis</h4>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                        <h5 class="text-md font-semibold text-gray-700 mb-3">Strengths vs Competitors</h5>
+                        <div class="space-y-3" id="strengthsAnalysis">
+                            <!-- Strengths analysis will be dynamically generated -->
+                        </div>
+                    </div>
+                    <div>
+                        <h5 class="text-md font-semibold text-gray-700 mb-3">Areas for Improvement</h5>
+                        <div class="space-y-3" id="improvementsAnalysis">
+                            <!-- Improvements analysis will be dynamically generated -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Competitive Benchmarking -->
+            <div class="mb-6" id="benchmarkingContainer">
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">Competitive Benchmarking</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="benchmarkingCards">
+                    <!-- Benchmarking cards will be dynamically generated -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Competitor Analysis Section -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-gray-900">Detailed Competitor Analysis</h3>
+                <div class="flex space-x-2">
+                    <button id="filterAll" class="filter-btn active">All Competitors</button>
+                    <button id="filterLeaders" class="filter-btn">Market Leaders</button>
+                    <button id="filterChallengers" class="filter-btn">Challengers</button>
+                    <button id="filterFollowers" class="filter-btn">Followers</button>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="competitorGrid">
+                <!-- Competitor cards will be dynamically generated -->
+            </div>
+        </div>
+
+        <!-- Enhanced Competitive Intelligence Reports -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-gray-900">Competitive Intelligence Reports</h3>
+                <div class="flex space-x-2">
+                    <button id="reportMarket" class="filter-btn active">Market Analysis</button>
+                    <button id="reportCompetitor" class="filter-btn">Competitor Profiles</button>
+                    <button id="reportTrends" class="filter-btn">Market Trends</button>
+                    <button id="reportThreats" class="filter-btn">Threat Assessment</button>
+                    <button id="reportAll" class="filter-btn">All Reports</button>
+                </div>
+            </div>
+            
+            <!-- Report Generation Controls -->
+            <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="text-lg font-semibold text-gray-900 mb-2">Generate Intelligence Reports</h4>
+                        <p class="text-sm text-gray-600">Create comprehensive competitive intelligence reports with custom parameters</p>
+                    </div>
+                    <div class="flex space-x-3">
+                        <button id="generateReport" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-file-alt mr-2"></i>Generate Report
+                        </button>
+                        <button id="exportAllReports" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                            <i class="fas fa-download mr-2"></i>Export All
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Report Categories -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" id="reportCategories">
+                <!-- Report category cards will be dynamically generated -->
+            </div>
+            
+            <!-- Intelligence Reports Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="intelligenceReports">
+                <!-- Intelligence reports will be dynamically generated -->
+            </div>
+            
+            <!-- Report Analytics -->
+            <div class="mt-8">
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">Report Analytics & Insights</h4>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Report Performance Chart -->
+                    <div class="bg-gray-50 rounded-lg p-6">
+                        <h5 class="text-md font-semibold text-gray-700 mb-4">Report Performance Metrics</h5>
+                        <div class="chart-container">
+                            <canvas id="reportPerformanceChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Intelligence Insights -->
+                    <div class="bg-gray-50 rounded-lg p-6">
+                        <h5 class="text-md font-semibold text-gray-700 mb-4">Intelligence Insights</h5>
+                        <div class="space-y-4" id="intelligenceInsights">
+                            <!-- Intelligence insights will be dynamically generated -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Competitive Advantages Analysis -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-gray-900">Competitive Advantages Analysis</h3>
+                <div class="flex space-x-2">
+                    <button id="advantageCost" class="filter-btn active">Cost Leadership</button>
+                    <button id="advantageDifferentiation" class="filter-btn">Differentiation</button>
+                    <button id="advantageFocus" class="filter-btn">Focus Strategy</button>
+                    <button id="advantageInnovation" class="filter-btn">Innovation</button>
+                    <button id="advantageAll" class="filter-btn">All Advantages</button>
+                </div>
+            </div>
+            
+            <!-- Advantage Indicators Overview -->
+            <div class="mb-8">
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">Competitive Advantage Indicators</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="advantageIndicators">
+                    <!-- Advantage indicator cards will be dynamically generated -->
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Enhanced Advantages Chart -->
+                <div>
+                    <h4 class="text-lg font-semibold text-gray-900 mb-4">Advantage Distribution</h4>
+                    <div class="chart-container">
+                        <canvas id="advantagesChart"></canvas>
+                    </div>
+                    <!-- Advantage Insights -->
+                    <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+                        <h5 class="text-sm font-semibold text-gray-700 mb-2">Key Insights</h5>
+                        <div class="text-sm text-gray-600" id="advantageInsights">
+                            Analysis of competitive advantage distribution across the market landscape.
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Enhanced Advantages Table -->
+                <div>
+                    <h4 class="text-lg font-semibold text-gray-900 mb-4">Detailed Advantages</h4>
+                    <table class="comparison-table">
+                        <thead>
+                            <tr>
+                                <th>Company</th>
+                                <th>Primary Advantage</th>
+                                <th>Strength Score</th>
+                                <th>Threat Level</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="advantagesTableBody">
+                            <!-- Table rows will be dynamically generated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Competitive Advantage Heat Map -->
+            <div class="mt-8">
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">Competitive Advantage Heat Map</h4>
+                <div class="bg-gray-50 rounded-lg p-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <!-- Heat Map Visualization -->
+                        <div>
+                            <div class="chart-container">
+                                <canvas id="advantageHeatmap"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- Advantage Categories -->
+                        <div>
+                            <h5 class="text-md font-semibold text-gray-700 mb-4">Advantage Categories</h5>
+                            <div class="space-y-4" id="advantageCategories">
+                                <!-- Advantage category items will be dynamically generated -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Strategic Advantage Recommendations -->
+            <div class="mt-8">
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">Strategic Advantage Recommendations</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="advantageRecommendations">
+                    <!-- Strategic recommendations will be dynamically generated -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Report Generation Modal -->
+    <div id="reportGenerationModal" class="report-generation-modal">
+        <div class="report-generation-content">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-gray-900">Generate Intelligence Report</h3>
+                <button id="closeReportModal" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <form id="reportGenerationForm">
+                <div class="report-parameter-group">
+                    <label for="reportType">Report Type</label>
+                    <select id="reportType" required>
+                        <option value="">Select report type</option>
+                        <option value="market">Market Analysis</option>
+                        <option value="competitor">Competitor Profile</option>
+                        <option value="trends">Market Trends</option>
+                        <option value="threats">Threat Assessment</option>
+                        <option value="comprehensive">Comprehensive Analysis</option>
+                    </select>
+                </div>
+                
+                <div class="report-parameter-group">
+                    <label for="reportScope">Report Scope</label>
+                    <select id="reportScope" required>
+                        <option value="">Select scope</option>
+                        <option value="all">All Competitors</option>
+                        <option value="top3">Top 3 Competitors</option>
+                        <option value="custom">Custom Selection</option>
+                    </select>
+                </div>
+                
+                <div class="report-parameter-group">
+                    <label for="timeFrame">Time Frame</label>
+                    <select id="timeFrame" required>
+                        <option value="">Select time frame</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="quarterly">Quarterly</option>
+                        <option value="yearly">Yearly</option>
+                        <option value="custom">Custom Range</option>
+                    </select>
+                </div>
+                
+                <div class="report-parameter-group">
+                    <label for="reportFormat">Output Format</label>
+                    <select id="reportFormat" required>
+                        <option value="">Select format</option>
+                        <option value="pdf">PDF Report</option>
+                        <option value="excel">Excel Spreadsheet</option>
+                        <option value="powerpoint">PowerPoint Presentation</option>
+                        <option value="json">JSON Data</option>
+                    </select>
+                </div>
+                
+                <div class="report-parameter-group">
+                    <label for="reportNotes">Additional Notes</label>
+                    <textarea id="reportNotes" placeholder="Add any specific requirements or focus areas for this report..."></textarea>
+                </div>
+                
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" id="cancelReportGeneration" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        <i class="fas fa-file-alt mr-2"></i>Generate Report
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8 mt-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">KYB Platform</h4>
+                    <p class="text-gray-400">Comprehensive business verification and risk assessment platform.</p>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Quick Links</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white transition-colors">Dashboard</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Risk Assessment</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Market Analysis</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Competitive Analysis</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Support</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white transition-colors">Documentation</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">API Reference</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Contact Support</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2025 KYB Platform. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Export Modal -->
+    <div class="export-modal" id="exportModal">
+        <div class="export-modal-content">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-gray-900">Export Comparison Report</h3>
+                <button id="closeExportModal" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Export Format</label>
+                    <select id="exportFormat" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="pdf">PDF Report</option>
+                        <option value="excel">Excel Spreadsheet</option>
+                        <option value="csv">CSV Data</option>
+                        <option value="json">JSON Data</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Include Sections</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="checkbox" checked class="mr-2" id="includeOverview">
+                            <span class="text-sm text-gray-700">Overview & Key Metrics</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" checked class="mr-2" id="includeComparison">
+                            <span class="text-sm text-gray-700">Side-by-Side Comparison</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" checked class="mr-2" id="includeGapAnalysis">
+                            <span class="text-sm text-gray-700">Gap Analysis</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" checked class="mr-2" id="includeBenchmarking">
+                            <span class="text-sm text-gray-700">Benchmarking</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" class="mr-2" id="includeCharts">
+                            <span class="text-sm text-gray-700">Charts & Visualizations</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Report Title</label>
+                    <input type="text" id="reportTitle" value="Competitive Analysis Report" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                
+                <div class="flex space-x-3 pt-4">
+                    <button id="confirmExport" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg transition-colors">
+                        <i class="fas fa-download mr-2"></i>Export Report
+                    </button>
+                    <button id="cancelExport" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Competitive Analysis Dashboard JavaScript
+        class CompetitiveAnalysisDashboard {
+            constructor() {
+                this.competitors = [
+                    {
+                        id: 1,
+                        name: "TechCorp Solutions",
+                        position: "leader",
+                        marketShare: 28.5,
+                        revenue: 2.4,
+                        growth: 15.2,
+                        innovation: 9.2,
+                        strengths: ["Technology", "Market Presence", "Brand Recognition"],
+                        weaknesses: ["High Costs", "Complexity"],
+                        advantages: ["cost", "differentiation"],
+                        threatLevel: "high"
+                    },
+                    {
+                        id: 2,
+                        name: "InnovateNow Inc",
+                        position: "challenger",
+                        marketShare: 18.3,
+                        revenue: 1.8,
+                        growth: 22.1,
+                        innovation: 9.8,
+                        strengths: ["Innovation", "Agility", "Customer Focus"],
+                        weaknesses: ["Limited Resources", "Market Reach"],
+                        advantages: ["innovation", "focus"],
+                        threatLevel: "high"
+                    },
+                    {
+                        id: 3,
+                        name: "FutureTech Ltd",
+                        position: "follower",
+                        marketShare: 12.4,
+                        revenue: 1.2,
+                        growth: 8.7,
+                        innovation: 7.5,
+                        strengths: ["Cost Efficiency", "Reliability"],
+                        weaknesses: ["Innovation", "Market Position"],
+                        advantages: ["cost"],
+                        threatLevel: "medium"
+                    },
+                    {
+                        id: 4,
+                        name: "Your Company",
+                        position: "challenger",
+                        marketShare: 12.4,
+                        revenue: 1.1,
+                        growth: 18.5,
+                        innovation: 8.2,
+                        strengths: ["Quality", "Customer Service", "Innovation"],
+                        weaknesses: ["Market Share", "Brand Recognition"],
+                        advantages: ["differentiation", "innovation"],
+                        threatLevel: "medium"
+                    },
+                    {
+                        id: 5,
+                        name: "NicheCorp",
+                        position: "niche",
+                        marketShare: 5.2,
+                        revenue: 0.5,
+                        growth: 12.3,
+                        innovation: 8.8,
+                        strengths: ["Specialization", "Expertise"],
+                        weaknesses: ["Limited Scope", "Resources"],
+                        advantages: ["focus"],
+                        threatLevel: "low"
+                    }
+                ];
+                
+                this.intelligenceReports = [
+                    {
+                        id: 1,
+                        title: "TechCorp Solutions Product Launch Analysis",
+                        summary: "Analysis of TechCorp's new AI-powered platform and its potential market impact.",
+                        category: "Product Intelligence",
+                        priority: "high",
+                        timestamp: "2025-01-15T10:30:00Z"
+                    },
+                    {
+                        id: 2,
+                        title: "InnovateNow Inc Funding Round Update",
+                        summary: "Recent Series C funding round positions InnovateNow for aggressive market expansion.",
+                        category: "Financial Intelligence",
+                        priority: "medium",
+                        timestamp: "2025-01-14T15:45:00Z"
+                    },
+                    {
+                        id: 3,
+                        title: "Market Share Shifts Q4 2024",
+                        summary: "Comprehensive analysis of market share changes and competitive positioning shifts.",
+                        category: "Market Intelligence",
+                        priority: "high",
+                        timestamp: "2025-01-13T09:15:00Z"
+                    },
+                    {
+                        id: 4,
+                        title: "FutureTech Ltd Partnership Announcement",
+                        summary: "Strategic partnership with major enterprise client could impact competitive landscape.",
+                        category: "Strategic Intelligence",
+                        priority: "medium",
+                        timestamp: "2025-01-12T14:20:00Z"
+                    }
+                ];
+                
+                this.init();
+            }
+            
+            init() {
+                this.selectedCompetitors = new Set();
+                this.comparisonMode = false;
+                this.renderCompetitorCards();
+                this.renderIntelligenceReports();
+                this.renderReportCategories();
+                this.renderIntelligenceInsights();
+                this.renderAdvantagesTable();
+                this.renderAdvantageIndicators();
+                this.renderAdvantageCategories();
+                this.renderAdvantageRecommendations();
+                this.renderCompetitorSelection();
+                this.renderComparisonTable();
+                this.renderGapAnalysis();
+                this.renderBenchmarking();
+                this.initCharts();
+                this.initPositioningMatrix();
+                this.bindEvents();
+                this.startProgressiveDisclosure();
+            }
+            
+            renderCompetitorCards() {
+                const grid = document.getElementById('competitorGrid');
+                grid.innerHTML = '';
+                
+                this.competitors.forEach(competitor => {
+                    const card = this.createCompetitorCard(competitor);
+                    grid.appendChild(card);
+                });
+            }
+            
+            createCompetitorCard(competitor) {
+                const card = document.createElement('div');
+                card.className = 'competitor-card progressive-disclosure';
+                card.dataset.position = competitor.position;
+                
+                const positionClass = `market-position-${competitor.position}`;
+                const threatClass = `competitive-strength-${competitor.threatLevel === 'high' ? 'high' : competitor.threatLevel === 'medium' ? 'medium' : 'low'}`;
+                
+                card.innerHTML = `
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="text-lg font-semibold text-gray-900">${competitor.name}</h4>
+                        <span class="advantage-indicator ${positionClass}">${competitor.position.charAt(0).toUpperCase() + competitor.position.slice(1)}</span>
+                    </div>
+                    
+                    <div class="space-y-3 mb-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Market Share</span>
+                            <span class="font-semibold">${competitor.marketShare}%</span>
+                        </div>
+                        <div class="score-bar">
+                            <div class="score-fill score-${this.getScoreClass(competitor.marketShare / 30 * 100)}" style="width: ${competitor.marketShare / 30 * 100}%"></div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Growth Rate</span>
+                            <span class="font-semibold">${competitor.growth}%</span>
+                        </div>
+                        <div class="score-bar">
+                            <div class="score-fill score-${this.getScoreClass(competitor.growth / 25 * 100)}" style="width: ${competitor.growth / 25 * 100}%"></div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Innovation Score</span>
+                            <span class="font-semibold">${competitor.innovation}/10</span>
+                        </div>
+                        <div class="score-bar">
+                            <div class="score-fill score-${this.getScoreClass(competitor.innovation * 10)}" style="width: ${competitor.innovation * 10}%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h5 class="text-sm font-semibold text-gray-700 mb-2">Key Strengths</h5>
+                        <div class="flex flex-wrap gap-1">
+                            ${competitor.strengths.map(strength => `<span class="advantage-indicator advantage-differentiation">${strength}</span>`).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h5 class="text-sm font-semibold text-gray-700 mb-2">Primary Advantages</h5>
+                        <div class="flex flex-wrap gap-1">
+                            ${competitor.advantages.map(advantage => `<span class="advantage-indicator advantage-${advantage}">${advantage.charAt(0).toUpperCase() + advantage.slice(1)}</span>`).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600">Threat Level</span>
+                        <span class="advantage-indicator ${threatClass}">${competitor.threatLevel.charAt(0).toUpperCase() + competitor.threatLevel.slice(1)}</span>
+                    </div>
+                `;
+                
+                return card;
+            }
+            
+            renderIntelligenceReports() {
+                const container = document.getElementById('intelligenceReports');
+                container.innerHTML = '';
+                
+                this.intelligenceReports.forEach(report => {
+                    const card = this.createIntelligenceCard(report);
+                    container.appendChild(card);
+                });
+            }
+            
+            createIntelligenceCard(report) {
+                const card = document.createElement('div');
+                card.className = 'intelligence-card progressive-disclosure';
+                
+                const priorityClass = report.priority === 'high' ? 'competitive-strength-high' : 'competitive-strength-medium';
+                const timestamp = new Date(report.timestamp).toLocaleDateString();
+                
+                card.innerHTML = `
+                    <div class="flex items-center justify-between mb-2">
+                        <h4>${report.title}</h4>
+                        <span class="advantage-indicator ${priorityClass}">${report.priority.charAt(0).toUpperCase() + report.priority.slice(1)}</span>
+                    </div>
+                    <p>${report.summary}</p>
+                    <div class="flex items-center justify-between mt-3">
+                        <span class="advantage-indicator advantage-focus">${report.category}</span>
+                        <span class="timestamp">${timestamp}</span>
+                    </div>
+                `;
+                
+                return card;
+            }
+            
+            renderReportCategories() {
+                const container = document.getElementById('reportCategories');
+                container.innerHTML = '';
+                
+                const categories = [
+                    { 
+                        key: 'market', 
+                        name: 'Market Analysis', 
+                        icon: 'fas fa-chart-line',
+                        count: 2,
+                        description: 'Market trends and opportunities'
+                    },
+                    { 
+                        key: 'competitor', 
+                        name: 'Competitor Profiles', 
+                        icon: 'fas fa-users',
+                        count: 1,
+                        description: 'Detailed competitor analysis'
+                    },
+                    { 
+                        key: 'trends', 
+                        name: 'Market Trends', 
+                        icon: 'fas fa-trending-up',
+                        count: 2,
+                        description: 'Emerging trends and patterns'
+                    },
+                    { 
+                        key: 'threats', 
+                        name: 'Threat Assessment', 
+                        icon: 'fas fa-shield-alt',
+                        count: 1,
+                        description: 'Risk and threat analysis'
+                    }
+                ];
+                
+                categories.forEach(category => {
+                    const card = document.createElement('div');
+                    card.className = `report-category-card ${category.key}`;
+                    
+                    card.innerHTML = `
+                        <div class="text-sm font-medium text-gray-600 mb-2">${category.name}</div>
+                        <div class="report-count ${category.key}">${category.count}</div>
+                        <div class="text-xs text-gray-500">${category.description}</div>
+                    `;
+                    
+                    container.appendChild(card);
+                });
+            }
+            
+            renderIntelligenceInsights() {
+                const container = document.getElementById('intelligenceInsights');
+                container.innerHTML = '';
+                
+                const insights = [
+                    {
+                        type: 'high',
+                        icon: 'fas fa-exclamation-triangle',
+                        title: 'High Threat Level Detected',
+                        description: 'TechCorp Solutions is rapidly gaining market share in the enterprise segment, posing a significant competitive threat.',
+                        action: 'Immediate strategic response required'
+                    },
+                    {
+                        type: 'medium',
+                        icon: 'fas fa-chart-line',
+                        title: 'Market Opportunity Identified',
+                        description: 'Emerging market segment shows 25% growth potential with limited competitive presence.',
+                        action: 'Consider market entry strategy'
+                    },
+                    {
+                        type: 'info',
+                        icon: 'fas fa-lightbulb',
+                        title: 'Innovation Gap Analysis',
+                        description: 'Your company leads in innovation metrics but lags in market penetration of new products.',
+                        action: 'Focus on go-to-market strategy'
+                    },
+                    {
+                        type: 'low',
+                        icon: 'fas fa-check-circle',
+                        title: 'Competitive Advantage Maintained',
+                        description: 'Cost leadership position remains strong with 15% operational efficiency advantage.',
+                        action: 'Continue current strategy'
+                    }
+                ];
+                
+                insights.forEach(insight => {
+                    const item = document.createElement('div');
+                    item.className = 'intelligence-insight-item';
+                    
+                    item.innerHTML = `
+                        <div class="insight-icon ${insight.type}">
+                            <i class="${insight.icon}"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="font-semibold text-gray-900 mb-1">${insight.title}</div>
+                            <div class="text-sm text-gray-600 mb-2">${insight.description}</div>
+                            <div class="text-xs text-blue-600 font-medium">${insight.action}</div>
+                        </div>
+                    `;
+                    
+                    container.appendChild(item);
+                });
+            }
+            
+            renderAdvantagesTable() {
+                const tbody = document.getElementById('advantagesTableBody');
+                tbody.innerHTML = '';
+                
+                this.competitors.forEach(competitor => {
+                    const row = document.createElement('tr');
+                    const primaryAdvantage = competitor.advantages[0] || 'none';
+                    const strengthScore = Math.round((competitor.marketShare + competitor.growth + competitor.innovation * 10) / 3);
+                    
+                    row.innerHTML = `
+                        <td class="font-semibold">${competitor.name}</td>
+                        <td><span class="advantage-indicator advantage-${primaryAdvantage}">${primaryAdvantage.charAt(0).toUpperCase() + primaryAdvantage.slice(1)}</span></td>
+                        <td>
+                            <div class="flex items-center">
+                                <span class="mr-2">${strengthScore}/100</span>
+                                <div class="score-bar flex-1">
+                                    <div class="score-fill score-${this.getScoreClass(strengthScore)}" style="width: ${strengthScore}%"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="advantage-indicator competitive-strength-${competitor.threatLevel}">${competitor.threatLevel.charAt(0).toUpperCase() + competitor.threatLevel.slice(1)}</span></td>
+                        <td>
+                            <button class="action-button" onclick="this.analyzeCompetitor('${competitor.id}')">Analyze</button>
+                        </td>
+                    `;
+                    
+                    tbody.appendChild(row);
+                });
+            }
+            
+            renderAdvantageIndicators() {
+                const container = document.getElementById('advantageIndicators');
+                container.innerHTML = '';
+                
+                const advantageTypes = [
+                    { key: 'cost', name: 'Cost Leadership', icon: 'fas fa-dollar-sign', score: 75, trend: 'up' },
+                    { key: 'differentiation', name: 'Differentiation', icon: 'fas fa-star', score: 82, trend: 'up' },
+                    { key: 'focus', name: 'Focus Strategy', icon: 'fas fa-bullseye', score: 68, trend: 'stable' },
+                    { key: 'innovation', name: 'Innovation', icon: 'fas fa-lightbulb', score: 88, trend: 'up' }
+                ];
+                
+                advantageTypes.forEach(advantage => {
+                    const card = document.createElement('div');
+                    card.className = `advantage-indicator-card ${advantage.key}`;
+                    
+                    const trendIcon = advantage.trend === 'up' ? 'fas fa-arrow-up' : 
+                                    advantage.trend === 'down' ? 'fas fa-arrow-down' : 'fas fa-minus';
+                    
+                    card.innerHTML = `
+                        <div class="text-sm font-medium text-gray-600 mb-2">${advantage.name}</div>
+                        <div class="advantage-score ${advantage.key}">${advantage.score}%</div>
+                        <div class="advantage-trend ${advantage.trend}">
+                            <i class="${trendIcon} mr-1"></i>
+                            ${advantage.trend === 'up' ? '+5.2%' : advantage.trend === 'down' ? '-2.1%' : '0.0%'}
+                        </div>
+                        <div class="text-xs text-gray-500 mt-2">vs last quarter</div>
+                    `;
+                    
+                    container.appendChild(card);
+                });
+            }
+            
+            renderAdvantageCategories() {
+                const container = document.getElementById('advantageCategories');
+                container.innerHTML = '';
+                
+                const categories = [
+                    { 
+                        type: 'cost', 
+                        name: 'Cost Leadership', 
+                        icon: 'fas fa-dollar-sign',
+                        description: 'Operational efficiency and cost optimization',
+                        companies: ['FutureTech Ltd', 'NicheCorp'],
+                        strength: 75
+                    },
+                    { 
+                        type: 'differentiation', 
+                        name: 'Product Differentiation', 
+                        icon: 'fas fa-star',
+                        description: 'Unique product features and quality',
+                        companies: ['Your Company', 'TechCorp Solutions'],
+                        strength: 82
+                    },
+                    { 
+                        type: 'focus', 
+                        name: 'Market Focus', 
+                        icon: 'fas fa-bullseye',
+                        description: 'Specialized market segments',
+                        companies: ['NicheCorp', 'InnovateNow Inc'],
+                        strength: 68
+                    },
+                    { 
+                        type: 'innovation', 
+                        name: 'Innovation Leadership', 
+                        icon: 'fas fa-lightbulb',
+                        description: 'Technology and process innovation',
+                        companies: ['InnovateNow Inc', 'Your Company'],
+                        strength: 88
+                    }
+                ];
+                
+                categories.forEach(category => {
+                    const item = document.createElement('div');
+                    item.className = 'advantage-category-item';
+                    
+                    item.innerHTML = `
+                        <div class="advantage-category-icon ${category.type}">
+                            <i class="${category.icon}"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="font-semibold text-gray-900">${category.name}</div>
+                            <div class="text-sm text-gray-600">${category.description}</div>
+                            <div class="text-xs text-gray-500 mt-1">
+                                Companies: ${category.companies.join(', ')}
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-bold text-gray-900">${category.strength}%</div>
+                            <div class="text-xs text-gray-500">Strength</div>
+                        </div>
+                    `;
+                    
+                    container.appendChild(item);
+                });
+            }
+            
+            renderAdvantageRecommendations() {
+                const container = document.getElementById('advantageRecommendations');
+                container.innerHTML = '';
+                
+                const recommendations = [
+                    {
+                        title: 'Strengthen Cost Leadership',
+                        description: 'Focus on operational efficiency improvements to compete with FutureTech Ltd in cost-sensitive segments.',
+                        priority: 'high',
+                        impact: 'High',
+                        effort: 'Medium',
+                        timeline: '3-6 months'
+                    },
+                    {
+                        title: 'Enhance Innovation Pipeline',
+                        description: 'Invest in R&D to maintain competitive advantage against InnovateNow Inc in innovation-driven markets.',
+                        priority: 'high',
+                        impact: 'High',
+                        effort: 'High',
+                        timeline: '6-12 months'
+                    },
+                    {
+                        title: 'Develop Market Focus Strategy',
+                        description: 'Identify and target specific market niches to differentiate from broad-market competitors.',
+                        priority: 'medium',
+                        impact: 'Medium',
+                        effort: 'Medium',
+                        timeline: '4-8 months'
+                    },
+                    {
+                        title: 'Improve Product Differentiation',
+                        description: 'Enhance unique value propositions to compete effectively with TechCorp Solutions.',
+                        priority: 'medium',
+                        impact: 'High',
+                        effort: 'Medium',
+                        timeline: '3-9 months'
+                    },
+                    {
+                        title: 'Strategic Partnership Opportunities',
+                        description: 'Explore partnerships with complementary companies to strengthen competitive position.',
+                        priority: 'low',
+                        impact: 'Medium',
+                        effort: 'Low',
+                        timeline: '2-4 months'
+                    },
+                    {
+                        title: 'Customer Experience Enhancement',
+                        description: 'Improve customer service and support to create sustainable competitive advantage.',
+                        priority: 'low',
+                        impact: 'Medium',
+                        effort: 'Low',
+                        timeline: '1-3 months'
+                    }
+                ];
+                
+                recommendations.forEach(rec => {
+                    const card = document.createElement('div');
+                    card.className = `advantage-recommendation-card ${rec.priority}-priority`;
+                    
+                    card.innerHTML = `
+                        <div class="recommendation-priority ${rec.priority}">
+                            ${rec.priority.charAt(0).toUpperCase() + rec.priority.slice(1)} Priority
+                        </div>
+                        <h5 class="font-semibold text-gray-900 mb-2">${rec.title}</h5>
+                        <p class="text-sm text-gray-600 mb-4">${rec.description}</p>
+                        <div class="grid grid-cols-2 gap-2 text-xs text-gray-500 mb-4">
+                            <div>
+                                <span class="font-medium">Impact:</span> ${rec.impact}
+                            </div>
+                            <div>
+                                <span class="font-medium">Effort:</span> ${rec.effort}
+                            </div>
+                            <div class="col-span-2">
+                                <span class="font-medium">Timeline:</span> ${rec.timeline}
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="action-button primary">Implement</button>
+                            <button class="action-button">Details</button>
+                        </div>
+                    `;
+                    
+                    container.appendChild(card);
+                });
+            }
+            
+            initCharts() {
+                this.initCompetitorChart();
+                this.initAdvantagesChart();
+                this.initAdvantageHeatmap();
+                this.initReportPerformanceChart();
+                this.initPositioningCharts();
+            }
+            
+            initCompetitorChart() {
+                const ctx = document.getElementById('competitorChart').getContext('2d');
+                
+                this.competitorChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: this.competitors.map(c => c.name),
+                        datasets: [{
+                            label: 'Revenue (Billion $)',
+                            data: this.competitors.map(c => c.revenue),
+                            backgroundColor: [
+                                '#3b82f6', // Your Company - Blue
+                                '#10b981', // TechCorp - Green
+                                '#8b5cf6', // InnovateNow - Purple
+                                '#f59e0b', // FutureTech - Orange
+                                '#6b7280'  // NicheCorp - Gray
+                            ],
+                            borderColor: [
+                                '#2563eb',
+                                '#059669',
+                                '#7c3aed',
+                                '#d97706',
+                                '#4b5563'
+                            ],
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: '#e5e7eb'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            initAdvantagesChart() {
+                const ctx = document.getElementById('advantagesChart').getContext('2d');
+                
+                const advantageCounts = {
+                    cost: 0,
+                    differentiation: 0,
+                    focus: 0,
+                    innovation: 0
+                };
+                
+                this.competitors.forEach(competitor => {
+                    competitor.advantages.forEach(advantage => {
+                        advantageCounts[advantage]++;
+                    });
+                });
+                
+                this.advantagesChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Cost Leadership', 'Differentiation', 'Focus Strategy', 'Innovation'],
+                        datasets: [{
+                            data: [
+                                advantageCounts.cost,
+                                advantageCounts.differentiation,
+                                advantageCounts.focus,
+                                advantageCounts.innovation
+                            ],
+                            backgroundColor: [
+                                '#10b981',
+                                '#3b82f6',
+                                '#8b5cf6',
+                                '#f59e0b'
+                            ],
+                            borderColor: [
+                                '#059669',
+                                '#2563eb',
+                                '#7c3aed',
+                                '#d97706'
+                            ],
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+                
+                this.updateAdvantageInsights();
+            }
+            
+            initAdvantageHeatmap() {
+                const ctx = document.getElementById('advantageHeatmap').getContext('2d');
+                
+                // Create heatmap data showing competitive advantage intensity
+                const heatmapData = {
+                    labels: ['Cost Leadership', 'Differentiation', 'Focus Strategy', 'Innovation'],
+                    datasets: this.competitors.map((competitor, index) => ({
+                        label: competitor.name,
+                        data: [
+                            competitor.advantages.includes('cost') ? 85 : 20,
+                            competitor.advantages.includes('differentiation') ? 90 : 25,
+                            competitor.advantages.includes('focus') ? 75 : 30,
+                            competitor.advantages.includes('innovation') ? 95 : 35
+                        ],
+                        backgroundColor: this.getCompetitorColor(index, 0.7),
+                        borderColor: this.getCompetitorColor(index, 1),
+                        borderWidth: 1
+                    }))
+                };
+                
+                this.advantageHeatmap = new Chart(ctx, {
+                    type: 'bar',
+                    data: heatmapData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                stacked: false,
+                                grid: {
+                                    display: false
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                title: {
+                                    display: true,
+                                    text: 'Advantage Strength (%)'
+                                },
+                                grid: {
+                                    color: '#e5e7eb'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            updateAdvantageInsights() {
+                const insights = document.getElementById('advantageInsights');
+                
+                // Calculate advantage insights
+                const yourCompany = this.competitors.find(c => c.name === 'Your Company');
+                if (!yourCompany) return;
+                
+                const yourAdvantages = yourCompany.advantages;
+                const totalAdvantages = yourAdvantages.length;
+                const innovationScore = yourCompany.innovation;
+                const marketShare = yourCompany.marketShare;
+                
+                let insightText = '';
+                
+                if (totalAdvantages >= 2 && innovationScore > 8) {
+                    insightText = 'Strong competitive position with multiple advantages and high innovation capability. Focus on maintaining differentiation while exploring new market opportunities.';
+                } else if (totalAdvantages >= 2) {
+                    insightText = 'Good competitive positioning with multiple advantages. Consider strengthening innovation capabilities to enhance market differentiation.';
+                } else if (innovationScore > 8) {
+                    insightText = 'Strong innovation capability provides competitive advantage. Focus on translating innovation into market share growth and operational efficiency.';
+                } else if (marketShare > 15) {
+                    insightText = 'Strong market position provides competitive advantage. Focus on innovation and differentiation to maintain and grow market leadership.';
+                } else {
+                    insightText = 'Opportunity to strengthen competitive advantages through focused strategy on cost leadership, differentiation, or market focus.';
+                }
+                
+                insights.textContent = insightText;
+            }
+            
+            initReportPerformanceChart() {
+                const ctx = document.getElementById('reportPerformanceChart').getContext('2d');
+                
+                this.reportPerformanceChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                        datasets: [
+                            {
+                                label: 'Reports Generated',
+                                data: [12, 19, 15, 25, 22, 30],
+                                borderColor: '#3b82f6',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            },
+                            {
+                                label: 'High Priority Reports',
+                                data: [8, 12, 10, 18, 15, 22],
+                                borderColor: '#ef4444',
+                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            },
+                            {
+                                label: 'Reports with Action Items',
+                                data: [6, 9, 7, 14, 12, 18],
+                                borderColor: '#10b981',
+                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Number of Reports'
+                                },
+                                grid: {
+                                    color: '#e5e7eb'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            initPositioningCharts() {
+                this.initRadarChart();
+                this.initBubbleChart();
+                this.currentChartType = 'radar';
+            }
+            
+            initRadarChart() {
+                const ctx = document.getElementById('primaryPositioningChart').getContext('2d');
+                
+                const radarData = {
+                    labels: ['Market Share', 'Growth Rate', 'Innovation', 'Revenue', 'Customer Satisfaction', 'Brand Recognition'],
+                    datasets: this.competitors.map((competitor, index) => ({
+                        label: competitor.name,
+                        data: [
+                            competitor.marketShare / 30 * 100, // Normalize to 0-100
+                            competitor.growth / 25 * 100,
+                            competitor.innovation * 10,
+                            competitor.revenue / 3 * 100,
+                            Math.random() * 100, // Simulated data
+                            Math.random() * 100  // Simulated data
+                        ],
+                        backgroundColor: this.getCompetitorColor(index, 0.2),
+                        borderColor: this.getCompetitorColor(index, 1),
+                        borderWidth: 2,
+                        pointBackgroundColor: this.getCompetitorColor(index, 1),
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: this.getCompetitorColor(index, 1)
+                    }))
+                };
+                
+                this.radarChart = new Chart(ctx, {
+                    type: 'radar',
+                    data: radarData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20
+                                }
+                            }
+                        },
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    stepSize: 20
+                                },
+                                grid: {
+                                    color: '#e5e7eb'
+                                },
+                                angleLines: {
+                                    color: '#e5e7eb'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            initBubbleChart() {
+                const ctx = document.getElementById('secondaryPositioningChart').getContext('2d');
+                
+                const bubbleData = {
+                    datasets: this.competitors.map((competitor, index) => ({
+                        label: competitor.name,
+                        data: [{
+                            x: competitor.marketShare,
+                            y: competitor.growth,
+                            r: competitor.revenue * 5 // Bubble size based on revenue
+                        }],
+                        backgroundColor: this.getCompetitorColor(index, 0.6),
+                        borderColor: this.getCompetitorColor(index, 1),
+                        borderWidth: 2
+                    }))
+                };
+                
+                this.bubbleChart = new Chart(ctx, {
+                    type: 'bubble',
+                    data: bubbleData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Market Share (%)'
+                                },
+                                grid: {
+                                    color: '#e5e7eb'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Growth Rate (%)'
+                                },
+                                grid: {
+                                    color: '#e5e7eb'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            getCompetitorColor(index, alpha = 1) {
+                const colors = [
+                    `rgba(59, 130, 246, ${alpha})`,   // Blue
+                    `rgba(16, 185, 129, ${alpha})`,   // Green
+                    `rgba(139, 92, 246, ${alpha})`,   // Purple
+                    `rgba(245, 158, 11, ${alpha})`,   // Orange
+                    `rgba(107, 114, 128, ${alpha})`   // Gray
+                ];
+                return colors[index % colors.length];
+            }
+            
+            initPositioningMatrix() {
+                const matrix = document.getElementById('positioningMatrix');
+                
+                // Clear existing points
+                matrix.querySelectorAll('.positioning-point, .positioning-label').forEach(el => el.remove());
+                
+                // Add positioning points
+                this.competitors.forEach(competitor => {
+                    const point = document.createElement('div');
+                    point.className = `positioning-point ${competitor.position}`;
+                    
+                    // Position based on quality vs price (simplified)
+                    const x = (competitor.innovation / 10) * 80 + 10; // 10-90% of width
+                    const y = 90 - (competitor.revenue / 3) * 80; // Invert Y axis
+                    
+                    point.style.left = `${x}%`;
+                    point.style.top = `${y}%`;
+                    
+                    // Add label
+                    const label = document.createElement('div');
+                    label.className = 'positioning-label';
+                    label.textContent = competitor.name;
+                    label.style.left = `${x + 2}%`;
+                    label.style.top = `${y - 2}%`;
+                    
+                    matrix.appendChild(point);
+                    matrix.appendChild(label);
+                });
+                
+                this.updatePositioningInsights();
+            }
+            
+            updatePositioningInsights() {
+                const yourCompany = this.competitors.find(c => c.name === 'Your Company');
+                if (!yourCompany) return;
+                
+                const insights = document.getElementById('positioningInsights');
+                const yourPosition = document.getElementById('yourPosition');
+                const marketLeader = document.getElementById('marketLeader');
+                
+                // Update positioning description
+                let positionDesc = '';
+                if (yourCompany.innovation > 8 && yourCompany.revenue < 1.5) {
+                    positionDesc = 'High Innovation, Premium Positioning';
+                } else if (yourCompany.innovation > 8 && yourCompany.revenue >= 1.5) {
+                    positionDesc = 'High Innovation, Market Leader';
+                } else if (yourCompany.innovation <= 8 && yourCompany.revenue < 1.5) {
+                    positionDesc = 'Balanced Quality, Competitive Pricing';
+                } else {
+                    positionDesc = 'Established Player, Market Follower';
+                }
+                
+                yourPosition.textContent = positionDesc;
+                
+                // Find market leader
+                const leader = this.competitors.reduce((max, current) => 
+                    current.marketShare > max.marketShare ? current : max
+                );
+                marketLeader.textContent = leader.name;
+                
+                // Update insights
+                let insightText = '';
+                if (yourCompany.marketShare < leader.marketShare * 0.5) {
+                    insightText = 'Significant opportunity to capture market share through strategic positioning and competitive differentiation.';
+                } else if (yourCompany.marketShare < leader.marketShare * 0.8) {
+                    insightText = 'Strong competitive position with potential to challenge market leadership through continued innovation.';
+                } else {
+                    insightText = 'Market leadership position with strong competitive advantages and market presence.';
+                }
+                
+                insights.textContent = insightText;
+            }
+            
+            renderCompetitorSelection() {
+                const container = document.getElementById('competitorSelection');
+                container.innerHTML = '';
+                
+                this.competitors.forEach(competitor => {
+                    const checkbox = document.createElement('div');
+                    checkbox.className = 'comparison-checkbox';
+                    checkbox.innerHTML = `
+                        <input type="checkbox" id="comp-${competitor.id}" value="${competitor.id}">
+                        <label for="comp-${competitor.id}" class="cursor-pointer">
+                            <span class="font-medium">${competitor.name}</span>
+                            <span class="text-xs text-gray-500 ml-2">${competitor.position}</span>
+                        </label>
+                    `;
+                    
+                    checkbox.addEventListener('change', (e) => {
+                        if (e.target.checked) {
+                            this.selectedCompetitors.add(competitor.id);
+                            checkbox.classList.add('selected');
+                        } else {
+                            this.selectedCompetitors.delete(competitor.id);
+                            checkbox.classList.remove('selected');
+                        }
+                        this.updateComparisonTable();
+                        this.updateGapAnalysis();
+                        this.updateBenchmarking();
+                    });
+                    
+                    container.appendChild(checkbox);
+                });
+            }
+            
+            renderComparisonTable() {
+                const table = document.getElementById('comparisonTable');
+                const tbody = document.getElementById('comparisonTableBody');
+                
+                if (this.selectedCompetitors.size === 0) {
+                    tbody.innerHTML = '<tr><td colspan="100%" class="text-center text-gray-500 py-8">Select competitors to compare</td></tr>';
+                    return;
+                }
+                
+                const selectedCompetitors = this.competitors.filter(c => this.selectedCompetitors.has(c.id));
+                
+                // Update header
+                const headerRow = table.querySelector('thead tr');
+                headerRow.innerHTML = '<th class="sticky left-0 bg-white">Metric</th>';
+                selectedCompetitors.forEach(competitor => {
+                    const th = document.createElement('th');
+                    th.textContent = competitor.name;
+                    th.className = 'text-center';
+                    headerRow.appendChild(th);
+                });
+                
+                // Update body
+                tbody.innerHTML = '';
+                const metrics = [
+                    { key: 'marketShare', label: 'Market Share (%)', format: (v) => `${v}%` },
+                    { key: 'revenue', label: 'Revenue (Billion $)', format: (v) => `$${v}B` },
+                    { key: 'growth', label: 'Growth Rate (%)', format: (v) => `${v}%` },
+                    { key: 'innovation', label: 'Innovation Score', format: (v) => `${v}/10` },
+                    { key: 'position', label: 'Market Position', format: (v) => v.charAt(0).toUpperCase() + v.slice(1) },
+                    { key: 'threatLevel', label: 'Threat Level', format: (v) => v.charAt(0).toUpperCase() + v.slice(1) }
+                ];
+                
+                metrics.forEach(metric => {
+                    const row = document.createElement('tr');
+                    const labelCell = document.createElement('td');
+                    labelCell.textContent = metric.label;
+                    labelCell.className = 'sticky left-0 bg-white font-medium';
+                    row.appendChild(labelCell);
+                    
+                    const values = selectedCompetitors.map(c => c[metric.key]);
+                    const bestValue = Math.max(...values);
+                    const worstValue = Math.min(...values);
+                    
+                    selectedCompetitors.forEach(competitor => {
+                        const cell = document.createElement('td');
+                        cell.textContent = metric.format(competitor[metric.key]);
+                        cell.className = 'text-center';
+                        
+                        if (competitor[metric.key] === bestValue && bestValue !== worstValue) {
+                            cell.classList.add('metric-value', 'best');
+                        } else if (competitor[metric.key] === worstValue && bestValue !== worstValue) {
+                            cell.classList.add('metric-value', 'worst');
+                        } else {
+                            cell.classList.add('metric-value', 'average');
+                        }
+                        
+                        row.appendChild(cell);
+                    });
+                    
+                    tbody.appendChild(row);
+                });
+            }
+            
+            renderGapAnalysis() {
+                const strengthsContainer = document.getElementById('strengthsAnalysis');
+                const improvementsContainer = document.getElementById('improvementsAnalysis');
+                
+                if (this.selectedCompetitors.size === 0) {
+                    strengthsContainer.innerHTML = '<p class="text-gray-500 text-center py-4">Select competitors to analyze gaps</p>';
+                    improvementsContainer.innerHTML = '<p class="text-gray-500 text-center py-4">Select competitors to analyze gaps</p>';
+                    return;
+                }
+                
+                const yourCompany = this.competitors.find(c => c.name === 'Your Company');
+                const selectedCompetitors = this.competitors.filter(c => this.selectedCompetitors.has(c.id) && c.name !== 'Your Company');
+                
+                if (!yourCompany || selectedCompetitors.length === 0) {
+                    strengthsContainer.innerHTML = '<p class="text-gray-500 text-center py-4">Select competitors to compare with your company</p>';
+                    improvementsContainer.innerHTML = '<p class="text-gray-500 text-center py-4">Select competitors to compare with your company</p>';
+                    return;
+                }
+                
+                // Analyze strengths
+                const strengths = [];
+                const improvements = [];
+                
+                // Market share analysis
+                const avgMarketShare = selectedCompetitors.reduce((sum, c) => sum + c.marketShare, 0) / selectedCompetitors.length;
+                if (yourCompany.marketShare > avgMarketShare) {
+                    strengths.push({
+                        metric: 'Market Share',
+                        value: `${yourCompany.marketShare}%`,
+                        advantage: `Above average (${avgMarketShare.toFixed(1)}%)`,
+                        type: 'strength'
+                    });
+                } else {
+                    improvements.push({
+                        metric: 'Market Share',
+                        value: `${yourCompany.marketShare}%`,
+                        gap: `${(avgMarketShare - yourCompany.marketShare).toFixed(1)}% below average`,
+                        type: 'improvement'
+                    });
+                }
+                
+                // Growth analysis
+                const avgGrowth = selectedCompetitors.reduce((sum, c) => sum + c.growth, 0) / selectedCompetitors.length;
+                if (yourCompany.growth > avgGrowth) {
+                    strengths.push({
+                        metric: 'Growth Rate',
+                        value: `${yourCompany.growth}%`,
+                        advantage: `Above average (${avgGrowth.toFixed(1)}%)`,
+                        type: 'strength'
+                    });
+                } else {
+                    improvements.push({
+                        metric: 'Growth Rate',
+                        value: `${yourCompany.growth}%`,
+                        gap: `${(avgGrowth - yourCompany.growth).toFixed(1)}% below average`,
+                        type: 'improvement'
+                    });
+                }
+                
+                // Innovation analysis
+                const avgInnovation = selectedCompetitors.reduce((sum, c) => sum + c.innovation, 0) / selectedCompetitors.length;
+                if (yourCompany.innovation > avgInnovation) {
+                    strengths.push({
+                        metric: 'Innovation Score',
+                        value: `${yourCompany.innovation}/10`,
+                        advantage: `Above average (${avgInnovation.toFixed(1)}/10)`,
+                        type: 'strength'
+                    });
+                } else {
+                    improvements.push({
+                        metric: 'Innovation Score',
+                        value: `${yourCompany.innovation}/10`,
+                        gap: `${(avgInnovation - yourCompany.innovation).toFixed(1)} points below average`,
+                        type: 'improvement'
+                    });
+                }
+                
+                // Render strengths
+                strengthsContainer.innerHTML = '';
+                strengths.forEach(strength => {
+                    const item = document.createElement('div');
+                    item.className = 'gap-analysis-item strength';
+                    item.innerHTML = `
+                        <div class="flex-1">
+                            <div class="font-semibold text-gray-900">${strength.metric}</div>
+                            <div class="text-sm text-gray-600">${strength.value} - ${strength.advantage}</div>
+                        </div>
+                        <div class="text-green-600">
+                            <i class="fas fa-arrow-up"></i>
+                        </div>
+                    `;
+                    strengthsContainer.appendChild(item);
+                });
+                
+                // Render improvements
+                improvementsContainer.innerHTML = '';
+                improvements.forEach(improvement => {
+                    const item = document.createElement('div');
+                    item.className = 'gap-analysis-item improvement';
+                    item.innerHTML = `
+                        <div class="flex-1">
+                            <div class="font-semibold text-gray-900">${improvement.metric}</div>
+                            <div class="text-sm text-gray-600">${improvement.value} - ${improvement.gap}</div>
+                        </div>
+                        <div class="text-orange-600">
+                            <i class="fas fa-arrow-up"></i>
+                        </div>
+                    `;
+                    improvementsContainer.appendChild(item);
+                });
+            }
+            
+            renderBenchmarking() {
+                const container = document.getElementById('benchmarkingCards');
+                container.innerHTML = '';
+                
+                if (this.selectedCompetitors.size === 0) {
+                    container.innerHTML = '<p class="text-gray-500 text-center py-8 col-span-full">Select competitors to benchmark</p>';
+                    return;
+                }
+                
+                const yourCompany = this.competitors.find(c => c.name === 'Your Company');
+                const selectedCompetitors = this.competitors.filter(c => this.selectedCompetitors.has(c.id) && c.name !== 'Your Company');
+                
+                if (!yourCompany || selectedCompetitors.length === 0) {
+                    container.innerHTML = '<p class="text-gray-500 text-center py-8 col-span-full">Select competitors to benchmark against your company</p>';
+                    return;
+                }
+                
+                const benchmarks = [
+                    {
+                        name: 'Market Share',
+                        yourValue: yourCompany.marketShare,
+                        avgValue: selectedCompetitors.reduce((sum, c) => sum + c.marketShare, 0) / selectedCompetitors.length,
+                        unit: '%'
+                    },
+                    {
+                        name: 'Growth Rate',
+                        yourValue: yourCompany.growth,
+                        avgValue: selectedCompetitors.reduce((sum, c) => sum + c.growth, 0) / selectedCompetitors.length,
+                        unit: '%'
+                    },
+                    {
+                        name: 'Innovation',
+                        yourValue: yourCompany.innovation,
+                        avgValue: selectedCompetitors.reduce((sum, c) => sum + c.innovation, 0) / selectedCompetitors.length,
+                        unit: '/10'
+                    },
+                    {
+                        name: 'Revenue',
+                        yourValue: yourCompany.revenue,
+                        avgValue: selectedCompetitors.reduce((sum, c) => sum + c.revenue, 0) / selectedCompetitors.length,
+                        unit: 'B$'
+                    }
+                ];
+                
+                benchmarks.forEach(benchmark => {
+                    const card = document.createElement('div');
+                    card.className = 'benchmark-card';
+                    
+                    const percentile = (benchmark.yourValue / benchmark.avgValue) * 50;
+                    const scoreClass = this.getScoreClass(percentile);
+                    
+                    card.innerHTML = `
+                        <div class="text-sm font-medium text-gray-600">${benchmark.name}</div>
+                        <div class="benchmark-score ${scoreClass}">${benchmark.yourValue}${benchmark.unit}</div>
+                        <div class="text-xs text-gray-500">vs ${benchmark.avgValue.toFixed(1)}${benchmark.unit} avg</div>
+                        <div class="mt-2">
+                            <div class="score-bar">
+                                <div class="score-fill score-${scoreClass}" style="width: ${Math.min(percentile, 100)}%"></div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    container.appendChild(card);
+                });
+            }
+            
+            updateComparisonTable() {
+                this.renderComparisonTable();
+            }
+            
+            updateGapAnalysis() {
+                this.renderGapAnalysis();
+            }
+            
+            updateBenchmarking() {
+                this.renderBenchmarking();
+            }
+            
+            bindEvents() {
+                // Filter buttons
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const parent = e.target.closest('.bg-white');
+                        parent.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        
+                        if (e.target.id.startsWith('filter')) {
+                            this.filterCompetitors(e.target.id);
+                        } else if (e.target.id.startsWith('compare')) {
+                            this.updateComparisonChart(e.target.id);
+                        } else if (e.target.id.startsWith('positioning')) {
+                            this.updatePositioningMatrix(e.target.id);
+                        } else if (e.target.id.startsWith('advantage')) {
+                            this.filterAdvantages(e.target.id);
+                        } else if (e.target.id.startsWith('chart')) {
+                            this.switchPositioningChart(e.target.id);
+                        }
+                    });
+                });
+                
+                // Comparison mode toggle
+                document.getElementById('comparisonMode').addEventListener('click', () => {
+                    this.toggleComparisonMode();
+                });
+                
+                // Export functionality
+                document.getElementById('exportComparison').addEventListener('click', () => {
+                    this.showExportModal();
+                });
+                
+                // Selection shortcuts
+                document.getElementById('selectAll').addEventListener('click', () => {
+                    this.selectAllCompetitors();
+                });
+                
+                document.getElementById('selectNone').addEventListener('click', () => {
+                    this.selectNoCompetitors();
+                });
+                
+                document.getElementById('selectLeaders').addEventListener('click', () => {
+                    this.selectLeadersOnly();
+                });
+                
+                // Export modal events
+                document.getElementById('closeExportModal').addEventListener('click', () => {
+                    this.hideExportModal();
+                });
+                
+                document.getElementById('cancelExport').addEventListener('click', () => {
+                    this.hideExportModal();
+                });
+                
+                document.getElementById('confirmExport').addEventListener('click', () => {
+                    this.exportComparison();
+                });
+                
+                // Close modal on outside click
+                document.getElementById('exportModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'exportModal') {
+                        this.hideExportModal();
+                    }
+                });
+                
+                // Report generation functionality
+                document.getElementById('generateReport')?.addEventListener('click', () => {
+                    this.showReportGenerationModal();
+                });
+                
+                document.getElementById('exportAllReports')?.addEventListener('click', () => {
+                    this.exportAllReports();
+                });
+                
+                document.getElementById('closeReportModal')?.addEventListener('click', () => {
+                    this.hideReportGenerationModal();
+                });
+                
+                document.getElementById('cancelReportGeneration')?.addEventListener('click', () => {
+                    this.hideReportGenerationModal();
+                });
+                
+                document.getElementById('reportGenerationForm')?.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.generateIntelligenceReport();
+                });
+                
+                // Close report modal on outside click
+                document.getElementById('reportGenerationModal')?.addEventListener('click', (e) => {
+                    if (e.target.id === 'reportGenerationModal') {
+                        this.hideReportGenerationModal();
+                    }
+                });
+            }
+            
+            toggleComparisonMode() {
+                this.comparisonMode = !this.comparisonMode;
+                const button = document.getElementById('comparisonMode');
+                const body = document.body;
+                
+                if (this.comparisonMode) {
+                    button.textContent = 'Exit Comparison Mode';
+                    button.classList.add('comparison-mode-active');
+                    body.classList.add('comparison-mode-active');
+                } else {
+                    button.innerHTML = '<i class="fas fa-balance-scale mr-2"></i>Comparison Mode';
+                    button.classList.remove('comparison-mode-active');
+                    body.classList.remove('comparison-mode-active');
+                }
+            }
+            
+            selectAllCompetitors() {
+                this.competitors.forEach(competitor => {
+                    this.selectedCompetitors.add(competitor.id);
+                    const checkbox = document.getElementById(`comp-${competitor.id}`);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                        checkbox.closest('.comparison-checkbox').classList.add('selected');
+                    }
+                });
+                this.updateComparisonTable();
+                this.updateGapAnalysis();
+                this.updateBenchmarking();
+            }
+            
+            selectNoCompetitors() {
+                this.selectedCompetitors.clear();
+                document.querySelectorAll('#competitorSelection input[type="checkbox"]').forEach(checkbox => {
+                    checkbox.checked = false;
+                    checkbox.closest('.comparison-checkbox').classList.remove('selected');
+                });
+                this.updateComparisonTable();
+                this.updateGapAnalysis();
+                this.updateBenchmarking();
+            }
+            
+            selectLeadersOnly() {
+                this.selectNoCompetitors();
+                this.competitors.filter(c => c.position === 'leader').forEach(competitor => {
+                    this.selectedCompetitors.add(competitor.id);
+                    const checkbox = document.getElementById(`comp-${competitor.id}`);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                        checkbox.closest('.comparison-checkbox').classList.add('selected');
+                    }
+                });
+                this.updateComparisonTable();
+                this.updateGapAnalysis();
+                this.updateBenchmarking();
+            }
+            
+            showExportModal() {
+                document.getElementById('exportModal').classList.add('active');
+            }
+            
+            hideExportModal() {
+                document.getElementById('exportModal').classList.remove('active');
+            }
+            
+            exportComparison() {
+                const format = document.getElementById('exportFormat').value;
+                const title = document.getElementById('reportTitle').value;
+                const includeOverview = document.getElementById('includeOverview').checked;
+                const includeComparison = document.getElementById('includeComparison').checked;
+                const includeGapAnalysis = document.getElementById('includeGapAnalysis').checked;
+                const includeBenchmarking = document.getElementById('includeBenchmarking').checked;
+                const includeCharts = document.getElementById('includeCharts').checked;
+                
+                // Simulate export process
+                const exportData = {
+                    title: title,
+                    format: format,
+                    sections: {
+                        overview: includeOverview,
+                        comparison: includeComparison,
+                        gapAnalysis: includeGapAnalysis,
+                        benchmarking: includeBenchmarking,
+                        charts: includeCharts
+                    },
+                    selectedCompetitors: Array.from(this.selectedCompetitors),
+                    timestamp: new Date().toISOString()
+                };
+                
+                console.log('Exporting comparison report:', exportData);
+                
+                // Show success message
+                alert(`Exporting ${format.toUpperCase()} report: "${title}"`);
+                
+                this.hideExportModal();
+            }
+            
+            showReportGenerationModal() {
+                const modal = document.getElementById('reportGenerationModal');
+                modal.classList.add('active');
+            }
+            
+            hideReportGenerationModal() {
+                const modal = document.getElementById('reportGenerationModal');
+                modal.classList.remove('active');
+            }
+            
+            generateIntelligenceReport() {
+                const reportType = document.getElementById('reportType').value;
+                const reportScope = document.getElementById('reportScope').value;
+                const timeFrame = document.getElementById('timeFrame').value;
+                const reportFormat = document.getElementById('reportFormat').value;
+                const reportNotes = document.getElementById('reportNotes').value;
+                
+                // Simulate report generation
+                console.log('Generating intelligence report with parameters:', {
+                    type: reportType,
+                    scope: reportScope,
+                    timeFrame: timeFrame,
+                    format: reportFormat,
+                    notes: reportNotes
+                });
+                
+                // Show success message
+                alert(`Intelligence report generated successfully!\n\nType: ${reportType}\nScope: ${reportScope}\nFormat: ${reportFormat}\n\nReport will be available in your dashboard shortly.`);
+                
+                this.hideReportGenerationModal();
+                
+                // Reset form
+                document.getElementById('reportGenerationForm').reset();
+            }
+            
+            exportAllReports() {
+                // Simulate exporting all reports
+                console.log('Exporting all intelligence reports...');
+                alert('All intelligence reports exported successfully!\n\nFiles generated:\n- Market Analysis Report.pdf\n- Competitor Profiles.xlsx\n- Market Trends Analysis.pptx\n- Threat Assessment Report.pdf');
+            }
+            
+            filterCompetitors(filterId) {
+                const cards = document.querySelectorAll('.competitor-card');
+                const grid = document.getElementById('competitorGrid');
+                
+                cards.forEach(card => {
+                    const position = card.dataset.position;
+                    let show = true;
+                    
+                    switch (filterId) {
+                        case 'filterLeaders':
+                            show = position === 'leader';
+                            break;
+                        case 'filterChallengers':
+                            show = position === 'challenger';
+                            break;
+                        case 'filterFollowers':
+                            show = position === 'follower';
+                            break;
+                        case 'filterAll':
+                        default:
+                            show = true;
+                            break;
+                    }
+                    
+                    card.style.display = show ? 'block' : 'none';
+                });
+            }
+            
+            updateComparisonChart(metricId) {
+                let data, label;
+                
+                switch (metricId) {
+                    case 'compareRevenue':
+                        data = this.competitors.map(c => c.revenue);
+                        label = 'Revenue (Billion $)';
+                        break;
+                    case 'compareGrowth':
+                        data = this.competitors.map(c => c.growth);
+                        label = 'Growth Rate (%)';
+                        break;
+                    case 'compareMarketShare':
+                        data = this.competitors.map(c => c.marketShare);
+                        label = 'Market Share (%)';
+                        break;
+                    case 'compareInnovation':
+                        data = this.competitors.map(c => c.innovation);
+                        label = 'Innovation Score';
+                        break;
+                }
+                
+                this.competitorChart.data.datasets[0].data = data;
+                this.competitorChart.data.datasets[0].label = label;
+                this.competitorChart.update();
+            }
+            
+            updatePositioningMatrix(metricId) {
+                // Update positioning matrix based on selected metric
+                // This would involve recalculating positions based on different criteria
+                this.initPositioningMatrix();
+            }
+            
+            switchPositioningChart(chartId) {
+                const primaryChart = document.getElementById('primaryPositioningChart');
+                const secondaryChart = document.getElementById('secondaryPositioningChart');
+                const primaryTitle = document.getElementById('primaryChartTitle');
+                const secondaryTitle = document.getElementById('secondaryChartTitle');
+                const primaryDesc = document.getElementById('primaryChartDescription');
+                const secondaryDesc = document.getElementById('secondaryChartDescription');
+                
+                // Destroy existing charts
+                if (this.radarChart) this.radarChart.destroy();
+                if (this.bubbleChart) this.bubbleChart.destroy();
+                
+                switch (chartId) {
+                    case 'chartRadar':
+                        this.initRadarChart();
+                        primaryTitle.textContent = 'Competitive Radar Analysis';
+                        primaryDesc.textContent = 'Multi-dimensional analysis showing competitive strengths across key performance areas.';
+                        secondaryTitle.textContent = 'Market Share vs Growth';
+                        secondaryDesc.textContent = 'Bubble chart showing market position with size representing revenue and color indicating threat level.';
+                        this.initBubbleChart();
+                        break;
+                        
+                    case 'chartBubble':
+                        this.initBubbleChart();
+                        primaryTitle.textContent = 'Market Share vs Growth Analysis';
+                        primaryDesc.textContent = 'Bubble chart showing market position with size representing revenue and color indicating threat level.';
+                        secondaryTitle.textContent = 'Revenue vs Innovation';
+                        secondaryDesc.textContent = 'Scatter plot showing the relationship between revenue generation and innovation capabilities.';
+                        this.initScatterChart();
+                        break;
+                        
+                    case 'chartHeatmap':
+                        this.initHeatmapChart();
+                        primaryTitle.textContent = 'Competitive Heat Map';
+                        primaryDesc.textContent = 'Heat map visualization showing competitive intensity across different market segments.';
+                        secondaryTitle.textContent = 'Performance Matrix';
+                        secondaryDesc.textContent = 'Matrix showing relative performance across key competitive dimensions.';
+                        this.initPerformanceMatrix();
+                        break;
+                        
+                    case 'chartScatter':
+                        this.initScatterChart();
+                        primaryTitle.textContent = 'Revenue vs Innovation Scatter Plot';
+                        primaryDesc.textContent = 'Scatter plot showing the relationship between revenue generation and innovation capabilities.';
+                        secondaryTitle.textContent = 'Growth vs Market Share';
+                        secondaryDesc.textContent = 'Analysis of growth potential relative to current market position.';
+                        this.initGrowthAnalysisChart();
+                        break;
+                }
+                
+                this.currentChartType = chartId.replace('chart', '').toLowerCase();
+            }
+            
+            initScatterChart() {
+                const ctx = document.getElementById('secondaryPositioningChart').getContext('2d');
+                
+                const scatterData = {
+                    datasets: this.competitors.map((competitor, index) => ({
+                        label: competitor.name,
+                        data: [{
+                            x: competitor.revenue,
+                            y: competitor.innovation
+                        }],
+                        backgroundColor: this.getCompetitorColor(index, 0.6),
+                        borderColor: this.getCompetitorColor(index, 1),
+                        borderWidth: 2,
+                        pointRadius: 8
+                    }))
+                };
+                
+                this.scatterChart = new Chart(ctx, {
+                    type: 'scatter',
+                    data: scatterData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Revenue (Billion $)'
+                                },
+                                grid: {
+                                    color: '#e5e7eb'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Innovation Score'
+                                },
+                                grid: {
+                                    color: '#e5e7eb'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            initHeatmapChart() {
+                const ctx = document.getElementById('primaryPositioningChart').getContext('2d');
+                
+                // Create heatmap data
+                const heatmapData = {
+                    labels: ['Market Share', 'Growth', 'Innovation', 'Revenue', 'Customer Satisfaction'],
+                    datasets: this.competitors.map((competitor, index) => ({
+                        label: competitor.name,
+                        data: [
+                            competitor.marketShare / 30 * 100,
+                            competitor.growth / 25 * 100,
+                            competitor.innovation * 10,
+                            competitor.revenue / 3 * 100,
+                            Math.random() * 100
+                        ],
+                        backgroundColor: this.getCompetitorColor(index, 0.7),
+                        borderColor: this.getCompetitorColor(index, 1),
+                        borderWidth: 1
+                    }))
+                };
+                
+                this.heatmapChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: heatmapData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                stacked: false,
+                                grid: {
+                                    display: false
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                grid: {
+                                    color: '#e5e7eb'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            initPerformanceMatrix() {
+                const ctx = document.getElementById('secondaryPositioningChart').getContext('2d');
+                
+                // Create a simple performance matrix
+                const matrixData = {
+                    labels: ['Your Company', 'TechCorp', 'InnovateNow', 'FutureTech', 'NicheCorp'],
+                    datasets: [{
+                        label: 'Overall Performance Score',
+                        data: [85, 92, 88, 75, 68],
+                        backgroundColor: [
+                            'rgba(59, 130, 246, 0.8)',
+                            'rgba(16, 185, 129, 0.8)',
+                            'rgba(139, 92, 246, 0.8)',
+                            'rgba(245, 158, 11, 0.8)',
+                            'rgba(107, 114, 128, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(59, 130, 246, 1)',
+                            'rgba(16, 185, 129, 1)',
+                            'rgba(139, 92, 246, 1)',
+                            'rgba(245, 158, 11, 1)',
+                            'rgba(107, 114, 128, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                };
+                
+                this.performanceMatrix = new Chart(ctx, {
+                    type: 'bar',
+                    data: matrixData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                grid: {
+                                    color: '#e5e7eb'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            initGrowthAnalysisChart() {
+                const ctx = document.getElementById('secondaryPositioningChart').getContext('2d');
+                
+                const growthData = {
+                    datasets: this.competitors.map((competitor, index) => ({
+                        label: competitor.name,
+                        data: [{
+                            x: competitor.marketShare,
+                            y: competitor.growth
+                        }],
+                        backgroundColor: this.getCompetitorColor(index, 0.6),
+                        borderColor: this.getCompetitorColor(index, 1),
+                        borderWidth: 2,
+                        pointRadius: 10
+                    }))
+                };
+                
+                this.growthChart = new Chart(ctx, {
+                    type: 'scatter',
+                    data: growthData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Current Market Share (%)'
+                                },
+                                grid: {
+                                    color: '#e5e7eb'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Growth Rate (%)'
+                                },
+                                grid: {
+                                    color: '#e5e7eb'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            filterAdvantages(advantageId) {
+                // Filter advantages display based on selected type
+                const advantageType = advantageId.replace('advantage', '').toLowerCase();
+                // Implementation would filter the advantages chart and table
+            }
+            
+            getScoreClass(score) {
+                if (score >= 80) return 'excellent';
+                if (score >= 60) return 'good';
+                if (score >= 40) return 'average';
+                if (score >= 20) return 'below-average';
+                return 'poor';
+            }
+            
+            startProgressiveDisclosure() {
+                const elements = document.querySelectorAll('.progressive-disclosure');
+                elements.forEach((el, index) => {
+                    setTimeout(() => {
+                        el.classList.add('visible');
+                    }, index * 100);
+                });
+            }
+        }
+        
+        // Initialize dashboard when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new CompetitiveAnalysisDashboard();
+        });
+    </script>
+</body>
+</html>
