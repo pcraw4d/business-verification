@@ -587,7 +587,7 @@ func (s *RailwayServer) storeRiskAssessment(businessID, businessName string, ris
 			"risk_level":      riskAssessment["risk_level"],
 			"risk_score":      riskAssessment["risk_score"],
 			"risk_factors":    riskAssessment["risk_factors"],
-			"assessment_time": time.Now().UTC().Format(time.RFC3339),
+			"assessment_date": time.Now().UTC().Format(time.RFC3339),
 		}
 
 		_, _, err := s.supabaseClient.From("risk_assessments").Insert(riskData, false, "", "", "").Execute()
