@@ -2482,11 +2482,12 @@
                         classificationReasoning = primaryClassification.metadata.detailed_reasoning.summary || '';
                     }
                 }
-                // Check for new format
-                else if (result.classification && result.classification.mcc_codes) {
-                    mccCodes = result.classification.mcc_codes;
-                    sicCodes = result.classification.sic_codes || [];
-                    naicsCodes = result.classification.naics_codes || [];
+                // Check for new format - Fix: Extract from classification_codes structure
+                else if (result.classification && result.classification.classification_codes) {
+                    const codes = result.classification.classification_codes;
+                    mccCodes = codes.mcc || [];
+                    sicCodes = codes.sic || [];
+                    naicsCodes = codes.naics || [];
                     confidenceScore = result.confidence_score || 0.5;
                     methodBreakdown = result.method_breakdown || [];
                     classificationReasoning = result.classification_reasoning || '';
