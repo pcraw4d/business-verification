@@ -10,3 +10,62 @@ Makefile
 Dockerfile*
 docker-compose*
 railway.json
+
+# Large directories that shouldn't be deployed
+backup-*/
+backup-*
+*.backup
+*.bak
+
+# Node modules and build artifacts
+node_modules/
+web/node_modules/
+web/dist/
+web/coverage/
+web/.nyc_output/
+
+# Large build directories
+build/
+dist/
+coverage/
+logs/
+reports/
+test-results/
+playwright-report/
+
+# Binary files
+*.exe
+*.dll
+*.so
+*.dylib
+kyb-platform
+kyb-platform-*
+
+# Test files
+*.test
+*.out
+coverage.html
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Task summary and completion files
+*completion*.md
+*summary*.md
+*_completion_summary.md
+*_summary.md
+task_*_completion*.md
+subtask_*_completion*.md

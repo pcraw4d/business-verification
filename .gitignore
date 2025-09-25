@@ -178,11 +178,21 @@ dev.env
 *.bak
 *.backup
 *.old
+backup-*/
+backup-*
 
 # Archive files
 *.tar.gz
 *.zip
 *.rar
+
+# Task summary and completion files
+*completion*.md
+*summary*.md
+*_completion_summary.md
+*_summary.md
+task_*_completion*.md
+subtask_*_completion*.md
 
 # Database files
 *.db
