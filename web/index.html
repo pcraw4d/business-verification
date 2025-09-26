@@ -567,9 +567,13 @@
         </div>
     </footer>
 
+    <!-- API Configuration -->
+    <script src="js/api-config.js"></script>
+    
     <script>
-        // API Base URL - Railway API Server
-        const API_BASE_URL = 'https://shimmering-comfort-production.up.railway.app/v1';
+        // Use centralized API configuration
+        const API_CONFIG = APIConfig;
+        const API_BASE_URL = API_CONFIG.getBaseURL() + '/v1';
         
         // DOM Elements
         const startTestingBtn = document.getElementById('startTestingBtn');
@@ -2909,7 +2913,7 @@
                 if (resultsSection) resultsSection.classList.add('hidden');
                 
                 // Make API call
-                const response = await fetch('https://shimmering-comfort-production.up.railway.app/v1/classify', {
+                const response = await fetch(API_CONFIG.getEndpoints().classify, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

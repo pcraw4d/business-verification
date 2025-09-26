@@ -1,4 +1,23 @@
 go 1.25
 
-use ./services/api
+use ./pkg/cache
+
+use ./pkg/performance
+
+use ./pkg/monitoring
+
+use ./pkg/security
+
+use ./pkg/analytics
+
+use ./pkg/api
+
+use ./cmd/railway-server
+
 use ./services/frontend
+
+use ./services/api-gateway
+
+use ./services/classification-service
+
+use ./services/merchant-service

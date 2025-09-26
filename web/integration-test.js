@@ -5,7 +5,7 @@
 
 class IntegrationTester {
     constructor() {
-        this.apiBaseUrl = 'https://shimmering-comfort-production.up.railway.app';
+        this.apiBaseUrl = APIConfig.getBaseURL();
         this.testResults = {
             database: {},
             api: {},

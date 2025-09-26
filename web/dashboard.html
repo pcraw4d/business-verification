@@ -616,9 +616,13 @@
         </div>
     </div>
 
+    <!-- API Configuration -->
+    <script src="js/api-config.js"></script>
+    
     <script>
-        // API Base URL - Railway API Server
-        const API_BASE_URL = 'https://shimmering-comfort-production.up.railway.app/v1';
+        // Use centralized API configuration
+        const API_CONFIG = APIConfig;
+        const API_BASE_URL = API_CONFIG.getBaseURL() + '/v1';
         console.log('🌐 API_BASE_URL set to:', API_BASE_URL);
         
         // DOM Elements

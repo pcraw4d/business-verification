@@ -5530,9 +5530,13 @@
         </div>
     </main>
 
+    <!-- API Configuration -->
+    <script src="js/api-config.js"></script>
+    
     <script>
-        // API Base URL
-        const API_BASE_URL = window.location.origin + '/v1';
+        // Use centralized API configuration
+        const API_CONFIG = APIConfig;
+        const API_BASE_URL = API_CONFIG.getBaseURL() + '/v1';
         
         // DOM Elements
         const riskAssessmentForm = document.getElementById('riskAssessmentForm');

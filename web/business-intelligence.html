@@ -2290,11 +2290,14 @@
         </div>
     </div>
 
+    <!-- API Configuration -->
+    <script src="js/api-config.js"></script>
+    
     <script>
         // Business Intelligence Classification JavaScript
         class BusinessIntelligence {
             constructor() {
-                this.apiBaseUrl = 'https://shimmering-comfort-production.up.railway.app/v1';
+                this.apiBaseUrl = APIConfig.getBaseURL() + '/v1';
                 this.init();
             }
 
