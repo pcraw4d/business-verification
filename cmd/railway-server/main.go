@@ -27,7 +27,7 @@ func NewRailwayServer() *RailwayServer {
 		serviceName = "api-gateway"
 	}
 
-	version := "4.0.0"
+	version := "4.0.0-RAILWAY-TEST"
 
 	// Initialize Supabase client
 	supabaseURL := os.Getenv("SUPABASE_URL")

@@ -17,7 +17,7 @@ RUN go mod download
 COPY cmd/railway-server/ ./
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o railway-server main-complete.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o railway-server main.go
 
 # Expose port
 EXPOSE 8080

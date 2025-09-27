@@ -14,10 +14,10 @@ import (
 
 // RailwayServer represents the complete KYB platform server
 type RailwayServer struct {
-	serviceName     string
-	version         string
-	supabaseClient  *postgrest.Client
-	port            string
+	serviceName    string
+	version        string
+	supabaseClient *postgrest.Client
+	port           string
 }
 
 // NewRailwayServer creates a new RailwayServer instance
@@ -32,7 +32,7 @@ func NewRailwayServer() *RailwayServer {
 	// Initialize Supabase client
 	supabaseURL := os.Getenv("SUPABASE_URL")
 	supabaseKey := os.Getenv("SUPABASE_ANON_KEY")
-	
+
 	var supabaseClient *postgrest.Client
 	if supabaseURL != "" && supabaseKey != "" {
 		supabaseClient = postgrest.NewClient(supabaseURL, supabaseKey, nil)
@@ -122,12 +122,12 @@ type TokenResponse struct {
 
 // AnalyticsResponse represents analytics data
 type AnalyticsResponse struct {
-	Service        string                 `json:"service"`
-	Version        string                 `json:"version"`
-	Timestamp      string                 `json:"timestamp"`
-	OverallStats   map[string]interface{} `json:"overall_stats"`
-	TopIndustries  []map[string]interface{} `json:"top_industries"`
-	TopRiskLevels  []map[string]interface{} `json:"top_risk_levels"`
+	Service       string                   `json:"service"`
+	Version       string                   `json:"version"`
+	Timestamp     string                   `json:"timestamp"`
+	OverallStats  map[string]interface{}   `json:"overall_stats"`
+	TopIndustries []map[string]interface{} `json:"top_industries"`
+	TopRiskLevels []map[string]interface{} `json:"top_risk_levels"`
 }
 
 // MetricsResponse represents performance metrics
@@ -140,20 +140,20 @@ type MetricsResponse struct {
 
 // SelfDrivingResponse represents self-driving capabilities
 type SelfDrivingResponse struct {
-	Service     string                 `json:"service"`
-	Version     string                 `json:"version"`
-	Timestamp   string                 `json:"timestamp"`
+	Service      string                 `json:"service"`
+	Version      string                 `json:"version"`
+	Timestamp    string                 `json:"timestamp"`
 	Capabilities map[string]interface{} `json:"capabilities"`
 }
 
 // ReportResponse represents a report response
 type ReportResponse struct {
-	ID          string    `json:"id"`
-	Title       string    `json:"title"`
-	Type        string    `json:"type"`
-	Status      string    `json:"status"`
-	CreatedAt   time.Time `json:"created_at"`
-	GeneratedAt *time.Time `json:"generated_at,omitempty"`
+	ID          string                 `json:"id"`
+	Title       string                 `json:"title"`
+	Type        string                 `json:"type"`
+	Status      string                 `json:"status"`
+	CreatedAt   time.Time              `json:"created_at"`
+	GeneratedAt *time.Time             `json:"generated_at,omitempty"`
 	Data        map[string]interface{} `json:"data,omitempty"`
 }
 
@@ -173,7 +173,7 @@ func (s *RailwayServer) handleHealth(w http.ResponseWriter, r *http.Request) {
 // handleDetailedHealth handles the detailed health check endpoint
 func (s *RailwayServer) handleDetailedHealth(w http.ResponseWriter, r *http.Request) {
 	checks := make(map[string]interface{})
-	
+
 	// Check database connectivity
 	if s.supabaseClient != nil {
 		_, _, err := s.supabaseClient.From("classifications").Select("id", "", false).Limit(1, "").Execute()
@@ -217,7 +217,7 @@ func (s *RailwayServer) handleClassify(w http.ResponseWriter, r *http.Request) {
 
 	// Simulate classification processing
 	start := time.Now()
-	
+
 	// Generate mock classifications
 	classifications := map[string]interface{}{
 		"mcc": []map[string]interface{}{
@@ -258,14 +258,14 @@ func (s *RailwayServer) handleClassify(w http.ResponseWriter, r *http.Request) {
 	// Save to database if available
 	if s.supabaseClient != nil {
 		classificationData := map[string]interface{}{
-			"business_name": req.Name,
-			"description":   req.Description,
+			"business_name":   req.Name,
+			"description":     req.Description,
 			"classifications": classifications,
 			"risk_assessment": riskAssessment,
 			"processing_time": processingTime.String(),
-			"created_at":     time.Now(),
+			"created_at":      time.Now(),
 		}
-		
+
 		_, _, err := s.supabaseClient.From("classifications").Insert(classificationData, false, "", "", "").Execute()
 		if err != nil {
 			log.Printf("Failed to save classification: %v", err)
@@ -350,7 +350,7 @@ func (s *RailwayServer) handleCreateMerchant(w http.ResponseWriter, r *http.Requ
 			"created_at":  merchant.CreatedAt,
 			"updated_at":  merchant.UpdatedAt,
 		}
-		
+
 		_, _, err := s.supabaseClient.From("merchants").Insert(merchantData, false, "", "", "").Execute()
 		if err != nil {
 			log.Printf("Failed to save merchant: %v", err)
@@ -376,7 +376,7 @@ func (s *RailwayServer) handleGenerateToken(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Generate a mock JWT token (in production, use proper JWT library)
-	token := fmt.Sprintf("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.%s", 
+	token := fmt.Sprintf("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.%s",
 		fmt.Sprintf("%x", time.Now().Unix()))
 
 	expiresAt := time.Now().Add(24 * time.Hour)
@@ -469,9 +469,9 @@ func (s *RailwayServer) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	// Mock metrics data
 	metrics := map[string]interface{}{
 		"requests": map[string]interface{}{
-			"total":      1250,
-			"successful": 1180,
-			"failed":     70,
+			"total":        1250,
+			"successful":   1180,
+			"failed":       70,
 			"success_rate": 94.4,
 		},
 		"response_times": map[string]interface{}{
@@ -506,9 +506,9 @@ func (s *RailwayServer) handleSelfDriving(w http.ResponseWriter, r *http.Request
 	// Mock self-driving capabilities
 	capabilities := map[string]interface{}{
 		"auto_scaling": map[string]interface{}{
-			"enabled":         true,
-			"min_replicas":    1,
-			"max_replicas":    10,
+			"enabled":          true,
+			"min_replicas":     1,
+			"max_replicas":     10,
 			"current_replicas": 2,
 		},
 		"circuit_breaker": map[string]interface{}{
@@ -523,11 +523,11 @@ func (s *RailwayServer) handleSelfDriving(w http.ResponseWriter, r *http.Request
 			"checks":   []string{"database", "cache", "external_apis"},
 		},
 		"alerting": map[string]interface{}{
-			"enabled": true,
+			"enabled":  true,
 			"channels": []string{"email", "slack", "webhook"},
 			"thresholds": map[string]interface{}{
-				"cpu_usage":    80,
-				"error_rate":   5,
+				"cpu_usage":     80,
+				"error_rate":    5,
 				"response_time": "2s",
 			},
 		},
@@ -561,11 +561,11 @@ func (s *RailwayServer) handleGetReports(w http.ResponseWriter, r *http.Request)
 	// Mock reports data
 	reports := []ReportResponse{
 		{
-			ID:        "report-1",
-			Title:     "Monthly Analytics Report",
-			Type:      "analytics",
-			Status:    "completed",
-			CreatedAt: time.Now().Add(-24 * time.Hour),
+			ID:          "report-1",
+			Title:       "Monthly Analytics Report",
+			Type:        "analytics",
+			Status:      "completed",
+			CreatedAt:   time.Now().Add(-24 * time.Hour),
 			GeneratedAt: func() *time.Time { t := time.Now().Add(-23 * time.Hour); return &t }(),
 		},
 		{
@@ -641,12 +641,12 @@ func (s *RailwayServer) handleRateLimits(w http.ResponseWriter, r *http.Request)
 		"total_users":         45,
 		"user_stats": map[string]interface{}{
 			"user-123": map[string]interface{}{
-				"user_id":              "user-123",
-				"requests_per_minute":  60.0,
-				"burst_size":           10,
-				"requests_count":       25,
-				"status":               "active",
-				"last_cleanup":         time.Now().Format(time.RFC3339),
+				"user_id":             "user-123",
+				"requests_per_minute": 60.0,
+				"burst_size":          10,
+				"requests_count":      25,
+				"status":              "active",
+				"last_cleanup":        time.Now().Format(time.RFC3339),
 			},
 		},
 	}
