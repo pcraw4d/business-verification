@@ -1,7 +1,11 @@
 {
   "build": {
     "builder": "DOCKERFILE",
-    "dockerfilePath": "Dockerfile.complete"
+    "dockerfilePath": "Dockerfile.complete",
+    "buildArgs": {
+      "BUILD_DATE": "2025-09-27T19:00:00Z",
+      "VERSION": "4.0.0-CACHE-BUST"
+    }
   },
   "deploy": {
     "startCommand": "./railway-server",

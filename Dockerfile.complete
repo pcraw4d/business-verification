@@ -1,6 +1,10 @@
 # Use official Go image
 FROM golang:1.22-alpine
 
+# Force cache invalidation - change this line to break cache
+# Cache buster: 2025-09-27T19:00:00Z
+RUN echo "Cache buster: $(date)" > /tmp/cache-buster
+
 # Set working directory
 WORKDIR /app
 
@@ -16,7 +20,10 @@ RUN go mod download
 # Copy source code
 COPY cmd/railway-server/ ./
 
-# Build the application
+# Build the application with build args to force rebuild
+ARG BUILD_DATE=2025-09-27T19:00:00Z
+ARG VERSION=4.0.0-CACHE-BUST
+RUN echo "Building at: $BUILD_DATE with version: $VERSION"
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o railway-server main.go
 
 # Expose port

@@ -1,0 +1,9 @@
+# Railway Cache Buster
+# This file forces Railway to detect changes and rebuild
+# Timestamp: 2025-09-27T19:00:00Z
+# Version: 4.0.0-CACHE-BUST-REBUILD
+# Purpose: Force Railway to clear cache and rebuild service
+
+CACHE_BUSTER_VERSION=4.0.0-CACHE-BUST-REBUILD
+CACHE_BUSTER_TIMESTAMP=2025-09-27T19:00:00Z
+CACHE_BUSTER_PURPOSE=Force Railway rebuild with complete service

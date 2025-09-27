@@ -24,10 +24,10 @@ type RailwayServer struct {
 func NewRailwayServer() *RailwayServer {
 	serviceName := os.Getenv("SERVICE_NAME")
 	if serviceName == "" {
-		serviceName = "api-gateway-RAILWAY-DEBUG"
+		serviceName = "kyb-platform-v4-complete"
 	}
 
-	version := "4.0.0-RAILWAY-TEST"
+	version := "4.0.0-CACHE-BUST-REBUILD"
 
 	// Initialize Supabase client
 	supabaseURL := os.Getenv("SUPABASE_URL")
@@ -674,7 +674,7 @@ func (s *RailwayServer) handleDocs(w http.ResponseWriter, r *http.Request) {
 </head>
 <body>
     <h1>%s API Documentation v%s</h1>
-    <p>Complete KYB Platform with advanced features and monitoring.</p>
+    <p>Complete KYB Platform v4.0.0 with ALL advanced features - CACHE BUSTED!</p>
     
     <div class="endpoint">
         <h3><span class="method get">GET</span> /health</h3>
