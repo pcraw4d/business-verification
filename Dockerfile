@@ -1,17 +1,17 @@
-# Clean, optimized Dockerfile for KYB Platform Enhanced v4.0.0
+# Simple, reliable Dockerfile for KYB Platform Enhanced v4.0.0
 FROM golang:1.22-alpine AS builder
 
 # Install build dependencies
-RUN apk add --no-cache git ca-certificates tzdata
+RUN apk add --no-cache git
 
 # Set working directory
 WORKDIR /app
 
-# Copy go workspace and module files first for better caching
+# Copy go workspace files
 COPY go.work go.mod go.sum ./
-COPY cmd/railway-server/go.mod cmd/railway-server/go.sum ./cmd/railway-server/
 
-# Copy pkg modules
+# Copy all go.mod files
+COPY cmd/railway-server/go.mod cmd/railway-server/go.sum ./cmd/railway-server/
 COPY pkg/cache/go.mod pkg/cache/go.sum ./pkg/cache/
 COPY pkg/performance/go.mod pkg/performance/go.sum ./pkg/performance/
 COPY pkg/monitoring/go.mod pkg/monitoring/go.sum ./pkg/monitoring/
@@ -25,37 +25,24 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build the enhanced railway-server
+# Build the application
 WORKDIR /app/cmd/railway-server
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
-    -ldflags='-w -s -extldflags "-static"' \
-    -a -installsuffix cgo \
-    -o railway-server main.go
+RUN go build -o railway-server main.go
 
 # Production stage
 FROM alpine:latest
 
 # Install runtime dependencies
-RUN apk --no-cache add ca-certificates tzdata
-
-# Create non-root user
-RUN adduser -D -s /bin/sh appuser
+RUN apk --no-cache add ca-certificates
 
 # Set working directory
 WORKDIR /app
 
-# Copy binary from builder
+# Copy binary
 COPY --from=builder /app/cmd/railway-server/railway-server .
-
-# Switch to non-root user
-USER appuser
 
 # Expose port
 EXPOSE 8080
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
 
 # Run the application
 CMD ["./railway-server"]
