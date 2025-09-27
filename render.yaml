@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: kyb-platform-enhanced
+    env: go
+    buildCommand: |
+      cd cmd/railway-server
+      go build -o railway-server main.go
+    startCommand: ./railway-server
+    envVars:
+      - key: SERVICE_NAME
+        value: api-gateway
+      - key: SUPABASE_URL
+        value: https://qpqhuqqmkjxsltzshfam.supabase.co
+      - key: SUPABASE_ANON_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwcWh1cXFta2p4c2x0enNoZmFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ4NzQ4MzEsImV4cCI6MjA3MDQ1MDgzMX0.UelJkQAVf-XJz1UV0Rbyi-hZHADGOdsHo1PwcPf7JVI
+      - key: REDIS_URL
+        value: redis://redis-cache-production.up.railway.app:6379
