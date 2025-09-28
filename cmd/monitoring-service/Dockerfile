@@ -15,7 +15,7 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o monitoring-service main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o kyb-monitoring main.go
 
 # Expose port
 EXPOSE 8084
@@ -25,4 +25,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8084/health || exit 1
 
 # Run the application
-CMD ["./monitoring-service"]
+CMD ["./kyb-monitoring"]
