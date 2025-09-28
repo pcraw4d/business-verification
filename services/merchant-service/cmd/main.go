@@ -66,6 +66,13 @@ func main() {
 	router.HandleFunc("/api/v1/merchants", merchantHandler.HandleListMerchants).Methods("GET")
 	router.HandleFunc("/api/v1/merchants/{id}", merchantHandler.HandleGetMerchant).Methods("GET")
 
+	// New merchant endpoints
+	router.HandleFunc("/api/v1/merchants/analytics", merchantHandler.HandleMerchantAnalytics).Methods("GET")
+	router.HandleFunc("/api/v1/merchants/statistics", merchantHandler.HandleMerchantStatistics).Methods("GET")
+	router.HandleFunc("/api/v1/merchants/search", merchantHandler.HandleMerchantSearch).Methods("POST")
+	router.HandleFunc("/api/v1/merchants/portfolio-types", merchantHandler.HandleMerchantPortfolioTypes).Methods("GET")
+	router.HandleFunc("/api/v1/merchants/risk-levels", merchantHandler.HandleMerchantRiskLevels).Methods("GET")
+
 	// Alias routes for backward compatibility
 	router.HandleFunc("/merchants", merchantHandler.HandleCreateMerchant).Methods("POST")
 	router.HandleFunc("/merchants", merchantHandler.HandleListMerchants).Methods("GET")

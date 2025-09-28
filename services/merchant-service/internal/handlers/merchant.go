@@ -424,3 +424,156 @@ func (h *MerchantHandler) HandleHealth(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(health)
 }
+
+// HandleMerchantAnalytics handles merchant analytics requests
+func (h *MerchantHandler) HandleMerchantAnalytics(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	ctx := r.Context()
+
+	w.Header().Set("Content-Type", "application/json")
+
+	// Get analytics data from Supabase
+	analytics, err := h.supabaseClient.GetMerchantAnalytics(ctx)
+	if err != nil {
+		h.logger.Error("Failed to get merchant analytics", zap.Error(err))
+		http.Error(w, "Failed to get analytics data", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"analytics": analytics,
+		"timestamp": time.Now(),
+		"processing_time": time.Since(startTime).String(),
+	}
+
+	json.NewEncoder(w).Encode(response)
+}
+
+// HandleMerchantStatistics handles merchant statistics requests
+func (h *MerchantHandler) HandleMerchantStatistics(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	ctx := r.Context()
+
+	w.Header().Set("Content-Type", "application/json")
+
+	// Get statistics data from Supabase
+	statistics, err := h.supabaseClient.GetMerchantStatistics(ctx)
+	if err != nil {
+		h.logger.Error("Failed to get merchant statistics", zap.Error(err))
+		http.Error(w, "Failed to get statistics data", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"statistics": statistics,
+		"timestamp": time.Now(),
+		"processing_time": time.Since(startTime).String(),
+	}
+
+	json.NewEncoder(w).Encode(response)
+}
+
+// HandleMerchantSearch handles merchant search requests
+func (h *MerchantHandler) HandleMerchantSearch(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	ctx := r.Context()
+
+	w.Header().Set("Content-Type", "application/json")
+
+	// Parse search request
+	var searchReq struct {
+		Query     string `json:"query"`
+		Page      int    `json:"page,omitempty"`
+		PageSize  int    `json:"page_size,omitempty"`
+		SortBy    string `json:"sort_by,omitempty"`
+		SortOrder string `json:"sort_order,omitempty"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&searchReq); err != nil {
+		http.Error(w, "Invalid search request", http.StatusBadRequest)
+		return
+	}
+
+	// Set defaults
+	if searchReq.Page <= 0 {
+		searchReq.Page = 1
+	}
+	if searchReq.PageSize <= 0 {
+		searchReq.PageSize = 20
+	}
+	if searchReq.SortBy == "" {
+		searchReq.SortBy = "name"
+	}
+	if searchReq.SortOrder == "" {
+		searchReq.SortOrder = "asc"
+	}
+
+	// Perform search
+	results, err := h.supabaseClient.SearchMerchants(ctx, searchReq.Query, searchReq.Page, searchReq.PageSize, searchReq.SortBy, searchReq.SortOrder)
+	if err != nil {
+		h.logger.Error("Failed to search merchants", zap.Error(err))
+		http.Error(w, "Search failed", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"results": results,
+		"query": searchReq.Query,
+		"page": searchReq.Page,
+		"page_size": searchReq.PageSize,
+		"sort_by": searchReq.SortBy,
+		"sort_order": searchReq.SortOrder,
+		"timestamp": time.Now(),
+		"processing_time": time.Since(startTime).String(),
+	}
+
+	json.NewEncoder(w).Encode(response)
+}
+
+// HandleMerchantPortfolioTypes handles merchant portfolio types requests
+func (h *MerchantHandler) HandleMerchantPortfolioTypes(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	ctx := r.Context()
+
+	w.Header().Set("Content-Type", "application/json")
+
+	// Get portfolio types from Supabase
+	portfolioTypes, err := h.supabaseClient.GetMerchantPortfolioTypes(ctx)
+	if err != nil {
+		h.logger.Error("Failed to get portfolio types", zap.Error(err))
+		http.Error(w, "Failed to get portfolio types", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"portfolio_types": portfolioTypes,
+		"timestamp": time.Now(),
+		"processing_time": time.Since(startTime).String(),
+	}
+
+	json.NewEncoder(w).Encode(response)
+}
+
+// HandleMerchantRiskLevels handles merchant risk levels requests
+func (h *MerchantHandler) HandleMerchantRiskLevels(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	ctx := r.Context()
+
+	w.Header().Set("Content-Type", "application/json")
+
+	// Get risk levels from Supabase
+	riskLevels, err := h.supabaseClient.GetMerchantRiskLevels(ctx)
+	if err != nil {
+		h.logger.Error("Failed to get risk levels", zap.Error(err))
+		http.Error(w, "Failed to get risk levels", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"risk_levels": riskLevels,
+		"timestamp": time.Now(),
+		"processing_time": time.Since(startTime).String(),
+	}
+
+	json.NewEncoder(w).Encode(response)
+}
