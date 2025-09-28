@@ -1,0 +1,274 @@
+# E2E Test Configuration
+# This file contains configuration for end-to-end testing of the KYB platform
+
+# Test Environment Configuration
+test:
+  # Base URLs for different environments
+  environments:
+    local:
+      base_url: "http://localhost:8080"
+      api_gateway_url: "http://localhost:8080"
+      classification_url: "http://localhost:8081"
+      merchant_url: "http://localhost:8082"
+      monitoring_url: "http://localhost:8083"
+      pipeline_url: "http://localhost:8084"
+      frontend_url: "http://localhost:8085"
+      bi_url: "http://localhost:8087"
+    
+    staging:
+      base_url: "https://staging-api.kyb-platform.com"
+      api_gateway_url: "https://staging-api.kyb-platform.com"
+      classification_url: "https://staging-classification.kyb-platform.com"
+      merchant_url: "https://staging-merchant.kyb-platform.com"
+      monitoring_url: "https://staging-monitoring.kyb-platform.com"
+      pipeline_url: "https://staging-pipeline.kyb-platform.com"
+      frontend_url: "https://staging-frontend.kyb-platform.com"
+      bi_url: "https://staging-bi.kyb-platform.com"
+    
+    production:
+      base_url: "https://api.kyb-platform.com"
+      api_gateway_url: "https://api.kyb-platform.com"
+      classification_url: "https://classification.kyb-platform.com"
+      merchant_url: "https://merchant.kyb-platform.com"
+      monitoring_url: "https://monitoring.kyb-platform.com"
+      pipeline_url: "https://pipeline.kyb-platform.com"
+      frontend_url: "https://frontend.kyb-platform.com"
+      bi_url: "https://bi.kyb-platform.com"
+  
+  # Railway URLs (current deployment)
+  railway:
+    base_url: "https://kyb-api-gateway-production.up.railway.app"
+    api_gateway_url: "https://kyb-api-gateway-production.up.railway.app"
+    classification_url: "https://kyb-classification-service-production.up.railway.app"
+    merchant_url: "https://kyb-merchant-service-production.up.railway.app"
+    monitoring_url: "https://kyb-monitoring-production.up.railway.app"
+    pipeline_url: "https://kyb-pipeline-service-production.up.railway.app"
+    frontend_url: "https://kyb-frontend-production.up.railway.app"
+    bi_url: "https://kyb-business-intelligence-gateway-production.up.railway.app"
+
+# Test Configuration
+config:
+  # Timeouts
+  timeout: 30s
+  request_timeout: 10s
+  health_check_timeout: 5s
+  
+  # Performance Requirements
+  performance:
+    max_response_time: 1s
+    max_response_time_critical: 5s
+    min_throughput: 100  # requests per second
+    max_concurrent_requests: 100
+  
+  # Test Data
+  test_data:
+    # Sample businesses for testing
+    businesses:
+      - name: "Test Restaurant Corp"
+        description: "A fine dining restaurant specializing in Italian cuisine with full bar service"
+        address: "123 Main Street, New York, NY 10001"
+        industry: "Restaurant"
+        website: "https://testrestaurant.com"
+        phone: "+1-555-123-4567"
+        email: "info@testrestaurant.com"
+      
+      - name: "Tech Startup Inc"
+        description: "A technology startup developing AI-powered business solutions"
+        address: "456 Tech Avenue, San Francisco, CA 94105"
+        industry: "Technology"
+        website: "https://techstartup.com"
+        phone: "+1-555-987-6543"
+        email: "contact@techstartup.com"
+      
+      - name: "Retail Store LLC"
+        description: "A retail store selling clothing and accessories"
+        address: "789 Retail Boulevard, Chicago, IL 60601"
+        industry: "Retail"
+        website: "https://retailstore.com"
+        phone: "+1-555-456-7890"
+        email: "sales@retailstore.com"
+      
+      - name: "Healthcare Services"
+        description: "A healthcare provider offering medical services and consultations"
+        address: "321 Health Street, Boston, MA 02101"
+        industry: "Healthcare"
+        website: "https://healthcareservices.com"
+        phone: "+1-555-321-0987"
+        email: "info@healthcareservices.com"
+      
+      - name: "Financial Advisory"
+        description: "A financial advisory firm providing investment and wealth management services"
+        address: "654 Finance Plaza, Miami, FL 33101"
+        industry: "Financial Services"
+        website: "https://financialadvisory.com"
+        phone: "+1-555-654-3210"
+        email: "advisors@financialadvisory.com"
+
+# Test Scenarios
+scenarios:
+  # Basic functionality tests
+  basic:
+    - name: "health_check"
+      description: "Test health endpoints for all services"
+      priority: "critical"
+    
+    - name: "business_verification"
+      description: "Test complete business verification flow"
+      priority: "critical"
+    
+    - name: "merchant_management"
+      description: "Test merchant creation and retrieval"
+      priority: "high"
+    
+    - name: "classification_accuracy"
+      description: "Test business classification accuracy"
+      priority: "high"
+  
+  # Integration tests
+  integration:
+    - name: "service_communication"
+      description: "Test service-to-service communication"
+      priority: "critical"
+    
+    - name: "data_consistency"
+      description: "Test data consistency across services"
+      priority: "high"
+    
+    - name: "error_handling"
+      description: "Test error handling and recovery"
+      priority: "high"
+  
+  # Performance tests
+  performance:
+    - name: "response_time"
+      description: "Test response time requirements"
+      priority: "high"
+    
+    - name: "concurrent_requests"
+      description: "Test concurrent request handling"
+      priority: "medium"
+    
+    - name: "load_testing"
+      description: "Test system under load"
+      priority: "medium"
+  
+  # Security tests
+  security:
+    - name: "authentication"
+      description: "Test authentication and authorization"
+      priority: "critical"
+    
+    - name: "input_validation"
+      description: "Test input validation and sanitization"
+      priority: "high"
+    
+    - name: "sql_injection"
+      description: "Test SQL injection prevention"
+      priority: "high"
+    
+    - name: "xss_prevention"
+      description: "Test XSS attack prevention"
+      priority: "high"
+
+# Test Reports
+reports:
+  # Report formats
+  formats:
+    - "json"
+    - "html"
+    - "junit"
+    - "coverage"
+  
+  # Report locations
+  output_dir: "./test-reports"
+  
+  # Report naming
+  naming:
+    timestamp: true
+    environment: true
+    test_type: true
+
+# Database Configuration
+database:
+  # Test database settings
+  test_db:
+    host: "localhost"
+    port: 5432
+    name: "kyb_test"
+    user: "kyb_test"
+    password: "test_password"
+    ssl_mode: "disable"
+  
+  # Redis test settings
+  redis:
+    host: "localhost"
+    port: 6379
+    db: 1
+    password: ""
+
+# Monitoring Configuration
+monitoring:
+  # Metrics to collect during tests
+  metrics:
+    - "response_time"
+    - "throughput"
+    - "error_rate"
+    - "cpu_usage"
+    - "memory_usage"
+    - "database_connections"
+    - "cache_hit_rate"
+  
+  # Alerting thresholds
+  thresholds:
+    response_time_warning: 500ms
+    response_time_critical: 1000ms
+    error_rate_warning: 1%
+    error_rate_critical: 5%
+    cpu_usage_warning: 70%
+    cpu_usage_critical: 90%
+    memory_usage_warning: 80%
+    memory_usage_critical: 95%
+
+# CI/CD Integration
+ci_cd:
+  # GitHub Actions integration
+  github_actions:
+    enabled: true
+    workflow_file: ".github/workflows/e2e-tests.yml"
+    secrets:
+      - "TEST_DATABASE_URL"
+      - "TEST_REDIS_URL"
+      - "TEST_API_KEYS"
+  
+  # Railway integration
+  railway:
+    enabled: true
+    project_id: "zooming-celebration"
+    environment: "production"
+  
+  # Test triggers
+  triggers:
+    - "push_to_main"
+    - "pull_request"
+    - "manual"
+    - "scheduled"
+
+# Test Data Management
+data_management:
+  # Test data cleanup
+  cleanup:
+    enabled: true
+    after_tests: true
+    before_tests: true
+  
+  # Test data generation
+  generation:
+    enabled: true
+    synthetic_data: true
+    anonymized_production_data: false
+  
+  # Test data isolation
+  isolation:
+    enabled: true
+    per_test_suite: true
+    per_test_case: false

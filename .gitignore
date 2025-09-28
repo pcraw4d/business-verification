@@ -201,4 +201,4 @@ subtask_*_completion*.md
 
 # Configuration files with secrets
 config.local.json
-secrets.json
+secrets.jsonservices/frontend/public/node_modules

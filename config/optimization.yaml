@@ -1,0 +1,151 @@
+# KYB Platform Production Optimization Configuration
+
+# Database optimization settings
+database:
+  max_open_conns: 100
+  max_idle_conns: 25
+  conn_max_lifetime: 300s  # 5 minutes
+  conn_max_idle_time: 60s  # 1 minute
+  query_timeout: 30s
+  enable_indexing: true
+  enable_profiling: true
+
+# Cache optimization settings
+cache:
+  l1_ttl: 300s           # 5 minutes
+  l2_ttl: 3600s          # 1 hour
+  max_l1_size: 1000
+  strategy: "write-through"  # write-through, write-behind, write-around
+  enable_warming: true
+  warming_interval: 600s  # 10 minutes
+  compression: true
+
+# Performance optimization settings
+performance:
+  level: 6               # Gzip compression level (1-9)
+  min_size: 1024         # Minimum size to compress (bytes)
+  types:                 # Content types to compress
+    - "application/json"
+    - "text/html"
+    - "text/plain"
+    - "application/javascript"
+    - "text/css"
+  enable_gzip: true
+
+# Monitoring and alerting settings
+monitoring:
+  enable_metrics: true
+  enable_alerting: true
+  enable_profiling: true
+  enable_analytics: true
+  metrics_interval: 60s   # 1 minute
+  retention_period: 604800s  # 7 days
+  
+  # Alert thresholds
+  alert_thresholds:
+    response_time: 500ms
+    error_rate: 5.0        # percentage
+    cache_hit_rate: 80.0   # percentage
+    memory_usage: 80.0     # percentage
+    cpu_usage: 80.0        # percentage
+    database_latency: 100ms
+
+# Connection pool settings
+connection_pool:
+  max_idle_conns: 100
+  max_idle_conns_per_host: 10
+  idle_conn_timeout: 90s
+  disable_keep_alives: false
+  max_conns_per_host: 100
+  response_header_timeout: 30s
+  expect_continue_timeout: 1s
+
+# Async processing settings
+async_processing:
+  workers: 10
+  queue_size: 1000
+  job_timeout: 30s
+  retry_attempts: 3
+  retry_delay: 1s
+
+# Security optimization settings
+security:
+  rate_limiting:
+    requests_per_minute: 1000
+    burst_size: 100
+  input_validation:
+    max_payload_size: 10485760  # 10MB
+    allowed_types:
+      - "application/json"
+      - "application/x-www-form-urlencoded"
+  headers:
+    security_headers:
+      "X-Content-Type-Options": "nosniff"
+      "X-Frame-Options": "DENY"
+      "X-XSS-Protection": "1; mode=block"
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains"
+
+# Auto-scaling settings
+auto_scaling:
+  enabled: true
+  min_replicas: 3
+  max_replicas: 20
+  cpu_threshold: 70
+  memory_threshold: 80
+  response_time_threshold: 200ms
+  scale_up_stabilization: 60s
+  scale_down_stabilization: 300s
+
+# Performance targets
+targets:
+  response_time: 200ms      # 95th percentile
+  cache_hit_rate: 85.0      # percentage
+  success_rate: 98.0        # percentage
+  throughput: 10000         # requests per minute
+  concurrent_users: 1000
+  database_query_time: 50ms
+  memory_usage: 256MB
+  cpu_usage: 50.0           # percentage
+
+# Optimization phases
+phases:
+  database:
+    enabled: true
+    priority: 1
+    estimated_duration: "2 weeks"
+  cache:
+    enabled: true
+    priority: 2
+    estimated_duration: "1 week"
+  performance:
+    enabled: true
+    priority: 3
+    estimated_duration: "1 week"
+  monitoring:
+    enabled: true
+    priority: 4
+    estimated_duration: "1 week"
+  security:
+    enabled: true
+    priority: 5
+    estimated_duration: "1 week"
+
+# Reporting settings
+reporting:
+  enable_reports: true
+  report_interval: 24h
+  report_formats:
+    - "json"
+    - "html"
+    - "csv"
+  output_directory: "./reports"
+  retention_days: 30
+
+# Logging settings
+logging:
+  level: "info"
+  format: "json"
+  output: "stdout"
+  enable_structured_logging: true
+  log_performance_metrics: true
+  log_optimization_events: true

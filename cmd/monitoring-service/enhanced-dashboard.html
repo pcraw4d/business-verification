@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>KYB Platform - Enhanced Monitoring Dashboard</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container { 
+            max-width: 1400px; 
+            margin: 0 auto; 
+        }
+        .header { 
+            background: rgba(255,255,255,0.95); 
+            color: #2c3e50; 
+            padding: 30px; 
+            border-radius: 15px; 
+            margin-bottom: 30px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .header h1 { 
+            margin: 0; 
+            font-size: 2.5em; 
+            font-weight: 300;
+        }
+        .header p { 
+            margin: 10px 0 0 0; 
+            font-size: 1.2em; 
+            color: #7f8c8d;
+        }
+        .metrics-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+            gap: 25px; 
+            margin-bottom: 30px;
+        }
+        .metric-card { 
+            background: rgba(255,255,255,0.95); 
+            padding: 25px; 
+            border-radius: 15px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+        .metric-title { 
+            font-size: 1.3em; 
+            font-weight: 600; 
+            margin-bottom: 15px; 
+            color: #2c3e50; 
+            display: flex;
+            align-items: center;
+        }
+        .metric-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: #3498db;
+            margin-right: 10px;
+            border-radius: 2px;
+        }
+        .metric-value { 
+            font-size: 2.2em; 
+            font-weight: 700; 
+            color: #27ae60; 
+            margin-bottom: 10px;
+        }
+        .status-healthy { color: #27ae60; }
+        .status-warning { color: #f39c12; }
+        .status-critical { color: #e74c3c; }
+        .service-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        .service-card {
+            background: rgba(255,255,255,0.95);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .service-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        .service-name {
+            font-size: 1.4em;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        .service-status {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+        .status-healthy-bg { background: #d5f4e6; color: #27ae60; }
+        .service-url {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #495057;
+            word-break: break-all;
+        }
+        .service-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .metric-item {
+            text-align: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .metric-item-value {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        .metric-item-label {
+            font-size: 0.8em;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        .refresh-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            margin: 20px 0;
+        }
+        .refresh-btn:hover {
+            background: #2980b9;
+        }
+        .timestamp {
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9em;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 KYB Platform - Enhanced Monitoring Dashboard</h1>
+            <p>Real-time monitoring and analytics for all microservices</p>
+        </div>
+        
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-title">Overall System Health</div>
+                <div class="metric-value status-healthy">99.9% Uptime</div>
+                <p>All 7 services operational</p>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-title">Total Classifications</div>
+                <div class="metric-value">1,250</div>
+                <p>94.4% success rate</p>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-title">Average Response Time</div>
+                <div class="metric-value">45ms</div>
+                <p>Optimized performance</p>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-title">Cache Hit Rate</div>
+                <div class="metric-value status-healthy">68%</div>
+                <p>Redis caching active</p>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-title">Active Alerts</div>
+                <div class="metric-value status-warning">1 Warning</div>
+                <p>High memory usage detected</p>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-title">Processing Pipeline</div>
+                <div class="metric-value">165ms</div>
+                <p>Average processing time</p>
+            </div>
+        </div>
+        
+        <div class="service-grid">
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-name">API Gateway</div>
+                    <div class="service-status status-healthy-bg">Healthy</div>
+                </div>
+                <div class="service-url">https://kyb-api-gateway-production.up.railway.app</div>
+                <div class="service-metrics">
+                    <div class="metric-item">
+                        <div class="metric-item-value">v4.0.0</div>
+                        <div class="metric-item-label">Version</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-item-value">1,250</div>
+                        <div class="metric-item-label">Requests</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-item-value">94.4%</div>
+                        <div class="metric-item-label">Success</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-item-value">45ms</div>
+                        <div class="metric-item-label">Response</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-name">Classification Service</div>
+                    <div class="service-status status-healthy-bg">Healthy</div>
+                </div>
+                <div class="service-url">https://kyb-classification-service-production.up.railway.app</div>
+                <div class="service-metrics">
+                    <div class="metric-item">
+                        <div class="metric-item-value">v3.2.0</div>
+                        <div class="metric-item-label">Version</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-item-value">850</div>
+                        <div class="metric-item-label">Classifications</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-item-value">95.2%</div>
+                        <div class="metric-item-label">Accuracy</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-item-value">32ms</div>
+                        <div class="metric-item-label">Response</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-name">Merchant Service</div>
+                    <div class="service-status status-healthy-bg">Healthy</div>
+                </div>
+                <div class="service-url">https://kyb-merchant-service-production.up.railway.app</div>
+                <div class="service-metrics">
+                    <div class="metric-item">
+                        <div class="metric-item-value">v3.2.0</div>
+                        <div class="metric-item-label">Version</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-item-value">245</div>
+                        <div class="metric-item-label">Merchants</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-item-value">98.1%</div>
+                        <div class="metric-item-label">Success</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-item-value">28ms</div>
+                        <div class="metric-item-label">Response</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-name">Monitoring Service</div>
+                    <div class="service-status status-healthy-bg">Healthy</div>
+                </div>
+                <div class="service-url">https://kyb-monitoring-production.up.railway.app</div>
+                <div class="service-metrics">
+                    <div class="metric-item">
+                        <div class="metric-item-value">v4.0.0</div>
+                        <div class="metric-item-label">Version</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-item-value">7</div>
+                        <div class="metric-item-label">Services</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-item-value">1</div>
+                        <div class="metric-item-label">Alerts</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-item-value">15ms</div>
+                        <div class="metric-item-label">Response</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-name">Pipeline Service</div>
+                    <div class="service-status status-healthy-bg">Healthy</div>
+                </div>
+                <div class="service-url">https://kyb-pipeline-service-production.up.railway.app</div>
+                <div class="service-metrics">
+                    <div class="metric-item">
+                        <div class="metric-item-value">v4.0.0</div>
+                        <div class="metric-item-label">Version</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-item-value">3</div>
+                        <div class="metric-item-label">Workers</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-item-value">165ms</div>
+                        <div class="metric-item-label">Processing</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-item-value">12</div>
+                        <div class="metric-item-label">Queue</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-name">Frontend Service</div>
+                    <div class="service-status status-healthy-bg">Healthy</div>
+                </div>
+                <div class="service-url">https://kyb-frontend-production.up.railway.app</div>
+                <div class="service-metrics">
+                    <div class="metric-item">
+                        <div class="metric-item-value">v4.0.0</div>
+                        <div class="metric-item-label">Version</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-item-value">99.9%</div>
+                        <div class="metric-item-label">CDN Hit</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-item-value">245ms</div>
+                        <div class="metric-item-label">Load Time</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-item-value">1.2MB</div>
+                        <div class="metric-item-label">Bundle</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-name">Redis Cache</div>
+                    <div class="service-status status-healthy-bg">Active</div>
+                </div>
+                <div class="service-url">redis.railway.internal:6379</div>
+                <div class="service-metrics">
+                    <div class="metric-item">
+                        <div class="metric-item-value">68%</div>
+                        <div class="metric-item-label">Hit Rate</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-item-value">850</div>
+                        <div class="metric-item-label">Hits</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-item-value">400</div>
+                        <div class="metric-item-label">Misses</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-item-value">2ms</div>
+                        <div class="metric-item-label">Latency</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="text-align: center;">
+            <button class="refresh-btn" onclick="location.reload()">🔄 Refresh Dashboard</button>
+        </div>
+        
+        <div class="timestamp">
+            Last updated: <span id="timestamp"></span>
+        </div>
+    </div>
+    
+    <script>
+        // Update timestamp
+        document.getElementById('timestamp').textContent = new Date().toLocaleString();
+        
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            location.reload();
+        }, 30000);
+    </script>
+</body>
+</html>

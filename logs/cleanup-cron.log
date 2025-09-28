@@ -139,3 +139,24 @@ Please install the missing dependencies before running.
 Thu Sep 25 06:08:55 EDT 2025: Starting cleanup health check
 ALERT: Disk usage is 100% - cleanup may be needed
 Thu Sep 25 06:08:57 EDT 2025: Cleanup health check failed
+[0;34m=== KYB Platform - Comprehensive Cleanup Runner ===[0m
+[0;34mℹ[0m Starting cleanup process at Sun Sep 28 01:00:00 EDT 2025
+[0;34mℹ[0m Project root: /Users/petercrawford/New tool
+[0;34mℹ[0m Mode: LIVE
+[0;34mℹ[0m Shell cleanup: false
+[0;34mℹ[0m Go cleanup: true
+[0;34mℹ[0m Checking dependencies...
+Please install the missing dependencies before running.
+[0;34mℹ[0m Cleanup runner terminated
+[0;34m=== KYB Platform - Comprehensive Cleanup Runner ===[0m
+[0;34mℹ[0m Starting cleanup process at Sun Sep 28 02:00:00 EDT 2025
+[0;34mℹ[0m Project root: /Users/petercrawford/New tool
+[0;34mℹ[0m Mode: LIVE
+[0;34mℹ[0m Shell cleanup: false
+[0;34mℹ[0m Go cleanup: true
+[0;34mℹ[0m Checking dependencies...
+Please install the missing dependencies before running.
+[0;34mℹ[0m Cleanup runner terminated
+Sun Sep 28 06:00:00 EDT 2025: Starting cleanup health check
+ALERT: Disk usage is 95% - cleanup may be needed
+Sun Sep 28 06:00:00 EDT 2025: Cleanup health check failed

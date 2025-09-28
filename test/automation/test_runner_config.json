@@ -1,0 +1,67 @@
+{
+  "base_url": "https://kyb-api-gateway-production.up.railway.app",
+  "test_suites": [
+    {
+      "name": "Unit Tests",
+      "package": "./...",
+      "type": "unit",
+      "priority": "critical",
+      "timeout": "5m",
+      "retry_count": 0,
+      "skip_on_failure": false,
+      "environment": "all"
+    },
+    {
+      "name": "Integration Tests",
+      "package": "./test/integration/...",
+      "type": "integration",
+      "priority": "high",
+      "timeout": "10m",
+      "retry_count": 1,
+      "skip_on_failure": false,
+      "environment": "staging,production"
+    },
+    {
+      "name": "End-to-End Tests",
+      "package": "./test/e2e/...",
+      "type": "e2e",
+      "priority": "critical",
+      "timeout": "30m",
+      "retry_count": 2,
+      "skip_on_failure": false,
+      "environment": "staging,production"
+    },
+    {
+      "name": "Performance Tests",
+      "package": "./test/performance/...",
+      "type": "performance",
+      "priority": "high",
+      "timeout": "1h",
+      "retry_count": 1,
+      "skip_on_failure": true,
+      "environment": "staging,production"
+    },
+    {
+      "name": "Security Tests",
+      "package": "./test/security/...",
+      "type": "security",
+      "priority": "critical",
+      "timeout": "30m",
+      "retry_count": 1,
+      "skip_on_failure": false,
+      "environment": "staging,production"
+    }
+  ],
+  "output_dir": "./test-reports",
+  "report_formats": [
+    "json",
+    "html",
+    "junit",
+    "coverage"
+  ],
+  "parallel_execution": true,
+  "max_concurrency": 4,
+  "timeout": "2h",
+  "retry_count": 1,
+  "environment": "production"
+}
