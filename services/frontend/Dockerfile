@@ -10,8 +10,8 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build the frontend server
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o frontend-server ./cmd/main.go
+# Build the frontend server with debug info
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags="-X main.version=4.0.0-FRONTEND-404-FIX" -o frontend-server ./cmd/main.go
 
 # Final stage
 FROM alpine:latest
