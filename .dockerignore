@@ -69,3 +69,6 @@ temp/
 *_summary.md
 task_*_completion*.md
 subtask_*_completion*.md
+
+# Explicitly allow public directories for frontend services
+!services/frontend/public/
