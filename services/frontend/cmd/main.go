@@ -18,7 +18,7 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"service": "kyb-frontend", "status": "healthy", "timestamp": "` +
-			`2025-09-28T04:40:00Z", "version": "4.0.0-FRONTEND-FIX-V4"}`))
+			`2025-09-28T05:45:00Z", "version": "4.0.0-FRONTEND-404-FIX"}`))
 	})
 
 	// Serve static files from public directory

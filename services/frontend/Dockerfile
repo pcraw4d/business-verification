@@ -1,4 +1,4 @@
-# Simple Go-based frontend server - Updated for cache bust
+# Simple Go-based frontend server - Force rebuild for 404 fix
 FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
