@@ -1,4 +1,4 @@
-# Simple Go-based frontend server
+# Simple Go-based frontend server - Updated for cache bust
 FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
