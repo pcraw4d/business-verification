@@ -1,0 +1,2 @@
+"use strict";!function(e,t){"object"==typeof exports&&"object"==typeof module?module.exports=t():"function"==typeof define&&define.amd?define([],t):"object"==typeof exports?exports.KYBPlatform=t():e.KYBPlatform=t()}(self,function(){return(self.webpackChunkKYBPlatform=self.webpackChunkKYBPlatform||[]).push([[605],{},function(e){return e.O(0,[96,240],function(){return t=960,e(e.s=t);var t}),e.O()}])});
+//# sourceMappingURL=real-data-integration.66115686.js.map

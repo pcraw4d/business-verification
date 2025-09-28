@@ -1,0 +1,2 @@
+"use strict";!function(e,t){"object"==typeof exports&&"object"==typeof module?module.exports=t():"function"==typeof define&&define.amd?define([],t):"object"==typeof exports?exports.KYBPlatform=t():e.KYBPlatform=t()}(self,function(){return(self.webpackChunkKYBPlatform=self.webpackChunkKYBPlatform||[]).push([[945],{},function(e){return e.O(0,[96,240],function(){return t=1649,e(e.s=t);var t}),e.O()}])});
+//# sourceMappingURL=dashboard.bc18979e.js.map

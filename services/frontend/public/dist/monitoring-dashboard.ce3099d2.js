@@ -1,0 +1,2 @@
+"use strict";!function(e,t){"object"==typeof exports&&"object"==typeof module?module.exports=t():"function"==typeof define&&define.amd?define([],t):"object"==typeof exports?exports.KYBPlatform=t():e.KYBPlatform=t()}(self,function(){return(self.webpackChunkKYBPlatform=self.webpackChunkKYBPlatform||[]).push([[258],{},function(e){return e.O(0,[96,240],function(){return t=8766,e(e.s=t);var t}),e.O()}])});
+//# sourceMappingURL=monitoring-dashboard.ce3099d2.js.map

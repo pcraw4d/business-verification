@@ -1,0 +1,2 @@
+"use strict";!function(e,t){"object"==typeof exports&&"object"==typeof module?module.exports=t():"function"==typeof define&&define.amd?define([],t):"object"==typeof exports?exports.KYBPlatform=t():e.KYBPlatform=t()}(self,function(){return(self.webpackChunkKYBPlatform=self.webpackChunkKYBPlatform||[]).push([[35],{},function(e){return e.O(0,[96,738],function(){return t=7038,e(e.s=t);var t}),e.O()}])});
+//# sourceMappingURL=lazy-loader.bd7540d7.js.map
