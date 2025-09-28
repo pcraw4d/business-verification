@@ -10,9 +10,6 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Explicitly copy public directory
-COPY public/ ./public/
-
 # Debug: List what was copied
 RUN ls -la && ls -la public/
 

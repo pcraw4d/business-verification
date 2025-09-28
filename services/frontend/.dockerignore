@@ -1,0 +1,26 @@
+# Local .dockerignore for frontend service
+# Only exclude what we don't need, ensure public directory is included
+
+# Exclude build artifacts
+frontend-server
+frontend-server-*
+test-server
+test-server.go
+
+# Exclude git files
+.git
+.gitignore
+
+# Exclude IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Exclude OS files
+.DS_Store
+Thumbs.db
+
+# Exclude temporary files
+*.tmp
+*.temp
