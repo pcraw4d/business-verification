@@ -398,7 +398,7 @@ func (h *MerchantHandler) HandleHealth(w http.ResponseWriter, r *http.Request) {
 	health := map[string]interface{}{
 		"status":    "healthy",
 		"timestamp": time.Now(),
-		"version":   "1.0.0",
+		"version":   "1.1.0-ENHANCED-ENDPOINTS",
 		"service":   "merchant-service",
 		"uptime":    time.Since(startTime).String(),
 		"supabase_status": map[string]interface{}{
@@ -441,8 +441,8 @@ func (h *MerchantHandler) HandleMerchantAnalytics(w http.ResponseWriter, r *http
 	}
 
 	response := map[string]interface{}{
-		"analytics": analytics,
-		"timestamp": time.Now(),
+		"analytics":       analytics,
+		"timestamp":       time.Now(),
 		"processing_time": time.Since(startTime).String(),
 	}
 
@@ -465,8 +465,8 @@ func (h *MerchantHandler) HandleMerchantStatistics(w http.ResponseWriter, r *htt
 	}
 
 	response := map[string]interface{}{
-		"statistics": statistics,
-		"timestamp": time.Now(),
+		"statistics":      statistics,
+		"timestamp":       time.Now(),
 		"processing_time": time.Since(startTime).String(),
 	}
 
@@ -517,13 +517,13 @@ func (h *MerchantHandler) HandleMerchantSearch(w http.ResponseWriter, r *http.Re
 	}
 
 	response := map[string]interface{}{
-		"results": results,
-		"query": searchReq.Query,
-		"page": searchReq.Page,
-		"page_size": searchReq.PageSize,
-		"sort_by": searchReq.SortBy,
-		"sort_order": searchReq.SortOrder,
-		"timestamp": time.Now(),
+		"results":         results,
+		"query":           searchReq.Query,
+		"page":            searchReq.Page,
+		"page_size":       searchReq.PageSize,
+		"sort_by":         searchReq.SortBy,
+		"sort_order":      searchReq.SortOrder,
+		"timestamp":       time.Now(),
 		"processing_time": time.Since(startTime).String(),
 	}
 
@@ -547,7 +547,7 @@ func (h *MerchantHandler) HandleMerchantPortfolioTypes(w http.ResponseWriter, r 
 
 	response := map[string]interface{}{
 		"portfolio_types": portfolioTypes,
-		"timestamp": time.Now(),
+		"timestamp":       time.Now(),
 		"processing_time": time.Since(startTime).String(),
 	}
 
@@ -570,8 +570,8 @@ func (h *MerchantHandler) HandleMerchantRiskLevels(w http.ResponseWriter, r *htt
 	}
 
 	response := map[string]interface{}{
-		"risk_levels": riskLevels,
-		"timestamp": time.Now(),
+		"risk_levels":     riskLevels,
+		"timestamp":       time.Now(),
 		"processing_time": time.Since(startTime).String(),
 	}
 
