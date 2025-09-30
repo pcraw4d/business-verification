@@ -9,13 +9,18 @@ WORKDIR /app
 # Copy go workspace file
 COPY go.work ./
 
-# Copy go mod files for all modules
-COPY go.mod go.sum ./
-COPY cmd/railway-server/go.mod cmd/railway-server/go.sum ./cmd/railway-server/
-COPY pkg/*/go.mod pkg/*/go.sum ./pkg/*/
+# Copy go mod files for all modules (go.sum is optional)
+COPY go.mod ./
+COPY cmd/railway-server/go.mod ./cmd/railway-server/
+COPY pkg/*/go.mod ./pkg/*/
 
-# Download dependencies
+# Download dependencies (this will create go.sum if missing)
 RUN go mod download
+
+# Copy go.sum files if they exist (optional)
+COPY go.sum* ./
+COPY cmd/railway-server/go.sum* ./cmd/railway-server/
+COPY pkg/*/go.sum* ./pkg/*/
 
 # Copy source code
 COPY . .
