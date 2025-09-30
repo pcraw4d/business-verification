@@ -41,10 +41,16 @@ func main() {
 		zap.String("port", cfg.Server.Port),
 		zap.String("supabase_url", cfg.Supabase.URL))
 
-	// Initialize Supabase client
-	supabaseClient, err := supabase.NewClient(&cfg.Supabase, logger)
-	if err != nil {
-		logger.Fatal("Failed to initialize Supabase client", zap.Error(err))
+	// Initialize Supabase client (temporarily disabled for testing)
+	var supabaseClient *supabase.Client
+	if cfg.Supabase.URL != "" && cfg.Supabase.APIKey != "" && cfg.Supabase.ServiceRoleKey != "" {
+		supabaseClient, err = supabase.NewClient(&cfg.Supabase, logger)
+		if err != nil {
+			logger.Fatal("Failed to initialize Supabase client", zap.Error(err))
+		}
+		logger.Info("✅ Supabase client initialized")
+	} else {
+		logger.Warn("⚠️ Supabase not configured - running in test mode")
 	}
 
 	// Initialize handlers

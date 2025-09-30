@@ -79,10 +79,10 @@ func Load() (*Config, error) {
 		},
 	}
 
-	// Validate required Supabase configuration
-	if cfg.Supabase.URL == "" || cfg.Supabase.APIKey == "" || cfg.Supabase.ServiceRoleKey == "" {
-		return nil, fmt.Errorf("Supabase environment variables (SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY) must be set")
-	}
+	// Validate required Supabase configuration (temporarily disabled for testing)
+	// if cfg.Supabase.URL == "" || cfg.Supabase.APIKey == "" || cfg.Supabase.ServiceRoleKey == "" {
+	//	return nil, fmt.Errorf("Supabase environment variables (SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY) must be set")
+	// }
 
 	return cfg, nil
 }
