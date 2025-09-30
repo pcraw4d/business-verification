@@ -31,14 +31,15 @@ RUN apk --no-cache add ca-certificates
 # Create non-root user
 RUN adduser -D -s /bin/sh appuser
 
-# Set working directory
-WORKDIR /root/
+# Create app directory
+RUN mkdir -p /app
+WORKDIR /app
 
 # Copy binary from builder stage
 COPY --from=builder /app/classification-service .
 
 # Change ownership to non-root user
-RUN chown appuser:appuser /root/classification-service
+RUN chown appuser:appuser /app/classification-service
 
 # Switch to non-root user
 USER appuser

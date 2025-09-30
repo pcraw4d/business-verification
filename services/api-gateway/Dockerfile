@@ -31,14 +31,15 @@ RUN apk --no-cache add ca-certificates
 # Create non-root user
 RUN adduser -D -s /bin/sh appuser
 
-# Set working directory
-WORKDIR /root/
+# Create app directory
+RUN mkdir -p /app
+WORKDIR /app
 
 # Copy binary from builder stage
 COPY --from=builder /app/api-gateway .
 
 # Change ownership to non-root user
-RUN chown appuser:appuser /root/api-gateway
+RUN chown appuser:appuser /app/api-gateway
 
 # Switch to non-root user
 USER appuser
