@@ -20,13 +20,14 @@ type Client struct {
 
 // NewClient creates a new Supabase client
 func NewClient(cfg *config.SupabaseConfig, logger *zap.Logger) (*Client, error) {
-	// Initialize Supabase client
+	// Initialize Supabase client with correct parameters
 	client, err := supabase.NewClient(
 		cfg.URL,
 		cfg.APIKey,
 		&supabase.ClientOptions{
 			Headers: map[string]string{
-				"apikey": cfg.ServiceRoleKey,
+				"apikey":        cfg.APIKey,
+				"Authorization": "Bearer " + cfg.APIKey,
 			},
 		},
 	)
