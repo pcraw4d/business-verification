@@ -78,6 +78,9 @@ func main() {
 			zap.String("port", cfg.Server.Port),
 			zap.String("host", cfg.Server.Host))
 
+		logger.Info("🚀 Classification Service listening",
+			zap.String("address", ":"+cfg.Server.Port))
+
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatal("Classification Service server failed", zap.Error(err))
 		}
