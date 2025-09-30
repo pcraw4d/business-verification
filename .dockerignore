@@ -7,7 +7,14 @@ test/
 .env*
 .air.toml
 Makefile
-Dockerfile*
+# Ignore root Dockerfiles but allow service-specific ones
+Dockerfile.root
+Dockerfile.*.backup
+Dockerfile.kyb-complete.backup
+Dockerfile.simple.backup
+Dockerfile.minimal.backup
+Dockerfile.clean.backup
+Dockerfile.complete.backup
 docker-compose*
 railway.json
 
