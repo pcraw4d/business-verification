@@ -89,9 +89,9 @@ func Load() (*Config, error) {
 			BurstSize:   getEnvAsInt("RATE_LIMIT_BURST_SIZE", 2000),
 		},
 		Services: ServicesConfig{
-			ClassificationURL: getEnvAsString("CLASSIFICATION_SERVICE_URL", "https://classification-service-production.up.railway.app"),
-			MerchantURL:       getEnvAsString("MERCHANT_SERVICE_URL", "https://merchant-service-production.up.railway.app"),
-			FrontendURL:       getEnvAsString("FRONTEND_URL", "https://frontend-service-production-b225.up.railway.app"),
+			ClassificationURL: getEnvAsString("CLASSIFICATION_SERVICE_URL", "https://kyb-classification-service-production.up.railway.app"),
+			MerchantURL:       getEnvAsString("MERCHANT_SERVICE_URL", "https://kyb-merchant-service-production.up.railway.app"),
+			FrontendURL:       getEnvAsString("FRONTEND_URL", "https://kyb-frontend-production.up.railway.app"),
 		},
 		Environment: getEnvAsString("ENVIRONMENT", "production"),
 	}
