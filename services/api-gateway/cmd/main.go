@@ -27,7 +27,7 @@ func main() {
 	}
 	defer logger.Sync()
 
-	logger.Info("🚀 Starting KYB API Gateway Service v1.0.2 - FORCE REDEPLOY")
+	logger.Info("🚀 Starting KYB API Gateway Service v1.0.3 - LOAD BALANCER FIX")
 
 	// Load configuration
 	cfg, err := config.Load()
@@ -39,7 +39,7 @@ func main() {
 	logger.Info("🔧 Initializing Supabase client",
 		zap.String("url", cfg.Supabase.URL),
 		zap.String("api_key_length", fmt.Sprintf("%d", len(cfg.Supabase.APIKey))))
-	
+
 	supabaseClient, err := supabase.NewClient(&cfg.Supabase, logger)
 	if err != nil {
 		logger.Fatal("Failed to initialize Supabase client", zap.Error(err))
