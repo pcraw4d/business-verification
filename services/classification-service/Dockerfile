@@ -44,12 +44,8 @@ RUN chown appuser:appuser /app/classification-service
 # Switch to non-root user
 USER appuser
 
-# Expose port
-EXPOSE 8081
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8081/health || exit 1
+# Expose port (Railway will set PORT environment variable)
+EXPOSE 8080
 
 # Run the application
 CMD ["./classification-service"]
