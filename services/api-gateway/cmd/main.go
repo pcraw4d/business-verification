@@ -27,7 +27,7 @@ func main() {
 	}
 	defer logger.Sync()
 
-	logger.Info("🚀 Starting KYB API Gateway Service v1.0.3 - LOAD BALANCER FIX")
+	logger.Info("🚀 Starting KYB API Gateway Service v1.0.4 - FORCE RESTART")
 
 	// Load configuration
 	cfg, err := config.Load()
