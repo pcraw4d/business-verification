@@ -26,7 +26,7 @@ func main() {
 	}
 	defer logger.Sync()
 
-	logger.Info("🚀 Starting KYB API Gateway Service")
+	logger.Info("🚀 Starting KYB API Gateway Service v1.0.1")
 
 	// Load configuration
 	cfg, err := config.Load()
