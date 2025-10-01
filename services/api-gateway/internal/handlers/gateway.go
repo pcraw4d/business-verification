@@ -80,7 +80,7 @@ func (h *GatewayHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 
 // ProxyToClassification proxies requests to the classification service
 func (h *GatewayHandler) ProxyToClassification(w http.ResponseWriter, r *http.Request) {
-	h.proxyRequest(w, r, h.config.Services.ClassificationURL, "/v1/classify")
+	h.proxyRequest(w, r, h.config.Services.ClassificationURL, "/classify")
 }
 
 // ProxyToMerchants proxies requests to the merchant service
