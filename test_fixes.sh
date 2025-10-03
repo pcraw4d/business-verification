@@ -68,11 +68,16 @@ echo "============================="
 # Test Supabase connection
 echo -n "API Gateway Supabase... "
 if response=$(curl -s --max-time 10 "$API_GATEWAY_URL/health" 2>/dev/null); then
-    if echo "$response" | grep -q '"connected":true'; then
-        echo -e "${GREEN}✅ CONNECTED${NC}"
+    if echo "$response" | grep -q '"supabase_status"'; then
+        if echo "$response" | grep -q '"connected":true'; then
+            echo -e "${GREEN}✅ CONNECTED${NC}"
+        else
+            echo -e "${RED}❌ DISCONNECTED${NC}"
+            echo "  Check SUPABASE_ANON_KEY environment variable"
+        fi
     else
-        echo -e "${RED}❌ DISCONNECTED${NC}"
-        echo "  Check SUPABASE_ANON_KEY environment variable"
+        echo -e "${YELLOW}⚠️  NO SUPABASE STATUS${NC}"
+        echo "  API Gateway health endpoint doesn't include Supabase status"
     fi
 else
     echo -e "${RED}❌ FAIL${NC}"
@@ -80,11 +85,16 @@ fi
 
 echo -n "Merchant Service Supabase... "
 if response=$(curl -s --max-time 10 "$MERCHANT_SERVICE_URL/health" 2>/dev/null); then
-    if echo "$response" | grep -q '"connected":true'; then
-        echo -e "${GREEN}✅ CONNECTED${NC}"
+    if echo "$response" | grep -q '"supabase_status"'; then
+        if echo "$response" | grep -q '"connected":true'; then
+            echo -e "${GREEN}✅ CONNECTED${NC}"
+        else
+            echo -e "${RED}❌ DISCONNECTED${NC}"
+            echo "  Check SUPABASE_ANON_KEY environment variable"
+        fi
     else
-        echo -e "${RED}❌ DISCONNECTED${NC}"
-        echo "  Check SUPABASE_ANON_KEY environment variable"
+        echo -e "${YELLOW}⚠️  NO SUPABASE STATUS${NC}"
+        echo "  Merchant Service health endpoint doesn't include Supabase status"
     fi
 else
     echo -e "${RED}❌ FAIL${NC}"
@@ -92,11 +102,16 @@ fi
 
 echo -n "Classification Service Supabase... "
 if response=$(curl -s --max-time 10 "$CLASSIFICATION_SERVICE_URL/health" 2>/dev/null); then
-    if echo "$response" | grep -q '"connected":true'; then
-        echo -e "${GREEN}✅ CONNECTED${NC}"
+    if echo "$response" | grep -q '"supabase_status"'; then
+        if echo "$response" | grep -q '"connected":true'; then
+            echo -e "${GREEN}✅ CONNECTED${NC}"
+        else
+            echo -e "${RED}❌ DISCONNECTED${NC}"
+            echo "  Check SUPABASE_ANON_KEY environment variable"
+        fi
     else
-        echo -e "${RED}❌ DISCONNECTED${NC}"
-        echo "  Check SUPABASE_ANON_KEY environment variable"
+        echo -e "${YELLOW}⚠️  NO SUPABASE STATUS${NC}"
+        echo "  Classification Service health endpoint doesn't include Supabase status"
     fi
 else
     echo -e "${RED}❌ FAIL${NC}"
@@ -109,7 +124,7 @@ echo "========================"
 # Test classification endpoint directly
 echo -n "Classification Service Direct... "
 CLASSIFICATION_DATA='{"business_name": "Acme Corporation", "description": "A technology company"}'
-if response=$(curl -s --max-time 10 -X POST -H "Content-Type: application/json" -d "$CLASSIFICATION_DATA" "$CLASSIFICATION_SERVICE_URL/v1/classify" 2>/dev/null); then
+if response=$(curl -s --max-time 10 -X POST -H "Content-Type: application/json" -d "$CLASSIFICATION_DATA" "$CLASSIFICATION_SERVICE_URL/classify" 2>/dev/null); then
     if echo "$response" | grep -q '"classification"'; then
         echo -e "${GREEN}✅ PASS${NC}"
     else
