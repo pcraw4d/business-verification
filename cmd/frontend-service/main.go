@@ -195,7 +195,7 @@ func (s *FrontendService) setupRoutes() {
 	http.HandleFunc("/merchant-bulk-operations", s.handleMerchantBulkOperations)
 	http.HandleFunc("/monitoring-dashboard", s.handleMonitoringDashboard)
 	http.HandleFunc("/api-test", s.handleApiTest)
-	
+
 	// Additional routes for navigation
 	http.HandleFunc("/enhanced-risk-indicators", s.handleEnhancedRiskIndicators)
 	http.HandleFunc("/compliance-gap-analysis", s.handleComplianceGapAnalysis)
