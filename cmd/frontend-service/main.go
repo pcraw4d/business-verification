@@ -20,7 +20,7 @@ func NewFrontendService() *FrontendService {
 		serviceName = "frontend-service"
 	}
 
-	version := "5.0.0-MERCHANT-CENTRIC-UI"
+	version := "5.0.1-LEGACY-UI-RESTORED"
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -45,8 +45,8 @@ func (s *FrontendService) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *FrontendService) handleDashboard(w http.ResponseWriter, r *http.Request) {
-	// Serve the merchant portfolio page
-	http.ServeFile(w, r, "./static/merchant-portfolio.html")
+	// Serve the legacy merchant hub page
+	http.ServeFile(w, r, "./static/merchant-hub.html")
 }
 
 func (s *FrontendService) handleAssets(w http.ResponseWriter, r *http.Request) {
