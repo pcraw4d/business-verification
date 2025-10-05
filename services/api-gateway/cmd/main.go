@@ -35,7 +35,7 @@ func main() {
 	if err != nil {
 		logger.Fatal("Failed to load configuration", zap.Error(err))
 	}
-	
+
 	// Log configuration for debugging
 	logger.Info("🔧 Configuration loaded",
 		zap.String("port", cfg.Server.Port),
@@ -69,7 +69,7 @@ func main() {
 
 	// Health check endpoint
 	router.HandleFunc("/health", gatewayHandler.HealthCheck).Methods("GET")
-	
+
 	// Root endpoint for debugging
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -79,11 +79,11 @@ func main() {
 			"status":  "running",
 			"message": "KYB API Gateway is running",
 			"endpoints": map[string]string{
-				"health": "/health",
-				"classify": "/api/v1/classify",
-				"merchants": "/api/v1/merchants",
+				"health":                "/health",
+				"classify":              "/api/v1/classify",
+				"merchants":             "/api/v1/merchants",
 				"classification_health": "/api/v1/classification/health",
-				"merchant_health": "/api/v1/merchant/health",
+				"merchant_health":       "/api/v1/merchant/health",
 			},
 		})
 	}).Methods("GET")

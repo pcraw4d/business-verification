@@ -74,10 +74,10 @@ func Authentication(supabaseClient *supabase.Client, logger *zap.Logger) func(ht
 func isPublicEndpoint(path string) bool {
 	publicPaths := []string{
 		"/health",
-		"/", // Root endpoint for debugging
-		"/api/v1/classify", // Classification endpoint is public for now
+		"/",                             // Root endpoint for debugging
+		"/api/v1/classify",              // Classification endpoint is public for now
 		"/api/v1/classification/health", // Classification health check
-		"/api/v1/merchant/health", // Merchant health check
+		"/api/v1/merchant/health",       // Merchant health check
 	}
 
 	for _, publicPath := range publicPaths {
