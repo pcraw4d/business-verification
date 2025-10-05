@@ -16,10 +16,10 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Service URLs (update these with your actual Railway URLs)
-API_GATEWAY_URL="https://kyb-api-gateway-production.up.railway.app"
-MERCHANT_SERVICE_URL="https://kyb-merchant-service-production.up.railway.app"
-CLASSIFICATION_SERVICE_URL="https://kyb-classification-service-production.up.railway.app"
+# Service URLs (using correct Railway service names from dashboard)
+API_GATEWAY_URL="https://api-gateway-service-production.up.railway.app"
+MERCHANT_SERVICE_URL="https://merchant-service-production.up.railway.app"
+CLASSIFICATION_SERVICE_URL="https://classification-service-production.up.railway.app"
 
 echo -e "${BLUE}1. Testing Health Endpoints${NC}"
 echo "=========================="
