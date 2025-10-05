@@ -19,13 +19,13 @@ func main() {
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"service": "kyb-frontend", "status": "healthy", "timestamp": "` +
-			`2025-09-28T05:45:00Z", "version": "` + version + `"}`))
+		w.Write([]byte(`{"service": "frontend-service", "status": "healthy", "timestamp": "` +
+			`2025-10-05T20:00:00Z", "version": "` + version + `"}`))
 	})
 
 	// Serve static files from public directory
 	fs := http.FileServer(http.Dir("./public/"))
-	
+
 	// Handle root path to serve merchant portfolio
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/" {
