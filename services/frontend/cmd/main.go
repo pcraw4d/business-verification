@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-var version = "4.0.0-FRONTEND-404-FIX"
+var version = "5.0.0-MERCHANT-CENTRIC-UI"
 
 func main() {
 	// Get port from environment variable
@@ -25,7 +25,15 @@ func main() {
 
 	// Serve static files from public directory
 	fs := http.FileServer(http.Dir("./public/"))
-	http.Handle("/", fs)
+	
+	// Handle root path to serve merchant portfolio
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" {
+			http.ServeFile(w, r, "./public/merchant-portfolio.html")
+			return
+		}
+		fs.ServeHTTP(w, r)
+	})
 
 	log.Printf("🌐 Frontend server starting on port %s", port)
 	log.Printf("📁 Serving files from ./public/ directory")
