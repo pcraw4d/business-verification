@@ -20,7 +20,7 @@ func NewFrontendService() *FrontendService {
 		serviceName = "frontend-service"
 	}
 
-	version := "5.0.2-COMPLETE-LEGACY-UI"
+	version := "5.0.3-NAVIGATION-FIXED"
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -139,6 +139,38 @@ func (s *FrontendService) handleApiTest(w http.ResponseWriter, r *http.Request) 
 	http.ServeFile(w, r, "./static/api-test.html")
 }
 
+func (s *FrontendService) handleEnhancedRiskIndicators(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./static/enhanced-risk-indicators.html")
+}
+
+func (s *FrontendService) handleComplianceGapAnalysis(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./static/compliance-gap-analysis.html")
+}
+
+func (s *FrontendService) handleComplianceProgressTracking(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./static/compliance-progress-tracking.html")
+}
+
+func (s *FrontendService) handleMarketAnalysisDashboard(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./static/market-analysis-dashboard.html")
+}
+
+func (s *FrontendService) handleCompetitiveAnalysisDashboard(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./static/competitive-analysis-dashboard.html")
+}
+
+func (s *FrontendService) handleBusinessGrowthAnalytics(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./static/business-growth-analytics.html")
+}
+
+func (s *FrontendService) handleMerchantHubIntegration(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./static/merchant-hub-integration.html")
+}
+
+func (s *FrontendService) handleMerchantDetail(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./static/merchant-detail.html")
+}
+
 func (s *FrontendService) setupRoutes() {
 	// Serve static files
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static/"))))
@@ -149,7 +181,7 @@ func (s *FrontendService) setupRoutes() {
 	// API endpoints
 	http.HandleFunc("/health", s.handleHealth)
 	http.HandleFunc("/assets", s.handleAssets)
-	
+
 	// Legacy page routes
 	http.HandleFunc("/dashboard", s.handleDashboard)
 	http.HandleFunc("/merchant-hub", s.handleMerchantHub)
@@ -164,6 +196,16 @@ func (s *FrontendService) setupRoutes() {
 	http.HandleFunc("/monitoring-dashboard", s.handleMonitoringDashboard)
 	http.HandleFunc("/api-test", s.handleApiTest)
 	
+	// Additional routes for navigation
+	http.HandleFunc("/enhanced-risk-indicators", s.handleEnhancedRiskIndicators)
+	http.HandleFunc("/compliance-gap-analysis", s.handleComplianceGapAnalysis)
+	http.HandleFunc("/compliance-progress-tracking", s.handleComplianceProgressTracking)
+	http.HandleFunc("/market-analysis-dashboard", s.handleMarketAnalysisDashboard)
+	http.HandleFunc("/competitive-analysis-dashboard", s.handleCompetitiveAnalysisDashboard)
+	http.HandleFunc("/business-growth-analytics", s.handleBusinessGrowthAnalytics)
+	http.HandleFunc("/merchant-hub-integration", s.handleMerchantHubIntegration)
+	http.HandleFunc("/merchant-detail", s.handleMerchantDetail)
+
 	// Default route - serve main index page
 	http.HandleFunc("/", s.handleDashboard)
 }

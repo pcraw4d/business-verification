@@ -42,7 +42,7 @@ class KYBNavigation {
         const navigationHTML = `
             <div class="kyb-sidebar">
                 <div class="sidebar-header">
-                    <a href="index.html" class="brand-link">
+                    <a href="/" class="brand-link">
                         <i class="fas fa-shield-alt"></i>
                         <span class="brand-text">KYB Platform</span>
                     </a>
@@ -56,13 +56,13 @@ class KYBNavigation {
                         <h3 class="nav-section-title">Platform</h3>
                         <ul class="nav-list">
                             <li class="nav-item">
-                                <a href="index.html" class="nav-link" data-page="home">
+                                <a href="/" class="nav-link" data-page="home">
                                     <i class="fas fa-home"></i>
                                     <span class="nav-text">Home</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="dashboard-hub.html" class="nav-link" data-page="home">
+                                <a href="/dashboard" class="nav-link" data-page="home">
                                     <i class="fas fa-th-large"></i>
                                     <span class="nav-text">Dashboard Hub</span>
                                 </a>
@@ -74,26 +74,26 @@ class KYBNavigation {
                         <h3 class="nav-section-title">Merchant Verification & Risk</h3>
                         <ul class="nav-list">
                             <li class="nav-item">
-                                <a href="add-merchant.html" class="nav-link" data-page="add-merchant">
+                                <a href="/add-merchant" class="nav-link" data-page="add-merchant">
                                     <i class="fas fa-plus-circle"></i>
                                     <span class="nav-text">Add Merchant</span>
                                     <span class="nav-badge new">NEW</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="dashboard.html" class="nav-link" data-page="business-intelligence">
+                                <a href="/business-intelligence" class="nav-link" data-page="business-intelligence">
                                     <i class="fas fa-chart-line"></i>
                                     <span class="nav-text">Business Intelligence</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="risk-dashboard.html" class="nav-link" data-page="risk-assessment">
+                                <a href="/risk-dashboard" class="nav-link" data-page="risk-assessment">
                                     <i class="fas fa-exclamation-triangle"></i>
                                     <span class="nav-text">Risk Assessment</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="enhanced-risk-indicators.html" class="nav-link" data-page="risk-indicators">
+                                <a href="/enhanced-risk-indicators" class="nav-link" data-page="risk-indicators">
                                     <i class="fas fa-gauge-high"></i>
                                     <span class="nav-text">Risk Indicators</span>
                                 </a>
@@ -105,20 +105,20 @@ class KYBNavigation {
                         <h3 class="nav-section-title">Compliance</h3>
                         <ul class="nav-list">
                             <li class="nav-item">
-                                <a href="compliance-dashboard.html" class="nav-link" data-page="compliance-status">
+                                <a href="/compliance-dashboard" class="nav-link" data-page="compliance-status">
                                     <i class="fas fa-clipboard-check"></i>
                                     <span class="nav-text">Compliance Status</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="compliance-gap-analysis.html" class="nav-link" data-page="compliance-gaps">
+                                <a href="/compliance-gap-analysis" class="nav-link" data-page="compliance-gaps">
                                     <i class="fas fa-search-minus"></i>
                                     <span class="nav-text">Gap Analysis</span>
                                     <span class="nav-badge new">NEW</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="compliance-progress-tracking.html" class="nav-link" data-page="compliance-progress">
+                                <a href="/compliance-progress-tracking" class="nav-link" data-page="compliance-progress">
                                     <i class="fas fa-tasks"></i>
                                     <span class="nav-text">Progress Tracking</span>
                                 </a>
@@ -130,20 +130,20 @@ class KYBNavigation {
                         <h3 class="nav-section-title">Merchant Management</h3>
                         <ul class="nav-list">
                             <li class="nav-item">
-                                <a href="merchant-hub-integration.html" class="nav-link" data-page="merchant-hub">
+                                <a href="/merchant-hub-integration" class="nav-link" data-page="merchant-hub">
                                     <i class="fas fa-sitemap"></i>
                                     <span class="nav-text">Merchant Hub</span>
                                     <span class="nav-badge new">NEW</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="merchant-portfolio.html" class="nav-link" data-page="merchant-portfolio">
+                                <a href="/merchant-portfolio" class="nav-link" data-page="merchant-portfolio">
                                     <i class="fas fa-store"></i>
                                     <span class="nav-text">Merchant Portfolio</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="merchant-detail.html" class="nav-link" data-page="merchant-detail">
+                                <a href="/merchant-detail" class="nav-link" data-page="merchant-detail">
                                     <i class="fas fa-user-tie"></i>
                                     <span class="nav-text">Merchant Detail</span>
                                 </a>
@@ -155,19 +155,19 @@ class KYBNavigation {
                         <h3 class="nav-section-title">Market Intelligence</h3>
                         <ul class="nav-list">
                             <li class="nav-item">
-                                <a href="market-analysis-dashboard.html" class="nav-link" data-page="market-analysis">
+                                <a href="/market-analysis-dashboard" class="nav-link" data-page="market-analysis">
                                     <i class="fas fa-chart-bar"></i>
                                     <span class="nav-text">Market Analysis</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="competitive-analysis-dashboard.html" class="nav-link" data-page="competitive-analysis">
+                                <a href="/competitive-analysis-dashboard" class="nav-link" data-page="competitive-analysis">
                                     <i class="fas fa-users"></i>
                                     <span class="nav-text">Competitive Analysis</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="business-growth-analytics.html" class="nav-link" data-page="growth-analytics">
+                                <a href="/business-growth-analytics" class="nav-link" data-page="growth-analytics">
                                     <i class="fas fa-trending-up"></i>
                                     <span class="nav-text">Growth Analytics</span>
                                 </a>
