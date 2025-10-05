@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -100,7 +99,7 @@ func (s *FrontendService) setupRoutes() {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static/"))))
 	http.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("./static/js/"))))
 	http.Handle("/components/", http.StripPrefix("/components/", http.FileServer(http.Dir("./static/js/components/"))))
-	
+
 	// API endpoints
 	http.HandleFunc("/health", s.handleHealth)
 	http.HandleFunc("/assets", s.handleAssets)
