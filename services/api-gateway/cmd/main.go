@@ -27,7 +27,7 @@ func main() {
 	}
 	defer logger.Sync()
 
-	logger.Info("🚀 Starting KYB API Gateway Service v1.0.5 - ENV FORCE")
+	logger.Info("🚀 Starting KYB API Gateway Service v1.0.6 - ROUTING FIX")
 
 	// Load configuration
 	cfg, err := config.Load()
@@ -68,6 +68,10 @@ func main() {
 	api.HandleFunc("/merchants/{id}", gatewayHandler.ProxyToMerchants).Methods("GET", "PUT", "DELETE")
 	api.HandleFunc("/merchants/search", gatewayHandler.ProxyToMerchants).Methods("POST")
 	api.HandleFunc("/merchants/analytics", gatewayHandler.ProxyToMerchants).Methods("GET")
+	
+	// Health check routes for backend services
+	api.HandleFunc("/classification/health", gatewayHandler.ProxyToClassificationHealth).Methods("GET")
+	api.HandleFunc("/merchant/health", gatewayHandler.ProxyToMerchantHealth).Methods("GET")
 
 	// Frontend proxy (for development)
 	if cfg.Environment == "development" {

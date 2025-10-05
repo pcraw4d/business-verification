@@ -94,6 +94,16 @@ func (h *GatewayHandler) ProxyToMerchants(w http.ResponseWriter, r *http.Request
 	h.proxyRequest(w, r, h.config.Services.MerchantURL, "/api/v1/merchants"+path)
 }
 
+// ProxyToClassificationHealth proxies health check requests to the classification service
+func (h *GatewayHandler) ProxyToClassificationHealth(w http.ResponseWriter, r *http.Request) {
+	h.proxyRequest(w, r, h.config.Services.ClassificationURL, "/health")
+}
+
+// ProxyToMerchantHealth proxies health check requests to the merchant service
+func (h *GatewayHandler) ProxyToMerchantHealth(w http.ResponseWriter, r *http.Request) {
+	h.proxyRequest(w, r, h.config.Services.MerchantURL, "/health")
+}
+
 // proxyRequest proxies a request to a backend service
 func (h *GatewayHandler) proxyRequest(w http.ResponseWriter, r *http.Request, targetURL, targetPath string) {
 	ctx := r.Context()
