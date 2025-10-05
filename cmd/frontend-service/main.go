@@ -20,7 +20,7 @@ func NewFrontendService() *FrontendService {
 		serviceName = "frontend-service"
 	}
 
-	version := "5.0.1-LEGACY-UI-RESTORED"
+	version := "5.0.2-COMPLETE-LEGACY-UI"
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -45,8 +45,8 @@ func (s *FrontendService) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *FrontendService) handleDashboard(w http.ResponseWriter, r *http.Request) {
-	// Serve the legacy merchant hub page
-	http.ServeFile(w, r, "./static/merchant-hub.html")
+	// Serve the main index page (legacy UI)
+	http.ServeFile(w, r, "./static/index.html")
 }
 
 func (s *FrontendService) handleAssets(w http.ResponseWriter, r *http.Request) {
@@ -94,17 +94,78 @@ func (s *FrontendService) handleAssets(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(assets)
 }
 
+// Legacy page handlers
+func (s *FrontendService) handleMerchantHub(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./static/merchant-hub.html")
+}
+
+func (s *FrontendService) handleMerchantPortfolio(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./static/merchant-portfolio.html")
+}
+
+func (s *FrontendService) handleBusinessIntelligence(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./static/business-intelligence.html")
+}
+
+func (s *FrontendService) handleComplianceDashboard(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./static/compliance-dashboard.html")
+}
+
+func (s *FrontendService) handleRiskDashboard(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./static/risk-dashboard.html")
+}
+
+func (s *FrontendService) handleAddMerchant(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./static/add-merchant.html")
+}
+
+func (s *FrontendService) handleMerchantDetails(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./static/merchant-details.html")
+}
+
+func (s *FrontendService) handleMerchantComparison(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./static/merchant-comparison.html")
+}
+
+func (s *FrontendService) handleMerchantBulkOperations(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./static/merchant-bulk-operations.html")
+}
+
+func (s *FrontendService) handleMonitoringDashboard(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./static/monitoring-dashboard.html")
+}
+
+func (s *FrontendService) handleApiTest(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./static/api-test.html")
+}
+
 func (s *FrontendService) setupRoutes() {
 	// Serve static files
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static/"))))
 	http.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("./static/js/"))))
 	http.Handle("/components/", http.StripPrefix("/components/", http.FileServer(http.Dir("./static/js/components/"))))
+	http.Handle("/styles/", http.StripPrefix("/styles/", http.FileServer(http.Dir("./static/styles/"))))
 
 	// API endpoints
 	http.HandleFunc("/health", s.handleHealth)
 	http.HandleFunc("/assets", s.handleAssets)
+	
+	// Legacy page routes
 	http.HandleFunc("/dashboard", s.handleDashboard)
-	http.HandleFunc("/", s.handleDashboard) // Default to merchant portfolio
+	http.HandleFunc("/merchant-hub", s.handleMerchantHub)
+	http.HandleFunc("/merchant-portfolio", s.handleMerchantPortfolio)
+	http.HandleFunc("/business-intelligence", s.handleBusinessIntelligence)
+	http.HandleFunc("/compliance-dashboard", s.handleComplianceDashboard)
+	http.HandleFunc("/risk-dashboard", s.handleRiskDashboard)
+	http.HandleFunc("/add-merchant", s.handleAddMerchant)
+	http.HandleFunc("/merchant-details", s.handleMerchantDetails)
+	http.HandleFunc("/merchant-comparison", s.handleMerchantComparison)
+	http.HandleFunc("/merchant-bulk-operations", s.handleMerchantBulkOperations)
+	http.HandleFunc("/monitoring-dashboard", s.handleMonitoringDashboard)
+	http.HandleFunc("/api-test", s.handleApiTest)
+	
+	// Default route - serve main index page
+	http.HandleFunc("/", s.handleDashboard)
 }
 
 func main() {

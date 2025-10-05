@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+    </style>
+</head>
+<body>
+    <h1>API Test Page</h1>
+    <div id="status">Testing API...</div>
+    <div id="result"></div>
+    
+    <script>
+        async function testAPI() {
+            const statusEl = document.getElementById('status');
+            const resultEl = document.getElementById('result');
+            
+            try {
+                statusEl.textContent = 'Making API request...';
+                
+                const response = await fetch('/v1/classify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        business_name: 'The Greene Grape',
+                        description: 'Wine shop',
+                        website_url: 'https://greenegrape.com/'
+                    })
+                });
+                
+                statusEl.textContent = `Response status: ${response.status}`;
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                
+                statusEl.textContent = 'API call successful!';
+                statusEl.className = 'success';
+                
+                resultEl.innerHTML = `
+                    <div class="result success">
+                        <h3>API Response:</h3>
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                    </div>
+                `;
+                
+            } catch (error) {
+                statusEl.textContent = `Error: ${error.message}`;
+                statusEl.className = 'error';
+                
+                resultEl.innerHTML = `
+                    <div class="result error">
+                        <h3>Error Details:</h3>
+                        <p>${error.message}</p>
+                        <p>Stack: ${error.stack}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Test on page load
+        testAPI();
+    </script>
+</body>
+</html>

@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merchant Details - KYB Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="components/navigation.js"></script>
+    <script src="components/merchant-context.js"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-hover {
+            transition: all 0.3s ease-in-out;
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .confidence-bar {
+            background: linear-gradient(90deg, #ef4444 0%, #f97316 25%, #eab308 50%, #22c55e 75%, #3b82f6 100%);
+        }
+        .risk-gauge {
+            background: conic-gradient(from 0deg, #ef4444 0deg, #f97316 72deg, #eab308 144deg, #22c55e 216deg, #3b82f6 288deg, #ef4444 360deg);
+        }
+        .expandable-section {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out;
+        }
+        .expandable-section.expanded {
+            max-height: 1000px;
+        }
+        .skeleton-loading {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .progressive-disclosure {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.4s ease-in-out;
+        }
+        .progressive-disclosure.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        /* Enhanced Risk Level Styles */
+        .risk-indicator {
+            position: relative;
+            transition: all 0.3s ease-in-out;
+        }
+        .risk-indicator:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        .risk-badge {
+            position: relative;
+            overflow: hidden;
+            border: 2px solid;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .risk-badge::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+        .risk-badge:hover::before {
+            left: 100%;
+        }
+        .risk-low {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-color: #047857;
+            color: white;
+        }
+        .risk-medium {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            border-color: #b45309;
+            color: white;
+        }
+        .risk-high {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            border-color: #c2410c;
+            color: white;
+        }
+        .risk-critical {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border-color: #b91c1c;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        .risk-trend {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .trend-up {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+        .trend-down {
+            background: #f0fdf4;
+            color: #16a34a;
+        }
+        .trend-stable {
+            background: #f8fafc;
+            color: #6b7280;
+        }
+        /* Tab Styles */
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .tab-button {
+            background: none;
+            border: none;
+            padding: 12px 24px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .tab-button.active {
+            border-bottom-color: #3498db;
+            color: #3498db;
+            font-weight: 600;
+        }
+        .tab-button:hover {
+            background: rgba(52, 152, 219, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-xl font-bold text-gray-900" id="merchantNameText">Loading...</h1>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">ENHANCED</span>
+                    <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">LIVE</span>
+                    <button id="helpBtn" class="text-gray-600 hover:text-gray-900">
+                        <i class="fas fa-question-circle"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Tab Navigation -->
+        <div class="bg-white rounded-lg shadow-lg mb-8">
+            <div class="border-b border-gray-200">
+                <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                    <button class="tab-button active" data-tab="merchant-details" class="whitespace-nowrap py-2 px-1 border-b-2 border-blue-500 font-medium text-sm text-blue-600">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        Merchant Details
+                    </button>
+                    <button class="tab-button" data-tab="business-analytics" class="whitespace-nowrap py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        <i class="fas fa-chart-line mr-2"></i>
+                        Business Analytics
+                    </button>
+                    <button class="tab-button" data-tab="risk-assessment" class="whitespace-nowrap py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        Risk Assessment
+                    </button>
+                    <button class="tab-button" data-tab="risk-indicators" class="whitespace-nowrap py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        <i class="fas fa-gauge-high mr-2"></i>
+                        Risk Indicators
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Tab Content -->
+        <!-- Merchant Details Tab -->
+        <div class="tab-content active" id="merchant-details">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">Merchant Information</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Business Information -->
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                            <i class="fas fa-building mr-2 text-blue-600"></i>
+                            Business Information
+                        </h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Business Name</label>
+                                <p class="mt-1 text-sm text-gray-900" id="businessName">-</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Website</label>
+                                <p class="mt-1 text-sm text-gray-900" id="websiteUrl">-</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Description</label>
+                                <p class="mt-1 text-sm text-gray-900" id="businessDescription">-</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Registration Number</label>
+                                <p class="mt-1 text-sm text-gray-900" id="registrationNumber">-</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Address Information -->
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                            <i class="fas fa-map-marker-alt mr-2 text-green-600"></i>
+                            Address Information
+                        </h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Street Address</label>
+                                <p class="mt-1 text-sm text-gray-900" id="streetAddress">-</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">City</label>
+                                <p class="mt-1 text-sm text-gray-900" id="city">-</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">State/Province</label>
+                                <p class="mt-1 text-sm text-gray-900" id="state">-</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Postal Code</label>
+                                <p class="mt-1 text-sm text-gray-900" id="postalCode">-</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Country</label>
+                                <p class="mt-1 text-sm text-gray-900" id="country">-</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact Information -->
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800 flex items-center mb-4">
+                        <i class="fas fa-phone mr-2 text-purple-600"></i>
+                        Contact Information
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Phone Number</label>
+                            <p class="mt-1 text-sm text-gray-900" id="phoneNumber">-</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Email Address</label>
+                            <p class="mt-1 text-sm text-gray-900" id="email">-</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Business Analytics Tab -->
+        <div class="tab-content" id="business-analytics">
+            <div id="dashboardResults" class="space-y-8">
+                <!-- Core Classification Results -->
+                <div id="coreResults" class="progressive-disclosure">
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold text-gray-900">Core Classification Results</h3>
+                            <button class="text-blue-600 hover:text-blue-800 text-sm font-medium" onclick="toggleSection('coreDetails')">
+                                <i class="fas fa-chevron-down mr-1"></i>
+                                Show Details
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <!-- Primary Industry -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-industry text-blue-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900" id="primaryIndustry">Technology</h4>
+                                <p class="text-sm text-gray-500" id="industryCode">541511</p>
+                            </div>
+                            
+                            <!-- Confidence Score -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-chart-line text-green-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Confidence</h4>
+                                <p class="text-sm text-gray-500" id="confidenceScore">85%</p>
+                            </div>
+                            
+                            <!-- Risk Level -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-shield-alt text-yellow-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Risk Level</h4>
+                                <p class="text-sm text-gray-500" id="riskLevel">Low</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Expandable Details -->
+                        <div id="coreDetails" class="expandable-section mt-6">
+                            <div class="border-t pt-6">
+                                <!-- Enhanced Classification Results -->
+                                <div id="enhancedClassificationResults" class="mb-6">
+                                    <!-- Top 3 Results for Each Code Type -->
+                                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                                        <!-- MCC Codes -->
+                                        <div id="mccCodesCard" class="bg-gray-50 rounded-lg p-4">
+                                            <div class="flex items-center mb-3">
+                                                <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                                                    <span class="text-blue-600 font-bold text-sm">M</span>
+                                                </div>
+                                                <h6 class="font-medium text-gray-900">MCC Codes</h6>
+                                            </div>
+                                            <div id="mccCodesList" class="space-y-3">
+                                                <!-- Populated by JavaScript -->
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- SIC Codes -->
+                                        <div id="sicCodesCard" class="bg-gray-50 rounded-lg p-4">
+                                            <div class="flex items-center mb-3">
+                                                <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center mr-3">
+                                                    <span class="text-red-600 font-bold text-sm">S</span>
+                                                </div>
+                                                <h6 class="font-medium text-gray-900">SIC Codes</h6>
+                                            </div>
+                                            <div id="sicCodesList" class="space-y-3">
+                                                <!-- Populated by JavaScript -->
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- NAICS Codes -->
+                                        <div id="naicsCodesCard" class="bg-gray-50 rounded-lg p-4">
+                                            <div class="flex items-center mb-3">
+                                                <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                                                    <span class="text-green-600 font-bold text-sm">N</span>
+                                                </div>
+                                                <h6 class="font-medium text-gray-900">NAICS Codes</h6>
+                                            </div>
+                                            <div id="naicsCodesList" class="space-y-3">
+                                                <!-- Populated by JavaScript -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Method Breakdown -->
+                                    <div id="methodBreakdownSection" class="mb-6">
+                                        <h5 class="font-medium text-gray-900 mb-3">Classification Methods Used</h5>
+                                        <div id="methodBreakdown" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            <!-- Populated by JavaScript -->
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Website Keywords -->
+                                    <div id="websiteKeywordsSection" class="mb-6">
+                                        <div class="flex items-center justify-between mb-3">
+                                            <h5 class="font-medium text-gray-900">Website Keywords Used</h5>
+                                            <button id="toggleKeywordsBtn" class="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center">
+                                                <span id="toggleKeywordsText">Show Keywords</span>
+                                                <svg id="toggleKeywordsIcon" class="w-4 h-4 ml-1 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div id="websiteKeywords" class="flex flex-wrap gap-2" style="display: none;">
+                                            <!-- Populated by JavaScript -->
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Classification Reasoning -->
+                                    <div id="classificationReasoningSection" class="mb-6">
+                                        <h5 class="font-medium text-gray-900 mb-3">Classification Reasoning</h5>
+                                        <div id="classificationReasoning" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                            <!-- Populated by JavaScript -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Security Indicators Section -->
+                <div id="securityIndicators" class="progressive-disclosure">
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold text-gray-900">Security & Trust Indicators</h3>
+                            <button class="text-blue-600 hover:text-blue-800 text-sm font-medium" onclick="toggleSection('securityDetails')">
+                                <i class="fas fa-chevron-down mr-1"></i>
+                                Show Details
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <!-- Data Source Trust -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-shield-check text-green-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Data Source</h4>
+                                <p class="text-sm text-gray-500" id="dataSourceTrust">Trusted</p>
+                            </div>
+                            
+                            <!-- Website Verification -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-globe text-blue-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Website</h4>
+                                <p class="text-sm text-gray-500" id="websiteVerification">Verified</p>
+                            </div>
+                            
+                            <!-- Security Validation -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-lock text-purple-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Security</h4>
+                                <p class="text-sm text-gray-500" id="securityValidation">Validated</p>
+                            </div>
+                            
+                            <!-- Trust Score -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-star text-yellow-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Trust Score</h4>
+                                <p class="text-sm text-gray-500" id="trustScore">95%</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Expandable Security Details -->
+                        <div id="securityDetails" class="expandable-section mt-6">
+                            <div class="border-t pt-6">
+                                <div id="securityDetailsContent">
+                                    <!-- Populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quality Metrics Section -->
+                <div id="qualityMetrics" class="progressive-disclosure">
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold text-gray-900">Data Quality Metrics</h3>
+                            <button class="text-blue-600 hover:text-blue-800 text-sm font-medium" onclick="toggleSection('qualityDetails')">
+                                <i class="fas fa-chevron-down mr-1"></i>
+                                Show Details
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
+                            <!-- Overall Quality -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-award text-green-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Overall Quality</h4>
+                                <p class="text-sm text-gray-500" id="overallQuality">A</p>
+                            </div>
+                            
+                            <!-- Evidence Strength -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-chart-bar text-blue-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Evidence</h4>
+                                <p class="text-sm text-gray-500" id="evidenceStrength">Strong</p>
+                            </div>
+                            
+                            <!-- Data Completeness -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-database text-purple-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Completeness</h4>
+                                <p class="text-sm text-gray-500" id="dataCompleteness">85%</p>
+                            </div>
+                            
+                            <!-- Agreement Score -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-handshake text-yellow-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Agreement</h4>
+                                <p class="text-sm text-gray-500" id="agreementScore">75%</p>
+                            </div>
+                            
+                            <!-- Consistency -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-balance-scale text-red-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Consistency</h4>
+                                <p class="text-sm text-gray-500" id="consistencyScore">Low</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Expandable Quality Details -->
+                        <div id="qualityDetails" class="expandable-section mt-6">
+                            <div class="border-t pt-6">
+                                <div id="qualityDetailsContent">
+                                    <!-- Populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Risk Assessment Section -->
+                <div id="riskAssessment" class="progressive-disclosure">
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold text-gray-900">Risk Assessment</h3>
+                            <button class="text-blue-600 hover:text-blue-800 text-sm font-medium" onclick="toggleSection('riskDetails')">
+                                <i class="fas fa-chevron-down mr-1"></i>
+                                Show Details
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <!-- Overall Risk Score -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Risk Score</h4>
+                                <p class="text-sm text-gray-500" id="overallRiskScore">25</p>
+                            </div>
+                            
+                            <!-- Compliance Risk -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-gavel text-yellow-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Compliance Risk</h4>
+                                <p class="text-sm text-gray-500" id="complianceRisk">Low</p>
+                            </div>
+                            
+                            <!-- Financial Risk -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-dollar-sign text-green-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Financial Risk</h4>
+                                <p class="text-sm text-gray-500" id="financialRisk">Low</p>
+                            </div>
+                            
+                            <!-- Operational Risk -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-cogs text-blue-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Operational Risk</h4>
+                                <p class="text-sm text-gray-500" id="operationalRisk">Medium</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Expandable Risk Details -->
+                        <div id="riskDetails" class="expandable-section mt-6">
+                            <div class="border-t pt-6">
+                                <div id="riskDetailsContent">
+                                    <!-- Populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Business Intelligence Section -->
+                <div id="businessIntelligence" class="progressive-disclosure">
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold text-gray-900">Business Intelligence</h3>
+                            <button class="text-blue-600 hover:text-blue-800 text-sm font-medium" onclick="toggleSection('intelligenceDetails')">
+                                <i class="fas fa-chevron-down mr-1"></i>
+                                Show Details
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <!-- Employee Count -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-users text-blue-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Employees</h4>
+                                <p class="text-sm text-gray-500" id="employeeCount">50-100</p>
+                            </div>
+                            
+                            <!-- Revenue Range -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-chart-line text-green-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Revenue</h4>
+                                <p class="text-sm text-gray-500" id="revenueRange">$1M-$10M</p>
+                            </div>
+                            
+                            <!-- Founded Year -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-calendar text-purple-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Founded</h4>
+                                <p class="text-sm text-gray-500" id="foundedYear">2015</p>
+                            </div>
+                            
+                            <!-- Location -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-map-marker-alt text-yellow-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Location</h4>
+                                <p class="text-sm text-gray-500" id="businessLocation">San Francisco</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Expandable Intelligence Details -->
+                        <div id="intelligenceDetails" class="expandable-section mt-6">
+                            <div class="border-t pt-6">
+                                <div id="intelligenceDetailsContent">
+                                    <!-- Populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Verification Status Section -->
+                <div id="verificationStatus" class="progressive-disclosure">
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold text-gray-900">Verification Status</h3>
+                            <button class="text-blue-600 hover:text-blue-800 text-sm font-medium" onclick="toggleSection('verificationDetails')">
+                                <i class="fas fa-chevron-down mr-1"></i>
+                                Show Details
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <!-- Verification Status -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Status</h4>
+                                <p class="text-sm text-gray-500" id="verificationStatus">Complete</p>
+                            </div>
+                            
+                            <!-- Processing Time -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-clock text-blue-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Processing Time</h4>
+                                <p class="text-sm text-gray-500" id="processingTime">0.5s</p>
+                            </div>
+                            
+                            <!-- Data Sources -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-database text-purple-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Data Sources</h4>
+                                <p class="text-sm text-gray-500" id="dataSources">5 sources</p>
+                            </div>
+                            
+                            <!-- Last Updated -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-sync text-yellow-600 text-xl"></i>
+                                </div>
+                                <h4 class="font-medium text-gray-900">Last Updated</h4>
+                                <p class="text-sm text-gray-500" id="lastUpdated">Just now</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Expandable Verification Details -->
+                        <div id="verificationDetails" class="expandable-section mt-6">
+                            <div class="border-t pt-6">
+                                <div id="verificationDetailsContent">
+                                    <!-- Populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Risk Assessment Tab -->
+        <div class="tab-content" id="risk-assessment">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">Risk Assessment</h2>
+                <p class="text-gray-600">Risk assessment content will be implemented here with identical UI to the risk dashboard page.</p>
+            </div>
+        </div>
+
+        <!-- Risk Indicators Tab -->
+        <div class="tab-content" id="risk-indicators">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">Risk Indicators</h2>
+                <p class="text-gray-600">Risk indicators content will be implemented here with identical UI to the enhanced risk indicators page.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Merchant Details JavaScript
+        class MerchantDetails {
+            constructor() {
+                this.merchantData = null;
+                this.apiResults = null;
+                this.init();
+            }
+
+            init() {
+                this.loadMerchantData();
+                this.bindEvents();
+                this.initializeComponents();
+            }
+
+            loadMerchantData() {
+                try {
+                    // Load merchant data from session storage
+                    const merchantDataStr = sessionStorage.getItem('merchantData');
+                    const apiResultsStr = sessionStorage.getItem('merchantApiResults');
+                    
+                    if (merchantDataStr) {
+                        this.merchantData = JSON.parse(merchantDataStr);
+                        this.populateMerchantDetails();
+                    }
+                    
+                    if (apiResultsStr) {
+                        this.apiResults = JSON.parse(apiResultsStr);
+                        this.populateApiResults();
+                    }
+                    
+                    // Update page title
+                    if (this.merchantData && this.merchantData.businessName) {
+                        document.getElementById('merchantNameText').textContent = this.merchantData.businessName;
+                        document.title = `${this.merchantData.businessName} - Merchant Details - KYB Platform`;
+                    }
+                    
+                } catch (error) {
+                    console.error('Error loading merchant data:', error);
+                    this.showError('Failed to load merchant data');
+                }
+            }
+
+            populateMerchantDetails() {
+                if (!this.merchantData) return;
+
+                // Populate merchant details tab
+                document.getElementById('businessName').textContent = this.merchantData.businessName || '-';
+                document.getElementById('websiteUrl').textContent = this.merchantData.websiteUrl || '-';
+                document.getElementById('businessDescription').textContent = this.merchantData.businessDescription || '-';
+                document.getElementById('registrationNumber').textContent = this.merchantData.registrationNumber || '-';
+                document.getElementById('streetAddress').textContent = this.merchantData.streetAddress || '-';
+                document.getElementById('city').textContent = this.merchantData.city || '-';
+                document.getElementById('state').textContent = this.merchantData.state || '-';
+                document.getElementById('postalCode').textContent = this.merchantData.postalCode || '-';
+                document.getElementById('country').textContent = this.merchantData.country || '-';
+                document.getElementById('phoneNumber').textContent = this.merchantData.phoneNumber || '-';
+                document.getElementById('email').textContent = this.merchantData.email || '-';
+            }
+
+            populateApiResults() {
+                if (!this.apiResults) return;
+
+                // Populate Business Intelligence results
+                if (this.apiResults.businessIntelligence) {
+                    this.populateBusinessIntelligenceResults(this.apiResults.businessIntelligence);
+                }
+
+                // Populate Risk Assessment results
+                if (this.apiResults.riskAssessment) {
+                    this.populateRiskAssessmentResults(this.apiResults.riskAssessment);
+                }
+
+                // Populate Risk Indicators results
+                if (this.apiResults.riskIndicators) {
+                    this.populateRiskIndicatorsResults(this.apiResults.riskIndicators);
+                }
+            }
+
+            populateBusinessIntelligenceResults(data) {
+                // This will be implemented with the exact same logic as the dashboard page
+                console.log('Populating Business Intelligence results:', data);
+                
+                // Show progressive disclosure sections
+                setTimeout(() => {
+                    document.getElementById('coreResults').classList.add('visible');
+                }, 100);
+                
+                setTimeout(() => {
+                    document.getElementById('securityIndicators').classList.add('visible');
+                }, 200);
+                
+                setTimeout(() => {
+                    document.getElementById('qualityMetrics').classList.add('visible');
+                }, 300);
+                
+                setTimeout(() => {
+                    document.getElementById('riskAssessment').classList.add('visible');
+                }, 400);
+                
+                setTimeout(() => {
+                    document.getElementById('businessIntelligence').classList.add('visible');
+                }, 500);
+                
+                setTimeout(() => {
+                    document.getElementById('verificationStatus').classList.add('visible');
+                }, 600);
+            }
+
+            populateRiskAssessmentResults(data) {
+                console.log('Populating Risk Assessment results:', data);
+            }
+
+            populateRiskIndicatorsResults(data) {
+                console.log('Populating Risk Indicators results:', data);
+            }
+
+            bindEvents() {
+                // Tab switching
+                document.querySelectorAll('.tab-button').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const tabId = e.target.closest('.tab-button').dataset.tab;
+                        this.switchTab(tabId);
+                    });
+                });
+            }
+
+            switchTab(tabId) {
+                // Remove active class from all tabs and buttons
+                document.querySelectorAll('.tab-content').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                document.querySelectorAll('.tab-button').forEach(button => {
+                    button.classList.remove('active');
+                });
+
+                // Add active class to selected tab and button
+                document.getElementById(tabId).classList.add('active');
+                document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+            }
+
+            initializeComponents() {
+                // Initialize navigation if available
+                if (typeof KYBNavigation !== 'undefined') {
+                    new KYBNavigation();
+                }
+            }
+
+            showError(message) {
+                console.error(message);
+                // You can implement a proper error display here
+            }
+        }
+
+        // Global functions for expandable sections
+        function toggleSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            if (section) {
+                section.classList.toggle('expanded');
+            }
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            new MerchantDetails();
+        });
+    </script>
+</body>
+</html>

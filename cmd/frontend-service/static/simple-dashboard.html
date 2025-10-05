@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple KYB Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-3xl font-bold text-gray-900 mb-8">KYB Intelligence Dashboard</h1>
+            
+            <!-- Loading State -->
+            <div id="loadingState" class="hidden text-center py-8">
+                <div class="inline-flex items-center">
+                    <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span class="text-lg text-gray-700">Analyzing business intelligence...</span>
+                </div>
+            </div>
+
+            <!-- Error State -->
+            <div id="errorState" class="hidden bg-red-50 border border-red-200 rounded-lg p-6">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-triangle text-red-400"></i>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-red-800">Analysis Error</h3>
+                        <div class="mt-2 text-sm text-red-700">
+                            <p id="errorMessage">An error occurred during analysis. Please try again.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results -->
+            <div id="results" class="hidden space-y-6">
+                <!-- Business Info -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">Business Information</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Business Name</label>
+                            <p id="businessName" class="mt-1 text-sm text-gray-900"></p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Confidence Score</label>
+                            <p id="confidenceScore" class="mt-1 text-sm text-gray-900"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Risk Assessment -->
+                <div id="riskAssessment" class="bg-white rounded-lg shadow p-6 hidden">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">Risk Assessment</h2>
+                    <div id="riskAssessmentContent" class="space-y-4">
+                        <!-- Risk assessment will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Classification Results -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">Classification Results</h2>
+                    <div id="classificationResults" class="space-y-4">
+                        <!-- Results will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Configuration -->
+    <script src="js/api-config.js"></script>
+    
+    <script>
+        // Use centralized API configuration
+        const API_CONFIG = APIConfig;
+        const API_BASE_URL = API_CONFIG.getBaseURL() + '/v1';
+        
+        // DOM Elements
+        const loadingState = document.getElementById('loadingState');
+        const errorState = document.getElementById('errorState');
+        const results = document.getElementById('results');
+        const businessNameEl = document.getElementById('businessName');
+        const confidenceScoreEl = document.getElementById('confidenceScore');
+        const classificationResultsEl = document.getElementById('classificationResults');
+        const riskAssessmentEl = document.getElementById('riskAssessment');
+        const riskAssessmentContentEl = document.getElementById('riskAssessmentContent');
+
+        // Auto-analyze on page load if URL parameters are present
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const businessName = urlParams.get('businessName');
+            const country = urlParams.get('country');
+            const analysisType = urlParams.get('analysisType');
+            const websiteUrl = urlParams.get('websiteUrl');
+            const description = urlParams.get('description');
+
+            console.log('URL Parameters:', { businessName, country, analysisType, websiteUrl, description });
+
+            if (businessName) {
+                console.log('Starting auto-analysis...');
+                performAnalysis({
+                    business_name: businessName,
+                    geographic_region: country || 'us',
+                    website_url: websiteUrl || '',
+                    description: description || '',
+                    analysis_type: analysisType || 'comprehensive'
+                });
+            } else {
+                console.log('No business name found in URL parameters');
+                showError('No business information provided in URL parameters.');
+            }
+        });
+
+        async function performAnalysis(data) {
+            console.log('Performing analysis with data:', data);
+            
+            showLoading();
+            hideError();
+            hideResults();
+
+            try {
+                console.log('Making API request to:', `${API_BASE_URL}/classify`);
+                console.log('Request data:', data);
+                
+                const response = await fetch(`${API_BASE_URL}/classify`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                console.log('API Response:', result);
+                
+                if (result.success) {
+                    displayResults(result);
+                } else {
+                    console.error('Analysis failed:', result);
+                    showError(`Analysis failed: ${result.message || 'Unknown error'}`);
+                }
+                
+            } catch (error) {
+                console.error('Error details:', error);
+                showError(`An error occurred during analysis: ${error.message}`);
+            }
+        }
+
+        function displayResults(result) {
+            console.log('Displaying results:', result);
+            
+            hideLoading();
+            hideError();
+            results.classList.remove('hidden');
+            
+            // Display business info
+            businessNameEl.textContent = result.business_name || 'N/A';
+            confidenceScoreEl.textContent = `${Math.round((result.confidence_score || 0) * 100)}%`;
+            
+            // Display classification results
+            let classificationHTML = '';
+            
+            if (result.classification) {
+                // MCC Codes
+                if (result.classification.mcc_codes && result.classification.mcc_codes.length > 0) {
+                    classificationHTML += createClassificationSection('MCC Codes', result.classification.mcc_codes);
+                }
+                
+                // SIC Codes
+                if (result.classification.sic_codes && result.classification.sic_codes.length > 0) {
+                    classificationHTML += createClassificationSection('SIC Codes', result.classification.sic_codes);
+                }
+                
+                // NAICS Codes
+                if (result.classification.naics_codes && result.classification.naics_codes.length > 0) {
+                    classificationHTML += createClassificationSection('NAICS Codes', result.classification.naics_codes);
+                }
+            }
+            
+            if (classificationHTML === '') {
+                classificationHTML = '<p class="text-gray-500">No classification results available.</p>';
+            }
+            
+            classificationResultsEl.innerHTML = classificationHTML;
+
+            // Display risk assessment if available
+            displayRiskAssessment(result);
+
+            // Add enhanced sections if available
+            let enhancedHTML = '';
+            
+            // Data Source Trust Section
+            if (result.security_metrics && result.security_metrics.data_source_trust) {
+                enhancedHTML += createDataSourceTrustSection(result.security_metrics.data_source_trust);
+            }
+            
+            // Quality Metrics Section
+            if (result.quality_metrics) {
+                enhancedHTML += createQualityMetricsSection(result.quality_metrics);
+            }
+            
+            // Cost Optimization Section
+            if (result.cost_optimization) {
+                enhancedHTML += createCostOptimizationSection(result.cost_optimization);
+            }
+            
+            // Method Breakdown Section
+            if (result.method_breakdown && result.method_breakdown.length > 0) {
+                enhancedHTML += createMethodBreakdownSection(result.method_breakdown);
+            }
+            
+            // Enhanced Reasoning Details Section
+            enhancedHTML += createEnhancedReasoningDetailsSection(result);
+            
+            // Add enhanced sections to results
+            if (enhancedHTML) {
+                const enhancedContainer = document.createElement('div');
+                enhancedContainer.innerHTML = enhancedHTML;
+                results.appendChild(enhancedContainer);
+            }
+            
+            // Add security indicators
+            addSecurityIndicators(result);
+        }
+
+        function displayRiskAssessment(result) {
+            const riskAssessment = result.risk_assessment;
+            
+            if (!riskAssessment) {
+                riskAssessmentEl.classList.add('hidden');
+                return;
+            }
+            
+            // Show risk assessment section
+            riskAssessmentEl.classList.remove('hidden');
+            
+            const riskLevel = riskAssessment.risk_level || 'low';
+            const riskScore = riskAssessment.risk_score || 0;
+            const riskFactors = riskAssessment.risk_factors || {};
+            const detectedRisks = riskAssessment.detected_risks || [];
+            const prohibitedKeywords = riskAssessment.prohibited_keywords_found || [];
+            
+            // Get risk level styling
+            const riskLevelConfig = getRiskLevelConfig(riskLevel);
+            
+            let riskHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Risk Overview -->
+                    <div class="space-y-4">
+                        <div class="p-4 rounded-lg ${riskLevelConfig.bgColor} border ${riskLevelConfig.borderColor}">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-lg font-semibold ${riskLevelConfig.textColor}">Risk Level</h3>
+                                <i class="fas ${riskLevelConfig.icon} ${riskLevelConfig.textColor} text-xl"></i>
+                            </div>
+                            <div class="text-2xl font-bold ${riskLevelConfig.textColor} mb-1">${riskLevelConfig.label}</div>
+                            <div class="text-sm ${riskLevelConfig.textColor} opacity-80">Score: ${Math.round(riskScore * 100)}%</div>
+                        </div>
+                        
+                        <!-- Risk Score Bar -->
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">Risk Score</span>
+                                <span class="font-medium">${Math.round(riskScore * 100)}%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="h-2 rounded-full ${riskLevelConfig.barColor}" style="width: ${Math.min(riskScore * 100, 100)}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Risk Details -->
+                    <div class="space-y-4">
+                        ${detectedRisks.length > 0 ? `
+                            <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                <h4 class="font-semibold text-yellow-800 mb-2">⚠️ Detected Risks</h4>
+                                <ul class="text-sm text-yellow-700 space-y-1">
+                                    ${detectedRisks.map(risk => `<li>• ${formatRiskType(risk)}</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                        
+                        ${prohibitedKeywords.length > 0 ? `
+                            <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+                                <h4 class="font-semibold text-red-800 mb-2">🚫 Prohibited Keywords</h4>
+                                <div class="text-sm text-red-700">
+                                    ${prohibitedKeywords.map(keyword => `<span class="inline-block bg-red-100 text-red-800 px-2 py-1 rounded text-xs mr-1 mb-1">${keyword}</span>`).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        ${Object.keys(riskFactors).length > 0 ? `
+                            <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                <h4 class="font-semibold text-blue-800 mb-2">📊 Risk Factors</h4>
+                                <div class="text-sm text-blue-700 space-y-1">
+                                    ${Object.entries(riskFactors).map(([key, value]) => 
+                                        `<div><span class="font-medium">${formatRiskFactor(key)}:</span> ${value}</div>`
+                                    ).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            
+            riskAssessmentContentEl.innerHTML = riskHTML;
+        }
+
+        function getRiskLevelConfig(riskLevel) {
+            switch (riskLevel) {
+                case 'critical':
+                    return {
+                        label: 'CRITICAL',
+                        bgColor: 'bg-red-50',
+                        borderColor: 'border-red-200',
+                        textColor: 'text-red-800',
+                        barColor: 'bg-red-500',
+                        icon: 'fa-exclamation-triangle'
+                    };
+                case 'high':
+                    return {
+                        label: 'HIGH',
+                        bgColor: 'bg-orange-50',
+                        borderColor: 'border-orange-200',
+                        textColor: 'text-orange-800',
+                        barColor: 'bg-orange-500',
+                        icon: 'fa-exclamation-circle'
+                    };
+                case 'medium':
+                    return {
+                        label: 'MEDIUM',
+                        bgColor: 'bg-yellow-50',
+                        borderColor: 'border-yellow-200',
+                        textColor: 'text-yellow-800',
+                        barColor: 'bg-yellow-500',
+                        icon: 'fa-exclamation-triangle'
+                    };
+                default:
+                    return {
+                        label: 'LOW',
+                        bgColor: 'bg-green-50',
+                        borderColor: 'border-green-200',
+                        textColor: 'text-green-800',
+                        barColor: 'bg-green-500',
+                        icon: 'fa-shield-check'
+                    };
+            }
+        }
+
+        function formatRiskType(riskType) {
+            return riskType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        function formatRiskFactor(factor) {
+            return factor.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        function createClassificationSection(title, codes) {
+            const codesHTML = codes.slice(0, 5).map(code => `
+                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <div>
+                        <div class="font-medium text-gray-900">${code.code}</div>
+                        <div class="text-sm text-gray-600">${code.description}</div>
+                    </div>
+                    <div class="text-sm font-medium text-blue-600">
+                        ${Math.round(code.confidence * 100)}%
+                    </div>
+                </div>
+            `).join('');
+            
+            return `
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">${title}</h3>
+                    <div class="space-y-2">
+                        ${codesHTML}
+                    </div>
+                </div>
+            `;
+        }
+
+        function createDataSourceTrustSection(dataSourceTrust) {
+            const trustRate = Math.round((dataSourceTrust.trust_rate || 0) * 100);
+            const trustStatus = trustRate >= 100 ? 'text-green-600' : trustRate >= 90 ? 'text-blue-600' : trustRate >= 80 ? 'text-yellow-600' : 'text-red-600';
+            const trustIcon = trustRate >= 100 ? 'fa-shield-check' : trustRate >= 90 ? 'fa-shield-alt' : trustRate >= 80 ? 'fa-exclamation-triangle' : 'fa-shield-times';
+            
+            return `
+                <div class="bg-white rounded-lg shadow p-6 mb-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-shield-alt text-green-600 mr-2"></i>
+                        Data Source Trust & Security
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div class="text-center p-4 bg-gray-50 rounded-lg">
+                            <div class="flex items-center justify-center mb-2">
+                                <i class="fas ${trustIcon} ${trustStatus} text-2xl"></i>
+                            </div>
+                            <div class="text-2xl font-bold ${trustStatus}">${trustRate}%</div>
+                            <div class="text-sm text-gray-600">Trust Rate</div>
+                        </div>
+                        <div class="text-center p-4 bg-gray-50 rounded-lg">
+                            <div class="flex items-center justify-center mb-2">
+                                <i class="fas fa-database text-blue-600 text-2xl"></i>
+                            </div>
+                            <div class="text-2xl font-bold text-gray-900">${dataSourceTrust.trusted_count || 0}</div>
+                            <div class="text-sm text-gray-600">Trusted Sources</div>
+                        </div>
+                        <div class="text-center p-4 bg-gray-50 rounded-lg">
+                            <div class="flex items-center justify-center mb-2">
+                                <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+                            </div>
+                            <div class="text-2xl font-bold text-gray-900">${Math.round((dataSourceTrust.total_validations || 0) > 0 ? (dataSourceTrust.trusted_count || 0) / dataSourceTrust.total_validations * 100 : 100)}%</div>
+                            <div class="text-sm text-gray-600">Validation Rate</div>
+                        </div>
+                    </div>
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-lock text-green-600 mr-2"></i>
+                            <span class="text-green-800 font-medium">All data sources verified and trusted</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function createQualityMetricsSection(qualityMetrics) {
+            const overallQuality = Math.round((qualityMetrics.overall_quality || 0) * 100);
+            const qualityGrade = qualityMetrics.quality_grade || 'N/A';
+            const qualityLevel = qualityMetrics.quality_level || 'unknown';
+            const qualityColor = qualityLevel === 'high' ? 'text-green-600' : qualityLevel === 'medium' ? 'text-yellow-600' : qualityLevel === 'low' ? 'text-orange-600' : 'text-red-600';
+            
+            return `
+                <div class="bg-white rounded-lg shadow p-6 mb-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-chart-line text-blue-600 mr-2"></i>
+                        Data Quality Metrics
+                    </h2>
+                    
+                    <!-- Overall Quality Summary -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div class="text-center p-6 bg-gray-50 rounded-lg">
+                            <div class="text-4xl font-bold ${qualityColor} mb-2">${overallQuality}%</div>
+                            <div class="text-lg font-semibold text-gray-700 mb-1">Grade: ${qualityGrade}</div>
+                            <div class="text-sm text-gray-600 uppercase tracking-wide">${qualityLevel}</div>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm font-medium text-gray-700">Method Agreement</span>
+                                <span class="text-sm font-semibold text-gray-900">${Math.round((qualityMetrics.method_agreement || 0) * 100)}%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-green-600 h-2 rounded-full" style="width: ${Math.round((qualityMetrics.method_agreement || 0) * 100)}%"></div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm font-medium text-gray-700">Evidence Strength</span>
+                                <span class="text-sm font-semibold text-gray-900">${Math.round((qualityMetrics.evidence_strength || 0) * 100)}%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-blue-600 h-2 rounded-full" style="width: ${Math.round((qualityMetrics.evidence_strength || 0) * 100)}%"></div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm font-medium text-gray-700">Data Completeness</span>
+                                <span class="text-sm font-semibold text-gray-900">${Math.round((qualityMetrics.data_completeness || 0) * 100)}%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-purple-600 h-2 rounded-full" style="width: ${Math.round((qualityMetrics.data_completeness || 0) * 100)}%"></div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm font-medium text-gray-700">Confidence Consistency</span>
+                                <span class="text-sm font-semibold text-gray-900">${Math.round((qualityMetrics.confidence_consistency || 0) * 100)}%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-indigo-600 h-2 rounded-full" style="width: ${Math.round((qualityMetrics.confidence_consistency || 0) * 100)}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Enhanced Quality Metrics -->
+                    ${createDataCompletenessIndicators(qualityMetrics)}
+                    ${createEvidenceStrengthVisualization(qualityMetrics)}
+                    ${createConfidenceCalibrationDisplay(qualityMetrics)}
+                    ${createQualityAssessmentScores(qualityMetrics)}
+                    ${createQualityIndicatorsAndIssues(qualityMetrics)}
+                    ${createQualityRecommendations(qualityMetrics)}
+                </div>
+            `;
+        }
+        
+        function createDataCompletenessIndicators(qualityMetrics) {
+            if (!qualityMetrics.data_metrics) return '';
+            
+            const dataMetrics = qualityMetrics.data_metrics;
+            const availableFields = dataMetrics.available_fields || [];
+            const missingFields = dataMetrics.missing_fields || [];
+            const dataCompleteness = Math.round((dataMetrics.data_completeness || 0) * 100);
+            const dataConsistency = Math.round((dataMetrics.data_consistency || 0) * 100);
+            const dataReliability = Math.round((dataMetrics.data_reliability || 0) * 100);
+            
+            return `
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                        <i class="fas fa-database text-purple-600 mr-2"></i>
+                        Data Completeness Analysis
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div class="text-center p-4 bg-purple-50 rounded-lg">
+                            <div class="text-2xl font-bold text-purple-600 mb-1">${dataCompleteness}%</div>
+                            <div class="text-sm text-gray-600">Completeness</div>
+                        </div>
+                        <div class="text-center p-4 bg-blue-50 rounded-lg">
+                            <div class="text-2xl font-bold text-blue-600 mb-1">${dataConsistency}%</div>
+                            <div class="text-sm text-gray-600">Consistency</div>
+                        </div>
+                        <div class="text-center p-4 bg-green-50 rounded-lg">
+                            <div class="text-2xl font-bold text-green-600 mb-1">${dataReliability}%</div>
+                            <div class="text-sm text-gray-600">Reliability</div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <h4 class="font-semibold text-green-800 mb-2 flex items-center">
+                                <i class="fas fa-check-circle mr-2"></i>
+                                Available Fields (${availableFields.length})
+                            </h4>
+                            <div class="space-y-1">
+                                ${availableFields.slice(0, 5).map(field => `
+                                    <div class="text-sm text-green-700 flex items-center">
+                                        <i class="fas fa-check text-green-500 mr-2"></i>
+                                        ${field}
+                                    </div>
+                                `).join('')}
+                                ${availableFields.length > 5 ? `<div class="text-sm text-green-600">+${availableFields.length - 5} more fields</div>` : ''}
+                            </div>
+                        </div>
+                        <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                            <h4 class="font-semibold text-orange-800 mb-2 flex items-center">
+                                <i class="fas fa-exclamation-triangle mr-2"></i>
+                                Missing Fields (${missingFields.length})
+                            </h4>
+                            <div class="space-y-1">
+                                ${missingFields.slice(0, 5).map(field => `
+                                    <div class="text-sm text-orange-700 flex items-center">
+                                        <i class="fas fa-times text-orange-500 mr-2"></i>
+                                        ${field}
+                                    </div>
+                                `).join('')}
+                                ${missingFields.length > 5 ? `<div class="text-sm text-orange-600">+${missingFields.length - 5} more fields</div>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function createEvidenceStrengthVisualization(qualityMetrics) {
+            if (!qualityMetrics.evidence_metrics) return '';
+            
+            const evidenceMetrics = qualityMetrics.evidence_metrics;
+            const totalEvidence = evidenceMetrics.total_evidence_items || 0;
+            const strongEvidence = evidenceMetrics.strong_evidence_items || 0;
+            const weakEvidence = evidenceMetrics.weak_evidence_items || 0;
+            const averageStrength = Math.round((evidenceMetrics.average_evidence_strength || 0) * 100);
+            const evidenceDiversity = Math.round((evidenceMetrics.evidence_diversity || 0) * 100);
+            const evidenceConsistency = Math.round((evidenceMetrics.evidence_consistency || 0) * 100);
+            const evidenceTypes = evidenceMetrics.evidence_types || {};
+            
+            return `
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                        <i class="fas fa-search text-blue-600 mr-2"></i>
+                        Evidence Strength Analysis
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div class="text-center p-4 bg-blue-50 rounded-lg">
+                            <div class="text-2xl font-bold text-blue-600 mb-1">${averageStrength}%</div>
+                            <div class="text-sm text-gray-600">Average Strength</div>
+                        </div>
+                        <div class="text-center p-4 bg-indigo-50 rounded-lg">
+                            <div class="text-2xl font-bold text-indigo-600 mb-1">${evidenceDiversity}%</div>
+                            <div class="text-sm text-gray-600">Diversity</div>
+                        </div>
+                        <div class="text-center p-4 bg-purple-50 rounded-lg">
+                            <div class="text-2xl font-bold text-purple-600 mb-1">${evidenceConsistency}%</div>
+                            <div class="text-sm text-gray-600">Consistency</div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-white border border-gray-200 rounded-lg p-4">
+                            <h4 class="font-semibold text-gray-800 mb-3">Evidence Distribution</h4>
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-600">Strong Evidence</span>
+                                    <span class="text-sm font-semibold text-green-600">${strongEvidence}</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="bg-green-600 h-2 rounded-full" style="width: ${totalEvidence > 0 ? (strongEvidence / totalEvidence) * 100 : 0}%"></div>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-600">Weak Evidence</span>
+                                    <span class="text-sm font-semibold text-orange-600">${weakEvidence}</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="bg-orange-600 h-2 rounded-full" style="width: ${totalEvidence > 0 ? (weakEvidence / totalEvidence) * 100 : 0}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white border border-gray-200 rounded-lg p-4">
+                            <h4 class="font-semibold text-gray-800 mb-3">Evidence Types</h4>
+                            <div class="space-y-2">
+                                ${Object.entries(evidenceTypes).map(([type, count]) => `
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm text-gray-600 capitalize">${type.replace(/_/g, ' ')}</span>
+                                        <span class="text-sm font-semibold text-gray-900">${count}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function createConfidenceCalibrationDisplay(qualityMetrics) {
+            if (!qualityMetrics.confidence_metrics) return '';
+            
+            const confidenceMetrics = qualityMetrics.confidence_metrics;
+            const overallConfidence = Math.round((confidenceMetrics.overall_confidence || 0) * 100);
+            const confidenceVariance = Math.round((confidenceMetrics.confidence_variance || 0) * 100);
+            const confidenceConsistency = Math.round((confidenceMetrics.confidence_consistency || 0) * 100);
+            const confidenceLevel = confidenceMetrics.confidence_level || 'unknown';
+            const uncertaintyLevel = confidenceMetrics.uncertainty_level || 'unknown';
+            const reliabilityScore = Math.round((confidenceMetrics.reliability_score || 0) * 100);
+            
+            const confidenceColor = confidenceLevel === 'high' ? 'text-green-600' : confidenceLevel === 'medium' ? 'text-yellow-600' : 'text-red-600';
+            const uncertaintyColor = uncertaintyLevel === 'low' ? 'text-green-600' : uncertaintyLevel === 'medium' ? 'text-yellow-600' : 'text-red-600';
+            
+            return `
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                        <i class="fas fa-bullseye text-indigo-600 mr-2"></i>
+                        Confidence Calibration
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                        <div class="text-center p-4 bg-indigo-50 rounded-lg">
+                            <div class="text-2xl font-bold ${confidenceColor} mb-1">${overallConfidence}%</div>
+                            <div class="text-sm text-gray-600">Overall Confidence</div>
+                        </div>
+                        <div class="text-center p-4 bg-blue-50 rounded-lg">
+                            <div class="text-2xl font-bold text-blue-600 mb-1">${confidenceVariance}%</div>
+                            <div class="text-sm text-gray-600">Variance</div>
+                        </div>
+                        <div class="text-center p-4 bg-purple-50 rounded-lg">
+                            <div class="text-2xl font-bold text-purple-600 mb-1">${confidenceConsistency}%</div>
+                            <div class="text-sm text-gray-600">Consistency</div>
+                        </div>
+                        <div class="text-center p-4 bg-green-50 rounded-lg">
+                            <div class="text-2xl font-bold text-green-600 mb-1">${reliabilityScore}%</div>
+                            <div class="text-sm text-gray-600">Reliability</div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-white border border-gray-200 rounded-lg p-4">
+                            <h4 class="font-semibold text-gray-800 mb-3">Confidence Level</h4>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600">Level</span>
+                                <span class="text-sm font-semibold ${confidenceColor} capitalize">${confidenceLevel}</span>
+                            </div>
+                            <div class="mt-2">
+                                <div class="w-full bg-gray-200 rounded-full h-3">
+                                    <div class="h-3 rounded-full ${confidenceLevel === 'high' ? 'bg-green-600' : confidenceLevel === 'medium' ? 'bg-yellow-600' : 'bg-red-600'}" 
+                                         style="width: ${overallConfidence}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white border border-gray-200 rounded-lg p-4">
+                            <h4 class="font-semibold text-gray-800 mb-3">Uncertainty Level</h4>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600">Level</span>
+                                <span class="text-sm font-semibold ${uncertaintyColor} capitalize">${uncertaintyLevel}</span>
+                            </div>
+                            <div class="mt-2">
+                                <div class="w-full bg-gray-200 rounded-full h-3">
+                                    <div class="h-3 rounded-full ${uncertaintyLevel === 'low' ? 'bg-green-600' : uncertaintyLevel === 'medium' ? 'bg-yellow-600' : 'bg-red-600'}" 
+                                         style="width: ${100 - overallConfidence}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function createQualityAssessmentScores(qualityMetrics) {
+            if (!qualityMetrics.method_metrics) return '';
+            
+            const methodMetrics = qualityMetrics.method_metrics;
+            const totalMethods = methodMetrics.total_methods || 0;
+            const successfulMethods = methodMetrics.successful_methods || 0;
+            const failedMethods = methodMetrics.failed_methods || 0;
+            const successRate = Math.round((methodMetrics.success_rate || 0) * 100);
+            const averageConfidence = Math.round((methodMetrics.average_confidence || 0) * 100);
+            const methodAgreement = Math.round((methodMetrics.method_agreement || 0) * 100);
+            const agreementLevel = methodMetrics.agreement_level || 'unknown';
+            
+            return `
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                        <i class="fas fa-cogs text-gray-600 mr-2"></i>
+                        Method Performance Assessment
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                        <div class="text-center p-4 bg-gray-50 rounded-lg">
+                            <div class="text-2xl font-bold text-gray-600 mb-1">${totalMethods}</div>
+                            <div class="text-sm text-gray-600">Total Methods</div>
+                        </div>
+                        <div class="text-center p-4 bg-green-50 rounded-lg">
+                            <div class="text-2xl font-bold text-green-600 mb-1">${successRate}%</div>
+                            <div class="text-sm text-gray-600">Success Rate</div>
+                        </div>
+                        <div class="text-center p-4 bg-blue-50 rounded-lg">
+                            <div class="text-2xl font-bold text-blue-600 mb-1">${averageConfidence}%</div>
+                            <div class="text-sm text-gray-600">Avg Confidence</div>
+                        </div>
+                        <div class="text-center p-4 bg-purple-50 rounded-lg">
+                            <div class="text-2xl font-bold text-purple-600 mb-1">${methodAgreement}%</div>
+                            <div class="text-sm text-gray-600">Agreement</div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-white border border-gray-200 rounded-lg p-4">
+                            <h4 class="font-semibold text-gray-800 mb-3">Method Status</h4>
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-600">Successful</span>
+                                    <span class="text-sm font-semibold text-green-600">${successfulMethods}</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-600">Failed</span>
+                                    <span class="text-sm font-semibold text-red-600">${failedMethods}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white border border-gray-200 rounded-lg p-4">
+                            <h4 class="font-semibold text-gray-800 mb-3">Agreement Level</h4>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600">Level</span>
+                                <span class="text-sm font-semibold text-purple-600 capitalize">${agreementLevel}</span>
+                            </div>
+                            <div class="mt-2">
+                                <div class="w-full bg-gray-200 rounded-full h-3">
+                                    <div class="h-3 rounded-full bg-purple-600" style="width: ${methodAgreement}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function createQualityIndicatorsAndIssues(qualityMetrics) {
+            const indicators = qualityMetrics.quality_indicators || [];
+            const issues = qualityMetrics.quality_issues || [];
+            
+            if (indicators.length === 0 && issues.length === 0) return '';
+            
+            return `
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                        <i class="fas fa-exclamation-circle text-yellow-600 mr-2"></i>
+                        Quality Indicators & Issues
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        ${indicators.length > 0 ? `
+                            <div class="bg-white border border-gray-200 rounded-lg p-4">
+                                <h4 class="font-semibold text-gray-800 mb-3">Quality Indicators</h4>
+                                <div class="space-y-2">
+                                    ${indicators.slice(0, 5).map(indicator => {
+                                        const statusColor = indicator.status === 'good' ? 'text-green-600' : 
+                                                           indicator.status === 'warning' ? 'text-yellow-600' : 'text-red-600';
+                                        const statusIcon = indicator.status === 'good' ? 'fa-check-circle' : 
+                                                          indicator.status === 'warning' ? 'fa-exclamation-triangle' : 'fa-times-circle';
+                                        return `
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex items-center">
+                                                    <i class="fas ${statusIcon} ${statusColor} mr-2"></i>
+                                                    <span class="text-sm text-gray-600">${indicator.indicator}</span>
+                                                </div>
+                                                <span class="text-sm font-semibold ${statusColor}">${Math.round(indicator.value * 100)}%</span>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        ${issues.length > 0 ? `
+                            <div class="bg-white border border-gray-200 rounded-lg p-4">
+                                <h4 class="font-semibold text-gray-800 mb-3">Quality Issues</h4>
+                                <div class="space-y-2">
+                                    ${issues.slice(0, 5).map(issue => {
+                                        const severityColor = issue.severity === 'low' ? 'text-yellow-600' : 
+                                                             issue.severity === 'medium' ? 'text-orange-600' : 
+                                                             issue.severity === 'high' ? 'text-red-600' : 'text-red-800';
+                                        const severityIcon = issue.severity === 'low' ? 'fa-exclamation-triangle' : 
+                                                            issue.severity === 'medium' ? 'fa-exclamation-circle' : 
+                                                            issue.severity === 'high' ? 'fa-times-circle' : 'fa-ban';
+                                        return `
+                                            <div class="flex items-start">
+                                                <i class="fas ${severityIcon} ${severityColor} mr-2 mt-1"></i>
+                                                <div class="flex-1">
+                                                    <div class="text-sm font-medium text-gray-800">${issue.issue}</div>
+                                                    <div class="text-xs text-gray-600">${issue.description}</div>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+        
+        function createQualityRecommendations(qualityMetrics) {
+            const recommendations = qualityMetrics.quality_recommendations || [];
+            
+            if (recommendations.length === 0) return '';
+            
+            return `
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                        <i class="fas fa-lightbulb text-yellow-600 mr-2"></i>
+                        Quality Recommendations
+                    </h3>
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <div class="space-y-2">
+                            ${recommendations.map((recommendation, index) => `
+                                <div class="flex items-start">
+                                    <span class="flex-shrink-0 w-6 h-6 bg-yellow-600 text-white rounded-full flex items-center justify-center text-xs font-semibold mr-3 mt-0.5">
+                                        ${index + 1}
+                                    </span>
+                                    <span class="text-sm text-yellow-800">${recommendation}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function createCostOptimizationSection(costOptimization) {
+            const costPerCall = costOptimization.cost_per_1000_calls || 0;
+            const monthlySavings = costOptimization.monthly_savings || 0;
+            const cacheHitRate = Math.round((costOptimization.cache_hit_rate || 0) * 100);
+            const freeApiUsage = Math.round((costOptimization.free_api_usage || 0) * 100);
+            
+            return `
+                <div class="bg-white rounded-lg shadow p-6 mb-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-dollar-sign text-green-600 mr-2"></i>
+                        Cost Optimization Metrics
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                        <div class="text-center p-4 bg-gray-50 rounded-lg">
+                            <div class="flex items-center justify-center mb-2">
+                                <i class="fas fa-coins text-green-600 text-2xl"></i>
+                            </div>
+                            <div class="text-xl font-bold text-green-600">$${costPerCall.toFixed(4)}</div>
+                            <div class="text-sm text-gray-600">Cost per 1K Calls</div>
+                        </div>
+                        <div class="text-center p-4 bg-gray-50 rounded-lg">
+                            <div class="flex items-center justify-center mb-2">
+                                <i class="fas fa-piggy-bank text-green-600 text-2xl"></i>
+                            </div>
+                            <div class="text-xl font-bold text-green-600">$${monthlySavings.toFixed(0)}</div>
+                            <div class="text-sm text-gray-600">Monthly Savings</div>
+                        </div>
+                        <div class="text-center p-4 bg-gray-50 rounded-lg">
+                            <div class="flex items-center justify-center mb-2">
+                                <i class="fas fa-memory text-blue-600 text-2xl"></i>
+                            </div>
+                            <div class="text-xl font-bold text-blue-600">${cacheHitRate}%</div>
+                            <div class="text-sm text-gray-600">Cache Hit Rate</div>
+                        </div>
+                        <div class="text-center p-4 bg-gray-50 rounded-lg">
+                            <div class="flex items-center justify-center mb-2">
+                                <i class="fas fa-gift text-purple-600 text-2xl"></i>
+                            </div>
+                            <div class="text-xl font-bold text-purple-600">${freeApiUsage}%</div>
+                            <div class="text-sm text-gray-600">Free API Usage</div>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                            <div class="flex items-center">
+                                <i class="fas fa-check-circle text-green-600 mr-2"></i>
+                                <span class="text-green-800 font-medium">100% free data sources - no paid external services</span>
+                            </div>
+                        </div>
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                            <div class="flex items-center">
+                                <i class="fas fa-rocket text-green-600 mr-2"></i>
+                                <span class="text-green-800 font-medium">Optimized for Railway deployment with minimal costs</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function createMethodBreakdownSection(methodBreakdown) {
+            if (!methodBreakdown || methodBreakdown.length === 0) {
+                return '';
+            }
+
+            // Calculate method weights and performance metrics
+            const totalConfidence = methodBreakdown.reduce((sum, method) => sum + (method.confidence || 0), 0);
+            const successfulMethods = methodBreakdown.filter(method => method.success !== false);
+            const averageProcessingTime = methodBreakdown.reduce((sum, method) => {
+                const timeMs = method.processing_time ? 
+                    (typeof method.processing_time === 'string' ? 
+                        parseFloat(method.processing_time.replace('ms', '')) : 
+                        method.processing_time) : 0;
+                return sum + timeMs;
+            }, 0) / methodBreakdown.length;
+
+            // Create enhanced method cards with performance metrics
+            const methodsHTML = methodBreakdown.map((method, index) => {
+                const confidence = method.confidence || 0;
+                const confidencePercent = Math.round(confidence * 100);
+                const weight = totalConfidence > 0 ? (confidence / totalConfidence) * 100 : 0;
+                const processingTime = method.processing_time ? 
+                    (typeof method.processing_time === 'string' ? 
+                        method.processing_time : 
+                        `${method.processing_time}ms`) : 'N/A';
+                
+                // Determine method status and styling
+                const isSuccessful = method.success !== false;
+                const statusClass = isSuccessful ? 'success' : 'error';
+                const statusIcon = isSuccessful ? 'fa-check-circle' : 'fa-times-circle';
+                const statusText = isSuccessful ? 'Success' : 'Failed';
+                
+                // Get method result information
+                const resultIndustry = method.result ? method.result.industry_name : 'No result';
+                const resultCode = method.result ? method.result.industry_code : 'N/A';
+                
+                return `
+                    <div class="bg-white rounded-lg shadow p-6 mb-4 border-l-4 ${isSuccessful ? 'border-green-500' : 'border-red-500'}">
+                        <div class="flex justify-between items-center mb-4 pb-3 border-b border-gray-200">
+                            <div class="flex items-center space-x-3">
+                                <i class="fas ${statusIcon} ${isSuccessful ? 'text-green-600' : 'text-red-600'}"></i>
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-900">${method.method_name || 'Unknown Method'}</h3>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${isSuccessful ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                        ${statusText}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="bg-blue-600 text-white px-4 py-2 rounded-full font-semibold">
+                                ${confidencePercent}%
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <!-- Method Type and Weight -->
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-sm text-gray-600">Type:</span>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getMethodTypeClass(method.method_type)}">
+                                        ${method.method_type || 'Unknown'}
+                                    </span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-sm text-gray-600">Weight:</span>
+                                    <span class="font-semibold text-gray-900">${Math.round(weight)}%</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Confidence Score Breakdown -->
+                            <div>
+                                <div class="text-sm text-gray-600 mb-2">Confidence Score:</div>
+                                <div class="relative bg-gray-200 rounded-full h-5 overflow-hidden">
+                                    <div class="h-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 rounded-full transition-all duration-500" style="width: ${confidencePercent}%"></div>
+                                    <span class="absolute inset-0 flex items-center justify-center text-xs font-semibold text-gray-900">${confidencePercent}%</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Performance Metrics -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-clock text-blue-600"></i>
+                                    <div>
+                                        <div class="text-xs text-gray-600">Processing Time</div>
+                                        <div class="font-semibold text-gray-900">${processingTime}</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-industry text-blue-600"></i>
+                                    <div>
+                                        <div class="text-xs text-gray-600">Result</div>
+                                        <div class="font-semibold text-gray-900">${resultIndustry}</div>
+                                    </div>
+                                </div>
+                                ${resultCode !== 'N/A' ? `
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-tag text-blue-600"></i>
+                                        <div>
+                                            <div class="text-xs text-gray-600">Code</div>
+                                            <div class="font-semibold text-gray-900">${resultCode}</div>
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            
+                            <!-- Keywords and Evidence -->
+                            ${method.keywords && method.keywords.length > 0 ? `
+                                <div>
+                                    <div class="text-sm text-gray-600 mb-2">Keywords Used:</div>
+                                    <div class="flex flex-wrap gap-2">
+                                        ${method.keywords.slice(0, 5).map(keyword => 
+                                            `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">${keyword}</span>`
+                                        ).join('')}
+                                        ${method.keywords.length > 5 ? `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">+${method.keywords.length - 5} more</span>` : ''}
+                                    </div>
+                                </div>
+                            ` : ''}
+                            
+                            ${method.evidence && method.evidence.length > 0 ? `
+                                <div>
+                                    <div class="text-sm text-gray-600 mb-2">Evidence:</div>
+                                    <div class="space-y-1">
+                                        ${method.evidence.slice(0, 3).map(evidence => 
+                                            `<div class="text-sm text-gray-700">• ${evidence}</div>`
+                                        ).join('')}
+                                        ${method.evidence.length > 3 ? `<div class="text-xs text-gray-500 italic">+${method.evidence.length - 3} more evidence items</div>` : ''}
+                                    </div>
+                                </div>
+                            ` : ''}
+                            
+                            <!-- Error Information -->
+                            ${!isSuccessful && method.error ? `
+                                <div class="flex items-center space-x-2 bg-red-50 border border-red-200 rounded-lg p-3">
+                                    <i class="fas fa-exclamation-triangle text-red-600"></i>
+                                    <span class="text-red-800 text-sm">${method.error}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Create summary statistics
+            const summaryHTML = `
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                        <div class="text-2xl font-bold text-gray-900">${methodBreakdown.length}</div>
+                        <div class="text-sm text-gray-600">Total Methods</div>
+                    </div>
+                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                        <div class="text-2xl font-bold text-green-600">${successfulMethods.length}</div>
+                        <div class="text-sm text-gray-600">Successful</div>
+                    </div>
+                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                        <div class="text-2xl font-bold text-blue-600">${Math.round(averageProcessingTime)}ms</div>
+                        <div class="text-sm text-gray-600">Avg. Processing Time</div>
+                    </div>
+                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                        <div class="text-2xl font-bold text-purple-600">${Math.round((successfulMethods.length / methodBreakdown.length) * 100)}%</div>
+                        <div class="text-sm text-gray-600">Success Rate</div>
+                    </div>
+                </div>
+            `;
+
+            return `
+                <div class="bg-white rounded-lg shadow p-6 mb-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-cogs text-blue-600 mr-2"></i>
+                        Classification Method Breakdown
+                    </h2>
+                    <p class="text-gray-600 mb-6">Detailed performance analysis of each classification method used</p>
+                    
+                    ${summaryHTML}
+                    
+                    <div class="space-y-4">
+                        ${methodsHTML}
+                    </div>
+                    
+                    <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div class="flex items-center space-x-2">
+                            <i class="fas fa-info-circle text-blue-600"></i>
+                            <span class="text-blue-800 text-sm">Method weights are calculated based on confidence scores and contribution to the final ensemble result.</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getMethodTypeClass(methodType) {
+            switch (methodType) {
+                case 'keyword':
+                    return 'bg-blue-100 text-blue-800';
+                case 'ml':
+                    return 'bg-purple-100 text-purple-800';
+                case 'description':
+                    return 'bg-green-100 text-green-800';
+                default:
+                    return 'bg-gray-100 text-gray-800';
+            }
+        }
+
+        function createEnhancedReasoningDetailsSection(result) {
+            const methodBreakdown = result.method_breakdown || [];
+            const classificationReasoning = result.classification_reasoning || '';
+            const qualityMetrics = result.quality_metrics || null;
+            const securityMetrics = result.security_metrics || null;
+            const classifications = result.classifications || [];
+            
+            // Extract evidence from classifications
+            const evidenceItems = classifications.map(c => ({
+                type: c.code_type || 'Unknown',
+                code: c.code || 'N/A',
+                description: c.description || 'No description available',
+                confidence: c.confidence_score || 0,
+                evidence: c.evidence || 'No evidence provided',
+                keywords: c.keywords || [],
+                method: c.classification_method || 'Unknown'
+            }));
+            
+            // Create evidence items display
+            const evidenceHTML = evidenceItems.length > 0 ? `
+                <div class="mb-6">
+                    <h5 class="font-semibold text-gray-900 mb-3 flex items-center">
+                        <i class="fas fa-clipboard-list text-blue-600 mr-2"></i>
+                        Evidence Items
+                    </h5>
+                    <div class="space-y-3">
+                        ${evidenceItems.map(item => `
+                            <div class="bg-white border border-gray-200 rounded-lg p-4">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div>
+                                        <span class="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full mr-2">${item.type}</span>
+                                        <span class="font-medium text-gray-900">${item.code}</span>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-sm font-medium text-gray-900">${Math.round(item.confidence * 100)}%</div>
+                                        <div class="text-xs text-gray-500">${item.method}</div>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-gray-700 mb-2">${item.description}</p>
+                                <p class="text-sm text-gray-600 mb-2"><strong>Evidence:</strong> ${item.evidence}</p>
+                                ${item.keywords.length > 0 ? `
+                                    <div class="flex flex-wrap gap-1">
+                                        ${item.keywords.slice(0, 5).map(keyword => `
+                                            <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">${keyword}</span>
+                                        `).join('')}
+                                        ${item.keywords.length > 5 ? `<span class="text-xs text-gray-500">+${item.keywords.length - 5} more</span>` : ''}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : '';
+            
+            // Create method reasoning explanation
+            const methodReasoningHTML = methodBreakdown.length > 0 ? `
+                <div class="mb-6">
+                    <h5 class="font-semibold text-gray-900 mb-3 flex items-center">
+                        <i class="fas fa-cogs text-green-600 mr-2"></i>
+                        Method Reasoning Explanation
+                    </h5>
+                    <div class="space-y-4">
+                        ${methodBreakdown.map(method => `
+                            <div class="bg-white border border-gray-200 rounded-lg p-4">
+                                <div class="flex justify-between items-center mb-3">
+                                    <div class="flex items-center">
+                                        <span class="inline-block px-3 py-1 ${getMethodTypeClass(method.method_type)} text-sm rounded-full mr-3">
+                                            ${method.method_type.toUpperCase()}
+                                        </span>
+                                        <span class="font-medium text-gray-900">${method.method_name}</span>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-sm font-medium text-gray-900">${Math.round(method.confidence * 100)}%</div>
+                                        <div class="text-xs text-gray-500">${Math.round(method.processing_time * 1000)}ms</div>
+                                    </div>
+                                </div>
+                                
+                                ${method.success ? `
+                                    <div class="mb-3">
+                                        <p class="text-sm text-gray-700 mb-2"><strong>Result:</strong> ${method.result?.industry_name || 'No result'}</p>
+                                        ${method.evidence && method.evidence.length > 0 ? `
+                                            <p class="text-sm text-gray-600 mb-2"><strong>Evidence:</strong></p>
+                                            <ul class="text-sm text-gray-600 list-disc list-inside ml-4">
+                                                ${method.evidence.map(evidence => `<li>${evidence}</li>`).join('')}
+                                            </ul>
+                                        ` : ''}
+                                        ${method.keywords && method.keywords.length > 0 ? `
+                                            <div class="mt-2">
+                                                <p class="text-sm text-gray-600 mb-1"><strong>Keywords Used:</strong></p>
+                                                <div class="flex flex-wrap gap-1">
+                                                    ${method.keywords.slice(0, 8).map(keyword => `
+                                                        <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">${keyword}</span>
+                                                    `).join('')}
+                                                    ${method.keywords.length > 8 ? `<span class="text-xs text-gray-500">+${method.keywords.length - 8} more</span>` : ''}
+                                                </div>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                ` : `
+                                    <div class="mb-3">
+                                        <p class="text-sm text-red-600"><strong>Error:</strong> ${method.error || 'Unknown error'}</p>
+                                    </div>
+                                `}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : '';
+            
+            // Create confidence analysis
+            const confidenceAnalysisHTML = `
+                <div class="mb-6">
+                    <h5 class="font-semibold text-gray-900 mb-3 flex items-center">
+                        <i class="fas fa-chart-line text-purple-600 mr-2"></i>
+                        Confidence Analysis
+                    </h5>
+                    <div class="bg-white border border-gray-200 rounded-lg p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-600 mb-2"><strong>Overall Confidence:</strong></p>
+                                <div class="flex items-center">
+                                    <div class="w-full bg-gray-200 rounded-full h-3 mr-3">
+                                        <div class="bg-purple-600 h-3 rounded-full" style="width: ${Math.round((result.overall_confidence || result.confidence_score || 0) * 100)}%"></div>
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-900">${Math.round((result.overall_confidence || result.confidence_score || 0) * 100)}%</span>
+                                </div>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600 mb-2"><strong>Method Agreement:</strong></p>
+                                <div class="flex items-center">
+                                    <div class="w-full bg-gray-200 rounded-full h-3 mr-3">
+                                        <div class="bg-green-600 h-3 rounded-full" style="width: ${Math.round((qualityMetrics?.method_agreement || 0.85) * 100)}%"></div>
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-900">${Math.round((qualityMetrics?.method_agreement || 0.85) * 100)}%</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        ${qualityMetrics ? `
+                            <div class="mt-4 pt-4 border-t border-gray-200">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                    <div>
+                                        <p class="text-gray-600"><strong>Evidence Strength:</strong></p>
+                                        <p class="text-gray-900">${Math.round((qualityMetrics.evidence_strength || 0) * 100)}%</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-gray-600"><strong>Data Completeness:</strong></p>
+                                        <p class="text-gray-900">${Math.round((qualityMetrics.data_completeness || 0) * 100)}%</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-gray-600"><strong>Confidence Variance:</strong></p>
+                                        <p class="text-gray-900">${Math.round((qualityMetrics.confidence_variance || 0) * 100)}%</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            
+            // Create recommendations section
+            const recommendationsHTML = `
+                <div class="mb-6">
+                    <h5 class="font-semibold text-gray-900 mb-3 flex items-center">
+                        <i class="fas fa-lightbulb text-yellow-600 mr-2"></i>
+                        Recommendations
+                    </h5>
+                    <div class="bg-white border border-gray-200 rounded-lg p-4">
+                        <div class="space-y-3">
+                            ${generateRecommendations(result, qualityMetrics, securityMetrics)}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Only show the section if we have meaningful data
+            if (evidenceItems.length > 0 || methodBreakdown.length > 0 || classificationReasoning) {
+                return `
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
+                        <h4 class="font-bold text-gray-900 text-lg mb-4 flex items-center">
+                            <i class="fas fa-search text-gray-600 mr-2"></i>
+                            Classification Reasoning Details
+                        </h4>
+                        <p class="text-gray-600 mb-6">Detailed analysis of how the classification was determined, including evidence, method reasoning, and confidence analysis.</p>
+                        
+                        ${evidenceHTML}
+                        ${methodReasoningHTML}
+                        ${confidenceAnalysisHTML}
+                        ${recommendationsHTML}
+                        
+                        ${classificationReasoning ? `
+                            <div class="mt-6 pt-6 border-t border-gray-200">
+                                <h5 class="font-semibold text-gray-900 mb-3 flex items-center">
+                                    <i class="fas fa-comment-alt text-indigo-600 mr-2"></i>
+                                    Classification Summary
+                                </h5>
+                                <p class="text-sm text-gray-700 bg-indigo-50 p-4 rounded-lg">${classificationReasoning}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+            
+            return '';
+        }
+
+        function generateRecommendations(result, qualityMetrics, securityMetrics) {
+            const recommendations = [];
+            
+            // Confidence-based recommendations
+            const overallConfidence = result.overall_confidence || result.confidence_score || 0;
+            if (overallConfidence < 0.7) {
+                recommendations.push({
+                    type: 'warning',
+                    icon: 'fas fa-exclamation-triangle',
+                    title: 'Low Confidence Score',
+                    description: 'Consider providing more detailed business information to improve classification accuracy.'
+                });
+            }
+            
+            // Quality-based recommendations
+            if (qualityMetrics) {
+                if (qualityMetrics.evidence_strength < 0.8) {
+                    recommendations.push({
+                        type: 'info',
+                        icon: 'fas fa-info-circle',
+                        title: 'Evidence Strength',
+                        description: 'Additional business documentation or website content could strengthen the classification evidence.'
+                    });
+                }
+                
+                if (qualityMetrics.data_completeness < 0.9) {
+                    recommendations.push({
+                        type: 'info',
+                        icon: 'fas fa-database',
+                        title: 'Data Completeness',
+                        description: 'Consider adding more business details like industry description, services offered, or target market.'
+                    });
+                }
+            }
+            
+            // Security-based recommendations
+            if (securityMetrics) {
+                if (securityMetrics.data_source_trust?.trust_rate < 1.0) {
+                    recommendations.push({
+                        type: 'security',
+                        icon: 'fas fa-shield-alt',
+                        title: 'Data Source Verification',
+                        description: 'Some data sources could not be fully verified. Consider using official business registration documents.'
+                    });
+                }
+            }
+            
+            // Default recommendation if no specific issues
+            if (recommendations.length === 0) {
+                recommendations.push({
+                    type: 'success',
+                    icon: 'fas fa-check-circle',
+                    title: 'High Quality Classification',
+                    description: 'The classification appears to be of high quality with strong evidence and confidence scores.'
+                });
+            }
+            
+            return recommendations.map(rec => `
+                <div class="flex items-start p-3 rounded-lg ${getRecommendationTypeClass(rec.type)}">
+                    <i class="${rec.icon} ${getRecommendationIconClass(rec.type)} mr-3 mt-1"></i>
+                    <div>
+                        <h6 class="font-medium ${getRecommendationTitleClass(rec.type)}">${rec.title}</h6>
+                        <p class="text-sm ${getRecommendationTextClass(rec.type)}">${rec.description}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getRecommendationTypeClass(type) {
+            switch (type) {
+                case 'success': return 'bg-green-50 border border-green-200';
+                case 'warning': return 'bg-yellow-50 border border-yellow-200';
+                case 'info': return 'bg-blue-50 border border-blue-200';
+                case 'security': return 'bg-purple-50 border border-purple-200';
+                default: return 'bg-gray-50 border border-gray-200';
+            }
+        }
+
+        function getRecommendationIconClass(type) {
+            switch (type) {
+                case 'success': return 'text-green-600';
+                case 'warning': return 'text-yellow-600';
+                case 'info': return 'text-blue-600';
+                case 'security': return 'text-purple-600';
+                default: return 'text-gray-600';
+            }
+        }
+
+        function getRecommendationTitleClass(type) {
+            switch (type) {
+                case 'success': return 'text-green-900';
+                case 'warning': return 'text-yellow-900';
+                case 'info': return 'text-blue-900';
+                case 'security': return 'text-purple-900';
+                default: return 'text-gray-900';
+            }
+        }
+
+        function getRecommendationTextClass(type) {
+            switch (type) {
+                case 'success': return 'text-green-700';
+                case 'warning': return 'text-yellow-700';
+                case 'info': return 'text-blue-700';
+                case 'security': return 'text-purple-700';
+                default: return 'text-gray-700';
+            }
+        }
+
+        function showLoading() {
+            loadingState.classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            loadingState.classList.add('hidden');
+        }
+
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            errorState.classList.remove('hidden');
+        }
+
+        function hideError() {
+            errorState.classList.add('hidden');
+        }
+
+        function hideResults() {
+            results.classList.add('hidden');
+        }
+
+        // Security Indicators Functions
+        let securityIndicators = null;
+        
+        function initializeSecurityIndicators() {
+            if (typeof SecurityIndicators !== 'undefined') {
+                securityIndicators = new SecurityIndicators({
+                    containerId: 'security-indicators',
+                    showDetailed: true,
+                    showTooltips: true,
+                    theme: 'default'
+                });
+                securityIndicators.init();
+            }
+        }
+
+        function addSecurityIndicators(result) {
+            if (!securityIndicators) {
+                initializeSecurityIndicators();
+            }
+            
+            if (securityIndicators && result) {
+                // Create security indicators container
+                const securityContainer = document.createElement('div');
+                securityContainer.id = 'security-indicators';
+                results.appendChild(securityContainer);
+                
+                // Extract security data from result
+                const securityData = {
+                    data_source_trust: result.security_metrics?.data_source_trust || {
+                        trust_rate: 1.0,
+                        trusted_count: 1,
+                        total_validations: 1
+                    },
+                    website_verification: result.security_metrics?.website_verification || {
+                        success_rate: 1.0,
+                        success_count: 1,
+                        total_attempts: 1
+                    },
+                    quality_metrics: result.quality_metrics || {
+                        overall_quality: 0.95,
+                        evidence_strength: 0.9,
+                        data_completeness: 0.85
+                    },
+                    security_validation: result.security_metrics?.security_violations || {
+                        total_violations: 0,
+                        violations_by_type: {}
+                    },
+                    security_metrics: result.security_metrics
+                };
+                
+                securityIndicators.update(securityData);
+            }
+        }
+    </script>
+    
+    <!-- Security Indicators Component -->
+    <script src="components/security-indicators.js"></script>
+    <script>
+        // Initialize security indicators when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeSecurityIndicators();
+        });
+    </script>
+</body>
+</html>
