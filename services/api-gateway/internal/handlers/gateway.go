@@ -85,13 +85,10 @@ func (h *GatewayHandler) ProxyToClassification(w http.ResponseWriter, r *http.Re
 
 // ProxyToMerchants proxies requests to the merchant service
 func (h *GatewayHandler) ProxyToMerchants(w http.ResponseWriter, r *http.Request) {
-	// Extract the path after /api/v1/merchants
-	path := strings.TrimPrefix(r.URL.Path, "/api/v1/merchants")
-	if path == "" {
-		path = "/"
-	}
-
-	h.proxyRequest(w, r, h.config.Services.MerchantURL, "/api/v1/merchants"+path)
+	// The route is registered as /merchants in the /api/v1 subrouter
+	// So r.URL.Path will be /api/v1/merchants or /api/v1/merchants/{id}
+	// We need to pass the full path to the merchant service
+	h.proxyRequest(w, r, h.config.Services.MerchantURL, r.URL.Path)
 }
 
 // ProxyToClassificationHealth proxies health check requests to the classification service

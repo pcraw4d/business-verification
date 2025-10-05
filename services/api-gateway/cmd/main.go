@@ -28,7 +28,7 @@ func main() {
 	}
 	defer logger.Sync()
 
-	logger.Info("🚀 Starting KYB API Gateway Service v1.0.7 - DEBUG MODE")
+	logger.Info("🚀 Starting KYB API Gateway Service v1.0.8 - FIXED MERCHANTS ROUTING")
 
 	// Load configuration
 	cfg, err := config.Load()
@@ -75,7 +75,7 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"service": "api-gateway",
-			"version": "1.0.7",
+			"version": "1.0.8",
 			"status":  "running",
 			"message": "KYB API Gateway is running",
 			"endpoints": map[string]string{
