@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -27,13 +28,21 @@ func main() {
 	}
 	defer logger.Sync()
 
-	logger.Info("🚀 Starting KYB API Gateway Service v1.0.6 - ROUTING FIX")
+	logger.Info("🚀 Starting KYB API Gateway Service v1.0.7 - DEBUG MODE")
 
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
 		logger.Fatal("Failed to load configuration", zap.Error(err))
 	}
+	
+	// Log configuration for debugging
+	logger.Info("🔧 Configuration loaded",
+		zap.String("port", cfg.Server.Port),
+		zap.String("environment", cfg.Environment),
+		zap.String("classification_url", cfg.Services.ClassificationURL),
+		zap.String("merchant_url", cfg.Services.MerchantURL),
+		zap.String("frontend_url", cfg.Services.FrontendURL))
 
 	// Initialize Supabase client
 	logger.Info("🔧 Initializing Supabase client",
@@ -60,6 +69,24 @@ func main() {
 
 	// Health check endpoint
 	router.HandleFunc("/health", gatewayHandler.HealthCheck).Methods("GET")
+	
+	// Root endpoint for debugging
+	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"service": "api-gateway",
+			"version": "1.0.7",
+			"status":  "running",
+			"message": "KYB API Gateway is running",
+			"endpoints": map[string]string{
+				"health": "/health",
+				"classify": "/api/v1/classify",
+				"merchants": "/api/v1/merchants",
+				"classification_health": "/api/v1/classification/health",
+				"merchant_health": "/api/v1/merchant/health",
+			},
+		})
+	}).Methods("GET")
 
 	// API Gateway routes
 	api := router.PathPrefix("/api/v1").Subrouter()
@@ -68,7 +95,7 @@ func main() {
 	api.HandleFunc("/merchants/{id}", gatewayHandler.ProxyToMerchants).Methods("GET", "PUT", "DELETE")
 	api.HandleFunc("/merchants/search", gatewayHandler.ProxyToMerchants).Methods("POST")
 	api.HandleFunc("/merchants/analytics", gatewayHandler.ProxyToMerchants).Methods("GET")
-	
+
 	// Health check routes for backend services
 	api.HandleFunc("/classification/health", gatewayHandler.ProxyToClassificationHealth).Methods("GET")
 	api.HandleFunc("/merchant/health", gatewayHandler.ProxyToMerchantHealth).Methods("GET")
