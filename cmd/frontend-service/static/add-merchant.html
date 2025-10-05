@@ -974,6 +974,12 @@
                         }
                     };
                     
+                    // Log API results for debugging
+                    console.log('🔍 API Results Summary:');
+                    console.log('🔍 Business Intelligence:', businessIntelligenceResult.status, businessIntelligenceResult.value || businessIntelligenceResult.reason);
+                    console.log('🔍 Risk Assessment:', riskAssessmentResult.status, riskAssessmentResult.value || riskAssessmentResult.reason);
+                    console.log('🔍 Risk Indicators:', riskIndicatorsResult.status, riskIndicatorsResult.value || riskIndicatorsResult.reason);
+                    
                     sessionStorage.setItem('merchantApiResults', JSON.stringify(apiResults));
                     
                     // Redirect to merchant details page
