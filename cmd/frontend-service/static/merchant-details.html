@@ -2923,6 +2923,9 @@
             }
 
             switchTab(tabId) {
+                // Destroy existing charts to prevent canvas reuse errors
+                this.destroyExistingCharts();
+                
                 // Remove active class from all tabs and buttons
                 document.querySelectorAll('.tab-content').forEach(tab => {
                     tab.classList.remove('active');
@@ -2991,6 +2994,15 @@
             showError(message) {
                 console.error(message);
                 // You can implement a proper error display here
+            }
+
+            destroyExistingCharts() {
+                // Destroy existing Chart.js instances to prevent canvas reuse errors
+                if (typeof Chart !== 'undefined') {
+                    Chart.helpers.each(Chart.instances, function(instance) {
+                        instance.destroy();
+                    });
+                }
             }
 
             showBusinessAnalyticsFallback() {
