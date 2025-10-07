@@ -1003,26 +1003,37 @@
 
             async callBusinessIntelligenceAPI(apiData) {
                 console.log('🔍 Making Business Intelligence API call with data:', apiData);
+                console.log('🔍 API URL:', 'https://api-gateway-service-production-21fd.up.railway.app/api/v1/classify');
                 
-                const response = await fetch('https://api-gateway-service-production-21fd.up.railway.app/api/v1/classify', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(apiData)
-                });
+                try {
+                    const response = await fetch('https://api-gateway-service-production-21fd.up.railway.app/api/v1/classify', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(apiData)
+                    });
 
-                console.log('🔍 Business Intelligence API response status:', response.status);
+                    console.log('🔍 Business Intelligence API response status:', response.status);
+                    console.log('🔍 Business Intelligence API response headers:', Object.fromEntries(response.headers.entries()));
 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('🔍 Business Intelligence API error response:', errorText);
-                    throw new Error(`Business Intelligence API error: ${response.status}`);
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('🔍 Business Intelligence API error response:', errorText);
+                        throw new Error(`Business Intelligence API error: ${response.status} - ${errorText}`);
+                    }
+
+                    const result = await response.json();
+                    console.log('🔍 Business Intelligence API result:', result);
+                    console.log('🔍 Business Intelligence API result success:', result.success);
+                    return result;
+                } catch (error) {
+                    console.error('🔍 Business Intelligence API call failed:', error);
+                    console.error('🔍 Error name:', error.name);
+                    console.error('🔍 Error message:', error.message);
+                    console.error('🔍 Error stack:', error.stack);
+                    throw error;
                 }
-
-                const result = await response.json();
-                console.log('🔍 Business Intelligence API result:', result);
-                return result;
             }
 
             async callRiskAssessmentAPI(apiData) {
