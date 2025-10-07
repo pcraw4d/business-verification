@@ -28,7 +28,7 @@ func main() {
 	}
 	defer logger.Sync()
 
-	logger.Info("🚀 Starting KYB API Gateway Service v1.0.13 - ADDED BI SERVICE ROUTING")
+	logger.Info("🚀 Starting KYB API Gateway Service v1.0.14 - FORCE REDEPLOY WITH BI ROUTING")
 
 	// Load configuration
 	cfg, err := config.Load()
