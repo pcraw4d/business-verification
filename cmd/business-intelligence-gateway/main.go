@@ -27,7 +27,7 @@ func NewBusinessIntelligenceGatewayServer() *BusinessIntelligenceGatewayServer {
 
 	return &BusinessIntelligenceGatewayServer{
 		serviceName: "kyb-business-intelligence-gateway",
-		version:     "4.0.3-BI-FORCE-REDEPLOY",
+		version:     "4.0.4-BI-SYNTAX-FIX-FINAL",
 		port:        port,
 	}
 }
@@ -722,7 +722,7 @@ func (s *BusinessIntelligenceGatewayServer) handleBusinessAnalysis(w http.Respon
 			},
 		},
 		"status": "success",
-		"success": true
+		"success": true,
 	}
 	
 	w.WriteHeader(http.StatusOK)
