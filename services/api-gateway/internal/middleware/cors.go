@@ -18,7 +18,7 @@ func CORS(cfg config.CORSConfig) func(http.Handler) http.Handler {
 			fmt.Printf("CORS: Request from origin: %s, Method: %s, Path: %s\n", origin, r.Method, r.URL.Path)
 			fmt.Printf("CORS: Allowed origins: %v\n", cfg.AllowedOrigins)
 
-			// Check if origin is allowed - only set header if not already set
+			// Check if origin is allowed - only set header if not already set by Railway
 			if w.Header().Get("Access-Control-Allow-Origin") == "" {
 				if isOriginAllowed(origin, cfg.AllowedOrigins) {
 					w.Header().Set("Access-Control-Allow-Origin", origin)
@@ -31,7 +31,7 @@ func CORS(cfg config.CORSConfig) func(http.Handler) http.Handler {
 					fmt.Printf("CORS: Origin %s not allowed, not setting Access-Control-Allow-Origin\n", origin)
 				}
 			} else {
-				fmt.Printf("CORS: Access-Control-Allow-Origin already set to: %s\n", w.Header().Get("Access-Control-Allow-Origin"))
+				fmt.Printf("CORS: Access-Control-Allow-Origin already set by Railway to: %s\n", w.Header().Get("Access-Control-Allow-Origin"))
 			}
 
 			w.Header().Set("Access-Control-Allow-Methods", joinStrings(cfg.AllowedMethods, ", "))
