@@ -840,20 +840,24 @@
             }
 
             async handleSubmit(e) {
+                console.log('🔍 Form submission started!');
                 e.preventDefault();
                 
                 if (!this.validateForm()) {
+                    console.log('🔍 Form validation failed, stopping submission');
                     this.scrollToFirstError();
                     return;
                 }
 
+                console.log('🔍 Form validation passed, starting processing...');
                 this.setLoading(true);
                 
                 try {
                     const formData = this.collectFormData();
+                    console.log('🔍 Form data collected:', formData);
                     await this.processMerchantVerification(formData);
                 } catch (error) {
-                    console.error('Error processing merchant verification:', error);
+                    console.error('🔍 Error processing merchant verification:', error);
                     this.showNotification('Error processing merchant verification. Please try again.', 'error');
                 } finally {
                     this.setLoading(false);
@@ -952,15 +956,25 @@
 
             async processMerchantVerification(data) {
                 try {
+                    console.log('🔍 Starting merchant verification process with data:', data);
+                    console.log('🔍 About to call APIs in parallel...');
+                    
                     // Store base data in session storage
                     sessionStorage.setItem('merchantData', JSON.stringify(data));
                     
                     // Make API calls in parallel for all three analyses
+                    console.log('🔍 Calling APIs in parallel...');
                     const [businessIntelligenceResult, riskAssessmentResult, riskIndicatorsResult] = await Promise.allSettled([
                         this.callBusinessIntelligenceAPI(data.apiData.businessIntelligence),
                         this.callRiskAssessmentAPI(data.apiData.riskAssessment),
                         this.callRiskIndicatorsAPI(data.apiData.riskIndicators)
                     ]);
+                    
+                    console.log('🔍 All API calls completed. Results:', {
+                        businessIntelligence: businessIntelligenceResult,
+                        riskAssessment: riskAssessmentResult,
+                        riskIndicators: riskIndicatorsResult
+                    });
                     
                     // Store API results in session storage
                     const apiResults = {
