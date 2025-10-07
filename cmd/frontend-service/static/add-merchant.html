@@ -980,6 +980,16 @@
                     console.log('🔍 Risk Assessment:', riskAssessmentResult.status, riskAssessmentResult.value || riskAssessmentResult.reason);
                     console.log('🔍 Risk Indicators:', riskIndicatorsResult.status, riskIndicatorsResult.value || riskIndicatorsResult.reason);
                     
+                    // Additional debugging for Business Intelligence API
+                    if (businessIntelligenceResult.status === 'rejected') {
+                        console.error('🔍 Business Intelligence API Error Details:', businessIntelligenceResult.reason);
+                        console.error('🔍 Error type:', typeof businessIntelligenceResult.reason);
+                        console.error('🔍 Error message:', businessIntelligenceResult.reason?.message);
+                        console.error('🔍 Error stack:', businessIntelligenceResult.reason?.stack);
+                    } else if (businessIntelligenceResult.status === 'fulfilled') {
+                        console.log('🔍 Business Intelligence API Success - Full Response:', businessIntelligenceResult.value);
+                    }
+                    
                     sessionStorage.setItem('merchantApiResults', JSON.stringify(apiResults));
                     
                     // Redirect to merchant details page
