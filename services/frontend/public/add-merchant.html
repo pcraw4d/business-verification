@@ -698,13 +698,20 @@
             }
 
             initializeMobileOptimization() {
-                if (typeof MobileOptimization !== 'undefined') {
-                    const mobileOpt = new MobileOptimization({
-                        touchTargetSize: 48,
-                        enableTouchOptimization: true,
-                        enableProgressiveEnhancement: true
-                    });
-                    mobileOpt.optimizeForMobile();
+                // Mobile optimization is optional - skip if not available
+                try {
+                    if (typeof MobileOptimization !== 'undefined') {
+                        const mobileOpt = new MobileOptimization({
+                            touchTargetSize: 48,
+                            enableTouchOptimization: true,
+                            enableProgressiveEnhancement: true
+                        });
+                        if (mobileOpt && typeof mobileOpt.optimizeForMobile === 'function') {
+                            mobileOpt.optimizeForMobile();
+                        }
+                    }
+                } catch (error) {
+                    console.log('Mobile optimization not available:', error.message);
                 }
             }
 
