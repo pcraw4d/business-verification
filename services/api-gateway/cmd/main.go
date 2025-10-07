@@ -28,7 +28,7 @@ func main() {
 	}
 	defer logger.Sync()
 
-		logger.Info("🚀 Starting KYB API Gateway Service v1.0.9 - CORS FIX ATTEMPT")
+		logger.Info("🚀 Starting KYB API Gateway Service v1.0.10 - DISABLED CORS MIDDLEWARE")
 
 	// Load configuration
 	cfg, err := config.Load()
@@ -61,8 +61,8 @@ func main() {
 	// Setup router
 	router := mux.NewRouter()
 
-	// Apply middleware
-	router.Use(middleware.CORS(cfg.CORS))
+	// Apply middleware (temporarily disable CORS to let Railway handle it)
+	// router.Use(middleware.CORS(cfg.CORS))  // Disabled - Railway handles CORS
 	router.Use(middleware.Logging(logger))
 	router.Use(middleware.RateLimit(cfg.RateLimit))
 	router.Use(middleware.Authentication(supabaseClient, logger))
