@@ -2923,6 +2923,9 @@
             }
 
             switchTab(tabId) {
+                // Destroy existing charts to prevent canvas reuse errors
+                this.destroyExistingCharts();
+                
                 // Remove active class from all tabs and buttons
                 document.querySelectorAll('.tab-content').forEach(tab => {
                     tab.classList.remove('active');
@@ -2959,9 +2962,19 @@
                 }
                 
                 // Populate data when switching to specific tabs
-                if (tabId === 'business-analytics' && this.apiResults?.businessIntelligence) {
-                    console.log('🔍 Switching to Business Analytics tab, populating data...');
-                    this.populateBusinessIntelligenceResults(this.apiResults.businessIntelligence);
+                if (tabId === 'business-analytics') {
+                    console.log('🔍 Switching to Business Analytics tab...');
+                    console.log('🔍 API Results available:', !!this.apiResults);
+                    console.log('🔍 Business Intelligence data available:', !!this.apiResults?.businessIntelligence);
+                    console.log('🔍 Business Intelligence data:', this.apiResults?.businessIntelligence);
+                    
+                    if (this.apiResults?.businessIntelligence) {
+                        console.log('🔍 Populating Business Analytics with data...');
+                        this.populateBusinessIntelligenceResults(this.apiResults.businessIntelligence);
+                    } else {
+                        console.log('🔍 No Business Intelligence data available, showing fallback content...');
+                        this.showBusinessAnalyticsFallback();
+                    }
                 } else if (tabId === 'risk-assessment' && this.apiResults?.riskAssessment) {
                     console.log('🔍 Switching to Risk Assessment tab, populating data...');
                     this.populateRiskAssessmentResults(this.apiResults.riskAssessment);
@@ -2981,6 +2994,75 @@
             showError(message) {
                 console.error(message);
                 // You can implement a proper error display here
+            }
+
+            destroyExistingCharts() {
+                // Destroy existing Chart.js instances to prevent canvas reuse errors
+                if (typeof Chart !== 'undefined') {
+                    Chart.helpers.each(Chart.instances, function(instance) {
+                        instance.destroy();
+                    });
+                }
+            }
+
+            showBusinessAnalyticsFallback() {
+                console.log('🔍 Showing Business Analytics fallback content...');
+                
+                // Get merchant data for fallback content
+                const merchantData = this.merchantData || {};
+                const businessName = merchantData.businessName || 'Business';
+                
+                // Show a message that data is being processed
+                const dashboardResults = document.getElementById('dashboardResults');
+                if (dashboardResults) {
+                    dashboardResults.innerHTML = `
+                        <div class="bg-white rounded-lg shadow-lg p-8 text-center">
+                            <div class="mb-6">
+                                <i class="fas fa-chart-line text-6xl text-blue-500 mb-4"></i>
+                                <h3 class="text-2xl font-bold text-gray-900 mb-2">Business Analytics for ${businessName}</h3>
+                                <p class="text-gray-600 mb-4">Processing comprehensive business intelligence data...</p>
+                            </div>
+                            
+                            <div class="bg-blue-50 rounded-lg p-6 mb-6">
+                                <h4 class="text-lg font-semibold text-blue-900 mb-3">Analysis in Progress</h4>
+                                <div class="space-y-3 text-left">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                                        <span class="text-sm text-gray-700">Business Registration Verification</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <i class="fas fa-spinner fa-spin text-blue-500 mr-3"></i>
+                                        <span class="text-sm text-gray-700">Business Intelligence Analysis</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <i class="fas fa-clock text-gray-400 mr-3"></i>
+                                        <span class="text-sm text-gray-700">Online Presence Verification</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <i class="fas fa-clock text-gray-400 mr-3"></i>
+                                        <span class="text-sm text-gray-700">Address Verification</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="text-sm text-gray-500 mb-4">
+                                <p>If this message persists, there may be an issue with the API connection.</p>
+                                <p>Please try refreshing the page or contact support.</p>
+                            </div>
+                            
+                            <div class="flex gap-3 justify-center">
+                                <button onclick="window.location.href='/add-merchant'" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                    <i class="fas fa-redo mr-2"></i>
+                                    Retry Analysis
+                                </button>
+                                <button onclick="clearSessionAndRefresh()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+                                    <i class="fas fa-trash mr-2"></i>
+                                    Clear Data & Refresh
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
             }
 
             extractPrimaryIndustry(classification) {
@@ -5821,6 +5903,14 @@
                     </div>
                 </div>
             `).join('');
+        }
+
+        // Global function to clear session storage and refresh
+        function clearSessionAndRefresh() {
+            console.log('🔍 Clearing session storage and refreshing...');
+            sessionStorage.removeItem('merchantData');
+            sessionStorage.removeItem('merchantApiResults');
+            window.location.reload();
         }
 
         document.addEventListener('DOMContentLoaded', function() {

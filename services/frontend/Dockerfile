@@ -14,7 +14,7 @@ COPY . .
 RUN ls -la && ls -la public/
 
 # Build the frontend server with debug info
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags="-X main.version=5.0.0-MERCHANT-CENTRIC-UI" -o frontend-server ./cmd/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags="-X main.version=5.0.1-MERCHANT-CENTRIC-UI-FORCE-DEPLOY" -o frontend-server ./cmd/main.go
 
 # Final stage
 FROM alpine:latest
