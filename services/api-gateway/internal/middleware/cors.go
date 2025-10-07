@@ -18,16 +18,20 @@ func CORS(cfg config.CORSConfig) func(http.Handler) http.Handler {
 			fmt.Printf("CORS: Request from origin: %s, Method: %s, Path: %s\n", origin, r.Method, r.URL.Path)
 			fmt.Printf("CORS: Allowed origins: %v\n", cfg.AllowedOrigins)
 
-			// Check if origin is allowed - only set header once
-			if isOriginAllowed(origin, cfg.AllowedOrigins) {
-				w.Header().Set("Access-Control-Allow-Origin", origin)
-				fmt.Printf("CORS: Set Access-Control-Allow-Origin to: %s\n", origin)
-			} else if len(cfg.AllowedOrigins) == 1 && cfg.AllowedOrigins[0] == "*" {
-				w.Header().Set("Access-Control-Allow-Origin", "*")
-				fmt.Printf("CORS: Set Access-Control-Allow-Origin to: *\n")
+			// Check if origin is allowed - only set header if not already set
+			if w.Header().Get("Access-Control-Allow-Origin") == "" {
+				if isOriginAllowed(origin, cfg.AllowedOrigins) {
+					w.Header().Set("Access-Control-Allow-Origin", origin)
+					fmt.Printf("CORS: Set Access-Control-Allow-Origin to: %s\n", origin)
+				} else if len(cfg.AllowedOrigins) == 1 && cfg.AllowedOrigins[0] == "*" {
+					w.Header().Set("Access-Control-Allow-Origin", "*")
+					fmt.Printf("CORS: Set Access-Control-Allow-Origin to: *\n")
+				} else {
+					// Don't set the header if origin is not allowed
+					fmt.Printf("CORS: Origin %s not allowed, not setting Access-Control-Allow-Origin\n", origin)
+				}
 			} else {
-				// Don't set the header if origin is not allowed
-				fmt.Printf("CORS: Origin %s not allowed, not setting Access-Control-Allow-Origin\n", origin)
+				fmt.Printf("CORS: Access-Control-Allow-Origin already set to: %s\n", w.Header().Get("Access-Control-Allow-Origin"))
 			}
 
 			w.Header().Set("Access-Control-Allow-Methods", joinStrings(cfg.AllowedMethods, ", "))
