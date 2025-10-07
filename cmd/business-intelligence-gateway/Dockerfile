@@ -1,5 +1,6 @@
 FROM golang:1.22-alpine
 
+# Force rebuild for deployment
 WORKDIR /app
 
 COPY go.mod ./
