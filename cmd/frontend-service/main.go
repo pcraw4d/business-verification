@@ -20,7 +20,7 @@ func NewFrontendService() *FrontendService {
 		serviceName = "frontend-service"
 	}
 
-	version := "5.0.4-JAVASCRIPT-FIX-DEPLOYED"
+	version := "5.0.5-BI-SERVICE-INTEGRATION"
 
 	port := os.Getenv("PORT")
 	if port == "" {
