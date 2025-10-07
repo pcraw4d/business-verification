@@ -28,7 +28,7 @@ func main() {
 	}
 	defer logger.Sync()
 
-		logger.Info("🚀 Starting KYB API Gateway Service v1.0.11 - CORS MIDDLEWARE RE-ENABLED")
+		logger.Info("🚀 Starting KYB API Gateway Service v1.0.12 - MANUAL CORS HANDLING")
 
 	// Load configuration
 	cfg, err := config.Load()
@@ -61,8 +61,8 @@ func main() {
 	// Setup router
 	router := mux.NewRouter()
 
-	// Apply middleware (re-enable CORS for OPTIONS handling only)
-	router.Use(middleware.CORS(cfg.CORS))
+	// Apply middleware (disable CORS completely - let Railway handle it)
+	// router.Use(middleware.CORS(cfg.CORS))  // Disabled - Railway handles CORS
 	router.Use(middleware.Logging(logger))
 	router.Use(middleware.RateLimit(cfg.RateLimit))
 	router.Use(middleware.Authentication(supabaseClient, logger))
@@ -90,7 +90,14 @@ func main() {
 
 	// API Gateway routes
 	api := router.PathPrefix("/api/v1").Subrouter()
-	api.HandleFunc("/classify", gatewayHandler.ProxyToClassification).Methods("POST", "OPTIONS")
+	api.HandleFunc("/classify", gatewayHandler.ProxyToClassification).Methods("POST")
+	api.HandleFunc("/classify", func(w http.ResponseWriter, r *http.Request) {
+		// Handle OPTIONS requests for CORS preflight
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.WriteHeader(http.StatusOK)
+	}).Methods("OPTIONS")
 	api.HandleFunc("/merchants", gatewayHandler.ProxyToMerchants).Methods("GET", "POST")
 	api.HandleFunc("/merchants/{id}", gatewayHandler.ProxyToMerchants).Methods("GET", "PUT", "DELETE")
 	api.HandleFunc("/merchants/search", gatewayHandler.ProxyToMerchants).Methods("POST")
