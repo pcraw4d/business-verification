@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-var version = "5.0.1-MERCHANT-CENTRIC-UI-FORCE-DEPLOY"
+var version = "5.0.2-JAVASCRIPT-FIX-DEPLOY"
 
 func main() {
 	// Get port from environment variable
