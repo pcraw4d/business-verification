@@ -193,11 +193,11 @@ func (h *GatewayHandler) ProxyToBI(w http.ResponseWriter, r *http.Request) {
 	if path == "" {
 		path = "/"
 	}
-	
+
 	// Add query parameters if any
 	if r.URL.RawQuery != "" {
 		path += "?" + r.URL.RawQuery
 	}
-	
+
 	h.proxyRequest(w, r, h.config.Services.BIServiceURL+path)
 }

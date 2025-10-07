@@ -28,7 +28,7 @@ func main() {
 	}
 	defer logger.Sync()
 
-		logger.Info("🚀 Starting KYB API Gateway Service v1.0.13 - ADDED BI SERVICE ROUTING")
+	logger.Info("🚀 Starting KYB API Gateway Service v1.0.13 - ADDED BI SERVICE ROUTING")
 
 	// Load configuration
 	cfg, err := config.Load()
@@ -106,7 +106,7 @@ func main() {
 	// Health check routes for backend services
 	api.HandleFunc("/classification/health", gatewayHandler.ProxyToClassificationHealth).Methods("GET")
 	api.HandleFunc("/merchant/health", gatewayHandler.ProxyToMerchantHealth).Methods("GET")
-	
+
 	// Business Intelligence routes
 	api.PathPrefix("/bi").HandlerFunc(gatewayHandler.ProxyToBI)
 
