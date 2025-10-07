@@ -27,7 +27,7 @@ func NewBusinessIntelligenceGatewayServer() *BusinessIntelligenceGatewayServer {
 
 	return &BusinessIntelligenceGatewayServer{
 		serviceName: "kyb-business-intelligence-gateway",
-		version:     "4.0.2-BI-SYNTAX-FIX",
+		version:     "4.0.3-BI-FORCE-REDEPLOY",
 		port:        port,
 	}
 }
