@@ -185,3 +185,19 @@ func (h *GatewayHandler) proxyRequest(w http.ResponseWriter, r *http.Request, ta
 		zap.String("path", r.URL.Path),
 		zap.Int("status", resp.StatusCode))
 }
+
+// ProxyToBI proxies requests to the Business Intelligence service
+func (h *GatewayHandler) ProxyToBI(w http.ResponseWriter, r *http.Request) {
+	// Extract the path after /api/v1/bi/
+	path := strings.TrimPrefix(r.URL.Path, "/api/v1/bi")
+	if path == "" {
+		path = "/"
+	}
+	
+	// Add query parameters if any
+	if r.URL.RawQuery != "" {
+		path += "?" + r.URL.RawQuery
+	}
+	
+	h.proxyRequest(w, r, h.config.Services.BIServiceURL+path)
+}
