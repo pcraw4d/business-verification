@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 
 	"kyb-platform/services/api-gateway/internal/config"
@@ -12,12 +13,18 @@ func CORS(cfg config.CORSConfig) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Set CORS headers
 			origin := r.Header.Get("Origin")
+			
+			// Debug logging
+			fmt.Printf("CORS: Request from origin: %s, Method: %s, Path: %s\n", origin, r.Method, r.URL.Path)
+			fmt.Printf("CORS: Allowed origins: %v\n", cfg.AllowedOrigins)
 
 			// Check if origin is allowed
 			if isOriginAllowed(origin, cfg.AllowedOrigins) {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
+				fmt.Printf("CORS: Set Access-Control-Allow-Origin to: %s\n", origin)
 			} else if len(cfg.AllowedOrigins) == 1 && cfg.AllowedOrigins[0] == "*" {
 				w.Header().Set("Access-Control-Allow-Origin", "*")
+				fmt.Printf("CORS: Set Access-Control-Allow-Origin to: *\n")
 			}
 
 			w.Header().Set("Access-Control-Allow-Methods", joinStrings(cfg.AllowedMethods, ", "))
@@ -33,6 +40,7 @@ func CORS(cfg config.CORSConfig) func(http.Handler) http.Handler {
 
 			// Handle preflight requests
 			if r.Method == "OPTIONS" {
+				fmt.Printf("CORS: Handling preflight request\n")
 				w.WriteHeader(http.StatusOK)
 				return
 			}
