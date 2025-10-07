@@ -27,7 +27,7 @@ func NewBusinessIntelligenceGatewayServer() *BusinessIntelligenceGatewayServer {
 
 	return &BusinessIntelligenceGatewayServer{
 		serviceName: "kyb-business-intelligence-gateway",
-		version:     "4.0.1-BI-ANALYZE-ENDPOINT",
+		version:     "4.0.2-BI-SYNTAX-FIX",
 		port:        port,
 	}
 }
@@ -682,44 +682,44 @@ func (s *BusinessIntelligenceGatewayServer) handleBusinessAnalysis(w http.Respon
 					"value": 25,
 					"range": "10-50",
 					"confidence": 0.85,
-					"source": "estimated"
+					"source": "estimated",
 				},
 				"revenue_range": map[string]interface{}{
 					"min": 500000,
 					"max": 2000000,
 					"currency": "USD",
 					"confidence": 0.78,
-					"source": "estimated"
+					"source": "estimated",
 				},
 				"founded_year": map[string]interface{}{
 					"year": 2018,
 					"confidence": 0.92,
-					"source": "public_records"
+					"source": "public_records",
 				},
 				"business_location": map[string]interface{}{
 					"city": "Brooklyn",
 					"state": "New York",
 					"country": "US",
 					"confidence": 0.95,
-					"source": "address_analysis"
-				}
+					"source": "address_analysis",
+				},
 			},
 			"company_profile": map[string]interface{}{
 				"industry": "Retail/Food & Beverage",
 				"business_type": "Local Business",
 				"size_category": "Small Business",
-				"growth_stage": "Established"
+				"growth_stage": "Established",
 			},
 			"market_analysis": map[string]interface{}{
 				"market_size": "Local",
 				"competition_level": "Medium",
-				"growth_potential": "Moderate"
+				"growth_potential": "Moderate",
 			},
 			"financial_metrics": map[string]interface{}{
 				"profitability": "Profitable",
 				"financial_health": "Good",
-				"credit_risk": "Low"
-			}
+				"credit_risk": "Low",
+			},
 		},
 		"status": "success",
 		"success": true
