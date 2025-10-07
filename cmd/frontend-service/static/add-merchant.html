@@ -698,13 +698,20 @@
             }
 
             initializeMobileOptimization() {
-                if (typeof MobileOptimization !== 'undefined') {
-                    const mobileOpt = new MobileOptimization({
-                        touchTargetSize: 48,
-                        enableTouchOptimization: true,
-                        enableProgressiveEnhancement: true
-                    });
-                    mobileOpt.optimizeForMobile();
+                // Mobile optimization is optional - skip if not available
+                try {
+                    if (typeof MobileOptimization !== 'undefined') {
+                        const mobileOpt = new MobileOptimization({
+                            touchTargetSize: 48,
+                            enableTouchOptimization: true,
+                            enableProgressiveEnhancement: true
+                        });
+                        if (mobileOpt && typeof mobileOpt.optimizeForMobile === 'function') {
+                            mobileOpt.optimizeForMobile();
+                        }
+                    }
+                } catch (error) {
+                    console.log('Mobile optimization not available:', error.message);
                 }
             }
 
@@ -1254,8 +1261,8 @@
             }
         }
 
-        // Test API call directly
-        async function testAPICall() {
+        // Test API call directly - available globally
+        window.testAPICall = async function() {
             console.log('🧪 Testing API call directly...');
             try {
                 const testData = {
@@ -1293,7 +1300,7 @@
             } catch (error) {
                 console.error('🧪 API Test failed:', error);
             }
-        }
+        };
 
         // Initialize when DOM is loaded
         document.addEventListener('DOMContentLoaded', () => {
