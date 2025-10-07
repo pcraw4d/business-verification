@@ -90,7 +90,7 @@ func main() {
 
 	// API Gateway routes
 	api := router.PathPrefix("/api/v1").Subrouter()
-	api.HandleFunc("/classify", gatewayHandler.ProxyToClassification).Methods("POST")
+	api.HandleFunc("/classify", gatewayHandler.ProxyToClassification).Methods("POST", "OPTIONS")
 	api.HandleFunc("/merchants", gatewayHandler.ProxyToMerchants).Methods("GET", "POST")
 	api.HandleFunc("/merchants/{id}", gatewayHandler.ProxyToMerchants).Methods("GET", "PUT", "DELETE")
 	api.HandleFunc("/merchants/search", gatewayHandler.ProxyToMerchants).Methods("POST")

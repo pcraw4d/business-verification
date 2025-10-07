@@ -13,7 +13,7 @@ func CORS(cfg config.CORSConfig) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Set CORS headers
 			origin := r.Header.Get("Origin")
-			
+
 			// Debug logging
 			fmt.Printf("CORS: Request from origin: %s, Method: %s, Path: %s\n", origin, r.Method, r.URL.Path)
 			fmt.Printf("CORS: Allowed origins: %v\n", cfg.AllowedOrigins)
