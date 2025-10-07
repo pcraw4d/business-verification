@@ -1254,8 +1254,8 @@
             }
         }
 
-        // Test API call directly
-        async function testAPICall() {
+        // Test API call directly - available globally
+        window.testAPICall = async function() {
             console.log('🧪 Testing API call directly...');
             try {
                 const testData = {
@@ -1293,7 +1293,7 @@
             } catch (error) {
                 console.error('🧪 API Test failed:', error);
             }
-        }
+        };
 
         // Initialize when DOM is loaded
         document.addEventListener('DOMContentLoaded', () => {
