@@ -2955,6 +2955,17 @@
                     if (verificationStatusSection) {
                         verificationStatusSection.classList.add('visible');
                     }
+                    
+                    // Populate the sections with data if available
+                    if (this.apiResults?.businessIntelligence) {
+                        console.log('🔍 Populating Risk Overview Dashboard and Verification Status for Merchant Details tab...');
+                        populateRiskOverviewDashboard(this.apiResults.businessIntelligence);
+                        populateVerificationStatus(this.apiResults.businessIntelligence);
+                    } else if (this.apiResults?.riskAssessment) {
+                        console.log('🔍 Populating Risk Overview Dashboard from Risk Assessment data for Merchant Details tab...');
+                        populateRiskOverviewDashboard(this.apiResults.riskAssessment);
+                        populateVerificationStatus(this.apiResults.riskAssessment);
+                    }
                 }
                 
                 // Populate data when switching to specific tabs
@@ -6419,6 +6430,17 @@
             const verificationStatusSection = document.getElementById('verificationStatusSection');
             if (verificationStatusSection) {
                 verificationStatusSection.classList.add('visible');
+            }
+            
+            // Populate the sections with data if available
+            if (window.merchantDetailsInstance?.apiResults?.businessIntelligence) {
+                console.log('🔍 Populating Risk Overview Dashboard and Verification Status on page load...');
+                populateRiskOverviewDashboard(window.merchantDetailsInstance.apiResults.businessIntelligence);
+                populateVerificationStatus(window.merchantDetailsInstance.apiResults.businessIntelligence);
+            } else if (window.merchantDetailsInstance?.apiResults?.riskAssessment) {
+                console.log('🔍 Populating Risk Overview Dashboard from Risk Assessment data...');
+                populateRiskOverviewDashboard(window.merchantDetailsInstance.apiResults.riskAssessment);
+                populateVerificationStatus(window.merchantDetailsInstance.apiResults.riskAssessment);
             }
             
             // Add event listeners to sliders
