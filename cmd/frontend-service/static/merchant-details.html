@@ -2765,6 +2765,64 @@
                     }, 200);
                 }
                 
+                // Progressive disclosure for sections in Business Analytics tab
+                if (tabId === 'business-analytics') {
+                    // Reset all sections to hidden first
+                    document.querySelectorAll('#business-analytics .progressive-disclosure').forEach(section => {
+                        section.classList.remove('visible');
+                    });
+                    
+                    // Show sections with progressive timing
+                    setTimeout(() => {
+                        const businessRegistrationSection = document.getElementById('businessRegistrationSection');
+                        if (businessRegistrationSection) {
+                            businessRegistrationSection.classList.add('visible');
+                        }
+                    }, 100);
+                    
+                    setTimeout(() => {
+                        const addressVerificationSection = document.getElementById('addressVerificationSection');
+                        if (addressVerificationSection) {
+                            addressVerificationSection.classList.add('visible');
+                        }
+                    }, 200);
+                    
+                    setTimeout(() => {
+                        const coreResultsSection = document.getElementById('coreResults');
+                        if (coreResultsSection) {
+                            coreResultsSection.classList.add('visible');
+                        }
+                    }, 300);
+                    
+                    setTimeout(() => {
+                        const onlinePresenceSection = document.getElementById('onlinePresenceSection');
+                        if (onlinePresenceSection) {
+                            onlinePresenceSection.classList.add('visible');
+                        }
+                    }, 400);
+                    
+                    setTimeout(() => {
+                        const businessIntelligenceSection = document.getElementById('businessIntelligence');
+                        if (businessIntelligenceSection) {
+                            businessIntelligenceSection.classList.add('visible');
+                        }
+                    }, 500);
+                    
+                    setTimeout(() => {
+                        const verificationInsightsSection = document.getElementById('verificationInsights');
+                        if (verificationInsightsSection) {
+                            verificationInsightsSection.classList.add('visible');
+                        }
+                    }, 600);
+                    
+                    setTimeout(() => {
+                        const dataReliabilitySection = document.getElementById('dataReliabilityInsights');
+                        if (dataReliabilitySection) {
+                            dataReliabilitySection.classList.add('visible');
+                        }
+                    }, 700);
+                }
+                
                 // Populate data when switching to specific tabs
                 if (tabId === 'business-analytics') {
                     console.log('🔍 Switching to Business Analytics tab...');
