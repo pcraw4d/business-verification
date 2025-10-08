@@ -2945,20 +2945,16 @@
                         section.classList.remove('visible');
                     });
                     
-                    // Show sections with progressive timing
-                    setTimeout(() => {
-                        const riskOverviewSection = document.getElementById('riskOverviewDashboard');
-                        if (riskOverviewSection) {
-                            riskOverviewSection.classList.add('visible');
-                        }
-                    }, 100);
+                    // Show Risk Overview Dashboard and Verification Status immediately
+                    const riskOverviewSection = document.getElementById('riskOverviewDashboard');
+                    if (riskOverviewSection) {
+                        riskOverviewSection.classList.add('visible');
+                    }
                     
-                    setTimeout(() => {
-                        const verificationStatusSection = document.getElementById('verificationStatusSection');
-                        if (verificationStatusSection) {
-                            verificationStatusSection.classList.add('visible');
-                        }
-                    }, 200);
+                    const verificationStatusSection = document.getElementById('verificationStatusSection');
+                    if (verificationStatusSection) {
+                        verificationStatusSection.classList.add('visible');
+                    }
                 }
                 
                 // Populate data when switching to specific tabs
@@ -6413,6 +6409,17 @@
             
             // Initialize Risk Assessment components
             initRiskRadarChartRiskAssessment();
+            
+            // Show Risk Overview Dashboard and Verification Status immediately on page load
+            const riskOverviewSection = document.getElementById('riskOverviewDashboard');
+            if (riskOverviewSection) {
+                riskOverviewSection.classList.add('visible');
+            }
+            
+            const verificationStatusSection = document.getElementById('verificationStatusSection');
+            if (verificationStatusSection) {
+                verificationStatusSection.classList.add('visible');
+            }
             
             // Add event listeners to sliders
             ['financialRisk', 'operationalRisk', 'regulatoryRisk', 'cybersecurityRisk'].forEach(id => {
