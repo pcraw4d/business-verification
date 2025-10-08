@@ -10,9 +10,9 @@ import (
 
 // SmartCrawlingIntegration integrates smart crawling with existing classification pipeline
 type SmartCrawlingIntegration struct {
-	logger                *log.Logger
-	enhancedAnalyzer      *EnhancedWebsiteAnalyzer
-	existingClassifier    ClassificationService
+	logger             *log.Logger
+	enhancedAnalyzer   *EnhancedWebsiteAnalyzer
+	existingClassifier ClassificationService
 }
 
 // EnhancedWebsiteAnalyzer represents the enhanced website analyzer (placeholder)
@@ -77,115 +77,115 @@ type BusinessClassificationResult struct {
 
 // CrawlResult represents the result of a smart crawl operation
 type CrawlResult struct {
-	BaseURL        string                 `json:"base_url"`
-	PagesAnalyzed  []PageAnalysis         `json:"pages_analyzed"`
-	TotalPages     int                    `json:"total_pages"`
-	RelevantPages  int                    `json:"relevant_pages"`
-	Keywords       []string               `json:"keywords"`
-	IndustryScore  map[string]float64     `json:"industry_score"`
-	BusinessInfo   BusinessInfo           `json:"business_info"`
-	SiteStructure  SiteStructure          `json:"site_structure"`
-	CrawlDuration  time.Duration          `json:"crawl_duration"`
-	Success        bool                   `json:"success"`
-	Error          string                 `json:"error,omitempty"`
+	BaseURL       string             `json:"base_url"`
+	PagesAnalyzed []PageAnalysis     `json:"pages_analyzed"`
+	TotalPages    int                `json:"total_pages"`
+	RelevantPages int                `json:"relevant_pages"`
+	Keywords      []string           `json:"keywords"`
+	IndustryScore map[string]float64 `json:"industry_score"`
+	BusinessInfo  BusinessInfo       `json:"business_info"`
+	SiteStructure SiteStructure      `json:"site_structure"`
+	CrawlDuration time.Duration      `json:"crawl_duration"`
+	Success       bool               `json:"success"`
+	Error         string             `json:"error,omitempty"`
 }
 
 // PageAnalysis represents analysis of a single page
 type PageAnalysis struct {
-	URL              string            `json:"url"`
-	Title            string            `json:"title"`
-	PageType         string            `json:"page_type"`
-	RelevanceScore   float64           `json:"relevance_score"`
-	ContentQuality   float64           `json:"content_quality"`
-	Keywords         []string          `json:"keywords"`
-	IndustryIndicators []string        `json:"industry_indicators"`
-	BusinessInfo     BusinessInfo      `json:"business_info"`
-	MetaTags         map[string]string `json:"meta_tags"`
-	StructuredData   map[string]interface{} `json:"structured_data"`
-	ResponseTime     time.Duration     `json:"response_time"`
-	StatusCode       int               `json:"status_code"`
-	ContentLength    int               `json:"content_length"`
-	LastModified     time.Time         `json:"last_modified"`
-	Priority         int               `json:"priority"`
+	URL                string                 `json:"url"`
+	Title              string                 `json:"title"`
+	PageType           string                 `json:"page_type"`
+	RelevanceScore     float64                `json:"relevance_score"`
+	ContentQuality     float64                `json:"content_quality"`
+	Keywords           []string               `json:"keywords"`
+	IndustryIndicators []string               `json:"industry_indicators"`
+	BusinessInfo       BusinessInfo           `json:"business_info"`
+	MetaTags           map[string]string      `json:"meta_tags"`
+	StructuredData     map[string]interface{} `json:"structured_data"`
+	ResponseTime       time.Duration          `json:"response_time"`
+	StatusCode         int                    `json:"status_code"`
+	ContentLength      int                    `json:"content_length"`
+	LastModified       time.Time              `json:"last_modified"`
+	Priority           int                    `json:"priority"`
 }
 
 // BusinessInfo represents extracted business information
 type BusinessInfo struct {
-	BusinessName     string            `json:"business_name"`
-	Description      string            `json:"description"`
-	Services         []string          `json:"services"`
-	Products         []string          `json:"products"`
-	ContactInfo      ContactInfo       `json:"contact_info"`
-	BusinessHours    string            `json:"business_hours"`
-	Location         string            `json:"location"`
-	Industry         string            `json:"industry"`
-	BusinessType     string            `json:"business_type"`
+	BusinessName  string      `json:"business_name"`
+	Description   string      `json:"description"`
+	Services      []string    `json:"services"`
+	Products      []string    `json:"products"`
+	ContactInfo   ContactInfo `json:"contact_info"`
+	BusinessHours string      `json:"business_hours"`
+	Location      string      `json:"location"`
+	Industry      string      `json:"industry"`
+	BusinessType  string      `json:"business_type"`
 }
 
 // ContactInfo represents contact information
 type ContactInfo struct {
-	Phone    string `json:"phone"`
-	Email    string `json:"email"`
-	Address  string `json:"address"`
-	Website  string `json:"website"`
-	Social   map[string]string `json:"social"`
+	Phone   string            `json:"phone"`
+	Email   string            `json:"email"`
+	Address string            `json:"address"`
+	Website string            `json:"website"`
+	Social  map[string]string `json:"social"`
 }
 
 // SiteStructure represents the discovered site structure
 type SiteStructure struct {
-	Homepage         string   `json:"homepage"`
-	AboutPages       []string `json:"about_pages"`
-	ServicePages     []string `json:"service_pages"`
-	ProductPages     []string `json:"product_pages"`
-	ContactPages     []string `json:"contact_pages"`
-	BlogPages        []string `json:"blog_pages"`
-	EcommercePages   []string `json:"ecommerce_pages"`
-	OtherPages       []string `json:"other_pages"`
-	TotalDiscovered  int      `json:"total_discovered"`
+	Homepage        string   `json:"homepage"`
+	AboutPages      []string `json:"about_pages"`
+	ServicePages    []string `json:"service_pages"`
+	ProductPages    []string `json:"product_pages"`
+	ContactPages    []string `json:"contact_pages"`
+	BlogPages       []string `json:"blog_pages"`
+	EcommercePages  []string `json:"ecommerce_pages"`
+	OtherPages      []string `json:"other_pages"`
+	TotalDiscovered int      `json:"total_discovered"`
 }
 
 // RelevanceAnalysisResult represents the result of content relevance analysis
 type RelevanceAnalysisResult struct {
-	OverallRelevance    float64                    `json:"overall_relevance"`
-	PageRelevance       map[string]float64         `json:"page_relevance"`
-	TopKeywords         []KeywordSignal            `json:"top_keywords"`
-	DetectedIndustries  []IndustrySignal           `json:"detected_industries"`
-	ContentQualityScore float64                    `json:"content_quality_score"`
-	ConfidenceScore     float64                    `json:"confidence_score"`
-	AnalysisDuration    time.Duration              `json:"analysis_duration"`
-	Success             bool                       `json:"success"`
-	Error               string                     `json:"error,omitempty"`
+	OverallRelevance    float64            `json:"overall_relevance"`
+	PageRelevance       map[string]float64 `json:"page_relevance"`
+	TopKeywords         []KeywordSignal    `json:"top_keywords"`
+	DetectedIndustries  []IndustrySignal   `json:"detected_industries"`
+	ContentQualityScore float64            `json:"content_quality_score"`
+	ConfidenceScore     float64            `json:"confidence_score"`
+	AnalysisDuration    time.Duration      `json:"analysis_duration"`
+	Success             bool               `json:"success"`
+	Error               string             `json:"error,omitempty"`
 }
 
 // KeywordSignal represents a keyword with its relevance and confidence
 type KeywordSignal struct {
-	Keyword     string  `json:"keyword"`
-	Relevance   float64 `json:"relevance"`
-	Confidence  float64 `json:"confidence"`
-	Context     string  `json:"context"`
-	Source      string  `json:"source"`
+	Keyword    string  `json:"keyword"`
+	Relevance  float64 `json:"relevance"`
+	Confidence float64 `json:"confidence"`
+	Context    string  `json:"context"`
+	Source     string  `json:"source"`
 }
 
 // IndustrySignal represents an industry-specific signal
 type IndustrySignal struct {
-	Industry    string  `json:"industry"`
-	Signal      string  `json:"signal"`
-	Strength    float64 `json:"strength"`
-	Confidence  float64 `json:"confidence"`
-	Context     string  `json:"context"`
-	Source      string  `json:"source"`
+	Industry   string  `json:"industry"`
+	Signal     string  `json:"signal"`
+	Strength   float64 `json:"strength"`
+	Confidence float64 `json:"confidence"`
+	Context    string  `json:"context"`
+	Source     string  `json:"source"`
 }
 
 // StructuredDataResult represents structured data extraction results
 type StructuredDataResult struct {
-	BusinessInfo     BusinessInfo                `json:"business_info"`
-	ExtractionScore  float64                     `json:"extraction_score"`
-	SchemaOrgData    map[string]interface{}      `json:"schema_org_data"`
-	OpenGraphData    map[string]interface{}      `json:"open_graph_data"`
-	TwitterCardData  map[string]interface{}      `json:"twitter_card_data"`
-	MicrodataItems   []map[string]interface{}    `json:"microdata_items"`
-	Success          bool                        `json:"success"`
-	Error            string                      `json:"error,omitempty"`
+	BusinessInfo    BusinessInfo             `json:"business_info"`
+	ExtractionScore float64                  `json:"extraction_score"`
+	SchemaOrgData   map[string]interface{}   `json:"schema_org_data"`
+	OpenGraphData   map[string]interface{}   `json:"open_graph_data"`
+	TwitterCardData map[string]interface{}   `json:"twitter_card_data"`
+	MicrodataItems  []map[string]interface{} `json:"microdata_items"`
+	Success         bool                     `json:"success"`
+	Error           string                   `json:"error,omitempty"`
 }
 
 // ClassificationService interface for existing classification methods
@@ -195,20 +195,20 @@ type ClassificationService interface {
 
 // ClassificationResult represents the existing classification result structure
 type ClassificationResult struct {
-	ID                   string                 `json:"id"`
-	BusinessName         string                 `json:"business_name"`
-	PrimaryIndustry      string                 `json:"primary_industry"`
-	IndustryConfidence   float64                `json:"industry_confidence"`
-	MCCCodes             []IndustryCode         `json:"mcc_codes"`
-	SICCodes             []IndustryCode         `json:"sic_codes"`
-	NAICSCodes           []IndustryCode         `json:"naics_codes"`
-	Keywords             []string               `json:"keywords"`
-	ConfidenceScore      float64                `json:"confidence_score"`
-	ClassificationReasoning string               `json:"classification_reasoning"`
-	WebsiteAnalysis      *WebsiteAnalysisResult `json:"website_analysis"`
-	Metadata             map[string]interface{} `json:"metadata"`
-	ProcessingTime       time.Duration          `json:"processing_time"`
-	Timestamp            time.Time              `json:"timestamp"`
+	ID                      string                 `json:"id"`
+	BusinessName            string                 `json:"business_name"`
+	PrimaryIndustry         string                 `json:"primary_industry"`
+	IndustryConfidence      float64                `json:"industry_confidence"`
+	MCCCodes                []IndustryCode         `json:"mcc_codes"`
+	SICCodes                []IndustryCode         `json:"sic_codes"`
+	NAICSCodes              []IndustryCode         `json:"naics_codes"`
+	Keywords                []string               `json:"keywords"`
+	ConfidenceScore         float64                `json:"confidence_score"`
+	ClassificationReasoning string                 `json:"classification_reasoning"`
+	WebsiteAnalysis         *WebsiteAnalysisResult `json:"website_analysis"`
+	Metadata                map[string]interface{} `json:"metadata"`
+	ProcessingTime          time.Duration          `json:"processing_time"`
+	Timestamp               time.Time              `json:"timestamp"`
 }
 
 // IndustryCode represents an industry classification code
@@ -221,17 +221,17 @@ type IndustryCode struct {
 
 // WebsiteAnalysisResult represents website analysis results
 type WebsiteAnalysisResult struct {
-	WebsiteURL           string                 `json:"website_url"`
-	PagesAnalyzed        int                    `json:"pages_analyzed"`
-	RelevantPages        int                    `json:"relevant_pages"`
-	KeywordsExtracted    []string               `json:"keywords_extracted"`
-	BusinessInfo         *BusinessInfo          `json:"business_info"`
-	StructuredData       *StructuredDataResult  `json:"structured_data"`
-	ContentRelevance     *RelevanceAnalysisResult `json:"content_relevance"`
-	AnalysisMethod       string                 `json:"analysis_method"`
-	ProcessingTime       time.Duration          `json:"processing_time"`
-	Success              bool                   `json:"success"`
-	Error                string                 `json:"error,omitempty"`
+	WebsiteURL        string                   `json:"website_url"`
+	PagesAnalyzed     int                      `json:"pages_analyzed"`
+	RelevantPages     int                      `json:"relevant_pages"`
+	KeywordsExtracted []string                 `json:"keywords_extracted"`
+	BusinessInfo      *BusinessInfo            `json:"business_info"`
+	StructuredData    *StructuredDataResult    `json:"structured_data"`
+	ContentRelevance  *RelevanceAnalysisResult `json:"content_relevance"`
+	AnalysisMethod    string                   `json:"analysis_method"`
+	ProcessingTime    time.Duration            `json:"processing_time"`
+	Success           bool                     `json:"success"`
+	Error             string                   `json:"error,omitempty"`
 }
 
 // NewSmartCrawlingIntegration creates a new smart crawling integration
@@ -298,11 +298,11 @@ func (sci *SmartCrawlingIntegration) convertEnhancedResultToWebsiteAnalysis(enha
 	}
 
 	websiteAnalysis := &WebsiteAnalysisResult{
-		WebsiteURL:        enhancedResult.WebsiteURL,
-		AnalysisMethod:    "smart_crawling",
-		ProcessingTime:    enhancedResult.ProcessingTime,
-		Success:           enhancedResult.Success,
-		Error:             enhancedResult.Error,
+		WebsiteURL:     enhancedResult.WebsiteURL,
+		AnalysisMethod: "smart_crawling",
+		ProcessingTime: enhancedResult.ProcessingTime,
+		Success:        enhancedResult.Success,
+		Error:          enhancedResult.Error,
 	}
 
 	if enhancedResult.CrawlResult != nil {
@@ -326,18 +326,18 @@ func (sci *SmartCrawlingIntegration) convertEnhancedResultToWebsiteAnalysis(enha
 // mergeClassificationResults merges existing classification with smart crawling results
 func (sci *SmartCrawlingIntegration) mergeClassificationResults(existing *ClassificationResult, websiteAnalysis *WebsiteAnalysisResult, businessName, websiteURL string) *ClassificationResult {
 	enhanced := &ClassificationResult{
-		ID:              existing.ID,
-		BusinessName:    businessName,
-		PrimaryIndustry: existing.PrimaryIndustry,
+		ID:                 existing.ID,
+		BusinessName:       businessName,
+		PrimaryIndustry:    existing.PrimaryIndustry,
 		IndustryConfidence: existing.IndustryConfidence,
-		MCCCodes:        existing.MCCCodes,
-		SICCodes:        existing.SICCodes,
-		NAICSCodes:      existing.NAICSCodes,
-		Keywords:        existing.Keywords,
-		ConfidenceScore: existing.ConfidenceScore,
-		WebsiteAnalysis: websiteAnalysis,
-		Metadata:        existing.Metadata,
-		Timestamp:       time.Now(),
+		MCCCodes:           existing.MCCCodes,
+		SICCodes:           existing.SICCodes,
+		NAICSCodes:         existing.NAICSCodes,
+		Keywords:           existing.Keywords,
+		ConfidenceScore:    existing.ConfidenceScore,
+		WebsiteAnalysis:    websiteAnalysis,
+		Metadata:           existing.Metadata,
+		Timestamp:          time.Now(),
 	}
 
 	// Enhance with smart crawling data if available
@@ -412,16 +412,16 @@ func (sci *SmartCrawlingIntegration) determinePrimaryIndustry(existingIndustry s
 // mapIndustrySignalToIndustry maps industry signals to readable industry names
 func (sci *SmartCrawlingIntegration) mapIndustrySignalToIndustry(signal string) string {
 	industryMap := map[string]string{
-		"food_beverage":  "Food & Beverage",
-		"technology":     "Technology",
-		"healthcare":     "Healthcare",
-		"legal":          "Legal Services",
-		"retail":         "Retail",
-		"finance":        "Financial Services",
-		"real_estate":    "Real Estate",
-		"education":      "Education",
-		"consulting":     "Consulting",
-		"manufacturing":  "Manufacturing",
+		"food_beverage": "Food & Beverage",
+		"technology":    "Technology",
+		"healthcare":    "Healthcare",
+		"legal":         "Legal Services",
+		"retail":        "Retail",
+		"finance":       "Financial Services",
+		"real_estate":   "Real Estate",
+		"education":     "Education",
+		"consulting":    "Consulting",
+		"manufacturing": "Manufacturing",
 	}
 
 	if industry, exists := industryMap[signal]; exists {
@@ -472,18 +472,18 @@ func (sci *SmartCrawlingIntegration) generateClassificationReasoning(result *Cla
 
 	// Base reasoning from existing classification
 	if result.PrimaryIndustry != "" {
-		reasoningParts = append(reasoningParts, fmt.Sprintf("Primary industry identified as '%s' with %.0f%% confidence", 
+		reasoningParts = append(reasoningParts, fmt.Sprintf("Primary industry identified as '%s' with %.0f%% confidence",
 			result.PrimaryIndustry, result.IndustryConfidence*100))
 	}
 
 	// Add smart crawling insights
 	if websiteAnalysis != nil && websiteAnalysis.Success {
-		reasoningParts = append(reasoningParts, fmt.Sprintf("Website analysis of %s analyzed %d pages with %d relevant pages", 
+		reasoningParts = append(reasoningParts, fmt.Sprintf("Website analysis of %s analyzed %d pages with %d relevant pages",
 			websiteAnalysis.WebsiteURL, websiteAnalysis.PagesAnalyzed, websiteAnalysis.RelevantPages))
 
 		// Add structured data insights
 		if websiteAnalysis.StructuredData != nil && websiteAnalysis.StructuredData.BusinessInfo.BusinessName != "" {
-			reasoningParts = append(reasoningParts, fmt.Sprintf("Structured data extraction found business name '%s' and industry '%s'", 
+			reasoningParts = append(reasoningParts, fmt.Sprintf("Structured data extraction found business name '%s' and industry '%s'",
 				websiteAnalysis.StructuredData.BusinessInfo.BusinessName, websiteAnalysis.StructuredData.BusinessInfo.Industry))
 		}
 
@@ -496,7 +496,7 @@ func (sci *SmartCrawlingIntegration) generateClassificationReasoning(result *Cla
 		// Add industry signal insights
 		if websiteAnalysis.ContentRelevance != nil && len(websiteAnalysis.ContentRelevance.IndustrySignals) > 0 {
 			strongestSignal := websiteAnalysis.ContentRelevance.IndustrySignals[0]
-			reasoningParts = append(reasoningParts, fmt.Sprintf("Industry signal detection identified '%s' with %.0f%% strength", 
+			reasoningParts = append(reasoningParts, fmt.Sprintf("Industry signal detection identified '%s' with %.0f%% strength",
 				strongestSignal.Industry, strongestSignal.Strength*100))
 		}
 	}

@@ -10,16 +10,17 @@ import (
 
 	"go.uber.org/zap"
 
-	"../../../../internal/classification"
 	"kyb-platform/services/classification-service/internal/config"
 	"kyb-platform/services/classification-service/internal/supabase"
+
+	"../../../../internal/classification"
 )
 
 // ClassificationHandler handles classification requests
 type ClassificationHandler struct {
-	supabaseClient        *supabase.Client
-	logger                *zap.Logger
-	config                *config.Config
+	supabaseClient           *supabase.Client
+	logger                   *zap.Logger
+	config                   *config.Config
 	smartCrawlingIntegration *classification.SmartCrawlingIntegration
 }
 
@@ -27,17 +28,17 @@ type ClassificationHandler struct {
 func NewClassificationHandler(supabaseClient *supabase.Client, logger *zap.Logger, config *config.Config) *ClassificationHandler {
 	// Create a simple logger for the smart crawling integration
 	smartCrawlingLogger := log.New(log.Writer(), "[SmartCrawling] ", log.LstdFlags|log.Lshortfile)
-	
+
 	// Create existing classifier (simplified for now)
 	existingClassifier := &SimpleClassifier{}
-	
+
 	// Create smart crawling integration
 	smartCrawlingIntegration := classification.NewSmartCrawlingIntegration(smartCrawlingLogger, existingClassifier)
-	
+
 	return &ClassificationHandler{
-		supabaseClient:        supabaseClient,
-		logger:                logger,
-		config:                config,
+		supabaseClient:           supabaseClient,
+		logger:                   logger,
+		config:                   config,
 		smartCrawlingIntegration: smartCrawlingIntegration,
 	}
 }
@@ -159,8 +160,8 @@ type SimpleClassifier struct{}
 func (sc *SimpleClassifier) ClassifyBusiness(ctx context.Context, businessName, websiteURL string) (*classification.ClassificationResult, error) {
 	// Simple classification logic - this would be replaced with actual classification
 	result := &classification.ClassificationResult{
-		BusinessName: businessName,
-		PrimaryIndustry: "General Business",
+		BusinessName:       businessName,
+		PrimaryIndustry:    "General Business",
 		IndustryConfidence: 0.7,
 		MCCCodes: []classification.IndustryCode{
 			{Code: "5411", Description: "Grocery Stores, Supermarkets", Confidence: 0.8},
@@ -171,10 +172,10 @@ func (sc *SimpleClassifier) ClassifyBusiness(ctx context.Context, businessName, 
 		NAICSCodes: []classification.IndustryCode{
 			{Code: "445110", Description: "Supermarkets and Other Grocery Stores", Confidence: 0.8},
 		},
-		Keywords: []string{"business", "retail", "store"},
-		ConfidenceScore: 0.7,
+		Keywords:                []string{"business", "retail", "store"},
+		ConfidenceScore:         0.7,
 		ClassificationReasoning: "Basic classification based on business name analysis",
-		Timestamp: time.Now(),
+		Timestamp:               time.Now(),
 	}
 	return result, nil
 }
@@ -187,8 +188,8 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 		h.logger.Error("Smart crawling classification failed", zap.Error(err))
 		// Fallback to simple classification
 		enhancedResult = &classification.ClassificationResult{
-			BusinessName: req.BusinessName,
-			PrimaryIndustry: "General Business",
+			BusinessName:       req.BusinessName,
+			PrimaryIndustry:    "General Business",
 			IndustryConfidence: 0.5,
 			MCCCodes: []classification.IndustryCode{
 				{Code: "5411", Description: "Grocery Stores, Supermarkets", Confidence: 0.5},
@@ -199,18 +200,18 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 			NAICSCodes: []classification.IndustryCode{
 				{Code: "445110", Description: "Supermarkets and Other Grocery Stores", Confidence: 0.5},
 			},
-			Keywords: []string{"business", "retail", "store"},
-			ConfidenceScore: 0.5,
+			Keywords:                []string{"business", "retail", "store"},
+			ConfidenceScore:         0.5,
 			ClassificationReasoning: "Fallback classification due to processing error",
-			Timestamp: time.Now(),
+			Timestamp:               time.Now(),
 		}
 	}
 
 	// Convert enhanced result to response format
 	classification := &ClassificationResult{
-		Industry: enhancedResult.PrimaryIndustry,
-		MCCCodes: convertIndustryCodes(enhancedResult.MCCCodes),
-		SICCodes: convertIndustryCodes(enhancedResult.SICCodes),
+		Industry:   enhancedResult.PrimaryIndustry,
+		MCCCodes:   convertIndustryCodes(enhancedResult.MCCCodes),
+		SICCodes:   convertIndustryCodes(enhancedResult.SICCodes),
 		NAICSCodes: convertIndustryCodes(enhancedResult.NAICSCodes),
 		WebsiteContent: &WebsiteContent{
 			Scraped: enhancedResult.WebsiteAnalysis != nil && enhancedResult.WebsiteAnalysis.Success,
@@ -253,11 +254,11 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 		Timestamp:       time.Now(),
 		ProcessingTime:  time.Since(startTime),
 		Metadata: map[string]interface{}{
-			"service": "classification-service",
-			"version": "2.0.0",
+			"service":                  "classification-service",
+			"version":                  "2.0.0",
 			"classification_reasoning": enhancedResult.ClassificationReasoning,
-			"website_analysis": enhancedResult.WebsiteAnalysis,
-			"smart_crawling_enabled": true,
+			"website_analysis":         enhancedResult.WebsiteAnalysis,
+			"smart_crawling_enabled":   true,
 		},
 	}
 
