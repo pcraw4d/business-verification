@@ -4842,9 +4842,9 @@
                 // Convert weights object to array format
                 for (const [method, weight] of Object.entries(methodWeights)) {
                     let methodName = method;
-                    let percentage = Math.round(weight * 0.8 + 60); // Convert weight to percentage score
+                    let percentage = 0;
                     
-                    // Map method names to display names
+                    // Map method names to display names and calculate realistic scores
                     switch (method) {
                         case 'website_content':
                             methodName = 'Website Analysis';
@@ -4864,6 +4864,7 @@
                             break;
                         default:
                             methodName = method.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                            percentage = Math.round(weight * 0.7 + 60);
                     }
                     
                     methodBreakdown.push({
@@ -4877,9 +4878,10 @@
             // Fallback to default method breakdown if none found
             if (methodBreakdown.length === 0) {
                 methodBreakdown = [
-                    { method: "Website Analysis", weight: 40, percentage: 85 },
-                    { method: "Business Name Analysis", weight: 30, percentage: 75 },
-                    { method: "Industry Classification", weight: 30, percentage: 90 }
+                    { method: "Website Analysis", weight: 45, percentage: 90 },
+                    { method: "Business Name Analysis", weight: 25, percentage: 75 },
+                    { method: "URL Analysis", weight: 15, percentage: 65 },
+                    { method: "Structured Data", weight: 15, percentage: 80 }
                 ];
             }
             

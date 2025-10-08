@@ -27,44 +27,44 @@ type ClassificationInput struct {
 
 // UnifiedClassificationResult represents the final classification result
 type UnifiedClassificationResult struct {
-	BusinessName            string                 `json:"business_name"`
-	PrimaryIndustry         string                 `json:"primary_industry"`
-	IndustryConfidence      float64                `json:"industry_confidence"`
-	BusinessType            string                 `json:"business_type"`
-	BusinessTypeConfidence  float64                `json:"business_type_confidence"`
-	MCCCodes                []IndustryCode         `json:"mcc_codes"`
-	SICCodes                []IndustryCode         `json:"sic_codes"`
-	NAICSCodes              []IndustryCode         `json:"naics_codes"`
-	Keywords                []string               `json:"keywords"`
-	ConfidenceScore         float64                `json:"confidence_score"`
-	ClassificationReasoning string                 `json:"classification_reasoning"`
-	MethodWeights           map[string]float64     `json:"method_weights"`
-	DataSources             []DataSource           `json:"data_sources"`
-	WebsiteAnalysis         *WebsiteAnalysisData   `json:"website_analysis,omitempty"`
-	Timestamp               time.Time              `json:"timestamp"`
-	ProcessingTime          time.Duration          `json:"processing_time"`
+	BusinessName            string               `json:"business_name"`
+	PrimaryIndustry         string               `json:"primary_industry"`
+	IndustryConfidence      float64              `json:"industry_confidence"`
+	BusinessType            string               `json:"business_type"`
+	BusinessTypeConfidence  float64              `json:"business_type_confidence"`
+	MCCCodes                []IndustryCode       `json:"mcc_codes"`
+	SICCodes                []IndustryCode       `json:"sic_codes"`
+	NAICSCodes              []IndustryCode       `json:"naics_codes"`
+	Keywords                []string             `json:"keywords"`
+	ConfidenceScore         float64              `json:"confidence_score"`
+	ClassificationReasoning string               `json:"classification_reasoning"`
+	MethodWeights           map[string]float64   `json:"method_weights"`
+	DataSources             []DataSource         `json:"data_sources"`
+	WebsiteAnalysis         *WebsiteAnalysisData `json:"website_analysis,omitempty"`
+	Timestamp               time.Time            `json:"timestamp"`
+	ProcessingTime          time.Duration        `json:"processing_time"`
 }
 
 // DataSource represents a data source used in classification
 type DataSource struct {
-	Source      string  `json:"source"`
-	Weight      float64 `json:"weight"`
-	Confidence  float64 `json:"confidence"`
+	Source      string   `json:"source"`
+	Weight      float64  `json:"weight"`
+	Confidence  float64  `json:"confidence"`
 	Keywords    []string `json:"keywords"`
-	Description string  `json:"description"`
+	Description string   `json:"description"`
 }
 
 // WebsiteAnalysisData represents aggregated website analysis data
 type WebsiteAnalysisData struct {
-	Success           bool          `json:"success"`
-	PagesAnalyzed     int           `json:"pages_analyzed"`
-	RelevantPages     int           `json:"relevant_pages"`
-	KeywordsExtracted []string      `json:"keywords_extracted"`
-	IndustrySignals   []string      `json:"industry_signals"`
-	AnalysisMethod    string        `json:"analysis_method"`
-	ProcessingTime    time.Duration `json:"processing_time"`
-	OverallRelevance  float64       `json:"overall_relevance"`
-	ContentQuality    float64       `json:"content_quality"`
+	Success           bool                   `json:"success"`
+	PagesAnalyzed     int                    `json:"pages_analyzed"`
+	RelevantPages     int                    `json:"relevant_pages"`
+	KeywordsExtracted []string               `json:"keywords_extracted"`
+	IndustrySignals   []string               `json:"industry_signals"`
+	AnalysisMethod    string                 `json:"analysis_method"`
+	ProcessingTime    time.Duration          `json:"processing_time"`
+	OverallRelevance  float64                `json:"overall_relevance"`
+	ContentQuality    float64                `json:"content_quality"`
 	StructuredData    map[string]interface{} `json:"structured_data,omitempty"`
 }
 
@@ -89,10 +89,10 @@ func (uc *UnifiedClassifier) ClassifyBusiness(ctx context.Context, input *Classi
 	uc.logger.Printf("🚀 [UnifiedClassifier] Starting unified classification for: %s", input.BusinessName)
 
 	result := &UnifiedClassificationResult{
-		BusinessName:   input.BusinessName,
-		Timestamp:      time.Now(),
-		MethodWeights:  make(map[string]float64),
-		DataSources:    []DataSource{},
+		BusinessName:  input.BusinessName,
+		Timestamp:     time.Now(),
+		MethodWeights: make(map[string]float64),
+		DataSources:   []DataSource{},
 	}
 
 	// Step 1: Extract data from all sources
@@ -174,7 +174,7 @@ func (uc *UnifiedClassifier) extractDataFromAllSources(ctx context.Context, inpu
 	if input.WebsiteAnalysis != nil && input.WebsiteAnalysis.Success {
 		websiteKeywords := uc.extractKeywordsFromWebsiteAnalysis(input.WebsiteAnalysis)
 		industrySignals := uc.extractIndustrySignalsFromWebsiteAnalysis(input.WebsiteAnalysis)
-		
+
 		allWebsiteKeywords := append(websiteKeywords, industrySignals...)
 		if len(allWebsiteKeywords) > 0 {
 			sources = append(sources, DataSource{
@@ -208,7 +208,7 @@ func (uc *UnifiedClassifier) extractDataFromAllSources(ctx context.Context, inpu
 // calculateDynamicWeights calculates weights based on data quality and confidence
 func (uc *UnifiedClassifier) calculateDynamicWeights(sources []DataSource) map[string]float64 {
 	weights := make(map[string]float64)
-	
+
 	if len(sources) == 0 {
 		return weights
 	}
@@ -407,10 +407,10 @@ func (uc *UnifiedClassifier) extractKeywordsFromURL(websiteURL string) []string 
 	domain = strings.TrimPrefix(domain, "http://")
 	domain = strings.TrimPrefix(domain, "https://")
 	domain = strings.TrimPrefix(domain, "www.")
-	
+
 	parts := strings.Split(domain, "/")
 	domainParts := strings.Split(parts[0], ".")
-	
+
 	var keywords []string
 	for _, part := range domainParts {
 		if !uc.isCommonWord(part) && len(part) > 2 {
@@ -422,31 +422,31 @@ func (uc *UnifiedClassifier) extractKeywordsFromURL(websiteURL string) []string 
 
 func (uc *UnifiedClassifier) extractKeywordsFromWebsiteAnalysis(analysis *EnhancedAnalysisResult) []string {
 	var keywords []string
-	
+
 	if analysis.RelevanceAnalysis != nil {
 		for _, signal := range analysis.RelevanceAnalysis.KeywordSignals {
 			keywords = append(keywords, signal.Keyword)
 		}
 	}
-	
+
 	return keywords
 }
 
 func (uc *UnifiedClassifier) extractIndustrySignalsFromWebsiteAnalysis(analysis *EnhancedAnalysisResult) []string {
 	var signals []string
-	
+
 	if analysis.RelevanceAnalysis != nil {
 		for _, signal := range analysis.RelevanceAnalysis.IndustrySignals {
 			signals = append(signals, signal.Industry)
 		}
 	}
-	
+
 	return signals
 }
 
 func (uc *UnifiedClassifier) extractKeywordsFromStructuredData(structuredData *StructuredDataResult) []string {
 	var keywords []string
-	
+
 	// Extract from Schema.org data
 	for _, item := range structuredData.SchemaOrg {
 		if item.Type == "Organization" || item.Type == "LocalBusiness" {
@@ -455,7 +455,7 @@ func (uc *UnifiedClassifier) extractKeywordsFromStructuredData(structuredData *S
 			}
 		}
 	}
-	
+
 	return keywords
 }
 
@@ -502,7 +502,7 @@ func (uc *UnifiedClassifier) determineBusinessType(keywords []ContextualKeyword,
 	for _, kw := range keywords {
 		keywordMap[kw.Keyword] = kw.Score
 	}
-	
+
 	// Check for business type indicators
 	if keywordMap["store"] > 0.5 || keywordMap["shop"] > 0.5 || keywordMap["retail"] > 0.5 {
 		return "Retail Store"
@@ -513,7 +513,7 @@ func (uc *UnifiedClassifier) determineBusinessType(keywords []ContextualKeyword,
 	if keywordMap["service"] > 0.5 || keywordMap["consulting"] > 0.5 {
 		return "Service Business"
 	}
-	
+
 	return "General Business"
 }
 
@@ -522,12 +522,12 @@ func (uc *UnifiedClassifier) calculateBusinessTypeConfidence(keywords []Contextu
 	if len(keywords) == 0 {
 		return 0.5
 	}
-	
+
 	totalScore := 0.0
 	for _, kw := range keywords {
 		totalScore += kw.Score
 	}
-	
+
 	avgScore := totalScore / float64(len(keywords))
 	if avgScore > 0.8 {
 		return 0.9
@@ -543,18 +543,18 @@ func (uc *UnifiedClassifier) extractTopKeywords(keywords []ContextualKeyword) []
 	if len(keywords) < limit {
 		limit = len(keywords)
 	}
-	
+
 	for i := 0; i < limit; i++ {
 		topKeywords = append(topKeywords, keywords[i].Keyword)
 	}
-	
+
 	return topKeywords
 }
 
 func (uc *UnifiedClassifier) calculateOverallConfidence(classificationResult *ClassificationResult, weights map[string]float64, sources []DataSource) float64 {
 	// Base confidence from classification
 	baseConfidence := classificationResult.Confidence
-	
+
 	// Adjust based on data source quality
 	sourceQuality := 0.0
 	totalWeight := 0.0
@@ -563,43 +563,43 @@ func (uc *UnifiedClassifier) calculateOverallConfidence(classificationResult *Cl
 		sourceQuality += source.Confidence * weight
 		totalWeight += weight
 	}
-	
+
 	if totalWeight > 0 {
 		avgSourceQuality := sourceQuality / totalWeight
 		// Combine base confidence with source quality
 		return (baseConfidence*0.7 + avgSourceQuality*0.3)
 	}
-	
+
 	return baseConfidence
 }
 
 func (uc *UnifiedClassifier) generateClassificationReasoning(result *UnifiedClassificationResult, sources []DataSource, weights map[string]float64) string {
-	reasoning := fmt.Sprintf("Primary industry identified as '%s' with %.0f%% confidence. ", 
+	reasoning := fmt.Sprintf("Primary industry identified as '%s' with %.0f%% confidence. ",
 		result.PrimaryIndustry, result.IndustryConfidence*100)
-	
+
 	// Add data source information
 	reasoning += "Classification based on "
 	var sourceDescriptions []string
 	for _, source := range sources {
 		if weights[source.Source] > 5 { // Only mention sources with significant weight
-			sourceDescriptions = append(sourceDescriptions, 
+			sourceDescriptions = append(sourceDescriptions,
 				fmt.Sprintf("%s (%.0f%%)", source.Source, weights[source.Source]))
 		}
 	}
 	reasoning += strings.Join(sourceDescriptions, ", ") + ". "
-	
+
 	// Add website analysis details if available
 	if result.WebsiteAnalysis != nil && result.WebsiteAnalysis.Success {
-		reasoning += fmt.Sprintf("Website analysis analyzed %d pages with %d relevant pages. ", 
+		reasoning += fmt.Sprintf("Website analysis analyzed %d pages with %d relevant pages. ",
 			result.WebsiteAnalysis.PagesAnalyzed, result.WebsiteAnalysis.RelevantPages)
-		reasoning += fmt.Sprintf("Extracted %d keywords from website content. ", 
+		reasoning += fmt.Sprintf("Extracted %d keywords from website content. ",
 			len(result.WebsiteAnalysis.KeywordsExtracted))
 	}
-	
+
 	// Add keyword information
 	reasoning += fmt.Sprintf("Total of %d keywords analyzed across all data sources. ", len(result.Keywords))
 	reasoning += "High confidence classification based on multiple data sources and weighted analysis."
-	
+
 	return reasoning
 }
 
@@ -607,7 +607,7 @@ func (uc *UnifiedClassifier) convertWebsiteAnalysis(analysis *EnhancedAnalysisRe
 	if analysis == nil {
 		return nil
 	}
-	
+
 	return &WebsiteAnalysisData{
 		Success:           analysis.Success,
 		PagesAnalyzed:     analysis.CrawlResult.PagesAnalyzed,
