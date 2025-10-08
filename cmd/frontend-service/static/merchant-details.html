@@ -1357,7 +1357,7 @@
                                     <i class="fas fa-users text-blue-600 text-xl"></i>
                                 </div>
                                 <h4 class="font-medium text-gray-900">Employee Count</h4>
-                                <p class="text-sm text-gray-500" id="employeeCount">50-100</p>
+                                <p class="text-sm text-gray-500" id="biEmployeeCount">50-100</p>
                             </div>
                             
                             <!-- Revenue Range -->
@@ -1366,7 +1366,7 @@
                                     <i class="fas fa-dollar-sign text-green-600 text-xl"></i>
                                 </div>
                                 <h4 class="font-medium text-gray-900">Revenue Range</h4>
-                                <p class="text-sm text-gray-500" id="revenueRange">$1M-$10M</p>
+                                <p class="text-sm text-gray-500" id="biRevenueRange">$1M-$10M</p>
                             </div>
                             
                             <!-- Founded Year -->
@@ -1375,7 +1375,7 @@
                                     <i class="fas fa-calendar-alt text-purple-600 text-xl"></i>
                                 </div>
                                 <h4 class="font-medium text-gray-900">Founded Year</h4>
-                                <p class="text-sm text-gray-500" id="foundedYear">2015</p>
+                                <p class="text-sm text-gray-500" id="biFoundedYear">2015</p>
                             </div>
                             
                             <!-- Business Location -->
@@ -1384,7 +1384,7 @@
                                     <i class="fas fa-map-marker-alt text-orange-600 text-xl"></i>
                                 </div>
                                 <h4 class="font-medium text-gray-900">Business Location</h4>
-                                <p class="text-sm text-gray-500" id="businessLocation">San Francisco</p>
+                                <p class="text-sm text-gray-500" id="biBusinessLocation">San Francisco</p>
                             </div>
                         </div>
                         
@@ -4597,11 +4597,11 @@
         function populateBusinessIntelligence(result) {
             console.log('📊 populateBusinessIntelligence called with:', result);
             
-            // Get the correct element IDs that match the HTML
-            const employeeCountEl = document.getElementById('employeeCount');
-            const revenueRangeEl = document.getElementById('revenueRange');
-            const foundedYearEl = document.getElementById('foundedYear');
-            const businessLocationEl = document.getElementById('businessLocation');
+            // Get the correct element IDs that match the Business Analytics tab HTML
+            const employeeCountEl = document.getElementById('biEmployeeCount');
+            const revenueRangeEl = document.getElementById('biRevenueRange');
+            const foundedYearEl = document.getElementById('biFoundedYear');
+            const businessLocationEl = document.getElementById('biBusinessLocation');
             
             // Extract business intelligence data from API response
             const businessIntelligence = result.business_intelligence || {};
@@ -4694,10 +4694,10 @@
         
         // Show error message when API data is unavailable
         function showBusinessIntelligenceError() {
-            const employeeCountEl = document.getElementById('employeeCount');
-            const revenueRangeEl = document.getElementById('revenueRange');
-            const foundedYearEl = document.getElementById('foundedYear');
-            const businessLocationEl = document.getElementById('businessLocation');
+            const employeeCountEl = document.getElementById('biEmployeeCount');
+            const revenueRangeEl = document.getElementById('biRevenueRange');
+            const foundedYearEl = document.getElementById('biFoundedYear');
+            const businessLocationEl = document.getElementById('biBusinessLocation');
             
             if (employeeCountEl) employeeCountEl.textContent = 'API Unavailable';
             if (revenueRangeEl) revenueRangeEl.textContent = 'API Unavailable';
