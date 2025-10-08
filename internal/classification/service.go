@@ -62,7 +62,7 @@ func (s *IndustryDetectionService) DetectIndustry(ctx context.Context, businessN
 	s.logger.Printf("🔍 Starting industry detection for: %s (request: %s)", businessName, requestID)
 
 	// Extract keywords using database-driven approach
-	keywords, err := s.extractKeywordsFromDatabase(ctx, businessName, description, websiteURL)
+	keywords, err := s.extractKeywordsFromDatabase(ctx, businessName, websiteURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract keywords: %w", err)
 	}
@@ -97,9 +97,9 @@ func (s *IndustryDetectionService) DetectIndustry(ctx context.Context, businessN
 }
 
 // extractKeywordsFromDatabase extracts keywords using database-driven approach
-func (s *IndustryDetectionService) extractKeywordsFromDatabase(ctx context.Context, businessName, description, websiteURL string) ([]string, error) {
+func (s *IndustryDetectionService) extractKeywordsFromDatabase(ctx context.Context, businessName, websiteURL string) ([]string, error) {
 	// Use the repository's classification method to get keywords
-	result, err := s.repo.ClassifyBusiness(ctx, businessName, description, websiteURL)
+	result, err := s.repo.ClassifyBusiness(ctx, businessName, websiteURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to classify business: %w", err)
 	}

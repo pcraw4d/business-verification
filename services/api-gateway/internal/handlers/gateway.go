@@ -192,7 +192,7 @@ func (h *GatewayHandler) ProxyToBI(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-	
+
 	// Extract the path after /api/v1/bi/
 	path := strings.TrimPrefix(r.URL.Path, "/api/v1/bi")
 	if path == "" {

@@ -387,21 +387,8 @@
                     </div>
                 </div>
 
-                <!-- Business Description -->
-                <div class="form-group full-width">
-                    <label class="form-label" for="businessDescription">
-                        <i class="fas fa-file-text"></i>
-                        Business Description
-                    </label>
-                    <textarea 
-                        id="businessDescription" 
-                        name="businessDescription"
-                        class="form-input form-textarea" 
-                        placeholder="Describe the business activities, industry, and services..."
-                        autocomplete="off"
-                    ></textarea>
-                    <div class="error-message" id="businessDescriptionError"></div>
-                </div>
+                <!-- Note: Business Description field removed for security reasons -->
+                <!-- Business descriptions provided by merchants can be unreliable, misleading, or fraudulent -->
 
                 <!-- Address Information -->
                 <div class="form-group address-group">
@@ -882,7 +869,7 @@
                         business_name: data.businessName,
                         geographic_region: data.country || 'us',
                         website_url: data.websiteUrl || '',
-                        description: data.businessDescription || 'Business analysis request',
+                        description: 'Business analysis request',
                         analysis_type: data.analysisType || 'comprehensive'
                     },
                     // Risk Assessment API data
@@ -900,7 +887,7 @@
                         merchant_data: {
                             name: data.businessName,
                             website: data.websiteUrl,
-                            description: data.businessDescription,
+                            description: 'Business analysis request',
                             address: this.formatAddress(data),
                             phone: data.phoneNumber,
                             email: data.email,

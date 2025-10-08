@@ -4887,9 +4887,8 @@
                 console.log('📊 No keywords found, attempting to generate from business data...');
                 const merchantData = window.merchantDetailsInstance?.merchantData || {};
                 const businessName = merchantData.businessName || '';
-                const businessDescription = merchantData.businessDescription || '';
                 
-                // Generate keywords from business name and description
+                // Generate keywords from business name only (description removed for security)
                 const generatedKeywords = [];
                 
                 if (businessName) {
@@ -4901,14 +4900,8 @@
                     generatedKeywords.push(...nameWords);
                 }
                 
-                if (businessDescription) {
-                    // Extract meaningful words from description
-                    const descWords = businessDescription.toLowerCase()
-                        .replace(/[^\w\s]/g, ' ')
-                        .split(/\s+/)
-                        .filter(word => word.length > 3 && !['the', 'and', 'for', 'with', 'this', 'that', 'from', 'they', 'have', 'been', 'will', 'were', 'said', 'each', 'which', 'their', 'time', 'would', 'there', 'could', 'other', 'after', 'first', 'well', 'also', 'new', 'want', 'because', 'any', 'these', 'give', 'day', 'most', 'us'].includes(word));
-                    generatedKeywords.push(...descWords);
-                }
+                // Note: Business description processing removed for security reasons
+                // Business descriptions provided by merchants can be unreliable, misleading, or fraudulent
                 
                 // Add industry-specific keywords based on classification
                 if (result.business_intelligence?.company_profile?.industry) {

@@ -1039,12 +1039,12 @@ func (r *SupabaseKeywordRepository) IncrementUsageCount(ctx context.Context, key
 // Business Classification
 // =============================================================================
 
-// ClassifyBusiness classifies a business based on name, description, and website
-func (r *SupabaseKeywordRepository) ClassifyBusiness(ctx context.Context, businessName, description, websiteURL string) (*ClassificationResult, error) {
+// ClassifyBusiness classifies a business based on name and website (description removed for security)
+func (r *SupabaseKeywordRepository) ClassifyBusiness(ctx context.Context, businessName, websiteURL string) (*ClassificationResult, error) {
 	r.logger.Printf("🔍 Classifying business: %s", businessName)
 
-	// Extract contextual keywords from business information
-	contextualKeywords := r.extractKeywords(businessName, description, websiteURL)
+	// Extract contextual keywords from business information (excluding description for security)
+	contextualKeywords := r.extractKeywords(businessName, websiteURL)
 
 	// Classify based on contextual keywords
 	return r.ClassifyBusinessByContextualKeywords(ctx, contextualKeywords)
@@ -1554,7 +1554,8 @@ func (r *SupabaseKeywordRepository) CleanupInactiveData(ctx context.Context) err
 // =============================================================================
 
 // extractKeywords extracts keywords from business information with enhanced phrase matching and context tracking
-func (r *SupabaseKeywordRepository) extractKeywords(businessName, description, websiteURL string) []ContextualKeyword {
+// Note: Description removed for security - only uses business name and website content
+func (r *SupabaseKeywordRepository) extractKeywords(businessName, websiteURL string) []ContextualKeyword {
 	var keywords []ContextualKeyword
 	seen := make(map[string]bool)
 
@@ -1569,16 +1570,8 @@ func (r *SupabaseKeywordRepository) extractKeywords(businessName, description, w
 		}
 	}
 
-	// Extract keywords from description (medium priority context)
-	if description != "" {
-		descKeywords := r.extractKeywordsFromText(description, "description")
-		for _, keyword := range descKeywords {
-			if !seen[keyword.Keyword] {
-				seen[keyword.Keyword] = true
-				keywords = append(keywords, keyword)
-			}
-		}
-	}
+	// Note: Description processing removed for security reasons
+	// Business descriptions provided by merchants can be unreliable, misleading, or fraudulent
 
 	// Extract keywords from website URL (lowest priority context)
 	if websiteURL != "" {

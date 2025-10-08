@@ -304,7 +304,7 @@ func (mmc *MultiMethodClassifier) performKeywordClassification(
 	businessName, description, websiteURL string,
 ) (*shared.IndustryClassification, error) {
 	// Extract keywords from business information
-	keywords := mmc.extractKeywords(businessName, description, websiteURL)
+	keywords := mmc.extractKeywords(businessName, websiteURL)
 
 	// Classify using keyword repository
 	classificationResult, err := mmc.keywordRepo.ClassifyBusinessByKeywords(ctx, keywords)
@@ -694,7 +694,7 @@ func (mmc *MultiMethodClassifier) generateClassificationReasoning(
 
 // Helper methods
 
-func (mmc *MultiMethodClassifier) extractKeywords(businessName, description, websiteURL string) []string {
+func (mmc *MultiMethodClassifier) extractKeywords(businessName, websiteURL string) []string {
 	var keywords []string
 
 	// Extract from business name
@@ -702,11 +702,8 @@ func (mmc *MultiMethodClassifier) extractKeywords(businessName, description, web
 		keywords = append(keywords, strings.ToLower(businessName))
 	}
 
-	// Extract from description
-	if description != "" {
-		words := strings.Fields(strings.ToLower(description))
-		keywords = append(keywords, words...)
-	}
+	// Note: Description processing removed for security reasons
+	// Business descriptions provided by merchants can be unreliable, misleading, or fraudulent
 
 	// Extract from website URL - now with enhanced content scraping
 	if websiteURL != "" {

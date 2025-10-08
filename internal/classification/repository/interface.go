@@ -132,7 +132,7 @@ type KeywordRepository interface {
 	IncrementUsageCount(ctx context.Context, keyword string, industryID int) error
 
 	// Business Classification
-	ClassifyBusiness(ctx context.Context, businessName, description, websiteURL string) (*ClassificationResult, error)
+	ClassifyBusiness(ctx context.Context, businessName, websiteURL string) (*ClassificationResult, error)
 	ClassifyBusinessByKeywords(ctx context.Context, keywords []string) (*ClassificationResult, error)
 	GetTopIndustriesByKeywords(ctx context.Context, keywords []string, limit int) ([]*Industry, error)
 

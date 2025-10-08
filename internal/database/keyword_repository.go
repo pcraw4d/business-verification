@@ -64,7 +64,7 @@ type KeywordRepository interface {
 	AddClassificationCode(ctx context.Context, code *ClassificationCode) error
 
 	// Search and classification operations
-	ClassifyBusiness(ctx context.Context, businessName, description, websiteURL string) (*Industry, float64, error)
+	ClassifyBusiness(ctx context.Context, businessName, websiteURL string) (*Industry, float64, error)
 	GetTopIndustriesByKeywords(ctx context.Context, keywords []string, limit int) ([]*Industry, error)
 }
 
@@ -186,7 +186,7 @@ func (r *SupabaseKeywordRepository) SearchKeywords(ctx context.Context, query st
 }
 
 // ClassifyBusiness performs business classification based on input data
-func (r *SupabaseKeywordRepository) ClassifyBusiness(ctx context.Context, businessName, description, websiteURL string) (*Industry, float64, error) {
+func (r *SupabaseKeywordRepository) ClassifyBusiness(ctx context.Context, businessName, websiteURL string) (*Industry, float64, error) {
 	r.logger.Printf("🔍 Classifying business: %s", businessName)
 
 	// This is a simplified implementation
