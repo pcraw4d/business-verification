@@ -4729,6 +4729,18 @@
             console.log('🔍 - revenueRangeEl visible:', revenueRangeEl ? window.getComputedStyle(revenueRangeEl).display !== 'none' : 'N/A');
             console.log('🔍 - foundedYearEl visible:', foundedYearEl ? window.getComputedStyle(foundedYearEl).display !== 'none' : 'N/A');
             console.log('🔍 - businessLocationEl visible:', businessLocationEl ? window.getComputedStyle(businessLocationEl).display !== 'none' : 'N/A');
+            
+            // Check element dimensions and position
+            if (employeeCountEl) {
+                const rect = employeeCountEl.getBoundingClientRect();
+                console.log('🔍 employeeCountEl dimensions:', {
+                    width: rect.width,
+                    height: rect.height,
+                    top: rect.top,
+                    left: rect.left,
+                    visible: rect.width > 0 && rect.height > 0
+                });
+            }
         }
         
         // Show error message when API data is unavailable
