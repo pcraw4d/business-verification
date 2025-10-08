@@ -4722,6 +4722,13 @@
                 foundedYear: foundedYearEl?.textContent,
                 location: businessLocationEl?.textContent
             });
+            
+            // Additional debugging - check if elements are actually visible
+            console.log('🔍 Element visibility check:');
+            console.log('🔍 - employeeCountEl visible:', employeeCountEl ? window.getComputedStyle(employeeCountEl).display !== 'none' : 'N/A');
+            console.log('🔍 - revenueRangeEl visible:', revenueRangeEl ? window.getComputedStyle(revenueRangeEl).display !== 'none' : 'N/A');
+            console.log('🔍 - foundedYearEl visible:', foundedYearEl ? window.getComputedStyle(foundedYearEl).display !== 'none' : 'N/A');
+            console.log('🔍 - businessLocationEl visible:', businessLocationEl ? window.getComputedStyle(businessLocationEl).display !== 'none' : 'N/A');
         }
         
         // Show error message when API data is unavailable
