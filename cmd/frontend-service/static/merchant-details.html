@@ -2833,6 +2833,9 @@
                     if (this.apiResults?.businessIntelligence) {
                         console.log('🔍 Populating Business Analytics with data...');
                         this.populateBusinessIntelligenceResults(this.apiResults.businessIntelligence);
+                        
+                        // TODO: Populate other sections with real data
+                        console.log('🔍 TODO: Populate other sections (Business Registration, Address Verification, Industry Classification, Online Presence) with real data');
                     } else {
                         console.log('🔍 No Business Intelligence data available, showing fallback content...');
                         this.showBusinessAnalyticsFallback();
