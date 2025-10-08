@@ -4622,6 +4622,12 @@
             const foundedYearEl = document.getElementById('biFoundedYear');
             const businessLocationEl = document.getElementById('biBusinessLocation');
             
+            console.log('🔍 Element lookup results:');
+            console.log('🔍 - employeeCountEl found:', !!employeeCountEl);
+            console.log('🔍 - revenueRangeEl found:', !!revenueRangeEl);
+            console.log('🔍 - foundedYearEl found:', !!foundedYearEl);
+            console.log('🔍 - businessLocationEl found:', !!businessLocationEl);
+            
             // Extract business intelligence data from API response
             const businessIntelligence = result.business_intelligence || {};
             const businessMetrics = businessIntelligence.business_metrics || {};
