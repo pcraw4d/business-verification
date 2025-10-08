@@ -28,7 +28,7 @@ func main() {
 	}
 	defer logger.Sync()
 
-	logger.Info("🚀 Starting KYB API Gateway Service v1.0.15 - FIX BI PROXY ARGUMENTS")
+	logger.Info("🚀 Starting KYB API Gateway Service v1.0.16 - ADD BI CORS SUPPORT")
 
 	// Load configuration
 	cfg, err := config.Load()
@@ -108,6 +108,17 @@ func main() {
 	api.HandleFunc("/merchant/health", gatewayHandler.ProxyToMerchantHealth).Methods("GET")
 
 	// Business Intelligence routes
+	api.HandleFunc("/bi/analyze", func(w http.ResponseWriter, r *http.Request) {
+		// Handle OPTIONS requests for CORS preflight
+		if r.Method == "OPTIONS" {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		gatewayHandler.ProxyToBI(w, r)
+	}).Methods("POST", "OPTIONS")
 	api.PathPrefix("/bi").HandlerFunc(gatewayHandler.ProxyToBI)
 
 	// Frontend proxy (for development)
