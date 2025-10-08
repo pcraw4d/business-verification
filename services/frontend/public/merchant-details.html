@@ -3238,16 +3238,8 @@
                 console.log('📊 Set confidenceScore to:', `${Math.round(overallConfidence * 100)}%`);
             }
             
-            // Auto-expand the core details section when content is populated
-            const expandableSection = document.getElementById('coreDetails');
-            if (expandableSection) {
-                expandableSection.classList.add('expanded');
-                // Update the button text and icon
-                const toggleButton = document.querySelector('button[onclick="toggleSection(\'coreDetails\')"]');
-                if (toggleButton) {
-                    toggleButton.innerHTML = '<i class="fas fa-chevron-up mr-1"></i>Hide Details';
-                }
-            }
+            // Keep the core details section collapsed by default
+            // User can expand it manually using the toggle button
         }
 
         // Populate Enhanced Classification Results
@@ -4056,16 +4048,8 @@
                     confidence: `${overallConfidence}%`
                 });
                 
-                // Auto-expand the section when content is populated
-                const expandableSection = document.getElementById('businessRegistrationDetails');
-                if (expandableSection) {
-                    expandableSection.classList.add('expanded');
-                    // Update the button text and icon
-                    const toggleButton = document.querySelector('button[onclick="toggleSection(\'businessRegistrationDetails\')"]');
-                    if (toggleButton) {
-                        toggleButton.innerHTML = '<i class="fas fa-chevron-up mr-1"></i>Hide Details';
-                    }
-                }
+                // Keep the section collapsed by default
+                // User can expand it manually using the toggle button
                 
                 businessRegistrationContainer.innerHTML = `
                     <!-- Legal Business Name Verification -->
