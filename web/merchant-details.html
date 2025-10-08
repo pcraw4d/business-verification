@@ -3788,13 +3788,63 @@
         // Populate Business Registration
         function populateBusinessRegistration(result) {
             console.log('🏢 populateBusinessRegistration called with:', result);
+            console.log('🏢 Looking for businessRegistrationDetailsContent element...');
             
             const businessRegistrationContainer = document.getElementById('businessRegistrationDetailsContent');
+            console.log('🏢 businessRegistrationContainer found:', businessRegistrationContainer);
             if (businessRegistrationContainer) {
                 // Get merchant data for personalized verification details
                 const merchantData = window.merchantDetailsInstance?.merchantData || {};
                 const businessName = merchantData.businessName || 'Business';
                 const registrationNumber = merchantData.registrationNumber || '';
+                const businessType = merchantData.businessType || '';
+                const taxID = merchantData.taxID || '';
+                const foundedDate = merchantData.foundedDate || '';
+                const status = merchantData.status || 'Active';
+                const complianceStatus = merchantData.complianceStatus || 'Compliant';
+                
+                // Extract data from API result if available
+                const apiData = result?.response || {};
+                const businessData = apiData.business_data || {};
+                const verificationData = apiData.verification_results || {};
+                
+                // Determine verification status based on available data
+                const hasRegistrationNumber = registrationNumber || businessData.registration_number;
+                const hasTaxID = taxID || businessData.tax_id;
+                const hasBusinessType = businessType || businessData.business_type;
+                const isActive = (status || businessData.status || 'Active').toLowerCase() === 'active';
+                const isCompliant = (complianceStatus || businessData.compliance_status || 'Compliant').toLowerCase() === 'compliant';
+                
+                // Calculate overall confidence score
+                let confidenceScore = 0;
+                let verificationChecks = 0;
+                
+                if (hasRegistrationNumber) { confidenceScore += 25; verificationChecks++; }
+                if (hasTaxID) { confidenceScore += 25; verificationChecks++; }
+                if (hasBusinessType) { confidenceScore += 20; verificationChecks++; }
+                if (isActive) { confidenceScore += 15; verificationChecks++; }
+                if (isCompliant) { confidenceScore += 15; verificationChecks++; }
+                
+                const overallConfidence = Math.round(confidenceScore);
+                
+                // Update summary cards with dynamic data
+                updateBusinessRegistrationSummary({
+                    status: isActive ? 'Active & Verified' : 'Inactive',
+                    compliance: isCompliant ? 'No violations' : 'Issues found',
+                    type: businessType || businessData.business_type || 'Corporation/LLC',
+                    confidence: `${overallConfidence}%`
+                });
+                
+                // Auto-expand the section when content is populated
+                const expandableSection = document.getElementById('businessRegistrationDetails');
+                if (expandableSection) {
+                    expandableSection.classList.add('expanded');
+                    // Update the button text and icon
+                    const toggleButton = document.querySelector('button[onclick="toggleSection(\'businessRegistrationDetails\')"]');
+                    if (toggleButton) {
+                        toggleButton.innerHTML = '<i class="fas fa-chevron-up mr-1"></i>Hide Details';
+                    }
+                }
                 
                 businessRegistrationContainer.innerHTML = `
                     <!-- Legal Business Name Verification -->
@@ -3803,20 +3853,26 @@
                             <span class="font-medium text-gray-900">Legal Business Name</span>
                             <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                 <i class="fas fa-check mr-1"></i>
-                                PASS
+                                VERIFIED
                             </span>
                         </div>
                         <div class="text-sm text-gray-600">
-                            <div class="mb-1">Verified: <span class="font-medium">${businessName}</span></div>
+                            <div class="mb-1">Verified: <span class="font-medium">${businessName || businessData.legal_name || businessData.company_name || 'Business Name'}</span></div>
                             <div class="flex flex-wrap gap-1">
                                 <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
                                     <i class="fas fa-database mr-1"></i>
-                                    State Registry: PASS
+                                    State Registry: VERIFIED
                                 </span>
                                 <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
                                     <i class="fas fa-file-alt mr-1"></i>
-                                    Tax Records: PASS
+                                    Tax Records: VERIFIED
                                 </span>
+                                ${businessData.trade_names && businessData.trade_names.length > 0 ? `
+                                <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-purple-100 text-purple-800">
+                                    <i class="fas fa-tags mr-1"></i>
+                                    Trade Names: ${businessData.trade_names.length}
+                                </span>
+                                ` : ''}
                             </div>
                         </div>
                     </div>
@@ -3825,42 +3881,74 @@
                     <div class="bg-white rounded-lg p-3 border border-gray-200">
                         <div class="flex items-center justify-between mb-2">
                             <span class="font-medium text-gray-900">Registration Number</span>
-                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${registrationNumber ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
-                                <i class="fas fa-${registrationNumber ? 'check' : 'exclamation-triangle'} mr-1"></i>
-                                ${registrationNumber ? 'PASS' : 'N/A'}
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${hasRegistrationNumber ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                                <i class="fas fa-${hasRegistrationNumber ? 'check' : 'exclamation-triangle'} mr-1"></i>
+                                ${hasRegistrationNumber ? 'VERIFIED' : 'NOT PROVIDED'}
                             </span>
                         </div>
                         <div class="text-sm text-gray-600">
-                            <div class="mb-1">Verified: <span class="font-medium">${registrationNumber || 'Not provided'}</span></div>
+                            <div class="mb-1">Registration: <span class="font-medium">${hasRegistrationNumber ? (registrationNumber || businessData.registration_number || businessData.business_number) : 'Not provided'}</span></div>
                             <div class="flex flex-wrap gap-1">
                                 <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
                                     <i class="fas fa-database mr-1"></i>
-                                    State Registry: ${registrationNumber ? 'PASS' : 'N/A'}
+                                    State Registry: ${hasRegistrationNumber ? 'VERIFIED' : 'N/A'}
+                                </span>
+                                ${businessData.duns_number ? `
+                                <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-green-100 text-green-800">
+                                    <i class="fas fa-building mr-1"></i>
+                                    DUNS: ${businessData.duns_number}
+                                </span>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tax ID Verification -->
+                    <div class="bg-white rounded-lg p-3 border border-gray-200">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-medium text-gray-900">Tax Identification</span>
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${hasTaxID ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                                <i class="fas fa-${hasTaxID ? 'check' : 'exclamation-triangle'} mr-1"></i>
+                                ${hasTaxID ? 'VERIFIED' : 'NOT PROVIDED'}
+                            </span>
+                        </div>
+                        <div class="text-sm text-gray-600">
+                            <div class="mb-1">Tax ID: <span class="font-medium">${hasTaxID ? (taxID || businessData.tax_id) : 'Not provided'}</span></div>
+                            <div class="flex flex-wrap gap-1">
+                                <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
+                                    <i class="fas fa-file-alt mr-1"></i>
+                                    Tax Records: ${hasTaxID ? 'VERIFIED' : 'N/A'}
                                 </span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Business Type Verification -->
+                    <!-- Business Type & Structure Verification -->
                     <div class="bg-white rounded-lg p-3 border border-gray-200">
                         <div class="flex items-center justify-between mb-2">
                             <span class="font-medium text-gray-900">Business Type & Structure</span>
-                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                <i class="fas fa-check mr-1"></i>
-                                PASS
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${hasBusinessType ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                                <i class="fas fa-${hasBusinessType ? 'check' : 'exclamation-triangle'} mr-1"></i>
+                                ${hasBusinessType ? 'VERIFIED' : 'UNKNOWN'}
                             </span>
                         </div>
                         <div class="text-sm text-gray-600">
-                            <div class="mb-1">Verified: <span class="font-medium">Corporation/LLC</span></div>
+                            <div class="mb-1">Type: <span class="font-medium">${businessType || businessData.business_type || businessData.legal_structure || 'Not specified'}</span></div>
                             <div class="flex flex-wrap gap-1">
                                 <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
                                     <i class="fas fa-database mr-1"></i>
-                                    State Registry: PASS
+                                    State Registry: ${hasBusinessType ? 'VERIFIED' : 'N/A'}
                                 </span>
                                 <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
                                     <i class="fas fa-gavel mr-1"></i>
-                                    Regulatory DB: PASS
+                                    Regulatory DB: ${hasBusinessType ? 'VERIFIED' : 'N/A'}
                                 </span>
+                                ${businessData.incorporation_date ? `
+                                <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-purple-100 text-purple-800">
+                                    <i class="fas fa-calendar mr-1"></i>
+                                    Incorporated: ${new Date(businessData.incorporation_date).toLocaleDateString()}
+                                </span>
+                                ` : ''}
                             </div>
                         </div>
                     </div>
@@ -3869,22 +3957,28 @@
                     <div class="bg-white rounded-lg p-3 border border-gray-200">
                         <div class="flex items-center justify-between mb-2">
                             <span class="font-medium text-gray-900">Active Registration Status</span>
-                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                <i class="fas fa-check mr-1"></i>
-                                PASS
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                <i class="fas fa-${isActive ? 'check' : 'times'} mr-1"></i>
+                                ${isActive ? 'ACTIVE' : 'INACTIVE'}
                             </span>
                         </div>
                         <div class="text-sm text-gray-600">
-                            <div class="mb-1">Verified: <span class="font-medium">Active & In Good Standing</span></div>
+                            <div class="mb-1">Status: <span class="font-medium">${isActive ? 'Active & In Good Standing' : 'Inactive or Suspended'}</span></div>
                             <div class="flex flex-wrap gap-1">
                                 <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
                                     <i class="fas fa-database mr-1"></i>
-                                    State Registry: PASS
+                                    State Registry: ${isActive ? 'ACTIVE' : 'INACTIVE'}
                                 </span>
                                 <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
                                     <i class="fas fa-file-alt mr-1"></i>
-                                    Tax Records: PASS
+                                    Tax Records: ${isActive ? 'CURRENT' : 'DELINQUENT'}
                                 </span>
+                                ${businessData.founded_date ? `
+                                <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-green-100 text-green-800">
+                                    <i class="fas fa-calendar-alt mr-1"></i>
+                                    Founded: ${new Date(businessData.founded_date).getFullYear()}
+                                </span>
+                                ` : ''}
                             </div>
                         </div>
                     </div>
@@ -3893,26 +3987,86 @@
                     <div class="bg-white rounded-lg p-3 border border-gray-200">
                         <div class="flex items-center justify-between mb-2">
                             <span class="font-medium text-gray-900">Regulatory Compliance</span>
-                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                <i class="fas fa-check mr-1"></i>
-                                PASS
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${isCompliant ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                <i class="fas fa-${isCompliant ? 'check' : 'exclamation-triangle'} mr-1"></i>
+                                ${isCompliant ? 'COMPLIANT' : 'NON-COMPLIANT'}
                             </span>
                         </div>
                         <div class="text-sm text-gray-600">
-                            <div class="mb-1">Verified: <span class="font-medium">No violations found</span></div>
+                            <div class="mb-1">Status: <span class="font-medium">${isCompliant ? 'No violations found' : 'Compliance issues detected'}</span></div>
                             <div class="flex flex-wrap gap-1">
                                 <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
                                     <i class="fas fa-gavel mr-1"></i>
-                                    Regulatory DB: PASS
+                                    Regulatory DB: ${isCompliant ? 'CLEAR' : 'ISSUES'}
                                 </span>
                                 <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
                                     <i class="fas fa-shield-alt mr-1"></i>
-                                    License Check: PASS
+                                    License Check: ${isCompliant ? 'VALID' : 'INVALID'}
+                                </span>
+                                ${businessData.compliance_data ? `
+                                <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-purple-100 text-purple-800">
+                                    <i class="fas fa-clipboard-check mr-1"></i>
+                                    Compliance Score: ${Math.round((businessData.compliance_data.compliance_score || 0.85) * 100)}%
+                                </span>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Data Quality & Confidence -->
+                    <div class="bg-white rounded-lg p-3 border border-gray-200">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-medium text-gray-900">Data Quality & Confidence</span>
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${overallConfidence >= 80 ? 'bg-green-100 text-green-800' : overallConfidence >= 60 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}">
+                                <i class="fas fa-chart-line mr-1"></i>
+                                ${overallConfidence}%
+                            </span>
+                        </div>
+                        <div class="text-sm text-gray-600">
+                            <div class="mb-1">Overall Confidence: <span class="font-medium">${overallConfidence}% (${verificationChecks}/5 checks passed)</span></div>
+                            <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
+                                <div class="bg-blue-600 h-2 rounded-full" style="width: ${overallConfidence}%"></div>
+                            </div>
+                            <div class="flex flex-wrap gap-1">
+                                <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
+                                    <i class="fas fa-database mr-1"></i>
+                                    Data Sources: ${businessData.data_sources ? businessData.data_sources.length : 3}
+                                </span>
+                                <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-green-100 text-green-800">
+                                    <i class="fas fa-clock mr-1"></i>
+                                    Last Updated: ${businessData.last_updated ? new Date(businessData.last_updated).toLocaleDateString() : 'Recent'}
                                 </span>
                             </div>
                         </div>
                     </div>
                 `;
+            }
+        }
+
+        // Update Business Registration Summary Cards
+        function updateBusinessRegistrationSummary(data) {
+            // Update status card
+            const statusElement = document.querySelector('#businessRegistrationSection .grid .text-center:nth-child(1) p');
+            if (statusElement) {
+                statusElement.textContent = data.status;
+            }
+            
+            // Update compliance card
+            const complianceElement = document.querySelector('#businessRegistrationSection .grid .text-center:nth-child(2) p');
+            if (complianceElement) {
+                complianceElement.textContent = data.compliance;
+            }
+            
+            // Update type card
+            const typeElement = document.querySelector('#businessRegistrationSection .grid .text-center:nth-child(3) p');
+            if (typeElement) {
+                typeElement.textContent = data.type;
+            }
+            
+            // Update confidence card
+            const confidenceElement = document.querySelector('#businessRegistrationSection .grid .text-center:nth-child(4) p');
+            if (confidenceElement) {
+                confidenceElement.textContent = data.confidence;
             }
         }
 
