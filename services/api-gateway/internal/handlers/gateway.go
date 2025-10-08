@@ -199,5 +199,5 @@ func (h *GatewayHandler) ProxyToBI(w http.ResponseWriter, r *http.Request) {
 		path += "?" + r.URL.RawQuery
 	}
 
-	h.proxyRequest(w, r, h.config.Services.BIServiceURL+path)
+	h.proxyRequest(w, r, h.config.Services.BIServiceURL, path)
 }
