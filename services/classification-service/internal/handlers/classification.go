@@ -228,21 +228,23 @@ type EnhancedClassificationResult struct {
 
 // WebsiteAnalysisData represents aggregated data from website analysis
 type WebsiteAnalysisData struct {
-	Success           bool          `json:"success"`
-	PagesAnalyzed     int           `json:"pages_analyzed"`
-	RelevantPages     int           `json:"relevant_pages"`
-	KeywordsExtracted []string      `json:"keywords_extracted"`
-	AnalysisMethod    string        `json:"analysis_method"`
-	ProcessingTime    time.Duration `json:"processing_time"`
-	OverallRelevance  float64       `json:"overall_relevance"`
-	ContentQuality    float64       `json:"content_quality"`
+	Success           bool                   `json:"success"`
+	PagesAnalyzed     int                    `json:"pages_analyzed"`
+	RelevantPages     int                    `json:"relevant_pages"`
+	KeywordsExtracted []string               `json:"keywords_extracted"`
+	IndustrySignals   []string               `json:"industry_signals"`
+	AnalysisMethod    string                 `json:"analysis_method"`
+	ProcessingTime    time.Duration          `json:"processing_time"`
+	OverallRelevance  float64                `json:"overall_relevance"`
+	ContentQuality    float64                `json:"content_quality"`
+	StructuredData    map[string]interface{} `json:"structured_data,omitempty"`
 }
 
 // generateEnhancedClassification generates enhanced classification with smart crawling data
 func (h *ClassificationHandler) generateEnhancedClassification(req *ClassificationRequest) *EnhancedClassificationResult {
 	// For now, generate realistic data that simulates the unified classification approach
 	// In a full implementation, this would call the actual unified classifier
-	
+
 	// Simulate website analysis data
 	websiteAnalysis := &WebsiteAnalysisData{
 		Success:           true,
@@ -262,16 +264,16 @@ func (h *ClassificationHandler) generateEnhancedClassification(req *Classificati
 
 	// Simulate dynamic weighting based on data sources
 	methodWeights := map[string]float64{
-		"website_content":   45.0, // High weight due to rich website data
-		"business_name":     25.0, // Medium weight from business name
-		"website_url":       15.0, // Lower weight from URL
-		"structured_data":   15.0, // Medium weight from structured data
+		"website_content": 45.0, // High weight due to rich website data
+		"business_name":   25.0, // Medium weight from business name
+		"website_url":     15.0, // Lower weight from URL
+		"structured_data": 15.0, // Medium weight from structured data
 	}
 
 	// Generate enhanced classification reasoning with actual weights
 	reasoning := fmt.Sprintf("Primary industry identified as 'Food & Beverage' with 92%% confidence. ")
 	reasoning += "Classification based on website content (45%%), business name (25%%), website URL (15%%), structured data (15%%). "
-	
+
 	if req.WebsiteURL != "" {
 		reasoning += fmt.Sprintf("Website analysis of %s analyzed 8 pages with 5 relevant pages. ", req.WebsiteURL)
 	}
