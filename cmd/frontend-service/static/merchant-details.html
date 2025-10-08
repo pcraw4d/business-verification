@@ -4847,6 +4847,13 @@
             const marketAnalysis = businessIntelligence.market_analysis || {};
             const financialMetrics = businessIntelligence.financial_metrics || {};
             
+            console.log('🔍 populateBusinessIntelligenceDetails called with:', {
+                businessMetrics,
+                companyProfile,
+                marketAnalysis,
+                financialMetrics
+            });
+            
             intelligenceDetailsContent.innerHTML = `
                 <div class="space-y-6 pb-4">
                     <!-- Company Profile Overview -->
@@ -4882,15 +4889,21 @@
                                 <div class="space-y-2 text-sm">
                                     <div class="flex justify-between">
                                         <span class="text-gray-600">Employee Range:</span>
-                                        <span class="font-medium">${businessMetrics.employee_range || 'Not specified'}</span>
+                                        <span class="font-medium">${businessMetrics.employee_count ? 
+                                            `${businessMetrics.employee_count.value || ''} (${businessMetrics.employee_count.range || ''})` : 
+                                            'Not specified'}</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-gray-600">Revenue Range:</span>
-                                        <span class="font-medium">${businessMetrics.revenue_range || 'Not specified'}</span>
+                                        <span class="font-medium">${businessMetrics.revenue_range ? 
+                                            `${businessMetrics.revenue_range.currency || 'USD'} ${(businessMetrics.revenue_range.min || 0).toLocaleString()} - ${(businessMetrics.revenue_range.max || 0).toLocaleString()}` : 
+                                            'Not specified'}</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-gray-600">Years in Business:</span>
-                                        <span class="font-medium">${businessMetrics.years_in_business || 'Not specified'}</span>
+                                        <span class="font-medium">${businessMetrics.founded_year ? 
+                                            `${new Date().getFullYear() - businessMetrics.founded_year.year} years (founded ${businessMetrics.founded_year.year})` : 
+                                            'Not specified'}</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-gray-600">Growth Stage:</span>
@@ -5010,7 +5023,9 @@
                                         </li>
                                         <li class="flex items-start">
                                             <i class="fas fa-check-circle text-blue-600 mr-2 mt-0.5"></i>
-                                            <span>Revenue range: ${businessMetrics.revenue_range || 'moderate revenue'}</span>
+                                            <span>Revenue range: ${businessMetrics.revenue_range ? 
+                                                `${businessMetrics.revenue_range.currency || 'USD'} ${(businessMetrics.revenue_range.min || 0).toLocaleString()} - ${(businessMetrics.revenue_range.max || 0).toLocaleString()}` : 
+                                                'moderate revenue'}</span>
                                         </li>
                                     </ul>
                                 </div>
