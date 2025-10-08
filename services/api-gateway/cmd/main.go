@@ -28,7 +28,7 @@ func main() {
 	}
 	defer logger.Sync()
 
-	logger.Info("🚀 Starting KYB API Gateway Service v1.0.16 - ADD BI CORS SUPPORT")
+	logger.Info("🚀 Starting KYB API Gateway Service v1.0.17 - FIX BI CORS HEADERS")
 
 	// Load configuration
 	cfg, err := config.Load()
