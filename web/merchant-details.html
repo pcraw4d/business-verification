@@ -4842,7 +4842,14 @@
                 `;
             }).join('');
             
-            container.innerHTML = methodsHTML;
+            // Wrap methods in a single row grid
+            const methodsContainer = `
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    ${methodsHTML}
+                </div>
+            `;
+            
+            container.innerHTML = methodsContainer;
         }
 
         // Populate website keywords
@@ -4972,7 +4979,7 @@
                     </div>
                     <div class="flex flex-wrap gap-2">
                         ${keywords.map(keyword => 
-                            `<span class="bg-blue-100 text-blue-800 text-xs font-medium px-3 py-1 rounded-full">${keyword}</span>`
+                            `<span class="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full">${keyword}</span>`
                         ).join('')}
                     </div>
                 `;
@@ -4993,7 +5000,7 @@
                         </div>
                         <div class="flex flex-wrap gap-2">
                             ${classificationKeywords.map(keyword => 
-                                `<span class="bg-green-100 text-green-800 text-xs font-medium px-3 py-1 rounded-full">${keyword}</span>`
+                                `<span class="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded-full">${keyword}</span>`
                             ).join('')}
                         </div>
                     `;
