@@ -658,73 +658,73 @@ func (s *BusinessIntelligenceGatewayServer) setupRoutes() {
 // handleBusinessAnalysis handles business analysis requests
 func (s *BusinessIntelligenceGatewayServer) handleBusinessAnalysis(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	
+
 	// Parse request body
 	var requestData map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	
+
 	businessName := "Unknown Business"
 	if name, ok := requestData["business_name"].(string); ok {
 		businessName = name
 	}
-	
+
 	// Generate mock business intelligence data
 	response := map[string]interface{}{
-		"request_id": fmt.Sprintf("bi_%d", time.Now().Unix()),
+		"request_id":    fmt.Sprintf("bi_%d", time.Now().Unix()),
 		"business_name": businessName,
-		"timestamp": time.Now().Format(time.RFC3339),
+		"timestamp":     time.Now().Format(time.RFC3339),
 		"business_intelligence": map[string]interface{}{
 			"business_metrics": map[string]interface{}{
 				"employee_count": map[string]interface{}{
-					"value": 25,
-					"range": "10-50",
+					"value":      25,
+					"range":      "10-50",
 					"confidence": 0.85,
-					"source": "estimated",
+					"source":     "estimated",
 				},
 				"revenue_range": map[string]interface{}{
-					"min": 500000,
-					"max": 2000000,
-					"currency": "USD",
+					"min":        500000,
+					"max":        2000000,
+					"currency":   "USD",
 					"confidence": 0.78,
-					"source": "estimated",
+					"source":     "estimated",
 				},
 				"founded_year": map[string]interface{}{
-					"year": 2018,
+					"year":       2018,
 					"confidence": 0.92,
-					"source": "public_records",
+					"source":     "public_records",
 				},
 				"business_location": map[string]interface{}{
-					"city": "Brooklyn",
-					"state": "New York",
-					"country": "US",
+					"city":       "Brooklyn",
+					"state":      "New York",
+					"country":    "US",
 					"confidence": 0.95,
-					"source": "address_analysis",
+					"source":     "address_analysis",
 				},
 			},
 			"company_profile": map[string]interface{}{
-				"industry": "Retail/Food & Beverage",
+				"industry":      "Retail/Food & Beverage",
 				"business_type": "Local Business",
 				"size_category": "Small Business",
-				"growth_stage": "Established",
+				"growth_stage":  "Established",
 			},
 			"market_analysis": map[string]interface{}{
-				"market_size": "Local",
+				"market_size":       "Local",
 				"competition_level": "Medium",
-				"growth_potential": "Moderate",
+				"growth_potential":  "Moderate",
 			},
 			"financial_metrics": map[string]interface{}{
-				"profitability": "Profitable",
+				"profitability":    "Profitable",
 				"financial_health": "Good",
-				"credit_risk": "Low",
+				"credit_risk":      "Low",
 			},
 		},
-		"status": "success",
+		"status":  "success",
 		"success": true,
 	}
-	
+
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
 }
