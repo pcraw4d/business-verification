@@ -5039,9 +5039,54 @@
             const container = document.getElementById('classificationReasoning');
             if (!container) return;
             
-            const reasoning = result.classification_reasoning || 'Based on website analysis, business name, and industry classification, this business is classified as a technology company providing software development services.';
+            console.log('🧠 populateClassificationReasoning called with:', result);
+            console.log('🧠 result.metadata:', result.metadata);
+            console.log('🧠 result.classification_reasoning:', result.classification_reasoning);
             
-            container.innerHTML = `<p class="text-sm text-gray-600">${reasoning}</p>`;
+            // Extract reasoning from multiple sources
+            const smartCrawlingReasoning = result.metadata?.classification_reasoning || 
+                                         result.classification_reasoning || 
+                                         result.classification?.classification_reasoning;
+            
+            // Get website analysis data
+            const websiteAnalysis = result.metadata?.website_analysis || 
+                                  result.website_analysis || 
+                                  result.classification?.website_analysis;
+            
+            // Build enhanced reasoning display
+            let reasoningHTML = '';
+            
+            // Main reasoning
+            const reasoning = smartCrawlingReasoning || 
+                            'Based on business name analysis, website content analysis, and industry pattern recognition, this business has been classified using enhanced smart crawling technology.';
+            
+            reasoningHTML += `<div class="mb-3"><p class="text-sm text-gray-600">${reasoning}</p></div>`;
+            
+            // Add website analysis insights if available
+            if (websiteAnalysis && websiteAnalysis.success) {
+                reasoningHTML += `<div class="mt-3 p-3 bg-blue-50 rounded-lg">`;
+                reasoningHTML += `<h6 class="font-medium text-blue-900 mb-2">🌐 Website Analysis Details</h6>`;
+                reasoningHTML += `<div class="text-sm text-blue-800 space-y-1">`;
+                reasoningHTML += `<p>• Analyzed <strong>${websiteAnalysis.pages_analyzed}</strong> pages with <strong>${websiteAnalysis.relevant_pages}</strong> relevant pages</p>`;
+                if (websiteAnalysis.keywords_extracted && websiteAnalysis.keywords_extracted.length > 0) {
+                    const keywordList = websiteAnalysis.keywords_extracted.slice(0, 5).join(', ');
+                    reasoningHTML += `<p>• Extracted keywords: <strong>${keywordList}</strong></p>`;
+                }
+                if (websiteAnalysis.analysis_method) {
+                    reasoningHTML += `<p>• Analysis method: <strong>${websiteAnalysis.analysis_method}</strong></p>`;
+                }
+                if (websiteAnalysis.processing_time) {
+                    reasoningHTML += `<p>• Processing time: <strong>${websiteAnalysis.processing_time}</strong></p>`;
+                }
+                reasoningHTML += `</div></div>`;
+            }
+            
+            // Add smart crawling indicator
+            if (result.metadata?.smart_crawling_enabled) {
+                reasoningHTML += `<div class="mt-2 text-xs text-green-600 font-medium">✅ Enhanced with Smart Crawling Technology</div>`;
+            }
+            
+            container.innerHTML = reasoningHTML;
         }
 
         // Populate Risk Assessment

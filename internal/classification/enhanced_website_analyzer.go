@@ -4,14 +4,15 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sort"
 	"time"
 )
 
 // EnhancedWebsiteAnalyzer integrates smart crawling, content analysis, and structured data extraction
 type EnhancedWebsiteAnalyzer struct {
-	logger                *log.Logger
-	smartCrawler          *SmartWebsiteCrawler
-	relevanceAnalyzer     *ContentRelevanceAnalyzer
+	logger                  *log.Logger
+	smartCrawler            *SmartWebsiteCrawler
+	relevanceAnalyzer       *ContentRelevanceAnalyzer
 	structuredDataExtractor *StructuredDataExtractor
 }
 
@@ -24,38 +25,38 @@ type ClassificationCode struct {
 
 // EnhancedAnalysisResult represents the complete enhanced analysis result
 type EnhancedAnalysisResult struct {
-	WebsiteURL           string                    `json:"website_url"`
-	CrawlResult          *CrawlResult              `json:"crawl_result"`
-	RelevanceAnalysis    *RelevanceAnalysisResult  `json:"relevance_analysis"`
-	StructuredData       *StructuredDataResult     `json:"structured_data"`
+	WebsiteURL             string                        `json:"website_url"`
+	CrawlResult            *CrawlResult                  `json:"crawl_result"`
+	RelevanceAnalysis      *RelevanceAnalysisResult      `json:"relevance_analysis"`
+	StructuredData         *StructuredDataResult         `json:"structured_data"`
 	BusinessClassification *BusinessClassificationResult `json:"business_classification"`
-	AnalysisTimestamp    time.Time                 `json:"analysis_timestamp"`
-	ProcessingTime       time.Duration             `json:"processing_time"`
-	OverallConfidence    float64                   `json:"overall_confidence"`
-	Success              bool                      `json:"success"`
-	Error                string                    `json:"error,omitempty"`
+	AnalysisTimestamp      time.Time                     `json:"analysis_timestamp"`
+	ProcessingTime         time.Duration                 `json:"processing_time"`
+	OverallConfidence      float64                       `json:"overall_confidence"`
+	Success                bool                          `json:"success"`
+	Error                  string                        `json:"error,omitempty"`
 }
 
 // BusinessClassificationResult represents the final business classification
 type BusinessClassificationResult struct {
-	PrimaryIndustry      string            `json:"primary_industry"`
-	IndustryConfidence   float64           `json:"industry_confidence"`
-	BusinessType         string            `json:"business_type"`
-	BusinessTypeConfidence float64         `json:"business_type_confidence"`
-	MCCCodes             []ClassificationCode `json:"mcc_codes"`
-	SICCodes             []ClassificationCode `json:"sic_codes"`
-	NAICSCodes           []ClassificationCode `json:"naics_codes"`
-	Keywords             []string          `json:"keywords"`
-	ConfidenceScore      float64           `json:"confidence_score"`
-	AnalysisMethod       string            `json:"analysis_method"`
+	PrimaryIndustry        string               `json:"primary_industry"`
+	IndustryConfidence     float64              `json:"industry_confidence"`
+	BusinessType           string               `json:"business_type"`
+	BusinessTypeConfidence float64              `json:"business_type_confidence"`
+	MCCCodes               []ClassificationCode `json:"mcc_codes"`
+	SICCodes               []ClassificationCode `json:"sic_codes"`
+	NAICSCodes             []ClassificationCode `json:"naics_codes"`
+	Keywords               []string             `json:"keywords"`
+	ConfidenceScore        float64              `json:"confidence_score"`
+	AnalysisMethod         string               `json:"analysis_method"`
 }
 
 // NewEnhancedWebsiteAnalyzer creates a new enhanced website analyzer
 func NewEnhancedWebsiteAnalyzer(logger *log.Logger) *EnhancedWebsiteAnalyzer {
 	return &EnhancedWebsiteAnalyzer{
-		logger:                logger,
-		smartCrawler:          NewSmartWebsiteCrawler(logger),
-		relevanceAnalyzer:     NewContentRelevanceAnalyzer(logger),
+		logger:                  logger,
+		smartCrawler:            NewSmartWebsiteCrawler(logger),
+		relevanceAnalyzer:       NewContentRelevanceAnalyzer(logger),
 		structuredDataExtractor: NewStructuredDataExtractor(logger),
 	}
 }
@@ -104,7 +105,7 @@ func (ewa *EnhancedWebsiteAnalyzer) AnalyzeWebsite(ctx context.Context, websiteU
 	result.ProcessingTime = time.Since(startTime)
 	result.Success = true
 
-	ewa.logger.Printf("✅ [EnhancedAnalyzer] Enhanced analysis completed in %v - Confidence: %.2f", 
+	ewa.logger.Printf("✅ [EnhancedAnalyzer] Enhanced analysis completed in %v - Confidence: %.2f",
 		result.ProcessingTime, result.OverallConfidence)
 
 	return result, nil
@@ -162,10 +163,10 @@ func (ewa *EnhancedWebsiteAnalyzer) extractStructuredDataFromRelevantPages(crawl
 // performBusinessClassification performs business classification based on all analysis results
 func (ewa *EnhancedWebsiteAnalyzer) performBusinessClassification(crawlResult *CrawlResult, relevanceAnalysis *RelevanceAnalysisResult, structuredData *StructuredDataResult) *BusinessClassificationResult {
 	classification := &BusinessClassificationResult{
-		MCCCodes:   []ClassificationCode{},
-		SICCodes:   []ClassificationCode{},
-		NAICSCodes: []ClassificationCode{},
-		Keywords:   []string{},
+		MCCCodes:       []ClassificationCode{},
+		SICCodes:       []ClassificationCode{},
+		NAICSCodes:     []ClassificationCode{},
+		Keywords:       []string{},
 		AnalysisMethod: "enhanced_website_analysis",
 	}
 
@@ -192,7 +193,7 @@ func (ewa *EnhancedWebsiteAnalyzer) performBusinessClassification(crawlResult *C
 
 	// Aggregate keywords from all sources
 	keywordMap := make(map[string]int)
-	
+
 	// From crawl result
 	for _, keyword := range crawlResult.Keywords {
 		keywordMap[keyword]++
@@ -208,12 +209,12 @@ func (ewa *EnhancedWebsiteAnalyzer) performBusinessClassification(crawlResult *C
 		keyword string
 		count   int
 	}
-	
+
 	var sortedKeywords []keywordFreq
 	for keyword, count := range keywordMap {
 		sortedKeywords = append(sortedKeywords, keywordFreq{keyword, count})
 	}
-	
+
 	sort.Slice(sortedKeywords, func(i, j int) bool {
 		return sortedKeywords[i].count > sortedKeywords[j].count
 	})

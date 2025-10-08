@@ -15,38 +15,38 @@ type StructuredDataExtractor struct {
 
 // BusinessInfo represents extracted business information (imported from smart_website_crawler.go)
 type BusinessInfo struct {
-	BusinessName     string            `json:"business_name"`
-	Description      string            `json:"description"`
-	Services         []string          `json:"services"`
-	Products         []string          `json:"products"`
-	ContactInfo      ContactInfo       `json:"contact_info"`
-	BusinessHours    string            `json:"business_hours"`
-	Location         string            `json:"location"`
-	Industry         string            `json:"industry"`
-	BusinessType     string            `json:"business_type"`
+	BusinessName  string      `json:"business_name"`
+	Description   string      `json:"description"`
+	Services      []string    `json:"services"`
+	Products      []string    `json:"products"`
+	ContactInfo   ContactInfo `json:"contact_info"`
+	BusinessHours string      `json:"business_hours"`
+	Location      string      `json:"location"`
+	Industry      string      `json:"industry"`
+	BusinessType  string      `json:"business_type"`
 }
 
 // ContactInfo represents contact information (imported from smart_website_crawler.go)
 type ContactInfo struct {
-	Phone    string `json:"phone"`
-	Email    string `json:"email"`
-	Address  string `json:"address"`
-	Website  string `json:"website"`
-	Social   map[string]string `json:"social"`
+	Phone   string            `json:"phone"`
+	Email   string            `json:"email"`
+	Address string            `json:"address"`
+	Website string            `json:"website"`
+	Social  map[string]string `json:"social"`
 }
 
 // StructuredDataResult represents extracted structured data
 type StructuredDataResult struct {
-	SchemaOrgData    []SchemaOrgItem    `json:"schema_org_data"`
-	OpenGraphData    map[string]string  `json:"open_graph_data"`
-	TwitterCardData  map[string]string  `json:"twitter_card_data"`
-	Microdata        []MicrodataItem    `json:"microdata"`
-	BusinessInfo     BusinessInfo       `json:"business_info"`
-	ContactInfo      ContactInfo        `json:"contact_info"`
-	ProductInfo      []ProductInfo      `json:"product_info"`
-	ServiceInfo      []ServiceInfo      `json:"service_info"`
-	EventInfo        []EventInfo        `json:"event_info"`
-	ExtractionScore  float64            `json:"extraction_score"`
+	SchemaOrgData   []SchemaOrgItem   `json:"schema_org_data"`
+	OpenGraphData   map[string]string `json:"open_graph_data"`
+	TwitterCardData map[string]string `json:"twitter_card_data"`
+	Microdata       []MicrodataItem   `json:"microdata"`
+	BusinessInfo    BusinessInfo      `json:"business_info"`
+	ContactInfo     ContactInfo       `json:"contact_info"`
+	ProductInfo     []ProductInfo     `json:"product_info"`
+	ServiceInfo     []ServiceInfo     `json:"service_info"`
+	EventInfo       []EventInfo       `json:"event_info"`
+	ExtractionScore float64           `json:"extraction_score"`
 }
 
 // SchemaOrgItem represents a Schema.org structured data item
@@ -92,12 +92,12 @@ type ServiceInfo struct {
 
 // EventInfo represents event information
 type EventInfo struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	StartDate   string `json:"start_date"`
-	EndDate     string `json:"end_date"`
-	Location    string `json:"location"`
-	URL         string `json:"url"`
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	StartDate   string  `json:"start_date"`
+	EndDate     string  `json:"end_date"`
+	Location    string  `json:"location"`
+	URL         string  `json:"url"`
 	Confidence  float64 `json:"confidence"`
 }
 
@@ -156,7 +156,7 @@ func (sde *StructuredDataExtractor) extractSchemaOrgJSONLD(htmlContent string, r
 	for _, match := range matches {
 		if len(match) > 1 {
 			jsonData := strings.TrimSpace(match[1])
-			
+
 			// Parse JSON-LD data
 			var data interface{}
 			if err := json.Unmarshal([]byte(jsonData), &data); err != nil {
@@ -191,7 +191,7 @@ func (sde *StructuredDataExtractor) processSchemaOrgObject(obj map[string]interf
 	}
 
 	schemaType := fmt.Sprintf("%v", typeValue)
-	
+
 	// Create Schema.org item
 	item := SchemaOrgItem{
 		Type:       schemaType,

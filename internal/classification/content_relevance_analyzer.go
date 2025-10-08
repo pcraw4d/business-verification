@@ -15,82 +15,82 @@ type ContentRelevanceAnalyzer struct {
 
 // CrawlResult represents the result of a smart crawl operation (imported from smart_website_crawler.go)
 type CrawlResult struct {
-	BaseURL        string                 `json:"base_url"`
-	PagesAnalyzed  []PageAnalysis         `json:"pages_analyzed"`
-	TotalPages     int                    `json:"total_pages"`
-	RelevantPages  int                    `json:"relevant_pages"`
-	Keywords       []string               `json:"keywords"`
-	IndustryScore  map[string]float64     `json:"industry_score"`
-	BusinessInfo   BusinessInfo           `json:"business_info"`
-	SiteStructure  SiteStructure          `json:"site_structure"`
-	CrawlDuration  time.Duration          `json:"crawl_duration"`
-	Success        bool                   `json:"success"`
-	Error          string                 `json:"error,omitempty"`
+	BaseURL       string             `json:"base_url"`
+	PagesAnalyzed []PageAnalysis     `json:"pages_analyzed"`
+	TotalPages    int                `json:"total_pages"`
+	RelevantPages int                `json:"relevant_pages"`
+	Keywords      []string           `json:"keywords"`
+	IndustryScore map[string]float64 `json:"industry_score"`
+	BusinessInfo  BusinessInfo       `json:"business_info"`
+	SiteStructure SiteStructure      `json:"site_structure"`
+	CrawlDuration time.Duration      `json:"crawl_duration"`
+	Success       bool               `json:"success"`
+	Error         string             `json:"error,omitempty"`
 }
 
 // PageAnalysis represents analysis of a single page (imported from smart_website_crawler.go)
 type PageAnalysis struct {
-	URL              string            `json:"url"`
-	Title            string            `json:"title"`
-	PageType         string            `json:"page_type"`
-	RelevanceScore   float64           `json:"relevance_score"`
-	ContentQuality   float64           `json:"content_quality"`
-	Keywords         []string          `json:"keywords"`
-	IndustryIndicators []string        `json:"industry_indicators"`
-	BusinessInfo     BusinessInfo      `json:"business_info"`
-	MetaTags         map[string]string `json:"meta_tags"`
-	StructuredData   map[string]interface{} `json:"structured_data"`
-	ResponseTime     time.Duration     `json:"response_time"`
-	StatusCode       int               `json:"status_code"`
-	ContentLength    int               `json:"content_length"`
-	LastModified     time.Time         `json:"last_modified"`
-	Priority         int               `json:"priority"`
+	URL                string                 `json:"url"`
+	Title              string                 `json:"title"`
+	PageType           string                 `json:"page_type"`
+	RelevanceScore     float64                `json:"relevance_score"`
+	ContentQuality     float64                `json:"content_quality"`
+	Keywords           []string               `json:"keywords"`
+	IndustryIndicators []string               `json:"industry_indicators"`
+	BusinessInfo       BusinessInfo           `json:"business_info"`
+	MetaTags           map[string]string      `json:"meta_tags"`
+	StructuredData     map[string]interface{} `json:"structured_data"`
+	ResponseTime       time.Duration          `json:"response_time"`
+	StatusCode         int                    `json:"status_code"`
+	ContentLength      int                    `json:"content_length"`
+	LastModified       time.Time              `json:"last_modified"`
+	Priority           int                    `json:"priority"`
 }
 
 // BusinessInfo represents extracted business information (imported from smart_website_crawler.go)
 type BusinessInfo struct {
-	BusinessName     string            `json:"business_name"`
-	Description      string            `json:"description"`
-	Services         []string          `json:"services"`
-	Products         []string          `json:"products"`
-	ContactInfo      ContactInfo       `json:"contact_info"`
-	BusinessHours    string            `json:"business_hours"`
-	Location         string            `json:"location"`
-	Industry         string            `json:"industry"`
-	BusinessType     string            `json:"business_type"`
+	BusinessName  string      `json:"business_name"`
+	Description   string      `json:"description"`
+	Services      []string    `json:"services"`
+	Products      []string    `json:"products"`
+	ContactInfo   ContactInfo `json:"contact_info"`
+	BusinessHours string      `json:"business_hours"`
+	Location      string      `json:"location"`
+	Industry      string      `json:"industry"`
+	BusinessType  string      `json:"business_type"`
 }
 
 // ContactInfo represents contact information (imported from smart_website_crawler.go)
 type ContactInfo struct {
-	Phone    string `json:"phone"`
-	Email    string `json:"email"`
-	Address  string `json:"address"`
-	Website  string `json:"website"`
-	Social   map[string]string `json:"social"`
+	Phone   string            `json:"phone"`
+	Email   string            `json:"email"`
+	Address string            `json:"address"`
+	Website string            `json:"website"`
+	Social  map[string]string `json:"social"`
 }
 
 // SiteStructure represents the discovered site structure (imported from smart_website_crawler.go)
 type SiteStructure struct {
-	Homepage         string   `json:"homepage"`
-	AboutPages       []string `json:"about_pages"`
-	ServicePages     []string `json:"service_pages"`
-	ProductPages     []string `json:"product_pages"`
-	ContactPages     []string `json:"contact_pages"`
-	BlogPages        []string `json:"blog_pages"`
-	EcommercePages   []string `json:"ecommerce_pages"`
-	OtherPages       []string `json:"other_pages"`
-	TotalDiscovered  int      `json:"total_discovered"`
+	Homepage        string   `json:"homepage"`
+	AboutPages      []string `json:"about_pages"`
+	ServicePages    []string `json:"service_pages"`
+	ProductPages    []string `json:"product_pages"`
+	ContactPages    []string `json:"contact_pages"`
+	BlogPages       []string `json:"blog_pages"`
+	EcommercePages  []string `json:"ecommerce_pages"`
+	OtherPages      []string `json:"other_pages"`
+	TotalDiscovered int      `json:"total_discovered"`
 }
 
 // RelevanceAnalysisResult represents the result of content relevance analysis
 type RelevanceAnalysisResult struct {
-	OverallRelevance    float64                    `json:"overall_relevance"`
-	PageRelevance       map[string]float64         `json:"page_relevance"`
-	ContentRelevance    map[string]ContentRelevance `json:"content_relevance"`
-	BusinessIndicators  []BusinessIndicator        `json:"business_indicators"`
-	IndustrySignals     []IndustrySignal           `json:"industry_signals"`
-	ConfidenceScore     float64                    `json:"confidence_score"`
-	AnalysisTimestamp   time.Time                  `json:"analysis_timestamp"`
+	OverallRelevance   float64                     `json:"overall_relevance"`
+	PageRelevance      map[string]float64          `json:"page_relevance"`
+	ContentRelevance   map[string]ContentRelevance `json:"content_relevance"`
+	BusinessIndicators []BusinessIndicator         `json:"business_indicators"`
+	IndustrySignals    []IndustrySignal            `json:"industry_signals"`
+	ConfidenceScore    float64                     `json:"confidence_score"`
+	AnalysisTimestamp  time.Time                   `json:"analysis_timestamp"`
 }
 
 // ContentRelevance represents relevance analysis for specific content types
@@ -103,21 +103,21 @@ type ContentRelevance struct {
 
 // BusinessIndicator represents a business-related indicator found in content
 type BusinessIndicator struct {
-	Type        string  `json:"type"`
-	Value       string  `json:"value"`
-	Confidence  float64 `json:"confidence"`
-	Context     string  `json:"context"`
-	Source      string  `json:"source"`
+	Type       string  `json:"type"`
+	Value      string  `json:"value"`
+	Confidence float64 `json:"confidence"`
+	Context    string  `json:"context"`
+	Source     string  `json:"source"`
 }
 
 // IndustrySignal represents an industry-specific signal
 type IndustrySignal struct {
-	Industry    string  `json:"industry"`
-	Signal      string  `json:"signal"`
-	Strength    float64 `json:"strength"`
-	Confidence  float64 `json:"confidence"`
-	Context     string  `json:"context"`
-	Source      string  `json:"source"`
+	Industry   string  `json:"industry"`
+	Signal     string  `json:"signal"`
+	Strength   float64 `json:"strength"`
+	Confidence float64 `json:"confidence"`
+	Context    string  `json:"context"`
+	Source     string  `json:"source"`
 }
 
 // NewContentRelevanceAnalyzer creates a new content relevance analyzer
@@ -132,22 +132,22 @@ func (cra *ContentRelevanceAnalyzer) AnalyzeContentRelevance(ctx context.Context
 	cra.logger.Printf("🔍 [RelevanceAnalyzer] Starting content relevance analysis for %s", crawlResult.BaseURL)
 
 	result := &RelevanceAnalysisResult{
-		PageRelevance:     make(map[string]float64),
-		ContentRelevance:  make(map[string]ContentRelevance),
+		PageRelevance:      make(map[string]float64),
+		ContentRelevance:   make(map[string]ContentRelevance),
 		BusinessIndicators: []BusinessIndicator{},
-		IndustrySignals:   []IndustrySignal{},
-		AnalysisTimestamp: time.Now(),
+		IndustrySignals:    []IndustrySignal{},
+		AnalysisTimestamp:  time.Now(),
 	}
 
 	// Analyze each page
 	for _, page := range crawlResult.PagesAnalyzed {
 		pageRelevance := cra.analyzePageRelevance(page)
 		result.PageRelevance[page.URL] = pageRelevance.OverallRelevance
-		
+
 		// Aggregate business indicators
 		indicators := cra.extractBusinessIndicators(page)
 		result.BusinessIndicators = append(result.BusinessIndicators, indicators...)
-		
+
 		// Aggregate industry signals
 		signals := cra.extractIndustrySignals(page)
 		result.IndustrySignals = append(result.IndustrySignals, signals...)
@@ -155,11 +155,11 @@ func (cra *ContentRelevanceAnalyzer) AnalyzeContentRelevance(ctx context.Context
 
 	// Calculate overall relevance
 	result.OverallRelevance = cra.calculateOverallRelevance(result.PageRelevance)
-	
+
 	// Calculate confidence score
 	result.ConfidenceScore = cra.calculateConfidenceScore(result)
 
-	cra.logger.Printf("✅ [RelevanceAnalyzer] Analysis completed - Overall relevance: %.2f, Confidence: %.2f", 
+	cra.logger.Printf("✅ [RelevanceAnalyzer] Analysis completed - Overall relevance: %.2f, Confidence: %.2f",
 		result.OverallRelevance, result.ConfidenceScore)
 
 	return result, nil
@@ -473,10 +473,10 @@ func (cra *ContentRelevanceAnalyzer) extractIndustrySignals(page PageAnalysis) [
 		if matches > 0 {
 			// Normalize strength
 			strength = strength / float64(len(page.Keywords))
-			
+
 			// Calculate confidence based on number of matches and page relevance
 			confidence := float64(matches) / float64(len(patterns)) * page.RelevanceScore
-			
+
 			signals = append(signals, IndustrySignal{
 				Industry:   industry,
 				Signal:     fmt.Sprintf("%d keyword matches", matches),
