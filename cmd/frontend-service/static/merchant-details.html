@@ -2701,6 +2701,8 @@
             }
 
             switchTab(tabId) {
+                console.log('🔄 Switching to tab:', tabId);
+                
                 // Destroy existing charts to prevent canvas reuse errors
                 this.destroyExistingCharts();
                 
@@ -2713,8 +2715,25 @@
                 });
 
                 // Add active class to selected tab and button
-                document.getElementById(tabId).classList.add('active');
-                document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+                const tabElement = document.getElementById(tabId);
+                const buttonElement = document.querySelector(`[data-tab="${tabId}"]`);
+                
+                console.log('🔄 Tab element found:', !!tabElement);
+                console.log('🔄 Button element found:', !!buttonElement);
+                
+                if (tabElement) {
+                    tabElement.classList.add('active');
+                    console.log('🔄 Added active class to tab element');
+                } else {
+                    console.error('❌ Tab element not found for ID:', tabId);
+                }
+                
+                if (buttonElement) {
+                    buttonElement.classList.add('active');
+                    console.log('🔄 Added active class to button element');
+                } else {
+                    console.error('❌ Button element not found for data-tab:', tabId);
+                }
                 
                 // Progressive disclosure for sections in Merchant Details tab
                 if (tabId === 'merchant-details') {
