@@ -2985,6 +2985,12 @@
                         console.log('🔍 Populating Industry Classification section...');
                         populateCoreResults(this.apiResults.businessIntelligence);
                         populateEnhancedClassificationResults(this.apiResults.businessIntelligence);
+                        
+                        console.log('🔍 Populating Verification Insights section...');
+                        populateVerificationInsights(this.apiResults.businessIntelligence);
+                        
+                        console.log('🔍 Populating Data Reliability Insights section...');
+                        populateDataReliabilityInsights(this.apiResults.businessIntelligence);
                     } else {
                         console.log('🔍 No Business Intelligence data available, showing fallback content...');
                         this.showBusinessAnalyticsFallback();

@@ -2976,6 +2976,12 @@
                     console.log('🔍 Populating Industry Classification section...');
                     populateCoreResults(this.apiResults.businessIntelligence);
                     populateEnhancedClassificationResults(this.apiResults.businessIntelligence);
+                    
+                    console.log('🔍 Populating Verification Insights section...');
+                    populateVerificationInsights(this.apiResults.businessIntelligence);
+                    
+                    console.log('🔍 Populating Data Reliability Insights section...');
+                    populateDataReliabilityInsights(this.apiResults.businessIntelligence);
                 } else if (tabId === 'risk-assessment' && this.apiResults?.riskAssessment) {
                     console.log('🔍 Switching to Risk Assessment tab, populating data...');
                     this.populateRiskAssessmentResults(this.apiResults.riskAssessment);
@@ -3233,7 +3239,19 @@
         // Populate detailed verification insights
         function populateDetailedVerificationInsights(securityMetrics, qualityMetrics, verificationData) {
             const verificationDetailsContent = document.getElementById('verificationInsightsDetailsContent');
+            console.log('🔍 populateDetailedVerificationInsights called, content element found:', !!verificationDetailsContent);
             if (!verificationDetailsContent) return;
+            
+            // Auto-expand the section when content is populated
+            const expandableSection = document.getElementById('verificationInsightsDetails');
+            if (expandableSection) {
+                expandableSection.classList.add('expanded');
+                // Update the button text and icon
+                const toggleButton = document.querySelector('button[onclick="toggleSection(\'verificationInsightsDetails\')"]');
+                if (toggleButton) {
+                    toggleButton.innerHTML = '<i class="fas fa-chevron-up mr-1"></i>Hide Details';
+                }
+            }
             
             verificationDetailsContent.innerHTML = `
                 <div class="space-y-8">
