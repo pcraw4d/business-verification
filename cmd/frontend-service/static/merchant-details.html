@@ -4619,38 +4619,65 @@
             
             // Employee count
             if (employeeCountEl) {
-                const employeeCount = businessMetrics.employee_count || 
-                                    businessMetrics.employee_range || 
-                                    companyProfile.employee_count || 
-                                    'Data not available';
+                let employeeCount = 'Data not available';
+                if (businessMetrics.employee_count) {
+                    const emp = businessMetrics.employee_count;
+                    employeeCount = emp.value ? `${emp.value} (${emp.range})` : emp.range || 'Not available';
+                } else if (businessMetrics.employee_range) {
+                    employeeCount = businessMetrics.employee_range;
+                } else if (companyProfile.employee_count) {
+                    employeeCount = companyProfile.employee_count;
+                }
                 employeeCountEl.textContent = employeeCount;
             }
             
             // Revenue range
             if (revenueRangeEl) {
-                const revenue = businessMetrics.annual_revenue || 
-                               businessMetrics.revenue_range || 
-                               companyProfile.annual_revenue || 
-                               'Data not available';
+                let revenue = 'Data not available';
+                if (businessMetrics.revenue_range) {
+                    const rev = businessMetrics.revenue_range;
+                    if (rev.min && rev.max && rev.currency) {
+                        revenue = `${rev.currency} ${rev.min.toLocaleString()} - ${rev.max.toLocaleString()}`;
+                    } else {
+                        revenue = 'Not available';
+                    }
+                } else if (businessMetrics.annual_revenue) {
+                    revenue = businessMetrics.annual_revenue;
+                } else if (companyProfile.annual_revenue) {
+                    revenue = companyProfile.annual_revenue;
+                }
                 revenueRangeEl.textContent = revenue;
             }
             
             // Founded year
             if (foundedYearEl) {
-                const foundedYear = businessMetrics.founded_year || 
-                                   businessMetrics.established_year || 
-                                   companyProfile.founded_year || 
-                                   'Data not available';
+                let foundedYear = 'Data not available';
+                if (businessMetrics.founded_year) {
+                    const founded = businessMetrics.founded_year;
+                    foundedYear = founded.year || 'Not available';
+                } else if (businessMetrics.established_year) {
+                    foundedYear = businessMetrics.established_year;
+                } else if (companyProfile.founded_year) {
+                    foundedYear = companyProfile.founded_year;
+                }
                 foundedYearEl.textContent = foundedYear;
             }
             
             // Business location
             if (businessLocationEl) {
-                const location = businessMetrics.location || 
-                                businessMetrics.headquarters || 
-                                companyProfile.location || 
-                                companyProfile.headquarters || 
-                                'Data not available';
+                let location = 'Data not available';
+                if (businessMetrics.business_location) {
+                    const loc = businessMetrics.business_location;
+                    location = loc.city && loc.state ? `${loc.city}, ${loc.state}` : 'Not available';
+                } else if (businessMetrics.location) {
+                    location = businessMetrics.location;
+                } else if (businessMetrics.headquarters) {
+                    location = businessMetrics.headquarters;
+                } else if (companyProfile.location) {
+                    location = companyProfile.location;
+                } else if (companyProfile.headquarters) {
+                    location = companyProfile.headquarters;
+                }
                 businessLocationEl.textContent = location;
             }
             
