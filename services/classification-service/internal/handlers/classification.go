@@ -139,7 +139,6 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 		zap.Duration("processing_time", time.Since(startTime)))
 }
 
-
 // processClassification processes a classification request
 func (h *ClassificationHandler) processClassification(ctx context.Context, req *ClassificationRequest, startTime time.Time) (*ClassificationResponse, error) {
 	// Generate enhanced classification with smart crawling data

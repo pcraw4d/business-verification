@@ -4974,21 +4974,40 @@
             console.log('🧠 populateClassificationReasoning called with:', result);
             console.log('🧠 result.metadata:', result.metadata);
             console.log('🧠 result.classification_reasoning:', result.classification_reasoning);
+            console.log('🧠 result.response:', result.response);
             
-            // Extract reasoning from multiple sources
-            const smartCrawlingReasoning = result.metadata?.classification_reasoning || 
-                                         result.classification_reasoning || 
-                                         result.classification?.classification_reasoning;
+            // Extract reasoning from multiple sources - check the actual API response structure
+            let smartCrawlingReasoning = null;
+            let websiteAnalysis = null;
+            let smartCrawlingEnabled = false;
             
-            // Get website analysis data
-            const websiteAnalysis = result.metadata?.website_analysis || 
-                                  result.website_analysis || 
-                                  result.classification?.website_analysis;
+            // Check if we have the direct API response
+            if (result.response && result.response.metadata) {
+                smartCrawlingReasoning = result.response.metadata.classification_reasoning || result.response.classification_reasoning;
+                websiteAnalysis = result.response.metadata.website_analysis;
+                smartCrawlingEnabled = result.response.metadata.smart_crawling_enabled;
+            }
+            // Check if we have the processed result structure
+            else if (result.metadata) {
+                smartCrawlingReasoning = result.metadata.classification_reasoning || result.classification_reasoning;
+                websiteAnalysis = result.metadata.website_analysis;
+                smartCrawlingEnabled = result.metadata.smart_crawling_enabled;
+            }
+            // Fallback to direct properties
+            else {
+                smartCrawlingReasoning = result.classification_reasoning;
+                websiteAnalysis = result.website_analysis;
+                smartCrawlingEnabled = result.smart_crawling_enabled;
+            }
+            
+            console.log('🧠 Extracted smartCrawlingReasoning:', smartCrawlingReasoning);
+            console.log('🧠 Extracted websiteAnalysis:', websiteAnalysis);
+            console.log('🧠 Extracted smartCrawlingEnabled:', smartCrawlingEnabled);
             
             // Build enhanced reasoning display
             let reasoningHTML = '';
             
-            // Main reasoning - generate enhanced reasoning if not available
+            // Main reasoning - use the enhanced reasoning if available
             let reasoning = smartCrawlingReasoning;
             if (!reasoning) {
                 // Generate enhanced reasoning based on available data
@@ -5009,42 +5028,29 @@
             
             reasoningHTML += `<div class="mb-3"><p class="text-sm text-gray-600">${reasoning}</p></div>`;
             
-            // Generate website analysis insights if not available
-            let analysisData = websiteAnalysis;
-            if (!analysisData || !analysisData.success) {
-                // Generate realistic website analysis data
-                const websiteURL = result.website_url || 'https://greenegrape.com/';
-                analysisData = {
-                    success: true,
-                    pages_analyzed: 8,
-                    relevant_pages: 5,
-                    keywords_extracted: ['wine', 'grape', 'retail', 'beverage', 'store', 'shop', 'food', 'drink'],
-                    analysis_method: 'smart_crawling',
-                    processing_time: '1.2s'
-                };
-            }
-            
-            // Add website analysis insights
-            if (analysisData && analysisData.success) {
+            // Add website analysis insights if available
+            if (websiteAnalysis && websiteAnalysis.success) {
                 reasoningHTML += `<div class="mt-3 p-3 bg-blue-50 rounded-lg">`;
                 reasoningHTML += `<h6 class="font-medium text-blue-900 mb-2">🌐 Website Analysis Details</h6>`;
                 reasoningHTML += `<div class="text-sm text-blue-800 space-y-1">`;
-                reasoningHTML += `<p>• Analyzed <strong>${analysisData.pages_analyzed}</strong> pages with <strong>${analysisData.relevant_pages}</strong> relevant pages</p>`;
-                if (analysisData.keywords_extracted && analysisData.keywords_extracted.length > 0) {
-                    const keywordList = analysisData.keywords_extracted.slice(0, 5).join(', ');
+                reasoningHTML += `<p>• Analyzed <strong>${websiteAnalysis.pages_analyzed}</strong> pages with <strong>${websiteAnalysis.relevant_pages}</strong> relevant pages</p>`;
+                if (websiteAnalysis.keywords_extracted && websiteAnalysis.keywords_extracted.length > 0) {
+                    const keywordList = websiteAnalysis.keywords_extracted.slice(0, 5).join(', ');
                     reasoningHTML += `<p>• Extracted keywords: <strong>${keywordList}</strong></p>`;
                 }
-                if (analysisData.analysis_method) {
-                    reasoningHTML += `<p>• Analysis method: <strong>${analysisData.analysis_method}</strong></p>`;
+                if (websiteAnalysis.analysis_method) {
+                    reasoningHTML += `<p>• Analysis method: <strong>${websiteAnalysis.analysis_method}</strong></p>`;
                 }
-                if (analysisData.processing_time) {
-                    reasoningHTML += `<p>• Processing time: <strong>${analysisData.processing_time}</strong></p>`;
+                if (websiteAnalysis.processing_time) {
+                    reasoningHTML += `<p>• Processing time: <strong>${websiteAnalysis.processing_time}</strong></p>`;
                 }
                 reasoningHTML += `</div></div>`;
             }
             
             // Add smart crawling indicator
-            reasoningHTML += `<div class="mt-2 text-xs text-green-600 font-medium">✅ Enhanced with Smart Crawling Technology</div>`;
+            if (smartCrawlingEnabled) {
+                reasoningHTML += `<div class="mt-2 text-xs text-green-600 font-medium">✅ Enhanced with Smart Crawling Technology</div>`;
+            }
             
             container.innerHTML = reasoningHTML;
         }
