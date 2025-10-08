@@ -2962,6 +2962,20 @@
                 if (tabId === 'business-analytics' && this.apiResults?.businessIntelligence) {
                     console.log('🔍 Switching to Business Analytics tab, populating data...');
                     this.populateBusinessIntelligenceResults(this.apiResults.businessIntelligence);
+                    
+                    // Populate other sections with real data
+                    console.log('🔍 Populating Business Registration section...');
+                    populateBusinessRegistration(this.apiResults.businessIntelligence);
+                    
+                    console.log('🔍 Populating Address Verification section...');
+                    populateAddressVerification(this.apiResults.businessIntelligence);
+                    
+                    console.log('🔍 Populating Online Presence section...');
+                    populateOnlinePresence(this.apiResults.businessIntelligence);
+                    
+                    console.log('🔍 Populating Industry Classification section...');
+                    populateCoreResults(this.apiResults.businessIntelligence);
+                    populateEnhancedClassificationResults(this.apiResults.businessIntelligence);
                 } else if (tabId === 'risk-assessment' && this.apiResults?.riskAssessment) {
                     console.log('🔍 Switching to Risk Assessment tab, populating data...');
                     this.populateRiskAssessmentResults(this.apiResults.riskAssessment);

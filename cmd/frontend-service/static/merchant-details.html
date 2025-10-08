@@ -2834,8 +2834,19 @@
                         console.log('🔍 Populating Business Analytics with data...');
                         this.populateBusinessIntelligenceResults(this.apiResults.businessIntelligence);
                         
-                        // TODO: Populate other sections with real data
-                        console.log('🔍 TODO: Populate other sections (Business Registration, Address Verification, Industry Classification, Online Presence) with real data');
+                        // Populate other sections with real data
+                        console.log('🔍 Populating Business Registration section...');
+                        populateBusinessRegistration(this.apiResults.businessIntelligence);
+                        
+                        console.log('🔍 Populating Address Verification section...');
+                        populateAddressVerification(this.apiResults.businessIntelligence);
+                        
+                        console.log('🔍 Populating Online Presence section...');
+                        populateOnlinePresence(this.apiResults.businessIntelligence);
+                        
+                        console.log('🔍 Populating Industry Classification section...');
+                        populateCoreResults(this.apiResults.businessIntelligence);
+                        populateEnhancedClassificationResults(this.apiResults.businessIntelligence);
                     } else {
                         console.log('🔍 No Business Intelligence data available, showing fallback content...');
                         this.showBusinessAnalyticsFallback();
