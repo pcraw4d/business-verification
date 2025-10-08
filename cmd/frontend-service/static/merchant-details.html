@@ -2654,82 +2654,16 @@
                 
                 // Handle Business Intelligence API response format
                 if (data.success && data.business_intelligence) {
-                    const bi = data.business_intelligence;
-                    const metrics = bi.business_metrics || {};
-                    const profile = bi.company_profile || {};
-                    const financial = bi.financial_metrics || {};
-                    const market = bi.market_analysis || {};
+                    console.log('🔍 Calling populateBusinessIntelligence with data:', data);
                     
-                    console.log('🔍 Parsed BI data:', { metrics, profile, financial, market });
-                    
-                    // Update the Business Intelligence section with actual data
-                    this.updateBusinessIntelligenceDisplay(metrics, profile, financial, market);
+                    // Call the existing function that properly handles the Business Analytics tab
+                    populateBusinessIntelligence(data);
                 } else {
                     console.log('🔍 No valid Business Intelligence data found');
                     this.showBusinessAnalyticsFallback();
                 }
             }
 
-            updateBusinessIntelligenceDisplay(metrics, profile, financial, market) {
-                console.log('🔍 Updating Business Intelligence display with parsed data');
-                
-                // Update employee count
-                const employeeCountEl = document.querySelector('[data-metric="employee-count"] .metric-value');
-                if (employeeCountEl && metrics.employee_count) {
-                    const emp = metrics.employee_count;
-                    employeeCountEl.textContent = emp.value ? `${emp.value} (${emp.range})` : 'Not available';
-                }
-                
-                // Update revenue range
-                const revenueEl = document.querySelector('[data-metric="revenue-range"] .metric-value');
-                if (revenueEl && metrics.revenue_range) {
-                    const rev = metrics.revenue_range;
-                    if (rev.min && rev.max && rev.currency) {
-                        revenueEl.textContent = `${rev.currency} ${rev.min.toLocaleString()} - ${rev.max.toLocaleString()}`;
-                    } else {
-                        revenueEl.textContent = 'Not available';
-                    }
-                }
-                
-                // Update founded year
-                const foundedEl = document.querySelector('[data-metric="founded-year"] .metric-value');
-                if (foundedEl && metrics.founded_year) {
-                    foundedEl.textContent = metrics.founded_year.year || 'Not available';
-                }
-                
-                // Update business location
-                const locationEl = document.querySelector('[data-metric="business-location"] .metric-value');
-                if (locationEl && metrics.business_location) {
-                    const loc = metrics.business_location;
-                    locationEl.textContent = loc.city && loc.state ? `${loc.city}, ${loc.state}` : 'Not available';
-                }
-                
-                // Update company profile fields
-                this.updateTextContent('.company-type', profile.business_type || 'Not specified');
-                this.updateTextContent('.industry', profile.industry || 'Not specified');
-                this.updateTextContent('.business-model', profile.business_model || 'Not specified');
-                this.updateTextContent('.ownership', profile.ownership || 'Not specified');
-                this.updateTextContent('.employee-range', metrics.employee_count?.range || 'Not specified');
-                this.updateTextContent('.years-in-business', metrics.founded_year?.year ? `${new Date().getFullYear() - metrics.founded_year.year} years` : 'Not specified');
-                this.updateTextContent('.growth-stage', profile.growth_stage || 'Not specified');
-                
-                // Update market analysis
-                this.updateTextContent('.market-size', market.market_size || 'Not specified');
-                this.updateTextContent('.competition-level', market.competition_level || 'Not specified');
-                this.updateTextContent('.growth-potential', market.growth_potential || 'Not specified');
-                
-                // Update financial metrics
-                this.updateTextContent('.profitability', financial.profitability || 'Not specified');
-                this.updateTextContent('.credit-risk', financial.credit_risk || 'Not specified');
-                this.updateTextContent('.financial-health', financial.financial_health || 'Not specified');
-            }
-
-            updateTextContent(selector, value) {
-                const element = document.querySelector(selector);
-                if (element) {
-                    element.textContent = value;
-                }
-            }
 
             populateRiskAssessmentResults(data) {
                 console.log('Populating Risk Assessment results:', data);
