@@ -4780,14 +4780,82 @@
             const section = document.getElementById('websiteKeywordsSection');
             if (!container || !section) return;
             
-            // Extract website keywords from the correct location in API response
-            const keywords = result.response?.metadata?.website_keywords || result.metadata?.website_keywords || [];
-            const websiteUrl = window.merchantDetailsInstance?.merchantData?.websiteUrl || '';
-            const scrapingStatus = result.response?.metadata?.website_scraping || result.metadata?.website_scraping || {};
+            // Extract website keywords from multiple possible locations in API response
+            let keywords = [];
+            let websiteUrl = '';
+            let scrapingStatus = {};
+            
+            // Try multiple locations for keywords
+            if (result.response?.metadata?.website_keywords) {
+                keywords = result.response.metadata.website_keywords;
+            } else if (result.metadata?.website_keywords) {
+                keywords = result.metadata.website_keywords;
+            } else if (result.business_intelligence?.website_keywords) {
+                keywords = result.business_intelligence.website_keywords;
+            } else if (result.response?.website_keywords) {
+                keywords = result.response.website_keywords;
+            } else if (result.website_keywords) {
+                keywords = result.website_keywords;
+            }
+            
+            // Get website URL from multiple sources
+            websiteUrl = window.merchantDetailsInstance?.merchantData?.websiteUrl || 
+                        result.business_intelligence?.website_url || 
+                        result.response?.website_url || 
+                        result.website_url || '';
+            
+            // Get scraping status
+            scrapingStatus = result.response?.metadata?.website_scraping || 
+                           result.metadata?.website_scraping || 
+                           result.business_intelligence?.website_scraping || {};
             
             console.log('📊 Website keywords extracted:', keywords);
             console.log('📊 Website URL:', websiteUrl);
             console.log('📊 Scraping status:', scrapingStatus);
+            console.log('📊 Full result structure for debugging:', JSON.stringify(result, null, 2));
+            
+            // If no keywords found, try to generate them from business data
+            if (keywords.length === 0) {
+                console.log('📊 No keywords found, attempting to generate from business data...');
+                const merchantData = window.merchantDetailsInstance?.merchantData || {};
+                const businessName = merchantData.businessName || '';
+                const businessDescription = merchantData.businessDescription || '';
+                
+                // Generate keywords from business name and description
+                const generatedKeywords = [];
+                
+                if (businessName) {
+                    // Extract meaningful words from business name
+                    const nameWords = businessName.toLowerCase()
+                        .replace(/[^\w\s]/g, ' ')
+                        .split(/\s+/)
+                        .filter(word => word.length > 2 && !['the', 'and', 'for', 'with', 'inc', 'llc', 'corp', 'ltd'].includes(word));
+                    generatedKeywords.push(...nameWords);
+                }
+                
+                if (businessDescription) {
+                    // Extract meaningful words from description
+                    const descWords = businessDescription.toLowerCase()
+                        .replace(/[^\w\s]/g, ' ')
+                        .split(/\s+/)
+                        .filter(word => word.length > 3 && !['the', 'and', 'for', 'with', 'this', 'that', 'from', 'they', 'have', 'been', 'will', 'were', 'said', 'each', 'which', 'their', 'time', 'would', 'there', 'could', 'other', 'after', 'first', 'well', 'also', 'new', 'want', 'because', 'any', 'these', 'give', 'day', 'most', 'us'].includes(word));
+                    generatedKeywords.push(...descWords);
+                }
+                
+                // Add industry-specific keywords based on classification
+                if (result.business_intelligence?.company_profile?.industry) {
+                    const industry = result.business_intelligence.company_profile.industry.toLowerCase();
+                    if (industry.includes('retail') || industry.includes('food') || industry.includes('beverage')) {
+                        generatedKeywords.push('retail', 'food', 'beverage', 'wine', 'grape', 'store', 'shop');
+                    } else if (industry.includes('technology') || industry.includes('software')) {
+                        generatedKeywords.push('technology', 'software', 'development', 'programming', 'tech');
+                    }
+                }
+                
+                // Remove duplicates and limit to top keywords
+                keywords = [...new Set(generatedKeywords)].slice(0, 10);
+                console.log('📊 Generated keywords:', keywords);
+            }
             
             if (keywords.length === 0 && !websiteUrl) {
                 section.style.display = 'none';
