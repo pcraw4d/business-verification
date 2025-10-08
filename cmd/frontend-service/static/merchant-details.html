@@ -2724,6 +2724,13 @@
                 if (tabElement) {
                     tabElement.classList.add('active');
                     console.log('🔄 Added active class to tab element');
+                    
+                    // Check computed styles
+                    const computedStyle = window.getComputedStyle(tabElement);
+                    console.log('🔄 Tab element display:', computedStyle.display);
+                    console.log('🔄 Tab element visibility:', computedStyle.visibility);
+                    console.log('🔄 Tab element opacity:', computedStyle.opacity);
+                    console.log('🔄 Tab element has active class:', tabElement.classList.contains('active'));
                 } else {
                     console.error('❌ Tab element not found for ID:', tabId);
                 }
