@@ -4437,6 +4437,9 @@
         function populateVerificationStatus(result) {
             console.log('🔍 populateVerificationStatus called with:', result);
             
+            // Extract verification status from API response
+            const verificationStatus = result.verification_status || {};
+            
             const verificationStatusEl = document.getElementById('verificationStatus');
             const processingTimeEl = document.getElementById('processingTime');
             const dataSourcesEl = document.getElementById('dataSources');
@@ -4447,9 +4450,21 @@
                 dataSources: !!dataSourcesEl
             });
             
-            if (verificationStatusEl) verificationStatusEl.textContent = 'Complete';
-            if (processingTimeEl) processingTimeEl.textContent = '0.5s';
-            if (dataSourcesEl) dataSourcesEl.textContent = '5 sources';
+            // Update status with real data
+            if (verificationStatusEl) {
+                const status = verificationStatus.status || 'Complete';
+                verificationStatusEl.textContent = status.replace(/_/g, ' ');
+            }
+            
+            if (processingTimeEl) {
+                const processingTime = verificationStatus.processing_time || '0.5s';
+                processingTimeEl.textContent = typeof processingTime === 'string' ? processingTime : `${processingTime}ms`;
+            }
+            
+            if (dataSourcesEl) {
+                const dataSources = verificationStatus.data_sources || ['5 sources'];
+                dataSourcesEl.textContent = `${dataSources.length} sources`;
+            }
             
             // Populate verification checks with enhanced details (Website and Address only)
             const checksContainer = document.getElementById('verificationDetailsContent');
