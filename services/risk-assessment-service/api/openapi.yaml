@@ -1,0 +1,759 @@
+openapi: 3.0.3
+info:
+  title: Risk Assessment Service API
+  description: |
+    Comprehensive risk assessment and predictive analytics API for business verification.
+    Provides real-time risk assessment, compliance screening, and predictive analytics
+    with sub-1-second response times and 3-12 month forecasting capabilities.
+  version: 1.0.0
+  contact:
+    name: KYB Platform API Support
+    email: api-support@kyb-platform.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://risk-assessment-service-production.up.railway.app/api/v1
+    description: Production server
+  - url: https://risk-assessment-service-staging.up.railway.app/api/v1
+    description: Staging server
+  - url: http://localhost:8080/api/v1
+    description: Local development server
+
+paths:
+  /assess:
+    post:
+      summary: Perform risk assessment
+      description: |
+        Performs comprehensive risk assessment including:
+        - Financial risk analysis
+        - Operational risk evaluation
+        - Compliance screening
+        - Regulatory risk assessment
+        - Predictive analytics (3-12 months)
+      operationId: assessRisk
+      tags:
+        - Risk Assessment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RiskAssessmentRequest'
+            examples:
+              basic_assessment:
+                summary: Basic business risk assessment
+                value:
+                  business_name: "Acme Corporation"
+                  business_address: "123 Main St, Anytown, ST 12345"
+                  industry: "Technology"
+                  country: "US"
+                  phone: "+1-555-123-4567"
+                  email: "contact@acme.com"
+                  website: "https://www.acme.com"
+                  prediction_horizon: 3
+              extended_assessment:
+                summary: Extended risk assessment with metadata
+                value:
+                  business_name: "Global Tech Solutions"
+                  business_address: "456 Business Ave, Metropolis, NY 10001"
+                  industry: "Financial Services"
+                  country: "US"
+                  phone: "+1-555-987-6543"
+                  email: "info@globaltech.com"
+                  website: "https://www.globaltech.com"
+                  prediction_horizon: 6
+                  metadata:
+                    annual_revenue: 5000000
+                    employee_count: 50
+                    years_in_business: 10
+      responses:
+        '200':
+          description: Risk assessment completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskAssessmentResponse'
+              examples:
+                successful_assessment:
+                  summary: Successful risk assessment
+                  value:
+                    id: "risk_1703123456789"
+                    business_id: "biz_123456789"
+                    risk_score: 0.75
+                    risk_level: "medium"
+                    risk_factors:
+                      - category: "financial"
+                        name: "Credit Score"
+                        score: 0.8
+                        weight: 0.3
+                        description: "Business credit score analysis"
+                        source: "internal"
+                        confidence: 0.9
+                      - category: "compliance"
+                        name: "Regulatory Compliance"
+                        score: 0.6
+                        weight: 0.4
+                        description: "Regulatory compliance check"
+                        source: "external"
+                        confidence: 0.8
+                    prediction_horizon: 3
+                    confidence_score: 0.85
+                    status: "completed"
+                    created_at: "2023-12-21T10:30:00Z"
+                    updated_at: "2023-12-21T10:30:00Z"
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+        '429':
+          description: Rate limit exceeded
+        '500':
+          description: Internal server error
+
+  /assess/{id}:
+    get:
+      summary: Get risk assessment by ID
+      description: Retrieves a specific risk assessment by its ID
+      operationId: getRiskAssessment
+      tags:
+        - Risk Assessment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Risk assessment ID
+          schema:
+            type: string
+            example: "risk_1703123456789"
+      responses:
+        '200':
+          description: Risk assessment retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskAssessmentResponse'
+        '404':
+          description: Risk assessment not found
+        '500':
+          description: Internal server error
+
+  /assess/{id}/predict:
+    post:
+      summary: Generate risk prediction
+      description: Generates risk predictions for future time periods using ML models
+      operationId: predictRisk
+      tags:
+        - Risk Prediction
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Risk assessment ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                horizon_months:
+                  type: integer
+                  minimum: 1
+                  maximum: 12
+                  description: Prediction horizon in months
+                  example: 6
+                scenarios:
+                  type: array
+                  items:
+                    type: string
+                  description: Risk scenarios to analyze
+                  example: ["optimistic", "realistic", "pessimistic"]
+      responses:
+        '200':
+          description: Risk prediction generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskPrediction'
+        '404':
+          description: Risk assessment not found
+        '500':
+          description: Internal server error
+
+  /compliance/check:
+    post:
+      summary: Perform compliance check
+      description: Performs comprehensive compliance screening including OFAC, UN, and EU sanctions
+      operationId: checkCompliance
+      tags:
+        - Compliance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                entity_name:
+                  type: string
+                  description: Name of the entity to check
+                  example: "Acme Corporation"
+                entity_type:
+                  type: string
+                  enum: [individual, organization, vessel, aircraft]
+                  description: Type of entity
+                  example: "organization"
+                country:
+                  type: string
+                  description: Country code
+                  example: "US"
+      responses:
+        '200':
+          description: Compliance check completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceCheck'
+        '400':
+          description: Invalid request
+        '500':
+          description: Internal server error
+
+  /sanctions/screen:
+    post:
+      summary: Screen against sanctions lists
+      description: Screens entity against OFAC, UN, EU, and other sanctions lists
+      operationId: screenSanctions
+      tags:
+        - Compliance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                entity_name:
+                  type: string
+                  description: Name of the entity to screen
+                  example: "John Doe"
+                entity_type:
+                  type: string
+                  enum: [individual, organization, vessel, aircraft]
+                  description: Type of entity
+                  example: "individual"
+      responses:
+        '200':
+          description: Sanctions screening completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SanctionsCheck'
+        '400':
+          description: Invalid request
+        '500':
+          description: Internal server error
+
+  /media/monitor:
+    post:
+      summary: Monitor adverse media
+      description: Monitors for adverse media mentions and sentiment analysis
+      operationId: monitorAdverseMedia
+      tags:
+        - Media Monitoring
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                entity_name:
+                  type: string
+                  description: Name of the entity to monitor
+                  example: "Acme Corporation"
+                keywords:
+                  type: array
+                  items:
+                    type: string
+                  description: Additional keywords to monitor
+                  example: ["fraud", "scandal", "investigation"]
+                days_back:
+                  type: integer
+                  description: Number of days to look back
+                  example: 30
+      responses:
+        '200':
+          description: Media monitoring completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdverseMedia'
+        '400':
+          description: Invalid request
+        '500':
+          description: Internal server error
+
+  /analytics/trends:
+    get:
+      summary: Get risk trends
+      description: Retrieves risk trend analytics and insights
+      operationId: getRiskTrends
+      tags:
+        - Analytics
+      parameters:
+        - name: industry
+          in: query
+          description: Filter by industry
+          schema:
+            type: string
+        - name: country
+          in: query
+          description: Filter by country
+          schema:
+            type: string
+        - name: days
+          in: query
+          description: Number of days to analyze
+          schema:
+            type: integer
+            default: 30
+      responses:
+        '200':
+          description: Risk trends retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trends:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RiskTrend'
+                  insights:
+                    type: array
+                    items:
+                      type: string
+        '500':
+          description: Internal server error
+
+components:
+  schemas:
+    RiskAssessmentRequest:
+      type: object
+      required:
+        - business_name
+        - business_address
+        - industry
+        - country
+      properties:
+        business_name:
+          type: string
+          description: Business name
+          example: "Acme Corporation"
+          minLength: 1
+          maxLength: 255
+        business_address:
+          type: string
+          description: Business address
+          example: "123 Main St, Anytown, ST 12345"
+          minLength: 10
+          maxLength: 500
+        industry:
+          type: string
+          description: Business industry
+          example: "Technology"
+          minLength: 1
+          maxLength: 100
+        country:
+          type: string
+          description: Country code (ISO 3166-1 alpha-2)
+          example: "US"
+          pattern: '^[A-Z]{2}$'
+        phone:
+          type: string
+          description: Business phone number
+          example: "+1-555-123-4567"
+          pattern: '^\\+[1-9]\\d{1,14}$'
+        email:
+          type: string
+          description: Business email address
+          example: "contact@acme.com"
+          format: email
+        website:
+          type: string
+          description: Business website
+          example: "https://www.acme.com"
+          format: uri
+        prediction_horizon:
+          type: integer
+          description: Prediction horizon in months
+          example: 3
+          minimum: 1
+          maximum: 12
+        metadata:
+          type: object
+          description: Additional metadata
+          additionalProperties: true
+
+    RiskAssessmentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Risk assessment ID
+          example: "risk_1703123456789"
+        business_id:
+          type: string
+          description: Business ID
+          example: "biz_123456789"
+        risk_score:
+          type: number
+          format: float
+          description: Overall risk score (0-1)
+          example: 0.75
+          minimum: 0
+          maximum: 1
+        risk_level:
+          type: string
+          enum: [low, medium, high, critical]
+          description: Risk level classification
+          example: "medium"
+        risk_factors:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskFactor'
+        prediction_horizon:
+          type: integer
+          description: Prediction horizon in months
+          example: 3
+        confidence_score:
+          type: number
+          format: float
+          description: Confidence score for the assessment
+          example: 0.85
+          minimum: 0
+          maximum: 1
+        status:
+          type: string
+          enum: [pending, completed, failed, error]
+          description: Assessment status
+          example: "completed"
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+        metadata:
+          type: object
+          description: Additional metadata
+          additionalProperties: true
+
+    RiskFactor:
+      type: object
+      properties:
+        category:
+          type: string
+          enum: [financial, operational, compliance, reputational, regulatory, geopolitical, technology, environmental]
+          description: Risk category
+          example: "financial"
+        name:
+          type: string
+          description: Risk factor name
+          example: "Credit Score"
+        score:
+          type: number
+          format: float
+          description: Risk factor score (0-1)
+          example: 0.8
+          minimum: 0
+          maximum: 1
+        weight:
+          type: number
+          format: float
+          description: Weight of this factor in overall score
+          example: 0.3
+          minimum: 0
+          maximum: 1
+        description:
+          type: string
+          description: Risk factor description
+          example: "Business credit score analysis"
+        source:
+          type: string
+          description: Data source
+          example: "internal"
+        confidence:
+          type: number
+          format: float
+          description: Confidence in this factor (0-1)
+          example: 0.9
+          minimum: 0
+          maximum: 1
+
+    RiskPrediction:
+      type: object
+      properties:
+        business_id:
+          type: string
+          description: Business ID
+          example: "biz_123456789"
+        prediction_date:
+          type: string
+          format: date-time
+          description: Date of prediction
+        horizon_months:
+          type: integer
+          description: Prediction horizon in months
+          example: 6
+        predicted_score:
+          type: number
+          format: float
+          description: Predicted risk score
+          example: 0.82
+        predicted_level:
+          type: string
+          enum: [low, medium, high, critical]
+          description: Predicted risk level
+          example: "high"
+        confidence_score:
+          type: number
+          format: float
+          description: Confidence in prediction
+          example: 0.78
+        risk_factors:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskFactor'
+        scenario_analysis:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScenarioAnalysis'
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp
+
+    ScenarioAnalysis:
+      type: object
+      properties:
+        scenario_name:
+          type: string
+          description: Scenario name
+          example: "optimistic"
+        description:
+          type: string
+          description: Scenario description
+          example: "Best case scenario with favorable market conditions"
+        risk_score:
+          type: number
+          format: float
+          description: Risk score for this scenario
+          example: 0.65
+        risk_level:
+          type: string
+          enum: [low, medium, high, critical]
+          description: Risk level for this scenario
+          example: "medium"
+        probability:
+          type: number
+          format: float
+          description: Probability of this scenario
+          example: 0.3
+        impact:
+          type: string
+          description: Impact description
+          example: "Low impact on business operations"
+
+    ComplianceCheck:
+      type: object
+      properties:
+        check_type:
+          type: string
+          description: Type of compliance check
+          example: "OFAC"
+        status:
+          type: string
+          enum: [passed, failed, warning, error]
+          description: Check status
+          example: "passed"
+        description:
+          type: string
+          description: Check description
+          example: "OFAC sanctions screening completed"
+        risk_level:
+          type: string
+          enum: [low, medium, high, critical]
+          description: Risk level
+          example: "low"
+        details:
+          type: object
+          description: Additional check details
+          additionalProperties: true
+        checked_at:
+          type: string
+          format: date-time
+          description: Check timestamp
+        next_check_at:
+          type: string
+          format: date-time
+          description: Next check due date
+
+    SanctionsCheck:
+      type: object
+      properties:
+        entity_name:
+          type: string
+          description: Entity name
+          example: "John Doe"
+        entity_type:
+          type: string
+          enum: [individual, organization, vessel, aircraft]
+          description: Entity type
+          example: "individual"
+        match_type:
+          type: string
+          enum: [exact, partial, fuzzy, none]
+          description: Match type
+          example: "none"
+        match_score:
+          type: number
+          format: float
+          description: Match score (0-1)
+          example: 0.0
+        sanctions_list:
+          type: string
+          description: Sanctions list name
+          example: "OFAC SDN"
+        details:
+          type: object
+          description: Match details
+          additionalProperties: true
+        checked_at:
+          type: string
+          format: date-time
+          description: Check timestamp
+
+    AdverseMedia:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Article title
+          example: "Company faces regulatory investigation"
+        source:
+          type: string
+          description: Media source
+          example: "Financial Times"
+        url:
+          type: string
+          format: uri
+          description: Article URL
+          example: "https://ft.com/content/123456"
+        published_at:
+          type: string
+          format: date-time
+          description: Publication date
+        sentiment:
+          type: string
+          enum: [positive, neutral, negative]
+          description: Sentiment analysis
+          example: "negative"
+        risk_level:
+          type: string
+          enum: [low, medium, high, critical]
+          description: Risk level
+          example: "high"
+        summary:
+          type: string
+          description: Article summary
+          example: "Company under investigation for regulatory violations"
+        keywords:
+          type: array
+          items:
+            type: string
+          description: Relevant keywords
+          example: ["investigation", "regulatory", "violations"]
+
+    RiskTrend:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+          description: Trend date
+        average_risk_score:
+          type: number
+          format: float
+          description: Average risk score for the date
+          example: 0.72
+        risk_level_distribution:
+          type: object
+          properties:
+            low:
+              type: integer
+              description: Number of low risk assessments
+            medium:
+              type: integer
+              description: Number of medium risk assessments
+            high:
+              type: integer
+              description: Number of high risk assessments
+            critical:
+              type: integer
+              description: Number of critical risk assessments
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: "Invalid request data"
+        code:
+          type: string
+          description: Error code
+          example: "VALIDATION_ERROR"
+        details:
+          type: object
+          description: Additional error details
+          additionalProperties: true
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: API key for authentication
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication
+
+security:
+  - ApiKeyAuth: []
+  - BearerAuth: []
+
+tags:
+  - name: Risk Assessment
+    description: Core risk assessment operations
+  - name: Risk Prediction
+    description: ML-powered risk prediction and forecasting
+  - name: Compliance
+    description: Compliance screening and sanctions checking
+  - name: Media Monitoring
+    description: Adverse media monitoring and sentiment analysis
+  - name: Analytics
+    description: Risk analytics and insights

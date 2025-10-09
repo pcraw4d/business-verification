@@ -21,3 +21,5 @@ use ./services/api-gateway
 use ./services/classification-service
 
 use ./services/merchant-service
+
+use ./services/risk-assessment-service

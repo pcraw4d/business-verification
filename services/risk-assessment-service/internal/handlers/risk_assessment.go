@@ -1,0 +1,580 @@
+package handlers
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"time"
+
+	"go.uber.org/zap"
+
+	"kyb-platform/services/risk-assessment-service/internal/config"
+	"kyb-platform/services/risk-assessment-service/internal/engine"
+	"kyb-platform/services/risk-assessment-service/internal/external"
+	"kyb-platform/services/risk-assessment-service/internal/middleware"
+	"kyb-platform/services/risk-assessment-service/internal/ml/service"
+	"kyb-platform/services/risk-assessment-service/internal/models"
+	"kyb-platform/services/risk-assessment-service/internal/supabase"
+	"kyb-platform/services/risk-assessment-service/internal/validation"
+)
+
+// RiskAssessmentHandler handles risk assessment requests
+type RiskAssessmentHandler struct {
+	supabaseClient   *supabase.Client
+	mlService        *service.MLService
+	riskEngine       *engine.RiskEngine
+	externalDataService *external.ExternalDataService
+	logger           *zap.Logger
+	config           *config.Config
+	validator        *validation.Validator
+	errorHandler     *middleware.ErrorHandler
+}
+
+// NewRiskAssessmentHandler creates a new risk assessment handler
+func NewRiskAssessmentHandler(
+	supabaseClient *supabase.Client,
+	mlService *service.MLService,
+	riskEngine *engine.RiskEngine,
+	externalDataService *external.ExternalDataService,
+	logger *zap.Logger,
+	config *config.Config,
+) *RiskAssessmentHandler {
+	return &RiskAssessmentHandler{
+		supabaseClient:     supabaseClient,
+		mlService:          mlService,
+		riskEngine:         riskEngine,
+		externalDataService: externalDataService,
+		logger:             logger,
+		config:             config,
+		validator:          validation.NewValidator(),
+		errorHandler:       middleware.NewErrorHandler(logger),
+	}
+}
+
+// HandleRiskAssessment handles POST /api/v1/assess
+func (h *RiskAssessmentHandler) HandleRiskAssessment(w http.ResponseWriter, r *http.Request) {
+	h.logger.Info("Processing risk assessment request")
+
+	// Parse request
+	var req models.RiskAssessmentRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.errorHandler.HandleError(w, r, fmt.Errorf("invalid request body: %w", err))
+		return
+	}
+
+	// Sanitize input
+	req.BusinessName = h.validator.SanitizeInput(req.BusinessName)
+	req.BusinessAddress = h.validator.SanitizeInput(req.BusinessAddress)
+	req.Industry = h.validator.SanitizeInput(req.Industry)
+	req.Country = h.validator.SanitizeInput(req.Country)
+	if req.Phone != "" {
+		req.Phone = h.validator.SanitizeInput(req.Phone)
+	}
+	if req.Email != "" {
+		req.Email = h.validator.SanitizeInput(req.Email)
+	}
+	if req.Website != "" {
+		req.Website = h.validator.SanitizeInput(req.Website)
+	}
+
+	// Validate request using comprehensive validator
+	validationResult := h.validator.ValidateRiskAssessmentRequest(&req)
+	if !validationResult.Valid {
+		h.logger.Error("Request validation failed",
+			zap.Any("errors", validationResult.Errors),
+			zap.Any("warnings", validationResult.Warnings))
+
+		// Create detailed validation error response
+		errorDetail := middleware.ErrorDetail{
+			Code:       "VALIDATION_ERROR",
+			Message:    "Request validation failed",
+			Validation: make([]middleware.ValidationError, len(validationResult.Errors)),
+		}
+
+		for i, err := range validationResult.Errors {
+			errorDetail.Validation[i] = middleware.ValidationError{
+				Field:   err.Field,
+				Message: err.Message,
+				Code:    err.Code,
+			}
+		}
+
+		errorResponse := middleware.ErrorResponse{
+			Error:     errorDetail,
+			RequestID: middleware.GetRequestID(r.Context()),
+			Timestamp: time.Now().UTC().Format(time.RFC3339),
+			Path:      r.URL.Path,
+			Method:    r.Method,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(errorResponse)
+		return
+	}
+
+	// Log warnings if any
+	if len(validationResult.Warnings) > 0 {
+		h.logger.Warn("Request validation warnings", zap.Any("warnings", validationResult.Warnings))
+	}
+
+	// Use high-performance risk engine for assessment
+	assessment, err := h.riskEngine.AssessRisk(r.Context(), &req)
+	if err != nil {
+		h.logger.Error("Risk assessment failed", zap.Error(err))
+		h.errorHandler.HandleError(w, r, fmt.Errorf("risk assessment failed: %w", err))
+		return
+	}
+
+	// Create response
+	response := &models.RiskAssessmentResponse{
+		ID:                assessment.ID,
+		BusinessID:        assessment.BusinessID,
+		RiskScore:         assessment.RiskScore,
+		RiskLevel:         assessment.RiskLevel,
+		RiskFactors:       assessment.RiskFactors,
+		PredictionHorizon: assessment.PredictionHorizon,
+		ConfidenceScore:   assessment.ConfidenceScore,
+		Status:            assessment.Status,
+		CreatedAt:         assessment.CreatedAt,
+		UpdatedAt:         assessment.UpdatedAt,
+		Metadata:          assessment.Metadata,
+	}
+
+	// Return response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+
+	h.logger.Info("Risk assessment completed",
+		zap.String("assessment_id", assessment.ID),
+		zap.Float64("risk_score", assessment.RiskScore),
+		zap.String("risk_level", string(assessment.RiskLevel)))
+}
+
+// HandleGetRiskAssessment handles GET /api/v1/assess/{id}
+func (h *RiskAssessmentHandler) HandleGetRiskAssessment(w http.ResponseWriter, r *http.Request) {
+	// TODO: Implement get risk assessment by ID
+	http.Error(w, "Not implemented", http.StatusNotImplemented)
+}
+
+// HandleRiskPrediction handles POST /api/v1/assess/{id}/predict
+func (h *RiskAssessmentHandler) HandleRiskPrediction(w http.ResponseWriter, r *http.Request) {
+	h.logger.Info("Processing risk prediction request")
+
+	// Parse request body for prediction parameters
+	var predictionReq struct {
+		HorizonMonths int      `json:"horizon_months"`
+		Scenarios     []string `json:"scenarios,omitempty"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&predictionReq); err != nil {
+		h.errorHandler.HandleError(w, r, fmt.Errorf("invalid request body: %w", err))
+		return
+	}
+
+	// Sanitize scenarios
+	for i, scenario := range predictionReq.Scenarios {
+		predictionReq.Scenarios[i] = h.validator.SanitizeInput(scenario)
+	}
+
+	// Validate prediction request
+	validationResult := h.validator.ValidatePredictionRequest(predictionReq.HorizonMonths, predictionReq.Scenarios)
+	if !validationResult.Valid {
+		h.logger.Error("Prediction request validation failed",
+			zap.Any("errors", validationResult.Errors),
+			zap.Any("warnings", validationResult.Warnings))
+
+		// Create detailed validation error response
+		errorDetail := middleware.ErrorDetail{
+			Code:       "VALIDATION_ERROR",
+			Message:    "Prediction request validation failed",
+			Validation: make([]middleware.ValidationError, len(validationResult.Errors)),
+		}
+
+		for i, err := range validationResult.Errors {
+			errorDetail.Validation[i] = middleware.ValidationError{
+				Field:   err.Field,
+				Message: err.Message,
+				Code:    err.Code,
+			}
+		}
+
+		errorResponse := middleware.ErrorResponse{
+			Error:     errorDetail,
+			RequestID: middleware.GetRequestID(r.Context()),
+			Timestamp: time.Now().UTC().Format(time.RFC3339),
+			Path:      r.URL.Path,
+			Method:    r.Method,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(errorResponse)
+		return
+	}
+
+	// Log warnings if any
+	if len(validationResult.Warnings) > 0 {
+		h.logger.Warn("Prediction request validation warnings", zap.Any("warnings", validationResult.Warnings))
+	}
+
+	// TODO: Retrieve business data from database using ID from URL
+	// For now, create a mock business request
+	business := &models.RiskAssessmentRequest{
+		BusinessName:      "Sample Business",
+		BusinessAddress:   "123 Sample St, Sample City, SC 12345",
+		Industry:          "Technology",
+		Country:           "US",
+		PredictionHorizon: predictionReq.HorizonMonths,
+	}
+
+	// Use high-performance risk engine for prediction
+	prediction, err := h.riskEngine.PredictRisk(r.Context(), business, predictionReq.HorizonMonths)
+	if err != nil {
+		h.logger.Error("Risk prediction failed", zap.Error(err))
+		h.errorHandler.HandleError(w, r, fmt.Errorf("risk prediction failed: %w", err))
+		return
+	}
+
+	// Return response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(prediction)
+
+	h.logger.Info("Risk prediction completed",
+		zap.String("business_id", prediction.BusinessID),
+		zap.Int("horizon_months", prediction.HorizonMonths),
+		zap.Float64("predicted_score", prediction.PredictedScore),
+		zap.String("predicted_level", string(prediction.PredictedLevel)))
+}
+
+// HandleRiskHistory handles GET /api/v1/assess/{id}/history
+func (h *RiskAssessmentHandler) HandleRiskHistory(w http.ResponseWriter, r *http.Request) {
+	// TODO: Implement risk history
+	http.Error(w, "Not implemented", http.StatusNotImplemented)
+}
+
+// HandleComplianceCheck handles POST /api/v1/compliance/check
+func (h *RiskAssessmentHandler) HandleComplianceCheck(w http.ResponseWriter, r *http.Request) {
+	// TODO: Implement compliance check
+	http.Error(w, "Not implemented", http.StatusNotImplemented)
+}
+
+// HandleSanctionsScreening handles POST /api/v1/sanctions/screen
+func (h *RiskAssessmentHandler) HandleSanctionsScreening(w http.ResponseWriter, r *http.Request) {
+	// TODO: Implement sanctions screening
+	http.Error(w, "Not implemented", http.StatusNotImplemented)
+}
+
+// HandleAdverseMediaMonitoring handles POST /api/v1/media/monitor
+func (h *RiskAssessmentHandler) HandleAdverseMediaMonitoring(w http.ResponseWriter, r *http.Request) {
+	// TODO: Implement adverse media monitoring
+	http.Error(w, "Not implemented", http.StatusNotImplemented)
+}
+
+// HandleRiskTrends handles GET /api/v1/analytics/trends
+func (h *RiskAssessmentHandler) HandleRiskTrends(w http.ResponseWriter, r *http.Request) {
+	// TODO: Implement risk trends analytics
+	http.Error(w, "Not implemented", http.StatusNotImplemented)
+}
+
+// HandleRiskInsights handles GET /api/v1/analytics/insights
+func (h *RiskAssessmentHandler) HandleRiskInsights(w http.ResponseWriter, r *http.Request) {
+	// TODO: Implement risk insights analytics
+	http.Error(w, "Not implemented", http.StatusNotImplemented)
+}
+
+// HandleBatchRiskAssessment handles POST /api/v1/assess/batch
+func (h *RiskAssessmentHandler) HandleBatchRiskAssessment(w http.ResponseWriter, r *http.Request) {
+	h.logger.Info("Processing batch risk assessment request")
+
+	// Parse request
+	var req struct {
+		Requests []models.RiskAssessmentRequest `json:"requests"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.errorHandler.HandleError(w, r, fmt.Errorf("invalid request body: %w", err))
+		return
+	}
+
+	// Validate batch size
+	if len(req.Requests) == 0 {
+		h.errorHandler.HandleError(w, r, fmt.Errorf("no requests provided"))
+		return
+	}
+
+	if len(req.Requests) > 100 {
+		h.errorHandler.HandleError(w, r, fmt.Errorf("batch size exceeds maximum of 100 requests"))
+		return
+	}
+
+	// Validate each request
+	for i, request := range req.Requests {
+		// Sanitize input
+		request.BusinessName = h.validator.SanitizeInput(request.BusinessName)
+		request.BusinessAddress = h.validator.SanitizeInput(request.BusinessAddress)
+		request.Industry = h.validator.SanitizeInput(request.Industry)
+		request.Country = h.validator.SanitizeInput(request.Country)
+		if request.Phone != "" {
+			request.Phone = h.validator.SanitizeInput(request.Phone)
+		}
+		if request.Email != "" {
+			request.Email = h.validator.SanitizeInput(request.Email)
+		}
+		if request.Website != "" {
+			request.Website = h.validator.SanitizeInput(request.Website)
+		}
+
+		// Validate request
+		validationResult := h.validator.ValidateRiskAssessmentRequest(&request)
+		if !validationResult.Valid {
+			h.logger.Error("Batch request validation failed",
+				zap.Int("index", i),
+				zap.Any("errors", validationResult.Errors))
+
+			// Create detailed validation error response
+			errorDetail := middleware.ErrorDetail{
+				Code:       "VALIDATION_ERROR",
+				Message:    fmt.Sprintf("Request at index %d validation failed", i),
+				Validation: make([]middleware.ValidationError, len(validationResult.Errors)),
+			}
+
+			for j, err := range validationResult.Errors {
+				errorDetail.Validation[j] = middleware.ValidationError{
+					Field:   err.Field,
+					Message: err.Message,
+					Code:    err.Code,
+				}
+			}
+
+			errorResponse := middleware.ErrorResponse{
+				Error:     errorDetail,
+				RequestID: middleware.GetRequestID(r.Context()),
+				Timestamp: time.Now().UTC().Format(time.RFC3339),
+				Path:      r.URL.Path,
+				Method:    r.Method,
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(errorResponse)
+			return
+		}
+
+		req.Requests[i] = request
+	}
+
+	// Convert to pointers for batch assessment
+	requestPointers := make([]*models.RiskAssessmentRequest, len(req.Requests))
+	for i := range req.Requests {
+		requestPointers[i] = &req.Requests[i]
+	}
+
+	// Use high-performance risk engine for batch assessment
+	assessments, err := h.riskEngine.AssessRiskBatch(r.Context(), requestPointers)
+	if err != nil {
+		h.logger.Error("Batch risk assessment failed", zap.Error(err))
+		h.errorHandler.HandleError(w, r, fmt.Errorf("batch risk assessment failed: %w", err))
+		return
+	}
+
+	// Create response
+	response := struct {
+		Assessments []models.RiskAssessmentResponse `json:"assessments"`
+		Count       int                             `json:"count"`
+		ProcessedAt time.Time                       `json:"processed_at"`
+	}{
+		Assessments: make([]models.RiskAssessmentResponse, len(assessments)),
+		Count:       len(assessments),
+		ProcessedAt: time.Now(),
+	}
+
+	// Convert assessments to response format
+	for i, assessment := range assessments {
+		if assessment != nil {
+			response.Assessments[i] = models.RiskAssessmentResponse{
+				ID:                assessment.ID,
+				BusinessID:        assessment.BusinessID,
+				RiskScore:         assessment.RiskScore,
+				RiskLevel:         assessment.RiskLevel,
+				RiskFactors:       assessment.RiskFactors,
+				PredictionHorizon: assessment.PredictionHorizon,
+				ConfidenceScore:   assessment.ConfidenceScore,
+				Status:            assessment.Status,
+				CreatedAt:         assessment.CreatedAt,
+				UpdatedAt:         assessment.UpdatedAt,
+				Metadata:          assessment.Metadata,
+			}
+		}
+	}
+
+	// Return response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+
+	h.logger.Info("Batch risk assessment completed",
+		zap.Int("count", len(assessments)),
+		zap.Int("requested", len(req.Requests)))
+}
+
+// HandleExternalAdverseMediaMonitoring handles POST /api/v1/external/adverse-media
+func (h *RiskAssessmentHandler) HandleExternalAdverseMediaMonitoring(w http.ResponseWriter, r *http.Request) {
+	h.logger.Info("Processing adverse media monitoring request")
+
+	// Parse request
+	var req struct {
+		BusinessName string `json:"business_name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.errorHandler.HandleError(w, r, fmt.Errorf("invalid request body: %w", err))
+		return
+	}
+
+	// Validate request
+	if req.BusinessName == "" {
+		h.errorHandler.HandleError(w, r, fmt.Errorf("business_name is required"))
+		return
+	}
+
+	// Sanitize input
+	req.BusinessName = h.validator.SanitizeInput(req.BusinessName)
+
+	// Get adverse media data
+	adverseMedia, err := h.externalDataService.GetAdverseMedia(r.Context(), req.BusinessName)
+	if err != nil {
+		h.logger.Error("Failed to get adverse media data", zap.Error(err))
+		h.errorHandler.HandleError(w, r, fmt.Errorf("adverse media monitoring failed: %w", err))
+		return
+	}
+
+	// Return response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(adverseMedia)
+
+	h.logger.Info("Adverse media monitoring completed",
+		zap.String("business_name", req.BusinessName),
+		zap.Int("total_articles", adverseMedia.TotalArticles),
+		zap.Float64("risk_score", adverseMedia.RiskScore))
+}
+
+// HandleCompanyDataLookup handles POST /api/v1/external/company-data
+func (h *RiskAssessmentHandler) HandleCompanyDataLookup(w http.ResponseWriter, r *http.Request) {
+	h.logger.Info("Processing company data lookup request")
+
+	// Parse request
+	var req struct {
+		BusinessName string `json:"business_name"`
+		Country      string `json:"country"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.errorHandler.HandleError(w, r, fmt.Errorf("invalid request body: %w", err))
+		return
+	}
+
+	// Validate request
+	if req.BusinessName == "" {
+		h.errorHandler.HandleError(w, r, fmt.Errorf("business_name is required"))
+		return
+	}
+
+	// Sanitize input
+	req.BusinessName = h.validator.SanitizeInput(req.BusinessName)
+	req.Country = h.validator.SanitizeInput(req.Country)
+
+	// Get company data
+	companyData, err := h.externalDataService.GetCompanyData(r.Context(), req.BusinessName, req.Country)
+	if err != nil {
+		h.logger.Error("Failed to get company data", zap.Error(err))
+		h.errorHandler.HandleError(w, r, fmt.Errorf("company data lookup failed: %w", err))
+		return
+	}
+
+	// Return response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(companyData)
+
+	h.logger.Info("Company data lookup completed",
+		zap.String("business_name", req.BusinessName),
+		zap.String("country", req.Country),
+		zap.Int("companies_found", companyData.TotalResults),
+		zap.Float64("risk_score", companyData.RiskScore))
+}
+
+// HandleExternalComplianceCheck handles POST /api/v1/external/compliance
+func (h *RiskAssessmentHandler) HandleExternalComplianceCheck(w http.ResponseWriter, r *http.Request) {
+	h.logger.Info("Processing compliance check request")
+
+	// Parse request
+	var req struct {
+		BusinessName string `json:"business_name"`
+		Country      string `json:"country"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.errorHandler.HandleError(w, r, fmt.Errorf("invalid request body: %w", err))
+		return
+	}
+
+	// Validate request
+	if req.BusinessName == "" {
+		h.errorHandler.HandleError(w, r, fmt.Errorf("business_name is required"))
+		return
+	}
+
+	// Sanitize input
+	req.BusinessName = h.validator.SanitizeInput(req.BusinessName)
+	req.Country = h.validator.SanitizeInput(req.Country)
+
+	// Get compliance data
+	complianceData, err := h.externalDataService.GetComplianceData(r.Context(), req.BusinessName, req.Country)
+	if err != nil {
+		h.logger.Error("Failed to get compliance data", zap.Error(err))
+		h.errorHandler.HandleError(w, r, fmt.Errorf("compliance check failed: %w", err))
+		return
+	}
+
+	// Return response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(complianceData)
+
+	h.logger.Info("Compliance check completed",
+		zap.String("business_name", req.BusinessName),
+		zap.String("country", req.Country),
+		zap.Int("total_records", complianceData.TotalRecords),
+		zap.Float64("risk_score", complianceData.RiskScore),
+		zap.String("compliance_status", complianceData.ComplianceStatus))
+}
+
+// HandleExternalDataSources handles GET /api/v1/external/sources
+func (h *RiskAssessmentHandler) HandleExternalDataSources(w http.ResponseWriter, r *http.Request) {
+	h.logger.Info("Processing external data sources request")
+
+	// Get available sources
+	sources := h.externalDataService.GetAvailableSources()
+
+	// Create response
+	response := struct {
+		AvailableSources []string  `json:"available_sources"`
+		LastChecked      time.Time `json:"last_checked"`
+	}{
+		AvailableSources: sources,
+		LastChecked:      time.Now(),
+	}
+
+	// Return response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+
+	h.logger.Info("External data sources request completed",
+		zap.Strings("sources", sources))
+}
+
+// generateID generates a unique ID for risk assessments
+func (h *RiskAssessmentHandler) generateID() string {
+	return fmt.Sprintf("risk_%d", time.Now().UnixNano())
+}

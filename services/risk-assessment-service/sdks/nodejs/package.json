@@ -1,0 +1,45 @@
+{
+  "name": "kyb-sdk",
+  "version": "1.0.0",
+  "description": "KYB Platform Risk Assessment Service Node.js SDK",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "jest",
+    "lint": "eslint src/",
+    "build": "npm run lint && npm test",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "kyb",
+    "risk-assessment",
+    "compliance",
+    "business-verification",
+    "api",
+    "sdk"
+  ],
+  "author": "KYB Platform <support@kyb-platform.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kyb-platform/nodejs-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kyb-platform/nodejs-sdk/issues"
+  },
+  "homepage": "https://docs.kyb-platform.com",
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.50.0",
+    "jest": "^29.7.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "files": [
+    "src/",
+    "README.md",
+    "LICENSE"
+  ]
+}
