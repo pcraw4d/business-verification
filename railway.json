@@ -1,0 +1,54 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "services/risk-assessment-service/Dockerfile",
+    "buildCommand": "cd services/risk-assessment-service && go mod download && go build -o risk-assessment-service ./cmd/main.go"
+  },
+  "deploy": {
+    "startCommand": "cd services/risk-assessment-service && ./risk-assessment-service",
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 30,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 5,
+    "restartPolicyDelay": 10
+  },
+  "environments": {
+    "production": {
+      "variables": {
+        "ENV": "production",
+        "LOG_LEVEL": "info",
+        "LOG_FORMAT": "json",
+        "METRICS_ENABLED": "true",
+        "PERFORMANCE_MONITORING_ENABLED": "true",
+        "RATE_LIMIT_ENABLED": "true",
+        "RATE_LIMIT_REQUESTS_PER": "1000",
+        "RATE_LIMIT_WINDOW_SIZE": "60",
+        "CACHE_ENABLED": "true",
+        "CACHE_TTL": "5m",
+        "REQUEST_TIMEOUT": "30s",
+        "MAX_CONCURRENT_REQUESTS": "100",
+        "PERFORMANCE_TARGET_RPS": "16.67",
+        "PERFORMANCE_TARGET_LATENCY": "1s",
+        "PERFORMANCE_TARGET_ERROR_RATE": "0.01",
+        "PERFORMANCE_TARGET_THROUGHPUT": "1000"
+      }
+    },
+    "staging": {
+      "variables": {
+        "ENV": "staging",
+        "LOG_LEVEL": "debug",
+        "LOG_FORMAT": "json",
+        "METRICS_ENABLED": "true",
+        "PERFORMANCE_MONITORING_ENABLED": "true",
+        "RATE_LIMIT_ENABLED": "true",
+        "RATE_LIMIT_REQUESTS_PER": "500",
+        "RATE_LIMIT_WINDOW_SIZE": "60",
+        "CACHE_ENABLED": "true",
+        "CACHE_TTL": "2m",
+        "REQUEST_TIMEOUT": "30s",
+        "MAX_CONCURRENT_REQUESTS": "50"
+      }
+    }
+  }
+}
