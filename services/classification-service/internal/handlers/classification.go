@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -235,9 +236,6 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 func (h *ClassificationHandler) generateRiskAssessment(req *ClassificationRequest, classification *EnhancedClassificationResult, processingTime time.Duration) *RiskAssessmentResult {
 	// Analyze business name for risk indicators
 	riskFactors := h.analyzeBusinessName(req.BusinessName)
-	
-	// Analyze industry classification for risk level
-	industryRisk := h.analyzeIndustryRisk(classification.PrimaryIndustry, classification.MCCCodes)
 	
 	// Analyze website for additional risk factors
 	websiteRisk := h.analyzeWebsiteRisk(req.WebsiteURL, classification.WebsiteAnalysis)
