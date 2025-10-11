@@ -117,6 +117,7 @@ func main() {
 
 	// Initialize handlers
 	riskAssessmentHandler := handlers.NewRiskAssessmentHandler(supabaseClient, mlService, riskEngine, externalDataService, logger, cfg)
+	advancedPredictionHandler := handlers.NewAdvancedPredictionHandler(mlService, logger)
 	metricsHandler := handlers.NewMetricsHandler(mlService.GetMetricsCollector(), logger)
 	performanceHandler := handlers.NewPerformanceHandler(performanceMonitor, logger)
 
@@ -168,6 +169,11 @@ func main() {
 	api.HandleFunc("/assess/{id}", riskAssessmentHandler.HandleGetRiskAssessment).Methods("GET")
 	api.HandleFunc("/assess/{id}/predict", riskAssessmentHandler.HandleRiskPrediction).Methods("POST")
 	api.HandleFunc("/assess/{id}/history", riskAssessmentHandler.HandleRiskHistory).Methods("GET")
+	
+	// Advanced prediction endpoints
+	api.HandleFunc("/risk/predict-advanced", advancedPredictionHandler.HandleAdvancedPrediction).Methods("POST")
+	api.HandleFunc("/models/info", advancedPredictionHandler.HandleGetModelInfo).Methods("GET")
+	api.HandleFunc("/models/performance", advancedPredictionHandler.HandleGetModelPerformance).Methods("GET")
 
 	// Compliance endpoints
 	api.HandleFunc("/compliance/check", riskAssessmentHandler.HandleComplianceCheck).Methods("POST")
