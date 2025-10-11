@@ -20,14 +20,14 @@ import (
 
 // RiskAssessmentHandler handles risk assessment requests
 type RiskAssessmentHandler struct {
-	supabaseClient   *supabase.Client
-	mlService        *service.MLService
-	riskEngine       *engine.RiskEngine
+	supabaseClient      *supabase.Client
+	mlService           *service.MLService
+	riskEngine          *engine.RiskEngine
 	externalDataService *external.ExternalDataService
-	logger           *zap.Logger
-	config           *config.Config
-	validator        *validation.Validator
-	errorHandler     *middleware.ErrorHandler
+	logger              *zap.Logger
+	config              *config.Config
+	validator           *validation.Validator
+	errorHandler        *middleware.ErrorHandler
 }
 
 // NewRiskAssessmentHandler creates a new risk assessment handler
@@ -40,14 +40,14 @@ func NewRiskAssessmentHandler(
 	config *config.Config,
 ) *RiskAssessmentHandler {
 	return &RiskAssessmentHandler{
-		supabaseClient:     supabaseClient,
-		mlService:          mlService,
-		riskEngine:         riskEngine,
+		supabaseClient:      supabaseClient,
+		mlService:           mlService,
+		riskEngine:          riskEngine,
 		externalDataService: externalDataService,
-		logger:             logger,
-		config:             config,
-		validator:          validation.NewValidator(),
-		errorHandler:       middleware.NewErrorHandler(logger),
+		logger:              logger,
+		config:              config,
+		validator:           validation.NewValidator(),
+		errorHandler:        middleware.NewErrorHandler(logger),
 	}
 }
 
@@ -78,24 +78,23 @@ func (h *RiskAssessmentHandler) HandleRiskAssessment(w http.ResponseWriter, r *h
 	}
 
 	// Validate request using comprehensive validator
-	validationResult := h.validator.ValidateRiskAssessmentRequest(&req)
-	if !validationResult.Valid {
+	valid, errors := h.validator.ValidateRiskAssessmentRequest(&req)
+	if !valid {
 		h.logger.Error("Request validation failed",
-			zap.Any("errors", validationResult.Errors),
-			zap.Any("warnings", validationResult.Warnings))
+			zap.Any("errors", errors))
 
 		// Create detailed validation error response
 		errorDetail := middleware.ErrorDetail{
 			Code:       "VALIDATION_ERROR",
 			Message:    "Request validation failed",
-			Validation: make([]middleware.ValidationError, len(validationResult.Errors)),
+			Validation: make([]middleware.ValidationError, len(errors)),
 		}
 
-		for i, err := range validationResult.Errors {
+		for i, err := range errors {
 			errorDetail.Validation[i] = middleware.ValidationError{
-				Field:   err.Field,
-				Message: err.Message,
-				Code:    err.Code,
+				Field:   "unknown",
+				Message: err,
+				Code:    "VALIDATION_ERROR",
 			}
 		}
 
@@ -113,10 +112,8 @@ func (h *RiskAssessmentHandler) HandleRiskAssessment(w http.ResponseWriter, r *h
 		return
 	}
 
-	// Log warnings if any
-	if len(validationResult.Warnings) > 0 {
-		h.logger.Warn("Request validation warnings", zap.Any("warnings", validationResult.Warnings))
-	}
+	// Log warnings if any (simplified for now)
+	// Warnings functionality can be added later
 
 	// Use high-performance risk engine for assessment
 	assessment, err := h.riskEngine.AssessRisk(r.Context(), &req)
@@ -126,7 +123,7 @@ func (h *RiskAssessmentHandler) HandleRiskAssessment(w http.ResponseWriter, r *h
 		return
 	}
 
-	// Create response
+	// Create enhanced response with LSTM support
 	response := &models.RiskAssessmentResponse{
 		ID:                assessment.ID,
 		BusinessID:        assessment.BusinessID,
@@ -139,6 +136,21 @@ func (h *RiskAssessmentHandler) HandleRiskAssessment(w http.ResponseWriter, r *h
 		CreatedAt:         assessment.CreatedAt,
 		UpdatedAt:         assessment.UpdatedAt,
 		Metadata:          assessment.Metadata,
+	}
+
+	// Add temporal analysis if available
+	if temporalAnalysis, exists := assessment.Metadata["temporal_analysis"]; exists {
+		response.Metadata["temporal_analysis"] = temporalAnalysis
+	}
+
+	// Add model information
+	if modelType, exists := assessment.Metadata["model_type"]; exists {
+		response.Metadata["model_type"] = modelType
+	}
+
+	// Add ensemble information if available
+	if ensembleInfo, exists := assessment.Metadata["ensemble_info"]; exists {
+		response.Metadata["ensemble_info"] = ensembleInfo
 	}
 
 	// Return response
@@ -164,8 +176,10 @@ func (h *RiskAssessmentHandler) HandleRiskPrediction(w http.ResponseWriter, r *h
 
 	// Parse request body for prediction parameters
 	var predictionReq struct {
-		HorizonMonths int      `json:"horizon_months"`
-		Scenarios     []string `json:"scenarios,omitempty"`
+		HorizonMonths           int      `json:"horizon_months"`
+		Scenarios               []string `json:"scenarios,omitempty"`
+		ModelType               string   `json:"model_type,omitempty"` // "auto", "xgboost", "lstm", "ensemble"
+		IncludeTemporalAnalysis bool     `json:"include_temporal_analysis,omitempty"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&predictionReq); err != nil {
@@ -179,24 +193,23 @@ func (h *RiskAssessmentHandler) HandleRiskPrediction(w http.ResponseWriter, r *h
 	}
 
 	// Validate prediction request
-	validationResult := h.validator.ValidatePredictionRequest(predictionReq.HorizonMonths, predictionReq.Scenarios)
-	if !validationResult.Valid {
+	valid, errors := h.validator.ValidatePredictionRequest(&predictionReq)
+	if !valid {
 		h.logger.Error("Prediction request validation failed",
-			zap.Any("errors", validationResult.Errors),
-			zap.Any("warnings", validationResult.Warnings))
+			zap.Any("errors", errors))
 
 		// Create detailed validation error response
 		errorDetail := middleware.ErrorDetail{
 			Code:       "VALIDATION_ERROR",
 			Message:    "Prediction request validation failed",
-			Validation: make([]middleware.ValidationError, len(validationResult.Errors)),
+			Validation: make([]middleware.ValidationError, len(errors)),
 		}
 
-		for i, err := range validationResult.Errors {
+		for i, err := range errors {
 			errorDetail.Validation[i] = middleware.ValidationError{
-				Field:   err.Field,
-				Message: err.Message,
-				Code:    err.Code,
+				Field:   "unknown",
+				Message: err,
+				Code:    "VALIDATION_ERROR",
 			}
 		}
 
@@ -214,10 +227,8 @@ func (h *RiskAssessmentHandler) HandleRiskPrediction(w http.ResponseWriter, r *h
 		return
 	}
 
-	// Log warnings if any
-	if len(validationResult.Warnings) > 0 {
-		h.logger.Warn("Prediction request validation warnings", zap.Any("warnings", validationResult.Warnings))
-	}
+	// Log warnings if any (simplified for now)
+	// Warnings functionality can be added later
 
 	// TODO: Retrieve business data from database using ID from URL
 	// For now, create a mock business request
@@ -227,10 +238,24 @@ func (h *RiskAssessmentHandler) HandleRiskPrediction(w http.ResponseWriter, r *h
 		Industry:          "Technology",
 		Country:           "US",
 		PredictionHorizon: predictionReq.HorizonMonths,
+		Metadata: map[string]interface{}{
+			"model_type":                predictionReq.ModelType,
+			"include_temporal_analysis": predictionReq.IncludeTemporalAnalysis,
+		},
 	}
 
-	// Use high-performance risk engine for prediction
-	prediction, err := h.riskEngine.PredictRisk(r.Context(), business, predictionReq.HorizonMonths)
+	// Use ML service for prediction with model selection
+	var prediction *models.RiskPrediction
+	var err error
+
+	if predictionReq.ModelType == "" || predictionReq.ModelType == "auto" {
+		// Use ensemble routing for automatic model selection
+		prediction, err = h.mlService.PredictFutureRisk(r.Context(), "auto", business, predictionReq.HorizonMonths)
+	} else {
+		// Use specific model
+		prediction, err = h.mlService.PredictFutureRisk(r.Context(), predictionReq.ModelType, business, predictionReq.HorizonMonths)
+	}
+
 	if err != nil {
 		h.logger.Error("Risk prediction failed", zap.Error(err))
 		h.errorHandler.HandleError(w, r, fmt.Errorf("risk prediction failed: %w", err))
@@ -327,24 +352,24 @@ func (h *RiskAssessmentHandler) HandleBatchRiskAssessment(w http.ResponseWriter,
 		}
 
 		// Validate request
-		validationResult := h.validator.ValidateRiskAssessmentRequest(&request)
-		if !validationResult.Valid {
+		valid, errors := h.validator.ValidateRiskAssessmentRequest(&request)
+		if !valid {
 			h.logger.Error("Batch request validation failed",
 				zap.Int("index", i),
-				zap.Any("errors", validationResult.Errors))
+				zap.Any("errors", errors))
 
 			// Create detailed validation error response
 			errorDetail := middleware.ErrorDetail{
 				Code:       "VALIDATION_ERROR",
 				Message:    fmt.Sprintf("Request at index %d validation failed", i),
-				Validation: make([]middleware.ValidationError, len(validationResult.Errors)),
+				Validation: make([]middleware.ValidationError, len(errors)),
 			}
 
-			for j, err := range validationResult.Errors {
+			for j, err := range errors {
 				errorDetail.Validation[j] = middleware.ValidationError{
-					Field:   err.Field,
-					Message: err.Message,
-					Code:    err.Code,
+					Field:   "unknown",
+					Message: err,
+					Code:    "VALIDATION_ERROR",
 				}
 			}
 

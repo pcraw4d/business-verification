@@ -4,188 +4,280 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"go.uber.org/zap"
 
-	"kyb-platform/services/risk-assessment-service/internal/engine"
 	"kyb-platform/services/risk-assessment-service/internal/middleware"
+	"kyb-platform/services/risk-assessment-service/internal/ml/monitoring"
 )
 
-// MetricsHandler handles metrics and performance monitoring
+// MetricsHandler handles metrics-related HTTP requests
 type MetricsHandler struct {
-	riskEngine   *engine.RiskEngine
-	logger       *zap.Logger
-	errorHandler *middleware.ErrorHandler
+	metricsCollector *monitoring.MetricsCollector
+	logger           *zap.Logger
+	errorHandler     *middleware.ErrorHandler
 }
 
 // NewMetricsHandler creates a new metrics handler
-func NewMetricsHandler(riskEngine *engine.RiskEngine, logger *zap.Logger) *MetricsHandler {
+func NewMetricsHandler(
+	metricsCollector *monitoring.MetricsCollector,
+	logger *zap.Logger,
+) *MetricsHandler {
 	return &MetricsHandler{
-		riskEngine:   riskEngine,
-		logger:       logger,
-		errorHandler: middleware.NewErrorHandler(logger),
+		metricsCollector: metricsCollector,
+		logger:           logger,
+		errorHandler:     middleware.NewErrorHandler(logger),
 	}
 }
 
-// HandleMetrics handles GET /api/v1/metrics
-func (h *MetricsHandler) HandleMetrics(w http.ResponseWriter, r *http.Request) {
-	h.logger.Info("Processing metrics request")
+// HandleGetMetrics returns overall system metrics
+func (h *MetricsHandler) HandleGetMetrics(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 
-	// Get engine metrics
-	metrics := h.riskEngine.GetMetrics()
-	if metrics == nil {
-		h.errorHandler.HandleError(w, r, fmt.Errorf("metrics not available"))
+	// Get overall metrics
+	overallMetrics := h.metricsCollector.GetOverallMetrics()
+
+	// Create response
+	response := map[string]interface{}{
+		"overall_metrics": overallMetrics,
+		"timestamp":       time.Now(),
+		"status":          "success",
+	}
+
+	// Add health status
+	snapshot := h.metricsCollector.GetSnapshot()
+	response["health_status"] = snapshot.HealthStatus
+	response["alerts"] = snapshot.Alerts
+
+	// Return response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		h.logger.Error("Failed to encode metrics response", zap.Error(err))
+		h.errorHandler.HandleError(w, r, err)
 		return
 	}
 
-	// Get cache stats
-	cacheStats := h.riskEngine.GetCacheStats()
+	h.logger.Info("Metrics requested",
+		zap.String("request_id", ctx.Value("request_id").(string)),
+		zap.String("health_status", snapshot.HealthStatus),
+	)
+}
 
-	// Get circuit breaker stats
-	circuitBreakerStats := h.riskEngine.GetCircuitBreakerStats()
+// HandleGetModelMetrics returns metrics for a specific model
+func (h *MetricsHandler) HandleGetModelMetrics(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 
-	// Get metrics stats
-	metricsStats := metrics.GetStats()
+	// Extract model type from URL path
+	modelType := r.URL.Query().Get("model_type")
+	if modelType == "" {
+		h.errorHandler.HandleError(w, r, fmt.Errorf("model_type parameter is required"))
+		return
+	}
 
-	// Create comprehensive metrics response
-	response := struct {
-		Timestamp        time.Time                  `json:"timestamp"`
-		EngineMetrics    engine.MetricsStats        `json:"engine_metrics"`
-		CacheStats       engine.CacheStats          `json:"cache_stats"`
-		CircuitBreaker   engine.CircuitBreakerStats `json:"circuit_breaker"`
-		PerformanceCheck engine.PerformanceCheck    `json:"performance_check"`
-	}{
-		Timestamp:        time.Now(),
-		EngineMetrics:    metricsStats,
-		CacheStats:       cacheStats,
-		CircuitBreaker:   circuitBreakerStats,
-		PerformanceCheck: metrics.CheckPerformance(engine.DefaultPerformanceThresholds()),
+	// Get model metrics
+	modelMetrics, exists := h.metricsCollector.GetModelMetrics(modelType)
+	if !exists {
+		h.errorHandler.HandleError(w, r, &middleware.NotFoundError{
+			Resource: "Model: " + modelType,
+		})
+		return
+	}
+
+	// Create response
+	response := map[string]interface{}{
+		"model_metrics": modelMetrics,
+		"timestamp":     time.Now(),
+		"status":        "success",
 	}
 
 	// Return response
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		h.logger.Error("Failed to encode model metrics response", zap.Error(err))
+		h.errorHandler.HandleError(w, r, err)
+		return
+	}
 
-	h.logger.Info("Metrics request completed")
+	h.logger.Info("Model metrics requested",
+		zap.String("request_id", ctx.Value("request_id").(string)),
+		zap.String("model_type", modelType),
+	)
 }
 
-// HandleHealth handles GET /api/v1/health
-func (h *MetricsHandler) HandleHealth(w http.ResponseWriter, r *http.Request) {
-	h.logger.Debug("Processing health check request")
+// HandleGetPerformanceSnapshot returns a complete performance snapshot
+func (h *MetricsHandler) HandleGetPerformanceSnapshot(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 
-	// Get basic metrics
-	metrics := h.riskEngine.GetMetrics()
-	var healthStatus string
-	var issues []string
+	// Get performance snapshot
+	snapshot := h.metricsCollector.GetSnapshot()
 
-	if metrics == nil {
-		healthStatus = "unhealthy"
-		issues = append(issues, "metrics not available")
-	} else {
-		// Check performance thresholds
-		performanceCheck := metrics.CheckPerformance(engine.DefaultPerformanceThresholds())
-		if performanceCheck.Passed {
-			healthStatus = "healthy"
-		} else {
-			healthStatus = "degraded"
-			issues = append(issues, performanceCheck.Issues...)
-		}
+	// Return response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(snapshot); err != nil {
+		h.logger.Error("Failed to encode performance snapshot response", zap.Error(err))
+		h.errorHandler.HandleError(w, r, err)
+		return
 	}
 
-	// Create health response
-	response := struct {
-		Status    string    `json:"status"`
-		Timestamp time.Time `json:"timestamp"`
-		Issues    []string  `json:"issues,omitempty"`
-	}{
-		Status:    healthStatus,
-		Timestamp: time.Now(),
-		Issues:    issues,
+	h.logger.Info("Performance snapshot requested",
+		zap.String("request_id", ctx.Value("request_id").(string)),
+		zap.String("health_status", snapshot.HealthStatus),
+		zap.Int("alerts_count", len(snapshot.Alerts)),
+	)
+}
+
+// HandleResetMetrics resets all metrics (admin only)
+func (h *MetricsHandler) HandleResetMetrics(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// Check if this is a POST request
+	if r.Method != http.MethodPost {
+		h.errorHandler.HandleError(w, r, fmt.Errorf("only POST method is allowed"))
+		return
 	}
 
-	// Set appropriate status code
+	// Reset metrics
+	h.metricsCollector.Reset()
+
+	// Create response
+	response := map[string]interface{}{
+		"message":   "Metrics reset successfully",
+		"timestamp": time.Now(),
+		"status":    "success",
+	}
+
+	// Return response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		h.logger.Error("Failed to encode reset metrics response", zap.Error(err))
+		h.errorHandler.HandleError(w, r, err)
+		return
+	}
+
+	h.logger.Info("Metrics reset requested",
+		zap.String("request_id", ctx.Value("request_id").(string)),
+	)
+}
+
+// HandleGetHealth returns health status
+func (h *MetricsHandler) HandleGetHealth(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// Get health status
+	snapshot := h.metricsCollector.GetSnapshot()
+
+	// Determine HTTP status code based on health
 	statusCode := http.StatusOK
-	if healthStatus == "unhealthy" {
+	if snapshot.HealthStatus == "unhealthy" {
 		statusCode = http.StatusServiceUnavailable
-	} else if healthStatus == "degraded" {
-		statusCode = http.StatusOK // Still operational but with issues
+	} else if snapshot.HealthStatus == "degraded" {
+		statusCode = http.StatusOK // Still OK but with warnings
+	}
+
+	// Create response
+	response := map[string]interface{}{
+		"status":         snapshot.HealthStatus,
+		"timestamp":      time.Now(),
+		"uptime":         snapshot.OverallMetrics.Uptime,
+		"total_requests": snapshot.OverallMetrics.TotalRequests,
+		"error_rate":     snapshot.OverallMetrics.ErrorRate,
+		"alerts_count":   len(snapshot.Alerts),
+	}
+
+	// Add alerts if any
+	if len(snapshot.Alerts) > 0 {
+		response["alerts"] = snapshot.Alerts
 	}
 
 	// Return response
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(response)
-
-	h.logger.Debug("Health check completed", zap.String("status", healthStatus))
-}
-
-// HandlePerformance handles GET /api/v1/performance
-func (h *MetricsHandler) HandlePerformance(w http.ResponseWriter, r *http.Request) {
-	h.logger.Info("Processing performance request")
-
-	// Get engine metrics
-	metrics := h.riskEngine.GetMetrics()
-	if metrics == nil {
-		h.errorHandler.HandleError(w, r, fmt.Errorf("metrics not available"))
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		h.logger.Error("Failed to encode health response", zap.Error(err))
+		h.errorHandler.HandleError(w, r, err)
 		return
 	}
 
-	// Get performance check with thresholds
-	performanceCheck := metrics.CheckPerformance(engine.DefaultPerformanceThresholds())
-	stats := metrics.GetStats()
+	h.logger.Info("Health check requested",
+		zap.String("request_id", ctx.Value("request_id").(string)),
+		zap.String("health_status", snapshot.HealthStatus),
+		zap.Int("status_code", statusCode),
+	)
+}
+
+// HandleGetModelPerformance returns model performance metrics
+func (h *MetricsHandler) HandleGetModelPerformance(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// Get all model metrics
+	snapshot := h.metricsCollector.GetSnapshot()
 
 	// Create performance response
-	response := struct {
-		Timestamp        time.Time               `json:"timestamp"`
-		PerformanceCheck engine.PerformanceCheck `json:"performance_check"`
-		KeyMetrics       struct {
-			AvgResponseTime   time.Duration `json:"avg_response_time"`
-			SuccessRate       float64       `json:"success_rate"`
-			CacheHitRate      float64       `json:"cache_hit_rate"`
-			RequestsPerSecond float64       `json:"requests_per_second"`
-			TotalRequests     int64         `json:"total_requests"`
-		} `json:"key_metrics"`
-		Thresholds struct {
-			MaxResponseTime      time.Duration `json:"max_response_time"`
-			MinSuccessRate       float64       `json:"min_success_rate"`
-			MinCacheHitRate      float64       `json:"min_cache_hit_rate"`
-			MinRequestsPerSecond float64       `json:"min_requests_per_second"`
-		} `json:"thresholds"`
-	}{
-		Timestamp:        time.Now(),
-		PerformanceCheck: performanceCheck,
-		KeyMetrics: struct {
-			AvgResponseTime   time.Duration `json:"avg_response_time"`
-			SuccessRate       float64       `json:"success_rate"`
-			CacheHitRate      float64       `json:"cache_hit_rate"`
-			RequestsPerSecond float64       `json:"requests_per_second"`
-			TotalRequests     int64         `json:"total_requests"`
-		}{
-			AvgResponseTime:   stats.AvgDuration,
-			SuccessRate:       stats.SuccessRate,
-			CacheHitRate:      stats.CacheHitRate,
-			RequestsPerSecond: stats.RequestsPerSecond,
-			TotalRequests:     stats.TotalRequests,
-		},
-		Thresholds: struct {
-			MaxResponseTime      time.Duration `json:"max_response_time"`
-			MinSuccessRate       float64       `json:"min_success_rate"`
-			MinCacheHitRate      float64       `json:"min_cache_hit_rate"`
-			MinRequestsPerSecond float64       `json:"min_requests_per_second"`
-		}{
-			MaxResponseTime:      1 * time.Second, // Sub-1-second target
-			MinSuccessRate:       0.95,            // 95% success rate
-			MinCacheHitRate:      0.8,             // 80% cache hit rate
-			MinRequestsPerSecond: 100,             // 100 requests per second
-		},
+	performanceResponse := map[string]interface{}{
+		"models":          snapshot.ModelMetrics,
+		"overall_metrics": snapshot.OverallMetrics,
+		"last_updated":    time.Now(),
+		"health_status":   snapshot.HealthStatus,
 	}
 
 	// Return response
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(performanceResponse); err != nil {
+		h.logger.Error("Failed to encode model performance response", zap.Error(err))
+		h.errorHandler.HandleError(w, r, err)
+		return
+	}
 
-	h.logger.Info("Performance request completed")
+	h.logger.Info("Model performance requested",
+		zap.String("request_id", ctx.Value("request_id").(string)),
+		zap.Int("models_count", len(snapshot.ModelMetrics)),
+	)
+}
+
+// HandleGetMetricsHistory returns historical metrics (if available)
+func (h *MetricsHandler) HandleGetMetricsHistory(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// Parse query parameters
+	hoursStr := r.URL.Query().Get("hours")
+	hours := 24 // default to 24 hours
+	if hoursStr != "" {
+		if h, err := strconv.Atoi(hoursStr); err == nil && h > 0 && h <= 168 { // max 1 week
+			hours = h
+		}
+	}
+
+	// For now, return current snapshot as we don't have historical storage
+	// In a production system, this would query a time-series database
+	snapshot := h.metricsCollector.GetSnapshot()
+
+	// Create response
+	response := map[string]interface{}{
+		"message":          "Historical metrics not yet implemented",
+		"current_snapshot": snapshot,
+		"requested_hours":  hours,
+		"timestamp":        time.Now(),
+		"status":           "success",
+	}
+
+	// Return response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		h.logger.Error("Failed to encode metrics history response", zap.Error(err))
+		h.errorHandler.HandleError(w, r, err)
+		return
+	}
+
+	h.logger.Info("Metrics history requested",
+		zap.String("request_id", ctx.Value("request_id").(string)),
+		zap.Int("requested_hours", hours),
+	)
 }

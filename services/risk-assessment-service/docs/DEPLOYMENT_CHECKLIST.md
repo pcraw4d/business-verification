@@ -1,283 +1,284 @@
-# Railway Deployment Checklist
+# Deployment Checklist for Risk Assessment Service
 
-This checklist ensures a successful deployment of the Risk Assessment Service to Railway with proper configuration and monitoring.
+This checklist ensures a successful deployment of the Risk Assessment Service with ML capabilities to Railway.
 
 ## Pre-Deployment Checklist
 
-### ✅ Prerequisites
+### ✅ Environment Setup
 
 - [ ] Railway CLI installed and authenticated
 - [ ] Go 1.22+ installed locally
-- [ ] Docker installed (for local testing)
-- [ ] Railway account created and verified
-- [ ] Supabase project set up with required tables
-- [ ] External API keys obtained (NewsAPI, OpenCorporates - optional)
+- [ ] Python 3.12+ installed for ML model preparation
+- [ ] Docker installed for local testing
+- [ ] Git repository cloned and up to date
+
+### ✅ Model Preparation
+
+- [ ] LSTM model trained and exported to ONNX format
+- [ ] XGBoost model trained and saved as JSON
+- [ ] Model metadata file created (`model_metadata.json`)
+- [ ] Feature scaler saved (`feature_scaler.pkl`)
+- [ ] Model files placed in `models/` directory
+- [ ] Model validation tests passed
 
 ### ✅ Code Quality
 
-- [ ] All tests pass locally (`make test`)
-- [ ] Code coverage meets requirements (`make coverage`)
-- [ ] Linting passes (`make lint`)
-- [ ] Security scan passes (`make security`)
-- [ ] Load tests pass locally (`make load-test`)
+- [ ] All unit tests passing (`go test ./...`)
+- [ ] Integration tests passing
+- [ ] Linting passed (`golangci-lint run`)
+- [ ] Code coverage meets requirements (>80%)
+- [ ] Performance benchmarks within targets
+- [ ] Security scan completed (no critical vulnerabilities)
 
 ### ✅ Configuration
 
-- [ ] `railway.json` configured correctly
-- [ ] `Dockerfile` optimized for production
 - [ ] Environment variables documented
-- [ ] Performance targets set (1000 req/min)
-- [ ] Monitoring endpoints configured
+- [ ] Railway configuration files created (`railway.json`, `railway.toml`)
+- [ ] Dockerfile optimized for production
+- [ ] `.dockerignore` configured properly
+- [ ] Health check endpoints implemented
+- [ ] Metrics endpoints implemented
 
 ## Deployment Checklist
 
-### ✅ Railway Setup
+### ✅ Railway Project Setup
 
-- [ ] Railway project created or linked
-- [ ] Service added to Railway project
-- [ ] Environment variables set in Railway
-- [ ] Supabase credentials configured
-- [ ] External API keys configured (if applicable)
+- [ ] Railway project created
+- [ ] Project linked to repository
+- [ ] Environment variables configured
+- [ ] Secrets configured (JWT_SECRET, API_KEY, etc.)
+- [ ] Database services provisioned (PostgreSQL, Redis)
+- [ ] Volume storage configured for models
 
-### ✅ Environment Variables
+### ✅ Build and Deploy
 
-#### Required Variables
-- [ ] `SUPABASE_URL` - Supabase project URL
-- [ ] `SUPABASE_ANON_KEY` - Supabase anonymous key
-- [ ] `SUPABASE_SERVICE_ROLE_KEY` - Supabase service role key
-- [ ] `ENV` - Environment (production/staging)
-- [ ] `LOG_LEVEL` - Logging level (info/debug)
+- [ ] Docker build successful locally
+- [ ] ONNX Runtime libraries included in build
+- [ ] Model files copied to container
+- [ ] Environment variables set correctly
+- [ ] Service deployed to Railway
+- [ ] Health check passing
+- [ ] Service accessible via public URL
 
-#### Performance Monitoring
-- [ ] `PERFORMANCE_MONITORING_ENABLED=true`
-- [ ] `PERFORMANCE_TARGET_RPS=16.67`
-- [ ] `PERFORMANCE_TARGET_LATENCY=1s`
-- [ ] `PERFORMANCE_TARGET_ERROR_RATE=0.01`
-- [ ] `PERFORMANCE_TARGET_THROUGHPUT=1000`
+### ✅ Model Integration
 
-#### Optional External APIs
-- [ ] `NEWS_API_KEY` - NewsAPI key (if using)
-- [ ] `OPEN_CORPORATES_API_KEY` - OpenCorporates key (if using)
-- [ ] `GOVERNMENT_API_KEY` - Government API key (if using)
+- [ ] LSTM model loads successfully
+- [ ] XGBoost model loads successfully
+- [ ] Ensemble routing working
+- [ ] Model inference performance acceptable
+- [ ] Model accuracy meets targets (85%+ LSTM, 88%+ XGBoost)
+- [ ] Memory usage within limits
 
-### ✅ Deployment Process
+## Post-Deployment Validation
 
-- [ ] Code committed to version control
-- [ ] Railway deployment initiated
-- [ ] Build process completed successfully
-- [ ] Service started without errors
-- [ ] Health checks passing
+### ✅ Functional Testing
 
-## Post-Deployment Checklist
+- [ ] Health endpoint responds correctly
+- [ ] Risk assessment endpoint working
+- [ ] Advanced prediction endpoint working
+- [ ] Model info endpoints accessible
+- [ ] Metrics endpoint providing data
+- [ ] Error handling working properly
 
-### ✅ Service Health
+### ✅ Performance Testing
 
-- [ ] Basic health check passes (`/health`)
-- [ ] Performance health check passes (`/api/v1/performance/health`)
-- [ ] All monitoring endpoints responding
-- [ ] No critical errors in logs
-- [ ] Service responding within target latency
+- [ ] Response time P95 < 200ms
+- [ ] Response time P99 < 300ms
+- [ ] Error rate < 5%
+- [ ] Memory usage < 1.5GB
+- [ ] Throughput > 100 requests/second
+- [ ] Concurrent request handling stable
 
-### ✅ Performance Validation
+### ✅ Model Performance
 
-- [ ] Load test passes (1000 req/min target)
-- [ ] Response time < 1 second (95th percentile)
-- [ ] Error rate < 1%
-- [ ] Memory usage < 512MB
-- [ ] CPU usage < 80%
+- [ ] LSTM accuracy ≥ 85%
+- [ ] XGBoost accuracy ≥ 88%
+- [ ] Ensemble predictions working
+- [ ] Multi-horizon predictions accurate
+- [ ] Temporal analysis functioning
+- [ ] Scenario analysis working
 
-### ✅ Monitoring Setup
+### ✅ Security Testing
 
-- [ ] Performance metrics endpoint working
-- [ ] Alert system configured
-- [ ] Log aggregation working
-- [ ] Health monitoring active
-- [ ] Performance targets being tracked
+- [ ] HTTPS enabled and working
+- [ ] API authentication working
+- [ ] Input validation preventing attacks
+- [ ] Rate limiting functional
+- [ ] CORS configured correctly
+- [ ] Security headers present
 
-### ✅ Integration Testing
+### ✅ Monitoring and Observability
 
-- [ ] Supabase connection working
-- [ ] External API integrations working (if enabled)
-- [ ] ML model loading correctly
-- [ ] Cache system functioning
-- [ ] Rate limiting working
+- [ ] Application logs accessible
+- [ ] Metrics collection working
+- [ ] Health checks configured
+- [ ] Error tracking functional
+- [ ] Performance monitoring active
+- [ ] Alerting configured
 
-## Verification Commands
+## Production Readiness
 
-### Health Checks
+### ✅ Scalability
 
-```bash
-# Basic health check
-curl https://your-service.railway.app/health
+- [ ] Horizontal scaling configured
+- [ ] Auto-scaling policies set
+- [ ] Load balancing working
+- [ ] Database connection pooling
+- [ ] Caching strategy implemented
+- [ ] Resource limits appropriate
 
-# Performance health check
-curl https://your-service.railway.app/api/v1/performance/health
+### ✅ Reliability
 
-# Performance statistics
-curl https://your-service.railway.app/api/v1/performance/stats
-```
+- [ ] Graceful shutdown implemented
+- [ ] Circuit breakers configured
+- [ ] Retry mechanisms in place
+- [ ] Timeout handling proper
+- [ ] Error recovery working
+- [ ] Backup strategies in place
 
-### Load Testing
+### ✅ Documentation
 
-```bash
-# Quick load test
-go run ./cmd/load_test.go \
-  -url=https://your-service.railway.app \
-  -duration=2m \
-  -users=10 \
-  -rps=16.67
+- [ ] API documentation updated
+- [ ] Deployment guide complete
+- [ ] Troubleshooting guide available
+- [ ] Runbook created
+- [ ] Architecture diagrams updated
+- [ ] Performance benchmarks documented
 
-# Comprehensive load test
-./scripts/run_load_tests.sh
-```
+## Go-Live Checklist
 
-### Railway Commands
+### ✅ Final Validation
 
-```bash
-# Check deployment status
-railway status
+- [ ] All automated tests passing
+- [ ] Manual testing completed
+- [ ] Performance targets met
+- [ ] Security requirements satisfied
+- [ ] Monitoring systems active
+- [ ] Support team trained
 
-# View logs
-railway logs --tail 100
+### ✅ Rollback Preparation
 
-# Check environment variables
-railway variables
+- [ ] Previous version tagged
+- [ ] Rollback procedure documented
+- [ ] Database migration rollback tested
+- [ ] Configuration rollback tested
+- [ ] Emergency contacts updated
+- [ ] Incident response plan ready
 
-# Get service URL
-railway domain
-```
+### ✅ Launch
 
-## Troubleshooting Checklist
+- [ ] DNS configured (if custom domain)
+- [ ] SSL certificates valid
+- [ ] CDN configured (if applicable)
+- [ ] Load testing completed
+- [ ] User acceptance testing passed
+- [ ] Go-live approval obtained
 
-### ❌ Build Failures
+## Post-Launch Monitoring
 
-- [ ] Check Railway build logs
-- [ ] Verify Go module dependencies
-- [ ] Test local build
-- [ ] Check Dockerfile syntax
-- [ ] Verify file permissions
+### ✅ Immediate (First 24 Hours)
 
-### ❌ Runtime Errors
-
-- [ ] Check application logs
-- [ ] Verify environment variables
-- [ ] Test database connectivity
-- [ ] Check external API connections
-- [ ] Verify resource limits
-
-### ❌ Performance Issues
-
-- [ ] Check performance metrics
-- [ ] Review performance alerts
-- [ ] Run load tests
+- [ ] Monitor error rates
+- [ ] Check response times
+- [ ] Verify all endpoints working
 - [ ] Monitor resource usage
-- [ ] Check rate limiting settings
+- [ ] Check database performance
+- [ ] Review application logs
 
-### ❌ Health Check Failures
+### ✅ Short-term (First Week)
 
-- [ ] Verify health endpoint
-- [ ] Check service startup logs
-- [ ] Test database connections
-- [ ] Verify external dependencies
-- [ ] Check network connectivity
+- [ ] Performance trends analysis
+- [ ] User feedback collection
+- [ ] Error pattern analysis
+- [ ] Capacity planning review
+- [ ] Security monitoring
+- [ ] Cost analysis
+
+### ✅ Long-term (First Month)
+
+- [ ] Performance optimization
+- [ ] Feature usage analysis
+- [ ] Scaling requirements review
+- [ ] Security audit
+- [ ] Documentation updates
+- [ ] Process improvements
+
+## Emergency Procedures
+
+### ✅ Incident Response
+
+- [ ] Incident response team identified
+- [ ] Escalation procedures defined
+- [ ] Communication plan ready
+- [ ] Rollback procedures tested
+- [ ] Emergency contacts available
+- [ ] Post-incident review process
+
+### ✅ Monitoring Alerts
+
+- [ ] High error rate alerts
+- [ ] High latency alerts
+- [ ] Resource usage alerts
+- [ ] Database connection alerts
+- [ ] Model performance alerts
+- [ ] Security incident alerts
 
 ## Success Criteria
 
-### ✅ Deployment Success
+### ✅ Performance Targets
 
-- [ ] Service deployed without errors
-- [ ] All health checks passing
-- [ ] Performance targets met
-- [ ] Monitoring working correctly
-- [ ] No critical alerts
+- [ ] **Latency**: P95 < 200ms, P99 < 300ms
+- [ ] **Throughput**: > 100 requests/second
+- [ ] **Error Rate**: < 5%
+- [ ] **Memory Usage**: < 1.5GB
+- [ ] **CPU Usage**: < 80% average
 
-### ✅ Performance Success
+### ✅ Model Accuracy Targets
 
-- [ ] 1000+ requests/minute sustained
-- [ ] < 1 second response time
-- [ ] < 1% error rate
-- [ ] Stable resource usage
-- [ ] No memory leaks
+- [ ] **LSTM Model**: ≥ 85% accuracy
+- [ ] **XGBoost Model**: ≥ 88% accuracy
+- [ ] **Ensemble Model**: ≥ 90% accuracy
+- [ ] **Multi-horizon Predictions**: Working correctly
+- [ ] **Temporal Analysis**: Functional
 
-### ✅ Monitoring Success
+### ✅ Reliability Targets
 
-- [ ] All metrics being collected
-- [ ] Alerts configured correctly
-- [ ] Logs being aggregated
-- [ ] Performance trends visible
-- [ ] Health status accurate
+- [ ] **Uptime**: > 99.9%
+- [ ] **MTTR**: < 15 minutes
+- [ ] **MTBF**: > 720 hours
+- [ ] **Data Consistency**: 100%
+- [ ] **Security**: Zero critical vulnerabilities
 
-## Rollback Plan
+## Sign-off
 
-### If Deployment Fails
+### ✅ Technical Sign-off
 
-1. **Immediate Actions**
-   - [ ] Check Railway logs for errors
-   - [ ] Verify environment variables
-   - [ ] Test database connectivity
-   - [ ] Check external API status
+- [ ] **Lead Developer**: _________________ Date: _______
+- [ ] **ML Engineer**: _________________ Date: _______
+- [ ] **DevOps Engineer**: _________________ Date: _______
+- [ ] **Security Engineer**: _________________ Date: _______
 
-2. **Rollback Steps**
-   - [ ] Revert to previous deployment
-   - [ ] Restore previous environment variables
-   - [ ] Verify rollback success
-   - [ ] Document issues for next deployment
+### ✅ Business Sign-off
 
-3. **Post-Rollback**
-   - [ ] Investigate root cause
-   - [ ] Fix identified issues
-   - [ ] Test fixes locally
-   - [ ] Plan next deployment
+- [ ] **Product Manager**: _________________ Date: _______
+- [ ] **QA Lead**: _________________ Date: _______
+- [ ] **Operations Manager**: _________________ Date: _______
 
-## Maintenance Checklist
+### ✅ Final Approval
 
-### Daily Monitoring
-
-- [ ] Check service health status
-- [ ] Review performance metrics
-- [ ] Check for alerts
-- [ ] Monitor error rates
-- [ ] Review resource usage
-
-### Weekly Maintenance
-
-- [ ] Review performance trends
-- [ ] Check for security updates
-- [ ] Review and rotate API keys
-- [ ] Update documentation
-- [ ] Plan capacity scaling
-
-### Monthly Maintenance
-
-- [ ] Review deployment process
-- [ ] Update dependencies
-- [ ] Review monitoring configuration
-- [ ] Conduct disaster recovery test
-- [ ] Update deployment documentation
-
-## Contact Information
-
-### Support Channels
-
-- **Development Team**: [team@company.com]
-- **DevOps Team**: [devops@company.com]
-- **Railway Support**: [Railway Documentation](https://docs.railway.app)
-
-### Emergency Contacts
-
-- **On-Call Engineer**: [oncall@company.com]
-- **Team Lead**: [lead@company.com]
-- **Manager**: [manager@company.com]
-
-## Documentation Links
-
-- [Railway Deployment Guide](./RAILWAY_DEPLOYMENT.md)
-- [Performance Monitoring Guide](./PERFORMANCE_MONITORING.md)
-- [API Documentation](./API_DOCUMENTATION.md)
-- [Troubleshooting Guide](./TROUBLESHOOTING.md)
+- [ ] **Technical Lead**: _________________ Date: _______
+- [ ] **Project Manager**: _________________ Date: _______
 
 ---
 
-**Last Updated**: [Current Date]
-**Version**: 1.0.0
-**Next Review**: [Next Review Date]
+**Checklist Version**: 1.0.0  
+**Last Updated**: December 2024  
+**Next Review**: January 2025
+
+## Notes
+
+- This checklist should be completed for each deployment
+- All items must be checked before production deployment
+- Any failed items should be addressed before proceeding
+- Document any deviations or exceptions
+- Update checklist based on lessons learned

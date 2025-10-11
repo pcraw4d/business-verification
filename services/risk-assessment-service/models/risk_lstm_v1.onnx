@@ -1,0 +1,3 @@
+# Placeholder ONNX model file
+# In a full implementation, this would be a trained LSTM model exported from PyTorch
+# For now, the service will use the enhanced placeholder implementation

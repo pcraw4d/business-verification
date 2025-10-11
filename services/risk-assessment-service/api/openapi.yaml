@@ -5,6 +5,12 @@ info:
     Comprehensive risk assessment and predictive analytics API for business verification.
     Provides real-time risk assessment, compliance screening, and predictive analytics
     with sub-1-second response times and 3-12 month forecasting capabilities.
+    
+    **Enhanced ML Capabilities:**
+    - LSTM time-series prediction for 6-12 month forecasts
+    - Smart ensemble routing (XGBoost for 1-3mo, LSTM for 6-12mo, combined for 3-6mo)
+    - Multi-horizon predictions with temporal analysis
+    - Advanced scenario analysis and model comparison
   version: 1.0.0
   contact:
     name: KYB Platform API Support
@@ -167,9 +173,18 @@ paths:
                 horizon_months:
                   type: integer
                   minimum: 1
-                  maximum: 12
+                  maximum: 24
                   description: Prediction horizon in months
                   example: 6
+                model_type:
+                  type: string
+                  enum: [auto, xgboost, lstm, ensemble]
+                  description: ML model preference
+                  example: "auto"
+                include_temporal_analysis:
+                  type: boolean
+                  description: Include temporal analysis
+                  example: true
                 scenarios:
                   type: array
                   items:
@@ -185,6 +200,160 @@ paths:
                 $ref: '#/components/schemas/RiskPrediction'
         '404':
           description: Risk assessment not found
+        '500':
+          description: Internal server error
+
+  /risk/predict-advanced:
+    post:
+      summary: Advanced multi-horizon risk prediction
+      description: |
+        Performs advanced risk prediction with multiple horizons, model comparison,
+        temporal analysis, and scenario analysis. Supports LSTM time-series prediction
+        and ensemble model routing for optimal accuracy across different time horizons.
+      operationId: predictRiskAdvanced
+      tags:
+        - Risk Prediction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdvancedPredictionRequest'
+            examples:
+              multi_horizon_prediction:
+                summary: Multi-horizon prediction with model comparison
+                value:
+                  business:
+                    business_name: "Tech Startup Inc"
+                    business_address: "456 Innovation Ave, Tech City, TC 54321"
+                    industry: "technology"
+                    country: "US"
+                    phone: "+1-555-987-6543"
+                    email: "info@techstartup.com"
+                    website: "https://www.techstartup.com"
+                  prediction_horizons: [3, 6, 9, 12]
+                  model_preference: "auto"
+                  include_temporal_analysis: true
+                  include_scenario_analysis: true
+                  include_model_comparison: true
+                  confidence_threshold: 0.7
+                  custom_scenarios: ["market_crash", "regulatory_change"]
+              lstm_focused_prediction:
+                summary: LSTM-focused long-term prediction
+                value:
+                  business:
+                    business_name: "Manufacturing Corp"
+                    business_address: "789 Industrial Blvd, Factory City, FC 67890"
+                    industry: "manufacturing"
+                    country: "US"
+                  prediction_horizons: [6, 12, 18, 24]
+                  model_preference: "lstm"
+                  include_temporal_analysis: true
+                  include_scenario_analysis: true
+                  confidence_threshold: 0.8
+      responses:
+        '200':
+          description: Advanced prediction completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedPredictionResponse'
+              examples:
+                successful_advanced_prediction:
+                  summary: Successful advanced prediction
+                  value:
+                    request_id: "adv_pred_1703123456789"
+                    business_id: "biz_123456789"
+                    predictions:
+                      "3":
+                        horizon_months: 3
+                        model_type: "xgboost"
+                        predicted_score: 0.65
+                        predicted_level: "medium"
+                        confidence_score: 0.88
+                        risk_factors: []
+                        scenario_analysis: []
+                        prediction_date: "2023-12-21T10:30:00Z"
+                      "6":
+                        horizon_months: 6
+                        model_type: "lstm"
+                        predicted_score: 0.72
+                        predicted_level: "medium"
+                        confidence_score: 0.82
+                        risk_factors: []
+                        scenario_analysis: []
+                        prediction_date: "2023-12-21T10:30:00Z"
+                    model_comparison:
+                      horizons:
+                        "3":
+                          horizon_months: 3
+                          xgboost_prediction:
+                            horizon_months: 3
+                            model_type: "xgboost"
+                            predicted_score: 0.65
+                            predicted_level: "medium"
+                            confidence_score: 0.88
+                          lstm_prediction:
+                            horizon_months: 3
+                            model_type: "lstm"
+                            predicted_score: 0.68
+                            predicted_level: "medium"
+                            confidence_score: 0.75
+                          ensemble_prediction:
+                            horizon_months: 3
+                            model_type: "ensemble"
+                            predicted_score: 0.66
+                            predicted_level: "medium"
+                            confidence_score: 0.85
+                          best_model: "xgboost"
+                          confidence_difference: 0.13
+                          score_difference: 0.03
+                      best_model_per_horizon:
+                        "3": "xgboost"
+                        "6": "lstm"
+                        "9": "lstm"
+                        "12": "lstm"
+                    temporal_analysis:
+                      trend_analysis:
+                        overall_trend: "stable"
+                        trend_strength: 0.3
+                        seasonal_patterns: ["q1_increase", "q4_decrease"]
+                      volatility_analysis:
+                        historical_volatility: 0.15
+                        volatility_trend: "decreasing"
+                        volatility_forecast: 0.12
+                    scenario_analysis:
+                      - scenario_name: "Optimistic"
+                        description: "Best case scenario with favorable market conditions"
+                        probability: 0.2
+                        risk_score: 0.2
+                        risk_level: "low"
+                        impact: "low"
+                        time_horizon: 3
+                        key_factors: ["market_growth", "regulatory_support", "strong_financials"]
+                        mitigation_strategies: ["maintain_current_strategy", "monitor_market_conditions"]
+                    confidence_analysis:
+                      overall_confidence: 0.85
+                      confidence_by_horizon:
+                        "3": 0.88
+                        "6": 0.82
+                        "9": 0.78
+                        "12": 0.75
+                      confidence_by_model:
+                        "xgboost": 0.88
+                        "lstm": 0.82
+                        "ensemble": 0.85
+                      low_confidence_predictions: [12]
+                      high_confidence_predictions: [3, 6]
+                      calibration_score: 0.85
+                    processing_time: "PT0.125S"
+                    generated_at: "2023-12-21T10:30:00Z"
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal server error
 
@@ -398,11 +567,20 @@ components:
           description: Prediction horizon in months
           example: 3
           minimum: 1
-          maximum: 12
+          maximum: 24
         metadata:
           type: object
           description: Additional metadata
           additionalProperties: true
+        model_type:
+          type: string
+          enum: [auto, xgboost, lstm, ensemble]
+          description: ML model preference for prediction
+          example: "auto"
+        include_temporal_analysis:
+          type: boolean
+          description: Include temporal analysis in response
+          example: true
 
     RiskAssessmentResponse:
       type: object
@@ -714,6 +892,355 @@ components:
               type: integer
               description: Number of critical risk assessments
 
+    AdvancedPredictionRequest:
+      type: object
+      required:
+        - business
+        - prediction_horizons
+      properties:
+        business:
+          $ref: '#/components/schemas/RiskAssessmentRequest'
+        prediction_horizons:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+            maximum: 24
+          description: List of prediction horizons in months
+          example: [3, 6, 9, 12]
+          minItems: 1
+          maxItems: 5
+        model_preference:
+          type: string
+          enum: [auto, xgboost, lstm, ensemble]
+          description: ML model preference for prediction
+          example: "auto"
+          default: "auto"
+        include_temporal_analysis:
+          type: boolean
+          description: Include temporal analysis in response
+          example: true
+          default: false
+        include_scenario_analysis:
+          type: boolean
+          description: Include scenario analysis in response
+          example: true
+          default: false
+        include_model_comparison:
+          type: boolean
+          description: Include model comparison analysis
+          example: true
+          default: false
+        confidence_threshold:
+          type: number
+          format: float
+          description: Minimum confidence threshold for predictions
+          example: 0.7
+          minimum: 0
+          maximum: 1
+          default: 0.6
+        custom_scenarios:
+          type: array
+          items:
+            type: string
+          description: Custom scenarios to analyze
+          example: ["market_crash", "regulatory_change"]
+        metadata:
+          type: object
+          description: Additional metadata
+          additionalProperties: true
+
+    AdvancedPredictionResponse:
+      type: object
+      properties:
+        request_id:
+          type: string
+          description: Unique request identifier
+          example: "adv_pred_1703123456789"
+        business_id:
+          type: string
+          description: Business identifier
+          example: "biz_123456789"
+        predictions:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/HorizonPrediction'
+          description: Predictions for each requested horizon
+        model_comparison:
+          $ref: '#/components/schemas/ModelComparison'
+        temporal_analysis:
+          type: object
+          description: Temporal analysis results
+          additionalProperties: true
+        scenario_analysis:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdvancedScenarioAnalysis'
+          description: Scenario analysis results
+        confidence_analysis:
+          $ref: '#/components/schemas/ConfidenceAnalysis'
+        processing_time:
+          type: string
+          format: duration
+          description: Total processing time
+          example: "PT0.125S"
+        generated_at:
+          type: string
+          format: date-time
+          description: Generation timestamp
+        metadata:
+          type: object
+          description: Additional metadata
+          additionalProperties: true
+
+    HorizonPrediction:
+      type: object
+      properties:
+        horizon_months:
+          type: integer
+          description: Prediction horizon in months
+          example: 6
+        model_type:
+          type: string
+          enum: [xgboost, lstm, ensemble]
+          description: Model used for prediction
+          example: "lstm"
+        predicted_score:
+          type: number
+          format: float
+          description: Predicted risk score
+          example: 0.72
+          minimum: 0
+          maximum: 1
+        predicted_level:
+          type: string
+          enum: [low, medium, high, critical]
+          description: Predicted risk level
+          example: "medium"
+        confidence_score:
+          type: number
+          format: float
+          description: Confidence in prediction
+          example: 0.82
+          minimum: 0
+          maximum: 1
+        risk_factors:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskFactor'
+          description: Risk factors contributing to prediction
+        scenario_analysis:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScenarioAnalysis'
+          description: Scenario analysis for this horizon
+        prediction_date:
+          type: string
+          format: date-time
+          description: Date of prediction
+        model_info:
+          type: object
+          description: Model-specific information
+          additionalProperties: true
+        metadata:
+          type: object
+          description: Additional metadata
+          additionalProperties: true
+
+    ModelComparison:
+      type: object
+      properties:
+        horizons:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ModelComparisonHorizon'
+          description: Model comparison for each horizon
+        best_model_per_horizon:
+          type: object
+          additionalProperties:
+            type: string
+            enum: [xgboost, lstm, ensemble]
+          description: Best model for each horizon
+        agreement_analysis:
+          $ref: '#/components/schemas/AgreementAnalysis'
+        performance_metrics:
+          $ref: '#/components/schemas/PerformanceMetrics'
+
+    ModelComparisonHorizon:
+      type: object
+      properties:
+        horizon_months:
+          type: integer
+          description: Horizon in months
+          example: 6
+        xgboost_prediction:
+          $ref: '#/components/schemas/HorizonPrediction'
+        lstm_prediction:
+          $ref: '#/components/schemas/HorizonPrediction'
+        ensemble_prediction:
+          $ref: '#/components/schemas/HorizonPrediction'
+        best_model:
+          type: string
+          enum: [xgboost, lstm, ensemble]
+          description: Best performing model for this horizon
+          example: "lstm"
+        confidence_difference:
+          type: number
+          format: float
+          description: Maximum confidence difference between models
+          example: 0.13
+        score_difference:
+          type: number
+          format: float
+          description: Maximum score difference between models
+          example: 0.03
+
+    AgreementAnalysis:
+      type: object
+      properties:
+        overall_agreement:
+          type: number
+          format: float
+          description: Overall model agreement score
+          example: 0.85
+          minimum: 0
+          maximum: 1
+        agreement_by_horizon:
+          type: object
+          additionalProperties:
+            type: number
+            format: float
+          description: Agreement score by horizon
+        disagreement_threshold:
+          type: number
+          format: float
+          description: Threshold for high disagreement
+          example: 0.2
+        high_disagreement_horizons:
+          type: array
+          items:
+            type: integer
+          description: Horizons with high model disagreement
+          example: [12, 18]
+
+    PerformanceMetrics:
+      type: object
+      properties:
+        average_latency:
+          type: string
+          format: duration
+          description: Average processing latency
+          example: "PT0.095S"
+        latency_by_model:
+          type: object
+          additionalProperties:
+            type: string
+            format: duration
+          description: Latency by model type
+        memory_usage:
+          type: object
+          additionalProperties:
+            type: integer
+          description: Memory usage by model (bytes)
+        throughput:
+          type: number
+          format: float
+          description: Requests per second
+          example: 1500.0
+
+    AdvancedScenarioAnalysis:
+      type: object
+      properties:
+        scenario_name:
+          type: string
+          description: Scenario name
+          example: "Optimistic"
+        description:
+          type: string
+          description: Scenario description
+          example: "Best case scenario with favorable market conditions"
+        probability:
+          type: number
+          format: float
+          description: Probability of scenario
+          example: 0.2
+          minimum: 0
+          maximum: 1
+        risk_score:
+          type: number
+          format: float
+          description: Risk score for scenario
+          example: 0.2
+          minimum: 0
+          maximum: 1
+        risk_level:
+          type: string
+          enum: [low, medium, high, critical]
+          description: Risk level for scenario
+          example: "low"
+        impact:
+          type: string
+          description: Impact description
+          example: "low"
+        time_horizon:
+          type: integer
+          description: Time horizon for scenario
+          example: 3
+        key_factors:
+          type: array
+          items:
+            type: string
+          description: Key factors influencing scenario
+          example: ["market_growth", "regulatory_support", "strong_financials"]
+        mitigation_strategies:
+          type: array
+          items:
+            type: string
+          description: Recommended mitigation strategies
+          example: ["maintain_current_strategy", "monitor_market_conditions"]
+
+    ConfidenceAnalysis:
+      type: object
+      properties:
+        overall_confidence:
+          type: number
+          format: float
+          description: Overall confidence score
+          example: 0.85
+          minimum: 0
+          maximum: 1
+        confidence_by_horizon:
+          type: object
+          additionalProperties:
+            type: number
+            format: float
+          description: Confidence by prediction horizon
+        confidence_by_model:
+          type: object
+          additionalProperties:
+            type: number
+            format: float
+          description: Confidence by model type
+        low_confidence_predictions:
+          type: array
+          items:
+            type: integer
+          description: Horizons with low confidence
+          example: [12, 18]
+        high_confidence_predictions:
+          type: array
+          items:
+            type: integer
+          description: Horizons with high confidence
+          example: [3, 6]
+        calibration_score:
+          type: number
+          format: float
+          description: Model calibration score
+          example: 0.85
+          minimum: 0
+          maximum: 1
+
     ErrorResponse:
       type: object
       properties:
@@ -748,9 +1275,14 @@ security:
 
 tags:
   - name: Risk Assessment
-    description: Core risk assessment operations
+    description: Core risk assessment operations with LSTM and ensemble support
   - name: Risk Prediction
-    description: ML-powered risk prediction and forecasting
+    description: |
+      ML-powered risk prediction and forecasting with:
+      - LSTM time-series prediction for 6-12 month forecasts
+      - Smart ensemble routing (XGBoost for 1-3mo, LSTM for 6-12mo, combined for 3-6mo)
+      - Multi-horizon predictions with temporal analysis
+      - Advanced scenario analysis and model comparison
   - name: Compliance
     description: Compliance screening and sanctions checking
   - name: Media Monitoring

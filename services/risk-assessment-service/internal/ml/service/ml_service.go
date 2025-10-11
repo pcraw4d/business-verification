@@ -7,24 +7,30 @@ import (
 
 	"go.uber.org/zap"
 
+	"kyb-platform/services/risk-assessment-service/internal/ml/ensemble"
 	mlmodels "kyb-platform/services/risk-assessment-service/internal/ml/models"
+	"kyb-platform/services/risk-assessment-service/internal/ml/monitoring"
 	"kyb-platform/services/risk-assessment-service/internal/ml/training"
 	"kyb-platform/services/risk-assessment-service/internal/models"
 )
 
 // MLService provides machine learning capabilities for risk assessment
 type MLService struct {
-	modelManager *mlmodels.ModelManager
-	trainer      *training.ModelTrainer
-	logger       *zap.Logger
+	modelManager     *mlmodels.ModelManager
+	trainer          *training.ModelTrainer
+	ensembleRouter   *ensemble.EnsembleRouter
+	metricsCollector *monitoring.MetricsCollector
+	logger           *zap.Logger
 }
 
 // NewMLService creates a new ML service
 func NewMLService(logger *zap.Logger) *MLService {
 	return &MLService{
-		modelManager: mlmodels.NewModelManager(),
-		trainer:      training.NewModelTrainer(),
-		logger:       logger,
+		modelManager:     mlmodels.NewModelManagerWithLogger(logger),
+		trainer:          training.NewModelTrainer(),
+		ensembleRouter:   nil, // Will be initialized after models are loaded
+		metricsCollector: monitoring.NewMetricsCollector(logger),
+		logger:           logger,
 	}
 }
 
@@ -32,41 +38,75 @@ func NewMLService(logger *zap.Logger) *MLService {
 func (mls *MLService) InitializeModels(ctx context.Context) error {
 	mls.logger.Info("Initializing ML models")
 
-	// Create and register XGBoost model
-	xgbModel := mlmodels.NewXGBoostModel("risk_prediction_xgb", "1.0.0")
-
-	// Load the model (in a real implementation, this would load from storage)
-	if err := xgbModel.LoadModel(ctx, "./models/xgb_model.json"); err != nil {
-		mls.logger.Warn("Failed to load XGBoost model, using default", zap.Error(err))
+	// Initialize models using the model manager
+	if err := mls.modelManager.InitializeModels(ctx); err != nil {
+		return fmt.Errorf("failed to initialize models: %w", err)
 	}
 
-	// Register the model
-	mls.modelManager.RegisterModel("xgboost", xgbModel)
+	// Initialize ensemble router if both models are available
+	availableModels := mls.modelManager.ListModels()
+	if len(availableModels) >= 2 {
+		xgbModel, err := mls.modelManager.GetModel("xgboost")
+		if err != nil {
+			mls.logger.Warn("XGBoost model not available for ensemble", zap.Error(err))
+		}
+
+		lstmModel, err := mls.modelManager.GetModel("lstm")
+		if err != nil {
+			mls.logger.Warn("LSTM model not available for ensemble", zap.Error(err))
+		}
+
+		if xgbModel != nil && lstmModel != nil {
+			mls.ensembleRouter = ensemble.NewEnsembleRouter(xgbModel, lstmModel, mls.logger)
+			mls.logger.Info("Ensemble router initialized successfully")
+		}
+	}
 
 	mls.logger.Info("ML models initialized successfully",
-		zap.Strings("available_models", mls.modelManager.ListModels()))
+		zap.Strings("available_models", mls.modelManager.ListModels()),
+		zap.Bool("ensemble_enabled", mls.ensembleRouter != nil))
 
 	return nil
 }
 
-// PredictRisk performs risk prediction using the specified model
+// PredictRisk performs risk prediction using the specified model or ensemble
 func (mls *MLService) PredictRisk(ctx context.Context, modelName string, business *models.RiskAssessmentRequest) (*models.RiskAssessment, error) {
+	startTime := time.Now()
+	horizonMonths := business.PredictionHorizon
+	if horizonMonths == 0 {
+		horizonMonths = 3 // Default horizon
+	}
+
+	// Handle ensemble prediction
+	if modelName == "ensemble" || modelName == "auto" {
+		if mls.ensembleRouter == nil {
+			mls.metricsCollector.RecordInference(modelName, time.Since(startTime), horizonMonths, fmt.Errorf("ensemble router not available"))
+			return nil, fmt.Errorf("ensemble router not available")
+		}
+		prediction, err := mls.PredictRiskWithEnsemble(ctx, business)
+		mls.metricsCollector.RecordInference(modelName, time.Since(startTime), horizonMonths, err)
+		return prediction, err
+	}
+
+	// Handle individual model prediction
 	model, err := mls.modelManager.GetModel(modelName)
 	if err != nil {
+		mls.metricsCollector.RecordInference(modelName, time.Since(startTime), horizonMonths, err)
 		return nil, fmt.Errorf("model not found: %w", err)
 	}
 
-	startTime := time.Now()
-
 	prediction, err := model.Predict(ctx, business)
+	duration := time.Since(startTime)
+
+	// Record metrics
+	mls.metricsCollector.RecordInference(modelName, duration, horizonMonths, err)
+
 	if err != nil {
 		mls.logger.Error("Risk prediction failed",
 			zap.String("model", modelName),
 			zap.Error(err))
 		return nil, fmt.Errorf("prediction failed: %w", err)
 	}
-
-	duration := time.Since(startTime)
 
 	mls.logger.Info("Risk prediction completed",
 		zap.String("model", modelName),
@@ -78,16 +118,65 @@ func (mls *MLService) PredictRisk(ctx context.Context, modelName string, busines
 	return prediction, nil
 }
 
-// PredictFutureRisk performs future risk prediction
+// PredictRiskWithEnsemble performs ensemble risk prediction with smart routing
+func (mls *MLService) PredictRiskWithEnsemble(ctx context.Context, business *models.RiskAssessmentRequest) (*models.RiskAssessment, error) {
+	if mls.ensembleRouter == nil {
+		return nil, fmt.Errorf("ensemble router not available")
+	}
+
+	// Determine prediction horizon
+	horizon := business.PredictionHorizon
+	if horizon == 0 {
+		horizon = 3 // Default to 3 months
+	}
+
+	// Route to appropriate model or ensemble
+	modelType := mls.ensembleRouter.Route(horizon)
+
+	mls.logger.Info("Ensemble routing decision",
+		zap.Int("horizon_months", horizon),
+		zap.String("selected_model", modelType))
+
+	switch modelType {
+	case "xgboost":
+		return mls.PredictRisk(ctx, "xgboost", business)
+	case "lstm":
+		return mls.PredictRisk(ctx, "lstm", business)
+	case "ensemble":
+		return mls.ensembleRouter.PredictWithEnsemble(ctx, business)
+	default:
+		return nil, fmt.Errorf("unknown model type: %s", modelType)
+	}
+}
+
+// PredictFutureRisk performs future risk prediction using the specified model or ensemble
 func (mls *MLService) PredictFutureRisk(ctx context.Context, modelName string, business *models.RiskAssessmentRequest, horizonMonths int) (*models.RiskPrediction, error) {
+	startTime := time.Now()
+
+	// Handle ensemble prediction
+	if modelName == "ensemble" || modelName == "auto" {
+		if mls.ensembleRouter == nil {
+			mls.metricsCollector.RecordInference(modelName, time.Since(startTime), horizonMonths, fmt.Errorf("ensemble router not available"))
+			return nil, fmt.Errorf("ensemble router not available")
+		}
+		prediction, err := mls.PredictFutureRiskWithEnsemble(ctx, business, horizonMonths)
+		mls.metricsCollector.RecordInference(modelName, time.Since(startTime), horizonMonths, err)
+		return prediction, err
+	}
+
+	// Handle individual model prediction
 	model, err := mls.modelManager.GetModel(modelName)
 	if err != nil {
+		mls.metricsCollector.RecordInference(modelName, time.Since(startTime), horizonMonths, err)
 		return nil, fmt.Errorf("model not found: %w", err)
 	}
 
-	startTime := time.Now()
-
 	prediction, err := model.PredictFuture(ctx, business, horizonMonths)
+	duration := time.Since(startTime)
+
+	// Record metrics
+	mls.metricsCollector.RecordInference(modelName, duration, horizonMonths, err)
+
 	if err != nil {
 		mls.logger.Error("Future risk prediction failed",
 			zap.String("model", modelName),
@@ -95,8 +184,6 @@ func (mls *MLService) PredictFutureRisk(ctx context.Context, modelName string, b
 			zap.Error(err))
 		return nil, fmt.Errorf("future prediction failed: %w", err)
 	}
-
-	duration := time.Since(startTime)
 
 	mls.logger.Info("Future risk prediction completed",
 		zap.String("model", modelName),
@@ -107,6 +194,31 @@ func (mls *MLService) PredictFutureRisk(ctx context.Context, modelName string, b
 		zap.Duration("duration", duration))
 
 	return prediction, nil
+}
+
+// PredictFutureRiskWithEnsemble performs ensemble future risk prediction with smart routing
+func (mls *MLService) PredictFutureRiskWithEnsemble(ctx context.Context, business *models.RiskAssessmentRequest, horizonMonths int) (*models.RiskPrediction, error) {
+	if mls.ensembleRouter == nil {
+		return nil, fmt.Errorf("ensemble router not available")
+	}
+
+	// Route to appropriate model or ensemble
+	modelType := mls.ensembleRouter.Route(horizonMonths)
+
+	mls.logger.Info("Ensemble future routing decision",
+		zap.Int("horizon_months", horizonMonths),
+		zap.String("selected_model", modelType))
+
+	switch modelType {
+	case "xgboost":
+		return mls.PredictFutureRisk(ctx, "xgboost", business, horizonMonths)
+	case "lstm":
+		return mls.PredictFutureRisk(ctx, "lstm", business, horizonMonths)
+	case "ensemble":
+		return mls.ensembleRouter.PredictFutureWithEnsemble(ctx, business, horizonMonths)
+	default:
+		return nil, fmt.Errorf("unknown model type: %s", modelType)
+	}
 }
 
 // TrainModel trains a new model with the provided training data
@@ -194,7 +306,33 @@ func (mls *MLService) GetModelInfo(modelName string) (*mlmodels.ModelInfo, error
 
 // ListModels returns a list of available models
 func (mls *MLService) ListModels() []string {
-	return mls.modelManager.ListModels()
+	models := mls.modelManager.ListModels()
+	if mls.ensembleRouter != nil {
+		models = append(models, "ensemble", "auto")
+	}
+	return models
+}
+
+// GetEnsembleInfo returns information about the ensemble configuration
+func (mls *MLService) GetEnsembleInfo() map[string]interface{} {
+	info := make(map[string]interface{})
+
+	if mls.ensembleRouter == nil {
+		info["available"] = false
+		info["reason"] = "ensemble router not initialized"
+		return info
+	}
+
+	info["available"] = true
+	info["routing_strategy"] = "horizon-based"
+	info["supported_models"] = []string{"xgboost", "lstm", "ensemble"}
+	info["routing_rules"] = map[string]string{
+		"1-3_months":  "xgboost (80% weight)",
+		"3-6_months":  "ensemble (50% xgb, 50% lstm)",
+		"6-12_months": "lstm (80% weight)",
+	}
+
+	return info
 }
 
 // GetFeatureExtractor returns the feature extractor
@@ -229,4 +367,9 @@ func (mls *MLService) Health(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// GetMetricsCollector returns the metrics collector
+func (mls *MLService) GetMetricsCollector() *monitoring.MetricsCollector {
+	return mls.metricsCollector
 }

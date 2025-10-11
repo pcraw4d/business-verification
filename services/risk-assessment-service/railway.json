@@ -2,53 +2,110 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "DOCKERFILE",
-    "dockerfilePath": "Dockerfile",
-    "buildCommand": "go mod download && go build -o risk-assessment-service ./cmd/main.go"
+    "dockerfilePath": "Dockerfile"
   },
   "deploy": {
     "startCommand": "./risk-assessment-service",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 30,
     "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 5,
-    "restartPolicyDelay": 10
+    "restartPolicyMaxRetries": 3
   },
   "environments": {
     "production": {
       "variables": {
-        "ENV": "production",
+        "ENVIRONMENT": "production",
         "LOG_LEVEL": "info",
-        "LOG_FORMAT": "json",
-        "METRICS_ENABLED": "true",
-        "PERFORMANCE_MONITORING_ENABLED": "true",
-        "RATE_LIMIT_ENABLED": "true",
-        "RATE_LIMIT_REQUESTS_PER": "1000",
-        "RATE_LIMIT_WINDOW_SIZE": "60",
-        "CACHE_ENABLED": "true",
-        "CACHE_TTL": "5m",
-        "REQUEST_TIMEOUT": "30s",
-        "MAX_CONCURRENT_REQUESTS": "100",
-        "PERFORMANCE_TARGET_RPS": "16.67",
-        "PERFORMANCE_TARGET_LATENCY": "1s",
-        "PERFORMANCE_TARGET_ERROR_RATE": "0.01",
-        "PERFORMANCE_TARGET_THROUGHPUT": "1000"
+        "PORT": "8080",
+        "ENABLE_ENSEMBLE": "true",
+        "DEFAULT_PREDICTION_HORIZON": "3",
+        "CGO_ENABLED": "1",
+        "CGO_LDFLAGS": "-L/app/onnxruntime/lib",
+        "CGO_CFLAGS": "-I/app/onnxruntime/include",
+        "LD_LIBRARY_PATH": "/app/onnxruntime/lib",
+        "LSTM_MODEL_PATH": "/app/models/risk_lstm_v1.onnx",
+        "XGBOOST_MODEL_PATH": "/app/models/xgb_model.json"
       }
     },
     "staging": {
       "variables": {
-        "ENV": "staging",
+        "ENVIRONMENT": "staging",
         "LOG_LEVEL": "debug",
-        "LOG_FORMAT": "json",
-        "METRICS_ENABLED": "true",
-        "PERFORMANCE_MONITORING_ENABLED": "true",
-        "RATE_LIMIT_ENABLED": "true",
-        "RATE_LIMIT_REQUESTS_PER": "500",
-        "RATE_LIMIT_WINDOW_SIZE": "60",
-        "CACHE_ENABLED": "true",
-        "CACHE_TTL": "2m",
-        "REQUEST_TIMEOUT": "30s",
-        "MAX_CONCURRENT_REQUESTS": "50"
+        "PORT": "8080",
+        "ENABLE_ENSEMBLE": "true",
+        "DEFAULT_PREDICTION_HORIZON": "3",
+        "CGO_ENABLED": "1",
+        "CGO_LDFLAGS": "-L/app/onnxruntime/lib",
+        "CGO_CFLAGS": "-I/app/onnxruntime/include",
+        "LD_LIBRARY_PATH": "/app/onnxruntime/lib",
+        "LSTM_MODEL_PATH": "/app/models/risk_lstm_v1.onnx",
+        "XGBOOST_MODEL_PATH": "/app/models/xgb_model.json"
       }
+    }
+  },
+  "services": [
+    {
+      "name": "risk-assessment-service",
+      "source": ".",
+      "build": {
+        "builder": "DOCKERFILE",
+        "dockerfilePath": "Dockerfile"
+      },
+      "deploy": {
+        "startCommand": "./risk-assessment-service",
+        "healthcheckPath": "/health",
+        "healthcheckTimeout": 30,
+        "restartPolicyType": "ON_FAILURE",
+        "restartPolicyMaxRetries": 3
+      },
+      "resources": {
+        "memory": "2Gi",
+        "cpu": "2"
+      },
+      "scaling": {
+        "minReplicas": 1,
+        "maxReplicas": 5
+      }
+    }
+  ],
+  "databases": [
+    {
+      "name": "postgres",
+      "type": "postgresql",
+      "version": "15"
+    },
+    {
+      "name": "redis",
+      "type": "redis",
+      "version": "7"
+    }
+  ],
+  "volumes": [
+    {
+      "name": "model-storage",
+      "mountPath": "/app/models",
+      "size": "1Gi"
+    }
+  ],
+  "networking": {
+    "ports": [
+      {
+        "port": 8080,
+        "protocol": "http"
+      }
+    ]
+  },
+  "monitoring": {
+    "metrics": {
+      "enabled": true,
+      "endpoint": "/metrics"
+    },
+    "healthcheck": {
+      "enabled": true,
+      "path": "/health",
+      "interval": 30,
+      "timeout": 10,
+      "retries": 3
     }
   }
 }

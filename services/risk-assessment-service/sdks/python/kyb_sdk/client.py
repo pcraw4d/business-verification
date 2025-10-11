@@ -117,8 +117,8 @@ class KYBClient:
             raise ValidationError("country is required")
         if len(country) != 2:
             raise ValidationError("country must be a 2-letter ISO code")
-        if prediction_horizon < 0 or prediction_horizon > 12:
-            raise ValidationError("prediction_horizon must be between 0 and 12 months")
+        if prediction_horizon < 0 or prediction_horizon > 24:
+            raise ValidationError("prediction_horizon must be between 0 and 24 months")
         
         # Prepare request data
         data = {
@@ -184,8 +184,8 @@ class KYBClient:
         """
         if not assessment_id:
             raise ValidationError("assessment_id is required")
-        if horizon_months <= 0 or horizon_months > 12:
-            raise ValidationError("horizon_months must be between 1 and 12")
+        if horizon_months <= 0 or horizon_months > 24:
+            raise ValidationError("horizon_months must be between 1 and 24")
         
         data = {"horizon_months": horizon_months}
         if scenarios:
@@ -394,6 +394,212 @@ class KYBClient:
             params["risk_level"] = risk_level
         
         return self._make_request("GET", "/analytics/insights", params=params)
+    
+    def predict_risk_with_horizon(
+        self,
+        assessment_id: str,
+        horizon_months: int,
+        model_type: str = "auto",
+        include_temporal_analysis: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Perform risk prediction with specific model selection.
+        
+        Args:
+            assessment_id: The assessment ID
+            horizon_months: Prediction horizon in months (1-24)
+            model_type: Model preference ("auto", "xgboost", "lstm", "ensemble")
+            include_temporal_analysis: Include temporal analysis in response
+            
+        Returns:
+            Dict containing the risk prediction results
+            
+        Raises:
+            ValidationError: If the request data is invalid
+            NotFoundError: If the assessment is not found
+            APIError: If the API request fails
+        """
+        if not assessment_id:
+            raise ValidationError("assessment_id is required")
+        if horizon_months <= 0 or horizon_months > 24:
+            raise ValidationError("horizon_months must be between 1 and 24")
+        
+        valid_models = ["auto", "xgboost", "lstm", "ensemble"]
+        if model_type not in valid_models:
+            raise ValidationError(f"model_type must be one of: {', '.join(valid_models)}")
+        
+        data = {
+            "horizon_months": horizon_months,
+            "model_type": model_type,
+            "include_temporal_analysis": include_temporal_analysis
+        }
+        
+        return self._make_request("POST", f"/assess/{assessment_id}/predict", data=data)
+    
+    def predict_multi_horizon(
+        self,
+        business_data: Dict[str, Any],
+        prediction_horizons: List[int],
+        model_preference: str = "auto",
+        include_temporal_analysis: bool = True,
+        include_scenario_analysis: bool = True,
+        include_model_comparison: bool = True,
+        confidence_threshold: float = 0.7,
+        custom_scenarios: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        """
+        Perform advanced multi-horizon risk prediction.
+        
+        Args:
+            business_data: Business information dictionary
+            prediction_horizons: List of prediction horizons in months (1-24)
+            model_preference: Model preference ("auto", "xgboost", "lstm", "ensemble")
+            include_temporal_analysis: Include temporal analysis in response
+            include_scenario_analysis: Include scenario analysis in response
+            include_model_comparison: Include model comparison analysis
+            confidence_threshold: Minimum confidence threshold (0-1)
+            custom_scenarios: Custom scenarios to analyze (optional)
+            
+        Returns:
+            Dict containing the advanced prediction results
+            
+        Raises:
+            ValidationError: If the request data is invalid
+            APIError: If the API request fails
+        """
+        if not business_data:
+            raise ValidationError("business_data is required")
+        if not prediction_horizons:
+            raise ValidationError("prediction_horizons is required")
+        if len(prediction_horizons) > 5:
+            raise ValidationError("maximum of 5 prediction horizons allowed")
+        
+        for horizon in prediction_horizons:
+            if horizon < 1 or horizon > 24:
+                raise ValidationError("prediction horizon must be between 1 and 24 months")
+        
+        valid_models = ["auto", "xgboost", "lstm", "ensemble"]
+        if model_preference not in valid_models:
+            raise ValidationError(f"model_preference must be one of: {', '.join(valid_models)}")
+        
+        if confidence_threshold < 0 or confidence_threshold > 1:
+            raise ValidationError("confidence_threshold must be between 0 and 1")
+        
+        data = {
+            "business": business_data,
+            "prediction_horizons": prediction_horizons,
+            "model_preference": model_preference,
+            "include_temporal_analysis": include_temporal_analysis,
+            "include_scenario_analysis": include_scenario_analysis,
+            "include_model_comparison": include_model_comparison,
+            "confidence_threshold": confidence_threshold
+        }
+        
+        if custom_scenarios:
+            data["custom_scenarios"] = custom_scenarios
+        
+        return self._make_request("POST", "/risk/predict-advanced", data=data)
+    
+    def predict_with_lstm(
+        self,
+        business_data: Dict[str, Any],
+        horizon_months: int,
+        include_temporal_analysis: bool = True,
+        include_scenario_analysis: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Perform LSTM-specific risk prediction.
+        
+        Args:
+            business_data: Business information dictionary
+            horizon_months: Prediction horizon in months (1-24)
+            include_temporal_analysis: Include temporal analysis in response
+            include_scenario_analysis: Include scenario analysis in response
+            
+        Returns:
+            Dict containing the LSTM prediction results
+            
+        Raises:
+            ValidationError: If the request data is invalid
+            APIError: If the API request fails
+        """
+        return self.predict_multi_horizon(
+            business_data=business_data,
+            prediction_horizons=[horizon_months],
+            model_preference="lstm",
+            include_temporal_analysis=include_temporal_analysis,
+            include_scenario_analysis=include_scenario_analysis,
+            include_model_comparison=False
+        )
+    
+    def predict_with_ensemble(
+        self,
+        business_data: Dict[str, Any],
+        horizon_months: int,
+        include_temporal_analysis: bool = True,
+        include_scenario_analysis: bool = True,
+        include_model_comparison: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Perform ensemble risk prediction.
+        
+        Args:
+            business_data: Business information dictionary
+            horizon_months: Prediction horizon in months (1-24)
+            include_temporal_analysis: Include temporal analysis in response
+            include_scenario_analysis: Include scenario analysis in response
+            include_model_comparison: Include model comparison analysis
+            
+        Returns:
+            Dict containing the ensemble prediction results
+            
+        Raises:
+            ValidationError: If the request data is invalid
+            APIError: If the API request fails
+        """
+        return self.predict_multi_horizon(
+            business_data=business_data,
+            prediction_horizons=[horizon_months],
+            model_preference="ensemble",
+            include_temporal_analysis=include_temporal_analysis,
+            include_scenario_analysis=include_scenario_analysis,
+            include_model_comparison=include_model_comparison
+        )
+    
+    def get_model_info(self, model_type: str) -> Dict[str, Any]:
+        """
+        Retrieve information about available models.
+        
+        Args:
+            model_type: Model type ("xgboost", "lstm", "ensemble")
+            
+        Returns:
+            Dict containing the model information
+            
+        Raises:
+            ValidationError: If the model type is invalid
+            APIError: If the API request fails
+        """
+        if not model_type:
+            raise ValidationError("model_type is required")
+        
+        valid_models = ["xgboost", "lstm", "ensemble"]
+        if model_type not in valid_models:
+            raise ValidationError(f"model_type must be one of: {', '.join(valid_models)}")
+        
+        return self._make_request("GET", f"/models/{model_type}/info")
+    
+    def get_model_performance(self) -> Dict[str, Any]:
+        """
+        Retrieve performance metrics for models.
+        
+        Returns:
+            Dict containing the model performance metrics
+            
+        Raises:
+            APIError: If the API request fails
+        """
+        return self._make_request("GET", "/models/performance")
     
     def _make_request(
         self,

@@ -6,6 +6,7 @@ require (
 	github.com/gorilla/mux v1.8.1
 	github.com/stretchr/testify v1.8.4
 	github.com/supabase-community/supabase-go v0.0.1
+	github.com/yalue/onnxruntime_go v1.21.0
 	go.uber.org/zap v1.27.0
 )
 

@@ -199,6 +199,56 @@ beta-stop-services:
 	@echo "🛑 Stopping beta testing services..."
 	./scripts/manage_beta_testing.sh stop-services
 
+# Performance testing commands
+performance-test:
+	@echo "🚀 Running performance test..."
+	go run ./cmd/performance_test.go
+
+performance-test-quick:
+	@echo "⚡ Running quick performance test..."
+	go run ./cmd/performance_test.go -concurrent-users=5 -requests-per-user=50 -test-duration=2m
+
+performance-test-stress:
+	@echo "🔥 Running stress performance test..."
+	go run ./cmd/performance_test.go -concurrent-users=50 -requests-per-user=200 -test-duration=10m
+
+performance-test-spike:
+	@echo "⚡ Running spike performance test..."
+	go run ./cmd/performance_test.go -concurrent-users=100 -requests-per-user=100 -test-duration=5m
+
+# ML validation commands
+validate-ml:
+	@echo "🤖 Running ML model validation..."
+	go run ./cmd/validate_model.go
+
+validate-ml-quick:
+	@echo "⚡ Running quick ML validation..."
+	go run ./cmd/validate_model.go -k 3 -samples 100 -time-range 30d
+
+validate-ml-comprehensive:
+	@echo "🔍 Running comprehensive ML validation..."
+	go run ./cmd/validate_model.go -k 10 -samples 5000 -time-range 730d -confidence 0.99
+
+# Performance optimization commands
+optimize-performance:
+	@echo "⚡ Running performance optimization..."
+	@echo "This will analyze current performance and apply optimizations"
+	@echo "Make sure the service is running on http://localhost:8080"
+	@read -p "Press Enter to continue..." dummy
+	curl -X GET http://localhost:8080/api/v1/optimization/report
+
+performance-stats:
+	@echo "📊 Getting performance statistics..."
+	curl -X GET http://localhost:8080/api/v1/optimization/stats | jq .
+
+performance-health:
+	@echo "🏥 Checking performance health..."
+	curl -X GET http://localhost:8080/api/v1/optimization/health | jq .
+
+performance-report:
+	@echo "📋 Getting full performance report..."
+	curl -X GET http://localhost:8080/api/v1/optimization/report/full
+
 # Run all quality checks
 quality: lint security test-coverage
 	@echo "✅ All quality checks completed!"
@@ -206,3 +256,7 @@ quality: lint security test-coverage
 # CI/CD pipeline
 ci: deps lint security test-coverage build
 	@echo "✅ CI/CD pipeline completed successfully!"
+
+# Full performance validation
+performance-validation: performance-test validate-ml optimize-performance
+	@echo "✅ Performance validation completed!"

@@ -167,6 +167,182 @@ func (c *Client) PredictRisk(ctx context.Context, id string, req *RiskPrediction
 	return &prediction, nil
 }
 
+// PredictRiskWithHorizon performs risk prediction with specific model selection
+func (c *Client) PredictRiskWithHorizon(ctx context.Context, id string, horizonMonths int, modelType string) (*models.RiskPrediction, error) {
+	if id == "" {
+		return nil, fmt.Errorf("assessment ID is required")
+	}
+
+	if horizonMonths <= 0 || horizonMonths > 24 {
+		return nil, fmt.Errorf("horizon_months must be between 1 and 24")
+	}
+
+	req := &RiskPredictionRequest{
+		HorizonMonths:           horizonMonths,
+		ModelType:               modelType,
+		IncludeTemporalAnalysis: true,
+	}
+
+	return c.PredictRisk(ctx, id, req)
+}
+
+// PredictMultiHorizon performs advanced multi-horizon risk prediction
+func (c *Client) PredictMultiHorizon(ctx context.Context, req *AdvancedPredictionRequest) (*AdvancedPredictionResponse, error) {
+	if req == nil {
+		return nil, fmt.Errorf("prediction request cannot be nil")
+	}
+
+	// Validate advanced prediction request
+	if err := c.validateAdvancedPredictionRequest(req); err != nil {
+		return nil, fmt.Errorf("validation failed: %w", err)
+	}
+
+	// Prepare request
+	reqBody, err := json.Marshal(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	// Make HTTP request
+	resp, err := c.makeRequest(ctx, "POST", "/api/v1/risk/predict-advanced", reqBody, nil)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Parse response
+	var prediction AdvancedPredictionResponse
+	if err := json.NewDecoder(resp.Body).Decode(&prediction); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &prediction, nil
+}
+
+// PredictWithLSTM performs LSTM-specific risk prediction
+func (c *Client) PredictWithLSTM(ctx context.Context, business *models.RiskAssessmentRequest, horizonMonths int) (*models.RiskPrediction, error) {
+	if business == nil {
+		return nil, fmt.Errorf("business data is required")
+	}
+
+	// Create advanced prediction request for LSTM
+	req := &AdvancedPredictionRequest{
+		Business:                business,
+		PredictionHorizons:      []int{horizonMonths},
+		ModelPreference:         "lstm",
+		IncludeTemporalAnalysis: true,
+		IncludeScenarioAnalysis: true,
+		IncludeModelComparison:  false,
+		ConfidenceThreshold:     0.7,
+	}
+
+	// Make request
+	response, err := c.PredictMultiHorizon(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("LSTM prediction failed: %w", err)
+	}
+
+	// Extract prediction for the requested horizon
+	horizonKey := fmt.Sprintf("%d", horizonMonths)
+	prediction, exists := response.Predictions[horizonKey]
+	if !exists {
+		return nil, fmt.Errorf("prediction not found for horizon %d months", horizonMonths)
+	}
+
+	// Convert to RiskPrediction format
+	return &models.RiskPrediction{
+		BusinessID:       response.BusinessID,
+		PredictionDate:   prediction.PredictionDate,
+		HorizonMonths:    prediction.HorizonMonths,
+		PredictedScore:   prediction.PredictedScore,
+		PredictedLevel:   prediction.PredictedLevel,
+		ConfidenceScore:  prediction.ConfidenceScore,
+		RiskFactors:      prediction.RiskFactors,
+		ScenarioAnalysis: prediction.ScenarioAnalysis,
+		CreatedAt:        response.GeneratedAt,
+	}, nil
+}
+
+// PredictWithEnsemble performs ensemble risk prediction
+func (c *Client) PredictWithEnsemble(ctx context.Context, business *models.RiskAssessmentRequest, horizonMonths int) (*models.RiskPrediction, error) {
+	if business == nil {
+		return nil, fmt.Errorf("business data is required")
+	}
+
+	// Create advanced prediction request for ensemble
+	req := &AdvancedPredictionRequest{
+		Business:                business,
+		PredictionHorizons:      []int{horizonMonths},
+		ModelPreference:         "ensemble",
+		IncludeTemporalAnalysis: true,
+		IncludeScenarioAnalysis: true,
+		IncludeModelComparison:  true,
+		ConfidenceThreshold:     0.7,
+	}
+
+	// Make request
+	response, err := c.PredictMultiHorizon(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("ensemble prediction failed: %w", err)
+	}
+
+	// Extract prediction for the requested horizon
+	horizonKey := fmt.Sprintf("%d", horizonMonths)
+	prediction, exists := response.Predictions[horizonKey]
+	if !exists {
+		return nil, fmt.Errorf("prediction not found for horizon %d months", horizonMonths)
+	}
+
+	// Convert to RiskPrediction format
+	return &models.RiskPrediction{
+		BusinessID:       response.BusinessID,
+		PredictionDate:   prediction.PredictionDate,
+		HorizonMonths:    prediction.HorizonMonths,
+		PredictedScore:   prediction.PredictedScore,
+		PredictedLevel:   prediction.PredictedLevel,
+		ConfidenceScore:  prediction.ConfidenceScore,
+		RiskFactors:      prediction.RiskFactors,
+		ScenarioAnalysis: prediction.ScenarioAnalysis,
+		CreatedAt:        response.GeneratedAt,
+	}, nil
+}
+
+// GetModelInfo retrieves information about available models
+func (c *Client) GetModelInfo(ctx context.Context, modelType string) (*ModelInfo, error) {
+	if modelType == "" {
+		return nil, fmt.Errorf("model type is required")
+	}
+
+	resp, err := c.makeRequest(ctx, "GET", fmt.Sprintf("/api/v1/models/%s/info", modelType), nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var modelInfo ModelInfo
+	if err := json.NewDecoder(resp.Body).Decode(&modelInfo); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &modelInfo, nil
+}
+
+// GetModelPerformance retrieves performance metrics for models
+func (c *Client) GetModelPerformance(ctx context.Context) (*ModelPerformanceResponse, error) {
+	resp, err := c.makeRequest(ctx, "GET", "/api/v1/models/performance", nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var performance ModelPerformanceResponse
+	if err := json.NewDecoder(resp.Body).Decode(&performance); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &performance, nil
+}
+
 // GetRiskHistory retrieves risk assessment history for a business
 func (c *Client) GetRiskHistory(ctx context.Context, id string) (*RiskHistoryResponse, error) {
 	if id == "" {
@@ -435,15 +611,49 @@ func (c *Client) validateRiskAssessmentRequest(req *models.RiskAssessmentRequest
 	if len(req.Country) != 2 {
 		return fmt.Errorf("country must be a 2-letter ISO code")
 	}
-	if req.PredictionHorizon < 0 || req.PredictionHorizon > 12 {
-		return fmt.Errorf("prediction_horizon must be between 0 and 12 months")
+	if req.PredictionHorizon < 0 || req.PredictionHorizon > 24 {
+		return fmt.Errorf("prediction_horizon must be between 0 and 24 months")
 	}
 	return nil
 }
 
 func (c *Client) validatePredictionRequest(req *RiskPredictionRequest) error {
-	if req.HorizonMonths <= 0 || req.HorizonMonths > 12 {
-		return fmt.Errorf("horizon_months must be between 1 and 12")
+	if req.HorizonMonths <= 0 || req.HorizonMonths > 24 {
+		return fmt.Errorf("horizon_months must be between 1 and 24")
+	}
+	return nil
+}
+
+func (c *Client) validateAdvancedPredictionRequest(req *AdvancedPredictionRequest) error {
+	if req.Business == nil {
+		return fmt.Errorf("business data is required")
+	}
+	if len(req.PredictionHorizons) == 0 {
+		return fmt.Errorf("at least one prediction horizon is required")
+	}
+	if len(req.PredictionHorizons) > 5 {
+		return fmt.Errorf("maximum of 5 prediction horizons allowed")
+	}
+	for _, horizon := range req.PredictionHorizons {
+		if horizon < 1 || horizon > 24 {
+			return fmt.Errorf("prediction horizon must be between 1 and 24 months")
+		}
+	}
+	if req.ModelPreference != "" {
+		validModels := []string{"auto", "xgboost", "lstm", "ensemble"}
+		valid := false
+		for _, model := range validModels {
+			if req.ModelPreference == model {
+				valid = true
+				break
+			}
+		}
+		if !valid {
+			return fmt.Errorf("invalid model preference: %s", req.ModelPreference)
+		}
+	}
+	if req.ConfidenceThreshold < 0 || req.ConfidenceThreshold > 1 {
+		return fmt.Errorf("confidence threshold must be between 0 and 1")
 	}
 	return nil
 }

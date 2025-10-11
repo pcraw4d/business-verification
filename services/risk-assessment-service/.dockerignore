@@ -1,0 +1,107 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+docs/
+*.md
+
+# Development files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test files
+*_test.go
+test/
+tests/
+
+# Build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+coverage.txt
+coverage.html
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Python training environment (not needed in production)
+ml-training/
+*.py
+*.ipynb
+requirements.txt
+
+# Node.js SDK (not needed in production)
+sdks/nodejs/
+node_modules/
+package.json
+package-lock.json
+yarn.lock
+
+# Python SDK (not needed in production)
+sdks/python/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# Go specific
+vendor/
+*.mod.bak
+*.sum.bak
+
+# Railway specific
+.railway/
+railway.json
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# Performance test results
+benchmark_results/
+performance_results/
+
+# Model validation results
+validation_results/
+*.json.bak
+
+# Local development
+local/
+dev/

@@ -110,8 +110,8 @@ class KYBClient {
         if (params.country.length !== 2) {
             throw new ValidationError('country must be a 2-letter ISO code');
         }
-        if (params.predictionHorizon !== undefined && (params.predictionHorizon < 0 || params.predictionHorizon > 12)) {
-            throw new ValidationError('predictionHorizon must be between 0 and 12 months');
+        if (params.predictionHorizon !== undefined && (params.predictionHorizon < 0 || params.predictionHorizon > 24)) {
+            throw new ValidationError('predictionHorizon must be between 0 and 24 months');
         }
 
         // Prepare request data
@@ -164,8 +164,8 @@ class KYBClient {
         if (!assessmentId) {
             throw new ValidationError('assessmentId is required');
         }
-        if (!params.horizonMonths || params.horizonMonths <= 0 || params.horizonMonths > 12) {
-            throw new ValidationError('horizonMonths must be between 1 and 12');
+        if (!params.horizonMonths || params.horizonMonths <= 0 || params.horizonMonths > 24) {
+            throw new ValidationError('horizonMonths must be between 1 and 24');
         }
 
         const data = {
@@ -337,6 +337,178 @@ class KYBClient {
         if (params.riskLevel) queryParams.riskLevel = params.riskLevel;
 
         return this._makeRequest('GET', '/analytics/insights', null, queryParams);
+    }
+
+    /**
+     * Perform risk prediction with specific model selection.
+     * 
+     * @param {string} assessmentId - The assessment ID
+     * @param {Object} params - Prediction parameters
+     * @param {number} params.horizonMonths - Prediction horizon in months (1-24)
+     * @param {string} [params.modelType='auto'] - Model preference ("auto", "xgboost", "lstm", "ensemble")
+     * @param {boolean} [params.includeTemporalAnalysis=true] - Include temporal analysis in response
+     * @returns {Promise<Object>} Risk prediction results
+     * @throws {ValidationError} If the request data is invalid
+     * @throws {NotFoundError} If the assessment is not found
+     * @throws {APIError} If the API request fails
+     */
+    async predictRiskWithHorizon(assessmentId, params) {
+        if (!assessmentId) {
+            throw new ValidationError('assessmentId is required');
+        }
+        if (!params.horizonMonths || params.horizonMonths <= 0 || params.horizonMonths > 24) {
+            throw new ValidationError('horizonMonths must be between 1 and 24');
+        }
+
+        const validModels = ['auto', 'xgboost', 'lstm', 'ensemble'];
+        if (params.modelType && !validModels.includes(params.modelType)) {
+            throw new ValidationError(`modelType must be one of: ${validModels.join(', ')}`);
+        }
+
+        const data = {
+            horizon_months: params.horizonMonths,
+            model_type: params.modelType || 'auto',
+            include_temporal_analysis: params.includeTemporalAnalysis !== false
+        };
+
+        return this._makeRequest('POST', `/assess/${assessmentId}/predict`, data);
+    }
+
+    /**
+     * Perform advanced multi-horizon risk prediction.
+     * 
+     * @param {Object} params - Advanced prediction parameters
+     * @param {Object} params.business - Business information
+     * @param {number[]} params.predictionHorizons - List of prediction horizons in months (1-24)
+     * @param {string} [params.modelPreference='auto'] - Model preference ("auto", "xgboost", "lstm", "ensemble")
+     * @param {boolean} [params.includeTemporalAnalysis=true] - Include temporal analysis in response
+     * @param {boolean} [params.includeScenarioAnalysis=true] - Include scenario analysis in response
+     * @param {boolean} [params.includeModelComparison=true] - Include model comparison analysis
+     * @param {number} [params.confidenceThreshold=0.7] - Minimum confidence threshold (0-1)
+     * @param {string[]} [params.customScenarios] - Custom scenarios to analyze (optional)
+     * @returns {Promise<Object>} Advanced prediction results
+     * @throws {ValidationError} If the request data is invalid
+     * @throws {APIError} If the API request fails
+     */
+    async predictMultiHorizon(params) {
+        if (!params.business) {
+            throw new ValidationError('business is required');
+        }
+        if (!params.predictionHorizons || !Array.isArray(params.predictionHorizons) || params.predictionHorizons.length === 0) {
+            throw new ValidationError('predictionHorizons is required and must be a non-empty array');
+        }
+        if (params.predictionHorizons.length > 5) {
+            throw new ValidationError('maximum of 5 prediction horizons allowed');
+        }
+
+        for (const horizon of params.predictionHorizons) {
+            if (horizon < 1 || horizon > 24) {
+                throw new ValidationError('prediction horizon must be between 1 and 24 months');
+            }
+        }
+
+        const validModels = ['auto', 'xgboost', 'lstm', 'ensemble'];
+        if (params.modelPreference && !validModels.includes(params.modelPreference)) {
+            throw new ValidationError(`modelPreference must be one of: ${validModels.join(', ')}`);
+        }
+
+        if (params.confidenceThreshold !== undefined && (params.confidenceThreshold < 0 || params.confidenceThreshold > 1)) {
+            throw new ValidationError('confidenceThreshold must be between 0 and 1');
+        }
+
+        const data = {
+            business: params.business,
+            prediction_horizons: params.predictionHorizons,
+            model_preference: params.modelPreference || 'auto',
+            include_temporal_analysis: params.includeTemporalAnalysis !== false,
+            include_scenario_analysis: params.includeScenarioAnalysis !== false,
+            include_model_comparison: params.includeModelComparison !== false,
+            confidence_threshold: params.confidenceThreshold || 0.7
+        };
+
+        if (params.customScenarios) {
+            data.custom_scenarios = params.customScenarios;
+        }
+
+        return this._makeRequest('POST', '/risk/predict-advanced', data);
+    }
+
+    /**
+     * Perform LSTM-specific risk prediction.
+     * 
+     * @param {Object} params - LSTM prediction parameters
+     * @param {Object} params.business - Business information
+     * @param {number} params.horizonMonths - Prediction horizon in months (1-24)
+     * @param {boolean} [params.includeTemporalAnalysis=true] - Include temporal analysis in response
+     * @param {boolean} [params.includeScenarioAnalysis=true] - Include scenario analysis in response
+     * @returns {Promise<Object>} LSTM prediction results
+     * @throws {ValidationError} If the request data is invalid
+     * @throws {APIError} If the API request fails
+     */
+    async predictWithLSTM(params) {
+        return this.predictMultiHorizon({
+            business: params.business,
+            predictionHorizons: [params.horizonMonths],
+            modelPreference: 'lstm',
+            includeTemporalAnalysis: params.includeTemporalAnalysis !== false,
+            includeScenarioAnalysis: params.includeScenarioAnalysis !== false,
+            includeModelComparison: false
+        });
+    }
+
+    /**
+     * Perform ensemble risk prediction.
+     * 
+     * @param {Object} params - Ensemble prediction parameters
+     * @param {Object} params.business - Business information
+     * @param {number} params.horizonMonths - Prediction horizon in months (1-24)
+     * @param {boolean} [params.includeTemporalAnalysis=true] - Include temporal analysis in response
+     * @param {boolean} [params.includeScenarioAnalysis=true] - Include scenario analysis in response
+     * @param {boolean} [params.includeModelComparison=true] - Include model comparison analysis
+     * @returns {Promise<Object>} Ensemble prediction results
+     * @throws {ValidationError} If the request data is invalid
+     * @throws {APIError} If the API request fails
+     */
+    async predictWithEnsemble(params) {
+        return this.predictMultiHorizon({
+            business: params.business,
+            predictionHorizons: [params.horizonMonths],
+            modelPreference: 'ensemble',
+            includeTemporalAnalysis: params.includeTemporalAnalysis !== false,
+            includeScenarioAnalysis: params.includeScenarioAnalysis !== false,
+            includeModelComparison: params.includeModelComparison !== false
+        });
+    }
+
+    /**
+     * Retrieve information about available models.
+     * 
+     * @param {string} modelType - Model type ("xgboost", "lstm", "ensemble")
+     * @returns {Promise<Object>} Model information
+     * @throws {ValidationError} If the model type is invalid
+     * @throws {APIError} If the API request fails
+     */
+    async getModelInfo(modelType) {
+        if (!modelType) {
+            throw new ValidationError('modelType is required');
+        }
+
+        const validModels = ['xgboost', 'lstm', 'ensemble'];
+        if (!validModels.includes(modelType)) {
+            throw new ValidationError(`modelType must be one of: ${validModels.join(', ')}`);
+        }
+
+        return this._makeRequest('GET', `/models/${modelType}/info`);
+    }
+
+    /**
+     * Retrieve performance metrics for models.
+     * 
+     * @returns {Promise<Object>} Model performance metrics
+     * @throws {APIError} If the API request fails
+     */
+    async getModelPerformance() {
+        return this._makeRequest('GET', '/models/performance');
     }
 
     /**

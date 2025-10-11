@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"go.uber.org/zap"
+
 	"kyb-platform/services/risk-assessment-service/internal/models"
 )
 
@@ -264,6 +266,7 @@ type ModelManager struct {
 	models           map[string]RiskModel
 	featureExtractor *FeatureExtractor
 	riskLevelEncoder *RiskLevelEncoder
+	logger           *zap.Logger
 }
 
 // NewModelManager creates a new model manager
@@ -272,7 +275,53 @@ func NewModelManager() *ModelManager {
 		models:           make(map[string]RiskModel),
 		featureExtractor: NewFeatureExtractor(),
 		riskLevelEncoder: NewRiskLevelEncoder(),
+		logger:           zap.NewNop(),
 	}
+}
+
+// NewModelManagerWithLogger creates a new model manager with logger
+func NewModelManagerWithLogger(logger *zap.Logger) *ModelManager {
+	return &ModelManager{
+		models:           make(map[string]RiskModel),
+		featureExtractor: NewFeatureExtractor(),
+		riskLevelEncoder: NewRiskLevelEncoder(),
+		logger:           logger,
+	}
+}
+
+// InitializeModels initializes and loads all available models
+func (mm *ModelManager) InitializeModels(ctx context.Context) error {
+	mm.logger.Info("Initializing risk prediction models")
+
+	// Create and register XGBoost model
+	xgbModel := NewXGBoostModel("risk_prediction_xgb", "1.0.0")
+
+	// Load the XGBoost model (in a real implementation, this would load from storage)
+	if err := xgbModel.LoadModel(ctx, "./models/xgb_model.json"); err != nil {
+		mm.logger.Warn("Failed to load XGBoost model, using default", zap.Error(err))
+	}
+
+	// Register the XGBoost model
+	mm.RegisterModel("xgboost", xgbModel)
+	mm.logger.Info("XGBoost model registered")
+
+	// Create and register LSTM model
+	lstmModel := NewLSTMModel("risk_prediction_lstm", "1.0.0", mm.logger)
+
+	// Load the LSTM model (always succeeds with enhanced placeholder)
+	if err := lstmModel.LoadModel(ctx, "./models/risk_lstm_v1.onnx"); err != nil {
+		mm.logger.Error("Failed to load LSTM model", zap.Error(err))
+		// Still register LSTM with enhanced placeholder implementation
+	}
+
+	// Always register the LSTM model (enhanced placeholder is robust)
+	mm.RegisterModel("lstm", lstmModel)
+	mm.logger.Info("LSTM model registered with enhanced placeholder implementation")
+
+	mm.logger.Info("Model initialization completed",
+		zap.Strings("available_models", mm.ListModels()))
+
+	return nil
 }
 
 // RegisterModel registers a model with the manager

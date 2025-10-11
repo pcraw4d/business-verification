@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -19,6 +20,7 @@ import (
 	"kyb-platform/services/risk-assessment-service/internal/middleware"
 	"kyb-platform/services/risk-assessment-service/internal/ml/service"
 	"kyb-platform/services/risk-assessment-service/internal/monitoring"
+	"kyb-platform/services/risk-assessment-service/internal/performance"
 	"kyb-platform/services/risk-assessment-service/internal/supabase"
 )
 
@@ -96,19 +98,43 @@ func main() {
 	externalDataService := external.NewExternalDataService(externalDataConfig, logger)
 	logger.Info("✅ External data service initialized")
 
-	// Initialize performance monitor
+	// Initialize performance optimization system
+	performanceConfig := performance.DefaultOptimizerConfig()
+	performanceConfig.TargetP95 = 1 * time.Second
+	performanceConfig.TargetP99 = 2 * time.Second
+	performanceConfig.TargetThroughput = 1000
+
+	// Note: In a real implementation, you'd pass the actual database connection
+	// For now, we'll initialize without database optimization
+	performanceConfig.EnableDBOptimization = false
+	performanceOptimizer := performance.NewOptimizer(logger, nil, performanceConfig)
+	logger.Info("✅ Performance optimizer initialized")
+
+	// Initialize legacy performance monitor for compatibility
 	performanceMonitor := monitoring.NewPerformanceMonitor(logger)
 	performanceMonitor.SetTargets(16.67, 1*time.Second, 0.01, 1000) // 1000 req/min target
 	logger.Info("✅ Performance monitor initialized")
 
 	// Initialize handlers
 	riskAssessmentHandler := handlers.NewRiskAssessmentHandler(supabaseClient, mlService, riskEngine, externalDataService, logger, cfg)
-	metricsHandler := handlers.NewMetricsHandler(riskEngine, logger)
+	metricsHandler := handlers.NewMetricsHandler(mlService.GetMetricsCollector(), logger)
 	performanceHandler := handlers.NewPerformanceHandler(performanceMonitor, logger)
 
 	// Initialize middleware
 	middlewareInstance := middleware.NewMiddleware(logger)
-	performanceMiddleware := middleware.NewPerformanceMiddleware(performanceMonitor, logger)
+
+	// Initialize new performance middleware with optimizer
+	performanceMiddlewareConfig := performance.DefaultMiddlewareConfig()
+	performanceMiddleware := performance.NewPerformanceMiddleware(
+		logger,
+		performanceOptimizer.GetProfiler(),
+		performanceOptimizer.GetResponseMonitor(),
+		performanceOptimizer.GetCacheOptimizer(),
+		performanceMiddlewareConfig,
+	)
+
+	// Legacy performance middleware for compatibility
+	legacyPerformanceMiddleware := middleware.NewPerformanceMiddleware(performanceMonitor, logger)
 
 	// Setup router
 	router := mux.NewRouter()
@@ -116,7 +142,8 @@ func main() {
 	// Add comprehensive middleware
 	router.Use(middlewareInstance.RecoveryMiddleware())
 	router.Use(middlewareInstance.LoggingMiddleware)
-	router.Use(performanceMiddleware.Middleware()) // Performance monitoring
+	router.Use(performanceMiddleware.Middleware)         // New performance monitoring
+	router.Use(legacyPerformanceMiddleware.Middleware()) // Legacy performance monitoring
 	router.Use(middlewareInstance.SecurityMiddleware())
 	router.Use(middlewareInstance.RequestSizeMiddleware(10 * 1024 * 1024)) // 10MB limit
 	router.Use(middlewareInstance.TimeoutMiddleware(30 * time.Second))
@@ -152,17 +179,46 @@ func main() {
 	api.HandleFunc("/analytics/insights", riskAssessmentHandler.HandleRiskInsights).Methods("GET")
 
 	// Metrics and monitoring endpoints
-	api.HandleFunc("/metrics", metricsHandler.HandleMetrics).Methods("GET")
-	api.HandleFunc("/health", metricsHandler.HandleHealth).Methods("GET")
-	api.HandleFunc("/performance", metricsHandler.HandlePerformance).Methods("GET")
+	api.HandleFunc("/metrics", metricsHandler.HandleGetMetrics).Methods("GET")
+	api.HandleFunc("/health", metricsHandler.HandleGetHealth).Methods("GET")
+	api.HandleFunc("/performance", metricsHandler.HandleGetPerformanceSnapshot).Methods("GET")
 
-	// Performance monitoring endpoints
+	// Performance monitoring endpoints (legacy)
 	api.HandleFunc("/performance/stats", performanceHandler.HandlePerformanceStats).Methods("GET")
 	api.HandleFunc("/performance/alerts", performanceHandler.HandlePerformanceAlerts).Methods("GET")
 	api.HandleFunc("/performance/health", performanceHandler.HandlePerformanceHealth).Methods("GET")
 	api.HandleFunc("/performance/reset", performanceHandler.HandlePerformanceReset).Methods("POST")
 	api.HandleFunc("/performance/targets", performanceHandler.HandlePerformanceTargets).Methods("POST")
 	api.HandleFunc("/performance/alerts/clear", performanceHandler.HandlePerformanceClearAlerts).Methods("POST")
+
+	// New performance optimization endpoints
+	api.HandleFunc("/optimization/report", func(w http.ResponseWriter, r *http.Request) {
+		report, err := performanceOptimizer.Optimize()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(report)
+	}).Methods("GET")
+
+	api.HandleFunc("/optimization/stats", func(w http.ResponseWriter, r *http.Request) {
+		stats := performanceOptimizer.GetPerformanceStats()
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(stats)
+	}).Methods("GET")
+
+	api.HandleFunc("/optimization/health", func(w http.ResponseWriter, r *http.Request) {
+		health := performanceOptimizer.GetHealthStatus()
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(health)
+	}).Methods("GET")
+
+	api.HandleFunc("/optimization/report/full", func(w http.ResponseWriter, r *http.Request) {
+		report := performanceOptimizer.GetPerformanceReport()
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write([]byte(report))
+	}).Methods("GET")
 
 	// External data source endpoints
 	api.HandleFunc("/external/adverse-media", riskAssessmentHandler.HandleExternalAdverseMediaMonitoring).Methods("POST")

@@ -1,0 +1,120 @@
+# LSTM Risk Prediction Model Configuration
+
+# Model Architecture
+model:
+  type: "RiskLSTM"
+  input_size: 20  # Will be set based on feature count
+  hidden_size: 128
+  num_layers: 2
+  dropout_rate: 0.3
+  use_attention: true
+  use_uncertainty: true
+
+# Prediction Horizons (in months)
+prediction_horizons: [6, 9, 12]
+
+# Training Configuration
+training:
+  batch_size: 64
+  learning_rate: 0.001
+  weight_decay: 1e-5
+  num_epochs: 100
+  early_stopping_patience: 15
+  early_stopping_min_delta: 0.001
+  
+  # Learning rate scheduling
+  lr_scheduler:
+    type: "ReduceLROnPlateau"
+    factor: 0.5
+    patience: 10
+    min_lr: 1e-6
+  
+  # Loss function
+  loss:
+    type: "RiskAwareLoss"
+    high_risk_threshold: 0.7
+    penalty_factor: 2.0
+
+# Data Configuration
+data:
+  sequence_length: 12  # months
+  validation_split: 0.2
+  test_split: 0.1
+  
+  # Feature preprocessing
+  preprocessing:
+    normalize_features: true
+    handle_missing: "median"  # median, mean, forward_fill
+    create_derived_features: true
+
+# Hyperparameter Tuning
+hyperparameter_tuning:
+  enabled: false
+  method: "optuna"  # optuna, grid_search, random_search
+  
+  # Search space
+  search_space:
+    hidden_size: [64, 128, 256]
+    num_layers: [1, 2, 3]
+    dropout_rate: [0.2, 0.3, 0.4, 0.5]
+    learning_rate: [0.0001, 0.001, 0.01]
+    batch_size: [32, 64, 128]
+
+# Model Evaluation
+evaluation:
+  metrics:
+    - "mse"
+    - "mae"
+    - "rmse"
+    - "r2_score"
+    - "accuracy"  # Custom accuracy for risk levels
+  
+  # Cross-validation
+  cross_validation:
+    enabled: true
+    folds: 5
+    shuffle: true
+    random_state: 42
+
+# Export Configuration
+export:
+  onnx:
+    opset_version: 14
+    optimize: true
+    dynamic_axes:
+      input: {0: "batch_size"}
+      output: {0: "batch_size"}
+  
+  # Model versioning
+  version: "1.0.0"
+  description: "Multi-horizon LSTM risk prediction model with attention"
+
+# Performance Targets
+targets:
+  accuracy:
+    horizon_6: 0.88  # 88% accuracy for 6-month predictions
+    horizon_9: 0.86  # 86% accuracy for 9-month predictions
+    horizon_12: 0.85 # 85% accuracy for 12-month predictions
+  
+  latency:
+    inference_ms: 100  # Target inference time in milliseconds
+  
+  memory:
+    model_size_mb: 10  # Target model size in MB
+
+# Logging and Monitoring
+logging:
+  level: "INFO"
+  log_interval: 10  # Log every N batches
+  save_checkpoints: true
+  checkpoint_interval: 5  # Save checkpoint every N epochs
+  
+  # TensorBoard logging
+  tensorboard:
+    enabled: true
+    log_dir: "logs/tensorboard"
+    log_interval: 10
+
+# Reproducibility
+random_seed: 42
+deterministic: true

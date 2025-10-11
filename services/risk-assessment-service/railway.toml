@@ -1,0 +1,72 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "./risk-assessment-service"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+[environments.production]
+[environments.production.variables]
+ENVIRONMENT = "production"
+LOG_LEVEL = "info"
+PORT = "8080"
+ENABLE_ENSEMBLE = "true"
+DEFAULT_PREDICTION_HORIZON = "3"
+CGO_ENABLED = "1"
+CGO_LDFLAGS = "-L/app/onnxruntime/lib"
+CGO_CFLAGS = "-I/app/onnxruntime/include"
+LD_LIBRARY_PATH = "/app/onnxruntime/lib"
+LSTM_MODEL_PATH = "/app/models/risk_lstm_v1.onnx"
+XGBOOST_MODEL_PATH = "/app/models/xgb_model.json"
+
+[environments.staging]
+[environments.staging.variables]
+ENVIRONMENT = "staging"
+LOG_LEVEL = "debug"
+PORT = "8080"
+ENABLE_ENSEMBLE = "true"
+DEFAULT_PREDICTION_HORIZON = "3"
+CGO_ENABLED = "1"
+CGO_LDFLAGS = "-L/app/onnxruntime/lib"
+CGO_CFLAGS = "-I/app/onnxruntime/include"
+LD_LIBRARY_PATH = "/app/onnxruntime/lib"
+LSTM_MODEL_PATH = "/app/models/risk_lstm_v1.onnx"
+XGBOOST_MODEL_PATH = "/app/models/xgb_model.json"
+
+[services.risk-assessment-service]
+source = "."
+build = { builder = "DOCKERFILE", dockerfilePath = "Dockerfile" }
+deploy = { startCommand = "./risk-assessment-service", healthcheckPath = "/health", healthcheckTimeout = 30, restartPolicyType = "ON_FAILURE", restartPolicyMaxRetries = 3 }
+resources = { memory = "2Gi", cpu = "2" }
+scaling = { minReplicas = 1, maxReplicas = 5 }
+
+[databases.postgres]
+type = "postgresql"
+version = "15"
+
+[databases.redis]
+type = "redis"
+version = "7"
+
+[volumes.model-storage]
+mountPath = "/app/models"
+size = "1Gi"
+
+[networking.ports]
+port = 8080
+protocol = "http"
+
+[monitoring.metrics]
+enabled = true
+endpoint = "/metrics"
+
+[monitoring.healthcheck]
+enabled = true
+path = "/health"
+interval = 30
+timeout = 10
+retries = 3
