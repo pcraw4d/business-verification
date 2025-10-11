@@ -4,8 +4,8 @@ FROM golang:1.22-alpine AS builder
 # Set working directory
 WORKDIR /app
 
-# Install dependencies
-RUN apk add --no-cache git ca-certificates tzdata
+# Install dependencies including build tools for CGO
+RUN apk add --no-cache git ca-certificates tzdata gcc musl-dev
 
 # Copy go mod files
 COPY go.mod go.sum ./
@@ -16,18 +16,18 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build the application with optimizations
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+# Build the application with CGO enabled for ONNX Runtime
+RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build \
     -a -installsuffix cgo \
-    -ldflags='-w -s -extldflags "-static"' \
+    -ldflags='-w -s' \
     -o risk-assessment-service \
     ./cmd/main.go
 
 # Final stage
 FROM alpine:latest
 
-# Install ca-certificates and timezone data for HTTPS requests and proper time handling
-RUN apk --no-cache add ca-certificates tzdata
+# Install ca-certificates, timezone data, and runtime libraries for CGO
+RUN apk --no-cache add ca-certificates tzdata libc6-compat
 
 # Create non-root user
 RUN adduser -D -s /bin/sh appuser
