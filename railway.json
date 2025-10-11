@@ -2,8 +2,7 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "DOCKERFILE",
-    "dockerfilePath": "services/risk-assessment-service/Dockerfile",
-    "buildCommand": "cd services/risk-assessment-service && go mod download && go build -o risk-assessment-service ./cmd/main.go"
+    "dockerfilePath": "services/risk-assessment-service/Dockerfile"
   },
   "deploy": {
     "startCommand": "cd services/risk-assessment-service && ./risk-assessment-service",
