@@ -100,28 +100,28 @@ type WebsiteContent struct {
 // RiskAssessmentResult represents comprehensive risk assessment results
 type RiskAssessmentResult struct {
 	// Core risk metrics
-	OverallRiskScore        float64            `json:"overall_risk_score"`
-	RiskLevel               string             `json:"risk_level"`
-	RiskScore               float64            `json:"risk_score"` // Legacy field for backward compatibility
-	
+	OverallRiskScore float64 `json:"overall_risk_score"`
+	RiskLevel        string  `json:"risk_level"`
+	RiskScore        float64 `json:"risk_score"` // Legacy field for backward compatibility
+
 	// Risk categories breakdown
-	Categories              map[string]float64 `json:"categories"`
-	
+	Categories map[string]float64 `json:"categories"`
+
 	// Risk analysis details
-	RiskFactors             []string           `json:"risk_factors"`
-	DetectedRisks           []string           `json:"detected_risks,omitempty"`
-	ProhibitedKeywordsFound []string           `json:"prohibited_keywords_found,omitempty"`
-	Recommendations         []string           `json:"recommendations"`
-	
+	RiskFactors             []string `json:"risk_factors"`
+	DetectedRisks           []string `json:"detected_risks,omitempty"`
+	ProhibitedKeywordsFound []string `json:"prohibited_keywords_found,omitempty"`
+	Recommendations         []string `json:"recommendations"`
+
 	// Benchmarking and trends
-	IndustryBenchmark       float64            `json:"industry_benchmark"`
-	PreviousRiskScore       float64            `json:"previous_risk_score,omitempty"`
-	
+	IndustryBenchmark float64 `json:"industry_benchmark"`
+	PreviousRiskScore float64 `json:"previous_risk_score,omitempty"`
+
 	// Assessment metadata
-	AssessmentMethodology   string             `json:"assessment_methodology"`
-	AssessmentTimestamp     time.Time          `json:"assessment_timestamp"`
-	DataSources             []string           `json:"data_sources"`
-	ProcessingTime          time.Duration      `json:"processing_time"`
+	AssessmentMethodology string        `json:"assessment_methodology"`
+	AssessmentTimestamp   time.Time     `json:"assessment_timestamp"`
+	DataSources           []string      `json:"data_sources"`
+	ProcessingTime        time.Duration `json:"processing_time"`
 }
 
 // HandleClassification handles classification requests
@@ -201,7 +201,7 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 
 	// Generate comprehensive risk assessment
 	riskAssessment := h.generateRiskAssessment(req, enhancedResult, time.Since(startTime))
-	
+
 	// Generate verification status
 	verificationStatus := h.generateVerificationStatus(req, enhancedResult, time.Since(startTime))
 
@@ -236,10 +236,10 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 func (h *ClassificationHandler) generateRiskAssessment(req *ClassificationRequest, classification *EnhancedClassificationResult, processingTime time.Duration) *RiskAssessmentResult {
 	// Analyze business name for risk indicators
 	riskFactors := h.analyzeBusinessName(req.BusinessName)
-	
+
 	// Analyze website for additional risk factors
 	websiteRisk := h.analyzeWebsiteRisk(req.WebsiteURL, classification.WebsiteAnalysis)
-	
+
 	// Calculate risk categories
 	categories := map[string]float64{
 		"financial":     h.calculateFinancialRisk(classification, riskFactors),
@@ -247,25 +247,25 @@ func (h *ClassificationHandler) generateRiskAssessment(req *ClassificationReques
 		"regulatory":    h.calculateRegulatoryRisk(classification, riskFactors),
 		"cybersecurity": h.calculateCybersecurityRisk(classification, websiteRisk),
 	}
-	
+
 	// Calculate overall risk score (weighted average)
-	overallRiskScore := (categories["financial"]*0.3 + 
-		categories["operational"]*0.25 + 
-		categories["regulatory"]*0.25 + 
+	overallRiskScore := (categories["financial"]*0.3 +
+		categories["operational"]*0.25 +
+		categories["regulatory"]*0.25 +
 		categories["cybersecurity"]*0.2)
-	
+
 	// Determine risk level
 	riskLevel := h.determineRiskLevel(overallRiskScore)
-	
+
 	// Generate recommendations
 	recommendations := h.generateRecommendations(categories, riskFactors)
-	
+
 	// Get industry benchmark
 	industryBenchmark := h.getIndustryBenchmark(classification.PrimaryIndustry)
-	
+
 	// Simulate previous risk score (in real implementation, this would come from historical data)
 	previousRiskScore := overallRiskScore + (float64(time.Now().Unix()%20) - 10) // ±10 point variation
-	
+
 	return &RiskAssessmentResult{
 		OverallRiskScore:        overallRiskScore,
 		RiskLevel:               riskLevel,
@@ -293,7 +293,7 @@ func (h *ClassificationHandler) generateRequestID() string {
 func (h *ClassificationHandler) analyzeBusinessName(businessName string) []string {
 	var riskFactors []string
 	name := strings.ToLower(businessName)
-	
+
 	// High-risk business name patterns
 	highRiskPatterns := []string{"casino", "gambling", "betting", "crypto", "bitcoin", "forex", "trading", "investment", "loan", "credit", "pawn"}
 	for _, pattern := range highRiskPatterns {
@@ -301,7 +301,7 @@ func (h *ClassificationHandler) analyzeBusinessName(businessName string) []strin
 			riskFactors = append(riskFactors, fmt.Sprintf("High-risk business type: %s", pattern))
 		}
 	}
-	
+
 	// Suspicious patterns
 	suspiciousPatterns := []string{"ltd", "inc", "corp", "llc", "group", "holdings", "enterprises"}
 	suspiciousCount := 0
@@ -313,7 +313,7 @@ func (h *ClassificationHandler) analyzeBusinessName(businessName string) []strin
 	if suspiciousCount > 2 {
 		riskFactors = append(riskFactors, "Multiple corporate structure indicators")
 	}
-	
+
 	// Generic or vague names
 	genericPatterns := []string{"company", "business", "services", "solutions", "enterprises"}
 	genericCount := 0
@@ -325,11 +325,11 @@ func (h *ClassificationHandler) analyzeBusinessName(businessName string) []strin
 	if genericCount > 1 {
 		riskFactors = append(riskFactors, "Generic business name")
 	}
-	
+
 	if len(riskFactors) == 0 {
 		riskFactors = append(riskFactors, "Standard business name structure")
 	}
-	
+
 	return riskFactors
 }
 
@@ -338,13 +338,13 @@ func (h *ClassificationHandler) analyzeIndustryRisk(industry string, mccCodes []
 	// High-risk industries
 	highRiskIndustries := []string{"gambling", "adult", "tobacco", "alcohol", "pharmaceutical", "financial services", "cryptocurrency"}
 	industryLower := strings.ToLower(industry)
-	
+
 	for _, riskIndustry := range highRiskIndustries {
 		if strings.Contains(industryLower, riskIndustry) {
 			return 75.0 // High risk
 		}
 	}
-	
+
 	// Medium-risk industries
 	mediumRiskIndustries := []string{"retail", "e-commerce", "technology", "consulting", "real estate"}
 	for _, riskIndustry := range mediumRiskIndustries {
@@ -352,7 +352,7 @@ func (h *ClassificationHandler) analyzeIndustryRisk(industry string, mccCodes []
 			return 45.0 // Medium risk
 		}
 	}
-	
+
 	// Low-risk industries
 	lowRiskIndustries := []string{"healthcare", "education", "non-profit", "government", "manufacturing"}
 	for _, riskIndustry := range lowRiskIndustries {
@@ -360,7 +360,7 @@ func (h *ClassificationHandler) analyzeIndustryRisk(industry string, mccCodes []
 			return 25.0 // Low risk
 		}
 	}
-	
+
 	return 35.0 // Default medium-low risk
 }
 
@@ -369,7 +369,7 @@ func (h *ClassificationHandler) analyzeWebsiteRisk(websiteURL string, websiteAna
 	if websiteURL == "" {
 		return 60.0 // Higher risk without website
 	}
-	
+
 	// Check for suspicious domain patterns
 	suspiciousDomains := []string{".tk", ".ml", ".ga", ".cf", "bit.ly", "tinyurl"}
 	for _, domain := range suspiciousDomains {
@@ -377,7 +377,7 @@ func (h *ClassificationHandler) analyzeWebsiteRisk(websiteURL string, websiteAna
 			return 80.0 // Very high risk
 		}
 	}
-	
+
 	// If we have website analysis data, use it
 	if websiteAnalysis != nil {
 		if websiteAnalysis.ContentQuality < 0.3 {
@@ -388,57 +388,57 @@ func (h *ClassificationHandler) analyzeWebsiteRisk(websiteURL string, websiteAna
 		}
 		return 30.0 // Low risk for good website
 	}
-	
+
 	return 40.0 // Default medium risk
 }
 
 // calculateFinancialRisk calculates financial risk score
 func (h *ClassificationHandler) calculateFinancialRisk(classification *EnhancedClassificationResult, riskFactors []string) float64 {
 	baseRisk := 30.0
-	
+
 	// Adjust based on industry
 	if strings.Contains(strings.ToLower(classification.PrimaryIndustry), "financial") {
 		baseRisk += 25.0
 	}
-	
+
 	// Adjust based on risk factors
 	for _, factor := range riskFactors {
 		if strings.Contains(factor, "High-risk business type") {
 			baseRisk += 20.0
 		}
 	}
-	
+
 	// Cap at 100
 	if baseRisk > 100 {
 		baseRisk = 100
 	}
-	
+
 	return baseRisk
 }
 
 // calculateOperationalRisk calculates operational risk score
 func (h *ClassificationHandler) calculateOperationalRisk(classification *EnhancedClassificationResult, riskFactors []string) float64 {
 	baseRisk := 25.0
-	
+
 	// Adjust based on business type
 	if strings.Contains(strings.ToLower(classification.BusinessType), "corporation") {
 		baseRisk += 10.0 // Corporations have more operational complexity
 	}
-	
+
 	// Adjust based on risk factors
 	for _, factor := range riskFactors {
 		if strings.Contains(factor, "Multiple corporate structure") {
 			baseRisk += 15.0
 		}
 	}
-	
+
 	return baseRisk
 }
 
 // calculateRegulatoryRisk calculates regulatory risk score
 func (h *ClassificationHandler) calculateRegulatoryRisk(classification *EnhancedClassificationResult, riskFactors []string) float64 {
 	baseRisk := 20.0
-	
+
 	// High regulatory risk industries
 	highRegRiskIndustries := []string{"healthcare", "financial", "pharmaceutical", "food", "transportation"}
 	for _, industry := range highRegRiskIndustries {
@@ -446,22 +446,22 @@ func (h *ClassificationHandler) calculateRegulatoryRisk(classification *Enhanced
 			baseRisk += 30.0
 		}
 	}
-	
+
 	return baseRisk
 }
 
 // calculateCybersecurityRisk calculates cybersecurity risk score
 func (h *ClassificationHandler) calculateCybersecurityRisk(classification *EnhancedClassificationResult, websiteRisk float64) float64 {
 	baseRisk := 35.0
-	
+
 	// Technology companies have higher cybersecurity risk
 	if strings.Contains(strings.ToLower(classification.PrimaryIndustry), "technology") {
 		baseRisk += 20.0
 	}
-	
+
 	// Incorporate website risk
 	baseRisk += (websiteRisk - 40.0) * 0.3
-	
+
 	// Cap at 100
 	if baseRisk > 100 {
 		baseRisk = 100
@@ -469,7 +469,7 @@ func (h *ClassificationHandler) calculateCybersecurityRisk(classification *Enhan
 	if baseRisk < 0 {
 		baseRisk = 0
 	}
-	
+
 	return baseRisk
 }
 
@@ -490,37 +490,37 @@ func (h *ClassificationHandler) determineRiskLevel(score float64) string {
 // generateRecommendations generates risk mitigation recommendations
 func (h *ClassificationHandler) generateRecommendations(categories map[string]float64, riskFactors []string) []string {
 	var recommendations []string
-	
+
 	// Financial risk recommendations
 	if categories["financial"] > 50 {
 		recommendations = append(recommendations, "Implement enhanced financial monitoring and reporting")
 		recommendations = append(recommendations, "Consider additional financial due diligence")
 	}
-	
+
 	// Operational risk recommendations
 	if categories["operational"] > 50 {
 		recommendations = append(recommendations, "Strengthen operational controls and procedures")
 		recommendations = append(recommendations, "Implement regular operational audits")
 	}
-	
+
 	// Regulatory risk recommendations
 	if categories["regulatory"] > 50 {
 		recommendations = append(recommendations, "Ensure compliance with industry regulations")
 		recommendations = append(recommendations, "Consider regulatory compliance monitoring")
 	}
-	
+
 	// Cybersecurity risk recommendations
 	if categories["cybersecurity"] > 50 {
 		recommendations = append(recommendations, "Implement robust cybersecurity measures")
 		recommendations = append(recommendations, "Regular security assessments recommended")
 	}
-	
+
 	// General recommendations
 	if len(recommendations) == 0 {
 		recommendations = append(recommendations, "Continue monitoring business operations")
 		recommendations = append(recommendations, "Regular risk assessments recommended")
 	}
-	
+
 	return recommendations
 }
 
@@ -528,54 +528,54 @@ func (h *ClassificationHandler) generateRecommendations(categories map[string]fl
 func (h *ClassificationHandler) getIndustryBenchmark(industry string) float64 {
 	// Industry-specific benchmarks
 	benchmarks := map[string]float64{
-		"technology":     45.0,
-		"financial":      60.0,
-		"healthcare":     40.0,
-		"retail":         35.0,
-		"manufacturing":  30.0,
-		"consulting":     25.0,
-		"education":      20.0,
-		"non-profit":     15.0,
+		"technology":    45.0,
+		"financial":     60.0,
+		"healthcare":    40.0,
+		"retail":        35.0,
+		"manufacturing": 30.0,
+		"consulting":    25.0,
+		"education":     20.0,
+		"non-profit":    15.0,
 	}
-	
+
 	industryLower := strings.ToLower(industry)
 	for key, benchmark := range benchmarks {
 		if strings.Contains(industryLower, key) {
 			return benchmark
 		}
 	}
-	
+
 	return 40.0 // Default benchmark
 }
 
 // detectSpecificRisks detects specific risk indicators
 func (h *ClassificationHandler) detectSpecificRisks(classification *EnhancedClassificationResult, riskFactors []string) []string {
 	var risks []string
-	
+
 	// Check for high-risk keywords in business name
 	highRiskKeywords := []string{"crypto", "bitcoin", "forex", "trading", "investment", "loan", "credit"}
 	businessNameLower := strings.ToLower(classification.BusinessName)
-	
+
 	for _, keyword := range highRiskKeywords {
 		if strings.Contains(businessNameLower, keyword) {
 			risks = append(risks, fmt.Sprintf("High-risk keyword detected: %s", keyword))
 		}
 	}
-	
+
 	// Check for generic business names
 	if strings.Contains(businessNameLower, "company") || strings.Contains(businessNameLower, "business") {
 		risks = append(risks, "Generic business name may indicate shell company")
 	}
-	
+
 	// Check industry-specific risks
 	if strings.Contains(strings.ToLower(classification.PrimaryIndustry), "financial") {
 		risks = append(risks, "Financial services industry requires enhanced due diligence")
 	}
-	
+
 	if len(risks) == 0 {
 		risks = append(risks, "No specific high-risk indicators detected")
 	}
-	
+
 	return risks
 }
 
@@ -583,14 +583,14 @@ func (h *ClassificationHandler) detectSpecificRisks(classification *EnhancedClas
 func (h *ClassificationHandler) checkProhibitedKeywords(businessName, description string) []string {
 	prohibitedKeywords := []string{"terrorism", "money laundering", "fraud", "scam", "illegal", "prohibited"}
 	var found []string
-	
+
 	text := strings.ToLower(businessName + " " + description)
 	for _, keyword := range prohibitedKeywords {
 		if strings.Contains(text, keyword) {
 			found = append(found, keyword)
 		}
 	}
-	
+
 	return found
 }
 
@@ -613,8 +613,8 @@ func (h *ClassificationHandler) generateVerificationStatus(req *ClassificationRe
 			Source:     "industry_database",
 		},
 		{
-			CheckType:  "Website Analysis",
-			Status:     func() string {
+			CheckType: "Website Analysis",
+			Status: func() string {
 				if req.WebsiteURL != "" {
 					return "PASS"
 				}
@@ -649,7 +649,7 @@ func (h *ClassificationHandler) generateVerificationStatus(req *ClassificationRe
 			Source:     "regulatory_database",
 		},
 	}
-	
+
 	// Calculate overall score
 	var totalConfidence float64
 	var validChecks int
@@ -659,12 +659,12 @@ func (h *ClassificationHandler) generateVerificationStatus(req *ClassificationRe
 			validChecks++
 		}
 	}
-	
+
 	overallScore := 0.0
 	if validChecks > 0 {
 		overallScore = totalConfidence / float64(validChecks)
 	}
-	
+
 	// Determine status
 	status := "COMPLETE"
 	if overallScore < 0.7 {
@@ -672,7 +672,7 @@ func (h *ClassificationHandler) generateVerificationStatus(req *ClassificationRe
 	} else if overallScore < 0.9 {
 		status = "COMPLETE_WITH_WARNINGS"
 	}
-	
+
 	return &VerificationStatus{
 		Status:         status,
 		ProcessingTime: processingTime,

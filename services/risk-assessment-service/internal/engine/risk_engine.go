@@ -284,8 +284,18 @@ func (re *RiskEngine) performRiskAssessment(ctx context.Context, req *models.Ris
 		assessment.PredictionHorizon = 3
 	}
 
-	// Use ML service for risk prediction
-	mlAssessment, err := re.mlService.PredictRisk(ctx, "xgboost", req)
+	// Use ML service for risk prediction with ensemble routing
+	// Determine model type based on prediction horizon
+	modelType := "auto" // Use ensemble routing by default
+	if req.ModelType != "" {
+		modelType = req.ModelType
+	}
+	
+	// Create a copy of the request with the model type
+	reqCopy := *req
+	reqCopy.ModelType = modelType
+	
+	mlAssessment, err := re.mlService.PredictRisk(ctx, modelType, &reqCopy)
 	if err != nil {
 		re.logger.Error("ML prediction failed, using fallback", zap.Error(err))
 		// Fallback to mock response if ML fails
@@ -311,6 +321,19 @@ func (re *RiskEngine) performRiskAssessment(ctx context.Context, req *models.Ris
 		assessment.ConfidenceScore = mlAssessment.ConfidenceScore
 		assessment.RiskFactors = mlAssessment.RiskFactors
 		assessment.Status = models.StatusCompleted
+		
+		// Add model information to metadata
+		if assessment.Metadata == nil {
+			assessment.Metadata = make(map[string]interface{})
+		}
+		assessment.Metadata["model_type"] = modelType
+		assessment.Metadata["prediction_horizon"] = assessment.PredictionHorizon
+		
+		// Add ensemble information if available
+		if modelType == "auto" || modelType == "ensemble" {
+			ensembleInfo := re.mlService.GetEnsembleInfo()
+			assessment.Metadata["ensemble_info"] = ensembleInfo
+		}
 	}
 
 	return assessment, nil
@@ -318,8 +341,14 @@ func (re *RiskEngine) performRiskAssessment(ctx context.Context, req *models.Ris
 
 // performRiskPrediction performs the actual risk prediction
 func (re *RiskEngine) performRiskPrediction(ctx context.Context, req *models.RiskAssessmentRequest, horizonMonths int) (*models.RiskPrediction, error) {
-	// Use ML service for future risk prediction
-	prediction, err := re.mlService.PredictFutureRisk(ctx, "xgboost", req, horizonMonths)
+	// Determine model type based on prediction horizon
+	modelType := "auto" // Use ensemble routing by default
+	if req.ModelType != "" {
+		modelType = req.ModelType
+	}
+	
+	// Use ML service for future risk prediction with ensemble routing
+	prediction, err := re.mlService.PredictFutureRisk(ctx, modelType, req, horizonMonths)
 	if err != nil {
 		re.logger.Error("Future risk prediction failed", zap.Error(err))
 		return nil, fmt.Errorf("prediction failed: %w", err)

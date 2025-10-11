@@ -77,7 +77,9 @@ type RiskAssessmentRequest struct {
 	Phone             string                 `json:"phone,omitempty" validate:"omitempty,min=10,max=20"`
 	Email             string                 `json:"email,omitempty" validate:"omitempty,email"`
 	Website           string                 `json:"website,omitempty" validate:"omitempty,url"`
-	PredictionHorizon int                    `json:"prediction_horizon,omitempty" validate:"omitempty,min=1,max=12"`
+	PredictionHorizon int                    `json:"prediction_horizon,omitempty" validate:"omitempty,min=1,max=24"`
+	ModelType         string                 `json:"model_type,omitempty" validate:"omitempty,oneof=auto xgboost lstm ensemble"`
+	IncludeTemporalAnalysis bool             `json:"include_temporal_analysis,omitempty"`
 	Metadata          map[string]interface{} `json:"metadata,omitempty"`
 }
 
