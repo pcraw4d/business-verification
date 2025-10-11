@@ -1,8 +1,8 @@
 """
 LSTM Model for Risk Prediction
 
-Implements a multi-horizon LSTM model with attention mechanism for
-time-series risk prediction with uncertainty estimation.
+Multi-horizon LSTM model with attention mechanism for 6-12 month risk forecasting.
+Includes uncertainty estimation via Monte Carlo dropout.
 """
 
 import torch
@@ -13,406 +13,321 @@ from typing import Dict, List, Tuple, Optional
 import math
 
 
-class AttentionLayer(nn.Module):
-    """Attention mechanism for LSTM outputs."""
+class MultiHeadAttention(nn.Module):
+    """Multi-head attention mechanism for LSTM outputs"""
     
-    def __init__(self, hidden_size: int):
-        super(AttentionLayer, self).__init__()
-        self.hidden_size = hidden_size
-        self.attention = nn.Linear(hidden_size, 1)
+    def __init__(self, hidden_dim: int, num_heads: int, dropout: float = 0.1):
+        super().__init__()
+        assert hidden_dim % num_heads == 0
         
-    def forward(self, lstm_outputs: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-        Apply attention to LSTM outputs.
+        self.hidden_dim = hidden_dim
+        self.num_heads = num_heads
+        self.head_dim = hidden_dim // num_heads
         
-        Args:
-            lstm_outputs: [batch_size, seq_len, hidden_size]
-            
-        Returns:
-            Tuple of (weighted_output, attention_weights)
-        """
-        # Calculate attention scores
-        attention_scores = self.attention(lstm_outputs)  # [batch_size, seq_len, 1]
-        attention_weights = F.softmax(attention_scores, dim=1)  # [batch_size, seq_len, 1]
-        
-        # Apply attention weights
-        weighted_output = torch.sum(lstm_outputs * attention_weights, dim=1)  # [batch_size, hidden_size]
-        
-        return weighted_output, attention_weights.squeeze(-1)
-
-
-class MultiHorizonHead(nn.Module):
-    """Multi-horizon prediction head."""
-    
-    def __init__(self, input_size: int, hidden_size: int, dropout_rate: float = 0.3):
-        super(MultiHorizonHead, self).__init__()
-        self.hidden_size = hidden_size
-        
-        # Shared layers
-        self.shared_layers = nn.Sequential(
-            nn.Linear(input_size, hidden_size),
-            nn.ReLU(),
-            nn.Dropout(dropout_rate),
-            nn.Linear(hidden_size, hidden_size // 2),
-            nn.ReLU(),
-            nn.Dropout(dropout_rate)
-        )
-        
-        # Risk score prediction
-        self.risk_score_head = nn.Linear(hidden_size // 2, 1)
-        
-        # Confidence prediction
-        self.confidence_head = nn.Linear(hidden_size // 2, 1)
+        self.query = nn.Linear(hidden_dim, hidden_dim)
+        self.key = nn.Linear(hidden_dim, hidden_dim)
+        self.value = nn.Linear(hidden_dim, hidden_dim)
+        self.dropout = nn.Dropout(dropout)
+        self.out_proj = nn.Linear(hidden_dim, hidden_dim)
         
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-        Forward pass for multi-horizon head.
+        batch_size, seq_len, hidden_dim = x.size()
         
-        Args:
-            x: [batch_size, input_size]
-            
-        Returns:
-            Tuple of (risk_score, confidence)
-        """
-        shared_features = self.shared_layers(x)
+        # Linear projections
+        Q = self.query(x).view(batch_size, seq_len, self.num_heads, self.head_dim).transpose(1, 2)
+        K = self.key(x).view(batch_size, seq_len, self.num_heads, self.head_dim).transpose(1, 2)
+        V = self.value(x).view(batch_size, seq_len, self.num_heads, self.head_dim).transpose(1, 2)
         
-        # Risk score (sigmoid to [0, 1])
-        risk_score = torch.sigmoid(self.risk_score_head(shared_features))
+        # Scaled dot-product attention
+        scores = torch.matmul(Q, K.transpose(-2, -1)) / math.sqrt(self.head_dim)
+        attention_weights = F.softmax(scores, dim=-1)
+        attention_weights = self.dropout(attention_weights)
         
-        # Confidence (sigmoid to [0, 1])
-        confidence = torch.sigmoid(self.confidence_head(shared_features))
+        # Apply attention to values
+        context = torch.matmul(attention_weights, V)
+        context = context.transpose(1, 2).contiguous().view(batch_size, seq_len, hidden_dim)
         
-        return risk_score, confidence
+        # Output projection
+        output = self.out_proj(context)
+        
+        return output, attention_weights.mean(dim=1)  # Average across heads
 
 
 class RiskLSTM(nn.Module):
-    """
-    Multi-horizon LSTM model for risk prediction with attention mechanism.
-    """
+    """Multi-horizon LSTM model with attention for risk prediction"""
     
-    def __init__(self, 
-                 input_size: int,
-                 hidden_size: int = 128,
-                 num_layers: int = 2,
-                 dropout_rate: float = 0.3,
-                 prediction_horizons: List[int] = [6, 9, 12],
-                 use_attention: bool = True,
-                 use_uncertainty: bool = True):
-        super(RiskLSTM, self).__init__()
+    def __init__(self, config: Dict):
+        super().__init__()
         
-        self.input_size = input_size
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-        self.dropout_rate = dropout_rate
-        self.prediction_horizons = prediction_horizons
-        self.use_attention = use_attention
-        self.use_uncertainty = use_uncertainty
-        
-        # Input normalization
-        self.input_norm = nn.LayerNorm(input_size)
+        self.config = config
+        self.sequence_length = config['data']['sequence_length']
+        self.feature_count = config['data']['feature_count']
+        self.prediction_horizons = config['data']['prediction_horizons']
+        self.hidden_units = config['model']['hidden_units']
+        self.lstm_layers = config['model']['lstm_layers']
+        self.dropout = config['model']['dropout']
+        self.attention_heads = config['model']['attention_heads']
+        self.attention_dim = config['model']['attention_dim']
         
         # LSTM layers
         self.lstm = nn.LSTM(
-            input_size=input_size,
-            hidden_size=hidden_size,
-            num_layers=num_layers,
-            dropout=dropout_rate if num_layers > 1 else 0,
+            input_size=self.feature_count,
+            hidden_size=self.hidden_units,
+            num_layers=self.lstm_layers,
+            dropout=self.dropout if self.lstm_layers > 1 else 0,
             batch_first=True,
             bidirectional=False
         )
         
         # Attention mechanism
-        if use_attention:
-            self.attention = AttentionLayer(hidden_size)
+        self.attention = MultiHeadAttention(
+            hidden_dim=self.hidden_units,
+            num_heads=self.attention_heads,
+            dropout=self.dropout
+        )
         
-        # Multi-horizon prediction heads
-        self.horizon_heads = nn.ModuleDict({
-            f'horizon_{h}': MultiHorizonHead(
-                input_size=hidden_size,
-                hidden_size=hidden_size,
-                dropout_rate=dropout_rate
+        # Dropout for uncertainty estimation
+        self.mc_dropout = nn.Dropout(self.dropout)
+        
+        # Horizon-specific output heads
+        self.output_heads = nn.ModuleDict()
+        for horizon in self.prediction_horizons:
+            self.output_heads[str(horizon)] = nn.Sequential(
+                nn.Linear(self.hidden_units, self.hidden_units // 2),
+                nn.ReLU(),
+                nn.Dropout(self.dropout),
+                nn.Linear(self.hidden_units // 2, 1),
+                nn.Sigmoid()
             )
-            for h in prediction_horizons
-        })
         
-        # Uncertainty estimation (Monte Carlo dropout)
-        self.mc_dropout = nn.Dropout(dropout_rate)
+        # Confidence estimation head
+        self.confidence_head = nn.Sequential(
+            nn.Linear(self.hidden_units, self.hidden_units // 2),
+            nn.ReLU(),
+            nn.Dropout(self.dropout),
+            nn.Linear(self.hidden_units // 2, len(self.prediction_horizons)),
+            nn.Sigmoid()
+        )
         
         # Initialize weights
         self._initialize_weights()
     
     def _initialize_weights(self):
-        """Initialize model weights."""
+        """Initialize model weights"""
         for name, param in self.named_parameters():
             if 'weight' in name:
                 if 'lstm' in name:
-                    # LSTM weight initialization
                     nn.init.xavier_uniform_(param)
                 else:
-                    # Linear layer weight initialization
-                    nn.init.xavier_uniform_(param)
+                    nn.init.kaiming_uniform_(param)
             elif 'bias' in name:
                 nn.init.constant_(param, 0)
     
-    def forward(self, x: torch.Tensor, mc_samples: int = 1) -> Dict[str, torch.Tensor]:
+    def forward(self, x: torch.Tensor, return_attention: bool = False, 
+                mc_dropout: bool = False) -> Dict[str, torch.Tensor]:
         """
-        Forward pass of the model.
+        Forward pass through the model
         
         Args:
-            x: Input sequences [batch_size, seq_len, input_size]
-            mc_samples: Number of Monte Carlo samples for uncertainty estimation
-            
-        Returns:
-            Dictionary with predictions for each horizon
-        """
-        batch_size, seq_len, _ = x.shape
+            x: Input tensor of shape (batch_size, sequence_length, feature_count)
+            return_attention: Whether to return attention weights
+            mc_dropout: Whether to use Monte Carlo dropout for uncertainty estimation
         
-        # Input normalization
-        x = self.input_norm(x)
+        Returns:
+            Dictionary containing predictions and confidence scores
+        """
+        batch_size, seq_len, features = x.size()
         
         # LSTM forward pass
-        lstm_outputs, (hidden, cell) = self.lstm(x)  # [batch_size, seq_len, hidden_size]
+        lstm_out, (hidden, cell) = self.lstm(x)
         
-        # Apply attention if enabled
-        if self.use_attention:
-            context_vector, attention_weights = self.attention(lstm_outputs)
-        else:
-            # Use last output
-            context_vector = lstm_outputs[:, -1, :]  # [batch_size, hidden_size]
-            attention_weights = None
+        # Apply attention
+        attended_out, attention_weights = self.attention(lstm_out)
         
-        # Multi-horizon predictions
+        # Global average pooling
+        pooled = torch.mean(attended_out, dim=1)
+        
+        # Apply Monte Carlo dropout if requested
+        if mc_dropout:
+            pooled = self.mc_dropout(pooled)
+        
+        # Generate predictions for each horizon
         predictions = {}
-        
         for horizon in self.prediction_horizons:
-            horizon_key = f'horizon_{horizon}'
-            
-            if self.use_uncertainty and mc_samples > 1:
-                # Monte Carlo dropout for uncertainty estimation
-                risk_scores = []
-                confidences = []
-                
-                for _ in range(mc_samples):
-                    # Apply dropout
-                    mc_context = self.mc_dropout(context_vector)
-                    
-                    # Get predictions
-                    risk_score, confidence = self.horizon_heads[horizon_key](mc_context)
-                    risk_scores.append(risk_score)
-                    confidences.append(confidence)
-                
-                # Stack and compute statistics
-                risk_scores = torch.stack(risk_scores, dim=1)  # [batch_size, mc_samples, 1]
-                confidences = torch.stack(confidences, dim=1)  # [batch_size, mc_samples, 1]
-                
-                # Mean and standard deviation
-                mean_risk = torch.mean(risk_scores, dim=1)
-                std_risk = torch.std(risk_scores, dim=1)
-                mean_confidence = torch.mean(confidences, dim=1)
-                std_confidence = torch.std(confidences, dim=1)
-                
-                predictions[horizon_key] = {
-                    'risk_score': mean_risk,
-                    'risk_uncertainty': std_risk,
-                    'confidence': mean_confidence,
-                    'confidence_uncertainty': std_confidence
-                }
-            else:
-                # Single prediction
-                risk_score, confidence = self.horizon_heads[horizon_key](context_vector)
-                predictions[horizon_key] = {
-                    'risk_score': risk_score,
-                    'confidence': confidence
-                }
+            predictions[f'risk_score_{horizon}mo'] = self.output_heads[str(horizon)](pooled)
         
-        # Add attention weights if available
-        if attention_weights is not None:
-            predictions['attention_weights'] = attention_weights
+        # Generate confidence scores
+        confidence_scores = self.confidence_head(pooled)
         
-        return predictions
+        # Combine predictions and confidence
+        output = {
+            'predictions': torch.cat([predictions[f'risk_score_{h}mo'] for h in self.prediction_horizons], dim=1),
+            'confidence': confidence_scores,
+            'hidden_state': pooled
+        }
+        
+        if return_attention:
+            output['attention_weights'] = attention_weights
+        
+        return output
     
-    def predict_single(self, x: torch.Tensor) -> Dict[str, float]:
+    def predict_with_uncertainty(self, x: torch.Tensor, n_samples: int = 10) -> Dict[str, torch.Tensor]:
         """
-        Make a single prediction (no uncertainty estimation).
+        Predict with uncertainty estimation using Monte Carlo dropout
         
         Args:
-            x: Input sequence [1, seq_len, input_size]
-            
-        Returns:
-            Dictionary with predictions
-        """
-        self.eval()
-        with torch.no_grad():
-            predictions = self.forward(x, mc_samples=1)
-            
-            result = {}
-            for horizon in self.prediction_horizons:
-                horizon_key = f'horizon_{horizon}'
-                result[f'{horizon}_month_risk'] = predictions[horizon_key]['risk_score'].item()
-                result[f'{horizon}_month_confidence'] = predictions[horizon_key]['confidence'].item()
-            
-            return result
-    
-    def predict_with_uncertainty(self, x: torch.Tensor, mc_samples: int = 10) -> Dict[str, Dict[str, float]]:
-        """
-        Make predictions with uncertainty estimation.
+            x: Input tensor
+            n_samples: Number of Monte Carlo samples
         
-        Args:
-            x: Input sequence [1, seq_len, input_size]
-            mc_samples: Number of Monte Carlo samples
-            
         Returns:
-            Dictionary with predictions and uncertainties
+            Dictionary with mean predictions, uncertainty, and confidence intervals
         """
-        self.eval()
-        with torch.no_grad():
-            predictions = self.forward(x, mc_samples=mc_samples)
-            
-            result = {}
-            for horizon in self.prediction_horizons:
-                horizon_key = f'horizon_{horizon}'
-                result[f'{horizon}_month'] = {
-                    'risk_score': predictions[horizon_key]['risk_score'].item(),
-                    'risk_uncertainty': predictions[horizon_key]['risk_uncertainty'].item(),
-                    'confidence': predictions[horizon_key]['confidence'].item(),
-                    'confidence_uncertainty': predictions[horizon_key]['confidence_uncertainty'].item()
-                }
-            
-            return result
-    
-    def get_attention_weights(self, x: torch.Tensor) -> np.ndarray:
-        """
-        Get attention weights for interpretability.
+        self.train()  # Enable dropout
         
-        Args:
-            x: Input sequence [1, seq_len, input_size]
-            
-        Returns:
-            Attention weights as numpy array
-        """
-        if not self.use_attention:
-            return None
+        predictions_list = []
+        confidence_list = []
         
-        self.eval()
         with torch.no_grad():
-            predictions = self.forward(x, mc_samples=1)
-            return predictions['attention_weights'].cpu().numpy()
-    
-    def get_model_info(self) -> Dict:
-        """Get model information."""
-        total_params = sum(p.numel() for p in self.parameters())
-        trainable_params = sum(p.numel() for p in self.parameters() if p.requires_grad)
+            for _ in range(n_samples):
+                output = self.forward(x, mc_dropout=True)
+                predictions_list.append(output['predictions'])
+                confidence_list.append(output['confidence'])
+        
+        # Stack predictions
+        predictions_stack = torch.stack(predictions_list, dim=0)  # (n_samples, batch_size, n_horizons)
+        confidence_stack = torch.stack(confidence_list, dim=0)
+        
+        # Calculate statistics
+        mean_predictions = torch.mean(predictions_stack, dim=0)
+        std_predictions = torch.std(predictions_stack, dim=0)
+        mean_confidence = torch.mean(confidence_stack, dim=0)
+        
+        # Calculate confidence intervals
+        lower_bound = mean_predictions - 1.96 * std_predictions
+        upper_bound = mean_predictions + 1.96 * std_predictions
         
         return {
-            'model_type': 'RiskLSTM',
-            'input_size': self.input_size,
-            'hidden_size': self.hidden_size,
-            'num_layers': self.num_layers,
-            'dropout_rate': self.dropout_rate,
-            'prediction_horizons': self.prediction_horizons,
-            'use_attention': self.use_attention,
-            'use_uncertainty': self.use_uncertainty,
-            'total_parameters': total_params,
-            'trainable_parameters': trainable_params,
-            'model_size_mb': total_params * 4 / (1024 * 1024)  # Assuming float32
+            'mean_predictions': mean_predictions,
+            'uncertainty': std_predictions,
+            'confidence': mean_confidence,
+            'lower_bound': torch.clamp(lower_bound, 0, 1),
+            'upper_bound': torch.clamp(upper_bound, 0, 1)
         }
+    
+    def get_attention_weights(self, x: torch.Tensor) -> torch.Tensor:
+        """Get attention weights for interpretability"""
+        with torch.no_grad():
+            output = self.forward(x, return_attention=True)
+            return output['attention_weights']
+    
+    def count_parameters(self) -> int:
+        """Count the number of trainable parameters"""
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
 
 class RiskAwareLoss(nn.Module):
-    """
-    Custom loss function that penalizes high-risk prediction errors more heavily.
-    """
+    """Custom loss function that penalizes high-risk misses more heavily"""
     
-    def __init__(self, high_risk_threshold: float = 0.7, penalty_factor: float = 2.0):
-        super(RiskAwareLoss, self).__init__()
-        self.high_risk_threshold = high_risk_threshold
-        self.penalty_factor = penalty_factor
+    def __init__(self, risk_weight: float = 2.0, uncertainty_weight: float = 0.1):
+        super().__init__()
+        self.risk_weight = risk_weight
+        self.uncertainty_weight = uncertainty_weight
         self.mse_loss = nn.MSELoss()
     
-    def forward(self, predictions: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+    def forward(self, predictions: torch.Tensor, targets: torch.Tensor, 
+                confidence: torch.Tensor) -> torch.Tensor:
         """
-        Calculate risk-aware loss.
+        Calculate risk-aware loss
         
         Args:
-            predictions: Model predictions [batch_size, 1]
-            targets: Ground truth targets [batch_size, 1]
-            
-        Returns:
-            Weighted loss
+            predictions: Model predictions (batch_size, n_horizons)
+            targets: Ground truth targets (batch_size, n_horizons)
+            confidence: Model confidence scores (batch_size, n_horizons)
         """
         # Base MSE loss
-        base_loss = self.mse_loss(predictions, targets)
+        mse_loss = self.mse_loss(predictions, targets)
         
-        # Calculate prediction errors
-        errors = torch.abs(predictions - targets)
+        # Risk-aware weighting: penalize high-risk misses more
+        risk_weights = 1 + self.risk_weight * targets  # Higher weight for higher risk
+        weighted_mse = torch.mean(risk_weights * (predictions - targets) ** 2)
         
-        # Apply higher penalty for high-risk cases
-        high_risk_mask = targets > self.high_risk_threshold
-        penalty_weights = torch.where(high_risk_mask, 
-                                    torch.tensor(self.penalty_factor, device=targets.device),
-                                    torch.tensor(1.0, device=targets.device))
+        # Uncertainty penalty: encourage higher confidence for accurate predictions
+        accuracy = 1 - torch.abs(predictions - targets)
+        uncertainty_penalty = torch.mean((1 - confidence) * (1 - accuracy))
         
-        # Weighted loss
-        weighted_errors = errors * penalty_weights
-        weighted_loss = torch.mean(weighted_errors)
+        total_loss = weighted_mse + self.uncertainty_weight * uncertainty_penalty
         
-        return base_loss + weighted_loss
+        return total_loss
 
 
 def create_model(config: Dict) -> RiskLSTM:
-    """
-    Create LSTM model from configuration.
+    """Create and initialize the LSTM model"""
     
-    Args:
-        config: Model configuration dictionary
-        
-    Returns:
-        Initialized RiskLSTM model
-    """
-    model = RiskLSTM(
-        input_size=config['input_size'],
-        hidden_size=config.get('hidden_size', 128),
-        num_layers=config.get('num_layers', 2),
-        dropout_rate=config.get('dropout_rate', 0.3),
-        prediction_horizons=config.get('prediction_horizons', [6, 9, 12]),
-        use_attention=config.get('use_attention', True),
-        use_uncertainty=config.get('use_uncertainty', True)
-    )
+    model = RiskLSTM(config)
+    
+    print(f"Created LSTM model with {model.count_parameters():,} parameters")
+    print(f"Model architecture:")
+    print(f"  - LSTM layers: {config['model']['lstm_layers']}")
+    print(f"  - Hidden units: {config['model']['hidden_units']}")
+    print(f"  - Attention heads: {config['model']['attention_heads']}")
+    print(f"  - Prediction horizons: {config['data']['prediction_horizons']}")
+    print(f"  - Dropout: {config['model']['dropout']}")
     
     return model
 
 
+def create_loss_function(config: Dict) -> RiskAwareLoss:
+    """Create the risk-aware loss function"""
+    
+    loss_config = config['training']['loss']
+    return RiskAwareLoss(
+        risk_weight=loss_config['risk_weight'],
+        uncertainty_weight=loss_config['uncertainty_weight']
+    )
+
+
 def main():
-    """Test the LSTM model."""
-    # Test configuration
-    config = {
-        'input_size': 20,
-        'hidden_size': 128,
-        'num_layers': 2,
-        'dropout_rate': 0.3,
-        'prediction_horizons': [6, 9, 12],
-        'use_attention': True,
-        'use_uncertainty': True
-    }
+    """Test the model creation and forward pass"""
+    
+    # Load config
+    import yaml
+    with open('models/model_config.yaml', 'r') as f:
+        config = yaml.safe_load(f)
     
     # Create model
     model = create_model(config)
     
+    # Create sample input
+    batch_size = 32
+    sequence_length = config['data']['sequence_length']
+    feature_count = config['data']['feature_count']
+    
+    sample_input = torch.randn(batch_size, sequence_length, feature_count)
+    
     # Test forward pass
-    batch_size, seq_len, input_size = 32, 12, 20
-    x = torch.randn(batch_size, seq_len, input_size)
+    print("\nTesting forward pass...")
+    output = model(sample_input)
     
-    print(f"Model created with {model.get_model_info()['total_parameters']:,} parameters")
+    print(f"Input shape: {sample_input.shape}")
+    print(f"Predictions shape: {output['predictions'].shape}")
+    print(f"Confidence shape: {output['confidence'].shape}")
+    print(f"Hidden state shape: {output['hidden_state'].shape}")
     
-    # Forward pass
-    predictions = model(x)
+    # Test uncertainty estimation
+    print("\nTesting uncertainty estimation...")
+    uncertainty_output = model.predict_with_uncertainty(sample_input, n_samples=5)
     
-    print("Model output shapes:")
-    for horizon in config['prediction_horizons']:
-        horizon_key = f'horizon_{horizon}'
-        print(f"  {horizon_key}: {predictions[horizon_key]['risk_score'].shape}")
+    print(f"Mean predictions shape: {uncertainty_output['mean_predictions'].shape}")
+    print(f"Uncertainty shape: {uncertainty_output['uncertainty'].shape}")
+    print(f"Lower bound shape: {uncertainty_output['lower_bound'].shape}")
+    print(f"Upper bound shape: {uncertainty_output['upper_bound'].shape}")
     
-    print("Model test completed successfully!")
+    # Test attention weights
+    print("\nTesting attention weights...")
+    attention_weights = model.get_attention_weights(sample_input)
+    print(f"Attention weights shape: {attention_weights.shape}")
+    
+    print("\nModel test completed successfully!")
 
 
 if __name__ == "__main__":

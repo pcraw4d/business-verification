@@ -1,8 +1,8 @@
 """
-Feature Preprocessor for LSTM Risk Prediction
+Feature Preprocessor for LSTM Training
 
-Handles data preprocessing, feature engineering, and sequence preparation
-for LSTM time-series risk prediction models.
+Handles data preprocessing, normalization, and feature engineering
+for the LSTM time-series risk prediction model.
 """
 
 import numpy as np
@@ -11,275 +11,264 @@ from typing import Dict, List, Tuple, Optional
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, LabelEncoder
 from sklearn.model_selection import train_test_split
 import pickle
-import json
+import os
 
 
 class FeaturePreprocessor:
-    """Preprocesses features for LSTM risk prediction."""
+    """Preprocesses time-series data for LSTM training"""
     
-    def __init__(self, sequence_length: int = 12, prediction_horizons: List[int] = [6, 9, 12]):
-        self.sequence_length = sequence_length
-        self.prediction_horizons = prediction_horizons
+    def __init__(self, config: Dict):
+        """Initialize preprocessor with configuration"""
+        self.config = config
+        self.sequence_length = config.get('sequence_length', 12)
+        self.feature_count = config.get('feature_count', 20)
+        self.prediction_horizons = config.get('prediction_horizons', [6, 9, 12])
         
         # Scalers for different feature types
-        self.feature_scalers = {}
-        self.label_encoders = {}
+        self.feature_scaler = StandardScaler()
+        self.target_scaler = MinMaxScaler()
+        self.industry_encoder = LabelEncoder()
         
-        # Feature groups
-        self.numerical_features = [
-            'risk_score', 'financial_health', 'compliance_score', 'market_conditions',
-            'revenue_trend', 'employee_count', 'debt_ratio', 'profit_margin',
-            'customer_satisfaction', 'regulatory_compliance', 'market_share', 'innovation_index'
-        ]
-        
-        self.categorical_features = ['industry', 'risk_level']
-        
-        self.temporal_features = ['month', 'quarter', 'year']
-        
-        # All features combined
-        self.all_features = self.numerical_features + self.categorical_features + self.temporal_features
+        # Feature statistics for normalization
+        self.feature_stats = {}
+        self.is_fitted = False
     
     def fit_transform(self, data: pd.DataFrame) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
-        """
-        Fit scalers and transform the data.
+        """Fit preprocessors and transform the data"""
         
-        Args:
-            data: Raw dataset
-            
-        Returns:
-            Tuple of (processed_data, targets_dict)
-        """
-        print("Fitting scalers and preprocessing data...")
+        print("Fitting preprocessors...")
         
-        # Prepare features
-        processed_data = self._prepare_features(data)
+        # Prepare features and targets
+        features, targets = self._prepare_features_and_targets(data)
         
         # Fit scalers
-        self._fit_scalers(processed_data)
+        self.feature_scaler.fit(features.reshape(-1, features.shape[-1]))
+        self.target_scaler.fit(targets.reshape(-1, len(self.prediction_horizons)))
+        
+        # Fit industry encoder
+        self.industry_encoder.fit(data['industry'].unique())
+        
+        # Store feature statistics
+        self._compute_feature_stats(features)
         
         # Transform data
-        transformed_data = self._transform_data(processed_data)
+        print("Transforming data...")
+        features_scaled = self._scale_features(features)
+        targets_scaled = self._scale_targets(targets)
         
-        # Create sequences and targets
-        sequences, targets = self._create_sequences_and_targets(transformed_data)
+        self.is_fitted = True
         
-        print(f"Created {len(sequences)} sequences of length {self.sequence_length}")
-        print(f"Target shapes: {[(k, v.shape) for k, v in targets.items()]}")
-        
-        return sequences, targets
-    
-    def transform(self, data: pd.DataFrame) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
-        """
-        Transform data using fitted scalers.
-        
-        Args:
-            data: Raw dataset
-            
-        Returns:
-            Tuple of (processed_data, targets_dict)
-        """
-        if not self.feature_scalers:
-            raise ValueError("Scalers not fitted. Call fit_transform first.")
-        
-        # Prepare features
-        processed_data = self._prepare_features(data)
-        
-        # Transform data
-        transformed_data = self._transform_data(processed_data)
-        
-        # Create sequences and targets
-        sequences, targets = self._create_sequences_and_targets(transformed_data)
-        
-        return sequences, targets
-    
-    def _prepare_features(self, data: pd.DataFrame) -> pd.DataFrame:
-        """Prepare and clean features."""
-        processed = data.copy()
-        
-        # Handle missing values
-        processed = self._handle_missing_values(processed)
-        
-        # Create derived features
-        processed = self._create_derived_features(processed)
-        
-        # Ensure all required features exist
-        for feature in self.all_features:
-            if feature not in processed.columns:
-                if feature in self.numerical_features:
-                    processed[feature] = 0.0
-                elif feature in self.categorical_features:
-                    processed[feature] = 'unknown'
-                else:
-                    processed[feature] = 0
-        
-        return processed
-    
-    def _handle_missing_values(self, data: pd.DataFrame) -> pd.DataFrame:
-        """Handle missing values in the dataset."""
-        processed = data.copy()
-        
-        # Fill numerical features with median
-        for feature in self.numerical_features:
-            if feature in processed.columns:
-                processed[feature] = processed[feature].fillna(processed[feature].median())
-        
-        # Fill categorical features with mode
-        for feature in self.categorical_features:
-            if feature in processed.columns:
-                processed[feature] = processed[feature].fillna(processed[feature].mode()[0] if not processed[feature].mode().empty else 'unknown')
-        
-        return processed
-    
-    def _create_derived_features(self, data: pd.DataFrame) -> pd.DataFrame:
-        """Create additional derived features."""
-        processed = data.copy()
-        
-        # Risk score momentum (change over time)
-        processed['risk_momentum'] = processed.groupby('business_id')['risk_score'].diff().fillna(0)
-        
-        # Financial health trend
-        processed['financial_trend'] = processed.groupby('business_id')['financial_health'].diff().fillna(0)
-        
-        # Revenue growth rate
-        processed['revenue_growth'] = processed.groupby('business_id')['revenue_trend'].pct_change().fillna(0)
-        
-        # Employee growth rate
-        processed['employee_growth'] = processed.groupby('business_id')['employee_count'].pct_change().fillna(0)
-        
-        # Risk volatility (rolling standard deviation)
-        processed['risk_volatility'] = processed.groupby('business_id')['risk_score'].rolling(window=3, min_periods=1).std().fillna(0).values
-        
-        # Compliance trend
-        processed['compliance_trend'] = processed.groupby('business_id')['compliance_score'].diff().fillna(0)
-        
-        # Market position (relative to industry)
-        industry_avg = processed.groupby(['industry', 'date'])['market_share'].transform('mean')
-        processed['market_position'] = processed['market_share'] / (industry_avg + 1e-8)
-        
-        # Add derived features to feature lists
-        derived_features = ['risk_momentum', 'financial_trend', 'revenue_growth', 
-                          'employee_growth', 'risk_volatility', 'compliance_trend', 'market_position']
-        self.numerical_features.extend(derived_features)
-        
-        return processed
-    
-    def _fit_scalers(self, data: pd.DataFrame):
-        """Fit scalers for different feature types."""
-        # Fit numerical feature scaler
-        numerical_data = data[self.numerical_features].values
-        self.feature_scalers['numerical'] = StandardScaler()
-        self.feature_scalers['numerical'].fit(numerical_data)
-        
-        # Fit label encoders for categorical features
-        for feature in self.categorical_features:
-            if feature in data.columns:
-                self.label_encoders[feature] = LabelEncoder()
-                self.label_encoders[feature].fit(data[feature].astype(str))
-        
-        # Fit temporal feature scaler
-        temporal_data = data[self.temporal_features].values
-        self.feature_scalers['temporal'] = MinMaxScaler()
-        self.feature_scalers['temporal'].fit(temporal_data)
-    
-    def _transform_data(self, data: pd.DataFrame) -> pd.DataFrame:
-        """Transform data using fitted scalers."""
-        processed = data.copy()
-        
-        # Transform numerical features
-        numerical_data = processed[self.numerical_features].values
-        processed[self.numerical_features] = self.feature_scalers['numerical'].transform(numerical_data)
-        
-        # Transform categorical features
-        for feature in self.categorical_features:
-            if feature in processed.columns and feature in self.label_encoders:
-                processed[feature] = self.label_encoders[feature].transform(processed[feature].astype(str))
-        
-        # Transform temporal features
-        temporal_data = processed[self.temporal_features].values
-        processed[self.temporal_features] = self.feature_scalers['temporal'].transform(temporal_data)
-        
-        return processed
-    
-    def _create_sequences_and_targets(self, data: pd.DataFrame) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
-        """Create sequences and targets for LSTM training."""
-        sequences = []
-        targets = {f'horizon_{h}': [] for h in self.prediction_horizons}
-        
-        # Group by business
-        for business_id, business_data in data.groupby('business_id'):
-            business_data = business_data.sort_values('date')
-            
-            if len(business_data) < self.sequence_length + max(self.prediction_horizons):
-                continue  # Skip businesses with insufficient data
-            
-            # Create sequences
-            for i in range(len(business_data) - self.sequence_length - max(self.prediction_horizons) + 1):
-                # Input sequence
-                sequence = business_data.iloc[i:i + self.sequence_length]
-                
-                # Extract features for the sequence
-                feature_columns = self.numerical_features + self.categorical_features + self.temporal_features
-                sequence_features = sequence[feature_columns].values
-                sequences.append(sequence_features)
-                
-                # Create targets for each horizon
-                for horizon in self.prediction_horizons:
-                    target_idx = i + self.sequence_length + horizon - 1
-                    if target_idx < len(business_data):
-                        target_risk_score = business_data.iloc[target_idx]['risk_score']
-                        targets[f'horizon_{horizon}'].append(target_risk_score)
-                    else:
-                        # If target is beyond available data, use last available risk score
-                        targets[f'horizon_{horizon}'].append(business_data.iloc[-1]['risk_score'])
-        
-        # Convert to numpy arrays
-        sequences = np.array(sequences)
-        for horizon in self.prediction_horizons:
-            targets[f'horizon_{horizon}'] = np.array(targets[f'horizon_{horizon}'])
-        
-        return sequences, targets
-    
-    def split_data(self, sequences: np.ndarray, targets: Dict[str, np.ndarray], 
-                   test_size: float = 0.2, val_size: float = 0.1) -> Dict[str, Tuple[np.ndarray, np.ndarray]]:
-        """
-        Split data into train, validation, and test sets.
-        
-        Args:
-            sequences: Input sequences
-            targets: Target values for each horizon
-            test_size: Fraction for test set
-            val_size: Fraction for validation set (from remaining data)
-            
-        Returns:
-            Dictionary with train/val/test splits
-        """
-        # First split: train+val vs test
-        train_val_sequences, test_sequences, train_val_targets, test_targets = train_test_split(
-            sequences, targets, test_size=test_size, random_state=42
-        )
-        
-        # Second split: train vs val
-        val_size_adjusted = val_size / (1 - test_size)  # Adjust val_size for remaining data
-        train_sequences, val_sequences, train_targets, val_targets = train_test_split(
-            train_val_sequences, train_val_targets, test_size=val_size_adjusted, random_state=42
-        )
-        
-        return {
-            'train': (train_sequences, train_targets),
-            'val': (val_sequences, val_targets),
-            'test': (test_sequences, test_targets)
+        return features_scaled, {
+            'targets': targets_scaled,
+            'business_ids': data['business_id'].unique(),
+            'industries': data['industry'].unique()
         }
     
-    def save_preprocessor(self, filepath: str):
-        """Save the fitted preprocessor."""
+    def transform(self, data: pd.DataFrame) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
+        """Transform new data using fitted preprocessors"""
+        
+        if not self.is_fitted:
+            raise ValueError("Preprocessor must be fitted before transform")
+        
+        # Prepare features and targets
+        features, targets = self._prepare_features_and_targets(data)
+        
+        # Transform data
+        features_scaled = self._scale_features(features)
+        targets_scaled = self._scale_targets(targets)
+        
+        return features_scaled, {
+            'targets': targets_scaled,
+            'business_ids': data['business_id'].unique(),
+            'industries': data['industry'].unique()
+        }
+    
+    def _prepare_features_and_targets(self, data: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
+        """Prepare features and targets for LSTM training"""
+        
+        print("Preparing features and targets...")
+        
+        # Get unique businesses
+        businesses = data['business_id'].unique()
+        n_businesses = len(businesses)
+        
+        # Initialize arrays
+        features = np.zeros((n_businesses, self.sequence_length, self.feature_count))
+        targets = np.zeros((n_businesses, len(self.prediction_horizons)))
+        
+        for i, business_id in enumerate(businesses):
+            business_data = data[data['business_id'] == business_id].sort_values('date')
+            
+            if len(business_data) < self.sequence_length:
+                # Pad with zeros if insufficient data
+                padding_length = self.sequence_length - len(business_data)
+                padded_data = pd.concat([
+                    pd.DataFrame({
+                        'risk_score': [business_data['risk_score'].iloc[0]] * padding_length,
+                        **{f'feature_{j}': [0] * padding_length for j in range(self.feature_count)}
+                    }),
+                    business_data
+                ])
+            else:
+                # Take the last sequence_length records
+                padded_data = business_data.tail(self.sequence_length)
+            
+            # Extract features
+            feature_columns = [f'feature_{j}' for j in range(self.feature_count)]
+            if all(col in padded_data.columns for col in feature_columns):
+                features[i] = padded_data[feature_columns].values
+            else:
+                # Generate synthetic features if not available
+                features[i] = self._generate_synthetic_features(padded_data)
+            
+            # Extract targets (future risk scores)
+            targets[i] = self._extract_targets(business_data)
+        
+        return features, targets
+    
+    def _generate_synthetic_features(self, data: pd.DataFrame) -> np.ndarray:
+        """Generate synthetic features if not available in data"""
+        
+        features = np.zeros((len(data), self.feature_count))
+        
+        # Use risk score and date information to generate features
+        risk_scores = data['risk_score'].values
+        dates = pd.to_datetime(data['date'])
+        
+        # Basic features
+        features[:, 0] = risk_scores  # Current risk score
+        features[:, 1] = np.roll(risk_scores, 1)  # Previous risk score
+        features[:, 1][0] = risk_scores[0]  # Handle first value
+        
+        # Time-based features
+        features[:, 2] = dates.month.values / 12.0  # Month normalized
+        features[:, 3] = dates.quarter.values / 4.0  # Quarter normalized
+        features[:, 4] = (dates.year - dates.year.min()) / (dates.year.max() - dates.year.min())  # Year normalized
+        
+        # Statistical features
+        for i in range(5, min(10, self.feature_count)):
+            window = min(i - 4, len(risk_scores))
+            if window > 1:
+                features[:, i] = pd.Series(risk_scores).rolling(window=window, min_periods=1).mean()
+            else:
+                features[:, i] = risk_scores
+        
+        # Volatility features
+        for i in range(10, min(15, self.feature_count)):
+            window = min(i - 9, len(risk_scores))
+            if window > 1:
+                features[:, i] = pd.Series(risk_scores).rolling(window=window, min_periods=1).std()
+            else:
+                features[:, i] = 0
+        
+        # Random features to fill remaining slots
+        for i in range(15, self.feature_count):
+            features[:, i] = np.random.normal(0, 1, len(risk_scores))
+        
+        return features
+    
+    def _extract_targets(self, business_data: pd.DataFrame) -> np.ndarray:
+        """Extract target values for different prediction horizons"""
+        
+        targets = np.zeros(len(self.prediction_horizons))
+        risk_scores = business_data['risk_score'].values
+        
+        for i, horizon in enumerate(self.prediction_horizons):
+            if len(risk_scores) > horizon:
+                # Use actual future value if available
+                targets[i] = risk_scores[horizon]
+            else:
+                # Extrapolate based on trend
+                if len(risk_scores) > 1:
+                    trend = np.mean(np.diff(risk_scores))
+                    targets[i] = risk_scores[-1] + trend * horizon
+                else:
+                    targets[i] = risk_scores[0]
+        
+        return targets
+    
+    def _scale_features(self, features: np.ndarray) -> np.ndarray:
+        """Scale features using fitted scaler"""
+        
+        original_shape = features.shape
+        features_reshaped = features.reshape(-1, features.shape[-1])
+        features_scaled = self.feature_scaler.transform(features_reshaped)
+        return features_scaled.reshape(original_shape)
+    
+    def _scale_targets(self, targets: np.ndarray) -> np.ndarray:
+        """Scale targets using fitted scaler"""
+        
+        original_shape = targets.shape
+        targets_reshaped = targets.reshape(-1, targets.shape[-1])
+        targets_scaled = self.target_scaler.transform(targets_reshaped)
+        return targets_scaled.reshape(original_shape)
+    
+    def inverse_transform_targets(self, targets_scaled: np.ndarray) -> np.ndarray:
+        """Inverse transform scaled targets back to original scale"""
+        
+        original_shape = targets_scaled.shape
+        targets_reshaped = targets_scaled.reshape(-1, targets_scaled.shape[-1])
+        targets_original = self.target_scaler.inverse_transform(targets_reshaped)
+        return targets_original.reshape(original_shape)
+    
+    def _compute_feature_stats(self, features: np.ndarray) -> None:
+        """Compute and store feature statistics"""
+        
+        self.feature_stats = {
+            'mean': np.mean(features, axis=(0, 1)),
+            'std': np.std(features, axis=(0, 1)),
+            'min': np.min(features, axis=(0, 1)),
+            'max': np.max(features, axis=(0, 1))
+        }
+    
+    def create_sequences(self, features: np.ndarray, targets: np.ndarray, 
+                        test_size: float = 0.2, val_size: float = 0.1) -> Dict:
+        """Create train/validation/test splits for LSTM training"""
+        
+        print("Creating train/validation/test splits...")
+        
+        n_samples = len(features)
+        indices = np.arange(n_samples)
+        
+        # Split indices
+        train_idx, temp_idx = train_test_split(indices, test_size=test_size + val_size, random_state=42)
+        val_idx, test_idx = train_test_split(temp_idx, test_size=test_size/(test_size + val_size), random_state=42)
+        
+        # Create splits
+        splits = {
+            'train': {
+                'features': features[train_idx],
+                'targets': targets[train_idx]
+            },
+            'validation': {
+                'features': features[val_idx],
+                'targets': targets[val_idx]
+            },
+            'test': {
+                'features': features[test_idx],
+                'targets': targets[test_idx]
+            }
+        }
+        
+        print(f"Train set: {len(train_idx):,} samples")
+        print(f"Validation set: {len(val_idx):,} samples")
+        print(f"Test set: {len(test_idx):,} samples")
+        
+        return splits
+    
+    def save_preprocessor(self, filepath: str) -> None:
+        """Save fitted preprocessor to disk"""
+        
+        if not self.is_fitted:
+            raise ValueError("Preprocessor must be fitted before saving")
+        
         preprocessor_data = {
-            'sequence_length': self.sequence_length,
-            'prediction_horizons': self.prediction_horizons,
-            'numerical_features': self.numerical_features,
-            'categorical_features': self.categorical_features,
-            'temporal_features': self.temporal_features,
-            'feature_scalers': self.feature_scalers,
-            'label_encoders': self.label_encoders
+            'feature_scaler': self.feature_scaler,
+            'target_scaler': self.target_scaler,
+            'industry_encoder': self.industry_encoder,
+            'feature_stats': self.feature_stats,
+            'config': self.config,
+            'is_fitted': self.is_fitted
         }
         
         with open(filepath, 'wb') as f:
@@ -287,43 +276,62 @@ class FeaturePreprocessor:
         
         print(f"Preprocessor saved to {filepath}")
     
-    def load_preprocessor(self, filepath: str):
-        """Load a fitted preprocessor."""
+    def load_preprocessor(self, filepath: str) -> None:
+        """Load fitted preprocessor from disk"""
+        
         with open(filepath, 'rb') as f:
             preprocessor_data = pickle.load(f)
         
-        self.sequence_length = preprocessor_data['sequence_length']
-        self.prediction_horizons = preprocessor_data['prediction_horizons']
-        self.numerical_features = preprocessor_data['numerical_features']
-        self.categorical_features = preprocessor_data['categorical_features']
-        self.temporal_features = preprocessor_data['temporal_features']
-        self.feature_scalers = preprocessor_data['feature_scalers']
-        self.label_encoders = preprocessor_data['label_encoders']
+        self.feature_scaler = preprocessor_data['feature_scaler']
+        self.target_scaler = preprocessor_data['target_scaler']
+        self.industry_encoder = preprocessor_data['industry_encoder']
+        self.feature_stats = preprocessor_data['feature_stats']
+        self.config = preprocessor_data['config']
+        self.is_fitted = preprocessor_data['is_fitted']
         
         print(f"Preprocessor loaded from {filepath}")
-    
-    def get_feature_info(self) -> Dict:
-        """Get information about features and preprocessing."""
-        return {
-            'sequence_length': self.sequence_length,
-            'prediction_horizons': self.prediction_horizons,
-            'total_features': len(self.numerical_features) + len(self.categorical_features) + len(self.temporal_features),
-            'numerical_features': len(self.numerical_features),
-            'categorical_features': len(self.categorical_features),
-            'temporal_features': len(self.temporal_features),
-            'feature_names': {
-                'numerical': self.numerical_features,
-                'categorical': self.categorical_features,
-                'temporal': self.temporal_features
-            }
-        }
 
 
 def main():
-    """Test the feature preprocessor."""
-    # This would typically be called with real data
-    print("Feature preprocessor ready for use.")
-    print("Use with synthetic data generator to create training sequences.")
+    """Main function to test the preprocessor"""
+    
+    # Load sample data
+    import pandas as pd
+    
+    # Create sample data for testing
+    n_businesses = 100
+    sequence_length = 12
+    feature_count = 20
+    
+    sample_data = []
+    for i in range(n_businesses):
+        business_id = f"business_{i:06d}"
+        industry = np.random.choice(['technology', 'finance', 'healthcare'])
+        
+        for t in range(sequence_length):
+            sample_data.append({
+                'business_id': business_id,
+                'industry': industry,
+                'date': pd.Timestamp('2023-01-01') + pd.Timedelta(days=30*t),
+                'risk_score': np.random.uniform(0.1, 0.9),
+                **{f'feature_{j}': np.random.normal(0, 1) for j in range(feature_count)}
+            })
+    
+    sample_df = pd.DataFrame(sample_data)
+    
+    # Test preprocessor
+    config = {
+        'sequence_length': sequence_length,
+        'feature_count': feature_count,
+        'prediction_horizons': [6, 9, 12]
+    }
+    
+    preprocessor = FeaturePreprocessor(config)
+    features, targets = preprocessor.fit_transform(sample_df)
+    
+    print(f"Features shape: {features.shape}")
+    print(f"Targets shape: {targets.shape}")
+    print("Preprocessor test completed successfully!")
 
 
 if __name__ == "__main__":

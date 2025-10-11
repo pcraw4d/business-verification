@@ -695,39 +695,39 @@ func (h *AdvancedPredictionHandler) HandleGetModelPerformance(w http.ResponseWri
 
 	// Get performance metrics from the metrics collector
 	_ = h.mlService.GetMetricsCollector() // TODO: Use actual metrics in future
-	
+
 	// Create performance response
 	response := map[string]interface{}{
 		"timestamp": time.Now(),
 		"models": map[string]interface{}{
 			"xgboost": map[string]interface{}{
-				"status":           "active",
-				"inference_count":  1000, // Mock data
-				"average_latency":  "50ms",
-				"accuracy":         0.92,
-				"last_updated":     time.Now().Add(-1 * time.Hour),
+				"status":          "active",
+				"inference_count": 1000, // Mock data
+				"average_latency": "50ms",
+				"accuracy":        0.92,
+				"last_updated":    time.Now().Add(-1 * time.Hour),
 			},
 			"lstm": map[string]interface{}{
-				"status":           "active",
-				"inference_count":  500, // Mock data
-				"average_latency":  "80ms",
-				"accuracy":         0.88,
-				"last_updated":     time.Now().Add(-30 * time.Minute),
+				"status":          "active",
+				"inference_count": 500, // Mock data
+				"average_latency": "80ms",
+				"accuracy":        0.88,
+				"last_updated":    time.Now().Add(-30 * time.Minute),
 			},
 			"ensemble": map[string]interface{}{
-				"status":           "active",
-				"inference_count":  750, // Mock data
-				"average_latency":  "120ms",
-				"accuracy":         0.90,
-				"last_updated":     time.Now().Add(-15 * time.Minute),
+				"status":          "active",
+				"inference_count": 750, // Mock data
+				"average_latency": "120ms",
+				"accuracy":        0.90,
+				"last_updated":    time.Now().Add(-15 * time.Minute),
 			},
 		},
 		"system_metrics": map[string]interface{}{
-			"total_requests":     2250,
-			"success_rate":       0.99,
+			"total_requests":        2250,
+			"success_rate":          0.99,
 			"average_response_time": "85ms",
-			"memory_usage":       "1.2GB",
-			"cpu_usage":          "45%",
+			"memory_usage":          "1.2GB",
+			"cpu_usage":             "45%",
 		},
 	}
 

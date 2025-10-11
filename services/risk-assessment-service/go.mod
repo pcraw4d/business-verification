@@ -14,6 +14,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/supabase/postgrest-go v0.0.7 // indirect
+	github.com/yalue/onnxruntime_go v1.21.0 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

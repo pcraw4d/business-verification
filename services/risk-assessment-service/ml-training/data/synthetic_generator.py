@@ -1,8 +1,12 @@
 """
-Synthetic Time-Series Data Generator for Risk Assessment Training
+Synthetic Time-Series Risk Data Generator
 
-Generates realistic historical risk data for businesses across different industries,
-including seasonal patterns, economic cycles, and industry-specific risk factors.
+Generates 2-3 years of historical risk data for LSTM training:
+- Industry-specific default rate patterns
+- Seasonal trends (quarterly, annual cycles)
+- Economic cycle simulation (recession, growth periods)
+- Random walk with drift for risk evolution
+- 10,000+ business time-series (100-1000 per industry)
 """
 
 import numpy as np
@@ -10,427 +14,299 @@ import pandas as pd
 from typing import Dict, List, Tuple, Optional
 import random
 from datetime import datetime, timedelta
-import json
+import yaml
+import os
 
 
-class RiskPattern:
-    """Represents risk patterns for a specific industry or business type."""
+class SyntheticRiskDataGenerator:
+    """Generates synthetic time-series risk data for LSTM training"""
     
-    def __init__(self, 
-                 base_risk: float,
-                 volatility: float,
-                 seasonal_amplitude: float,
-                 trend_drift: float,
-                 economic_sensitivity: float,
-                 compliance_events: List[Dict]):
-        self.base_risk = base_risk
-        self.volatility = volatility
-        self.seasonal_amplitude = seasonal_amplitude
-        self.trend_drift = trend_drift
-        self.economic_sensitivity = economic_sensitivity
-        self.compliance_events = compliance_events
-
-
-class SyntheticDataGenerator:
-    """Generates synthetic time-series data for risk assessment training."""
-    
-    def __init__(self, seed: int = 42):
-        self.seed = seed
-        np.random.seed(seed)
-        random.seed(seed)
+    def __init__(self, config_path: str = "models/model_config.yaml"):
+        """Initialize the generator with configuration"""
+        self.config = self._load_config(config_path)
+        self.industries = self.config.get('industries', [
+            'technology', 'finance', 'healthcare', 'manufacturing', 
+            'retail', 'energy', 'real_estate', 'transportation'
+        ])
+        self.sequence_length = self.config.get('sequence_length', 36)  # 3 years
+        self.feature_count = self.config.get('feature_count', 20)
+        self.businesses_per_industry = self.config.get('businesses_per_industry', 1250)  # 10k total
+        
+        # Set random seed for reproducibility
+        np.random.seed(self.config.get('random_seed', 42))
+        random.seed(self.config.get('random_seed', 42))
         
         # Industry-specific risk patterns
         self.industry_patterns = self._initialize_industry_patterns()
         
-        # Economic cycle parameters
-        self.economic_cycle_length = 84  # 7 years in months
-        self.current_cycle_phase = 0.3  # 0-1, where 0.5 is peak
-        
-    def _initialize_industry_patterns(self) -> Dict[str, RiskPattern]:
-        """Initialize risk patterns for different industries."""
-        return {
-            "technology": RiskPattern(
-                base_risk=0.15,
-                volatility=0.08,
-                seasonal_amplitude=0.05,
-                trend_drift=0.02,
-                economic_sensitivity=0.3,
-                compliance_events=[
-                    {"type": "data_breach", "frequency": 0.02, "impact": 0.3},
-                    {"type": "regulatory_change", "frequency": 0.01, "impact": 0.2}
+    def _load_config(self, config_path: str) -> Dict:
+        """Load configuration from YAML file"""
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                return yaml.safe_load(f)
+        else:
+            # Default configuration
+            return {
+                'sequence_length': 36,
+                'feature_count': 20,
+                'businesses_per_industry': 1250,
+                'random_seed': 42,
+                'industries': [
+                    'technology', 'finance', 'healthcare', 'manufacturing', 
+                    'retail', 'energy', 'real_estate', 'transportation'
                 ]
-            ),
-            "financial": RiskPattern(
-                base_risk=0.25,
-                volatility=0.12,
-                seasonal_amplitude=0.08,
-                trend_drift=0.01,
-                economic_sensitivity=0.8,
-                compliance_events=[
-                    {"type": "regulatory_audit", "frequency": 0.05, "impact": 0.4},
-                    {"type": "market_volatility", "frequency": 0.03, "impact": 0.6}
-                ]
-            ),
-            "healthcare": RiskPattern(
-                base_risk=0.20,
-                volatility=0.06,
-                seasonal_amplitude=0.03,
-                trend_drift=0.01,
-                economic_sensitivity=0.2,
-                compliance_events=[
-                    {"type": "regulatory_inspection", "frequency": 0.04, "impact": 0.3},
-                    {"type": "patient_safety", "frequency": 0.02, "impact": 0.5}
-                ]
-            ),
-            "manufacturing": RiskPattern(
-                base_risk=0.18,
-                volatility=0.10,
-                seasonal_amplitude=0.06,
-                trend_drift=0.02,
-                economic_sensitivity=0.6,
-                compliance_events=[
-                    {"type": "safety_incident", "frequency": 0.03, "impact": 0.4},
-                    {"type": "supply_chain", "frequency": 0.02, "impact": 0.3}
-                ]
-            ),
-            "retail": RiskPattern(
-                base_risk=0.22,
-                volatility=0.15,
-                seasonal_amplitude=0.12,
-                trend_drift=0.03,
-                economic_sensitivity=0.7,
-                compliance_events=[
-                    {"type": "seasonal_demand", "frequency": 0.08, "impact": 0.2},
-                    {"type": "consumer_complaint", "frequency": 0.05, "impact": 0.1}
-                ]
-            ),
-            "real_estate": RiskPattern(
-                base_risk=0.30,
-                volatility=0.20,
-                seasonal_amplitude=0.08,
-                trend_drift=0.04,
-                economic_sensitivity=0.9,
-                compliance_events=[
-                    {"type": "market_crash", "frequency": 0.01, "impact": 0.8},
-                    {"type": "interest_rate", "frequency": 0.02, "impact": 0.4}
-                ]
-            )
-        }
+            }
     
-    def generate_business_time_series(self, 
-                                    business_id: str,
-                                    industry: str,
-                                    start_date: datetime,
-                                    months: int = 36,
-                                    business_size: str = "medium") -> pd.DataFrame:
-        """
-        Generate time-series data for a single business.
+    def _initialize_industry_patterns(self) -> Dict:
+        """Initialize industry-specific risk patterns"""
+        patterns = {}
         
-        Args:
-            business_id: Unique identifier for the business
-            industry: Industry classification
-            start_date: Start date for the time series
-            months: Number of months to generate
-            business_size: Size category (small, medium, large)
-            
-        Returns:
-            DataFrame with columns: date, business_id, industry, risk_score, 
-            financial_health, compliance_score, market_conditions, features
-        """
-        if industry not in self.industry_patterns:
-            industry = "technology"  # Default fallback
-            
+        for industry in self.industries:
+            patterns[industry] = {
+                'base_risk': np.random.uniform(0.1, 0.4),  # Base risk level
+                'volatility': np.random.uniform(0.05, 0.2),  # Risk volatility
+                'seasonality': {
+                    'q1_factor': np.random.uniform(0.8, 1.2),
+                    'q2_factor': np.random.uniform(0.9, 1.1),
+                    'q3_factor': np.random.uniform(0.8, 1.2),
+                    'q4_factor': np.random.uniform(0.7, 1.3)
+                },
+                'trend': np.random.uniform(-0.02, 0.02),  # Monthly trend
+                'economic_sensitivity': np.random.uniform(0.5, 1.5)  # Economic cycle sensitivity
+            }
+        
+        return patterns
+    
+    def generate_business_sequence(self, business_id: str, industry: str, 
+                                 start_date: datetime) -> pd.DataFrame:
+        """Generate a time-series sequence for a single business"""
+        
         pattern = self.industry_patterns[industry]
+        dates = [start_date + timedelta(days=30*i) for i in range(self.sequence_length)]
         
-        # Generate base time series
-        dates = [start_date + timedelta(days=30*i) for i in range(months)]
+        # Initialize risk score with base industry risk
+        risk_scores = np.zeros(self.sequence_length)
+        risk_scores[0] = pattern['base_risk'] + np.random.normal(0, 0.05)
         
-        # Base risk evolution (random walk with drift)
-        base_risk = self._generate_base_risk_series(months, pattern)
-        
-        # Seasonal component
-        seasonal = self._generate_seasonal_component(months, pattern)
-        
-        # Economic cycle component
-        economic = self._generate_economic_cycle(months, pattern)
-        
-        # Compliance events
-        compliance_events = self._generate_compliance_events(months, pattern)
-        
-        # Business size adjustment
-        size_adjustment = self._get_size_adjustment(business_size)
-        
-        # Combine all components
-        risk_scores = base_risk + seasonal + economic + compliance_events + size_adjustment
-        
-        # Ensure risk scores are in valid range [0, 1]
-        risk_scores = np.clip(risk_scores, 0.0, 1.0)
+        # Generate time-series with trend, seasonality, and volatility
+        for t in range(1, self.sequence_length):
+            # Previous risk score
+            prev_risk = risk_scores[t-1]
+            
+            # Trend component
+            trend = pattern['trend']
+            
+            # Seasonal component
+            month = dates[t].month
+            quarter = (month - 1) // 3 + 1
+            seasonal_factor = pattern['seasonality'][f'q{quarter}_factor']
+            seasonal = (seasonal_factor - 1) * 0.1
+            
+            # Economic cycle component (simulated)
+            economic_cycle = self._generate_economic_cycle(t)
+            economic_impact = economic_cycle * pattern['economic_sensitivity'] * 0.1
+            
+            # Random walk component
+            random_walk = np.random.normal(0, pattern['volatility'])
+            
+            # Calculate new risk score
+            new_risk = prev_risk + trend + seasonal + economic_impact + random_walk
+            
+            # Ensure risk score stays within bounds [0, 1]
+            risk_scores[t] = np.clip(new_risk, 0.01, 0.99)
         
         # Generate additional features
-        features = self._generate_additional_features(months, industry, business_size)
+        features = self._generate_business_features(business_id, industry, risk_scores, dates)
         
         # Create DataFrame
         data = {
+            'business_id': [business_id] * self.sequence_length,
+            'industry': [industry] * self.sequence_length,
             'date': dates,
-            'business_id': [business_id] * months,
-            'industry': [industry] * months,
             'risk_score': risk_scores,
-            'financial_health': features['financial_health'],
-            'compliance_score': features['compliance_score'],
-            'market_conditions': features['market_conditions'],
-            'revenue_trend': features['revenue_trend'],
-            'employee_count': features['employee_count'],
-            'debt_ratio': features['debt_ratio'],
-            'profit_margin': features['profit_margin'],
-            'customer_satisfaction': features['customer_satisfaction'],
-            'regulatory_compliance': features['regulatory_compliance'],
-            'market_share': features['market_share'],
-            'innovation_index': features['innovation_index']
+            'risk_level': [self._score_to_level(score) for score in risk_scores]
         }
+        
+        # Add generated features
+        for i, feature_name in enumerate(features.columns):
+            data[f'feature_{i}'] = features[feature_name].values
         
         return pd.DataFrame(data)
     
-    def _generate_base_risk_series(self, months: int, pattern: RiskPattern) -> np.ndarray:
-        """Generate base risk evolution using random walk with drift."""
-        # Random walk with drift
-        drift = pattern.trend_drift / 12  # Monthly drift
-        volatility = pattern.volatility / np.sqrt(12)  # Monthly volatility
+    def _generate_economic_cycle(self, time_step: int) -> float:
+        """Generate economic cycle component (recession/growth periods)"""
+        # Simulate economic cycles with 4-year periods
+        cycle_period = 48  # 4 years in months
+        cycle_phase = (time_step % cycle_period) / cycle_period * 2 * np.pi
         
-        # Generate random walk
-        innovations = np.random.normal(0, volatility, months)
-        innovations[0] = 0  # Start at base risk
+        # Economic cycle: -1 (recession) to +1 (growth)
+        economic_cycle = np.sin(cycle_phase)
         
-        # Apply drift
-        for i in range(1, months):
-            innovations[i] += drift
+        # Add some noise to make it more realistic
+        economic_cycle += np.random.normal(0, 0.1)
         
-        # Cumulative sum to get the series
-        risk_series = pattern.base_risk + np.cumsum(innovations)
-        
-        return risk_series
+        return economic_cycle
     
-    def _generate_seasonal_component(self, months: int, pattern: RiskPattern) -> np.ndarray:
-        """Generate seasonal component with quarterly and annual cycles."""
-        t = np.arange(months)
+    def _generate_business_features(self, business_id: str, industry: str, 
+                                  risk_scores: np.ndarray, dates: List[datetime]) -> pd.DataFrame:
+        """Generate additional business features for the time-series"""
         
-        # Quarterly cycle (every 3 months)
-        quarterly = pattern.seasonal_amplitude * 0.6 * np.sin(2 * np.pi * t / 3)
+        features = pd.DataFrame(index=range(len(risk_scores)))
         
-        # Annual cycle (every 12 months)
-        annual = pattern.seasonal_amplitude * 0.4 * np.sin(2 * np.pi * t / 12)
+        # Financial metrics (correlated with risk)
+        features['revenue_growth'] = np.random.normal(0.02, 0.1, len(risk_scores))
+        features['profit_margin'] = np.random.uniform(0.05, 0.25, len(risk_scores))
+        features['debt_ratio'] = np.random.uniform(0.2, 0.8, len(risk_scores))
         
-        return quarterly + annual
-    
-    def _generate_economic_cycle(self, months: int, pattern: RiskPattern) -> np.ndarray:
-        """Generate economic cycle component."""
-        t = np.arange(months)
+        # Operational metrics
+        features['employee_count'] = np.random.randint(10, 1000, len(risk_scores))
+        features['customer_satisfaction'] = np.random.uniform(3.0, 5.0, len(risk_scores))
+        features['market_share'] = np.random.uniform(0.01, 0.3, len(risk_scores))
         
-        # Long-term economic cycle
-        cycle_phase = (t / self.economic_cycle_length + self.current_cycle_phase) % 1.0
-        economic_cycle = pattern.economic_sensitivity * 0.1 * np.sin(2 * np.pi * cycle_phase)
-        
-        # Add some economic shocks
-        shock_probability = 0.02  # 2% chance per month
-        shocks = np.random.choice([0, 1], size=months, p=[1-shock_probability, shock_probability])
-        shock_magnitude = np.random.normal(0, 0.05, months)
-        economic_shocks = shocks * shock_magnitude * pattern.economic_sensitivity
-        
-        return economic_cycle + economic_shocks
-    
-    def _generate_compliance_events(self, months: int, pattern: RiskPattern) -> np.ndarray:
-        """Generate compliance events and their impact."""
-        events = np.zeros(months)
-        
-        for event_type in pattern.compliance_events:
-            # Generate event occurrences
-            event_occurrences = np.random.poisson(event_type['frequency'] * months)
-            
-            for _ in range(event_occurrences):
-                # Random month for the event
-                event_month = np.random.randint(0, months)
-                
-                # Event impact (can last multiple months)
-                impact_duration = np.random.randint(1, 4)  # 1-3 months
-                impact_magnitude = event_type['impact'] * np.random.uniform(0.5, 1.5)
-                
-                # Apply impact
-                for i in range(impact_duration):
-                    if event_month + i < months:
-                        # Decay impact over time
-                        decay_factor = 1.0 - (i / impact_duration) * 0.5
-                        events[event_month + i] += impact_magnitude * decay_factor
-        
-        return events
-    
-    def _get_size_adjustment(self, business_size: str) -> float:
-        """Get risk adjustment based on business size."""
-        size_adjustments = {
-            "small": 0.05,    # Small businesses are riskier
-            "medium": 0.0,    # Baseline
-            "large": -0.03    # Large businesses are less risky
-        }
-        return size_adjustments.get(business_size, 0.0)
-    
-    def _generate_additional_features(self, months: int, industry: str, business_size: str) -> Dict[str, np.ndarray]:
-        """Generate additional features for the time series."""
-        features = {}
-        
-        # Financial health (correlated with risk score)
-        base_health = 0.7 if business_size == "large" else 0.5
-        features['financial_health'] = np.random.normal(base_health, 0.1, months)
-        features['financial_health'] = np.clip(features['financial_health'], 0.0, 1.0)
-        
-        # Compliance score
-        base_compliance = 0.8
-        features['compliance_score'] = np.random.normal(base_compliance, 0.05, months)
-        features['compliance_score'] = np.clip(features['compliance_score'], 0.0, 1.0)
+        # Compliance and regulatory
+        features['compliance_score'] = np.random.uniform(0.7, 1.0, len(risk_scores))
+        features['regulatory_changes'] = np.random.poisson(0.5, len(risk_scores))
         
         # Market conditions
-        features['market_conditions'] = np.random.normal(0.5, 0.15, months)
-        features['market_conditions'] = np.clip(features['market_conditions'], 0.0, 1.0)
+        features['market_volatility'] = np.random.uniform(0.1, 0.4, len(risk_scores))
+        features['competition_intensity'] = np.random.uniform(0.3, 0.9, len(risk_scores))
         
-        # Revenue trend
-        base_revenue = 1000000 if business_size == "large" else 100000
-        features['revenue_trend'] = np.random.normal(base_revenue, base_revenue * 0.2, months)
-        features['revenue_trend'] = np.maximum(features['revenue_trend'], base_revenue * 0.1)
+        # Time-based features
+        features['month'] = [d.month for d in dates]
+        features['quarter'] = [(d.month - 1) // 3 + 1 for d in dates]
+        features['year'] = [d.year for d in dates]
         
-        # Employee count
-        base_employees = 1000 if business_size == "large" else 50
-        features['employee_count'] = np.random.normal(base_employees, base_employees * 0.1, months)
-        features['employee_count'] = np.maximum(features['employee_count'], 1)
+        # Lagged features (previous period values)
+        for lag in [1, 3, 6, 12]:
+            if lag < len(risk_scores):
+                lagged_values = np.roll(risk_scores, lag)
+                lagged_values[:lag] = risk_scores[0]
+                features[f'risk_score_lag_{lag}'] = lagged_values
         
-        # Debt ratio
-        features['debt_ratio'] = np.random.normal(0.3, 0.1, months)
-        features['debt_ratio'] = np.clip(features['debt_ratio'], 0.0, 1.0)
+        # Moving averages
+        for window in [3, 6, 12]:
+            features[f'risk_score_ma_{window}'] = pd.Series(risk_scores).rolling(window=window, min_periods=1).mean()
         
-        # Profit margin
-        features['profit_margin'] = np.random.normal(0.15, 0.05, months)
-        features['profit_margin'] = np.clip(features['profit_margin'], -0.1, 0.4)
+        # Volatility measures
+        features['risk_volatility_3m'] = pd.Series(risk_scores).rolling(window=3, min_periods=1).std()
+        features['risk_volatility_6m'] = pd.Series(risk_scores).rolling(window=6, min_periods=1).std()
         
-        # Customer satisfaction
-        features['customer_satisfaction'] = np.random.normal(0.75, 0.1, months)
-        features['customer_satisfaction'] = np.clip(features['customer_satisfaction'], 0.0, 1.0)
-        
-        # Regulatory compliance
-        features['regulatory_compliance'] = np.random.normal(0.85, 0.05, months)
-        features['regulatory_compliance'] = np.clip(features['regulatory_compliance'], 0.0, 1.0)
-        
-        # Market share
-        base_share = 0.1 if business_size == "large" else 0.01
-        features['market_share'] = np.random.normal(base_share, base_share * 0.2, months)
-        features['market_share'] = np.clip(features['market_share'], 0.0, 1.0)
-        
-        # Innovation index
-        features['innovation_index'] = np.random.normal(0.6, 0.1, months)
-        features['innovation_index'] = np.clip(features['innovation_index'], 0.0, 1.0)
+        # Ensure we have exactly the required number of features
+        if len(features.columns) > self.feature_count:
+            features = features.iloc[:, :self.feature_count]
+        elif len(features.columns) < self.feature_count:
+            # Add random features to reach target count
+            for i in range(len(features.columns), self.feature_count):
+                features[f'random_feature_{i}'] = np.random.normal(0, 1, len(risk_scores))
         
         return features
     
-    def generate_dataset(self, 
-                        num_businesses: int = 10000,
-                        start_date: datetime = None,
-                        months: int = 36) -> pd.DataFrame:
-        """
-        Generate a complete dataset of business time series.
+    def _score_to_level(self, score: float) -> str:
+        """Convert risk score to risk level"""
+        if score < 0.3:
+            return 'low'
+        elif score < 0.6:
+            return 'medium'
+        elif score < 0.8:
+            return 'high'
+        else:
+            return 'critical'
+    
+    def generate_dataset(self, output_path: str = "data/synthetic_risk_data.parquet") -> pd.DataFrame:
+        """Generate the complete synthetic dataset"""
         
-        Args:
-            num_businesses: Number of businesses to generate
-            start_date: Start date for all time series
-            months: Number of months per business
-            
-        Returns:
-            Combined DataFrame with all business time series
-        """
-        if start_date is None:
-            start_date = datetime.now() - timedelta(days=months * 30)
-        
-        industries = list(self.industry_patterns.keys())
-        business_sizes = ["small", "medium", "large"]
+        print(f"Generating synthetic dataset with {len(self.industries)} industries...")
+        print(f"Target: {self.businesses_per_industry} businesses per industry")
+        print(f"Sequence length: {self.sequence_length} months")
+        print(f"Features per timestep: {self.feature_count}")
         
         all_data = []
+        business_id_counter = 0
         
-        for i in range(num_businesses):
-            # Random selection
-            industry = np.random.choice(industries)
-            business_size = np.random.choice(business_sizes, p=[0.4, 0.4, 0.2])  # More small/medium
+        for industry in self.industries:
+            print(f"Generating data for {industry} industry...")
             
-            # Generate business ID
-            business_id = f"biz_{i:06d}"
-            
-            # Generate time series
-            business_data = self.generate_business_time_series(
-                business_id=business_id,
-                industry=industry,
-                start_date=start_date,
-                months=months,
-                business_size=business_size
-            )
-            
-            all_data.append(business_data)
-            
-            if (i + 1) % 1000 == 0:
-                print(f"Generated {i + 1}/{num_businesses} businesses")
+            for i in range(self.businesses_per_industry):
+                business_id = f"business_{business_id_counter:06d}"
+                
+                # Random start date within the last 3 years
+                start_date = datetime.now() - timedelta(days=365*3 + np.random.randint(0, 365))
+                
+                # Generate sequence for this business
+                business_data = self.generate_business_sequence(business_id, industry, start_date)
+                all_data.append(business_data)
+                
+                business_id_counter += 1
+                
+                if (i + 1) % 100 == 0:
+                    print(f"  Generated {i + 1}/{self.businesses_per_industry} businesses")
         
         # Combine all data
-        combined_data = pd.concat(all_data, ignore_index=True)
+        print("Combining all data...")
+        dataset = pd.concat(all_data, ignore_index=True)
         
-        # Add some additional derived features
-        combined_data['risk_level'] = combined_data['risk_score'].apply(self._risk_score_to_level)
-        combined_data['month'] = combined_data['date'].dt.month
-        combined_data['quarter'] = combined_data['date'].dt.quarter
-        combined_data['year'] = combined_data['date'].dt.year
+        # Add some data quality checks
+        print("Performing data quality checks...")
+        self._validate_dataset(dataset)
         
-        return combined_data
-    
-    def _risk_score_to_level(self, score: float) -> str:
-        """Convert risk score to risk level."""
-        if score < 0.25:
-            return "low"
-        elif score < 0.5:
-            return "medium"
-        elif score < 0.75:
-            return "high"
-        else:
-            return "critical"
-    
-    def save_dataset(self, dataset: pd.DataFrame, filepath: str):
-        """Save dataset to file."""
-        if filepath.endswith('.parquet'):
-            dataset.to_parquet(filepath, index=False)
-        elif filepath.endswith('.csv'):
-            dataset.to_csv(filepath, index=False)
-        else:
-            raise ValueError("Unsupported file format. Use .csv or .parquet")
+        # Save dataset
+        print(f"Saving dataset to {output_path}...")
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        dataset.to_parquet(output_path, index=False)
         
-        print(f"Dataset saved to {filepath}")
-        print(f"Shape: {dataset.shape}")
+        print(f"Dataset generation complete!")
+        print(f"Total records: {len(dataset):,}")
+        print(f"Unique businesses: {dataset['business_id'].nunique():,}")
         print(f"Date range: {dataset['date'].min()} to {dataset['date'].max()}")
-        print(f"Industries: {dataset['industry'].unique()}")
+        print(f"Industries: {dataset['industry'].nunique()}")
+        
+        return dataset
+    
+    def _validate_dataset(self, dataset: pd.DataFrame) -> None:
+        """Validate the generated dataset"""
+        
+        # Check for missing values
+        missing_values = dataset.isnull().sum().sum()
+        if missing_values > 0:
+            print(f"Warning: {missing_values} missing values found")
+        
+        # Check risk score distribution
+        risk_stats = dataset['risk_score'].describe()
+        print(f"Risk score statistics:")
+        print(f"  Mean: {risk_stats['mean']:.3f}")
+        print(f"  Std: {risk_stats['std']:.3f}")
+        print(f"  Min: {risk_stats['min']:.3f}")
+        print(f"  Max: {risk_stats['max']:.3f}")
+        
+        # Check risk level distribution
+        risk_level_dist = dataset['risk_level'].value_counts(normalize=True)
         print(f"Risk level distribution:")
-        print(dataset['risk_level'].value_counts())
+        for level, proportion in risk_level_dist.items():
+            print(f"  {level}: {proportion:.1%}")
+        
+        # Check industry distribution
+        industry_dist = dataset['industry'].value_counts()
+        print(f"Industry distribution:")
+        for industry, count in industry_dist.items():
+            print(f"  {industry}: {count:,} records")
 
 
 def main():
-    """Generate synthetic dataset for training."""
-    generator = SyntheticDataGenerator(seed=42)
+    """Main function to generate synthetic dataset"""
     
-    print("Generating synthetic risk assessment dataset...")
-    print("This may take a few minutes for large datasets...")
+    # Create generator
+    generator = SyntheticRiskDataGenerator()
     
     # Generate dataset
-    dataset = generator.generate_dataset(
-        num_businesses=10000,
-        months=36  # 3 years of data
-    )
+    dataset = generator.generate_dataset("data/synthetic_risk_data.parquet")
     
-    # Save dataset
-    output_path = "synthetic_risk_data.parquet"
-    generator.save_dataset(dataset, output_path)
-    
-    print("\nDataset generation complete!")
-    print(f"Total records: {len(dataset):,}")
-    print(f"Unique businesses: {dataset['business_id'].nunique():,}")
-    print(f"Time span: {dataset['date'].min()} to {dataset['date'].max()}")
+    # Print summary statistics
+    print("\n" + "="*50)
+    print("DATASET SUMMARY")
+    print("="*50)
+    print(f"Shape: {dataset.shape}")
+    print(f"Memory usage: {dataset.memory_usage(deep=True).sum() / 1024**2:.1f} MB")
+    print(f"Columns: {list(dataset.columns)}")
 
 
 if __name__ == "__main__":
