@@ -70,17 +70,17 @@ const (
 
 // RiskAssessmentRequest represents a request for risk assessment
 type RiskAssessmentRequest struct {
-	BusinessName      string                 `json:"business_name" validate:"required,min=1,max=255"`
-	BusinessAddress   string                 `json:"business_address" validate:"required,min=10,max=500"`
-	Industry          string                 `json:"industry" validate:"required,min=1,max=100"`
-	Country           string                 `json:"country" validate:"required,len=2"`
-	Phone             string                 `json:"phone,omitempty" validate:"omitempty,min=10,max=20"`
-	Email             string                 `json:"email,omitempty" validate:"omitempty,email"`
-	Website           string                 `json:"website,omitempty" validate:"omitempty,url"`
-	PredictionHorizon int                    `json:"prediction_horizon,omitempty" validate:"omitempty,min=1,max=24"`
-	ModelType         string                 `json:"model_type,omitempty" validate:"omitempty,oneof=auto xgboost lstm ensemble"`
-	IncludeTemporalAnalysis bool             `json:"include_temporal_analysis,omitempty"`
-	Metadata          map[string]interface{} `json:"metadata,omitempty"`
+	BusinessName            string                 `json:"business_name" validate:"required,min=1,max=255"`
+	BusinessAddress         string                 `json:"business_address" validate:"required,min=10,max=500"`
+	Industry                string                 `json:"industry" validate:"required,min=1,max=100"`
+	Country                 string                 `json:"country" validate:"required,len=2"`
+	Phone                   string                 `json:"phone,omitempty" validate:"omitempty,min=10,max=20"`
+	Email                   string                 `json:"email,omitempty" validate:"omitempty,email"`
+	Website                 string                 `json:"website,omitempty" validate:"omitempty,url"`
+	PredictionHorizon       int                    `json:"prediction_horizon,omitempty" validate:"omitempty,min=1,max=24"`
+	ModelType               string                 `json:"model_type,omitempty" validate:"omitempty,oneof=auto xgboost lstm ensemble"`
+	IncludeTemporalAnalysis bool                   `json:"include_temporal_analysis,omitempty"`
+	Metadata                map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // RiskAssessmentResponse represents the response from a risk assessment

@@ -290,11 +290,11 @@ func (re *RiskEngine) performRiskAssessment(ctx context.Context, req *models.Ris
 	if req.ModelType != "" {
 		modelType = req.ModelType
 	}
-	
+
 	// Create a copy of the request with the model type
 	reqCopy := *req
 	reqCopy.ModelType = modelType
-	
+
 	mlAssessment, err := re.mlService.PredictRisk(ctx, modelType, &reqCopy)
 	if err != nil {
 		re.logger.Error("ML prediction failed, using fallback", zap.Error(err))
@@ -321,14 +321,14 @@ func (re *RiskEngine) performRiskAssessment(ctx context.Context, req *models.Ris
 		assessment.ConfidenceScore = mlAssessment.ConfidenceScore
 		assessment.RiskFactors = mlAssessment.RiskFactors
 		assessment.Status = models.StatusCompleted
-		
+
 		// Add model information to metadata
 		if assessment.Metadata == nil {
 			assessment.Metadata = make(map[string]interface{})
 		}
 		assessment.Metadata["model_type"] = modelType
 		assessment.Metadata["prediction_horizon"] = assessment.PredictionHorizon
-		
+
 		// Add ensemble information if available
 		if modelType == "auto" || modelType == "ensemble" {
 			ensembleInfo := re.mlService.GetEnsembleInfo()
@@ -346,7 +346,7 @@ func (re *RiskEngine) performRiskPrediction(ctx context.Context, req *models.Ris
 	if req.ModelType != "" {
 		modelType = req.ModelType
 	}
-	
+
 	// Use ML service for future risk prediction with ensemble routing
 	prediction, err := re.mlService.PredictFutureRisk(ctx, modelType, req, horizonMonths)
 	if err != nil {
