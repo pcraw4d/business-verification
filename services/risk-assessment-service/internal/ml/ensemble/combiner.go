@@ -33,12 +33,12 @@ func (ec *EnsembleCombiner) CombinePredictions(xgbPrediction, lstmPrediction *mo
 		return nil, fmt.Errorf("no predictions to combine")
 	}
 
-	// If only one prediction, return it
+	// If only one prediction, create ensemble prediction with single model
 	if xgbPrediction == nil {
-		return lstmPrediction, nil
+		return ec.createSingleModelEnsemble(lstmPrediction, "lstm", horizonMonths), nil
 	}
 	if lstmPrediction == nil {
-		return xgbPrediction, nil
+		return ec.createSingleModelEnsemble(xgbPrediction, "xgboost", horizonMonths), nil
 	}
 
 	// Get weights based on horizon
@@ -99,12 +99,12 @@ func (ec *EnsembleCombiner) CombineFuturePredictions(xgbPrediction, lstmPredicti
 		return nil, fmt.Errorf("no future predictions to combine")
 	}
 
-	// If only one prediction, return it
+	// If only one prediction, create ensemble prediction with single model
 	if xgbPrediction == nil {
-		return lstmPrediction, nil
+		return ec.createSingleModelFutureEnsemble(lstmPrediction, "lstm", horizonMonths), nil
 	}
 	if lstmPrediction == nil {
-		return xgbPrediction, nil
+		return ec.createSingleModelFutureEnsemble(xgbPrediction, "xgboost", horizonMonths), nil
 	}
 
 	// Get weights based on horizon
@@ -358,4 +358,51 @@ func (ec *EnsembleCombiner) GetEnsembleMetrics(xgbPrediction, lstmPrediction *mo
 	}
 
 	return metrics
+}
+
+// createSingleModelEnsemble creates an ensemble prediction from a single model
+func (ec *EnsembleCombiner) createSingleModelEnsemble(prediction *models.RiskAssessment, modelType string, horizonMonths int) *models.RiskAssessment {
+	// Create a copy of the prediction with ensemble metadata
+	ensemblePrediction := &models.RiskAssessment{
+		ID:                prediction.ID,
+		BusinessID:        prediction.BusinessID,
+		BusinessName:      prediction.BusinessName,
+		BusinessAddress:   prediction.BusinessAddress,
+		Industry:          prediction.Industry,
+		Country:           prediction.Country,
+		RiskScore:         prediction.RiskScore,
+		RiskLevel:         prediction.RiskLevel,
+		RiskFactors:       prediction.RiskFactors,
+		PredictionHorizon: horizonMonths,
+		ConfidenceScore:   prediction.ConfidenceScore,
+		Status:            models.StatusCompleted,
+		CreatedAt:         time.Now(),
+		UpdatedAt:         time.Now(),
+		Metadata: map[string]interface{}{
+			"model_type":     "ensemble",
+			"single_model":   modelType,
+			"ensemble_size":  1,
+			"horizon_months": horizonMonths,
+		},
+	}
+
+	return ensemblePrediction
+}
+
+// createSingleModelFutureEnsemble creates an ensemble future prediction from a single model
+func (ec *EnsembleCombiner) createSingleModelFutureEnsemble(prediction *models.RiskPrediction, modelType string, horizonMonths int) *models.RiskPrediction {
+	// Create a copy of the prediction with ensemble metadata
+	ensemblePrediction := &models.RiskPrediction{
+		BusinessID:       prediction.BusinessID,
+		PredictionDate:   prediction.PredictionDate,
+		HorizonMonths:    horizonMonths,
+		PredictedScore:   prediction.PredictedScore,
+		PredictedLevel:   prediction.PredictedLevel,
+		ConfidenceScore:  prediction.ConfidenceScore,
+		RiskFactors:      prediction.RiskFactors,
+		ScenarioAnalysis: prediction.ScenarioAnalysis,
+		CreatedAt:        time.Now(),
+	}
+
+	return ensemblePrediction
 }

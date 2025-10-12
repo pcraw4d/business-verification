@@ -329,28 +329,61 @@ func (xgb *XGBoostModel) adjustFeaturesForHorizon(features []float64, horizonMon
 	return adjusted
 }
 
-// generateRiskFactors generates risk factors based on feature importance
+// generateRiskFactors generates detailed risk factors with subcategories
 func (xgb *XGBoostModel) generateRiskFactors(features []float64, riskScore float64) []models.RiskFactor {
-	riskFactors := make([]models.RiskFactor, 0)
-	featureNames := xgb.featureExtractor.GetFeatureNames()
+	// Use the comprehensive detailed risk factors from the models package
+	// Create a mock business request for the detailed risk factor generation
+	business := &models.RiskAssessmentRequest{
+		BusinessName:    "Assessment Target",
+		BusinessAddress: "Unknown",
+		Industry:        "general",
+		Country:         "US",
+	}
 
-	// Generate risk factors based on feature importance
-	for featureName, importance := range xgb.featureImportance {
-		if importance > 0.05 { // Only include significant features
-			factor := models.RiskFactor{
-				Category:    xgb.getRiskCategory(featureName),
-				Name:        featureName,
-				Score:       xgb.calculateFeatureScore(features, featureName, featureNames),
-				Weight:      importance,
-				Description: xgb.getFeatureDescription(featureName),
-				Source:      "xgboost_model",
-				Confidence:  importance,
-			}
-			riskFactors = append(riskFactors, factor)
+	// Generate detailed risk factors with subcategories
+	detailedFactors := models.GenerateDetailedRiskFactors(business, riskScore)
+
+	// Enhance with XGBoost-specific feature importance
+	enhancedFactors := xgb.enhanceRiskFactorsWithFeatureImportance(detailedFactors, features)
+
+	return enhancedFactors
+}
+
+// enhanceRiskFactorsWithFeatureImportance enhances detailed risk factors with XGBoost feature importance
+func (xgb *XGBoostModel) enhanceRiskFactorsWithFeatureImportance(detailedFactors []models.RiskFactor, features []float64) []models.RiskFactor {
+	enhancedFactors := make([]models.RiskFactor, 0, len(detailedFactors))
+
+	for _, factor := range detailedFactors {
+		// Enhance with XGBoost feature importance if available
+		if importance, exists := xgb.featureImportance[factor.Name]; exists {
+			factor.Weight = (factor.Weight + importance) / 2 // Average with XGBoost importance
+			factor.Confidence = math.Max(factor.Confidence, importance)
+			factor.Source = "xgboost_enhanced_model"
+		}
+
+		// Add XGBoost-specific insights
+		factor.Description = xgb.enhanceFactorDescription(factor)
+
+		enhancedFactors = append(enhancedFactors, factor)
+	}
+
+	return enhancedFactors
+}
+
+// enhanceFactorDescription enhances factor description with XGBoost insights
+func (xgb *XGBoostModel) enhanceFactorDescription(factor models.RiskFactor) string {
+	baseDesc := factor.Description
+
+	// Add XGBoost-specific insights
+	if importance, exists := xgb.featureImportance[factor.Name]; exists {
+		if importance > 0.1 {
+			baseDesc += " (High importance in XGBoost model)"
+		} else if importance > 0.05 {
+			baseDesc += " (Moderate importance in XGBoost model)"
 		}
 	}
 
-	return riskFactors
+	return baseDesc
 }
 
 // generateScenarioAnalysis generates scenario analysis for future predictions

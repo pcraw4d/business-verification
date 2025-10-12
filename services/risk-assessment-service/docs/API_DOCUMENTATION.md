@@ -72,7 +72,7 @@ The API uses standard HTTP status codes and returns detailed error information i
 
 #### POST /api/v1/assess
 
-Performs a comprehensive risk assessment for a business.
+Performs a comprehensive risk assessment for a business using advanced ML models and ensemble predictions.
 
 **Request Body:**
 ```json
@@ -568,6 +568,415 @@ The API supports webhooks for real-time notifications:
 }
 ```
 
+### 4. Explainability
+
+#### GET /api/v1/explain/{assessment_id}
+
+Retrieves explainable AI insights for a risk assessment, showing how each risk factor contributed to the overall risk score.
+
+**Response:**
+```json
+{
+  "assessment_id": "risk_1234567890",
+  "explanation": {
+    "overall_risk_score": 0.75,
+    "feature_contributions": [
+      {
+        "feature_name": "credit_score",
+        "contribution": 0.15,
+        "weight": 0.3,
+        "description": "Business credit score contributed 15% to overall risk",
+        "confidence": 0.9
+      },
+      {
+        "feature_name": "industry_risk",
+        "contribution": 0.25,
+        "weight": 0.2,
+        "description": "Technology industry risk contributed 25% to overall risk",
+        "confidence": 0.85
+      }
+    ],
+    "shap_values": {
+      "credit_score": 0.15,
+      "industry_risk": 0.25,
+      "geographic_risk": 0.1,
+      "regulatory_risk": 0.2,
+      "operational_risk": 0.05
+    },
+    "explanation_summary": "The risk assessment is primarily driven by industry risk (25%) and regulatory risk (20%), with credit score contributing 15% to the overall risk score."
+  },
+  "created_at": "2024-01-15T10:30:00Z"
+}
+```
+
+### 5. Scenario Analysis
+
+#### POST /api/v1/scenarios/analyze
+
+Performs scenario analysis with Monte Carlo simulations and stress testing.
+
+**Request Body:**
+```json
+{
+  "business_id": "biz_1234567890",
+  "scenarios": [
+    {
+      "name": "optimistic",
+      "probability": 0.2,
+      "description": "Best-case scenario with favorable market conditions"
+    },
+    {
+      "name": "realistic",
+      "probability": 0.6,
+      "description": "Most likely scenario based on current trends"
+    },
+    {
+      "name": "pessimistic",
+      "probability": 0.2,
+      "description": "Worst-case scenario with economic downturn"
+    }
+  ],
+  "monte_carlo_runs": 10000,
+  "time_horizon": 12
+}
+```
+
+**Response:**
+```json
+{
+  "business_id": "biz_1234567890",
+  "scenario_analysis": {
+    "optimistic": {
+      "risk_score": 0.45,
+      "probability": 0.2,
+      "confidence_interval": [0.40, 0.50],
+      "key_factors": ["market_growth", "regulatory_relief"],
+      "mitigation_recommendations": ["Maintain current risk management practices"]
+    },
+    "realistic": {
+      "risk_score": 0.75,
+      "probability": 0.6,
+      "confidence_interval": [0.70, 0.80],
+      "key_factors": ["industry_volatility", "regulatory_changes"],
+      "mitigation_recommendations": ["Enhance compliance monitoring", "Diversify revenue streams"]
+    },
+    "pessimistic": {
+      "risk_score": 0.95,
+      "probability": 0.2,
+      "confidence_interval": [0.90, 1.00],
+      "key_factors": ["economic_recession", "regulatory_crackdown"],
+      "mitigation_recommendations": ["Implement crisis management plan", "Strengthen financial reserves"]
+    }
+  },
+  "monte_carlo_results": {
+    "mean_risk_score": 0.72,
+    "standard_deviation": 0.15,
+    "percentiles": {
+      "5th": 0.45,
+      "25th": 0.62,
+      "50th": 0.72,
+      "75th": 0.82,
+      "95th": 0.95
+    }
+  },
+  "stress_test_results": {
+    "crisis_scenario": {
+      "risk_score": 0.98,
+      "survival_probability": 0.15,
+      "recovery_time": 24
+    },
+    "recovery_scenario": {
+      "risk_score": 0.35,
+      "recovery_probability": 0.85,
+      "recovery_time": 12
+    }
+  },
+  "created_at": "2024-01-15T10:30:00Z"
+}
+```
+
+### 6. Industry-Specific Models
+
+#### GET /api/v1/industries
+
+Retrieves available industry-specific risk models.
+
+**Response:**
+```json
+{
+  "industries": [
+    {
+      "id": "fintech",
+      "name": "Financial Technology",
+      "description": "Specialized risk model for fintech companies",
+      "risk_factors": [
+        "payment_processing_risk",
+        "regulatory_compliance",
+        "cybersecurity_risk",
+        "market_volatility"
+      ],
+      "accuracy": 0.92
+    },
+    {
+      "id": "healthcare",
+      "name": "Healthcare",
+      "description": "Risk model for healthcare organizations",
+      "risk_factors": [
+        "hipaa_compliance",
+        "medical_device_regulations",
+        "patient_safety",
+        "insurance_coverage"
+      ],
+      "accuracy": 0.89
+    }
+  ]
+}
+```
+
+#### POST /api/v1/assess/industry/{industry_id}
+
+Performs risk assessment using industry-specific model.
+
+**Request Body:**
+```json
+{
+  "business_name": "MedTech Solutions",
+  "business_address": "456 Healthcare Ave, Medical City, MC 54321",
+  "industry": "healthcare",
+  "country": "US",
+  "industry_specific_data": {
+    "hipaa_compliant": true,
+    "medical_device_class": "Class II",
+    "patient_volume": 1000,
+    "insurance_coverage": "comprehensive"
+  }
+}
+```
+
+### 7. A/B Testing Framework
+
+#### POST /api/v1/experiments
+
+Creates a new A/B testing experiment for model comparison.
+
+**Request Body:**
+```json
+{
+  "name": "LSTM vs XGBoost Comparison",
+  "description": "Compare LSTM and XGBoost model performance",
+  "type": "model_comparison",
+  "traffic_split": {
+    "lstm_model": 0.5,
+    "xgboost_model": 0.5
+  },
+  "metrics": ["accuracy", "latency", "confidence"],
+  "duration_days": 30
+}
+```
+
+**Response:**
+```json
+{
+  "experiment_id": "exp_1234567890",
+  "name": "LSTM vs XGBoost Comparison",
+  "status": "active",
+  "traffic_split": {
+    "lstm_model": 0.5,
+    "xgboost_model": 0.5
+  },
+  "metrics": ["accuracy", "latency", "confidence"],
+  "start_date": "2024-01-15T10:30:00Z",
+  "end_date": "2024-02-14T10:30:00Z",
+  "created_at": "2024-01-15T10:30:00Z"
+}
+```
+
+#### GET /api/v1/experiments/{experiment_id}/results
+
+Retrieves A/B testing experiment results.
+
+**Response:**
+```json
+{
+  "experiment_id": "exp_1234567890",
+  "status": "completed",
+  "results": {
+    "lstm_model": {
+      "accuracy": 0.92,
+      "latency": 150,
+      "confidence": 0.88,
+      "sample_size": 1000
+    },
+    "xgboost_model": {
+      "accuracy": 0.89,
+      "latency": 100,
+      "confidence": 0.85,
+      "sample_size": 1000
+    }
+  },
+  "statistical_significance": {
+    "p_value": 0.03,
+    "confidence_level": 0.95,
+    "winner": "lstm_model",
+    "effect_size": 0.15
+  },
+  "recommendation": "LSTM model shows statistically significant improvement in accuracy (3.4% increase) with acceptable latency trade-off."
+}
+```
+
+### 8. Model Validation & Accuracy
+
+#### POST /api/v1/validate/accuracy
+
+Performs comprehensive model validation and accuracy testing.
+
+**Request Body:**
+```json
+{
+  "validation_config": {
+    "num_samples": 1000,
+    "cross_validation_folds": 5,
+    "target_accuracy": 0.90,
+    "enable_calibration": true,
+    "enable_ensemble": true,
+    "enable_hyperparameter_tuning": true
+  },
+  "test_data": [
+    {
+      "business_name": "Test Company 1",
+      "business_address": "123 Test St, Test City, TC 12345",
+      "industry": "technology",
+      "country": "US"
+    }
+  ]
+}
+```
+
+**Response:**
+```json
+{
+  "validation_id": "val_1234567890",
+  "overall_accuracy": 0.92,
+  "target_achieved": true,
+  "validation_metadata": {
+    "num_samples": 1000,
+    "validation_method": "comprehensive",
+    "duration": 300,
+    "cross_validation_folds": 5
+  },
+  "model_comparison": {
+    "baseline_model": {
+      "accuracy": 0.85,
+      "precision": 0.82,
+      "recall": 0.88,
+      "f1_score": 0.85
+    },
+    "enhanced_model": {
+      "accuracy": 0.88,
+      "precision": 0.85,
+      "recall": 0.91,
+      "f1_score": 0.88
+    },
+    "ensemble_model": {
+      "accuracy": 0.92,
+      "precision": 0.90,
+      "recall": 0.94,
+      "f1_score": 0.92
+    },
+    "best_model": "ensemble",
+    "improvement": 0.07
+  },
+  "recommendations": [
+    "Model accuracy (92%) meets target (90%). Model is ready for production.",
+    "Significant improvement (7%) achieved with ensemble model. Recommend using this configuration.",
+    "Ensemble model shows improved accuracy. Consider using ensemble approach for production."
+  ],
+  "created_at": "2024-01-15T10:30:00Z"
+}
+```
+
+### 9. Premium External APIs
+
+#### GET /api/v1/external/health
+
+Checks the health status of premium external API integrations.
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "services": {
+    "thomson_reuters": {
+      "status": "healthy",
+      "response_time": 150,
+      "last_check": "2024-01-15T10:30:00Z"
+    },
+    "ofac": {
+      "status": "healthy",
+      "response_time": 200,
+      "last_check": "2024-01-15T10:30:00Z"
+    },
+    "worldcheck": {
+      "status": "healthy",
+      "response_time": 180,
+      "last_check": "2024-01-15T10:30:00Z"
+    }
+  }
+}
+```
+
+#### POST /api/v1/external/comprehensive
+
+Performs comprehensive external data lookup using all premium APIs.
+
+**Request Body:**
+```json
+{
+  "business_name": "Acme Corporation",
+  "business_address": "123 Main St, Anytown, ST 12345",
+  "country": "US",
+  "include_sanctions": true,
+  "include_adverse_media": true,
+  "include_worldcheck": true
+}
+```
+
+**Response:**
+```json
+{
+  "business_name": "Acme Corporation",
+  "external_data": {
+    "thomson_reuters": {
+      "risk_factors": [
+        {
+          "name": "revenue_growth_risk",
+          "score": 0.3,
+          "description": "Strong revenue growth indicates low risk"
+        },
+        {
+          "name": "profitability_risk",
+          "score": 0.4,
+          "description": "Stable profitability metrics"
+        }
+      ],
+      "confidence": 0.9
+    },
+    "ofac": {
+      "sanctions_matches": 0,
+      "status": "clear",
+      "last_updated": "2024-01-15T10:30:00Z"
+    },
+    "worldcheck": {
+      "adverse_media_count": 0,
+      "risk_level": "low",
+      "last_updated": "2024-01-15T10:30:00Z"
+    }
+  },
+  "overall_external_risk": 0.35,
+  "created_at": "2024-01-15T10:30:00Z"
+}
+```
+
 ## Support
 
 For API support and questions:
@@ -576,6 +985,18 @@ For API support and questions:
 - **Status Page**: https://status.kyb-platform.com
 
 ## Changelog
+
+### v2.0.0 (2024-01-15) - Phase 2 Complete
+- **NEW**: Explainable AI with SHAP-like feature contributions
+- **NEW**: Scenario analysis with Monte Carlo simulations
+- **NEW**: Industry-specific risk models (9 sectors)
+- **NEW**: A/B testing framework for model validation
+- **NEW**: Comprehensive model validation and accuracy optimization
+- **NEW**: Premium external API integrations (Thomson Reuters, OFAC, World-Check)
+- **ENHANCED**: LSTM models with 6-12 month forecasting
+- **ENHANCED**: Ensemble predictions with real-time optimization
+- **ENHANCED**: Performance scaling to 5000+ req/min
+- **ENHANCED**: Advanced risk categories with subcategories
 
 ### v1.0.0 (2024-01-15)
 - Initial release

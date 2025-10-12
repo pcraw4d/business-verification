@@ -37,7 +37,7 @@ func NewLSTMONNXModel(name, version string, logger *zap.Logger) *LSTMONNXModel {
 		version:            version,
 		trained:            false,
 		sequenceLength:     12, // 12 months of history
-		featureCount:       20, // 20 features
+		featureCount:       35, // 35 features (25 base + 10 advanced temporal features)
 		predictionHorizons: []int{6, 9, 12},
 		featureExtractor:   NewFeatureExtractor(),
 		riskLevelEncoder:   NewRiskLevelEncoder(),
@@ -89,6 +89,10 @@ func (lstm *LSTMONNXModel) LoadModel(ctx context.Context, modelPath string) erro
 
 // Predict performs risk assessment using LSTM ONNX model
 func (lstm *LSTMONNXModel) Predict(ctx context.Context, business *models.RiskAssessmentRequest) (*models.RiskAssessment, error) {
+	if business == nil {
+		return nil, fmt.Errorf("business request cannot be nil")
+	}
+
 	if !lstm.trained {
 		return nil, fmt.Errorf("model not trained")
 	}
@@ -569,7 +573,7 @@ func (lstm *LSTMONNXModel) calculateHorizonAdjustment(sequence [][]float64, hori
 func (lstm *LSTMONNXModel) prepareInputTensor(sequence [][]float64) (ort.Value, error) {
 	// Convert sequence to flat array
 	inputData := make([]float32, lstm.sequenceLength*lstm.featureCount)
-	
+
 	for i, timestep := range sequence {
 		if i >= lstm.sequenceLength {
 			break
@@ -584,7 +588,7 @@ func (lstm *LSTMONNXModel) prepareInputTensor(sequence [][]float64) (ort.Value, 
 
 	// Create tensor with shape [1, sequence_length, feature_count]
 	shape := []int64{1, int64(lstm.sequenceLength), int64(lstm.featureCount)}
-	
+
 	tensor, err := ort.NewTensor[float32](shape, inputData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create input tensor: %w", err)
@@ -685,70 +689,122 @@ func (lstm *LSTMONNXModel) predictFutureWithPlaceholder(business *models.RiskAss
 	return prediction, nil
 }
 
-// generateRiskFactors generates risk factors with temporal insights
+// generateRiskFactors generates detailed risk factors with temporal insights
 func (lstm *LSTMONNXModel) generateRiskFactors(features []float64, sequence [][]float64) []models.RiskFactor {
-	riskFactors := []models.RiskFactor{
-		{
-			Category:    models.RiskCategoryOperational,
-			Name:        "Industry Risk",
-			Score:       0.4,
-			Weight:      0.3,
-			Description: "Industry-specific risk factors",
-			Source:      "lstm_onnx_enhanced",
-		},
-		{
-			Category:    models.RiskCategoryFinancial,
-			Name:        "Financial Stability",
-			Score:       0.3,
-			Weight:      0.4,
-			Description: "Financial health indicators",
-			Source:      "lstm_onnx_enhanced",
-		},
-		{
-			Category:    models.RiskCategoryOperational,
-			Name:        "Market Conditions",
-			Score:       0.5,
-			Weight:      0.2,
-			Description: "Current market environment",
-			Source:      "lstm_onnx_enhanced",
-		},
+	// Calculate base risk score from features
+	baseScore := 0.0
+	if len(features) > 0 {
+		baseScore = features[0] // Use first feature as base risk score
 	}
 
+	// Create a mock business request for the detailed risk factor generation
+	business := &models.RiskAssessmentRequest{
+		BusinessName:    "Assessment Target",
+		BusinessAddress: "Unknown",
+		Industry:        "general",
+		Country:         "US",
+	}
+
+	// Generate detailed risk factors with subcategories
+	detailedFactors := models.GenerateDetailedRiskFactors(business, baseScore)
+
+	// Enhance with LSTM-specific temporal insights
+	enhancedFactors := lstm.enhanceRiskFactorsWithTemporalAnalysis(detailedFactors, sequence)
+
+	return enhancedFactors
+}
+
+// enhanceRiskFactorsWithTemporalAnalysis enhances detailed risk factors with LSTM temporal insights
+func (lstm *LSTMONNXModel) enhanceRiskFactorsWithTemporalAnalysis(detailedFactors []models.RiskFactor, sequence [][]float64) []models.RiskFactor {
+	enhancedFactors := make([]models.RiskFactor, 0, len(detailedFactors))
+
 	// Add temporal analysis factors
+	temporalFactors := lstm.generateTemporalRiskFactors(sequence)
+
+	// Combine detailed factors with temporal factors
+	enhancedFactors = append(enhancedFactors, detailedFactors...)
+	enhancedFactors = append(enhancedFactors, temporalFactors...)
+
+	// Enhance existing factors with temporal insights
+	for i := range enhancedFactors {
+		if enhancedFactors[i].Source == "enhanced_risk_model" {
+			enhancedFactors[i].Source = "lstm_enhanced_model"
+			enhancedFactors[i].Description = lstm.enhanceFactorDescriptionWithTemporal(enhancedFactors[i], sequence)
+		}
+	}
+
+	return enhancedFactors
+}
+
+// generateTemporalRiskFactors generates LSTM-specific temporal risk factors
+func (lstm *LSTMONNXModel) generateTemporalRiskFactors(sequence [][]float64) []models.RiskFactor {
+	temporalFactors := make([]models.RiskFactor, 0)
+
 	if len(sequence) > 0 {
 		trend := lstm.calculateTrend(sequence)
 		volatility := lstm.calculateVolatility(sequence)
 		seasonality := lstm.calculateSeasonality(sequence)
 
-		riskFactors = append(riskFactors, models.RiskFactor{
+		temporalFactors = append(temporalFactors, models.RiskFactor{
 			Category:    models.RiskCategoryOperational,
-			Name:        "Temporal Trend",
+			Subcategory: "temporal_analysis",
+			Name:        "temporal_trend",
 			Score:       trend,
 			Weight:      0.1,
-			Description: "Historical risk trend analysis",
-			Source:      "lstm_onnx_enhanced",
+			Description: "Historical risk trend analysis from LSTM model",
+			Source:      "lstm_temporal_analysis",
+			Confidence:  0.85,
+			Impact:      "Indicates risk trajectory over time",
+			Mitigation:  "Monitor trend changes and adjust risk management strategies",
 		})
 
-		riskFactors = append(riskFactors, models.RiskFactor{
+		temporalFactors = append(temporalFactors, models.RiskFactor{
 			Category:    models.RiskCategoryOperational,
-			Name:        "Risk Volatility",
+			Subcategory: "temporal_analysis",
+			Name:        "risk_volatility",
 			Score:       volatility,
-			Weight:      0.05,
-			Description: "Risk volatility over time",
-			Source:      "lstm_onnx_enhanced",
+			Weight:      0.1,
+			Description: "Risk volatility over time from LSTM analysis",
+			Source:      "lstm_temporal_analysis",
+			Confidence:  0.8,
+			Impact:      "High volatility indicates unstable risk environment",
+			Mitigation:  "Implement volatility management strategies",
 		})
 
-		riskFactors = append(riskFactors, models.RiskFactor{
+		temporalFactors = append(temporalFactors, models.RiskFactor{
 			Category:    models.RiskCategoryOperational,
-			Name:        "Seasonal Patterns",
+			Subcategory: "temporal_analysis",
+			Name:        "seasonal_patterns",
 			Score:       seasonality,
-			Weight:      0.05,
-			Description: "Seasonal risk pattern analysis",
-			Source:      "lstm_onnx_enhanced",
+			Weight:      0.1,
+			Description: "Seasonal risk pattern analysis from LSTM model",
+			Source:      "lstm_temporal_analysis",
+			Confidence:  0.75,
+			Impact:      "Seasonal patterns affect risk predictability",
+			Mitigation:  "Account for seasonal variations in risk planning",
 		})
 	}
 
-	return riskFactors
+	return temporalFactors
+}
+
+// enhanceFactorDescriptionWithTemporal enhances factor description with temporal insights
+func (lstm *LSTMONNXModel) enhanceFactorDescriptionWithTemporal(factor models.RiskFactor, sequence [][]float64) string {
+	baseDesc := factor.Description
+
+	// Add temporal insights if sequence data is available
+	if len(sequence) > 0 {
+		trend := lstm.calculateTrend(sequence)
+		if trend > 0.6 {
+			baseDesc += " (Trending upward over time)"
+		} else if trend < 0.4 {
+			baseDesc += " (Trending downward over time)"
+		} else {
+			baseDesc += " (Stable trend over time)"
+		}
+	}
+
+	return baseDesc
 }
 
 // analyzeTemporalPatterns analyzes temporal patterns for metadata
@@ -829,4 +885,785 @@ func generateBusinessID(businessName string) string {
 		hash = hash*31 + int(char)
 	}
 	return fmt.Sprintf("biz_%d", hash)
+}
+
+// PredictMultiStep performs multi-step ahead forecasting for 6-12 months
+func (lstm *LSTMONNXModel) PredictMultiStep(ctx context.Context, business *models.RiskAssessmentRequest, horizonMonths int) (*models.RiskPrediction, error) {
+	if !lstm.trained {
+		return nil, fmt.Errorf("model not trained")
+	}
+
+	if horizonMonths < 6 || horizonMonths > 12 {
+		return nil, fmt.Errorf("horizon must be between 6 and 12 months")
+	}
+
+	lstm.logger.Info("Running LSTM multi-step prediction",
+		zap.String("business_name", business.BusinessName),
+		zap.Int("horizon_months", horizonMonths))
+
+	// Extract features
+	features, err := lstm.featureExtractor.ExtractFeatures(business)
+	if err != nil {
+		return nil, fmt.Errorf("feature extraction failed: %w", err)
+	}
+
+	// Build multi-step sequence for enhanced forecasting
+	sequence, err := lstm.temporalBuilder.BuildMultiStepSequence(business, lstm.sequenceLength, horizonMonths)
+	if err != nil {
+		return nil, fmt.Errorf("multi-step sequence building failed: %w", err)
+	}
+
+	// Use enhanced placeholder for multi-step prediction
+	return lstm.predictMultiStepWithPlaceholder(business, features, sequence, horizonMonths)
+}
+
+// predictMultiStepWithPlaceholder performs enhanced multi-step prediction with advanced temporal features
+func (lstm *LSTMONNXModel) predictMultiStepWithPlaceholder(business *models.RiskAssessmentRequest, features []float64, sequence [][]float64, horizonMonths int) (*models.RiskPrediction, error) {
+	lstm.logger.Info("Using enhanced multi-step placeholder implementation with advanced temporal features")
+
+	// Calculate base risk score with enhanced temporal analysis
+	baseRiskScore := lstm.calculateEnhancedRiskScore(features, sequence, business)
+
+	// Apply advanced multi-step forecasting adjustments with rolling window analysis
+	forecastAdjustment := lstm.calculateAdvancedMultiStepAdjustment(sequence, horizonMonths, business)
+	predictedScore := math.Min(baseRiskScore*forecastAdjustment, 1.0)
+
+	// Calculate confidence with advanced temporal degradation
+	confidence := lstm.calculateAdvancedMultiStepConfidence(sequence, horizonMonths, business)
+
+	predictedLevel := lstm.convertScoreToRiskLevel(predictedScore)
+
+	// Generate enhanced risk factors with advanced temporal insights
+	riskFactors := lstm.generateAdvancedRiskFactors(features, sequence, horizonMonths, business)
+
+	// Generate advanced scenario analysis for multi-step predictions
+	scenarios := lstm.generateAdvancedMultiStepScenarios(sequence, horizonMonths, predictedScore, business)
+
+	// Convert RiskScenario to ScenarioAnalysis for compatibility
+	scenarioAnalysis := make([]models.ScenarioAnalysis, len(scenarios))
+	for i, scenario := range scenarios {
+		scenarioAnalysis[i] = models.ScenarioAnalysis{
+			ScenarioName: scenario.Name,
+			Description:  scenario.Description,
+			RiskScore:    scenario.RiskScore,
+			RiskLevel:    models.ConvertScoreToRiskLevel(scenario.RiskScore),
+			Probability:  scenario.Probability,
+			Impact:       scenario.Impact,
+		}
+	}
+
+	prediction := &models.RiskPrediction{
+		BusinessID:       generateBusinessID(business.BusinessName),
+		PredictionDate:   time.Now(),
+		HorizonMonths:    horizonMonths,
+		PredictedScore:   predictedScore,
+		PredictedLevel:   predictedLevel,
+		ConfidenceScore:  confidence,
+		RiskFactors:      riskFactors,
+		ScenarioAnalysis: scenarioAnalysis,
+		CreatedAt:        time.Now(),
+	}
+
+	lstm.logger.Info("LSTM multi-step prediction completed",
+		zap.Float64("predicted_score", predictedScore),
+		zap.String("predicted_level", string(predictedLevel)),
+		zap.Float64("confidence", confidence),
+		zap.Int("horizon_months", horizonMonths))
+
+	return prediction, nil
+}
+
+// calculateAdvancedMultiStepAdjustment calculates advanced adjustment for multi-step predictions using rolling window analysis
+func (lstm *LSTMONNXModel) calculateAdvancedMultiStepAdjustment(sequence [][]float64, horizonMonths int, business *models.RiskAssessmentRequest) float64 {
+	// Base time decay factor
+	timeDecay := 1.0 + (float64(horizonMonths-6) * 0.05)
+
+	// Advanced volatility adjustment using rolling windows
+	if len(sequence) > 0 {
+		// Calculate multiple volatility measures
+		shortTermVolatility := lstm.calculateRollingVolatility(sequence, 3) // 3-month volatility
+		longTermVolatility := lstm.calculateRollingVolatility(sequence, 6)  // 6-month volatility
+
+		// Volatility clustering effect
+		volatilityClustering := lstm.calculateVolatilityClustering(sequence)
+
+		// Combined volatility adjustment
+		volatilityAdjustment := 1.0 + (shortTermVolatility*0.02+longTermVolatility*0.03+volatilityClustering*0.01)*float64(horizonMonths-6)
+		timeDecay *= volatilityAdjustment
+	}
+
+	// Advanced trend analysis
+	trend := lstm.calculateAdvancedTrend(sequence)
+	trendPersistence := lstm.calculateTrendPersistence(sequence)
+
+	// Trend adjustment with persistence weighting
+	trendAdjustment := 1.0 + (trend-0.5)*0.1*trendPersistence
+	timeDecay *= trendAdjustment
+
+	// Regime change probability adjustment
+	regimeChangeProb := lstm.calculateRegimeChangeProbability(sequence)
+	regimeAdjustment := 1.0 + regimeChangeProb*0.05*float64(horizonMonths-6)
+	timeDecay *= regimeAdjustment
+
+	// Industry-specific adjustments
+	industryAdjustment := lstm.calculateIndustryAdjustment(business.Industry, horizonMonths)
+	timeDecay *= industryAdjustment
+
+	return math.Max(0.3, math.Min(2.5, timeDecay))
+}
+
+// calculateAdvancedMultiStepConfidence calculates advanced confidence for multi-step predictions
+func (lstm *LSTMONNXModel) calculateAdvancedMultiStepConfidence(sequence [][]float64, horizonMonths int, business *models.RiskAssessmentRequest) float64 {
+	baseConfidence := 0.9
+
+	// Horizon penalty with non-linear decay
+	horizonPenalty := math.Pow(float64(horizonMonths-6)/6.0, 1.5) * 0.15
+	baseConfidence -= horizonPenalty
+
+	// Data quality confidence
+	dataQuality := lstm.calculateDataQuality(sequence)
+	baseConfidence *= dataQuality
+
+	// Volatility impact on confidence
+	if len(sequence) > 0 {
+		volatility := lstm.calculateVolatility(sequence)
+		volatilityPenalty := volatility * 0.1
+		baseConfidence -= volatilityPenalty
+	}
+
+	// Trend stability confidence
+	trendStability := lstm.calculateTrendStability(sequence)
+	baseConfidence *= trendStability
+
+	// Long-term memory confidence
+	longTermMemory := lstm.calculateLongTermMemory(sequence)
+	memoryConfidence := 0.5 + longTermMemory*0.5
+	baseConfidence *= memoryConfidence
+
+	// Structural break penalty
+	structuralBreak := lstm.calculateStructuralBreak(sequence)
+	baseConfidence -= structuralBreak * 0.2
+
+	return math.Max(0.1, math.Min(0.95, baseConfidence))
+}
+
+// generateAdvancedRiskFactors generates risk factors with advanced temporal insights
+func (lstm *LSTMONNXModel) generateAdvancedRiskFactors(features []float64, sequence [][]float64, horizonMonths int, business *models.RiskAssessmentRequest) []models.RiskFactor {
+	riskFactors := lstm.generateEnhancedRiskFactors(features, sequence, horizonMonths)
+
+	// Add advanced temporal risk factors
+	advancedFactors := []models.RiskFactor{
+		{
+			Category:    models.RiskCategoryFinancial,
+			Subcategory: "temporal_analysis",
+			Name:        "Volatility Clustering",
+			Score:       lstm.calculateVolatilityClustering(sequence),
+			Weight:      0.15,
+			Description: "Indicates whether high volatility periods tend to cluster together, affecting future risk stability.",
+			Source:      "Advanced Temporal Analysis",
+			Confidence:  0.85,
+			Impact:      "High clustering suggests periods of increased uncertainty ahead.",
+			Mitigation:  "Implement dynamic risk monitoring during high volatility periods.",
+		},
+		{
+			Category:    models.RiskCategoryOperational,
+			Subcategory: "temporal_analysis",
+			Name:        "Trend Persistence",
+			Score:       lstm.calculateTrendPersistence(sequence),
+			Weight:      0.12,
+			Description: "Measures how consistently trends continue over time, indicating business stability.",
+			Source:      "Advanced Temporal Analysis",
+			Confidence:  0.80,
+			Impact:      "High persistence suggests trends will continue, low persistence indicates volatility.",
+			Mitigation:  "Monitor trend changes closely and adjust business strategies accordingly.",
+		},
+		{
+			Category:    models.RiskCategoryFinancial,
+			Subcategory: "temporal_analysis",
+			Name:        "Regime Change Probability",
+			Score:       lstm.calculateRegimeChangeProbability(sequence),
+			Weight:      0.18,
+			Description: "Probability of a significant change in business operating conditions.",
+			Source:      "Advanced Temporal Analysis",
+			Confidence:  0.75,
+			Impact:      "High probability suggests potential for major business environment changes.",
+			Mitigation:  "Prepare contingency plans for different operating scenarios.",
+		},
+		{
+			Category:    models.RiskCategoryTechnology,
+			Subcategory: "temporal_analysis",
+			Name:        "Long-term Memory",
+			Score:       lstm.calculateLongTermMemory(sequence),
+			Weight:      0.10,
+			Description: "Indicates how much historical patterns influence future outcomes.",
+			Source:      "Advanced Temporal Analysis",
+			Confidence:  0.70,
+			Impact:      "High memory suggests historical patterns will continue to influence future risk.",
+			Mitigation:  "Use historical analysis to inform future risk assessments.",
+		},
+	}
+
+	// Add advanced factors to the existing ones
+	riskFactors = append(riskFactors, advancedFactors...)
+
+	return riskFactors
+}
+
+// generateAdvancedMultiStepScenarios generates advanced scenario analysis for multi-step predictions
+func (lstm *LSTMONNXModel) generateAdvancedMultiStepScenarios(sequence [][]float64, horizonMonths int, baseScore float64, business *models.RiskAssessmentRequest) []models.RiskScenario {
+	// Add advanced temporal scenarios
+	advancedScenarios := []models.RiskScenario{
+		{
+			Name:        "Volatility Clustering Scenario",
+			Description: "High volatility periods cluster together, leading to extended periods of uncertainty.",
+			Probability: lstm.calculateVolatilityClustering(sequence),
+			Impact:      "High",
+			RiskScore:   math.Min(1.0, baseScore*1.3),
+			TimeHorizon: horizonMonths,
+			Mitigation:  "Implement dynamic hedging strategies and increase monitoring frequency.",
+		},
+		{
+			Name:        "Regime Change Scenario",
+			Description: "Significant change in business operating environment or market conditions.",
+			Probability: lstm.calculateRegimeChangeProbability(sequence),
+			Impact:      "Very High",
+			RiskScore:   math.Min(1.0, baseScore*1.5),
+			TimeHorizon: horizonMonths,
+			Mitigation:  "Develop flexible business models and maintain strong cash reserves.",
+		},
+		{
+			Name:        "Trend Reversal Scenario",
+			Description: "Current business trends reverse direction, leading to unexpected outcomes.",
+			Probability: 1.0 - lstm.calculateTrendPersistence(sequence),
+			Impact:      "Medium",
+			RiskScore:   math.Min(1.0, baseScore*1.2),
+			TimeHorizon: horizonMonths,
+			Mitigation:  "Diversify revenue streams and maintain operational flexibility.",
+		},
+	}
+
+	return advancedScenarios
+}
+
+// Helper functions for advanced temporal analysis
+func (lstm *LSTMONNXModel) calculateRollingVolatility(sequence [][]float64, windowSize int) float64 {
+	if len(sequence) < windowSize {
+		return 0.0
+	}
+
+	// Calculate rolling volatility using first feature as proxy
+	recentValues := make([]float64, windowSize)
+	for i := 0; i < windowSize; i++ {
+		if len(sequence[len(sequence)-1-i]) > 0 {
+			recentValues[i] = sequence[len(sequence)-1-i][0]
+		}
+	}
+
+	// Calculate standard deviation
+	mean := 0.0
+	for _, val := range recentValues {
+		mean += val
+	}
+	mean /= float64(len(recentValues))
+
+	variance := 0.0
+	for _, val := range recentValues {
+		diff := val - mean
+		variance += diff * diff
+	}
+	variance /= float64(len(recentValues))
+
+	return math.Sqrt(variance)
+}
+
+func (lstm *LSTMONNXModel) calculateVolatilityClustering(sequence [][]float64) float64 {
+	if len(sequence) < 6 {
+		return 0.0
+	}
+
+	// Calculate returns
+	returns := make([]float64, len(sequence)-1)
+	for i := 1; i < len(sequence); i++ {
+		if len(sequence[i]) > 0 && len(sequence[i-1]) > 0 {
+			returns[i-1] = sequence[i][0] - sequence[i-1][0]
+		}
+	}
+
+	// Calculate volatility clustering (simplified)
+	recentVol := 0.0
+	for i := max(0, len(returns)-3); i < len(returns); i++ {
+		recentVol += math.Abs(returns[i])
+	}
+	recentVol /= 3.0
+
+	historicalVol := 0.0
+	for i := 0; i < max(0, len(returns)-3); i++ {
+		historicalVol += math.Abs(returns[i])
+	}
+	if len(returns) > 3 {
+		historicalVol /= float64(len(returns) - 3)
+	}
+
+	if historicalVol == 0 {
+		return 0.0
+	}
+
+	return math.Max(0.0, math.Min(1.0, recentVol/historicalVol))
+}
+
+func (lstm *LSTMONNXModel) calculateTrendPersistence(sequence [][]float64) float64 {
+	if len(sequence) < 5 {
+		return 0.0
+	}
+
+	// Calculate trend direction consistency
+	trends := make([]int, len(sequence)-1)
+	for i := 1; i < len(sequence); i++ {
+		if len(sequence[i]) > 0 && len(sequence[i-1]) > 0 {
+			if sequence[i][0] > sequence[i-1][0] {
+				trends[i-1] = 1
+			} else {
+				trends[i-1] = -1
+			}
+		}
+	}
+
+	if len(trends) == 0 {
+		return 0.0
+	}
+
+	positiveCount := 0
+	negativeCount := 0
+	for _, trend := range trends {
+		if trend > 0 {
+			positiveCount++
+		} else if trend < 0 {
+			negativeCount++
+		}
+	}
+
+	total := positiveCount + negativeCount
+	if total == 0 {
+		return 0.0
+	}
+
+	maxConsistency := math.Max(float64(positiveCount), float64(negativeCount))
+	return maxConsistency / float64(total)
+}
+
+func (lstm *LSTMONNXModel) calculateRegimeChangeProbability(sequence [][]float64) float64 {
+	if len(sequence) < 10 {
+		return 0.0
+	}
+
+	// Calculate rolling statistics to detect regime changes
+	windowSize := 5
+	if len(sequence) < windowSize*2 {
+		return 0.0
+	}
+
+	// Recent window statistics
+	recentMean := 0.0
+	for i := len(sequence) - windowSize; i < len(sequence); i++ {
+		if len(sequence[i]) > 0 {
+			recentMean += sequence[i][0]
+		}
+	}
+	recentMean /= float64(windowSize)
+
+	// Historical window statistics
+	historicalMean := 0.0
+	for i := 0; i < len(sequence)-windowSize; i++ {
+		if len(sequence[i]) > 0 {
+			historicalMean += sequence[i][0]
+		}
+	}
+	historicalMean /= float64(len(sequence) - windowSize)
+
+	// Regime change probability based on mean difference
+	meanChange := math.Abs(recentMean - historicalMean)
+	return math.Max(0.0, math.Min(1.0, meanChange))
+}
+
+func (lstm *LSTMONNXModel) calculateLongTermMemory(sequence [][]float64) float64 {
+	if len(sequence) < 10 {
+		return 0.5
+	}
+
+	// Simplified Hurst exponent calculation
+	series := make([]float64, len(sequence))
+	for i, timestep := range sequence {
+		if len(timestep) > 0 {
+			series[i] = timestep[0]
+		}
+	}
+
+	// Calculate mean
+	mean := 0.0
+	for _, val := range series {
+		mean += val
+	}
+	mean /= float64(len(series))
+
+	// Calculate cumulative deviations
+	cumulativeDeviations := make([]float64, len(series))
+	cumulativeDeviations[0] = series[0] - mean
+	for i := 1; i < len(series); i++ {
+		cumulativeDeviations[i] = cumulativeDeviations[i-1] + (series[i] - mean)
+	}
+
+	// Calculate range
+	minCum := cumulativeDeviations[0]
+	maxCum := cumulativeDeviations[0]
+	for _, val := range cumulativeDeviations {
+		if val < minCum {
+			minCum = val
+		}
+		if val > maxCum {
+			maxCum = val
+		}
+	}
+	rangeVal := maxCum - minCum
+
+	// Calculate standard deviation
+	stdDev := 0.0
+	for _, val := range series {
+		diff := val - mean
+		stdDev += diff * diff
+	}
+	stdDev = math.Sqrt(stdDev / float64(len(series)))
+
+	if stdDev == 0 {
+		return 0.5
+	}
+
+	// Calculate R/S ratio and approximate Hurst exponent
+	rsRatio := rangeVal / stdDev
+	hurst := math.Log(rsRatio) / math.Log(float64(len(series)))
+	return math.Max(0.0, math.Min(1.0, hurst))
+}
+
+func (lstm *LSTMONNXModel) calculateStructuralBreak(sequence [][]float64) float64 {
+	if len(sequence) < 8 {
+		return 0.0
+	}
+
+	// Split data into two periods
+	splitPoint := len(sequence) / 2
+	if splitPoint < 2 {
+		return 0.0
+	}
+
+	// Calculate means for each period
+	mean1 := 0.0
+	for i := 0; i < splitPoint; i++ {
+		if len(sequence[i]) > 0 {
+			mean1 += sequence[i][0]
+		}
+	}
+	mean1 /= float64(splitPoint)
+
+	mean2 := 0.0
+	for i := splitPoint; i < len(sequence); i++ {
+		if len(sequence[i]) > 0 {
+			mean2 += sequence[i][0]
+		}
+	}
+	mean2 /= float64(len(sequence) - splitPoint)
+
+	// Structural break indicator
+	breakIndicator := math.Abs(mean2 - mean1)
+	return math.Max(0.0, math.Min(1.0, breakIndicator))
+}
+
+func (lstm *LSTMONNXModel) calculateAdvancedTrend(sequence [][]float64) float64 {
+	if len(sequence) < 3 {
+		return 0.5
+	}
+
+	// Calculate weighted trend with more recent data having higher weight
+	trend := 0.0
+	totalWeight := 0.0
+
+	for i := 1; i < len(sequence); i++ {
+		if len(sequence[i]) > 0 && len(sequence[i-1]) > 0 {
+			weight := float64(i) // More recent data has higher weight
+			change := sequence[i][0] - sequence[i-1][0]
+			trend += change * weight
+			totalWeight += weight
+		}
+	}
+
+	if totalWeight == 0 {
+		return 0.5
+	}
+
+	normalizedTrend := trend / totalWeight
+	return math.Max(0.0, math.Min(1.0, (normalizedTrend+1.0)/2.0))
+}
+
+func (lstm *LSTMONNXModel) calculateTrendStability(sequence [][]float64) float64 {
+	if len(sequence) < 5 {
+		return 0.5
+	}
+
+	// Calculate trend consistency
+	trends := make([]float64, len(sequence)-1)
+	for i := 1; i < len(sequence); i++ {
+		if len(sequence[i]) > 0 && len(sequence[i-1]) > 0 {
+			trends[i-1] = sequence[i][0] - sequence[i-1][0]
+		}
+	}
+
+	// Calculate variance of trends (lower variance = more stable)
+	mean := 0.0
+	for _, trend := range trends {
+		mean += trend
+	}
+	mean /= float64(len(trends))
+
+	variance := 0.0
+	for _, trend := range trends {
+		diff := trend - mean
+		variance += diff * diff
+	}
+	variance /= float64(len(trends))
+
+	// Convert variance to stability (inverse relationship)
+	stability := 1.0 / (1.0 + variance)
+	return math.Max(0.1, math.Min(1.0, stability))
+}
+
+func (lstm *LSTMONNXModel) calculateDataQuality(sequence [][]float64) float64 {
+	if len(sequence) == 0 {
+		return 0.0
+	}
+
+	// Calculate data completeness
+	completePoints := 0
+	for _, timestep := range sequence {
+		if len(timestep) > 0 {
+			completePoints++
+		}
+	}
+
+	completeness := float64(completePoints) / float64(len(sequence))
+
+	// Calculate data consistency (no extreme outliers)
+	consistency := 1.0
+	if len(sequence) > 2 {
+		values := make([]float64, 0)
+		for _, timestep := range sequence {
+			if len(timestep) > 0 {
+				values = append(values, timestep[0])
+			}
+		}
+
+		if len(values) > 2 {
+			// Calculate coefficient of variation
+			mean := 0.0
+			for _, val := range values {
+				mean += val
+			}
+			mean /= float64(len(values))
+
+			variance := 0.0
+			for _, val := range values {
+				diff := val - mean
+				variance += diff * diff
+			}
+			variance /= float64(len(values))
+			stdDev := math.Sqrt(variance)
+
+			if mean != 0 {
+				coefficientOfVariation := stdDev / math.Abs(mean)
+				consistency = math.Max(0.1, 1.0-coefficientOfVariation)
+			}
+		}
+	}
+
+	return (completeness + consistency) / 2.0
+}
+
+func (lstm *LSTMONNXModel) calculateIndustryAdjustment(industry string, horizonMonths int) float64 {
+	// Industry-specific adjustments for different time horizons
+	industryAdjustments := map[string]float64{
+		"technology":    1.0 + float64(horizonMonths-6)*0.02,  // Tech changes rapidly
+		"finance":       1.0 + float64(horizonMonths-6)*0.01,  // Finance is more stable
+		"healthcare":    1.0 + float64(horizonMonths-6)*0.005, // Healthcare is very stable
+		"retail":        1.0 + float64(horizonMonths-6)*0.015, // Retail has seasonal patterns
+		"manufacturing": 1.0 + float64(horizonMonths-6)*0.01,  // Manufacturing is cyclical
+		"construction":  1.0 + float64(horizonMonths-6)*0.02,  // Construction is volatile
+		"restaurant":    1.0 + float64(horizonMonths-6)*0.025, // Restaurant is very volatile
+		"consulting":    1.0 + float64(horizonMonths-6)*0.01,  // Consulting is stable
+		"education":     1.0 + float64(horizonMonths-6)*0.005, // Education is very stable
+		"default":       1.0 + float64(horizonMonths-6)*0.01,  // Default moderate adjustment
+	}
+
+	adjustment := industryAdjustments["default"]
+	if adj, exists := industryAdjustments[industry]; exists {
+		adjustment = adj
+	}
+
+	return math.Max(0.8, math.Min(1.3, adjustment))
+}
+
+// calculateMultiStepAdjustment calculates adjustment for multi-step predictions
+func (lstm *LSTMONNXModel) calculateMultiStepAdjustment(sequence [][]float64, horizonMonths int) float64 {
+	// Time decay factor - predictions become less certain over time
+	timeDecay := 1.0 + (float64(horizonMonths-6) * 0.05)
+
+	// Volatility adjustment - higher volatility increases uncertainty
+	if len(sequence) > 0 {
+		volatility := lstm.calculateVolatility(sequence)
+		volatilityAdjustment := 1.0 + (volatility * float64(horizonMonths-6) * 0.03)
+		timeDecay *= volatilityAdjustment
+	}
+
+	// Trend adjustment - strong trends continue
+	trend := lstm.calculateTrend(sequence)
+	trendAdjustment := 1.0 + (trend-0.5)*0.1
+	timeDecay *= trendAdjustment
+
+	return math.Max(0.5, math.Min(2.0, timeDecay))
+}
+
+// calculateMultiStepConfidence calculates confidence for multi-step predictions
+func (lstm *LSTMONNXModel) calculateMultiStepConfidence(sequence [][]float64, horizonMonths int) float64 {
+	baseConfidence := 0.9
+
+	// Decrease confidence with longer horizons
+	horizonPenalty := float64(horizonMonths-6) * 0.02
+	baseConfidence -= horizonPenalty
+
+	// Adjust based on temporal stability
+	if len(sequence) > 0 {
+		volatility := lstm.calculateVolatility(sequence)
+		// Lower volatility = higher confidence
+		baseConfidence += (1.0 - volatility) * 0.1
+	}
+
+	return math.Max(0.3, math.Min(1.0, baseConfidence))
+}
+
+// generateEnhancedRiskFactors generates enhanced risk factors with temporal insights
+func (lstm *LSTMONNXModel) generateEnhancedRiskFactors(features []float64, sequence [][]float64, horizonMonths int) []models.RiskFactor {
+	riskFactors := []models.RiskFactor{
+		{
+			Category:    models.RiskCategoryOperational,
+			Name:        "Industry Risk",
+			Score:       0.4,
+			Weight:      0.25,
+			Description: "Industry-specific risk factors with temporal analysis",
+			Source:      "lstm_enhanced",
+			Confidence:  0.9,
+		},
+		{
+			Category:    models.RiskCategoryFinancial,
+			Name:        "Financial Stability",
+			Score:       0.3,
+			Weight:      0.3,
+			Description: "Financial health indicators with trend analysis",
+			Source:      "lstm_enhanced",
+			Confidence:  0.85,
+		},
+		{
+			Category:    models.RiskCategoryOperational,
+			Name:        "Market Conditions",
+			Score:       0.5,
+			Weight:      0.2,
+			Description: "Current market environment with volatility analysis",
+			Source:      "lstm_enhanced",
+			Confidence:  0.8,
+		},
+		{
+			Category:    models.RiskCategoryOperational,
+			Name:        "Temporal Stability",
+			Score:       1.0 - lstm.calculateVolatility(sequence),
+			Weight:      0.15,
+			Description: "Historical risk stability over time",
+			Source:      "lstm_enhanced",
+			Confidence:  0.9,
+		},
+		{
+			Category:    models.RiskCategoryOperational,
+			Name:        "Forecast Horizon Risk",
+			Score:       float64(horizonMonths) / 12.0,
+			Weight:      0.1,
+			Description: "Risk associated with prediction horizon length",
+			Source:      "lstm_enhanced",
+			Confidence:  0.95,
+		},
+	}
+
+	return riskFactors
+}
+
+// generateMultiStepScenarios generates scenario analysis for multi-step predictions
+func (lstm *LSTMONNXModel) generateMultiStepScenarios(sequence [][]float64, horizonMonths int, baseScore float64) []models.ScenarioAnalysis {
+	trend := lstm.calculateTrend(sequence)
+	volatility := lstm.calculateVolatility(sequence)
+
+	scenarios := []models.ScenarioAnalysis{
+		{
+			ScenarioName: "optimistic",
+			Description:  "Best case scenario with favorable market conditions and low volatility",
+			RiskScore:    math.Max(0, baseScore*0.7),
+			RiskLevel:    lstm.convertScoreToRiskLevel(baseScore * 0.7),
+			Probability:  0.2,
+			Impact:       "Significant risk reduction with improved market conditions",
+		},
+		{
+			ScenarioName: "realistic",
+			Description:  "Most likely scenario based on current trends and historical patterns",
+			RiskScore:    baseScore,
+			RiskLevel:    lstm.convertScoreToRiskLevel(baseScore),
+			Probability:  0.5,
+			Impact:       "Moderate impact based on current trajectory",
+		},
+		{
+			ScenarioName: "pessimistic",
+			Description:  "Worst case scenario with adverse market conditions and high volatility",
+			RiskScore:    math.Min(1, baseScore*1.4),
+			RiskLevel:    lstm.convertScoreToRiskLevel(math.Min(1, baseScore*1.4)),
+			Probability:  0.2,
+			Impact:       "Significant risk increase with deteriorating conditions",
+		},
+		{
+			ScenarioName: "crisis",
+			Description:  "Extreme crisis scenario with market disruption",
+			RiskScore:    math.Min(1, baseScore*1.8),
+			RiskLevel:    lstm.convertScoreToRiskLevel(math.Min(1, baseScore*1.8)),
+			Probability:  0.05,
+			Impact:       "Severe impact requiring immediate intervention",
+		},
+		{
+			ScenarioName: "recovery",
+			Description:  "Recovery scenario with improving conditions after initial stress",
+			RiskScore:    math.Max(0, baseScore*0.6),
+			RiskLevel:    lstm.convertScoreToRiskLevel(baseScore * 0.6),
+			Probability:  0.05,
+			Impact:       "Strong recovery with risk normalization",
+		},
+	}
+
+	// Adjust probabilities based on trend and volatility
+	if trend > 0.7 {
+		// Increasing trend - increase pessimistic scenarios
+		scenarios[2].Probability += 0.1
+		scenarios[1].Probability -= 0.1
+	} else if trend < 0.3 {
+		// Decreasing trend - increase optimistic scenarios
+		scenarios[0].Probability += 0.1
+		scenarios[1].Probability -= 0.1
+	}
+
+	if volatility > 0.7 {
+		// High volatility - increase extreme scenarios
+		scenarios[3].Probability += 0.02
+		scenarios[4].Probability += 0.02
+		scenarios[1].Probability -= 0.04
+	}
+
+	return scenarios
 }

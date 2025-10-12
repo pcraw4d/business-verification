@@ -32,6 +32,12 @@ func (lstm *LSTMModel) Predict(ctx context.Context, business *models.RiskAssessm
 
 // PredictFuture performs future risk prediction using LSTM model
 func (lstm *LSTMModel) PredictFuture(ctx context.Context, business *models.RiskAssessmentRequest, horizonMonths int) (*models.RiskPrediction, error) {
+	// Use enhanced multi-step prediction for 6-12 month forecasts
+	if horizonMonths >= 6 && horizonMonths <= 12 {
+		return lstm.onnxModel.PredictMultiStep(ctx, business, horizonMonths)
+	}
+
+	// Fall back to standard prediction for shorter horizons
 	return lstm.onnxModel.PredictFuture(ctx, business, horizonMonths)
 }
 

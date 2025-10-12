@@ -55,6 +55,7 @@ type MLConfig struct {
 type ExternalConfig struct {
 	ThomsonReuters ThomsonReutersConfig `json:"thomson_reuters"`
 	OFAC           OFACConfig           `json:"ofac"`
+	WorldCheck     WorldCheckConfig     `json:"worldcheck"`
 	NewsAPI        NewsAPIConfig        `json:"news_api"`
 	OpenCorporates OpenCorporatesConfig `json:"opencorporates"`
 }
@@ -68,6 +69,13 @@ type ThomsonReutersConfig struct {
 
 // OFACConfig holds OFAC API configuration
 type OFACConfig struct {
+	APIKey  string        `json:"api_key"`
+	BaseURL string        `json:"base_url"`
+	Timeout time.Duration `json:"timeout"`
+}
+
+// WorldCheckConfig holds World-Check API configuration
+type WorldCheckConfig struct {
 	APIKey  string        `json:"api_key"`
 	BaseURL string        `json:"base_url"`
 	Timeout time.Duration `json:"timeout"`
@@ -131,6 +139,11 @@ func Load() (*Config, error) {
 				APIKey:  getEnvAsString("OFAC_API_KEY", ""),
 				BaseURL: getEnvAsString("OFAC_BASE_URL", "https://api.treasury.gov"),
 				Timeout: getEnvAsDuration("OFAC_TIMEOUT", 30*time.Second),
+			},
+			WorldCheck: WorldCheckConfig{
+				APIKey:  getEnvAsString("WORLDCHECK_API_KEY", ""),
+				BaseURL: getEnvAsString("WORLDCHECK_BASE_URL", "https://api.worldcheck.com"),
+				Timeout: getEnvAsDuration("WORLDCHECK_TIMEOUT", 30*time.Second),
 			},
 			NewsAPI: NewsAPIConfig{
 				APIKey:  getEnvAsString("NEWS_API_KEY", ""),

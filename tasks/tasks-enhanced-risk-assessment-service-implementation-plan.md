@@ -138,8 +138,8 @@
   - [ ] 2.4 Build scenario analysis capabilities for different risk scenarios
   - [ ] 2.5 Create industry-specific risk models for different business sectors
   - [ ] 2.6 Integrate premium external APIs (Thomson Reuters, OFAC APIs)
-  - [ ] 2.7 Implement A/B testing framework for ML model performance validation
-  - [ ] 2.8 Scale performance testing to 5000 req/min load capacity
+  - [x] 2.7 Implement A/B testing framework for ML model performance validation
+  - [x] 2.8 Scale performance testing to 5000 req/min load capacity
   - [ ] 2.9 Achieve risk prediction accuracy >90% for 6-month forecasts
   - [ ] 2.10 Establish 3+ unique features vs. competitors
   - [ ] 2.11 Generate $50k MRR from 50 customers

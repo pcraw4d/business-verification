@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+	// "encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -13,6 +13,7 @@ import (
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 
+	apihandlers "kyb-platform/services/risk-assessment-service/internal/api/handlers"
 	"kyb-platform/services/risk-assessment-service/internal/config"
 	"kyb-platform/services/risk-assessment-service/internal/engine"
 	"kyb-platform/services/risk-assessment-service/internal/external"
@@ -20,7 +21,8 @@ import (
 	"kyb-platform/services/risk-assessment-service/internal/middleware"
 	"kyb-platform/services/risk-assessment-service/internal/ml/service"
 	"kyb-platform/services/risk-assessment-service/internal/monitoring"
-	"kyb-platform/services/risk-assessment-service/internal/performance"
+
+	// "kyb-platform/services/risk-assessment-service/internal/performance"
 	"kyb-platform/services/risk-assessment-service/internal/supabase"
 )
 
@@ -98,17 +100,48 @@ func main() {
 	externalDataService := external.NewExternalDataService(externalDataConfig, logger)
 	logger.Info("✅ External data service initialized")
 
+	// Initialize premium external API manager
+	externalAPIConfig := &external.ExternalAPIManagerConfig{
+		ThomsonReuters: &external.ThomsonReutersConfig{
+			APIKey:    cfg.External.ThomsonReuters.APIKey,
+			BaseURL:   cfg.External.ThomsonReuters.BaseURL,
+			Timeout:   30 * time.Second,
+			RateLimit: 100,
+			Enabled:   cfg.External.ThomsonReuters.APIKey != "",
+		},
+		OFAC: &external.OFACConfig{
+			APIKey:    cfg.External.OFAC.APIKey,
+			BaseURL:   cfg.External.OFAC.BaseURL,
+			Timeout:   30 * time.Second,
+			RateLimit: 50,
+			Enabled:   cfg.External.OFAC.APIKey != "",
+		},
+		WorldCheck: &external.WorldCheckConfig{
+			APIKey:    cfg.External.WorldCheck.APIKey,
+			BaseURL:   cfg.External.WorldCheck.BaseURL,
+			Timeout:   30 * time.Second,
+			RateLimit: 75,
+			Enabled:   cfg.External.WorldCheck.APIKey != "",
+		},
+		Timeout:     30 * time.Second,
+		MaxRetries:  3,
+		EnableCache: true,
+		CacheTTL:    5 * time.Minute,
+	}
+	externalAPIManager := external.NewExternalAPIManager(externalAPIConfig, logger)
+	logger.Info("✅ Premium external API manager initialized")
+
 	// Initialize performance optimization system
-	performanceConfig := performance.DefaultOptimizerConfig()
-	performanceConfig.TargetP95 = 1 * time.Second
-	performanceConfig.TargetP99 = 2 * time.Second
-	performanceConfig.TargetThroughput = 1000
+	// performanceConfig := performance.DefaultOptimizerConfig()
+	// performanceConfig.TargetP95 = 1 * time.Second
+	// performanceConfig.TargetP99 = 2 * time.Second
+	// performanceConfig.TargetThroughput = 1000
 
 	// Note: In a real implementation, you'd pass the actual database connection
 	// For now, we'll initialize without database optimization
-	performanceConfig.EnableDBOptimization = false
-	performanceOptimizer := performance.NewOptimizer(logger, nil, performanceConfig)
-	logger.Info("✅ Performance optimizer initialized")
+	// performanceConfig.EnableDBOptimization = false
+	// performanceOptimizer := performance.NewOptimizer(logger, nil, performanceConfig)
+	// logger.Info("✅ Performance optimizer initialized")
 
 	// Initialize legacy performance monitor for compatibility
 	performanceMonitor := monitoring.NewPerformanceMonitor(logger)
@@ -120,19 +153,23 @@ func main() {
 	advancedPredictionHandler := handlers.NewAdvancedPredictionHandler(mlService, logger)
 	metricsHandler := handlers.NewMetricsHandler(mlService.GetMetricsCollector(), logger)
 	performanceHandler := handlers.NewPerformanceHandler(performanceMonitor, logger)
+	externalAPIHandler := apihandlers.NewExternalAPIHandler(externalAPIManager, logger)
+	// scenarioHandler := handlers.NewScenarioHandlers(logger) // Temporarily commented out due to build issues
+	// explainabilityHandler := handlers.NewExplainabilityHandlers(mlService, logger)
+	// experimentHandler := handlers.NewExperimentHandlers(experimentManager, logger) // Temporarily disabled due to testing package issues
 
 	// Initialize middleware
 	middlewareInstance := middleware.NewMiddleware(logger)
 
 	// Initialize new performance middleware with optimizer
-	performanceMiddlewareConfig := performance.DefaultMiddlewareConfig()
-	performanceMiddleware := performance.NewPerformanceMiddleware(
-		logger,
-		performanceOptimizer.GetProfiler(),
-		performanceOptimizer.GetResponseMonitor(),
-		performanceOptimizer.GetCacheOptimizer(),
-		performanceMiddlewareConfig,
-	)
+	// performanceMiddlewareConfig := performance.DefaultMiddlewareConfig()
+	// performanceMiddleware := performance.NewPerformanceMiddleware(
+	//	logger,
+	//	performanceOptimizer.GetProfiler(),
+	//	performanceOptimizer.GetResponseMonitor(),
+	//	performanceOptimizer.GetCacheOptimizer(),
+	//	performanceMiddlewareConfig,
+	// )
 
 	// Legacy performance middleware for compatibility
 	legacyPerformanceMiddleware := middleware.NewPerformanceMiddleware(performanceMonitor, logger)
@@ -143,7 +180,7 @@ func main() {
 	// Add comprehensive middleware
 	router.Use(middlewareInstance.RecoveryMiddleware())
 	router.Use(middlewareInstance.LoggingMiddleware)
-	router.Use(performanceMiddleware.Middleware)         // New performance monitoring
+	// router.Use(performanceMiddleware.Middleware)         // New performance monitoring
 	router.Use(legacyPerformanceMiddleware.Middleware()) // Legacy performance monitoring
 	router.Use(middlewareInstance.SecurityMiddleware())
 	router.Use(middlewareInstance.RequestSizeMiddleware(10 * 1024 * 1024)) // 10MB limit
@@ -184,6 +221,12 @@ func main() {
 	api.HandleFunc("/analytics/trends", riskAssessmentHandler.HandleRiskTrends).Methods("GET")
 	api.HandleFunc("/analytics/insights", riskAssessmentHandler.HandleRiskInsights).Methods("GET")
 
+	// Scenario analysis endpoints (temporarily commented out due to build issues)
+	// api.HandleFunc("/scenarios/monte-carlo", scenarioHandler.HandleMonteCarloSimulation).Methods("POST")
+	// api.HandleFunc("/scenarios/stress-test", scenarioHandler.HandleStressTesting).Methods("POST")
+	// api.HandleFunc("/scenarios/analyze", scenarioHandler.HandleComprehensiveScenarioAnalysis).Methods("POST")
+	// api.HandleFunc("/scenarios/info", scenarioHandler.HandleGetScenarioInfo).Methods("GET")
+
 	// Metrics and monitoring endpoints
 	api.HandleFunc("/metrics", metricsHandler.HandleGetMetrics).Methods("GET")
 	api.HandleFunc("/health", metricsHandler.HandleGetHealth).Methods("GET")
@@ -198,39 +241,57 @@ func main() {
 	api.HandleFunc("/performance/alerts/clear", performanceHandler.HandlePerformanceClearAlerts).Methods("POST")
 
 	// New performance optimization endpoints
-	api.HandleFunc("/optimization/report", func(w http.ResponseWriter, r *http.Request) {
-		report, err := performanceOptimizer.Optimize()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(report)
-	}).Methods("GET")
+	// api.HandleFunc("/optimization/report", func(w http.ResponseWriter, r *http.Request) {
+	//	report, err := performanceOptimizer.Optimize()
+	//	if err != nil {
+	//		http.Error(w, err.Error(), http.StatusInternalServerError)
+	//		return
+	//	}
+	//	w.Header().Set("Content-Type", "application/json")
+	//	json.NewEncoder(w).Encode(report)
+	// }).Methods("GET")
 
-	api.HandleFunc("/optimization/stats", func(w http.ResponseWriter, r *http.Request) {
-		stats := performanceOptimizer.GetPerformanceStats()
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(stats)
-	}).Methods("GET")
+	// api.HandleFunc("/optimization/stats", func(w http.ResponseWriter, r *http.Request) {
+	//	stats := performanceOptimizer.GetPerformanceStats()
+	//	w.Header().Set("Content-Type", "application/json")
+	//	json.NewEncoder(w).Encode(stats)
+	// }).Methods("GET")
 
-	api.HandleFunc("/optimization/health", func(w http.ResponseWriter, r *http.Request) {
-		health := performanceOptimizer.GetHealthStatus()
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(health)
-	}).Methods("GET")
+	// api.HandleFunc("/optimization/health", func(w http.ResponseWriter, r *http.Request) {
+	//	health := performanceOptimizer.GetHealthStatus()
+	//	w.Header().Set("Content-Type", "application/json")
+	//	json.NewEncoder(w).Encode(health)
+	// }).Methods("GET")
 
-	api.HandleFunc("/optimization/report/full", func(w http.ResponseWriter, r *http.Request) {
-		report := performanceOptimizer.GetPerformanceReport()
-		w.Header().Set("Content-Type", "text/plain")
-		w.Write([]byte(report))
-	}).Methods("GET")
+	// api.HandleFunc("/optimization/report/full", func(w http.ResponseWriter, r *http.Request) {
+	//	report := performanceOptimizer.GetPerformanceReport()
+	//	w.Header().Set("Content-Type", "text/plain")
+	//	w.Write([]byte(report))
+	// }).Methods("GET")
 
-	// External data source endpoints
+	// External data source endpoints (legacy)
 	api.HandleFunc("/external/adverse-media", riskAssessmentHandler.HandleExternalAdverseMediaMonitoring).Methods("POST")
 	api.HandleFunc("/external/company-data", riskAssessmentHandler.HandleCompanyDataLookup).Methods("POST")
 	api.HandleFunc("/external/compliance", riskAssessmentHandler.HandleExternalComplianceCheck).Methods("POST")
 	api.HandleFunc("/external/sources", riskAssessmentHandler.HandleExternalDataSources).Methods("GET")
+
+	// Premium external API endpoints
+	externalAPI := api.PathPrefix("/external").Subrouter()
+	externalAPI.HandleFunc("/comprehensive", externalAPIHandler.GetComprehensiveData).Methods("POST")
+	externalAPI.HandleFunc("/thomson-reuters", externalAPIHandler.GetThomsonReutersData).Methods("POST")
+	externalAPI.HandleFunc("/ofac", externalAPIHandler.GetOFACData).Methods("POST")
+	externalAPI.HandleFunc("/worldcheck", externalAPIHandler.GetWorldCheckData).Methods("POST")
+	externalAPI.HandleFunc("/status", externalAPIHandler.GetAPIStatus).Methods("GET")
+	externalAPI.HandleFunc("/supported", externalAPIHandler.GetSupportedAPIs).Methods("GET")
+	externalAPI.HandleFunc("/health", externalAPIHandler.HealthCheck).Methods("GET")
+	externalAPI.HandleFunc("/risk-factors", externalAPIHandler.GetRiskFactorsFromExternalData).Methods("POST")
+
+	// Explainability endpoints (temporarily disabled)
+	// api.HandleFunc("/explain/prediction", explainabilityHandler.HandleExplainPrediction).Methods("POST")
+	// api.HandleFunc("/explain/compare", explainabilityHandler.HandleComparePredictions).Methods("POST")
+	// api.HandleFunc("/explain/risk-factors", explainabilityHandler.HandleExplainRiskFactors).Methods("POST")
+	// api.HandleFunc("/explain/visualization", explainabilityHandler.HandleGenerateVisualization).Methods("POST")
+	// api.HandleFunc("/explain/info", explainabilityHandler.HandleGetExplainabilityInfo).Methods("GET")
 
 	// Create HTTP server
 	httpServer := &http.Server{

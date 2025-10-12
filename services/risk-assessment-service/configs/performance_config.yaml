@@ -1,0 +1,282 @@
+# Enhanced Risk Assessment Service - Performance Configuration
+# Optimized for 5000+ requests per minute
+
+# Performance Targets
+targets:
+  requests_per_second: 83.33  # 5000 RPM / 60 seconds
+  requests_per_minute: 5000
+  max_latency: "2s"
+  max_error_rate: 0.01  # 1%
+  max_memory_mb: 1024
+  max_cpu_percent: 80.0
+
+# Load Testing Configuration
+load_testing:
+  # Test patterns
+  patterns:
+    - name: "constant"
+      description: "Constant load test"
+      duration: "10m"
+      concurrent_users: 200
+      target_rps: 83.33
+      
+    - name: "ramp"
+      description: "Ramp up/down test"
+      duration: "10m"
+      concurrent_users: 200
+      target_rps: 83.33
+      ramp_up_time: "2m"
+      steady_state_time: "6m"
+      ramp_down_time: "2m"
+      
+    - name: "spike"
+      description: "Spike load test"
+      duration: "10m"
+      concurrent_users: 200
+      target_rps: 83.33
+      spike_multiplier: 3.0
+      
+    - name: "sine"
+      description: "Sine wave load test"
+      duration: "10m"
+      concurrent_users: 200
+      target_rps: 83.33
+      sine_amplitude: 0.3
+      sine_period: "3m"
+      
+    - name: "stress"
+      description: "Stress test to find breaking point"
+      duration: "5m"
+      concurrent_users: 500
+      target_rps: 200
+      max_latency: "5s"
+      max_error_rate: 0.05
+
+# Performance Optimization Settings
+optimization:
+  # System limits
+  max_goroutines: 1000
+  max_memory_mb: 2048
+  max_cpu_percent: 90.0
+  
+  # Optimization features
+  enable_gc_pressure: true
+  enable_memory_pool: true
+  enable_connection_pool: true
+  enable_caching: true
+  
+  # Monitoring intervals
+  monitoring_interval: "1s"
+  optimization_interval: "10s"
+  
+  # Connection pool settings
+  connection_pool:
+    size: 100
+    max_idle_conns: 100
+    max_idle_conns_per_host: 100
+    idle_conn_timeout: "90s"
+    disable_keep_alives: false
+    
+  # HTTP client settings
+  http_client:
+    timeout: "30s"
+    keep_alive: "90s"
+    max_redirects: 10
+    disable_compression: false
+
+# Caching Configuration
+caching:
+  enabled: true
+  default_ttl: "5m"
+  max_size_mb: 512
+  eviction_policy: "lru"
+  
+  # Cache layers
+  layers:
+    - name: "memory"
+      type: "in_memory"
+      size_mb: 256
+      ttl: "5m"
+      
+    - name: "redis"
+      type: "redis"
+      host: "localhost:6379"
+      db: 0
+      ttl: "10m"
+      enabled: false  # Enable when Redis is available
+
+# Database Optimization
+database:
+  # Connection pool
+  max_open_conns: 100
+  max_idle_conns: 50
+  conn_max_lifetime: "1h"
+  conn_max_idle_time: "30m"
+  
+  # Query optimization
+  enable_query_cache: true
+  query_cache_size: 1000
+  slow_query_threshold: "1s"
+  
+  # Indexing
+  auto_create_indexes: true
+  index_optimization: true
+
+# Monitoring and Metrics
+monitoring:
+  # Metrics collection
+  enable_metrics: true
+  metrics_interval: "1s"
+  metrics_retention: "24h"
+  
+  # Performance monitoring
+  enable_performance_monitoring: true
+  performance_interval: "5s"
+  
+  # Alerting
+  enable_alerts: true
+  alert_thresholds:
+    high_latency: "3s"
+    high_error_rate: 0.05
+    high_memory_usage: 0.8
+    high_cpu_usage: 0.9
+    
+  # Logging
+  log_level: "info"
+  log_performance: true
+  log_slow_requests: true
+  slow_request_threshold: "1s"
+
+# Worker Pool Configuration
+worker_pool:
+  # Pool sizes
+  risk_assessment_workers: 50
+  ml_prediction_workers: 20
+  external_api_workers: 30
+  cache_workers: 10
+  
+  # Queue sizes
+  risk_assessment_queue: 1000
+  ml_prediction_queue: 500
+  external_api_queue: 500
+  cache_queue: 200
+  
+  # Timeouts
+  worker_timeout: "30s"
+  queue_timeout: "5s"
+
+# Circuit Breaker Configuration
+circuit_breaker:
+  enabled: true
+  
+  # External API circuit breakers
+  external_apis:
+    thomson_reuters:
+      failure_threshold: 5
+      timeout: "30s"
+      max_requests: 100
+      interval: "60s"
+      
+    ofac:
+      failure_threshold: 5
+      timeout: "30s"
+      max_requests: 100
+      interval: "60s"
+      
+    worldcheck:
+      failure_threshold: 5
+      timeout: "30s"
+      max_requests: 100
+      interval: "60s"
+
+# Rate Limiting
+rate_limiting:
+  enabled: true
+  
+  # Global rate limits
+  global:
+    requests_per_second: 1000
+    requests_per_minute: 60000
+    burst_size: 200
+    
+  # Per-client rate limits
+  per_client:
+    requests_per_second: 100
+    requests_per_minute: 6000
+    burst_size: 20
+    
+  # API endpoint rate limits
+  endpoints:
+    "/api/v1/assess":
+      requests_per_second: 200
+      requests_per_minute: 12000
+      
+    "/api/v1/predict":
+      requests_per_second: 100
+      requests_per_minute: 6000
+      
+    "/api/v1/explain":
+      requests_per_second: 50
+      requests_per_minute: 3000
+
+# Performance Testing Scenarios
+test_scenarios:
+  # Baseline test
+  baseline:
+    name: "Baseline Performance"
+    duration: "2m"
+    concurrent_users: 50
+    target_rps: 50
+    pattern: "constant"
+    
+  # Target test
+  target:
+    name: "5000 RPM Target Test"
+    duration: "10m"
+    concurrent_users: 200
+    target_rps: 83.33
+    pattern: "constant"
+    
+  # Stress test
+  stress:
+    name: "Stress Test"
+    duration: "5m"
+    concurrent_users: 500
+    target_rps: 200
+    pattern: "constant"
+    max_latency: "5s"
+    max_error_rate: 0.05
+    
+  # Endurance test
+  endurance:
+    name: "Endurance Test"
+    duration: "1h"
+    concurrent_users: 100
+    target_rps: 50
+    pattern: "constant"
+
+# Performance Benchmarks
+benchmarks:
+  # Expected performance under normal load
+  normal_load:
+    requests_per_minute: 5000
+    average_latency: "500ms"
+    p95_latency: "1s"
+    p99_latency: "2s"
+    error_rate: 0.001
+    
+  # Expected performance under high load
+  high_load:
+    requests_per_minute: 10000
+    average_latency: "1s"
+    p95_latency: "2s"
+    p99_latency: "3s"
+    error_rate: 0.01
+    
+  # Expected performance under stress
+  stress_load:
+    requests_per_minute: 15000
+    average_latency: "2s"
+    p95_latency: "5s"
+    p99_latency: "10s"
+    error_rate: 0.05

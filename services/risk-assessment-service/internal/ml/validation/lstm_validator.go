@@ -23,15 +23,7 @@ type LSTMValidator struct {
 	logger             *zap.Logger
 }
 
-// ValidationConfig holds configuration for validation
-type ValidationConfig struct {
-	NumBusinesses        int
-	SequenceLength       int
-	ValidationHorizons   []int
-	CrossValidationFolds int
-	TestDataRatio        float64
-	RandomSeed           int64
-}
+// ValidationConfig is defined in comprehensive_validator.go
 
 // LSTMValidationResult contains the results of model validation
 type LSTMValidationResult struct {
@@ -71,12 +63,7 @@ type CrossValidationResult struct {
 }
 
 // ModelComparison compares different models
-type ModelComparison struct {
-	XGBoostResults      map[int]HorizonResult `json:"xgboost_results"`
-	LSTMResults         map[int]HorizonResult `json:"lstm_results"`
-	EnsembleResults     map[int]HorizonResult `json:"ensemble_results"`
-	BestModelPerHorizon map[int]string        `json:"best_model_per_horizon"`
-}
+// ModelComparison is defined in comprehensive_validator.go
 
 // ConfidenceAnalysis analyzes prediction confidence
 type ConfidenceAnalysis struct {
