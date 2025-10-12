@@ -11,7 +11,13 @@ RUN apk add --no-cache git ca-certificates tzdata gcc musl-dev wget tar
 RUN wget -q https://github.com/microsoft/onnxruntime/releases/download/v1.16.0/onnxruntime-linux-x64-1.16.0.tgz && \
     tar -xzf onnxruntime-linux-x64-1.16.0.tgz && \
     mv onnxruntime-linux-x64-1.16.0 onnxruntime && \
-    rm onnxruntime-linux-x64-1.16.0.tgz
+    rm onnxruntime-linux-x64-1.16.0.tgz && \
+    echo "ONNX Runtime installed:" && \
+    ls -la /app/onnxruntime/ && \
+    echo "Library files:" && \
+    ls -la /app/onnxruntime/lib/ && \
+    echo "Include files:" && \
+    ls -la /app/onnxruntime/include/
 
 # Set environment variables for ONNX Runtime
 ENV CGO_ENABLED=1
@@ -50,12 +56,28 @@ WORKDIR /app
 # Copy binary from builder stage
 COPY --from=builder /app/risk-assessment-service .
 
+# Copy startup debug script
+COPY startup_debug.sh .
+RUN chmod +x startup_debug.sh
+
 # Copy ONNX Runtime libraries from builder stage
 COPY --from=builder /app/onnxruntime/lib/* /app/onnxruntime/lib/
+
+# Debug: List copied libraries
+RUN echo "Copied ONNX Runtime libraries:" && \
+    ls -la /app/onnxruntime/lib/ && \
+    echo "Library path contents:" && \
+    find /app/onnxruntime -name "*.so*" -o -name "*.a" | head -10
 
 # Copy model files (if they exist)
 COPY --from=builder /app/models/*.onnx /app/models/ 2>/dev/null || true
 COPY --from=builder /app/models/*.json /app/models/ 2>/dev/null || true
+
+# Debug: List copied model files
+RUN echo "Copied model files:" && \
+    ls -la /app/models/ && \
+    echo "Model file sizes:" && \
+    du -h /app/models/* 2>/dev/null || echo "No model files found"
 
 # Copy timezone data
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
@@ -80,5 +102,5 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT:-8080}/health || exit 1
 
-# Run the application
-CMD ["./risk-assessment-service"]
+# Run the application with debug information
+CMD ["./startup_debug.sh"]
