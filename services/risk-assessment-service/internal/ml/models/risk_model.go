@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"go.uber.org/zap"
@@ -297,7 +298,11 @@ func (mm *ModelManager) InitializeModels(ctx context.Context) error {
 	xgbModel := NewXGBoostModel("risk_prediction_xgb", "1.0.0")
 
 	// Load the XGBoost model (in a real implementation, this would load from storage)
-	if err := xgbModel.LoadModel(ctx, "./models/xgb_model.json"); err != nil {
+	xgbModelPath := os.Getenv("XGBOOST_MODEL_PATH")
+	if xgbModelPath == "" {
+		xgbModelPath = "./models/xgb_model.json" // fallback
+	}
+	if err := xgbModel.LoadModel(ctx, xgbModelPath); err != nil {
 		mm.logger.Warn("Failed to load XGBoost model, using default", zap.Error(err))
 	}
 
@@ -309,7 +314,11 @@ func (mm *ModelManager) InitializeModels(ctx context.Context) error {
 	lstmModel := NewLSTMModel("risk_prediction_lstm", "1.0.0", mm.logger)
 
 	// Load the LSTM model (always succeeds with enhanced placeholder)
-	if err := lstmModel.LoadModel(ctx, "./models/risk_lstm_v1.onnx"); err != nil {
+	lstmModelPath := os.Getenv("LSTM_MODEL_PATH")
+	if lstmModelPath == "" {
+		lstmModelPath = "./models/risk_lstm_v1.onnx" // fallback
+	}
+	if err := lstmModel.LoadModel(ctx, lstmModelPath); err != nil {
 		mm.logger.Error("Failed to load LSTM model", zap.Error(err))
 		// Still register LSTM with enhanced placeholder implementation
 	}
