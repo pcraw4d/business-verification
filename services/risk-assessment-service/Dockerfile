@@ -46,6 +46,13 @@ RUN GOOS=linux GOARCH=amd64 go build \
     -o risk-assessment-service \
     ./cmd/main.go
 
+# Build debug script
+RUN GOOS=linux GOARCH=amd64 go build \
+    -a -installsuffix cgo \
+    -ldflags='-w -s' \
+    -o debug_models \
+    ./debug_models.go
+
 # Final stage
 FROM alpine:latest
 
@@ -61,6 +68,9 @@ WORKDIR /app
 
 # Copy binary from builder stage
 COPY --from=builder /app/risk-assessment-service .
+
+# Copy debug script from builder stage
+COPY --from=builder /app/debug_models .
 
 # Copy startup debug script
 COPY startup_debug.sh .
@@ -108,5 +118,5 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT:-8080}/health || exit 1
 
-# Run the application with debug information
-CMD ["./startup_debug.sh"]
+# Run the debug script to check model files
+CMD ["./debug_models"]
