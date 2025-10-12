@@ -33,6 +33,12 @@ RUN go mod download
 # Copy source code
 COPY . .
 
+# Debug: List copied files including models
+RUN echo "Files in /app after COPY . .:" && \
+    ls -la /app/ && \
+    echo "Model files:" && \
+    ls -la /app/models/ 2>/dev/null || echo "No models directory found"
+
 # Build the application with ONNX Runtime support
 RUN GOOS=linux GOARCH=amd64 go build \
     -a -installsuffix cgo \
@@ -69,9 +75,9 @@ RUN echo "Copied ONNX Runtime libraries:" && \
     echo "Library path contents:" && \
     find /app/onnxruntime -name "*.so*" -o -name "*.a" | head -10
 
-# Copy model files (if they exist)
-COPY --from=builder /app/models/*.onnx /app/models/ 2>/dev/null || true
-COPY --from=builder /app/models/*.json /app/models/ 2>/dev/null || true
+# Copy model files explicitly
+COPY --from=builder /app/models/risk_lstm_v1.onnx /app/models/risk_lstm_v1.onnx
+COPY --from=builder /app/models/xgb_model.json /app/models/xgb_model.json
 
 # Debug: List copied model files
 RUN echo "Copied model files:" && \

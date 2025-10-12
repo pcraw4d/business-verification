@@ -102,6 +102,11 @@ performance_results/
 validation_results/
 *.json.bak
 
+# Keep model files (explicitly include)
+!models/*.onnx
+!models/*.json
+!models/README.md
+
 # Local development
 local/
 dev/
