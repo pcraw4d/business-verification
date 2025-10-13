@@ -1,0 +1,1266 @@
+package validation
+
+import (
+	"time"
+)
+
+// GetDefaultCountryValidationRules returns default validation rules for all supported countries
+func GetDefaultCountryValidationRules() map[string]CountryRules {
+	return map[string]CountryRules{
+		"US": getUSValidationRules(),
+		"GB": getGBValidationRules(),
+		"DE": getDEValidationRules(),
+		"CA": getCAValidationRules(),
+		"AU": getAUValidationRules(),
+		"SG": getSGValidationRules(),
+		"JP": getJPValidationRules(),
+		"FR": getFRValidationRules(),
+		"NL": getNLValidationRules(),
+		"IT": getITValidationRules(),
+	}
+}
+
+// getUSValidationRules returns validation rules for United States
+func getUSValidationRules() CountryRules {
+	return CountryRules{
+		CountryCode: "US",
+		CountryName: "United States",
+		BusinessIDRules: []BusinessIDRule{
+			{
+				ID:          "us_ein",
+				Name:        "Employer Identification Number (EIN)",
+				Description: "US federal tax identification number for businesses",
+				Pattern:     `^\d{2}-\d{7}$`,
+				Required:    true,
+				MinLength:   10,
+				MaxLength:   10,
+				Checksum:    true,
+				Examples:    []string{"12-3456789", "98-7654321"},
+				Metadata:    make(map[string]interface{}),
+			},
+			{
+				ID:          "us_duns",
+				Name:        "D-U-N-S Number",
+				Description: "Data Universal Numbering System identifier",
+				Pattern:     `^\d{9}$`,
+				Required:    false,
+				MinLength:   9,
+				MaxLength:   9,
+				Checksum:    true,
+				Examples:    []string{"123456789", "987654321"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		TaxIDRules: []TaxIDRule{
+			{
+				ID:          "us_ein_tax",
+				Name:        "EIN Tax ID",
+				Description: "US federal tax identification number",
+				Pattern:     `^\d{2}-\d{7}$`,
+				Required:    true,
+				MinLength:   10,
+				MaxLength:   10,
+				Checksum:    true,
+				Examples:    []string{"12-3456789", "98-7654321"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		AddressRules: []AddressRule{
+			{
+				ID:          "us_address",
+				Name:        "US Address",
+				Description: "US postal address format",
+				Required:    true,
+				MinLength:   10,
+				MaxLength:   200,
+				Components: []AddressComponent{
+					{Name: "street", Required: true, MinLength: 5, MaxLength: 100},
+					{Name: "city", Required: true, MinLength: 2, MaxLength: 50},
+					{Name: "state", Required: true, MinLength: 2, MaxLength: 2},
+					{Name: "zip", Required: true, MinLength: 5, MaxLength: 10},
+				},
+				Metadata: make(map[string]interface{}),
+			},
+		},
+		PhoneRules: []PhoneRule{
+			{
+				ID:          "us_phone",
+				Name:        "US Phone Number",
+				Description: "US phone number format",
+				Pattern:     `^\+1[2-9]\d{2}[2-9]\d{2}\d{4}$`,
+				Required:    false,
+				MinLength:   12,
+				MaxLength:   12,
+				CountryCode: "+1",
+				Examples:    []string{"+12125551234", "+14155551234"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		EmailRules: []EmailRule{
+			{
+				ID:          "us_email",
+				Name:        "US Email",
+				Description: "Standard email format",
+				Pattern:     `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`,
+				Required:    false,
+				MaxLength:   254,
+				Examples:    []string{"contact@company.com", "info@business.org"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		WebsiteRules: []WebsiteRule{
+			{
+				ID:          "us_website",
+				Name:        "US Website",
+				Description: "Website URL format",
+				Pattern:     `^https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(/.*)?$`,
+				Required:    false,
+				MaxLength:   255,
+				Examples:    []string{"https://www.company.com", "http://business.org"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		ComplianceRules: []ComplianceRule{
+			{
+				ID:          "us_aml",
+				Name:        "AML Compliance",
+				Description: "Anti-Money Laundering compliance requirements",
+				Regulation:  "BSA",
+				Required:    true,
+				Validation:  "aml_check",
+				Examples:    []string{"aml_verified", "aml_clear"},
+				Metadata:    make(map[string]interface{}),
+			},
+			{
+				ID:          "us_kyb",
+				Name:        "Know Your Business",
+				Description: "KYB verification requirements",
+				Regulation:  "BSA",
+				Required:    true,
+				Validation:  "kyb_check",
+				Examples:    []string{"kyb_verified", "kyb_clear"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		DataResidencyRules: DataResidencyRule{
+			ID:                 "us_data_residency",
+			Name:               "US Data Residency",
+			Description:        "US data residency requirements",
+			AllowedRegions:     []string{"US", "US-EAST", "US-WEST"},
+			RestrictedRegions:  []string{"EU", "CN"},
+			EncryptionRequired: true,
+			RetentionPeriod:    7 * 365 * 24 * time.Hour, // 7 years
+			Metadata:           make(map[string]interface{}),
+		},
+		Metadata: make(map[string]interface{}),
+	}
+}
+
+// getGBValidationRules returns validation rules for United Kingdom
+func getGBValidationRules() CountryRules {
+	return CountryRules{
+		CountryCode: "GB",
+		CountryName: "United Kingdom",
+		BusinessIDRules: []BusinessIDRule{
+			{
+				ID:          "gb_company_number",
+				Name:        "Company Number",
+				Description: "UK Companies House company number",
+				Pattern:     `^[0-9]{8}$`,
+				Required:    true,
+				MinLength:   8,
+				MaxLength:   8,
+				Checksum:    true,
+				Examples:    []string{"12345678", "87654321"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		TaxIDRules: []TaxIDRule{
+			{
+				ID:          "gb_utr",
+				Name:        "Unique Taxpayer Reference",
+				Description: "UK tax reference number",
+				Pattern:     `^[0-9]{10}$`,
+				Required:    true,
+				MinLength:   10,
+				MaxLength:   10,
+				Checksum:    true,
+				Examples:    []string{"1234567890", "0987654321"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		AddressRules: []AddressRule{
+			{
+				ID:          "gb_address",
+				Name:        "UK Address",
+				Description: "UK postal address format",
+				Required:    true,
+				MinLength:   10,
+				MaxLength:   200,
+				Components: []AddressComponent{
+					{Name: "street", Required: true, MinLength: 5, MaxLength: 100},
+					{Name: "city", Required: true, MinLength: 2, MaxLength: 50},
+					{Name: "postcode", Required: true, MinLength: 5, MaxLength: 8},
+				},
+				Metadata: make(map[string]interface{}),
+			},
+		},
+		PhoneRules: []PhoneRule{
+			{
+				ID:          "gb_phone",
+				Name:        "UK Phone Number",
+				Description: "UK phone number format",
+				Pattern:     `^\+44[1-9]\d{8,9}$`,
+				Required:    false,
+				MinLength:   12,
+				MaxLength:   13,
+				CountryCode: "+44",
+				Examples:    []string{"+441234567890", "+442071234567"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		EmailRules: []EmailRule{
+			{
+				ID:          "gb_email",
+				Name:        "UK Email",
+				Description: "Standard email format",
+				Pattern:     `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`,
+				Required:    false,
+				MaxLength:   254,
+				Examples:    []string{"contact@company.co.uk", "info@business.org.uk"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		WebsiteRules: []WebsiteRule{
+			{
+				ID:          "gb_website",
+				Name:        "UK Website",
+				Description: "Website URL format",
+				Pattern:     `^https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(/.*)?$`,
+				Required:    false,
+				MaxLength:   255,
+				Examples:    []string{"https://www.company.co.uk", "http://business.org.uk"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		ComplianceRules: []ComplianceRule{
+			{
+				ID:          "gb_aml",
+				Name:        "AML Compliance",
+				Description: "UK Anti-Money Laundering compliance",
+				Regulation:  "MLR",
+				Required:    true,
+				Validation:  "aml_check",
+				Examples:    []string{"aml_verified", "aml_clear"},
+				Metadata:    make(map[string]interface{}),
+			},
+			{
+				ID:          "gb_gdpr",
+				Name:        "GDPR Compliance",
+				Description: "General Data Protection Regulation compliance",
+				Regulation:  "GDPR",
+				Required:    true,
+				Validation:  "gdpr_check",
+				Examples:    []string{"gdpr_compliant", "gdpr_verified"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		DataResidencyRules: DataResidencyRule{
+			ID:                 "gb_data_residency",
+			Name:               "UK Data Residency",
+			Description:        "UK data residency requirements",
+			AllowedRegions:     []string{"GB", "EU"},
+			RestrictedRegions:  []string{"US", "CN"},
+			EncryptionRequired: true,
+			RetentionPeriod:    6 * 365 * 24 * time.Hour, // 6 years
+			Metadata:           make(map[string]interface{}),
+		},
+		Metadata: make(map[string]interface{}),
+	}
+}
+
+// getDEValidationRules returns validation rules for Germany
+func getDEValidationRules() CountryRules {
+	return CountryRules{
+		CountryCode: "DE",
+		CountryName: "Germany",
+		BusinessIDRules: []BusinessIDRule{
+			{
+				ID:          "de_handelsregisternummer",
+				Name:        "Handelsregisternummer",
+				Description: "German commercial register number",
+				Pattern:     `^HRB \d{1,6}$`,
+				Required:    true,
+				MinLength:   5,
+				MaxLength:   10,
+				Checksum:    false,
+				Examples:    []string{"HRB 12345", "HRB 123456"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		TaxIDRules: []TaxIDRule{
+			{
+				ID:          "de_steuernummer",
+				Name:        "Steuernummer",
+				Description: "German tax number",
+				Pattern:     `^\d{2}/\d{3}/\d{5}$`,
+				Required:    true,
+				MinLength:   12,
+				MaxLength:   12,
+				Checksum:    true,
+				Examples:    []string{"12/345/67890", "98/765/43210"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		AddressRules: []AddressRule{
+			{
+				ID:          "de_address",
+				Name:        "German Address",
+				Description: "German postal address format",
+				Required:    true,
+				MinLength:   10,
+				MaxLength:   200,
+				Components: []AddressComponent{
+					{Name: "street", Required: true, MinLength: 5, MaxLength: 100},
+					{Name: "city", Required: true, MinLength: 2, MaxLength: 50},
+					{Name: "postal_code", Required: true, MinLength: 5, MaxLength: 5},
+				},
+				Metadata: make(map[string]interface{}),
+			},
+		},
+		PhoneRules: []PhoneRule{
+			{
+				ID:          "de_phone",
+				Name:        "German Phone Number",
+				Description: "German phone number format",
+				Pattern:     `^\+49[1-9]\d{8,10}$`,
+				Required:    false,
+				MinLength:   12,
+				MaxLength:   14,
+				CountryCode: "+49",
+				Examples:    []string{"+49301234567", "+4930123456789"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		EmailRules: []EmailRule{
+			{
+				ID:          "de_email",
+				Name:        "German Email",
+				Description: "Standard email format",
+				Pattern:     `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`,
+				Required:    false,
+				MaxLength:   254,
+				Examples:    []string{"contact@company.de", "info@business.de"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		WebsiteRules: []WebsiteRule{
+			{
+				ID:          "de_website",
+				Name:        "German Website",
+				Description: "Website URL format",
+				Pattern:     `^https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(/.*)?$`,
+				Required:    false,
+				MaxLength:   255,
+				Examples:    []string{"https://www.company.de", "http://business.de"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		ComplianceRules: []ComplianceRule{
+			{
+				ID:          "de_aml",
+				Name:        "AML Compliance",
+				Description: "German Anti-Money Laundering compliance",
+				Regulation:  "GwG",
+				Required:    true,
+				Validation:  "aml_check",
+				Examples:    []string{"aml_verified", "aml_clear"},
+				Metadata:    make(map[string]interface{}),
+			},
+			{
+				ID:          "de_gdpr",
+				Name:        "GDPR Compliance",
+				Description: "General Data Protection Regulation compliance",
+				Regulation:  "GDPR",
+				Required:    true,
+				Validation:  "gdpr_check",
+				Examples:    []string{"gdpr_compliant", "gdpr_verified"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		DataResidencyRules: DataResidencyRule{
+			ID:                 "de_data_residency",
+			Name:               "German Data Residency",
+			Description:        "German data residency requirements",
+			AllowedRegions:     []string{"DE", "EU"},
+			RestrictedRegions:  []string{"US", "CN"},
+			EncryptionRequired: true,
+			RetentionPeriod:    10 * 365 * 24 * time.Hour, // 10 years
+			Metadata:           make(map[string]interface{}),
+		},
+		Metadata: make(map[string]interface{}),
+	}
+}
+
+// getCAValidationRules returns validation rules for Canada
+func getCAValidationRules() CountryRules {
+	return CountryRules{
+		CountryCode: "CA",
+		CountryName: "Canada",
+		BusinessIDRules: []BusinessIDRule{
+			{
+				ID:          "ca_business_number",
+				Name:        "Business Number",
+				Description: "Canadian business number",
+				Pattern:     `^\d{9}$`,
+				Required:    true,
+				MinLength:   9,
+				MaxLength:   9,
+				Checksum:    true,
+				Examples:    []string{"123456789", "987654321"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		TaxIDRules: []TaxIDRule{
+			{
+				ID:          "ca_gst_hst",
+				Name:        "GST/HST Number",
+				Description: "Canadian Goods and Services Tax number",
+				Pattern:     `^\d{9}RT\d{4}$`,
+				Required:    true,
+				MinLength:   15,
+				MaxLength:   15,
+				Checksum:    true,
+				Examples:    []string{"123456789RT0001", "987654321RT0002"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		AddressRules: []AddressRule{
+			{
+				ID:          "ca_address",
+				Name:        "Canadian Address",
+				Description: "Canadian postal address format",
+				Required:    true,
+				MinLength:   10,
+				MaxLength:   200,
+				Components: []AddressComponent{
+					{Name: "street", Required: true, MinLength: 5, MaxLength: 100},
+					{Name: "city", Required: true, MinLength: 2, MaxLength: 50},
+					{Name: "province", Required: true, MinLength: 2, MaxLength: 2},
+					{Name: "postal_code", Required: true, MinLength: 6, MaxLength: 7},
+				},
+				Metadata: make(map[string]interface{}),
+			},
+		},
+		PhoneRules: []PhoneRule{
+			{
+				ID:          "ca_phone",
+				Name:        "Canadian Phone Number",
+				Description: "Canadian phone number format",
+				Pattern:     `^\+1[2-9]\d{2}[2-9]\d{2}\d{4}$`,
+				Required:    false,
+				MinLength:   12,
+				MaxLength:   12,
+				CountryCode: "+1",
+				Examples:    []string{"+12125551234", "+14165551234"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		EmailRules: []EmailRule{
+			{
+				ID:          "ca_email",
+				Name:        "Canadian Email",
+				Description: "Standard email format",
+				Pattern:     `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`,
+				Required:    false,
+				MaxLength:   254,
+				Examples:    []string{"contact@company.ca", "info@business.ca"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		WebsiteRules: []WebsiteRule{
+			{
+				ID:          "ca_website",
+				Name:        "Canadian Website",
+				Description: "Website URL format",
+				Pattern:     `^https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(/.*)?$`,
+				Required:    false,
+				MaxLength:   255,
+				Examples:    []string{"https://www.company.ca", "http://business.ca"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		ComplianceRules: []ComplianceRule{
+			{
+				ID:          "ca_aml",
+				Name:        "AML Compliance",
+				Description: "Canadian Anti-Money Laundering compliance",
+				Regulation:  "PCMLTFA",
+				Required:    true,
+				Validation:  "aml_check",
+				Examples:    []string{"aml_verified", "aml_clear"},
+				Metadata:    make(map[string]interface{}),
+			},
+			{
+				ID:          "ca_pipeda",
+				Name:        "PIPEDA Compliance",
+				Description: "Personal Information Protection and Electronic Documents Act compliance",
+				Regulation:  "PIPEDA",
+				Required:    true,
+				Validation:  "pipeda_check",
+				Examples:    []string{"pipeda_compliant", "pipeda_verified"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		DataResidencyRules: DataResidencyRule{
+			ID:                 "ca_data_residency",
+			Name:               "Canadian Data Residency",
+			Description:        "Canadian data residency requirements",
+			AllowedRegions:     []string{"CA", "CA-EAST", "CA-WEST"},
+			RestrictedRegions:  []string{"US", "CN"},
+			EncryptionRequired: true,
+			RetentionPeriod:    7 * 365 * 24 * time.Hour, // 7 years
+			Metadata:           make(map[string]interface{}),
+		},
+		Metadata: make(map[string]interface{}),
+	}
+}
+
+// getAUValidationRules returns validation rules for Australia
+func getAUValidationRules() CountryRules {
+	return CountryRules{
+		CountryCode: "AU",
+		CountryName: "Australia",
+		BusinessIDRules: []BusinessIDRule{
+			{
+				ID:          "au_acn",
+				Name:        "Australian Company Number",
+				Description: "Australian company number",
+				Pattern:     `^\d{9}$`,
+				Required:    true,
+				MinLength:   9,
+				MaxLength:   9,
+				Checksum:    true,
+				Examples:    []string{"123456789", "987654321"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		TaxIDRules: []TaxIDRule{
+			{
+				ID:          "au_abn",
+				Name:        "Australian Business Number",
+				Description: "Australian business number",
+				Pattern:     `^\d{11}$`,
+				Required:    true,
+				MinLength:   11,
+				MaxLength:   11,
+				Checksum:    true,
+				Examples:    []string{"12345678901", "98765432109"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		AddressRules: []AddressRule{
+			{
+				ID:          "au_address",
+				Name:        "Australian Address",
+				Description: "Australian postal address format",
+				Required:    true,
+				MinLength:   10,
+				MaxLength:   200,
+				Components: []AddressComponent{
+					{Name: "street", Required: true, MinLength: 5, MaxLength: 100},
+					{Name: "city", Required: true, MinLength: 2, MaxLength: 50},
+					{Name: "state", Required: true, MinLength: 2, MaxLength: 3},
+					{Name: "postcode", Required: true, MinLength: 4, MaxLength: 4},
+				},
+				Metadata: make(map[string]interface{}),
+			},
+		},
+		PhoneRules: []PhoneRule{
+			{
+				ID:          "au_phone",
+				Name:        "Australian Phone Number",
+				Description: "Australian phone number format",
+				Pattern:     `^\+61[2-9]\d{8}$`,
+				Required:    false,
+				MinLength:   12,
+				MaxLength:   12,
+				CountryCode: "+61",
+				Examples:    []string{"+61212345678", "+61312345678"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		EmailRules: []EmailRule{
+			{
+				ID:          "au_email",
+				Name:        "Australian Email",
+				Description: "Standard email format",
+				Pattern:     `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`,
+				Required:    false,
+				MaxLength:   254,
+				Examples:    []string{"contact@company.com.au", "info@business.com.au"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		WebsiteRules: []WebsiteRule{
+			{
+				ID:          "au_website",
+				Name:        "Australian Website",
+				Description: "Website URL format",
+				Pattern:     `^https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(/.*)?$`,
+				Required:    false,
+				MaxLength:   255,
+				Examples:    []string{"https://www.company.com.au", "http://business.com.au"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		ComplianceRules: []ComplianceRule{
+			{
+				ID:          "au_aml",
+				Name:        "AML Compliance",
+				Description: "Australian Anti-Money Laundering compliance",
+				Regulation:  "AML/CTF",
+				Required:    true,
+				Validation:  "aml_check",
+				Examples:    []string{"aml_verified", "aml_clear"},
+				Metadata:    make(map[string]interface{}),
+			},
+			{
+				ID:          "au_privacy",
+				Name:        "Privacy Act Compliance",
+				Description: "Australian Privacy Act compliance",
+				Regulation:  "Privacy Act",
+				Required:    true,
+				Validation:  "privacy_check",
+				Examples:    []string{"privacy_compliant", "privacy_verified"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		DataResidencyRules: DataResidencyRule{
+			ID:                 "au_data_residency",
+			Name:               "Australian Data Residency",
+			Description:        "Australian data residency requirements",
+			AllowedRegions:     []string{"AU", "AU-EAST", "AU-WEST"},
+			RestrictedRegions:  []string{"US", "CN"},
+			EncryptionRequired: true,
+			RetentionPeriod:    7 * 365 * 24 * time.Hour, // 7 years
+			Metadata:           make(map[string]interface{}),
+		},
+		Metadata: make(map[string]interface{}),
+	}
+}
+
+// getSGValidationRules returns validation rules for Singapore
+func getSGValidationRules() CountryRules {
+	return CountryRules{
+		CountryCode: "SG",
+		CountryName: "Singapore",
+		BusinessIDRules: []BusinessIDRule{
+			{
+				ID:          "sg_uen",
+				Name:        "Unique Entity Number",
+				Description: "Singapore unique entity number",
+				Pattern:     `^\d{8}[A-Z]$`,
+				Required:    true,
+				MinLength:   9,
+				MaxLength:   9,
+				Checksum:    true,
+				Examples:    []string{"12345678A", "87654321B"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		TaxIDRules: []TaxIDRule{
+			{
+				ID:          "sg_gst",
+				Name:        "GST Registration Number",
+				Description: "Singapore GST registration number",
+				Pattern:     `^\d{8}[A-Z]$`,
+				Required:    true,
+				MinLength:   9,
+				MaxLength:   9,
+				Checksum:    true,
+				Examples:    []string{"12345678A", "87654321B"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		AddressRules: []AddressRule{
+			{
+				ID:          "sg_address",
+				Name:        "Singapore Address",
+				Description: "Singapore postal address format",
+				Required:    true,
+				MinLength:   10,
+				MaxLength:   200,
+				Components: []AddressComponent{
+					{Name: "street", Required: true, MinLength: 5, MaxLength: 100},
+					{Name: "city", Required: true, MinLength: 2, MaxLength: 50},
+					{Name: "postal_code", Required: true, MinLength: 6, MaxLength: 6},
+				},
+				Metadata: make(map[string]interface{}),
+			},
+		},
+		PhoneRules: []PhoneRule{
+			{
+				ID:          "sg_phone",
+				Name:        "Singapore Phone Number",
+				Description: "Singapore phone number format",
+				Pattern:     `^\+65[689]\d{7}$`,
+				Required:    false,
+				MinLength:   11,
+				MaxLength:   11,
+				CountryCode: "+65",
+				Examples:    []string{"+6512345678", "+6598765432"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		EmailRules: []EmailRule{
+			{
+				ID:          "sg_email",
+				Name:        "Singapore Email",
+				Description: "Standard email format",
+				Pattern:     `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`,
+				Required:    false,
+				MaxLength:   254,
+				Examples:    []string{"contact@company.com.sg", "info@business.com.sg"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		WebsiteRules: []WebsiteRule{
+			{
+				ID:          "sg_website",
+				Name:        "Singapore Website",
+				Description: "Website URL format",
+				Pattern:     `^https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(/.*)?$`,
+				Required:    false,
+				MaxLength:   255,
+				Examples:    []string{"https://www.company.com.sg", "http://business.com.sg"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		ComplianceRules: []ComplianceRule{
+			{
+				ID:          "sg_aml",
+				Name:        "AML Compliance",
+				Description: "Singapore Anti-Money Laundering compliance",
+				Regulation:  "CDSA",
+				Required:    true,
+				Validation:  "aml_check",
+				Examples:    []string{"aml_verified", "aml_clear"},
+				Metadata:    make(map[string]interface{}),
+			},
+			{
+				ID:          "sg_pdpa",
+				Name:        "PDPA Compliance",
+				Description: "Personal Data Protection Act compliance",
+				Regulation:  "PDPA",
+				Required:    true,
+				Validation:  "pdpa_check",
+				Examples:    []string{"pdpa_compliant", "pdpa_verified"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		DataResidencyRules: DataResidencyRule{
+			ID:                 "sg_data_residency",
+			Name:               "Singapore Data Residency",
+			Description:        "Singapore data residency requirements",
+			AllowedRegions:     []string{"SG", "APAC"},
+			RestrictedRegions:  []string{"US", "CN"},
+			EncryptionRequired: true,
+			RetentionPeriod:    6 * 365 * 24 * time.Hour, // 6 years
+			Metadata:           make(map[string]interface{}),
+		},
+		Metadata: make(map[string]interface{}),
+	}
+}
+
+// getJPValidationRules returns validation rules for Japan
+func getJPValidationRules() CountryRules {
+	return CountryRules{
+		CountryCode: "JP",
+		CountryName: "Japan",
+		BusinessIDRules: []BusinessIDRule{
+			{
+				ID:          "jp_corporate_number",
+				Name:        "Corporate Number",
+				Description: "Japanese corporate number",
+				Pattern:     `^\d{13}$`,
+				Required:    true,
+				MinLength:   13,
+				MaxLength:   13,
+				Checksum:    true,
+				Examples:    []string{"1234567890123", "9876543210987"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		TaxIDRules: []TaxIDRule{
+			{
+				ID:          "jp_tax_number",
+				Name:        "Tax Number",
+				Description: "Japanese tax number",
+				Pattern:     `^T\d{13}$`,
+				Required:    true,
+				MinLength:   14,
+				MaxLength:   14,
+				Checksum:    true,
+				Examples:    []string{"T1234567890123", "T9876543210987"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		AddressRules: []AddressRule{
+			{
+				ID:          "jp_address",
+				Name:        "Japanese Address",
+				Description: "Japanese postal address format",
+				Required:    true,
+				MinLength:   10,
+				MaxLength:   200,
+				Components: []AddressComponent{
+					{Name: "prefecture", Required: true, MinLength: 2, MaxLength: 10},
+					{Name: "city", Required: true, MinLength: 2, MaxLength: 50},
+					{Name: "postal_code", Required: true, MinLength: 8, MaxLength: 8},
+				},
+				Metadata: make(map[string]interface{}),
+			},
+		},
+		PhoneRules: []PhoneRule{
+			{
+				ID:          "jp_phone",
+				Name:        "Japanese Phone Number",
+				Description: "Japanese phone number format",
+				Pattern:     `^\+81[1-9]\d{8,9}$`,
+				Required:    false,
+				MinLength:   12,
+				MaxLength:   13,
+				CountryCode: "+81",
+				Examples:    []string{"+81312345678", "+819012345678"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		EmailRules: []EmailRule{
+			{
+				ID:          "jp_email",
+				Name:        "Japanese Email",
+				Description: "Standard email format",
+				Pattern:     `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`,
+				Required:    false,
+				MaxLength:   254,
+				Examples:    []string{"contact@company.co.jp", "info@business.co.jp"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		WebsiteRules: []WebsiteRule{
+			{
+				ID:          "jp_website",
+				Name:        "Japanese Website",
+				Description: "Website URL format",
+				Pattern:     `^https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(/.*)?$`,
+				Required:    false,
+				MaxLength:   255,
+				Examples:    []string{"https://www.company.co.jp", "http://business.co.jp"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		ComplianceRules: []ComplianceRule{
+			{
+				ID:          "jp_aml",
+				Name:        "AML Compliance",
+				Description: "Japanese Anti-Money Laundering compliance",
+				Regulation:  "FATF",
+				Required:    true,
+				Validation:  "aml_check",
+				Examples:    []string{"aml_verified", "aml_clear"},
+				Metadata:    make(map[string]interface{}),
+			},
+			{
+				ID:          "jp_appi",
+				Name:        "APPI Compliance",
+				Description: "Act on the Protection of Personal Information compliance",
+				Regulation:  "APPI",
+				Required:    true,
+				Validation:  "appi_check",
+				Examples:    []string{"appi_compliant", "appi_verified"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		DataResidencyRules: DataResidencyRule{
+			ID:                 "jp_data_residency",
+			Name:               "Japanese Data Residency",
+			Description:        "Japanese data residency requirements",
+			AllowedRegions:     []string{"JP", "APAC"},
+			RestrictedRegions:  []string{"US", "CN"},
+			EncryptionRequired: true,
+			RetentionPeriod:    5 * 365 * 24 * time.Hour, // 5 years
+			Metadata:           make(map[string]interface{}),
+		},
+		Metadata: make(map[string]interface{}),
+	}
+}
+
+// getFRValidationRules returns validation rules for France
+func getFRValidationRules() CountryRules {
+	return CountryRules{
+		CountryCode: "FR",
+		CountryName: "France",
+		BusinessIDRules: []BusinessIDRule{
+			{
+				ID:          "fr_siren",
+				Name:        "SIREN Number",
+				Description: "French business identification number",
+				Pattern:     `^\d{9}$`,
+				Required:    true,
+				MinLength:   9,
+				MaxLength:   9,
+				Checksum:    true,
+				Examples:    []string{"123456789", "987654321"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		TaxIDRules: []TaxIDRule{
+			{
+				ID:          "fr_siret",
+				Name:        "SIRET Number",
+				Description: "French establishment identification number",
+				Pattern:     `^\d{14}$`,
+				Required:    true,
+				MinLength:   14,
+				MaxLength:   14,
+				Checksum:    true,
+				Examples:    []string{"12345678901234", "98765432109876"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		AddressRules: []AddressRule{
+			{
+				ID:          "fr_address",
+				Name:        "French Address",
+				Description: "French postal address format",
+				Required:    true,
+				MinLength:   10,
+				MaxLength:   200,
+				Components: []AddressComponent{
+					{Name: "street", Required: true, MinLength: 5, MaxLength: 100},
+					{Name: "city", Required: true, MinLength: 2, MaxLength: 50},
+					{Name: "postal_code", Required: true, MinLength: 5, MaxLength: 5},
+				},
+				Metadata: make(map[string]interface{}),
+			},
+		},
+		PhoneRules: []PhoneRule{
+			{
+				ID:          "fr_phone",
+				Name:        "French Phone Number",
+				Description: "French phone number format",
+				Pattern:     `^\+33[1-9]\d{8}$`,
+				Required:    false,
+				MinLength:   12,
+				MaxLength:   12,
+				CountryCode: "+33",
+				Examples:    []string{"+33123456789", "+33987654321"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		EmailRules: []EmailRule{
+			{
+				ID:          "fr_email",
+				Name:        "French Email",
+				Description: "Standard email format",
+				Pattern:     `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`,
+				Required:    false,
+				MaxLength:   254,
+				Examples:    []string{"contact@company.fr", "info@business.fr"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		WebsiteRules: []WebsiteRule{
+			{
+				ID:          "fr_website",
+				Name:        "French Website",
+				Description: "Website URL format",
+				Pattern:     `^https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(/.*)?$`,
+				Required:    false,
+				MaxLength:   255,
+				Examples:    []string{"https://www.company.fr", "http://business.fr"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		ComplianceRules: []ComplianceRule{
+			{
+				ID:          "fr_aml",
+				Name:        "AML Compliance",
+				Description: "French Anti-Money Laundering compliance",
+				Regulation:  "LCB-FT",
+				Required:    true,
+				Validation:  "aml_check",
+				Examples:    []string{"aml_verified", "aml_clear"},
+				Metadata:    make(map[string]interface{}),
+			},
+			{
+				ID:          "fr_gdpr",
+				Name:        "GDPR Compliance",
+				Description: "General Data Protection Regulation compliance",
+				Regulation:  "GDPR",
+				Required:    true,
+				Validation:  "gdpr_check",
+				Examples:    []string{"gdpr_compliant", "gdpr_verified"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		DataResidencyRules: DataResidencyRule{
+			ID:                 "fr_data_residency",
+			Name:               "French Data Residency",
+			Description:        "French data residency requirements",
+			AllowedRegions:     []string{"FR", "EU"},
+			RestrictedRegions:  []string{"US", "CN"},
+			EncryptionRequired: true,
+			RetentionPeriod:    5 * 365 * 24 * time.Hour, // 5 years
+			Metadata:           make(map[string]interface{}),
+		},
+		Metadata: make(map[string]interface{}),
+	}
+}
+
+// getNLValidationRules returns validation rules for Netherlands
+func getNLValidationRules() CountryRules {
+	return CountryRules{
+		CountryCode: "NL",
+		CountryName: "Netherlands",
+		BusinessIDRules: []BusinessIDRule{
+			{
+				ID:          "nl_kvk",
+				Name:        "KvK Number",
+				Description: "Dutch Chamber of Commerce number",
+				Pattern:     `^\d{8}$`,
+				Required:    true,
+				MinLength:   8,
+				MaxLength:   8,
+				Checksum:    true,
+				Examples:    []string{"12345678", "87654321"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		TaxIDRules: []TaxIDRule{
+			{
+				ID:          "nl_btw",
+				Name:        "BTW Number",
+				Description: "Dutch VAT number",
+				Pattern:     `^NL\d{9}B\d{2}$`,
+				Required:    true,
+				MinLength:   14,
+				MaxLength:   14,
+				Checksum:    true,
+				Examples:    []string{"NL123456789B01", "NL987654321B02"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		AddressRules: []AddressRule{
+			{
+				ID:          "nl_address",
+				Name:        "Dutch Address",
+				Description: "Dutch postal address format",
+				Required:    true,
+				MinLength:   10,
+				MaxLength:   200,
+				Components: []AddressComponent{
+					{Name: "street", Required: true, MinLength: 5, MaxLength: 100},
+					{Name: "city", Required: true, MinLength: 2, MaxLength: 50},
+					{Name: "postal_code", Required: true, MinLength: 6, MaxLength: 7},
+				},
+				Metadata: make(map[string]interface{}),
+			},
+		},
+		PhoneRules: []PhoneRule{
+			{
+				ID:          "nl_phone",
+				Name:        "Dutch Phone Number",
+				Description: "Dutch phone number format",
+				Pattern:     `^\+31[1-9]\d{8}$`,
+				Required:    false,
+				MinLength:   12,
+				MaxLength:   12,
+				CountryCode: "+31",
+				Examples:    []string{"+31123456789", "+31987654321"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		EmailRules: []EmailRule{
+			{
+				ID:          "nl_email",
+				Name:        "Dutch Email",
+				Description: "Standard email format",
+				Pattern:     `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`,
+				Required:    false,
+				MaxLength:   254,
+				Examples:    []string{"contact@company.nl", "info@business.nl"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		WebsiteRules: []WebsiteRule{
+			{
+				ID:          "nl_website",
+				Name:        "Dutch Website",
+				Description: "Website URL format",
+				Pattern:     `^https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(/.*)?$`,
+				Required:    false,
+				MaxLength:   255,
+				Examples:    []string{"https://www.company.nl", "http://business.nl"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		ComplianceRules: []ComplianceRule{
+			{
+				ID:          "nl_aml",
+				Name:        "AML Compliance",
+				Description: "Dutch Anti-Money Laundering compliance",
+				Regulation:  "Wwft",
+				Required:    true,
+				Validation:  "aml_check",
+				Examples:    []string{"aml_verified", "aml_clear"},
+				Metadata:    make(map[string]interface{}),
+			},
+			{
+				ID:          "nl_gdpr",
+				Name:        "GDPR Compliance",
+				Description: "General Data Protection Regulation compliance",
+				Regulation:  "GDPR",
+				Required:    true,
+				Validation:  "gdpr_check",
+				Examples:    []string{"gdpr_compliant", "gdpr_verified"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		DataResidencyRules: DataResidencyRule{
+			ID:                 "nl_data_residency",
+			Name:               "Dutch Data Residency",
+			Description:        "Dutch data residency requirements",
+			AllowedRegions:     []string{"NL", "EU"},
+			RestrictedRegions:  []string{"US", "CN"},
+			EncryptionRequired: true,
+			RetentionPeriod:    7 * 365 * 24 * time.Hour, // 7 years
+			Metadata:           make(map[string]interface{}),
+		},
+		Metadata: make(map[string]interface{}),
+	}
+}
+
+// getITValidationRules returns validation rules for Italy
+func getITValidationRules() CountryRules {
+	return CountryRules{
+		CountryCode: "IT",
+		CountryName: "Italy",
+		BusinessIDRules: []BusinessIDRule{
+			{
+				ID:          "it_codice_fiscale",
+				Name:        "Codice Fiscale",
+				Description: "Italian tax code",
+				Pattern:     `^[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]$`,
+				Required:    true,
+				MinLength:   16,
+				MaxLength:   16,
+				Checksum:    true,
+				Examples:    []string{"RSSMRA80A01H501U", "BNCGPP80A01H501X"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		TaxIDRules: []TaxIDRule{
+			{
+				ID:          "it_partita_iva",
+				Name:        "Partita IVA",
+				Description: "Italian VAT number",
+				Pattern:     `^\d{11}$`,
+				Required:    true,
+				MinLength:   11,
+				MaxLength:   11,
+				Checksum:    true,
+				Examples:    []string{"12345678901", "98765432109"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		AddressRules: []AddressRule{
+			{
+				ID:          "it_address",
+				Name:        "Italian Address",
+				Description: "Italian postal address format",
+				Required:    true,
+				MinLength:   10,
+				MaxLength:   200,
+				Components: []AddressComponent{
+					{Name: "street", Required: true, MinLength: 5, MaxLength: 100},
+					{Name: "city", Required: true, MinLength: 2, MaxLength: 50},
+					{Name: "postal_code", Required: true, MinLength: 5, MaxLength: 5},
+				},
+				Metadata: make(map[string]interface{}),
+			},
+		},
+		PhoneRules: []PhoneRule{
+			{
+				ID:          "it_phone",
+				Name:        "Italian Phone Number",
+				Description: "Italian phone number format",
+				Pattern:     `^\+39[1-9]\d{8,9}$`,
+				Required:    false,
+				MinLength:   12,
+				MaxLength:   13,
+				CountryCode: "+39",
+				Examples:    []string{"+39123456789", "+399876543210"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		EmailRules: []EmailRule{
+			{
+				ID:          "it_email",
+				Name:        "Italian Email",
+				Description: "Standard email format",
+				Pattern:     `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`,
+				Required:    false,
+				MaxLength:   254,
+				Examples:    []string{"contact@company.it", "info@business.it"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		WebsiteRules: []WebsiteRule{
+			{
+				ID:          "it_website",
+				Name:        "Italian Website",
+				Description: "Website URL format",
+				Pattern:     `^https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(/.*)?$`,
+				Required:    false,
+				MaxLength:   255,
+				Examples:    []string{"https://www.company.it", "http://business.it"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		ComplianceRules: []ComplianceRule{
+			{
+				ID:          "it_aml",
+				Name:        "AML Compliance",
+				Description: "Italian Anti-Money Laundering compliance",
+				Regulation:  "D.Lgs. 231/2007",
+				Required:    true,
+				Validation:  "aml_check",
+				Examples:    []string{"aml_verified", "aml_clear"},
+				Metadata:    make(map[string]interface{}),
+			},
+			{
+				ID:          "it_gdpr",
+				Name:        "GDPR Compliance",
+				Description: "General Data Protection Regulation compliance",
+				Regulation:  "GDPR",
+				Required:    true,
+				Validation:  "gdpr_check",
+				Examples:    []string{"gdpr_compliant", "gdpr_verified"},
+				Metadata:    make(map[string]interface{}),
+			},
+		},
+		DataResidencyRules: DataResidencyRule{
+			ID:                 "it_data_residency",
+			Name:               "Italian Data Residency",
+			Description:        "Italian data residency requirements",
+			AllowedRegions:     []string{"IT", "EU"},
+			RestrictedRegions:  []string{"US", "CN"},
+			EncryptionRequired: true,
+			RetentionPeriod:    10 * 365 * 24 * time.Hour, // 10 years
+			Metadata:           make(map[string]interface{}),
+		},
+		Metadata: make(map[string]interface{}),
+	}
+}

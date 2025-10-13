@@ -15,6 +15,9 @@ import (
 type OFACMock struct {
 	logger *zap.Logger
 	config *OFACConfig
+	// Real-time update simulation
+	lastUpdate     time.Time
+	updateInterval time.Duration
 }
 
 // OFACConfig holds configuration for OFAC API
@@ -88,8 +91,10 @@ type OFACResult struct {
 // NewOFACMock creates a new OFAC mock client
 func NewOFACMock(config *OFACConfig, logger *zap.Logger) *OFACMock {
 	return &OFACMock{
-		logger: logger,
-		config: config,
+		logger:         logger,
+		config:         config,
+		lastUpdate:     time.Now().Add(-24 * time.Hour), // Simulate last update 24 hours ago
+		updateInterval: 24 * time.Hour,                  // Simulate daily updates
 	}
 }
 
@@ -501,4 +506,142 @@ func (ofac *OFACMock) generateComplianceNotes(entityName string) string {
 func (ofac *OFACMock) generateDataQuality() string {
 	qualities := []string{"excellent", "good", "average"}
 	return qualities[rand.Intn(len(qualities))]
+}
+
+// Real-time update simulation methods
+
+// CheckForUpdates simulates checking for sanctions list updates
+func (ofac *OFACMock) CheckForUpdates(ctx context.Context) (*UpdateInfo, error) {
+	ofac.logger.Info("Checking for OFAC sanctions list updates (mock)")
+
+	// Simulate API delay
+	time.Sleep(time.Duration(rand.Intn(200)+100) * time.Millisecond)
+
+	// Check if enough time has passed for an update
+	timeSinceLastUpdate := time.Since(ofac.lastUpdate)
+	hasUpdate := timeSinceLastUpdate >= ofac.updateInterval
+
+	updateInfo := &UpdateInfo{
+		HasUpdate:       hasUpdate,
+		LastUpdate:      ofac.lastUpdate,
+		NextUpdate:      ofac.lastUpdate.Add(ofac.updateInterval),
+		UpdateAvailable: hasUpdate,
+		UpdateSize:      rand.Intn(100) + 10, // 10-110 new entries
+		UpdateType:      "incremental",
+		CheckTime:       time.Now(),
+	}
+
+	if hasUpdate {
+		// Simulate update
+		ofac.lastUpdate = time.Now()
+		updateInfo.LastUpdate = ofac.lastUpdate
+		updateInfo.NextUpdate = ofac.lastUpdate.Add(ofac.updateInterval)
+
+		ofac.logger.Info("OFAC sanctions list update available (mock)",
+			zap.Int("update_size", updateInfo.UpdateSize),
+			zap.Time("last_update", updateInfo.LastUpdate))
+	} else {
+		ofac.logger.Info("No OFAC sanctions list updates available (mock)",
+			zap.Time("next_check", updateInfo.NextUpdate))
+	}
+
+	return updateInfo, nil
+}
+
+// GetUpdateHistory simulates retrieving update history
+func (ofac *OFACMock) GetUpdateHistory(ctx context.Context, days int) ([]UpdateInfo, error) {
+	ofac.logger.Info("Retrieving OFAC update history (mock)",
+		zap.Int("days", days))
+
+	// Simulate API delay
+	time.Sleep(time.Duration(rand.Intn(300)+150) * time.Millisecond)
+
+	var history []UpdateInfo
+	now := time.Now()
+
+	// Generate mock update history
+	for i := 0; i < days; i++ {
+		updateDate := now.Add(-time.Duration(i) * 24 * time.Hour)
+
+		// Simulate updates every 1-3 days
+		if rand.Float64() > 0.3 { // 70% chance of update
+			updateInfo := UpdateInfo{
+				HasUpdate:       true,
+				LastUpdate:      updateDate,
+				NextUpdate:      updateDate.Add(ofac.updateInterval),
+				UpdateAvailable: true,
+				UpdateSize:      rand.Intn(50) + 5, // 5-55 new entries
+				UpdateType:      "incremental",
+				CheckTime:       updateDate,
+			}
+			history = append(history, updateInfo)
+		}
+	}
+
+	ofac.logger.Info("OFAC update history retrieved (mock)",
+		zap.Int("history_entries", len(history)))
+
+	return history, nil
+}
+
+// GetSanctionsListVersion simulates getting the current sanctions list version
+func (ofac *OFACMock) GetSanctionsListVersion(ctx context.Context) (*SanctionsListVersion, error) {
+	ofac.logger.Info("Getting OFAC sanctions list version (mock)")
+
+	// Simulate API delay
+	time.Sleep(time.Duration(rand.Intn(100)+50) * time.Millisecond)
+
+	version := &SanctionsListVersion{
+		Version:         fmt.Sprintf("v%d.%d.%d", rand.Intn(10)+1, rand.Intn(10), rand.Intn(100)),
+		LastUpdated:     ofac.lastUpdate,
+		TotalEntries:    rand.Intn(10000) + 5000, // 5000-15000 entries
+		NewEntries:      rand.Intn(100) + 10,     // 10-110 new entries
+		ModifiedEntries: rand.Intn(50) + 5,       // 5-55 modified entries
+		RemovedEntries:  rand.Intn(20) + 1,       // 1-21 removed entries
+		DataQuality:     ofac.generateDataQuality(),
+		Source:          "OFAC",
+	}
+
+	ofac.logger.Info("OFAC sanctions list version retrieved (mock)",
+		zap.String("version", version.Version),
+		zap.Int("total_entries", version.TotalEntries),
+		zap.Time("last_updated", version.LastUpdated))
+
+	return version, nil
+}
+
+// IsHealthy checks if the OFAC service is healthy
+func (ofac *OFACMock) IsHealthy(ctx context.Context) error {
+	ofac.logger.Info("Checking OFAC service health (mock)")
+
+	// Simulate health check
+	time.Sleep(50 * time.Millisecond)
+
+	// Mock health check - always healthy
+	return nil
+}
+
+// Additional types for real-time updates
+
+// UpdateInfo represents information about sanctions list updates
+type UpdateInfo struct {
+	HasUpdate       bool      `json:"has_update"`
+	LastUpdate      time.Time `json:"last_update"`
+	NextUpdate      time.Time `json:"next_update"`
+	UpdateAvailable bool      `json:"update_available"`
+	UpdateSize      int       `json:"update_size"`
+	UpdateType      string    `json:"update_type"` // "incremental", "full"
+	CheckTime       time.Time `json:"check_time"`
+}
+
+// SanctionsListVersion represents the version information of a sanctions list
+type SanctionsListVersion struct {
+	Version         string    `json:"version"`
+	LastUpdated     time.Time `json:"last_updated"`
+	TotalEntries    int       `json:"total_entries"`
+	NewEntries      int       `json:"new_entries"`
+	ModifiedEntries int       `json:"modified_entries"`
+	RemovedEntries  int       `json:"removed_entries"`
+	DataQuality     string    `json:"data_quality"`
+	Source          string    `json:"source"`
 }

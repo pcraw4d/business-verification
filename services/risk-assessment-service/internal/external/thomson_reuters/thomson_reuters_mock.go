@@ -14,17 +14,19 @@ import (
 
 // ThomsonReutersMock provides mock implementation of Thomson Reuters API
 type ThomsonReutersMock struct {
-	logger *zap.Logger
-	config *ThomsonReutersConfig
+	logger     *zap.Logger
+	config     *ThomsonReutersConfig
+	worldCheck *WorldCheckMock
 }
 
 // ThomsonReutersConfig holds configuration for Thomson Reuters API
 type ThomsonReutersConfig struct {
-	APIKey    string        `json:"api_key"`
-	BaseURL   string        `json:"base_url"`
-	Timeout   time.Duration `json:"timeout"`
-	RateLimit int           `json:"rate_limit_per_minute"`
-	Enabled   bool          `json:"enabled"`
+	APIKey           string        `json:"api_key"`
+	BaseURL          string        `json:"base_url"`
+	Timeout          time.Duration `json:"timeout"`
+	RateLimit        int           `json:"rate_limit_per_minute"`
+	Enabled          bool          `json:"enabled"`
+	EnableWorldCheck bool          `json:"enable_worldcheck"`
 }
 
 // CompanyProfile represents a company profile from Thomson Reuters
@@ -136,23 +138,41 @@ type Ownership struct {
 
 // ThomsonReutersResult represents the combined result from Thomson Reuters
 type ThomsonReutersResult struct {
-	CompanyProfile     *CompanyProfile     `json:"company_profile,omitempty"`
-	FinancialData      *FinancialData      `json:"financial_data,omitempty"`
-	FinancialRatios    *FinancialRatios    `json:"financial_ratios,omitempty"`
-	RiskMetrics        *RiskMetrics        `json:"risk_metrics,omitempty"`
-	ESGScore           *ESGScore           `json:"esg_score,omitempty"`
-	ExecutiveInfo      *ExecutiveInfo      `json:"executive_info,omitempty"`
-	OwnershipStructure *OwnershipStructure `json:"ownership_structure,omitempty"`
-	DataQuality        string              `json:"data_quality"`
-	LastChecked        time.Time           `json:"last_checked"`
-	ProcessingTime     time.Duration       `json:"processing_time"`
+	CompanyProfile     *CompanyProfile        `json:"company_profile,omitempty"`
+	FinancialData      *FinancialData         `json:"financial_data,omitempty"`
+	FinancialRatios    *FinancialRatios       `json:"financial_ratios,omitempty"`
+	RiskMetrics        *RiskMetrics           `json:"risk_metrics,omitempty"`
+	ESGScore           *ESGScore              `json:"esg_score,omitempty"`
+	ExecutiveInfo      *ExecutiveInfo         `json:"executive_info,omitempty"`
+	OwnershipStructure *OwnershipStructure    `json:"ownership_structure,omitempty"`
+	DataQuality        string                 `json:"data_quality"`
+	LastChecked        time.Time              `json:"last_checked"`
+	ProcessingTime     time.Duration          `json:"processing_time"`
+	Metadata           map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // NewThomsonReutersMock creates a new Thomson Reuters mock client
 func NewThomsonReutersMock(config *ThomsonReutersConfig, logger *zap.Logger) *ThomsonReutersMock {
+	// Create World-Check client if enabled
+	var worldCheck *WorldCheckMock
+	if config.EnableWorldCheck {
+		worldCheckConfig := &WorldCheckConfig{
+			APIKey:          config.APIKey,
+			BaseURL:         config.BaseURL,
+			Timeout:         config.Timeout,
+			RateLimit:       config.RateLimit,
+			Enabled:         true,
+			EnablePEP:       true,
+			EnableSanctions: true,
+			EnableAdverse:   true,
+		}
+		worldCheck = NewWorldCheckClient(worldCheckConfig, logger)
+	}
+
 	return &ThomsonReutersMock{
-		logger: logger,
-		config: config,
+		logger:     logger,
+		config:     config,
+		worldCheck: worldCheck,
 	}
 }
 
@@ -761,4 +781,128 @@ func (tr *ThomsonReutersMock) generateOwnerName() string {
 		"Sarah Williams",
 	}
 	return ownerNames[rand.Intn(len(ownerNames))]
+}
+
+// World-Check Integration Methods
+
+// GetWorldCheckScreening performs World-Check screening if enabled
+func (tr *ThomsonReutersMock) GetWorldCheckScreening(ctx context.Context, entityName, country string) (*WorldCheckScreeningResult, error) {
+	if tr.worldCheck == nil {
+		return nil, fmt.Errorf("World-Check client not enabled")
+	}
+
+	tr.logger.Info("Performing World-Check screening via Thomson Reuters (mock)",
+		zap.String("entity_name", entityName),
+		zap.String("country", country))
+
+	return tr.worldCheck.GetComprehensiveScreening(ctx, entityName, country)
+}
+
+// GetWorldCheckPEP performs PEP screening if enabled
+func (tr *ThomsonReutersMock) GetWorldCheckPEP(ctx context.Context, entityName, country string) (*WorldCheckScreeningResult, error) {
+	if tr.worldCheck == nil {
+		return nil, fmt.Errorf("World-Check client not enabled")
+	}
+
+	tr.logger.Info("Performing World-Check PEP screening via Thomson Reuters (mock)",
+		zap.String("entity_name", entityName),
+		zap.String("country", country))
+
+	return tr.worldCheck.ScreenPEP(ctx, entityName, country)
+}
+
+// GetWorldCheckSanctions performs sanctions screening if enabled
+func (tr *ThomsonReutersMock) GetWorldCheckSanctions(ctx context.Context, entityName, country string) (*WorldCheckScreeningResult, error) {
+	if tr.worldCheck == nil {
+		return nil, fmt.Errorf("World-Check client not enabled")
+	}
+
+	tr.logger.Info("Performing World-Check sanctions screening via Thomson Reuters (mock)",
+		zap.String("entity_name", entityName),
+		zap.String("country", country))
+
+	return tr.worldCheck.ScreenSanctions(ctx, entityName, country)
+}
+
+// GetWorldCheckAdverseMedia performs adverse media screening if enabled
+func (tr *ThomsonReutersMock) GetWorldCheckAdverseMedia(ctx context.Context, entityName, country string) (*WorldCheckScreeningResult, error) {
+	if tr.worldCheck == nil {
+		return nil, fmt.Errorf("World-Check client not enabled")
+	}
+
+	tr.logger.Info("Performing World-Check adverse media screening via Thomson Reuters (mock)",
+		zap.String("entity_name", entityName),
+		zap.String("country", country))
+
+	return tr.worldCheck.ScreenAdverseMedia(ctx, entityName, country)
+}
+
+// GetEnhancedComprehensiveData retrieves all available data including World-Check screening
+func (tr *ThomsonReutersMock) GetEnhancedComprehensiveData(ctx context.Context, businessName, country string) (*ThomsonReutersResult, error) {
+	startTime := time.Now()
+	tr.logger.Info("Getting enhanced comprehensive Thomson Reuters data with World-Check (mock)",
+		zap.String("business_name", businessName),
+		zap.String("country", country))
+
+	// Get standard comprehensive data
+	result, err := tr.GetComprehensiveData(ctx, businessName, country)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get comprehensive data: %w", err)
+	}
+
+	// Add World-Check screening if enabled
+	if tr.worldCheck != nil {
+		worldCheckResult, err := tr.worldCheck.GetComprehensiveScreening(ctx, businessName, country)
+		if err != nil {
+			tr.logger.Warn("Failed to get World-Check screening data",
+				zap.Error(err))
+		} else {
+			// Add World-Check data to metadata
+			if result.Metadata == nil {
+				result.Metadata = make(map[string]interface{})
+			}
+			result.Metadata["worldcheck_screening"] = worldCheckResult
+			result.Metadata["worldcheck_risk_level"] = worldCheckResult.OverallRiskLevel
+			result.Metadata["worldcheck_risk_score"] = worldCheckResult.OverallRiskScore
+			result.Metadata["worldcheck_matches"] = worldCheckResult.TotalMatches
+		}
+	}
+
+	result.ProcessingTime = time.Since(startTime)
+
+	tr.logger.Info("Enhanced comprehensive Thomson Reuters data retrieved (mock)",
+		zap.String("business_name", businessName),
+		zap.Duration("processing_time", result.ProcessingTime),
+		zap.String("data_quality", result.DataQuality))
+
+	return result, nil
+}
+
+// GenerateEnhancedRiskFactors generates risk factors including World-Check data
+func (tr *ThomsonReutersMock) GenerateEnhancedRiskFactors(result *ThomsonReutersResult) []models.RiskFactor {
+	// Get standard risk factors
+	riskFactors := tr.GenerateRiskFactors(result)
+
+	// Add World-Check risk factors if available
+	if result.Metadata != nil {
+		if worldCheckData, exists := result.Metadata["worldcheck_screening"]; exists {
+			if worldCheckResult, ok := worldCheckData.(*WorldCheckScreeningResult); ok {
+				worldCheckFactors := tr.worldCheck.GenerateRiskFactors(worldCheckResult)
+				riskFactors = append(riskFactors, worldCheckFactors...)
+			}
+		}
+	}
+
+	return riskFactors
+}
+
+// IsHealthy checks if the Thomson Reuters service is healthy
+func (tr *ThomsonReutersMock) IsHealthy(ctx context.Context) error {
+	tr.logger.Info("Checking Thomson Reuters service health (mock)")
+
+	// Simulate health check
+	time.Sleep(50 * time.Millisecond)
+
+	// Mock health check - always healthy
+	return nil
 }
