@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	// "encoding/json"
 	"log"
@@ -17,6 +18,7 @@ import (
 
 	apihandlers "kyb-platform/services/risk-assessment-service/internal/api/handlers"
 	"kyb-platform/services/risk-assessment-service/internal/batch"
+	"kyb-platform/services/risk-assessment-service/internal/cache"
 	"kyb-platform/services/risk-assessment-service/internal/config"
 	"kyb-platform/services/risk-assessment-service/internal/engine"
 	"kyb-platform/services/risk-assessment-service/internal/external"
@@ -26,10 +28,12 @@ import (
 	"kyb-platform/services/risk-assessment-service/internal/ml/service"
 	"kyb-platform/services/risk-assessment-service/internal/models"
 	"kyb-platform/services/risk-assessment-service/internal/monitoring"
+	"kyb-platform/services/risk-assessment-service/internal/performance"
+	"kyb-platform/services/risk-assessment-service/internal/pool"
+	"kyb-platform/services/risk-assessment-service/internal/query"
 	"kyb-platform/services/risk-assessment-service/internal/reporting"
 	"kyb-platform/services/risk-assessment-service/internal/webhooks"
 
-	// "kyb-platform/services/risk-assessment-service/internal/performance"
 	"kyb-platform/services/risk-assessment-service/internal/supabase"
 )
 
@@ -332,10 +336,21 @@ func main() {
 	externalAPIHandler := apihandlers.NewExternalAPIHandler(externalAPIManager, logger)
 	monitoringHandler := handlers.NewMonitoringHandler(prometheusMetrics, alertManager, grafanaClient, logger)
 
+	// Initialize database connection with performance optimizations
+	db, err := initDatabaseWithPerformance(cfg, logger)
+	if err != nil {
+		logger.Fatal("Failed to initialize database with performance optimizations", zap.Error(err))
+	}
+	defer db.Close()
+
+	// Initialize performance components
+	performanceComponents, err := initPerformanceComponents(cfg, db, logger)
+	if err != nil {
+		logger.Fatal("Failed to initialize performance components", zap.Error(err))
+	}
+	defer performanceComponents.Close()
+
 	// Initialize custom model components
-	// Note: In a real implementation, you'd pass the actual database connection
-	// For now, we'll create a nil database connection placeholder
-	var db *sql.DB = nil // This would be initialized with actual database connection
 	customModelRepository := custom.NewSQLCustomModelRepository(db, logger)
 	customModelBuilder := custom.NewCustomModelBuilder(customModelRepository, logger)
 	customModelHandler := handlers.NewCustomModelHandler(customModelBuilder, logger)
@@ -652,4 +667,134 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"status":"healthy","service":"risk-assessment-service","version":"1.0.0"}`))
+}
+
+// PerformanceComponents holds all performance-related components
+type PerformanceComponents struct {
+	Cache     cache.Cache
+	Pool      *pool.ConnectionPool
+	Optimizer *query.QueryOptimizer
+	Monitor   *performance.PerformanceMonitor
+}
+
+// Close closes all performance components
+func (pc *PerformanceComponents) Close() error {
+	if pc.Cache != nil {
+		pc.Cache.Close()
+	}
+	if pc.Pool != nil {
+		pc.Pool.Close()
+	}
+	if pc.Monitor != nil {
+		pc.Monitor.Stop()
+	}
+	return nil
+}
+
+// initDatabaseWithPerformance initializes database connection with performance optimizations
+func initDatabaseWithPerformance(cfg *config.Config, logger *zap.Logger) (*sql.DB, error) {
+	// Get database URL from configuration
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		databaseURL = "postgresql://username:password@localhost:5432/risk_assessment?sslmode=disable"
+	}
+
+	// Open database connection
+	db, err := sql.Open("postgres", databaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %w", err)
+	}
+
+	// Test connection
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := db.PingContext(ctx); err != nil {
+		return nil, fmt.Errorf("failed to ping database: %w", err)
+	}
+
+	logger.Info("✅ Database connection established with performance optimizations")
+	return db, nil
+}
+
+// initPerformanceComponents initializes all performance-related components
+func initPerformanceComponents(cfg *config.Config, db *sql.DB, logger *zap.Logger) (*PerformanceComponents, error) {
+	// Load performance configuration
+	perfConfig := config.DefaultPerformanceConfig()
+	
+	// Initialize Redis cache
+	var cacheInstance cache.Cache
+	if perfConfig.Cache.Enabled && perfConfig.Cache.Type == "redis" {
+		redisConfig := &cache.CacheConfig{
+			Addrs:           perfConfig.Cache.Redis.Addrs,
+			Password:        perfConfig.Cache.Redis.Password,
+			DB:              perfConfig.Cache.Redis.DB,
+			PoolSize:        perfConfig.Cache.Redis.PoolSize,
+			MinIdleConns:    perfConfig.Cache.Redis.MinIdleConns,
+			MaxRetries:      perfConfig.Cache.Redis.MaxRetries,
+			DialTimeout:     perfConfig.Cache.Redis.DialTimeout,
+			ReadTimeout:     perfConfig.Cache.Redis.ReadTimeout,
+			WriteTimeout:    perfConfig.Cache.Redis.WriteTimeout,
+			PoolTimeout:     perfConfig.Cache.Redis.PoolTimeout,
+			IdleTimeout:     perfConfig.Cache.Redis.IdleTimeout,
+			IdleCheckFreq:   perfConfig.Cache.Redis.IdleCheckFreq,
+			MaxConnAge:      perfConfig.Cache.Redis.MaxConnAge,
+			DefaultTTL:      perfConfig.Cache.DefaultTTL,
+			KeyPrefix:       perfConfig.Cache.Redis.KeyPrefix,
+			EnableMetrics:   perfConfig.Cache.EnableMetrics,
+			EnableCompression: perfConfig.Cache.EnableCompression,
+		}
+		
+		cacheInstance, err = cache.NewRedisCache(redisConfig, logger)
+		if err != nil {
+			logger.Warn("Failed to initialize Redis cache, falling back to no cache", zap.Error(err))
+		} else {
+			logger.Info("✅ Redis cache initialized")
+		}
+	}
+
+	// Initialize connection pool
+	poolConfig := &pool.PoolConfig{
+		MaxConnections:     perfConfig.ConnectionPool.MaxConnections,
+		MinConnections:     perfConfig.ConnectionPool.MinConnections,
+		MaxIdleConnections: perfConfig.ConnectionPool.MaxIdleConnections,
+		ConnectionTimeout:  perfConfig.ConnectionPool.ConnectionTimeout,
+		IdleTimeout:        perfConfig.ConnectionPool.IdleTimeout,
+		MaxLifetime:        perfConfig.ConnectionPool.MaxLifetime,
+		HealthCheckPeriod:  perfConfig.ConnectionPool.HealthCheckPeriod,
+		RetryAttempts:      perfConfig.ConnectionPool.RetryAttempts,
+		RetryDelay:         perfConfig.ConnectionPool.RetryDelay,
+	}
+
+	connectionPool, err := pool.NewConnectionPool("", poolConfig, logger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize connection pool: %w", err)
+	}
+	logger.Info("✅ Connection pool initialized")
+
+	// Initialize query optimizer
+	queryOptimizer := query.NewQueryOptimizer(db, cacheInstance, logger)
+	logger.Info("✅ Query optimizer initialized")
+
+	// Initialize performance monitor
+	perfMonitor := performance.NewPerformanceMonitor(
+		db,
+		cacheInstance,
+		connectionPool,
+		queryOptimizer,
+		logger,
+	)
+
+	// Start performance monitoring
+	if perfConfig.Monitoring.Enabled {
+		perfMonitor.Start(perfConfig.Monitoring.CollectionInterval)
+		logger.Info("✅ Performance monitoring started")
+	}
+
+	return &PerformanceComponents{
+		Cache:     cacheInstance,
+		Pool:      connectionPool,
+		Optimizer: queryOptimizer,
+		Monitor:   perfMonitor,
+	}, nil
 }
