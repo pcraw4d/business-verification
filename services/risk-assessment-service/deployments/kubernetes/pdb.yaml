@@ -1,0 +1,40 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: risk-assessment-service-pdb
+  namespace: kyb-platform
+  labels:
+    app: risk-assessment-service
+    component: risk-assessment
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: risk-assessment-service
+---
+apiVersion: policy/v1
+kind: PodSecurityPolicy
+metadata:
+  name: risk-assessment-service-psp
+  namespace: kyb-platform
+  labels:
+    app: risk-assessment-service
+    component: risk-assessment
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    - 'persistentVolumeClaim'
+  runAsUser:
+    rule: 'MustRunAsNonRoot'
+  seLinux:
+    rule: 'RunAsAny'
+  fsGroup:
+    rule: 'RunAsAny'

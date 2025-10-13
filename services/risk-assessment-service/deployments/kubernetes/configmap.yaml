@@ -1,0 +1,163 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: risk-assessment-config
+  namespace: kyb-platform
+  labels:
+    app: risk-assessment-service
+    component: risk-assessment
+data:
+  # Application Configuration
+  APP_NAME: "Risk Assessment Service"
+  APP_VERSION: "1.0.0"
+  ENVIRONMENT: "production"
+  
+  # Server Configuration
+  SERVER_HOST: "0.0.0.0"
+  SERVER_PORT: "8080"
+  SERVER_READ_TIMEOUT: "30s"
+  SERVER_WRITE_TIMEOUT: "30s"
+  SERVER_IDLE_TIMEOUT: "120s"
+  
+  # Database Configuration
+  DB_MAX_OPEN_CONNS: "25"
+  DB_MAX_IDLE_CONNS: "5"
+  DB_CONN_MAX_LIFETIME: "5m"
+  DB_CONN_MAX_IDLE_TIME: "1m"
+  DB_QUERY_TIMEOUT: "30s"
+  
+  # Redis Configuration
+  REDIS_MAX_RETRIES: "3"
+  REDIS_MIN_RETRY_BACKOFF: "8ms"
+  REDIS_MAX_RETRY_BACKOFF: "512ms"
+  REDIS_DIAL_TIMEOUT: "5s"
+  REDIS_READ_TIMEOUT: "3s"
+  REDIS_WRITE_TIMEOUT: "3s"
+  REDIS_POOL_SIZE: "10"
+  REDIS_MIN_IDLE_CONNS: "5"
+  REDIS_MAX_CONN_AGE: "30m"
+  REDIS_POOL_TIMEOUT: "4s"
+  REDIS_IDLE_TIMEOUT: "5m"
+  REDIS_IDLE_CHECK_FREQ: "1m"
+  
+  # ML Model Configuration
+  MODEL_CACHE_TTL: "1h"
+  MODEL_UPDATE_INTERVAL: "24h"
+  MODEL_BATCH_SIZE: "100"
+  MODEL_PREDICTION_TIMEOUT: "10s"
+  
+  # Batch Processing Configuration
+  BATCH_MAX_CONCURRENT_JOBS: "20"
+  BATCH_MAX_REQUESTS_PER_JOB: "10000"
+  BATCH_JOB_TIMEOUT: "60m"
+  BATCH_WORKER_POOL_SIZE: "10"
+  BATCH_RETRY_ATTEMPTS: "3"
+  BATCH_RETRY_DELAY: "5s"
+  
+  # Webhook Configuration
+  WEBHOOK_MAX_RETRIES: "5"
+  WEBHOOK_RETRY_INTERVAL: "1s"
+  WEBHOOK_MAX_RETRY_INTERVAL: "60s"
+  WEBHOOK_TIMEOUT: "30s"
+  WEBHOOK_RATE_LIMIT: "100"
+  WEBHOOK_RATE_WINDOW: "1m"
+  
+  # Rate Limiting Configuration
+  RATE_LIMIT_ENABLED: "true"
+  RATE_LIMIT_REQUESTS_PER_MINUTE: "1000"
+  RATE_LIMIT_BURST: "100"
+  RATE_LIMIT_SKIP_ON_ERROR: "false"
+  
+  # Monitoring Configuration
+  METRICS_ENABLED: "true"
+  METRICS_PORT: "9090"
+  METRICS_PATH: "/metrics"
+  HEALTH_CHECK_INTERVAL: "30s"
+  HEALTH_CHECK_TIMEOUT: "10s"
+  
+  # Logging Configuration
+  LOG_LEVEL: "info"
+  LOG_FORMAT: "json"
+  LOG_OUTPUT: "stdout"
+  LOG_SAMPLING_INITIAL: "100"
+  LOG_SAMPLING_THEREAFTER: "100"
+  
+  # Security Configuration
+  CORS_ENABLED: "true"
+  CORS_ALLOWED_ORIGINS: "*"
+  CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,OPTIONS"
+  CORS_ALLOWED_HEADERS: "Content-Type,Authorization,X-Requested-With"
+  CORS_MAX_AGE: "86400"
+  
+  # Feature Flags
+  FEATURE_CUSTOM_MODELS: "true"
+  FEATURE_BATCH_PROCESSING: "true"
+  FEATURE_WEBHOOKS: "true"
+  FEATURE_ADVANCED_REPORTING: "true"
+  FEATURE_BI_INTEGRATION: "true"
+  
+  # External API Configuration
+  EXTERNAL_API_TIMEOUT: "30s"
+  EXTERNAL_API_MAX_RETRIES: "3"
+  EXTERNAL_API_RETRY_DELAY: "1s"
+  
+  # Performance Configuration
+  CACHE_ENABLED: "true"
+  CACHE_DEFAULT_TTL: "5m"
+  CACHE_MAX_SIZE: "1000"
+  CACHE_CLEANUP_INTERVAL: "10m"
+  
+  # Development Configuration
+  DEBUG_ENABLED: "false"
+  PROFILING_ENABLED: "false"
+  TRACING_ENABLED: "true"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: risk-assessment-models
+  namespace: kyb-platform
+  labels:
+    app: risk-assessment-service
+    component: risk-assessment
+    type: models
+data:
+  # Model metadata
+  model-version: "v1.0.0"
+  model-created: "2024-01-01T00:00:00Z"
+  model-description: "Risk Assessment ML Models"
+  
+  # XGBoost model configuration
+  xgb-model.json: |
+    {
+      "model_type": "xgboost",
+      "version": "1.0.0",
+      "features": [
+        "business_age",
+        "industry_risk_score",
+        "financial_health_score",
+        "compliance_score",
+        "geographic_risk_score"
+      ],
+      "target": "risk_score",
+      "thresholds": {
+        "low": 0.3,
+        "medium": 0.6,
+        "high": 0.8
+      }
+    }
+  
+  # LSTM model configuration
+  risk_lstm_v1.onnx: |
+    {
+      "model_type": "lstm",
+      "version": "1.0.0",
+      "sequence_length": 30,
+      "features": [
+        "historical_risk_scores",
+        "market_conditions",
+        "economic_indicators"
+      ],
+      "target": "future_risk_score",
+      "prediction_horizon": 90
+    }

@@ -1,0 +1,84 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: kyb-platform
+  name: risk-assessment-service-role
+  labels:
+    app: risk-assessment-service
+    component: risk-assessment
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["autoscaling"]
+  resources: ["horizontalpodautoscalers"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["networkpolicies"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["policy"]
+  resources: ["poddisruptionbudgets"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: risk-assessment-service-rolebinding
+  namespace: kyb-platform
+  labels:
+    app: risk-assessment-service
+    component: risk-assessment
+subjects:
+- kind: ServiceAccount
+  name: risk-assessment-service
+  namespace: kyb-platform
+roleRef:
+  kind: Role
+  name: risk-assessment-service-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: risk-assessment-service-cluster-role
+  labels:
+    app: risk-assessment-service
+    component: risk-assessment
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["nodes", "pods"]
+  verbs: ["get", "list"]
+- apiGroups: ["custom.metrics.k8s.io"]
+  resources: ["*"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: risk-assessment-service-cluster-rolebinding
+  labels:
+    app: risk-assessment-service
+    component: risk-assessment
+subjects:
+- kind: ServiceAccount
+  name: risk-assessment-service
+  namespace: kyb-platform
+roleRef:
+  kind: ClusterRole
+  name: risk-assessment-service-cluster-role
+  apiGroup: rbac.authorization.k8s.io
