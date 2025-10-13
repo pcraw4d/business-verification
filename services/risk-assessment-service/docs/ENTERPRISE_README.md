@@ -40,7 +40,7 @@ The Enterprise Risk Assessment Service is a comprehensive, enterprise-grade risk
 - **Multi-Tenant Service**: Tenant management and data isolation
 
 ### Technology Stack
-- **Backend**: Go 1.22+ with standard library net/http
+- **Backend**: Go 1.23+ with standard library net/http
 - **Database**: PostgreSQL with row-level security
 - **Cache**: Redis for high-performance caching
 - **Message Queue**: Apache Kafka for event streaming
