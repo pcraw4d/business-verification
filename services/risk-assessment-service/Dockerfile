@@ -1,5 +1,8 @@
-# Build stage
+# Build stage - Go 1.23 for compatibility with go.mod
 FROM golang:1.23-alpine AS builder
+
+# Force cache bust for Railway - updated timestamp
+ARG CACHE_BUST=2025-10-13-04-00
 
 # Set working directory
 WORKDIR /app
