@@ -5,8 +5,8 @@ FROM golang:1.23.0-alpine3.19 AS builder
 ARG CACHE_BUST=2025-10-13-04-10
 ARG BUILD_DATE=2025-10-13T04:10:00Z
 
-# Verify Go version
-RUN go version
+# Verify Go version and ensure it's 1.23+
+RUN go version && go version | grep -q "go1.23" || (echo "ERROR: Go version must be 1.23 or higher" && exit 1)
 
 # Set working directory
 WORKDIR /app
