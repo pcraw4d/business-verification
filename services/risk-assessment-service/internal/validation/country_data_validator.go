@@ -31,17 +31,17 @@ type CountryDataValidatorConfig struct {
 
 // CountryRules represents validation rules for a specific country
 type CountryRules struct {
-	CountryCode        string                 `json:"country_code"`
-	CountryName        string                 `json:"country_name"`
-	BusinessIDRules    []BusinessIDRule       `json:"business_id_rules"`
-	TaxIDRules         []TaxIDRule            `json:"tax_id_rules"`
-	AddressRules       []AddressRule          `json:"address_rules"`
-	PhoneRules         []PhoneRule            `json:"phone_rules"`
-	EmailRules         []EmailRule            `json:"email_rules"`
-	WebsiteRules       []WebsiteRule          `json:"website_rules"`
+	CountryCode        string                  `json:"country_code"`
+	CountryName        string                  `json:"country_name"`
+	BusinessIDRules    []BusinessIDRule        `json:"business_id_rules"`
+	TaxIDRules         []TaxIDRule             `json:"tax_id_rules"`
+	AddressRules       []AddressRule           `json:"address_rules"`
+	PhoneRules         []PhoneRule             `json:"phone_rules"`
+	EmailRules         []EmailRule             `json:"email_rules"`
+	WebsiteRules       []WebsiteRule           `json:"website_rules"`
 	ComplianceRules    []CountryComplianceRule `json:"compliance_rules"`
-	DataResidencyRules DataResidencyRule      `json:"data_residency_rules"`
-	Metadata           map[string]interface{} `json:"metadata"`
+	DataResidencyRules DataResidencyRule       `json:"data_residency_rules"`
+	Metadata           map[string]interface{}  `json:"metadata"`
 }
 
 // BusinessIDRule represents business ID validation rules

@@ -148,18 +148,69 @@ func main() {
 	performanceMonitor.SetTargets(16.67, 1*time.Second, 0.01, 1000) // 1000 req/min target
 	logger.Info("✅ Performance monitor initialized")
 
+	// Initialize monitoring system
+	monitoringConfig := config.LoadMonitoringConfig()
+	prometheusMetrics := monitoring.NewPrometheusMetrics(logger)
+	alertManager := monitoring.NewAlertManager(logger)
+	
+	// Add alert channels
+	emailChannel := monitoring.NewEmailAlertChannel(monitoring.EmailConfig{
+		SMTPHost:    monitoringConfig.Alerting.Channels["email"].Config["smtp_host"].(string),
+		SMTPPort:    monitoringConfig.Alerting.Channels["email"].Config["smtp_port"].(int),
+		Username:    monitoringConfig.Alerting.Channels["email"].Config["username"].(string),
+		Password:    monitoringConfig.Alerting.Channels["email"].Config["password"].(string),
+		FromAddress: monitoringConfig.Alerting.Channels["email"].Config["from_address"].(string),
+		ToAddresses: monitoringConfig.Alerting.Channels["email"].Config["to_addresses"].([]string),
+		UseTLS:      monitoringConfig.Alerting.Channels["email"].Config["use_tls"].(bool),
+	}, logger)
+	alertManager.AddAlertChannel(emailChannel)
+	
+	grafanaClient := monitoring.NewGrafanaClient(monitoring.GrafanaConfig{
+		BaseURL:    monitoringConfig.Grafana.BaseURL,
+		APIKey:     monitoringConfig.Grafana.APIKey,
+		Username:   monitoringConfig.Grafana.Username,
+		Password:   monitoringConfig.Grafana.Password,
+		Timeout:    monitoringConfig.Grafana.Timeout,
+	}, logger)
+	
+	// Add alert rules
+	for _, ruleConfig := range monitoringConfig.Alerting.Rules {
+		alertRule := &monitoring.AlertRule{
+			ID:          ruleConfig.ID,
+			Name:        ruleConfig.Name,
+			Description: ruleConfig.Description,
+			Metric:      ruleConfig.Metric,
+			Condition:   ruleConfig.Condition,
+			Threshold:   ruleConfig.Threshold,
+			Severity:    monitoring.AlertSeverity(ruleConfig.Severity),
+			Duration:    ruleConfig.Duration,
+			Enabled:     ruleConfig.Enabled,
+			TenantID:    ruleConfig.TenantID,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+			Metadata:    make(map[string]interface{}),
+		}
+		alertManager.AddAlertRule(alertRule)
+	}
+	
+	logger.Info("✅ Monitoring system initialized")
+
 	// Initialize handlers
 	riskAssessmentHandler := handlers.NewRiskAssessmentHandler(supabaseClient, mlService, riskEngine, externalDataService, logger, cfg)
 	advancedPredictionHandler := handlers.NewAdvancedPredictionHandler(mlService, logger)
 	metricsHandler := handlers.NewMetricsHandler(mlService.GetMetricsCollector(), logger)
 	performanceHandler := handlers.NewPerformanceHandler(performanceMonitor, logger)
 	externalAPIHandler := apihandlers.NewExternalAPIHandler(externalAPIManager, logger)
+	monitoringHandler := handlers.NewMonitoringHandler(prometheusMetrics, alertManager, grafanaClient, logger)
 	// scenarioHandler := handlers.NewScenarioHandlers(logger) // Temporarily commented out due to build issues
 	// explainabilityHandler := handlers.NewExplainabilityHandlers(mlService, logger)
 	// experimentHandler := handlers.NewExperimentHandlers(experimentManager, logger) // Temporarily disabled due to testing package issues
 
 	// Initialize middleware
 	middlewareInstance := middleware.NewMiddleware(logger)
+	
+	// Initialize monitoring middleware
+	monitoringMiddleware := monitoring.NewMetricsMiddleware(prometheusMetrics, logger)
 
 	// Initialize new performance middleware with optimizer
 	// performanceMiddlewareConfig := performance.DefaultMiddlewareConfig()
@@ -182,6 +233,7 @@ func main() {
 	router.Use(middlewareInstance.LoggingMiddleware)
 	// router.Use(performanceMiddleware.Middleware)         // New performance monitoring
 	router.Use(legacyPerformanceMiddleware.Middleware()) // Legacy performance monitoring
+	router.Use(monitoringMiddleware.HTTPMetricsMiddleware) // Prometheus metrics collection
 	router.Use(middlewareInstance.SecurityMiddleware())
 	router.Use(middlewareInstance.RequestSizeMiddleware(10 * 1024 * 1024)) // 10MB limit
 	router.Use(middlewareInstance.TimeoutMiddleware(30 * time.Second))
@@ -231,6 +283,21 @@ func main() {
 	api.HandleFunc("/metrics", metricsHandler.HandleGetMetrics).Methods("GET")
 	api.HandleFunc("/health", metricsHandler.HandleGetHealth).Methods("GET")
 	api.HandleFunc("/performance", metricsHandler.HandleGetPerformanceSnapshot).Methods("GET")
+
+	// Advanced monitoring endpoints (Prometheus/Grafana)
+	api.HandleFunc("/monitoring/metrics", monitoringHandler.GetMetrics).Methods("GET")
+	api.HandleFunc("/monitoring/health", monitoringHandler.GetHealth).Methods("GET")
+	api.HandleFunc("/monitoring/alerts", monitoringHandler.GetAlerts).Methods("GET")
+	api.HandleFunc("/monitoring/alerts/history", monitoringHandler.GetAlertHistory).Methods("GET")
+	api.HandleFunc("/monitoring/alerts/suppress", monitoringHandler.SuppressAlert).Methods("POST")
+	api.HandleFunc("/monitoring/performance/insights", monitoringHandler.GetPerformanceInsights).Methods("GET")
+	api.HandleFunc("/monitoring/system/metrics", monitoringHandler.GetSystemMetrics).Methods("GET")
+	api.HandleFunc("/monitoring/tenant/metrics", monitoringHandler.GetTenantMetrics).Methods("GET")
+	api.HandleFunc("/monitoring/grafana/dashboard", monitoringHandler.CreateGrafanaDashboard).Methods("POST")
+	api.HandleFunc("/monitoring/grafana/dashboard", monitoringHandler.GetGrafanaDashboard).Methods("GET")
+	api.HandleFunc("/monitoring/grafana/dashboard", monitoringHandler.DeleteGrafanaDashboard).Methods("DELETE")
+	api.HandleFunc("/monitoring/config", monitoringHandler.GetMonitoringConfig).Methods("GET")
+	api.HandleFunc("/monitoring/config", monitoringHandler.UpdateMonitoringConfig).Methods("PUT")
 
 	// Performance monitoring endpoints (legacy)
 	api.HandleFunc("/performance/stats", performanceHandler.HandlePerformanceStats).Methods("GET")
@@ -304,6 +371,28 @@ func main() {
 
 	// Start performance monitoring
 	go performanceMonitor.StartMonitoring(context.Background())
+
+	// Start Prometheus metrics server
+	if monitoringConfig.Prometheus.Enabled {
+		go func() {
+			logger.Info("📊 Starting Prometheus metrics server", zap.Int("port", monitoringConfig.Prometheus.Port))
+			if err := prometheusMetrics.StartMetricsServer(context.Background(), monitoringConfig.Prometheus.Port); err != nil {
+				logger.Error("Failed to start Prometheus metrics server", zap.Error(err))
+			}
+		}()
+	}
+
+	// Create Grafana dashboard if auto-create is enabled
+	if monitoringConfig.Grafana.Enabled && monitoringConfig.Grafana.AutoCreate {
+		go func() {
+			time.Sleep(5 * time.Second) // Wait for services to be ready
+			if err := grafanaClient.CreateRiskAssessmentDashboard(context.Background()); err != nil {
+				logger.Error("Failed to create Grafana dashboard", zap.Error(err))
+			} else {
+				logger.Info("✅ Grafana dashboard created successfully")
+			}
+		}()
+	}
 
 	// Start server in a goroutine
 	go func() {

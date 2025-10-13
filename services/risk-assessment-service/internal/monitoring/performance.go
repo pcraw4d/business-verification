@@ -43,11 +43,11 @@ type PerformanceMonitor struct {
 	targetThroughput float64       // Target requests per minute
 
 	// Alerts
-	alerts []Alert
+	alerts []PerformanceAlert
 }
 
-// Alert represents a performance alert
-type Alert struct {
+// PerformanceAlert represents a performance alert
+type PerformanceAlert struct {
 	Type         AlertType
 	Message      string
 	Timestamp    time.Time
@@ -68,15 +68,6 @@ const (
 	AlertTypeHighGoroutines AlertType = "high_goroutines"
 )
 
-// AlertSeverity represents the severity of an alert
-type AlertSeverity string
-
-const (
-	AlertSeverityInfo     AlertSeverity = "info"
-	AlertSeverityWarning  AlertSeverity = "warning"
-	AlertSeverityCritical AlertSeverity = "critical"
-)
-
 // PerformanceStats represents current performance statistics
 type PerformanceStats struct {
 	RequestCount      int64           `json:"request_count"`
@@ -91,7 +82,7 @@ type PerformanceStats struct {
 	MemoryUsage       uint64          `json:"memory_usage"`
 	CPUUsage          float64         `json:"cpu_usage"`
 	GoroutineCount    int             `json:"goroutine_count"`
-	Alerts            []Alert         `json:"alerts"`
+	Alerts            []PerformanceAlert `json:"alerts"`
 	Timestamp         time.Time       `json:"timestamp"`
 }
 
@@ -104,7 +95,7 @@ func NewPerformanceMonitor(logger *zap.Logger) *PerformanceMonitor {
 		targetLatency:    1 * time.Second,
 		targetErrorRate:  0.01, // 1%
 		targetThroughput: 1000, // 1000 requests per minute
-		alerts:           make([]Alert, 0),
+		alerts:           make([]PerformanceAlert, 0),
 	}
 }
 
@@ -213,7 +204,7 @@ func (pm *PerformanceMonitor) checkAlerts() {
 
 // addAlert adds a new alert
 func (pm *PerformanceMonitor) addAlert(alertType AlertType, message string, severity AlertSeverity, threshold, currentValue float64) {
-	alert := Alert{
+	alert := PerformanceAlert{
 		Type:         alertType,
 		Message:      message,
 		Timestamp:    time.Now(),
@@ -262,7 +253,7 @@ func (pm *PerformanceMonitor) GetStats() *PerformanceStats {
 }
 
 // GetAlerts returns current alerts
-func (pm *PerformanceMonitor) GetAlerts() []Alert {
+func (pm *PerformanceMonitor) GetAlerts() []PerformanceAlert {
 	pm.mu.RLock()
 	defer pm.mu.RUnlock()
 
@@ -274,7 +265,7 @@ func (pm *PerformanceMonitor) ClearAlerts() {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
-	pm.alerts = make([]Alert, 0)
+	pm.alerts = make([]PerformanceAlert, 0)
 }
 
 // Reset resets all metrics
@@ -291,7 +282,7 @@ func (pm *PerformanceMonitor) Reset() {
 	pm.requestsPerSecond = 0
 	pm.requestsPerMinute = 0
 	pm.errorRate = 0
-	pm.alerts = make([]Alert, 0)
+	pm.alerts = make([]PerformanceAlert, 0)
 }
 
 // SetTargets sets performance targets
