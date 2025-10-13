@@ -63,7 +63,7 @@ RUN GOOS=linux GOARCH=amd64 go build \
     -a -installsuffix cgo \
     -ldflags='-w -s' \
     -o risk-assessment-service \
-    ./cmd/main.go
+    ./cmd/main.go ./cmd/cache_logger_wrapper.go
 
 # Build debug script
 RUN GOOS=linux GOARCH=amd64 go build \
