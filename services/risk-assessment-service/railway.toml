@@ -1,6 +1,6 @@
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile"
+dockerfilePath = "Dockerfile.go123"
 
 [deploy]
 startCommand = "./risk-assessment-service"
@@ -39,7 +39,7 @@ XGBOOST_MODEL_PATH = "/app/models/xgb_model.json"
 
 [services.risk-assessment-service]
 source = "."
-build = { builder = "DOCKERFILE", dockerfilePath = "Dockerfile" }
+build = { builder = "DOCKERFILE", dockerfilePath = "Dockerfile.go123" }
 deploy = { startCommand = "./risk-assessment-service", healthcheckPath = "/health", healthcheckTimeout = 30, restartPolicyType = "ON_FAILURE", restartPolicyMaxRetries = 3 }
 resources = { memory = "2Gi", cpu = "2" }
 scaling = { minReplicas = 1, maxReplicas = 5 }
