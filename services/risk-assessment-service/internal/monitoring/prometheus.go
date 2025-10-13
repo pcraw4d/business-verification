@@ -15,42 +15,42 @@ import (
 // PrometheusMetrics provides comprehensive metrics collection for the Risk Assessment Service
 type PrometheusMetrics struct {
 	// HTTP Metrics
-	httpRequestsTotal     *prometheus.CounterVec
-	httpRequestDuration   *prometheus.HistogramVec
-	httpRequestSize       *prometheus.HistogramVec
-	httpResponseSize      *prometheus.HistogramVec
+	httpRequestsTotal   *prometheus.CounterVec
+	httpRequestDuration *prometheus.HistogramVec
+	httpRequestSize     *prometheus.HistogramVec
+	httpResponseSize    *prometheus.HistogramVec
 
 	// Business Metrics
-	riskAssessmentsTotal  *prometheus.CounterVec
-	riskAssessmentDuration *prometheus.HistogramVec
-	riskScoreDistribution *prometheus.HistogramVec
-	complianceChecksTotal *prometheus.CounterVec
+	riskAssessmentsTotal     *prometheus.CounterVec
+	riskAssessmentDuration   *prometheus.HistogramVec
+	riskScoreDistribution    *prometheus.HistogramVec
+	complianceChecksTotal    *prometheus.CounterVec
 	sanctionsScreeningsTotal *prometheus.CounterVec
-	adverseMediaChecksTotal *prometheus.CounterVec
+	adverseMediaChecksTotal  *prometheus.CounterVec
 
 	// System Metrics
-	activeConnections     prometheus.Gauge
-	databaseConnections   *prometheus.GaugeVec
-	cacheHitRate         *prometheus.GaugeVec
-	externalAPICalls     *prometheus.CounterVec
-	externalAPIDuration  *prometheus.HistogramVec
+	activeConnections   prometheus.Gauge
+	databaseConnections *prometheus.GaugeVec
+	cacheHitRate        *prometheus.GaugeVec
+	externalAPICalls    *prometheus.CounterVec
+	externalAPIDuration *prometheus.HistogramVec
 
 	// Error Metrics
-	errorsTotal          *prometheus.CounterVec
-	errorRate            *prometheus.GaugeVec
-	timeoutErrors        *prometheus.CounterVec
-	validationErrors     *prometheus.CounterVec
+	errorsTotal      *prometheus.CounterVec
+	errorRate        *prometheus.GaugeVec
+	timeoutErrors    *prometheus.CounterVec
+	validationErrors *prometheus.CounterVec
 
 	// Performance Metrics
-	responseTimeP50      *prometheus.GaugeVec
-	responseTimeP95      *prometheus.GaugeVec
-	responseTimeP99      *prometheus.GaugeVec
-	throughput           *prometheus.GaugeVec
+	responseTimeP50 *prometheus.GaugeVec
+	responseTimeP95 *prometheus.GaugeVec
+	responseTimeP99 *prometheus.GaugeVec
+	throughput      *prometheus.GaugeVec
 
 	// Tenant Metrics
-	tenantRequests       *prometheus.CounterVec
-	tenantDataUsage      *prometheus.GaugeVec
-	tenantErrorRate      *prometheus.GaugeVec
+	tenantRequests  *prometheus.CounterVec
+	tenantDataUsage *prometheus.GaugeVec
+	tenantErrorRate *prometheus.GaugeVec
 
 	// Compliance Metrics
 	auditEventsTotal     *prometheus.CounterVec
@@ -352,11 +352,11 @@ func (pm *PrometheusMetrics) UpdatePerformanceMetrics(endpoint, tenantID string,
 // UpdateSystemMetrics updates system metrics
 func (pm *PrometheusMetrics) UpdateSystemMetrics(activeConnections int, dbConnections map[string]int, cacheHitRates map[string]float64) {
 	pm.activeConnections.Set(float64(activeConnections))
-	
+
 	for state, count := range dbConnections {
 		pm.databaseConnections.WithLabelValues(state, "postgres").Set(float64(count))
 	}
-	
+
 	for cacheType, hitRate := range cacheHitRates {
 		pm.cacheHitRate.WithLabelValues(cacheType).Set(hitRate)
 	}
@@ -389,20 +389,20 @@ func (pm *PrometheusMetrics) RecordSecurityIncident(incidentType, severity, tena
 func (pm *PrometheusMetrics) StartMetricsServer(ctx context.Context, port int) error {
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
-	
+
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", port),
 		Handler: mux,
 	}
-	
+
 	pm.logger.Info("Starting Prometheus metrics server", zap.Int("port", port))
-	
+
 	go func() {
 		<-ctx.Done()
 		pm.logger.Info("Shutting down Prometheus metrics server")
 		server.Shutdown(context.Background())
 	}()
-	
+
 	return server.ListenAndServe()
 }
 

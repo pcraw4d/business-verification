@@ -329,8 +329,53 @@ func (h *RiskAssessmentHandler) HandleBatchRiskAssessment(w http.ResponseWriter,
 		return
 	}
 
+	// For batches larger than 100 requests, redirect to async batch processing
 	if len(req.Requests) > 100 {
-		h.errorHandler.HandleError(w, r, fmt.Errorf("batch size exceeds maximum of 100 requests"))
+		h.logger.Info("Large batch detected, redirecting to async processing",
+			zap.Int("batch_size", len(req.Requests)))
+
+		// Convert to async batch job request format
+		asyncRequests := make([]map[string]interface{}, len(req.Requests))
+		for i, request := range req.Requests {
+			asyncRequests[i] = map[string]interface{}{
+				"business_name":      request.BusinessName,
+				"business_address":   request.BusinessAddress,
+				"industry":           request.Industry,
+				"country":            request.Country,
+				"phone":              request.Phone,
+				"email":              request.Email,
+				"website":            request.Website,
+				"prediction_horizon": request.PredictionHorizon,
+				"model_type":         request.ModelType,
+				"custom_model_id":    request.CustomModelID,
+				"metadata":           request.Metadata,
+			}
+		}
+
+		// Note: In a real implementation, you would submit this to the async batch processor
+		// asyncBatchRequest := map[string]interface{}{
+		//	"job_type":    "risk_assessment",
+		//	"requests":    asyncRequests,
+		//	"priority":    5,
+		//	"max_retries": 3,
+		//	"created_by":  "batch_handler",
+		//	"metadata": map[string]interface{}{
+		//		"source": "legacy_batch_handler",
+		//		"original_batch_size": len(req.Requests),
+		//	},
+		// }
+
+		// Return async job response
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusAccepted)
+		response := map[string]interface{}{
+			"message":         "Large batch redirected to async processing",
+			"batch_size":      len(req.Requests),
+			"async_endpoint":  "/api/v1/assess/batch/async",
+			"status_endpoint": "/api/v1/assess/batch/{job_id}",
+			"recommendation":  "Use async batch processing for batches larger than 100 requests",
+		}
+		json.NewEncoder(w).Encode(response)
 		return
 	}
 

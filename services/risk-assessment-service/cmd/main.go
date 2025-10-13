@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"database/sql"
+
 	// "encoding/json"
 	"log"
 	"net/http"
@@ -14,17 +16,144 @@ import (
 	"go.uber.org/zap"
 
 	apihandlers "kyb-platform/services/risk-assessment-service/internal/api/handlers"
+	"kyb-platform/services/risk-assessment-service/internal/batch"
 	"kyb-platform/services/risk-assessment-service/internal/config"
 	"kyb-platform/services/risk-assessment-service/internal/engine"
 	"kyb-platform/services/risk-assessment-service/internal/external"
 	"kyb-platform/services/risk-assessment-service/internal/handlers"
 	"kyb-platform/services/risk-assessment-service/internal/middleware"
+	"kyb-platform/services/risk-assessment-service/internal/ml/custom"
 	"kyb-platform/services/risk-assessment-service/internal/ml/service"
+	"kyb-platform/services/risk-assessment-service/internal/models"
 	"kyb-platform/services/risk-assessment-service/internal/monitoring"
+	"kyb-platform/services/risk-assessment-service/internal/reporting"
+	"kyb-platform/services/risk-assessment-service/internal/webhooks"
 
 	// "kyb-platform/services/risk-assessment-service/internal/performance"
 	"kyb-platform/services/risk-assessment-service/internal/supabase"
 )
+
+// MockDashboardDataProvider provides mock data for dashboard testing
+type MockDashboardDataProvider struct {
+	logger *zap.Logger
+}
+
+// GetRiskAssessments returns mock risk assessment data
+func (m *MockDashboardDataProvider) GetRiskAssessments(ctx context.Context, tenantID string, filters *reporting.DashboardFilters) ([]*models.RiskAssessment, error) {
+	// Return mock data for testing
+	return []*models.RiskAssessment{
+		{
+			ID:              "assessment_1",
+			BusinessID:      "business_1",
+			BusinessName:    "Test Business 1",
+			BusinessAddress: "123 Test St, City, State 12345",
+			Industry:        "Technology",
+			Country:         "US",
+			RiskScore:       0.75,
+			RiskLevel:       models.RiskLevelHigh,
+			CreatedAt:       time.Now().Add(-24 * time.Hour),
+		},
+		{
+			ID:              "assessment_2",
+			BusinessID:      "business_2",
+			BusinessName:    "Test Business 2",
+			BusinessAddress: "456 Test Ave, City, State 12345",
+			Industry:        "Finance",
+			Country:         "US",
+			RiskScore:       0.45,
+			RiskLevel:       models.RiskLevelMedium,
+			CreatedAt:       time.Now().Add(-12 * time.Hour),
+		},
+	}, nil
+}
+
+// GetRiskPredictions returns mock risk prediction data
+func (m *MockDashboardDataProvider) GetRiskPredictions(ctx context.Context, tenantID string, filters *reporting.DashboardFilters) ([]*models.RiskPrediction, error) {
+	// Return mock data for testing
+	return []*models.RiskPrediction{
+		{
+			BusinessID:      "business_1",
+			PredictionDate:  time.Now(),
+			HorizonMonths:   3,
+			PredictedScore:  0.80,
+			PredictedLevel:  models.RiskLevelHigh,
+			ConfidenceScore: 0.85,
+			CreatedAt:       time.Now(),
+		},
+	}, nil
+}
+
+// GetBatchJobs returns mock batch job data
+func (m *MockDashboardDataProvider) GetBatchJobs(ctx context.Context, tenantID string, filters *reporting.DashboardFilters) ([]*reporting.BatchJobData, error) {
+	// Return mock data for testing
+	return []*reporting.BatchJobData{
+		{
+			ID:            "batch_job_1",
+			Status:        "completed",
+			TotalRequests: 100,
+			Completed:     95,
+			Failed:        5,
+			CreatedAt:     time.Now().Add(-2 * time.Hour),
+			CompletedAt:   &[]time.Time{time.Now().Add(-1 * time.Hour)}[0],
+			JobType:       "risk_assessment",
+		},
+	}, nil
+}
+
+// GetComplianceData returns mock compliance data
+func (m *MockDashboardDataProvider) GetComplianceData(ctx context.Context, tenantID string, filters *reporting.DashboardFilters) (*reporting.ComplianceData, error) {
+	// Return mock data for testing
+	return &reporting.ComplianceData{
+		TotalChecks:  100,
+		Compliant:    85,
+		NonCompliant: 10,
+		Pending:      5,
+		Violations: []reporting.ComplianceViolation{
+			{
+				Violation: "Missing documentation",
+				Count:     5,
+				Severity:  "medium",
+			},
+		},
+		Trends: []reporting.ComplianceTrend{},
+	}, nil
+}
+
+// GetPerformanceData returns mock performance data
+func (m *MockDashboardDataProvider) GetPerformanceData(ctx context.Context, tenantID string, filters *reporting.DashboardFilters) (*reporting.PerformanceData, error) {
+	// Return mock data for testing
+	return &reporting.PerformanceData{
+		ResponseTime: reporting.PerformanceMetrics{
+			Average: 500.0,
+			P95:     1000.0,
+			P99:     2000.0,
+			Min:     100.0,
+			Max:     5000.0,
+		},
+		Throughput: reporting.PerformanceMetrics{
+			Average: 1000.0,
+			P95:     1500.0,
+			P99:     2000.0,
+			Min:     500.0,
+			Max:     3000.0,
+		},
+		ErrorRate: reporting.PerformanceMetrics{
+			Average: 0.1,
+			P95:     0.5,
+			P99:     1.0,
+			Min:     0.0,
+			Max:     2.0,
+		},
+		Availability: reporting.PerformanceMetrics{
+			Average: 99.9,
+			P95:     100.0,
+			P99:     100.0,
+			Min:     99.0,
+			Max:     100.0,
+		},
+		Trends: []reporting.PerformanceTrend{},
+	}, nil
+}
 
 func main() {
 	// Initialize logger
@@ -73,7 +202,7 @@ func main() {
 
 	// Initialize risk engine
 	riskEngineConfig := &engine.Config{
-		MaxConcurrentRequests: 100,
+		MaxConcurrentRequests: 1000,                   // Increased for batch processing
 		RequestTimeout:        500 * time.Millisecond, // Sub-1-second target
 		CacheTTL:              5 * time.Minute,
 		CircuitBreakerConfig: engine.CircuitBreakerConfig{
@@ -152,7 +281,7 @@ func main() {
 	monitoringConfig := config.LoadMonitoringConfig()
 	prometheusMetrics := monitoring.NewPrometheusMetrics(logger)
 	alertManager := monitoring.NewAlertManager(logger)
-	
+
 	// Add alert channels
 	emailChannel := monitoring.NewEmailAlertChannel(monitoring.EmailConfig{
 		SMTPHost:    monitoringConfig.Alerting.Channels["email"].Config["smtp_host"].(string),
@@ -164,15 +293,15 @@ func main() {
 		UseTLS:      monitoringConfig.Alerting.Channels["email"].Config["use_tls"].(bool),
 	}, logger)
 	alertManager.AddAlertChannel(emailChannel)
-	
+
 	grafanaClient := monitoring.NewGrafanaClient(monitoring.GrafanaConfig{
-		BaseURL:    monitoringConfig.Grafana.BaseURL,
-		APIKey:     monitoringConfig.Grafana.APIKey,
-		Username:   monitoringConfig.Grafana.Username,
-		Password:   monitoringConfig.Grafana.Password,
-		Timeout:    monitoringConfig.Grafana.Timeout,
+		BaseURL:  monitoringConfig.Grafana.BaseURL,
+		APIKey:   monitoringConfig.Grafana.APIKey,
+		Username: monitoringConfig.Grafana.Username,
+		Password: monitoringConfig.Grafana.Password,
+		Timeout:  monitoringConfig.Grafana.Timeout,
 	}, logger)
-	
+
 	// Add alert rules
 	for _, ruleConfig := range monitoringConfig.Alerting.Rules {
 		alertRule := &monitoring.AlertRule{
@@ -192,7 +321,7 @@ func main() {
 		}
 		alertManager.AddAlertRule(alertRule)
 	}
-	
+
 	logger.Info("✅ Monitoring system initialized")
 
 	// Initialize handlers
@@ -202,13 +331,50 @@ func main() {
 	performanceHandler := handlers.NewPerformanceHandler(performanceMonitor, logger)
 	externalAPIHandler := apihandlers.NewExternalAPIHandler(externalAPIManager, logger)
 	monitoringHandler := handlers.NewMonitoringHandler(prometheusMetrics, alertManager, grafanaClient, logger)
+
+	// Initialize custom model components
+	// Note: In a real implementation, you'd pass the actual database connection
+	// For now, we'll create a nil database connection placeholder
+	var db *sql.DB = nil // This would be initialized with actual database connection
+	customModelRepository := custom.NewSQLCustomModelRepository(db, logger)
+	customModelBuilder := custom.NewCustomModelBuilder(customModelRepository, logger)
+	customModelHandler := handlers.NewCustomModelHandler(customModelBuilder, logger)
+	_ = customModelHandler // Used in routes below
+
+	// Initialize batch processing components
+	batchJobRepository := batch.NewSQLBatchJobRepository(db, logger)
+	batchProcessor := batch.NewDefaultBatchProcessor(riskEngine, batchJobRepository, batch.DefaultBatchJobConfig(), logger)
+	jobManager := batch.NewDefaultJobManager(batchJobRepository, batchProcessor, batch.DefaultBatchJobConfig(), logger)
+	batchJobHandler := handlers.NewBatchJobHandler(jobManager, logger)
+	_ = batchJobHandler // Used in routes below
+
+	// Initialize webhook components
+	webhookRepository := webhooks.NewSQLWebhookRepository(db, logger)
+	deliveryTracker := webhooks.NewDefaultWebhookDeliveryTracker(webhookRepository, logger)
+	retryHandler := webhooks.NewDefaultWebhookRetryHandler(webhookRepository, logger)
+	signatureVerifier := webhooks.NewDefaultWebhookSignatureVerifier(5 * time.Minute)
+	rateLimiter := webhooks.NewDefaultWebhookRateLimiter(logger)
+	circuitBreaker := webhooks.NewDefaultWebhookCircuitBreaker(logger)
+	eventFilter := webhooks.NewDefaultWebhookEventFilter(logger)
+	webhookManager := webhooks.NewDefaultWebhookManager(webhookRepository, deliveryTracker, retryHandler, signatureVerifier, rateLimiter, circuitBreaker, eventFilter, logger)
+	webhookHandlers := handlers.NewSimpleWebhookHandlers(webhookManager, logger)
+	_ = webhookHandlers // Used in routes below
+
+	// Initialize dashboard components
+	dashboardRepository := reporting.NewSQLDashboardRepository(db, logger)
+	// Note: In a real implementation, you would create a proper data provider
+	// For now, we'll use a mock data provider
+	dashboardDataProvider := &MockDashboardDataProvider{logger: logger}
+	dashboardService := reporting.NewDefaultDashboardService(dashboardRepository, dashboardDataProvider, logger)
+	dashboardHandler := handlers.NewDashboardHandler(dashboardService, logger)
+	_ = dashboardHandler // Used in routes below
 	// scenarioHandler := handlers.NewScenarioHandlers(logger) // Temporarily commented out due to build issues
 	// explainabilityHandler := handlers.NewExplainabilityHandlers(mlService, logger)
 	// experimentHandler := handlers.NewExperimentHandlers(experimentManager, logger) // Temporarily disabled due to testing package issues
 
 	// Initialize middleware
 	middlewareInstance := middleware.NewMiddleware(logger)
-	
+
 	// Initialize monitoring middleware
 	monitoringMiddleware := monitoring.NewMetricsMiddleware(prometheusMetrics, logger)
 
@@ -232,7 +398,7 @@ func main() {
 	router.Use(middlewareInstance.RecoveryMiddleware())
 	router.Use(middlewareInstance.LoggingMiddleware)
 	// router.Use(performanceMiddleware.Middleware)         // New performance monitoring
-	router.Use(legacyPerformanceMiddleware.Middleware()) // Legacy performance monitoring
+	router.Use(legacyPerformanceMiddleware.Middleware())   // Legacy performance monitoring
 	router.Use(monitoringMiddleware.HTTPMetricsMiddleware) // Prometheus metrics collection
 	router.Use(middlewareInstance.SecurityMiddleware())
 	router.Use(middlewareInstance.RequestSizeMiddleware(10 * 1024 * 1024)) // 10MB limit
@@ -263,6 +429,39 @@ func main() {
 	api.HandleFunc("/risk/predict-advanced", advancedPredictionHandler.HandleAdvancedPrediction).Methods("POST")
 	api.HandleFunc("/models/info", advancedPredictionHandler.HandleGetModelInfo).Methods("GET")
 	api.HandleFunc("/models/performance", advancedPredictionHandler.HandleGetModelPerformance).Methods("GET")
+
+	// Custom model endpoints
+	api.HandleFunc("/models/custom", customModelHandler.HandleCreateCustomModel).Methods("POST")
+	api.HandleFunc("/models/custom", customModelHandler.HandleListCustomModels).Methods("GET")
+	api.HandleFunc("/models/custom/{id}", customModelHandler.HandleGetCustomModel).Methods("GET")
+	api.HandleFunc("/models/custom/{id}", customModelHandler.HandleUpdateCustomModel).Methods("PUT")
+	api.HandleFunc("/models/custom/{id}", customModelHandler.HandleDeleteCustomModel).Methods("DELETE")
+	api.HandleFunc("/models/custom/{id}/validate", customModelHandler.HandleValidateCustomModel).Methods("POST")
+	api.HandleFunc("/models/custom/{id}/test", customModelHandler.HandleTestCustomModel).Methods("POST")
+	api.HandleFunc("/models/custom/{id}/activate", customModelHandler.HandleActivateCustomModel).Methods("POST")
+	api.HandleFunc("/models/custom/{id}/deactivate", customModelHandler.HandleDeactivateCustomModel).Methods("POST")
+	api.HandleFunc("/models/custom/{id}/versions", customModelHandler.HandleGetCustomModelVersions).Methods("GET")
+
+	// Batch processing endpoints
+	api.HandleFunc("/assess/batch/async", batchJobHandler.HandleSubmitBatchJob).Methods("POST")
+	api.HandleFunc("/assess/batch", batchJobHandler.HandleListBatchJobs).Methods("GET")
+	api.HandleFunc("/assess/batch/{job_id}", batchJobHandler.HandleGetBatchJobStatus).Methods("GET")
+	api.HandleFunc("/assess/batch/{job_id}/results", batchJobHandler.HandleGetBatchJobResults).Methods("GET")
+	api.HandleFunc("/assess/batch/{job_id}", batchJobHandler.HandleCancelBatchJob).Methods("DELETE")
+	api.HandleFunc("/assess/batch/{job_id}/resume", batchJobHandler.HandleResumeBatchJob).Methods("POST")
+	api.HandleFunc("/assess/batch/metrics", batchJobHandler.HandleGetBatchJobMetrics).Methods("GET")
+
+	// Dashboard endpoints
+	api.HandleFunc("/reporting/dashboards", dashboardHandler.HandleCreateDashboard).Methods("POST")
+	api.HandleFunc("/reporting/dashboards", dashboardHandler.HandleListDashboards).Methods("GET")
+	api.HandleFunc("/reporting/dashboards/{id}", dashboardHandler.HandleGetDashboard).Methods("GET")
+	api.HandleFunc("/reporting/dashboards/{id}", dashboardHandler.HandleUpdateDashboard).Methods("PUT")
+	api.HandleFunc("/reporting/dashboards/{id}", dashboardHandler.HandleDeleteDashboard).Methods("DELETE")
+	api.HandleFunc("/reporting/dashboards/{id}/data", dashboardHandler.HandleGetDashboardData).Methods("GET")
+	api.HandleFunc("/reporting/dashboards/metrics", dashboardHandler.HandleGetDashboardMetrics).Methods("GET")
+	api.HandleFunc("/reporting/dashboard/risk-overview", dashboardHandler.HandleGetRiskOverview).Methods("GET")
+	api.HandleFunc("/reporting/dashboard/trends", dashboardHandler.HandleGetTrends).Methods("GET")
+	api.HandleFunc("/reporting/dashboard/predictions", dashboardHandler.HandleGetPredictions).Methods("GET")
 
 	// Compliance endpoints
 	api.HandleFunc("/compliance/check", riskAssessmentHandler.HandleComplianceCheck).Methods("POST")
@@ -360,6 +559,14 @@ func main() {
 	// api.HandleFunc("/explain/visualization", explainabilityHandler.HandleGenerateVisualization).Methods("POST")
 	// api.HandleFunc("/explain/info", explainabilityHandler.HandleGetExplainabilityInfo).Methods("GET")
 
+	// Webhook endpoints
+	webhookAPI := api.PathPrefix("/webhooks").Subrouter()
+	webhookAPI.HandleFunc("", webhookHandlers.CreateWebhook).Methods("POST")
+	webhookAPI.HandleFunc("", webhookHandlers.ListWebhooks).Methods("GET")
+	webhookAPI.HandleFunc("/{id}", webhookHandlers.GetWebhook).Methods("GET")
+	webhookAPI.HandleFunc("/{id}", webhookHandlers.UpdateWebhook).Methods("PUT", "PATCH")
+	webhookAPI.HandleFunc("/{id}", webhookHandlers.DeleteWebhook).Methods("DELETE")
+
 	// Create HTTP server
 	httpServer := &http.Server{
 		Addr:         ":" + cfg.Server.Port,
@@ -371,6 +578,12 @@ func main() {
 
 	// Start performance monitoring
 	go performanceMonitor.StartMonitoring(context.Background())
+
+	// Start batch job manager
+	if err := jobManager.Start(context.Background()); err != nil {
+		logger.Fatal("Failed to start batch job manager", zap.Error(err))
+	}
+	logger.Info("✅ Batch job manager started")
 
 	// Start Prometheus metrics server
 	if monitoringConfig.Prometheus.Enabled {
@@ -419,6 +632,11 @@ func main() {
 	// Shutdown risk engine
 	if err := riskEngine.Shutdown(ctx); err != nil {
 		logger.Error("Risk engine shutdown failed", zap.Error(err))
+	}
+
+	// Shutdown batch job manager
+	if err := jobManager.Stop(); err != nil {
+		logger.Error("Batch job manager shutdown failed", zap.Error(err))
 	}
 
 	// Attempt graceful shutdown

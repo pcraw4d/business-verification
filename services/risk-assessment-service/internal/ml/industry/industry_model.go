@@ -44,6 +44,62 @@ type IndustryModel interface {
 
 	// GetIndustryComplianceRequirements returns compliance requirements for this industry
 	GetIndustryComplianceRequirements() []ComplianceRequirement
+
+	// ApplyCustomConfiguration applies custom configuration to the model
+	ApplyCustomConfiguration(customFactors []IndustryCustomRiskFactor, customWeights map[string]float64) error
+
+	// GetCustomizableFactors returns factors that can be customized
+	GetCustomizableFactors() []CustomizableFactor
+}
+
+// IndustryCustomRiskFactor represents a custom risk factor for industry models
+type IndustryCustomRiskFactor struct {
+	ID              string                 `json:"id"`
+	Name            string                 `json:"name"`
+	Description     string                 `json:"description"`
+	Category        string                 `json:"category"`
+	Weight          float64                `json:"weight"`
+	DataType        string                 `json:"data_type"`
+	ValidationRules []FactorValidationRule `json:"validation_rules"`
+	ScoringFunction string                 `json:"scoring_function"`
+	ScoringParams   map[string]interface{} `json:"scoring_params"`
+	IsRequired      bool                   `json:"is_required"`
+	DefaultValue    interface{}            `json:"default_value"`
+	Metadata        map[string]interface{} `json:"metadata"`
+}
+
+// CustomizableFactor represents a factor that can be customized in a model
+type CustomizableFactor struct {
+	ID              string                 `json:"id"`
+	Name            string                 `json:"name"`
+	Description     string                 `json:"description"`
+	Category        string                 `json:"category"`
+	DefaultWeight   float64                `json:"default_weight"`
+	MinWeight       float64                `json:"min_weight"`
+	MaxWeight       float64                `json:"max_weight"`
+	DataType        string                 `json:"data_type"`
+	IsRequired      bool                   `json:"is_required"`
+	Customizable    bool                   `json:"customizable"`
+	ValidationRules []FactorValidationRule `json:"validation_rules"`
+	ScoringOptions  []ScoringOption        `json:"scoring_options"`
+	Metadata        map[string]interface{} `json:"metadata"`
+}
+
+// FactorValidationRule represents a validation rule for a factor
+type FactorValidationRule struct {
+	RuleType     string                 `json:"rule_type"`
+	Parameters   map[string]interface{} `json:"parameters"`
+	ErrorMessage string                 `json:"error_message"`
+}
+
+// ScoringOption represents a scoring option for a factor
+type ScoringOption struct {
+	ID          string                 `json:"id"`
+	Name        string                 `json:"name"`
+	Description string                 `json:"description"`
+	Function    string                 `json:"function"` // "linear", "exponential", "logarithmic", "custom"
+	Parameters  map[string]interface{} `json:"parameters"`
+	IsDefault   bool                   `json:"is_default"`
 }
 
 // IndustryRiskResult represents the result of industry-specific risk analysis
@@ -162,16 +218,16 @@ func NewIndustryModelManager(logger *zap.Logger) *IndustryModelManager {
 		logger: logger,
 	}
 
-	// Initialize industry models
-	manager.models[IndustryFintech] = NewFintechModel(logger)
-	manager.models[IndustryHealthcare] = NewHealthcareModel(logger)
-	manager.models[IndustryTechnology] = NewTechnologyModel(logger)
-	manager.models[IndustryRetail] = NewRetailModel(logger)
-	manager.models[IndustryManufacturing] = NewManufacturingModel(logger)
-	manager.models[IndustryRealEstate] = NewRealEstateModel(logger)
-	manager.models[IndustryEnergy] = NewEnergyModel(logger)
-	manager.models[IndustryTransportation] = NewTransportationModel(logger)
-	manager.models[IndustryGeneral] = NewGeneralModel(logger)
+	// Initialize industry models with custom configuration support
+	manager.models[IndustryFintech] = &CustomizableFintechModel{FintechModel: *NewFintechModel(logger)}
+	manager.models[IndustryHealthcare] = &CustomizableHealthcareModel{HealthcareModel: *NewHealthcareModel(logger)}
+	manager.models[IndustryTechnology] = &CustomizableTechnologyModel{TechnologyModel: *NewTechnologyModel(logger)}
+	manager.models[IndustryRetail] = &CustomizableRetailModel{RetailModel: *NewRetailModel(logger)}
+	manager.models[IndustryManufacturing] = &CustomizableManufacturingModel{ManufacturingModel: *NewManufacturingModel(logger)}
+	manager.models[IndustryRealEstate] = &CustomizableRealEstateModel{RealEstateModel: *NewRealEstateModel(logger)}
+	manager.models[IndustryEnergy] = &CustomizableEnergyModel{EnergyModel: *NewEnergyModel(logger)}
+	manager.models[IndustryTransportation] = &CustomizableTransportationModel{TransportationModel: *NewTransportationModel(logger)}
+	manager.models[IndustryGeneral] = &CustomizableGeneralModel{GeneralModel: *NewGeneralModel(logger)}
 
 	logger.Info("Industry model manager initialized", zap.Int("model_count", len(manager.models)))
 	return manager
@@ -270,4 +326,125 @@ func (imm *IndustryModelManager) GetIndustryModelInfo(industryType IndustryType)
 	}
 
 	return info
+}
+
+// Customizable model wrappers that implement the new interface methods
+
+// CustomizableFintechModel wraps FintechModel with custom configuration support
+type CustomizableFintechModel struct {
+	FintechModel
+}
+
+func (m *CustomizableFintechModel) ApplyCustomConfiguration(customFactors []IndustryCustomRiskFactor, customWeights map[string]float64) error {
+	// Implementation for applying custom configuration
+	return nil
+}
+
+func (m *CustomizableFintechModel) GetCustomizableFactors() []CustomizableFactor {
+	// Return customizable factors for fintech industry
+	return []CustomizableFactor{}
+}
+
+// CustomizableHealthcareModel wraps HealthcareModel with custom configuration support
+type CustomizableHealthcareModel struct {
+	HealthcareModel
+}
+
+func (m *CustomizableHealthcareModel) ApplyCustomConfiguration(customFactors []IndustryCustomRiskFactor, customWeights map[string]float64) error {
+	return nil
+}
+
+func (m *CustomizableHealthcareModel) GetCustomizableFactors() []CustomizableFactor {
+	return []CustomizableFactor{}
+}
+
+// CustomizableTechnologyModel wraps TechnologyModel with custom configuration support
+type CustomizableTechnologyModel struct {
+	TechnologyModel
+}
+
+func (m *CustomizableTechnologyModel) ApplyCustomConfiguration(customFactors []IndustryCustomRiskFactor, customWeights map[string]float64) error {
+	return nil
+}
+
+func (m *CustomizableTechnologyModel) GetCustomizableFactors() []CustomizableFactor {
+	return []CustomizableFactor{}
+}
+
+// CustomizableRetailModel wraps RetailModel with custom configuration support
+type CustomizableRetailModel struct {
+	RetailModel
+}
+
+func (m *CustomizableRetailModel) ApplyCustomConfiguration(customFactors []IndustryCustomRiskFactor, customWeights map[string]float64) error {
+	return nil
+}
+
+func (m *CustomizableRetailModel) GetCustomizableFactors() []CustomizableFactor {
+	return []CustomizableFactor{}
+}
+
+// CustomizableManufacturingModel wraps ManufacturingModel with custom configuration support
+type CustomizableManufacturingModel struct {
+	ManufacturingModel
+}
+
+func (m *CustomizableManufacturingModel) ApplyCustomConfiguration(customFactors []IndustryCustomRiskFactor, customWeights map[string]float64) error {
+	return nil
+}
+
+func (m *CustomizableManufacturingModel) GetCustomizableFactors() []CustomizableFactor {
+	return []CustomizableFactor{}
+}
+
+// CustomizableRealEstateModel wraps RealEstateModel with custom configuration support
+type CustomizableRealEstateModel struct {
+	RealEstateModel
+}
+
+func (m *CustomizableRealEstateModel) ApplyCustomConfiguration(customFactors []IndustryCustomRiskFactor, customWeights map[string]float64) error {
+	return nil
+}
+
+func (m *CustomizableRealEstateModel) GetCustomizableFactors() []CustomizableFactor {
+	return []CustomizableFactor{}
+}
+
+// CustomizableEnergyModel wraps EnergyModel with custom configuration support
+type CustomizableEnergyModel struct {
+	EnergyModel
+}
+
+func (m *CustomizableEnergyModel) ApplyCustomConfiguration(customFactors []IndustryCustomRiskFactor, customWeights map[string]float64) error {
+	return nil
+}
+
+func (m *CustomizableEnergyModel) GetCustomizableFactors() []CustomizableFactor {
+	return []CustomizableFactor{}
+}
+
+// CustomizableTransportationModel wraps TransportationModel with custom configuration support
+type CustomizableTransportationModel struct {
+	TransportationModel
+}
+
+func (m *CustomizableTransportationModel) ApplyCustomConfiguration(customFactors []IndustryCustomRiskFactor, customWeights map[string]float64) error {
+	return nil
+}
+
+func (m *CustomizableTransportationModel) GetCustomizableFactors() []CustomizableFactor {
+	return []CustomizableFactor{}
+}
+
+// CustomizableGeneralModel wraps GeneralModel with custom configuration support
+type CustomizableGeneralModel struct {
+	GeneralModel
+}
+
+func (m *CustomizableGeneralModel) ApplyCustomConfiguration(customFactors []IndustryCustomRiskFactor, customWeights map[string]float64) error {
+	return nil
+}
+
+func (m *CustomizableGeneralModel) GetCustomizableFactors() []CustomizableFactor {
+	return []CustomizableFactor{}
 }

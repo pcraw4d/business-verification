@@ -36,9 +36,9 @@ type GrafanaConfig struct {
 
 // AlertingConfig represents alerting configuration
 type AlertingConfig struct {
-	Enabled  bool                    `json:"enabled"`
+	Enabled  bool                     `json:"enabled"`
 	Channels map[string]ChannelConfig `json:"channels"`
-	Rules    []AlertRuleConfig       `json:"rules"`
+	Rules    []AlertRuleConfig        `json:"rules"`
 }
 
 // ChannelConfig represents alert channel configuration
@@ -97,13 +97,13 @@ func DefaultMonitoringConfig() *MonitoringConfig {
 					Enabled: true,
 					Type:    "email",
 					Config: map[string]interface{}{
-						"smtp_host":     "localhost",
-						"smtp_port":     587,
-						"username":      "alerts@company.com",
-						"password":      "",
-						"from_address":  "alerts@company.com",
-						"to_addresses":  []string{"admin@company.com"},
-						"use_tls":       true,
+						"smtp_host":    "localhost",
+						"smtp_port":    587,
+						"username":     "alerts@company.com",
+						"password":     "",
+						"from_address": "alerts@company.com",
+						"to_addresses": []string{"admin@company.com"},
+						"use_tls":      true,
 					},
 				},
 				"slack": {
@@ -214,10 +214,10 @@ func DefaultMonitoringConfig() *MonitoringConfig {
 // LoadMonitoringConfig loads monitoring configuration from environment variables
 func LoadMonitoringConfig() *MonitoringConfig {
 	config := DefaultMonitoringConfig()
-	
+
 	// Load from environment variables if available
 	// This would typically use a configuration library like viper
-	
+
 	return config
 }
 
@@ -226,11 +226,11 @@ func (mc *MonitoringConfig) Validate() error {
 	if mc.Prometheus.Enabled && mc.Prometheus.Port <= 0 {
 		return fmt.Errorf("prometheus port must be positive when enabled")
 	}
-	
+
 	if mc.Grafana.Enabled && mc.Grafana.BaseURL == "" {
 		return fmt.Errorf("grafana base URL is required when enabled")
 	}
-	
+
 	if mc.Alerting.Enabled {
 		for _, rule := range mc.Alerting.Rules {
 			if rule.Metric == "" {
@@ -241,6 +241,6 @@ func (mc *MonitoringConfig) Validate() error {
 			}
 		}
 	}
-	
+
 	return nil
 }

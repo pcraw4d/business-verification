@@ -70,20 +70,20 @@ const (
 
 // PerformanceStats represents current performance statistics
 type PerformanceStats struct {
-	RequestCount      int64           `json:"request_count"`
-	RequestDuration   time.Duration   `json:"request_duration"`
-	ErrorCount        int64           `json:"error_count"`
-	ResponseTimes     []time.Duration `json:"response_times"`
-	MaxResponseTime   time.Duration   `json:"max_response_time"`
-	MinResponseTime   time.Duration   `json:"min_response_time"`
-	RequestsPerSecond float64         `json:"requests_per_second"`
-	RequestsPerMinute float64         `json:"requests_per_minute"`
-	ErrorRate         float64         `json:"error_rate"`
-	MemoryUsage       uint64          `json:"memory_usage"`
-	CPUUsage          float64         `json:"cpu_usage"`
-	GoroutineCount    int             `json:"goroutine_count"`
+	RequestCount      int64              `json:"request_count"`
+	RequestDuration   time.Duration      `json:"request_duration"`
+	ErrorCount        int64              `json:"error_count"`
+	ResponseTimes     []time.Duration    `json:"response_times"`
+	MaxResponseTime   time.Duration      `json:"max_response_time"`
+	MinResponseTime   time.Duration      `json:"min_response_time"`
+	RequestsPerSecond float64            `json:"requests_per_second"`
+	RequestsPerMinute float64            `json:"requests_per_minute"`
+	ErrorRate         float64            `json:"error_rate"`
+	MemoryUsage       uint64             `json:"memory_usage"`
+	CPUUsage          float64            `json:"cpu_usage"`
+	GoroutineCount    int                `json:"goroutine_count"`
 	Alerts            []PerformanceAlert `json:"alerts"`
-	Timestamp         time.Time       `json:"timestamp"`
+	Timestamp         time.Time          `json:"timestamp"`
 }
 
 // NewPerformanceMonitor creates a new performance monitor

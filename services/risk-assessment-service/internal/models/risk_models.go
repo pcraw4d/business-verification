@@ -19,6 +19,8 @@ type RiskAssessment struct {
 	PredictionHorizon int                    `json:"prediction_horizon" db:"prediction_horizon"` // months
 	ConfidenceScore   float64                `json:"confidence_score" db:"confidence_score"`
 	Status            AssessmentStatus       `json:"status" db:"status"`
+	ModelType         string                 `json:"model_type" db:"model_type"`           // "industry", "custom", "ensemble"
+	CustomModelID     string                 `json:"custom_model_id" db:"custom_model_id"` // ID of custom model if used
 	CreatedAt         time.Time              `json:"created_at" db:"created_at"`
 	UpdatedAt         time.Time              `json:"updated_at" db:"updated_at"`
 	Metadata          map[string]interface{} `json:"metadata" db:"metadata"`
@@ -768,8 +770,10 @@ type RiskAssessmentRequest struct {
 	Email                   string                 `json:"email,omitempty" validate:"omitempty,email"`
 	Website                 string                 `json:"website,omitempty" validate:"omitempty,url"`
 	PredictionHorizon       int                    `json:"prediction_horizon,omitempty" validate:"omitempty,min=1,max=24"`
-	ModelType               string                 `json:"model_type,omitempty" validate:"omitempty,oneof=auto xgboost lstm ensemble"`
+	ModelType               string                 `json:"model_type,omitempty" validate:"omitempty,oneof=auto xgboost lstm ensemble custom"`
+	CustomModelID           string                 `json:"custom_model_id,omitempty" validate:"omitempty,min=1,max=100"`
 	IncludeTemporalAnalysis bool                   `json:"include_temporal_analysis,omitempty"`
+	CustomBusinessData      map[string]interface{} `json:"custom_business_data,omitempty"` // Additional data for custom models
 	Metadata                map[string]interface{} `json:"metadata,omitempty"`
 }
 
@@ -783,6 +787,8 @@ type RiskAssessmentResponse struct {
 	PredictionHorizon int                    `json:"prediction_horizon"`
 	ConfidenceScore   float64                `json:"confidence_score"`
 	Status            AssessmentStatus       `json:"status"`
+	ModelType         string                 `json:"model_type"`                // "industry", "custom", "ensemble"
+	CustomModelID     string                 `json:"custom_model_id,omitempty"` // ID of custom model if used
 	CreatedAt         time.Time              `json:"created_at"`
 	UpdatedAt         time.Time              `json:"updated_at"`
 	Metadata          map[string]interface{} `json:"metadata,omitempty"`
