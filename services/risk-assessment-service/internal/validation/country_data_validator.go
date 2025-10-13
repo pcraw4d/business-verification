@@ -39,7 +39,7 @@ type CountryRules struct {
 	PhoneRules         []PhoneRule            `json:"phone_rules"`
 	EmailRules         []EmailRule            `json:"email_rules"`
 	WebsiteRules       []WebsiteRule          `json:"website_rules"`
-	ComplianceRules    []ComplianceRule       `json:"compliance_rules"`
+	ComplianceRules    []CountryComplianceRule `json:"compliance_rules"`
 	DataResidencyRules DataResidencyRule      `json:"data_residency_rules"`
 	Metadata           map[string]interface{} `json:"metadata"`
 }
@@ -131,8 +131,8 @@ type WebsiteRule struct {
 	Metadata    map[string]interface{} `json:"metadata"`
 }
 
-// ComplianceRule represents compliance validation rules
-type ComplianceRule struct {
+// CountryComplianceRule represents compliance validation rules for country-specific validation
+type CountryComplianceRule struct {
 	ID          string                 `json:"id"`
 	Name        string                 `json:"name"`
 	Description string                 `json:"description"`

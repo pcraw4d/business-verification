@@ -423,20 +423,6 @@ func (cv *ComplianceValidator) validateDisposal(rule ComplianceRule, data map[st
 func (cv *ComplianceValidator) getApplicableRegulations(countryCode string) []string {
 	// Mock implementation - in a real implementation, this would
 	// return regulations applicable to the specific country
-	regulations := []string{
-		"BSA",      // Bank Secrecy Act (US)
-		"FATCA",    // Foreign Account Tax Compliance Act (US)
-		"GDPR",     // General Data Protection Regulation (EU)
-		"PIPEDA",   // Personal Information Protection and Electronic Documents Act (Canada)
-		"PDPA",     // Personal Data Protection Act (Singapore)
-		"APPI",     // Act on the Protection of Personal Information (Japan)
-		"CCPA",     // California Consumer Privacy Act (US)
-		"SOX",      // Sarbanes-Oxley Act (US)
-		"PCI-DSS",  // Payment Card Industry Data Security Standard
-		"ISO27001", // Information Security Management System
-		"FISMA",    // Federal Information Security Management Act (US)
-		"HIPAA",    // Health Insurance Portability and Accountability Act (US)
-	}
 
 	// Filter by country if needed
 	switch countryCode {

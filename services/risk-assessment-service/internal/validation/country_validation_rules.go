@@ -120,7 +120,7 @@ func getUSValidationRules() CountryRules {
 				Metadata:    make(map[string]interface{}),
 			},
 		},
-		ComplianceRules: []ComplianceRule{
+		ComplianceRules: []CountryComplianceRule{
 			{
 				ID:          "us_aml",
 				Name:        "AML Compliance",
@@ -243,7 +243,7 @@ func getGBValidationRules() CountryRules {
 				Metadata:    make(map[string]interface{}),
 			},
 		},
-		ComplianceRules: []ComplianceRule{
+		ComplianceRules: []CountryComplianceRule{
 			{
 				ID:          "gb_aml",
 				Name:        "AML Compliance",
@@ -366,7 +366,7 @@ func getDEValidationRules() CountryRules {
 				Metadata:    make(map[string]interface{}),
 			},
 		},
-		ComplianceRules: []ComplianceRule{
+		ComplianceRules: []CountryComplianceRule{
 			{
 				ID:          "de_aml",
 				Name:        "AML Compliance",
@@ -490,7 +490,7 @@ func getCAValidationRules() CountryRules {
 				Metadata:    make(map[string]interface{}),
 			},
 		},
-		ComplianceRules: []ComplianceRule{
+		ComplianceRules: []CountryComplianceRule{
 			{
 				ID:          "ca_aml",
 				Name:        "AML Compliance",
@@ -614,7 +614,7 @@ func getAUValidationRules() CountryRules {
 				Metadata:    make(map[string]interface{}),
 			},
 		},
-		ComplianceRules: []ComplianceRule{
+		ComplianceRules: []CountryComplianceRule{
 			{
 				ID:          "au_aml",
 				Name:        "AML Compliance",
@@ -737,7 +737,7 @@ func getSGValidationRules() CountryRules {
 				Metadata:    make(map[string]interface{}),
 			},
 		},
-		ComplianceRules: []ComplianceRule{
+		ComplianceRules: []CountryComplianceRule{
 			{
 				ID:          "sg_aml",
 				Name:        "AML Compliance",
@@ -860,7 +860,7 @@ func getJPValidationRules() CountryRules {
 				Metadata:    make(map[string]interface{}),
 			},
 		},
-		ComplianceRules: []ComplianceRule{
+		ComplianceRules: []CountryComplianceRule{
 			{
 				ID:          "jp_aml",
 				Name:        "AML Compliance",
@@ -983,7 +983,7 @@ func getFRValidationRules() CountryRules {
 				Metadata:    make(map[string]interface{}),
 			},
 		},
-		ComplianceRules: []ComplianceRule{
+		ComplianceRules: []CountryComplianceRule{
 			{
 				ID:          "fr_aml",
 				Name:        "AML Compliance",
@@ -1106,7 +1106,7 @@ func getNLValidationRules() CountryRules {
 				Metadata:    make(map[string]interface{}),
 			},
 		},
-		ComplianceRules: []ComplianceRule{
+		ComplianceRules: []CountryComplianceRule{
 			{
 				ID:          "nl_aml",
 				Name:        "AML Compliance",
@@ -1229,7 +1229,7 @@ func getITValidationRules() CountryRules {
 				Metadata:    make(map[string]interface{}),
 			},
 		},
-		ComplianceRules: []ComplianceRule{
+		ComplianceRules: []CountryComplianceRule{
 			{
 				ID:          "it_aml",
 				Name:        "AML Compliance",

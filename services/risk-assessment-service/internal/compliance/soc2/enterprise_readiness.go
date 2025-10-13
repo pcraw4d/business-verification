@@ -29,45 +29,45 @@ type EnterpriseReadinessConfig struct {
 
 // ComplianceRequirement represents a compliance requirement
 type ComplianceRequirement struct {
-	ID              string                 `json:"id"`
-	Name            string                 `json:"name"`
-	Description     string                 `json:"description"`
-	Category        string                 `json:"category"`
-	Priority        string                 `json:"priority"`
-	Status          string                 `json:"status"`
-	Implementation  string                 `json:"implementation"`
-	Evidence        []string               `json:"evidence"`
-	LastReviewed    time.Time              `json:"last_reviewed"`
-	NextReview      time.Time              `json:"next_review"`
-	Owner           string                 `json:"owner"`
-	Metadata        map[string]interface{} `json:"metadata"`
+	ID             string                 `json:"id"`
+	Name           string                 `json:"name"`
+	Description    string                 `json:"description"`
+	Category       string                 `json:"category"`
+	Priority       string                 `json:"priority"`
+	Status         string                 `json:"status"`
+	Implementation string                 `json:"implementation"`
+	Evidence       []string               `json:"evidence"`
+	LastReviewed   time.Time              `json:"last_reviewed"`
+	NextReview     time.Time              `json:"next_review"`
+	Owner          string                 `json:"owner"`
+	Metadata       map[string]interface{} `json:"metadata"`
 }
 
 // SecurityControl represents a security control
 type SecurityControl struct {
-	ID              string                 `json:"id"`
-	Name            string                 `json:"name"`
-	Description     string                 `json:"description"`
-	ControlType     string                 `json:"control_type"`
-	Implementation  string                 `json:"implementation"`
-	Status          string                 `json:"status"`
-	Effectiveness   string                 `json:"effectiveness"`
-	LastTested      time.Time              `json:"last_tested"`
-	NextTest        time.Time              `json:"next_test"`
-	Owner           string                 `json:"owner"`
-	Metadata        map[string]interface{} `json:"metadata"`
+	ID             string                 `json:"id"`
+	Name           string                 `json:"name"`
+	Description    string                 `json:"description"`
+	ControlType    string                 `json:"control_type"`
+	Implementation string                 `json:"implementation"`
+	Status         string                 `json:"status"`
+	Effectiveness  string                 `json:"effectiveness"`
+	LastTested     time.Time              `json:"last_tested"`
+	NextTest       time.Time              `json:"next_test"`
+	Owner          string                 `json:"owner"`
+	Metadata       map[string]interface{} `json:"metadata"`
 }
 
 // AvailabilityTargets represents availability targets
 type AvailabilityTargets struct {
-	UptimeTarget        float64                `json:"uptime_target"`
-	ResponseTimeTarget  time.Duration          `json:"response_time_target"`
-	RecoveryTimeTarget  time.Duration          `json:"recovery_time_target"`
-	DataLossTarget      time.Duration          `json:"data_loss_target"`
-	MonitoringEnabled   bool                   `json:"monitoring_enabled"`
-	AlertingEnabled     bool                   `json:"alerting_enabled"`
-	BackupEnabled       bool                   `json:"backup_enabled"`
-	Metadata            map[string]interface{} `json:"metadata"`
+	UptimeTarget       float64                `json:"uptime_target"`
+	ResponseTimeTarget time.Duration          `json:"response_time_target"`
+	RecoveryTimeTarget time.Duration          `json:"recovery_time_target"`
+	DataLossTarget     time.Duration          `json:"data_loss_target"`
+	MonitoringEnabled  bool                   `json:"monitoring_enabled"`
+	AlertingEnabled    bool                   `json:"alerting_enabled"`
+	BackupEnabled      bool                   `json:"backup_enabled"`
+	Metadata           map[string]interface{} `json:"metadata"`
 }
 
 // DataProtectionRule represents a data protection rule
@@ -87,104 +87,104 @@ type DataProtectionRule struct {
 
 // IncidentResponsePlan represents an incident response plan
 type IncidentResponsePlan struct {
-	ID              string                 `json:"id"`
-	Name            string                 `json:"name"`
-	Description     string                 `json:"description"`
-	ResponseTeam    []ResponseTeamMember   `json:"response_team"`
-	EscalationPath  []EscalationLevel      `json:"escalation_path"`
-	CommunicationPlan CommunicationPlan    `json:"communication_plan"`
-	RecoveryProcedures []RecoveryProcedure `json:"recovery_procedures"`
-	TestingSchedule time.Duration          `json:"testing_schedule"`
-	LastTested      time.Time              `json:"last_tested"`
-	NextTest        time.Time              `json:"next_test"`
-	Metadata        map[string]interface{} `json:"metadata"`
+	ID                 string                 `json:"id"`
+	Name               string                 `json:"name"`
+	Description        string                 `json:"description"`
+	ResponseTeam       []ResponseTeamMember   `json:"response_team"`
+	EscalationPath     []EscalationLevel      `json:"escalation_path"`
+	CommunicationPlan  CommunicationPlan      `json:"communication_plan"`
+	RecoveryProcedures []RecoveryProcedure    `json:"recovery_procedures"`
+	TestingSchedule    time.Duration          `json:"testing_schedule"`
+	LastTested         time.Time              `json:"last_tested"`
+	NextTest           time.Time              `json:"next_test"`
+	Metadata           map[string]interface{} `json:"metadata"`
 }
 
 // BusinessContinuityPlan represents a business continuity plan
 type BusinessContinuityPlan struct {
-	ID              string                 `json:"id"`
-	Name            string                 `json:"name"`
-	Description     string                 `json:"description"`
-	RecoveryTime    time.Duration          `json:"recovery_time"`
-	RecoveryPoint   time.Duration          `json:"recovery_point"`
-	BackupStrategy  BackupStrategy         `json:"backup_strategy"`
-	DisasterRecovery DisasterRecovery      `json:"disaster_recovery"`
-	TestingSchedule time.Duration          `json:"testing_schedule"`
-	LastTested      time.Time              `json:"last_tested"`
-	NextTest        time.Time              `json:"next_test"`
-	Metadata        map[string]interface{} `json:"metadata"`
+	ID               string                 `json:"id"`
+	Name             string                 `json:"name"`
+	Description      string                 `json:"description"`
+	RecoveryTime     time.Duration          `json:"recovery_time"`
+	RecoveryPoint    time.Duration          `json:"recovery_point"`
+	BackupStrategy   BackupStrategy         `json:"backup_strategy"`
+	DisasterRecovery DisasterRecovery       `json:"disaster_recovery"`
+	TestingSchedule  time.Duration          `json:"testing_schedule"`
+	LastTested       time.Time              `json:"last_tested"`
+	NextTest         time.Time              `json:"next_test"`
+	Metadata         map[string]interface{} `json:"metadata"`
 }
 
 // VendorManagement represents vendor management
 type VendorManagement struct {
-	ID              string                 `json:"id"`
-	Name            string                 `json:"name"`
-	Description     string                 `json:"description"`
-	Vendors         []Vendor               `json:"vendors"`
-	AssessmentSchedule time.Duration       `json:"assessment_schedule"`
-	LastAssessment  time.Time              `json:"last_assessment"`
-	NextAssessment  time.Time              `json:"next_assessment"`
-	Metadata        map[string]interface{} `json:"metadata"`
+	ID                 string                 `json:"id"`
+	Name               string                 `json:"name"`
+	Description        string                 `json:"description"`
+	Vendors            []Vendor               `json:"vendors"`
+	AssessmentSchedule time.Duration          `json:"assessment_schedule"`
+	LastAssessment     time.Time              `json:"last_assessment"`
+	NextAssessment     time.Time              `json:"next_assessment"`
+	Metadata           map[string]interface{} `json:"metadata"`
 }
 
 // RiskManagement represents risk management
 type RiskManagement struct {
-	ID              string                 `json:"id"`
-	Name            string                 `json:"name"`
-	Description     string                 `json:"description"`
-	RiskAssessment  RiskAssessment         `json:"risk_assessment"`
-	RiskMitigation  []RiskMitigation       `json:"risk_mitigation"`
-	RiskMonitoring  RiskMonitoring         `json:"risk_monitoring"`
-	ReviewSchedule  time.Duration          `json:"review_schedule"`
-	LastReview      time.Time              `json:"last_review"`
-	NextReview      time.Time              `json:"next_review"`
-	Metadata        map[string]interface{} `json:"metadata"`
+	ID             string                 `json:"id"`
+	Name           string                 `json:"name"`
+	Description    string                 `json:"description"`
+	RiskAssessment RiskAssessment         `json:"risk_assessment"`
+	RiskMitigation []RiskMitigation       `json:"risk_mitigation"`
+	RiskMonitoring RiskMonitoring         `json:"risk_monitoring"`
+	ReviewSchedule time.Duration          `json:"review_schedule"`
+	LastReview     time.Time              `json:"last_review"`
+	NextReview     time.Time              `json:"next_review"`
+	Metadata       map[string]interface{} `json:"metadata"`
 }
 
 // ResponseTeamMember represents a response team member
 type ResponseTeamMember struct {
-	ID              string                 `json:"id"`
-	Name            string                 `json:"name"`
-	Role            string                 `json:"role"`
-	ContactInfo     ContactInfo            `json:"contact_info"`
-	Availability    string                 `json:"availability"`
-	Skills          []string               `json:"skills"`
-	Metadata        map[string]interface{} `json:"metadata"`
+	ID           string                 `json:"id"`
+	Name         string                 `json:"name"`
+	Role         string                 `json:"role"`
+	ContactInfo  ContactInfo            `json:"contact_info"`
+	Availability string                 `json:"availability"`
+	Skills       []string               `json:"skills"`
+	Metadata     map[string]interface{} `json:"metadata"`
 }
 
 // EscalationLevel represents an escalation level
 type EscalationLevel struct {
-	ID              string                 `json:"id"`
-	Level           int                    `json:"level"`
-	Name            string                 `json:"name"`
-	Description     string                 `json:"description"`
-	Trigger         string                 `json:"trigger"`
-	ResponseTime    time.Duration          `json:"response_time"`
-	Contacts        []ContactInfo          `json:"contacts"`
-	Metadata        map[string]interface{} `json:"metadata"`
+	ID           string                 `json:"id"`
+	Level        int                    `json:"level"`
+	Name         string                 `json:"name"`
+	Description  string                 `json:"description"`
+	Trigger      string                 `json:"trigger"`
+	ResponseTime time.Duration          `json:"response_time"`
+	Contacts     []ContactInfo          `json:"contacts"`
+	Metadata     map[string]interface{} `json:"metadata"`
 }
 
 // CommunicationPlan represents a communication plan
 type CommunicationPlan struct {
-	ID              string                 `json:"id"`
-	Name            string                 `json:"name"`
-	Description     string                 `json:"description"`
-	Channels        []CommunicationChannel `json:"channels"`
+	ID              string                  `json:"id"`
+	Name            string                  `json:"name"`
+	Description     string                  `json:"description"`
+	Channels        []CommunicationChannel  `json:"channels"`
 	Templates       []CommunicationTemplate `json:"templates"`
-	EscalationRules []EscalationRule       `json:"escalation_rules"`
-	Metadata        map[string]interface{} `json:"metadata"`
+	EscalationRules []EscalationRule        `json:"escalation_rules"`
+	Metadata        map[string]interface{}  `json:"metadata"`
 }
 
 // RecoveryProcedure represents a recovery procedure
 type RecoveryProcedure struct {
-	ID              string                 `json:"id"`
-	Name            string                 `json:"name"`
-	Description     string                 `json:"description"`
-	ProcedureType   string                 `json:"procedure_type"`
-	Steps           []string               `json:"steps"`
-	EstimatedTime   time.Duration          `json:"estimated_time"`
-	Prerequisites   []string               `json:"prerequisites"`
-	Metadata        map[string]interface{} `json:"metadata"`
+	ID            string                 `json:"id"`
+	Name          string                 `json:"name"`
+	Description   string                 `json:"description"`
+	ProcedureType string                 `json:"procedure_type"`
+	Steps         []string               `json:"steps"`
+	EstimatedTime time.Duration          `json:"estimated_time"`
+	Prerequisites []string               `json:"prerequisites"`
+	Metadata      map[string]interface{} `json:"metadata"`
 }
 
 // BackupStrategy represents a backup strategy
@@ -214,43 +214,43 @@ type DisasterRecovery struct {
 
 // Vendor represents a vendor
 type Vendor struct {
-	ID              string                 `json:"id"`
-	Name            string                 `json:"name"`
-	Type            string                 `json:"type"`
-	Description     string                 `json:"description"`
-	RiskLevel       string                 `json:"risk_level"`
-	ComplianceStatus string                `json:"compliance_status"`
-	LastAssessment  time.Time              `json:"last_assessment"`
-	NextAssessment  time.Time              `json:"next_assessment"`
-	ContactInfo     ContactInfo            `json:"contact_info"`
-	Metadata        map[string]interface{} `json:"metadata"`
+	ID               string                 `json:"id"`
+	Name             string                 `json:"name"`
+	Type             string                 `json:"type"`
+	Description      string                 `json:"description"`
+	RiskLevel        string                 `json:"risk_level"`
+	ComplianceStatus string                 `json:"compliance_status"`
+	LastAssessment   time.Time              `json:"last_assessment"`
+	NextAssessment   time.Time              `json:"next_assessment"`
+	ContactInfo      ContactInfo            `json:"contact_info"`
+	Metadata         map[string]interface{} `json:"metadata"`
 }
 
 // RiskAssessment represents a risk assessment
 type RiskAssessment struct {
-	ID              string                 `json:"id"`
-	Name            string                 `json:"name"`
-	Description     string                 `json:"description"`
-	RiskLevel       string                 `json:"risk_level"`
-	Impact          string                 `json:"impact"`
-	Likelihood      string                 `json:"likelihood"`
-	RiskScore       float64                `json:"risk_score"`
-	LastAssessed    time.Time              `json:"last_assessed"`
-	NextAssessment  time.Time              `json:"next_assessment"`
-	Metadata        map[string]interface{} `json:"metadata"`
+	ID             string                 `json:"id"`
+	Name           string                 `json:"name"`
+	Description    string                 `json:"description"`
+	RiskLevel      string                 `json:"risk_level"`
+	Impact         string                 `json:"impact"`
+	Likelihood     string                 `json:"likelihood"`
+	RiskScore      float64                `json:"risk_score"`
+	LastAssessed   time.Time              `json:"last_assessed"`
+	NextAssessment time.Time              `json:"next_assessment"`
+	Metadata       map[string]interface{} `json:"metadata"`
 }
 
 // RiskMitigation represents a risk mitigation
 type RiskMitigation struct {
-	ID              string                 `json:"id"`
-	Name            string                 `json:"name"`
-	Description     string                 `json:"description"`
-	MitigationType  string                 `json:"mitigation_type"`
-	Effectiveness   string                 `json:"effectiveness"`
-	Cost            float64                `json:"cost"`
-	Implementation  string                 `json:"implementation"`
-	Status          string                 `json:"status"`
-	Metadata        map[string]interface{} `json:"metadata"`
+	ID             string                 `json:"id"`
+	Name           string                 `json:"name"`
+	Description    string                 `json:"description"`
+	MitigationType string                 `json:"mitigation_type"`
+	Effectiveness  string                 `json:"effectiveness"`
+	Cost           float64                `json:"cost"`
+	Implementation string                 `json:"implementation"`
+	Status         string                 `json:"status"`
+	Metadata       map[string]interface{} `json:"metadata"`
 }
 
 // RiskMonitoring represents risk monitoring
@@ -267,87 +267,87 @@ type RiskMonitoring struct {
 
 // ContactInfo represents contact information
 type ContactInfo struct {
-	Email           string                 `json:"email"`
-	Phone           string                 `json:"phone"`
-	Mobile          string                 `json:"mobile"`
-	Address         string                 `json:"address"`
-	EmergencyContact string                `json:"emergency_contact"`
-	Metadata        map[string]interface{} `json:"metadata"`
+	Email            string                 `json:"email"`
+	Phone            string                 `json:"phone"`
+	Mobile           string                 `json:"mobile"`
+	Address          string                 `json:"address"`
+	EmergencyContact string                 `json:"emergency_contact"`
+	Metadata         map[string]interface{} `json:"metadata"`
 }
 
 // CommunicationChannel represents a communication channel
 type CommunicationChannel struct {
-	ID              string                 `json:"id"`
-	Name            string                 `json:"name"`
-	Type            string                 `json:"type"`
-	Description     string                 `json:"description"`
-	Availability    string                 `json:"availability"`
-	Metadata        map[string]interface{} `json:"metadata"`
+	ID           string                 `json:"id"`
+	Name         string                 `json:"name"`
+	Type         string                 `json:"type"`
+	Description  string                 `json:"description"`
+	Availability string                 `json:"availability"`
+	Metadata     map[string]interface{} `json:"metadata"`
 }
 
 // CommunicationTemplate represents a communication template
 type CommunicationTemplate struct {
-	ID              string                 `json:"id"`
-	Name            string                 `json:"name"`
-	Type            string                 `json:"type"`
-	Subject         string                 `json:"subject"`
-	Body            string                 `json:"body"`
-	Recipients      []string               `json:"recipients"`
-	Metadata        map[string]interface{} `json:"metadata"`
+	ID         string                 `json:"id"`
+	Name       string                 `json:"name"`
+	Type       string                 `json:"type"`
+	Subject    string                 `json:"subject"`
+	Body       string                 `json:"body"`
+	Recipients []string               `json:"recipients"`
+	Metadata   map[string]interface{} `json:"metadata"`
 }
 
 // EscalationRule represents an escalation rule
 type EscalationRule struct {
-	ID              string                 `json:"id"`
-	Name            string                 `json:"name"`
-	Description     string                 `json:"description"`
-	Condition       string                 `json:"condition"`
-	Action          string                 `json:"action"`
-	Timeout         time.Duration          `json:"timeout"`
-	Metadata        map[string]interface{} `json:"metadata"`
+	ID          string                 `json:"id"`
+	Name        string                 `json:"name"`
+	Description string                 `json:"description"`
+	Condition   string                 `json:"condition"`
+	Action      string                 `json:"action"`
+	Timeout     time.Duration          `json:"timeout"`
+	Metadata    map[string]interface{} `json:"metadata"`
 }
 
 // MonitoringThreshold represents a monitoring threshold
 type MonitoringThreshold struct {
-	ID              string                 `json:"id"`
-	Name            string                 `json:"name"`
-	Metric          string                 `json:"metric"`
-	Threshold       float64                `json:"threshold"`
-	Operator        string                 `json:"operator"`
-	Severity        string                 `json:"severity"`
-	Metadata        map[string]interface{} `json:"metadata"`
+	ID        string                 `json:"id"`
+	Name      string                 `json:"name"`
+	Metric    string                 `json:"metric"`
+	Threshold float64                `json:"threshold"`
+	Operator  string                 `json:"operator"`
+	Severity  string                 `json:"severity"`
+	Metadata  map[string]interface{} `json:"metadata"`
 }
 
 // EnterpriseReadinessReport represents an enterprise readiness report
 type EnterpriseReadinessReport struct {
-	ID                    string                 `json:"id"`
-	GeneratedAt           time.Time              `json:"generated_at"`
-	OverallScore          float64                `json:"overall_score"`
-	ComplianceScore       float64                `json:"compliance_score"`
-	SecurityScore         float64                `json:"security_score"`
-	AvailabilityScore     float64                `json:"availability_score"`
-	DataProtectionScore   float64                `json:"data_protection_score"`
-	IncidentResponseScore float64                `json:"incident_response_score"`
-	BusinessContinuityScore float64              `json:"business_continuity_score"`
-	VendorManagementScore float64                `json:"vendor_management_score"`
-	RiskManagementScore   float64                `json:"risk_management_score"`
-	Recommendations       []string               `json:"recommendations"`
-	ActionItems           []ActionItem           `json:"action_items"`
-	Metadata              map[string]interface{} `json:"metadata"`
+	ID                      string                 `json:"id"`
+	GeneratedAt             time.Time              `json:"generated_at"`
+	OverallScore            float64                `json:"overall_score"`
+	ComplianceScore         float64                `json:"compliance_score"`
+	SecurityScore           float64                `json:"security_score"`
+	AvailabilityScore       float64                `json:"availability_score"`
+	DataProtectionScore     float64                `json:"data_protection_score"`
+	IncidentResponseScore   float64                `json:"incident_response_score"`
+	BusinessContinuityScore float64                `json:"business_continuity_score"`
+	VendorManagementScore   float64                `json:"vendor_management_score"`
+	RiskManagementScore     float64                `json:"risk_management_score"`
+	Recommendations         []string               `json:"recommendations"`
+	ActionItems             []ActionItem           `json:"action_items"`
+	Metadata                map[string]interface{} `json:"metadata"`
 }
 
 // ActionItem represents an action item
 type ActionItem struct {
-	ID              string                 `json:"id"`
-	Title           string                 `json:"title"`
-	Description     string                 `json:"description"`
-	Priority        string                 `json:"priority"`
-	Status          string                 `json:"status"`
-	Owner           string                 `json:"owner"`
-	DueDate         time.Time              `json:"due_date"`
-	CreatedAt       time.Time              `json:"created_at"`
-	UpdatedAt       time.Time              `json:"updated_at"`
-	Metadata        map[string]interface{} `json:"metadata"`
+	ID          string                 `json:"id"`
+	Title       string                 `json:"title"`
+	Description string                 `json:"description"`
+	Priority    string                 `json:"priority"`
+	Status      string                 `json:"status"`
+	Owner       string                 `json:"owner"`
+	DueDate     time.Time              `json:"due_date"`
+	CreatedAt   time.Time              `json:"created_at"`
+	UpdatedAt   time.Time              `json:"updated_at"`
+	Metadata    map[string]interface{} `json:"metadata"`
 }
 
 // NewEnterpriseReadinessService creates a new enterprise readiness service
@@ -417,24 +417,24 @@ func (ers *EnterpriseReadinessService) AssessEnterpriseReadiness(ctx context.Con
 	// Generate recommendations and action items
 	recommendations := ers.generateRecommendations(complianceScore, securityScore, availabilityScore,
 		dataProtectionScore, incidentResponseScore, businessContinuityScore, vendorManagementScore, riskManagementScore)
-	
+
 	actionItems := ers.generateActionItems(recommendations)
 
 	report := &EnterpriseReadinessReport{
-		ID:                    fmt.Sprintf("enterprise_readiness_%d", time.Now().UnixNano()),
-		GeneratedAt:           time.Now(),
-		OverallScore:          overallScore,
-		ComplianceScore:       complianceScore,
-		SecurityScore:         securityScore,
-		AvailabilityScore:     availabilityScore,
-		DataProtectionScore:   dataProtectionScore,
-		IncidentResponseScore: incidentResponseScore,
+		ID:                      fmt.Sprintf("enterprise_readiness_%d", time.Now().UnixNano()),
+		GeneratedAt:             time.Now(),
+		OverallScore:            overallScore,
+		ComplianceScore:         complianceScore,
+		SecurityScore:           securityScore,
+		AvailabilityScore:       availabilityScore,
+		DataProtectionScore:     dataProtectionScore,
+		IncidentResponseScore:   incidentResponseScore,
 		BusinessContinuityScore: businessContinuityScore,
-		VendorManagementScore: vendorManagementScore,
-		RiskManagementScore:   riskManagementScore,
-		Recommendations:       recommendations,
-		ActionItems:           actionItems,
-		Metadata:              make(map[string]interface{}),
+		VendorManagementScore:   vendorManagementScore,
+		RiskManagementScore:     riskManagementScore,
+		Recommendations:         recommendations,
+		ActionItems:             actionItems,
+		Metadata:                make(map[string]interface{}),
 	}
 
 	ers.logger.Info("Enterprise readiness assessment completed",
@@ -491,7 +491,7 @@ func (ers *EnterpriseReadinessService) assessComplianceReadiness(ctx context.Con
 	// Mock compliance assessment
 	complianceScore := 0.0
 	totalRequirements := len(ers.config.ComplianceRequirements)
-	
+
 	if totalRequirements == 0 {
 		return 0.0, nil
 	}
@@ -511,7 +511,7 @@ func (ers *EnterpriseReadinessService) assessSecurityReadiness(ctx context.Conte
 	// Mock security assessment
 	securityScore := 0.0
 	totalControls := len(ers.config.SecurityControls)
-	
+
 	if totalControls == 0 {
 		return 0.0, nil
 	}
@@ -530,23 +530,23 @@ func (ers *EnterpriseReadinessService) assessSecurityReadiness(ctx context.Conte
 func (ers *EnterpriseReadinessService) assessAvailabilityReadiness(ctx context.Context) (float64, error) {
 	// Mock availability assessment
 	availabilityScore := 0.0
-	
+
 	if ers.config.AvailabilityTargets.MonitoringEnabled {
 		availabilityScore += 0.25
 	}
-	
+
 	if ers.config.AvailabilityTargets.AlertingEnabled {
 		availabilityScore += 0.25
 	}
-	
+
 	if ers.config.AvailabilityTargets.BackupEnabled {
 		availabilityScore += 0.25
 	}
-	
+
 	if ers.config.AvailabilityTargets.UptimeTarget >= 0.999 {
 		availabilityScore += 0.25
 	}
-	
+
 	return availabilityScore, nil
 }
 
@@ -554,7 +554,7 @@ func (ers *EnterpriseReadinessService) assessDataProtectionReadiness(ctx context
 	// Mock data protection assessment
 	dataProtectionScore := 0.0
 	totalRules := len(ers.config.DataProtectionRules)
-	
+
 	if totalRules == 0 {
 		return 0.0, nil
 	}
@@ -573,46 +573,46 @@ func (ers *EnterpriseReadinessService) assessDataProtectionReadiness(ctx context
 func (ers *EnterpriseReadinessService) assessIncidentResponseReadiness(ctx context.Context) (float64, error) {
 	// Mock incident response assessment
 	incidentResponseScore := 0.0
-	
+
 	if len(ers.config.IncidentResponsePlan.ResponseTeam) > 0 {
 		incidentResponseScore += 0.25
 	}
-	
+
 	if len(ers.config.IncidentResponsePlan.EscalationPath) > 0 {
 		incidentResponseScore += 0.25
 	}
-	
+
 	if len(ers.config.IncidentResponsePlan.CommunicationPlan.Channels) > 0 {
 		incidentResponseScore += 0.25
 	}
-	
+
 	if len(ers.config.IncidentResponsePlan.RecoveryProcedures) > 0 {
 		incidentResponseScore += 0.25
 	}
-	
+
 	return incidentResponseScore, nil
 }
 
 func (ers *EnterpriseReadinessService) assessBusinessContinuityReadiness(ctx context.Context) (float64, error) {
 	// Mock business continuity assessment
 	businessContinuityScore := 0.0
-	
+
 	if ers.config.BusinessContinuityPlan.RecoveryTime <= 4*time.Hour {
 		businessContinuityScore += 0.25
 	}
-	
+
 	if ers.config.BusinessContinuityPlan.RecoveryPoint <= 1*time.Hour {
 		businessContinuityScore += 0.25
 	}
-	
+
 	if ers.config.BusinessContinuityPlan.BackupStrategy.BackupFrequency <= 24*time.Hour {
 		businessContinuityScore += 0.25
 	}
-	
+
 	if ers.config.BusinessContinuityPlan.DisasterRecovery.RecoveryTime <= 8*time.Hour {
 		businessContinuityScore += 0.25
 	}
-	
+
 	return businessContinuityScore, nil
 }
 
@@ -620,7 +620,7 @@ func (ers *EnterpriseReadinessService) assessVendorManagementReadiness(ctx conte
 	// Mock vendor management assessment
 	vendorManagementScore := 0.0
 	totalVendors := len(ers.config.VendorManagement.Vendors)
-	
+
 	if totalVendors == 0 {
 		return 0.0, nil
 	}
@@ -639,67 +639,67 @@ func (ers *EnterpriseReadinessService) assessVendorManagementReadiness(ctx conte
 func (ers *EnterpriseReadinessService) assessRiskManagementReadiness(ctx context.Context) (float64, error) {
 	// Mock risk management assessment
 	riskManagementScore := 0.0
-	
+
 	if ers.config.RiskManagement.RiskAssessment.RiskScore <= 0.3 {
 		riskManagementScore += 0.25
 	}
-	
+
 	if len(ers.config.RiskManagement.RiskMitigation) > 0 {
 		riskManagementScore += 0.25
 	}
-	
+
 	if ers.config.RiskManagement.RiskMonitoring.AlertingEnabled {
 		riskManagementScore += 0.25
 	}
-	
+
 	if ers.config.RiskManagement.RiskMonitoring.Frequency <= 24*time.Hour {
 		riskManagementScore += 0.25
 	}
-	
+
 	return riskManagementScore, nil
 }
 
 func (ers *EnterpriseReadinessService) generateRecommendations(complianceScore, securityScore, availabilityScore, dataProtectionScore, incidentResponseScore, businessContinuityScore, vendorManagementScore, riskManagementScore float64) []string {
 	recommendations := make([]string, 0)
-	
+
 	if complianceScore < 0.8 {
 		recommendations = append(recommendations, "Improve compliance implementation and documentation")
 	}
-	
+
 	if securityScore < 0.8 {
 		recommendations = append(recommendations, "Enhance security controls and testing")
 	}
-	
+
 	if availabilityScore < 0.8 {
 		recommendations = append(recommendations, "Improve availability monitoring and backup systems")
 	}
-	
+
 	if dataProtectionScore < 0.8 {
 		recommendations = append(recommendations, "Strengthen data protection rules and encryption")
 	}
-	
+
 	if incidentResponseScore < 0.8 {
 		recommendations = append(recommendations, "Enhance incident response procedures and team training")
 	}
-	
+
 	if businessContinuityScore < 0.8 {
 		recommendations = append(recommendations, "Improve business continuity planning and disaster recovery")
 	}
-	
+
 	if vendorManagementScore < 0.8 {
 		recommendations = append(recommendations, "Strengthen vendor management and assessment processes")
 	}
-	
+
 	if riskManagementScore < 0.8 {
 		recommendations = append(recommendations, "Enhance risk management and monitoring capabilities")
 	}
-	
+
 	return recommendations
 }
 
 func (ers *EnterpriseReadinessService) generateActionItems(recommendations []string) []ActionItem {
 	actionItems := make([]ActionItem, 0)
-	
+
 	for i, recommendation := range recommendations {
 		actionItem := ActionItem{
 			ID:          fmt.Sprintf("action_item_%d", i+1),
@@ -715,6 +715,6 @@ func (ers *EnterpriseReadinessService) generateActionItems(recommendations []str
 		}
 		actionItems = append(actionItems, actionItem)
 	}
-	
+
 	return actionItems
 }

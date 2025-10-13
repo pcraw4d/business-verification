@@ -441,7 +441,7 @@ func (dav *DataAccuracyValidator) calculateFieldAccuracies(result *DataAccuracyR
 		fieldAccuracy := 1.0
 
 		// Calculate field accuracy based on validation methods
-		for methodName, methodResult := range result.ValidationMethods {
+		for _, methodResult := range result.ValidationMethods {
 			if methodResult.Accuracy < fieldAccuracy {
 				fieldAccuracy = methodResult.Accuracy
 			}
