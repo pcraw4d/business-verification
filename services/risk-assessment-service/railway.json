@@ -2,7 +2,7 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "DOCKERFILE",
-    "dockerfilePath": "Dockerfile.go123"
+    "dockerfilePath": "services/risk-assessment-service/Dockerfile.go123"
   },
   "deploy": {
     "startCommand": "./risk-assessment-service",
@@ -49,7 +49,7 @@
       "source": ".",
       "build": {
         "builder": "DOCKERFILE",
-        "dockerfilePath": "Dockerfile.go123"
+        "dockerfilePath": "services/risk-assessment-service/Dockerfile.go123"
       },
       "deploy": {
         "startCommand": "./risk-assessment-service",
