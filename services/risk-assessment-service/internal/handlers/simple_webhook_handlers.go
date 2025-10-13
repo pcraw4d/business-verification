@@ -151,7 +151,21 @@ func (h *SimpleWebhookHandlers) GetWebhook(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	response := h.webhookToResponse(h.convertWebhookToWebhookResponse(webhook))
+	// Convert Webhook to WebhookResponse
+	webhookResponse := &webhooks.WebhookResponse{
+		ID:              webhook.ID,
+		Name:            webhook.Name,
+		Description:     webhook.Description,
+		URL:             webhook.URL,
+		Events:          webhook.Events,
+		Status:          webhook.Status,
+		Statistics:      webhook.Statistics,
+		CreatedBy:       webhook.CreatedBy,
+		CreatedAt:       webhook.CreatedAt,
+		UpdatedAt:       webhook.UpdatedAt,
+		LastTriggeredAt: webhook.LastTriggeredAt,
+	}
+	response := h.webhookToResponse(webhookResponse)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -165,7 +179,7 @@ func (h *SimpleWebhookHandlers) ListWebhooks(w http.ResponseWriter, r *http.Requ
 	page, pageSize := parsePaginationParams(r)
 	status := r.URL.Query().Get("status")
 	eventType := r.URL.Query().Get("event_type")
-	search := r.URL.Query().Get("search")
+	_ = r.URL.Query().Get("search") // TODO: Implement search functionality
 
 	// Build filters
 	filters := &webhooks.WebhookFilter{
@@ -186,7 +200,7 @@ func (h *SimpleWebhookHandlers) ListWebhooks(w http.ResponseWriter, r *http.Requ
 	// Convert to response format
 	webhookResponses := make([]WebhookResponse, len(webhookList.Webhooks))
 	for i, webhook := range webhookList.Webhooks {
-		webhookResponses[i] = h.webhookToResponse(h.convertWebhookToWebhookResponse(webhook))
+		webhookResponses[i] = h.webhookToResponse(&webhook)
 	}
 
 	response := map[string]interface{}{
@@ -269,6 +283,15 @@ func (h *SimpleWebhookHandlers) DeleteWebhook(w http.ResponseWriter, r *http.Req
 // Helper functions
 
 func (h *SimpleWebhookHandlers) webhookToResponse(webhook *webhooks.WebhookResponse) WebhookResponse {
+	// Convert WebhookStatistics to map[string]interface{}
+	statisticsMap := make(map[string]interface{})
+	statisticsMap["total_deliveries"] = webhook.Statistics.TotalDeliveries
+	statisticsMap["successful_deliveries"] = webhook.Statistics.SuccessfulDeliveries
+	statisticsMap["failed_deliveries"] = webhook.Statistics.FailedDeliveries
+	statisticsMap["success_rate"] = webhook.Statistics.SuccessRate
+	statisticsMap["average_latency"] = webhook.Statistics.AverageLatency
+	statisticsMap["last_delivery_at"] = webhook.Statistics.LastDeliveryAt
+
 	return WebhookResponse{
 		ID:              webhook.ID,
 		TenantID:        "", // WebhookResponse doesn't have TenantID field
@@ -281,7 +304,7 @@ func (h *SimpleWebhookHandlers) webhookToResponse(webhook *webhooks.WebhookRespo
 		RateLimit:       nil, // WebhookResponse doesn't have RateLimit field
 		Headers:         nil, // WebhookResponse doesn't have Headers field
 		Filters:         nil, // WebhookResponse doesn't have Filters field
-		Statistics:      webhook.Statistics,
+		Statistics:      statisticsMap,
 		CreatedBy:       webhook.CreatedBy,
 		CreatedAt:       webhook.CreatedAt,
 		UpdatedAt:       webhook.UpdatedAt,
@@ -373,36 +396,55 @@ func convertEventFilterConfigToWebhookFilters(config *webhooks.WebhookEventFilte
 	if config == nil {
 		return webhooks.WebhookFilters{}
 	}
-	
-	return webhooks.WebhookFilters{
-		EventTypes:    config.EventTypes,
-		BusinessIDs:   config.BusinessIDs,
-		RiskLevels:    config.RiskLevels,
-		Industries:    config.Industries,
-		Countries:     config.Countries,
-		CustomFilters: config.CustomFilters,
-	}
-}
 
-// convertWebhookToWebhookResponse converts Webhook to WebhookResponse
-func (h *SimpleWebhookHandlers) convertWebhookToWebhookResponse(webhook *webhooks.Webhook) *webhooks.WebhookResponse {
-	return &webhooks.WebhookResponse{
-		ID:              webhook.ID,
-		TenantID:        webhook.TenantID,
-		Name:            webhook.Name,
-		Description:     webhook.Description,
-		URL:             webhook.URL,
-		Events:          webhook.Events,
-		Secret:          webhook.Secret,
-		Status:          webhook.Status,
-		RetryPolicy:     webhook.RetryPolicy,
-		RateLimit:       webhook.RateLimit,
-		Headers:         webhook.Headers,
-		Filters:         webhook.Filters,
-		CreatedAt:       webhook.CreatedAt,
-		UpdatedAt:       webhook.UpdatedAt,
-		LastTriggeredAt: webhook.LastTriggeredAt,
-		Metadata:        webhook.Metadata,
-		Statistics:      make(map[string]interface{}), // TODO: Get real statistics
+	// Extract filter information from conditions
+	var eventTypes []webhooks.WebhookEvent
+	var businessIDs []string
+	var riskLevels []string
+	var industries []string
+	var countries []string
+	customFilters := make(map[string]interface{})
+
+	// Process conditions to extract filter values
+	for _, condition := range config.Conditions {
+		switch condition.Field {
+		case "event_type":
+			if eventType, ok := condition.Value.(string); ok {
+				eventTypes = append(eventTypes, webhooks.WebhookEvent(eventType))
+			}
+		case "business_id":
+			if businessID, ok := condition.Value.(string); ok {
+				businessIDs = append(businessIDs, businessID)
+			}
+		case "risk_level":
+			if riskLevel, ok := condition.Value.(string); ok {
+				riskLevels = append(riskLevels, riskLevel)
+			}
+		case "industry":
+			if industry, ok := condition.Value.(string); ok {
+				industries = append(industries, industry)
+			}
+		case "country":
+			if country, ok := condition.Value.(string); ok {
+				countries = append(countries, country)
+			}
+		default:
+			// Store as custom filter
+			customFilters[condition.Field] = condition.Value
+		}
+	}
+
+	// Add the main event type if specified
+	if config.EventType != "" {
+		eventTypes = append(eventTypes, config.EventType)
+	}
+
+	return webhooks.WebhookFilters{
+		EventTypes:    eventTypes,
+		BusinessIDs:   businessIDs,
+		RiskLevels:    riskLevels,
+		Industries:    industries,
+		Countries:     countries,
+		CustomFilters: customFilters,
 	}
 }
