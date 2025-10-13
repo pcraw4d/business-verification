@@ -461,6 +461,13 @@ func main() {
 	router.Use(middlewareInstance.MetricsMiddleware())
 	router.Use(middlewareInstance.HealthCheckMiddleware())
 
+	// Health check handler
+	healthCheckHandler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, `{"status":"healthy","timestamp":"%s","service":"risk-assessment-service"}`, time.Now().Format(time.RFC3339))
+	}
+
 	// Health check endpoint
 	router.HandleFunc("/health", healthCheckHandler).Methods("GET")
 
