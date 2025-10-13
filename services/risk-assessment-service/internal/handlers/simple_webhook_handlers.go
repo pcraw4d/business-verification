@@ -98,8 +98,10 @@ func (h *SimpleWebhookHandlers) CreateWebhook(w http.ResponseWriter, r *http.Req
 	}
 	if req.RateLimit == nil {
 		req.RateLimit = &webhooks.RateLimitConfig{
-			RequestsPerMinute: 60,
-			Burst:             10,
+			Enabled:  true,
+			Requests: 60,
+			Window:   time.Minute,
+			Burst:    10,
 		}
 	}
 
