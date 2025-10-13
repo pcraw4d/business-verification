@@ -1,8 +1,12 @@
-# Build stage - Go 1.23 for compatibility with go.mod
-FROM golang:1.23-alpine AS builder
+# Build stage - Go 1.23.0 for compatibility with go.mod (requires go >= 1.23.0)
+FROM golang:1.23.0-alpine3.19 AS builder
 
-# Force cache bust for Railway - updated timestamp
-ARG CACHE_BUST=2025-10-13-04-00
+# Force cache bust for Railway - updated timestamp and image
+ARG CACHE_BUST=2025-10-13-04-10
+ARG BUILD_DATE=2025-10-13T04:10:00Z
+
+# Verify Go version
+RUN go version
 
 # Set working directory
 WORKDIR /app
