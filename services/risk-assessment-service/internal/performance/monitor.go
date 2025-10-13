@@ -282,6 +282,27 @@ func (pm *PerformanceMonitor) GetHealthStatus() *HealthStatus {
 	return status
 }
 
+// ResetMetrics resets all performance metrics
+func (pm *PerformanceMonitor) ResetMetrics() {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+
+	// Reset all metrics to zero values
+	pm.metrics = &SystemMetrics{
+		Timestamp:       time.Now(),
+		CPUUsage:        0,
+		MemoryUsage:     MemoryMetrics{},
+		DatabaseMetrics: DatabaseMetrics{},
+		CacheMetrics:    CacheMetrics{},
+		PoolMetrics:     PoolMetrics{},
+		QueryMetrics:    QueryMetrics{},
+		RequestMetrics:  RequestMetrics{},
+		ErrorMetrics:    ErrorMetrics{},
+	}
+
+	pm.logger.Info("Performance metrics reset")
+}
+
 // collectMetrics collects metrics from all collectors
 func (pm *PerformanceMonitor) collectMetrics(interval time.Duration) {
 	ticker := time.NewTicker(interval)

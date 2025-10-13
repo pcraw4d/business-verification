@@ -10,6 +10,13 @@ import (
 	"go.uber.org/zap"
 )
 
+// Logger interface for cache operations
+type Logger interface {
+	Info(msg string, args ...interface{})
+	Error(msg string, args ...interface{})
+	Warn(msg string, args ...interface{})
+}
+
 // CacheConfig represents Redis cache configuration
 type CacheConfig struct {
 	Addrs             []string      `json:"addrs"`
@@ -23,7 +30,6 @@ type CacheConfig struct {
 	WriteTimeout      time.Duration `json:"write_timeout"`
 	PoolTimeout       time.Duration `json:"pool_timeout"`
 	IdleTimeout       time.Duration `json:"idle_timeout"`
-	IdleCheckFreq     time.Duration `json:"idle_check_freq"`
 	MaxConnAge        time.Duration `json:"max_conn_age"`
 	DefaultTTL        time.Duration `json:"default_ttl"`
 	KeyPrefix         string        `json:"key_prefix"`
@@ -48,12 +54,12 @@ type CacheMetrics struct {
 type RedisCache struct {
 	client  redis.UniversalClient
 	config  *CacheConfig
-	logger  *zap.Logger
+	logger  Logger
 	metrics *CacheMetrics
 }
 
 // NewRedisCache creates a new Redis cache instance
-func NewRedisCache(config *CacheConfig, logger *zap.Logger) (*RedisCache, error) {
+func NewRedisCache(config *CacheConfig, logger Logger) (*RedisCache, error) {
 	if config == nil {
 		return nil, fmt.Errorf("cache config cannot be nil")
 	}
@@ -83,9 +89,6 @@ func NewRedisCache(config *CacheConfig, logger *zap.Logger) (*RedisCache, error)
 	if config.IdleTimeout == 0 {
 		config.IdleTimeout = 5 * time.Minute
 	}
-	if config.IdleCheckFreq == 0 {
-		config.IdleCheckFreq = 1 * time.Minute
-	}
 	if config.MaxConnAge == 0 {
 		config.MaxConnAge = 30 * time.Minute
 	}
@@ -112,7 +115,6 @@ func NewRedisCache(config *CacheConfig, logger *zap.Logger) (*RedisCache, error)
 			WriteTimeout:  config.WriteTimeout,
 			PoolTimeout:   config.PoolTimeout,
 			IdleTimeout:   config.IdleTimeout,
-			IdleCheckFreq: config.IdleCheckFreq,
 			MaxConnAge:    config.MaxConnAge,
 		})
 	} else {
@@ -128,7 +130,6 @@ func NewRedisCache(config *CacheConfig, logger *zap.Logger) (*RedisCache, error)
 			WriteTimeout:  config.WriteTimeout,
 			PoolTimeout:   config.PoolTimeout,
 			IdleTimeout:   config.IdleTimeout,
-			IdleCheckFreq: config.IdleCheckFreq,
 			MaxConnAge:    config.MaxConnAge,
 		})
 	}

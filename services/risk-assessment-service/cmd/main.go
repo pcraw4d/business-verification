@@ -794,7 +794,6 @@ func initPerformanceComponents(cfg *config.Config, db *sql.DB, logger *zap.Logge
 			WriteTimeout:      perfConfig.Cache.Redis.WriteTimeout,
 			PoolTimeout:       perfConfig.Cache.Redis.PoolTimeout,
 			IdleTimeout:       perfConfig.Cache.Redis.IdleTimeout,
-			IdleCheckFreq:     perfConfig.Cache.Redis.IdleCheckFreq,
 			MaxConnAge:        perfConfig.Cache.Redis.MaxConnAge,
 			DefaultTTL:        perfConfig.Cache.DefaultTTL,
 			KeyPrefix:         perfConfig.Cache.Redis.KeyPrefix,
@@ -803,7 +802,9 @@ func initPerformanceComponents(cfg *config.Config, db *sql.DB, logger *zap.Logge
 		}
 
 		var err error
-		cacheInstance, err = cache.NewRedisCache(redisConfig, logger)
+		// Create a logger wrapper that implements cache.Logger interface
+		cacheLogger := &cacheLoggerWrapper{logger: logger}
+		cacheInstance, err = cache.NewRedisCache(redisConfig, cacheLogger)
 		if err != nil {
 			logger.Warn("Failed to initialize Redis cache, falling back to no cache", zap.Error(err))
 		} else {

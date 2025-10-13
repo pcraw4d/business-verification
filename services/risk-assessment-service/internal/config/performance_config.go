@@ -17,7 +17,7 @@ type PerformanceConfig struct {
 	QueryOptimization QueryOptimizationConfig `json:"query_optimization" yaml:"query_optimization"`
 
 	// Performance Monitoring Configuration
-	Monitoring MonitoringConfig `json:"monitoring" yaml:"monitoring"`
+	Monitoring PerformanceMonitoringConfig `json:"monitoring" yaml:"monitoring"`
 
 	// Rate Limiting Configuration
 	RateLimiting RateLimitingConfig `json:"rate_limiting" yaml:"rate_limiting"`
@@ -85,8 +85,8 @@ type QueryOptimizationConfig struct {
 	EnableQueryPlanCache bool          `json:"enable_query_plan_cache" yaml:"enable_query_plan_cache"`
 }
 
-// MonitoringConfig represents performance monitoring configuration
-type MonitoringConfig struct {
+// PerformanceMonitoringConfig represents performance monitoring configuration
+type PerformanceMonitoringConfig struct {
 	Enabled               bool          `json:"enabled" yaml:"enabled"`
 	CollectionInterval    time.Duration `json:"collection_interval" yaml:"collection_interval"`
 	EnableMetrics         bool          `json:"enable_metrics" yaml:"enable_metrics"`
@@ -176,7 +176,7 @@ func DefaultPerformanceConfig() *PerformanceConfig {
 			EnableIndexHints:     true,
 			EnableQueryPlanCache: true,
 		},
-		Monitoring: MonitoringConfig{
+		Monitoring: PerformanceMonitoringConfig{
 			Enabled:               true,
 			CollectionInterval:    30 * time.Second,
 			EnableMetrics:         true,

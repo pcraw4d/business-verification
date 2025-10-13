@@ -167,7 +167,7 @@ func (p *ConnectionPool) Exec(ctx context.Context, query string, args ...interfa
 }
 
 // Query executes a query that returns rows
-func (p *ConnectionPool) Query(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+func (p *ConnectionPool) Query(ctx context.Context, query string, args ...interface{}) (*pooledRows, error) {
 	conn, err := p.GetConnection(ctx)
 	if err != nil {
 		return nil, err
@@ -184,10 +184,10 @@ func (p *ConnectionPool) Query(ctx context.Context, query string, args ...interf
 }
 
 // QueryRow executes a query that returns a single row
-func (p *ConnectionPool) QueryRow(ctx context.Context, query string, args ...interface{}) *sql.Row {
+func (p *ConnectionPool) QueryRow(ctx context.Context, query string, args ...interface{}) *pooledRow {
 	conn, err := p.GetConnection(ctx)
 	if err != nil {
-		return &sql.Row{}
+		return &pooledRow{Row: &sql.Row{}, conn: nil}
 	}
 
 	row := conn.QueryRowContext(ctx, query, args...)
@@ -195,7 +195,7 @@ func (p *ConnectionPool) QueryRow(ctx context.Context, query string, args ...int
 }
 
 // Begin starts a transaction
-func (p *ConnectionPool) Begin(ctx context.Context) (*sql.Tx, error) {
+func (p *ConnectionPool) Begin(ctx context.Context) (*pooledTx, error) {
 	conn, err := p.GetConnection(ctx)
 	if err != nil {
 		return nil, err
@@ -212,7 +212,7 @@ func (p *ConnectionPool) Begin(ctx context.Context) (*sql.Tx, error) {
 }
 
 // Prepare creates a prepared statement
-func (p *ConnectionPool) Prepare(ctx context.Context, query string) (*sql.Stmt, error) {
+func (p *ConnectionPool) Prepare(ctx context.Context, query string) (*pooledStmt, error) {
 	conn, err := p.GetConnection(ctx)
 	if err != nil {
 		return nil, err

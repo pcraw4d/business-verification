@@ -7,17 +7,17 @@ import (
 
 	"go.uber.org/zap"
 
-	"kyb-platform/services/risk-assessment-service/internal/performance"
+	"kyb-platform/services/risk-assessment-service/internal/monitoring"
 )
 
 // PerformanceHandler handles performance-related HTTP requests
 type PerformanceHandler struct {
-	monitor *performance.PerformanceMonitor
+	monitor *monitoring.PerformanceMonitor
 	logger  *zap.Logger
 }
 
 // NewPerformanceHandler creates a new performance handler
-func NewPerformanceHandler(monitor *performance.PerformanceMonitor, logger *zap.Logger) *PerformanceHandler {
+func NewPerformanceHandler(monitor *monitoring.PerformanceMonitor, logger *zap.Logger) *PerformanceHandler {
 	return &PerformanceHandler{
 		monitor: monitor,
 		logger:  logger,
@@ -26,7 +26,7 @@ func NewPerformanceHandler(monitor *performance.PerformanceMonitor, logger *zap.
 
 // GetMetrics returns current performance metrics
 func (h *PerformanceHandler) GetMetrics(w http.ResponseWriter, r *http.Request) {
-	metrics := h.monitor.GetMetrics()
+	metrics := h.monitor.GetStats()
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -40,13 +40,16 @@ func (h *PerformanceHandler) GetMetrics(w http.ResponseWriter, r *http.Request) 
 
 // GetHealth returns system health status
 func (h *PerformanceHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
-	health := h.monitor.GetHealthStatus()
+	isHealthy := h.monitor.IsHealthy()
+	
+	health := map[string]interface{}{
+		"healthy": isHealthy,
+		"timestamp": time.Now(),
+	}
 
 	statusCode := http.StatusOK
-	if health.Overall == "unhealthy" {
+	if !isHealthy {
 		statusCode = http.StatusServiceUnavailable
-	} else if health.Overall == "degraded" {
-		statusCode = http.StatusTooManyRequests
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -61,17 +64,11 @@ func (h *PerformanceHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 
 // GetSystemInfo returns system information
 func (h *PerformanceHandler) GetSystemInfo(w http.ResponseWriter, r *http.Request) {
-	metrics := h.monitor.GetMetrics()
+	stats := h.monitor.GetStats()
 
 	systemInfo := map[string]interface{}{
 		"timestamp":    time.Now(),
-		"memory_usage": metrics.MemoryUsage,
-		"database":     metrics.DatabaseMetrics,
-		"cache":        metrics.CacheMetrics,
-		"pool":         metrics.PoolMetrics,
-		"queries":      metrics.QueryMetrics,
-		"requests":     metrics.RequestMetrics,
-		"errors":       metrics.ErrorMetrics,
+		"stats":        stats,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -86,7 +83,7 @@ func (h *PerformanceHandler) GetSystemInfo(w http.ResponseWriter, r *http.Reques
 
 // ResetMetrics resets performance metrics
 func (h *PerformanceHandler) ResetMetrics(w http.ResponseWriter, r *http.Request) {
-	h.monitor.ResetMetrics()
+	h.monitor.Reset()
 
 	response := map[string]interface{}{
 		"message":   "Metrics reset successfully",
@@ -99,6 +96,91 @@ func (h *PerformanceHandler) ResetMetrics(w http.ResponseWriter, r *http.Request
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		h.logger.Error("Failed to encode reset response", zap.Error(err))
 		http.Error(w, "Failed to encode reset response", http.StatusInternalServerError)
+		return
+	}
+}
+
+// HandlePerformanceStats handles GET /api/v1/performance/stats
+func (h *PerformanceHandler) HandlePerformanceStats(w http.ResponseWriter, r *http.Request) {
+	h.GetMetrics(w, r)
+}
+
+// HandlePerformanceAlerts handles GET /api/v1/performance/alerts
+func (h *PerformanceHandler) HandlePerformanceAlerts(w http.ResponseWriter, r *http.Request) {
+	alerts := h.monitor.GetAlerts()
+	
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	
+	if err := json.NewEncoder(w).Encode(alerts); err != nil {
+		h.logger.Error("Failed to encode alerts", zap.Error(err))
+		http.Error(w, "Failed to encode alerts", http.StatusInternalServerError)
+		return
+	}
+}
+
+// HandlePerformanceHealth handles GET /api/v1/performance/health
+func (h *PerformanceHandler) HandlePerformanceHealth(w http.ResponseWriter, r *http.Request) {
+	h.GetHealth(w, r)
+}
+
+// HandlePerformanceReset handles POST /api/v1/performance/reset
+func (h *PerformanceHandler) HandlePerformanceReset(w http.ResponseWriter, r *http.Request) {
+	h.ResetMetrics(w, r)
+}
+
+// HandlePerformanceTargets handles POST /api/v1/performance/targets
+func (h *PerformanceHandler) HandlePerformanceTargets(w http.ResponseWriter, r *http.Request) {
+	var targets struct {
+		RPS       float64 `json:"rps"`
+		Latency   string  `json:"latency"`
+		ErrorRate float64 `json:"error_rate"`
+		Throughput float64 `json:"throughput"`
+	}
+	
+	if err := json.NewDecoder(r.Body).Decode(&targets); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	
+	latency, err := time.ParseDuration(targets.Latency)
+	if err != nil {
+		http.Error(w, "Invalid latency format", http.StatusBadRequest)
+		return
+	}
+	
+	h.monitor.SetTargets(targets.RPS, latency, targets.ErrorRate, targets.Throughput)
+	
+	response := map[string]interface{}{
+		"message":   "Performance targets set successfully",
+		"timestamp": time.Now(),
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		h.logger.Error("Failed to encode response", zap.Error(err))
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+}
+
+// HandlePerformanceClearAlerts handles POST /api/v1/performance/alerts/clear
+func (h *PerformanceHandler) HandlePerformanceClearAlerts(w http.ResponseWriter, r *http.Request) {
+	h.monitor.ClearAlerts()
+	
+	response := map[string]interface{}{
+		"message":   "Alerts cleared successfully",
+		"timestamp": time.Now(),
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		h.logger.Error("Failed to encode response", zap.Error(err))
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 		return
 	}
 }
