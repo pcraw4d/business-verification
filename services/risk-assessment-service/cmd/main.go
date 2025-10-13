@@ -184,18 +184,25 @@ func main() {
 		zap.String("supabase_url", cfg.Supabase.URL),
 		zap.String("log_level", cfg.Logging.Level))
 
-	// Initialize Supabase client
-	supabaseConfig := &supabase.Config{
-		URL:            cfg.Supabase.URL,
-		APIKey:         cfg.Supabase.APIKey,
-		ServiceRoleKey: cfg.Supabase.ServiceRoleKey,
-		JWTSecret:      cfg.Supabase.JWTSecret,
+	// Initialize Supabase client (optional)
+	var supabaseClient *supabase.Client
+	if cfg.Supabase.URL != "" && cfg.Supabase.APIKey != "" {
+		supabaseConfig := &supabase.Config{
+			URL:            cfg.Supabase.URL,
+			APIKey:         cfg.Supabase.APIKey,
+			ServiceRoleKey: cfg.Supabase.ServiceRoleKey,
+			JWTSecret:      cfg.Supabase.JWTSecret,
+		}
+		var err error
+		supabaseClient, err = supabase.NewClient(supabaseConfig, logger)
+		if err != nil {
+			logger.Warn("Failed to initialize Supabase client - continuing without Supabase", zap.Error(err))
+		} else {
+			logger.Info("✅ Supabase client initialized")
+		}
+	} else {
+		logger.Info("⚠️  Supabase not configured - running without Supabase features")
 	}
-	supabaseClient, err := supabase.NewClient(supabaseConfig, logger)
-	if err != nil {
-		logger.Fatal("Failed to initialize Supabase client", zap.Error(err))
-	}
-	logger.Info("✅ Supabase client initialized")
 
 	// Initialize ML service
 	mlService := service.NewMLService(logger)

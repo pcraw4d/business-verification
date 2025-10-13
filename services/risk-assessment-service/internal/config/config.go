@@ -163,11 +163,15 @@ func Load() (*Config, error) {
 	}
 
 	// Validate required configuration
+	// Note: Supabase configuration is optional for now to allow service startup
+	// TODO: Add proper Supabase configuration for production
 	if cfg.Supabase.URL == "" {
-		return nil, fmt.Errorf("SUPABASE_URL is required")
+		// Log warning but don't fail - service can start without Supabase
+		fmt.Printf("WARNING: SUPABASE_URL is not set - Supabase features will be disabled\n")
 	}
 	if cfg.Supabase.APIKey == "" {
-		return nil, fmt.Errorf("SUPABASE_ANON_KEY is required")
+		// Log warning but don't fail - service can start without Supabase
+		fmt.Printf("WARNING: SUPABASE_ANON_KEY is not set - Supabase features will be disabled\n")
 	}
 
 	return cfg, nil
