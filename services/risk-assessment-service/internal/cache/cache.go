@@ -12,13 +12,13 @@ type Cache interface {
 	Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error
 	Delete(ctx context.Context, key string) error
 	Exists(ctx context.Context, key string) (bool, error)
-	
+
 	// Advanced operations
 	GetOrSet(ctx context.Context, key string, dest interface{}, ttl time.Duration, setter func() (interface{}, error)) error
 	MGet(ctx context.Context, keys []string) (map[string]interface{}, error)
 	MSet(ctx context.Context, values map[string]interface{}, ttl time.Duration) error
 	Clear(ctx context.Context) error
-	
+
 	// Management operations
 	GetMetrics() *CacheMetrics
 	ResetMetrics()
@@ -52,7 +52,7 @@ func (f *CacheFactory) CreateRedisCache() (Cache, error) {
 		// Create a no-op logger if type assertion fails
 		logger = &noOpLogger{}
 	}
-	
+
 	return NewRedisCache(f.config, logger)
 }
 

@@ -13,31 +13,31 @@ import (
 
 // PoolConfig represents connection pool configuration
 type PoolConfig struct {
-	MaxConnections    int           `json:"max_connections"`
-	MinConnections    int           `json:"min_connections"`
-	MaxIdleConnections int          `json:"max_idle_connections"`
-	ConnectionTimeout time.Duration `json:"connection_timeout"`
-	IdleTimeout       time.Duration `json:"idle_timeout"`
-	MaxLifetime       time.Duration `json:"max_lifetime"`
-	HealthCheckPeriod time.Duration `json:"health_check_period"`
-	RetryAttempts     int           `json:"retry_attempts"`
-	RetryDelay        time.Duration `json:"retry_delay"`
+	MaxConnections     int           `json:"max_connections"`
+	MinConnections     int           `json:"min_connections"`
+	MaxIdleConnections int           `json:"max_idle_connections"`
+	ConnectionTimeout  time.Duration `json:"connection_timeout"`
+	IdleTimeout        time.Duration `json:"idle_timeout"`
+	MaxLifetime        time.Duration `json:"max_lifetime"`
+	HealthCheckPeriod  time.Duration `json:"health_check_period"`
+	RetryAttempts      int           `json:"retry_attempts"`
+	RetryDelay         time.Duration `json:"retry_delay"`
 }
 
 // PoolMetrics represents connection pool metrics
 type PoolMetrics struct {
-	ActiveConnections    int           `json:"active_connections"`
-	IdleConnections      int           `json:"idle_connections"`
-	TotalConnections     int           `json:"total_connections"`
-	WaitCount            int64         `json:"wait_count"`
-	WaitDuration         time.Duration `json:"wait_duration"`
-	MaxIdleClosed        int64         `json:"max_idle_closed"`
-	MaxIdleTimeClosed    int64         `json:"max_idle_time_closed"`
-	MaxLifetimeClosed    int64         `json:"max_lifetime_closed"`
-	ConnectionsCreated   int64         `json:"connections_created"`
-	ConnectionsClosed    int64         `json:"connections_closed"`
-	LastHealthCheck      time.Time     `json:"last_health_check"`
-	HealthCheckFailures  int64         `json:"health_check_failures"`
+	ActiveConnections   int           `json:"active_connections"`
+	IdleConnections     int           `json:"idle_connections"`
+	TotalConnections    int           `json:"total_connections"`
+	WaitCount           int64         `json:"wait_count"`
+	WaitDuration        time.Duration `json:"wait_duration"`
+	MaxIdleClosed       int64         `json:"max_idle_closed"`
+	MaxIdleTimeClosed   int64         `json:"max_idle_time_closed"`
+	MaxLifetimeClosed   int64         `json:"max_lifetime_closed"`
+	ConnectionsCreated  int64         `json:"connections_created"`
+	ConnectionsClosed   int64         `json:"connections_closed"`
+	LastHealthCheck     time.Time     `json:"last_health_check"`
+	HealthCheckFailures int64         `json:"health_check_failures"`
 }
 
 // ConnectionPool manages database connections with pooling
@@ -235,7 +235,7 @@ func (p *ConnectionPool) GetMetrics() *PoolMetrics {
 
 	// Get current stats from database
 	stats := p.db.Stats()
-	
+
 	metrics := &PoolMetrics{
 		ActiveConnections:   stats.OpenConnections - stats.Idle,
 		IdleConnections:     stats.Idle,

@@ -10,6 +10,7 @@ import (
 
 	"kyb-platform/services/risk-assessment-service/internal/ml/service"
 	"kyb-platform/services/risk-assessment-service/internal/models"
+	"kyb-platform/services/risk-assessment-service/internal/webhooks"
 )
 
 // RiskEngine provides high-performance risk assessment capabilities
@@ -21,6 +22,7 @@ type RiskEngine struct {
 	config         *Config
 	metrics        *Metrics
 	circuitBreaker *CircuitBreaker
+	eventService   *webhooks.EventService
 }
 
 // Config holds risk engine configuration
@@ -50,7 +52,7 @@ func DefaultConfig() *Config {
 }
 
 // NewRiskEngine creates a new risk assessment engine
-func NewRiskEngine(mlService *service.MLService, logger *zap.Logger, config *Config) *RiskEngine {
+func NewRiskEngine(mlService *service.MLService, logger *zap.Logger, config *Config, eventService *webhooks.EventService) *RiskEngine {
 	if config == nil {
 		config = DefaultConfig()
 	}
@@ -84,6 +86,7 @@ func NewRiskEngine(mlService *service.MLService, logger *zap.Logger, config *Con
 		config:         config,
 		metrics:        metrics,
 		circuitBreaker: circuitBreaker,
+		eventService:   eventService,
 	}
 }
 
@@ -105,6 +108,17 @@ func (re *RiskEngine) AssessRisk(ctx context.Context, req *models.RiskAssessment
 		}
 	}
 
+	// Trigger webhook event for assessment started
+	if re.eventService != nil {
+		tenantID := re.getTenantIDFromContext(ctx)
+		businessID := re.generateBusinessID(req)
+		go func() {
+			if err := re.eventService.TriggerRiskAssessmentStarted(context.Background(), tenantID, businessID, req); err != nil {
+				re.logger.Error("Failed to trigger risk assessment started webhook", zap.Error(err))
+			}
+		}()
+	}
+
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(ctx, re.config.RequestTimeout)
 	defer cancel()
@@ -119,6 +133,18 @@ func (re *RiskEngine) AssessRisk(ctx context.Context, req *models.RiskAssessment
 		if re.metrics != nil {
 			re.metrics.RecordError()
 		}
+
+		// Trigger webhook event for assessment failed
+		if re.eventService != nil {
+			tenantID := re.getTenantIDFromContext(ctx)
+			businessID := re.generateBusinessID(req)
+			go func() {
+				if webhookErr := re.eventService.TriggerRiskAssessmentFailed(context.Background(), tenantID, businessID, req, err); webhookErr != nil {
+					re.logger.Error("Failed to trigger risk assessment failed webhook", zap.Error(webhookErr))
+				}
+			}()
+		}
+
 		return nil, err
 	}
 
@@ -140,6 +166,17 @@ func (re *RiskEngine) AssessRisk(ctx context.Context, req *models.RiskAssessment
 		zap.String("assessment_id", assessment.ID),
 		zap.Duration("duration", duration),
 		zap.Float64("risk_score", assessment.RiskScore))
+
+	// Trigger webhook event for assessment completed
+	if re.eventService != nil {
+		tenantID := re.getTenantIDFromContext(ctx)
+		businessID := re.generateBusinessID(req)
+		go func() {
+			if err := re.eventService.TriggerRiskAssessmentCompleted(context.Background(), tenantID, businessID, assessment); err != nil {
+				re.logger.Error("Failed to trigger risk assessment completed webhook", zap.Error(err))
+			}
+		}()
+	}
 
 	return assessment, nil
 }
@@ -416,4 +453,17 @@ func (re *RiskEngine) Shutdown(ctx context.Context) error {
 
 	re.logger.Info("Risk engine shutdown complete")
 	return nil
+}
+
+// getTenantIDFromContext extracts tenant ID from context
+func (re *RiskEngine) getTenantIDFromContext(ctx context.Context) string {
+	if tenantID, ok := ctx.Value("tenant_id").(string); ok {
+		return tenantID
+	}
+	return "default"
+}
+
+// generateBusinessID generates a business ID from the request
+func (re *RiskEngine) generateBusinessID(req *models.RiskAssessmentRequest) string {
+	return fmt.Sprintf("business_%s_%d", req.BusinessName, time.Now().UnixNano())
 }

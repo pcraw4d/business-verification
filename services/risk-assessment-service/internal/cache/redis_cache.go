@@ -12,23 +12,23 @@ import (
 
 // CacheConfig represents Redis cache configuration
 type CacheConfig struct {
-	Addrs           []string      `json:"addrs"`
-	Password        string        `json:"password"`
-	DB              int           `json:"db"`
-	PoolSize        int           `json:"pool_size"`
-	MinIdleConns    int           `json:"min_idle_conns"`
-	MaxRetries      int           `json:"max_retries"`
-	DialTimeout     time.Duration `json:"dial_timeout"`
-	ReadTimeout     time.Duration `json:"read_timeout"`
-	WriteTimeout    time.Duration `json:"write_timeout"`
-	PoolTimeout     time.Duration `json:"pool_timeout"`
-	IdleTimeout     time.Duration `json:"idle_timeout"`
-	IdleCheckFreq   time.Duration `json:"idle_check_freq"`
-	MaxConnAge      time.Duration `json:"max_conn_age"`
-	DefaultTTL      time.Duration `json:"default_ttl"`
-	KeyPrefix       string        `json:"key_prefix"`
-	EnableMetrics   bool          `json:"enable_metrics"`
-	EnableCompression bool        `json:"enable_compression"`
+	Addrs             []string      `json:"addrs"`
+	Password          string        `json:"password"`
+	DB                int           `json:"db"`
+	PoolSize          int           `json:"pool_size"`
+	MinIdleConns      int           `json:"min_idle_conns"`
+	MaxRetries        int           `json:"max_retries"`
+	DialTimeout       time.Duration `json:"dial_timeout"`
+	ReadTimeout       time.Duration `json:"read_timeout"`
+	WriteTimeout      time.Duration `json:"write_timeout"`
+	PoolTimeout       time.Duration `json:"pool_timeout"`
+	IdleTimeout       time.Duration `json:"idle_timeout"`
+	IdleCheckFreq     time.Duration `json:"idle_check_freq"`
+	MaxConnAge        time.Duration `json:"max_conn_age"`
+	DefaultTTL        time.Duration `json:"default_ttl"`
+	KeyPrefix         string        `json:"key_prefix"`
+	EnableMetrics     bool          `json:"enable_metrics"`
+	EnableCompression bool          `json:"enable_compression"`
 }
 
 // CacheMetrics represents cache performance metrics
@@ -101,42 +101,42 @@ func NewRedisCache(config *CacheConfig, logger *zap.Logger) (*RedisCache, error)
 	if len(config.Addrs) == 1 {
 		// Single Redis instance
 		client = redis.NewClient(&redis.Options{
-			Addr:         config.Addrs[0],
-			Password:     config.Password,
-			DB:           config.DB,
-			PoolSize:     config.PoolSize,
-			MinIdleConns: config.MinIdleConns,
-			MaxRetries:   config.MaxRetries,
-			DialTimeout:  config.DialTimeout,
-			ReadTimeout:  config.ReadTimeout,
-			WriteTimeout: config.WriteTimeout,
-			PoolTimeout:  config.PoolTimeout,
-			IdleTimeout:  config.IdleTimeout,
+			Addr:          config.Addrs[0],
+			Password:      config.Password,
+			DB:            config.DB,
+			PoolSize:      config.PoolSize,
+			MinIdleConns:  config.MinIdleConns,
+			MaxRetries:    config.MaxRetries,
+			DialTimeout:   config.DialTimeout,
+			ReadTimeout:   config.ReadTimeout,
+			WriteTimeout:  config.WriteTimeout,
+			PoolTimeout:   config.PoolTimeout,
+			IdleTimeout:   config.IdleTimeout,
 			IdleCheckFreq: config.IdleCheckFreq,
-			MaxConnAge:   config.MaxConnAge,
+			MaxConnAge:    config.MaxConnAge,
 		})
 	} else {
 		// Redis Cluster
 		client = redis.NewClusterClient(&redis.ClusterOptions{
-			Addrs:        config.Addrs,
-			Password:     config.Password,
-			PoolSize:     config.PoolSize,
-			MinIdleConns: config.MinIdleConns,
-			MaxRetries:   config.MaxRetries,
-			DialTimeout:  config.DialTimeout,
-			ReadTimeout:  config.ReadTimeout,
-			WriteTimeout: config.WriteTimeout,
-			PoolTimeout:  config.PoolTimeout,
-			IdleTimeout:  config.IdleTimeout,
+			Addrs:         config.Addrs,
+			Password:      config.Password,
+			PoolSize:      config.PoolSize,
+			MinIdleConns:  config.MinIdleConns,
+			MaxRetries:    config.MaxRetries,
+			DialTimeout:   config.DialTimeout,
+			ReadTimeout:   config.ReadTimeout,
+			WriteTimeout:  config.WriteTimeout,
+			PoolTimeout:   config.PoolTimeout,
+			IdleTimeout:   config.IdleTimeout,
 			IdleCheckFreq: config.IdleCheckFreq,
-			MaxConnAge:   config.MaxConnAge,
+			MaxConnAge:    config.MaxConnAge,
 		})
 	}
 
 	// Test connection
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	
+
 	if err := client.Ping(ctx).Err(); err != nil {
 		return nil, fmt.Errorf("failed to connect to Redis: %w", err)
 	}
@@ -169,7 +169,7 @@ func (c *RedisCache) Get(ctx context.Context, key string, dest interface{}) erro
 	}()
 
 	fullKey := c.config.KeyPrefix + key
-	
+
 	val, err := c.client.Get(ctx, fullKey).Result()
 	if err != nil {
 		if err == redis.Nil {
@@ -184,7 +184,7 @@ func (c *RedisCache) Get(ctx context.Context, key string, dest interface{}) erro
 	}
 
 	c.metrics.Hits++
-	
+
 	// Unmarshal JSON
 	if err := json.Unmarshal([]byte(val), dest); err != nil {
 		c.metrics.Errors++
@@ -202,7 +202,7 @@ func (c *RedisCache) Set(ctx context.Context, key string, value interface{}, ttl
 	}()
 
 	fullKey := c.config.KeyPrefix + key
-	
+
 	// Marshal to JSON
 	data, err := json.Marshal(value)
 	if err != nil {
@@ -235,7 +235,7 @@ func (c *RedisCache) Delete(ctx context.Context, key string) error {
 	}()
 
 	fullKey := c.config.KeyPrefix + key
-	
+
 	if err := c.client.Del(ctx, fullKey).Err(); err != nil {
 		c.metrics.Errors++
 		c.logger.Error("Cache delete error",
@@ -251,7 +251,7 @@ func (c *RedisCache) Delete(ctx context.Context, key string) error {
 // Exists checks if a key exists in cache
 func (c *RedisCache) Exists(ctx context.Context, key string) (bool, error) {
 	fullKey := c.config.KeyPrefix + key
-	
+
 	count, err := c.client.Exists(ctx, fullKey).Result()
 	if err != nil {
 		c.metrics.Errors++
@@ -339,10 +339,10 @@ func (c *RedisCache) MSet(ctx context.Context, values map[string]interface{}, tt
 
 	// Use pipeline for better performance
 	pipe := c.client.Pipeline()
-	
+
 	for key, value := range values {
 		fullKey := c.config.KeyPrefix + key
-		
+
 		data, err := json.Marshal(value)
 		if err != nil {
 			c.metrics.Errors++
@@ -369,7 +369,7 @@ func (c *RedisCache) MSet(ctx context.Context, values map[string]interface{}, tt
 // Clear removes all keys with the configured prefix
 func (c *RedisCache) Clear(ctx context.Context) error {
 	pattern := c.config.KeyPrefix + "*"
-	
+
 	keys, err := c.client.Keys(ctx, pattern).Result()
 	if err != nil {
 		c.metrics.Errors++

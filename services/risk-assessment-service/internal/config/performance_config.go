@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -8,19 +9,19 @@ import (
 type PerformanceConfig struct {
 	// Cache Configuration
 	Cache CacheConfig `json:"cache" yaml:"cache"`
-	
+
 	// Connection Pool Configuration
 	ConnectionPool ConnectionPoolConfig `json:"connection_pool" yaml:"connection_pool"`
-	
+
 	// Query Optimization Configuration
 	QueryOptimization QueryOptimizationConfig `json:"query_optimization" yaml:"query_optimization"`
-	
+
 	// Performance Monitoring Configuration
 	Monitoring MonitoringConfig `json:"monitoring" yaml:"monitoring"`
-	
+
 	// Rate Limiting Configuration
 	RateLimiting RateLimitingConfig `json:"rate_limiting" yaml:"rate_limiting"`
-	
+
 	// Resource Limits Configuration
 	ResourceLimits ResourceLimitsConfig `json:"resource_limits" yaml:"resource_limits"`
 }
@@ -34,27 +35,27 @@ type CacheConfig struct {
 	CleanupInterval   time.Duration `json:"cleanup_interval" yaml:"cleanup_interval"`
 	EnableMetrics     bool          `json:"enable_metrics" yaml:"enable_metrics"`
 	EnableCompression bool          `json:"enable_compression" yaml:"enable_compression"`
-	
+
 	// Redis specific configuration
 	Redis RedisCacheConfig `json:"redis" yaml:"redis"`
 }
 
 // RedisCacheConfig represents Redis cache configuration
 type RedisCacheConfig struct {
-	Addrs           []string      `json:"addrs" yaml:"addrs"`
-	Password        string        `json:"password" yaml:"password"`
-	DB              int           `json:"db" yaml:"db"`
-	PoolSize        int           `json:"pool_size" yaml:"pool_size"`
-	MinIdleConns    int           `json:"min_idle_conns" yaml:"min_idle_conns"`
-	MaxRetries      int           `json:"max_retries" yaml:"max_retries"`
-	DialTimeout     time.Duration `json:"dial_timeout" yaml:"dial_timeout"`
-	ReadTimeout     time.Duration `json:"read_timeout" yaml:"read_timeout"`
-	WriteTimeout    time.Duration `json:"write_timeout" yaml:"write_timeout"`
-	PoolTimeout     time.Duration `json:"pool_timeout" yaml:"pool_timeout"`
-	IdleTimeout     time.Duration `json:"idle_timeout" yaml:"idle_timeout"`
-	IdleCheckFreq   time.Duration `json:"idle_check_freq" yaml:"idle_check_freq"`
-	MaxConnAge      time.Duration `json:"max_conn_age" yaml:"max_conn_age"`
-	KeyPrefix       string        `json:"key_prefix" yaml:"key_prefix"`
+	Addrs         []string      `json:"addrs" yaml:"addrs"`
+	Password      string        `json:"password" yaml:"password"`
+	DB            int           `json:"db" yaml:"db"`
+	PoolSize      int           `json:"pool_size" yaml:"pool_size"`
+	MinIdleConns  int           `json:"min_idle_conns" yaml:"min_idle_conns"`
+	MaxRetries    int           `json:"max_retries" yaml:"max_retries"`
+	DialTimeout   time.Duration `json:"dial_timeout" yaml:"dial_timeout"`
+	ReadTimeout   time.Duration `json:"read_timeout" yaml:"read_timeout"`
+	WriteTimeout  time.Duration `json:"write_timeout" yaml:"write_timeout"`
+	PoolTimeout   time.Duration `json:"pool_timeout" yaml:"pool_timeout"`
+	IdleTimeout   time.Duration `json:"idle_timeout" yaml:"idle_timeout"`
+	IdleCheckFreq time.Duration `json:"idle_check_freq" yaml:"idle_check_freq"`
+	MaxConnAge    time.Duration `json:"max_conn_age" yaml:"max_conn_age"`
+	KeyPrefix     string        `json:"key_prefix" yaml:"key_prefix"`
 }
 
 // ConnectionPoolConfig represents connection pool configuration
@@ -86,16 +87,16 @@ type QueryOptimizationConfig struct {
 
 // MonitoringConfig represents performance monitoring configuration
 type MonitoringConfig struct {
-	Enabled              bool          `json:"enabled" yaml:"enabled"`
-	CollectionInterval   time.Duration `json:"collection_interval" yaml:"collection_interval"`
-	EnableMetrics        bool          `json:"enable_metrics" yaml:"enable_metrics"`
-	EnableHealthChecks   bool          `json:"enable_health_checks" yaml:"enable_health_checks"`
-	EnableSlowQueryLog   bool          `json:"enable_slow_query_log" yaml:"enable_slow_query_log"`
-	EnableMemoryProfiling bool         `json:"enable_memory_profiling" yaml:"enable_memory_profiling"`
-	EnableCPUProfiling   bool          `json:"enable_cpu_profiling" yaml:"enable_cpu_profiling"`
-	MetricsEndpoint      string        `json:"metrics_endpoint" yaml:"metrics_endpoint"`
-	HealthEndpoint       string        `json:"health_endpoint" yaml:"health_endpoint"`
-	RetentionPeriod      time.Duration `json:"retention_period" yaml:"retention_period"`
+	Enabled               bool          `json:"enabled" yaml:"enabled"`
+	CollectionInterval    time.Duration `json:"collection_interval" yaml:"collection_interval"`
+	EnableMetrics         bool          `json:"enable_metrics" yaml:"enable_metrics"`
+	EnableHealthChecks    bool          `json:"enable_health_checks" yaml:"enable_health_checks"`
+	EnableSlowQueryLog    bool          `json:"enable_slow_query_log" yaml:"enable_slow_query_log"`
+	EnableMemoryProfiling bool          `json:"enable_memory_profiling" yaml:"enable_memory_profiling"`
+	EnableCPUProfiling    bool          `json:"enable_cpu_profiling" yaml:"enable_cpu_profiling"`
+	MetricsEndpoint       string        `json:"metrics_endpoint" yaml:"metrics_endpoint"`
+	HealthEndpoint        string        `json:"health_endpoint" yaml:"health_endpoint"`
+	RetentionPeriod       time.Duration `json:"retention_period" yaml:"retention_period"`
 }
 
 // RateLimitingConfig represents rate limiting configuration
@@ -112,16 +113,16 @@ type RateLimitingConfig struct {
 
 // ResourceLimitsConfig represents resource limits configuration
 type ResourceLimitsConfig struct {
-	MaxMemoryMB        int           `json:"max_memory_mb" yaml:"max_memory_mb"`
-	MaxCPUPercent      float64       `json:"max_cpu_percent" yaml:"max_cpu_percent"`
-	MaxConcurrentReqs  int           `json:"max_concurrent_reqs" yaml:"max_concurrent_reqs"`
-	MaxRequestSizeMB   int           `json:"max_request_size_mb" yaml:"max_request_size_mb"`
-	MaxResponseSizeMB  int           `json:"max_response_size_mb" yaml:"max_response_size_mb"`
-	RequestTimeout     time.Duration `json:"request_timeout" yaml:"request_timeout"`
-	ResponseTimeout    time.Duration `json:"response_timeout" yaml:"response_timeout"`
-	EnableCircuitBreaker bool        `json:"enable_circuit_breaker" yaml:"enable_circuit_breaker"`
-	CircuitBreakerThreshold int      `json:"circuit_breaker_threshold" yaml:"circuit_breaker_threshold"`
-	CircuitBreakerTimeout  time.Duration `json:"circuit_breaker_timeout" yaml:"circuit_breaker_timeout"`
+	MaxMemoryMB             int           `json:"max_memory_mb" yaml:"max_memory_mb"`
+	MaxCPUPercent           float64       `json:"max_cpu_percent" yaml:"max_cpu_percent"`
+	MaxConcurrentReqs       int           `json:"max_concurrent_reqs" yaml:"max_concurrent_reqs"`
+	MaxRequestSizeMB        int           `json:"max_request_size_mb" yaml:"max_request_size_mb"`
+	MaxResponseSizeMB       int           `json:"max_response_size_mb" yaml:"max_response_size_mb"`
+	RequestTimeout          time.Duration `json:"request_timeout" yaml:"request_timeout"`
+	ResponseTimeout         time.Duration `json:"response_timeout" yaml:"response_timeout"`
+	EnableCircuitBreaker    bool          `json:"enable_circuit_breaker" yaml:"enable_circuit_breaker"`
+	CircuitBreakerThreshold int           `json:"circuit_breaker_threshold" yaml:"circuit_breaker_threshold"`
+	CircuitBreakerTimeout   time.Duration `json:"circuit_breaker_timeout" yaml:"circuit_breaker_timeout"`
 }
 
 // DefaultPerformanceConfig returns default performance configuration
@@ -136,20 +137,20 @@ func DefaultPerformanceConfig() *PerformanceConfig {
 			EnableMetrics:     true,
 			EnableCompression: false,
 			Redis: RedisCacheConfig{
-				Addrs:           []string{"localhost:6379"},
-				Password:        "",
-				DB:              0,
-				PoolSize:        10,
-				MinIdleConns:    5,
-				MaxRetries:      3,
-				DialTimeout:     5 * time.Second,
-				ReadTimeout:     3 * time.Second,
-				WriteTimeout:    3 * time.Second,
-				PoolTimeout:     4 * time.Second,
-				IdleTimeout:     5 * time.Minute,
-				IdleCheckFreq:   1 * time.Minute,
-				MaxConnAge:      30 * time.Minute,
-				KeyPrefix:       "risk_assessment:",
+				Addrs:         []string{"localhost:6379"},
+				Password:      "",
+				DB:            0,
+				PoolSize:      10,
+				MinIdleConns:  5,
+				MaxRetries:    3,
+				DialTimeout:   5 * time.Second,
+				ReadTimeout:   3 * time.Second,
+				WriteTimeout:  3 * time.Second,
+				PoolTimeout:   4 * time.Second,
+				IdleTimeout:   5 * time.Minute,
+				IdleCheckFreq: 1 * time.Minute,
+				MaxConnAge:    30 * time.Minute,
+				KeyPrefix:     "risk_assessment:",
 			},
 		},
 		ConnectionPool: ConnectionPoolConfig{
@@ -176,16 +177,16 @@ func DefaultPerformanceConfig() *PerformanceConfig {
 			EnableQueryPlanCache: true,
 		},
 		Monitoring: MonitoringConfig{
-			Enabled:              true,
-			CollectionInterval:   30 * time.Second,
-			EnableMetrics:        true,
-			EnableHealthChecks:   true,
-			EnableSlowQueryLog:   true,
+			Enabled:               true,
+			CollectionInterval:    30 * time.Second,
+			EnableMetrics:         true,
+			EnableHealthChecks:    true,
+			EnableSlowQueryLog:    true,
 			EnableMemoryProfiling: false,
-			EnableCPUProfiling:   false,
-			MetricsEndpoint:      "/metrics",
-			HealthEndpoint:       "/health",
-			RetentionPeriod:      24 * time.Hour,
+			EnableCPUProfiling:    false,
+			MetricsEndpoint:       "/metrics",
+			HealthEndpoint:        "/health",
+			RetentionPeriod:       24 * time.Hour,
 		},
 		RateLimiting: RateLimitingConfig{
 			Enabled:           true,
@@ -198,16 +199,16 @@ func DefaultPerformanceConfig() *PerformanceConfig {
 			EnablePerTenant:   true,
 		},
 		ResourceLimits: ResourceLimitsConfig{
-			MaxMemoryMB:           2048,
-			MaxCPUPercent:         80.0,
-			MaxConcurrentReqs:     10000,
-			MaxRequestSizeMB:      10,
-			MaxResponseSizeMB:     10,
-			RequestTimeout:        30 * time.Second,
-			ResponseTimeout:       30 * time.Second,
-			EnableCircuitBreaker:  true,
+			MaxMemoryMB:             2048,
+			MaxCPUPercent:           80.0,
+			MaxConcurrentReqs:       10000,
+			MaxRequestSizeMB:        10,
+			MaxResponseSizeMB:       10,
+			RequestTimeout:          30 * time.Second,
+			ResponseTimeout:         30 * time.Second,
+			EnableCircuitBreaker:    true,
 			CircuitBreakerThreshold: 50,
-			CircuitBreakerTimeout:  5 * time.Minute,
+			CircuitBreakerTimeout:   5 * time.Minute,
 		},
 	}
 }

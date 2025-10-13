@@ -1,0 +1,249 @@
+# Performance Optimization Configuration
+# Risk Assessment Service - Phase 4.8 Implementation
+
+# Service Configuration
+service:
+  name: "risk-assessment-service"
+  version: "1.0.0"
+  environment: "production"
+
+# Response Time Targets (Sub-1-Second Goal)
+response_time_targets:
+  p95: "1s"      # 95th percentile should be under 1 second
+  p99: "2s"      # 99th percentile should be under 2 seconds
+  avg: "500ms"   # Average response time should be under 500ms
+  max: "5s"      # Maximum response time should be under 5 seconds
+
+# Cache Optimization
+cache:
+  enabled: true
+  default_ttl: "5m"
+  max_size: 1000
+  eviction_policy: "lru"
+  
+  # Redis configuration
+  redis:
+    pool_size: 50
+    min_idle_conns: 10
+    max_conn_age: "1h"
+    pool_timeout: "30s"
+    idle_timeout: "5m"
+    idle_check_frequency: "1m"
+    
+  # Cache optimization rules
+  optimization:
+    enable_query_cache: true
+    query_cache_ttl: "5m"
+    enable_result_cache: true
+    result_cache_ttl: "10m"
+    enable_model_cache: true
+    model_cache_ttl: "1h"
+
+# Database Optimization
+database:
+  # Connection pool settings
+  max_connections: 100
+  min_connections: 20
+  max_idle_connections: 20
+  connection_timeout: "30s"
+  idle_timeout: "5m"
+  max_lifetime: "1h"
+  
+  # Query optimization
+  query_timeout: "10s"
+  slow_query_threshold: "1s"
+  enable_query_cache: true
+  query_cache_size: 1000
+  
+  # Index optimization
+  enable_index_optimization: true
+  index_analysis_interval: "24h"
+  
+  # Statistics collection
+  enable_stats_collection: true
+  stats_collection_interval: "5m"
+  
+  # Performance tuning
+  tuning:
+    enable_prepared_statements: true
+    enable_batch_operations: true
+    enable_connection_pooling: true
+    enable_query_planning: true
+
+# System Optimization
+system:
+  # Memory optimization
+  memory:
+    target_mb: 512
+    gc_threshold_percent: 80.0
+    enable_memory_profiling: true
+    
+  # Goroutine optimization
+  goroutines:
+    target_count: 1000
+    enable_goroutine_profiling: true
+    
+  # CPU optimization
+  cpu:
+    target_usage_percent: 80.0
+    enable_cpu_profiling: true
+
+# Performance Monitoring
+monitoring:
+  enabled: true
+  collection_interval: "30s"
+  
+  # Metrics collection
+  metrics:
+    enable_system_metrics: true
+    enable_application_metrics: true
+    enable_custom_metrics: true
+    metrics_retention: "24h"
+    
+  # Alert thresholds
+  alerts:
+    response_time_p95: "1s"
+    response_time_p99: "2s"
+    error_rate: 0.01  # 1%
+    memory_usage: 80.0  # 80%
+    cpu_usage: 80.0     # 80%
+    
+  # Performance targets
+  targets:
+    p95_latency: "1s"
+    p99_latency: "2s"
+    error_rate: 0.001  # 0.1%
+    throughput_rpm: 10000
+
+# Optimization Rules
+optimization_rules:
+  # Cache optimization
+  cache_optimization:
+    enabled: true
+    priority: 1
+    condition: "cache_hit_rate < 0.8"
+    action: "optimize_cache_settings"
+    
+  # Database optimization
+  database_optimization:
+    enabled: true
+    priority: 2
+    condition: "active_connections > max_connections * 0.8"
+    action: "optimize_connection_pool"
+    
+  # Memory optimization
+  memory_optimization:
+    enabled: true
+    priority: 3
+    condition: "memory_usage > target_memory * 0.8"
+    action: "trigger_garbage_collection"
+    
+  # Response time optimization
+  response_time_optimization:
+    enabled: true
+    priority: 4
+    condition: "p95_latency > target_p95"
+    action: "optimize_response_times"
+
+# Load Testing Configuration
+load_testing:
+  enabled: true
+  concurrent_users: 10000
+  test_duration: "30m"
+  ramp_up_time: "5m"
+  target_rps: 2000
+  
+  # Test scenarios
+  scenarios:
+    - name: "risk_assessment"
+      weight: 0.7
+      endpoint: "/api/v1/assess/risk"
+      method: "POST"
+      
+    - name: "batch_job_submit"
+      weight: 0.2
+      endpoint: "/api/v1/assess/batch"
+      method: "POST"
+      
+    - name: "health_check"
+      weight: 0.1
+      endpoint: "/health"
+      method: "GET"
+
+# Performance Optimization Features
+features:
+  enable_performance_monitoring: true
+  enable_optimization_service: true
+  enable_database_optimization: true
+  enable_response_time_optimization: true
+  enable_cache_optimization: true
+  enable_system_optimization: true
+  enable_auto_optimization: true
+  enable_performance_alerts: true
+  enable_optimization_recommendations: true
+
+# Performance Tuning
+tuning:
+  # HTTP server tuning
+  http:
+    read_timeout: "30s"
+    write_timeout: "30s"
+    idle_timeout: "120s"
+    max_header_bytes: 1048576  # 1MB
+    
+  # Concurrency tuning
+  concurrency:
+    max_concurrent_requests: 1000
+    worker_pool_size: 100
+    goroutine_limit: 10000
+    request_queue_size: 5000
+    
+  # External API tuning
+  external_apis:
+    timeout: "30s"
+    max_retries: 3
+    retry_delay: "1s"
+    max_retry_delay: "10s"
+    retry_multiplier: 2.0
+    
+  # ML model tuning
+  ml_models:
+    inference_timeout: "10s"
+    batch_size: 100
+    max_concurrent_inferences: 50
+    enable_model_caching: true
+    enable_batch_inference: true
+
+# Security and Performance
+security:
+  # Rate limiting
+  rate_limits:
+    global: 10000  # requests per minute
+    per_ip: 1000
+    per_user: 100
+    
+  # Request validation
+  validation:
+    max_request_size: "10MB"
+    max_field_size: "1MB"
+    
+  # Performance impact
+  performance_impact:
+    enable_compression: true
+    enable_caching: true
+    enable_optimization: true
+
+# Logging and Performance
+logging:
+  level: "info"
+  format: "json"
+  output: "stdout"
+  
+  # Performance logging
+  performance:
+    enabled: true
+    log_slow_requests: true
+    slow_request_threshold: "1s"
+    log_request_details: false
+    log_optimization_events: true
+    log_performance_metrics: true

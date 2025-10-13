@@ -26,13 +26,13 @@ type QueryCache interface {
 
 // QueryMetrics represents query performance metrics
 type QueryMetrics struct {
-	QueryCount      int64         `json:"query_count"`
-	CacheHits       int64         `json:"cache_hits"`
-	CacheMisses     int64         `json:"cache_misses"`
-	AverageLatency  time.Duration `json:"average_latency"`
-	SlowQueries     int64         `json:"slow_queries"`
-	ErrorCount      int64         `json:"error_count"`
-	LastUpdated     time.Time     `json:"last_updated"`
+	QueryCount     int64         `json:"query_count"`
+	CacheHits      int64         `json:"cache_hits"`
+	CacheMisses    int64         `json:"cache_misses"`
+	AverageLatency time.Duration `json:"average_latency"`
+	SlowQueries    int64         `json:"slow_queries"`
+	ErrorCount     int64         `json:"error_count"`
+	LastUpdated    time.Time     `json:"last_updated"`
 }
 
 // PreparedStatement represents a prepared statement with caching
@@ -56,7 +56,7 @@ func NewQueryOptimizer(db *sql.DB, cache QueryCache, logger *zap.Logger) *QueryO
 func (qo *QueryOptimizer) Prepare(ctx context.Context, query string) (*PreparedStatement, error) {
 	// Normalize query for caching
 	normalizedQuery := qo.normalizeQuery(query)
-	
+
 	stmt, err := qo.db.PrepareContext(ctx, normalizedQuery)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare statement: %w", err)
@@ -74,7 +74,7 @@ func (qo *QueryOptimizer) Prepare(ctx context.Context, query string) (*PreparedS
 func (qo *QueryOptimizer) ExecuteWithCache(ctx context.Context, query string, args []interface{}, dest interface{}, ttl time.Duration) error {
 	// Generate cache key
 	cacheKey := qo.generateCacheKey(query, args)
-	
+
 	// Try to get from cache first
 	if qo.cache != nil {
 		if err := qo.cache.Get(ctx, cacheKey, dest); err == nil {
@@ -138,7 +138,7 @@ func (qo *QueryOptimizer) BatchExecute(ctx context.Context, queries []string, ar
 // ExecuteWithRetry executes a query with retry logic
 func (qo *QueryOptimizer) ExecuteWithRetry(ctx context.Context, query string, args []interface{}, maxRetries int) (*sql.Rows, error) {
 	var lastErr error
-	
+
 	for attempt := 0; attempt <= maxRetries; attempt++ {
 		rows, err := qo.db.QueryContext(ctx, query, args...)
 		if err == nil {
@@ -146,7 +146,7 @@ func (qo *QueryOptimizer) ExecuteWithRetry(ctx context.Context, query string, ar
 		}
 
 		lastErr = err
-		
+
 		// Check if error is retryable
 		if !qo.isRetryableError(err) {
 			return nil, err
@@ -171,7 +171,7 @@ func (qo *QueryOptimizer) ExecuteWithRetry(ctx context.Context, query string, ar
 func (qo *QueryOptimizer) AnalyzeQuery(ctx context.Context, query string) (*QueryAnalysis, error) {
 	// Add EXPLAIN ANALYZE to the query
 	explainQuery := fmt.Sprintf("EXPLAIN ANALYZE %s", query)
-	
+
 	rows, err := qo.db.QueryContext(ctx, explainQuery)
 	if err != nil {
 		return nil, fmt.Errorf("failed to analyze query: %w", err)
@@ -201,9 +201,9 @@ func (qo *QueryOptimizer) AnalyzeQuery(ctx context.Context, query string) (*Quer
 func (qo *QueryOptimizer) GetIndexSuggestions(ctx context.Context, query string) ([]IndexSuggestion, error) {
 	// This is a simplified implementation
 	// In a real system, you would use pg_stat_statements or similar tools
-	
+
 	suggestions := []IndexSuggestion{}
-	
+
 	// Analyze WHERE clauses for potential indexes
 	whereClauses := qo.extractWhereClauses(query)
 	for _, clause := range whereClauses {
@@ -224,10 +224,10 @@ func (qo *QueryOptimizer) GetIndexSuggestions(ctx context.Context, query string)
 func (qo *QueryOptimizer) normalizeQuery(query string) string {
 	// Remove extra whitespace
 	query = strings.TrimSpace(query)
-	
+
 	// Convert to lowercase for consistency
 	query = strings.ToLower(query)
-	
+
 	// Remove comments
 	lines := strings.Split(query, "\n")
 	var cleanLines []string
@@ -236,18 +236,18 @@ func (qo *QueryOptimizer) normalizeQuery(query string) string {
 			cleanLines = append(cleanLines, line)
 		}
 	}
-	
+
 	return strings.Join(cleanLines, "\n")
 }
 
 // generateCacheKey generates a cache key for a query and its arguments
 func (qo *QueryOptimizer) generateCacheKey(query string, args []interface{}) string {
 	key := fmt.Sprintf("query:%s", qo.normalizeQuery(query))
-	
+
 	if len(args) > 0 {
 		key += fmt.Sprintf(":args:%v", args)
 	}
-	
+
 	return key
 }
 
@@ -255,7 +255,7 @@ func (qo *QueryOptimizer) generateCacheKey(query string, args []interface{}) str
 func (qo *QueryOptimizer) scanRows(rows *sql.Rows, dest interface{}) error {
 	// This is a simplified implementation
 	// In a real system, you would use reflection or code generation
-	
+
 	columns, err := rows.Columns()
 	if err != nil {
 		return err
@@ -299,9 +299,9 @@ func (qo *QueryOptimizer) isRetryableError(err error) bool {
 func (qo *QueryOptimizer) extractWhereClauses(query string) []WhereClause {
 	// This is a simplified implementation
 	// In a real system, you would use a SQL parser
-	
+
 	clauses := []WhereClause{}
-	
+
 	// Look for WHERE keyword
 	whereIndex := strings.Index(strings.ToLower(query), "where")
 	if whereIndex == -1 {
@@ -310,7 +310,7 @@ func (qo *QueryOptimizer) extractWhereClauses(query string) []WhereClause {
 
 	// Extract the WHERE clause
 	whereClause := query[whereIndex+5:]
-	
+
 	// Simple parsing - look for column references
 	// This is very basic and would need proper SQL parsing in production
 	words := strings.Fields(whereClause)

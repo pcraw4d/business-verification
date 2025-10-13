@@ -12,12 +12,14 @@ import (
 	"go.uber.org/zap"
 
 	"kyb-platform/services/risk-assessment-service/internal/batch"
+	"kyb-platform/services/risk-assessment-service/internal/webhooks"
 )
 
 // BatchJobHandler handles batch job API requests
 type BatchJobHandler struct {
-	jobManager JobManager
-	logger     *zap.Logger
+	jobManager   JobManager
+	eventService *webhooks.EventService
+	logger       *zap.Logger
 }
 
 // JobManager interface for batch job management
@@ -32,10 +34,11 @@ type JobManager interface {
 }
 
 // NewBatchJobHandler creates a new batch job handler
-func NewBatchJobHandler(jobManager JobManager, logger *zap.Logger) *BatchJobHandler {
+func NewBatchJobHandler(jobManager JobManager, eventService *webhooks.EventService, logger *zap.Logger) *BatchJobHandler {
 	return &BatchJobHandler{
-		jobManager: jobManager,
-		logger:     logger,
+		jobManager:   jobManager,
+		eventService: eventService,
+		logger:       logger,
 	}
 }
 
@@ -73,8 +76,27 @@ func (h *BatchJobHandler) HandleSubmitBatchJob(w http.ResponseWriter, r *http.Re
 	response, err := h.jobManager.SubmitBatchJob(ctx, &request)
 	if err != nil {
 		h.logger.Error("Failed to submit batch job", zap.Error(err))
+
+		// Trigger webhook event for batch job failed
+		if h.eventService != nil {
+			go func() {
+				if webhookErr := h.eventService.TriggerBatchJobFailed(context.Background(), tenantID, "", err); webhookErr != nil {
+					h.logger.Error("Failed to trigger batch job failed webhook", zap.Error(webhookErr))
+				}
+			}()
+		}
+
 		http.Error(w, "Failed to submit batch job", http.StatusInternalServerError)
 		return
+	}
+
+	// Trigger webhook event for batch job started
+	if h.eventService != nil {
+		go func() {
+			if webhookErr := h.eventService.TriggerBatchJobStarted(context.Background(), tenantID, response.ID, len(request.Requests)); webhookErr != nil {
+				h.logger.Error("Failed to trigger batch job started webhook", zap.Error(webhookErr))
+			}
+		}()
 	}
 
 	// Return response

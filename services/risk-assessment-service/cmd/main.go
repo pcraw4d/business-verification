@@ -217,8 +217,10 @@ func main() {
 		EnableMetrics: true,
 		EnableCaching: true,
 	}
-	riskEngine := engine.NewRiskEngine(mlService, logger, riskEngineConfig)
-	logger.Info("✅ Risk engine initialized")
+	// Initialize webhook event service (will be created after webhook components)
+	// For now, create a placeholder - we'll update this after webhook components are initialized
+	riskEngine := engine.NewRiskEngine(mlService, logger, riskEngineConfig, nil)
+	logger.Info("✅ Risk engine initialized (webhook integration pending)")
 
 	// Initialize external data service
 	externalDataConfig := &external.ExternalDataConfig{
@@ -353,15 +355,13 @@ func main() {
 	// Initialize custom model components
 	customModelRepository := custom.NewSQLCustomModelRepository(db, logger)
 	customModelBuilder := custom.NewCustomModelBuilder(customModelRepository, logger)
-	customModelHandler := handlers.NewCustomModelHandler(customModelBuilder, logger)
-	_ = customModelHandler // Used in routes below
+	// Custom model handler will be initialized after webhook components are created
 
 	// Initialize batch processing components
 	batchJobRepository := batch.NewSQLBatchJobRepository(db, logger)
 	batchProcessor := batch.NewDefaultBatchProcessor(riskEngine, batchJobRepository, batch.DefaultBatchJobConfig(), logger)
 	jobManager := batch.NewDefaultJobManager(batchJobRepository, batchProcessor, batch.DefaultBatchJobConfig(), logger)
-	batchJobHandler := handlers.NewBatchJobHandler(jobManager, logger)
-	_ = batchJobHandler // Used in routes below
+	// Batch job handler will be initialized after webhook components are created
 
 	// Initialize webhook components
 	webhookRepository := webhooks.NewSQLWebhookRepository(db, logger)
@@ -372,8 +372,23 @@ func main() {
 	circuitBreaker := webhooks.NewDefaultWebhookCircuitBreaker(logger)
 	eventFilter := webhooks.NewDefaultWebhookEventFilter(logger)
 	webhookManager := webhooks.NewDefaultWebhookManager(webhookRepository, deliveryTracker, retryHandler, signatureVerifier, rateLimiter, circuitBreaker, eventFilter, logger)
+	webhookEventService := webhooks.NewEventService(webhookManager, logger)
 	webhookHandlers := handlers.NewSimpleWebhookHandlers(webhookManager, logger)
 	_ = webhookHandlers // Used in routes below
+
+	// Update risk engine with webhook event service
+	riskEngine = engine.NewRiskEngine(mlService, logger, riskEngineConfig, webhookEventService)
+	logger.Info("✅ Risk engine updated with webhook integration")
+
+	// Initialize batch job handler with webhook event service
+	batchJobHandler := handlers.NewBatchJobHandler(jobManager, webhookEventService, logger)
+	_ = batchJobHandler // Used in routes below
+	logger.Info("✅ Batch job handler initialized with webhook integration")
+
+	// Initialize custom model handler with webhook event service
+	customModelHandler := handlers.NewCustomModelHandlers(customModelBuilder, customModelRepository, webhookEventService, logger)
+	_ = customModelHandler // Used in routes below
+	logger.Info("✅ Custom model handler initialized with webhook integration")
 
 	// Initialize dashboard components
 	dashboardRepository := reporting.NewSQLDashboardRepository(db, logger)
@@ -383,6 +398,25 @@ func main() {
 	dashboardService := reporting.NewDefaultDashboardService(dashboardRepository, dashboardDataProvider, logger)
 	dashboardHandler := handlers.NewDashboardHandler(dashboardService, logger)
 	_ = dashboardHandler // Used in routes below
+
+	// Initialize report components
+	reportRepository := reporting.NewSQLReportRepository(db, logger)
+	reportTemplateRepository := reporting.NewSQLReportTemplateRepository(db, logger)
+	scheduledReportRepository := reporting.NewSQLScheduledReportRepository(db, logger)
+	reportDataProvider := reporting.NewDefaultReportDataProvider(logger)
+	reportGenerator := reporting.NewDefaultReportGenerator(logger)
+	reportScheduler := reporting.NewDefaultReportScheduler(logger)
+	reportService := reporting.NewDefaultReportService(
+		reportRepository,
+		reportTemplateRepository,
+		scheduledReportRepository,
+		reportDataProvider,
+		reportGenerator,
+		reportScheduler,
+		logger,
+	)
+	reportHandler := handlers.NewReportHandler(reportService, logger)
+	_ = reportHandler // Used in routes below
 	// scenarioHandler := handlers.NewScenarioHandlers(logger) // Temporarily commented out due to build issues
 	// explainabilityHandler := handlers.NewExplainabilityHandlers(mlService, logger)
 	// experimentHandler := handlers.NewExperimentHandlers(experimentManager, logger) // Temporarily disabled due to testing package issues
@@ -477,6 +511,29 @@ func main() {
 	api.HandleFunc("/reporting/dashboard/risk-overview", dashboardHandler.HandleGetRiskOverview).Methods("GET")
 	api.HandleFunc("/reporting/dashboard/trends", dashboardHandler.HandleGetTrends).Methods("GET")
 	api.HandleFunc("/reporting/dashboard/predictions", dashboardHandler.HandleGetPredictions).Methods("GET")
+
+	// Report endpoints
+	api.HandleFunc("/reports/generate", reportHandler.HandleGenerateReport).Methods("POST")
+	api.HandleFunc("/reports", reportHandler.HandleListReports).Methods("GET")
+	api.HandleFunc("/reports/{id}", reportHandler.HandleGetReport).Methods("GET")
+	api.HandleFunc("/reports/{id}", reportHandler.HandleDeleteReport).Methods("DELETE")
+	api.HandleFunc("/reports/{id}/download", reportHandler.HandleDownloadReport).Methods("GET")
+	api.HandleFunc("/reports/metrics", reportHandler.HandleGetReportMetrics).Methods("GET")
+
+	// Report template endpoints
+	api.HandleFunc("/reports/templates", reportHandler.HandleCreateTemplate).Methods("POST")
+	api.HandleFunc("/reports/templates", reportHandler.HandleListTemplates).Methods("GET")
+	api.HandleFunc("/reports/templates/{id}", reportHandler.HandleGetTemplate).Methods("GET")
+	api.HandleFunc("/reports/templates/{id}", reportHandler.HandleUpdateTemplate).Methods("PUT")
+	api.HandleFunc("/reports/templates/{id}", reportHandler.HandleDeleteTemplate).Methods("DELETE")
+
+	// Scheduled report endpoints
+	api.HandleFunc("/reports/scheduled", reportHandler.HandleCreateScheduledReport).Methods("POST")
+	api.HandleFunc("/reports/scheduled", reportHandler.HandleListScheduledReports).Methods("GET")
+	api.HandleFunc("/reports/scheduled/{id}", reportHandler.HandleGetScheduledReport).Methods("GET")
+	api.HandleFunc("/reports/scheduled/{id}", reportHandler.HandleUpdateScheduledReport).Methods("PUT")
+	api.HandleFunc("/reports/scheduled/{id}", reportHandler.HandleDeleteScheduledReport).Methods("DELETE")
+	api.HandleFunc("/reports/scheduled/{id}/run", reportHandler.HandleRunScheduledReport).Methods("POST")
 
 	// Compliance endpoints
 	api.HandleFunc("/compliance/check", riskAssessmentHandler.HandleComplianceCheck).Methods("POST")
@@ -721,30 +778,31 @@ func initDatabaseWithPerformance(cfg *config.Config, logger *zap.Logger) (*sql.D
 func initPerformanceComponents(cfg *config.Config, db *sql.DB, logger *zap.Logger) (*PerformanceComponents, error) {
 	// Load performance configuration
 	perfConfig := config.DefaultPerformanceConfig()
-	
+
 	// Initialize Redis cache
 	var cacheInstance cache.Cache
 	if perfConfig.Cache.Enabled && perfConfig.Cache.Type == "redis" {
 		redisConfig := &cache.CacheConfig{
-			Addrs:           perfConfig.Cache.Redis.Addrs,
-			Password:        perfConfig.Cache.Redis.Password,
-			DB:              perfConfig.Cache.Redis.DB,
-			PoolSize:        perfConfig.Cache.Redis.PoolSize,
-			MinIdleConns:    perfConfig.Cache.Redis.MinIdleConns,
-			MaxRetries:      perfConfig.Cache.Redis.MaxRetries,
-			DialTimeout:     perfConfig.Cache.Redis.DialTimeout,
-			ReadTimeout:     perfConfig.Cache.Redis.ReadTimeout,
-			WriteTimeout:    perfConfig.Cache.Redis.WriteTimeout,
-			PoolTimeout:     perfConfig.Cache.Redis.PoolTimeout,
-			IdleTimeout:     perfConfig.Cache.Redis.IdleTimeout,
-			IdleCheckFreq:   perfConfig.Cache.Redis.IdleCheckFreq,
-			MaxConnAge:      perfConfig.Cache.Redis.MaxConnAge,
-			DefaultTTL:      perfConfig.Cache.DefaultTTL,
-			KeyPrefix:       perfConfig.Cache.Redis.KeyPrefix,
-			EnableMetrics:   perfConfig.Cache.EnableMetrics,
+			Addrs:             perfConfig.Cache.Redis.Addrs,
+			Password:          perfConfig.Cache.Redis.Password,
+			DB:                perfConfig.Cache.Redis.DB,
+			PoolSize:          perfConfig.Cache.Redis.PoolSize,
+			MinIdleConns:      perfConfig.Cache.Redis.MinIdleConns,
+			MaxRetries:        perfConfig.Cache.Redis.MaxRetries,
+			DialTimeout:       perfConfig.Cache.Redis.DialTimeout,
+			ReadTimeout:       perfConfig.Cache.Redis.ReadTimeout,
+			WriteTimeout:      perfConfig.Cache.Redis.WriteTimeout,
+			PoolTimeout:       perfConfig.Cache.Redis.PoolTimeout,
+			IdleTimeout:       perfConfig.Cache.Redis.IdleTimeout,
+			IdleCheckFreq:     perfConfig.Cache.Redis.IdleCheckFreq,
+			MaxConnAge:        perfConfig.Cache.Redis.MaxConnAge,
+			DefaultTTL:        perfConfig.Cache.DefaultTTL,
+			KeyPrefix:         perfConfig.Cache.Redis.KeyPrefix,
+			EnableMetrics:     perfConfig.Cache.EnableMetrics,
 			EnableCompression: perfConfig.Cache.EnableCompression,
 		}
-		
+
+		var err error
 		cacheInstance, err = cache.NewRedisCache(redisConfig, logger)
 		if err != nil {
 			logger.Warn("Failed to initialize Redis cache, falling back to no cache", zap.Error(err))
@@ -776,20 +834,20 @@ func initPerformanceComponents(cfg *config.Config, db *sql.DB, logger *zap.Logge
 	queryOptimizer := query.NewQueryOptimizer(db, cacheInstance, logger)
 	logger.Info("✅ Query optimizer initialized")
 
-	// Initialize performance monitor
+	// Initialize performance monitor with nil interfaces for now
+	// TODO: Implement proper interface adapters for cache, pool, and query components
 	perfMonitor := performance.NewPerformanceMonitor(
 		db,
-		cacheInstance,
-		connectionPool,
-		queryOptimizer,
+		nil, // cacheInstance - needs interface adapter
+		nil, // connectionPool - needs interface adapter
+		nil, // queryOptimizer - needs interface adapter
 		logger,
 	)
 
 	// Start performance monitoring
-	if perfConfig.Monitoring.Enabled {
-		perfMonitor.Start(perfConfig.Monitoring.CollectionInterval)
-		logger.Info("✅ Performance monitoring started")
-	}
+	// TODO: Fix monitoring config structure
+	perfMonitor.Start(30 * time.Second) // Use default interval
+	logger.Info("✅ Performance monitoring started")
 
 	return &PerformanceComponents{
 		Cache:     cacheInstance,

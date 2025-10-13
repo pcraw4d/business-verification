@@ -1,23 +1,12 @@
-# =============================================================================
-# RISK ASSESSMENT SERVICE - PRODUCTION DOCKERFILE
-# Go 1.23.0 Required - Railway Build Fix
-# =============================================================================
-
 # Build stage - Go 1.23.0 for compatibility with go.mod (requires go >= 1.23.0)
 FROM golang:1.23.0-alpine3.19 AS builder
 
-# Force cache bust for Railway - multiple mechanisms
-ARG CACHE_BUST=2025-10-13-04-25
-ARG BUILD_DATE=2025-10-13T04:25:00Z
-ARG RAILWAY_BUILD_ID=force-rebuild-$(date +%s)
-ARG FORCE_REBUILD=true
+# Force cache bust for Railway - updated timestamp and image
+ARG CACHE_BUST=2025-10-13-04-10
+ARG BUILD_DATE=2025-10-13T04:10:00Z
 
 # Verify Go version and ensure it's 1.23+
-RUN echo "=== GO VERSION CHECK ===" && \
-    go version && \
-    go version | grep -q "go1.23" || (echo "ERROR: Go version must be 1.23 or higher" && exit 1) && \
-    echo "=== GO VERSION VERIFIED ===" && \
-    echo "Build ID: $RAILWAY_BUILD_ID"
+RUN go version && go version | grep -q "go1.23" || (echo "ERROR: Go version must be 1.23 or higher" && exit 1)
 
 # Set working directory
 WORKDIR /app

@@ -3,7 +3,6 @@ package performance
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"runtime"
 	"sync"
 	"time"
@@ -13,16 +12,16 @@ import (
 
 // PerformanceMonitor monitors system performance metrics
 type PerformanceMonitor struct {
-	db           *sql.DB
-	cache        CacheMonitor
-	pool         PoolMonitor
-	query        QueryMonitor
-	logger       *zap.Logger
-	metrics      *SystemMetrics
-	mu           sync.RWMutex
-	ctx          context.Context
-	cancel       context.CancelFunc
-	collectors   []MetricsCollector
+	db         *sql.DB
+	cache      CacheMonitor
+	pool       PoolMonitor
+	query      QueryMonitor
+	logger     *zap.Logger
+	metrics    *SystemMetrics
+	mu         sync.RWMutex
+	ctx        context.Context
+	cancel     context.CancelFunc
+	collectors []MetricsCollector
 }
 
 // SystemMetrics represents overall system performance metrics
@@ -40,41 +39,41 @@ type SystemMetrics struct {
 
 // MemoryMetrics represents memory usage metrics
 type MemoryMetrics struct {
-	AllocatedMB     float64 `json:"allocated_mb"`
-	TotalAllocMB    float64 `json:"total_alloc_mb"`
-	SysMB           float64 `json:"sys_mb"`
-	NumGC           uint32  `json:"num_gc"`
-	GCPauseMS       float64 `json:"gc_pause_ms"`
-	HeapObjects     uint64  `json:"heap_objects"`
-	StackInUseMB    float64 `json:"stack_in_use_mb"`
-	StackSysMB      float64 `json:"stack_sys_mb"`
-	MSpanInUseMB    float64 `json:"mspan_in_use_mb"`
-	MSpanSysMB      float64 `json:"mspan_sys_mb"`
-	MCacheInUseMB   float64 `json:"mcache_in_use_mb"`
-	MCacheSysMB     float64 `json:"mcache_sys_mb"`
-	BuckHashSysMB   float64 `json:"buck_hash_sys_mb"`
-	GCSysMB         float64 `json:"gc_sys_mb"`
-	OtherSysMB      float64 `json:"other_sys_mb"`
-	NextGC          uint64  `json:"next_gc"`
-	LastGC          time.Time `json:"last_gc"`
-	PauseTotalNS    uint64  `json:"pause_total_ns"`
-	NumForcedGC     uint32  `json:"num_forced_gc"`
+	AllocatedMB   float64   `json:"allocated_mb"`
+	TotalAllocMB  float64   `json:"total_alloc_mb"`
+	SysMB         float64   `json:"sys_mb"`
+	NumGC         uint32    `json:"num_gc"`
+	GCPauseMS     float64   `json:"gc_pause_ms"`
+	HeapObjects   uint64    `json:"heap_objects"`
+	StackInUseMB  float64   `json:"stack_in_use_mb"`
+	StackSysMB    float64   `json:"stack_sys_mb"`
+	MSpanInUseMB  float64   `json:"mspan_in_use_mb"`
+	MSpanSysMB    float64   `json:"mspan_sys_mb"`
+	MCacheInUseMB float64   `json:"mcache_in_use_mb"`
+	MCacheSysMB   float64   `json:"mcache_sys_mb"`
+	BuckHashSysMB float64   `json:"buck_hash_sys_mb"`
+	GCSysMB       float64   `json:"gc_sys_mb"`
+	OtherSysMB    float64   `json:"other_sys_mb"`
+	NextGC        uint64    `json:"next_gc"`
+	LastGC        time.Time `json:"last_gc"`
+	PauseTotalNS  uint64    `json:"pause_total_ns"`
+	NumForcedGC   uint32    `json:"num_forced_gc"`
 }
 
 // DatabaseMetrics represents database performance metrics
 type DatabaseMetrics struct {
-	ActiveConnections    int           `json:"active_connections"`
-	IdleConnections      int           `json:"idle_connections"`
-	TotalConnections     int           `json:"total_connections"`
-	WaitCount            int64         `json:"wait_count"`
-	WaitDuration         time.Duration `json:"wait_duration"`
-	MaxIdleClosed        int64         `json:"max_idle_closed"`
-	MaxIdleTimeClosed    int64         `json:"max_idle_time_closed"`
-	MaxLifetimeClosed    int64         `json:"max_lifetime_closed"`
-	ConnectionsCreated   int64         `json:"connections_created"`
-	ConnectionsClosed    int64         `json:"connections_closed"`
-	LastHealthCheck      time.Time     `json:"last_health_check"`
-	HealthCheckFailures  int64         `json:"health_check_failures"`
+	ActiveConnections   int           `json:"active_connections"`
+	IdleConnections     int           `json:"idle_connections"`
+	TotalConnections    int           `json:"total_connections"`
+	WaitCount           int64         `json:"wait_count"`
+	WaitDuration        time.Duration `json:"wait_duration"`
+	MaxIdleClosed       int64         `json:"max_idle_closed"`
+	MaxIdleTimeClosed   int64         `json:"max_idle_time_closed"`
+	MaxLifetimeClosed   int64         `json:"max_lifetime_closed"`
+	ConnectionsCreated  int64         `json:"connections_created"`
+	ConnectionsClosed   int64         `json:"connections_closed"`
+	LastHealthCheck     time.Time     `json:"last_health_check"`
+	HealthCheckFailures int64         `json:"health_check_failures"`
 }
 
 // CacheMetrics represents cache performance metrics
@@ -92,53 +91,53 @@ type CacheMetrics struct {
 
 // PoolMetrics represents connection pool metrics
 type PoolMetrics struct {
-	ActiveConnections    int           `json:"active_connections"`
-	IdleConnections      int           `json:"idle_connections"`
-	TotalConnections     int           `json:"total_connections"`
-	WaitCount            int64         `json:"wait_count"`
-	WaitDuration         time.Duration `json:"wait_duration"`
-	MaxIdleClosed        int64         `json:"max_idle_closed"`
-	MaxIdleTimeClosed    int64         `json:"max_idle_time_closed"`
-	MaxLifetimeClosed    int64         `json:"max_lifetime_closed"`
-	ConnectionsCreated   int64         `json:"connections_created"`
-	ConnectionsClosed    int64         `json:"connections_closed"`
-	LastHealthCheck      time.Time     `json:"last_health_check"`
-	HealthCheckFailures  int64         `json:"health_check_failures"`
+	ActiveConnections   int           `json:"active_connections"`
+	IdleConnections     int           `json:"idle_connections"`
+	TotalConnections    int           `json:"total_connections"`
+	WaitCount           int64         `json:"wait_count"`
+	WaitDuration        time.Duration `json:"wait_duration"`
+	MaxIdleClosed       int64         `json:"max_idle_closed"`
+	MaxIdleTimeClosed   int64         `json:"max_idle_time_closed"`
+	MaxLifetimeClosed   int64         `json:"max_lifetime_closed"`
+	ConnectionsCreated  int64         `json:"connections_created"`
+	ConnectionsClosed   int64         `json:"connections_closed"`
+	LastHealthCheck     time.Time     `json:"last_health_check"`
+	HealthCheckFailures int64         `json:"health_check_failures"`
 }
 
 // QueryMetrics represents query performance metrics
 type QueryMetrics struct {
-	QueryCount      int64         `json:"query_count"`
-	CacheHits       int64         `json:"cache_hits"`
-	CacheMisses     int64         `json:"cache_misses"`
-	AverageLatency  time.Duration `json:"average_latency"`
-	SlowQueries     int64         `json:"slow_queries"`
-	ErrorCount      int64         `json:"error_count"`
-	LastUpdated     time.Time     `json:"last_updated"`
+	QueryCount     int64         `json:"query_count"`
+	CacheHits      int64         `json:"cache_hits"`
+	CacheMisses    int64         `json:"cache_misses"`
+	AverageLatency time.Duration `json:"average_latency"`
+	SlowQueries    int64         `json:"slow_queries"`
+	ErrorCount     int64         `json:"error_count"`
+	LastUpdated    time.Time     `json:"last_updated"`
 }
 
 // RequestMetrics represents HTTP request metrics
 type RequestMetrics struct {
-	TotalRequests     int64         `json:"total_requests"`
-	SuccessfulRequests int64        `json:"successful_requests"`
-	FailedRequests    int64         `json:"failed_requests"`
-	AverageLatency    time.Duration `json:"average_latency"`
-	P95Latency        time.Duration `json:"p95_latency"`
-	P99Latency        time.Duration `json:"p99_latency"`
-	MaxLatency        time.Duration `json:"max_latency"`
-	MinLatency        time.Duration `json:"min_latency"`
-	RequestsPerSecond float64       `json:"requests_per_second"`
-	LastUpdated       time.Time     `json:"last_updated"`
+	TotalRequests      int64         `json:"total_requests"`
+	SuccessfulRequests int64         `json:"successful_requests"`
+	FailedRequests     int64         `json:"failed_requests"`
+	AverageLatency     time.Duration `json:"average_latency"`
+	P95Latency         time.Duration `json:"p95_latency"`
+	P99Latency         time.Duration `json:"p99_latency"`
+	MaxLatency         time.Duration `json:"max_latency"`
+	MinLatency         time.Duration `json:"min_latency"`
+	RequestsPerSecond  float64       `json:"requests_per_second"`
+	LastUpdated        time.Time     `json:"last_updated"`
 }
 
 // ErrorMetrics represents error metrics
 type ErrorMetrics struct {
-	TotalErrors       int64         `json:"total_errors"`
-	ErrorRate         float64       `json:"error_rate"`
-	ErrorsByType      map[string]int64 `json:"errors_by_type"`
-	ErrorsByEndpoint  map[string]int64 `json:"errors_by_endpoint"`
-	LastError         time.Time     `json:"last_error"`
-	LastUpdated       time.Time     `json:"last_updated"`
+	TotalErrors      int64            `json:"total_errors"`
+	ErrorRate        float64          `json:"error_rate"`
+	ErrorsByType     map[string]int64 `json:"errors_by_type"`
+	ErrorsByEndpoint map[string]int64 `json:"errors_by_endpoint"`
+	LastError        time.Time        `json:"last_error"`
+	LastUpdated      time.Time        `json:"last_updated"`
 }
 
 // Monitor interfaces
@@ -163,7 +162,7 @@ type MetricsCollector interface {
 // NewPerformanceMonitor creates a new performance monitor
 func NewPerformanceMonitor(db *sql.DB, cache CacheMonitor, pool PoolMonitor, query QueryMonitor, logger *zap.Logger) *PerformanceMonitor {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	monitor := &PerformanceMonitor{
 		db:         db,
 		cache:      cache,
@@ -223,13 +222,13 @@ func (pm *PerformanceMonitor) GetHealthStatus() *HealthStatus {
 	// Check database health
 	if pm.metrics.DatabaseMetrics.HealthCheckFailures > 10 {
 		status.Checks["database"] = CheckStatus{
-			Status: "unhealthy",
+			Status:  "unhealthy",
 			Message: "High number of health check failures",
 		}
 		status.Overall = "degraded"
 	} else {
 		status.Checks["database"] = CheckStatus{
-			Status: "healthy",
+			Status:  "healthy",
 			Message: "Database is responding normally",
 		}
 	}
@@ -237,7 +236,7 @@ func (pm *PerformanceMonitor) GetHealthStatus() *HealthStatus {
 	// Check cache health
 	if pm.metrics.CacheMetrics.HitRate < 0.5 {
 		status.Checks["cache"] = CheckStatus{
-			Status: "degraded",
+			Status:  "degraded",
 			Message: "Low cache hit rate",
 		}
 		if status.Overall == "healthy" {
@@ -245,7 +244,7 @@ func (pm *PerformanceMonitor) GetHealthStatus() *HealthStatus {
 		}
 	} else {
 		status.Checks["cache"] = CheckStatus{
-			Status: "healthy",
+			Status:  "healthy",
 			Message: "Cache is performing well",
 		}
 	}
@@ -253,7 +252,7 @@ func (pm *PerformanceMonitor) GetHealthStatus() *HealthStatus {
 	// Check memory health
 	if pm.metrics.MemoryUsage.AllocatedMB > 1000 {
 		status.Checks["memory"] = CheckStatus{
-			Status: "degraded",
+			Status:  "degraded",
 			Message: "High memory usage",
 		}
 		if status.Overall == "healthy" {
@@ -261,7 +260,7 @@ func (pm *PerformanceMonitor) GetHealthStatus() *HealthStatus {
 		}
 	} else {
 		status.Checks["memory"] = CheckStatus{
-			Status: "healthy",
+			Status:  "healthy",
 			Message: "Memory usage is normal",
 		}
 	}
@@ -269,13 +268,13 @@ func (pm *PerformanceMonitor) GetHealthStatus() *HealthStatus {
 	// Check error rate
 	if pm.metrics.ErrorMetrics.ErrorRate > 0.01 {
 		status.Checks["errors"] = CheckStatus{
-			Status: "unhealthy",
+			Status:  "unhealthy",
 			Message: "High error rate",
 		}
 		status.Overall = "unhealthy"
 	} else {
 		status.Checks["errors"] = CheckStatus{
-			Status: "healthy",
+			Status:  "healthy",
 			Message: "Error rate is acceptable",
 		}
 	}
@@ -361,25 +360,25 @@ func (pm *PerformanceMonitor) collectMemoryMetrics() {
 	runtime.ReadMemStats(&m)
 
 	pm.metrics.MemoryUsage = MemoryMetrics{
-		AllocatedMB:     float64(m.Alloc) / 1024 / 1024,
-		TotalAllocMB:    float64(m.TotalAlloc) / 1024 / 1024,
-		SysMB:           float64(m.Sys) / 1024 / 1024,
-		NumGC:           m.NumGC,
-		GCPauseMS:       float64(m.PauseNs[(m.NumGC+255)%256]) / 1000000,
-		HeapObjects:     m.HeapObjects,
-		StackInUseMB:    float64(m.StackInuse) / 1024 / 1024,
-		StackSysMB:      float64(m.StackSys) / 1024 / 1024,
-		MSpanInUseMB:    float64(m.MSpanInuse) / 1024 / 1024,
-		MSpanSysMB:      float64(m.MSpanSys) / 1024 / 1024,
-		MCacheInUseMB:   float64(m.MCacheInuse) / 1024 / 1024,
-		MCacheSysMB:     float64(m.MCacheSys) / 1024 / 1024,
-		BuckHashSysMB:   float64(m.BuckHashSys) / 1024 / 1024,
-		GCSysMB:         float64(m.GCSys) / 1024 / 1024,
-		OtherSysMB:      float64(m.OtherSys) / 1024 / 1024,
-		NextGC:          m.NextGC,
-		LastGC:          time.Unix(0, int64(m.LastGC)),
-		PauseTotalNS:    m.PauseTotalNs,
-		NumForcedGC:     m.NumForcedGC,
+		AllocatedMB:   float64(m.Alloc) / 1024 / 1024,
+		TotalAllocMB:  float64(m.TotalAlloc) / 1024 / 1024,
+		SysMB:         float64(m.Sys) / 1024 / 1024,
+		NumGC:         m.NumGC,
+		GCPauseMS:     float64(m.PauseNs[(m.NumGC+255)%256]) / 1000000,
+		HeapObjects:   m.HeapObjects,
+		StackInUseMB:  float64(m.StackInuse) / 1024 / 1024,
+		StackSysMB:    float64(m.StackSys) / 1024 / 1024,
+		MSpanInUseMB:  float64(m.MSpanInuse) / 1024 / 1024,
+		MSpanSysMB:    float64(m.MSpanSys) / 1024 / 1024,
+		MCacheInUseMB: float64(m.MCacheInuse) / 1024 / 1024,
+		MCacheSysMB:   float64(m.MCacheSys) / 1024 / 1024,
+		BuckHashSysMB: float64(m.BuckHashSys) / 1024 / 1024,
+		GCSysMB:       float64(m.GCSys) / 1024 / 1024,
+		OtherSysMB:    float64(m.OtherSys) / 1024 / 1024,
+		NextGC:        m.NextGC,
+		LastGC:        time.Unix(0, int64(m.LastGC)),
+		PauseTotalNS:  m.PauseTotalNs,
+		NumForcedGC:   m.NumForcedGC,
 	}
 }
 
@@ -395,8 +394,8 @@ func (pm *PerformanceMonitor) logPerformanceSummary() {
 
 // HealthStatus represents the health status of the system
 type HealthStatus struct {
-	Overall string                  `json:"overall"`
-	Checks  map[string]CheckStatus  `json:"checks"`
+	Overall string                 `json:"overall"`
+	Checks  map[string]CheckStatus `json:"checks"`
 }
 
 // CheckStatus represents the status of a health check

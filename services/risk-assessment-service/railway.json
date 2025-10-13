@@ -24,7 +24,15 @@
         "CGO_CFLAGS": "-I/app/onnxruntime/include",
         "LD_LIBRARY_PATH": "/app/onnxruntime/lib",
         "LSTM_MODEL_PATH": "/app/models/risk_lstm_v1.onnx",
-        "XGBOOST_MODEL_PATH": "/app/models/xgb_model.json"
+        "XGBOOST_MODEL_PATH": "/app/models/xgb_model.json",
+        "MAX_CONCURRENT_REQUESTS": "1000",
+        "WORKER_POOL_SIZE": "100",
+        "CACHE_TTL": "300",
+        "DB_MAX_CONNECTIONS": "100",
+        "DB_IDLE_CONNECTIONS": "20",
+        "REDIS_POOL_SIZE": "50",
+        "ENABLE_PERFORMANCE_MONITORING": "true",
+        "PERFORMANCE_MONITORING_INTERVAL": "30s"
       }
     },
     "staging": {
@@ -39,7 +47,15 @@
         "CGO_CFLAGS": "-I/app/onnxruntime/include",
         "LD_LIBRARY_PATH": "/app/onnxruntime/lib",
         "LSTM_MODEL_PATH": "/app/models/risk_lstm_v1.onnx",
-        "XGBOOST_MODEL_PATH": "/app/models/xgb_model.json"
+        "XGBOOST_MODEL_PATH": "/app/models/xgb_model.json",
+        "MAX_CONCURRENT_REQUESTS": "500",
+        "WORKER_POOL_SIZE": "50",
+        "CACHE_TTL": "300",
+        "DB_MAX_CONNECTIONS": "50",
+        "DB_IDLE_CONNECTIONS": "10",
+        "REDIS_POOL_SIZE": "25",
+        "ENABLE_PERFORMANCE_MONITORING": "true",
+        "PERFORMANCE_MONITORING_INTERVAL": "30s"
       }
     }
   },
@@ -59,12 +75,14 @@
         "restartPolicyMaxRetries": 3
       },
       "resources": {
-        "memory": "2Gi",
-        "cpu": "2"
+        "memory": "4Gi",
+        "cpu": "4"
       },
       "scaling": {
-        "minReplicas": 1,
-        "maxReplicas": 5
+        "minReplicas": 3,
+        "maxReplicas": 20,
+        "targetCPUPercent": 70,
+        "targetMemoryPercent": 80
       }
     }
   ],
