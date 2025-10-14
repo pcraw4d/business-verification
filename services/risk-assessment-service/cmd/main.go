@@ -37,27 +37,6 @@ import (
 	"kyb-platform/services/risk-assessment-service/internal/supabase"
 )
 
-// cacheLoggerWrapper wraps zap.Logger to implement cache.Logger interface
-type cacheLoggerWrapper struct {
-	logger *zap.Logger
-}
-
-func (c *cacheLoggerWrapper) Debug(msg string, fields ...interface{}) {
-	c.logger.Debug(msg, zap.Any("fields", fields))
-}
-
-func (c *cacheLoggerWrapper) Info(msg string, fields ...interface{}) {
-	c.logger.Info(msg, zap.Any("fields", fields))
-}
-
-func (c *cacheLoggerWrapper) Warn(msg string, fields ...interface{}) {
-	c.logger.Warn(msg, zap.Any("fields", fields))
-}
-
-func (c *cacheLoggerWrapper) Error(msg string, fields ...interface{}) {
-	c.logger.Error(msg, zap.Any("fields", fields))
-}
-
 // MockDashboardDataProvider provides mock data for dashboard testing
 type MockDashboardDataProvider struct {
 	logger *zap.Logger

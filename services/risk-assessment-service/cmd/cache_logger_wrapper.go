@@ -20,3 +20,7 @@ func (c *cacheLoggerWrapper) Error(msg string, args ...interface{}) {
 func (c *cacheLoggerWrapper) Warn(msg string, args ...interface{}) {
 	c.logger.Warn(msg, zap.Any("args", args))
 }
+
+func (c *cacheLoggerWrapper) Debug(msg string, args ...interface{}) {
+	c.logger.Debug(msg, zap.Any("args", args))
+}
