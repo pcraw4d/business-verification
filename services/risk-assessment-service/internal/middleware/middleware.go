@@ -1,8 +1,10 @@
 package middleware
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -28,29 +30,49 @@ func NewMiddleware(logger *zap.Logger) *Middleware {
 	}
 }
 
-// LoggingMiddleware logs HTTP requests
+// LoggingMiddleware logs HTTP requests with enhanced structured logging
 func (m *Middleware) LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
-		// Get request ID
+		// Get correlation and request IDs
+		correlationID := r.Header.Get("X-Correlation-ID")
 		requestID := r.Header.Get("X-Request-ID")
 		if requestID == "" {
 			requestID = generateRequestID()
 		}
+		if correlationID == "" {
+			correlationID = requestID
+		}
 
-		// Add request ID to context
+		// Extract user and tenant information from headers or context
+		userID := r.Header.Get("X-User-ID")
+		tenantID := r.Header.Get("X-Tenant-ID")
+
+		// Add IDs to context
 		ctx := context.WithValue(r.Context(), RequestIDContextKey, requestID)
+		ctx = context.WithValue(ctx, "correlation_id", correlationID)
+		ctx = context.WithValue(ctx, "user_id", userID)
+		ctx = context.WithValue(ctx, "tenant_id", tenantID)
 		r = r.WithContext(ctx)
 
-		// Set request ID header
+		// Set headers
 		w.Header().Set("X-Request-ID", requestID)
+		w.Header().Set("X-Correlation-ID", correlationID)
 
-		// Create response writer wrapper to capture status code
-		wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+		// Read request body for logging (if not too large)
+		var requestBody []byte
+		if r.Body != nil && r.ContentLength < 1024*1024 { // 1MB limit
+			requestBody, _ = io.ReadAll(r.Body)
+			r.Body = io.NopCloser(bytes.NewBuffer(requestBody))
+		}
 
-		// Log request
-		m.logger.Info("Request started",
+		// Create response writer wrapper to capture status code and body
+		wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK, body: &bytes.Buffer{}}
+
+		// Log request with enhanced structured data
+		requestFields := []zap.Field{
+			zap.String("correlation_id", correlationID),
 			zap.String("request_id", requestID),
 			zap.String("method", r.Method),
 			zap.String("path", r.URL.Path),
@@ -58,21 +80,62 @@ func (m *Middleware) LoggingMiddleware(next http.Handler) http.Handler {
 			zap.String("remote_addr", r.RemoteAddr),
 			zap.String("user_agent", r.UserAgent()),
 			zap.String("referer", r.Referer()),
-		)
+			zap.String("content_type", r.Header.Get("Content-Type")),
+			zap.Int64("content_length", r.ContentLength),
+		}
+
+		// Add user context if available
+		if userID != "" {
+			requestFields = append(requestFields, zap.String("user_id", userID))
+		}
+		if tenantID != "" {
+			requestFields = append(requestFields, zap.String("tenant_id", tenantID))
+		}
+
+		// Add request body if available and not too large
+		if len(requestBody) > 0 && len(requestBody) < 1024 { // Log body if < 1KB
+			requestFields = append(requestFields, zap.String("request_body", string(requestBody)))
+		}
+
+		m.logger.Info("Request started", requestFields...)
 
 		// Call next handler
 		next.ServeHTTP(wrapped, r)
 
-		// Log response
+		// Log response with enhanced structured data
 		duration := time.Since(start)
-		m.logger.Info("Request completed",
+		responseFields := []zap.Field{
+			zap.String("correlation_id", correlationID),
 			zap.String("request_id", requestID),
 			zap.String("method", r.Method),
 			zap.String("path", r.URL.Path),
 			zap.Int("status_code", wrapped.statusCode),
 			zap.Duration("duration", duration),
 			zap.Int64("response_size", wrapped.size),
-		)
+			zap.String("response_content_type", w.Header().Get("Content-Type")),
+		}
+
+		// Add user context if available
+		if userID != "" {
+			responseFields = append(responseFields, zap.String("user_id", userID))
+		}
+		if tenantID != "" {
+			responseFields = append(responseFields, zap.String("tenant_id", tenantID))
+		}
+
+		// Add response body if available and not too large
+		if wrapped.body.Len() > 0 && wrapped.body.Len() < 1024 { // Log body if < 1KB
+			responseFields = append(responseFields, zap.String("response_body", wrapped.body.String()))
+		}
+
+		// Log at appropriate level based on status code
+		if wrapped.statusCode >= 500 {
+			m.logger.Error("Request completed with server error", responseFields...)
+		} else if wrapped.statusCode >= 400 {
+			m.logger.Warn("Request completed with client error", responseFields...)
+		} else {
+			m.logger.Info("Request completed successfully", responseFields...)
+		}
 	})
 }
 
@@ -262,7 +325,7 @@ func (m *Middleware) MetricsMiddleware() func(http.Handler) http.Handler {
 			start := time.Now()
 
 			// Create response writer wrapper
-			wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+			wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK, body: &bytes.Buffer{}}
 
 			next.ServeHTTP(wrapped, r)
 
@@ -281,11 +344,12 @@ func (m *Middleware) MetricsMiddleware() func(http.Handler) http.Handler {
 
 // Helper functions
 
-// responseWriter wraps http.ResponseWriter to capture status code and size
+// responseWriter wraps http.ResponseWriter to capture status code, size, and body
 type responseWriter struct {
 	http.ResponseWriter
 	statusCode int
 	size       int64
+	body       *bytes.Buffer
 }
 
 func (rw *responseWriter) WriteHeader(code int) {
@@ -294,8 +358,15 @@ func (rw *responseWriter) WriteHeader(code int) {
 }
 
 func (rw *responseWriter) Write(b []byte) (int, error) {
+	// Write to the original response writer
 	size, err := rw.ResponseWriter.Write(b)
 	rw.size += int64(size)
+
+	// Also write to our buffer for logging (if not too large)
+	if rw.body != nil && rw.body.Len() < 1024 { // 1KB limit
+		rw.body.Write(b)
+	}
+
 	return size, err
 }
 

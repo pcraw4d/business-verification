@@ -1,0 +1,332 @@
+# Redis Persistence Configuration
+# This configuration defines persistence settings for the shared Redis instance
+
+redis:
+  # Redis version and basic settings
+  version: "7.0"
+  port: 6379
+  bind: "0.0.0.0"
+  
+  # Memory management
+  memory:
+    maxmemory: "512mb"
+    maxmemory_policy: "allkeys-lru"  # Evict least recently used keys when memory limit reached
+    maxmemory_samples: 5             # Number of keys to sample for LRU eviction
+    
+  # Persistence configuration
+  persistence:
+    # RDB (Redis Database) snapshots
+    rdb:
+      enabled: true
+      save_points:
+        - "900 1"    # Save if at least 1 key changed in 900 seconds (15 minutes)
+        - "300 10"   # Save if at least 10 keys changed in 300 seconds (5 minutes)
+        - "60 10000" # Save if at least 10000 keys changed in 60 seconds (1 minute)
+      compression: true
+      checksum: true
+      filename: "dump.rdb"
+      dir: "/data"
+      
+    # AOF (Append Only File) persistence
+    aof:
+      enabled: true
+      appendonly: "yes"
+      appendfilename: "appendonly.aof"
+      appendfsync: "everysec"  # Sync every second (balanced performance/durability)
+      no_appendfsync_on_rewrite: "no"
+      auto_aof_rewrite_percentage: 100  # Rewrite when AOF is 100% larger than last rewrite
+      auto_aof_rewrite_min_size: "64mb"
+      aof_load_truncated: "yes"
+      aof_use_rdb_preamble: "yes"  # Use RDB preamble for faster AOF loading
+      
+  # Logging configuration
+  logging:
+    loglevel: "notice"  # debug, verbose, notice, warning
+    logfile: "/var/log/redis/redis.log"
+    syslog_enabled: "no"
+    
+  # Slow log configuration
+  slowlog:
+    enabled: true
+    log_slower_than: 10000  # Log commands slower than 10ms (in microseconds)
+    max_len: 128            # Maximum number of slow log entries
+    
+  # Client configuration
+  client:
+    timeout: 300            # Client timeout in seconds
+    tcp_keepalive: 300      # TCP keepalive in seconds
+    maxclients: 10000       # Maximum number of connected clients
+    
+  # Network configuration
+  network:
+    tcp_backlog: 511
+    tcp_nodelay: "yes"
+    
+  # Security configuration
+  security:
+    requirepass: "${REDIS_PASSWORD}"  # Set via environment variable
+    protected_mode: "yes"
+    
+  # Performance tuning
+  performance:
+    # Disable potentially dangerous commands in production
+    rename_commands:
+      FLUSHDB: ""
+      FLUSHALL: ""
+      KEYS: ""
+      CONFIG: "CONFIG_9a2b3c4d5e6f7g8h"
+      
+    # Optimize for memory usage
+    hash_max_ziplist_entries: 512
+    hash_max_ziplist_value: 64
+    list_max_ziplist_size: -2
+    list_compress_depth: 0
+    set_max_intset_entries: 512
+    zset_max_ziplist_entries: 128
+    zset_max_ziplist_value: 64
+    
+  # Replication (if using Redis Sentinel or Cluster)
+  replication:
+    replica_serve_stale_data: "yes"
+    replica_read_only: "yes"
+    repl_diskless_sync: "no"
+    repl_diskless_sync_delay: 5
+    repl_ping_replica_period: 10
+    repl_timeout: 60
+    repl_disable_tcp_nodelay: "no"
+    repl_backlog_size: "1mb"
+    repl_backlog_ttl: 3600
+
+# Environment-specific configurations
+environments:
+  development:
+    redis:
+      persistence:
+        rdb:
+          save_points:
+            - "900 1"
+        aof:
+          enabled: false  # Disable AOF for development
+      memory:
+        maxmemory: "128mb"
+      logging:
+        loglevel: "debug"
+      security:
+        requirepass: ""  # No password for development
+        
+  staging:
+    redis:
+      persistence:
+        rdb:
+          save_points:
+            - "900 1"
+            - "300 10"
+        aof:
+          enabled: true
+          appendfsync: "everysec"
+      memory:
+        maxmemory: "256mb"
+      logging:
+        loglevel: "notice"
+        
+  production:
+    redis:
+      persistence:
+        rdb:
+          save_points:
+            - "900 1"
+            - "300 10"
+            - "60 10000"
+        aof:
+          enabled: true
+          appendfsync: "everysec"
+          auto_aof_rewrite_percentage: 100
+      memory:
+        maxmemory: "512mb"
+        maxmemory_policy: "allkeys-lru"
+      logging:
+        loglevel: "notice"
+      security:
+        requirepass: "${REDIS_PASSWORD}"
+        protected_mode: "yes"
+
+# Backup and recovery configuration
+backup:
+  # RDB backup settings
+  rdb_backup:
+    enabled: true
+    frequency: "hourly"
+    retention_hours: 24
+    compression: true
+    encryption: true
+    
+  # AOF backup settings
+  aof_backup:
+    enabled: true
+    frequency: "daily"
+    retention_days: 7
+    compression: true
+    encryption: true
+    
+  # Backup destinations
+  destinations:
+    - type: "local"
+      path: "/backups/redis"
+      retention_days: 7
+      
+    - type: "s3"
+      bucket: "kyb-platform-redis-backups"
+      region: "us-east-1"
+      retention_days: 30
+      enabled: false  # Enable when S3 is configured
+      
+  # Backup verification
+  verification:
+    enabled: true
+    test_restore_frequency: "weekly"
+    checksum_verification: true
+
+# Monitoring and alerting
+monitoring:
+  # Key metrics to monitor
+  metrics:
+    - "used_memory"
+    - "used_memory_peak"
+    - "used_memory_rss"
+    - "connected_clients"
+    - "total_commands_processed"
+    - "instantaneous_ops_per_sec"
+    - "keyspace_hits"
+    - "keyspace_misses"
+    - "expired_keys"
+    - "evicted_keys"
+    - "rdb_last_save_time"
+    - "aof_last_rewrite_time_sec"
+    
+  # Alert thresholds
+  alerts:
+    memory_usage_high:
+      threshold: 80  # Alert when memory usage exceeds 80%
+      severity: "warning"
+      
+    memory_usage_critical:
+      threshold: 95  # Alert when memory usage exceeds 95%
+      severity: "critical"
+      
+    connected_clients_high:
+      threshold: 8000  # Alert when connected clients exceed 8000
+      severity: "warning"
+      
+    hit_ratio_low:
+      threshold: 0.8  # Alert when hit ratio drops below 80%
+      severity: "warning"
+      
+    persistence_failure:
+      enabled: true
+      severity: "critical"
+      
+    slow_queries_high:
+      threshold: 100  # Alert when slow queries exceed 100 per minute
+      severity: "warning"
+
+# Performance optimization
+optimization:
+  # Memory optimization
+  memory:
+    # Use memory-efficient data structures
+    optimize_for_memory: true
+    
+    # Configure eviction policies
+    eviction_policies:
+      - "allkeys-lru"    # For general caching
+      - "volatile-lru"   # For TTL-based caching
+      - "allkeys-random" # For non-critical data
+      
+  # Network optimization
+  network:
+    # Enable TCP_NODELAY for better latency
+    tcp_nodelay: true
+    
+    # Optimize connection handling
+    tcp_keepalive: 300
+    
+  # Persistence optimization
+  persistence:
+    # Optimize AOF rewrite
+    aof_rewrite_incremental_fsync: true
+    
+    # Optimize RDB compression
+    rdb_compression: true
+    
+    # Use RDB preamble for faster AOF loading
+    aof_use_rdb_preamble: true
+
+# Disaster recovery
+disaster_recovery:
+  # Recovery procedures
+  procedures:
+    - name: "rdb_restore"
+      description: "Restore from RDB snapshot"
+      estimated_time: "5m"
+      prerequisites:
+        - "RDB file available"
+        - "Redis service stopped"
+        - "Data directory backed up"
+        
+    - name: "aof_restore"
+      description: "Restore from AOF file"
+      estimated_time: "10m"
+      prerequisites:
+        - "AOF file available"
+        - "Redis service stopped"
+        - "Data directory backed up"
+        
+    - name: "point_in_time_recovery"
+      description: "Restore to specific point in time"
+      estimated_time: "15m"
+      prerequisites:
+        - "RDB and AOF files available"
+        - "Target timestamp identified"
+        - "Redis service stopped"
+        
+  # Recovery time objectives
+  rto:
+    development: "30m"
+    staging: "15m"
+    production: "5m"
+    
+  # Recovery point objectives
+  rpo:
+    development: "1h"
+    staging: "15m"
+    production: "1m"
+
+# Maintenance procedures
+maintenance:
+  # Regular maintenance tasks
+  tasks:
+    - name: "memory_cleanup"
+      description: "Clean up expired keys and optimize memory"
+      frequency: "daily"
+      estimated_time: "5m"
+      
+    - name: "persistence_optimization"
+      description: "Optimize RDB and AOF files"
+      frequency: "weekly"
+      estimated_time: "10m"
+      
+    - name: "slowlog_analysis"
+      description: "Analyze slow query log"
+      frequency: "weekly"
+      estimated_time: "15m"
+      
+    - name: "backup_verification"
+      description: "Verify backup integrity"
+      frequency: "weekly"
+      estimated_time: "20m"
+      
+  # Maintenance windows
+  windows:
+    development: "anytime"
+    staging: "02:00-04:00 UTC (weekends)"
+    production: "02:00-04:00 UTC (Sundays)"

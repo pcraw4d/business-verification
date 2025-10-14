@@ -1,0 +1,438 @@
+# Fluentd Configuration for Risk Assessment Service Log Aggregation
+# This configuration collects, processes, and forwards logs from the risk assessment service
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluentd-config
+  namespace: risk-assessment
+data:
+  fluent.conf: |
+    # Global configuration
+    <system>
+      log_level info
+      workers 2
+      root_dir /tmp/fluentd-buffers/
+    </system>
+
+    # Input sources
+    <source>
+      @type tail
+      @id risk-assessment-logs
+      path /var/log/risk-assessment-service/*.log
+      pos_file /var/log/fluentd/risk-assessment.log.pos
+      tag risk-assessment.*
+      format json
+      time_key timestamp
+      time_format %Y-%m-%dT%H:%M:%S.%L%z
+      keep_time_key true
+      read_from_head true
+      refresh_interval 5s
+      rotate_wait 5s
+    </source>
+
+    # HTTP input for direct log ingestion
+    <source>
+      @type http
+      @id risk-assessment-http
+      port 9880
+      bind 0.0.0.0
+      body_size_limit 32m
+      keepalive_timeout 10s
+      <parse>
+        @type json
+        time_key timestamp
+        time_format %Y-%m-%dT%H:%M:%S.%L%z
+        keep_time_key true
+      </parse>
+    </source>
+
+    # Filter for risk assessment service logs
+    <filter risk-assessment.**>
+      @type record_transformer
+      <record>
+        service_name risk-assessment-service
+        environment ${ENVIRONMENT:-production}
+        cluster_name ${CLUSTER_NAME:-kyb-platform}
+        log_type application
+      </record>
+    </filter>
+
+    # Parse structured fields from JSON logs
+    <filter risk-assessment.**>
+      @type parser
+      key_name message
+      reserve_data true
+      <parse>
+        @type json
+        time_key timestamp
+        time_format %Y-%m-%dT%H:%M:%S.%L%z
+        keep_time_key true
+      </parse>
+    </filter>
+
+    # Add correlation and request tracking
+    <filter risk-assessment.**>
+      @type record_transformer
+      <record>
+        correlation_id ${record["correlation_id"] || "unknown"}
+        request_id ${record["request_id"] || "unknown"}
+        user_id ${record["user_id"] || "anonymous"}
+        tenant_id ${record["tenant_id"] || "default"}
+        method ${record["method"] || "unknown"}
+        path ${record["path"] || "unknown"}
+        status_code ${record["status_code"] || 0}
+        duration_ms ${record["duration"] ? record["duration"].to_f * 1000 : 0}
+        response_size ${record["response_size"] || 0}
+      </record>
+    </filter>
+
+    # Add performance metrics
+    <filter risk-assessment.**>
+      @type record_transformer
+      <record>
+        # Categorize requests by performance
+        performance_category ${record["duration_ms"] && record["duration_ms"] > 1000 ? "slow" : record["duration_ms"] && record["duration_ms"] > 500 ? "medium" : "fast"}
+        
+        # Categorize by status code
+        status_category ${record["status_code"] >= 500 ? "error" : record["status_code"] >= 400 ? "warning" : "success"}
+        
+        # Add business context
+        business_operation ${record["path"] ? record["path"].split("/").last : "unknown"}
+      </record>
+    </filter>
+
+    # Add error context for error logs
+    <filter risk-assessment.**>
+      @type grep
+      <regexp>
+        key level
+        pattern /ERROR|FATAL|PANIC/
+      </regexp>
+    </filter>
+
+    <filter risk-assessment.**>
+      @type record_transformer
+      <record>
+        error_type ${record["error"] ? record["error"].split(":").first : "unknown"}
+        error_message ${record["error"] || record["message"] || "unknown error"}
+        stack_trace ${record["stacktrace"] || ""}
+      </record>
+    </filter>
+
+    # Buffer configuration for reliability
+    <buffer>
+      @type file
+      path /var/log/fluentd/buffers/risk-assessment
+      chunk_limit_size 8MB
+      queue_limit_length 32
+      flush_interval 5s
+      retry_max_interval 30s
+      retry_forever true
+      retry_max_times 17
+      flush_at_shutdown true
+      overflow_action block
+    </buffer>
+
+    # Output to Elasticsearch (if available)
+    <match risk-assessment.**>
+      @type elasticsearch
+      @id risk-assessment-elasticsearch
+      host ${ELASTICSEARCH_HOST:-elasticsearch}
+      port ${ELASTICSEARCH_PORT:-9200}
+      index_name risk-assessment-logs
+      type_name _doc
+      include_tag_key true
+      tag_key @log_name
+      <buffer>
+        @type file
+        path /var/log/fluentd/buffers/elasticsearch
+        chunk_limit_size 8MB
+        queue_limit_length 32
+        flush_interval 5s
+        retry_max_interval 30s
+        retry_forever true
+        retry_max_times 17
+        flush_at_shutdown true
+        overflow_action block
+      </buffer>
+    </match>
+
+    # Output to file for backup
+    <match risk-assessment.**>
+      @type file
+      @id risk-assessment-file
+      path /var/log/fluentd/output/risk-assessment
+      append true
+      <buffer>
+        @type file
+        path /var/log/fluentd/buffers/file
+        chunk_limit_size 8MB
+        queue_limit_length 32
+        flush_interval 10s
+        retry_max_interval 30s
+        retry_forever true
+        retry_max_times 17
+        flush_at_shutdown true
+        overflow_action block
+      </buffer>
+    </match>
+
+    # Output to stdout for debugging
+    <match risk-assessment.**>
+      @type stdout
+      @id risk-assessment-stdout
+    </match>
+
+  # Parsing rules for different log formats
+  parsers.conf: |
+    <parse>
+      @type json
+      time_key timestamp
+      time_format %Y-%m-%dT%H:%M:%S.%L%z
+      keep_time_key true
+    </parse>
+
+  # Output templates
+  output-templates.conf: |
+    # Elasticsearch index template
+    {
+      "index_patterns": ["risk-assessment-logs-*"],
+      "template": {
+        "settings": {
+          "number_of_shards": 1,
+          "number_of_replicas": 1,
+          "index.refresh_interval": "5s"
+        },
+        "mappings": {
+          "properties": {
+            "@timestamp": {
+              "type": "date"
+            },
+            "service_name": {
+              "type": "keyword"
+            },
+            "environment": {
+              "type": "keyword"
+            },
+            "level": {
+              "type": "keyword"
+            },
+            "message": {
+              "type": "text"
+            },
+            "correlation_id": {
+              "type": "keyword"
+            },
+            "request_id": {
+              "type": "keyword"
+            },
+            "user_id": {
+              "type": "keyword"
+            },
+            "tenant_id": {
+              "type": "keyword"
+            },
+            "method": {
+              "type": "keyword"
+            },
+            "path": {
+              "type": "keyword"
+            },
+            "status_code": {
+              "type": "integer"
+            },
+            "duration_ms": {
+              "type": "float"
+            },
+            "response_size": {
+              "type": "long"
+            },
+            "performance_category": {
+              "type": "keyword"
+            },
+            "status_category": {
+              "type": "keyword"
+            },
+            "business_operation": {
+              "type": "keyword"
+            },
+            "error_type": {
+              "type": "keyword"
+            },
+            "error_message": {
+              "type": "text"
+            },
+            "stack_trace": {
+              "type": "text"
+            }
+          }
+        }
+      }
+    }
+
+---
+# Fluentd Deployment Configuration
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fluentd
+  namespace: risk-assessment
+  labels:
+    app: fluentd
+    component: logging
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: fluentd
+  template:
+    metadata:
+      labels:
+        app: fluentd
+        component: logging
+    spec:
+      containers:
+      - name: fluentd
+        image: fluent/fluentd:v1.16-debian-1
+        ports:
+        - containerPort: 9880
+          name: http
+        env:
+        - name: ELASTICSEARCH_HOST
+          value: "elasticsearch"
+        - name: ELASTICSEARCH_PORT
+          value: "9200"
+        - name: ENVIRONMENT
+          value: "production"
+        - name: CLUSTER_NAME
+          value: "kyb-platform"
+        volumeMounts:
+        - name: fluentd-config
+          mountPath: /fluentd/etc/fluent.conf
+          subPath: fluent.conf
+        - name: fluentd-config
+          mountPath: /fluentd/etc/parsers.conf
+          subPath: parsers.conf
+        - name: fluentd-config
+          mountPath: /fluentd/etc/output-templates.conf
+          subPath: output-templates.conf
+        - name: fluentd-buffers
+          mountPath: /var/log/fluentd/buffers
+        - name: fluentd-output
+          mountPath: /var/log/fluentd/output
+        - name: risk-assessment-logs
+          mountPath: /var/log/risk-assessment-service
+          readOnly: true
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /api/plugins.json
+            port: 9880
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /api/plugins.json
+            port: 9880
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: fluentd-config
+        configMap:
+          name: fluentd-config
+      - name: fluentd-buffers
+        emptyDir: {}
+      - name: fluentd-output
+        emptyDir: {}
+      - name: risk-assessment-logs
+        hostPath:
+          path: /var/log/risk-assessment-service
+          type: DirectoryOrCreate
+
+---
+# Service for Fluentd HTTP input
+apiVersion: v1
+kind: Service
+metadata:
+  name: fluentd
+  namespace: risk-assessment
+  labels:
+    app: fluentd
+    component: logging
+spec:
+  selector:
+    app: fluentd
+  ports:
+  - name: http
+    port: 9880
+    targetPort: 9880
+    protocol: TCP
+  type: ClusterIP
+
+---
+# PersistentVolumeClaim for log storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: fluentd-logs-pvc
+  namespace: risk-assessment
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: standard
+
+---
+# ConfigMap for log retention policies
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: log-retention-policies
+  namespace: risk-assessment
+data:
+  retention-policies.yaml: |
+    # Log retention policies for different environments
+    retention_policies:
+      production:
+        application_logs: 30d
+        error_logs: 90d
+        audit_logs: 1y
+        performance_logs: 7d
+        debug_logs: 1d
+      
+      staging:
+        application_logs: 7d
+        error_logs: 30d
+        audit_logs: 90d
+        performance_logs: 3d
+        debug_logs: 1d
+      
+      development:
+        application_logs: 3d
+        error_logs: 7d
+        audit_logs: 30d
+        performance_logs: 1d
+        debug_logs: 1d
+    
+    # Log rotation policies
+    rotation_policies:
+      max_file_size: 100MB
+      max_files: 10
+      compress_old_files: true
+      date_format: "%Y%m%d"
+    
+    # Alert thresholds
+    alert_thresholds:
+      error_rate_percentage: 5
+      high_latency_threshold_ms: 1000
+      disk_usage_percentage: 80
+      memory_usage_percentage: 85

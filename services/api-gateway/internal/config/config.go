@@ -58,6 +58,7 @@ type ServicesConfig struct {
 	MerchantURL       string
 	FrontendURL       string
 	BIServiceURL      string
+	RiskAssessmentURL string
 }
 
 // Load loads configuration from environment variables
@@ -94,6 +95,7 @@ func Load() (*Config, error) {
 			MerchantURL:       getEnvAsString("MERCHANT_SERVICE_URL", "https://merchant-service-production.up.railway.app"),
 			FrontendURL:       getEnvAsString("FRONTEND_URL", "https://frontend-service-production-b225.up.railway.app"),
 			BIServiceURL:      getEnvAsString("BI_SERVICE_URL", "https://bi-service-production.up.railway.app"),
+			RiskAssessmentURL: getEnvAsString("RISK_ASSESSMENT_SERVICE_URL", "https://risk-assessment-service-production.up.railway.app"),
 		},
 		Environment: getEnvAsString("ENVIRONMENT", "production"),
 	}

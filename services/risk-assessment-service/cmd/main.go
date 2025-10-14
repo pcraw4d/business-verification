@@ -294,7 +294,7 @@ func main() {
 	// Initialize monitoring system (optional)
 	prometheusMetrics := monitoring.NewPrometheusMetrics(logger)
 	alertManager := monitoring.NewAlertManager(logger)
-	
+
 	// Note: Monitoring config loading is disabled for now to allow service startup
 	// TODO: Implement proper monitoring configuration loading
 	logger.Info("⚠️  Monitoring system initialized with default configuration")
@@ -307,7 +307,7 @@ func main() {
 		Password: "",
 		Timeout:  30 * time.Second,
 	}, logger)
-	
+
 	// Note: Alert rules are disabled for now to allow service startup
 	// TODO: Implement proper alert rules configuration
 

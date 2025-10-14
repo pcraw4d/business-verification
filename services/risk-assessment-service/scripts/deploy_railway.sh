@@ -85,10 +85,31 @@ validate_configuration() {
 run_tests() {
     echo -e "${YELLOW}🧪 Running tests...${NC}"
     
-    # Run unit tests
-    if ! go test -v ./...; then
-        echo -e "${RED}❌ Unit tests failed${NC}"
-        exit 1
+    # Use the CI test script if available
+    if [ -f "scripts/run_ci_tests.sh" ]; then
+        echo -e "${YELLOW}🔧 Running CI test suite...${NC}"
+        chmod +x scripts/run_ci_tests.sh
+        
+        # Set test environment variables
+        export DATABASE_URL="${DATABASE_URL:-postgres://postgres:postgres@localhost:5432/test_risk_assessment?sslmode=disable}"
+        export REDIS_URL="${REDIS_URL:-redis://localhost:6379}"
+        export SUPABASE_URL="${SUPABASE_URL:-https://test.supabase.co}"
+        export SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY:-test-key}"
+        export SUPABASE_SERVICE_ROLE_KEY="${SUPABASE_SERVICE_ROLE_KEY:-test-service-key}"
+        export LOG_LEVEL="${LOG_LEVEL:-debug}"
+        
+        # Run CI tests with appropriate flags
+        if ! ./scripts/run_ci_tests.sh --skip-integration --skip-performance; then
+            echo -e "${RED}❌ CI tests failed${NC}"
+            exit 1
+        fi
+    else
+        # Fallback to basic tests
+        echo -e "${YELLOW}🔧 Running basic tests...${NC}"
+        if ! go test -v ./...; then
+            echo -e "${RED}❌ Unit tests failed${NC}"
+            exit 1
+        fi
     fi
     
     # Run load tests if service is running locally
@@ -163,6 +184,18 @@ set_environment_variables() {
         "METRICS_ENABLED=true"
         "LOG_LEVEL=info"
         "LOG_FORMAT=json"
+        "REDIS_POOL_SIZE=50"
+        "REDIS_MIN_IDLE_CONNS=10"
+        "REDIS_MAX_IDLE_CONNS=20"
+        "REDIS_DIAL_TIMEOUT=5s"
+        "REDIS_READ_TIMEOUT=3s"
+        "REDIS_WRITE_TIMEOUT=3s"
+        "REDIS_POOL_TIMEOUT=4s"
+        "REDIS_IDLE_TIMEOUT=5m"
+        "REDIS_MAX_RETRIES=3"
+        "REDIS_ENABLE_FALLBACK=true"
+        "REDIS_FALLBACK_TO_MEMORY=true"
+        "REDIS_KEY_PREFIX=ra:"
     )
     
     for var in "${service_vars[@]}"; do
@@ -243,6 +276,7 @@ verify_deployment() {
         "/health"
         "/api/v1/performance/health"
         "/api/v1/performance/stats"
+        "/metrics"
     )
     
     for endpoint in "${endpoints[@]}"; do
@@ -265,6 +299,7 @@ verify_deployment() {
     echo -e "${BLUE}📊 Service URL: $service_url${NC}"
     echo -e "${BLUE}📈 Performance Stats: $service_url/api/v1/performance/stats${NC}"
     echo -e "${BLUE}🔍 Health Check: $service_url/health${NC}"
+    echo -e "${BLUE}📊 Metrics: $service_url/metrics${NC}"
 }
 
 # Function to show deployment status

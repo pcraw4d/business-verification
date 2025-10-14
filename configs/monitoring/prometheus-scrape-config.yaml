@@ -1,0 +1,457 @@
+# Prometheus Scrape Configuration for Risk Assessment Service
+# This configuration defines how Prometheus should scrape metrics from the risk assessment service
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-scrape-config
+  namespace: monitoring
+  labels:
+    app: prometheus
+    component: monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      external_labels:
+        cluster: 'kyb-platform'
+        environment: 'production'
+
+    rule_files:
+      - "/etc/prometheus/rules/*.yml"
+
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets:
+              - alertmanager:9093
+
+    scrape_configs:
+      # Risk Assessment Service metrics
+      - job_name: 'risk-assessment-service'
+        static_configs:
+          - targets: ['risk-assessment-service:8080']
+        metrics_path: '/metrics'
+        scrape_interval: 15s
+        scrape_timeout: 10s
+        scheme: http
+        honor_labels: true
+        params:
+          format: ['prometheus']
+        relabel_configs:
+          - source_labels: [__address__]
+            target_label: __param_target
+          - source_labels: [__param_target]
+            target_label: instance
+          - target_label: __address__
+            replacement: risk-assessment-service:8080
+          - target_label: service
+            replacement: risk-assessment-service
+          - target_label: environment
+            replacement: production
+          - target_label: cluster
+            replacement: kyb-platform
+
+      # Risk Assessment Service health checks
+      - job_name: 'risk-assessment-health'
+        static_configs:
+          - targets: ['risk-assessment-service:8080']
+        metrics_path: '/health'
+        scrape_interval: 30s
+        scrape_timeout: 5s
+        scheme: http
+        honor_labels: true
+        relabel_configs:
+          - source_labels: [__address__]
+            target_label: __param_target
+          - source_labels: [__param_target]
+            target_label: instance
+          - target_label: __address__
+            replacement: risk-assessment-service:8080
+          - target_label: service
+            replacement: risk-assessment-service
+          - target_label: check_type
+            replacement: health
+
+      # Risk Assessment Service performance metrics
+      - job_name: 'risk-assessment-performance'
+        static_configs:
+          - targets: ['risk-assessment-service:8080']
+        metrics_path: '/api/v1/performance/metrics'
+        scrape_interval: 30s
+        scrape_timeout: 10s
+        scheme: http
+        honor_labels: true
+        relabel_configs:
+          - source_labels: [__address__]
+            target_label: __param_target
+          - source_labels: [__param_target]
+            target_label: instance
+          - target_label: __address__
+            replacement: risk-assessment-service:8080
+          - target_label: service
+            replacement: risk-assessment-service
+          - target_label: metrics_type
+            replacement: performance
+
+      # API Gateway metrics (for routing to risk assessment)
+      - job_name: 'api-gateway'
+        static_configs:
+          - targets: ['api-gateway:8080']
+        metrics_path: '/metrics'
+        scrape_interval: 15s
+        scrape_timeout: 10s
+        scheme: http
+        honor_labels: true
+        relabel_configs:
+          - source_labels: [__address__]
+            target_label: __param_target
+          - source_labels: [__param_target]
+            target_label: instance
+          - target_label: __address__
+            replacement: api-gateway:8080
+          - target_label: service
+            replacement: api-gateway
+          - target_label: environment
+            replacement: production
+
+      # Redis metrics (shared cache)
+      - job_name: 'redis'
+        static_configs:
+          - targets: ['redis:6379']
+        metrics_path: '/metrics'
+        scrape_interval: 30s
+        scrape_timeout: 10s
+        scheme: http
+        honor_labels: true
+        relabel_configs:
+          - source_labels: [__address__]
+            target_label: __param_target
+          - source_labels: [__param_target]
+            target_label: instance
+          - target_label: __address__
+            replacement: redis:6379
+          - target_label: service
+            replacement: redis
+          - target_label: component
+            replacement: cache
+
+      # PostgreSQL metrics (Supabase)
+      - job_name: 'postgres'
+        static_configs:
+          - targets: ['postgres:5432']
+        metrics_path: '/metrics'
+        scrape_interval: 30s
+        scrape_timeout: 10s
+        scheme: http
+        honor_labels: true
+        relabel_configs:
+          - source_labels: [__address__]
+            target_label: __param_target
+          - source_labels: [__param_target]
+            target_label: instance
+          - target_label: __address__
+            replacement: postgres:5432
+          - target_label: service
+            replacement: postgres
+          - target_label: component
+            replacement: database
+
+      # Node exporter for system metrics
+      - job_name: 'node-exporter'
+        static_configs:
+          - targets: ['node-exporter:9100']
+        scrape_interval: 30s
+        scrape_timeout: 10s
+        scheme: http
+        honor_labels: true
+        relabel_configs:
+          - source_labels: [__address__]
+            target_label: __param_target
+          - source_labels: [__param_target]
+            target_label: instance
+          - target_label: __address__
+            replacement: node-exporter:9100
+          - target_label: service
+            replacement: node-exporter
+          - target_label: component
+            replacement: system
+
+      # cAdvisor for container metrics
+      - job_name: 'cadvisor'
+        static_configs:
+          - targets: ['cadvisor:8080']
+        scrape_interval: 30s
+        scrape_timeout: 10s
+        scheme: http
+        honor_labels: true
+        relabel_configs:
+          - source_labels: [__address__]
+            target_label: __param_target
+          - source_labels: [__param_target]
+            target_label: instance
+          - target_label: __address__
+            replacement: cadvisor:8080
+          - target_label: service
+            replacement: cadvisor
+          - target_label: component
+            replacement: containers
+
+  # Service discovery configuration for dynamic targets
+  service-discovery.yml: |
+    # Kubernetes service discovery for risk assessment service
+    - job_name: 'kubernetes-risk-assessment'
+      kubernetes_sd_configs:
+        - role: endpoints
+          namespaces:
+            names:
+              - risk-assessment
+              - default
+      relabel_configs:
+        # Only scrape endpoints with the risk-assessment label
+        - source_labels: [__meta_kubernetes_service_label_app]
+          action: keep
+          regex: risk-assessment-service
+        # Use the service name as the job name
+        - source_labels: [__meta_kubernetes_service_name]
+          target_label: job
+        # Use the pod name as the instance
+        - source_labels: [__meta_kubernetes_pod_name]
+          target_label: instance
+        # Add service and namespace labels
+        - source_labels: [__meta_kubernetes_service_name]
+          target_label: service
+        - source_labels: [__meta_kubernetes_namespace]
+          target_label: namespace
+        - source_labels: [__meta_kubernetes_pod_name]
+          target_label: pod
+        - source_labels: [__meta_kubernetes_pod_node_name]
+          target_label: node
+        # Add environment label
+        - target_label: environment
+          replacement: production
+        # Add cluster label
+        - target_label: cluster
+          replacement: kyb-platform
+
+    # Kubernetes service discovery for API gateway
+    - job_name: 'kubernetes-api-gateway'
+      kubernetes_sd_configs:
+        - role: endpoints
+          namespaces:
+            names:
+              - api-gateway
+              - default
+      relabel_configs:
+        - source_labels: [__meta_kubernetes_service_label_app]
+          action: keep
+          regex: api-gateway
+        - source_labels: [__meta_kubernetes_service_name]
+          target_label: job
+        - source_labels: [__meta_kubernetes_pod_name]
+          target_label: instance
+        - source_labels: [__meta_kubernetes_service_name]
+          target_label: service
+        - source_labels: [__meta_kubernetes_namespace]
+          target_label: namespace
+        - source_labels: [__meta_kubernetes_pod_name]
+          target_label: pod
+        - source_labels: [__meta_kubernetes_pod_node_name]
+          target_label: node
+        - target_label: environment
+          replacement: production
+        - target_label: cluster
+          replacement: kyb-platform
+
+  # Recording rules for pre-computed metrics
+  recording-rules.yml: |
+    groups:
+      - name: risk-assessment-recording-rules
+        interval: 30s
+        rules:
+          # Request rate per second
+          - record: risk_assessment:http_requests_per_second
+            expr: rate(http_requests_total[5m])
+            labels:
+              service: risk-assessment-service
+
+          # Error rate percentage
+          - record: risk_assessment:http_error_rate_percentage
+            expr: (rate(http_requests_total{status_code=~"5.."}[5m]) / rate(http_requests_total[5m])) * 100
+            labels:
+              service: risk-assessment-service
+
+          # Average response time
+          - record: risk_assessment:http_request_duration_seconds_avg
+            expr: rate(http_request_duration_seconds_sum[5m]) / rate(http_request_duration_seconds_count[5m])
+            labels:
+              service: risk-assessment-service
+
+          # 95th percentile response time
+          - record: risk_assessment:http_request_duration_seconds_p95
+            expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
+            labels:
+              service: risk-assessment-service
+
+          # 99th percentile response time
+          - record: risk_assessment:http_request_duration_seconds_p99
+            expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))
+            labels:
+              service: risk-assessment-service
+
+          # Active connections
+          - record: risk_assessment:active_connections
+            expr: go_goroutines{job="risk-assessment-service"}
+            labels:
+              service: risk-assessment-service
+
+          # Memory usage percentage
+          - record: risk_assessment:memory_usage_percentage
+            expr: (go_memstats_heap_inuse_bytes / go_memstats_heap_sys_bytes) * 100
+            labels:
+              service: risk-assessment-service
+
+          # CPU usage percentage
+          - record: risk_assessment:cpu_usage_percentage
+            expr: rate(process_cpu_seconds_total[5m]) * 100
+            labels:
+              service: risk-assessment-service
+
+          # Risk assessment throughput
+          - record: risk_assessment:assessments_per_second
+            expr: rate(risk_assessments_total[5m])
+            labels:
+              service: risk-assessment-service
+
+          # ML model prediction latency
+          - record: risk_assessment:ml_prediction_duration_seconds_avg
+            expr: rate(ml_prediction_duration_seconds_sum[5m]) / rate(ml_prediction_duration_seconds_count[5m])
+            labels:
+              service: risk-assessment-service
+
+          # Cache hit rate
+          - record: risk_assessment:cache_hit_rate_percentage
+            expr: (rate(cache_hits_total[5m]) / (rate(cache_hits_total[5m]) + rate(cache_misses_total[5m]))) * 100
+            labels:
+              service: risk-assessment-service
+
+          # Database connection pool usage
+          - record: risk_assessment:db_connection_pool_usage_percentage
+            expr: (db_connections_active / db_connections_max) * 100
+            labels:
+              service: risk-assessment-service
+
+          # External API response time
+          - record: risk_assessment:external_api_duration_seconds_avg
+            expr: rate(external_api_duration_seconds_sum[5m]) / rate(external_api_duration_seconds_count[5m])
+            labels:
+              service: risk-assessment-service
+
+          # External API error rate
+          - record: risk_assessment:external_api_error_rate_percentage
+            expr: (rate(external_api_requests_total{status="error"}[5m]) / rate(external_api_requests_total[5m])) * 100
+            labels:
+              service: risk-assessment-service
+
+---
+# Prometheus Deployment Configuration
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: monitoring
+  labels:
+    app: prometheus
+    component: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+        component: monitoring
+    spec:
+      containers:
+      - name: prometheus
+        image: prom/prometheus:v2.45.0
+        ports:
+        - containerPort: 9090
+          name: web
+        args:
+          - '--config.file=/etc/prometheus/prometheus.yml'
+          - '--storage.tsdb.path=/prometheus/'
+          - '--web.console.libraries=/etc/prometheus/console_libraries'
+          - '--web.console.templates=/etc/prometheus/consoles'
+          - '--storage.tsdb.retention.time=15d'
+          - '--web.enable-lifecycle'
+          - '--web.enable-admin-api'
+        volumeMounts:
+        - name: prometheus-config
+          mountPath: /etc/prometheus
+        - name: prometheus-storage
+          mountPath: /prometheus
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /-/healthy
+            port: 9090
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /-/ready
+            port: 9090
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: prometheus-config
+        configMap:
+          name: prometheus-scrape-config
+      - name: prometheus-storage
+        persistentVolumeClaim:
+          claimName: prometheus-storage-pvc
+
+---
+# Service for Prometheus
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: monitoring
+  labels:
+    app: prometheus
+    component: monitoring
+spec:
+  selector:
+    app: prometheus
+  ports:
+  - name: web
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+  type: ClusterIP
+
+---
+# PersistentVolumeClaim for Prometheus storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-storage-pvc
+  namespace: monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: standard

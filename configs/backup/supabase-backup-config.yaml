@@ -1,0 +1,273 @@
+# Supabase Database Backup Configuration
+# This configuration defines backup policies and procedures for the risk assessment service
+
+backup:
+  # Automated backup settings
+  automated:
+    enabled: true
+    frequency: "daily"  # daily, weekly, monthly
+    time: "02:00"       # UTC time for backup execution
+    retention_days: 30  # How long to keep backups
+    
+  # Point-in-time recovery (PITR)
+  point_in_time_recovery:
+    enabled: true
+    retention_hours: 168  # 7 days of PITR capability
+    
+  # Backup destinations
+  destinations:
+    - type: "supabase_managed"  # Supabase's built-in backup system
+      enabled: true
+      retention_days: 30
+      
+    - type: "external_s3"       # Optional: External S3 backup
+      enabled: false
+      bucket: "kyb-platform-backups"
+      region: "us-east-1"
+      retention_days: 90
+      
+  # Backup verification
+  verification:
+    enabled: true
+    test_restore_frequency: "weekly"
+    test_restore_retention: 7  # days to keep test restore
+    
+  # Notification settings
+  notifications:
+    enabled: true
+    channels:
+      - type: "email"
+        recipients:
+          - "admin@kyb-platform.com"
+          - "devops@kyb-platform.com"
+        events:
+          - "backup_success"
+          - "backup_failure"
+          - "restore_test_success"
+          - "restore_test_failure"
+          
+      - type: "webhook"
+        url: "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+        events:
+          - "backup_failure"
+          - "restore_test_failure"
+
+# Risk Assessment Service specific backup settings
+risk_assessment_service:
+  # Tables to include in backups
+  tables:
+    - "risk_assessments"
+    - "risk_predictions"
+    - "risk_factors"
+    - "custom_risk_models"
+    - "batch_risk_jobs"
+    - "webhooks"
+    - "webhook_deliveries"
+    - "dashboards"
+    - "reports"
+    - "report_templates"
+    - "scheduled_reports"
+    
+  # Exclude sensitive data from backups (if needed)
+  exclude_columns:
+    - "risk_assessments.pii_data"  # If storing PII separately
+    - "webhooks.secret_key"        # Webhook secrets
+    
+  # Backup size estimation
+  estimated_size_mb: 1000  # Estimated backup size for planning
+  
+  # Critical data that requires immediate backup
+  critical_tables:
+    - "risk_assessments"
+    - "custom_risk_models"
+    - "webhooks"
+
+# Environment-specific backup settings
+environments:
+  development:
+    automated:
+      enabled: false  # No automated backups for dev
+    retention_days: 7
+    verification:
+      enabled: false
+      
+  staging:
+    automated:
+      enabled: true
+      frequency: "daily"
+    retention_days: 14
+    verification:
+      enabled: true
+      test_restore_frequency: "monthly"
+      
+  production:
+    automated:
+      enabled: true
+      frequency: "daily"
+    retention_days: 30
+    point_in_time_recovery:
+      enabled: true
+      retention_hours: 168  # 7 days
+    verification:
+      enabled: true
+      test_restore_frequency: "weekly"
+    notifications:
+      enabled: true
+
+# Backup monitoring and alerting
+monitoring:
+  # Metrics to track
+  metrics:
+    - "backup_duration_seconds"
+    - "backup_size_bytes"
+    - "backup_success_rate"
+    - "restore_duration_seconds"
+    - "restore_success_rate"
+    
+  # Alert thresholds
+  alerts:
+    backup_failure:
+      enabled: true
+      severity: "critical"
+      
+    backup_duration_high:
+      enabled: true
+      threshold: "2h"  # Alert if backup takes longer than 2 hours
+      severity: "warning"
+      
+    backup_size_anomaly:
+      enabled: true
+      threshold_percent: 50  # Alert if backup size changes by more than 50%
+      severity: "warning"
+      
+    restore_test_failure:
+      enabled: true
+      severity: "critical"
+
+# Disaster recovery procedures
+disaster_recovery:
+  # Recovery time objectives (RTO)
+  rto:
+    development: "4h"
+    staging: "2h"
+    production: "1h"
+    
+  # Recovery point objectives (RPO)
+  rpo:
+    development: "24h"
+    staging: "4h"
+    production: "1h"
+    
+  # Recovery procedures
+  procedures:
+    - name: "full_database_restore"
+      description: "Complete database restoration from backup"
+      estimated_time: "30m"
+      prerequisites:
+        - "Backup file available"
+        - "Target database instance ready"
+        - "Service downtime planned"
+        
+    - name: "point_in_time_recovery"
+      description: "Restore database to specific point in time"
+      estimated_time: "15m"
+      prerequisites:
+        - "PITR enabled"
+        - "Target timestamp identified"
+        - "Service downtime planned"
+        
+    - name: "table_level_restore"
+      description: "Restore specific tables from backup"
+      estimated_time: "10m"
+      prerequisites:
+        - "Backup file available"
+        - "Table names identified"
+        - "Data validation plan ready"
+
+# Backup testing and validation
+testing:
+  # Automated restore testing
+  automated_testing:
+    enabled: true
+    frequency: "weekly"
+    test_environment: "staging"
+    
+  # Manual restore testing
+  manual_testing:
+    frequency: "monthly"
+    test_scenarios:
+      - "full_database_restore"
+      - "point_in_time_recovery"
+      - "table_level_restore"
+      - "cross_region_restore"
+      
+  # Data validation
+  validation:
+    enabled: true
+    checks:
+      - "row_count_verification"
+      - "data_integrity_checks"
+      - "index_verification"
+      - "constraint_verification"
+      
+  # Performance testing
+  performance_testing:
+    enabled: true
+    frequency: "quarterly"
+    tests:
+      - "restore_performance"
+      - "backup_performance"
+      - "concurrent_access_testing"
+
+# Compliance and audit
+compliance:
+  # Audit requirements
+  audit:
+    enabled: true
+    log_all_operations: true
+    retention_days: 2555  # 7 years for compliance
+    
+  # Compliance frameworks
+  frameworks:
+    - "SOC2"
+    - "GDPR"
+    - "CCPA"
+    - "ISO27001"
+    
+  # Data classification
+  data_classification:
+    risk_assessments: "confidential"
+    custom_risk_models: "confidential"
+    webhooks: "internal"
+    reports: "confidential"
+    audit_logs: "restricted"
+
+# Cost optimization
+cost_optimization:
+  # Backup storage optimization
+  storage:
+    compression: true
+    encryption: true
+    lifecycle_policies:
+      - name: "immediate_access"
+        duration: "7d"
+        storage_class: "standard"
+      - name: "frequent_access"
+        duration: "30d"
+        storage_class: "standard"
+      - name: "archive"
+        duration: "90d"
+        storage_class: "glacier"
+        
+  # Backup frequency optimization
+  frequency_optimization:
+    enabled: true
+    based_on_changes: true
+    change_threshold_percent: 5  # Only backup if >5% data changed
+    
+  # Cost monitoring
+  monitoring:
+    enabled: true
+    budget_alerts:
+      monthly_budget: 100  # USD
+      alert_threshold_percent: 80

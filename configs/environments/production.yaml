@@ -1,0 +1,414 @@
+# Production Environment Configuration
+# Risk Assessment Service - Production Settings
+
+environment: "production"
+
+# Service Configuration
+service:
+  name: "risk-assessment-service"
+  version: "1.0.0"
+  description: "Enhanced Risk Assessment Service with ML-powered predictions"
+  port: "8080"
+  host: "0.0.0.0"
+
+# Server Configuration
+server:
+  port: "8080"
+  read_timeout: "15s"
+  write_timeout: "15s"
+  idle_timeout: "60s"
+  max_header_bytes: 1048576  # 1MB
+
+# Database Configuration (Supabase)
+database:
+  url: "${PRODUCTION_DATABASE_URL}"
+  max_open_conns: 50
+  max_idle_conns: 20
+  conn_max_lifetime: "1h"
+  conn_max_idle_time: "30m"
+  ssl_mode: "require"
+
+# Supabase Configuration
+supabase:
+  url: "${PRODUCTION_SUPABASE_URL}"
+  anon_key: "${PRODUCTION_SUPABASE_ANON_KEY}"
+  service_role_key: "${PRODUCTION_SUPABASE_SERVICE_ROLE_KEY}"
+  jwt_secret: "${PRODUCTION_SUPABASE_JWT_SECRET}"
+
+# Redis Configuration
+redis:
+  url: "${PRODUCTION_REDIS_URL}"
+  password: "${PRODUCTION_REDIS_PASSWORD}"
+  db: 0
+  pool_size: 50
+  min_idle_conns: 10
+  max_idle_conns: 20
+  dial_timeout: "5s"
+  read_timeout: "3s"
+  write_timeout: "3s"
+  pool_timeout: "4s"
+  idle_timeout: "5m"
+  max_retries: 3
+  min_retry_backoff: "8ms"
+  max_retry_backoff: "512ms"
+  enable_fallback: true
+  fallback_to_memory: false  # Disable fallback in production
+  key_prefix: "prod:ra:"
+
+# Logging Configuration
+logging:
+  level: "info"
+  format: "json"
+  output: "stdout"
+  enable_caller: false
+  enable_stacktrace: false
+
+# Monitoring Configuration
+monitoring:
+  enabled: true
+  metrics_enabled: true
+  health_check_interval: "15s"
+  performance_monitoring: true
+
+# Rate Limiting Configuration
+rate_limiting:
+  enabled: true
+  requests_per_minute: 1000  # Production limits
+  burst_allowance: 100
+  window_size: "1m"
+  use_redis: true
+  redis_key_prefix: "prod:rate_limit:"
+
+# Authentication Configuration
+authentication:
+  require_auth: true
+  allow_service_auth: true
+  allow_api_key_auth: true
+  allow_jwt_auth: true
+  jwt_secret: "${PRODUCTION_JWT_SECRET}"
+  api_key_header: "X-API-Key"
+  service_token: "${PRODUCTION_SERVICE_TOKEN}"
+  token_cache_ttl: "1h"
+
+# Security Configuration
+security:
+  allowed_origins:
+    - "https://kyb-platform.com"
+    - "https://app.kyb-platform.com"
+    - "https://admin.kyb-platform.com"
+    - "https://api.kyb-platform.com"
+  allowed_methods:
+    - "GET"
+    - "POST"
+    - "PUT"
+    - "DELETE"
+    - "OPTIONS"
+    - "PATCH"
+  allowed_headers:
+    - "Content-Type"
+    - "Authorization"
+    - "X-Requested-With"
+    - "X-API-Key"
+    - "X-User-ID"
+    - "X-Tenant-ID"
+    - "X-Service-Token"
+    - "X-Service-ID"
+  allow_credentials: true
+  max_age: 86400
+  request_size_limit: 5242880  # 5MB for production
+  request_timeout: "15s"
+  enable_hsts: true
+  enable_csp: true
+  enable_xss_protection: true
+  enable_frame_options: true
+  enable_content_type_options: true
+  enable_referrer_policy: true
+
+# ML Configuration
+ml:
+  models_path: "./models"
+  cache_enabled: true
+  cache_ttl: "4h"
+  batch_size: 1000
+  max_concurrent_requests: 50
+  model_update_interval: "6h"
+  enable_model_validation: true
+  validation_threshold: 0.9
+
+# External APIs Configuration
+external_apis:
+  newsapi:
+    base_url: "https://newsapi.org/v2"
+    api_key: "${PRODUCTION_NEWSAPI_KEY}"
+    timeout: "10s"
+    retry_attempts: 3
+    retry_delay: "1s"
+    rate_limit: 1000  # requests per day
+    
+  opencorporates:
+    base_url: "https://api.opencorporates.com/v0.4"
+    api_key: "${PRODUCTION_OPENCORPORATES_API_KEY}"
+    timeout: "10s"
+    retry_attempts: 3
+    retry_delay: "1s"
+    rate_limit: 500  # requests per month
+    
+  thomson_reuters:
+    base_url: "https://api.thomsonreuters.com"
+    api_key: "${PRODUCTION_THOMSON_REUTERS_API_KEY}"
+    timeout: "15s"
+    retry_attempts: 3
+    retry_delay: "2s"
+    rate_limit: 10000  # requests per month
+    
+  ofac:
+    base_url: "https://api.treasury.gov"
+    api_key: "${PRODUCTION_OFAC_API_KEY}"
+    timeout: "10s"
+    retry_attempts: 3
+    retry_delay: "1s"
+    rate_limit: 1000  # requests per day
+
+# Webhook Configuration
+webhooks:
+  enabled: true
+  max_retries: 5
+  retry_delay: "5s"
+  timeout: "10s"
+  signature_validation: true
+  rate_limit: 500  # webhooks per minute
+
+# Batch Processing Configuration
+batch_processing:
+  enabled: true
+  max_batch_size: 10000
+  processing_timeout: "2h"
+  worker_pool_size: 20
+  queue_size: 100000
+  retry_attempts: 5
+  retry_delay: "10s"
+
+# Performance Configuration
+performance:
+  enable_profiling: false
+  profiling_port: "6060"
+  enable_tracing: true
+  trace_sample_rate: 0.01  # 1% sampling in production
+  enable_metrics: true
+  metrics_port: "9090"
+
+# Production-specific Settings
+production:
+  enable_debug_endpoints: false
+  enable_swagger: false
+  swagger_path: "/docs"
+  enable_cors_debug: false
+  mock_external_apis: false
+  enable_test_data: false
+  test_data_path: "./testdata"
+  enable_hot_reload: false
+  log_sql_queries: false
+  log_redis_commands: false
+  enable_performance_logging: true
+
+# Testing Configuration
+testing:
+  enabled: false  # Disable testing in production
+  test_database_url: ""
+  test_redis_url: ""
+  test_timeout: "30s"
+  enable_mocks: false
+  mock_external_services: false
+  test_data_cleanup: false
+
+# Feature Flags
+feature_flags:
+  enable_advanced_ml: true
+  enable_batch_processing: true
+  enable_webhooks: true
+  enable_real_time_updates: true
+  enable_analytics: true
+  enable_audit_logging: true
+  enable_performance_monitoring: true
+  enable_circuit_breaker: true
+  enable_retry_logic: true
+  enable_caching: true
+  enable_compression: true
+  enable_rate_limiting: true
+  enable_authentication: true
+  enable_authorization: true
+  enable_encryption: true
+  enable_ssl: true
+
+# Debug Configuration
+debug:
+  enable_pprof: false
+  enable_trace: true
+  enable_metrics: true
+  log_level: "info"
+  log_requests: false
+  log_responses: false
+  log_errors: true
+  log_performance: true
+  log_database_queries: false
+  log_redis_operations: false
+  log_external_api_calls: false
+  log_ml_predictions: false
+  log_webhook_deliveries: true
+  log_batch_processing: true
+
+# Production Monitoring
+monitoring:
+  prometheus:
+    enabled: true
+    scrape_interval: "15s"
+    metrics_path: "/metrics"
+    
+  grafana:
+    enabled: true
+    dashboard_url: "https://grafana.kyb-platform.com"
+    
+  alerting:
+    enabled: true
+    slack_webhook: "${PRODUCTION_SLACK_WEBHOOK}"
+    pagerduty_integration_key: "${PAGERDUTY_INTEGRATION_KEY}"
+    email_recipients:
+      - "alerts@kyb-platform.com"
+      - "devops@kyb-platform.com"
+      - "cto@kyb-platform.com"
+
+# Backup Configuration
+backup:
+  enabled: true
+  frequency: "daily"
+  retention_days: 30
+  verification_enabled: true
+  test_restore_frequency: "weekly"
+  point_in_time_recovery: true
+  pitr_retention_hours: 168  # 7 days
+
+# Security Configuration
+security:
+  encryption:
+    enabled: true
+    algorithm: "AES-256-GCM"
+    key_rotation_interval: "90d"
+    
+  ssl:
+    enabled: true
+    min_tls_version: "1.2"
+    cipher_suites:
+      - "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+      - "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305"
+      - "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+      
+  headers:
+    strict_transport_security: "max-age=31536000; includeSubDomains; preload"
+    content_security_policy: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none';"
+    x_content_type_options: "nosniff"
+    x_frame_options: "DENY"
+    x_xss_protection: "1; mode=block"
+    referrer_policy: "strict-origin-when-cross-origin"
+
+# Compliance Configuration
+compliance:
+  gdpr:
+    enabled: true
+    data_retention_days: 2555  # 7 years
+    right_to_erasure: true
+    data_portability: true
+    
+  soc2:
+    enabled: true
+    audit_logging: true
+    access_control: true
+    data_encryption: true
+    
+  iso27001:
+    enabled: true
+    security_management: true
+    risk_assessment: true
+    incident_response: true
+
+# Disaster Recovery Configuration
+disaster_recovery:
+  rto: "1h"  # Recovery Time Objective
+  rpo: "1m"  # Recovery Point Objective
+  backup_frequency: "hourly"
+  cross_region_replication: true
+  automated_failover: true
+  health_check_interval: "30s"
+
+# Performance Optimization
+optimization:
+  connection_pooling:
+    enabled: true
+    max_connections: 100
+    min_connections: 10
+    
+  caching:
+    enabled: true
+    cache_size: "1GB"
+    ttl: "1h"
+    
+  compression:
+    enabled: true
+    algorithm: "gzip"
+    level: 6
+    
+  load_balancing:
+    enabled: true
+    algorithm: "round_robin"
+    health_check_interval: "30s"
+
+# Alerting Configuration
+alerting:
+  rules:
+    - name: "high_error_rate"
+      condition: "error_rate > 0.01"
+      duration: "5m"
+      severity: "critical"
+      
+    - name: "high_latency"
+      condition: "p95_latency > 1s"
+      duration: "5m"
+      severity: "warning"
+      
+    - name: "low_availability"
+      condition: "availability < 0.99"
+      duration: "1m"
+      severity: "critical"
+      
+    - name: "high_memory_usage"
+      condition: "memory_usage > 0.8"
+      duration: "10m"
+      severity: "warning"
+      
+    - name: "database_connection_failure"
+      condition: "db_connections_failed > 0"
+      duration: "1m"
+      severity: "critical"
+      
+    - name: "redis_connection_failure"
+      condition: "redis_connections_failed > 0"
+      duration: "1m"
+      severity: "critical"
+
+# Cost Optimization
+cost_optimization:
+  auto_scaling:
+    enabled: true
+    min_replicas: 2
+    max_replicas: 10
+    target_cpu_utilization: 70
+    target_memory_utilization: 80
+    
+  resource_limits:
+    cpu: "1000m"
+    memory: "2Gi"
+    storage: "10Gi"
+    
+  monitoring:
+    enabled: true
+    cost_alerts: true
+    budget_threshold: 1000  # USD per month

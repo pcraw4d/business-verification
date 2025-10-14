@@ -1,0 +1,494 @@
+# Alertmanager Configuration for Risk Assessment Service
+# This configuration defines how alerts are routed and sent to different channels
+
+global:
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'alerts@kyb-platform.com'
+  smtp_auth_username: 'alerts@kyb-platform.com'
+  smtp_auth_password: '${SMTP_PASSWORD}'
+  smtp_require_tls: true
+
+# Templates for alert formatting
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Route configuration for alert routing
+route:
+  group_by: ['alertname', 'service', 'severity']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'default-receiver'
+  routes:
+    # Critical alerts - immediate notification
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 5s
+      group_interval: 5s
+      repeat_interval: 30m
+      routes:
+        # Service down alerts - immediate escalation
+        - match:
+            alertname: RiskAssessmentServiceDown
+          receiver: 'oncall-pagerduty'
+          group_wait: 0s
+          repeat_interval: 15m
+        # Database/Redis failures - immediate escalation
+        - match:
+            alertname: RiskAssessmentDatabaseConnectionFailure
+          receiver: 'oncall-pagerduty'
+          group_wait: 0s
+          repeat_interval: 15m
+        - match:
+            alertname: RiskAssessmentRedisConnectionFailure
+          receiver: 'oncall-pagerduty'
+          group_wait: 0s
+          repeat_interval: 15m
+        # High error rate - immediate escalation
+        - match:
+            alertname: RiskAssessmentHighErrorRate
+          receiver: 'oncall-pagerduty'
+          group_wait: 0s
+          repeat_interval: 15m
+        # High response time - immediate escalation
+        - match:
+            alertname: RiskAssessmentHighResponseTime
+          receiver: 'oncall-pagerduty'
+          group_wait: 0s
+          repeat_interval: 15m
+
+    # Warning alerts - delayed notification
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      group_wait: 30s
+      group_interval: 30s
+      repeat_interval: 2h
+      routes:
+        # Performance issues - notify team
+        - match:
+            alertname: RiskAssessmentHighMemoryUsage
+          receiver: 'platform-team'
+        - match:
+            alertname: RiskAssessmentHighCPUUsage
+          receiver: 'platform-team'
+        - match:
+            alertname: RiskAssessmentLowCacheHitRate
+          receiver: 'platform-team'
+        - match:
+            alertname: RiskAssessmentHighDBPoolUsage
+          receiver: 'platform-team'
+        # External API issues - notify team
+        - match:
+            alertname: RiskAssessmentExternalAPIHighErrorRate
+          receiver: 'platform-team'
+        # ML model issues - notify data science team
+        - match:
+            alertname: RiskAssessmentMLModelHighLatency
+          receiver: 'data-science-team'
+        - match:
+            alertname: RiskAssessmentAccuracyDrop
+          receiver: 'data-science-team'
+
+    # Info alerts - summary notification
+    - match:
+        severity: info
+      receiver: 'info-alerts'
+      group_wait: 5m
+      group_interval: 5m
+      repeat_interval: 6h
+      routes:
+        # Business metrics - notify business team
+        - match:
+            alertname: RiskAssessmentHighRiskScoreDistribution
+          receiver: 'business-team'
+        - match:
+            alertname: RiskAssessmentLowThroughput
+          receiver: 'business-team'
+        # Infrastructure - notify infrastructure team
+        - match:
+            alertname: RiskAssessmentDiskSpaceLow
+          receiver: 'infrastructure-team'
+        - match:
+            alertname: RiskAssessmentHighNetworkLatency
+          receiver: 'infrastructure-team'
+        # Security - notify security team
+        - match:
+            alertname: RiskAssessmentHighAuthFailureRate
+          receiver: 'security-team'
+        - match:
+            alertname: RiskAssessmentSuspiciousRequestPattern
+          receiver: 'security-team'
+
+    # Circuit breaker alerts - notify platform team
+    - match:
+        alertname: RiskAssessmentCircuitBreakerOpen
+      receiver: 'platform-team'
+      group_wait: 1m
+      repeat_interval: 1h
+
+    # High request volume - notify platform team
+    - match:
+        alertname: RiskAssessmentHighRequestVolume
+      receiver: 'platform-team'
+      group_wait: 5m
+      repeat_interval: 2h
+
+# Inhibit rules to prevent alert spam
+inhibit_rules:
+  # Inhibit warning alerts when critical alerts are firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['service', 'alertname']
+  
+  # Inhibit info alerts when warning or critical alerts are firing
+  - source_match:
+      severity: 'warning'
+    target_match:
+      severity: 'info'
+    equal: ['service', 'alertname']
+  
+  # Inhibit individual instance alerts when service is down
+  - source_match:
+      alertname: 'RiskAssessmentServiceDown'
+    target_match_re:
+      alertname: 'RiskAssessment.*'
+    equal: ['service']
+
+# Receiver configurations
+receivers:
+  # Default receiver for unmatched alerts
+  - name: 'default-receiver'
+    email_configs:
+      - to: 'alerts@kyb-platform.com'
+        subject: 'KYB Platform Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Service: {{ .Labels.service }}
+          Severity: {{ .Labels.severity }}
+          Time: {{ .StartsAt }}
+          {{ end }}
+
+  # Critical alerts receiver
+  - name: 'critical-alerts'
+    email_configs:
+      - to: 'oncall@kyb-platform.com'
+        subject: '🚨 CRITICAL: {{ .GroupLabels.alertname }} - {{ .GroupLabels.service }}'
+        body: |
+          {{ range .Alerts }}
+          🚨 CRITICAL ALERT 🚨
+          
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Service: {{ .Labels.service }}
+          Severity: {{ .Labels.severity }}
+          Time: {{ .StartsAt }}
+          
+          Runbook: {{ .Annotations.runbook_url }}
+          Dashboard: {{ .Annotations.dashboard_url }}
+          
+          Please investigate immediately!
+          {{ end }}
+    webhook_configs:
+      - url: 'https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX'
+        send_resolved: true
+        title: 'Critical Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          🚨 *CRITICAL ALERT* 🚨
+          *Alert:* {{ .Annotations.summary }}
+          *Service:* {{ .Labels.service }}
+          *Severity:* {{ .Labels.severity }}
+          *Time:* {{ .StartsAt }}
+          *Runbook:* {{ .Annotations.runbook_url }}
+          {{ end }}
+
+  # On-call PagerDuty receiver
+  - name: 'oncall-pagerduty'
+    pagerduty_configs:
+      - routing_key: '${PAGERDUTY_ROUTING_KEY}'
+        description: '{{ .GroupLabels.alertname }} - {{ .GroupLabels.service }}'
+        details:
+          summary: '{{ .GroupLabels.alertname }}'
+          service: '{{ .GroupLabels.service }}'
+          severity: '{{ .GroupLabels.severity }}'
+          runbook_url: '{{ .Annotations.runbook_url }}'
+          dashboard_url: '{{ .Annotations.dashboard_url }}'
+        links:
+          - href: '{{ .Annotations.dashboard_url }}'
+            text: 'Dashboard'
+          - href: '{{ .Annotations.runbook_url }}'
+            text: 'Runbook'
+
+  # Warning alerts receiver
+  - name: 'warning-alerts'
+    email_configs:
+      - to: 'platform-team@kyb-platform.com'
+        subject: '⚠️ WARNING: {{ .GroupLabels.alertname }} - {{ .GroupLabels.service }}'
+        body: |
+          {{ range .Alerts }}
+          ⚠️ WARNING ALERT ⚠️
+          
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Service: {{ .Labels.service }}
+          Severity: {{ .Labels.severity }}
+          Time: {{ .StartsAt }}
+          
+          Runbook: {{ .Annotations.runbook_url }}
+          Dashboard: {{ .Annotations.dashboard_url }}
+          {{ end }}
+
+  # Info alerts receiver
+  - name: 'info-alerts'
+    email_configs:
+      - to: 'alerts@kyb-platform.com'
+        subject: 'ℹ️ INFO: {{ .GroupLabels.alertname }} - {{ .GroupLabels.service }}'
+        body: |
+          {{ range .Alerts }}
+          ℹ️ INFO ALERT ℹ️
+          
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Service: {{ .Labels.service }}
+          Severity: {{ .Labels.severity }}
+          Time: {{ .StartsAt }}
+          {{ end }}
+
+  # Platform team receiver
+  - name: 'platform-team'
+    email_configs:
+      - to: 'platform-team@kyb-platform.com'
+        subject: 'Platform Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Service: {{ .Labels.service }}
+          Component: {{ .Labels.component }}
+          Time: {{ .StartsAt }}
+          
+          Runbook: {{ .Annotations.runbook_url }}
+          Dashboard: {{ .Annotations.dashboard_url }}
+          {{ end }}
+    webhook_configs:
+      - url: 'https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX'
+        send_resolved: true
+        title: 'Platform Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Service:* {{ .Labels.service }}
+          *Component:* {{ .Labels.component }}
+          *Runbook:* {{ .Annotations.runbook_url }}
+          {{ end }}
+
+  # Data science team receiver
+  - name: 'data-science-team'
+    email_configs:
+      - to: 'data-science-team@kyb-platform.com'
+        subject: 'Data Science Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Service: {{ .Labels.service }}
+          Component: {{ .Labels.component }}
+          Time: {{ .StartsAt }}
+          
+          Runbook: {{ .Annotations.runbook_url }}
+          Dashboard: {{ .Annotations.dashboard_url }}
+          {{ end }}
+
+  # Business team receiver
+  - name: 'business-team'
+    email_configs:
+      - to: 'business-team@kyb-platform.com'
+        subject: 'Business Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Service: {{ .Labels.service }}
+          Component: {{ .Labels.component }}
+          Time: {{ .StartsAt }}
+          
+          Dashboard: {{ .Annotations.dashboard_url }}
+          {{ end }}
+
+  # Infrastructure team receiver
+  - name: 'infrastructure-team'
+    email_configs:
+      - to: 'infrastructure-team@kyb-platform.com'
+        subject: 'Infrastructure Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Service: {{ .Labels.service }}
+          Component: {{ .Labels.component }}
+          Time: {{ .StartsAt }}
+          
+          Runbook: {{ .Annotations.runbook_url }}
+          Dashboard: {{ .Annotations.dashboard_url }}
+          {{ end }}
+
+  # Security team receiver
+  - name: 'security-team'
+    email_configs:
+      - to: 'security-team@kyb-platform.com'
+        subject: '🔒 Security Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          🔒 SECURITY ALERT 🔒
+          
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Service: {{ .Labels.service }}
+          Component: {{ .Labels.component }}
+          Time: {{ .StartsAt }}
+          
+          Runbook: {{ .Annotations.runbook_url }}
+          Dashboard: {{ .Annotations.dashboard_url }}
+          
+          Please investigate security implications!
+          {{ end }}
+    webhook_configs:
+      - url: 'https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX'
+        send_resolved: true
+        title: '🔒 Security Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          🔒 *SECURITY ALERT* 🔒
+          *Alert:* {{ .Annotations.summary }}
+          *Service:* {{ .Labels.service }}
+          *Component:* {{ .Labels.component }}
+          *Runbook:* {{ .Annotations.runbook_url }}
+          {{ end }}
+
+---
+# Alertmanager Deployment Configuration
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alertmanager
+  namespace: monitoring
+  labels:
+    app: alertmanager
+    component: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alertmanager
+  template:
+    metadata:
+      labels:
+        app: alertmanager
+        component: monitoring
+    spec:
+      containers:
+      - name: alertmanager
+        image: prom/alertmanager:v0.25.0
+        ports:
+        - containerPort: 9093
+          name: web
+        args:
+          - '--config.file=/etc/alertmanager/alertmanager.yml'
+          - '--storage.path=/alertmanager'
+          - '--web.external-url=http://alertmanager:9093'
+          - '--web.route-prefix=/'
+        volumeMounts:
+        - name: alertmanager-config
+          mountPath: /etc/alertmanager
+        - name: alertmanager-storage
+          mountPath: /alertmanager
+        env:
+        - name: SMTP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: alertmanager-secrets
+              key: smtp-password
+        - name: PAGERDUTY_ROUTING_KEY
+          valueFrom:
+            secretKeyRef:
+              name: alertmanager-secrets
+              key: pagerduty-routing-key
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /-/healthy
+            port: 9093
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /-/ready
+            port: 9093
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: alertmanager-config
+        configMap:
+          name: alertmanager-config
+      - name: alertmanager-storage
+        persistentVolumeClaim:
+          claimName: alertmanager-storage-pvc
+
+---
+# Service for Alertmanager
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager
+  namespace: monitoring
+  labels:
+    app: alertmanager
+    component: monitoring
+spec:
+  selector:
+    app: alertmanager
+  ports:
+  - name: web
+    port: 9093
+    targetPort: 9093
+    protocol: TCP
+  type: ClusterIP
+
+---
+# PersistentVolumeClaim for Alertmanager storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: alertmanager-storage-pvc
+  namespace: monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: standard
+
+---
+# Secret for Alertmanager sensitive configuration
+apiVersion: v1
+kind: Secret
+metadata:
+  name: alertmanager-secrets
+  namespace: monitoring
+type: Opaque
+data:
+  smtp-password: <base64-encoded-smtp-password>
+  pagerduty-routing-key: <base64-encoded-pagerduty-routing-key>

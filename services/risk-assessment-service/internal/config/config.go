@@ -37,9 +37,23 @@ type SupabaseConfig struct {
 
 // RedisConfig holds Redis configuration
 type RedisConfig struct {
-	URL      string `json:"url"`
-	Password string `json:"password"`
-	DB       int    `json:"db"`
+	URL              string        `json:"url"`
+	Password         string        `json:"password"`
+	DB               int           `json:"db"`
+	PoolSize         int           `json:"pool_size"`
+	MinIdleConns     int           `json:"min_idle_conns"`
+	MaxIdleConns     int           `json:"max_idle_conns"`
+	DialTimeout      time.Duration `json:"dial_timeout"`
+	ReadTimeout      time.Duration `json:"read_timeout"`
+	WriteTimeout     time.Duration `json:"write_timeout"`
+	PoolTimeout      time.Duration `json:"pool_timeout"`
+	IdleTimeout      time.Duration `json:"idle_timeout"`
+	MaxRetries       int           `json:"max_retries"`
+	MinRetryBackoff  time.Duration `json:"min_retry_backoff"`
+	MaxRetryBackoff  time.Duration `json:"max_retry_backoff"`
+	EnableFallback   bool          `json:"enable_fallback"`
+	FallbackToMemory bool          `json:"fallback_to_memory"`
+	KeyPrefix        string        `json:"key_prefix"`
 }
 
 // MLConfig holds machine learning configuration
@@ -118,9 +132,23 @@ func Load() (*Config, error) {
 			JWTSecret:      getEnvAsString("SUPABASE_JWT_SECRET", ""),
 		},
 		Redis: RedisConfig{
-			URL:      getEnvAsString("REDIS_URL", "redis://localhost:6379"),
-			Password: getEnvAsString("REDIS_PASSWORD", ""),
-			DB:       getEnvAsInt("REDIS_DB", 0),
+			URL:              getEnvAsString("REDIS_URL", "redis://localhost:6379"),
+			Password:         getEnvAsString("REDIS_PASSWORD", ""),
+			DB:               getEnvAsInt("REDIS_DB", 0),
+			PoolSize:         getEnvAsInt("REDIS_POOL_SIZE", 50),
+			MinIdleConns:     getEnvAsInt("REDIS_MIN_IDLE_CONNS", 10),
+			MaxIdleConns:     getEnvAsInt("REDIS_MAX_IDLE_CONNS", 20),
+			DialTimeout:      getEnvAsDuration("REDIS_DIAL_TIMEOUT", 5*time.Second),
+			ReadTimeout:      getEnvAsDuration("REDIS_READ_TIMEOUT", 3*time.Second),
+			WriteTimeout:     getEnvAsDuration("REDIS_WRITE_TIMEOUT", 3*time.Second),
+			PoolTimeout:      getEnvAsDuration("REDIS_POOL_TIMEOUT", 4*time.Second),
+			IdleTimeout:      getEnvAsDuration("REDIS_IDLE_TIMEOUT", 5*time.Minute),
+			MaxRetries:       getEnvAsInt("REDIS_MAX_RETRIES", 3),
+			MinRetryBackoff:  getEnvAsDuration("REDIS_MIN_RETRY_BACKOFF", 8*time.Millisecond),
+			MaxRetryBackoff:  getEnvAsDuration("REDIS_MAX_RETRY_BACKOFF", 512*time.Millisecond),
+			EnableFallback:   getEnvAsBool("REDIS_ENABLE_FALLBACK", true),
+			FallbackToMemory: getEnvAsBool("REDIS_FALLBACK_TO_MEMORY", true),
+			KeyPrefix:        getEnvAsString("REDIS_KEY_PREFIX", "ra:"),
 		},
 		ML: MLConfig{
 			ModelPath:     getEnvAsString("ML_MODEL_PATH", "./models"),
@@ -215,6 +243,15 @@ func getEnvAsDuration(key string, defaultValue time.Duration) time.Duration {
 func getEnvAsStringSlice(key string, defaultValue []string) []string {
 	if value := os.Getenv(key); value != "" {
 		return strings.Split(value, ",")
+	}
+	return defaultValue
+}
+
+func getEnvAsBool(key string, defaultValue bool) bool {
+	if value := os.Getenv(key); value != "" {
+		if boolValue, err := strconv.ParseBool(value); err == nil {
+			return boolValue
+		}
 	}
 	return defaultValue
 }

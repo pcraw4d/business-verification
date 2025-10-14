@@ -1,9 +1,15 @@
 #!/bin/bash
 
-# KYB Platform - Supabase Migration Script for Railway
-# This script runs database migrations directly on Supabase using Railway environment variables
+# Risk Assessment Service Database Migration Runner
+# This script applies database migrations in the correct order with proper error handling
 
-set -e
+set -euo pipefail
+
+# Configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+MIGRATIONS_DIR="$PROJECT_ROOT/supabase-migrations"
+LOG_FILE="$PROJECT_ROOT/logs/migration-$(date +%Y%m%d-%H%M%S).log"
 
 # Colors for output
 RED='\033[0;31m'
@@ -12,338 +18,408 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Function to print colored output
-print_status() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+# Logging functions
+log_info() {
+    echo -e "${BLUE}[INFO]${NC} $1" | tee -a "$LOG_FILE"
 }
 
-print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
+log_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1" | tee -a "$LOG_FILE"
 }
 
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+log_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1" | tee -a "$LOG_FILE"
 }
 
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1" | tee -a "$LOG_FILE"
 }
 
-# Function to run SQL migrations on Supabase
-run_supabase_migrations() {
-    print_status "Running Supabase migrations..."
-    
-    # Check if required environment variables are set
-    if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
-        print_error "Required Supabase environment variables not set"
-        print_error "Need: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY"
+# Create logs directory if it doesn't exist
+mkdir -p "$(dirname "$LOG_FILE")"
+
+# Default values
+ENVIRONMENT="development"
+DRY_RUN=false
+ROLLBACK=false
+VERBOSE=false
+FORCE=false
+
+# Migration files in order
+MIGRATIONS=(
+    "risk-assessment-schema.sql"
+    "risk-assessment-indexes.sql"
+    "risk-assessment-rls.sql"
+)
+
+# Help function
+show_help() {
+    cat << EOF
+Risk Assessment Service Database Migration Runner
+
+Usage: $0 [OPTIONS]
+
+OPTIONS:
+    -e, --environment ENV    Environment (development, staging, production) [default: development]
+    -d, --dry-run           Show what would be executed without running
+    -r, --rollback          Rollback the last migration
+    -v, --verbose           Verbose output
+    -f, --force             Force migration even if errors occur
+    -h, --help              Show this help message
+
+ENVIRONMENT VARIABLES:
+    DATABASE_URL            PostgreSQL connection string
+    SUPABASE_URL            Supabase project URL
+    SUPABASE_SERVICE_ROLE_KEY Supabase service role key
+
+EXAMPLES:
+    $0 --environment production
+    $0 --dry-run --verbose
+    $0 --rollback --environment staging
+
+EOF
+}
+
+# Parse command line arguments
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -e|--environment)
+                ENVIRONMENT="$2"
+                shift 2
+                ;;
+            -d|--dry-run)
+                DRY_RUN=true
+                shift
+                ;;
+            -r|--rollback)
+                ROLLBACK=true
+                shift
+                ;;
+            -v|--verbose)
+                VERBOSE=true
+                shift
+                ;;
+            -f|--force)
+                FORCE=true
+                shift
+                ;;
+            -h|--help)
+                show_help
+                exit 0
+                ;;
+            *)
+                log_error "Unknown option: $1"
+                show_help
+                exit 1
+                ;;
+        esac
+    done
+}
+
+# Validate environment
+validate_environment() {
+    case $ENVIRONMENT in
+        development|staging|production)
+            log_info "Environment: $ENVIRONMENT"
+            ;;
+        *)
+            log_error "Invalid environment: $ENVIRONMENT. Must be one of: development, staging, production"
+            exit 1
+            ;;
+    esac
+}
+
+# Get database connection parameters
+get_db_config() {
+    if [[ -n "${DATABASE_URL:-}" ]]; then
+        log_info "Using DATABASE_URL from environment"
+        DB_URL="$DATABASE_URL"
+    elif [[ -n "${SUPABASE_URL:-}" && -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]]; then
+        log_info "Using Supabase configuration"
+        # Extract database URL from Supabase URL
+        SUPABASE_PROJECT_ID=$(echo "$SUPABASE_URL" | sed 's/.*\/\/\([^.]*\)\..*/\1/')
+        DB_URL="postgresql://postgres:${SUPABASE_SERVICE_ROLE_KEY}@db.${SUPABASE_PROJECT_ID}.supabase.co:5432/postgres"
+    else
+        log_error "Database configuration not found. Please set DATABASE_URL or SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY"
         exit 1
     fi
-    
-    # Extract project reference from URL
-    PROJECT_REF=$(echo $SUPABASE_URL | sed 's|https://||' | sed 's|.supabase.co||')
-    print_status "Supabase Project: $PROJECT_REF"
-    
-    # Create a temporary migration script
-    cat > /tmp/migrate_supabase.sql << 'EOF'
--- KYB Platform - Supabase Migration Script
--- This script creates all necessary tables and data for the KYB platform
-
--- Enable necessary extensions
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-CREATE EXTENSION IF NOT EXISTS "pg_trgm";
-
--- Create portfolio types table
-CREATE TABLE IF NOT EXISTS portfolio_types (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    type VARCHAR(50) UNIQUE NOT NULL CHECK (type IN ('onboarded', 'deactivated', 'prospective', 'pending')),
-    description TEXT,
-    display_order INTEGER NOT NULL DEFAULT 0,
-    is_active BOOLEAN NOT NULL DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create risk levels table
-CREATE TABLE IF NOT EXISTS risk_levels (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    level VARCHAR(50) UNIQUE NOT NULL CHECK (level IN ('high', 'medium', 'low')),
-    description TEXT,
-    numeric_value INTEGER NOT NULL,
-    color_code VARCHAR(7), -- Hex color code for UI
-    display_order INTEGER NOT NULL DEFAULT 0,
-    is_active BOOLEAN NOT NULL DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create merchants table
-CREATE TABLE IF NOT EXISTS merchants (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(255) NOT NULL,
-    legal_name VARCHAR(255) NOT NULL,
-    registration_number VARCHAR(100) UNIQUE NOT NULL,
-    tax_id VARCHAR(100),
-    industry VARCHAR(100),
-    industry_code VARCHAR(20),
-    business_type VARCHAR(50),
-    founded_date DATE,
-    employee_count INTEGER,
-    annual_revenue DECIMAL(15,2),
-    
-    -- Address fields (flattened for better query performance)
-    address_street1 VARCHAR(255),
-    address_street2 VARCHAR(255),
-    address_city VARCHAR(100),
-    address_state VARCHAR(100),
-    address_postal_code VARCHAR(20),
-    address_country VARCHAR(100),
-    address_country_code VARCHAR(10),
-    
-    -- Contact info fields (flattened for better query performance)
-    contact_phone VARCHAR(50),
-    contact_email VARCHAR(255),
-    contact_website VARCHAR(255),
-    contact_primary_contact VARCHAR(255),
-    
-    -- Portfolio management fields
-    portfolio_type_id UUID,
-    risk_level_id UUID,
-    compliance_status VARCHAR(50) NOT NULL DEFAULT 'pending',
-    status VARCHAR(50) NOT NULL DEFAULT 'active',
-    
-    -- Audit fields
-    created_by UUID,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create updated_at trigger function
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
--- Create triggers for updated_at columns
-CREATE TRIGGER update_portfolio_types_updated_at 
-    BEFORE UPDATE ON portfolio_types 
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_risk_levels_updated_at 
-    BEFORE UPDATE ON risk_levels 
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_merchants_updated_at 
-    BEFORE UPDATE ON merchants 
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- Insert portfolio types
-INSERT INTO portfolio_types (type, description, display_order, is_active) VALUES
-('onboarded', 'Fully onboarded and active merchants', 1, true),
-('prospective', 'Potential merchants under evaluation', 2, true),
-('pending', 'Merchants awaiting approval or processing', 3, true),
-('deactivated', 'Deactivated or suspended merchants', 4, true)
-ON CONFLICT (type) DO UPDATE SET
-    description = EXCLUDED.description,
-    display_order = EXCLUDED.display_order,
-    is_active = EXCLUDED.is_active,
-    updated_at = CURRENT_TIMESTAMP;
-
--- Insert risk levels
-INSERT INTO risk_levels (level, description, numeric_value, color_code, display_order, is_active) VALUES
-('low', 'Low risk merchants with established compliance history', 1, '#10B981', 1, true),
-('medium', 'Medium risk merchants requiring standard monitoring', 2, '#F59E0B', 2, true),
-('high', 'High risk merchants requiring enhanced due diligence', 3, '#EF4444', 3, true)
-ON CONFLICT (level) DO UPDATE SET
-    description = EXCLUDED.description,
-    numeric_value = EXCLUDED.numeric_value,
-    color_code = EXCLUDED.color_code,
-    display_order = EXCLUDED.display_order,
-    is_active = EXCLUDED.is_active,
-    updated_at = CURRENT_TIMESTAMP;
-
--- Insert sample merchants
-INSERT INTO merchants (
-    id, name, legal_name, registration_number, tax_id, industry, industry_code, business_type,
-    founded_date, employee_count, annual_revenue,
-    address_street1, address_street2, address_city, address_state, address_postal_code, address_country, address_country_code,
-    contact_phone, contact_email, contact_website, contact_primary_contact,
-    portfolio_type_id, risk_level_id, compliance_status, status
-) VALUES
--- Technology Companies (Onboarded - Low Risk)
-('10000000-0000-0000-0000-000000000001', 'TechFlow Solutions', 'TechFlow Solutions Inc.', 'TF-2023-001', '12-3456789', 'Technology', '541511', 'Corporation',
-'2020-03-15', 45, 2500000.00,
-'123 Innovation Drive', NULL, 'San Francisco', 'CA', '94105', 'United States', 'US',
-'+1-415-555-0101', 'info@techflow.com', 'https://techflow.com', 'Sarah Johnson',
-(SELECT id FROM portfolio_types WHERE type = 'onboarded'), (SELECT id FROM risk_levels WHERE level = 'low'), 'compliant', 'active'),
-
-('10000000-0000-0000-0000-000000000002', 'DataSync Analytics', 'DataSync Analytics LLC', 'DS-2022-002', '98-7654321', 'Technology', '541512', 'LLC',
-'2019-08-22', 28, 1800000.00,
-'456 Data Street', 'Suite 200', 'Austin', 'TX', '78701', 'United States', 'US',
-'+1-512-555-0102', 'contact@datasync.com', 'https://datasync.com', 'Michael Chen',
-(SELECT id FROM portfolio_types WHERE type = 'onboarded'), (SELECT id FROM risk_levels WHERE level = 'low'), 'compliant', 'active'),
-
-('10000000-0000-0000-0000-000000000003', 'CloudScale Systems', 'CloudScale Systems Inc.', 'CS-2021-003', '45-6789012', 'Technology', '541511', 'Corporation',
-'2018-11-10', 67, 4200000.00,
-'789 Cloud Avenue', NULL, 'Seattle', 'WA', '98101', 'United States', 'US',
-'+1-206-555-0103', 'hello@cloudscale.com', 'https://cloudscale.com', 'David Rodriguez',
-(SELECT id FROM portfolio_types WHERE type = 'onboarded'), (SELECT id FROM risk_levels WHERE level = 'low'), 'compliant', 'active'),
-
--- Financial Services (Onboarded - Medium Risk)
-('10000000-0000-0000-0000-000000000004', 'Metro Credit Union', 'Metro Credit Union', 'MCU-2020-004', '34-5678901', 'Finance', '522110', 'Credit Union',
-'2015-06-30', 125, 8500000.00,
-'321 Financial Plaza', 'Floor 15', 'Chicago', 'IL', '60601', 'United States', 'US',
-'+1-312-555-0104', 'info@metrocu.org', 'https://metrocu.org', 'Jennifer Williams',
-(SELECT id FROM portfolio_types WHERE type = 'onboarded'), (SELECT id FROM risk_levels WHERE level = 'medium'), 'compliant', 'active'),
-
-('10000000-0000-0000-0000-000000000005', 'Premier Investment Group', 'Premier Investment Group LLC', 'PIG-2019-005', '56-7890123', 'Finance', '523920', 'LLC',
-'2017-04-12', 89, 12000000.00,
-'654 Investment Way', 'Suite 500', 'New York', 'NY', '10001', 'United States', 'US',
-'+1-212-555-0105', 'contact@premierinvest.com', 'https://premierinvest.com', 'Robert Thompson',
-(SELECT id FROM portfolio_types WHERE type = 'onboarded'), (SELECT id FROM risk_levels WHERE level = 'medium'), 'compliant', 'active')
-
-ON CONFLICT (id) DO UPDATE SET
-    name = EXCLUDED.name,
-    legal_name = EXCLUDED.legal_name,
-    registration_number = EXCLUDED.registration_number,
-    tax_id = EXCLUDED.tax_id,
-    industry = EXCLUDED.industry,
-    industry_code = EXCLUDED.industry_code,
-    business_type = EXCLUDED.business_type,
-    founded_date = EXCLUDED.founded_date,
-    employee_count = EXCLUDED.employee_count,
-    annual_revenue = EXCLUDED.annual_revenue,
-    address_street1 = EXCLUDED.address_street1,
-    address_street2 = EXCLUDED.address_street2,
-    address_city = EXCLUDED.address_city,
-    address_state = EXCLUDED.address_state,
-    address_postal_code = EXCLUDED.address_postal_code,
-    address_country = EXCLUDED.address_country,
-    address_country_code = EXCLUDED.address_country_code,
-    contact_phone = EXCLUDED.contact_phone,
-    contact_email = EXCLUDED.contact_email,
-    contact_website = EXCLUDED.contact_website,
-    contact_primary_contact = EXCLUDED.contact_primary_contact,
-    portfolio_type_id = EXCLUDED.portfolio_type_id,
-    risk_level_id = EXCLUDED.risk_level_id,
-    compliance_status = EXCLUDED.compliance_status,
-    status = EXCLUDED.status,
-    updated_at = CURRENT_TIMESTAMP;
-
--- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_merchants_registration_number ON merchants(registration_number);
-CREATE INDEX IF NOT EXISTS idx_merchants_industry ON merchants(industry);
-CREATE INDEX IF NOT EXISTS idx_merchants_status ON merchants(status);
-CREATE INDEX IF NOT EXISTS idx_merchants_portfolio_type_id ON merchants(portfolio_type_id);
-CREATE INDEX IF NOT EXISTS idx_merchants_risk_level_id ON merchants(risk_level_id);
-CREATE INDEX IF NOT EXISTS idx_merchants_compliance_status ON merchants(compliance_status);
-CREATE INDEX IF NOT EXISTS idx_merchants_created_at ON merchants(created_at);
-
--- Create search indexes for merchant search functionality
-CREATE INDEX IF NOT EXISTS idx_merchants_name_trgm ON merchants USING gin(name gin_trgm_ops);
-CREATE INDEX IF NOT EXISTS idx_merchants_legal_name_trgm ON merchants USING gin(legal_name gin_trgm_ops);
-CREATE INDEX IF NOT EXISTS idx_merchants_contact_email ON merchants(contact_email);
-CREATE INDEX IF NOT EXISTS idx_merchants_contact_phone ON merchants(contact_phone);
-
--- Verify data insertion
-DO $$
-DECLARE
-    portfolio_count INTEGER;
-    risk_count INTEGER;
-    merchant_count INTEGER;
-BEGIN
-    SELECT COUNT(*) INTO portfolio_count FROM portfolio_types;
-    SELECT COUNT(*) INTO risk_count FROM risk_levels;
-    SELECT COUNT(*) INTO merchant_count FROM merchants;
-    
-    RAISE NOTICE 'Migration completed successfully:';
-    RAISE NOTICE '  Portfolio Types: %', portfolio_count;
-    RAISE NOTICE '  Risk Levels: %', risk_count;
-    RAISE NOTICE '  Merchants: %', merchant_count;
-END $$;
-EOF
-
-    # Execute the migration using curl to Supabase REST API
-    print_status "Executing migration on Supabase..."
-    
-    # Use the Supabase REST API to execute the migration
-    curl -X POST \
-        -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
-        -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
-        -H "Content-Type: application/json" \
-        -H "Prefer: return=minimal" \
-        -d "{\"query\": \"$(cat /tmp/migrate_supabase.sql | sed 's/"/\\"/g' | tr '\n' ' ')\"}" \
-        "$SUPABASE_URL/rest/v1/rpc/exec_sql" \
-        || {
-            print_warning "Direct SQL execution failed, trying alternative approach..."
-            
-            # Alternative: Use psql if available
-            if command -v psql &> /dev/null; then
-                print_status "Using psql to execute migration..."
-                PGPASSWORD="$SUPABASE_SERVICE_ROLE_KEY" psql \
-                    -h "db.$PROJECT_REF.supabase.co" \
-                    -p 5432 \
-                    -U postgres \
-                    -d postgres \
-                    -f /tmp/migrate_supabase.sql
-            else
-                print_error "Cannot execute migration - neither REST API nor psql available"
-                print_error "Please run the migration manually in Supabase SQL Editor"
-                print_status "Migration SQL saved to: /tmp/migrate_supabase.sql"
-                return 1
-            fi
-        }
-    
-    # Cleanup
-    rm -f /tmp/migrate_supabase.sql
-    
-    print_success "Migration completed successfully!"
 }
 
-# Function to verify migration
-verify_migration() {
-    print_status "Verifying migration..."
+# Test database connection
+test_db_connection() {
+    log_info "Testing database connection..."
     
-    # Test if we can query the merchants table
-    response=$(curl -s -X GET \
-        -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
-        -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
-        "$SUPABASE_URL/rest/v1/merchants?select=id,name&limit=1")
+    if $DRY_RUN; then
+        log_warning "Dry run mode - skipping connection test"
+        return 0
+    fi
     
-    if echo "$response" | grep -q "id"; then
-        print_success "✓ Merchants table is accessible"
-        
-        # Count merchants
-        count=$(curl -s -X GET \
-            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
-            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
-            "$SUPABASE_URL/rest/v1/merchants?select=count" | jq -r '.[0].count' 2>/dev/null || echo "unknown")
-        
-        print_success "✓ Found $count merchants in database"
+    if psql "$DB_URL" -c "SELECT 1;" > /dev/null 2>&1; then
+        log_success "Database connection successful"
     else
-        print_error "✗ Merchants table not accessible"
+        log_error "Failed to connect to database"
+        exit 1
+    fi
+}
+
+# Create migration tracking table
+create_migration_table() {
+    log_info "Creating migration tracking table..."
+    
+    local sql="
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+        id SERIAL PRIMARY KEY,
+        filename VARCHAR(255) NOT NULL UNIQUE,
+        applied_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        checksum VARCHAR(64),
+        environment VARCHAR(50) NOT NULL,
+        applied_by VARCHAR(100) DEFAULT current_user
+    );
+    "
+    
+    if $DRY_RUN; then
+        log_info "Would execute: $sql"
+        return 0
+    fi
+    
+    if psql "$DB_URL" -c "$sql" >> "$LOG_FILE" 2>&1; then
+        log_success "Migration tracking table created/verified"
+    else
+        log_error "Failed to create migration tracking table"
+        exit 1
+    fi
+}
+
+# Calculate file checksum
+calculate_checksum() {
+    local file="$1"
+    if command -v sha256sum > /dev/null; then
+        sha256sum "$file" | cut -d' ' -f1
+    elif command -v shasum > /dev/null; then
+        shasum -a 256 "$file" | cut -d' ' -f1
+    else
+        log_warning "No checksum tool available, skipping checksum validation"
+        echo "no-checksum"
+    fi
+}
+
+# Check if migration was already applied
+is_migration_applied() {
+    local filename="$1"
+    local count
+    
+    count=$(psql "$DB_URL" -t -c "SELECT COUNT(*) FROM schema_migrations WHERE filename = '$filename' AND environment = '$ENVIRONMENT';" 2>/dev/null | tr -d ' ')
+    
+    if [[ "$count" -gt 0 ]]; then
+        return 0  # Migration already applied
+    else
+        return 1  # Migration not applied
+    fi
+}
+
+# Apply a single migration
+apply_migration() {
+    local migration_file="$1"
+    local migration_path="$MIGRATIONS_DIR/$migration_file"
+    
+    if [[ ! -f "$migration_path" ]]; then
+        log_error "Migration file not found: $migration_path"
+        return 1
+    fi
+    
+    log_info "Applying migration: $migration_file"
+    
+    # Check if migration was already applied
+    if is_migration_applied "$migration_file"; then
+        log_warning "Migration $migration_file already applied, skipping"
+        return 0
+    fi
+    
+    # Calculate checksum
+    local checksum
+    checksum=$(calculate_checksum "$migration_path")
+    
+    if $DRY_RUN; then
+        log_info "Would apply migration: $migration_file"
+        log_info "Checksum: $checksum"
+        return 0
+    fi
+    
+    # Start transaction
+    local temp_sql="/tmp/migration_$$.sql"
+    cat > "$temp_sql" << EOF
+BEGIN;
+
+-- Apply migration
+\i $migration_path
+
+-- Record migration
+INSERT INTO schema_migrations (filename, checksum, environment, applied_by)
+VALUES ('$migration_file', '$checksum', '$ENVIRONMENT', current_user);
+
+COMMIT;
+EOF
+    
+    # Apply migration
+    if psql "$DB_URL" -f "$temp_sql" >> "$LOG_FILE" 2>&1; then
+        log_success "Migration $migration_file applied successfully"
+        rm -f "$temp_sql"
+        return 0
+    else
+        log_error "Failed to apply migration: $migration_file"
+        rm -f "$temp_sql"
+        
+        if ! $FORCE; then
+            log_error "Migration failed. Use --force to continue or check logs: $LOG_FILE"
+            exit 1
+        else
+            log_warning "Migration failed but continuing due to --force flag"
+            return 1
+        fi
+    fi
+}
+
+# Rollback last migration
+rollback_migration() {
+    log_info "Rolling back last migration..."
+    
+    if $DRY_RUN; then
+        log_warning "Dry run mode - would rollback last migration"
+        return 0
+    fi
+    
+    # Get last applied migration
+    local last_migration
+    last_migration=$(psql "$DB_URL" -t -c "SELECT filename FROM schema_migrations WHERE environment = '$ENVIRONMENT' ORDER BY applied_at DESC LIMIT 1;" 2>/dev/null | tr -d ' ')
+    
+    if [[ -z "$last_migration" ]]; then
+        log_warning "No migrations to rollback"
+        return 0
+    fi
+    
+    log_warning "Rollback functionality not implemented for safety. Manual rollback required."
+    log_info "Last applied migration: $last_migration"
+    log_info "To rollback manually:"
+    log_info "1. Connect to database: psql '$DB_URL'"
+    log_info "2. Review migration: $MIGRATIONS_DIR/$last_migration"
+    log_info "3. Apply reverse operations manually"
+    log_info "4. Remove from tracking: DELETE FROM schema_migrations WHERE filename = '$last_migration' AND environment = '$ENVIRONMENT';"
+}
+
+# Show migration status
+show_migration_status() {
+    log_info "Migration status for environment: $ENVIRONMENT"
+    
+    if $DRY_RUN; then
+        log_warning "Dry run mode - showing expected status"
+        return 0
+    fi
+    
+    local status_sql="
+    SELECT 
+        filename,
+        applied_at,
+        checksum,
+        applied_by
+    FROM schema_migrations 
+    WHERE environment = '$ENVIRONMENT'
+    ORDER BY applied_at;
+    "
+    
+    if psql "$DB_URL" -c "$status_sql" >> "$LOG_FILE" 2>&1; then
+        log_success "Migration status displayed"
+    else
+        log_error "Failed to get migration status"
         return 1
     fi
 }
 
-# Main execution
-main() {
-    print_status "🚀 KYB Platform - Supabase Migration for Railway"
-    print_status "==============================================="
+# Validate migration files
+validate_migrations() {
+    log_info "Validating migration files..."
     
-    run_supabase_migrations
-    verify_migration
+    local missing_files=()
     
-    print_success "🎉 Supabase migration completed successfully!"
-    print_status "Next steps:"
-    print_status "1. Deploy the updated application to Railway"
-    print_status "2. Test the API endpoints with real data"
-    print_status "3. Verify UI displays data from Supabase"
+    for migration in "${MIGRATIONS[@]}"; do
+        local migration_path="$MIGRATIONS_DIR/$migration"
+        if [[ ! -f "$migration_path" ]]; then
+            missing_files+=("$migration")
+        fi
+    done
+    
+    if [[ ${#missing_files[@]} -gt 0 ]]; then
+        log_error "Missing migration files:"
+        for file in "${missing_files[@]}"; do
+            log_error "  - $file"
+        done
+        exit 1
+    fi
+    
+    log_success "All migration files found"
 }
+
+# Main execution function
+main() {
+    log_info "Starting Risk Assessment Service database migration"
+    log_info "Log file: $LOG_FILE"
+    
+    # Parse arguments
+    parse_args "$@"
+    
+    # Validate environment
+    validate_environment
+    
+    # Get database configuration
+    get_db_config
+    
+    # Validate migration files
+    validate_migrations
+    
+    # Test database connection
+    test_db_connection
+    
+    # Create migration tracking table
+    create_migration_table
+    
+    if $ROLLBACK; then
+        rollback_migration
+        exit 0
+    fi
+    
+    # Apply migrations
+    local failed_migrations=()
+    
+    for migration in "${MIGRATIONS[@]}"; do
+        if ! apply_migration "$migration"; then
+            failed_migrations+=("$migration")
+            if ! $FORCE; then
+                break
+            fi
+        fi
+    done
+    
+    # Show final status
+    show_migration_status
+    
+    # Report results
+    if [[ ${#failed_migrations[@]} -eq 0 ]]; then
+        log_success "All migrations completed successfully"
+        exit 0
+    else
+        log_error "Some migrations failed: ${failed_migrations[*]}"
+        exit 1
+    fi
+}
+
+# Cleanup function
+cleanup() {
+    # Remove temporary files
+    rm -f /tmp/migration_*.sql
+}
+
+# Set up signal handlers
+trap cleanup EXIT
 
 # Run main function
 main "$@"

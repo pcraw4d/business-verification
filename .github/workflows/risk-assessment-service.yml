@@ -1,0 +1,459 @@
+name: Risk Assessment Service CI/CD
+
+on:
+    push:
+        branches: [main, develop]
+        paths:
+            - "services/risk-assessment-service/**"
+            - "supabase-migrations/**"
+            - "configs/**"
+            - ".github/workflows/risk-assessment-service.yml"
+    pull_request:
+        branches: [main, develop]
+        paths:
+            - "services/risk-assessment-service/**"
+            - "supabase-migrations/**"
+            - "configs/**"
+            - ".github/workflows/risk-assessment-service.yml"
+
+env:
+    GO_VERSION: "1.23"
+    DOCKER_REGISTRY: "railway"
+    SERVICE_NAME: "risk-assessment-service"
+    COVERAGE_THRESHOLD: 95
+
+jobs:
+    # Build and Test Stage
+    build-and-test:
+        name: Build and Test
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+
+        services:
+            postgres:
+                image: postgres:15
+                env:
+                    POSTGRES_PASSWORD: postgres
+                    POSTGRES_DB: test_risk_assessment
+                options: >-
+                    --health-cmd pg_isready
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+                ports:
+                    - 5432:5432
+
+            redis:
+                image: redis:7
+                options: >-
+                    --health-cmd "redis-cli ping"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+                ports:
+                    - 6379:6379
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Set up Go
+              uses: actions/setup-go@v4
+              with:
+                  go-version: ${{ env.GO_VERSION }}
+                  cache: true
+
+            - name: Cache Go modules
+              uses: actions/cache@v3
+              with:
+                  path: |
+                      ~/.cache/go-build
+                      ~/go/pkg/mod
+                  key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+                  restore-keys: |
+                      ${{ runner.os }}-go-
+
+            - name: Install dependencies
+              run: |
+                  go mod download
+                  go mod verify
+
+            - name: Run linters
+              run: |
+                  # Install golangci-lint
+                  curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.54.2
+
+                  # Run linters
+                  cd services/risk-assessment-service
+                  golangci-lint run --timeout=5m --verbose
+
+            - name: Run security scan
+              run: |
+                  # Install gosec
+                  go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+
+                  # Run security scan
+                  cd services/risk-assessment-service
+                  gosec -fmt json -out gosec-report.json ./...
+
+                  # Check for high severity issues
+                  if [ -f gosec-report.json ]; then
+                    HIGH_ISSUES=$(jq '.Stats.High' gosec-report.json)
+                    if [ "$HIGH_ISSUES" -gt 0 ]; then
+                      echo "High severity security issues found: $HIGH_ISSUES"
+                      cat gosec-report.json
+                      exit 1
+                    fi
+                  fi
+
+            - name: Run unit tests
+              run: |
+                  cd services/risk-assessment-service
+                  go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+              env:
+                  DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_risk_assessment?sslmode=disable
+                  REDIS_URL: redis://localhost:6379
+                  SUPABASE_URL: https://test.supabase.co
+                  SUPABASE_ANON_KEY: test-key
+                  SUPABASE_SERVICE_ROLE_KEY: test-service-key
+                  LOG_LEVEL: debug
+
+            - name: Generate coverage report
+              run: |
+                  cd services/risk-assessment-service
+                  go tool cover -html=coverage.out -o coverage.html
+                  go tool cover -func=coverage.out
+
+            - name: Check coverage threshold
+              run: |
+                  cd services/risk-assessment-service
+                  COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+                  echo "Coverage: ${COVERAGE}%"
+                  if (( $(echo "$COVERAGE < $COVERAGE_THRESHOLD" | bc -l) )); then
+                    echo "Coverage ${COVERAGE}% is below threshold ${COVERAGE_THRESHOLD}%"
+                    exit 1
+                  fi
+
+            - name: Upload coverage to Codecov
+              uses: codecov/codecov-action@v3
+              with:
+                  file: ./services/risk-assessment-service/coverage.out
+                  flags: risk-assessment-service
+                  name: risk-assessment-service-coverage
+                  fail_ci_if_error: false
+
+            - name: Upload test results
+              uses: actions/upload-artifact@v3
+              if: always()
+              with:
+                  name: test-results
+                  path: |
+                      services/risk-assessment-service/coverage.out
+                      services/risk-assessment-service/coverage.html
+                      services/risk-assessment-service/gosec-report.json
+
+    # Integration Tests Stage
+    integration-tests:
+        name: Integration Tests
+        runs-on: ubuntu-latest
+        needs: build-and-test
+        timeout-minutes: 20
+
+        services:
+            postgres:
+                image: postgres:15
+                env:
+                    POSTGRES_PASSWORD: postgres
+                    POSTGRES_DB: test_risk_assessment
+                options: >-
+                    --health-cmd pg_isready
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+                ports:
+                    - 5432:5432
+
+            redis:
+                image: redis:7
+                options: >-
+                    --health-cmd "redis-cli ping"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+                ports:
+                    - 6379:6379
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Set up Go
+              uses: actions/setup-go@v4
+              with:
+                  go-version: ${{ env.GO_VERSION }}
+                  cache: true
+
+            - name: Install dependencies
+              run: |
+                  go mod download
+                  go mod verify
+
+            - name: Run database migrations
+              run: |
+                  # Install psql
+                  sudo apt-get update
+                  sudo apt-get install -y postgresql-client
+
+                  # Run migrations
+                  chmod +x scripts/run-supabase-migrations.sh
+                  ./scripts/run-supabase-migrations.sh --environment development --dry-run
+              env:
+                  DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_risk_assessment?sslmode=disable
+                  SUPABASE_URL: https://test.supabase.co
+                  SUPABASE_SERVICE_ROLE_KEY: test-service-key
+
+            - name: Run integration tests
+              run: |
+                  cd services/risk-assessment-service
+                  go test -v -tags=integration -timeout=10m ./...
+              env:
+                  DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_risk_assessment?sslmode=disable
+                  REDIS_URL: redis://localhost:6379
+                  SUPABASE_URL: https://test.supabase.co
+                  SUPABASE_ANON_KEY: test-key
+                  SUPABASE_SERVICE_ROLE_KEY: test-service-key
+                  LOG_LEVEL: debug
+
+    # Performance Tests Stage
+    performance-tests:
+        name: Performance Tests
+        runs-on: ubuntu-latest
+        needs: build-and-test
+        timeout-minutes: 15
+        if: github.event_name == 'pull_request'
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Set up Go
+              uses: actions/setup-go@v4
+              with:
+                  go-version: ${{ env.GO_VERSION }}
+                  cache: true
+
+            - name: Install dependencies
+              run: |
+                  go mod download
+                  go mod verify
+
+            - name: Run performance tests
+              run: |
+                  cd services/risk-assessment-service
+                  go test -v -tags=performance -bench=. -benchmem -timeout=5m ./...
+              env:
+                  DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_risk_assessment?sslmode=disable
+                  REDIS_URL: redis://localhost:6379
+                  SUPABASE_URL: https://test.supabase.co
+                  SUPABASE_ANON_KEY: test-key
+                  SUPABASE_SERVICE_ROLE_KEY: test-service-key
+                  LOG_LEVEL: info
+
+    # Docker Build Stage
+    docker-build:
+        name: Docker Build
+        runs-on: ubuntu-latest
+        needs: [build-and-test, integration-tests]
+        timeout-minutes: 10
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+
+        outputs:
+            image-tag: ${{ steps.meta.outputs.tags }}
+            image-digest: ${{ steps.build.outputs.digest }}
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v3
+
+            - name: Log in to Railway
+              uses: railwayapp/railway-login@v1
+              with:
+                  token: ${{ secrets.RAILWAY_TOKEN }}
+
+            - name: Extract metadata
+              id: meta
+              uses: docker/metadata-action@v5
+              with:
+                  images: ${{ env.DOCKER_REGISTRY }}/${{ env.SERVICE_NAME }}
+                  tags: |
+                      type=ref,event=branch
+                      type=ref,event=pr
+                      type=sha,prefix={{branch}}-
+                      type=raw,value=latest,enable={{is_default_branch}}
+
+            - name: Build and push Docker image
+              id: build
+              uses: docker/build-push-action@v5
+              with:
+                  context: ./services/risk-assessment-service
+                  file: ./services/risk-assessment-service/Dockerfile
+                  push: true
+                  tags: ${{ steps.meta.outputs.tags }}
+                  labels: ${{ steps.meta.outputs.labels }}
+                  cache-from: type=gha
+                  cache-to: type=gha,mode=max
+                  platforms: linux/amd64
+
+            - name: Run Trivy vulnerability scanner
+              uses: aquasecurity/trivy-action@master
+              with:
+                  image-ref: ${{ steps.meta.outputs.tags }}
+                  format: "sarif"
+                  output: "trivy-results.sarif"
+
+            - name: Upload Trivy scan results
+              uses: github/codeql-action/upload-sarif@v2
+              if: always()
+              with:
+                  sarif_file: "trivy-results.sarif"
+
+    # Deploy to Staging
+    deploy-staging:
+        name: Deploy to Staging
+        runs-on: ubuntu-latest
+        needs: docker-build
+        timeout-minutes: 10
+        if: github.ref == 'refs/heads/develop'
+        environment: staging
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Deploy to Railway Staging
+              run: |
+                  # Install Railway CLI
+                  npm install -g @railway/cli
+
+                  # Deploy to staging
+                  railway login --token ${{ secrets.RAILWAY_TOKEN }}
+                  railway link ${{ secrets.RAILWAY_PROJECT_ID }}
+                  railway up --service ${{ env.SERVICE_NAME }} --detach
+              env:
+                  RAILWAY_ENVIRONMENT: staging
+
+            - name: Run database migrations
+              run: |
+                  chmod +x scripts/run-supabase-migrations.sh
+                  ./scripts/run-supabase-migrations.sh --environment staging
+              env:
+                  DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+                  SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+                  SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+
+            - name: Run smoke tests
+              run: |
+                  # Wait for service to be ready
+                  sleep 30
+
+                  # Run basic health check
+                  curl -f ${{ secrets.STAGING_SERVICE_URL }}/health || exit 1
+
+                  # Run basic API test
+                  curl -f -X POST ${{ secrets.STAGING_SERVICE_URL }}/api/v1/assess \
+                    -H "Content-Type: application/json" \
+                    -H "Authorization: Bearer ${{ secrets.STAGING_API_KEY }}" \
+                    -d '{"business_name": "Test Company", "business_address": "123 Test St"}' || exit 1
+
+    # Deploy to Production
+    deploy-production:
+        name: Deploy to Production
+        runs-on: ubuntu-latest
+        needs: docker-build
+        timeout-minutes: 15
+        if: github.ref == 'refs/heads/main'
+        environment: production
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Deploy to Railway Production
+              run: |
+                  # Install Railway CLI
+                  npm install -g @railway/cli
+
+                  # Deploy to production
+                  railway login --token ${{ secrets.RAILWAY_TOKEN }}
+                  railway link ${{ secrets.RAILWAY_PROJECT_ID }}
+                  railway up --service ${{ env.SERVICE_NAME }} --detach
+              env:
+                  RAILWAY_ENVIRONMENT: production
+
+            - name: Run database migrations
+              run: |
+                  chmod +x scripts/run-supabase-migrations.sh
+                  ./scripts/run-supabase-migrations.sh --environment production
+              env:
+                  DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+                  SUPABASE_URL: ${{ secrets.PRODUCTION_SUPABASE_URL }}
+                  SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PRODUCTION_SUPABASE_SERVICE_ROLE_KEY }}
+
+            - name: Run production smoke tests
+              run: |
+                  # Wait for service to be ready
+                  sleep 60
+
+                  # Run comprehensive health check
+                  curl -f ${{ secrets.PRODUCTION_SERVICE_URL }}/health || exit 1
+
+                  # Run API endpoint tests
+                  curl -f -X POST ${{ secrets.PRODUCTION_SERVICE_URL }}/api/v1/assess \
+                    -H "Content-Type: application/json" \
+                    -H "Authorization: Bearer ${{ secrets.PRODUCTION_API_KEY }}" \
+                    -d '{"business_name": "Test Company", "business_address": "123 Test St"}' || exit 1
+
+                  # Test metrics endpoint
+                  curl -f ${{ secrets.PRODUCTION_SERVICE_URL }}/metrics || exit 1
+
+            - name: Notify deployment success
+              if: success()
+              run: |
+                  echo "✅ Risk Assessment Service deployed successfully to production"
+                  echo "Service URL: ${{ secrets.PRODUCTION_SERVICE_URL }}"
+                  echo "Health Check: ${{ secrets.PRODUCTION_SERVICE_URL }}/health"
+                  echo "Metrics: ${{ secrets.PRODUCTION_SERVICE_URL }}/metrics"
+
+    # Rollback on failure
+    rollback:
+        name: Rollback on Failure
+        runs-on: ubuntu-latest
+        needs: [deploy-staging, deploy-production]
+        timeout-minutes: 5
+        if: failure() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Rollback deployment
+              run: |
+                  # Install Railway CLI
+                  npm install -g @railway/cli
+
+                  # Rollback to previous version
+                  railway login --token ${{ secrets.RAILWAY_TOKEN }}
+                  railway link ${{ secrets.RAILWAY_PROJECT_ID }}
+                  railway rollback --service ${{ env.SERVICE_NAME }}
+
+                  echo "🔄 Rolled back ${{ env.SERVICE_NAME }} to previous version"
+
+            - name: Notify rollback
+              run: |
+                  echo "❌ Deployment failed and rollback completed"
+                  echo "Please check the logs and fix the issues before retrying"

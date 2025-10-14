@@ -1,0 +1,94 @@
+# Shared Redis Configuration for KYB Platform
+# This configuration is used across all services for cost-effective caching
+
+redis:
+  # Connection settings
+  connection:
+    # Connection pool settings
+    pool_size: 50                    # Maximum number of connections in pool
+    min_idle_connections: 10         # Minimum idle connections to maintain
+    max_idle_connections: 20         # Maximum idle connections
+    connection_timeout: 5s           # Connection timeout
+    read_timeout: 3s                 # Read operation timeout
+    write_timeout: 3s                # Write operation timeout
+    pool_timeout: 4s                 # Pool timeout when getting connection
+    idle_timeout: 5m                 # Idle connection timeout
+    max_connection_age: 30m          # Maximum connection age before refresh
+    idle_check_frequency: 1m         # How often to check for idle connections
+
+  # Retry settings
+  retry:
+    max_retries: 3                   # Maximum retry attempts
+    min_retry_backoff: 8ms           # Minimum backoff between retries
+    max_retry_backoff: 512ms         # Maximum backoff between retries
+
+  # Cache TTL policies (in seconds)
+  ttl:
+    default: 300                     # 5 minutes default TTL
+    risk_assessment: 600             # 10 minutes for risk assessment data
+    classification: 1800             # 30 minutes for classification data
+    merchant_data: 900               # 15 minutes for merchant data
+    static_data: 3600                # 1 hour for static/reference data
+    session_data: 1800               # 30 minutes for session data
+    rate_limit: 60                   # 1 minute for rate limiting data
+
+  # Eviction policy
+  eviction:
+    policy: "allkeys-lru"            # Evict least recently used keys when memory limit reached
+    max_memory: "512mb"              # Maximum memory usage
+    max_memory_policy: "allkeys-lru" # Memory eviction policy
+
+  # Persistence settings
+  persistence:
+    # AOF (Append Only File) settings
+    aof_enabled: true                # Enable AOF for durability
+    aof_sync_policy: "everysec"      # Sync AOF every second
+    aof_rewrite_percentage: 100      # Rewrite AOF when 100% larger than last rewrite
+    aof_rewrite_min_size: "64mb"     # Minimum size for AOF rewrite
+    
+    # RDB (Redis Database) settings
+    rdb_enabled: true                # Enable RDB snapshots
+    rdb_save_900: 1                  # Save if at least 1 key changed in 900 seconds
+    rdb_save_300: 10                 # Save if at least 10 keys changed in 300 seconds
+    rdb_save_60: 10000               # Save if at least 10000 keys changed in 60 seconds
+
+  # Security settings
+  security:
+    requirepass: ""                  # Password (set via environment variable)
+    protected_mode: true             # Protected mode for security
+    bind: "0.0.0.0"                 # Bind to all interfaces (Railway handles security)
+
+  # Monitoring and metrics
+  monitoring:
+    enable_metrics: true             # Enable Redis metrics collection
+    slowlog_enabled: true            # Enable slow query logging
+    slowlog_max_len: 128             # Maximum number of slow queries to log
+    slowlog_log_slower_than: 10000   # Log queries slower than 10ms (in microseconds)
+
+  # Key prefix for multi-tenant isolation
+  key_prefix:
+    risk_assessment: "ra:"           # Risk assessment service prefix
+    classification: "cls:"           # Classification service prefix
+    merchant: "merchant:"            # Merchant service prefix
+    api_gateway: "gateway:"          # API gateway prefix
+    shared: "shared:"                # Shared data prefix
+
+  # Environment-specific overrides
+  environments:
+    development:
+      pool_size: 10
+      max_memory: "128mb"
+      ttl:
+        default: 60                  # Shorter TTL for development
+    
+    staging:
+      pool_size: 25
+      max_memory: "256mb"
+      ttl:
+        default: 180                 # Medium TTL for staging
+    
+    production:
+      pool_size: 50
+      max_memory: "512mb"
+      ttl:
+        default: 300                 # Standard TTL for production

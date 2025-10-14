@@ -351,3 +351,36 @@ func (h *GatewayHandler) ProxyToBI(w http.ResponseWriter, r *http.Request) {
 
 	h.proxyRequest(w, r, h.config.Services.BIServiceURL, path)
 }
+
+// ProxyToRiskAssessment proxies requests to the Risk Assessment service
+func (h *GatewayHandler) ProxyToRiskAssessment(w http.ResponseWriter, r *http.Request) {
+	// Set CORS headers for risk assessment service
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Request-ID")
+
+	// Extract the path after /api/v1/risk/
+	path := strings.TrimPrefix(r.URL.Path, "/api/v1/risk")
+	if path == "" {
+		path = "/"
+	}
+
+	// Add query parameters if any
+	if r.URL.RawQuery != "" {
+		path += "?" + r.URL.RawQuery
+	}
+
+	// Add correlation ID for tracing
+	correlationID := r.Header.Get("X-Request-ID")
+	if correlationID == "" {
+		correlationID = fmt.Sprintf("req-%d", time.Now().UnixNano())
+	}
+	r.Header.Set("X-Request-ID", correlationID)
+
+	h.proxyRequest(w, r, h.config.Services.RiskAssessmentURL, path)
+}
+
+// ProxyToRiskAssessmentHealth proxies health check requests to the risk assessment service
+func (h *GatewayHandler) ProxyToRiskAssessmentHealth(w http.ResponseWriter, r *http.Request) {
+	h.proxyRequest(w, r, h.config.Services.RiskAssessmentURL, "/health")
+}

@@ -42,7 +42,8 @@ func main() {
 		zap.String("environment", cfg.Environment),
 		zap.String("classification_url", cfg.Services.ClassificationURL),
 		zap.String("merchant_url", cfg.Services.MerchantURL),
-		zap.String("frontend_url", cfg.Services.FrontendURL))
+		zap.String("frontend_url", cfg.Services.FrontendURL),
+		zap.String("risk_assessment_url", cfg.Services.RiskAssessmentURL))
 
 	// Initialize Supabase client
 	logger.Info("🔧 Initializing Supabase client",
@@ -82,8 +83,10 @@ func main() {
 				"health":                "/health",
 				"classify":              "/api/v1/classify",
 				"merchants":             "/api/v1/merchants",
+				"risk_assessment":       "/api/v1/risk",
 				"classification_health": "/api/v1/classification/health",
 				"merchant_health":       "/api/v1/merchant/health",
+				"risk_health":           "/api/v1/risk/health",
 			},
 		})
 	}).Methods("GET")
@@ -106,6 +109,21 @@ func main() {
 	// Health check routes for backend services
 	api.HandleFunc("/classification/health", gatewayHandler.ProxyToClassificationHealth).Methods("GET")
 	api.HandleFunc("/merchant/health", gatewayHandler.ProxyToMerchantHealth).Methods("GET")
+	api.HandleFunc("/risk/health", gatewayHandler.ProxyToRiskAssessmentHealth).Methods("GET")
+
+	// Risk Assessment routes
+	api.HandleFunc("/risk/assess", func(w http.ResponseWriter, r *http.Request) {
+		// Handle OPTIONS requests for CORS preflight
+		if r.Method == "OPTIONS" {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Request-ID")
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		gatewayHandler.ProxyToRiskAssessment(w, r)
+	}).Methods("POST", "OPTIONS")
+	api.PathPrefix("/risk").HandlerFunc(gatewayHandler.ProxyToRiskAssessment)
 
 	// Business Intelligence routes
 	api.HandleFunc("/bi/analyze", func(w http.ResponseWriter, r *http.Request) {

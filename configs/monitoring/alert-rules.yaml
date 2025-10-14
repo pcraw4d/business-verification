@@ -1,0 +1,324 @@
+# Prometheus Alert Rules for Risk Assessment Service
+# This configuration defines alerting rules for monitoring the risk assessment service
+
+groups:
+  # High Priority Alerts - Critical Issues
+  - name: risk-assessment-critical
+    interval: 30s
+    rules:
+      # Service Down Alert
+      - alert: RiskAssessmentServiceDown
+        expr: up{job="risk-assessment-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: risk-assessment-service
+          team: platform
+        annotations:
+          summary: "Risk Assessment Service is down"
+          description: "Risk Assessment Service has been down for more than 1 minute"
+          runbook_url: "https://docs.kyb-platform.com/runbooks/risk-assessment-service-down"
+          dashboard_url: "https://grafana.kyb-platform.com/d/risk-assessment-dashboard"
+
+      # High Error Rate Alert
+      - alert: RiskAssessmentHighErrorRate
+        expr: (rate(http_requests_total{service="risk-assessment-service",status_code=~"5.."}[5m]) / rate(http_requests_total{service="risk-assessment-service"}[5m])) * 100 > 5
+        for: 2m
+        labels:
+          severity: critical
+          service: risk-assessment-service
+          team: platform
+        annotations:
+          summary: "High error rate in Risk Assessment Service"
+          description: "Error rate is {{ $value }}% for the last 5 minutes"
+          runbook_url: "https://docs.kyb-platform.com/runbooks/high-error-rate"
+          dashboard_url: "https://grafana.kyb-platform.com/d/risk-assessment-dashboard"
+
+      # High Response Time Alert
+      - alert: RiskAssessmentHighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{service="risk-assessment-service"}[5m])) > 2
+        for: 3m
+        labels:
+          severity: critical
+          service: risk-assessment-service
+          team: platform
+        annotations:
+          summary: "High response time in Risk Assessment Service"
+          description: "95th percentile response time is {{ $value }}s"
+          runbook_url: "https://docs.kyb-platform.com/runbooks/high-response-time"
+          dashboard_url: "https://grafana.kyb-platform.com/d/risk-assessment-dashboard"
+
+      # Database Connection Failure
+      - alert: RiskAssessmentDatabaseConnectionFailure
+        expr: db_connections_active{service="risk-assessment-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: risk-assessment-service
+          component: database
+          team: platform
+        annotations:
+          summary: "Database connection failure in Risk Assessment Service"
+          description: "No active database connections"
+          runbook_url: "https://docs.kyb-platform.com/runbooks/database-connection-failure"
+          dashboard_url: "https://grafana.kyb-platform.com/d/risk-assessment-dashboard"
+
+      # Redis Connection Failure
+      - alert: RiskAssessmentRedisConnectionFailure
+        expr: redis_connected_clients{service="risk-assessment-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: risk-assessment-service
+          component: cache
+          team: platform
+        annotations:
+          summary: "Redis connection failure in Risk Assessment Service"
+          description: "No Redis connections available"
+          runbook_url: "https://docs.kyb-platform.com/runbooks/redis-connection-failure"
+          dashboard_url: "https://grafana.kyb-platform.com/d/risk-assessment-dashboard"
+
+  # Medium Priority Alerts - Warning Issues
+  - name: risk-assessment-warning
+    interval: 30s
+    rules:
+      # High Memory Usage
+      - alert: RiskAssessmentHighMemoryUsage
+        expr: (go_memstats_heap_inuse_bytes{service="risk-assessment-service"} / go_memstats_heap_sys_bytes{service="risk-assessment-service"}) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: risk-assessment-service
+          component: memory
+          team: platform
+        annotations:
+          summary: "High memory usage in Risk Assessment Service"
+          description: "Memory usage is {{ $value }}%"
+          runbook_url: "https://docs.kyb-platform.com/runbooks/high-memory-usage"
+          dashboard_url: "https://grafana.kyb-platform.com/d/risk-assessment-dashboard"
+
+      # High CPU Usage
+      - alert: RiskAssessmentHighCPUUsage
+        expr: rate(process_cpu_seconds_total{service="risk-assessment-service"}[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: risk-assessment-service
+          component: cpu
+          team: platform
+        annotations:
+          summary: "High CPU usage in Risk Assessment Service"
+          description: "CPU usage is {{ $value }}%"
+          runbook_url: "https://docs.kyb-platform.com/runbooks/high-cpu-usage"
+          dashboard_url: "https://grafana.kyb-platform.com/d/risk-assessment-dashboard"
+
+      # Low Cache Hit Rate
+      - alert: RiskAssessmentLowCacheHitRate
+        expr: (rate(cache_hits_total{service="risk-assessment-service"}[5m]) / (rate(cache_hits_total{service="risk-assessment-service"}[5m]) + rate(cache_misses_total{service="risk-assessment-service"}[5m]))) * 100 < 70
+        for: 10m
+        labels:
+          severity: warning
+          service: risk-assessment-service
+          component: cache
+          team: platform
+        annotations:
+          summary: "Low cache hit rate in Risk Assessment Service"
+          description: "Cache hit rate is {{ $value }}%"
+          runbook_url: "https://docs.kyb-platform.com/runbooks/low-cache-hit-rate"
+          dashboard_url: "https://grafana.kyb-platform.com/d/risk-assessment-dashboard"
+
+      # High Database Connection Pool Usage
+      - alert: RiskAssessmentHighDBPoolUsage
+        expr: (db_connections_active{service="risk-assessment-service"} / db_connections_max{service="risk-assessment-service"}) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: risk-assessment-service
+          component: database
+          team: platform
+        annotations:
+          summary: "High database connection pool usage in Risk Assessment Service"
+          description: "Database connection pool usage is {{ $value }}%"
+          runbook_url: "https://docs.kyb-platform.com/runbooks/high-db-pool-usage"
+          dashboard_url: "https://grafana.kyb-platform.com/d/risk-assessment-dashboard"
+
+      # External API High Error Rate
+      - alert: RiskAssessmentExternalAPIHighErrorRate
+        expr: (rate(external_api_requests_total{service="risk-assessment-service",status="error"}[5m]) / rate(external_api_requests_total{service="risk-assessment-service"}[5m])) * 100 > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: risk-assessment-service
+          component: external-api
+          team: platform
+        annotations:
+          summary: "High external API error rate in Risk Assessment Service"
+          description: "External API error rate is {{ $value }}%"
+          runbook_url: "https://docs.kyb-platform.com/runbooks/external-api-high-error-rate"
+          dashboard_url: "https://grafana.kyb-platform.com/d/risk-assessment-dashboard"
+
+      # ML Model High Latency
+      - alert: RiskAssessmentMLModelHighLatency
+        expr: rate(ml_prediction_duration_seconds_sum{service="risk-assessment-service"}[5m]) / rate(ml_prediction_duration_seconds_count{service="risk-assessment-service"}[5m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: risk-assessment-service
+          component: ml-model
+          team: platform
+        annotations:
+          summary: "High ML model latency in Risk Assessment Service"
+          description: "ML model prediction latency is {{ $value }}s"
+          runbook_url: "https://docs.kyb-platform.com/runbooks/ml-model-high-latency"
+          dashboard_url: "https://grafana.kyb-platform.com/d/risk-assessment-dashboard"
+
+  # Low Priority Alerts - Info Issues
+  - name: risk-assessment-info
+    interval: 30s
+    rules:
+      # Circuit Breaker Open
+      - alert: RiskAssessmentCircuitBreakerOpen
+        expr: circuit_breaker_state{service="risk-assessment-service",state="open"} == 1
+        for: 1m
+        labels:
+          severity: info
+          service: risk-assessment-service
+          component: circuit-breaker
+          team: platform
+        annotations:
+          summary: "Circuit breaker is open in Risk Assessment Service"
+          description: "Circuit breaker is open for external API calls"
+          runbook_url: "https://docs.kyb-platform.com/runbooks/circuit-breaker-open"
+          dashboard_url: "https://grafana.kyb-platform.com/d/risk-assessment-dashboard"
+
+      # High Request Volume
+      - alert: RiskAssessmentHighRequestVolume
+        expr: rate(http_requests_total{service="risk-assessment-service"}[5m]) > 100
+        for: 5m
+        labels:
+          severity: info
+          service: risk-assessment-service
+          component: traffic
+          team: platform
+        annotations:
+          summary: "High request volume in Risk Assessment Service"
+          description: "Request rate is {{ $value }} requests/second"
+          runbook_url: "https://docs.kyb-platform.com/runbooks/high-request-volume"
+          dashboard_url: "https://grafana.kyb-platform.com/d/risk-assessment-dashboard"
+
+      # Low Risk Assessment Throughput
+      - alert: RiskAssessmentLowThroughput
+        expr: rate(risk_assessments_total{service="risk-assessment-service"}[5m]) < 1
+        for: 10m
+        labels:
+          severity: info
+          service: risk-assessment-service
+          component: business-metrics
+          team: platform
+        annotations:
+          summary: "Low risk assessment throughput in Risk Assessment Service"
+          description: "Risk assessment rate is {{ $value }} assessments/second"
+          runbook_url: "https://docs.kyb-platform.com/runbooks/low-throughput"
+          dashboard_url: "https://grafana.kyb-platform.com/d/risk-assessment-dashboard"
+
+  # Business Metrics Alerts
+  - name: risk-assessment-business
+    interval: 60s
+    rules:
+      # Risk Assessment Accuracy Drop
+      - alert: RiskAssessmentAccuracyDrop
+        expr: ml_model_accuracy{service="risk-assessment-service"} < 0.85
+        for: 15m
+        labels:
+          severity: warning
+          service: risk-assessment-service
+          component: ml-model
+          team: data-science
+        annotations:
+          summary: "Risk assessment model accuracy has dropped"
+          description: "Model accuracy is {{ $value }}"
+          runbook_url: "https://docs.kyb-platform.com/runbooks/model-accuracy-drop"
+          dashboard_url: "https://grafana.kyb-platform.com/d/risk-assessment-dashboard"
+
+      # High Risk Score Distribution
+      - alert: RiskAssessmentHighRiskScoreDistribution
+        expr: rate(risk_assessments_total{service="risk-assessment-service",risk_level="high"}[1h]) / rate(risk_assessments_total{service="risk-assessment-service"}[1h]) > 0.3
+        for: 30m
+        labels:
+          severity: info
+          service: risk-assessment-service
+          component: business-metrics
+          team: business
+        annotations:
+          summary: "High proportion of high-risk assessments"
+          description: "{{ $value }}% of assessments are high-risk"
+          runbook_url: "https://docs.kyb-platform.com/runbooks/high-risk-distribution"
+          dashboard_url: "https://grafana.kyb-platform.com/d/risk-assessment-dashboard"
+
+  # Infrastructure Alerts
+  - name: risk-assessment-infrastructure
+    interval: 30s
+    rules:
+      # Disk Space Low
+      - alert: RiskAssessmentDiskSpaceLow
+        expr: (node_filesystem_avail_bytes{service="risk-assessment-service"} / node_filesystem_size_bytes{service="risk-assessment-service"}) * 100 < 20
+        for: 5m
+        labels:
+          severity: warning
+          service: risk-assessment-service
+          component: disk
+          team: infrastructure
+        annotations:
+          summary: "Low disk space on Risk Assessment Service node"
+          description: "Disk space is {{ $value }}% available"
+          runbook_url: "https://docs.kyb-platform.com/runbooks/disk-space-low"
+          dashboard_url: "https://grafana.kyb-platform.com/d/risk-assessment-dashboard"
+
+      # High Network Latency
+      - alert: RiskAssessmentHighNetworkLatency
+        expr: rate(network_transmit_bytes_total{service="risk-assessment-service"}[5m]) / rate(network_receive_bytes_total{service="risk-assessment-service"}[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: risk-assessment-service
+          component: network
+          team: infrastructure
+        annotations:
+          summary: "High network latency for Risk Assessment Service"
+          description: "Network transmit/receive ratio is {{ $value }}"
+          runbook_url: "https://docs.kyb-platform.com/runbooks/high-network-latency"
+          dashboard_url: "https://grafana.kyb-platform.com/d/risk-assessment-dashboard"
+
+  # Security Alerts
+  - name: risk-assessment-security
+    interval: 30s
+    rules:
+      # High Authentication Failure Rate
+      - alert: RiskAssessmentHighAuthFailureRate
+        expr: (rate(auth_failures_total{service="risk-assessment-service"}[5m]) / rate(auth_attempts_total{service="risk-assessment-service"}[5m])) * 100 > 20
+        for: 5m
+        labels:
+          severity: warning
+          service: risk-assessment-service
+          component: security
+          team: security
+        annotations:
+          summary: "High authentication failure rate in Risk Assessment Service"
+          description: "Authentication failure rate is {{ $value }}%"
+          runbook_url: "https://docs.kyb-platform.com/runbooks/high-auth-failure-rate"
+          dashboard_url: "https://grafana.kyb-platform.com/d/risk-assessment-dashboard"
+
+      # Suspicious Request Pattern
+      - alert: RiskAssessmentSuspiciousRequestPattern
+        expr: rate(http_requests_total{service="risk-assessment-service",status_code="429"}[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          service: risk-assessment-service
+          component: security
+          team: security
+        annotations:
+          summary: "Suspicious request pattern detected in Risk Assessment Service"
+          description: "Rate limit exceeded requests: {{ $value }} requests/second"
+          runbook_url: "https://docs.kyb-platform.com/runbooks/suspicious-request-pattern"
+          dashboard_url: "https://grafana.kyb-platform.com/d/risk-assessment-dashboard"
