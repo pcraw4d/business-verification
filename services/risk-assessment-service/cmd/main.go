@@ -192,7 +192,7 @@ func main() {
 		}
 	}()
 
-	logger.Info("🚀 Starting Risk Assessment Service v1.0.0")
+	logger.Info("🚀 Starting Risk Assessment Service v1.0.0 - Fixed nil pointer dereference")
 
 	// Load configuration
 	cfg, err := config.Load()
