@@ -1,6 +1,8 @@
 module kyb-platform/services/risk-assessment-service
 
-go 1.22.0
+go 1.23.0
+
+toolchain go1.24.6
 
 require (
 	github.com/go-redis/redis/v8 v8.11.5
@@ -18,6 +20,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
+	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect

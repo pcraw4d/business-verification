@@ -462,7 +462,12 @@ jobs:
 
           # Create Railway config directory and set token
           mkdir -p ~/.railway
-          echo "${{ secrets.RAILWAY_TOKEN }}" > ~/.railway/token
+          if [ -n "${{ secrets.RAILWAY_TOKEN }}" ]; then
+            echo "${{ secrets.RAILWAY_TOKEN }}" > ~/.railway/token
+          else
+            echo "Warning: RAILWAY_TOKEN is not set, skipping rollback"
+            exit 0
+          fi
           railway link ${{ secrets.RAILWAY_PROJECT_ID }}
           railway rollback --service ${{ env.SERVICE_NAME }}
 
