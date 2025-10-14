@@ -18,7 +18,7 @@ func RegisterWebhookRoutes(router *mux.Router, webhookHandlers *handlers.SimpleW
 	webhookRouter.HandleFunc("/{id}", webhookHandlers.UpdateWebhook).Methods("PUT", "PATCH")
 	webhookRouter.HandleFunc("/{id}", webhookHandlers.DeleteWebhook).Methods("DELETE")
 
-	// Note: Additional webhook operations (test, stats, deliveries, retry) 
+	// Note: Additional webhook operations (test, stats, deliveries, retry)
 	// are not implemented in SimpleWebhookHandlers
 	// These would need to be added to the handler or a more advanced webhook handler
 }

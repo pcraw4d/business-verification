@@ -32,7 +32,8 @@ class KYBNavigation {
             'enhanced-risk-indicators': 'risk-indicators',
             'merchant-hub-integration': 'merchant-hub',
             'merchant-portfolio': 'merchant-portfolio',
-            'merchant-detail': 'merchant-detail'
+            'merchant-detail': 'merchant-detail',
+            'risk-assessment-portfolio': 'risk-assessment-portfolio'
         };
 
         return pageMap[filename] || 'home';
@@ -140,6 +141,12 @@ class KYBNavigation {
                                 <a href="merchant-portfolio.html" class="nav-link" data-page="merchant-portfolio">
                                     <i class="fas fa-store"></i>
                                     <span class="nav-text">Merchant Portfolio</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="risk-assessment-portfolio.html" class="nav-link" data-page="risk-assessment-portfolio">
+                                    <i class="fas fa-shield-alt"></i>
+                                    <span class="nav-text">Risk Assessment Portfolio</span>
                                 </a>
                             </li>
                             <li class="nav-item">

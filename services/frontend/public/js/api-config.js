@@ -39,6 +39,14 @@ class APIConfig {
             merchantStatistics: `${baseURL}/api/v1/merchants/statistics`,
             merchantById: (id) => `${baseURL}/api/v1/merchants/${id}`,
             
+            // Risk assessment endpoints
+            riskAssess: `${baseURL}/api/v1/risk/assess`,
+            riskHistory: (merchantId) => `${baseURL}/api/v1/risk/history/${merchantId}`,
+            riskPredictions: (merchantId) => `${baseURL}/api/v1/risk/predictions/${merchantId}`,
+            riskScenarios: `${baseURL}/api/v1/risk/scenarios`,
+            riskExplain: (assessmentId) => `${baseURL}/api/v1/risk/explain/${assessmentId}`,
+            riskWebSocket: `wss://${baseURL.replace('https://', '').replace('http://', '')}/api/v1/risk/ws`,
+            
             // Health and monitoring endpoints
             health: `${baseURL}/health`,
             debugWeb: `${baseURL}/debug/web`

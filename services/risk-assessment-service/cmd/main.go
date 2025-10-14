@@ -848,7 +848,7 @@ func initDatabaseWithPerformance(cfg *config.Config, logger *zap.Logger) (*sql.D
 					projectRef := supabaseURL[start : start+end]
 					// Construct PostgreSQL connection string for Supabase
 					// Use the direct connection format: postgresql://postgres:[password]@db.[project-ref].supabase.co:5432/postgres
-					databaseURL = fmt.Sprintf("postgresql://postgres:%s@db.%s.supabase.co:5432/postgres?sslmode=require", 
+					databaseURL = fmt.Sprintf("postgresql://postgres:%s@db.%s.supabase.co:5432/postgres?sslmode=require",
 						cfg.Supabase.ServiceRoleKey, projectRef)
 					logger.Info("Using Supabase PostgreSQL connection", zap.String("project_ref", projectRef))
 				}

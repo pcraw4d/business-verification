@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Risk Assessment Portfolio - KYB Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="components/navigation.js"></script>
+    <script src="js/api-config.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header Section */
+        .portfolio-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .header-subtitle {
+            font-size: 1.1rem;
+            color: #7f8c8d;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: #3498db;
+            border: 2px solid #3498db;
+        }
+
+        .btn-outline:hover {
+            background: #3498db;
+            color: white;
+        }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        /* Content Cards */
+        .content-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .content-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .card-icon.overview {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+        }
+
+        .card-icon.heatmap {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+
+        .card-icon.trends {
+            background: linear-gradient(135deg, #27ae60, #229954);
+        }
+
+        .card-icon.distribution {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+        }
+
+        .card-icon.correlation {
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+        }
+
+        /* Risk Overview Stats */
+        .risk-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        /* Risk Heatmap */
+        .heatmap-container {
+            position: relative;
+            height: 400px;
+            overflow: hidden;
+        }
+
+        .heatmap-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 4px;
+            height: 100%;
+        }
+
+        .heatmap-cell {
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .heatmap-cell:hover {
+            transform: scale(1.1);
+            z-index: 10;
+        }
+
+        .risk-low { background: #27ae60; }
+        .risk-medium { background: #f39c12; }
+        .risk-high { background: #e74c3c; }
+        .risk-critical { background: #8e44ad; }
+
+        /* Chart Containers */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 20px;
+        }
+
+        .chart-container.large {
+            height: 400px;
+        }
+
+        /* Network Graph */
+        .network-container {
+            position: relative;
+            height: 500px;
+            border: 1px solid #ecf0f1;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        /* Loading States */
+        .skeleton-loading {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 10px;
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .dashboard-grid {
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .header-title {
+                font-size: 2rem;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .content-card {
+                padding: 20px;
+            }
+
+            .risk-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .heatmap-grid {
+                grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            }
+        }
+
+        @media (max-width: 480px) {
+            .risk-stats {
+                grid-template-columns: 1fr;
+            }
+
+            .heatmap-grid {
+                grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Portfolio Header -->
+        <div class="portfolio-header">
+            <div class="header-content">
+                <div>
+                    <h1 class="header-title">Risk Assessment Portfolio</h1>
+                    <div class="header-subtitle">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Comprehensive risk analysis across all merchants</span>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-outline" id="refreshDataBtn">
+                        <i class="fas fa-sync-alt"></i>
+                        Refresh Data
+                    </button>
+                    <button class="btn btn-primary" id="exportReportBtn">
+                        <i class="fas fa-download"></i>
+                        Export Report
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Risk Overview Stats -->
+        <div class="risk-stats">
+            <div class="stat-card">
+                <div class="stat-value" id="totalMerchants">0</div>
+                <div class="stat-label">Total Merchants</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgRiskScore">0.0</div>
+                <div class="stat-label">Average Risk Score</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="highRiskCount">0</div>
+                <div class="stat-label">High Risk</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="criticalRiskCount">0</div>
+                <div class="stat-label">Critical Risk</div>
+            </div>
+        </div>
+
+        <!-- Dashboard Grid -->
+        <div class="dashboard-grid">
+            <!-- Risk Heatmap -->
+            <div class="content-card">
+                <div class="card-header">
+                    <div class="card-icon heatmap">
+                        <i class="fas fa-th"></i>
+                    </div>
+                    <div class="card-title">Risk Heatmap</div>
+                </div>
+                <div class="heatmap-container" id="riskHeatmap">
+                    <div class="skeleton-loading" style="height: 100%;"></div>
+                </div>
+            </div>
+
+            <!-- Risk Trends -->
+            <div class="content-card">
+                <div class="card-header">
+                    <div class="card-icon trends">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="card-title">Portfolio Risk Trends</div>
+                </div>
+                <div class="chart-container" id="riskTrendsChart">
+                    <div class="skeleton-loading" style="height: 100%;"></div>
+                </div>
+            </div>
+
+            <!-- Risk Distribution -->
+            <div class="content-card">
+                <div class="card-header">
+                    <div class="card-icon distribution">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <div class="card-title">Risk Distribution</div>
+                </div>
+                <div class="chart-container" id="riskDistributionChart">
+                    <div class="skeleton-loading" style="height: 100%;"></div>
+                </div>
+            </div>
+
+            <!-- Risk Correlation Network -->
+            <div class="content-card" style="grid-column: 1 / -1;">
+                <div class="card-header">
+                    <div class="card-icon correlation">
+                        <i class="fas fa-project-diagram"></i>
+                    </div>
+                    <div class="card-title">Risk Correlation Network</div>
+                </div>
+                <div class="network-container" id="correlationNetwork">
+                    <div class="skeleton-loading" style="height: 100%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Portfolio Risk Dashboard
+        class PortfolioRiskDashboard {
+            constructor() {
+                this.merchants = [];
+                this.riskData = {};
+                this.charts = {};
+                this.init();
+            }
+
+            async init() {
+                this.bindEvents();
+                await this.loadData();
+                this.renderDashboard();
+            }
+
+            bindEvents() {
+                document.getElementById('refreshDataBtn').addEventListener('click', () => {
+                    this.refreshData();
+                });
+
+                document.getElementById('exportReportBtn').addEventListener('click', () => {
+                    this.exportReport();
+                });
+            }
+
+            async loadData() {
+                try {
+                    // Simulate loading portfolio risk data
+                    await this.simulateDataLoad();
+                } catch (error) {
+                    console.error('Error loading portfolio data:', error);
+                    this.showError('Failed to load portfolio data');
+                }
+            }
+
+            async simulateDataLoad() {
+                // Simulate API delay
+                await new Promise(resolve => setTimeout(resolve, 1500));
+
+                // Generate mock data
+                this.merchants = this.generateMockMerchants(50);
+                this.riskData = this.calculateRiskMetrics(this.merchants);
+            }
+
+            generateMockMerchants(count) {
+                const merchants = [];
+                const industries = ['Technology', 'Finance', 'Healthcare', 'Retail', 'Manufacturing'];
+                const riskLevels = ['low', 'medium', 'high', 'critical'];
+
+                for (let i = 0; i < count; i++) {
+                    const riskLevel = riskLevels[Math.floor(Math.random() * riskLevels.length)];
+                    const riskScore = this.getRiskScore(riskLevel);
+                    
+                    merchants.push({
+                        id: `merchant_${i + 1}`,
+                        name: `Merchant ${i + 1}`,
+                        industry: industries[Math.floor(Math.random() * industries.length)],
+                        riskLevel: riskLevel,
+                        riskScore: riskScore,
+                        monthlyVolume: Math.floor(Math.random() * 1000000) + 10000,
+                        transactionCount: Math.floor(Math.random() * 10000) + 100,
+                        lastAssessment: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000)
+                    });
+                }
+
+                return merchants;
+            }
+
+            getRiskScore(riskLevel) {
+                const ranges = {
+                    'low': [1, 3],
+                    'medium': [4, 6],
+                    'high': [7, 8],
+                    'critical': [9, 10]
+                };
+                const [min, max] = ranges[riskLevel];
+                return Math.round((Math.random() * (max - min) + min) * 10) / 10;
+            }
+
+            calculateRiskMetrics(merchants) {
+                const totalMerchants = merchants.length;
+                const avgRiskScore = merchants.reduce((sum, m) => sum + m.riskScore, 0) / totalMerchants;
+                const highRiskCount = merchants.filter(m => m.riskLevel === 'high').length;
+                const criticalRiskCount = merchants.filter(m => m.riskLevel === 'critical').length;
+
+                return {
+                    totalMerchants,
+                    avgRiskScore: Math.round(avgRiskScore * 10) / 10,
+                    highRiskCount,
+                    criticalRiskCount
+                };
+            }
+
+            renderDashboard() {
+                this.updateStats();
+                this.renderHeatmap();
+                this.renderTrendsChart();
+                this.renderDistributionChart();
+                this.renderCorrelationNetwork();
+            }
+
+            updateStats() {
+                document.getElementById('totalMerchants').textContent = this.riskData.totalMerchants;
+                document.getElementById('avgRiskScore').textContent = this.riskData.avgRiskScore;
+                document.getElementById('highRiskCount').textContent = this.riskData.highRiskCount;
+                document.getElementById('criticalRiskCount').textContent = this.riskData.criticalRiskCount;
+            }
+
+            renderHeatmap() {
+                const container = document.getElementById('riskHeatmap');
+                container.innerHTML = '';
+
+                const grid = document.createElement('div');
+                grid.className = 'heatmap-grid';
+
+                this.merchants.forEach(merchant => {
+                    const cell = document.createElement('div');
+                    cell.className = `heatmap-cell risk-${merchant.riskLevel}`;
+                    cell.textContent = merchant.riskScore;
+                    cell.title = `${merchant.name} - ${merchant.riskLevel} risk (${merchant.riskScore})`;
+                    
+                    cell.addEventListener('click', () => {
+                        this.showMerchantDetails(merchant);
+                    });
+
+                    grid.appendChild(cell);
+                });
+
+                container.appendChild(grid);
+            }
+
+            renderTrendsChart() {
+                const ctx = document.getElementById('riskTrendsChart');
+                ctx.innerHTML = '';
+
+                const canvas = document.createElement('canvas');
+                ctx.appendChild(canvas);
+
+                // Generate mock trend data
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+                const avgScores = months.map(() => Math.random() * 3 + 4);
+
+                this.charts.trends = new Chart(canvas, {
+                    type: 'line',
+                    data: {
+                        labels: months,
+                        datasets: [{
+                            label: 'Average Risk Score',
+                            data: avgScores,
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 10,
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.1)'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            renderDistributionChart() {
+                const ctx = document.getElementById('riskDistributionChart');
+                ctx.innerHTML = '';
+
+                const canvas = document.createElement('canvas');
+                ctx.appendChild(canvas);
+
+                const riskCounts = {
+                    'Low': this.merchants.filter(m => m.riskLevel === 'low').length,
+                    'Medium': this.merchants.filter(m => m.riskLevel === 'medium').length,
+                    'High': this.merchants.filter(m => m.riskLevel === 'high').length,
+                    'Critical': this.merchants.filter(m => m.riskLevel === 'critical').length
+                };
+
+                this.charts.distribution = new Chart(canvas, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(riskCounts),
+                        datasets: [{
+                            data: Object.values(riskCounts),
+                            backgroundColor: [
+                                '#27ae60',
+                                '#f39c12',
+                                '#e74c3c',
+                                '#8e44ad'
+                            ],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            renderCorrelationNetwork() {
+                const container = document.getElementById('correlationNetwork');
+                container.innerHTML = '';
+
+                const svg = d3.select(container)
+                    .append('svg')
+                    .attr('width', '100%')
+                    .attr('height', '100%');
+
+                const width = container.clientWidth;
+                const height = container.clientHeight;
+
+                // Generate mock correlation data
+                const nodes = this.merchants.slice(0, 20).map(merchant => ({
+                    id: merchant.id,
+                    name: merchant.name,
+                    riskScore: merchant.riskScore,
+                    riskLevel: merchant.riskLevel
+                }));
+
+                const links = [];
+                for (let i = 0; i < nodes.length; i++) {
+                    for (let j = i + 1; j < nodes.length; j++) {
+                        if (Math.random() < 0.1) { // 10% chance of correlation
+                            links.push({
+                                source: nodes[i].id,
+                                target: nodes[j].id,
+                                strength: Math.random()
+                            });
+                        }
+                    }
+                }
+
+                const simulation = d3.forceSimulation(nodes)
+                    .force('link', d3.forceLink(links).id(d => d.id).distance(100))
+                    .force('charge', d3.forceManyBody().strength(-300))
+                    .force('center', d3.forceCenter(width / 2, height / 2));
+
+                const link = svg.append('g')
+                    .selectAll('line')
+                    .data(links)
+                    .enter().append('line')
+                    .attr('stroke', '#999')
+                    .attr('stroke-opacity', 0.6)
+                    .attr('stroke-width', d => Math.sqrt(d.strength * 3));
+
+                const node = svg.append('g')
+                    .selectAll('circle')
+                    .data(nodes)
+                    .enter().append('circle')
+                    .attr('r', d => Math.sqrt(d.riskScore) * 3 + 5)
+                    .attr('fill', d => {
+                        const colors = {
+                            'low': '#27ae60',
+                            'medium': '#f39c12',
+                            'high': '#e74c3c',
+                            'critical': '#8e44ad'
+                        };
+                        return colors[d.riskLevel] || '#95a5a6';
+                    })
+                    .attr('stroke', '#fff')
+                    .attr('stroke-width', 2)
+                    .call(d3.drag()
+                        .on('start', dragstarted)
+                        .on('drag', dragged)
+                        .on('end', dragended));
+
+                const label = svg.append('g')
+                    .selectAll('text')
+                    .data(nodes)
+                    .enter().append('text')
+                    .text(d => d.name.length > 8 ? d.name.substring(0, 8) + '...' : d.name)
+                    .attr('font-size', '10px')
+                    .attr('text-anchor', 'middle')
+                    .attr('dy', '0.35em');
+
+                simulation.on('tick', () => {
+                    link
+                        .attr('x1', d => d.source.x)
+                        .attr('y1', d => d.source.y)
+                        .attr('x2', d => d.target.x)
+                        .attr('y2', d => d.target.y);
+
+                    node
+                        .attr('cx', d => d.x)
+                        .attr('cy', d => d.y);
+
+                    label
+                        .attr('x', d => d.x)
+                        .attr('y', d => d.y);
+                });
+
+                function dragstarted(event, d) {
+                    if (!event.active) simulation.alphaTarget(0.3).restart();
+                    d.fx = d.x;
+                    d.fy = d.y;
+                }
+
+                function dragged(event, d) {
+                    d.fx = event.x;
+                    d.fy = event.y;
+                }
+
+                function dragended(event, d) {
+                    if (!event.active) simulation.alphaTarget(0);
+                    d.fx = null;
+                    d.fy = null;
+                }
+            }
+
+            showMerchantDetails(merchant) {
+                alert(`Merchant: ${merchant.name}\nRisk Level: ${merchant.riskLevel}\nRisk Score: ${merchant.riskScore}\nIndustry: ${merchant.industry}`);
+            }
+
+            async refreshData() {
+                const btn = document.getElementById('refreshDataBtn');
+                const icon = btn.querySelector('i');
+                
+                icon.classList.add('fa-spin');
+                btn.disabled = true;
+
+                try {
+                    await this.loadData();
+                    this.renderDashboard();
+                } finally {
+                    icon.classList.remove('fa-spin');
+                    btn.disabled = false;
+                }
+            }
+
+            exportReport() {
+                // Create a simple CSV export
+                const csvContent = [
+                    ['Merchant ID', 'Name', 'Industry', 'Risk Level', 'Risk Score', 'Monthly Volume', 'Transaction Count'],
+                    ...this.merchants.map(m => [
+                        m.id,
+                        m.name,
+                        m.industry,
+                        m.riskLevel,
+                        m.riskScore,
+                        m.monthlyVolume,
+                        m.transactionCount
+                    ])
+                ].map(row => row.join(',')).join('\n');
+
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `risk-assessment-portfolio-${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+            }
+
+            showError(message) {
+                console.error(message);
+                // Could implement a toast notification system here
+            }
+        }
+
+        // Initialize dashboard when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new PortfolioRiskDashboard();
+        });
+    </script>
+</body>
+</html>
