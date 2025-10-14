@@ -65,12 +65,7 @@ RUN GOOS=linux GOARCH=amd64 go build \
     -o risk-assessment-service \
     ./cmd/main.go ./cmd/cache_logger_wrapper.go
 
-# Build debug script
-RUN GOOS=linux GOARCH=amd64 go build \
-    -a -installsuffix cgo \
-    -ldflags='-w -s' \
-    -o debug_models \
-    ./debug_models.go
+# Debug script removed - file does not exist
 
 # Final stage
 FROM alpine:latest
@@ -88,8 +83,7 @@ WORKDIR /app
 # Copy binary from builder stage
 COPY --from=builder /app/risk-assessment-service .
 
-# Copy debug script from builder stage
-COPY --from=builder /app/debug_models .
+# Debug script copy removed - file does not exist
 
 # Copy startup debug script
 COPY startup_debug.sh .
