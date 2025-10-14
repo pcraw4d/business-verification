@@ -1,0 +1,104 @@
+# Large directories and files to exclude from Railway deployment
+ml-training/
+*.test
+*.exe
+main
+risk-assessment-service
+beta-manager
+feedback-collector
+invitation-system
+test_build
+test_minimal
+validation.test
+debug_models
+handlers.test
+
+# Documentation
+docs/
+*.md
+README.md
+
+# Development files
+.env*
+.railway/
+railway.json
+railway.toml
+railway.env
+
+# Test files
+test/
+*_test.go
+tests/
+
+# Build artifacts
+*.out
+coverage.txt
+coverage.html
+
+# Python training environment
+*.py
+*.ipynb
+requirements.txt
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# Node.js SDK
+sdks/nodejs/
+node_modules/
+package.json
+package-lock.json
+yarn.lock
+
+# Python SDK
+sdks/python/
+
+# Go specific
+vendor/
+*.mod.bak
+*.sum.bak
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# Performance test results
+benchmark_results/
+performance_results/
+
+# Model validation results
+validation_results/
+*.json.bak
+
+# Local development
+local/
+dev/
+tmp/
+temp/
+*.tmp
+
+# Logs
+*.log
+logs/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
