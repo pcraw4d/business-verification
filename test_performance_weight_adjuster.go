@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/pcraw4d/kyb-platform/internal/classification"
-	"github.com/pcraw4d/kyb-platform/internal/shared"
+	"kyb-platform/internal/classification"
+	"kyb-platform/internal/shared"
 )
 
 // MockWeightManager is a simple mock for testing

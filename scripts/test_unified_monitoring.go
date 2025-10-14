@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
-	"github.com/petercrawford/New tool/internal/monitoring"
+	"kyb-platform/internal/monitoring"
 )
 
 func main() {

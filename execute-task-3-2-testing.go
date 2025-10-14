@@ -7,8 +7,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/pcraw4d/kyb-platform/internal/config"
-	"github.com/pcraw4d/kyb-platform/internal/database"
+	"kyb-platform/internal/config"
+	"kyb-platform/internal/database"
 
 	_ "github.com/lib/pq"
 )
