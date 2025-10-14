@@ -37,6 +37,27 @@ import (
 	"kyb-platform/services/risk-assessment-service/internal/supabase"
 )
 
+// cacheLoggerWrapper wraps zap.Logger to implement cache.Logger interface
+type cacheLoggerWrapper struct {
+	logger *zap.Logger
+}
+
+func (c *cacheLoggerWrapper) Debug(msg string, fields ...interface{}) {
+	c.logger.Debug(msg, zap.Any("fields", fields))
+}
+
+func (c *cacheLoggerWrapper) Info(msg string, fields ...interface{}) {
+	c.logger.Info(msg, zap.Any("fields", fields))
+}
+
+func (c *cacheLoggerWrapper) Warn(msg string, fields ...interface{}) {
+	c.logger.Warn(msg, zap.Any("fields", fields))
+}
+
+func (c *cacheLoggerWrapper) Error(msg string, fields ...interface{}) {
+	c.logger.Error(msg, zap.Any("fields", fields))
+}
+
 // MockDashboardDataProvider provides mock data for dashboard testing
 type MockDashboardDataProvider struct {
 	logger *zap.Logger
@@ -557,61 +578,69 @@ func main() {
 	api.HandleFunc("/models/info", advancedPredictionHandler.HandleGetModelInfo).Methods("GET")
 	api.HandleFunc("/models/performance", advancedPredictionHandler.HandleGetModelPerformance).Methods("GET")
 
-	// Custom model endpoints
-	api.HandleFunc("/models/custom", customModelHandler.HandleCreateCustomModel).Methods("POST")
-	api.HandleFunc("/models/custom", customModelHandler.HandleListCustomModels).Methods("GET")
-	api.HandleFunc("/models/custom/{id}", customModelHandler.HandleGetCustomModel).Methods("GET")
-	api.HandleFunc("/models/custom/{id}", customModelHandler.HandleUpdateCustomModel).Methods("PUT")
-	api.HandleFunc("/models/custom/{id}", customModelHandler.HandleDeleteCustomModel).Methods("DELETE")
-	api.HandleFunc("/models/custom/{id}/validate", customModelHandler.HandleValidateCustomModel).Methods("POST")
-	api.HandleFunc("/models/custom/{id}/test", customModelHandler.HandleTestCustomModel).Methods("POST")
-	api.HandleFunc("/models/custom/{id}/activate", customModelHandler.HandleActivateCustomModel).Methods("POST")
-	api.HandleFunc("/models/custom/{id}/deactivate", customModelHandler.HandleDeactivateCustomModel).Methods("POST")
-	api.HandleFunc("/models/custom/{id}/versions", customModelHandler.HandleGetCustomModelVersions).Methods("GET")
+	// Custom model endpoints (if available)
+	if customModelHandler != nil {
+		api.HandleFunc("/models/custom", customModelHandler.HandleCreateCustomModel).Methods("POST")
+		api.HandleFunc("/models/custom", customModelHandler.HandleListCustomModels).Methods("GET")
+		api.HandleFunc("/models/custom/{id}", customModelHandler.HandleGetCustomModel).Methods("GET")
+		api.HandleFunc("/models/custom/{id}", customModelHandler.HandleUpdateCustomModel).Methods("PUT")
+		api.HandleFunc("/models/custom/{id}", customModelHandler.HandleDeleteCustomModel).Methods("DELETE")
+		api.HandleFunc("/models/custom/{id}/validate", customModelHandler.HandleValidateCustomModel).Methods("POST")
+		api.HandleFunc("/models/custom/{id}/test", customModelHandler.HandleTestCustomModel).Methods("POST")
+		api.HandleFunc("/models/custom/{id}/activate", customModelHandler.HandleActivateCustomModel).Methods("POST")
+		api.HandleFunc("/models/custom/{id}/deactivate", customModelHandler.HandleDeactivateCustomModel).Methods("POST")
+		api.HandleFunc("/models/custom/{id}/versions", customModelHandler.HandleGetCustomModelVersions).Methods("GET")
+	}
 
-	// Batch processing endpoints
-	api.HandleFunc("/assess/batch/async", batchJobHandler.HandleSubmitBatchJob).Methods("POST")
-	api.HandleFunc("/assess/batch", batchJobHandler.HandleListBatchJobs).Methods("GET")
-	api.HandleFunc("/assess/batch/{job_id}", batchJobHandler.HandleGetBatchJobStatus).Methods("GET")
-	api.HandleFunc("/assess/batch/{job_id}/results", batchJobHandler.HandleGetBatchJobResults).Methods("GET")
-	api.HandleFunc("/assess/batch/{job_id}", batchJobHandler.HandleCancelBatchJob).Methods("DELETE")
-	api.HandleFunc("/assess/batch/{job_id}/resume", batchJobHandler.HandleResumeBatchJob).Methods("POST")
-	api.HandleFunc("/assess/batch/metrics", batchJobHandler.HandleGetBatchJobMetrics).Methods("GET")
+	// Batch processing endpoints (if available)
+	if batchJobHandler != nil {
+		api.HandleFunc("/assess/batch/async", batchJobHandler.HandleSubmitBatchJob).Methods("POST")
+		api.HandleFunc("/assess/batch", batchJobHandler.HandleListBatchJobs).Methods("GET")
+		api.HandleFunc("/assess/batch/{job_id}", batchJobHandler.HandleGetBatchJobStatus).Methods("GET")
+		api.HandleFunc("/assess/batch/{job_id}/results", batchJobHandler.HandleGetBatchJobResults).Methods("GET")
+		api.HandleFunc("/assess/batch/{job_id}", batchJobHandler.HandleCancelBatchJob).Methods("DELETE")
+		api.HandleFunc("/assess/batch/{job_id}/resume", batchJobHandler.HandleResumeBatchJob).Methods("POST")
+		api.HandleFunc("/assess/batch/metrics", batchJobHandler.HandleGetBatchJobMetrics).Methods("GET")
+	}
 
-	// Dashboard endpoints
-	api.HandleFunc("/reporting/dashboards", dashboardHandler.HandleCreateDashboard).Methods("POST")
-	api.HandleFunc("/reporting/dashboards", dashboardHandler.HandleListDashboards).Methods("GET")
-	api.HandleFunc("/reporting/dashboards/{id}", dashboardHandler.HandleGetDashboard).Methods("GET")
-	api.HandleFunc("/reporting/dashboards/{id}", dashboardHandler.HandleUpdateDashboard).Methods("PUT")
-	api.HandleFunc("/reporting/dashboards/{id}", dashboardHandler.HandleDeleteDashboard).Methods("DELETE")
-	api.HandleFunc("/reporting/dashboards/{id}/data", dashboardHandler.HandleGetDashboardData).Methods("GET")
-	api.HandleFunc("/reporting/dashboards/metrics", dashboardHandler.HandleGetDashboardMetrics).Methods("GET")
-	api.HandleFunc("/reporting/dashboard/risk-overview", dashboardHandler.HandleGetRiskOverview).Methods("GET")
-	api.HandleFunc("/reporting/dashboard/trends", dashboardHandler.HandleGetTrends).Methods("GET")
-	api.HandleFunc("/reporting/dashboard/predictions", dashboardHandler.HandleGetPredictions).Methods("GET")
+	// Dashboard endpoints (if available)
+	if dashboardHandler != nil {
+		api.HandleFunc("/reporting/dashboards", dashboardHandler.HandleCreateDashboard).Methods("POST")
+		api.HandleFunc("/reporting/dashboards", dashboardHandler.HandleListDashboards).Methods("GET")
+		api.HandleFunc("/reporting/dashboards/{id}", dashboardHandler.HandleGetDashboard).Methods("GET")
+		api.HandleFunc("/reporting/dashboards/{id}", dashboardHandler.HandleUpdateDashboard).Methods("PUT")
+		api.HandleFunc("/reporting/dashboards/{id}", dashboardHandler.HandleDeleteDashboard).Methods("DELETE")
+		api.HandleFunc("/reporting/dashboards/{id}/data", dashboardHandler.HandleGetDashboardData).Methods("GET")
+		api.HandleFunc("/reporting/dashboards/metrics", dashboardHandler.HandleGetDashboardMetrics).Methods("GET")
+		api.HandleFunc("/reporting/dashboard/risk-overview", dashboardHandler.HandleGetRiskOverview).Methods("GET")
+		api.HandleFunc("/reporting/dashboard/trends", dashboardHandler.HandleGetTrends).Methods("GET")
+		api.HandleFunc("/reporting/dashboard/predictions", dashboardHandler.HandleGetPredictions).Methods("GET")
+	}
 
-	// Report endpoints
-	api.HandleFunc("/reports/generate", reportHandler.HandleGenerateReport).Methods("POST")
-	api.HandleFunc("/reports", reportHandler.HandleListReports).Methods("GET")
-	api.HandleFunc("/reports/{id}", reportHandler.HandleGetReport).Methods("GET")
-	api.HandleFunc("/reports/{id}", reportHandler.HandleDeleteReport).Methods("DELETE")
-	api.HandleFunc("/reports/{id}/download", reportHandler.HandleDownloadReport).Methods("GET")
-	api.HandleFunc("/reports/metrics", reportHandler.HandleGetReportMetrics).Methods("GET")
+	// Report endpoints (if available)
+	if reportHandler != nil {
+		api.HandleFunc("/reports/generate", reportHandler.HandleGenerateReport).Methods("POST")
+		api.HandleFunc("/reports", reportHandler.HandleListReports).Methods("GET")
+		api.HandleFunc("/reports/{id}", reportHandler.HandleGetReport).Methods("GET")
+		api.HandleFunc("/reports/{id}", reportHandler.HandleDeleteReport).Methods("DELETE")
+		api.HandleFunc("/reports/{id}/download", reportHandler.HandleDownloadReport).Methods("GET")
+		api.HandleFunc("/reports/metrics", reportHandler.HandleGetReportMetrics).Methods("GET")
 
-	// Report template endpoints
-	api.HandleFunc("/reports/templates", reportHandler.HandleCreateTemplate).Methods("POST")
-	api.HandleFunc("/reports/templates", reportHandler.HandleListTemplates).Methods("GET")
-	api.HandleFunc("/reports/templates/{id}", reportHandler.HandleGetTemplate).Methods("GET")
-	api.HandleFunc("/reports/templates/{id}", reportHandler.HandleUpdateTemplate).Methods("PUT")
-	api.HandleFunc("/reports/templates/{id}", reportHandler.HandleDeleteTemplate).Methods("DELETE")
+		// Report template endpoints
+		api.HandleFunc("/reports/templates", reportHandler.HandleCreateTemplate).Methods("POST")
+		api.HandleFunc("/reports/templates", reportHandler.HandleListTemplates).Methods("GET")
+		api.HandleFunc("/reports/templates/{id}", reportHandler.HandleGetTemplate).Methods("GET")
+		api.HandleFunc("/reports/templates/{id}", reportHandler.HandleUpdateTemplate).Methods("PUT")
+		api.HandleFunc("/reports/templates/{id}", reportHandler.HandleDeleteTemplate).Methods("DELETE")
 
-	// Scheduled report endpoints
-	api.HandleFunc("/reports/scheduled", reportHandler.HandleCreateScheduledReport).Methods("POST")
-	api.HandleFunc("/reports/scheduled", reportHandler.HandleListScheduledReports).Methods("GET")
-	api.HandleFunc("/reports/scheduled/{id}", reportHandler.HandleGetScheduledReport).Methods("GET")
-	api.HandleFunc("/reports/scheduled/{id}", reportHandler.HandleUpdateScheduledReport).Methods("PUT")
-	api.HandleFunc("/reports/scheduled/{id}", reportHandler.HandleDeleteScheduledReport).Methods("DELETE")
-	api.HandleFunc("/reports/scheduled/{id}/run", reportHandler.HandleRunScheduledReport).Methods("POST")
+		// Scheduled report endpoints
+		api.HandleFunc("/reports/scheduled", reportHandler.HandleCreateScheduledReport).Methods("POST")
+		api.HandleFunc("/reports/scheduled", reportHandler.HandleListScheduledReports).Methods("GET")
+		api.HandleFunc("/reports/scheduled/{id}", reportHandler.HandleGetScheduledReport).Methods("GET")
+		api.HandleFunc("/reports/scheduled/{id}", reportHandler.HandleUpdateScheduledReport).Methods("PUT")
+		api.HandleFunc("/reports/scheduled/{id}", reportHandler.HandleDeleteScheduledReport).Methods("DELETE")
+		api.HandleFunc("/reports/scheduled/{id}/run", reportHandler.HandleRunScheduledReport).Methods("POST")
+	}
 
 	// Compliance endpoints
 	api.HandleFunc("/compliance/check", riskAssessmentHandler.HandleComplianceCheck).Methods("POST")
@@ -709,13 +738,15 @@ func main() {
 	// api.HandleFunc("/explain/visualization", explainabilityHandler.HandleGenerateVisualization).Methods("POST")
 	// api.HandleFunc("/explain/info", explainabilityHandler.HandleGetExplainabilityInfo).Methods("GET")
 
-	// Webhook endpoints
-	webhookAPI := api.PathPrefix("/webhooks").Subrouter()
-	webhookAPI.HandleFunc("", webhookHandlers.CreateWebhook).Methods("POST")
-	webhookAPI.HandleFunc("", webhookHandlers.ListWebhooks).Methods("GET")
-	webhookAPI.HandleFunc("/{id}", webhookHandlers.GetWebhook).Methods("GET")
-	webhookAPI.HandleFunc("/{id}", webhookHandlers.UpdateWebhook).Methods("PUT", "PATCH")
-	webhookAPI.HandleFunc("/{id}", webhookHandlers.DeleteWebhook).Methods("DELETE")
+	// Webhook endpoints (if available)
+	if webhookHandlers != nil {
+		webhookAPI := api.PathPrefix("/webhooks").Subrouter()
+		webhookAPI.HandleFunc("", webhookHandlers.CreateWebhook).Methods("POST")
+		webhookAPI.HandleFunc("", webhookHandlers.ListWebhooks).Methods("GET")
+		webhookAPI.HandleFunc("/{id}", webhookHandlers.GetWebhook).Methods("GET")
+		webhookAPI.HandleFunc("/{id}", webhookHandlers.UpdateWebhook).Methods("PUT", "PATCH")
+		webhookAPI.HandleFunc("/{id}", webhookHandlers.DeleteWebhook).Methods("DELETE")
+	}
 
 	// Create HTTP server
 	httpServer := &http.Server{
@@ -729,11 +760,15 @@ func main() {
 	// Start performance monitoring
 	go performanceMonitor.StartMonitoring(context.Background())
 
-	// Start batch job manager
-	if err := jobManager.Start(context.Background()); err != nil {
-		logger.Fatal("Failed to start batch job manager", zap.Error(err))
+	// Start batch job manager (if available)
+	if jobManager != nil {
+		if err := jobManager.Start(context.Background()); err != nil {
+			logger.Fatal("Failed to start batch job manager", zap.Error(err))
+		}
+		logger.Info("✅ Batch job manager started")
+	} else {
+		logger.Info("Skipping batch job manager start - no database connection")
 	}
-	logger.Info("✅ Batch job manager started")
 
 	// Start Prometheus metrics server (disabled for now)
 	// TODO: Enable Prometheus metrics server with proper configuration
@@ -770,9 +805,11 @@ func main() {
 		logger.Error("Risk engine shutdown failed", zap.Error(err))
 	}
 
-	// Shutdown batch job manager
-	if err := jobManager.Stop(); err != nil {
-		logger.Error("Batch job manager shutdown failed", zap.Error(err))
+	// Shutdown batch job manager (if available)
+	if jobManager != nil {
+		if err := jobManager.Stop(); err != nil {
+			logger.Error("Batch job manager shutdown failed", zap.Error(err))
+		}
 	}
 
 	// Attempt graceful shutdown
