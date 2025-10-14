@@ -145,7 +145,7 @@ jobs:
                   fail_ci_if_error: false
 
             - name: Upload test results
-              uses: actions/upload-artifact@v3
+              uses: actions/upload-artifact@v4
               if: always()
               with:
                   name: test-results
@@ -341,7 +341,7 @@ jobs:
                   npm install -g @railway/cli
 
                   # Deploy to staging
-                  railway login --token ${{ secrets.RAILWAY_TOKEN }}
+                  echo "${{ secrets.RAILWAY_TOKEN }}" | railway login --browserless
                   railway link ${{ secrets.RAILWAY_PROJECT_ID }}
                   railway up --service ${{ env.SERVICE_NAME }} --detach
               env:
@@ -389,7 +389,7 @@ jobs:
                   npm install -g @railway/cli
 
                   # Deploy to production
-                  railway login --token ${{ secrets.RAILWAY_TOKEN }}
+                  echo "${{ secrets.RAILWAY_TOKEN }}" | railway login --browserless
                   railway link ${{ secrets.RAILWAY_PROJECT_ID }}
                   railway up --service ${{ env.SERVICE_NAME }} --detach
               env:
@@ -447,7 +447,7 @@ jobs:
                   npm install -g @railway/cli
 
                   # Rollback to previous version
-                  railway login --token ${{ secrets.RAILWAY_TOKEN }}
+                  echo "${{ secrets.RAILWAY_TOKEN }}" | railway login --browserless
                   railway link ${{ secrets.RAILWAY_PROJECT_ID }}
                   railway rollback --service ${{ env.SERVICE_NAME }}
 
