@@ -5,7 +5,7 @@
     "dockerfilePath": "services/risk-assessment-service/Dockerfile.go123"
   },
   "deploy": {
-    "startCommand": "./risk-assessment-service",
+    "startCommand": "./startup_debug.sh",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 30,
     "restartPolicyType": "ON_FAILURE",
@@ -90,7 +90,7 @@
         "dockerfilePath": "services/risk-assessment-service/Dockerfile.go123"
       },
       "deploy": {
-        "startCommand": "./risk-assessment-service",
+        "startCommand": "./startup_debug.sh",
         "healthcheckPath": "/health",
         "healthcheckTimeout": 30,
         "restartPolicyType": "ON_FAILURE",

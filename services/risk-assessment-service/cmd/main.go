@@ -847,13 +847,14 @@ func initDatabaseWithPerformance(cfg *config.Config, logger *zap.Logger) (*sql.D
 				if end > 0 {
 					projectRef := supabaseURL[start : start+end]
 					// Construct PostgreSQL connection string for Supabase
-					databaseURL = fmt.Sprintf("postgresql://postgres.%s:%s@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require", 
-						projectRef, cfg.Supabase.ServiceRoleKey)
+					// Use the direct connection format: postgresql://postgres:[password]@db.[project-ref].supabase.co:5432/postgres
+					databaseURL = fmt.Sprintf("postgresql://postgres:%s@db.%s.supabase.co:5432/postgres?sslmode=require", 
+						cfg.Supabase.ServiceRoleKey, projectRef)
 					logger.Info("Using Supabase PostgreSQL connection", zap.String("project_ref", projectRef))
 				}
 			}
 		}
-		
+
 		// Fallback to local database if Supabase connection string couldn't be constructed
 		if databaseURL == "" {
 			databaseURL = "postgresql://username:password@localhost:5432/risk_assessment?sslmode=disable"
