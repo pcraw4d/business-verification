@@ -89,8 +89,8 @@ COPY --from=builder /app/risk-assessment-service .
 COPY startup_debug.sh .
 RUN chmod +x startup_debug.sh
 
-# Copy ONNX Runtime libraries from builder stage
-COPY --from=builder /app/onnxruntime/lib/* /app/onnxruntime/lib/
+# Copy ONNX Runtime libraries from builder stage (robust copy)
+COPY --from=builder /app/onnxruntime/ /app/onnxruntime/
 
 # Debug: List copied libraries
 RUN echo "Copied ONNX Runtime libraries:" && \

@@ -321,84 +321,164 @@ func main() {
 	externalAPIHandler := apihandlers.NewExternalAPIHandler(externalAPIManager, logger)
 	monitoringHandler := handlers.NewMonitoringHandler(prometheusMetrics, alertManager, grafanaClient, logger)
 
-	// Initialize database connection with performance optimizations
+	// Initialize database connection with performance optimizations (optional)
 	db, err := initDatabaseWithPerformance(cfg, logger)
 	if err != nil {
-		logger.Fatal("Failed to initialize database with performance optimizations", zap.Error(err))
+		logger.Warn("Failed to initialize database with performance optimizations - continuing without database", zap.Error(err))
+		db = nil
+	} else {
+		defer db.Close()
 	}
-	defer db.Close()
 
-	// Initialize performance components
-	performanceComponents, err := initPerformanceComponents(cfg, db, logger)
-	if err != nil {
-		logger.Fatal("Failed to initialize performance components", zap.Error(err))
+	// Initialize performance components (optional if database is not available)
+	var performanceComponents *PerformanceComponents
+	if db != nil {
+		performanceComponents, err = initPerformanceComponents(cfg, db, logger)
+		if err != nil {
+			logger.Warn("Failed to initialize performance components - continuing without performance components", zap.Error(err))
+			performanceComponents = nil
+		} else {
+			defer performanceComponents.Close()
+		}
+	} else {
+		logger.Info("Skipping performance components initialization - no database connection")
 	}
-	defer performanceComponents.Close()
 
-	// Initialize custom model components
-	customModelRepository := custom.NewSQLCustomModelRepository(db, logger)
-	customModelBuilder := custom.NewCustomModelBuilder(customModelRepository, logger)
+	// Initialize custom model components (optional if database is not available)
+	var customModelRepository *custom.SQLCustomModelRepository
+	var customModelBuilder *custom.CustomModelBuilder
+	if db != nil {
+		customModelRepository = custom.NewSQLCustomModelRepository(db, logger)
+		customModelBuilder = custom.NewCustomModelBuilder(customModelRepository, logger)
+		logger.Info("✅ Custom model components initialized")
+	} else {
+		logger.Info("Skipping custom model components initialization - no database connection")
+	}
 	// Custom model handler will be initialized after webhook components are created
 
-	// Initialize batch processing components
-	batchJobRepository := batch.NewSQLBatchJobRepository(db, logger)
-	batchProcessor := batch.NewDefaultBatchProcessor(riskEngine, batchJobRepository, batch.DefaultBatchJobConfig(), logger)
-	jobManager := batch.NewDefaultJobManager(batchJobRepository, batchProcessor, batch.DefaultBatchJobConfig(), logger)
+	// Initialize batch processing components (optional if database is not available)
+	var batchJobRepository *batch.SQLBatchJobRepository
+	var batchProcessor *batch.DefaultBatchProcessor
+	var jobManager *batch.DefaultJobManager
+	if db != nil {
+		batchJobRepository = batch.NewSQLBatchJobRepository(db, logger)
+		batchProcessor = batch.NewDefaultBatchProcessor(riskEngine, batchJobRepository, batch.DefaultBatchJobConfig(), logger)
+		jobManager = batch.NewDefaultJobManager(batchJobRepository, batchProcessor, batch.DefaultBatchJobConfig(), logger)
+		logger.Info("✅ Batch processing components initialized")
+	} else {
+		logger.Info("Skipping batch processing components initialization - no database connection")
+	}
 	// Batch job handler will be initialized after webhook components are created
 
-	// Initialize webhook components
-	webhookRepository := webhooks.NewSQLWebhookRepository(db, logger)
-	deliveryTracker := webhooks.NewDefaultWebhookDeliveryTracker(webhookRepository, logger)
-	retryHandler := webhooks.NewDefaultWebhookRetryHandler(webhookRepository, logger)
-	signatureVerifier := webhooks.NewDefaultWebhookSignatureVerifier(5 * time.Minute)
-	rateLimiter := webhooks.NewDefaultWebhookRateLimiter(logger)
-	circuitBreaker := webhooks.NewDefaultWebhookCircuitBreaker(logger)
-	eventFilter := webhooks.NewDefaultWebhookEventFilter(logger)
-	webhookManager := webhooks.NewDefaultWebhookManager(webhookRepository, deliveryTracker, retryHandler, signatureVerifier, rateLimiter, circuitBreaker, eventFilter, logger)
-	webhookEventService := webhooks.NewEventService(webhookManager, logger)
-	webhookHandlers := handlers.NewSimpleWebhookHandlers(webhookManager, logger)
+	// Initialize webhook components (optional if database is not available)
+	var webhookRepository *webhooks.SQLWebhookRepository
+	var deliveryTracker *webhooks.DefaultWebhookDeliveryTracker
+	var retryHandler *webhooks.DefaultWebhookRetryHandler
+	var signatureVerifier *webhooks.DefaultWebhookSignatureVerifier
+	var rateLimiter *webhooks.DefaultWebhookRateLimiter
+	var circuitBreaker *webhooks.DefaultWebhookCircuitBreaker
+	var eventFilter *webhooks.DefaultWebhookEventFilter
+	if db != nil {
+		webhookRepository = webhooks.NewSQLWebhookRepository(db, logger)
+		deliveryTracker = webhooks.NewDefaultWebhookDeliveryTracker(webhookRepository, logger)
+		retryHandler = webhooks.NewDefaultWebhookRetryHandler(webhookRepository, logger)
+		signatureVerifier = webhooks.NewDefaultWebhookSignatureVerifier(5 * time.Minute)
+		rateLimiter = webhooks.NewDefaultWebhookRateLimiter(logger)
+		circuitBreaker = webhooks.NewDefaultWebhookCircuitBreaker(logger)
+		eventFilter = webhooks.NewDefaultWebhookEventFilter(logger)
+		logger.Info("✅ Webhook components initialized")
+	} else {
+		logger.Info("Skipping webhook components initialization - no database connection")
+	}
+	var webhookManager *webhooks.DefaultWebhookManager
+	var webhookEventService *webhooks.EventService
+	var webhookHandlers *handlers.SimpleWebhookHandlers
+	if db != nil {
+		webhookManager = webhooks.NewDefaultWebhookManager(webhookRepository, deliveryTracker, retryHandler, signatureVerifier, rateLimiter, circuitBreaker, eventFilter, logger)
+		webhookEventService = webhooks.NewEventService(webhookManager, logger)
+		webhookHandlers = handlers.NewSimpleWebhookHandlers(webhookManager, logger)
+		logger.Info("✅ Webhook manager and event service initialized")
+	} else {
+		logger.Info("Skipping webhook manager initialization - no database connection")
+	}
 	_ = webhookHandlers // Used in routes below
 
-	// Update risk engine with webhook event service
-	riskEngine = engine.NewRiskEngine(mlService, logger, riskEngineConfig, webhookEventService)
-	logger.Info("✅ Risk engine updated with webhook integration")
+	// Update risk engine with webhook event service (if available)
+	if webhookEventService != nil {
+		riskEngine = engine.NewRiskEngine(mlService, logger, riskEngineConfig, webhookEventService)
+		logger.Info("✅ Risk engine updated with webhook integration")
+	} else {
+		logger.Info("Risk engine running without webhook integration - no database connection")
+	}
 
-	// Initialize batch job handler with webhook event service
-	batchJobHandler := handlers.NewBatchJobHandler(jobManager, webhookEventService, logger)
+	// Initialize batch job handler with webhook event service (if available)
+	var batchJobHandler *handlers.BatchJobHandler
+	if jobManager != nil && webhookEventService != nil {
+		batchJobHandler = handlers.NewBatchJobHandler(jobManager, webhookEventService, logger)
+		logger.Info("✅ Batch job handler initialized with webhook integration")
+	} else {
+		logger.Info("Skipping batch job handler initialization - no database connection")
+	}
 	_ = batchJobHandler // Used in routes below
-	logger.Info("✅ Batch job handler initialized with webhook integration")
 
-	// Initialize custom model handler with webhook event service
-	customModelHandler := handlers.NewCustomModelHandlers(customModelBuilder, customModelRepository, webhookEventService, logger)
+	// Initialize custom model handler with webhook event service (if available)
+	var customModelHandler *handlers.CustomModelHandlers
+	if customModelBuilder != nil && customModelRepository != nil && webhookEventService != nil {
+		customModelHandler = handlers.NewCustomModelHandlers(customModelBuilder, customModelRepository, webhookEventService, logger)
+		logger.Info("✅ Custom model handler initialized with webhook integration")
+	} else {
+		logger.Info("Skipping custom model handler initialization - no database connection")
+	}
 	_ = customModelHandler // Used in routes below
-	logger.Info("✅ Custom model handler initialized with webhook integration")
 
-	// Initialize dashboard components
-	dashboardRepository := reporting.NewSQLDashboardRepository(db, logger)
-	// Note: In a real implementation, you would create a proper data provider
-	// For now, we'll use a mock data provider
-	dashboardDataProvider := &MockDashboardDataProvider{logger: logger}
-	dashboardService := reporting.NewDefaultDashboardService(dashboardRepository, dashboardDataProvider, logger)
-	dashboardHandler := handlers.NewDashboardHandler(dashboardService, logger)
+	// Initialize dashboard components (optional if database is not available)
+	var dashboardRepository *reporting.SQLDashboardRepository
+	var dashboardDataProvider *MockDashboardDataProvider
+	var dashboardService *reporting.DefaultDashboardService
+	var dashboardHandler *handlers.DashboardHandler
+	if db != nil {
+		dashboardRepository = reporting.NewSQLDashboardRepository(db, logger)
+		// Note: In a real implementation, you would create a proper data provider
+		// For now, we'll use a mock data provider
+		dashboardDataProvider = &MockDashboardDataProvider{logger: logger}
+		dashboardService = reporting.NewDefaultDashboardService(dashboardRepository, dashboardDataProvider, logger)
+		dashboardHandler = handlers.NewDashboardHandler(dashboardService, logger)
+		logger.Info("✅ Dashboard components initialized")
+	} else {
+		logger.Info("Skipping dashboard components initialization - no database connection")
+	}
 	_ = dashboardHandler // Used in routes below
 
-	// Initialize report components
-	reportRepository := reporting.NewSQLReportRepository(db, logger)
-	reportTemplateRepository := reporting.NewSQLReportTemplateRepository(db, logger)
-	scheduledReportRepository := reporting.NewSQLScheduledReportRepository(db, logger)
-	reportDataProvider := reporting.NewDefaultReportDataProvider(logger)
-	reportGenerator := reporting.NewDefaultReportGenerator(logger)
-	reportScheduler := reporting.NewDefaultReportScheduler(logger)
-	reportService := reporting.NewDefaultReportService(
-		reportRepository,
-		reportTemplateRepository,
-		scheduledReportRepository,
-		reportDataProvider,
-		reportGenerator,
-		reportScheduler,
-		logger,
-	)
-	reportHandler := handlers.NewReportHandler(reportService, logger)
+	// Initialize report components (optional if database is not available)
+	var reportRepository *reporting.SQLReportRepository
+	var reportTemplateRepository *reporting.SQLReportTemplateRepository
+	var scheduledReportRepository *reporting.SQLScheduledReportRepository
+	var reportDataProvider *reporting.DefaultReportDataProvider
+	var reportGenerator *reporting.DefaultReportGenerator
+	var reportScheduler *reporting.DefaultReportScheduler
+	var reportService *reporting.DefaultReportService
+	var reportHandler *handlers.ReportHandler
+	if db != nil {
+		reportRepository = reporting.NewSQLReportRepository(db, logger)
+		reportTemplateRepository = reporting.NewSQLReportTemplateRepository(db, logger)
+		scheduledReportRepository = reporting.NewSQLScheduledReportRepository(db, logger)
+		reportDataProvider = reporting.NewDefaultReportDataProvider(logger)
+		reportGenerator = reporting.NewDefaultReportGenerator(logger)
+		reportScheduler = reporting.NewDefaultReportScheduler(logger)
+		reportService = reporting.NewDefaultReportService(
+			reportRepository,
+			reportTemplateRepository,
+			scheduledReportRepository,
+			reportDataProvider,
+			reportGenerator,
+			reportScheduler,
+			logger,
+		)
+		reportHandler = handlers.NewReportHandler(reportService, logger)
+		logger.Info("✅ Report components initialized")
+	} else {
+		logger.Info("Skipping report components initialization - no database connection")
+	}
 	_ = reportHandler // Used in routes below
 	// scenarioHandler := handlers.NewScenarioHandlers(logger) // Temporarily commented out due to build issues
 	// explainabilityHandler := handlers.NewExplainabilityHandlers(mlService, logger)
