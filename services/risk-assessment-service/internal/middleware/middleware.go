@@ -167,23 +167,24 @@ func (m *Middleware) CORSMiddleware(allowedOrigins []string, allowedMethods []st
 	}
 }
 
-// RateLimitMiddleware implements rate limiting
-func (m *Middleware) RateLimitMiddleware(requestsPerMinute int) func(http.Handler) http.Handler {
-	// Simple in-memory rate limiter (in production, use Redis)
-	rateLimiter := NewRateLimiter(requestsPerMinute)
-
+// RateLimitMiddleware implements rate limiting using the new RateLimiter
+func (m *Middleware) RateLimitMiddleware(rateLimiter *RateLimiter) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			clientIP := getClientIP(r)
+			
+			// Determine tier based on request (simplified - in production, this would be based on user/tenant)
+			tier := TierFree // Default tier
 
-			if !rateLimiter.Allow(clientIP) {
+			if !rateLimiter.Allow(clientIP, tier) {
 				m.logger.Warn("Rate limit exceeded",
 					zap.String("client_ip", clientIP),
 					zap.String("path", r.URL.Path),
 					zap.String("method", r.Method),
+					zap.String("tier", string(tier)),
 				)
 
-				w.Header().Set("X-RateLimit-Limit", strconv.Itoa(requestsPerMinute))
+				w.Header().Set("X-RateLimit-Limit", strconv.Itoa(rateLimiter.requestsPerMinute))
 				w.Header().Set("X-RateLimit-Remaining", "0")
 				w.Header().Set("X-RateLimit-Reset", time.Now().Add(time.Minute).Format(time.RFC3339))
 
@@ -192,10 +193,10 @@ func (m *Middleware) RateLimitMiddleware(requestsPerMinute int) func(http.Handle
 			}
 
 			// Set rate limit headers
-			remaining := rateLimiter.GetRemaining(clientIP)
-			resetTime := rateLimiter.GetResetTime(clientIP)
+			current, limit, resetTime := rateLimiter.GetRateLimitInfo(clientIP, tier)
+			remaining := limit - current
 
-			w.Header().Set("X-RateLimit-Limit", strconv.Itoa(requestsPerMinute))
+			w.Header().Set("X-RateLimit-Limit", strconv.Itoa(limit))
 			w.Header().Set("X-RateLimit-Remaining", strconv.Itoa(remaining))
 			w.Header().Set("X-RateLimit-Reset", resetTime.Format(time.RFC3339))
 

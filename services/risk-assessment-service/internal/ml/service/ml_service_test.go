@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap"
 
 	"kyb-platform/services/risk-assessment-service/internal/models"
+	mlmodels "kyb-platform/services/risk-assessment-service/internal/ml/models"
 )
 
 // MockModelManager is a mock implementation of the model manager

@@ -379,41 +379,6 @@ func (imrl *InMemoryRateLimiter) cleanup() {
 
 // Helper functions
 
-// getClientIP extracts the client IP from the request
-func getClientIP(r *http.Request) string {
-	// Check X-Forwarded-For header first
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		// X-Forwarded-For can contain multiple IPs, take the first one
-		if idx := len(xff); idx > 0 {
-			for i, c := range xff {
-				if c == ',' {
-					idx = i
-					break
-				}
-			}
-			return xff[:idx]
-		}
-	}
-
-	// Check X-Real-IP header
-	if xri := r.Header.Get("X-Real-IP"); xri != "" {
-		return xri
-	}
-
-	// Fall back to RemoteAddr
-	ip := r.RemoteAddr
-	if idx := len(ip); idx > 0 {
-		for i, c := range ip {
-			if c == ':' {
-				idx = i
-				break
-			}
-		}
-		return ip[:idx]
-	}
-
-	return "unknown"
-}
 
 // max returns the maximum of two integers
 func max(a, b int) int {

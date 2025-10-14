@@ -440,7 +440,15 @@ func main() {
 		[]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},       // Allowed methods
 		[]string{"Content-Type", "Authorization", "X-Request-ID"}, // Allowed headers
 	))
-	router.Use(middlewareInstance.RateLimitMiddleware(100)) // 100 requests per minute
+	// Create HTTP rate limiter with Redis client (nil for now, will use in-memory fallback)
+	httpRateLimiter := middleware.NewRateLimiter(nil, logger, middleware.RateLimitConfig{
+		RequestsPerMinute: 100,
+		BurstAllowance:    20,
+		WindowSize:        time.Minute,
+		UseRedis:          false, // Use in-memory fallback for now
+		RedisKeyPrefix:    "ra:",
+	})
+	router.Use(middlewareInstance.RateLimitMiddleware(httpRateLimiter))
 	router.Use(middlewareInstance.MetricsMiddleware())
 	router.Use(middlewareInstance.HealthCheckMiddleware())
 
