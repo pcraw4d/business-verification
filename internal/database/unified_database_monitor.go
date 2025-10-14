@@ -8,8 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"kyb-platform/internal/monitoring"
+
+	"github.com/google/uuid"
 )
 
 // UnifiedDatabaseMonitor handles database monitoring using the unified monitoring system

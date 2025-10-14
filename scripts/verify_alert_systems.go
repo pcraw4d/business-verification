@@ -8,9 +8,10 @@ import (
 	"os"
 	"time"
 
+	"kyb-platform/internal/monitoring"
+
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
-	"kyb-platform/internal/monitoring"
 )
 
 func main() {
