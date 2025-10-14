@@ -90,7 +90,6 @@ jobs:
                   curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.54.2
 
                   # Run linters
-                  cd services/risk-assessment-service
                   golangci-lint run --timeout=5m --verbose
 
             - name: Run security scan
@@ -99,7 +98,6 @@ jobs:
                   go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
 
                   # Run security scan
-                  cd services/risk-assessment-service
                   gosec -fmt json -out gosec-report.json ./...
 
                   # Check for high severity issues
@@ -114,7 +112,6 @@ jobs:
 
             - name: Run unit tests
               run: |
-                  cd services/risk-assessment-service
                   go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
               env:
                   DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_risk_assessment?sslmode=disable
@@ -126,13 +123,11 @@ jobs:
 
             - name: Generate coverage report
               run: |
-                  cd services/risk-assessment-service
                   go tool cover -html=coverage.out -o coverage.html
                   go tool cover -func=coverage.out
 
             - name: Check coverage threshold
               run: |
-                  cd services/risk-assessment-service
                   COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
                   echo "Coverage: ${COVERAGE}%"
                   if (( $(echo "$COVERAGE < $COVERAGE_THRESHOLD" | bc -l) )); then
@@ -224,7 +219,6 @@ jobs:
 
             - name: Run integration tests
               run: |
-                  cd services/risk-assessment-service
                   go test -v -tags=integration -timeout=10m ./...
               env:
                   DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_risk_assessment?sslmode=disable
@@ -263,7 +257,6 @@ jobs:
 
             - name: Run performance tests
               run: |
-                  cd services/risk-assessment-service
                   go test -v -tags=performance -bench=. -benchmem -timeout=5m ./...
               env:
                   DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_risk_assessment?sslmode=disable
