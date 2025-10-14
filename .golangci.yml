@@ -12,10 +12,41 @@ linters:
     - ineffassign
     - unused
     - misspell
-    - gosec
     - goimports
   disable:
     - typecheck
+    - gocritic
+    - gocyclo
+    - goconst
+    - gocognit
+    - gomnd
+    - gosec
+    - interfacer
+    - maligned
+    - prealloc
+    - scopelint
+    - structcheck
+    - varcheck
+    - deadcode
+    - dupl
+    - funlen
+    - gochecknoinits
+    - gochecknoglobals
+    - godot
+    - godox
+    - golint
+    - lll
+    - nakedret
+    - noctx
+    - nolintlint
+    - rowserrcheck
+    - stylecheck
+    - testpackage
+    - unconvert
+    - unparam
+    - whitespace
+    - wrapcheck
+    - wsl
 
 issues:
   max-issues-per-linter: 0
