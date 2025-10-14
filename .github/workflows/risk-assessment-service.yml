@@ -85,6 +85,7 @@ jobs:
                   go mod verify
 
             - name: Run linters
+              working-directory: services/risk-assessment-service
               run: |
                   # Install golangci-lint
                   curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.54.2
@@ -93,6 +94,7 @@ jobs:
                   golangci-lint run --timeout=5m --verbose
 
             - name: Run security scan
+              working-directory: services/risk-assessment-service
               run: |
                   # Install gosec
                   go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
@@ -111,6 +113,7 @@ jobs:
                   fi
 
             - name: Run unit tests
+              working-directory: services/risk-assessment-service
               run: |
                   go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
               env:
