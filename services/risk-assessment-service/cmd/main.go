@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -833,7 +834,30 @@ func initDatabaseWithPerformance(cfg *config.Config, logger *zap.Logger) (*sql.D
 	// Get database URL from configuration
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
-		databaseURL = "postgresql://username:password@localhost:5432/risk_assessment?sslmode=disable"
+		// Try to construct Supabase PostgreSQL connection string
+		if cfg.Supabase.URL != "" && cfg.Supabase.ServiceRoleKey != "" {
+			// Extract project reference from Supabase URL
+			// URL format: https://[project-ref].supabase.co
+			supabaseURL := cfg.Supabase.URL
+			if len(supabaseURL) > 0 {
+				// Parse the project reference from the URL
+				// This is a simplified approach - in production, you'd want more robust parsing
+				start := strings.Index(supabaseURL, "//") + 2
+				end := strings.Index(supabaseURL[start:], ".")
+				if end > 0 {
+					projectRef := supabaseURL[start : start+end]
+					// Construct PostgreSQL connection string for Supabase
+					databaseURL = fmt.Sprintf("postgresql://postgres.%s:%s@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require", 
+						projectRef, cfg.Supabase.ServiceRoleKey)
+					logger.Info("Using Supabase PostgreSQL connection", zap.String("project_ref", projectRef))
+				}
+			}
+		}
+		
+		// Fallback to local database if Supabase connection string couldn't be constructed
+		if databaseURL == "" {
+			databaseURL = "postgresql://username:password@localhost:5432/risk_assessment?sslmode=disable"
+		}
 	}
 
 	// Open database connection
