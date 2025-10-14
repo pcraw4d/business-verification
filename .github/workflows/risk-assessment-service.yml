@@ -76,6 +76,7 @@ jobs:
                       ${{ runner.os }}-go-
 
             - name: Install dependencies
+              working-directory: services/risk-assessment-service
               run: |
                   go mod download
                   go mod verify
@@ -196,6 +197,7 @@ jobs:
                   cache: true
 
             - name: Install dependencies
+              working-directory: services/risk-assessment-service
               run: |
                   go mod download
                   go mod verify
@@ -245,6 +247,7 @@ jobs:
                   cache: true
 
             - name: Install dependencies
+              working-directory: services/risk-assessment-service
               run: |
                   go mod download
                   go mod verify
@@ -341,7 +344,7 @@ jobs:
                   npm install -g @railway/cli
 
                   # Deploy to staging
-                  echo "${{ secrets.RAILWAY_TOKEN }}" | railway login --browserless
+                  echo "${{ secrets.RAILWAY_TOKEN }}" > ~/.railway/token
                   railway link ${{ secrets.RAILWAY_PROJECT_ID }}
                   railway up --service ${{ env.SERVICE_NAME }} --detach
               env:
@@ -389,7 +392,7 @@ jobs:
                   npm install -g @railway/cli
 
                   # Deploy to production
-                  echo "${{ secrets.RAILWAY_TOKEN }}" | railway login --browserless
+                  echo "${{ secrets.RAILWAY_TOKEN }}" > ~/.railway/token
                   railway link ${{ secrets.RAILWAY_PROJECT_ID }}
                   railway up --service ${{ env.SERVICE_NAME }} --detach
               env:
@@ -447,7 +450,7 @@ jobs:
                   npm install -g @railway/cli
 
                   # Rollback to previous version
-                  echo "${{ secrets.RAILWAY_TOKEN }}" | railway login --browserless
+                  echo "${{ secrets.RAILWAY_TOKEN }}" > ~/.railway/token
                   railway link ${{ secrets.RAILWAY_PROJECT_ID }}
                   railway rollback --service ${{ env.SERVICE_NAME }}
 
