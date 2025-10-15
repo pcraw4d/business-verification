@@ -1015,14 +1015,59 @@ class MerchantRiskTab {
             { name: 'Stable Business Model', value: -0.7, color: '#38a169' }
         ];
         
+        // Helper function to measure text width
+        const measureText = (text, fontSize = '10px') => {
+            ctx.font = fontSize + ' Arial';
+            return ctx.measureText(text).width;
+        };
+        
+        // Helper function to split text into lines that fit within maxWidth
+        const splitTextIntoLines = (text, maxWidth, fontSize = '10px') => {
+            ctx.font = fontSize + ' Arial';
+            const words = text.split(' ');
+            const lines = [];
+            let currentLine = '';
+            
+            for (const word of words) {
+                const testLine = currentLine ? `${currentLine} ${word}` : word;
+                const testWidth = ctx.measureText(testLine).width;
+                
+                if (testWidth <= maxWidth) {
+                    currentLine = testLine;
+                } else {
+                    if (currentLine) {
+                        lines.push(currentLine);
+                        currentLine = word;
+                    } else {
+                        // Single word is too long, force it
+                        lines.push(word);
+                    }
+                }
+            }
+            
+            if (currentLine) {
+                lines.push(currentLine);
+            }
+            
+            return lines;
+        };
+        
         // Calculate positions and draw force plot
         const centerY = height / 2 - 20; // Move up to leave room for labels
         const baseScore = 5.0; // Base score before SHAP contributions
         
-        // Calculate total width needed with better spacing
-        const totalBarWidth = shapValues.reduce((sum, factor) => sum + Math.abs(factor.value) * 12, 0);
-        const spacing = shapValues.length * 40; // Increased spacing
-        const totalWidth = totalBarWidth + spacing + 300; // Extra space for labels
+        // Calculate dynamic spacing based on text width
+        const maxLabelWidth = 80; // Maximum width for labels
+        const minBarSpacing = 60; // Minimum spacing between bars
+        
+        // Calculate total width needed
+        let totalWidth = 0;
+        shapValues.forEach((factor) => {
+            const barWidth = Math.abs(factor.value) * 15; // Slightly larger bars
+            const labelWidth = Math.max(measureText(factor.name, '10px'), maxLabelWidth);
+            const spacing = Math.max(minBarSpacing, labelWidth + 20);
+            totalWidth += barWidth + spacing;
+        });
         
         let currentX = (width - totalWidth) / 2; // Center the plot
         
@@ -1034,41 +1079,39 @@ class MerchantRiskTab {
         
         // Draw SHAP contributions
         shapValues.forEach((factor, index) => {
-            const barWidth = Math.abs(factor.value) * 12; // Smaller scale factor
-            const barHeight = 30; // Increased height
-            const barX = currentX + 40;
+            const barWidth = Math.abs(factor.value) * 15; // Slightly larger bars
+            const barHeight = 30;
+            const barX = currentX + 30;
             const barY = centerY - barHeight / 2;
             
             // Draw bar
             ctx.fillStyle = factor.color;
             ctx.fillRect(barX, barY, barWidth, barHeight);
             
-            // Draw value
+            // Draw value (fix the formatting issue)
             ctx.fillStyle = 'white';
             ctx.font = '12px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(factor.value.toFixed(1), barX + barWidth / 2, centerY + 4);
+            const valueText = factor.value.toFixed(1);
+            ctx.fillText(valueText, barX + barWidth / 2, centerY + 4);
             
-            // Draw factor name (vertical to prevent overlap)
+            // Draw factor name with proper text wrapping
             ctx.fillStyle = '#4a5568';
             ctx.font = '10px Arial';
             ctx.textAlign = 'center';
             
-            // Split long names into multiple lines
-            const words = factor.name.split(' ');
-            const maxWordsPerLine = 2;
-            const lines = [];
+            // Split text into lines that fit within maxLabelWidth
+            const lines = splitTextIntoLines(factor.name, maxLabelWidth, '10px');
             
-            for (let i = 0; i < words.length; i += maxWordsPerLine) {
-                lines.push(words.slice(i, i + maxWordsPerLine).join(' '));
-            }
-            
-            // Draw each line with better positioning
+            // Draw each line
             lines.forEach((line, lineIndex) => {
                 ctx.fillText(line, barX + barWidth / 2, centerY + 50 + (lineIndex * 14));
             });
             
-            currentX += barWidth + 40; // Increased spacing
+            // Calculate spacing for next bar
+            const labelWidth = Math.max(measureText(factor.name, '10px'), maxLabelWidth);
+            const spacing = Math.max(minBarSpacing, labelWidth + 20);
+            currentX += barWidth + spacing;
         });
         
         // Draw final score
@@ -1076,7 +1119,7 @@ class MerchantRiskTab {
         ctx.fillStyle = '#2d3748';
         ctx.font = '16px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText(`Final Score: ${finalScore.toFixed(1)}`, currentX + 40, centerY - 30);
+        ctx.fillText(`Final Score: ${finalScore.toFixed(1)}`, currentX + 30, centerY - 30);
         
         // Add hover effects
         canvas.addEventListener('mousemove', (e) => {
