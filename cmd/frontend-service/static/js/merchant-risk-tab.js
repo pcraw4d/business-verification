@@ -600,6 +600,47 @@ class MerchantRiskTab {
      * Update risk UI
      */
     updateRiskUI() {
+        console.log('🔍 Updating risk UI with data:', this.riskData);
+        
+        // Update overall risk score
+        const overallScoreElement = document.getElementById('overallRiskScore');
+        if (overallScoreElement && this.riskData.overallScore) {
+            overallScoreElement.textContent = this.riskData.overallScore.toFixed(1);
+            overallScoreElement.className = `risk-score-value ${this.getRiskLevel(this.riskData.overallScore)}`;
+        }
+
+        // Update risk categories
+        if (this.riskData.categories) {
+            const categoriesContainer = document.getElementById('riskCategories');
+            if (categoriesContainer) {
+                categoriesContainer.innerHTML = Object.entries(this.riskData.categories)
+                    .map(([category, score]) => `
+                        <div class="risk-category">
+                            <span class="category-name">${category}</span>
+                            <span class="category-score ${this.getRiskLevel(score)}">${score.toFixed(1)}</span>
+                        </div>
+                    `).join('');
+            }
+        }
+
+        // Update risk trend
+        const trendElement = document.getElementById('riskTrend');
+        if (trendElement && this.riskData.trend) {
+            const trend = this.riskData.trend;
+            const icon = trend.direction === 'up' ? 'fa-arrow-up' : 'fa-arrow-down';
+            const color = trend.direction === 'up' ? 'text-red-500' : 'text-green-500';
+            trendElement.innerHTML = `
+                <i class="fas ${icon} ${color}"></i>
+                <span>${trend.change} from last month</span>
+            `;
+        } else if (trendElement) {
+            // Default trend if no data
+            trendElement.innerHTML = `
+                <i class="fas fa-minus text-gray-500"></i>
+                <span>No trend data available</span>
+            `;
+        }
+
         // Update risk gauge
         if (this.components.visualization) {
             const gauge = this.components.visualization.d3Visualizations.get('riskGauge');
@@ -608,14 +649,16 @@ class MerchantRiskTab {
             }
         }
 
-        // Update category scores
-        Object.entries(this.riskData.categories).forEach(([category, score]) => {
+        // Update category scores (legacy method)
+        Object.entries(this.riskData.categories || {}).forEach(([category, score]) => {
             const element = document.querySelector(`[data-category="${category}"] .category-score`);
             if (element) {
                 element.textContent = score.toFixed(1);
                 element.className = `category-score ${this.getRiskLevel(score)}`;
             }
         });
+
+        console.log('✅ Risk UI updated successfully');
     }
 
     /**
