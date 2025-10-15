@@ -714,8 +714,8 @@ class MerchantRiskTab {
         
         const ctx = gaugeContainer.getContext('2d');
         const centerX = gaugeContainer.width / 2;
-        const centerY = gaugeContainer.height / 2 + 20; // Slightly higher center for better balance
-        const radius = 90; // Much larger radius to comfortably fit text within gauge
+        const centerY = gaugeContainer.height / 2 + 15; // Optimized center for larger text
+        const radius = 100; // Maximum radius to fit larger text within gauge
         
         // Clear canvas with subtle gradient background
         const bgGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius + 30);
@@ -1928,15 +1928,15 @@ class MerchantRiskTab {
                        <!-- Risk Overview Section -->
                        <div class="risk-overview" style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin: 20px 0;">
                            <div class="risk-score-card" style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; position: relative;">
-                               <div class="risk-gauge-container" style="position: relative; width: 280px; height: 280px; margin: 0 auto 20px;">
-                                   <canvas id="riskGauge" width="280" height="280" style="width: 280px; height: 280px;"></canvas>
+                               <div class="risk-gauge-container" style="position: relative; width: 250px; height: 250px; margin: 0 auto 20px;">
+                                   <canvas id="riskGauge" width="250" height="250" style="width: 250px; height: 250px;"></canvas>
                                    <div class="gauge-center-text" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 10;">
-                                       <div class="risk-score-value" id="overallRiskScore" style="font-size: 36px; font-weight: 800; color: #1a202c; margin-bottom: 6px; text-shadow: 0 2px 4px rgba(0,0,0,0.1); background: rgba(255,255,255,0.9); padding: 8px 12px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">7.2</div>
-                                       <div class="risk-score-label" style="font-size: 14px; color: #4a5568; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 4px;">Overall Risk Score</div>
-                                       <div class="risk-level-badge" id="riskLevelBadge" style="padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; display: inline-block;">High Risk</div>
+                                       <div class="risk-score-value" id="overallRiskScore" style="font-size: 48px; font-weight: 800; color: #1a202c; margin-bottom: 8px; text-shadow: 0 2px 4px rgba(0,0,0,0.1); background: rgba(255,255,255,0.9); padding: 10px 16px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">7.2</div>
+                                       <div class="risk-score-label" style="font-size: 18px; color: #4a5568; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 6px;">Overall Risk Score</div>
+                                       <div class="risk-level-badge" id="riskLevelBadge" style="padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; display: inline-block;">High Risk</div>
                                    </div>
                                </div>
-                               <div class="risk-score-trend" id="riskTrend" style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; color: #4a5568;">
+                               <div class="risk-score-trend" id="riskTrend" style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 16px; color: #4a5568;">
                                    <i class="fas fa-chart-line" style="color: #e53e3e;"></i>
                                    <span>Risk Level: High</span>
                                </div>
