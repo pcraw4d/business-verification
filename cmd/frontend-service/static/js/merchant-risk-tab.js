@@ -56,11 +56,12 @@ class MerchantRiskTab {
             this.currentMerchantId = 'mock-merchant-123';
         }
 
-        // Initialize WebSocket client
-        this.components.websocket = new RiskWebSocketClient({
-            reconnectInterval: 1000,
-            maxReconnectAttempts: 5
-        });
+        // Initialize WebSocket client (disabled until service is deployed)
+        // this.components.websocket = new RiskWebSocketClient({
+        //     reconnectInterval: 1000,
+        //     maxReconnectAttempts: 5
+        // });
+        console.log('🔍 WebSocket client disabled (service not deployed yet)');
 
         // Initialize visualization component
         this.components.visualization = new RiskVisualization({
