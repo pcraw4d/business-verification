@@ -1120,11 +1120,12 @@ class MerchantRiskTab {
             ctx.lineWidth = 2;
             ctx.strokeRect(barX, barY, barWidth, barHeight);
             
-            // Draw value with larger font
+            // Draw value with larger font - fix formatting
             ctx.fillStyle = 'white';
             ctx.font = 'bold 14px Arial';
             ctx.textAlign = 'center';
             const valueText = factor.value.toFixed(1);
+            console.log(`DEBUG: Drawing value for ${factor.name}: ${factor.value} -> ${valueText}`); // Debug log
             ctx.fillText(valueText, barX + barWidth / 2, centerY + 5);
             
             // Draw factor name with larger font and proper text wrapping
@@ -1146,12 +1147,18 @@ class MerchantRiskTab {
             currentX += barWidth + spacing;
         });
         
-        // Draw final score with larger font
+        // Draw final score with larger font - ensure it fits
         const finalScore = baseScore + shapValues.reduce((sum, factor) => sum + factor.value, 0);
         ctx.fillStyle = '#2d3748';
-        ctx.font = 'bold 20px Arial';
+        ctx.font = 'bold 18px Arial'; // Slightly smaller font
         ctx.textAlign = 'center';
-        ctx.fillText(`Final Score: ${finalScore.toFixed(1)}`, currentX + 40, centerY - 40);
+        
+        // Ensure final score fits within canvas
+        const finalScoreText = `Final Score: ${finalScore.toFixed(1)}`;
+        const finalScoreWidth = ctx.measureText(finalScoreText).width;
+        const finalScoreX = Math.min(currentX + 40, width - finalScoreWidth/2 - 20);
+        
+        ctx.fillText(finalScoreText, finalScoreX, centerY - 40);
         
         // Add comprehensive interactive features
         let hoveredBar = null;
@@ -1186,18 +1193,23 @@ class MerchantRiskTab {
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             
+            console.log(`DEBUG: Mouse position: x=${x}, y=${y}`); // Debug log
+            
             // Check if mouse is over any bar
             let foundBar = null;
-            barPositions.forEach(bar => {
+            barPositions.forEach((bar, index) => {
+                console.log(`DEBUG: Checking bar ${index}: x=${bar.x}, y=${bar.y}, width=${bar.width}, height=${bar.height}`); // Debug log
                 if (x >= bar.x && x <= bar.x + bar.width && 
                     y >= bar.y && y <= bar.y + bar.height) {
                     foundBar = bar;
+                    console.log(`DEBUG: Found bar: ${bar.factor.name}`); // Debug log
                 }
             });
             
             if (foundBar && foundBar !== hoveredBar) {
                 hoveredBar = foundBar;
                 canvas.style.cursor = 'pointer';
+                console.log(`DEBUG: Showing tooltip for ${foundBar.factor.name}`); // Debug log
                 
                 // Show tooltip
                 const tooltip = createTooltip();
@@ -1227,6 +1239,7 @@ class MerchantRiskTab {
             } else if (!foundBar && hoveredBar) {
                 hoveredBar = null;
                 canvas.style.cursor = 'default';
+                console.log('DEBUG: Hiding tooltip'); // Debug log
                 
                 // Hide tooltip
                 if (tooltip) {
