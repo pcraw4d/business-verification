@@ -714,8 +714,8 @@ class MerchantRiskTab {
         
         const ctx = gaugeContainer.getContext('2d');
         const centerX = gaugeContainer.width / 2;
-        const centerY = gaugeContainer.height / 2 + 10; // Slightly lower for better visual balance
-        const radius = 80; // Larger radius for more impressive look
+        const centerY = gaugeContainer.height / 2 + 15; // Lower center to leave room for text
+        const radius = 70; // Slightly smaller radius to leave more room for text
         
         // Clear canvas with subtle gradient background
         const bgGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius + 30);
@@ -1929,10 +1929,10 @@ class MerchantRiskTab {
                            <div class="risk-score-card" style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; position: relative;">
                                <div class="risk-gauge-container" style="position: relative; width: 250px; height: 250px; margin: 0 auto 20px;">
                                    <canvas id="riskGauge" width="250" height="250" style="width: 250px; height: 250px;"></canvas>
-                                   <div class="gauge-center-text" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
-                                       <div class="risk-score-value" id="overallRiskScore" style="font-size: 42px; font-weight: 800; color: #1a202c; margin-bottom: 8px; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">7.2</div>
-                                       <div class="risk-score-label" style="font-size: 16px; color: #4a5568; font-weight: 600; letter-spacing: 0.5px;">Overall Risk Score</div>
-                                       <div class="risk-level-badge" id="riskLevelBadge" style="margin-top: 8px; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">High Risk</div>
+                                   <div class="gauge-center-text" style="position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 10;">
+                                       <div class="risk-score-value" id="overallRiskScore" style="font-size: 36px; font-weight: 800; color: #1a202c; margin-bottom: 6px; text-shadow: 0 2px 4px rgba(0,0,0,0.1); background: rgba(255,255,255,0.9); padding: 8px 12px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">7.2</div>
+                                       <div class="risk-score-label" style="font-size: 14px; color: #4a5568; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 4px;">Overall Risk Score</div>
+                                       <div class="risk-level-badge" id="riskLevelBadge" style="padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; display: inline-block;">High Risk</div>
                                    </div>
                                </div>
                                <div class="risk-score-trend" id="riskTrend" style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; color: #4a5568;">
