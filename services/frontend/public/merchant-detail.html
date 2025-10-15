@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KYB Platform - Merchant Detail</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="components/navigation.js"></script>
     <script src="components/session-manager.js"></script>
@@ -15,13 +18,17 @@
     <!-- Risk Assessment Components -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="js/components/risk-websocket-client.js"></script>
-    <script src="js/components/risk-visualization.js"></script>
-    <script src="js/components/risk-explainability.js"></script>
-    <script src="js/components/risk-scenarios.js"></script>
-    <script src="js/components/risk-history.js"></script>
-    <script src="js/components/risk-export.js"></script>
-    <script src="js/merchant-risk-tab.js"></script>
+    <script src="js/components/risk-websocket-client.js?v=20241014-2000"></script>
+    <script src="js/components/risk-visualization.js?v=20241014-2000"></script>
+    <script src="js/components/risk-explainability.js?v=20241014-2000"></script>
+    <script src="js/components/risk-scenarios.js?v=20241014-2000"></script>
+    <script src="js/components/risk-history.js?v=20241014-2000"></script>
+    <script src="js/components/risk-export.js?v=20241014-2000"></script>
+    <script src="js/merchant-risk-tab.js?v=20241014-2000"></script>
+    <script>
+        console.log('🚀 NEW VERSION LOADED: Risk Assessment Components v20241014-2000');
+        console.log('🚀 MerchantRiskTab available:', typeof window.MerchantRiskTab);
+    </script>
     <style>
         * {
             margin: 0;
