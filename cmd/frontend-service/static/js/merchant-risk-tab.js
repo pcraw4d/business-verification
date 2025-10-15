@@ -972,8 +972,8 @@ class MerchantRiskTab {
                 
                 <div class="shap-interactive" style="margin-top: 20px; padding: 15px; background: #f7fafc; border-radius: 8px;">
                     <h6 style="margin-bottom: 10px; color: #4a5568; font-weight: 600;">Interactive Force Plot</h6>
-                    <div id="shapForcePlot" style="height: 250px; background: white; border: 1px solid #e2e8f0; border-radius: 4px; position: relative; overflow: hidden;">
-                        <canvas id="shapForceCanvas" width="100%" height="250" style="width: 100%; height: 250px; cursor: pointer;"></canvas>
+                    <div id="shapForcePlot" style="height: 300px; background: white; border: 1px solid #e2e8f0; border-radius: 4px; position: relative; overflow: hidden;">
+                        <canvas id="shapForceCanvas" width="100%" height="300" style="width: 100%; height: 300px; cursor: pointer;"></canvas>
                     </div>
                 </div>
             </div>
@@ -1001,7 +1001,7 @@ class MerchantRiskTab {
         
         const ctx = canvas.getContext('2d');
         const width = canvas.width = canvas.offsetWidth;
-        const height = canvas.height = 250;
+        const height = canvas.height = 300;
         
         // Clear canvas
         ctx.clearRect(0, 0, width, height);
@@ -1016,7 +1016,7 @@ class MerchantRiskTab {
         ];
         
         // Calculate positions and draw force plot
-        const centerY = height / 2;
+        const centerY = height / 2 - 20; // Move up to leave room for labels
         const baseScore = 5.0; // Base score before SHAP contributions
         
         // Calculate total width needed with better spacing
@@ -1030,7 +1030,7 @@ class MerchantRiskTab {
         ctx.fillStyle = '#4a5568';
         ctx.font = '14px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('Base Score: 5.0', currentX, centerY - 40);
+        ctx.fillText('Base Score: 5.0', currentX, centerY - 30);
         
         // Draw SHAP contributions
         shapValues.forEach((factor, index) => {
@@ -1063,9 +1063,9 @@ class MerchantRiskTab {
                 lines.push(words.slice(i, i + maxWordsPerLine).join(' '));
             }
             
-            // Draw each line
+            // Draw each line with better positioning
             lines.forEach((line, lineIndex) => {
-                ctx.fillText(line, barX + barWidth / 2, centerY + 45 + (lineIndex * 12));
+                ctx.fillText(line, barX + barWidth / 2, centerY + 50 + (lineIndex * 14));
             });
             
             currentX += barWidth + 40; // Increased spacing
@@ -1076,7 +1076,7 @@ class MerchantRiskTab {
         ctx.fillStyle = '#2d3748';
         ctx.font = '16px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText(`Final Score: ${finalScore.toFixed(1)}`, currentX + 40, centerY - 40);
+        ctx.fillText(`Final Score: ${finalScore.toFixed(1)}`, currentX + 40, centerY - 30);
         
         // Add hover effects
         canvas.addEventListener('mousemove', (e) => {
