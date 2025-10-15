@@ -662,6 +662,207 @@ class MerchantRiskTab {
     }
 
     /**
+     * Initialize visualizations after UI is updated
+     */
+    initializeVisualizations() {
+        console.log('🔍 Initializing visualizations...');
+        
+        try {
+            // Initialize risk trend chart
+            this.initializeRiskTrendChart();
+            
+            // Initialize risk factor chart
+            this.initializeRiskFactorChart();
+            
+            // Initialize SHAP explanation
+            this.initializeSHAPExplanation();
+            
+            // Initialize scenario analysis
+            this.initializeScenarioAnalysis();
+            
+            // Initialize risk history chart
+            this.initializeRiskHistoryChart();
+            
+            console.log('✅ Visualizations initialized successfully');
+        } catch (error) {
+            console.error('Error initializing visualizations:', error);
+        }
+    }
+
+    /**
+     * Initialize risk trend chart
+     */
+    initializeRiskTrendChart() {
+        const chartContainer = document.getElementById('riskTrendChart');
+        if (!chartContainer) return;
+
+        // Create a simple line chart using Chart.js
+        const ctx = chartContainer.getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Risk Score',
+                    data: [6.8, 7.1, 6.9, 7.3, 7.0, 7.2],
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Risk Score Trend'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 10
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Initialize risk factor chart
+     */
+    initializeRiskFactorChart() {
+        const chartContainer = document.getElementById('riskFactorChart');
+        if (!chartContainer) return;
+
+        // Create a radar chart using Chart.js
+        const ctx = chartContainer.getContext('2d');
+        new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['Financial', 'Operational', 'Regulatory', 'Reputational', 'Cybersecurity'],
+                datasets: [{
+                    label: 'Current Risk',
+                    data: [8.1, 6.5, 4.2, 7.8, 6.9],
+                    borderColor: 'rgb(255, 99, 132)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    pointBackgroundColor: 'rgb(255, 99, 132)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgb(255, 99, 132)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Risk Factor Analysis'
+                    }
+                },
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 10
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Initialize SHAP explanation
+     */
+    initializeSHAPExplanation() {
+        const shapContainer = document.getElementById('shapExplanation');
+        if (!shapContainer) return;
+
+        shapContainer.innerHTML = `
+            <div class="shap-explanation">
+                <h5>Top Risk Factors</h5>
+                <div class="shap-factors">
+                    <div class="shap-factor positive">
+                        <span class="factor-name">High Transaction Volume</span>
+                        <span class="factor-impact">+2.3</span>
+                    </div>
+                    <div class="shap-factor negative">
+                        <span class="factor-name">Strong Credit History</span>
+                        <span class="factor-impact">-1.8</span>
+                    </div>
+                    <div class="shap-factor positive">
+                        <span class="factor-name">Recent Address Change</span>
+                        <span class="factor-impact">+1.2</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Initialize scenario analysis
+     */
+    initializeScenarioAnalysis() {
+        const scenarioContainer = document.getElementById('scenarioAnalysis');
+        if (!scenarioContainer) return;
+
+        scenarioContainer.innerHTML = `
+            <div class="scenario-analysis">
+                <h5>Scenario Analysis</h5>
+                <div class="scenario-controls">
+                    <div class="scenario-parameter">
+                        <label>Transaction Volume</label>
+                        <input type="range" min="0" max="100" value="50" class="scenario-slider">
+                        <span class="scenario-value">50%</span>
+                    </div>
+                    <div class="scenario-parameter">
+                        <label>Credit Score</label>
+                        <input type="range" min="300" max="850" value="650" class="scenario-slider">
+                        <span class="scenario-value">650</span>
+                    </div>
+                </div>
+                <div class="scenario-result">
+                    <span class="scenario-label">Predicted Risk Score:</span>
+                    <span class="scenario-score">6.8</span>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Initialize risk history chart
+     */
+    initializeRiskHistoryChart() {
+        const historyContainer = document.getElementById('riskHistoryChart');
+        if (!historyContainer) return;
+
+        historyContainer.innerHTML = `
+            <div class="risk-history-chart">
+                <h5>Risk History (12 months)</h5>
+                <div class="history-timeline">
+                    <div class="history-point" style="left: 10%;">
+                        <div class="history-dot"></div>
+                        <div class="history-label">Jan: 6.8</div>
+                    </div>
+                    <div class="history-point" style="left: 30%;">
+                        <div class="history-dot"></div>
+                        <div class="history-label">Apr: 7.1</div>
+                    </div>
+                    <div class="history-point" style="left: 60%;">
+                        <div class="history-dot"></div>
+                        <div class="history-label">Aug: 6.9</div>
+                    </div>
+                    <div class="history-point" style="left: 90%;">
+                        <div class="history-dot current"></div>
+                        <div class="history-label">Dec: 7.2</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
      * Update prediction UI
      */
     updatePredictionUI() {
@@ -849,6 +1050,9 @@ class MerchantRiskTab {
             
             // Update UI with loaded data
             this.updateRiskUI();
+            
+            // Initialize visualizations after UI is updated
+            this.initializeVisualizations();
 
         } catch (error) {
             console.error('Error loading risk assessment content:', error);
