@@ -694,8 +694,13 @@ class MerchantRiskTab {
      */
     initializeRiskTrendChart() {
         const chartContainer = document.getElementById('riskTrendChart');
-        if (!chartContainer) return;
+        if (!chartContainer) {
+            console.log('❌ Risk trend chart container not found');
+            return;
+        }
 
+        console.log('🔍 Initializing risk trend chart...');
+        
         // Create a simple line chart using Chart.js
         const ctx = chartContainer.getContext('2d');
         new Chart(ctx, {
@@ -727,6 +732,8 @@ class MerchantRiskTab {
                 }
             }
         });
+        
+        console.log('✅ Risk trend chart initialized successfully');
     }
 
     /**
@@ -734,8 +741,13 @@ class MerchantRiskTab {
      */
     initializeRiskFactorChart() {
         const chartContainer = document.getElementById('riskFactorChart');
-        if (!chartContainer) return;
+        if (!chartContainer) {
+            console.log('❌ Risk factor chart container not found');
+            return;
+        }
 
+        console.log('🔍 Initializing risk factor chart...');
+        
         // Create a radar chart using Chart.js
         const ctx = chartContainer.getContext('2d');
         new Chart(ctx, {
@@ -770,6 +782,8 @@ class MerchantRiskTab {
                 }
             }
         });
+        
+        console.log('✅ Risk factor chart initialized successfully');
     }
 
     /**
@@ -988,17 +1002,17 @@ class MerchantRiskTab {
                         </div>
                     </div>
 
-                    <!-- Risk Charts Section -->
-                    <div class="risk-charts">
-                        <div class="chart-container">
-                            <h4>Risk Trend (6 months)</h4>
-                            <div id="riskTrendChart" style="height: 200px;"></div>
-                        </div>
-                        <div class="chart-container">
-                            <h4>Risk Factor Analysis</h4>
-                            <div id="riskFactorChart" style="height: 200px;"></div>
-                        </div>
-                    </div>
+                       <!-- Risk Charts Section -->
+                       <div class="risk-charts" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
+                           <div class="chart-container" style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                               <h4 style="margin-bottom: 15px; color: #333; font-size: 16px; font-weight: 600;">Risk Trend (6 months)</h4>
+                               <canvas id="riskTrendChart" style="height: 200px; width: 100%;"></canvas>
+                           </div>
+                           <div class="chart-container" style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                               <h4 style="margin-bottom: 15px; color: #333; font-size: 16px; font-weight: 600;">Risk Factor Analysis</h4>
+                               <canvas id="riskFactorChart" style="height: 200px; width: 100%;"></canvas>
+                           </div>
+                       </div>
 
                     <!-- SHAP Explainability Section -->
                     <div class="risk-explainability" id="riskExplainability">
