@@ -701,9 +701,11 @@ class MerchantRiskTab {
 
         console.log('🔍 Initializing risk trend chart...');
         console.log('🔍 Chart container dimensions:', chartContainer.offsetWidth, 'x', chartContainer.offsetHeight);
+        console.log('🔍 Chart container style:', chartContainer.style.cssText);
+        console.log('🔍 Chart container parent:', chartContainer.parentElement);
         
         // Destroy existing chart if it exists
-        if (window.riskTrendChart) {
+        if (window.riskTrendChart && typeof window.riskTrendChart.destroy === 'function') {
             window.riskTrendChart.destroy();
         }
         
@@ -711,56 +713,43 @@ class MerchantRiskTab {
         const ctx = chartContainer.getContext('2d');
         
         // Store chart reference globally
-        window.riskTrendChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                datasets: [{
-                    label: 'Risk Score',
-                    data: [6.8, 7.1, 6.9, 7.3, 7.0, 7.2],
-                    borderColor: 'rgb(75, 192, 192)',
-                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                    tension: 0.1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                aspectRatio: 2,
-                plugins: {
-                    title: {
-                        display: true,
-                        text: 'Risk Score Trend'
-                    },
-                    legend: {
-                        display: false
-                    }
+        try {
+            window.riskTrendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Risk Score',
+                        data: [6.8, 7.1, 6.9, 7.3, 7.0, 7.2],
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        tension: 0.1
+                    }]
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 10,
-                        grid: {
-                            color: 'rgba(0,0,0,0.1)'
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Risk Score Trend'
+                        },
+                        legend: {
+                            display: false
                         }
                     },
-                    x: {
-                        grid: {
-                            color: 'rgba(0,0,0,0.1)'
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 10
                         }
-                    }
-                },
-                elements: {
-                    point: {
-                        radius: 4,
-                        hoverRadius: 6
-                    },
-                    line: {
-                        borderWidth: 2
                     }
                 }
-            }
-        });
+            });
+        } catch (error) {
+            console.error('Error creating risk trend chart:', error);
+            return;
+        }
         
         console.log('✅ Risk trend chart initialized successfully');
     }
@@ -779,66 +768,53 @@ class MerchantRiskTab {
         console.log('🔍 Chart container dimensions:', chartContainer.offsetWidth, 'x', chartContainer.offsetHeight);
         
         // Destroy existing chart if it exists
-        if (window.riskFactorChart) {
+        if (window.riskFactorChart && typeof window.riskFactorChart.destroy === 'function') {
             window.riskFactorChart.destroy();
         }
         
         // Create a radar chart using Chart.js
         const ctx = chartContainer.getContext('2d');
         // Store chart reference globally
-        window.riskFactorChart = new Chart(ctx, {
-            type: 'radar',
-            data: {
-                labels: ['Financial', 'Operational', 'Regulatory', 'Reputational', 'Cybersecurity'],
-                datasets: [{
-                    label: 'Current Risk',
-                    data: [8.1, 6.5, 4.2, 7.8, 6.9],
-                    borderColor: 'rgb(255, 99, 132)',
-                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                    pointBackgroundColor: 'rgb(255, 99, 132)',
-                    pointBorderColor: '#fff',
-                    pointHoverBackgroundColor: '#fff',
-                    pointHoverBorderColor: 'rgb(255, 99, 132)'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                aspectRatio: 1,
-                plugins: {
-                    title: {
-                        display: true,
-                        text: 'Risk Factor Analysis'
-                    },
-                    legend: {
-                        display: false
-                    }
+        try {
+            window.riskFactorChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Financial', 'Operational', 'Regulatory', 'Reputational', 'Cybersecurity'],
+                    datasets: [{
+                        label: 'Current Risk',
+                        data: [8.1, 6.5, 4.2, 7.8, 6.9],
+                        borderColor: 'rgb(255, 99, 132)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        pointBackgroundColor: 'rgb(255, 99, 132)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgb(255, 99, 132)'
+                    }]
                 },
-                scales: {
-                    r: {
-                        beginAtZero: true,
-                        max: 10,
-                        grid: {
-                            color: 'rgba(0,0,0,0.1)'
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Risk Factor Analysis'
                         },
-                        pointLabels: {
-                            font: {
-                                size: 12
-                            }
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 10
                         }
                     }
-                },
-                elements: {
-                    point: {
-                        radius: 4,
-                        hoverRadius: 6
-                    },
-                    line: {
-                        borderWidth: 2
-                    }
                 }
-            }
-        });
+            });
+        } catch (error) {
+            console.error('Error creating risk factor chart:', error);
+            return;
+        }
         
         console.log('✅ Risk factor chart initialized successfully');
     }
