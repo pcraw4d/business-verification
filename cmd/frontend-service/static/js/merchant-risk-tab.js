@@ -1056,84 +1056,286 @@ class MerchantRiskTab {
         const centerY = height / 2 - 20; // Move up to leave room for labels
         const baseScore = 5.0; // Base score before SHAP contributions
         
-        // Calculate dynamic spacing based on text width
-        const maxLabelWidth = 80; // Maximum width for labels
-        const minBarSpacing = 60; // Minimum spacing between bars
+        // Calculate dynamic spacing based on text width - make it larger
+        const maxLabelWidth = 120; // Increased width for labels
+        const minBarSpacing = 80; // Increased spacing between bars
+        const barScaleFactor = 25; // Larger bars for better visibility
         
         // Calculate total width needed
         let totalWidth = 0;
         shapValues.forEach((factor) => {
-            const barWidth = Math.abs(factor.value) * 15; // Slightly larger bars
-            const labelWidth = Math.max(measureText(factor.name, '10px'), maxLabelWidth);
-            const spacing = Math.max(minBarSpacing, labelWidth + 20);
+            const barWidth = Math.abs(factor.value) * barScaleFactor; // Much larger bars
+            const labelWidth = Math.max(measureText(factor.name, '12px'), maxLabelWidth);
+            const spacing = Math.max(minBarSpacing, labelWidth + 30);
             totalWidth += barWidth + spacing;
         });
         
         let currentX = (width - totalWidth) / 2; // Center the plot
         
-        // Draw base score
+        // Draw base score with larger font
         ctx.fillStyle = '#4a5568';
-        ctx.font = '14px Arial';
+        ctx.font = '18px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('Base Score: 5.0', currentX, centerY - 30);
+        ctx.fillText('Base Score: 5.0', currentX, centerY - 40);
         
-        // Draw SHAP contributions
+        // Store bar positions for interactivity
+        const barPositions = [];
+        
+        // Draw SHAP contributions with larger elements
         shapValues.forEach((factor, index) => {
-            const barWidth = Math.abs(factor.value) * 15; // Slightly larger bars
-            const barHeight = 30;
-            const barX = currentX + 30;
+            const barWidth = Math.abs(factor.value) * barScaleFactor; // Much larger bars
+            const barHeight = 40; // Increased height
+            const barX = currentX + 40;
             const barY = centerY - barHeight / 2;
             
-            // Draw bar
+            // Store bar position for hover detection
+            barPositions.push({
+                x: barX,
+                y: barY,
+                width: barWidth,
+                height: barHeight,
+                factor: factor,
+                index: index
+            });
+            
+            // Draw bar with rounded corners effect
             ctx.fillStyle = factor.color;
             ctx.fillRect(barX, barY, barWidth, barHeight);
             
-            // Draw value (fix the formatting issue)
+            // Add subtle border
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(barX, barY, barWidth, barHeight);
+            
+            // Draw value with larger font
             ctx.fillStyle = 'white';
-            ctx.font = '12px Arial';
+            ctx.font = 'bold 14px Arial';
             ctx.textAlign = 'center';
             const valueText = factor.value.toFixed(1);
-            ctx.fillText(valueText, barX + barWidth / 2, centerY + 4);
+            ctx.fillText(valueText, barX + barWidth / 2, centerY + 5);
             
-            // Draw factor name with proper text wrapping
+            // Draw factor name with larger font and proper text wrapping
             ctx.fillStyle = '#4a5568';
-            ctx.font = '10px Arial';
+            ctx.font = '12px Arial';
             ctx.textAlign = 'center';
             
             // Split text into lines that fit within maxLabelWidth
-            const lines = splitTextIntoLines(factor.name, maxLabelWidth, '10px');
+            const lines = splitTextIntoLines(factor.name, maxLabelWidth, '12px');
             
             // Draw each line
             lines.forEach((line, lineIndex) => {
-                ctx.fillText(line, barX + barWidth / 2, centerY + 50 + (lineIndex * 14));
+                ctx.fillText(line, barX + barWidth / 2, centerY + 60 + (lineIndex * 16));
             });
             
             // Calculate spacing for next bar
-            const labelWidth = Math.max(measureText(factor.name, '10px'), maxLabelWidth);
-            const spacing = Math.max(minBarSpacing, labelWidth + 20);
+            const labelWidth = Math.max(measureText(factor.name, '12px'), maxLabelWidth);
+            const spacing = Math.max(minBarSpacing, labelWidth + 30);
             currentX += barWidth + spacing;
         });
         
-        // Draw final score
+        // Draw final score with larger font
         const finalScore = baseScore + shapValues.reduce((sum, factor) => sum + factor.value, 0);
         ctx.fillStyle = '#2d3748';
-        ctx.font = '16px Arial';
+        ctx.font = 'bold 20px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText(`Final Score: ${finalScore.toFixed(1)}`, currentX + 30, centerY - 30);
+        ctx.fillText(`Final Score: ${finalScore.toFixed(1)}`, currentX + 40, centerY - 40);
         
-        // Add hover effects
+        // Add comprehensive interactive features
+        let hoveredBar = null;
+        let tooltip = null;
+        
+        // Create tooltip element
+        const createTooltip = () => {
+            if (!tooltip) {
+                tooltip = document.createElement('div');
+                tooltip.style.cssText = `
+                    position: absolute;
+                    background: rgba(0, 0, 0, 0.9);
+                    color: white;
+                    padding: 12px 16px;
+                    border-radius: 8px;
+                    font-size: 12px;
+                    font-family: Arial, sans-serif;
+                    pointer-events: none;
+                    z-index: 1000;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                    max-width: 250px;
+                    line-height: 1.4;
+                `;
+                document.body.appendChild(tooltip);
+            }
+            return tooltip;
+        };
+        
+        // Mouse move handler for hover effects
         canvas.addEventListener('mousemove', (e) => {
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             
-            // Simple hover detection
-            if (x > 50 && x < width - 50 && y > centerY - 20 && y < centerY + 20) {
+            // Check if mouse is over any bar
+            let foundBar = null;
+            barPositions.forEach(bar => {
+                if (x >= bar.x && x <= bar.x + bar.width && 
+                    y >= bar.y && y <= bar.y + bar.height) {
+                    foundBar = bar;
+                }
+            });
+            
+            if (foundBar && foundBar !== hoveredBar) {
+                hoveredBar = foundBar;
                 canvas.style.cursor = 'pointer';
-            } else {
+                
+                // Show tooltip
+                const tooltip = createTooltip();
+                const impact = foundBar.factor.value > 0 ? 'increases' : 'decreases';
+                const impactColor = foundBar.factor.value > 0 ? '#e53e3e' : '#38a169';
+                
+                tooltip.innerHTML = `
+                    <div style="font-weight: bold; margin-bottom: 4px; color: ${impactColor};">
+                        ${foundBar.factor.name}
+                    </div>
+                    <div style="margin-bottom: 4px;">
+                        <strong>Impact:</strong> ${impact} risk by ${Math.abs(foundBar.factor.value).toFixed(1)} points
+                    </div>
+                    <div style="font-size: 11px; color: #ccc;">
+                        ${getFactorExplanation(foundBar.factor.name)}
+                    </div>
+                `;
+                
+                // Position tooltip
+                tooltip.style.left = (e.clientX + 10) + 'px';
+                tooltip.style.top = (e.clientY - 10) + 'px';
+                tooltip.style.display = 'block';
+                
+            } else if (!foundBar && hoveredBar) {
+                hoveredBar = null;
                 canvas.style.cursor = 'default';
+                
+                // Hide tooltip
+                if (tooltip) {
+                    tooltip.style.display = 'none';
+                }
             }
         });
+        
+        // Click handler for detailed view
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Check if click is on any bar
+            barPositions.forEach(bar => {
+                if (x >= bar.x && x <= bar.x + bar.width && 
+                    y >= bar.y && y <= bar.y + bar.height) {
+                    
+                    // Show detailed factor analysis
+                    showFactorDetails(bar.factor);
+                }
+            });
+        });
+        
+        // Mouse leave handler
+        canvas.addEventListener('mouseleave', () => {
+            hoveredBar = null;
+            canvas.style.cursor = 'default';
+            if (tooltip) {
+                tooltip.style.display = 'none';
+            }
+        });
+        
+        // Helper function to get factor explanations
+        const getFactorExplanation = (factorName) => {
+            const explanations = {
+                'High Transaction Volume': 'Large transaction volumes can indicate higher risk due to increased exposure to potential fraud or financial instability.',
+                'Strong Credit History': 'A positive credit history reduces risk by demonstrating financial responsibility and reliability.',
+                'Recent Address Change': 'Recent address changes may indicate instability or potential fraud risk.',
+                'High Market Volatility': 'Market volatility increases business risk due to uncertain economic conditions.',
+                'Stable Business Model': 'A stable business model reduces risk by providing predictable revenue streams.'
+            };
+            return explanations[factorName] || 'This factor contributes to the overall risk assessment.';
+        };
+        
+        // Helper function to show detailed factor analysis
+        const showFactorDetails = (factor) => {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.7);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 2000;
+            `;
+            
+            const content = document.createElement('div');
+            content.style.cssText = `
+                background: white;
+                padding: 30px;
+                border-radius: 12px;
+                max-width: 500px;
+                width: 90%;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            `;
+            
+            const impact = factor.value > 0 ? 'increases' : 'decreases';
+            const impactColor = factor.value > 0 ? '#e53e3e' : '#38a169';
+            
+            content.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0; color: #2d3748; font-size: 20px;">${factor.name}</h3>
+                    <button onclick="this.closest('.modal').remove()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #718096;">&times;</button>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <div style="width: 20px; height: 20px; background: ${factor.color}; border-radius: 4px;"></div>
+                        <span style="font-weight: bold; color: ${impactColor};">
+                            ${impact.charAt(0).toUpperCase() + impact.slice(1)} risk by ${Math.abs(factor.value).toFixed(1)} points
+                        </span>
+                    </div>
+                    <p style="color: #4a5568; line-height: 1.6; margin: 0;">
+                        ${getFactorExplanation(factor.name)}
+                    </p>
+                </div>
+                <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h4 style="margin: 0 0 10px 0; color: #2d3748; font-size: 14px;">Recommendations</h4>
+                    <ul style="margin: 0; padding-left: 20px; color: #4a5568; font-size: 14px;">
+                        ${getFactorRecommendations(factor.name)}
+                    </ul>
+                </div>
+                <button onclick="this.closest('.modal').remove()" style="background: #4299e1; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                    Close
+                </button>
+            `;
+            
+            modal.className = 'modal';
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+            
+            // Close on background click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+        };
+        
+        // Helper function to get factor recommendations
+        const getFactorRecommendations = (factorName) => {
+            const recommendations = {
+                'High Transaction Volume': '<li>Monitor transaction patterns for anomalies</li><li>Implement additional fraud detection measures</li><li>Consider transaction limits or holds</li>',
+                'Strong Credit History': '<li>Continue maintaining good credit practices</li><li>Monitor credit score regularly</li><li>Leverage positive credit for better terms</li>',
+                'Recent Address Change': '<li>Verify new address documentation</li><li>Monitor for additional changes</li><li>Consider enhanced due diligence</li>',
+                'High Market Volatility': '<li>Diversify revenue streams</li><li>Implement risk hedging strategies</li><li>Monitor market conditions closely</li>',
+                'Stable Business Model': '<li>Continue current business practices</li><li>Document stable processes</li><li>Use stability for growth opportunities</li>'
+            };
+            return recommendations[factorName] || '<li>Monitor this factor regularly</li><li>Consider additional risk mitigation</li>';
+        };
         
         console.log('✅ SHAP force plot initialized successfully');
     }
