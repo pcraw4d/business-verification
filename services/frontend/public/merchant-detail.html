@@ -1294,8 +1294,14 @@
             }
 
             loadRiskAssessment() {
+                console.log('🔍 TabManager.loadRiskAssessment() called');
                 const riskContent = document.getElementById('riskAssessmentContent');
-                if (!riskContent || riskContent.querySelector('.risk-content-loaded')) return;
+                console.log('🔍 Risk content element:', riskContent);
+                
+                if (!riskContent || riskContent.querySelector('.risk-content-loaded')) {
+                    console.log('🔍 Risk content already loaded or not found');
+                    return;
+                }
 
                 // Show loading state
                 riskContent.innerHTML = `
@@ -1305,13 +1311,18 @@
                     </div>
                 `;
 
+                console.log('🔍 Checking for MerchantRiskTab class...');
+                console.log('🔍 window.MerchantRiskTab:', window.MerchantRiskTab);
+
                 // Initialize the actual risk assessment components
                 setTimeout(() => {
                     if (window.MerchantRiskTab) {
+                        console.log('✅ MerchantRiskTab found, initializing...');
                         // Initialize the risk assessment tab with real components
                         window.merchantRiskTab = new MerchantRiskTab();
                         window.merchantRiskTab.loadRiskAssessmentContent(riskContent);
                     } else {
+                        console.log('❌ MerchantRiskTab not found, using fallback content');
                         // Fallback to placeholder content if components aren't loaded
                         riskContent.innerHTML = `
                             <div class="risk-content-loaded">

@@ -706,7 +706,11 @@ class MerchantRiskTab {
      * Load risk assessment content into the specified container
      */
     async loadRiskAssessmentContent(container) {
-        if (!container) return;
+        console.log('🔍 MerchantRiskTab.loadRiskAssessmentContent() called with container:', container);
+        if (!container) {
+            console.log('❌ No container provided');
+            return;
+        }
 
         try {
             // Get merchant ID from URL or global variable
@@ -900,3 +904,4 @@ if (typeof module !== 'undefined' && module.exports) {
 
 // Make available globally
 window.MerchantRiskTab = MerchantRiskTab;
+console.log('✅ MerchantRiskTab class loaded and available globally');
