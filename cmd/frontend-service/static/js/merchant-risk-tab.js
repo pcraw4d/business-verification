@@ -370,8 +370,8 @@ class MerchantRiskTab {
         // Bind UI events
         this.bindUIEvents();
 
-        // Initialize visualizations
-        this.initializeVisualizations();
+        // Initialize visualizations (using new implementation)
+        // this.initializeVisualizations(); // Legacy function - disabled
     }
 
     /**
@@ -715,7 +715,7 @@ class MerchantRiskTab {
         const ctx = gaugeContainer.getContext('2d');
         const centerX = gaugeContainer.width / 2;
         const centerY = gaugeContainer.height / 2;
-        const radius = 80;
+        const radius = 60; // Reduced radius to fit better in 200x200 canvas
         
         // Clear canvas
         ctx.clearRect(0, 0, gaugeContainer.width, gaugeContainer.height);
@@ -779,7 +779,9 @@ class MerchantRiskTab {
             ctx.fillText(i.toString(), x, y);
         }
         
-        console.log('✅ Risk gauge initialized successfully');
+        // Text is handled by the HTML overlay, not drawn on canvas
+        
+        console.log('✅ Risk gauge initialized successfully with score:', riskScore);
     }
 
     /**
