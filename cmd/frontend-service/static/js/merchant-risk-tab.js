@@ -1056,30 +1056,32 @@ class MerchantRiskTab {
         const centerY = height / 2 - 20; // Move up to leave room for labels
         const baseScore = 5.0; // Base score before SHAP contributions
         
-        // Calculate dynamic spacing based on text width - maximize bar size and minimize gaps
+        // Calculate dynamic spacing based on text width - balance size with frame constraints
         const maxLabelWidth = 100; // Width for labels
-        const minBarSpacing = 15; // Minimal spacing between bars
-        const barScaleFactor = 45; // Even larger bars to fill more space
+        const minBarSpacing = 20; // Moderate spacing between bars
+        const barScaleFactor = 30; // Balanced bar size to fit in frame
         
         // Calculate total width needed - ensure it fits in frame
         let totalWidth = 0;
         shapValues.forEach((factor) => {
-            const barWidth = Math.abs(factor.value) * barScaleFactor; // Slightly smaller bars
+            const barWidth = Math.abs(factor.value) * barScaleFactor;
             const labelWidth = Math.max(measureText(factor.name, '12px'), maxLabelWidth);
-            const spacing = Math.max(minBarSpacing, labelWidth + 20); // Reduced spacing
+            const spacing = Math.max(minBarSpacing, labelWidth + 10);
             totalWidth += barWidth + spacing;
         });
         
-        // Ensure total width doesn't exceed canvas width
-        const maxWidth = width - 100; // Leave 50px margin on each side
-        if (totalWidth > maxWidth) {
-            // Scale down the spacing proportionally
-            const scaleFactor = maxWidth / totalWidth;
-            shapValues.forEach((factor, index) => {
-                const barWidth = Math.abs(factor.value) * barScaleFactor;
+        // Ensure total width doesn't exceed canvas width with proper margins
+        const availableWidth = width - 200; // Leave 100px margin on each side for base score and final score
+        let scaleFactor = 1;
+        if (totalWidth > availableWidth) {
+            scaleFactor = availableWidth / totalWidth;
+            // Recalculate total width with scaling
+            totalWidth = 0;
+            shapValues.forEach((factor) => {
+                const barWidth = Math.abs(factor.value) * barScaleFactor * scaleFactor;
                 const labelWidth = Math.max(measureText(factor.name, '12px'), maxLabelWidth);
-                const spacing = Math.max(minBarSpacing, labelWidth + 20) * scaleFactor;
-                totalWidth = index === 0 ? barWidth + spacing : totalWidth + barWidth + spacing;
+                const spacing = Math.max(minBarSpacing, labelWidth + 10) * scaleFactor;
+                totalWidth += barWidth + spacing;
             });
         }
         
@@ -1097,9 +1099,9 @@ class MerchantRiskTab {
         // Store bar positions for interactivity
         const barPositions = [];
         
-        // Draw SHAP contributions with larger elements
+        // Draw SHAP contributions with scaled elements
         shapValues.forEach((factor, index) => {
-            const barWidth = Math.abs(factor.value) * barScaleFactor; // Much larger bars
+            const barWidth = Math.abs(factor.value) * barScaleFactor * scaleFactor; // Scaled bars
             const barHeight = 40; // Increased height
             const barX = currentX + 40;
             const barY = centerY - barHeight / 2;
@@ -1144,9 +1146,9 @@ class MerchantRiskTab {
                 ctx.fillText(line, barX + barWidth / 2, centerY + 60 + (lineIndex * 16));
             });
             
-            // Calculate spacing for next bar - use minimal spacing
+            // Calculate spacing for next bar - use scaled spacing
             const labelWidth = Math.max(measureText(factor.name, '12px'), maxLabelWidth);
-            const spacing = Math.max(minBarSpacing, labelWidth + 10); // Reduced from 20 to 10
+            const spacing = Math.max(minBarSpacing, labelWidth + 10) * scaleFactor; // Scaled spacing
             currentX += barWidth + spacing;
         });
         
@@ -1160,8 +1162,8 @@ class MerchantRiskTab {
         const finalScoreText = `Final Score: ${finalScore.toFixed(1)}`;
         const finalScoreWidth = ctx.measureText(finalScoreText).width;
         
-        // Position final score to ensure it's completely visible
-        let finalScoreX = currentX + 40;
+        // Position final score to ensure it's completely visible within frame
+        let finalScoreX = currentX + 20; // Reduced spacing from last bar
         if (finalScoreX + finalScoreWidth/2 > width - 20) {
             finalScoreX = width - finalScoreWidth/2 - 20;
         }
