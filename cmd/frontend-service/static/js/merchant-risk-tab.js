@@ -700,10 +700,18 @@ class MerchantRiskTab {
         }
 
         console.log('🔍 Initializing risk trend chart...');
+        console.log('🔍 Chart container dimensions:', chartContainer.offsetWidth, 'x', chartContainer.offsetHeight);
+        
+        // Destroy existing chart if it exists
+        if (window.riskTrendChart) {
+            window.riskTrendChart.destroy();
+        }
         
         // Create a simple line chart using Chart.js
         const ctx = chartContainer.getContext('2d');
-        new Chart(ctx, {
+        
+        // Store chart reference globally
+        window.riskTrendChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
@@ -718,16 +726,37 @@ class MerchantRiskTab {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                aspectRatio: 2,
                 plugins: {
                     title: {
                         display: true,
                         text: 'Risk Score Trend'
+                    },
+                    legend: {
+                        display: false
                     }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
-                        max: 10
+                        max: 10,
+                        grid: {
+                            color: 'rgba(0,0,0,0.1)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: 'rgba(0,0,0,0.1)'
+                        }
+                    }
+                },
+                elements: {
+                    point: {
+                        radius: 4,
+                        hoverRadius: 6
+                    },
+                    line: {
+                        borderWidth: 2
                     }
                 }
             }
@@ -747,10 +776,17 @@ class MerchantRiskTab {
         }
 
         console.log('🔍 Initializing risk factor chart...');
+        console.log('🔍 Chart container dimensions:', chartContainer.offsetWidth, 'x', chartContainer.offsetHeight);
+        
+        // Destroy existing chart if it exists
+        if (window.riskFactorChart) {
+            window.riskFactorChart.destroy();
+        }
         
         // Create a radar chart using Chart.js
         const ctx = chartContainer.getContext('2d');
-        new Chart(ctx, {
+        // Store chart reference globally
+        window.riskFactorChart = new Chart(ctx, {
             type: 'radar',
             data: {
                 labels: ['Financial', 'Operational', 'Regulatory', 'Reputational', 'Cybersecurity'],
@@ -768,16 +804,37 @@ class MerchantRiskTab {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                aspectRatio: 1,
                 plugins: {
                     title: {
                         display: true,
                         text: 'Risk Factor Analysis'
+                    },
+                    legend: {
+                        display: false
                     }
                 },
                 scales: {
                     r: {
                         beginAtZero: true,
-                        max: 10
+                        max: 10,
+                        grid: {
+                            color: 'rgba(0,0,0,0.1)'
+                        },
+                        pointLabels: {
+                            font: {
+                                size: 12
+                            }
+                        }
+                    }
+                },
+                elements: {
+                    point: {
+                        radius: 4,
+                        hoverRadius: 6
+                    },
+                    line: {
+                        borderWidth: 2
                     }
                 }
             }
@@ -1004,13 +1061,17 @@ class MerchantRiskTab {
 
                        <!-- Risk Charts Section -->
                        <div class="risk-charts" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
-                           <div class="chart-container" style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                           <div class="chart-container" style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden; position: relative;">
                                <h4 style="margin-bottom: 15px; color: #333; font-size: 16px; font-weight: 600;">Risk Trend (6 months)</h4>
-                               <canvas id="riskTrendChart" style="height: 200px; width: 100%;"></canvas>
+                               <div style="position: relative; height: 200px; width: 100%;">
+                                   <canvas id="riskTrendChart" style="max-height: 200px; max-width: 100%;"></canvas>
+                               </div>
                            </div>
-                           <div class="chart-container" style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                           <div class="chart-container" style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden; position: relative;">
                                <h4 style="margin-bottom: 15px; color: #333; font-size: 16px; font-weight: 600;">Risk Factor Analysis</h4>
-                               <canvas id="riskFactorChart" style="height: 200px; width: 100%;"></canvas>
+                               <div style="position: relative; height: 200px; width: 100%;">
+                                   <canvas id="riskFactorChart" style="max-height: 200px; max-width: 100%;"></canvas>
+                               </div>
                            </div>
                        </div>
 
@@ -1065,8 +1126,10 @@ class MerchantRiskTab {
             // Update UI with loaded data
             this.updateRiskUI();
             
-            // Initialize visualizations after UI is updated
-            this.initializeVisualizations();
+            // Initialize visualizations after UI is updated with a small delay
+            setTimeout(() => {
+                this.initializeVisualizations();
+            }, 100);
 
         } catch (error) {
             console.error('Error loading risk assessment content:', error);
