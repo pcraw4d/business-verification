@@ -710,78 +710,155 @@ class MerchantRiskTab {
             return;
         }
 
-        console.log('🔍 Initializing risk gauge...');
+        console.log('🔍 Initializing advanced risk gauge...');
         
         const ctx = gaugeContainer.getContext('2d');
         const centerX = gaugeContainer.width / 2;
-        const centerY = gaugeContainer.height / 2;
-        const radius = 60; // Reduced radius to fit better in 200x200 canvas
+        const centerY = gaugeContainer.height / 2 + 10; // Slightly lower for better visual balance
+        const radius = 80; // Larger radius for more impressive look
         
-        // Clear canvas
-        ctx.clearRect(0, 0, gaugeContainer.width, gaugeContainer.height);
+        // Clear canvas with subtle gradient background
+        const bgGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius + 30);
+        bgGradient.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
+        bgGradient.addColorStop(1, 'rgba(255, 255, 255, 0.05)');
+        ctx.fillStyle = bgGradient;
+        ctx.fillRect(0, 0, gaugeContainer.width, gaugeContainer.height);
         
-        // Draw background arc
+        // Draw outer glow effect
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+        ctx.shadowBlur = 20;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        
+        // Draw background arc with gradient
+        const bgGradient2 = ctx.createLinearGradient(centerX - radius, centerY, centerX + radius, centerY);
+        bgGradient2.addColorStop(0, '#f7fafc');
+        bgGradient2.addColorStop(0.5, '#edf2f7');
+        bgGradient2.addColorStop(1, '#e2e8f0');
+        
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius, Math.PI, 2 * Math.PI);
-        ctx.lineWidth = 20;
-        ctx.strokeStyle = '#e2e8f0';
-        ctx.stroke();
-        
-        // Draw risk level arcs
-        const riskScore = this.riskData?.overallScore || 7.2;
-        const angle = (riskScore / 10) * Math.PI;
-        
-        // Low risk (0-3): Green
-        if (riskScore <= 3) {
-            ctx.strokeStyle = '#38a169';
-        }
-        // Medium risk (3-7): Yellow/Orange
-        else if (riskScore <= 7) {
-            ctx.strokeStyle = '#d69e2e';
-        }
-        // High risk (7-10): Red
-        else {
-            ctx.strokeStyle = '#e53e3e';
-        }
-        
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, radius, Math.PI, Math.PI + angle);
-        ctx.lineWidth = 20;
+        ctx.lineWidth = 24;
+        ctx.strokeStyle = bgGradient2;
         ctx.lineCap = 'round';
         ctx.stroke();
         
-        // Draw tick marks
-        ctx.strokeStyle = '#718096';
+        // Reset shadow
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        
+        // Draw risk level arc with advanced gradient
+        const riskScore = this.riskData?.overallScore || 7.2;
+        const angle = (riskScore / 10) * Math.PI;
+        
+        // Create dynamic gradient based on risk level
+        let progressGradient;
+        if (riskScore <= 3) {
+            // Low risk: Green gradient
+            progressGradient = ctx.createLinearGradient(centerX - radius, centerY, centerX + radius, centerY);
+            progressGradient.addColorStop(0, '#48bb78');
+            progressGradient.addColorStop(0.5, '#38a169');
+            progressGradient.addColorStop(1, '#2f855a');
+        } else if (riskScore <= 7) {
+            // Medium risk: Yellow/Orange gradient
+            progressGradient = ctx.createLinearGradient(centerX - radius, centerY, centerX + radius, centerY);
+            progressGradient.addColorStop(0, '#f6ad55');
+            progressGradient.addColorStop(0.5, '#ed8936');
+            progressGradient.addColorStop(1, '#dd6b20');
+        } else {
+            // High risk: Red gradient
+            progressGradient = ctx.createLinearGradient(centerX - radius, centerY, centerX + radius, centerY);
+            progressGradient.addColorStop(0, '#fc8181');
+            progressGradient.addColorStop(0.5, '#f56565');
+            progressGradient.addColorStop(1, '#e53e3e');
+        }
+        
+        // Draw progress arc with gradient and glow
+        ctx.shadowColor = riskScore > 7 ? 'rgba(229, 62, 62, 0.3)' : riskScore > 3 ? 'rgba(237, 137, 54, 0.3)' : 'rgba(56, 161, 105, 0.3)';
+        ctx.shadowBlur = 15;
+        
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, Math.PI, Math.PI + angle);
+        ctx.lineWidth = 24;
+        ctx.strokeStyle = progressGradient;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        
+        // Reset shadow
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        
+        // Draw inner ring for depth
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius - 15, Math.PI, 2 * Math.PI);
         ctx.lineWidth = 2;
-        for (let i = 0; i <= 10; i += 2) {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.stroke();
+        
+        // Draw advanced tick marks with different sizes
+        ctx.strokeStyle = '#a0aec0';
+        for (let i = 0; i <= 10; i += 1) {
             const tickAngle = Math.PI + (i / 10) * Math.PI;
-            const x1 = centerX + (radius - 10) * Math.cos(tickAngle);
-            const y1 = centerY + (radius - 10) * Math.sin(tickAngle);
-            const x2 = centerX + (radius + 10) * Math.cos(tickAngle);
-            const y2 = centerY + (radius + 10) * Math.sin(tickAngle);
+            const isMajorTick = i % 2 === 0;
+            const tickLength = isMajorTick ? 15 : 8;
+            const tickWidth = isMajorTick ? 3 : 1.5;
             
+            const x1 = centerX + (radius - tickLength) * Math.cos(tickAngle);
+            const y1 = centerY + (radius - tickLength) * Math.sin(tickAngle);
+            const x2 = centerX + (radius + 5) * Math.cos(tickAngle);
+            const y2 = centerY + (radius + 5) * Math.sin(tickAngle);
+            
+            ctx.lineWidth = tickWidth;
             ctx.beginPath();
             ctx.moveTo(x1, y1);
             ctx.lineTo(x2, y2);
             ctx.stroke();
         }
         
-        // Draw labels
-        ctx.fillStyle = '#718096';
-        ctx.font = '12px Arial';
+        // Draw labels with better styling
+        ctx.fillStyle = '#4a5568';
+        ctx.font = 'bold 14px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         
         for (let i = 0; i <= 10; i += 2) {
             const tickAngle = Math.PI + (i / 10) * Math.PI;
-            const x = centerX + (radius + 25) * Math.cos(tickAngle);
-            const y = centerY + (radius + 25) * Math.sin(tickAngle);
+            const x = centerX + (radius + 30) * Math.cos(tickAngle);
+            const y = centerY + (radius + 30) * Math.sin(tickAngle);
             ctx.fillText(i.toString(), x, y);
         }
         
-        // Text is handled by the HTML overlay, not drawn on canvas
+        // Draw center dot with glow
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+        ctx.shadowBlur = 10;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 6, 0, 2 * Math.PI);
+        ctx.fill();
         
-        console.log('✅ Risk gauge initialized successfully with score:', riskScore);
+        // Reset shadow
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        
+        // Update risk level badge color
+        const riskLevelBadge = document.getElementById('riskLevelBadge');
+        if (riskLevelBadge) {
+            if (riskScore <= 3) {
+                riskLevelBadge.style.background = 'linear-gradient(135deg, #48bb78, #38a169)';
+                riskLevelBadge.style.color = 'white';
+                riskLevelBadge.textContent = 'Low Risk';
+            } else if (riskScore <= 7) {
+                riskLevelBadge.style.background = 'linear-gradient(135deg, #f6ad55, #ed8936)';
+                riskLevelBadge.style.color = 'white';
+                riskLevelBadge.textContent = 'Medium Risk';
+            } else {
+                riskLevelBadge.style.background = 'linear-gradient(135deg, #fc8181, #e53e3e)';
+                riskLevelBadge.style.color = 'white';
+                riskLevelBadge.textContent = 'High Risk';
+            }
+        }
+        
+        console.log('✅ Advanced risk gauge initialized successfully with score:', riskScore);
     }
 
     /**
@@ -1850,16 +1927,17 @@ class MerchantRiskTab {
                        <!-- Risk Overview Section -->
                        <div class="risk-overview" style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin: 20px 0;">
                            <div class="risk-score-card" style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; position: relative;">
-                               <div class="risk-gauge-container" style="position: relative; width: 200px; height: 200px; margin: 0 auto 20px;">
-                                   <canvas id="riskGauge" width="200" height="200" style="width: 200px; height: 200px;"></canvas>
+                               <div class="risk-gauge-container" style="position: relative; width: 250px; height: 250px; margin: 0 auto 20px;">
+                                   <canvas id="riskGauge" width="250" height="250" style="width: 250px; height: 250px;"></canvas>
                                    <div class="gauge-center-text" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
-                                       <div class="risk-score-value" id="overallRiskScore" style="font-size: 36px; font-weight: 700; color: #2d3748; margin-bottom: 5px;">--</div>
-                                       <div class="risk-score-label" style="font-size: 14px; color: #718096; font-weight: 500;">Overall Risk Score</div>
+                                       <div class="risk-score-value" id="overallRiskScore" style="font-size: 42px; font-weight: 800; color: #1a202c; margin-bottom: 8px; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">7.2</div>
+                                       <div class="risk-score-label" style="font-size: 16px; color: #4a5568; font-weight: 600; letter-spacing: 0.5px;">Overall Risk Score</div>
+                                       <div class="risk-level-badge" id="riskLevelBadge" style="margin-top: 8px; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">High Risk</div>
                                    </div>
                                </div>
-                               <div class="risk-score-trend" id="riskTrend" style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px;">
-                                   <i class="fas fa-minus text-gray-500"></i>
-                                   <span>Loading...</span>
+                               <div class="risk-score-trend" id="riskTrend" style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; color: #4a5568;">
+                                   <i class="fas fa-chart-line" style="color: #e53e3e;"></i>
+                                   <span>Risk Level: High</span>
                                </div>
                            </div>
                            <div class="risk-categories" id="riskCategories" style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
