@@ -972,8 +972,8 @@ class MerchantRiskTab {
                 
                 <div class="shap-interactive" style="margin-top: 20px; padding: 15px; background: #f7fafc; border-radius: 8px;">
                     <h6 style="margin-bottom: 10px; color: #4a5568; font-weight: 600;">Interactive Force Plot</h6>
-                    <div id="shapForcePlot" style="height: 200px; background: white; border: 1px solid #e2e8f0; border-radius: 4px; position: relative; overflow: hidden;">
-                        <canvas id="shapForceCanvas" width="100%" height="200" style="width: 100%; height: 200px; cursor: pointer;"></canvas>
+                    <div id="shapForcePlot" style="height: 250px; background: white; border: 1px solid #e2e8f0; border-radius: 4px; position: relative; overflow: hidden;">
+                        <canvas id="shapForceCanvas" width="100%" height="250" style="width: 100%; height: 250px; cursor: pointer;"></canvas>
                     </div>
                 </div>
             </div>
@@ -1001,7 +1001,7 @@ class MerchantRiskTab {
         
         const ctx = canvas.getContext('2d');
         const width = canvas.width = canvas.offsetWidth;
-        const height = canvas.height = 200;
+        const height = canvas.height = 250;
         
         // Clear canvas
         ctx.clearRect(0, 0, width, height);
@@ -1019,10 +1019,10 @@ class MerchantRiskTab {
         const centerY = height / 2;
         const baseScore = 5.0; // Base score before SHAP contributions
         
-        // Calculate total width needed
-        const totalBarWidth = shapValues.reduce((sum, factor) => sum + Math.abs(factor.value) * 15, 0);
-        const spacing = shapValues.length * 20;
-        const totalWidth = totalBarWidth + spacing + 200; // Extra space for labels
+        // Calculate total width needed with better spacing
+        const totalBarWidth = shapValues.reduce((sum, factor) => sum + Math.abs(factor.value) * 12, 0);
+        const spacing = shapValues.length * 40; // Increased spacing
+        const totalWidth = totalBarWidth + spacing + 300; // Extra space for labels
         
         let currentX = (width - totalWidth) / 2; // Center the plot
         
@@ -1030,13 +1030,13 @@ class MerchantRiskTab {
         ctx.fillStyle = '#4a5568';
         ctx.font = '14px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('Base Score: 5.0', currentX, centerY - 30);
+        ctx.fillText('Base Score: 5.0', currentX, centerY - 40);
         
         // Draw SHAP contributions
         shapValues.forEach((factor, index) => {
-            const barWidth = Math.abs(factor.value) * 15; // Reduced scale factor
-            const barHeight = 25; // Reduced height
-            const barX = currentX + 30;
+            const barWidth = Math.abs(factor.value) * 12; // Smaller scale factor
+            const barHeight = 30; // Increased height
+            const barX = currentX + 40;
             const barY = centerY - barHeight / 2;
             
             // Draw bar
@@ -1045,24 +1045,30 @@ class MerchantRiskTab {
             
             // Draw value
             ctx.fillStyle = 'white';
-            ctx.font = '11px Arial';
+            ctx.font = '12px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(factor.value.toFixed(1), barX + barWidth / 2, centerY + 3);
+            ctx.fillText(factor.value.toFixed(1), barX + barWidth / 2, centerY + 4);
             
-            // Draw factor name (rotated to prevent overlap)
-            ctx.save();
-            ctx.translate(barX + barWidth / 2, centerY + 35);
-            ctx.rotate(-Math.PI / 4); // 45 degree rotation
+            // Draw factor name (vertical to prevent overlap)
             ctx.fillStyle = '#4a5568';
-            ctx.font = '9px Arial';
+            ctx.font = '10px Arial';
             ctx.textAlign = 'center';
             
-            // Truncate long names
-            const shortName = factor.name.length > 15 ? factor.name.substring(0, 12) + '...' : factor.name;
-            ctx.fillText(shortName, 0, 0);
-            ctx.restore();
+            // Split long names into multiple lines
+            const words = factor.name.split(' ');
+            const maxWordsPerLine = 2;
+            const lines = [];
             
-            currentX += barWidth + 25; // Reduced spacing
+            for (let i = 0; i < words.length; i += maxWordsPerLine) {
+                lines.push(words.slice(i, i + maxWordsPerLine).join(' '));
+            }
+            
+            // Draw each line
+            lines.forEach((line, lineIndex) => {
+                ctx.fillText(line, barX + barWidth / 2, centerY + 45 + (lineIndex * 12));
+            });
+            
+            currentX += barWidth + 40; // Increased spacing
         });
         
         // Draw final score
@@ -1070,7 +1076,7 @@ class MerchantRiskTab {
         ctx.fillStyle = '#2d3748';
         ctx.font = '16px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText(`Final Score: ${finalScore.toFixed(1)}`, currentX + 30, centerY - 30);
+        ctx.fillText(`Final Score: ${finalScore.toFixed(1)}`, currentX + 40, centerY - 40);
         
         // Add hover effects
         canvas.addEventListener('mousemove', (e) => {
