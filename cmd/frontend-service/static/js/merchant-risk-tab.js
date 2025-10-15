@@ -183,9 +183,10 @@ class MerchantRiskTab {
             // Load risk assessment data
             this.riskData = await this.loadRiskAssessmentData();
             
-            // Subscribe to WebSocket updates
+            // Subscribe to WebSocket updates (disabled until service is deployed)
             if (this.components.websocket) {
-                this.components.websocket.subscribe(this.currentMerchantId);
+                console.log('🔍 WebSocket disabled (service not deployed yet)');
+                // this.components.websocket.subscribe(this.currentMerchantId);
             }
 
         } catch (error) {
@@ -200,6 +201,12 @@ class MerchantRiskTab {
      */
     async loadRiskAssessmentData() {
         try {
+            // For now, use mock data since the risk assessment service isn't deployed yet
+            console.log('🔍 Using mock risk assessment data (service not deployed yet)');
+            return this.generateMockRiskData();
+            
+            // TODO: Uncomment when risk assessment service is deployed
+            /*
             const endpoints = APIConfig.getEndpoints();
             const response = await fetch(endpoints.riskAssess, {
                 method: 'POST',
@@ -216,6 +223,7 @@ class MerchantRiskTab {
             }
 
             return await response.json();
+            */
         } catch (error) {
             console.error('Error loading risk assessment data:', error);
             return this.generateMockRiskData();
@@ -817,29 +825,46 @@ class MerchantRiskTab {
      * Get merchant ID from URL or global variable
      */
     getMerchantId() {
+        console.log('🔍 Getting merchant ID...');
+        
         // Try to get from URL parameter
         const urlParams = new URLSearchParams(window.location.search);
         const merchantId = urlParams.get('merchantId');
-        if (merchantId) return merchantId;
+        if (merchantId) {
+            console.log('✅ Found merchant ID from URL:', merchantId);
+            return merchantId;
+        }
 
         // Try to get from merchant details instance
+        console.log('🔍 Checking window.merchantDetailsInstance:', window.merchantDetailsInstance);
         if (window.merchantDetailsInstance?.merchantData?.id) {
+            console.log('✅ Found merchant ID from merchantData.id:', window.merchantDetailsInstance.merchantData.id);
             return window.merchantDetailsInstance.merchantData.id;
         }
 
         // Try to get from merchant details instance business name as fallback
         if (window.merchantDetailsInstance?.merchantData?.businessName) {
-            return window.merchantDetailsInstance.merchantData.businessName.toLowerCase().replace(/\s+/g, '-');
+            const businessNameId = window.merchantDetailsInstance.merchantData.businessName.toLowerCase().replace(/\s+/g, '-');
+            console.log('✅ Using business name as merchant ID:', businessNameId);
+            return businessNameId;
         }
 
         // Try to get from global variable
-        if (window.currentMerchantId) return window.currentMerchantId;
+        if (window.currentMerchantId) {
+            console.log('✅ Found merchant ID from global variable:', window.currentMerchantId);
+            return window.currentMerchantId;
+        }
 
         // Try to get from merchant detail page
         const merchantIdElement = document.querySelector('[data-merchant-id]');
-        if (merchantIdElement) return merchantIdElement.getAttribute('data-merchant-id');
+        if (merchantIdElement) {
+            const id = merchantIdElement.getAttribute('data-merchant-id');
+            console.log('✅ Found merchant ID from data attribute:', id);
+            return id;
+        }
 
         // Default fallback
+        console.log('⚠️ No merchant ID found, using default fallback');
         return 'demo-merchant-001';
     }
 
