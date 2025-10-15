@@ -11,13 +11,28 @@ info:
     - Smart ensemble routing (XGBoost for 1-3mo, LSTM for 6-12mo, combined for 3-6mo)
     - Multi-horizon predictions with temporal analysis
     - Advanced scenario analysis and model comparison
-  version: 1.0.0
+    - SHAP explainability for risk factor interpretation
+    - Industry-specific risk models (9 sectors)
+    - A/B testing framework for model validation
+    - Premium external API integrations (Thomson Reuters, OFAC, World-Check)
+    
+    **Enterprise Features:**
+    - Multi-tenant architecture with row-level security
+    - SOC 2 compliance preparation
+    - Global coverage for 10+ countries
+    - Advanced monitoring and alerting
+    - Batch processing capabilities
+    - Webhook notifications
+    - Custom risk models for enterprise customers
+  version: 2.0.0
   contact:
     name: KYB Platform API Support
     email: api-support@kyb-platform.com
+    url: https://docs.kyb-platform.com
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
+  termsOfService: https://kyb-platform.com/terms
 
 servers:
   - url: https://risk-assessment-service-production.up.railway.app/api/v1
@@ -514,8 +529,1555 @@ paths:
         '500':
           description: Internal server error
 
+  # Phase 2-7 Enhanced Endpoints
+  
+  /risk/predict-advanced:
+    post:
+      summary: Advanced multi-horizon risk prediction
+      description: |
+        Performs advanced multi-horizon risk prediction with model comparison and temporal analysis.
+        Supports LSTM, XGBoost, and ensemble models with confidence scoring.
+      operationId: predictRiskAdvanced
+      tags:
+        - Risk Prediction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [business_id, horizons]
+              properties:
+                business_id:
+                  type: string
+                  description: Business ID for prediction
+                  example: "biz_123456789"
+                horizons:
+                  type: array
+                  items:
+                    type: integer
+                  description: Prediction horizons in months
+                  example: [3, 6, 12]
+                model_types:
+                  type: array
+                  items:
+                    type: string
+                    enum: [xgboost, lstm, ensemble]
+                  description: Models to compare
+                  example: ["xgboost", "lstm", "ensemble"]
+                include_temporal_analysis:
+                  type: boolean
+                  description: Include temporal trend analysis
+                  example: true
+                include_confidence_intervals:
+                  type: boolean
+                  description: Include confidence intervals
+                  example: true
+      responses:
+        '200':
+          description: Advanced prediction completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedPredictionResponse'
+        '400':
+          description: Invalid request data
+        '404':
+          description: Business not found
+        '500':
+          description: Internal server error
+
+  /explain/{assessment_id}:
+    get:
+      summary: Get explainable AI insights
+      description: |
+        Retrieves SHAP-like explainable AI insights for a risk assessment,
+        showing how each risk factor contributed to the overall risk score.
+      operationId: getExplainability
+      tags:
+        - Explainability
+      parameters:
+        - name: assessment_id
+          in: path
+          required: true
+          description: Risk assessment ID
+          schema:
+            type: string
+            example: "risk_1234567890"
+      responses:
+        '200':
+          description: Explainability insights retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExplainabilityResponse'
+        '404':
+          description: Assessment not found
+        '500':
+          description: Internal server error
+
+  /scenarios/analyze:
+    post:
+      summary: Perform scenario analysis
+      description: |
+        Performs comprehensive scenario analysis with Monte Carlo simulations
+        and stress testing for different risk scenarios.
+      operationId: analyzeScenarios
+      tags:
+        - Scenario Analysis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [business_id, scenarios]
+              properties:
+                business_id:
+                  type: string
+                  description: Business ID for analysis
+                  example: "biz_123456789"
+                scenarios:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        example: "optimistic"
+                      probability:
+                        type: number
+                        format: float
+                        example: 0.2
+                      description:
+                        type: string
+                        example: "Best-case scenario with favorable market conditions"
+                monte_carlo_runs:
+                  type: integer
+                  description: Number of Monte Carlo simulation runs
+                  example: 10000
+                time_horizon:
+                  type: integer
+                  description: Analysis time horizon in months
+                  example: 12
+      responses:
+        '200':
+          description: Scenario analysis completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScenarioAnalysisResponse'
+        '400':
+          description: Invalid request data
+        '500':
+          description: Internal server error
+
+  /industries:
+    get:
+      summary: Get available industry-specific models
+      description: |
+        Retrieves available industry-specific risk models with their
+        capabilities, accuracy metrics, and risk factors.
+      operationId: getIndustries
+      tags:
+        - Industry Models
+      responses:
+        '200':
+          description: Industry models retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndustryModelsResponse'
+        '500':
+          description: Internal server error
+
+  /assess/industry/{industry_id}:
+    post:
+      summary: Perform industry-specific risk assessment
+      description: |
+        Performs risk assessment using industry-specific model with
+        specialized risk factors and validation rules.
+      operationId: assessRiskIndustry
+      tags:
+        - Industry Models
+      parameters:
+        - name: industry_id
+          in: path
+          required: true
+          description: Industry model ID
+          schema:
+            type: string
+            example: "fintech"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/RiskAssessmentRequest'
+                - type: object
+                  properties:
+                    industry_specific_data:
+                      type: object
+                      description: Industry-specific data fields
+                      additionalProperties: true
+      responses:
+        '200':
+          description: Industry-specific assessment completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskAssessmentResponse'
+        '400':
+          description: Invalid request data
+        '404':
+          description: Industry model not found
+        '500':
+          description: Internal server error
+
+  /experiments:
+    post:
+      summary: Create A/B testing experiment
+      description: |
+        Creates a new A/B testing experiment for model comparison,
+        hyperparameter tuning, or feature testing.
+      operationId: createExperiment
+      tags:
+        - A/B Testing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, type, traffic_split]
+              properties:
+                name:
+                  type: string
+                  description: Experiment name
+                  example: "LSTM vs XGBoost Comparison"
+                description:
+                  type: string
+                  description: Experiment description
+                  example: "Compare LSTM and XGBoost model performance"
+                type:
+                  type: string
+                  enum: [model_comparison, hyperparameter, feature_testing]
+                  description: Experiment type
+                  example: "model_comparison"
+                traffic_split:
+                  type: object
+                  description: Traffic distribution across variants
+                  example: {"lstm_model": 0.5, "xgboost_model": 0.5}
+                metrics:
+                  type: array
+                  items:
+                    type: string
+                  description: Metrics to track
+                  example: ["accuracy", "latency", "confidence"]
+                duration_days:
+                  type: integer
+                  description: Experiment duration in days
+                  example: 30
+      responses:
+        '201':
+          description: Experiment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExperimentResponse'
+        '400':
+          description: Invalid request data
+        '500':
+          description: Internal server error
+
+  /experiments/{experiment_id}/results:
+    get:
+      summary: Get experiment results
+      description: |
+        Retrieves A/B testing experiment results with statistical
+        significance analysis and recommendations.
+      operationId: getExperimentResults
+      tags:
+        - A/B Testing
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          description: Experiment ID
+          schema:
+            type: string
+            example: "exp_1234567890"
+      responses:
+        '200':
+          description: Experiment results retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExperimentResultsResponse'
+        '404':
+          description: Experiment not found
+        '500':
+          description: Internal server error
+
+  /validate/accuracy:
+    post:
+      summary: Validate model accuracy
+      description: |
+        Performs comprehensive model validation and accuracy testing
+        with cross-validation and statistical analysis.
+      operationId: validateModelAccuracy
+      tags:
+        - Model Validation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [validation_config]
+              properties:
+                validation_config:
+                  type: object
+                  properties:
+                    num_samples:
+                      type: integer
+                      description: Number of validation samples
+                      example: 1000
+                    cross_validation_folds:
+                      type: integer
+                      description: Cross-validation folds
+                      example: 5
+                    target_accuracy:
+                      type: number
+                      format: float
+                      description: Target accuracy threshold
+                      example: 0.90
+                    enable_calibration:
+                      type: boolean
+                      description: Enable model calibration
+                      example: true
+                    enable_ensemble:
+                      type: boolean
+                      description: Enable ensemble testing
+                      example: true
+                test_data:
+                  type: array
+                  items:
+                    type: object
+                  description: Optional test data for validation
+      responses:
+        '200':
+          description: Model validation completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelValidationResponse'
+        '400':
+          description: Invalid request data
+        '500':
+          description: Internal server error
+
+  /external/health:
+    get:
+      summary: Check external API health
+      description: |
+        Checks the health status of premium external API integrations
+        including Thomson Reuters, OFAC, and World-Check.
+      operationId: getExternalAPIHealth
+      tags:
+        - External APIs
+      responses:
+        '200':
+          description: External API health status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExternalAPIHealthResponse'
+        '500':
+          description: Internal server error
+
+  /external/comprehensive:
+    post:
+      summary: Comprehensive external data lookup
+      description: |
+        Performs comprehensive external data lookup using all premium APIs
+        for sanctions screening, adverse media monitoring, and compliance checks.
+      operationId: getComprehensiveExternalData
+      tags:
+        - External APIs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [business_name, business_address, country]
+              properties:
+                business_name:
+                  type: string
+                  description: Business name
+                  example: "Acme Corporation"
+                business_address:
+                  type: string
+                  description: Business address
+                  example: "123 Main St, Anytown, ST 12345"
+                country:
+                  type: string
+                  description: Country code
+                  example: "US"
+                include_sanctions:
+                  type: boolean
+                  description: Include sanctions screening
+                  example: true
+                include_adverse_media:
+                  type: boolean
+                  description: Include adverse media monitoring
+                  example: true
+                include_worldcheck:
+                  type: boolean
+                  description: Include World-Check screening
+                  example: true
+      responses:
+        '200':
+          description: Comprehensive external data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComprehensiveExternalDataResponse'
+        '400':
+          description: Invalid request data
+        '500':
+          description: Internal server error
+
+  /batch/assess:
+    post:
+      summary: Batch risk assessment
+      description: |
+        Performs batch risk assessment for multiple businesses with
+        asynchronous processing and progress tracking.
+      operationId: batchAssessRisk
+      tags:
+        - Batch Processing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [businesses]
+              properties:
+                businesses:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/RiskAssessmentRequest'
+                  description: List of businesses to assess
+                  maxItems: 1000
+                options:
+                  type: object
+                  properties:
+                    prediction_horizon:
+                      type: integer
+                      description: Default prediction horizon
+                      example: 3
+                    include_explainability:
+                      type: boolean
+                      description: Include explainability analysis
+                      example: true
+                    priority:
+                      type: string
+                      enum: [low, normal, high]
+                      description: Processing priority
+                      example: "normal"
+      responses:
+        '202':
+          description: Batch assessment initiated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchAssessmentResponse'
+        '400':
+          description: Invalid request data
+        '500':
+          description: Internal server error
+
+  /batch/{batch_id}/status:
+    get:
+      summary: Get batch processing status
+      description: |
+        Retrieves the status of a batch risk assessment job
+        with progress information and results.
+      operationId: getBatchStatus
+      tags:
+        - Batch Processing
+      parameters:
+        - name: batch_id
+          in: path
+          required: true
+          description: Batch job ID
+          schema:
+            type: string
+            example: "batch_1234567890"
+      responses:
+        '200':
+          description: Batch status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchStatusResponse'
+        '404':
+          description: Batch job not found
+        '500':
+          description: Internal server error
+
+  /webhooks:
+    post:
+      summary: Create webhook endpoint
+      description: |
+        Creates a webhook endpoint for real-time notifications
+        of risk assessment events and updates.
+      operationId: createWebhook
+      tags:
+        - Webhooks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url, events]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: Webhook endpoint URL
+                  example: "https://api.example.com/webhooks/risk-assessment"
+                events:
+                  type: array
+                  items:
+                    type: string
+                    enum: [assessment.completed, assessment.failed, prediction.updated, compliance.alert, sanctions.match, media.alert]
+                  description: Events to subscribe to
+                  example: ["assessment.completed", "prediction.updated"]
+                secret:
+                  type: string
+                  description: Webhook secret for signature verification
+                  example: "whsec_1234567890"
+                active:
+                  type: boolean
+                  description: Whether webhook is active
+                  example: true
+      responses:
+        '201':
+          description: Webhook created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookResponse'
+        '400':
+          description: Invalid request data
+        '500':
+          description: Internal server error
+
+  /webhooks/{webhook_id}:
+    get:
+      summary: Get webhook details
+      description: Retrieves webhook configuration and delivery statistics
+      operationId: getWebhook
+      tags:
+        - Webhooks
+      parameters:
+        - name: webhook_id
+          in: path
+          required: true
+          description: Webhook ID
+          schema:
+            type: string
+            example: "wh_1234567890"
+      responses:
+        '200':
+          description: Webhook details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookResponse'
+        '404':
+          description: Webhook not found
+        '500':
+          description: Internal server error
+
+    put:
+      summary: Update webhook
+      description: Updates webhook configuration and settings
+      operationId: updateWebhook
+      tags:
+        - Webhooks
+      parameters:
+        - name: webhook_id
+          in: path
+          required: true
+          description: Webhook ID
+          schema:
+            type: string
+            example: "wh_1234567890"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: Webhook endpoint URL
+                events:
+                  type: array
+                  items:
+                    type: string
+                    enum: [assessment.completed, assessment.failed, prediction.updated, compliance.alert, sanctions.match, media.alert]
+                  description: Events to subscribe to
+                secret:
+                  type: string
+                  description: Webhook secret for signature verification
+                active:
+                  type: boolean
+                  description: Whether webhook is active
+      responses:
+        '200':
+          description: Webhook updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookResponse'
+        '400':
+          description: Invalid request data
+        '404':
+          description: Webhook not found
+        '500':
+          description: Internal server error
+
+    delete:
+      summary: Delete webhook
+      description: Deletes a webhook endpoint
+      operationId: deleteWebhook
+      tags:
+        - Webhooks
+      parameters:
+        - name: webhook_id
+          in: path
+          required: true
+          description: Webhook ID
+          schema:
+            type: string
+            example: "wh_1234567890"
+      responses:
+        '204':
+          description: Webhook deleted successfully
+        '404':
+          description: Webhook not found
+        '500':
+          description: Internal server error
+
+  /performance/stats:
+    get:
+      summary: Get performance statistics
+      description: |
+        Retrieves real-time performance statistics including
+        response times, throughput, error rates, and resource usage.
+      operationId: getPerformanceStats
+      tags:
+        - Performance Monitoring
+      responses:
+        '200':
+          description: Performance statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerformanceStatsResponse'
+        '500':
+          description: Internal server error
+
+  /performance/health:
+    get:
+      summary: Get service health status
+      description: |
+        Retrieves comprehensive service health status including
+        database connectivity, external API status, and system metrics.
+      operationId: getServiceHealth
+      tags:
+        - Performance Monitoring
+      responses:
+        '200':
+          description: Service health status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Service unhealthy
+        '500':
+          description: Internal server error
+
 components:
   schemas:
+    # Phase 2-7 Enhanced Schemas
+    
+    AdvancedPredictionResponse:
+      type: object
+      properties:
+        business_id:
+          type: string
+          description: Business ID
+          example: "biz_123456789"
+        predictions:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              model_type:
+                type: string
+                example: "lstm"
+              predictions:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    horizon_months:
+                      type: integer
+                      example: 6
+                    predicted_score:
+                      type: number
+                      format: float
+                      example: 0.72
+                    predicted_level:
+                      type: string
+                      example: "medium"
+                    confidence:
+                      type: number
+                      format: float
+                      example: 0.85
+                    confidence_interval:
+                      type: object
+                      properties:
+                        lower:
+                          type: number
+                          format: float
+                          example: 0.65
+                        upper:
+                          type: number
+                          format: float
+                          example: 0.79
+        temporal_analysis:
+          type: object
+          properties:
+            trend_direction:
+              type: string
+              enum: [improving, stable, deteriorating]
+              example: "improving"
+            trend_magnitude:
+              type: number
+              format: float
+              example: 0.05
+            volatility:
+              type: number
+              format: float
+              example: 0.12
+            seasonality:
+              type: object
+              properties:
+                detected:
+                  type: boolean
+                  example: true
+                period:
+                  type: integer
+                  example: 12
+                strength:
+                  type: number
+                  format: float
+                  example: 0.3
+        model_comparison:
+          type: object
+          properties:
+            best_model:
+              type: string
+              example: "lstm"
+            model_scores:
+              type: object
+              additionalProperties:
+                type: number
+                format: float
+              example: {"lstm": 0.92, "xgboost": 0.89, "ensemble": 0.91}
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    ExplainabilityResponse:
+      type: object
+      properties:
+        assessment_id:
+          type: string
+          description: Risk assessment ID
+          example: "risk_1234567890"
+        explanation:
+          type: object
+          properties:
+            overall_risk_score:
+              type: number
+              format: float
+              example: 0.75
+            feature_contributions:
+              type: array
+              items:
+                type: object
+                properties:
+                  feature_name:
+                    type: string
+                    example: "credit_score"
+                  contribution:
+                    type: number
+                    format: float
+                    example: 0.15
+                  weight:
+                    type: number
+                    format: float
+                    example: 0.3
+                  description:
+                    type: string
+                    example: "Business credit score contributed 15% to overall risk"
+                  confidence:
+                    type: number
+                    format: float
+                    example: 0.9
+            shap_values:
+              type: object
+              additionalProperties:
+                type: number
+                format: float
+              example: {"credit_score": 0.15, "industry_risk": 0.25, "geographic_risk": 0.1}
+            explanation_summary:
+              type: string
+              example: "The risk assessment is primarily driven by industry risk (25%) and regulatory risk (20%)"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    ScenarioAnalysisResponse:
+      type: object
+      properties:
+        business_id:
+          type: string
+          description: Business ID
+          example: "biz_123456789"
+        scenario_analysis:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              risk_score:
+                type: number
+                format: float
+                example: 0.75
+              probability:
+                type: number
+                format: float
+                example: 0.6
+              confidence_interval:
+                type: object
+                properties:
+                  lower:
+                    type: number
+                    format: float
+                    example: 0.70
+                  upper:
+                    type: number
+                    format: float
+                    example: 0.80
+              key_factors:
+                type: array
+                items:
+                  type: string
+                example: ["industry_volatility", "regulatory_changes"]
+              mitigation_recommendations:
+                type: array
+                items:
+                  type: string
+                example: ["Enhance compliance monitoring", "Diversify revenue streams"]
+        monte_carlo_results:
+          type: object
+          properties:
+            mean_risk_score:
+              type: number
+              format: float
+              example: 0.72
+            standard_deviation:
+              type: number
+              format: float
+              example: 0.15
+            percentiles:
+              type: object
+              properties:
+                "5th":
+                  type: number
+                  format: float
+                  example: 0.45
+                "25th":
+                  type: number
+                  format: float
+                  example: 0.62
+                "50th":
+                  type: number
+                  format: float
+                  example: 0.72
+                "75th":
+                  type: number
+                  format: float
+                  example: 0.82
+                "95th":
+                  type: number
+                  format: float
+                  example: 0.95
+        stress_test_results:
+          type: object
+          properties:
+            crisis_scenario:
+              type: object
+              properties:
+                risk_score:
+                  type: number
+                  format: float
+                  example: 0.98
+                survival_probability:
+                  type: number
+                  format: float
+                  example: 0.15
+                recovery_time:
+                  type: integer
+                  example: 24
+            recovery_scenario:
+              type: object
+              properties:
+                risk_score:
+                  type: number
+                  format: float
+                  example: 0.35
+                recovery_probability:
+                  type: number
+                  format: float
+                  example: 0.85
+                recovery_time:
+                  type: integer
+                  example: 12
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    IndustryModelsResponse:
+      type: object
+      properties:
+        industries:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                example: "fintech"
+              name:
+                type: string
+                example: "Financial Technology"
+              description:
+                type: string
+                example: "Specialized risk model for fintech companies"
+              risk_factors:
+                type: array
+                items:
+                  type: string
+                example: ["payment_processing_risk", "regulatory_compliance", "cybersecurity_risk"]
+              accuracy:
+                type: number
+                format: float
+                example: 0.92
+              supported_countries:
+                type: array
+                items:
+                  type: string
+                example: ["US", "UK", "EU", "CA"]
+              last_updated:
+                type: string
+                format: date-time
+                example: "2024-01-15T10:30:00Z"
+
+    ExperimentResponse:
+      type: object
+      properties:
+        experiment_id:
+          type: string
+          description: Experiment ID
+          example: "exp_1234567890"
+        name:
+          type: string
+          description: Experiment name
+          example: "LSTM vs XGBoost Comparison"
+        status:
+          type: string
+          enum: [active, completed, paused, cancelled]
+          example: "active"
+        traffic_split:
+          type: object
+          additionalProperties:
+            type: number
+            format: float
+          example: {"lstm_model": 0.5, "xgboost_model": 0.5}
+        metrics:
+          type: array
+          items:
+            type: string
+          example: ["accuracy", "latency", "confidence"]
+        start_date:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        end_date:
+          type: string
+          format: date-time
+          example: "2024-02-14T10:30:00Z"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    ExperimentResultsResponse:
+      type: object
+      properties:
+        experiment_id:
+          type: string
+          description: Experiment ID
+          example: "exp_1234567890"
+        status:
+          type: string
+          enum: [active, completed, paused, cancelled]
+          example: "completed"
+        results:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              accuracy:
+                type: number
+                format: float
+                example: 0.92
+              latency:
+                type: number
+                example: 150
+              confidence:
+                type: number
+                format: float
+                example: 0.88
+              sample_size:
+                type: integer
+                example: 1000
+        statistical_significance:
+          type: object
+          properties:
+            p_value:
+              type: number
+              format: float
+              example: 0.03
+            confidence_level:
+              type: number
+              format: float
+              example: 0.95
+            winner:
+              type: string
+              example: "lstm_model"
+            effect_size:
+              type: number
+              format: float
+              example: 0.15
+        recommendation:
+          type: string
+          example: "LSTM model shows statistically significant improvement in accuracy (3.4% increase)"
+
+    ModelValidationResponse:
+      type: object
+      properties:
+        validation_id:
+          type: string
+          description: Validation ID
+          example: "val_1234567890"
+        overall_accuracy:
+          type: number
+          format: float
+          example: 0.92
+        target_achieved:
+          type: boolean
+          example: true
+        validation_metadata:
+          type: object
+          properties:
+            num_samples:
+              type: integer
+              example: 1000
+            validation_method:
+              type: string
+              example: "comprehensive"
+            duration:
+              type: integer
+              example: 300
+            cross_validation_folds:
+              type: integer
+              example: 5
+        model_comparison:
+          type: object
+          properties:
+            baseline_model:
+              type: object
+              properties:
+                accuracy:
+                  type: number
+                  format: float
+                  example: 0.85
+                precision:
+                  type: number
+                  format: float
+                  example: 0.82
+                recall:
+                  type: number
+                  format: float
+                  example: 0.88
+                f1_score:
+                  type: number
+                  format: float
+                  example: 0.85
+            enhanced_model:
+              type: object
+              properties:
+                accuracy:
+                  type: number
+                  format: float
+                  example: 0.88
+                precision:
+                  type: number
+                  format: float
+                  example: 0.85
+                recall:
+                  type: number
+                  format: float
+                  example: 0.91
+                f1_score:
+                  type: number
+                  format: float
+                  example: 0.88
+            ensemble_model:
+              type: object
+              properties:
+                accuracy:
+                  type: number
+                  format: float
+                  example: 0.92
+                precision:
+                  type: number
+                  format: float
+                  example: 0.90
+                recall:
+                  type: number
+                  format: float
+                  example: 0.94
+                f1_score:
+                  type: number
+                  format: float
+                  example: 0.92
+            best_model:
+              type: string
+              example: "ensemble"
+            improvement:
+              type: number
+              format: float
+              example: 0.07
+        recommendations:
+          type: array
+          items:
+            type: string
+          example: ["Model accuracy (92%) meets target (90%). Model is ready for production."]
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    ExternalAPIHealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          example: "healthy"
+        services:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              status:
+                type: string
+                enum: [healthy, degraded, unhealthy]
+                example: "healthy"
+              response_time:
+                type: integer
+                example: 150
+              last_check:
+                type: string
+                format: date-time
+                example: "2024-01-15T10:30:00Z"
+              error_rate:
+                type: number
+                format: float
+                example: 0.01
+        overall_health_score:
+          type: number
+          format: float
+          example: 0.95
+        last_updated:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    ComprehensiveExternalDataResponse:
+      type: object
+      properties:
+        business_name:
+          type: string
+          example: "Acme Corporation"
+        external_data:
+          type: object
+          properties:
+            thomson_reuters:
+              type: object
+              properties:
+                risk_factors:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        example: "revenue_growth_risk"
+                      score:
+                        type: number
+                        format: float
+                        example: 0.3
+                      description:
+                        type: string
+                        example: "Strong revenue growth indicates low risk"
+                confidence:
+                  type: number
+                  format: float
+                  example: 0.9
+            ofac:
+              type: object
+              properties:
+                sanctions_matches:
+                  type: integer
+                  example: 0
+                status:
+                  type: string
+                  example: "clear"
+                last_updated:
+                  type: string
+                  format: date-time
+                  example: "2024-01-15T10:30:00Z"
+            worldcheck:
+              type: object
+              properties:
+                adverse_media_count:
+                  type: integer
+                  example: 0
+                risk_level:
+                  type: string
+                  example: "low"
+                last_updated:
+                  type: string
+                  format: date-time
+                  example: "2024-01-15T10:30:00Z"
+        overall_external_risk:
+          type: number
+          format: float
+          example: 0.35
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    BatchAssessmentResponse:
+      type: object
+      properties:
+        batch_id:
+          type: string
+          description: Batch job ID
+          example: "batch_1234567890"
+        status:
+          type: string
+          enum: [queued, processing, completed, failed]
+          example: "queued"
+        total_businesses:
+          type: integer
+          example: 100
+        processed_businesses:
+          type: integer
+          example: 0
+        failed_businesses:
+          type: integer
+          example: 0
+        estimated_completion_time:
+          type: string
+          format: date-time
+          example: "2024-01-15T11:30:00Z"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    BatchStatusResponse:
+      type: object
+      properties:
+        batch_id:
+          type: string
+          description: Batch job ID
+          example: "batch_1234567890"
+        status:
+          type: string
+          enum: [queued, processing, completed, failed]
+          example: "processing"
+        progress:
+          type: object
+          properties:
+            total:
+              type: integer
+              example: 100
+            processed:
+              type: integer
+              example: 45
+            failed:
+              type: integer
+              example: 2
+            percentage:
+              type: number
+              format: float
+              example: 45.0
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              business_id:
+                type: string
+                example: "biz_123456789"
+              assessment_id:
+                type: string
+                example: "risk_1234567890"
+              status:
+                type: string
+                enum: [completed, failed]
+                example: "completed"
+              risk_score:
+                type: number
+                format: float
+                example: 0.75
+              error_message:
+                type: string
+                example: null
+        estimated_completion_time:
+          type: string
+          format: date-time
+          example: "2024-01-15T11:30:00Z"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:45:00Z"
+
+    WebhookResponse:
+      type: object
+      properties:
+        webhook_id:
+          type: string
+          description: Webhook ID
+          example: "wh_1234567890"
+        url:
+          type: string
+          format: uri
+          example: "https://api.example.com/webhooks/risk-assessment"
+        events:
+          type: array
+          items:
+            type: string
+          example: ["assessment.completed", "prediction.updated"]
+        active:
+          type: boolean
+          example: true
+        delivery_stats:
+          type: object
+          properties:
+            total_deliveries:
+              type: integer
+              example: 150
+            successful_deliveries:
+              type: integer
+              example: 145
+            failed_deliveries:
+              type: integer
+              example: 5
+            success_rate:
+              type: number
+              format: float
+              example: 0.967
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+    PerformanceStatsResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        response_times:
+          type: object
+          properties:
+            p50:
+              type: number
+              example: 120
+            p95:
+              type: number
+              example: 250
+            p99:
+              type: number
+              example: 500
+            average:
+              type: number
+              example: 135
+        throughput:
+          type: object
+          properties:
+            requests_per_minute:
+              type: number
+              example: 1250
+            requests_per_second:
+              type: number
+              example: 20.8
+        error_rates:
+          type: object
+          properties:
+            total_errors:
+              type: integer
+              example: 15
+            error_rate_percentage:
+              type: number
+              format: float
+              example: 0.5
+            error_breakdown:
+              type: object
+              additionalProperties:
+                type: integer
+              example: {"400": 5, "500": 10}
+        resource_usage:
+          type: object
+          properties:
+            cpu_usage_percentage:
+              type: number
+              format: float
+              example: 45.2
+            memory_usage_mb:
+              type: number
+              example: 1024
+            database_connections:
+              type: integer
+              example: 25
+        external_api_latency:
+          type: object
+          additionalProperties:
+            type: number
+          example: {"thomson_reuters": 150, "ofac": 200, "worldcheck": 180}
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          example: "healthy"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        version:
+          type: string
+          example: "2.0.0"
+        uptime:
+          type: integer
+          example: 86400
+        checks:
+          type: object
+          properties:
+            database:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [healthy, unhealthy]
+                  example: "healthy"
+                response_time:
+                  type: number
+                  example: 5
+            redis:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [healthy, unhealthy]
+                  example: "healthy"
+                response_time:
+                  type: number
+                  example: 2
+            external_apis:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [healthy, degraded, unhealthy]
+                  example: "healthy"
+                services:
+                  type: object
+                  additionalProperties:
+                    type: string
+                    enum: [healthy, degraded, unhealthy]
+                  example: {"thomson_reuters": "healthy", "ofac": "healthy"}
+        metrics:
+          type: object
+          properties:
+            active_connections:
+              type: integer
+              example: 150
+            requests_per_minute:
+              type: number
+              example: 1250
+            error_rate:
+              type: number
+              format: float
+              example: 0.005
+
+    # Original Schemas
     RiskAssessmentRequest:
       type: object
       required:
@@ -1283,6 +2845,60 @@ tags:
       - Smart ensemble routing (XGBoost for 1-3mo, LSTM for 6-12mo, combined for 3-6mo)
       - Multi-horizon predictions with temporal analysis
       - Advanced scenario analysis and model comparison
+  - name: Explainability
+    description: |
+      Explainable AI insights and SHAP-like feature contributions:
+      - Feature importance analysis
+      - Risk factor contribution breakdown
+      - Model interpretability and transparency
+  - name: Scenario Analysis
+    description: |
+      Advanced scenario analysis and stress testing:
+      - Monte Carlo simulations
+      - Stress testing scenarios
+      - Risk scenario modeling
+  - name: Industry Models
+    description: |
+      Industry-specific risk models and assessments:
+      - 9 specialized industry models (FinTech, Healthcare, Technology, etc.)
+      - Industry-specific risk factors and validation rules
+      - Customized risk assessment for different sectors
+  - name: A/B Testing
+    description: |
+      ML model experimentation and validation:
+      - Model comparison experiments
+      - Statistical significance testing
+      - Performance optimization through experimentation
+  - name: Model Validation
+    description: |
+      Model accuracy validation and testing:
+      - Cross-validation and accuracy testing
+      - Model performance benchmarking
+      - Validation reporting and recommendations
+  - name: External APIs
+    description: |
+      Premium external API integrations:
+      - Thomson Reuters World-Check integration
+      - OFAC/UN/EU sanctions screening
+      - Comprehensive external data lookup
+  - name: Batch Processing
+    description: |
+      Large-scale batch risk assessment:
+      - Asynchronous batch processing
+      - Progress tracking and monitoring
+      - Bulk risk assessment capabilities
+  - name: Webhooks
+    description: |
+      Real-time event notifications:
+      - Webhook endpoint management
+      - Event subscription and delivery
+      - Delivery statistics and monitoring
+  - name: Performance Monitoring
+    description: |
+      Service health and performance monitoring:
+      - Real-time performance statistics
+      - Service health checks
+      - Resource usage monitoring
   - name: Compliance
     description: Compliance screening and sanctions checking
   - name: Media Monitoring
