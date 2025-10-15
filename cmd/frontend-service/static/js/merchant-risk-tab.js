@@ -1056,19 +1056,32 @@ class MerchantRiskTab {
         const centerY = height / 2 - 20; // Move up to leave room for labels
         const baseScore = 5.0; // Base score before SHAP contributions
         
-        // Calculate dynamic spacing based on text width - make it larger
-        const maxLabelWidth = 120; // Increased width for labels
-        const minBarSpacing = 80; // Increased spacing between bars
-        const barScaleFactor = 25; // Larger bars for better visibility
+        // Calculate dynamic spacing based on text width - reduce spacing to fit in frame
+        const maxLabelWidth = 100; // Reduced width for labels
+        const minBarSpacing = 40; // Reduced spacing between bars
+        const barScaleFactor = 20; // Slightly smaller bars to fit better
         
-        // Calculate total width needed
+        // Calculate total width needed - ensure it fits in frame
         let totalWidth = 0;
         shapValues.forEach((factor) => {
-            const barWidth = Math.abs(factor.value) * barScaleFactor; // Much larger bars
+            const barWidth = Math.abs(factor.value) * barScaleFactor; // Slightly smaller bars
             const labelWidth = Math.max(measureText(factor.name, '12px'), maxLabelWidth);
-            const spacing = Math.max(minBarSpacing, labelWidth + 30);
+            const spacing = Math.max(minBarSpacing, labelWidth + 20); // Reduced spacing
             totalWidth += barWidth + spacing;
         });
+        
+        // Ensure total width doesn't exceed canvas width
+        const maxWidth = width - 100; // Leave 50px margin on each side
+        if (totalWidth > maxWidth) {
+            // Scale down the spacing proportionally
+            const scaleFactor = maxWidth / totalWidth;
+            shapValues.forEach((factor, index) => {
+                const barWidth = Math.abs(factor.value) * barScaleFactor;
+                const labelWidth = Math.max(measureText(factor.name, '12px'), maxLabelWidth);
+                const spacing = Math.max(minBarSpacing, labelWidth + 20) * scaleFactor;
+                totalWidth = index === 0 ? barWidth + spacing : totalWidth + barWidth + spacing;
+            });
+        }
         
         let currentX = (width - totalWidth) / 2; // Center the plot
         
@@ -1127,9 +1140,9 @@ class MerchantRiskTab {
                 ctx.fillText(line, barX + barWidth / 2, centerY + 60 + (lineIndex * 16));
             });
             
-            // Calculate spacing for next bar
+            // Calculate spacing for next bar - use reduced spacing
             const labelWidth = Math.max(measureText(factor.name, '12px'), maxLabelWidth);
-            const spacing = Math.max(minBarSpacing, labelWidth + 30);
+            const spacing = Math.max(minBarSpacing, labelWidth + 20);
             currentX += barWidth + spacing;
         });
         
@@ -1192,14 +1205,17 @@ class MerchantRiskTab {
                 const impactColor = foundBar.factor.value > 0 ? '#e53e3e' : '#38a169';
                 
                 tooltip.innerHTML = `
-                    <div style="font-weight: bold; margin-bottom: 4px; color: ${impactColor};">
+                    <div style="font-weight: bold; margin-bottom: 6px; color: ${impactColor}; font-size: 13px;">
                         ${foundBar.factor.name}
                     </div>
-                    <div style="margin-bottom: 4px;">
+                    <div style="margin-bottom: 6px; font-size: 12px;">
                         <strong>Impact:</strong> ${impact} risk by ${Math.abs(foundBar.factor.value).toFixed(1)} points
                     </div>
-                    <div style="font-size: 11px; color: #ccc;">
+                    <div style="font-size: 11px; color: #ccc; line-height: 1.4; margin-bottom: 6px;">
                         ${getFactorExplanation(foundBar.factor.name)}
+                    </div>
+                    <div style="font-size: 10px; color: #999; border-top: 1px solid #444; padding-top: 4px;">
+                        💡 Click for detailed analysis
                     </div>
                 `;
                 
@@ -1219,7 +1235,7 @@ class MerchantRiskTab {
             }
         });
         
-        // Click handler for detailed view
+        // Click handler for detailed view (optional - keep for users who want detailed modal)
         canvas.addEventListener('click', (e) => {
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
@@ -1230,7 +1246,7 @@ class MerchantRiskTab {
                 if (x >= bar.x && x <= bar.x + bar.width && 
                     y >= bar.y && y <= bar.y + bar.height) {
                     
-                    // Show detailed factor analysis
+                    // Show detailed factor analysis (optional detailed view)
                     showFactorDetails(bar.factor);
                 }
             });
