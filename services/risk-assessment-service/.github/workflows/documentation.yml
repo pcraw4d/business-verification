@@ -1,0 +1,448 @@
+name: Documentation Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'services/risk-assessment-service/docs/**'
+      - 'services/risk-assessment-service/api/**'
+      - 'services/risk-assessment-service/scripts/**'
+      - 'services/risk-assessment-service/.github/workflows/documentation.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'services/risk-assessment-service/docs/**'
+      - 'services/risk-assessment-service/api/**'
+      - 'services/risk-assessment-service/scripts/**'
+  release:
+    types: [ published ]
+  schedule:
+    # Run daily at 2 AM UTC to update documentation
+    - cron: '0 2 * * *'
+
+env:
+  NODE_VERSION: '18'
+  GO_VERSION: '1.22'
+
+jobs:
+  # Job 1: Validate Documentation
+  validate-docs:
+    name: Validate Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          cd services/risk-assessment-service
+          npm install -g markdownlint-cli
+          npm install -g textlint
+          go install github.com/swaggo/swag/cmd/swag@latest
+
+      - name: Validate Markdown files
+        run: |
+          cd services/risk-assessment-service
+          markdownlint docs/**/*.md --config .markdownlint.json
+
+      - name: Check for broken links
+        run: |
+          cd services/risk-assessment-service
+          npm install -g markdown-link-check
+          find docs -name "*.md" -exec markdown-link-check {} \;
+
+      - name: Validate OpenAPI specification
+        run: |
+          cd services/risk-assessment-service
+          if [ -f api/openapi.yaml ]; then
+            npm install -g swagger-cli
+            swagger-cli validate api/openapi.yaml
+          fi
+
+      - name: Check spelling
+        run: |
+          cd services/risk-assessment-service
+          npm install -g cspell
+          cspell "docs/**/*.md" --config .cspell.json
+
+  # Job 2: Generate Documentation
+  generate-docs:
+    name: Generate Documentation
+    runs-on: ubuntu-latest
+    needs: validate-docs
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          cd services/risk-assessment-service
+          go install github.com/swaggo/swag/cmd/swag@latest
+          npm install -g @redocly/cli
+
+      - name: Generate OpenAPI specification
+        run: |
+          cd services/risk-assessment-service
+          chmod +x scripts/generate_openapi.sh
+          ./scripts/generate_openapi.sh
+
+      - name: Generate changelog
+        run: |
+          cd services/risk-assessment-service
+          chmod +x scripts/generate_changelog.sh
+          ./scripts/generate_changelog.sh
+
+      - name: Generate SDK documentation
+        run: |
+          cd services/risk-assessment-service
+          # Generate Go SDK docs
+          if [ -d "pkg/client" ]; then
+            go doc -all pkg/client > docs/sdks/go_sdk_reference.md
+          fi
+          
+          # Generate Python SDK docs
+          if [ -d "sdks/python" ]; then
+            cd sdks/python
+            python -m pydoc -w . > ../../docs/sdks/python_sdk_reference.md
+            cd ../..
+          fi
+
+      - name: Upload generated documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-docs
+          path: |
+            services/risk-assessment-service/api/
+            services/risk-assessment-service/CHANGELOG.md
+            services/risk-assessment-service/RELEASE_NOTES.md
+            services/risk-assessment-service/docs/sdks/
+
+  # Job 3: Build Documentation Site
+  build-docs:
+    name: Build Documentation Site
+    runs-on: ubuntu-latest
+    needs: generate-docs
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Download generated documentation
+        uses: actions/download-artifact@v4
+        with:
+          name: generated-docs
+          path: services/risk-assessment-service/
+
+      - name: Build documentation site
+        run: |
+          cd services/risk-assessment-service
+          chmod +x scripts/deploy_docs.sh
+          DEPLOY_GITHUB_PAGES=false ./scripts/deploy_docs.sh
+
+      - name: Upload built site
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-docs
+          path: services/risk-assessment-service/docs-site/build/
+
+  # Job 4: Deploy Documentation
+  deploy-docs:
+    name: Deploy Documentation
+    runs-on: ubuntu-latest
+    needs: build-docs
+    if: github.ref == 'refs/heads/main' || github.event_name == 'release'
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Download built documentation
+        uses: actions/download-artifact@v4
+        with:
+          name: built-docs
+          path: services/risk-assessment-service/docs-site/build/
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: services/risk-assessment-service/docs-site/build
+          cname: docs.kyb-platform.com
+
+      - name: Deploy to Netlify
+        if: env.NETLIFY_SITE_ID != ''
+        uses: nwtgck/actions-netlify@v3.0
+        with:
+          publish-dir: services/risk-assessment-service/docs-site/build
+          production-branch: main
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Deploy from GitHub Actions"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
+      - name: Deploy to AWS S3
+        if: env.AWS_ACCESS_KEY_ID != ''
+        run: |
+          cd services/risk-assessment-service
+          aws s3 sync docs-site/build s3://${{ secrets.S3_BUCKET }} --delete
+          if [ -n "${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}" ]; then
+            aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
+          fi
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+
+  # Job 5: Notify Deployment
+  notify-deployment:
+    name: Notify Deployment
+    runs-on: ubuntu-latest
+    needs: deploy-docs
+    if: always()
+    steps:
+      - name: Notify Slack
+        if: env.SLACK_WEBHOOK_URL != ''
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#documentation'
+          text: |
+            Documentation deployment ${{ job.status }}!
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Notify Discord
+        if: env.DISCORD_WEBHOOK_URL != ''
+        uses: Ilshidur/action-discord@master
+        with:
+          args: |
+            Documentation deployment ${{ job.status }}!
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+  # Job 6: Update Package Registries
+  update-packages:
+    name: Update Package Registries
+    runs-on: ubuntu-latest
+    needs: generate-docs
+    if: github.event_name == 'release'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: Download generated documentation
+        uses: actions/download-artifact@v4
+        with:
+          name: generated-docs
+          path: services/risk-assessment-service/
+
+      - name: Publish Go SDK
+        if: env.GOPROXY_TOKEN != ''
+        run: |
+          cd services/risk-assessment-service/pkg/client
+          go mod tidy
+          git tag ${{ github.event.release.tag_name }}
+          git push origin ${{ github.event.release.tag_name }}
+        env:
+          GOPROXY_TOKEN: ${{ secrets.GOPROXY_TOKEN }}
+
+      - name: Publish Python SDK
+        if: env.PYPI_TOKEN != ''
+        run: |
+          cd services/risk-assessment-service/sdks/python
+          python -m build
+          python -m twine upload dist/* --username __token__ --password ${{ secrets.PYPI_TOKEN }}
+        env:
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+
+      - name: Publish Node.js SDK
+        if: env.NPM_TOKEN != ''
+        run: |
+          cd services/risk-assessment-service/sdks/nodejs
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish Ruby SDK
+        if: env.RUBYGEMS_API_KEY != ''
+        run: |
+          cd services/risk-assessment-service/sdks/ruby
+          gem build kyb-risk-assessment.gemspec
+          gem push kyb-risk-assessment-*.gem
+        env:
+          RUBYGEMS_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+
+      - name: Publish Java SDK
+        if: env.MAVEN_TOKEN != ''
+        run: |
+          cd services/risk-assessment-service/sdks/java
+          mvn clean deploy -Dmaven.test.skip=true
+        env:
+          MAVEN_TOKEN: ${{ secrets.MAVEN_TOKEN }}
+
+      - name: Publish PHP SDK
+        if: env.PACKAGIST_TOKEN != ''
+        run: |
+          cd services/risk-assessment-service/sdks/php
+          composer install --no-dev
+          # Note: Packagist integration would be configured separately
+        env:
+          PACKAGIST_TOKEN: ${{ secrets.PACKAGIST_TOKEN }}
+
+  # Job 7: Security Scan
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: validate-docs
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: 'services/risk-assessment-service/docs'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Check for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: services/risk-assessment-service/docs
+          base: main
+          head: HEAD
+          extra_args: --debug --only-verified
+
+  # Job 8: Performance Test
+  performance-test:
+    name: Performance Test
+    runs-on: ubuntu-latest
+    needs: build-docs
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Download built documentation
+        uses: actions/download-artifact@v4
+        with:
+          name: built-docs
+          path: services/risk-assessment-service/docs-site/build/
+
+      - name: Install Lighthouse CI
+        run: npm install -g @lhci/cli@0.12.x
+
+      - name: Run Lighthouse CI
+        run: |
+          cd services/risk-assessment-service/docs-site/build
+          lhci autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
+  # Job 9: Accessibility Test
+  accessibility-test:
+    name: Accessibility Test
+    runs-on: ubuntu-latest
+    needs: build-docs
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Download built documentation
+        uses: actions/download-artifact@v4
+        with:
+          name: built-docs
+          path: services/risk-assessment-service/docs-site/build/
+
+      - name: Install axe-core
+        run: npm install -g @axe-core/cli
+
+      - name: Run accessibility tests
+        run: |
+          cd services/risk-assessment-service/docs-site/build
+          axe . --exit
