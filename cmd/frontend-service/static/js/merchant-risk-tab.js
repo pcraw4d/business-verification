@@ -714,8 +714,8 @@ class MerchantRiskTab {
         
         const ctx = gaugeContainer.getContext('2d');
         const centerX = gaugeContainer.width / 2;
-        const centerY = gaugeContainer.height / 2 + 15; // Lower center to leave room for text
-        const radius = 70; // Slightly smaller radius to leave more room for text
+        const centerY = gaugeContainer.height / 2 + 25; // Lower center to better position gauge above text
+        const radius = 75; // Slightly larger radius to wrap around text better
         
         // Clear canvas with subtle gradient background
         const bgGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius + 30);
@@ -730,15 +730,16 @@ class MerchantRiskTab {
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
         
-        // Draw background arc with gradient
+        // Draw background arc with gradient - positioned to wrap around text
         const bgGradient2 = ctx.createLinearGradient(centerX - radius, centerY, centerX + radius, centerY);
         bgGradient2.addColorStop(0, '#f7fafc');
         bgGradient2.addColorStop(0.5, '#edf2f7');
         bgGradient2.addColorStop(1, '#e2e8f0');
         
         ctx.beginPath();
-        ctx.arc(centerX, centerY, radius, Math.PI, 2 * Math.PI);
-        ctx.lineWidth = 24;
+        // Start arc slightly higher to wrap around text better
+        ctx.arc(centerX, centerY, radius, Math.PI * 0.8, Math.PI * 2.2);
+        ctx.lineWidth = 20; // Slightly thinner to reduce overlap
         ctx.strokeStyle = bgGradient2;
         ctx.lineCap = 'round';
         ctx.stroke();
@@ -749,7 +750,7 @@ class MerchantRiskTab {
         
         // Draw risk level arc with advanced gradient
         const riskScore = this.riskData?.overallScore || 7.2;
-        const angle = (riskScore / 10) * Math.PI;
+        const angle = (riskScore / 10) * Math.PI * 1.4; // Adjusted for new arc range
         
         // Create dynamic gradient based on risk level
         let progressGradient;
@@ -778,8 +779,8 @@ class MerchantRiskTab {
         ctx.shadowBlur = 15;
         
         ctx.beginPath();
-        ctx.arc(centerX, centerY, radius, Math.PI, Math.PI + angle);
-        ctx.lineWidth = 24;
+        ctx.arc(centerX, centerY, radius, Math.PI * 0.8, Math.PI * 0.8 + angle);
+        ctx.lineWidth = 20; // Match background arc width
         ctx.strokeStyle = progressGradient;
         ctx.lineCap = 'round';
         ctx.stroke();
@@ -790,7 +791,7 @@ class MerchantRiskTab {
         
         // Draw inner ring for depth
         ctx.beginPath();
-        ctx.arc(centerX, centerY, radius - 15, Math.PI, 2 * Math.PI);
+        ctx.arc(centerX, centerY, radius - 15, Math.PI * 0.8, Math.PI * 2.2);
         ctx.lineWidth = 2;
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
         ctx.stroke();
@@ -798,7 +799,7 @@ class MerchantRiskTab {
         // Draw advanced tick marks with different sizes
         ctx.strokeStyle = '#a0aec0';
         for (let i = 0; i <= 10; i += 1) {
-            const tickAngle = Math.PI + (i / 10) * Math.PI;
+            const tickAngle = Math.PI * 0.8 + (i / 10) * Math.PI * 1.4;
             const isMajorTick = i % 2 === 0;
             const tickLength = isMajorTick ? 15 : 8;
             const tickWidth = isMajorTick ? 3 : 1.5;
@@ -822,7 +823,7 @@ class MerchantRiskTab {
         ctx.textBaseline = 'middle';
         
         for (let i = 0; i <= 10; i += 2) {
-            const tickAngle = Math.PI + (i / 10) * Math.PI;
+            const tickAngle = Math.PI * 0.8 + (i / 10) * Math.PI * 1.4;
             const x = centerX + (radius + 30) * Math.cos(tickAngle);
             const y = centerY + (radius + 30) * Math.sin(tickAngle);
             ctx.fillText(i.toString(), x, y);
@@ -1929,7 +1930,7 @@ class MerchantRiskTab {
                            <div class="risk-score-card" style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; position: relative;">
                                <div class="risk-gauge-container" style="position: relative; width: 250px; height: 250px; margin: 0 auto 20px;">
                                    <canvas id="riskGauge" width="250" height="250" style="width: 250px; height: 250px;"></canvas>
-                                   <div class="gauge-center-text" style="position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 10;">
+                                   <div class="gauge-center-text" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 10;">
                                        <div class="risk-score-value" id="overallRiskScore" style="font-size: 36px; font-weight: 800; color: #1a202c; margin-bottom: 6px; text-shadow: 0 2px 4px rgba(0,0,0,0.1); background: rgba(255,255,255,0.9); padding: 8px 12px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">7.2</div>
                                        <div class="risk-score-label" style="font-size: 14px; color: #4a5568; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 4px;">Overall Risk Score</div>
                                        <div class="risk-level-badge" id="riskLevelBadge" style="padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; display: inline-block;">High Risk</div>
