@@ -11,6 +11,17 @@
     <script src="components/mock-data-warning.js"></script>
     <script src="components/real-data-integration.js"></script>
     <script src="merchant-dashboard-real-data.js"></script>
+    
+    <!-- Risk Assessment Components -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/components/risk-websocket-client.js"></script>
+    <script src="js/components/risk-visualization.js"></script>
+    <script src="js/components/risk-explainability.js"></script>
+    <script src="js/components/risk-scenarios.js"></script>
+    <script src="js/components/risk-history.js"></script>
+    <script src="js/components/risk-export.js"></script>
+    <script src="js/merchant-risk-tab.js"></script>
     <style>
         * {
             margin: 0;
@@ -1294,42 +1305,49 @@
                     </div>
                 `;
 
-                // Simulate loading risk assessment data
+                // Initialize the actual risk assessment components
                 setTimeout(() => {
-                    riskContent.innerHTML = `
-                        <div class="risk-content-loaded">
-                            <div class="risk-overview">
-                                <div class="risk-score-card">
-                                    <div class="risk-score-value">7.2</div>
-                                    <div class="risk-score-label">Overall Risk Score</div>
-                                    <div class="risk-score-trend">
-                                        <i class="fas fa-arrow-up text-red-500"></i>
-                                        <span>+0.3 from last month</span>
+                    if (window.MerchantRiskTab) {
+                        // Initialize the risk assessment tab with real components
+                        window.merchantRiskTab = new MerchantRiskTab();
+                        window.merchantRiskTab.loadRiskAssessmentContent(riskContent);
+                    } else {
+                        // Fallback to placeholder content if components aren't loaded
+                        riskContent.innerHTML = `
+                            <div class="risk-content-loaded">
+                                <div class="risk-overview">
+                                    <div class="risk-score-card">
+                                        <div class="risk-score-value">7.2</div>
+                                        <div class="risk-score-label">Overall Risk Score</div>
+                                        <div class="risk-score-trend">
+                                            <i class="fas fa-arrow-up text-red-500"></i>
+                                            <span>+0.3 from last month</span>
+                                        </div>
+                                    </div>
+                                    <div class="risk-categories">
+                                        <div class="risk-category">
+                                            <span class="category-name">Financial Risk</span>
+                                            <span class="category-score high">8.1</span>
+                                        </div>
+                                        <div class="risk-category">
+                                            <span class="category-name">Operational Risk</span>
+                                            <span class="category-score medium">6.5</span>
+                                        </div>
+                                        <div class="risk-category">
+                                            <span class="category-name">Compliance Risk</span>
+                                            <span class="category-score low">4.2</span>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="risk-categories">
-                                    <div class="risk-category">
-                                        <span class="category-name">Financial Risk</span>
-                                        <span class="category-score high">8.1</span>
-                                    </div>
-                                    <div class="risk-category">
-                                        <span class="category-name">Operational Risk</span>
-                                        <span class="category-score medium">6.5</span>
-                                    </div>
-                                    <div class="risk-category">
-                                        <span class="category-name">Compliance Risk</span>
-                                        <span class="category-score low">4.2</span>
+                                <div class="risk-charts">
+                                    <div class="chart-container">
+                                        <h4>Risk Trend (6 months)</h4>
+                                        <div id="riskTrendChart" style="height: 200px;"></div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="risk-charts">
-                                <div class="chart-container">
-                                    <h4>Risk Trend (6 months)</h4>
-                                    <div id="riskTrendChart" style="height: 200px;"></div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
+                        `;
+                    }
                 }, 1000);
             }
 

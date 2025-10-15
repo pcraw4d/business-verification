@@ -703,6 +703,133 @@ class MerchantRiskTab {
     }
 
     /**
+     * Load risk assessment content into the specified container
+     */
+    async loadRiskAssessmentContent(container) {
+        if (!container) return;
+
+        try {
+            // Get merchant ID from URL or global variable
+            const merchantId = this.getMerchantId();
+            this.currentMerchantId = merchantId;
+
+            // Load the comprehensive risk assessment UI
+            container.innerHTML = `
+                <div class="risk-content-loaded">
+                    <!-- Risk Overview Section -->
+                    <div class="risk-overview">
+                        <div class="risk-score-card">
+                            <div class="risk-score-value" id="overallRiskScore">--</div>
+                            <div class="risk-score-label">Overall Risk Score</div>
+                            <div class="risk-score-trend" id="riskTrend">
+                                <i class="fas fa-minus text-gray-500"></i>
+                                <span>Loading...</span>
+                            </div>
+                        </div>
+                        <div class="risk-categories" id="riskCategories">
+                            <!-- Risk categories will be populated here -->
+                        </div>
+                    </div>
+
+                    <!-- Risk Charts Section -->
+                    <div class="risk-charts">
+                        <div class="chart-container">
+                            <h4>Risk Trend (6 months)</h4>
+                            <div id="riskTrendChart" style="height: 200px;"></div>
+                        </div>
+                        <div class="chart-container">
+                            <h4>Risk Factor Analysis</h4>
+                            <div id="riskFactorChart" style="height: 200px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- SHAP Explainability Section -->
+                    <div class="risk-explainability" id="riskExplainability">
+                        <h4>Why this score?</h4>
+                        <div id="shapExplanation" class="shap-container">
+                            <!-- SHAP explanation will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Scenario Analysis Section -->
+                    <div class="risk-scenarios" id="riskScenarios">
+                        <h4>Scenario Analysis</h4>
+                        <div id="scenarioAnalysis" class="scenario-container">
+                            <!-- Scenario analysis will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Risk History Section -->
+                    <div class="risk-history" id="riskHistory">
+                        <h4>Risk History</h4>
+                        <div id="riskHistoryChart" class="history-container">
+                            <!-- Risk history chart will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Export Section -->
+                    <div class="risk-export" id="riskExport">
+                        <h4>Export Reports</h4>
+                        <div class="export-buttons">
+                            <button class="btn btn-primary" id="exportPDF">
+                                <i class="fas fa-file-pdf"></i> Export PDF
+                            </button>
+                            <button class="btn btn-success" id="exportExcel">
+                                <i class="fas fa-file-excel"></i> Export Excel
+                            </button>
+                            <button class="btn btn-info" id="exportCSV">
+                                <i class="fas fa-file-csv"></i> Export CSV
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Initialize components
+            await this.initializeComponents();
+            
+            // Load initial data
+            await this.loadInitialData();
+            
+            // Update UI with loaded data
+            this.updateRiskUI();
+
+        } catch (error) {
+            console.error('Error loading risk assessment content:', error);
+            container.innerHTML = `
+                <div class="error-message">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h4>Error Loading Risk Assessment</h4>
+                    <p>Unable to load risk assessment data. Please try again later.</p>
+                    <button class="btn btn-primary" onclick="location.reload()">
+                        <i class="fas fa-refresh"></i> Retry
+                    </button>
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Get merchant ID from URL or global variable
+     */
+    getMerchantId() {
+        // Try to get from URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const merchantId = urlParams.get('merchantId');
+        if (merchantId) return merchantId;
+
+        // Try to get from global variable
+        if (window.currentMerchantId) return window.currentMerchantId;
+
+        // Try to get from merchant detail page
+        const merchantIdElement = document.querySelector('[data-merchant-id]');
+        if (merchantIdElement) return merchantIdElement.getAttribute('data-merchant-id');
+
+        // Default fallback
+        return 'demo-merchant-001';
+    }
+
+    /**
      * Export risk report
      */
     exportRiskReport() {
@@ -770,3 +897,6 @@ document.addEventListener('DOMContentLoaded', () => {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = MerchantRiskTab;
 }
+
+// Make available globally
+window.MerchantRiskTab = MerchantRiskTab;
