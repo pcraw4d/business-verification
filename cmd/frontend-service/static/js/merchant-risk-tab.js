@@ -1006,13 +1006,13 @@ class MerchantRiskTab {
         // Clear canvas
         ctx.clearRect(0, 0, width, height);
         
-        // SHAP values for visualization
+        // SHAP values for visualization - consistent with 7.2 final score
         const shapValues = [
-            { name: 'High Transaction Volume', value: 2.3, color: '#e53e3e' },
+            { name: 'High Transaction Volume', value: 2.5, color: '#e53e3e' },
             { name: 'Strong Credit History', value: -1.8, color: '#38a169' },
             { name: 'Recent Address Change', value: 1.2, color: '#e53e3e' },
             { name: 'High Market Volatility', value: 0.9, color: '#e53e3e' },
-            { name: 'Stable Business Model', value: -0.7, color: '#38a169' }
+            { name: 'Stable Business Model', value: -0.6, color: '#38a169' }
         ];
         
         // Helper function to measure text width
@@ -1056,10 +1056,10 @@ class MerchantRiskTab {
         const centerY = height / 2 - 20; // Move up to leave room for labels
         const baseScore = 5.0; // Base score before SHAP contributions
         
-        // Calculate dynamic spacing based on text width - reduce spacing to fit in frame
-        const maxLabelWidth = 100; // Reduced width for labels
-        const minBarSpacing = 40; // Reduced spacing between bars
-        const barScaleFactor = 20; // Slightly smaller bars to fit better
+        // Calculate dynamic spacing based on text width - increase bar size to fill space
+        const maxLabelWidth = 100; // Width for labels
+        const minBarSpacing = 30; // Reduced spacing between bars
+        const barScaleFactor = 35; // Larger bars to fill more space
         
         // Calculate total width needed - ensure it fits in frame
         let totalWidth = 0;
