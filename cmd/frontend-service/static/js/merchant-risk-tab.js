@@ -714,8 +714,8 @@ class MerchantRiskTab {
         
         const ctx = gaugeContainer.getContext('2d');
         const centerX = gaugeContainer.width / 2;
-        const centerY = gaugeContainer.height / 2 + 25; // Lower center to better position gauge above text
-        const radius = 75; // Slightly larger radius to wrap around text better
+        const centerY = gaugeContainer.height / 2 + 20; // Slightly higher center for better balance
+        const radius = 90; // Much larger radius to comfortably fit text within gauge
         
         // Clear canvas with subtle gradient background
         const bgGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius + 30);
@@ -739,7 +739,7 @@ class MerchantRiskTab {
         ctx.beginPath();
         // Start arc slightly higher to wrap around text better
         ctx.arc(centerX, centerY, radius, Math.PI * 0.8, Math.PI * 2.2);
-        ctx.lineWidth = 20; // Slightly thinner to reduce overlap
+        ctx.lineWidth = 24; // Slightly thicker for larger gauge
         ctx.strokeStyle = bgGradient2;
         ctx.lineCap = 'round';
         ctx.stroke();
@@ -780,7 +780,7 @@ class MerchantRiskTab {
         
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius, Math.PI * 0.8, Math.PI * 0.8 + angle);
-        ctx.lineWidth = 20; // Match background arc width
+        ctx.lineWidth = 24; // Match background arc width
         ctx.strokeStyle = progressGradient;
         ctx.lineCap = 'round';
         ctx.stroke();
@@ -1928,8 +1928,8 @@ class MerchantRiskTab {
                        <!-- Risk Overview Section -->
                        <div class="risk-overview" style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin: 20px 0;">
                            <div class="risk-score-card" style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; position: relative;">
-                               <div class="risk-gauge-container" style="position: relative; width: 250px; height: 250px; margin: 0 auto 20px;">
-                                   <canvas id="riskGauge" width="250" height="250" style="width: 250px; height: 250px;"></canvas>
+                               <div class="risk-gauge-container" style="position: relative; width: 280px; height: 280px; margin: 0 auto 20px;">
+                                   <canvas id="riskGauge" width="280" height="280" style="width: 280px; height: 280px;"></canvas>
                                    <div class="gauge-center-text" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 10;">
                                        <div class="risk-score-value" id="overallRiskScore" style="font-size: 36px; font-weight: 800; color: #1a202c; margin-bottom: 6px; text-shadow: 0 2px 4px rgba(0,0,0,0.1); background: rgba(255,255,255,0.9); padding: 8px 12px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">7.2</div>
                                        <div class="risk-score-label" style="font-size: 14px; color: #4a5568; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 4px;">Overall Risk Score</div>
