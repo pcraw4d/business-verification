@@ -826,25 +826,71 @@ class MerchantRiskTab {
         const shapContainer = document.getElementById('shapExplanation');
         if (!shapContainer) return;
 
+        console.log('🔍 Initializing SHAP explanation...');
+
         shapContainer.innerHTML = `
-            <div class="shap-explanation">
-                <h5>Top Risk Factors</h5>
-                <div class="shap-factors">
-                    <div class="shap-factor positive">
-                        <span class="factor-name">High Transaction Volume</span>
-                        <span class="factor-impact">+2.3</span>
+            <div class="shap-explanation" style="margin-top: 15px;">
+                <div class="shap-summary" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h5 style="margin-bottom: 10px; color: #495057; font-weight: 600;">Risk Score Breakdown</h5>
+                    <p style="color: #6c757d; font-size: 14px; margin: 0;">The overall risk score of 7.2 is influenced by the following key factors:</p>
+                </div>
+                
+                <div class="shap-factors" style="display: grid; gap: 12px;">
+                    <div class="shap-factor positive" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #fff5f5; border-left: 4px solid #e53e3e; border-radius: 4px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 8px; height: 8px; background: #e53e3e; border-radius: 50%;"></div>
+                            <span class="factor-name" style="font-weight: 500; color: #2d3748;">High Transaction Volume</span>
+                        </div>
+                        <span class="factor-impact" style="background: #fed7d7; color: #c53030; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 14px;">+2.3</span>
                     </div>
-                    <div class="shap-factor negative">
-                        <span class="factor-name">Strong Credit History</span>
-                        <span class="factor-impact">-1.8</span>
+                    
+                    <div class="shap-factor negative" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f0fff4; border-left: 4px solid #38a169; border-radius: 4px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 8px; height: 8px; background: #38a169; border-radius: 50%;"></div>
+                            <span class="factor-name" style="font-weight: 500; color: #2d3748;">Strong Credit History</span>
+                        </div>
+                        <span class="factor-impact" style="background: #c6f6d5; color: #2f855a; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 14px;">-1.8</span>
                     </div>
-                    <div class="shap-factor positive">
-                        <span class="factor-name">Recent Address Change</span>
-                        <span class="factor-impact">+1.2</span>
+                    
+                    <div class="shap-factor positive" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #fff5f5; border-left: 4px solid #e53e3e; border-radius: 4px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 8px; height: 8px; background: #e53e3e; border-radius: 50%;"></div>
+                            <span class="factor-name" style="font-weight: 500; color: #2d3748;">Recent Address Change</span>
+                        </div>
+                        <span class="factor-impact" style="background: #fed7d7; color: #c53030; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 14px;">+1.2</span>
+                    </div>
+                    
+                    <div class="shap-factor positive" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #fff5f5; border-left: 4px solid #e53e3e; border-radius: 4px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 8px; height: 8px; background: #e53e3e; border-radius: 50%;"></div>
+                            <span class="factor-name" style="font-weight: 500; color: #2d3748;">High Market Volatility</span>
+                        </div>
+                        <span class="factor-impact" style="background: #fed7d7; color: #c53030; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 14px;">+0.9</span>
+                    </div>
+                    
+                    <div class="shap-factor negative" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f0fff4; border-left: 4px solid #38a169; border-radius: 4px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 8px; height: 8px; background: #38a169; border-radius: 50%;"></div>
+                            <span class="factor-name" style="font-weight: 500; color: #2d3748;">Stable Business Model</span>
+                        </div>
+                        <span class="factor-impact" style="background: #c6f6d5; color: #2f855a; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 14px;">-0.7</span>
+                    </div>
+                </div>
+                
+                <div class="shap-interactive" style="margin-top: 20px; padding: 15px; background: #f7fafc; border-radius: 8px;">
+                    <h6 style="margin-bottom: 10px; color: #4a5568; font-weight: 600;">Interactive Force Plot</h6>
+                    <div id="shapForcePlot" style="height: 200px; background: white; border: 1px solid #e2e8f0; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #718096;">
+                        <div style="text-align: center;">
+                            <i class="fas fa-chart-line" style="font-size: 24px; margin-bottom: 8px;"></i>
+                            <div>Interactive SHAP Force Plot</div>
+                            <div style="font-size: 12px; margin-top: 4px;">Hover over factors to see detailed explanations</div>
+                        </div>
                     </div>
                 </div>
             </div>
         `;
+        
+        console.log('✅ SHAP explanation initialized successfully');
     }
 
     /**
@@ -854,27 +900,158 @@ class MerchantRiskTab {
         const scenarioContainer = document.getElementById('scenarioAnalysis');
         if (!scenarioContainer) return;
 
+        console.log('🔍 Initializing scenario analysis...');
+
         scenarioContainer.innerHTML = `
-            <div class="scenario-analysis">
-                <h5>Scenario Analysis</h5>
-                <div class="scenario-controls">
-                    <div class="scenario-parameter">
-                        <label>Transaction Volume</label>
-                        <input type="range" min="0" max="100" value="50" class="scenario-slider">
-                        <span class="scenario-value">50%</span>
+            <div class="scenario-analysis" style="margin-top: 15px;">
+                <div class="scenario-description" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h5 style="margin-bottom: 10px; color: #495057; font-weight: 600;">What-If Analysis</h5>
+                    <p style="color: #6c757d; font-size: 14px; margin: 0;">Adjust the parameters below to see how different scenarios would affect the risk score:</p>
+                </div>
+                
+                <div class="scenario-controls" style="display: grid; gap: 20px; margin-bottom: 25px;">
+                    <div class="scenario-parameter" style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #2d3748;">Transaction Volume</label>
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <input type="range" min="0" max="100" value="50" class="scenario-slider" id="transactionVolume" 
+                                   style="flex: 1; height: 6px; background: #e2e8f0; border-radius: 3px; outline: none; cursor: pointer;">
+                            <span class="scenario-value" style="min-width: 50px; text-align: center; font-weight: 600; color: #4a5568;">50%</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #718096; margin-top: 5px;">
+                            <span>Low</span>
+                            <span>High</span>
+                        </div>
                     </div>
-                    <div class="scenario-parameter">
-                        <label>Credit Score</label>
-                        <input type="range" min="300" max="850" value="650" class="scenario-slider">
-                        <span class="scenario-value">650</span>
+                    
+                    <div class="scenario-parameter" style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #2d3748;">Credit Score</label>
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <input type="range" min="300" max="850" value="650" class="scenario-slider" id="creditScore"
+                                   style="flex: 1; height: 6px; background: #e2e8f0; border-radius: 3px; outline: none; cursor: pointer;">
+                            <span class="scenario-value" style="min-width: 50px; text-align: center; font-weight: 600; color: #4a5568;">650</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #718096; margin-top: 5px;">
+                            <span>300</span>
+                            <span>850</span>
+                        </div>
+                    </div>
+                    
+                    <div class="scenario-parameter" style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #2d3748;">Market Conditions</label>
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <input type="range" min="0" max="100" value="30" class="scenario-slider" id="marketConditions"
+                                   style="flex: 1; height: 6px; background: #e2e8f0; border-radius: 3px; outline: none; cursor: pointer;">
+                            <span class="scenario-value" style="min-width: 50px; text-align: center; font-weight: 600; color: #4a5568;">30%</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #718096; margin-top: 5px;">
+                            <span>Stable</span>
+                            <span>Volatile</span>
+                        </div>
                     </div>
                 </div>
-                <div class="scenario-result">
-                    <span class="scenario-label">Predicted Risk Score:</span>
-                    <span class="scenario-score">6.8</span>
+                
+                <div class="scenario-results" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div class="scenario-result" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">Predicted Risk Score</div>
+                        <div class="scenario-score" style="font-size: 32px; font-weight: 700; margin-bottom: 5px;">6.8</div>
+                        <div style="font-size: 12px; opacity: 0.8;">Current Scenario</div>
+                    </div>
+                    
+                    <div class="scenario-comparison" style="background: #f7fafc; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <h6 style="margin-bottom: 15px; color: #4a5568; font-weight: 600;">Impact Analysis</h6>
+                        <div style="display: grid; gap: 8px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 14px;">
+                                <span style="color: #718096;">vs. Baseline:</span>
+                                <span style="color: #38a169; font-weight: 600;">-0.4</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 14px;">
+                                <span style="color: #718096;">Confidence:</span>
+                                <span style="color: #4a5568; font-weight: 600;">87%</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 14px;">
+                                <span style="color: #718096;">Risk Level:</span>
+                                <span style="color: #d69e2e; font-weight: 600;">Medium</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="scenario-actions" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn btn-primary" style="background: #4299e1; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                        <i class="fas fa-play"></i> Run Monte Carlo
+                    </button>
+                    <button class="btn btn-secondary" style="background: #718096; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                        <i class="fas fa-chart-bar"></i> Stress Test
+                    </button>
+                    <button class="btn btn-outline" style="background: transparent; color: #4a5568; border: 1px solid #e2e8f0; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                        <i class="fas fa-undo"></i> Reset
+                    </button>
                 </div>
             </div>
         `;
+        
+        // Add event listeners for sliders
+        this.addScenarioEventListeners();
+        
+        console.log('✅ Scenario analysis initialized successfully');
+    }
+    
+    /**
+     * Add event listeners for scenario sliders
+     */
+    addScenarioEventListeners() {
+        const transactionSlider = document.getElementById('transactionVolume');
+        const creditSlider = document.getElementById('creditScore');
+        const marketSlider = document.getElementById('marketConditions');
+        
+        if (transactionSlider) {
+            transactionSlider.addEventListener('input', (e) => {
+                const value = e.target.value;
+                const valueSpan = e.target.nextElementSibling;
+                if (valueSpan) valueSpan.textContent = value + '%';
+                this.updateScenarioScore();
+            });
+        }
+        
+        if (creditSlider) {
+            creditSlider.addEventListener('input', (e) => {
+                const value = e.target.value;
+                const valueSpan = e.target.nextElementSibling;
+                if (valueSpan) valueSpan.textContent = value;
+                this.updateScenarioScore();
+            });
+        }
+        
+        if (marketSlider) {
+            marketSlider.addEventListener('input', (e) => {
+                const value = e.target.value;
+                const valueSpan = e.target.nextElementSibling;
+                if (valueSpan) valueSpan.textContent = value + '%';
+                this.updateScenarioScore();
+            });
+        }
+    }
+    
+    /**
+     * Update scenario score based on slider values
+     */
+    updateScenarioScore() {
+        const transactionValue = document.getElementById('transactionVolume')?.value || 50;
+        const creditValue = document.getElementById('creditScore')?.value || 650;
+        const marketValue = document.getElementById('marketConditions')?.value || 30;
+        
+        // Simple calculation for demo purposes
+        const baseScore = 7.2;
+        const transactionImpact = (transactionValue - 50) * 0.02;
+        const creditImpact = (650 - creditValue) * 0.01;
+        const marketImpact = (marketValue - 30) * 0.015;
+        
+        const newScore = Math.max(0, Math.min(10, baseScore + transactionImpact + creditImpact + marketImpact));
+        
+        const scoreElement = document.querySelector('.scenario-score');
+        if (scoreElement) {
+            scoreElement.textContent = newScore.toFixed(1);
+        }
     }
 
     /**
@@ -884,29 +1061,153 @@ class MerchantRiskTab {
         const historyContainer = document.getElementById('riskHistoryChart');
         if (!historyContainer) return;
 
+        console.log('🔍 Initializing risk history chart...');
+
         historyContainer.innerHTML = `
-            <div class="risk-history-chart">
-                <h5>Risk History (12 months)</h5>
-                <div class="history-timeline">
-                    <div class="history-point" style="left: 10%;">
-                        <div class="history-dot"></div>
-                        <div class="history-label">Jan: 6.8</div>
+            <div class="risk-history-chart" style="margin-top: 15px;">
+                <div class="history-summary" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h5 style="margin-bottom: 10px; color: #495057; font-weight: 600;">Risk Evolution (12 months)</h5>
+                    <p style="color: #6c757d; font-size: 14px; margin: 0;">Track how risk scores have changed over time with key events and trends:</p>
+                </div>
+                
+                <div class="history-timeline" style="position: relative; height: 300px; background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                    <div class="timeline-line" style="position: absolute; top: 50%; left: 5%; right: 5%; height: 2px; background: #e2e8f0; transform: translateY(-50%);"></div>
+                    
+                    <div class="history-point" style="position: absolute; top: 50%; left: 8%; transform: translateY(-50%);">
+                        <div class="history-dot" style="width: 12px; height: 12px; background: #4299e1; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></div>
+                        <div class="history-label" style="position: absolute; top: -40px; left: 50%; transform: translateX(-50%); background: #4299e1; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap;">
+                            Jan: 6.8
+                        </div>
+                        <div class="history-event" style="position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%); font-size: 11px; color: #718096; text-align: center; width: 80px;">
+                            Business Launch
+                        </div>
                     </div>
-                    <div class="history-point" style="left: 30%;">
-                        <div class="history-dot"></div>
-                        <div class="history-label">Apr: 7.1</div>
+                    
+                    <div class="history-point" style="position: absolute; top: 50%; left: 28%; transform: translateY(-50%);">
+                        <div class="history-dot" style="width: 12px; height: 12px; background: #e53e3e; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></div>
+                        <div class="history-label" style="position: absolute; top: -40px; left: 50%; transform: translateX(-50%); background: #e53e3e; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap;">
+                            Apr: 7.1
+                        </div>
+                        <div class="history-event" style="position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%); font-size: 11px; color: #718096; text-align: center; width: 80px;">
+                            Payment Spike
+                        </div>
                     </div>
-                    <div class="history-point" style="left: 60%;">
-                        <div class="history-dot"></div>
-                        <div class="history-label">Aug: 6.9</div>
+                    
+                    <div class="history-point" style="position: absolute; top: 50%; left: 48%; transform: translateY(-50%);">
+                        <div class="history-dot" style="width: 12px; height: 12px; background: #38a169; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></div>
+                        <div class="history-label" style="position: absolute; top: -40px; left: 50%; transform: translateX(-50%); background: #38a169; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap;">
+                            Aug: 6.9
+                        </div>
+                        <div class="history-event" style="position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%); font-size: 11px; color: #718096; text-align: center; width: 80px;">
+                            Credit Improvement
+                        </div>
                     </div>
-                    <div class="history-point" style="left: 90%;">
-                        <div class="history-dot current"></div>
-                        <div class="history-label">Dec: 7.2</div>
+                    
+                    <div class="history-point" style="position: absolute; top: 50%; left: 68%; transform: translateY(-50%);">
+                        <div class="history-dot" style="width: 12px; height: 12px; background: #d69e2e; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></div>
+                        <div class="history-label" style="position: absolute; top: -40px; left: 50%; transform: translateX(-50%); background: #d69e2e; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap;">
+                            Oct: 7.0
+                        </div>
+                        <div class="history-event" style="position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%); font-size: 11px; color: #718096; text-align: center; width: 80px;">
+                            Market Volatility
+                        </div>
                     </div>
+                    
+                    <div class="history-point current" style="position: absolute; top: 50%; left: 88%; transform: translateY(-50%);">
+                        <div class="history-dot" style="width: 16px; height: 16px; background: #667eea; border-radius: 50%; border: 4px solid white; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"></div>
+                        <div class="history-label" style="position: absolute; top: -40px; left: 50%; transform: translateX(-50%); background: #667eea; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap; font-weight: 600;">
+                            Dec: 7.2
+                        </div>
+                        <div class="history-event" style="position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%); font-size: 11px; color: #667eea; text-align: center; width: 80px; font-weight: 600;">
+                            Current
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="history-stats" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
+                    <div class="stat-card" style="background: #f7fafc; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0;">
+                        <div style="font-size: 24px; font-weight: 700; color: #4a5568; margin-bottom: 5px;">+0.4</div>
+                        <div style="font-size: 12px; color: #718096;">12-Month Change</div>
+                    </div>
+                    <div class="stat-card" style="background: #f7fafc; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0;">
+                        <div style="font-size: 24px; font-weight: 700; color: #4a5568; margin-bottom: 5px;">6.8</div>
+                        <div style="font-size: 12px; color: #718096;">Lowest Score</div>
+                    </div>
+                    <div class="stat-card" style="background: #f7fafc; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0;">
+                        <div style="font-size: 24px; font-weight: 700; color: #4a5568; margin-bottom: 5px;">7.1</div>
+                        <div style="font-size: 12px; color: #718096;">Highest Score</div>
+                    </div>
+                </div>
+                
+                <div class="history-actions" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn btn-primary" style="background: #4299e1; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                        <i class="fas fa-download"></i> Export History
+                    </button>
+                    <button class="btn btn-secondary" style="background: #718096; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                        <i class="fas fa-chart-line"></i> View Trends
+                    </button>
+                    <button class="btn btn-outline" style="background: transparent; color: #4a5568; border: 1px solid #e2e8f0; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                        <i class="fas fa-calendar"></i> Set Alerts
+                    </button>
                 </div>
             </div>
         `;
+        
+        console.log('✅ Risk history chart initialized successfully');
+    }
+    
+    /**
+     * Add event listeners for export buttons
+     */
+    addExportEventListeners() {
+        const exportPDF = document.getElementById('exportPDF');
+        const exportExcel = document.getElementById('exportExcel');
+        const exportCSV = document.getElementById('exportCSV');
+        
+        if (exportPDF) {
+            exportPDF.addEventListener('click', () => {
+                console.log('🔍 Exporting PDF report...');
+                this.exportPDF();
+            });
+        }
+        
+        if (exportExcel) {
+            exportExcel.addEventListener('click', () => {
+                console.log('🔍 Exporting Excel report...');
+                this.exportExcel();
+            });
+        }
+        
+        if (exportCSV) {
+            exportCSV.addEventListener('click', () => {
+                console.log('🔍 Exporting CSV report...');
+                this.exportCSV();
+            });
+        }
+    }
+    
+    /**
+     * Export PDF report
+     */
+    exportPDF() {
+        // For demo purposes, show a success message
+        alert('PDF export functionality would be implemented here. This would generate a comprehensive risk assessment report with charts and data.');
+    }
+    
+    /**
+     * Export Excel report
+     */
+    exportExcel() {
+        // For demo purposes, show a success message
+        alert('Excel export functionality would be implemented here. This would generate a formatted Excel file with risk data and charts.');
+    }
+    
+    /**
+     * Export CSV report
+     */
+    exportCSV() {
+        // For demo purposes, show a success message
+        alert('CSV export functionality would be implemented here. This would generate a CSV file with risk assessment data.');
     }
 
     /**
@@ -1051,45 +1352,45 @@ class MerchantRiskTab {
                            </div>
                        </div>
 
-                    <!-- SHAP Explainability Section -->
-                    <div class="risk-explainability" id="riskExplainability">
-                        <h4>Why this score?</h4>
-                        <div id="shapExplanation" class="shap-container">
-                            <!-- SHAP explanation will be loaded here -->
-                        </div>
-                    </div>
+                       <!-- SHAP Explainability Section -->
+                       <div class="risk-explainability" id="riskExplainability" style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin: 20px 0;">
+                           <h4 style="margin-bottom: 15px; color: #333; font-size: 18px; font-weight: 600;">Why this score?</h4>
+                           <div id="shapExplanation" class="shap-container">
+                               <!-- SHAP explanation will be loaded here -->
+                           </div>
+                       </div>
 
-                    <!-- Scenario Analysis Section -->
-                    <div class="risk-scenarios" id="riskScenarios">
-                        <h4>Scenario Analysis</h4>
-                        <div id="scenarioAnalysis" class="scenario-container">
-                            <!-- Scenario analysis will be loaded here -->
-                        </div>
-                    </div>
+                       <!-- Scenario Analysis Section -->
+                       <div class="risk-scenarios" id="riskScenarios" style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin: 20px 0;">
+                           <h4 style="margin-bottom: 15px; color: #333; font-size: 18px; font-weight: 600;">Scenario Analysis</h4>
+                           <div id="scenarioAnalysis" class="scenario-container">
+                               <!-- Scenario analysis will be loaded here -->
+                           </div>
+                       </div>
 
-                    <!-- Risk History Section -->
-                    <div class="risk-history" id="riskHistory">
-                        <h4>Risk History</h4>
-                        <div id="riskHistoryChart" class="history-container">
-                            <!-- Risk history chart will be loaded here -->
-                        </div>
-                    </div>
+                       <!-- Risk History Section -->
+                       <div class="risk-history" id="riskHistory" style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin: 20px 0;">
+                           <h4 style="margin-bottom: 15px; color: #333; font-size: 18px; font-weight: 600;">Risk History</h4>
+                           <div id="riskHistoryChart" class="history-container">
+                               <!-- Risk history chart will be loaded here -->
+                           </div>
+                       </div>
 
-                    <!-- Export Section -->
-                    <div class="risk-export" id="riskExport">
-                        <h4>Export Reports</h4>
-                        <div class="export-buttons">
-                            <button class="btn btn-primary" id="exportPDF">
-                                <i class="fas fa-file-pdf"></i> Export PDF
-                            </button>
-                            <button class="btn btn-success" id="exportExcel">
-                                <i class="fas fa-file-excel"></i> Export Excel
-                            </button>
-                            <button class="btn btn-info" id="exportCSV">
-                                <i class="fas fa-file-csv"></i> Export CSV
-                            </button>
-                        </div>
-                    </div>
+                       <!-- Export Section -->
+                       <div class="risk-export" id="riskExport" style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin: 20px 0;">
+                           <h4 style="margin-bottom: 15px; color: #333; font-size: 18px; font-weight: 600;">Export Reports</h4>
+                           <div class="export-buttons" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                               <button class="btn btn-primary" id="exportPDF" style="background: #dc3545; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                                   <i class="fas fa-file-pdf"></i> Export PDF
+                               </button>
+                               <button class="btn btn-success" id="exportExcel" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                                   <i class="fas fa-file-excel"></i> Export Excel
+                               </button>
+                               <button class="btn btn-info" id="exportCSV" style="background: #17a2b8; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                                   <i class="fas fa-file-csv"></i> Export CSV
+                               </button>
+                           </div>
+                       </div>
                 </div>
             `;
 
@@ -1105,6 +1406,7 @@ class MerchantRiskTab {
             // Initialize visualizations after UI is updated with a small delay
             setTimeout(() => {
                 this.initializeVisualizations();
+                this.addExportEventListeners();
             }, 100);
 
         } catch (error) {
