@@ -1150,13 +1150,21 @@ class MerchantRiskTab {
         // Draw final score with larger font - ensure it fits
         const finalScore = baseScore + shapValues.reduce((sum, factor) => sum + factor.value, 0);
         ctx.fillStyle = '#2d3748';
-        ctx.font = 'bold 18px Arial'; // Slightly smaller font
+        ctx.font = 'bold 16px Arial'; // Smaller font to ensure fit
         ctx.textAlign = 'center';
         
         // Ensure final score fits within canvas
         const finalScoreText = `Final Score: ${finalScore.toFixed(1)}`;
         const finalScoreWidth = ctx.measureText(finalScoreText).width;
-        const finalScoreX = Math.min(currentX + 40, width - finalScoreWidth/2 - 20);
+        
+        // Position final score to ensure it's completely visible
+        let finalScoreX = currentX + 40;
+        if (finalScoreX + finalScoreWidth/2 > width - 20) {
+            finalScoreX = width - finalScoreWidth/2 - 20;
+        }
+        if (finalScoreX - finalScoreWidth/2 < 20) {
+            finalScoreX = finalScoreWidth/2 + 20;
+        }
         
         ctx.fillText(finalScoreText, finalScoreX, centerY - 40);
         
@@ -1169,18 +1177,21 @@ class MerchantRiskTab {
             if (!tooltip) {
                 tooltip = document.createElement('div');
                 tooltip.style.cssText = `
-                    position: absolute;
-                    background: rgba(0, 0, 0, 0.9);
+                    position: fixed;
+                    background: rgba(0, 0, 0, 0.95);
                     color: white;
                     padding: 12px 16px;
                     border-radius: 8px;
                     font-size: 12px;
                     font-family: Arial, sans-serif;
                     pointer-events: none;
-                    z-index: 1000;
+                    z-index: 10000;
                     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
                     max-width: 250px;
                     line-height: 1.4;
+                    border: 1px solid #333;
+                    opacity: 0;
+                    transition: opacity 0.2s ease;
                 `;
                 document.body.appendChild(tooltip);
             }
@@ -1231,9 +1242,25 @@ class MerchantRiskTab {
                     </div>
                 `;
                 
-                // Position tooltip
-                tooltip.style.left = (e.clientX + 10) + 'px';
-                tooltip.style.top = (e.clientY - 10) + 'px';
+                // Position tooltip with better positioning logic
+                const tooltipRect = tooltip.getBoundingClientRect();
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                
+                let tooltipX = e.clientX + 10;
+                let tooltipY = e.clientY - 10;
+                
+                // Ensure tooltip doesn't go off screen
+                if (tooltipX + tooltipRect.width > viewportWidth - 20) {
+                    tooltipX = e.clientX - tooltipRect.width - 10;
+                }
+                if (tooltipY < 20) {
+                    tooltipY = e.clientY + 20;
+                }
+                
+                tooltip.style.left = tooltipX + 'px';
+                tooltip.style.top = tooltipY + 'px';
+                tooltip.style.opacity = '1';
                 tooltip.style.display = 'block';
                 
             } else if (!foundBar && hoveredBar) {
@@ -1243,7 +1270,12 @@ class MerchantRiskTab {
                 
                 // Hide tooltip
                 if (tooltip) {
-                    tooltip.style.display = 'none';
+                    tooltip.style.opacity = '0';
+                    setTimeout(() => {
+                        if (tooltip) {
+                            tooltip.style.display = 'none';
+                        }
+                    }, 200);
                 }
             }
         });
@@ -1270,7 +1302,12 @@ class MerchantRiskTab {
             hoveredBar = null;
             canvas.style.cursor = 'default';
             if (tooltip) {
-                tooltip.style.display = 'none';
+                tooltip.style.opacity = '0';
+                setTimeout(() => {
+                    if (tooltip) {
+                        tooltip.style.display = 'none';
+                    }
+                }, 200);
             }
         });
         
