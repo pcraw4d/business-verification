@@ -609,19 +609,27 @@ class MerchantRiskTab {
             overallScoreElement.className = `risk-score-value ${this.getRiskLevel(this.riskData.overallScore)}`;
         }
 
-        // Update risk categories
-        if (this.riskData.categories) {
-            const categoriesContainer = document.getElementById('riskCategories');
-            if (categoriesContainer) {
-                categoriesContainer.innerHTML = Object.entries(this.riskData.categories)
-                    .map(([category, score]) => `
-                        <div class="risk-category">
-                            <span class="category-name">${category}</span>
-                            <span class="category-score ${this.getRiskLevel(score)}">${score.toFixed(1)}</span>
-                        </div>
-                    `).join('');
-            }
-        }
+           // Update risk categories with visual components
+           if (this.riskData.categories) {
+               const categoriesContainer = document.getElementById('riskCategories');
+               if (categoriesContainer) {
+                   categoriesContainer.innerHTML = Object.entries(this.riskData.categories)
+                       .map(([category, score]) => `
+                           <div class="risk-category" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; margin-bottom: 8px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid ${this.getCategoryColor(score)};">
+                               <div style="display: flex; align-items: center; gap: 10px;">
+                                   <div style="width: 8px; height: 8px; background: ${this.getCategoryColor(score)}; border-radius: 50%;"></div>
+                                   <span class="category-name" style="font-weight: 500; color: #2d3748; text-transform: capitalize;">${category}</span>
+                               </div>
+                               <div style="display: flex; align-items: center; gap: 8px;">
+                                   <div class="category-progress" style="width: 60px; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
+                                       <div style="width: ${(score / 10) * 100}%; height: 100%; background: ${this.getCategoryColor(score)}; transition: width 0.3s ease;"></div>
+                                   </div>
+                                   <span class="category-score ${this.getRiskLevel(score)}" style="font-weight: 600; color: ${this.getCategoryColor(score)}; min-width: 30px; text-align: right;">${score.toFixed(1)}</span>
+                               </div>
+                           </div>
+                       `).join('');
+               }
+           }
 
         // Update risk trend
         const trendElement = document.getElementById('riskTrend');
@@ -1008,23 +1016,27 @@ class MerchantRiskTab {
         ];
         
         // Calculate positions and draw force plot
-        const centerX = width / 2;
         const centerY = height / 2;
         const baseScore = 5.0; // Base score before SHAP contributions
         
-        let currentX = centerX - 100; // Start from left
+        // Calculate total width needed
+        const totalBarWidth = shapValues.reduce((sum, factor) => sum + Math.abs(factor.value) * 15, 0);
+        const spacing = shapValues.length * 20;
+        const totalWidth = totalBarWidth + spacing + 200; // Extra space for labels
+        
+        let currentX = (width - totalWidth) / 2; // Center the plot
         
         // Draw base score
         ctx.fillStyle = '#4a5568';
         ctx.font = '14px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('Base Score: 5.0', currentX, centerY - 20);
+        ctx.fillText('Base Score: 5.0', currentX, centerY - 30);
         
         // Draw SHAP contributions
         shapValues.forEach((factor, index) => {
-            const barWidth = Math.abs(factor.value) * 20; // Scale factor
-            const barHeight = 30;
-            const barX = currentX + 20;
+            const barWidth = Math.abs(factor.value) * 15; // Reduced scale factor
+            const barHeight = 25; // Reduced height
+            const barX = currentX + 30;
             const barY = centerY - barHeight / 2;
             
             // Draw bar
@@ -1033,17 +1045,24 @@ class MerchantRiskTab {
             
             // Draw value
             ctx.fillStyle = 'white';
-            ctx.font = '12px Arial';
+            ctx.font = '11px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(factor.value.toFixed(1), barX + barWidth / 2, centerY + 4);
+            ctx.fillText(factor.value.toFixed(1), barX + barWidth / 2, centerY + 3);
             
-            // Draw factor name
+            // Draw factor name (rotated to prevent overlap)
+            ctx.save();
+            ctx.translate(barX + barWidth / 2, centerY + 35);
+            ctx.rotate(-Math.PI / 4); // 45 degree rotation
             ctx.fillStyle = '#4a5568';
-            ctx.font = '10px Arial';
+            ctx.font = '9px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(factor.name, barX + barWidth / 2, centerY + 25);
             
-            currentX += barWidth + 30;
+            // Truncate long names
+            const shortName = factor.name.length > 15 ? factor.name.substring(0, 12) + '...' : factor.name;
+            ctx.fillText(shortName, 0, 0);
+            ctx.restore();
+            
+            currentX += barWidth + 25; // Reduced spacing
         });
         
         // Draw final score
@@ -1051,7 +1070,7 @@ class MerchantRiskTab {
         ctx.fillStyle = '#2d3748';
         ctx.font = '16px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText(`Final Score: ${finalScore.toFixed(1)}`, currentX + 50, centerY - 20);
+        ctx.fillText(`Final Score: ${finalScore.toFixed(1)}`, currentX + 30, centerY - 30);
         
         // Add hover effects
         canvas.addEventListener('mousemove', (e) => {
@@ -1457,6 +1476,12 @@ class MerchantRiskTab {
         if (score <= 6) return 'medium';
         if (score <= 8) return 'high';
         return 'critical';
+    }
+    
+    getCategoryColor(score) {
+        if (score <= 3) return '#38a169'; // Green
+        if (score <= 7) return '#d69e2e'; // Yellow/Orange
+        return '#e53e3e'; // Red
     }
 
     /**
