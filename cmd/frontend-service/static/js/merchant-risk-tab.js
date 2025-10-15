@@ -822,6 +822,16 @@ class MerchantRiskTab {
         const merchantId = urlParams.get('merchantId');
         if (merchantId) return merchantId;
 
+        // Try to get from merchant details instance
+        if (window.merchantDetailsInstance?.merchantData?.id) {
+            return window.merchantDetailsInstance.merchantData.id;
+        }
+
+        // Try to get from merchant details instance business name as fallback
+        if (window.merchantDetailsInstance?.merchantData?.businessName) {
+            return window.merchantDetailsInstance.merchantData.businessName.toLowerCase().replace(/\s+/g, '-');
+        }
+
         // Try to get from global variable
         if (window.currentMerchantId) return window.currentMerchantId;
 
