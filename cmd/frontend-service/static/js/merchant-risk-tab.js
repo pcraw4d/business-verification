@@ -1056,10 +1056,10 @@ class MerchantRiskTab {
         const centerY = height / 2 - 20; // Move up to leave room for labels
         const baseScore = 5.0; // Base score before SHAP contributions
         
-        // Calculate dynamic spacing based on text width - increase bar size to fill space
+        // Calculate dynamic spacing based on text width - maximize bar size and minimize gaps
         const maxLabelWidth = 100; // Width for labels
-        const minBarSpacing = 30; // Reduced spacing between bars
-        const barScaleFactor = 35; // Larger bars to fill more space
+        const minBarSpacing = 15; // Minimal spacing between bars
+        const barScaleFactor = 45; // Even larger bars to fill more space
         
         // Calculate total width needed - ensure it fits in frame
         let totalWidth = 0;
@@ -1083,13 +1083,16 @@ class MerchantRiskTab {
             });
         }
         
-        let currentX = (width - totalWidth) / 2; // Center the plot
+        // Start bars after the base score with proper spacing
+        let currentX = 120; // Start after base score text with spacing
         
-        // Draw base score with larger font
+        // Draw base score with proper positioning to avoid truncation
         ctx.fillStyle = '#4a5568';
-        ctx.font = '18px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('Base Score: 5.0', currentX, centerY - 40);
+        ctx.font = '16px Arial'; // Smaller font to ensure fit
+        ctx.textAlign = 'left'; // Left align to prevent truncation
+        const baseScoreText = 'Base Score: 5.0';
+        const baseScoreX = 20; // Fixed left margin to ensure visibility
+        ctx.fillText(baseScoreText, baseScoreX, centerY - 40);
         
         // Store bar positions for interactivity
         const barPositions = [];
@@ -1141,9 +1144,9 @@ class MerchantRiskTab {
                 ctx.fillText(line, barX + barWidth / 2, centerY + 60 + (lineIndex * 16));
             });
             
-            // Calculate spacing for next bar - use reduced spacing
+            // Calculate spacing for next bar - use minimal spacing
             const labelWidth = Math.max(measureText(factor.name, '12px'), maxLabelWidth);
-            const spacing = Math.max(minBarSpacing, labelWidth + 20);
+            const spacing = Math.max(minBarSpacing, labelWidth + 10); // Reduced from 20 to 10
             currentX += barWidth + spacing;
         });
         
