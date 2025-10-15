@@ -9,6 +9,20 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="components/navigation.js"></script>
     <script src="components/merchant-context.js"></script>
+    
+    <!-- Risk Assessment Components -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="js/components/risk-websocket-client.js?v=20241014-2000"></script>
+    <script src="js/components/risk-visualization.js?v=20241014-2000"></script>
+    <script src="js/components/risk-explainability.js?v=20241014-2000"></script>
+    <script src="js/components/risk-scenarios.js?v=20241014-2000"></script>
+    <script src="js/components/risk-history.js?v=20241014-2000"></script>
+    <script src="js/components/risk-export.js?v=20241014-2000"></script>
+    <script src="js/merchant-risk-tab.js?v=20241014-2000"></script>
+    <script>
+        console.log('🚀 NEW VERSION LOADED: Risk Assessment Components v20241014-2000');
+        console.log('🚀 MerchantRiskTab available:', typeof window.MerchantRiskTab);
+    </script>
     <style>
         .gradient-bg {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -2890,12 +2904,24 @@
             populateRiskAssessmentResults(data) {
                 console.log('Populating Risk Assessment results:', data);
                 
-                // Populate all Risk Assessment sections
-                populateRiskOverviewDashboard(data);
-                populateRiskHeatMap(data);
-                initRiskRadarChartRiskAssessment();
-                populateIndustryBenchmark(data);
-                updateThresholdMarker(data);
+                // Check if new risk assessment components are available
+                if (window.MerchantRiskTab) {
+                    console.log('✅ Using new risk assessment components');
+                    const riskContent = document.getElementById('riskDashboardResults');
+                    if (riskContent) {
+                        // Initialize new risk assessment components
+                        window.merchantRiskTab = new MerchantRiskTab();
+                        window.merchantRiskTab.loadRiskAssessmentContent(riskContent);
+                    }
+                } else {
+                    console.log('⚠️ Using legacy risk assessment components');
+                    // Fallback to existing components
+                    populateRiskOverviewDashboard(data);
+                    populateRiskHeatMap(data);
+                    initRiskRadarChartRiskAssessment();
+                    populateIndustryBenchmark(data);
+                    updateThresholdMarker(data);
+                }
             }
 
             populateRiskIndicatorsResults(data) {
