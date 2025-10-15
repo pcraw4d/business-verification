@@ -1927,8 +1927,8 @@ class MerchantRiskTab {
                 <div class="risk-content-loaded">
                        <!-- Risk Overview Section -->
                        <div class="risk-overview" style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin: 20px 0;">
-                           <div class="risk-score-card" style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; position: relative;">
-                               <div class="risk-gauge-container" style="position: relative; width: 250px; height: 250px; margin: 0 auto 20px;">
+                           <div class="risk-score-card" style="background: white; padding: 15px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; position: relative;">
+                               <div class="risk-gauge-container" style="position: relative; width: 250px; height: 250px; margin: 0 auto 10px;">
                                    <canvas id="riskGauge" width="250" height="250" style="width: 250px; height: 250px;"></canvas>
                                    <div class="gauge-center-text" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 10;">
                                        <div class="risk-score-value" id="overallRiskScore" style="font-size: 48px; font-weight: 800; color: #1a202c; margin-bottom: 8px; text-shadow: 0 2px 4px rgba(0,0,0,0.1); background: rgba(255,255,255,0.9); padding: 10px 16px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">7.2</div>
