@@ -668,6 +668,9 @@ class MerchantRiskTab {
         console.log('🔍 Initializing visualizations...');
         
         try {
+            // Initialize risk gauge
+            this.initializeRiskGauge();
+            
             // Initialize risk trend chart
             this.initializeRiskTrendChart();
             
@@ -687,6 +690,88 @@ class MerchantRiskTab {
         } catch (error) {
             console.error('Error initializing visualizations:', error);
         }
+    }
+
+    /**
+     * Initialize risk gauge
+     */
+    initializeRiskGauge() {
+        const gaugeContainer = document.getElementById('riskGauge');
+        if (!gaugeContainer) {
+            console.log('❌ Risk gauge container not found');
+            return;
+        }
+
+        console.log('🔍 Initializing risk gauge...');
+        
+        const ctx = gaugeContainer.getContext('2d');
+        const centerX = gaugeContainer.width / 2;
+        const centerY = gaugeContainer.height / 2;
+        const radius = 80;
+        
+        // Clear canvas
+        ctx.clearRect(0, 0, gaugeContainer.width, gaugeContainer.height);
+        
+        // Draw background arc
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, Math.PI, 2 * Math.PI);
+        ctx.lineWidth = 20;
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.stroke();
+        
+        // Draw risk level arcs
+        const riskScore = this.riskData?.overallScore || 7.2;
+        const angle = (riskScore / 10) * Math.PI;
+        
+        // Low risk (0-3): Green
+        if (riskScore <= 3) {
+            ctx.strokeStyle = '#38a169';
+        }
+        // Medium risk (3-7): Yellow/Orange
+        else if (riskScore <= 7) {
+            ctx.strokeStyle = '#d69e2e';
+        }
+        // High risk (7-10): Red
+        else {
+            ctx.strokeStyle = '#e53e3e';
+        }
+        
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, Math.PI, Math.PI + angle);
+        ctx.lineWidth = 20;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        
+        // Draw tick marks
+        ctx.strokeStyle = '#718096';
+        ctx.lineWidth = 2;
+        for (let i = 0; i <= 10; i += 2) {
+            const tickAngle = Math.PI + (i / 10) * Math.PI;
+            const x1 = centerX + (radius - 10) * Math.cos(tickAngle);
+            const y1 = centerY + (radius - 10) * Math.sin(tickAngle);
+            const x2 = centerX + (radius + 10) * Math.cos(tickAngle);
+            const y2 = centerY + (radius + 10) * Math.sin(tickAngle);
+            
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+        }
+        
+        // Draw labels
+        ctx.fillStyle = '#718096';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        for (let i = 0; i <= 10; i += 2) {
+            const tickAngle = Math.PI + (i / 10) * Math.PI;
+            const x = centerX + (radius + 25) * Math.cos(tickAngle);
+            const y = centerY + (radius + 25) * Math.sin(tickAngle);
+            ctx.fillText(i.toString(), x, y);
+        }
+        
+        console.log('✅ Risk gauge initialized successfully');
     }
 
     /**
@@ -879,18 +964,110 @@ class MerchantRiskTab {
                 
                 <div class="shap-interactive" style="margin-top: 20px; padding: 15px; background: #f7fafc; border-radius: 8px;">
                     <h6 style="margin-bottom: 10px; color: #4a5568; font-weight: 600;">Interactive Force Plot</h6>
-                    <div id="shapForcePlot" style="height: 200px; background: white; border: 1px solid #e2e8f0; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #718096;">
-                        <div style="text-align: center;">
-                            <i class="fas fa-chart-line" style="font-size: 24px; margin-bottom: 8px;"></i>
-                            <div>Interactive SHAP Force Plot</div>
-                            <div style="font-size: 12px; margin-top: 4px;">Hover over factors to see detailed explanations</div>
-                        </div>
+                    <div id="shapForcePlot" style="height: 200px; background: white; border: 1px solid #e2e8f0; border-radius: 4px; position: relative; overflow: hidden;">
+                        <canvas id="shapForceCanvas" width="100%" height="200" style="width: 100%; height: 200px; cursor: pointer;"></canvas>
                     </div>
                 </div>
             </div>
         `;
         
+        // Initialize SHAP force plot after HTML is rendered
+        setTimeout(() => {
+            this.initializeSHAPForcePlot();
+        }, 100);
+        
         console.log('✅ SHAP explanation initialized successfully');
+    }
+    
+    /**
+     * Initialize SHAP force plot visualization
+     */
+    initializeSHAPForcePlot() {
+        const canvas = document.getElementById('shapForceCanvas');
+        if (!canvas) {
+            console.log('❌ SHAP force plot canvas not found');
+            return;
+        }
+
+        console.log('🔍 Initializing SHAP force plot...');
+        
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width = canvas.offsetWidth;
+        const height = canvas.height = 200;
+        
+        // Clear canvas
+        ctx.clearRect(0, 0, width, height);
+        
+        // SHAP values for visualization
+        const shapValues = [
+            { name: 'High Transaction Volume', value: 2.3, color: '#e53e3e' },
+            { name: 'Strong Credit History', value: -1.8, color: '#38a169' },
+            { name: 'Recent Address Change', value: 1.2, color: '#e53e3e' },
+            { name: 'High Market Volatility', value: 0.9, color: '#e53e3e' },
+            { name: 'Stable Business Model', value: -0.7, color: '#38a169' }
+        ];
+        
+        // Calculate positions and draw force plot
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const baseScore = 5.0; // Base score before SHAP contributions
+        
+        let currentX = centerX - 100; // Start from left
+        
+        // Draw base score
+        ctx.fillStyle = '#4a5568';
+        ctx.font = '14px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Base Score: 5.0', currentX, centerY - 20);
+        
+        // Draw SHAP contributions
+        shapValues.forEach((factor, index) => {
+            const barWidth = Math.abs(factor.value) * 20; // Scale factor
+            const barHeight = 30;
+            const barX = currentX + 20;
+            const barY = centerY - barHeight / 2;
+            
+            // Draw bar
+            ctx.fillStyle = factor.color;
+            ctx.fillRect(barX, barY, barWidth, barHeight);
+            
+            // Draw value
+            ctx.fillStyle = 'white';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(factor.value.toFixed(1), barX + barWidth / 2, centerY + 4);
+            
+            // Draw factor name
+            ctx.fillStyle = '#4a5568';
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(factor.name, barX + barWidth / 2, centerY + 25);
+            
+            currentX += barWidth + 30;
+        });
+        
+        // Draw final score
+        const finalScore = baseScore + shapValues.reduce((sum, factor) => sum + factor.value, 0);
+        ctx.fillStyle = '#2d3748';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(`Final Score: ${finalScore.toFixed(1)}`, currentX + 50, centerY - 20);
+        
+        // Add hover effects
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Simple hover detection
+            if (x > 50 && x < width - 50 && y > centerY - 20 && y < centerY + 20) {
+                canvas.style.cursor = 'pointer';
+            } else {
+                canvas.style.cursor = 'default';
+            }
+        });
+        
+        console.log('✅ SHAP force plot initialized successfully');
     }
 
     /**
@@ -1321,20 +1498,26 @@ class MerchantRiskTab {
             // Load the comprehensive risk assessment UI
             container.innerHTML = `
                 <div class="risk-content-loaded">
-                    <!-- Risk Overview Section -->
-                    <div class="risk-overview">
-                        <div class="risk-score-card">
-                            <div class="risk-score-value" id="overallRiskScore">--</div>
-                            <div class="risk-score-label">Overall Risk Score</div>
-                            <div class="risk-score-trend" id="riskTrend">
-                                <i class="fas fa-minus text-gray-500"></i>
-                                <span>Loading...</span>
-                            </div>
-                        </div>
-                        <div class="risk-categories" id="riskCategories">
-                            <!-- Risk categories will be populated here -->
-                        </div>
-                    </div>
+                       <!-- Risk Overview Section -->
+                       <div class="risk-overview" style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin: 20px 0;">
+                           <div class="risk-score-card" style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; position: relative;">
+                               <div class="risk-gauge-container" style="position: relative; width: 200px; height: 200px; margin: 0 auto 20px;">
+                                   <canvas id="riskGauge" width="200" height="200" style="width: 200px; height: 200px;"></canvas>
+                                   <div class="gauge-center-text" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+                                       <div class="risk-score-value" id="overallRiskScore" style="font-size: 36px; font-weight: 700; color: #2d3748; margin-bottom: 5px;">--</div>
+                                       <div class="risk-score-label" style="font-size: 14px; color: #718096; font-weight: 500;">Overall Risk Score</div>
+                                   </div>
+                               </div>
+                               <div class="risk-score-trend" id="riskTrend" style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px;">
+                                   <i class="fas fa-minus text-gray-500"></i>
+                                   <span>Loading...</span>
+                               </div>
+                           </div>
+                           <div class="risk-categories" id="riskCategories" style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+                               <h4 style="margin-bottom: 20px; color: #2d3748; font-size: 18px; font-weight: 600;">Risk Categories</h4>
+                               <!-- Risk categories will be populated here -->
+                           </div>
+                       </div>
 
                        <!-- Risk Charts Section -->
                        <div class="risk-charts" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
