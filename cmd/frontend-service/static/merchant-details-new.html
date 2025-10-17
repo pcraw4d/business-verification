@@ -950,14 +950,21 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 DOM loaded, initializing Risk Indicators Tab...');
+            console.log('🚀 DOM loaded, initializing NEW Risk Indicators Tab...');
+            console.log('🔍 Checking if MerchantRiskIndicatorsTab class exists:', typeof MerchantRiskIndicatorsTab);
+            console.log('🔍 Checking if RiskIndicatorsUITemplate exists:', typeof RiskIndicatorsUITemplate);
+            console.log('🔍 Checking if RiskIndicatorsDataService exists:', typeof RiskIndicatorsDataService);
             
             // Initialize Risk Indicators Tab
             try {
+                if (typeof MerchantRiskIndicatorsTab === 'undefined') {
+                    console.error('❌ MerchantRiskIndicatorsTab class not found!');
+                    return;
+                }
                 window.riskIndicatorsTab = new MerchantRiskIndicatorsTab('riskIndicatorsContainer');
-                console.log('✅ Risk Indicators Tab initialized successfully');
+                console.log('✅ NEW Risk Indicators Tab initialized successfully');
             } catch (error) {
-                console.error('❌ Failed to initialize Risk Indicators Tab:', error);
+                console.error('❌ Failed to initialize NEW Risk Indicators Tab:', error);
             }
             
             // Listen for tab activation
@@ -965,9 +972,11 @@
             if (riskIndicatorsTabButton) {
                 console.log('✅ Risk Indicators tab button found');
                 riskIndicatorsTabButton.addEventListener('click', function() {
+                    console.log('🎯 NEW Risk Indicators Tab button clicked!');
                     const merchantId = getMerchantId();
                     console.log('🎯 Risk Indicators Tab clicked, merchant ID:', merchantId);
                     if (merchantId && window.riskIndicatorsTab) {
+                        console.log('🎯 Calling NEW Risk Indicators Tab init...');
                         window.riskIndicatorsTab.init(merchantId);
                     } else {
                         console.error('❌ No merchant ID found or risk indicators tab not initialized');
@@ -976,9 +985,10 @@
                         if (container) {
                             container.innerHTML = `
                                 <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
-                                    <h3 class="font-bold">Risk Indicators Tab</h3>
+                                    <h3 class="font-bold">NEW Risk Indicators Tab</h3>
                                     <p>Tab is working! Merchant ID: ${merchantId || 'Not found'}</p>
                                     <p>This is a test message. The full Risk Indicators implementation should load here.</p>
+                                    <p>If you see this, the NEW implementation is working but needs data.</p>
                                 </div>
                             `;
                         }
