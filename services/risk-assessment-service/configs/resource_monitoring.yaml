@@ -1,0 +1,283 @@
+# Resource monitoring configuration for risk assessment service
+resource_monitoring:
+  # Collection settings
+  collection_interval: "1m"
+  retention_period: "7d"
+  
+  # Thresholds
+  cost_threshold_percent: 10.0
+  resource_threshold_percent: 80.0
+  
+  # Features
+  enable_cost_optimization: true
+  enable_resource_optimization: true
+  
+  # Alerting
+  enable_alerts: true
+  alert_channels:
+    - email
+    - slack
+    - webhook
+  
+  # Metrics collection
+  metrics:
+    cpu:
+      enabled: true
+      collection_interval: "30s"
+    memory:
+      enabled: true
+      collection_interval: "30s"
+    disk:
+      enabled: true
+      collection_interval: "1m"
+    network:
+      enabled: true
+      collection_interval: "30s"
+    application:
+      enabled: true
+      collection_interval: "1m"
+      metrics:
+        - request_rate
+        - response_time
+        - error_rate
+        - active_connections
+
+# Cost optimization service configuration
+cost_optimization_service:
+  enabled: true
+  analysis_interval: "5m"
+  recommendation_retention: "30d"
+  auto_apply_threshold: 100.0
+  enable_auto_optimization: true
+  budget_limit: 10000.0
+  alert_threshold: 0.8
+
+# Resource utilization targets
+utilization_targets:
+  cpu:
+    optimal_min: 60.0
+    optimal_max: 80.0
+    warning_threshold: 90.0
+    critical_threshold: 95.0
+  memory:
+    optimal_min: 70.0
+    optimal_max: 85.0
+    warning_threshold: 90.0
+    critical_threshold: 95.0
+  disk:
+    optimal_min: 50.0
+    optimal_max: 80.0
+    warning_threshold: 85.0
+    critical_threshold: 90.0
+  network:
+    optimal_min: 40.0
+    optimal_max: 70.0
+    warning_threshold: 80.0
+    critical_threshold: 90.0
+
+# Performance targets
+performance_targets:
+  response_time:
+    target_p50: 100
+    target_p95: 200
+    target_p99: 500
+    unit: "ms"
+  throughput:
+    target_requests_per_second: 1000
+    target_concurrent_users: 10000
+  availability:
+    target_uptime: 99.9
+    target_error_rate: 0.1
+
+# Cost optimization strategies
+optimization_strategies:
+  # Resource right-sizing
+  right_sizing:
+    enabled: true
+    cpu_optimization:
+      enabled: true
+      min_cores: 0.5
+      max_cores: 8.0
+      step_size: 0.5
+    memory_optimization:
+      enabled: true
+      min_gb: 1.0
+      max_gb: 16.0
+      step_size: 1.0
+  
+  # Auto-scaling optimization
+  auto_scaling:
+    enabled: true
+    min_replicas: 2
+    max_replicas: 20
+    target_cpu_utilization: 70
+    target_memory_utilization: 80
+    scale_up_cooldown: "2m"
+    scale_down_cooldown: "5m"
+  
+  # Storage optimization
+  storage_optimization:
+    enabled: true
+    cleanup_old_logs: true
+    log_retention_days: 7
+    cleanup_temp_files: true
+    temp_file_retention_hours: 24
+    compression_enabled: true
+  
+  # Network optimization
+  network_optimization:
+    enabled: true
+    compression_enabled: true
+    caching_enabled: true
+    cdn_optimization: true
+    connection_pooling: true
+  
+  # Database optimization
+  database_optimization:
+    enabled: true
+    connection_pooling: true
+    query_optimization: true
+    index_optimization: true
+    cache_queries: true
+    connection_limit: 100
+  
+  # Cache optimization
+  cache_optimization:
+    enabled: true
+    memory_cache_size: "512MB"
+    redis_cache_ttl: "1h"
+    cache_eviction_policy: "LRU"
+    prefetch_enabled: true
+    cache_warming_enabled: true
+
+# Monitoring and alerting
+monitoring:
+  # Health checks
+  health_checks:
+    enabled: true
+    interval: "30s"
+    timeout: "10s"
+    endpoints:
+      - "/health"
+      - "/ready"
+      - "/metrics"
+  
+  # Metrics export
+  metrics_export:
+    enabled: true
+    prometheus:
+      enabled: true
+      port: 9090
+      path: "/metrics"
+    grafana:
+      enabled: true
+      dashboard_refresh: "30s"
+  
+  # Logging
+  logging:
+    level: "info"
+    format: "json"
+    structured: true
+    include_stack_traces: true
+    sampling:
+      enabled: true
+      initial: 100
+      thereafter: 100
+  
+  # Tracing
+  tracing:
+    enabled: true
+    jaeger:
+      enabled: true
+      endpoint: "http://jaeger:14268/api/traces"
+    sampling_rate: 0.1
+
+# Alerting configuration
+alerting:
+  # Alert rules
+  rules:
+    - name: "HighCPUUtilization"
+      condition: "cpu_utilization > 90% for 5m"
+      severity: "warning"
+      description: "CPU utilization is consistently high"
+    - name: "HighMemoryUtilization"
+      condition: "memory_utilization > 90% for 5m"
+      severity: "warning"
+      description: "Memory utilization is consistently high"
+    - name: "HighErrorRate"
+      condition: "error_rate > 5% for 2m"
+      severity: "critical"
+      description: "Error rate is above acceptable threshold"
+    - name: "HighResponseTime"
+      condition: "response_time_p95 > 500ms for 5m"
+      severity: "warning"
+      description: "Response time is consistently high"
+    - name: "CostThresholdExceeded"
+      condition: "hourly_cost > $100"
+      severity: "critical"
+      description: "Hourly cost exceeds budget threshold"
+    - name: "ResourceWaste"
+      condition: "cpu_utilization < 20% for 1h"
+      severity: "info"
+      description: "Resources may be underutilized"
+  
+  # Notification channels
+  notification_channels:
+    email:
+      enabled: true
+      smtp_server: "smtp.gmail.com"
+      smtp_port: 587
+      username: "alerts@company.com"
+      recipients:
+        - "devops@company.com"
+        - "engineering@company.com"
+    slack:
+      enabled: true
+      webhook_url: "https://hooks.slack.com/services/..."
+      channel: "#alerts"
+      username: "CostOptimizationBot"
+    webhook:
+      enabled: true
+      url: "https://api.company.com/alerts"
+      timeout: "10s"
+      retry_attempts: 3
+
+# Cost analysis configuration
+cost_analysis:
+  # Pricing models
+  pricing:
+    compute:
+      cpu_cost_per_hour: 0.10
+      memory_cost_per_gb_hour: 0.05
+    storage:
+      disk_cost_per_gb_hour: 0.01
+      backup_cost_per_gb_hour: 0.005
+    network:
+      egress_cost_per_gb: 0.05
+      cdn_cost_per_gb: 0.02
+    database:
+      postgres_cost_per_hour: 0.20
+      redis_cost_per_hour: 0.15
+  
+  # Cost optimization thresholds
+  optimization_thresholds:
+    low_utilization_threshold: 30.0
+    high_utilization_threshold: 80.0
+    cost_savings_threshold: 50.0
+    budget_alert_threshold: 0.8
+    budget_critical_threshold: 0.95
+  
+  # Recommendation settings
+  recommendations:
+    max_recommendations: 50
+    priority_weights:
+      critical: 4
+      high: 3
+      medium: 2
+      low: 1
+    auto_apply_criteria:
+      min_savings: 100.0
+      max_risk: "low"
+      approved_types:
+        - "cache_optimization"
+        - "storage_optimization"

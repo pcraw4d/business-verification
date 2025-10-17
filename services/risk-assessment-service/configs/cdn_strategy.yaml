@@ -1,0 +1,314 @@
+# CDN Strategy Configuration
+cdn:
+  # Railway CDN Configuration
+  railway:
+    enabled: true
+    cache_control: "public, max-age=3600"
+    gzip: true
+    brotli: true
+    
+    # Static assets caching
+    static_assets:
+      enabled: true
+      path: "/static/*"
+      cache_control: "public, max-age=31536000"  # 1 year
+      gzip: true
+      brotli: true
+      
+    # API responses caching
+    api_responses:
+      enabled: true
+      path: "/api/v1/*"
+      cache_control: "public, max-age=300"  # 5 minutes
+      vary: ["Accept-Encoding", "Authorization"]
+      gzip: true
+      
+    # Model predictions caching
+    model_predictions:
+      enabled: true
+      path: "/api/v1/predictions/*"
+      cache_control: "public, max-age=3600, stale-while-revalidate=7200"  # 1 hour with stale-while-revalidate
+      vary: ["Accept-Encoding"]
+      gzip: true
+      
+    # Health checks (no caching)
+    health_checks:
+      enabled: false
+      path: "/health/*"
+      
+    # Metrics (no caching)
+    metrics:
+      enabled: false
+      path: "/metrics/*"
+      
+    # CORS configuration
+    cors:
+      enabled: true
+      allowed_origins: ["*"]
+      allowed_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+      allowed_headers: ["Content-Type", "Authorization", "X-Requested-With"]
+      max_age: 86400
+      
+    # Security headers
+    security:
+      enabled: true
+      hsts: true
+      hsts_max_age: 31536000
+      xss_protection: true
+      content_type_nosniff: true
+      frame_options: "DENY"
+      
+    # Performance optimizations
+    performance:
+      enabled: true
+      minify_html: true
+      minify_css: true
+      minify_js: true
+      remove_comments: true
+      collapse_whitespace: true
+      
+    # Analytics
+    analytics:
+      enabled: true
+      track_hits: true
+      track_misses: true
+      track_bandwidth: true
+      track_errors: true
+
+  # CloudFlare CDN Configuration
+  cloudflare:
+    enabled: true
+    api_key: "${CLOUDFLARE_API_KEY}"
+    email: "${CLOUDFLARE_EMAIL}"
+    zone_id: "${CLOUDFLARE_ZONE_ID}"
+    account_id: "${CLOUDFLARE_ACCOUNT_ID}"
+    api_endpoint: "https://api.cloudflare.com/client/v4"
+    timeout: "30s"
+    
+    # Cache rules
+    cache_rules:
+      - name: "Static Assets"
+        pattern: "*.css,*.js,*.png,*.jpg,*.jpeg,*.gif,*.svg,*.ico"
+        cache_level: "cache_everything"
+        ttl: 31536000  # 1 year
+        browser_ttl: 31536000
+        edge_ttl: 31536000
+        enabled: true
+        
+      - name: "API Responses"
+        pattern: "/api/v1/*"
+        cache_level: "cache_everything"
+        ttl: 300  # 5 minutes
+        browser_ttl: 0
+        edge_ttl: 300
+        enabled: true
+        
+      - name: "Model Predictions"
+        pattern: "/api/v1/predictions/*"
+        cache_level: "cache_everything"
+        ttl: 3600  # 1 hour
+        browser_ttl: 0
+        edge_ttl: 3600
+        enabled: true
+        
+      - name: "Health Checks"
+        pattern: "/health/*"
+        cache_level: "bypass"
+        enabled: false
+        
+      - name: "Metrics"
+        pattern: "/metrics/*"
+        cache_level: "bypass"
+        enabled: false
+    
+    # Geographic routing
+    geographic_routing:
+      enabled: true
+      regions:
+        - "US"
+        - "EU"
+        - "APAC"
+        
+    # Load balancing
+    load_balancing:
+      enabled: true
+      method: "round_robin"
+      health_check:
+        enabled: true
+        path: "/health"
+        interval: "30s"
+        timeout: "5s"
+        retries: 3
+        
+    # Security features
+    security:
+      enabled: true
+      waf: true
+      ddos_protection: true
+      bot_management: true
+      rate_limiting:
+        enabled: true
+        requests_per_minute: 1000
+        burst_size: 100
+        
+    # Performance features
+    performance:
+      enabled: true
+      minification:
+        html: true
+        css: true
+        js: true
+      image_optimization:
+        enabled: true
+        webp: true
+        avif: true
+      http2: true
+      http3: true
+      brotli: true
+      gzip: true
+
+  # Edge caching strategy
+  edge_caching:
+    enabled: true
+    strategy: "multi_cdn"
+    
+    # Cache layers
+    layers:
+      - name: "L1 - Browser Cache"
+        ttl: 3600  # 1 hour
+        max_size: "100MB"
+        
+      - name: "L2 - CDN Edge Cache"
+        ttl: 7200  # 2 hours
+        max_size: "1GB"
+        
+      - name: "L3 - Origin Cache"
+        ttl: 14400  # 4 hours
+        max_size: "10GB"
+    
+    # Cache invalidation
+    invalidation:
+      strategy: "tag_based"
+      tags:
+        - "model_updates"
+        - "api_changes"
+        - "static_assets"
+        
+    # Cache warming
+    warming:
+      enabled: true
+      strategy: "predictive"
+      popular_endpoints:
+        - "/api/v1/predictions/risk_assessment"
+        - "/api/v1/predictions/compliance_check"
+        - "/static/css/main.css"
+        - "/static/js/app.js"
+        
+    # Cache analytics
+    analytics:
+      enabled: true
+      metrics:
+        - "hit_rate"
+        - "miss_rate"
+        - "bandwidth_usage"
+        - "response_time"
+        - "error_rate"
+        
+    # Cache optimization
+    optimization:
+      enabled: true
+      compression:
+        gzip: true
+        brotli: true
+        deflate: true
+      minification:
+        html: true
+        css: true
+        js: true
+      image_optimization:
+        webp: true
+        avif: true
+        quality: 85
+
+  # CDN failover configuration
+  failover:
+    enabled: true
+    strategy: "automatic"
+    
+    # Primary CDN
+    primary:
+      provider: "cloudflare"
+      priority: 1
+      
+    # Secondary CDN
+    secondary:
+      provider: "railway"
+      priority: 2
+      
+    # Fallback
+    fallback:
+      provider: "origin"
+      priority: 3
+      
+    # Health check
+    health_check:
+      enabled: true
+      interval: "30s"
+      timeout: "5s"
+      retries: 3
+      path: "/health"
+      
+    # Failover triggers
+    triggers:
+      - condition: "response_time > 2s"
+        action: "failover"
+      - condition: "error_rate > 5%"
+        action: "failover"
+      - condition: "availability < 99%"
+        action: "failover"
+
+  # CDN monitoring
+  monitoring:
+    enabled: true
+    
+    # Metrics collection
+    metrics:
+      - "cache_hit_rate"
+      - "cache_miss_rate"
+      - "bandwidth_usage"
+      - "response_time"
+      - "error_rate"
+      - "availability"
+      
+    # Alerting
+    alerts:
+      - name: "High Cache Miss Rate"
+        condition: "cache_miss_rate > 20%"
+        severity: "warning"
+        
+      - name: "High Response Time"
+        condition: "response_time > 1s"
+        severity: "critical"
+        
+      - name: "High Error Rate"
+        condition: "error_rate > 5%"
+        severity: "critical"
+        
+      - name: "Low Availability"
+        condition: "availability < 99%"
+        severity: "critical"
+        
+    # Reporting
+    reporting:
+      enabled: true
+      frequency: "daily"
+      recipients:
+        - "devops@company.com"
+        - "engineering@company.com"
+        
+    # Dashboards
+    dashboards:
+      - name: "CDN Performance"
+        url: "https://grafana.company.com/d/cdn-performance"
+      - name: "Cache Analytics"
+        url: "https://grafana.company.com/d/cache-analytics"

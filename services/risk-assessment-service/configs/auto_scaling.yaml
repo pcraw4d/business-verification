@@ -1,0 +1,145 @@
+# Auto-scaling configuration for risk assessment service
+auto_scaling:
+  # Replica limits
+  min_replicas: 2
+  max_replicas: 20
+  
+  # Resource utilization targets
+  target_cpu_utilization: 70
+  target_memory_utilization: 80
+  
+  # Scaling thresholds
+  scale_up_threshold: 0.8
+  scale_down_threshold: 0.3
+  
+  # Cooldown periods
+  scale_up_cooldown: "2m"
+  scale_down_cooldown: "5m"
+  
+  # Predictive scaling
+  prediction_horizon: "10m"
+  traffic_buffer_percent: 20
+  enable_predictive_scaling: true
+  
+  # Traffic analysis
+  traffic_analysis:
+    # Data retention
+    data_retention_days: 30
+    analysis_interval: "1m"
+    
+    # Pattern detection
+    pattern_threshold: 0.7
+    min_data_points: 100
+    
+    # Anomaly detection
+    anomaly_threshold: 2.0
+    anomaly_window: "5m"
+    
+    # Trend analysis
+    trend_window: "1h"
+    trend_threshold: 0.1
+
+# Kubernetes HPA configuration
+hpa:
+  # Metrics
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+    - type: Pods
+      pods:
+        metric:
+          name: requests_per_second
+        target:
+          type: AverageValue
+          averageValue: "100"
+    - type: Pods
+      pods:
+        metric:
+          name: response_time_p95
+        target:
+          type: AverageValue
+          averageValue: "200m"
+  
+  # Behavior
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+      selectPolicy: Max
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+      selectPolicy: Min
+
+# Custom metrics configuration
+custom_metrics:
+  # Request rate metrics
+  request_rate:
+    window: "1m"
+    threshold: 100
+    
+  # Response time metrics
+  response_time:
+    window: "1m"
+    p95_threshold: "200ms"
+    p99_threshold: "500ms"
+    
+  # Error rate metrics
+  error_rate:
+    window: "1m"
+    threshold: 0.05
+    
+  # Business metrics
+  business_metrics:
+    risk_assessment_queue_depth:
+      window: "1m"
+      threshold: 50
+    ml_inference_latency:
+      window: "1m"
+      threshold: "100ms"
+
+# Monitoring and alerting
+monitoring:
+  # Scaling events
+  scaling_events:
+    enabled: true
+    retention_days: 7
+    
+  # Performance metrics
+  performance_metrics:
+    enabled: true
+    collection_interval: "30s"
+    
+  # Alerts
+  alerts:
+    - name: "HighScalingFrequency"
+      condition: "scaling_events > 10 in 1h"
+      severity: "warning"
+    - name: "ScalingFailure"
+      condition: "scaling_failures > 0"
+      severity: "critical"
+    - name: "ResourceExhaustion"
+      condition: "cpu_utilization > 90% for 5m"
+      severity: "critical"

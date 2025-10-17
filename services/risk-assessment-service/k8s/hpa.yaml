@@ -1,0 +1,167 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: risk-assessment-service-hpa
+  namespace: risk-assessment
+  labels:
+    app: risk-assessment-service
+    version: v1.0.0
+    component: autoscaler
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: risk-assessment-service
+  minReplicas: 3
+  maxReplicas: 50
+  metrics:
+  # CPU-based scaling
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  # Memory-based scaling
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  # Custom metrics for request rate
+  - type: Pods
+    pods:
+      metric:
+        name: requests_per_second
+      target:
+        type: AverageValue
+        averageValue: "1000"
+  # Custom metrics for response time
+  - type: Pods
+    pods:
+      metric:
+        name: p95_latency_seconds
+      target:
+        type: AverageValue
+        averageValue: "1"
+  # Custom metrics for error rate
+  - type: Pods
+    pods:
+      metric:
+        name: error_rate
+      target:
+        type: AverageValue
+        averageValue: "0.05"
+  # Custom metrics for queue depth
+  - type: Pods
+    pods:
+      metric:
+        name: batch_queue_depth
+      target:
+        type: AverageValue
+        averageValue: "100"
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300  # 5 minutes
+      policies:
+      - type: Percent
+        value: 10  # Scale down by max 10% at a time
+        periodSeconds: 60
+      - type: Pods
+        value: 2   # Scale down by max 2 pods at a time
+        periodSeconds: 60
+      selectPolicy: Min
+    scaleUp:
+      stabilizationWindowSeconds: 60   # 1 minute
+      policies:
+      - type: Percent
+        value: 50  # Scale up by max 50% at a time
+        periodSeconds: 60
+      - type: Pods
+        value: 5   # Scale up by max 5 pods at a time
+        periodSeconds: 60
+      selectPolicy: Max
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: risk-assessment-service
+  namespace: risk-assessment
+  labels:
+    app: risk-assessment-service
+    version: v1.0.0
+    component: service
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+  - name: health
+    port: 8081
+    targetPort: 8081
+    protocol: TCP
+  selector:
+    app: risk-assessment-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: risk-assessment-service-headless
+  namespace: risk-assessment
+  labels:
+    app: risk-assessment-service
+    version: v1.0.0
+    component: headless-service
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+  - name: health
+    port: 8081
+    targetPort: 8081
+    protocol: TCP
+  selector:
+    app: risk-assessment-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: risk-assessment-service-loadbalancer
+  namespace: risk-assessment
+  labels:
+    app: risk-assessment-service
+    version: v1.0.0
+    component: loadbalancer
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: risk-assessment-service
+  # Load balancer configuration
+  loadBalancerSourceRanges:
+  - 0.0.0.0/0  # Allow all IPs (restrict in production)
+  sessionAffinity: None
+  externalTrafficPolicy: Cluster

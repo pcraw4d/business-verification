@@ -770,6 +770,306 @@ class RiskExplainability {
     }
 
     /**
+     * Create recommendations panel combining ML and manual verification recommendations
+     * @param {string} containerId - Container element ID
+     * @param {Array} recommendations - Array of recommendations
+     * @param {Object} shapData - SHAP analysis data
+     * @returns {string} HTML string for recommendations panel
+     */
+    createRecommendationsPanel(containerId, recommendations, shapData) {
+        // Combine ML recommendations from SHAP with manual verification recommendations
+        const mlRecommendations = this.extractMLRecommendations(shapData);
+        const verificationRecommendations = this.generateVerificationRecommendations(recommendations);
+        
+        const allRecommendations = [...mlRecommendations, ...verificationRecommendations]
+            .sort((a, b) => this.getPriorityScore(b.priority) - this.getPriorityScore(a.priority));
+        
+        // Render using existing styles
+        return this.renderRecommendationCards(allRecommendations);
+    }
+    
+    /**
+     * Extract ML-based recommendations from SHAP data
+     * @param {Object} shapData - SHAP analysis data
+     * @returns {Array} ML recommendations
+     */
+    extractMLRecommendations(shapData) {
+        const recommendations = [];
+        
+        if (shapData && shapData.feature_contributions) {
+            // Find high-impact negative contributions (risk factors to address)
+            const highImpactFactors = shapData.feature_contributions
+                .filter(contrib => contrib.contribution < -0.2) // Significant negative impact
+                .sort((a, b) => a.contribution - b.contribution); // Most negative first
+            
+            highImpactFactors.forEach(factor => {
+                const recommendation = this.generateMLRecommendation(factor);
+                if (recommendation) {
+                    recommendations.push(recommendation);
+                }
+            });
+        }
+        
+        return recommendations;
+    }
+    
+    /**
+     * Generate ML-based recommendation for a risk factor
+     * @param {Object} factor - Risk factor with contribution
+     * @returns {Object} Recommendation object
+     */
+    generateMLRecommendation(factor) {
+        const factorName = factor.feature || 'unknown';
+        const impact = Math.abs(factor.contribution);
+        
+        // Map factor names to actionable recommendations
+        const recommendationMap = {
+            'financial_score': {
+                title: 'Improve Financial Health',
+                description: 'Address financial stability concerns through better cash flow management and debt reduction',
+                action: 'Request updated financial statements and implement financial monitoring',
+                priority: impact > 0.5 ? 'high' : 'medium'
+            },
+            'regulatory_score': {
+                title: 'Enhance Regulatory Compliance',
+                description: 'Strengthen compliance framework and address regulatory gaps',
+                action: 'Conduct compliance audit and implement corrective measures',
+                priority: impact > 0.5 ? 'critical' : 'high'
+            },
+            'cybersecurity_score': {
+                title: 'Strengthen Security Posture',
+                description: 'Implement additional security controls and monitoring',
+                action: 'Conduct security assessment and implement recommended controls',
+                priority: impact > 0.5 ? 'critical' : 'high'
+            },
+            'operational_score': {
+                title: 'Optimize Operations',
+                description: 'Improve operational efficiency and process standardization',
+                action: 'Review operational processes and implement best practices',
+                priority: impact > 0.5 ? 'high' : 'medium'
+            },
+            'reputational_score': {
+                title: 'Enhance Reputation Management',
+                description: 'Address reputation concerns and improve brand perception',
+                action: 'Implement reputation monitoring and proactive communication',
+                priority: impact > 0.5 ? 'high' : 'medium'
+            },
+            'content_score': {
+                title: 'Improve Content Quality',
+                description: 'Address content-related risks and improve website quality',
+                action: 'Review website content and implement content quality controls',
+                priority: impact > 0.5 ? 'medium' : 'low'
+            }
+        };
+        
+        const recommendation = recommendationMap[factorName];
+        if (!recommendation) return null;
+        
+        return {
+            id: `ml_rec_${factorName}_${Date.now()}`,
+            type: 'ml_based',
+            priority: recommendation.priority,
+            title: recommendation.title,
+            description: recommendation.description,
+            actionRequired: recommendation.action,
+            impactScore: impact,
+            difficulty: this.getDifficultyFromPriority(recommendation.priority),
+            confidence: Math.min(0.95, 0.7 + impact), // Higher impact = higher confidence
+            source: 'shap_analysis',
+            status: 'pending'
+        };
+    }
+    
+    /**
+     * Generate manual verification recommendations
+     * @param {Array} recommendations - Existing recommendations
+     * @returns {Array} Manual verification recommendations
+     */
+    generateVerificationRecommendations(recommendations) {
+        const manualRecommendations = [];
+        
+        // Add document verification recommendations
+        manualRecommendations.push({
+            id: `manual_rec_docs_${Date.now()}`,
+            type: 'document_verification',
+            priority: 'high',
+            title: 'Document Verification Required',
+            description: 'Verify business registration, licenses, and financial documents',
+            actionRequired: 'Request and verify official business documents',
+            impactScore: 0.8,
+            difficulty: 'medium',
+            confidence: 0.9,
+            source: 'manual_assessment',
+            status: 'pending'
+        });
+        
+        // Add compliance check recommendations
+        manualRecommendations.push({
+            id: `manual_rec_compliance_${Date.now()}`,
+            type: 'compliance_check',
+            priority: 'high',
+            title: 'Compliance Review Required',
+            description: 'Conduct comprehensive compliance review and risk assessment',
+            actionRequired: 'Schedule compliance review with qualified assessor',
+            impactScore: 0.85,
+            difficulty: 'high',
+            confidence: 0.9,
+            source: 'manual_assessment',
+            status: 'pending'
+        });
+        
+        // Add existing recommendations if any
+        if (recommendations && Array.isArray(recommendations)) {
+            recommendations.forEach(rec => {
+                if (rec.type === 'manual_verification' || rec.type === 'compliance_check') {
+                    manualRecommendations.push({
+                        ...rec,
+                        id: rec.id || `manual_rec_${Date.now()}`,
+                        source: 'risk_assessment'
+                    });
+                }
+            });
+        }
+        
+        return manualRecommendations;
+    }
+    
+    /**
+     * Render recommendation cards
+     * @param {Array} recommendations - Array of recommendations
+     * @returns {string} HTML string
+     */
+    renderRecommendationCards(recommendations) {
+        if (!recommendations || recommendations.length === 0) {
+            return `
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-6">
+                        <i class="fas fa-lightbulb mr-2"></i>
+                        Recommended Actions
+                    </h2>
+                    <div class="text-center text-gray-500 py-8">
+                        <i class="fas fa-info-circle text-4xl mb-4"></i>
+                        <p>No specific recommendations available at this time.</p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        return `
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-6">
+                    <i class="fas fa-lightbulb mr-2"></i>
+                    Recommended Actions
+                </h2>
+                
+                <div class="space-y-4">
+                    ${recommendations.map(rec => `
+                        <div class="recommendation-card recommendation-${rec.priority} p-4 rounded-lg border">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <div class="flex items-center mb-2">
+                                        <i class="fas fa-${this.getRecommendationIcon(rec.type)} mr-2"></i>
+                                        <h3 class="font-semibold text-gray-900">${rec.title}</h3>
+                                        <span class="ml-2 recommendation-badge recommendation-${rec.priority} px-2 py-1 rounded text-xs font-bold">
+                                            ${rec.priority.toUpperCase()}
+                                        </span>
+                                        ${rec.confidence ? `
+                                            <span class="ml-2 confidence-badge px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
+                                                ${Math.round(rec.confidence * 100)}% confidence
+                                            </span>
+                                        ` : ''}
+                                    </div>
+                                    <p class="text-sm text-gray-600 mb-3">${rec.description}</p>
+                                    <div class="flex items-center text-xs text-gray-500 space-x-4">
+                                        <span>Impact: ${Math.round((rec.impactScore || 0) * 100)}%</span>
+                                        <span>Difficulty: ${rec.difficulty || 'Medium'}</span>
+                                        <span>Type: ${this.formatRecommendationType(rec.type)}</span>
+                                        <span>Source: ${this.formatSource(rec.source)}</span>
+                                    </div>
+                                </div>
+                                <div class="flex space-x-2 ml-4">
+                                    <button class="btn btn-sm btn-outline" onclick="dismissRecommendation('${rec.id}')">
+                                        <i class="fas fa-times mr-1"></i>
+                                        Dismiss
+                                    </button>
+                                    <button class="btn btn-sm btn-primary" onclick="implementRecommendation('${rec.id}')">
+                                        <i class="fas fa-play mr-1"></i>
+                                        Implement
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    /**
+     * Get recommendation icon for type
+     * @param {string} type - Recommendation type
+     * @returns {string} Icon class
+     */
+    getRecommendationIcon(type) {
+        const icons = {
+            ml_based: 'brain',
+            manual_verification: 'user-check',
+            document_verification: 'file-check',
+            compliance_check: 'gavel',
+            security_audit: 'shield-alt'
+        };
+        return icons[type] || 'lightbulb';
+    }
+    
+    /**
+     * Format recommendation type for display
+     * @param {string} type - Recommendation type
+     * @returns {string} Formatted type
+     */
+    formatRecommendationType(type) {
+        return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+    
+    /**
+     * Format source for display
+     * @param {string} source - Source
+     * @returns {string} Formatted source
+     */
+    formatSource(source) {
+        return source.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+    
+    /**
+     * Get priority score for sorting
+     * @param {string} priority - Priority level
+     * @returns {number} Priority score
+     */
+    getPriorityScore(priority) {
+        const scores = {
+            critical: 4,
+            high: 3,
+            medium: 2,
+            low: 1
+        };
+        return scores[priority.toLowerCase()] || 0;
+    }
+    
+    /**
+     * Get difficulty from priority
+     * @param {string} priority - Priority level
+     * @returns {string} Difficulty level
+     */
+    getDifficultyFromPriority(priority) {
+        const difficulties = {
+            critical: 'high',
+            high: 'medium',
+            medium: 'medium',
+            low: 'low'
+        };
+        return difficulties[priority.toLowerCase()] || 'medium';
+    }
+
+    /**
      * Destroy all visualizations
      */
     destroy() {

@@ -1,0 +1,170 @@
+# Performance Testing Configuration for Risk Assessment Service
+
+# Test Environment Configuration
+environment:
+  host: "http://localhost:8080"
+  timeout: 30
+  verify_ssl: false
+  
+# Load Testing Scenarios
+load_tests:
+  - name: "standard_load"
+    description: "Standard load testing with normal user behavior"
+    users: 100
+    spawn_rate: 10
+    run_time: "5m"
+    user_class: "RiskAssessmentUser"
+    
+  - name: "high_volume"
+    description: "High volume testing with rapid requests"
+    users: 200
+    spawn_rate: 20
+    run_time: "10m"
+    user_class: "HighVolumeUser"
+    
+  - name: "batch_processing"
+    description: "Batch processing load testing"
+    users: 50
+    spawn_rate: 5
+    run_time: "15m"
+    user_class: "BatchProcessingUser"
+
+# Stress Testing Scenarios
+stress_tests:
+  - name: "gradual_stress"
+    description: "Gradual stress testing with increasing load"
+    users: 500
+    spawn_rate: 50
+    run_time: "10m"
+    user_class: "StressTestUser"
+    
+  - name: "extreme_stress"
+    description: "Extreme stress testing with maximum load"
+    users: 1000
+    spawn_rate: 100
+    run_time: "5m"
+    user_class: "StressTestUser"
+
+# Spike Testing Scenarios
+spike_tests:
+  - name: "traffic_spike"
+    description: "Traffic spike testing with sudden load increase"
+    users: 1000
+    spawn_rate: 200
+    run_time: "2m"
+    user_class: "StressTestUser"
+    
+  - name: "sustained_spike"
+    description: "Sustained spike testing with prolonged high load"
+    users: 800
+    spawn_rate: 100
+    run_time: "5m"
+    user_class: "HighVolumeUser"
+
+# Performance Thresholds
+thresholds:
+  response_time:
+    p95: 1000  # 95th percentile response time < 1 second
+    p99: 2000  # 99th percentile response time < 2 seconds
+    max: 5000  # Maximum response time < 5 seconds
+    
+  error_rate:
+    max: 0.01  # Maximum error rate < 1%
+    
+  throughput:
+    min: 1000  # Minimum throughput of 1000 requests/minute
+    
+  availability:
+    min: 0.999  # Minimum availability of 99.9%
+
+# Test Data Configuration
+test_data:
+  industries:
+    - "technology"
+    - "financial_services"
+    - "healthcare"
+    - "retail"
+    - "manufacturing"
+    - "energy"
+    - "real_estate"
+    - "transportation"
+    
+  countries:
+    - "US"
+    - "CA"
+    - "GB"
+    - "DE"
+    - "FR"
+    - "AU"
+    - "JP"
+    - "SG"
+    
+  business_names:
+    - "Acme Corporation"
+    - "Global Tech Solutions"
+    - "Innovative Systems Inc"
+    - "Premier Financial Group"
+    - "Advanced Healthcare Corp"
+    - "Retail Excellence Ltd"
+    - "Manufacturing Dynamics"
+    - "Energy Solutions Inc"
+    - "Real Estate Partners"
+    - "Transportation Logistics"
+    
+  addresses:
+    - "123 Main Street, New York, NY 10001"
+    - "456 Business Avenue, Los Angeles, CA 90210"
+    - "789 Corporate Drive, Chicago, IL 60601"
+    - "321 Enterprise Boulevard, Houston, TX 77001"
+    - "654 Innovation Lane, Phoenix, AZ 85001"
+
+# Monitoring Configuration
+monitoring:
+  metrics:
+    - "response_time"
+    - "throughput"
+    - "error_rate"
+    - "active_users"
+    - "request_count"
+    
+  alerts:
+    - condition: "response_time_p95 > 1000"
+      message: "95th percentile response time exceeds 1 second"
+      severity: "warning"
+      
+    - condition: "error_rate > 0.01"
+      message: "Error rate exceeds 1%"
+      severity: "critical"
+      
+    - condition: "throughput < 1000"
+      message: "Throughput below 1000 requests/minute"
+      severity: "warning"
+
+# Reporting Configuration
+reporting:
+  output_dir: "./reports"
+  formats:
+    - "html"
+    - "csv"
+    - "json"
+    
+  include:
+    - "response_time_distribution"
+    - "error_rate_timeline"
+    - "throughput_timeline"
+    - "user_behavior_analysis"
+    - "performance_summary"
+
+# Test Execution Configuration
+execution:
+  parallel: false
+  retry_failed: true
+  max_retries: 3
+  
+  cleanup:
+    enabled: true
+    timeout: 30
+    
+  validation:
+    enabled: true
+    strict_mode: false

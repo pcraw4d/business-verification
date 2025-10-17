@@ -6,6 +6,7 @@
     <title>Merchant Details - KYB Platform</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/risk-indicators.css">
     <script src="components/navigation.js"></script>
     <script src="components/merchant-context.js"></script>
     <style>
@@ -730,10 +731,7 @@
 
         <!-- Risk Indicators Tab -->
         <div class="tab-content" id="risk-indicators">
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6">Risk Indicators</h2>
-                <p class="text-gray-600">Risk indicators content will be implemented here with identical UI to the enhanced risk indicators page.</p>
-            </div>
+            <div id="riskIndicatorsContainer"></div>
         </div>
     </div>
 
@@ -902,6 +900,37 @@
         // Initialize when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
             new MerchantDetails();
+        });
+    </script>
+
+    <!-- Risk Indicators Components -->
+    <script src="js/api-config.js"></script>
+    <script src="js/components/real-data-integration.js"></script>
+    <script src="js/components/risk-visualization.js"></script>
+    <script src="js/components/risk-explainability.js"></script>
+    <script src="js/components/risk-level-indicator.js"></script>
+    <script src="js/utils/risk-indicators-helpers.js"></script>
+    <script src="js/components/risk-indicators-ui-template.js"></script>
+    <script src="js/components/risk-indicators-data-service.js"></script>
+    <script src="js/components/website-risk-display.js"></script>
+    <script src="js/components/merchant-risk-indicators-tab.js"></script>
+
+    <!-- Initialize Risk Indicators Tab -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Risk Indicators Tab
+            riskIndicatorsTab = new MerchantRiskIndicatorsTab('riskIndicatorsContainer');
+            
+            // Listen for tab activation
+            const riskIndicatorsTabButton = document.querySelector('[data-tab="risk-indicators"]');
+            if (riskIndicatorsTabButton) {
+                riskIndicatorsTabButton.addEventListener('click', function() {
+                    const merchantId = getMerchantId(); // From existing merchant details page
+                    if (merchantId && riskIndicatorsTab) {
+                        riskIndicatorsTab.init(merchantId);
+                    }
+                });
+            }
         });
     </script>
 </body>

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -10,13 +11,54 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"go.uber.org/zap"
 
 	"kyb-platform/services/risk-assessment-service/internal/config"
+	"kyb-platform/services/risk-assessment-service/internal/engine"
 	"kyb-platform/services/risk-assessment-service/internal/middleware"
 	"kyb-platform/services/risk-assessment-service/internal/models"
 	"kyb-platform/services/risk-assessment-service/internal/validation"
 )
+
+// RiskEngineInterface defines the interface for RiskEngine
+type RiskEngineInterface interface {
+	AssessRisk(ctx context.Context, req *models.RiskAssessmentRequest) (*models.RiskAssessment, error)
+	GetCacheStats() *engine.CacheStats
+	GetCircuitBreakerState() engine.CircuitBreakerState
+	Shutdown(ctx context.Context) error
+}
+
+// MockRiskEngine is a mock implementation of the RiskEngine interface
+type MockRiskEngine struct {
+	mock.Mock
+}
+
+func (m *MockRiskEngine) AssessRisk(ctx context.Context, req *models.RiskAssessmentRequest) (*models.RiskAssessment, error) {
+	args := m.Called(ctx, req)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.RiskAssessment), args.Error(1)
+}
+
+func (m *MockRiskEngine) GetCacheStats() *engine.CacheStats {
+	args := m.Called()
+	if args.Get(0) == nil {
+		return nil
+	}
+	return args.Get(0).(*engine.CacheStats)
+}
+
+func (m *MockRiskEngine) GetCircuitBreakerState() engine.CircuitBreakerState {
+	args := m.Called()
+	return args.Get(0).(engine.CircuitBreakerState)
+}
+
+func (m *MockRiskEngine) Shutdown(ctx context.Context) error {
+	args := m.Called(ctx)
+	return args.Error(0)
+}
 
 // Test helper functions
 func createTestHandler() *RiskAssessmentHandler {
@@ -30,11 +72,18 @@ func createTestHandler() *RiskAssessmentHandler {
 		},
 	}
 
+	// Create a minimal test RiskEngine
+	testEngine := &engine.RiskEngine{}
+
 	handler := &RiskAssessmentHandler{
-		logger:       logger,
-		config:       config,
-		validator:    validation.NewValidator(),
-		errorHandler: middleware.NewErrorHandler(logger),
+		supabaseClient:      nil, // Not needed for this test
+		mlService:           nil, // Not needed for this test
+		riskEngine:          testEngine,
+		externalDataService: nil, // Not needed for this test
+		logger:              logger,
+		config:              config,
+		validator:           validation.NewValidator(),
+		errorHandler:        middleware.NewErrorHandler(logger),
 	}
 
 	return handler
@@ -127,6 +176,7 @@ func TestHandleRiskAssessment_InvalidInput(t *testing.T) {
 			w := httptest.NewRecorder()
 
 			if tc.expectError {
+				// For invalid requests, the engine shouldn't be called
 				handler.HandleRiskAssessment(w, req)
 				assert.Equal(t, http.StatusBadRequest, w.Code)
 			} else {

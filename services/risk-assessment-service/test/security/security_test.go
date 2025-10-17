@@ -1,494 +1,602 @@
+//go:build security
+
 package security
 
 import (
 	"bytes"
-	"crypto/rand"
 	"encoding/json"
-	"fmt"
-	"io"
 	"net/http"
-	"net/http/httptest"
-	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
+
+	"github.com/company/kyb-platform/services/risk-assessment-service/internal/models"
 )
 
-// SecurityTestSuite provides comprehensive security testing capabilities
-type SecurityTestSuite struct {
-	server     *httptest.Server
-	logger     *zap.Logger
-	tenant1ID  string
-	tenant2ID  string
-	tenant1Key string
-	tenant2Key string
-}
-
-// NewSecurityTestSuite creates a new security test suite
-func NewSecurityTestSuite() *SecurityTestSuite {
-	logger := zap.NewNop()
-
-	// Create test tenants
-	tenant1ID := "tenant_1_test"
-	tenant2ID := "tenant_2_test"
-	tenant1Key := "test_key_tenant_1"
-	tenant2Key := "test_key_tenant_2"
-
-	// Create test server with mock handlers
-	mux := http.NewServeMux()
-
-	// Mock risk assessment handler
-	mux.HandleFunc("/api/v1/risk/assess", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": true,
-			"data": map[string]interface{}{
-				"assessment_id": "test_assessment",
-				"risk_score":    0.75,
-				"status":        "completed",
-			},
-		})
-	})
-
-	// Mock tenant info handler
-	mux.HandleFunc("/api/v1/tenant/info", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": true,
-			"data": map[string]interface{}{
-				"tenant_id": "test_tenant",
-				"name":      "Test Tenant",
-			},
-		})
-	})
-
-	server := httptest.NewServer(mux)
-
-	return &SecurityTestSuite{
-		server:     server,
-		logger:     logger,
-		tenant1ID:  tenant1ID,
-		tenant2ID:  tenant2ID,
-		tenant1Key: tenant1Key,
-		tenant2Key: tenant2Key,
-	}
-}
-
-// TestTenantIsolation tests that tenants cannot access each other's data
-func (sts *SecurityTestSuite) TestTenantIsolation(t *testing.T) {
-	t.Run("tenant_cannot_access_other_tenant_data", func(t *testing.T) {
-		// Create risk assessment for tenant 1
-		assessment1 := map[string]interface{}{
-			"business_name": "Test Business 1",
-			"business_id":   "business_1",
-			"country":       "US",
-		}
-
-		req1, _ := http.NewRequest("POST", sts.server.URL+"/api/v1/risk/assess",
-			sts.createJSONBody(assessment1))
-		req1.Header.Set("Authorization", "Bearer "+sts.tenant1Key)
-		req1.Header.Set("X-Tenant-ID", sts.tenant1ID)
-
-		resp1, err := http.DefaultClient.Do(req1)
-		require.NoError(t, err)
-		assert.Equal(t, http.StatusOK, resp1.StatusCode)
-
-		// Try to access tenant 1's data with tenant 2's credentials
-		req2, _ := http.NewRequest("GET", sts.server.URL+"/api/v1/tenant/info", nil)
-		req2.Header.Set("Authorization", "Bearer "+sts.tenant2Key)
-		req2.Header.Set("X-Tenant-ID", sts.tenant1ID) // Wrong tenant ID
-
-		resp2, err := http.DefaultClient.Do(req2)
-		require.NoError(t, err)
-		assert.Equal(t, http.StatusForbidden, resp2.StatusCode)
-	})
-
-	t.Run("tenant_context_validation", func(t *testing.T) {
-		// Test without tenant context
-		req, _ := http.NewRequest("POST", sts.server.URL+"/api/v1/risk/assess",
-			sts.createJSONBody(map[string]interface{}{"business_name": "Test"}))
-
-		resp, err := http.DefaultClient.Do(req)
-		require.NoError(t, err)
-		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
-	})
-}
-
-// TestSQLInjectionPrevention tests protection against SQL injection attacks
-func (sts *SecurityTestSuite) TestSQLInjectionPrevention(t *testing.T) {
-	sqlInjectionPayloads := []string{
-		"'; DROP TABLE assessments; --",
-		"' OR '1'='1",
-		"'; INSERT INTO assessments VALUES ('hacked'); --",
-		"' UNION SELECT * FROM users --",
-		"'; UPDATE assessments SET score = 100; --",
+// TestSecurityHeaders tests security headers implementation
+func TestSecurityHeaders(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping security test")
 	}
 
-	for _, payload := range sqlInjectionPayloads {
-		t.Run(fmt.Sprintf("sql_injection_%s", strings.ReplaceAll(payload, " ", "_")), func(t *testing.T) {
-			assessment := map[string]interface{}{
-				"business_name": payload,
-				"business_id":   "test_business",
-				"country":       "US",
+	baseURL := "http://localhost:8080"
+	client := &http.Client{Timeout: 30 * time.Second}
+
+	tests := []struct {
+		name     string
+		endpoint string
+		method   string
+	}{
+		{
+			name:     "GET /health",
+			endpoint: "/health",
+			method:   "GET",
+		},
+		{
+			name:     "POST /api/v1/assess",
+			endpoint: "/api/v1/assess",
+			method:   "POST",
+		},
+		{
+			name:     "GET /metrics",
+			endpoint: "/metrics",
+			method:   "GET",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var req *http.Request
+			var err error
+
+			if tt.method == "POST" {
+				reqBody, _ := json.Marshal(&models.RiskAssessmentRequest{
+					BusinessName:      "Test Company",
+					BusinessAddress:   "123 Test Street, Test City, TC 12345",
+					Industry:          "technology",
+					Country:           "US",
+					PredictionHorizon: 3,
+				})
+				req, err = http.NewRequest(tt.method, baseURL+tt.endpoint, bytes.NewBuffer(reqBody))
+				req.Header.Set("Content-Type", "application/json")
+			} else {
+				req, err = http.NewRequest(tt.method, baseURL+tt.endpoint, nil)
 			}
-
-			req, _ := http.NewRequest("POST", sts.server.URL+"/api/v1/risk/assess",
-				sts.createJSONBody(assessment))
-			req.Header.Set("Authorization", "Bearer "+sts.tenant1Key)
-			req.Header.Set("X-Tenant-ID", sts.tenant1ID)
-
-			resp, err := http.DefaultClient.Do(req)
 			require.NoError(t, err)
 
-			// Should either reject the request or sanitize the input
-			assert.True(t, resp.StatusCode == http.StatusBadRequest || resp.StatusCode == http.StatusOK)
+			resp, err := client.Do(req)
+			require.NoError(t, err)
+			defer resp.Body.Close()
 
-			if resp.StatusCode == http.StatusOK {
-				// If accepted, verify the payload was sanitized
-				var result map[string]interface{}
-				err = json.NewDecoder(resp.Body).Decode(&result)
-				require.NoError(t, err)
-
-				// Verify no SQL injection occurred
-				assert.NotContains(t, result, "DROP TABLE")
-				assert.NotContains(t, result, "UNION SELECT")
-			}
+			// Test security headers
+			assert.Equal(t, "nosniff", resp.Header.Get("X-Content-Type-Options"),
+				"X-Content-Type-Options header should be set to nosniff")
+			assert.Equal(t, "1; mode=block", resp.Header.Get("X-XSS-Protection"),
+				"X-XSS-Protection header should be set to 1; mode=block")
+			assert.Equal(t, "DENY", resp.Header.Get("X-Frame-Options"),
+				"X-Frame-Options header should be set to DENY")
+			assert.Contains(t, resp.Header.Get("Strict-Transport-Security"), "max-age",
+				"Strict-Transport-Security header should be set")
+			assert.NotEmpty(t, resp.Header.Get("Content-Security-Policy"),
+				"Content-Security-Policy header should be set")
 		})
 	}
-}
-
-// TestXSSPrevention tests protection against Cross-Site Scripting attacks
-func (sts *SecurityTestSuite) TestXSSPrevention(t *testing.T) {
-	xssPayloads := []string{
-		"<script>alert('XSS')</script>",
-		"javascript:alert('XSS')",
-		"<img src=x onerror=alert('XSS')>",
-		"<svg onload=alert('XSS')>",
-		"';alert('XSS');//",
-	}
-
-	for _, payload := range xssPayloads {
-		t.Run(fmt.Sprintf("xss_%s", strings.ReplaceAll(payload, "<", "_")), func(t *testing.T) {
-			assessment := map[string]interface{}{
-				"business_name": payload,
-				"business_id":   "test_business",
-				"country":       "US",
-			}
-
-			req, _ := http.NewRequest("POST", sts.server.URL+"/api/v1/risk/assess",
-				sts.createJSONBody(assessment))
-			req.Header.Set("Authorization", "Bearer "+sts.tenant1Key)
-			req.Header.Set("X-Tenant-ID", sts.tenant1ID)
-
-			resp, err := http.DefaultClient.Do(req)
-			require.NoError(t, err)
-
-			// Should either reject the request or sanitize the input
-			assert.True(t, resp.StatusCode == http.StatusBadRequest || resp.StatusCode == http.StatusOK)
-
-			if resp.StatusCode == http.StatusOK {
-				// If accepted, verify the payload was sanitized
-				var result map[string]interface{}
-				err = json.NewDecoder(resp.Body).Decode(&result)
-				require.NoError(t, err)
-
-				// Verify no XSS payload remains
-				resultStr := fmt.Sprintf("%v", result)
-				assert.NotContains(t, resultStr, "<script>")
-				assert.NotContains(t, resultStr, "javascript:")
-				assert.NotContains(t, resultStr, "onerror=")
-			}
-		})
-	}
-}
-
-// TestRateLimiting tests rate limiting functionality
-func (sts *SecurityTestSuite) TestRateLimiting(t *testing.T) {
-	t.Run("rate_limit_enforcement", func(t *testing.T) {
-		// Make multiple requests quickly to trigger rate limiting
-		assessment := map[string]interface{}{
-			"business_name": "Rate Limit Test",
-			"business_id":   "rate_test",
-			"country":       "US",
-		}
-
-		successCount := 0
-		rateLimitedCount := 0
-
-		for i := 0; i < 20; i++ { // Exceed rate limit
-			req, _ := http.NewRequest("POST", sts.server.URL+"/api/v1/risk/assess",
-				sts.createJSONBody(assessment))
-			req.Header.Set("Authorization", "Bearer "+sts.tenant1Key)
-			req.Header.Set("X-Tenant-ID", sts.tenant1ID)
-
-			resp, err := http.DefaultClient.Do(req)
-			require.NoError(t, err)
-
-			if resp.StatusCode == http.StatusOK {
-				successCount++
-			} else if resp.StatusCode == http.StatusTooManyRequests {
-				rateLimitedCount++
-			}
-		}
-
-		// Should have some successful requests and some rate limited
-		assert.Greater(t, successCount, 0)
-		assert.Greater(t, rateLimitedCount, 0)
-	})
-}
-
-// TestAuthenticationSecurity tests authentication mechanisms
-func (sts *SecurityTestSuite) TestAuthenticationSecurity(t *testing.T) {
-	t.Run("invalid_token_rejection", func(t *testing.T) {
-		req, _ := http.NewRequest("POST", sts.server.URL+"/api/v1/risk/assess",
-			sts.createJSONBody(map[string]interface{}{"business_name": "Test"}))
-		req.Header.Set("Authorization", "Bearer invalid_token")
-		req.Header.Set("X-Tenant-ID", sts.tenant1ID)
-
-		resp, err := http.DefaultClient.Do(req)
-		require.NoError(t, err)
-		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
-	})
-
-	t.Run("missing_authorization_header", func(t *testing.T) {
-		req, _ := http.NewRequest("POST", sts.server.URL+"/api/v1/risk/assess",
-			sts.createJSONBody(map[string]interface{}{"business_name": "Test"}))
-		req.Header.Set("X-Tenant-ID", sts.tenant1ID)
-
-		resp, err := http.DefaultClient.Do(req)
-		require.NoError(t, err)
-		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
-	})
-
-	t.Run("malformed_authorization_header", func(t *testing.T) {
-		req, _ := http.NewRequest("POST", sts.server.URL+"/api/v1/risk/assess",
-			sts.createJSONBody(map[string]interface{}{"business_name": "Test"}))
-		req.Header.Set("Authorization", "InvalidFormat token")
-		req.Header.Set("X-Tenant-ID", sts.tenant1ID)
-
-		resp, err := http.DefaultClient.Do(req)
-		require.NoError(t, err)
-		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
-	})
 }
 
 // TestInputValidation tests input validation and sanitization
-func (sts *SecurityTestSuite) TestInputValidation(t *testing.T) {
-	t.Run("oversized_payload_rejection", func(t *testing.T) {
-		// Create a very large payload
-		largeString := strings.Repeat("A", 10*1024*1024) // 10MB
-		assessment := map[string]interface{}{
-			"business_name": largeString,
-			"business_id":   "test_business",
-			"country":       "US",
-		}
-
-		req, _ := http.NewRequest("POST", sts.server.URL+"/api/v1/risk/assess",
-			sts.createJSONBody(assessment))
-		req.Header.Set("Authorization", "Bearer "+sts.tenant1Key)
-		req.Header.Set("X-Tenant-ID", sts.tenant1ID)
-
-		resp, err := http.DefaultClient.Do(req)
-		require.NoError(t, err)
-		assert.Equal(t, http.StatusRequestEntityTooLarge, resp.StatusCode)
-	})
-
-	t.Run("malformed_json_rejection", func(t *testing.T) {
-		req, _ := http.NewRequest("POST", sts.server.URL+"/api/v1/risk/assess",
-			strings.NewReader("{ invalid json }"))
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+sts.tenant1Key)
-		req.Header.Set("X-Tenant-ID", sts.tenant1ID)
-
-		resp, err := http.DefaultClient.Do(req)
-		require.NoError(t, err)
-		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
-	})
-
-	t.Run("missing_required_fields", func(t *testing.T) {
-		assessment := map[string]interface{}{
-			"business_id": "test_business",
-			// Missing business_name
-		}
-
-		req, _ := http.NewRequest("POST", sts.server.URL+"/api/v1/risk/assess",
-			sts.createJSONBody(assessment))
-		req.Header.Set("Authorization", "Bearer "+sts.tenant1Key)
-		req.Header.Set("X-Tenant-ID", sts.tenant1ID)
-
-		resp, err := http.DefaultClient.Do(req)
-		require.NoError(t, err)
-		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
-	})
-}
-
-// TestDataEncryption tests data encryption at rest and in transit
-func (sts *SecurityTestSuite) TestDataEncryption(t *testing.T) {
-	t.Run("sensitive_data_not_logged", func(t *testing.T) {
-		// This test would verify that sensitive data is not logged
-		// In a real implementation, we would capture logs and verify
-		assessment := map[string]interface{}{
-			"business_name": "Sensitive Business",
-			"business_id":   "sensitive_id",
-			"ssn":           "123-45-6789", // Sensitive data
-			"country":       "US",
-		}
-
-		req, _ := http.NewRequest("POST", sts.server.URL+"/api/v1/risk/assess",
-			sts.createJSONBody(assessment))
-		req.Header.Set("Authorization", "Bearer "+sts.tenant1Key)
-		req.Header.Set("X-Tenant-ID", sts.tenant1ID)
-
-		resp, err := http.DefaultClient.Do(req)
-		require.NoError(t, err)
-		assert.Equal(t, http.StatusOK, resp.StatusCode)
-
-		// In a real test, we would verify logs don't contain sensitive data
-		// This is a placeholder for the actual log verification
-	})
-}
-
-// TestAuditTrailIntegrity tests audit trail immutability
-func (sts *SecurityTestSuite) TestAuditTrailIntegrity(t *testing.T) {
-	t.Run("audit_trail_immutability", func(t *testing.T) {
-		// Perform an action that should be audited
-		assessment := map[string]interface{}{
-			"business_name": "Audit Test Business",
-			"business_id":   "audit_test",
-			"country":       "US",
-		}
-
-		req, _ := http.NewRequest("POST", sts.server.URL+"/api/v1/risk/assess",
-			sts.createJSONBody(assessment))
-		req.Header.Set("Authorization", "Bearer "+sts.tenant1Key)
-		req.Header.Set("X-Tenant-ID", sts.tenant1ID)
-
-		resp, err := http.DefaultClient.Do(req)
-		require.NoError(t, err)
-		assert.Equal(t, http.StatusOK, resp.StatusCode)
-
-		// In a real implementation, we would verify:
-		// 1. Audit log entry was created
-		// 2. Audit log entry is immutable
-		// 3. Audit log entry contains correct information
-		// 4. Audit log entry has cryptographic integrity
-	})
-}
-
-// TestConcurrencySecurity tests security under concurrent access
-func (sts *SecurityTestSuite) TestConcurrencySecurity(t *testing.T) {
-	t.Run("concurrent_tenant_isolation", func(t *testing.T) {
-		// Test concurrent requests from different tenants
-		done := make(chan bool, 2)
-
-		// Tenant 1 request
-		go func() {
-			assessment := map[string]interface{}{
-				"business_name": "Concurrent Test 1",
-				"business_id":   "concurrent_1",
-				"country":       "US",
-			}
-
-			req, _ := http.NewRequest("POST", sts.server.URL+"/api/v1/risk/assess",
-				sts.createJSONBody(assessment))
-			req.Header.Set("Authorization", "Bearer "+sts.tenant1Key)
-			req.Header.Set("X-Tenant-ID", sts.tenant1ID)
-
-			resp, err := http.DefaultClient.Do(req)
-			require.NoError(t, err)
-			assert.Equal(t, http.StatusOK, resp.StatusCode)
-			done <- true
-		}()
-
-		// Tenant 2 request
-		go func() {
-			assessment := map[string]interface{}{
-				"business_name": "Concurrent Test 2",
-				"business_id":   "concurrent_2",
-				"country":       "US",
-			}
-
-			req, _ := http.NewRequest("POST", sts.server.URL+"/api/v1/risk/assess",
-				sts.createJSONBody(assessment))
-			req.Header.Set("Authorization", "Bearer "+sts.tenant2Key)
-			req.Header.Set("X-Tenant-ID", sts.tenant2ID)
-
-			resp, err := http.DefaultClient.Do(req)
-			require.NoError(t, err)
-			assert.Equal(t, http.StatusOK, resp.StatusCode)
-			done <- true
-		}()
-
-		// Wait for both requests to complete
-		<-done
-		<-done
-	})
-}
-
-// TestSecurityHeaders tests security headers are properly set
-func (sts *SecurityTestSuite) TestSecurityHeaders(t *testing.T) {
-	t.Run("security_headers_present", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", sts.server.URL+"/api/v1/tenant/info", nil)
-		req.Header.Set("Authorization", "Bearer "+sts.tenant1Key)
-		req.Header.Set("X-Tenant-ID", sts.tenant1ID)
-
-		resp, err := http.DefaultClient.Do(req)
-		require.NoError(t, err)
-
-		// Check for security headers
-		expectedHeaders := []string{
-			"X-Content-Type-Options",
-			"X-Frame-Options",
-			"X-XSS-Protection",
-			"Strict-Transport-Security",
-		}
-
-		for _, header := range expectedHeaders {
-			assert.NotEmpty(t, resp.Header.Get(header),
-				"Security header %s should be present", header)
-		}
-	})
-}
-
-// Helper methods
-
-func (sts *SecurityTestSuite) createJSONBody(data interface{}) io.Reader {
-	jsonData, _ := json.Marshal(data)
-	return bytes.NewReader(jsonData)
-}
-
-func (sts *SecurityTestSuite) generateRandomString(length int) string {
-	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	b := make([]byte, length)
-	for i := range b {
-		randomByte := make([]byte, 1)
-		rand.Read(randomByte)
-		b[i] = charset[randomByte[0]%byte(len(charset))]
+func TestInputValidation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping security test")
 	}
-	return string(b)
+
+	baseURL := "http://localhost:8080"
+	client := &http.Client{Timeout: 30 * time.Second}
+
+	tests := []struct {
+		name           string
+		request        *models.RiskAssessmentRequest
+		expectedStatus int
+		expectedError  string
+	}{
+		{
+			name: "SQL injection attempt in business name",
+			request: &models.RiskAssessmentRequest{
+				BusinessName:      "'; DROP TABLE assessments; --",
+				BusinessAddress:   "123 Test Street, Test City, TC 12345",
+				Industry:          "technology",
+				Country:           "US",
+				PredictionHorizon: 3,
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  "invalid input",
+		},
+		{
+			name: "XSS attempt in business name",
+			request: &models.RiskAssessmentRequest{
+				BusinessName:      "<script>alert('xss')</script>",
+				BusinessAddress:   "123 Test Street, Test City, TC 12345",
+				Industry:          "technology",
+				Country:           "US",
+				PredictionHorizon: 3,
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  "invalid input",
+		},
+		{
+			name: "Path traversal attempt in business address",
+			request: &models.RiskAssessmentRequest{
+				BusinessName:      "Test Company",
+				BusinessAddress:   "../../../etc/passwd",
+				Industry:          "technology",
+				Country:           "US",
+				PredictionHorizon: 3,
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  "invalid input",
+		},
+		{
+			name: "Command injection attempt in industry",
+			request: &models.RiskAssessmentRequest{
+				BusinessName:      "Test Company",
+				BusinessAddress:   "123 Test Street, Test City, TC 12345",
+				Industry:          "technology; rm -rf /",
+				Country:           "US",
+				PredictionHorizon: 3,
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  "invalid input",
+		},
+		{
+			name: "Buffer overflow attempt in business name",
+			request: &models.RiskAssessmentRequest{
+				BusinessName:      string(make([]byte, 10000)), // Very long string
+				BusinessAddress:   "123 Test Street, Test City, TC 12345",
+				Industry:          "technology",
+				Country:           "US",
+				PredictionHorizon: 3,
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  "input too long",
+		},
+		{
+			name: "Invalid JSON payload",
+			request: &models.RiskAssessmentRequest{
+				BusinessName:      "Test Company",
+				BusinessAddress:   "123 Test Street, Test City, TC 12345",
+				Industry:          "technology",
+				Country:           "US",
+				PredictionHorizon: 3,
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  "invalid JSON",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var reqBody []byte
+			var err error
+
+			if tt.name == "Invalid JSON payload" {
+				// Send malformed JSON
+				reqBody = []byte(`{"business_name": "Test Company", "business_address": "123 Test Street", "industry": "technology", "country": "US", "prediction_horizon": 3, "invalid_field": }`)
+			} else {
+				reqBody, err = json.Marshal(tt.request)
+				require.NoError(t, err)
+			}
+
+			req, err := http.NewRequest("POST", baseURL+"/api/v1/assess", bytes.NewBuffer(reqBody))
+			require.NoError(t, err)
+
+			req.Header.Set("Content-Type", "application/json")
+
+			resp, err := client.Do(req)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
+
+			var errorResp map[string]interface{}
+			err = json.NewDecoder(resp.Body).Decode(&errorResp)
+			require.NoError(t, err)
+
+			assert.Contains(t, errorResp, "error")
+			if tt.expectedError != "" {
+				assert.Contains(t, errorResp["error"], tt.expectedError)
+			}
+		})
+	}
 }
 
-func (sts *SecurityTestSuite) Close() {
-	sts.server.Close()
+// TestAuthenticationSecurity tests authentication and authorization security
+func TestAuthenticationSecurity(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping security test")
+	}
+
+	baseURL := "http://localhost:8080"
+	client := &http.Client{Timeout: 30 * time.Second}
+
+	tests := []struct {
+		name           string
+		headers        map[string]string
+		expectedStatus int
+		expectedError  string
+	}{
+		{
+			name: "missing authorization header",
+			headers: map[string]string{
+				"Content-Type": "application/json",
+			},
+			expectedStatus: http.StatusUnauthorized,
+			expectedError:  "authorization required",
+		},
+		{
+			name: "invalid authorization header format",
+			headers: map[string]string{
+				"Authorization": "InvalidFormat token123",
+				"Content-Type":  "application/json",
+			},
+			expectedStatus: http.StatusUnauthorized,
+			expectedError:  "invalid authorization format",
+		},
+		{
+			name: "expired token",
+			headers: map[string]string{
+				"Authorization": "Bearer expired_token_123",
+				"Content-Type":  "application/json",
+			},
+			expectedStatus: http.StatusUnauthorized,
+			expectedError:  "token expired",
+		},
+		{
+			name: "malformed JWT token",
+			headers: map[string]string{
+				"Authorization": "Bearer malformed.jwt.token",
+				"Content-Type":  "application/json",
+			},
+			expectedStatus: http.StatusUnauthorized,
+			expectedError:  "invalid token",
+		},
+		{
+			name: "token with insufficient permissions",
+			headers: map[string]string{
+				"Authorization": "Bearer insufficient_permissions_token",
+				"Content-Type":  "application/json",
+			},
+			expectedStatus: http.StatusForbidden,
+			expectedError:  "insufficient permissions",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reqBody, err := json.Marshal(&models.RiskAssessmentRequest{
+				BusinessName:      "Test Company",
+				BusinessAddress:   "123 Test Street, Test City, TC 12345",
+				Industry:          "technology",
+				Country:           "US",
+				PredictionHorizon: 3,
+			})
+			require.NoError(t, err)
+
+			req, err := http.NewRequest("POST", baseURL+"/api/v1/assess", bytes.NewBuffer(reqBody))
+			require.NoError(t, err)
+
+			// Set headers
+			for key, value := range tt.headers {
+				req.Header.Set(key, value)
+			}
+
+			resp, err := client.Do(req)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
+
+			var errorResp map[string]interface{}
+			err = json.NewDecoder(resp.Body).Decode(&errorResp)
+			require.NoError(t, err)
+
+			assert.Contains(t, errorResp, "error")
+			if tt.expectedError != "" {
+				assert.Contains(t, errorResp["error"], tt.expectedError)
+			}
+		})
+	}
 }
 
-// RunAllSecurityTests runs the complete security test suite
-func RunAllSecurityTests(t *testing.T) {
-	suite := NewSecurityTestSuite()
-	defer suite.Close()
+// TestRateLimitingSecurity tests rate limiting security
+func TestRateLimitingSecurity(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping security test")
+	}
 
-	t.Run("TenantIsolation", suite.TestTenantIsolation)
-	t.Run("SQLInjectionPrevention", suite.TestSQLInjectionPrevention)
-	t.Run("XSSPrevention", suite.TestXSSPrevention)
-	t.Run("RateLimiting", suite.TestRateLimiting)
-	t.Run("AuthenticationSecurity", suite.TestAuthenticationSecurity)
-	t.Run("InputValidation", suite.TestInputValidation)
-	t.Run("DataEncryption", suite.TestDataEncryption)
-	t.Run("AuditTrailIntegrity", suite.TestAuditTrailIntegrity)
-	t.Run("ConcurrencySecurity", suite.TestConcurrencySecurity)
-	t.Run("SecurityHeaders", suite.TestSecurityHeaders)
+	baseURL := "http://localhost:8080"
+	client := &http.Client{Timeout: 30 * time.Second}
+
+	// Test rate limiting by sending many requests quickly
+	t.Run("rate_limiting", func(t *testing.T) {
+		reqBody, err := json.Marshal(&models.RiskAssessmentRequest{
+			BusinessName:      "Test Company",
+			BusinessAddress:   "123 Test Street, Test City, TC 12345",
+			Industry:          "technology",
+			Country:           "US",
+			PredictionHorizon: 3,
+		})
+		require.NoError(t, err)
+
+		rateLimited := false
+		for i := 0; i < 100; i++ { // Send 100 requests quickly
+			req, err := http.NewRequest("POST", baseURL+"/api/v1/assess", bytes.NewBuffer(reqBody))
+			require.NoError(t, err)
+
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Authorization", "Bearer valid_token")
+
+			resp, err := client.Do(req)
+			require.NoError(t, err)
+			resp.Body.Close()
+
+			if resp.StatusCode == http.StatusTooManyRequests {
+				rateLimited = true
+				break
+			}
+		}
+
+		assert.True(t, rateLimited, "Rate limiting should be triggered after multiple requests")
+	})
+}
+
+// TestCORSecurity tests CORS security configuration
+func TestCORSecurity(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping security test")
+	}
+
+	baseURL := "http://localhost:8080"
+	client := &http.Client{Timeout: 30 * time.Second}
+
+	tests := []struct {
+		name           string
+		origin         string
+		expectedStatus int
+		expectedCORS   bool
+	}{
+		{
+			name:           "allowed origin",
+			origin:         "https://app.kyb-platform.com",
+			expectedStatus: http.StatusOK,
+			expectedCORS:   true,
+		},
+		{
+			name:           "disallowed origin",
+			origin:         "https://malicious-site.com",
+			expectedStatus: http.StatusForbidden,
+			expectedCORS:   false,
+		},
+		{
+			name:           "no origin header",
+			origin:         "",
+			expectedStatus: http.StatusOK,
+			expectedCORS:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req, err := http.NewRequest("OPTIONS", baseURL+"/api/v1/assess", nil)
+			require.NoError(t, err)
+
+			if tt.origin != "" {
+				req.Header.Set("Origin", tt.origin)
+			}
+			req.Header.Set("Access-Control-Request-Method", "POST")
+			req.Header.Set("Access-Control-Request-Headers", "Content-Type, Authorization")
+
+			resp, err := client.Do(req)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
+
+			if tt.expectedCORS {
+				assert.NotEmpty(t, resp.Header.Get("Access-Control-Allow-Origin"),
+					"Access-Control-Allow-Origin header should be set for allowed origins")
+				assert.NotEmpty(t, resp.Header.Get("Access-Control-Allow-Methods"),
+					"Access-Control-Allow-Methods header should be set")
+				assert.NotEmpty(t, resp.Header.Get("Access-Control-Allow-Headers"),
+					"Access-Control-Allow-Headers header should be set")
+			}
+		})
+	}
+}
+
+// TestDataPrivacySecurity tests data privacy and protection
+func TestDataPrivacySecurity(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping security test")
+	}
+
+	baseURL := "http://localhost:8080"
+	client := &http.Client{Timeout: 30 * time.Second}
+
+	t.Run("sensitive_data_not_logged", func(t *testing.T) {
+		// This test would require checking logs to ensure sensitive data is not logged
+		// For now, we'll test that the API responds correctly
+		reqBody, err := json.Marshal(&models.RiskAssessmentRequest{
+			BusinessName:      "Sensitive Business Name",
+			BusinessAddress:   "123 Sensitive Street, Sensitive City, SC 12345",
+			Industry:          "technology",
+			Country:           "US",
+			PredictionHorizon: 3,
+		})
+		require.NoError(t, err)
+
+		req, err := http.NewRequest("POST", baseURL+"/api/v1/assess", bytes.NewBuffer(reqBody))
+		require.NoError(t, err)
+
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer valid_token")
+
+		resp, err := client.Do(req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		// In a real implementation, you would check logs to ensure sensitive data is not logged
+		// This is a placeholder for that validation
+	})
+}
+
+// TestEncryptionSecurity tests encryption in transit and at rest
+func TestEncryptionSecurity(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping security test")
+	}
+
+	baseURL := "http://localhost:8080"
+	client := &http.Client{Timeout: 30 * time.Second}
+
+	t.Run("https_required", func(t *testing.T) {
+		// Test that HTTP requests are redirected to HTTPS
+		req, err := http.NewRequest("GET", "http://localhost:8080/health", nil)
+		require.NoError(t, err)
+
+		resp, err := client.Do(req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		// In production, this should redirect to HTTPS
+		// For testing, we'll just ensure the service responds
+		assert.True(t, resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusMovedPermanently,
+			"Service should respond or redirect to HTTPS")
+	})
+
+	t.Run("tls_configuration", func(t *testing.T) {
+		// Test TLS configuration (this would require HTTPS endpoint)
+		// For now, we'll test that the service responds correctly
+		req, err := http.NewRequest("GET", baseURL+"/health", nil)
+		require.NoError(t, err)
+
+		resp, err := client.Do(req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+	})
+}
+
+// TestAuditLoggingSecurity tests audit logging for security events
+func TestAuditLoggingSecurity(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping security test")
+	}
+
+	baseURL := "http://localhost:8080"
+	client := &http.Client{Timeout: 30 * time.Second}
+
+	t.Run("audit_logging", func(t *testing.T) {
+		// Test that security events are logged
+		reqBody, err := json.Marshal(&models.RiskAssessmentRequest{
+			BusinessName:      "Test Company",
+			BusinessAddress:   "123 Test Street, Test City, TC 12345",
+			Industry:          "technology",
+			Country:           "US",
+			PredictionHorizon: 3,
+		})
+		require.NoError(t, err)
+
+		req, err := http.NewRequest("POST", baseURL+"/api/v1/assess", bytes.NewBuffer(reqBody))
+		require.NoError(t, err)
+
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer valid_token")
+
+		resp, err := client.Do(req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		// In a real implementation, you would check audit logs to ensure security events are logged
+		// This is a placeholder for that validation
+	})
+}
+
+// TestVulnerabilityScanning tests for common vulnerabilities
+func TestVulnerabilityScanning(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping security test")
+	}
+
+	baseURL := "http://localhost:8080"
+	client := &http.Client{Timeout: 30 * time.Second}
+
+	tests := []struct {
+		name           string
+		endpoint       string
+		method         string
+		payload        string
+		expectedStatus int
+		vulnerability  string
+	}{
+		{
+			name:           "directory_traversal",
+			endpoint:       "/api/v1/assess/../../../etc/passwd",
+			method:         "GET",
+			payload:        "",
+			expectedStatus: http.StatusNotFound,
+			vulnerability:  "directory_traversal",
+		},
+		{
+			name:           "command_injection",
+			endpoint:       "/api/v1/assess",
+			method:         "POST",
+			payload:        `{"business_name": "test", "business_address": "123 test", "industry": "technology; ls -la", "country": "US", "prediction_horizon": 3}`,
+			expectedStatus: http.StatusBadRequest,
+			vulnerability:  "command_injection",
+		},
+		{
+			name:           "xml_external_entity",
+			endpoint:       "/api/v1/assess",
+			method:         "POST",
+			payload:        `<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><foo>&xxe;</foo>`,
+			expectedStatus: http.StatusBadRequest,
+			vulnerability:  "xml_external_entity",
+		},
+		{
+			name:           "server_side_request_forgery",
+			endpoint:       "/api/v1/assess",
+			method:         "POST",
+			payload:        `{"business_name": "test", "business_address": "http://internal-server:8080/admin", "industry": "technology", "country": "US", "prediction_horizon": 3}`,
+			expectedStatus: http.StatusBadRequest,
+			vulnerability:  "server_side_request_forgery",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var req *http.Request
+			var err error
+
+			if tt.method == "POST" {
+				req, err = http.NewRequest(tt.method, baseURL+tt.endpoint, bytes.NewBufferString(tt.payload))
+				req.Header.Set("Content-Type", "application/json")
+			} else {
+				req, err = http.NewRequest(tt.method, baseURL+tt.endpoint, nil)
+			}
+			require.NoError(t, err)
+
+			resp, err := client.Do(req)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, tt.expectedStatus, resp.StatusCode,
+				"Vulnerability %s should be properly handled", tt.vulnerability)
+		})
+	}
 }

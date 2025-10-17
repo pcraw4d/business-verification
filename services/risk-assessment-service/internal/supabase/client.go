@@ -25,6 +25,9 @@ type Config struct {
 
 // NewClient creates a new Supabase client
 func NewClient(cfg *Config, logger *zap.Logger) (*Client, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("supabase config is required")
+	}
 	if cfg.URL == "" {
 		return nil, fmt.Errorf("supabase URL is required")
 	}

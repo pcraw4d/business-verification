@@ -121,31 +121,34 @@ func (v *Validator) ValidateRiskAssessmentRequest(req *models.RiskAssessmentRequ
 	// Validate optional fields
 	if req.Phone != "" {
 		if err := v.validatePhone(req.Phone); err != nil {
-			result.Warnings = append(result.Warnings, ValidationError{
+			result.Errors = append(result.Errors, ValidationError{
 				Field:   "phone",
 				Message: err.Error(),
 				Code:    "INVALID_PHONE",
 			})
+			result.Valid = false
 		}
 	}
 
 	if req.Email != "" {
 		if err := v.validateEmail(req.Email); err != nil {
-			result.Warnings = append(result.Warnings, ValidationError{
+			result.Errors = append(result.Errors, ValidationError{
 				Field:   "email",
 				Message: err.Error(),
 				Code:    "INVALID_EMAIL",
 			})
+			result.Valid = false
 		}
 	}
 
 	if req.Website != "" {
 		if err := v.validateURL(req.Website); err != nil {
-			result.Warnings = append(result.Warnings, ValidationError{
+			result.Errors = append(result.Errors, ValidationError{
 				Field:   "website",
 				Message: err.Error(),
 				Code:    "INVALID_URL",
 			})
+			result.Valid = false
 		}
 	}
 
@@ -479,6 +482,56 @@ func (v *Validator) SanitizeInput(input string) string {
 	// Trim whitespace
 	input = strings.TrimSpace(input)
 
+	// Remove HTML tags (only actual tags, not standalone < > characters)
+	// This regex matches < followed by a letter (tag name) and optional attributes, then >
+	htmlTagRegex := regexp.MustCompile(`<[a-zA-Z][^>]*>`)
+	input = htmlTagRegex.ReplaceAllString(input, "")
+
+	// Remove closing tags
+	closingTagRegex := regexp.MustCompile(`</[a-zA-Z][^>]*>`)
+	input = closingTagRegex.ReplaceAllString(input, "")
+
+	// Remove common script content patterns
+	scriptPatterns := []string{
+		"alert(",
+		"javascript:",
+		"onload=",
+		"onerror=",
+		"onclick=",
+		"'xss')",
+		"xss",
+	}
+
+	for _, pattern := range scriptPatterns {
+		input = strings.ReplaceAll(input, pattern, "")
+	}
+
+	// Remove SQL injection patterns (more comprehensive)
+	sqlPatterns := []string{
+		"'; DROP TABLE",
+		"'; DELETE FROM",
+		"'; INSERT INTO",
+		"'; UPDATE ",
+		"'; SELECT *",
+		"UNION SELECT",
+		"OR 1=1",
+		"AND 1=1",
+		"DROP TABLE",
+		"DELETE FROM",
+		"INSERT INTO",
+		"UPDATE ",
+		"SELECT *",
+		"UNION",
+		"OR 1=1",
+		"AND 1=1",
+		"companies; --",
+		"'; --",
+	}
+
+	for _, pattern := range sqlPatterns {
+		input = strings.ReplaceAll(input, pattern, "")
+	}
+
 	// Remove control characters
 	var result strings.Builder
 	for _, char := range input {
@@ -487,7 +540,7 @@ func (v *Validator) SanitizeInput(input string) string {
 		}
 	}
 
-	return result.String()
+	return strings.TrimSpace(result.String())
 }
 
 // ValidatePredictionRequest validates a prediction request

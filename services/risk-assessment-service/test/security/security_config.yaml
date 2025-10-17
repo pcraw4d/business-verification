@@ -1,0 +1,447 @@
+# Security Testing Configuration for Risk Assessment Service
+
+# Security Test Categories
+security_tests:
+  # Input Validation Tests
+  input_validation:
+    enabled: true
+    tests:
+      - name: "sql_injection"
+        description: "Test for SQL injection vulnerabilities"
+        severity: "critical"
+        patterns:
+          - "'; DROP TABLE assessments; --"
+          - "1' OR '1'='1"
+          - "UNION SELECT * FROM users"
+          
+      - name: "xss_attack"
+        description: "Test for Cross-Site Scripting vulnerabilities"
+        severity: "high"
+        patterns:
+          - "<script>alert('xss')</script>"
+          - "javascript:alert('xss')"
+          - "<img src=x onerror=alert('xss')>"
+          
+      - name: "command_injection"
+        description: "Test for command injection vulnerabilities"
+        severity: "critical"
+        patterns:
+          - "; rm -rf /"
+          - "| cat /etc/passwd"
+          - "&& whoami"
+          
+      - name: "path_traversal"
+        description: "Test for path traversal vulnerabilities"
+        severity: "high"
+        patterns:
+          - "../../../etc/passwd"
+          - "..\\..\\..\\windows\\system32\\drivers\\etc\\hosts"
+          - "%2e%2e%2f%2e%2e%2f%2e%2e%2fetc%2fpasswd"
+          
+      - name: "buffer_overflow"
+        description: "Test for buffer overflow vulnerabilities"
+        severity: "high"
+        patterns:
+          - "A" * 10000  # Very long string
+          - "B" * 50000  # Extremely long string
+          
+      - name: "json_injection"
+        description: "Test for JSON injection vulnerabilities"
+        severity: "medium"
+        patterns:
+          - '{"business_name": "test", "malicious_field": "value"}'
+          - '{"business_name": "test", "__proto__": {"isAdmin": true}}'
+
+  # Authentication & Authorization Tests
+  authentication:
+    enabled: true
+    tests:
+      - name: "missing_auth"
+        description: "Test requests without authentication"
+        severity: "high"
+        
+      - name: "invalid_token"
+        description: "Test with invalid authentication tokens"
+        severity: "high"
+        tokens:
+          - "invalid_token"
+          - "expired_token"
+          - "malformed.jwt.token"
+          
+      - name: "token_manipulation"
+        description: "Test token manipulation attacks"
+        severity: "critical"
+        patterns:
+          - "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ"
+          - "Bearer " + base64_encode('{"sub":"admin","admin":true}')
+          
+      - name: "privilege_escalation"
+        description: "Test for privilege escalation vulnerabilities"
+        severity: "critical"
+        scenarios:
+          - "user_accessing_admin_endpoints"
+          - "guest_accessing_user_endpoints"
+
+  # Rate Limiting Tests
+  rate_limiting:
+    enabled: true
+    tests:
+      - name: "brute_force"
+        description: "Test brute force attack protection"
+        severity: "high"
+        requests_per_second: 100
+        duration: "1m"
+        
+      - name: "ddos_protection"
+        description: "Test DDoS protection"
+        severity: "critical"
+        requests_per_second: 1000
+        duration: "30s"
+        
+      - name: "api_abuse"
+        description: "Test API abuse protection"
+        severity: "medium"
+        requests_per_minute: 1000
+
+  # CORS Security Tests
+  cors_security:
+    enabled: true
+    tests:
+      - name: "allowed_origins"
+        description: "Test CORS allowed origins"
+        severity: "medium"
+        allowed_origins:
+          - "https://app.kyb-platform.com"
+          - "https://staging.kyb-platform.com"
+        disallowed_origins:
+          - "https://malicious-site.com"
+          - "http://localhost:3000"
+          - "https://evil.com"
+          
+      - name: "cors_methods"
+        description: "Test CORS allowed methods"
+        severity: "medium"
+        allowed_methods:
+          - "GET"
+          - "POST"
+          - "PUT"
+          - "DELETE"
+        disallowed_methods:
+          - "TRACE"
+          - "CONNECT"
+
+  # Data Privacy Tests
+  data_privacy:
+    enabled: true
+    tests:
+      - name: "sensitive_data_logging"
+        description: "Test that sensitive data is not logged"
+        severity: "high"
+        sensitive_fields:
+          - "business_name"
+          - "business_address"
+          - "financial_data"
+          - "personal_information"
+          
+      - name: "data_encryption"
+        description: "Test data encryption in transit and at rest"
+        severity: "critical"
+        encryption_checks:
+          - "tls_version"
+          - "cipher_suites"
+          - "certificate_validation"
+          
+      - name: "data_retention"
+        description: "Test data retention policies"
+        severity: "medium"
+        retention_periods:
+          - "assessment_data: 7_years"
+          - "log_data: 1_year"
+          - "cache_data: 24_hours"
+
+  # Vulnerability Scanning
+  vulnerability_scanning:
+    enabled: true
+    tools:
+      - name: "gosec"
+        description: "Go security scanner"
+        severity_threshold: "medium"
+        rules:
+          - "G101"  # Look for hard coded credentials
+          - "G102"  # Bind to all interfaces
+          - "G103"  # Audit the use of unsafe block
+          - "G104"  # Audit errors not checked
+          - "G106"  # Audit the use of ssh.InsecureIgnoreHostKey
+          - "G107"  # Url provided to HTTP client as taint input
+          - "G108"  # Profiling endpoint is automatically exposed
+          - "G109"  # Converting strconv.Atoi result to int32/int16
+          - "G110"  # Potential DoS vulnerability via decompression bomb
+          - "G111"  # Potential directory traversal
+          - "G112"  # Potential slowloris attack
+          - "G113"  # Usage of Rat.SetString in math/big with an overflow
+          - "G114"  # Use of net/http serve function that has no support for setting timeouts
+          - "G201"  # SQL query construction using format string
+          - "G202"  # SQL query construction using string concatenation
+          - "G203"  # Use of unescaped data in HTML templates
+          - "G204"  # Audit use of command execution
+          - "G301"  # Poor file permissions used when creating a directory
+          - "G302"  # Poor file permissions used with chmod
+          - "G303"  # Creating tempfile using a predictable path
+          - "G304"  # File path provided as taint input
+          - "G305"  # File path traversal when extracting zip/tar archive
+          - "G306"  # Poor file permissions used when writing to a file
+          - "G307"  # Poor file permissions used when creating a file
+          - "G401"  # Detect the usage of DES, RC4, MD5 or SHA1
+          - "G402"  # Look for bad TLS connection settings
+          - "G403"  # Ensure minimum RSA key length of 2048 bits
+          - "G404"  # Insecure random number source (rand)
+          - "G501"  # Import blocklist: crypto/md5
+          - "G502"  # Import blocklist: crypto/des
+          - "G503"  # Import blocklist: crypto/rc4
+          - "G504"  # Import blocklist: net/http/cgi
+          - "G505"  # Import blocklist: crypto/sha1
+          - "G601"  # Implicit memory aliasing in RangeStmt
+          
+      - name: "trivy"
+        description: "Vulnerability scanner for containers and dependencies"
+        severity_threshold: "medium"
+        scan_types:
+          - "vuln"      # Vulnerability scan
+          - "config"    # Configuration scan
+          - "secret"    # Secret scan
+          - "license"   # License scan
+          
+      - name: "nancy"
+        description: "Vulnerability scanner for Go dependencies"
+        severity_threshold: "medium"
+        
+      - name: "golangci-lint"
+        description: "Go linter with security rules"
+        severity_threshold: "medium"
+        rules:
+          - "gosec"
+          - "goconst"
+          - "gocritic"
+          - "gocyclo"
+          - "gofmt"
+          - "goimports"
+          - "golint"
+          - "goprintffuncname"
+          - "gosec"
+          - "gosimple"
+          - "govet"
+          - "ineffassign"
+          - "misspell"
+          - "staticcheck"
+          - "structcheck"
+          - "typecheck"
+          - "unused"
+          - "varcheck"
+
+# Security Headers Configuration
+security_headers:
+  enabled: true
+  headers:
+    - name: "X-Content-Type-Options"
+      value: "nosniff"
+      description: "Prevents MIME type sniffing"
+      
+    - name: "X-XSS-Protection"
+      value: "1; mode=block"
+      description: "Enables XSS filtering"
+      
+    - name: "X-Frame-Options"
+      value: "DENY"
+      description: "Prevents clickjacking"
+      
+    - name: "Strict-Transport-Security"
+      value: "max-age=31536000; includeSubDomains; preload"
+      description: "Enforces HTTPS"
+      
+    - name: "Content-Security-Policy"
+      value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none';"
+      description: "Content Security Policy"
+      
+    - name: "Referrer-Policy"
+      value: "strict-origin-when-cross-origin"
+      description: "Controls referrer information"
+      
+    - name: "Permissions-Policy"
+      value: "geolocation=(), microphone=(), camera=()"
+      description: "Controls browser features"
+
+# CORS Configuration
+cors_config:
+  enabled: true
+  allowed_origins:
+    - "https://app.kyb-platform.com"
+    - "https://staging.kyb-platform.com"
+    - "https://admin.kyb-platform.com"
+  allowed_methods:
+    - "GET"
+    - "POST"
+    - "PUT"
+    - "DELETE"
+    - "OPTIONS"
+  allowed_headers:
+    - "Content-Type"
+    - "Authorization"
+    - "X-Requested-With"
+    - "X-API-Key"
+  exposed_headers:
+    - "X-Total-Count"
+    - "X-Page-Count"
+  allow_credentials: true
+  max_age: 86400
+
+# Rate Limiting Configuration
+rate_limiting:
+  enabled: true
+  limits:
+    - endpoint: "/api/v1/assess"
+      requests_per_minute: 100
+      burst_size: 20
+      
+    - endpoint: "/api/v1/assess/batch"
+      requests_per_minute: 10
+      burst_size: 5
+      
+    - endpoint: "/api/v1/assess/*/scenarios"
+      requests_per_minute: 50
+      burst_size: 10
+      
+    - endpoint: "/health"
+      requests_per_minute: 1000
+      burst_size: 100
+      
+    - endpoint: "/metrics"
+      requests_per_minute: 100
+      burst_size: 20
+
+# Authentication Configuration
+authentication:
+  enabled: true
+  jwt:
+    secret_key: "your-secret-key-here"
+    issuer: "kyb-platform"
+    audience: "kyb-platform-api"
+    expiration: "24h"
+    refresh_expiration: "7d"
+    
+  api_key:
+    enabled: true
+    header_name: "X-API-Key"
+    required_for:
+      - "/api/v1/assess"
+      - "/api/v1/assess/batch"
+      - "/api/v1/assess/*/scenarios"
+      
+  rbac:
+    enabled: true
+    roles:
+      - name: "admin"
+        permissions:
+          - "risk_assessment:read"
+          - "risk_assessment:write"
+          - "risk_assessment:delete"
+          - "admin:read"
+          - "admin:write"
+          
+      - name: "user"
+        permissions:
+          - "risk_assessment:read"
+          - "risk_assessment:write"
+          
+      - name: "viewer"
+        permissions:
+          - "risk_assessment:read"
+
+# Data Privacy Configuration
+data_privacy:
+  enabled: true
+  gdpr_compliance: true
+  data_retention:
+    assessment_data: "7y"
+    log_data: "1y"
+    cache_data: "24h"
+    temp_data: "1h"
+    
+  encryption:
+    at_rest: true
+    in_transit: true
+    algorithm: "AES-256-GCM"
+    
+  anonymization:
+    enabled: true
+    fields:
+      - "business_name"
+      - "business_address"
+      - "personal_information"
+      
+  audit_logging:
+    enabled: true
+    events:
+      - "risk_assessment_created"
+      - "risk_assessment_updated"
+      - "risk_assessment_deleted"
+      - "user_login"
+      - "user_logout"
+      - "permission_denied"
+      - "data_access"
+      - "data_export"
+
+# Security Monitoring
+security_monitoring:
+  enabled: true
+  alerts:
+    - name: "failed_authentication"
+      threshold: 5
+      time_window: "5m"
+      severity: "medium"
+      
+    - name: "rate_limit_exceeded"
+      threshold: 10
+      time_window: "1m"
+      severity: "high"
+      
+    - name: "suspicious_activity"
+      threshold: 3
+      time_window: "10m"
+      severity: "critical"
+      
+    - name: "data_breach_attempt"
+      threshold: 1
+      time_window: "1m"
+      severity: "critical"
+      
+  metrics:
+    - "authentication_failures"
+    - "rate_limit_hits"
+    - "security_events"
+    - "vulnerability_scans"
+    - "data_access_attempts"
+    - "permission_denials"
+
+# Test Execution Configuration
+test_execution:
+  parallel: false
+  timeout: "30m"
+  retry_failed: true
+  max_retries: 3
+  
+  cleanup:
+    enabled: true
+    timeout: "5m"
+    
+  reporting:
+    output_dir: "./security_reports"
+    formats:
+      - "html"
+      - "json"
+      - "sarif"
+      
+    include:
+      - "vulnerability_summary"
+      - "security_test_results"
+      - "compliance_report"
+      - "recommendations"

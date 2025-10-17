@@ -1,0 +1,208 @@
+# Cost optimization configuration for risk assessment service
+cost_optimization:
+  # Resource monitoring
+  resource_monitor:
+    collection_interval: "1m"
+    retention_period: "7d"
+    cost_threshold_percent: 10.0
+    resource_threshold_percent: 80.0
+    enable_cost_optimization: true
+    enable_resource_optimization: true
+  
+  # Cost analyzer configuration
+  cost_analyzer:
+    # Pricing per hour (in USD)
+    cpu_cost_per_hour: 0.10
+    memory_cost_per_gb_hour: 0.05
+    storage_cost_per_gb_hour: 0.01
+    network_cost_per_gb: 0.05
+    database_cost_per_hour: 0.20
+    cache_cost_per_hour: 0.15
+    cdn_cost_per_gb: 0.02
+    
+    # Resource specifications
+    cpu_cores_per_pod: 2.0
+    memory_gb_per_pod: 4.0
+    storage_gb_per_pod: 20.0
+    
+    # Optimization thresholds
+    low_utilization_threshold: 30.0
+    high_utilization_threshold: 80.0
+    cost_savings_threshold: 50.0
+
+# Resource optimization strategies
+optimization_strategies:
+  # Auto-scaling optimization
+  auto_scaling:
+    enabled: true
+    min_replicas: 2
+    max_replicas: 20
+    target_cpu_utilization: 70
+    target_memory_utilization: 80
+    scale_up_cooldown: "2m"
+    scale_down_cooldown: "5m"
+    
+  # Resource right-sizing
+  right_sizing:
+    enabled: true
+    cpu_optimization:
+      enabled: true
+      min_cpu_cores: 0.5
+      max_cpu_cores: 8.0
+      step_size: 0.5
+    memory_optimization:
+      enabled: true
+      min_memory_gb: 1.0
+      max_memory_gb: 16.0
+      step_size: 1.0
+    
+  # Storage optimization
+  storage_optimization:
+    enabled: true
+    cleanup_old_logs: true
+    log_retention_days: 7
+    cleanup_temp_files: true
+    temp_file_retention_hours: 24
+    
+  # Network optimization
+  network_optimization:
+    enabled: true
+    compression_enabled: true
+    caching_enabled: true
+    cdn_optimization: true
+    
+  # Database optimization
+  database_optimization:
+    enabled: true
+    connection_pooling: true
+    query_optimization: true
+    index_optimization: true
+    cache_queries: true
+    
+  # Cache optimization
+  cache_optimization:
+    enabled: true
+    memory_cache_size: "512MB"
+    redis_cache_ttl: "1h"
+    cache_eviction_policy: "LRU"
+    prefetch_enabled: true
+
+# Cost monitoring and alerting
+cost_monitoring:
+  # Cost alerts
+  alerts:
+    - name: "HighCostSpike"
+      condition: "cost_increase > 50% in 1h"
+      severity: "warning"
+      threshold: 50.0
+    - name: "CostThresholdExceeded"
+      condition: "hourly_cost > $100"
+      severity: "critical"
+      threshold: 100.0
+    - name: "ResourceWaste"
+      condition: "cpu_utilization < 20% for 1h"
+      severity: "info"
+      threshold: 20.0
+    
+  # Cost reporting
+  reporting:
+    enabled: true
+    daily_reports: true
+    weekly_reports: true
+    monthly_reports: true
+    cost_breakdown: true
+    trend_analysis: true
+    
+  # Budget management
+  budget_management:
+    enabled: true
+    monthly_budget: 10000.0
+    daily_budget: 333.33
+    alert_threshold: 0.8
+    auto_shutdown_threshold: 0.95
+
+# Performance vs cost optimization
+performance_cost_balance:
+  # Optimization modes
+  modes:
+    cost_optimized:
+      priority: "cost"
+      cpu_target: 80
+      memory_target: 85
+      response_time_target: 300
+    performance_optimized:
+      priority: "performance"
+      cpu_target: 60
+      memory_target: 70
+      response_time_target: 100
+    balanced:
+      priority: "balanced"
+      cpu_target: 70
+      memory_target: 80
+      response_time_target: 200
+  
+  # Current mode
+  current_mode: "balanced"
+  
+  # Auto-switching
+  auto_switch:
+    enabled: true
+    switch_conditions:
+      - condition: "response_time > 500ms for 5m"
+        switch_to: "performance_optimized"
+      - condition: "cost > budget * 0.8"
+        switch_to: "cost_optimized"
+      - condition: "response_time < 150ms and cost < budget * 0.6"
+        switch_to: "balanced"
+
+# Resource utilization targets
+utilization_targets:
+  cpu:
+    optimal_range: [60, 80]
+    warning_threshold: 90
+    critical_threshold: 95
+  memory:
+    optimal_range: [70, 85]
+    warning_threshold: 90
+    critical_threshold: 95
+  disk:
+    optimal_range: [50, 80]
+    warning_threshold: 85
+    critical_threshold: 90
+  network:
+    optimal_range: [40, 70]
+    warning_threshold: 80
+    critical_threshold: 90
+
+# Cost optimization recommendations
+recommendations:
+  # Recommendation types
+  types:
+    - name: "compute_optimization"
+      priority: "high"
+      auto_apply: false
+    - name: "storage_optimization"
+      priority: "medium"
+      auto_apply: true
+    - name: "network_optimization"
+      priority: "medium"
+      auto_apply: false
+    - name: "database_optimization"
+      priority: "high"
+      auto_apply: false
+    - name: "cache_optimization"
+      priority: "low"
+      auto_apply: true
+    - name: "performance_improvement"
+      priority: "high"
+      auto_apply: false
+    - name: "reliability_improvement"
+      priority: "critical"
+      auto_apply: false
+  
+  # Recommendation lifecycle
+  lifecycle:
+    max_age_days: 30
+    auto_archive: true
+    review_required: true
+    approval_workflow: true

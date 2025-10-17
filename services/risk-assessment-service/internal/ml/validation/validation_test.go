@@ -73,7 +73,7 @@ func TestValidator_ValidateRiskAssessmentRequest(t *testing.T) {
 				Industry:          "Technology",
 				Country:           "US",
 				Email:             "contact@acme.com",
-				Phone:             "+1-555-123-4567",
+				Phone:             "+15551234567",
 				Website:           "https://acme.com",
 				PredictionHorizon: 3,
 			},
@@ -277,7 +277,7 @@ func TestValidator_Integration(t *testing.T) {
 		Industry:          "Technology",
 		Country:           "US",
 		Email:             "contact@acme.com",
-		Phone:             "+1-555-123-4567",
+		Phone:             "+15551234567",
 		Website:           "https://acme.com",
 		PredictionHorizon: 3,
 	}

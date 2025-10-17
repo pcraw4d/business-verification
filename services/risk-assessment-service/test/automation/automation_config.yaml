@@ -1,0 +1,450 @@
+# Test Automation Framework Configuration for Risk Assessment Service
+
+# Test Environment Configuration
+environment:
+  name: "test"
+  host: "http://localhost:8080"
+  port: 8080
+  timeout: 30
+  ssl_verify: false
+  
+# Test Types Configuration
+test_types:
+  unit_tests:
+    enabled: true
+    timeout: 300
+    coverage_threshold: 95.0
+    race_detection: true
+    build_tags: []
+    
+  integration_tests:
+    enabled: true
+    timeout: 600
+    build_tags: ["integration"]
+    external_dependencies:
+      - "redis"
+      - "postgresql"
+      - "supabase"
+      
+  performance_tests:
+    enabled: true
+    timeout: 1800
+    build_tags: ["performance"]
+    locust_config:
+      users: 100
+      spawn_rate: 10
+      run_time: "5m"
+      host: "http://localhost:8080"
+    thresholds:
+      response_time_p95: 1000
+      response_time_p99: 2000
+      error_rate: 0.01
+      throughput: 1000
+      
+  security_tests:
+    enabled: true
+    timeout: 900
+    build_tags: ["security"]
+    vulnerability_scanning:
+      enabled: true
+      tools:
+        - "gosec"
+        - "trivy"
+        - "nancy"
+        - "golangci-lint"
+      severity_threshold: "medium"
+      
+  e2e_tests:
+    enabled: true
+    timeout: 1200
+    build_tags: ["e2e"]
+    scenarios:
+      - "complete_risk_assessment_workflow"
+      - "batch_risk_assessment_workflow"
+      - "scenario_analysis_workflow"
+      - "error_handling_workflow"
+      
+  ml_tests:
+    enabled: true
+    timeout: 1800
+    build_tags: ["ml"]
+    model_validation:
+      enabled: true
+      cross_validation_folds: 5
+      accuracy_threshold: 0.85
+      precision_threshold: 0.80
+      recall_threshold: 0.82
+      f1_score_threshold: 0.81
+
+# Test Execution Configuration
+execution:
+  parallel: false
+  max_workers: 4
+  retry_failed: true
+  max_retries: 3
+  retry_delay: 5
+  
+  # Test ordering
+  test_order:
+    - "unit_tests"
+    - "integration_tests"
+    - "ml_tests"
+    - "security_tests"
+    - "performance_tests"
+    - "e2e_tests"
+    
+  # Test isolation
+  isolation:
+    enabled: true
+    cleanup_between_tests: true
+    reset_database: true
+    clear_cache: true
+    reset_external_services: false
+
+# Reporting Configuration
+reporting:
+  output_dir: "./test_reports"
+  formats:
+    - "json"
+    - "html"
+    - "xml"
+    - "markdown"
+    
+  # Report content
+  include:
+    - "test_results"
+    - "coverage_report"
+    - "performance_metrics"
+    - "security_scan_results"
+    - "error_details"
+    - "recommendations"
+    
+  # Coverage reporting
+  coverage:
+    enabled: true
+    threshold: 95.0
+    formats:
+      - "html"
+      - "xml"
+      - "text"
+    exclude:
+      - "vendor/"
+      - "test/"
+      - "mocks/"
+      - "*.pb.go"
+      
+  # Performance reporting
+  performance:
+    enabled: true
+    metrics:
+      - "response_time"
+      - "throughput"
+      - "error_rate"
+      - "resource_usage"
+    charts:
+      - "response_time_distribution"
+      - "throughput_timeline"
+      - "error_rate_timeline"
+      
+  # Security reporting
+  security:
+    enabled: true
+    include:
+      - "vulnerability_summary"
+      - "security_test_results"
+      - "compliance_report"
+      - "recommendations"
+
+# Monitoring Configuration
+monitoring:
+  enabled: true
+  metrics_endpoint: "http://localhost:9090/metrics"
+  
+  # Metrics collection
+  metrics:
+    - "test_execution_time"
+    - "test_success_rate"
+    - "test_failure_rate"
+    - "coverage_percentage"
+    - "performance_metrics"
+    - "security_vulnerabilities"
+    
+  # Real-time monitoring
+  real_time:
+    enabled: true
+    update_interval: 10
+    alerts:
+      - condition: "test_failure_rate > 0.1"
+        message: "Test failure rate exceeds 10%"
+        severity: "warning"
+        
+      - condition: "coverage_percentage < 95"
+        message: "Test coverage below 95%"
+        severity: "warning"
+        
+      - condition: "security_vulnerabilities > 0"
+        message: "Security vulnerabilities detected"
+        severity: "critical"
+
+# Cleanup Configuration
+cleanup:
+  enabled: true
+  timeout: 300
+  
+  # Cleanup operations
+  operations:
+    - "remove_temp_files"
+    - "cleanup_test_data"
+    - "reset_database"
+    - "clear_cache"
+    - "stop_test_services"
+    
+  # File cleanup
+  files:
+    - "coverage.out"
+    - "test.log"
+    - "performance_results.json"
+    - "security_results.json"
+    - "*.tmp"
+    - "*.log"
+    
+  # Directory cleanup
+  directories:
+    - "./test_data"
+    - "./temp"
+    - "./logs"
+
+# Test Data Management
+test_data:
+  enabled: true
+  
+  # Test data sources
+  sources:
+    - "fixtures"
+    - "generators"
+    - "external_apis"
+    
+  # Test data lifecycle
+  lifecycle:
+    setup: "before_tests"
+    cleanup: "after_tests"
+    isolation: "between_tests"
+    
+  # Test data types
+  types:
+    - "risk_assessment_requests"
+    - "business_data"
+    - "external_api_responses"
+    - "ml_training_data"
+    - "performance_test_data"
+    
+  # Data generation
+  generation:
+    enabled: true
+    random_seed: 12345
+    data_size: "medium"
+    include_edge_cases: true
+
+# External Dependencies
+external_dependencies:
+  redis:
+    enabled: true
+    host: "localhost"
+    port: 6379
+    db: 1
+    timeout: 30
+    
+  postgresql:
+    enabled: true
+    host: "localhost"
+    port: 5432
+    database: "test_kyb"
+    username: "test_user"
+    password: "test_password"
+    timeout: 30
+    
+  supabase:
+    enabled: true
+    url: "https://test.supabase.co"
+    api_key: "test-api-key"
+    timeout: 30
+    
+  external_apis:
+    enabled: true
+    mock_mode: true
+    timeout: 30
+    retry_attempts: 3
+
+# CI/CD Integration
+ci_cd:
+  enabled: true
+  
+  # GitHub Actions
+  github_actions:
+    enabled: true
+    workflow_file: ".github/workflows/test.yml"
+    matrix_strategy:
+      go_version: ["1.21", "1.22"]
+      os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+      
+  # Jenkins
+  jenkins:
+    enabled: false
+    pipeline_file: "Jenkinsfile"
+    
+  # GitLab CI
+  gitlab_ci:
+    enabled: false
+    pipeline_file: ".gitlab-ci.yml"
+    
+  # Azure DevOps
+  azure_devops:
+    enabled: false
+    pipeline_file: "azure-pipelines.yml"
+
+# Notification Configuration
+notifications:
+  enabled: true
+  
+  # Email notifications
+  email:
+    enabled: true
+    smtp_host: "smtp.gmail.com"
+    smtp_port: 587
+    username: "test@example.com"
+    password: "password"
+    recipients:
+      - "team@example.com"
+      - "devops@example.com"
+      
+  # Slack notifications
+  slack:
+    enabled: true
+    webhook_url: "https://hooks.slack.com/services/..."
+    channel: "#testing"
+    username: "TestBot"
+    
+  # Teams notifications
+  teams:
+    enabled: false
+    webhook_url: "https://outlook.office.com/webhook/..."
+    
+  # Notification triggers
+  triggers:
+    - "test_failure"
+    - "coverage_drop"
+    - "security_vulnerability"
+    - "performance_regression"
+
+# Test Environment Provisioning
+environment_provisioning:
+  enabled: true
+  
+  # Docker
+  docker:
+    enabled: true
+    compose_file: "docker-compose.test.yml"
+    services:
+      - "redis"
+      - "postgresql"
+      - "supabase"
+      
+  # Kubernetes
+  kubernetes:
+    enabled: false
+    namespace: "test"
+    config_file: "k8s-test.yml"
+    
+  # Terraform
+  terraform:
+    enabled: false
+    config_dir: "./terraform/test"
+    
+  # Ansible
+  ansible:
+    enabled: false
+    playbook: "test-environment.yml"
+
+# Test Scheduling
+scheduling:
+  enabled: true
+  
+  # Cron schedules
+  schedules:
+    - name: "daily_tests"
+      cron: "0 2 * * *"
+      test_types: ["unit", "integration", "security"]
+      
+    - name: "weekly_full_tests"
+      cron: "0 3 * * 0"
+      test_types: ["unit", "integration", "performance", "security", "e2e", "ml"]
+      
+    - name: "nightly_performance_tests"
+      cron: "0 4 * * *"
+      test_types: ["performance"]
+      
+  # Event-based triggers
+  triggers:
+    - "push_to_main"
+    - "pull_request"
+    - "tag_creation"
+    - "manual_trigger"
+
+# Test Analytics
+analytics:
+  enabled: true
+  
+  # Metrics collection
+  metrics:
+    - "test_execution_time"
+    - "test_success_rate"
+    - "test_failure_rate"
+    - "coverage_trends"
+    - "performance_trends"
+    - "security_vulnerability_trends"
+    
+  # Data storage
+  storage:
+    type: "influxdb"
+    host: "localhost"
+    port: 8086
+    database: "test_metrics"
+    
+  # Visualization
+  visualization:
+    type: "grafana"
+    host: "localhost"
+    port: 3000
+    dashboard: "test_automation"
+
+# Test Quality Gates
+quality_gates:
+  enabled: true
+  
+  # Quality criteria
+  criteria:
+    - name: "test_coverage"
+      threshold: 95.0
+      operator: ">="
+      
+    - name: "test_success_rate"
+      threshold: 95.0
+      operator: ">="
+      
+    - name: "security_vulnerabilities"
+      threshold: 0
+      operator: "=="
+      
+    - name: "performance_response_time_p95"
+      threshold: 1000
+      operator: "<="
+      
+    - name: "performance_error_rate"
+      threshold: 0.01
+      operator: "<="
+      
+  # Gate behavior
+  behavior:
+    fail_on_gate_failure: true
+    block_deployment: true
+    send_notifications: true

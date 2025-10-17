@@ -1,0 +1,370 @@
+# External API Connection Pool Configuration
+# Risk Assessment Service - Phase 11.3 Implementation
+
+# Global connection pool settings
+global:
+  # Default settings applied to all providers
+  default:
+    max_idle_conns: 100
+    max_idle_conns_per_host: 10
+    max_conns_per_host: 50
+    idle_conn_timeout: "90s"
+    disable_keep_alives: false
+    timeout: "30s"
+    max_retries: 3
+    retry_delay: "1s"
+  
+  # Connection pool monitoring
+  monitoring:
+    enabled: true
+    stats_interval: "1m"
+    health_check_interval: "5m"
+    alert_thresholds:
+      error_rate: 0.1  # 10% error rate
+      avg_latency: "5s"
+      retry_rate: 0.3  # 30% retry rate
+
+# Provider-specific configurations
+providers:
+  thomson_reuters:
+    enabled: true
+    base_url: "https://api.thomsonreuters.com"
+    max_idle_conns: 50
+    max_idle_conns_per_host: 10
+    max_conns_per_host: 50
+    idle_conn_timeout: "90s"
+    disable_keep_alives: false
+    timeout: "30s"
+    max_retries: 3
+    retry_delay: "2s"
+    
+    # Rate limiting
+    rate_limit:
+      enabled: true
+      requests_per_minute: 100
+      burst_size: 20
+    
+    # Circuit breaker
+    circuit_breaker:
+      enabled: true
+      failure_threshold: 5
+      recovery_timeout: "30s"
+      half_open_max_calls: 3
+
+  ofac:
+    enabled: true
+    base_url: "https://api.treasury.gov"
+    max_idle_conns: 30
+    max_idle_conns_per_host: 5
+    max_conns_per_host: 30
+    idle_conn_timeout: "60s"
+    disable_keep_alives: false
+    timeout: "20s"
+    max_retries: 3
+    retry_delay: "1s"
+    
+    # Rate limiting
+    rate_limit:
+      enabled: false
+      requests_per_minute: 1000
+      burst_size: 100
+    
+    # Circuit breaker
+    circuit_breaker:
+      enabled: true
+      failure_threshold: 10
+      recovery_timeout: "15s"
+      half_open_max_calls: 5
+
+  news_api:
+    enabled: true
+    base_url: "https://newsapi.org/v2"
+    max_idle_conns: 20
+    max_idle_conns_per_host: 5
+    max_conns_per_host: 20
+    idle_conn_timeout: "60s"
+    disable_keep_alives: false
+    timeout: "15s"
+    max_retries: 2
+    retry_delay: "1s"
+    
+    # Rate limiting
+    rate_limit:
+      enabled: true
+      requests_per_minute: 1000
+      burst_size: 100
+    
+    # Circuit breaker
+    circuit_breaker:
+      enabled: true
+      failure_threshold: 5
+      recovery_timeout: "20s"
+      half_open_max_calls: 3
+
+  opencorporates:
+    enabled: true
+    base_url: "https://api.opencorporates.com"
+    max_idle_conns: 20
+    max_idle_conns_per_host: 5
+    max_conns_per_host: 20
+    idle_conn_timeout: "60s"
+    disable_keep_alives: false
+    timeout: "15s"
+    max_retries: 2
+    retry_delay: "1s"
+    
+    # Rate limiting
+    rate_limit:
+      enabled: true
+      requests_per_minute: 500
+      burst_size: 50
+    
+    # Circuit breaker
+    circuit_breaker:
+      enabled: true
+      failure_threshold: 5
+      recovery_timeout: "20s"
+      half_open_max_calls: 3
+
+  worldcheck:
+    enabled: true
+    base_url: "https://api.worldcheck.com"
+    max_idle_conns: 30
+    max_idle_conns_per_host: 5
+    max_conns_per_host: 30
+    idle_conn_timeout: "60s"
+    disable_keep_alives: false
+    timeout: "20s"
+    max_retries: 3
+    retry_delay: "1s"
+    
+    # Rate limiting
+    rate_limit:
+      enabled: true
+      requests_per_minute: 200
+      burst_size: 20
+    
+    # Circuit breaker
+    circuit_breaker:
+      enabled: true
+      failure_threshold: 5
+      recovery_timeout: "30s"
+      half_open_max_calls: 3
+
+  government:
+    enabled: true
+    base_url: "https://api.usa.gov"
+    max_idle_conns: 15
+    max_idle_conns_per_host: 3
+    max_conns_per_host: 15
+    idle_conn_timeout: "60s"
+    disable_keep_alives: false
+    timeout: "25s"
+    max_retries: 2
+    retry_delay: "2s"
+    
+    # Rate limiting
+    rate_limit:
+      enabled: false
+      requests_per_minute: 1000
+      burst_size: 100
+    
+    # Circuit breaker
+    circuit_breaker:
+      enabled: true
+      failure_threshold: 10
+      recovery_timeout: "20s"
+      half_open_max_calls: 5
+
+# Environment-specific overrides
+environments:
+  development:
+    providers:
+      thomson_reuters:
+        max_idle_conns: 10
+        max_conns_per_host: 10
+        timeout: "10s"
+      ofac:
+        max_idle_conns: 5
+        max_conns_per_host: 5
+        timeout: "10s"
+      news_api:
+        max_idle_conns: 5
+        max_conns_per_host: 5
+        timeout: "10s"
+      opencorporates:
+        max_idle_conns: 5
+        max_conns_per_host: 5
+        timeout: "10s"
+      worldcheck:
+        max_idle_conns: 5
+        max_conns_per_host: 5
+        timeout: "10s"
+      government:
+        max_idle_conns: 3
+        max_conns_per_host: 3
+        timeout: "10s"
+
+  staging:
+    providers:
+      thomson_reuters:
+        max_idle_conns: 25
+        max_conns_per_host: 25
+        timeout: "20s"
+      ofac:
+        max_idle_conns: 15
+        max_conns_per_host: 15
+        timeout: "15s"
+      news_api:
+        max_idle_conns: 10
+        max_conns_per_host: 10
+        timeout: "10s"
+      opencorporates:
+        max_idle_conns: 10
+        max_conns_per_host: 10
+        timeout: "10s"
+      worldcheck:
+        max_idle_conns: 15
+        max_conns_per_host: 15
+        timeout: "15s"
+      government:
+        max_idle_conns: 8
+        max_conns_per_host: 8
+        timeout: "20s"
+
+  production:
+    providers:
+      thomson_reuters:
+        max_idle_conns: 50
+        max_conns_per_host: 50
+        timeout: "30s"
+      ofac:
+        max_idle_conns: 30
+        max_conns_per_host: 30
+        timeout: "20s"
+      news_api:
+        max_idle_conns: 20
+        max_conns_per_host: 20
+        timeout: "15s"
+      opencorporates:
+        max_idle_conns: 20
+        max_conns_per_host: 20
+        timeout: "15s"
+      worldcheck:
+        max_idle_conns: 30
+        max_conns_per_host: 30
+        timeout: "20s"
+      government:
+        max_idle_conns: 15
+        max_conns_per_host: 15
+        timeout: "25s"
+
+# Performance optimization settings
+optimization:
+  # Connection reuse
+  connection_reuse:
+    enabled: true
+    max_reuse_count: 100
+    reuse_timeout: "5m"
+  
+  # Keep-alive optimization
+  keep_alive:
+    enabled: true
+    max_idle_time: "90s"
+    max_idle_requests: 100
+  
+  # DNS optimization
+  dns:
+    cache_enabled: true
+    cache_ttl: "5m"
+    timeout: "5s"
+  
+  # TLS optimization
+  tls:
+    session_cache_enabled: true
+    session_cache_size: 1000
+    handshake_timeout: "10s"
+
+# Monitoring and alerting
+monitoring:
+  # Metrics collection
+  metrics:
+    enabled: true
+    collection_interval: "1m"
+    retention_period: "7d"
+    
+    # Metrics to collect
+    collect:
+      - "request_count"
+      - "request_duration"
+      - "error_count"
+      - "retry_count"
+      - "connection_count"
+      - "idle_connection_count"
+  
+  # Health checks
+  health_checks:
+    enabled: true
+    interval: "5m"
+    timeout: "10s"
+    
+    # Health check endpoints
+    endpoints:
+      thomson_reuters: "/health"
+      ofac: "/health"
+      news_api: "/health"
+      opencorporates: "/health"
+      worldcheck: "/health"
+      government: "/health"
+  
+  # Alerting
+  alerts:
+    enabled: true
+    
+    # Alert conditions
+    conditions:
+      high_error_rate:
+        threshold: 0.1  # 10%
+        duration: "5m"
+      
+      high_latency:
+        threshold: "5s"
+        duration: "5m"
+      
+      connection_pool_exhaustion:
+        threshold: 0.9  # 90% utilization
+        duration: "2m"
+      
+      circuit_breaker_open:
+        duration: "1m"
+    
+    # Alert channels
+    channels:
+      - "slack"
+      - "email"
+      - "pagerduty"
+
+# Logging configuration
+logging:
+  enabled: true
+  level: "info"
+  
+  # Log slow requests
+  slow_request_threshold: "2s"
+  
+  # Log failed requests
+  log_failed_requests: true
+  
+  # Log retry attempts
+  log_retries: true
+  
+  # Log connection pool events
+  log_pool_events: true
+  
+  # Log file settings
+  file:
+    enabled: true
+    path: "/var/log/risk-assessment/external-apis.log"
+    max_size: "100MB"
+    max_backups: 5
+    max_age: 30

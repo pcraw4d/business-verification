@@ -1,0 +1,356 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: risk-assessment-service
+  namespace: risk-assessment
+  labels:
+    app: risk-assessment-service
+    version: v1.0.0
+    component: deployment
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: risk-assessment-service
+  template:
+    metadata:
+      labels:
+        app: risk-assessment-service
+        version: v1.0.0
+        component: pod
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      # Security context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      
+      # Service account
+      serviceAccountName: risk-assessment-service
+      
+      # Containers
+      containers:
+      - name: risk-assessment-service
+        image: risk-assessment-service:latest
+        imagePullPolicy: Always
+        
+        # Ports
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+        - name: health
+          containerPort: 8081
+          protocol: TCP
+        
+        # Environment variables
+        env:
+        - name: ENVIRONMENT
+          value: "production"
+        - name: LOG_LEVEL
+          value: "info"
+        - name: SERVER_PORT
+          value: "8080"
+        - name: METRICS_PORT
+          value: "9090"
+        - name: HEALTH_PORT
+          value: "8081"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: risk-assessment-secrets
+              key: database-url
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: risk-assessment-secrets
+              key: redis-url
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: risk-assessment-secrets
+              key: jwt-secret
+        - name: THOMSON_REUTERS_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: risk-assessment-secrets
+              key: thomson-reuters-api-key
+        - name: OFAC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: risk-assessment-secrets
+              key: ofac-api-key
+        - name: NEWS_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: risk-assessment-secrets
+              key: news-api-key
+        - name: OPENCORPORATES_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: risk-assessment-secrets
+              key: opencorporates-api-key
+        
+        # Resource limits and requests
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+            ephemeral-storage: "1Gi"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+            ephemeral-storage: "2Gi"
+        
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8081
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8081
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        
+        startupProbe:
+          httpGet:
+            path: /health/startup
+            port: 8081
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 30
+        
+        # Security context
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          capabilities:
+            drop:
+            - ALL
+        
+        # Volume mounts
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: cache
+          mountPath: /var/cache
+        - name: logs
+          mountPath: /var/log
+        - name: config
+          mountPath: /app/config
+          readOnly: true
+      
+      # Init containers
+      initContainers:
+      - name: wait-for-dependencies
+        image: busybox:1.35
+        command:
+        - sh
+        - -c
+        - |
+          echo "Waiting for dependencies..."
+          until nc -z postgres-service 5432; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+          until nc -z redis-service 6379; do
+            echo "Waiting for Redis..."
+            sleep 2
+          done
+          echo "All dependencies are ready!"
+      
+      # Volumes
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: cache
+        emptyDir: {}
+      - name: logs
+        emptyDir: {}
+      - name: config
+        configMap:
+          name: risk-assessment-config
+      
+      # Node selection
+      nodeSelector:
+        kubernetes.io/os: linux
+        node-type: compute
+      
+      # Affinity rules
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - risk-assessment-service
+              topologyKey: kubernetes.io/hostname
+      
+      # Tolerations
+      tolerations:
+      - key: "node-type"
+        operator: "Equal"
+        value: "compute"
+        effect: "NoSchedule"
+      
+      # Termination grace period
+      terminationGracePeriodSeconds: 30
+      
+      # DNS configuration
+      dnsPolicy: ClusterFirst
+      dnsConfig:
+        options:
+        - name: ndots
+          value: "2"
+        - name: edns0
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: risk-assessment-service
+  namespace: risk-assessment
+  labels:
+    app: risk-assessment-service
+    version: v1.0.0
+    component: service-account
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: risk-assessment-service
+  namespace: risk-assessment
+  labels:
+    app: risk-assessment-service
+    version: v1.0.0
+    component: role
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "endpoints"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["autoscaling"]
+  resources: ["horizontalpodautoscalers"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: risk-assessment-service
+  namespace: risk-assessment
+  labels:
+    app: risk-assessment-service
+    version: v1.0.0
+    component: role-binding
+subjects:
+- kind: ServiceAccount
+  name: risk-assessment-service
+  namespace: risk-assessment
+roleRef:
+  kind: Role
+  name: risk-assessment-service
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: risk-assessment-config
+  namespace: risk-assessment
+  labels:
+    app: risk-assessment-service
+    version: v1.0.0
+    component: configmap
+data:
+  config.yaml: |
+    server:
+      port: 8080
+      metrics_port: 9090
+      health_port: 8081
+      read_timeout: 30s
+      write_timeout: 30s
+      idle_timeout: 120s
+    
+    database:
+      max_connections: 100
+      min_connections: 20
+      max_idle_connections: 20
+      connection_timeout: 30s
+      idle_timeout: 5m
+      max_lifetime: 1h
+    
+    redis:
+      pool_size: 10
+      min_idle_conns: 5
+      max_idle_conns: 10
+      dial_timeout: 5s
+      read_timeout: 3s
+      write_timeout: 3s
+      pool_timeout: 4s
+      idle_timeout: 5m
+    
+    cache:
+      l1:
+        capacity: 1000
+        default_ttl: 5m
+        cleanup_interval: 1m
+      l2:
+        default_ttl: 5m
+        key_prefix: "ra:"
+    
+    ml:
+      model_path: "/app/models"
+      batch_size: 32
+      learning_rate: 0.001
+      max_iterations: 1000
+    
+    external:
+      timeout: 30s
+      max_retries: 3
+      retry_delay: 1s
+    
+    monitoring:
+      enabled: true
+      metrics_interval: 1m
+      health_check_interval: 5m
+    
+    logging:
+      level: info
+      format: json
+      output: stdout

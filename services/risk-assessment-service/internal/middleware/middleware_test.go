@@ -140,8 +140,15 @@ func TestMiddleware_RateLimitMiddleware(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	// Apply rate limit middleware (1 request per minute for testing)
-	rateLimitedHandler := middleware.RateLimitMiddleware(1)(handler)
+	// Create a rate limiter for testing
+	rateLimiter := &RateLimiter{
+		requestsPerMinute: 1,
+		burstAllowance:    1,
+		windowSize:        time.Minute,
+	}
+
+	// Apply rate limit middleware
+	rateLimitedHandler := middleware.RateLimitMiddleware(rateLimiter)(handler)
 
 	// First request should succeed
 	rateLimitedHandler.ServeHTTP(w, req)
@@ -360,45 +367,63 @@ func TestErrorHandler_HandleError_ValidationError(t *testing.T) {
 }
 
 func TestRateLimiter_Allow(t *testing.T) {
-	limiter := NewRateLimiter(2, time.Minute) // 2 requests per minute
+	config := RateLimitConfig{
+		RequestsPerMinute: 2,
+		BurstAllowance:    2,
+		WindowSize:        time.Minute,
+		UseRedis:          false,
+	}
+	limiter := NewRateLimiter(nil, zap.NewNop(), config)
 
 	// First two requests should be allowed
-	assert.True(t, limiter.Allow("192.168.1.1"))
-	assert.True(t, limiter.Allow("192.168.1.1"))
+	assert.True(t, limiter.Allow("192.168.1.1", TierFree))
+	assert.True(t, limiter.Allow("192.168.1.1", TierFree))
 
 	// Third request should be denied
-	assert.False(t, limiter.Allow("192.168.1.1"))
+	assert.False(t, limiter.Allow("192.168.1.1", TierFree))
 
 	// Different IP should be allowed
-	assert.True(t, limiter.Allow("192.168.1.2"))
+	assert.True(t, limiter.Allow("192.168.1.2", TierFree))
 }
 
 func TestRateLimiter_Allow_DifferentIPs(t *testing.T) {
-	limiter := NewRateLimiter(1, time.Minute) // 1 request per minute
+	config := RateLimitConfig{
+		RequestsPerMinute: 1,
+		BurstAllowance:    1,
+		WindowSize:        time.Minute,
+		UseRedis:          false,
+	}
+	limiter := NewRateLimiter(nil, zap.NewNop(), config)
 
 	// Each IP should have its own limit
-	assert.True(t, limiter.Allow("192.168.1.1"))
-	assert.True(t, limiter.Allow("192.168.1.2"))
-	assert.True(t, limiter.Allow("192.168.1.3"))
+	assert.True(t, limiter.Allow("192.168.1.1", TierFree))
+	assert.True(t, limiter.Allow("192.168.1.2", TierFree))
+	assert.True(t, limiter.Allow("192.168.1.3", TierFree))
 
 	// But second request from same IP should be denied
-	assert.False(t, limiter.Allow("192.168.1.1"))
+	assert.False(t, limiter.Allow("192.168.1.1", TierFree))
 }
 
 func TestRateLimiter_Allow_ExpiredEntries(t *testing.T) {
-	limiter := NewRateLimiter(1, 100*time.Millisecond) // 1 request per 100ms
+	config := RateLimitConfig{
+		RequestsPerMinute: 1,
+		BurstAllowance:    1,
+		WindowSize:        100 * time.Millisecond,
+		UseRedis:          false,
+	}
+	limiter := NewRateLimiter(nil, zap.NewNop(), config)
 
 	// First request should be allowed
-	assert.True(t, limiter.Allow("192.168.1.1"))
+	assert.True(t, limiter.Allow("192.168.1.1", TierFree))
 
 	// Second request should be denied
-	assert.False(t, limiter.Allow("192.168.1.1"))
+	assert.False(t, limiter.Allow("192.168.1.1", TierFree))
 
 	// Wait for expiration
 	time.Sleep(150 * time.Millisecond)
 
 	// Request should be allowed again
-	assert.True(t, limiter.Allow("192.168.1.1"))
+	assert.True(t, limiter.Allow("192.168.1.1", TierFree))
 }
 
 // Integration tests
@@ -421,7 +446,11 @@ func TestMiddleware_Integration(t *testing.T) {
 							[]string{"GET", "POST"},
 							[]string{"Content-Type"},
 						)(
-							middleware.RateLimitMiddleware(100)(
+							middleware.RateLimitMiddleware(&RateLimiter{
+								requestsPerMinute: 100,
+								burstAllowance:    100,
+								windowSize:        time.Minute,
+							})(
 								middleware.MetricsMiddleware()(
 									middleware.HealthCheckMiddleware()(handler),
 								),
@@ -481,10 +510,16 @@ func BenchmarkSecurityMiddleware(b *testing.B) {
 }
 
 func BenchmarkRateLimiter(b *testing.B) {
-	limiter := NewRateLimiter(1000, time.Minute)
+	config := RateLimitConfig{
+		RequestsPerMinute: 1000,
+		BurstAllowance:    1000,
+		WindowSize:        time.Minute,
+		UseRedis:          false,
+	}
+	limiter := NewRateLimiter(nil, zap.NewNop(), config)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		limiter.Allow("192.168.1.1")
+		limiter.Allow("192.168.1.1", TierFree)
 	}
 }

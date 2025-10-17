@@ -1,0 +1,319 @@
+# Database Optimization Configuration
+# Risk Assessment Service - Phase 11.1 Implementation
+
+# Query Optimization Settings
+query_optimization:
+  # Enable query analysis and recommendations
+  enabled: true
+  
+  # Slow query threshold (queries slower than this will be logged)
+  slow_query_threshold: "100ms"
+  
+  # Enable automatic query optimization suggestions
+  auto_optimization: true
+  
+  # Maximum number of query logs to keep in memory
+  max_query_logs: 1000
+  
+  # Query normalization settings
+  normalization:
+    # Remove specific values from queries for grouping
+    remove_values: true
+    
+    # Normalize whitespace
+    normalize_whitespace: true
+    
+    # Convert to lowercase for analysis
+    lowercase: true
+
+# Index Management Settings
+index_management:
+  # Enable automatic index recommendations
+  auto_recommendations: true
+  
+  # Enable automatic index creation (use with caution)
+  auto_create: false
+  
+  # Index analysis interval
+  analysis_interval: "24h"
+  
+  # Maximum number of indexes to recommend
+  max_recommendations: 50
+  
+  # Index priority thresholds
+  priority_thresholds:
+    high: 8      # Priority 8-10: Create immediately
+    medium: 5    # Priority 5-7: Consider creating
+    low: 1       # Priority 1-4: Low priority
+  
+  # Index naming convention
+  naming:
+    prefix: "idx_"
+    separator: "_"
+    max_length: 63  # PostgreSQL limit
+
+# Performance Monitoring
+performance_monitoring:
+  # Enable pg_stat_statements monitoring
+  pg_stat_statements: true
+  
+  # Monitoring interval
+  monitoring_interval: "5m"
+  
+  # Metrics to track
+  metrics:
+    - "execution_time"
+    - "rows_examined"
+    - "rows_returned"
+    - "index_usage"
+    - "cache_hit_ratio"
+  
+  # Alert thresholds
+  alerts:
+    slow_query_threshold: "1s"
+    high_cpu_threshold: 80
+    high_memory_threshold: 90
+    low_cache_hit_ratio: 0.8
+
+# Connection Pool Optimization
+connection_pool:
+  # Maximum number of connections
+  max_connections: 100
+  
+  # Minimum number of connections
+  min_connections: 20
+  
+  # Maximum idle connections
+  max_idle_connections: 20
+  
+  # Connection timeout
+  connection_timeout: "30s"
+  
+  # Idle timeout
+  idle_timeout: "5m"
+  
+  # Maximum connection lifetime
+  max_lifetime: "1h"
+  
+  # Health check interval
+  health_check_interval: "30s"
+  
+  # Connection retry settings
+  retry:
+    max_attempts: 3
+    backoff_multiplier: 2
+    initial_delay: "1s"
+    max_delay: "30s"
+
+# Query Caching
+query_caching:
+  # Enable query result caching
+  enabled: true
+  
+  # Default cache TTL
+  default_ttl: "5m"
+  
+  # Cache size limit
+  max_cache_size: "100MB"
+  
+  # Cache eviction policy
+  eviction_policy: "lru"
+  
+  # Queries to cache
+  cache_queries:
+    - "SELECT.*FROM risk_assessments WHERE business_id = ?"
+    - "SELECT.*FROM batch_jobs WHERE status = ?"
+    - "SELECT.*FROM custom_models WHERE organization_id = ?"
+  
+  # Queries to exclude from caching
+  exclude_queries:
+    - "INSERT.*"
+    - "UPDATE.*"
+    - "DELETE.*"
+    - "CREATE.*"
+    - "DROP.*"
+
+# Database Statistics
+statistics:
+  # Enable automatic statistics collection
+  auto_collect: true
+  
+  # Statistics collection interval
+  collection_interval: "1h"
+  
+  # Statistics to collect
+  collect:
+    - "table_sizes"
+    - "index_usage"
+    - "query_performance"
+    - "connection_stats"
+    - "cache_stats"
+  
+  # Statistics retention period
+  retention_period: "30d"
+
+# Maintenance Tasks
+maintenance:
+  # Enable automatic maintenance
+  enabled: true
+  
+  # Maintenance schedule (cron format)
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  
+  # Maintenance tasks to run
+  tasks:
+    - "analyze_tables"
+    - "vacuum_tables"
+    - "reindex_tables"
+    - "update_statistics"
+    - "cleanup_logs"
+  
+  # Table maintenance settings
+  table_maintenance:
+    # Tables to maintain
+    tables:
+      - "risk_assessments"
+      - "batch_jobs"
+      - "custom_models"
+      - "batch_results"
+      - "risk_factors"
+      - "external_data"
+      - "audit_logs"
+      - "performance_metrics"
+    
+    # Vacuum settings
+    vacuum:
+      enabled: true
+      full: false
+      analyze: true
+    
+    # Reindex settings
+    reindex:
+      enabled: true
+      concurrent: true
+      tables_only: true
+
+# Optimization Recommendations
+optimization_recommendations:
+  # Enable automatic recommendations
+  enabled: true
+  
+  # Recommendation types
+  types:
+    - "missing_indexes"
+    - "unused_indexes"
+    - "duplicate_indexes"
+    - "slow_queries"
+    - "inefficient_queries"
+    - "connection_pool_tuning"
+  
+  # Recommendation thresholds
+  thresholds:
+    missing_index_benefit: 0.1    # 10% improvement threshold
+    unused_index_size: "10MB"     # Indexes larger than this
+    slow_query_threshold: "500ms" # Queries slower than this
+    duplicate_index_similarity: 0.9 # 90% similarity threshold
+
+# Database Health Checks
+health_checks:
+  # Enable health checks
+  enabled: true
+  
+  # Health check interval
+  interval: "1m"
+  
+  # Health check timeout
+  timeout: "10s"
+  
+  # Health check criteria
+  criteria:
+    # Connection health
+    connection_health:
+      max_connection_usage: 0.8
+      max_connection_wait_time: "5s"
+    
+    # Query performance
+    query_performance:
+      max_avg_query_time: "100ms"
+      max_slow_query_ratio: 0.05  # 5% of queries can be slow
+    
+    # Index health
+    index_health:
+      min_index_usage_ratio: 0.1  # 10% of indexes should be used
+      max_unused_index_size: "50MB"
+    
+    # Cache health
+    cache_health:
+      min_cache_hit_ratio: 0.8
+      max_cache_miss_ratio: 0.2
+
+# Logging Configuration
+logging:
+  # Enable query logging
+  enabled: true
+  
+  # Log level
+  level: "info"
+  
+  # Log slow queries
+  log_slow_queries: true
+  
+  # Log query recommendations
+  log_recommendations: true
+  
+  # Log index operations
+  log_index_operations: true
+  
+  # Log file settings
+  file:
+    enabled: true
+    path: "/var/log/risk-assessment/database.log"
+    max_size: "100MB"
+    max_backups: 5
+    max_age: 30
+
+# Performance Targets
+performance_targets:
+  # Query performance targets
+  query_performance:
+    p95_response_time: "100ms"
+    p99_response_time: "500ms"
+    max_response_time: "1s"
+    target_cache_hit_ratio: 0.9
+  
+  # Index performance targets
+  index_performance:
+    target_index_usage_ratio: 0.8
+    max_unused_index_ratio: 0.1
+    target_index_size_growth: "10MB/day"
+  
+  # Connection performance targets
+  connection_performance:
+    max_connection_usage: 0.7
+    target_connection_wait_time: "100ms"
+    max_connection_creation_time: "1s"
+
+# Environment-specific overrides
+environments:
+  development:
+    query_optimization:
+      slow_query_threshold: "50ms"
+    connection_pool:
+      max_connections: 20
+      min_connections: 5
+  
+  staging:
+    query_optimization:
+      slow_query_threshold: "100ms"
+    connection_pool:
+      max_connections: 50
+      min_connections: 10
+  
+  production:
+    query_optimization:
+      slow_query_threshold: "100ms"
+    connection_pool:
+      max_connections: 100
+      min_connections: 20
+    maintenance:
+      schedule: "0 2 * * *"  # Daily at 2 AM
