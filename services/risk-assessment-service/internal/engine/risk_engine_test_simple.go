@@ -14,15 +14,13 @@ import (
 func createTestRiskEngine() *RiskEngine {
 	logger := zap.NewNop()
 	config := &Config{
-		MLService: MLConfig{
-			Timeout:    30 * time.Second,
-			MaxRetries: 3,
-			RetryDelay: 1 * time.Second,
-			CircuitBreaker: CircuitBreakerConfig{
-				FailureThreshold: 5,
-				RecoveryTimeout:  30 * time.Second,
-				HalfOpenMaxCalls: 3,
-			},
+		MaxConcurrentRequests: 10,
+		RequestTimeout:        30 * time.Second,
+		CacheTTL:             5 * time.Minute,
+		CircuitBreakerConfig: CircuitBreakerConfig{
+			FailureThreshold: 5,
+			RecoveryTimeout:  30 * time.Second,
+			HalfOpenMaxCalls: 3,
 		},
 		EnableMetrics: true,
 		EnableCaching: true,
