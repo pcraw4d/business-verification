@@ -899,7 +899,7 @@
 
         // Initialize when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
-            new MerchantDetails();
+            window.merchantDetails = new MerchantDetails();
         });
     </script>
 
@@ -917,19 +917,75 @@
 
     <!-- Initialize Risk Indicators Tab -->
     <script>
+        // Helper function to get merchant ID
+        function getMerchantId() {
+            // Try to get from URL parameters first
+            const urlParams = new URLSearchParams(window.location.search);
+            const merchantIdFromUrl = urlParams.get('merchantId') || urlParams.get('id');
+            if (merchantIdFromUrl) {
+                return merchantIdFromUrl;
+            }
+            
+            // Try to get from session storage
+            const merchantDataStr = sessionStorage.getItem('merchantData');
+            if (merchantDataStr) {
+                try {
+                    const merchantData = JSON.parse(merchantDataStr);
+                    return merchantData.id || merchantData.merchantId || merchantData.businessId;
+                } catch (e) {
+                    console.warn('Failed to parse merchant data from session storage:', e);
+                }
+            }
+            
+            // Try to get from global merchant details instance
+            if (window.merchantDetails && window.merchantDetails.merchantData) {
+                return window.merchantDetails.merchantData.id || 
+                       window.merchantDetails.merchantData.merchantId || 
+                       window.merchantDetails.merchantData.businessId;
+            }
+            
+            // Fallback: generate a test merchant ID for demo purposes
+            console.warn('No merchant ID found, using demo merchant ID');
+            return 'demo-merchant-123';
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 DOM loaded, initializing Risk Indicators Tab...');
+            
             // Initialize Risk Indicators Tab
-            riskIndicatorsTab = new MerchantRiskIndicatorsTab('riskIndicatorsContainer');
+            try {
+                window.riskIndicatorsTab = new MerchantRiskIndicatorsTab('riskIndicatorsContainer');
+                console.log('✅ Risk Indicators Tab initialized successfully');
+            } catch (error) {
+                console.error('❌ Failed to initialize Risk Indicators Tab:', error);
+            }
             
             // Listen for tab activation
             const riskIndicatorsTabButton = document.querySelector('[data-tab="risk-indicators"]');
             if (riskIndicatorsTabButton) {
+                console.log('✅ Risk Indicators tab button found');
                 riskIndicatorsTabButton.addEventListener('click', function() {
-                    const merchantId = getMerchantId(); // From existing merchant details page
-                    if (merchantId && riskIndicatorsTab) {
-                        riskIndicatorsTab.init(merchantId);
+                    const merchantId = getMerchantId();
+                    console.log('🎯 Risk Indicators Tab clicked, merchant ID:', merchantId);
+                    if (merchantId && window.riskIndicatorsTab) {
+                        window.riskIndicatorsTab.init(merchantId);
+                    } else {
+                        console.error('❌ No merchant ID found or risk indicators tab not initialized');
+                        // Show a simple test message if initialization fails
+                        const container = document.getElementById('riskIndicatorsContainer');
+                        if (container) {
+                            container.innerHTML = `
+                                <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+                                    <h3 class="font-bold">Risk Indicators Tab</h3>
+                                    <p>Tab is working! Merchant ID: ${merchantId || 'Not found'}</p>
+                                    <p>This is a test message. The full Risk Indicators implementation should load here.</p>
+                                </div>
+                            `;
+                        }
                     }
                 });
+            } else {
+                console.error('❌ Risk Indicators tab button not found');
             }
         });
     </script>
