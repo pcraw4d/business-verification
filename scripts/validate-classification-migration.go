@@ -6,8 +6,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/config"
-	"github.com/pcraw4d/business-verification/internal/database"
+	"kyb-platform/internal/config"
+	"kyb-platform/internal/database"
 )
 
 // MigrationValidator handles validation of the classification schema migration

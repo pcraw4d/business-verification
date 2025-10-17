@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/models"
+	"kyb-platform/internal/models"
 )
 
 func TestGetTestDataSets(t *testing.T) {

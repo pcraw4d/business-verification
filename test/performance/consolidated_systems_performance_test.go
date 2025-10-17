@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/models"
-	"github.com/pcraw4d/business-verification/internal/observability"
+	"kyb-platform/internal/models"
+	"kyb-platform/internal/observability"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )

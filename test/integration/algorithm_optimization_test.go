@@ -14,10 +14,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
-	"github.com/pcraw4d/business-verification/internal/api/handlers"
-	"github.com/pcraw4d/business-verification/internal/api/routes"
-	"github.com/pcraw4d/business-verification/internal/modules/classification_monitoring"
-	"github.com/pcraw4d/business-verification/internal/modules/classification_optimization"
+	"kyb-platform/internal/api/handlers"
+	"kyb-platform/internal/api/routes"
+	"kyb-platform/internal/modules/classification_monitoring"
+	"kyb-platform/internal/modules/classification_optimization"
 )
 
 func TestAlgorithmOptimizationIntegration(t *testing.T) {

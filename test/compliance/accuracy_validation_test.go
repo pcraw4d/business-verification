@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/compliance"
+	"kyb-platform/internal/compliance"
 )
 
 // TestComplianceCalculationAccuracy tests the accuracy of compliance calculations

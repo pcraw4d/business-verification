@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/shared"
-	"github.com/pcraw4d/business-verification/test/mocks"
+	"kyb-platform/internal/shared"
+	"kyb-platform/test/mocks"
 )
 
 // TestRecoveryProcedures tests comprehensive recovery procedures for the classification system

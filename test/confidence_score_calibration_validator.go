@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/classification"
+	"kyb-platform/internal/classification"
 )
 
 // ConfidenceScoreCalibrationValidator provides comprehensive confidence score calibration testing

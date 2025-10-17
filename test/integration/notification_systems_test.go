@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/risk"
+	"kyb-platform/internal/risk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

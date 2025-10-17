@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/api/handlers"
-	"github.com/pcraw4d/business-verification/internal/observability"
-	"github.com/pcraw4d/business-verification/test/mocks"
+	"kyb-platform/internal/api/handlers"
+	"kyb-platform/internal/observability"
+	"kyb-platform/test/mocks"
 )
 
 // TestClassificationEndpoints tests all classification-specific API endpoints

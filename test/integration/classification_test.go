@@ -12,11 +12,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/api/handlers"
-	"github.com/pcraw4d/business-verification/internal/config"
-	"github.com/pcraw4d/business-verification/internal/observability"
-	"github.com/pcraw4d/business-verification/internal/shared"
-	"github.com/pcraw4d/business-verification/test/mocks"
+	"kyb-platform/internal/api/handlers"
+	"kyb-platform/internal/config"
+	"kyb-platform/internal/observability"
+	"kyb-platform/internal/shared"
+	"kyb-platform/test/mocks"
 )
 
 // TestEndToEndClassification tests the complete classification flow

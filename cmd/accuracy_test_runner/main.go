@@ -10,8 +10,8 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
-	"github.com/pcraw4d/business-verification/internal/classification"
 	"go.uber.org/zap"
+	"kyb-platform/internal/classification"
 )
 
 func main() {

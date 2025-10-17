@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/test/mocks"
+	"kyb-platform/test/mocks"
 )
 
 // TestUserFeedbackSystems tests comprehensive user feedback systems for the classification system

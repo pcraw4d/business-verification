@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/database"
-	"github.com/pcraw4d/business-verification/internal/services"
+	"kyb-platform/internal/database"
+	"kyb-platform/internal/services"
 )
 
 // MockMerchantPortfolioService provides a mock implementation for E2E tests

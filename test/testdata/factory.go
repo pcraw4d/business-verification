@@ -7,8 +7,8 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/database"
-	"github.com/pcraw4d/business-verification/internal/risk"
+	"kyb-platform/internal/database"
+	"kyb-platform/internal/risk"
 )
 
 // TestDataFactory provides methods to generate test data

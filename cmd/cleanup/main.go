@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/observability"
 	"go.uber.org/zap"
+	"kyb-platform/internal/observability"
 )
 
 // DeprecatedItem represents a deprecated code item found during scanning

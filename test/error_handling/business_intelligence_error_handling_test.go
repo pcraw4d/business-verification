@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/api/handlers"
-	"github.com/pcraw4d/business-verification/internal/api/routes"
+	"kyb-platform/internal/api/handlers"
+	"kyb-platform/internal/api/routes"
 )
 
 func TestBusinessIntelligenceErrorHandling(t *testing.T) {

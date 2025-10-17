@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/test/mocks"
+	"kyb-platform/test/mocks"
 )
 
 // TestDatabaseIntegrationComprehensive tests comprehensive database connectivity and data retrieval

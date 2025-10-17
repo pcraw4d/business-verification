@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/classification"
-	"github.com/pcraw4d/business-verification/internal/modules/risk_assessment"
-	"github.com/pcraw4d/business-verification/internal/services"
+	"kyb-platform/internal/classification"
+	"kyb-platform/internal/modules/risk_assessment"
+	"kyb-platform/internal/services"
 	"go.uber.org/zap"
 )
 

@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/classification"
-	"github.com/pcraw4d/business-verification/internal/classification/repository"
+	"kyb-platform/internal/classification"
+	"kyb-platform/internal/classification/repository"
 )
 
 // KeywordRepository interface for testing

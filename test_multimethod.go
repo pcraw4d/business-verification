@@ -4,8 +4,8 @@ import (
 	"context"
 	"log"
 
-	"github.com/pcraw4d/business-verification/internal/classification"
-	"github.com/pcraw4d/business-verification/internal/database"
+	"kyb-platform/internal/classification"
+	"kyb-platform/internal/database"
 )
 
 func main() {

@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/api/handlers"
-	"github.com/pcraw4d/business-verification/internal/observability"
-	"github.com/pcraw4d/business-verification/test/mocks"
+	"kyb-platform/internal/api/handlers"
+	"kyb-platform/internal/observability"
+	"kyb-platform/test/mocks"
 )
 
 // ComprehensiveAPITestSuite provides comprehensive testing for all API endpoints

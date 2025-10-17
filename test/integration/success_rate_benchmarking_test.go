@@ -14,8 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
-	"github.com/pcraw4d/business-verification/internal/api/handlers"
-	"github.com/pcraw4d/business-verification/internal/modules/success_monitoring"
+	"kyb-platform/internal/api/handlers"
+	"kyb-platform/internal/modules/success_monitoring"
 )
 
 func TestSuccessRateBenchmarkingIntegration(t *testing.T) {

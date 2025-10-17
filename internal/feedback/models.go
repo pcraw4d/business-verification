@@ -48,8 +48,8 @@ const (
 	MethodSecurity   ClassificationMethod = "security"
 )
 
-// UserFeedback represents user-provided feedback on classification results
-type UserFeedback struct {
+// ClassificationClassificationUserFeedback represents user-provided feedback on classification results
+type ClassificationClassificationUserFeedback struct {
 	ID                        string                 `json:"id" db:"id"`
 	UserID                    string                 `json:"user_id" db:"user_id"`
 	BusinessName              string                 `json:"business_name" db:"business_name"`

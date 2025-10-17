@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/pcraw4d/business-verification/test"
+	"kyb-platform/test"
 )
 
 func main() {

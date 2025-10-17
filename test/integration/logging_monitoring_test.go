@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/test/mocks"
+	"kyb-platform/test/mocks"
 )
 
 // TestLoggingAndMonitoring tests comprehensive logging and monitoring for the classification system

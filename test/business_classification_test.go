@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/classification"
+	"kyb-platform/internal/classification"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

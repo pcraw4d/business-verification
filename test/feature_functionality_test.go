@@ -4,9 +4,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/pcraw4d/business-verification/internal/api/handlers"
-	"github.com/pcraw4d/business-verification/internal/classification"
-	"github.com/pcraw4d/business-verification/internal/modules/risk_assessment"
+	"kyb-platform/internal/api/handlers"
+	"kyb-platform/internal/classification"
+	"kyb-platform/internal/modules/risk_assessment"
 )
 
 // FeatureFunctionalityTestSuite provides comprehensive testing for all feature functionality

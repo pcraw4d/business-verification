@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/observability"
 	"go.uber.org/zap"
+	"kyb-platform/internal/observability"
 )
 
 func main() {

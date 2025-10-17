@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/classification"
+	"kyb-platform/internal/classification"
 )
 
 // ComprehensiveTestDataset represents a comprehensive test dataset for classification accuracy testing

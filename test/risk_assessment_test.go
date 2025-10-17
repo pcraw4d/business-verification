@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/modules/risk_assessment"
+	"kyb-platform/internal/modules/risk_assessment"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

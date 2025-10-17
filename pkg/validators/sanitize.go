@@ -5,7 +5,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/pcraw4d/business-verification/internal/datasource"
+	"kyb-platform/internal/datasource"
 )
 
 var (

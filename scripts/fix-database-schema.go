@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/pcraw4d/business-verification/internal/config"
-	"github.com/pcraw4d/business-verification/internal/database"
 	"github.com/supabase-community/postgrest-go"
+	"kyb-platform/internal/config"
+	"kyb-platform/internal/database"
 )
 
 func main() {

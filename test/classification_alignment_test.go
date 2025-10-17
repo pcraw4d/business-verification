@@ -10,7 +10,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/pcraw4d/business-verification/internal/classification"
+	"kyb-platform/internal/classification"
 )
 
 // TestClassificationAlignmentTypes tests the classification alignment types and structures

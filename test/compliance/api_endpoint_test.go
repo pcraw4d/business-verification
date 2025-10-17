@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/api/routes"
-	"github.com/pcraw4d/business-verification/internal/observability"
+	"kyb-platform/internal/api/routes"
+	"kyb-platform/internal/observability"
 	"go.uber.org/zap"
 )
 

@@ -14,11 +14,11 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
-	"github.com/pcraw4d/business-verification/internal/api/handlers"
-	"github.com/pcraw4d/business-verification/internal/api/routes"
-	"github.com/pcraw4d/business-verification/internal/database"
-	"github.com/pcraw4d/business-verification/internal/models"
-	"github.com/pcraw4d/business-verification/internal/services"
+	"kyb-platform/internal/api/handlers"
+	"kyb-platform/internal/api/routes"
+	"kyb-platform/internal/database"
+	"kyb-platform/internal/models"
+	"kyb-platform/internal/services"
 )
 
 // TestDatabase represents the test database connection

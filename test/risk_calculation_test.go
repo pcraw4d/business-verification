@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/pcraw4d/business-verification/internal/risk"
+	"kyb-platform/internal/risk"
 )
 
 // TestRiskFactorCalculator_CalculateFactor tests the main calculation function

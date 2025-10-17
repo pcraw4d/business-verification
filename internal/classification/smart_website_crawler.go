@@ -28,94 +28,94 @@ type SmartWebsiteCrawler struct {
 
 // CrawlResult represents the result of a smart crawl operation
 type CrawlResult struct {
-	BaseURL        string                 `json:"base_url"`
-	PagesAnalyzed  []PageAnalysis         `json:"pages_analyzed"`
-	TotalPages     int                    `json:"total_pages"`
-	RelevantPages  int                    `json:"relevant_pages"`
-	Keywords       []string               `json:"keywords"`
-	IndustryScore  map[string]float64     `json:"industry_score"`
-	BusinessInfo   BusinessInfo           `json:"business_info"`
-	SiteStructure  SiteStructure          `json:"site_structure"`
-	CrawlDuration  time.Duration          `json:"crawl_duration"`
-	Success        bool                   `json:"success"`
-	Error          string                 `json:"error,omitempty"`
+	BaseURL       string             `json:"base_url"`
+	PagesAnalyzed []PageAnalysis     `json:"pages_analyzed"`
+	TotalPages    int                `json:"total_pages"`
+	RelevantPages int                `json:"relevant_pages"`
+	Keywords      []string           `json:"keywords"`
+	IndustryScore map[string]float64 `json:"industry_score"`
+	BusinessInfo  BusinessInfo       `json:"business_info"`
+	SiteStructure SiteStructure      `json:"site_structure"`
+	CrawlDuration time.Duration      `json:"crawl_duration"`
+	Success       bool               `json:"success"`
+	Error         string             `json:"error,omitempty"`
 }
 
 // PageAnalysis represents analysis of a single page
 type PageAnalysis struct {
-	URL              string            `json:"url"`
-	Title            string            `json:"title"`
-	PageType         string            `json:"page_type"`
-	RelevanceScore   float64           `json:"relevance_score"`
-	ContentQuality   float64           `json:"content_quality"`
-	Keywords         []string          `json:"keywords"`
-	IndustryIndicators []string        `json:"industry_indicators"`
-	BusinessInfo     BusinessInfo      `json:"business_info"`
-	MetaTags         map[string]string `json:"meta_tags"`
-	StructuredData   map[string]interface{} `json:"structured_data"`
-	ResponseTime     time.Duration     `json:"response_time"`
-	StatusCode       int               `json:"status_code"`
-	ContentLength    int               `json:"content_length"`
-	LastModified     time.Time         `json:"last_modified"`
-	Priority         int               `json:"priority"`
+	URL                string                 `json:"url"`
+	Title              string                 `json:"title"`
+	PageType           string                 `json:"page_type"`
+	RelevanceScore     float64                `json:"relevance_score"`
+	ContentQuality     float64                `json:"content_quality"`
+	Keywords           []string               `json:"keywords"`
+	IndustryIndicators []string               `json:"industry_indicators"`
+	BusinessInfo       BusinessInfo           `json:"business_info"`
+	MetaTags           map[string]string      `json:"meta_tags"`
+	StructuredData     map[string]interface{} `json:"structured_data"`
+	ResponseTime       time.Duration          `json:"response_time"`
+	StatusCode         int                    `json:"status_code"`
+	ContentLength      int                    `json:"content_length"`
+	LastModified       time.Time              `json:"last_modified"`
+	Priority           int                    `json:"priority"`
 }
 
 // BusinessInfo represents extracted business information
 type BusinessInfo struct {
-	BusinessName     string            `json:"business_name"`
-	Description      string            `json:"description"`
-	Services         []string          `json:"services"`
-	Products         []string          `json:"products"`
-	ContactInfo      ContactInfo       `json:"contact_info"`
-	BusinessHours    string            `json:"business_hours"`
-	Location         string            `json:"location"`
-	Industry         string            `json:"industry"`
-	BusinessType     string            `json:"business_type"`
+	BusinessName  string      `json:"business_name"`
+	Description   string      `json:"description"`
+	Services      []string    `json:"services"`
+	Products      []string    `json:"products"`
+	ContactInfo   ContactInfo `json:"contact_info"`
+	BusinessHours string      `json:"business_hours"`
+	Location      string      `json:"location"`
+	Industry      string      `json:"industry"`
+	BusinessType  string      `json:"business_type"`
 }
 
 // ContactInfo represents contact information
 type ContactInfo struct {
-	Phone    string `json:"phone"`
-	Email    string `json:"email"`
-	Address  string `json:"address"`
-	Website  string `json:"website"`
-	Social   map[string]string `json:"social"`
+	Phone   string            `json:"phone"`
+	Email   string            `json:"email"`
+	Address string            `json:"address"`
+	Website string            `json:"website"`
+	Social  map[string]string `json:"social"`
 }
 
 // SiteStructure represents the discovered site structure
 type SiteStructure struct {
-	Homepage         string   `json:"homepage"`
-	AboutPages       []string `json:"about_pages"`
-	ServicePages     []string `json:"service_pages"`
-	ProductPages     []string `json:"product_pages"`
-	ContactPages     []string `json:"contact_pages"`
-	BlogPages        []string `json:"blog_pages"`
-	EcommercePages   []string `json:"ecommerce_pages"`
-	OtherPages       []string `json:"other_pages"`
-	TotalDiscovered  int      `json:"total_discovered"`
+	Homepage        string   `json:"homepage"`
+	AboutPages      []string `json:"about_pages"`
+	ServicePages    []string `json:"service_pages"`
+	ProductPages    []string `json:"product_pages"`
+	ContactPages    []string `json:"contact_pages"`
+	BlogPages       []string `json:"blog_pages"`
+	EcommercePages  []string `json:"ecommerce_pages"`
+	OtherPages      []string `json:"other_pages"`
+	TotalDiscovered int      `json:"total_discovered"`
 }
 
 // PageType represents different types of pages
 type PageType string
 
 const (
-	PageTypeHomepage     PageType = "homepage"
-	PageTypeAbout        PageType = "about"
-	PageTypeServices     PageType = "services"
-	PageTypeProducts     PageType = "products"
-	PageTypeContact      PageType = "contact"
-	PageTypeBlog         PageType = "blog"
-	PageTypeEcommerce    PageType = "ecommerce"
-	PageTypeSupport      PageType = "support"
-	PageTypeCareers      PageType = "careers"
-	PageTypeNews         PageType = "news"
-	PageTypeOther        PageType = "other"
+	PageTypeHomepage  PageType = "homepage"
+	PageTypeAbout     PageType = "about"
+	PageTypeServices  PageType = "services"
+	PageTypeProducts  PageType = "products"
+	PageTypeContact   PageType = "contact"
+	PageTypeBlog      PageType = "blog"
+	PageTypeEcommerce PageType = "ecommerce"
+	PageTypeSupport   PageType = "support"
+	PageTypeCareers   PageType = "careers"
+	PageTypeNews      PageType = "news"
+	PageTypeOther     PageType = "other"
 )
 
 // NewSmartWebsiteCrawler creates a new smart website crawler
 func NewSmartWebsiteCrawler(logger *log.Logger) *SmartWebsiteCrawler {
 	return &SmartWebsiteCrawler{
-		logger:        logger,
+		logger: logger,
 		client: &http.Client{
 			Timeout: 30 * time.Second,
 			Transport: &http.Transport{
@@ -125,8 +125,8 @@ func NewSmartWebsiteCrawler(logger *log.Logger) *SmartWebsiteCrawler {
 				MaxIdleConnsPerHost: 2,
 			},
 		},
-		maxPages:      20,  // Maximum pages to crawl
-		maxDepth:      3,   // Maximum crawl depth
+		maxPages:      20, // Maximum pages to crawl
+		maxDepth:      3,  // Maximum crawl depth
 		respectRobots: true,
 		pageTimeout:   15 * time.Second,
 	}
@@ -238,7 +238,7 @@ func (c *SmartWebsiteCrawler) parseSitemap(ctx context.Context, baseURL string) 
 	}
 
 	sitemapURL := fmt.Sprintf("%s://%s/sitemap.xml", parsedURL.Scheme, parsedURL.Host)
-	
+
 	req, err := http.NewRequestWithContext(ctx, "GET", sitemapURL, nil)
 	if err != nil {
 		return nil, err
@@ -257,7 +257,7 @@ func (c *SmartWebsiteCrawler) parseSitemap(ctx context.Context, baseURL string) 
 	// Parse XML sitemap (simplified implementation)
 	// In a real implementation, you'd use an XML parser
 	var pages []string
-	
+
 	// For now, return common page patterns
 	// TODO: Implement proper XML parsing
 	return pages, nil
@@ -288,7 +288,7 @@ func (c *SmartWebsiteCrawler) extractInternalLinks(ctx context.Context, pageURL 
 
 	var links []string
 	baseURL, _ := url.Parse(pageURL)
-	
+
 	var extractLinks func(*html.Node)
 	extractLinks = func(n *html.Node) {
 		if n.Type == html.ElementNode && n.Data == "a" {
@@ -298,10 +298,10 @@ func (c *SmartWebsiteCrawler) extractInternalLinks(ctx context.Context, pageURL 
 					if err != nil {
 						continue
 					}
-					
+
 					// Convert relative URLs to absolute
 					absoluteURL := baseURL.ResolveReference(linkURL)
-					
+
 					// Only include internal links
 					if absoluteURL.Host == baseURL.Host {
 						links = append(links, absoluteURL.String())
@@ -309,12 +309,12 @@ func (c *SmartWebsiteCrawler) extractInternalLinks(ctx context.Context, pageURL 
 				}
 			}
 		}
-		
+
 		for c := n.FirstChild; c != nil; c = c.NextSibling {
 			extractLinks(c)
 		}
 	}
-	
+
 	extractLinks(doc)
 	return links, nil
 }
@@ -327,7 +327,7 @@ func (c *SmartWebsiteCrawler) generateCommonPagePatterns(baseURL string) []strin
 	}
 
 	base := fmt.Sprintf("%s://%s", parsedURL.Scheme, parsedURL.Host)
-	
+
 	commonPatterns := []string{
 		"/about",
 		"/about-us",
@@ -376,7 +376,7 @@ func (c *SmartWebsiteCrawler) prioritizePages(pages []string, baseURL string) []
 	for _, page := range pages {
 		priority := c.calculatePagePriority(page, baseURL)
 		pageType := c.detectPageType(page)
-		
+
 		prioritized = append(prioritized, pagePriority{
 			URL:      page,
 			Priority: priority,
@@ -405,7 +405,7 @@ func (c *SmartWebsiteCrawler) prioritizePages(pages []string, baseURL string) []
 // calculatePagePriority calculates priority score for a page
 func (c *SmartWebsiteCrawler) calculatePagePriority(pageURL, baseURL string) int {
 	priority := 0
-	
+
 	// Homepage gets highest priority
 	if pageURL == baseURL || pageURL == baseURL+"/" {
 		return 100
@@ -416,7 +416,7 @@ func (c *SmartWebsiteCrawler) calculatePagePriority(pageURL, baseURL string) int
 		"/about", "/about-us", "/aboutus", "/company", "/mission", "/vision",
 		"/services", "/products", "/shop", "/store",
 	}
-	
+
 	for _, pattern := range highPriorityPatterns {
 		if strings.Contains(strings.ToLower(pageURL), pattern) {
 			priority += 80
@@ -428,7 +428,7 @@ func (c *SmartWebsiteCrawler) calculatePagePriority(pageURL, baseURL string) int
 	mediumPriorityPatterns := []string{
 		"/contact", "/contact-us", "/contactus", "/team", "/careers", "/jobs",
 	}
-	
+
 	for _, pattern := range mediumPriorityPatterns {
 		if strings.Contains(strings.ToLower(pageURL), pattern) {
 			priority += 60
@@ -440,7 +440,7 @@ func (c *SmartWebsiteCrawler) calculatePagePriority(pageURL, baseURL string) int
 	lowPriorityPatterns := []string{
 		"/blog", "/news", "/support", "/help", "/faq", "/privacy", "/terms", "/legal",
 	}
-	
+
 	for _, pattern := range lowPriorityPatterns {
 		if strings.Contains(strings.ToLower(pageURL), pattern) {
 			priority += 40
@@ -459,34 +459,34 @@ func (c *SmartWebsiteCrawler) calculatePagePriority(pageURL, baseURL string) int
 // detectPageType detects the type of page based on URL
 func (c *SmartWebsiteCrawler) detectPageType(pageURL string) PageType {
 	urlLower := strings.ToLower(pageURL)
-	
-	if strings.Contains(urlLower, "/about") || strings.Contains(urlLower, "/company") || 
-	   strings.Contains(urlLower, "/mission") || strings.Contains(urlLower, "/vision") {
+
+	if strings.Contains(urlLower, "/about") || strings.Contains(urlLower, "/company") ||
+		strings.Contains(urlLower, "/mission") || strings.Contains(urlLower, "/vision") {
 		return PageTypeAbout
 	}
-	
+
 	if strings.Contains(urlLower, "/services") {
 		return PageTypeServices
 	}
-	
-	if strings.Contains(urlLower, "/products") || strings.Contains(urlLower, "/shop") || 
-	   strings.Contains(urlLower, "/store") {
+
+	if strings.Contains(urlLower, "/products") || strings.Contains(urlLower, "/shop") ||
+		strings.Contains(urlLower, "/store") {
 		return PageTypeProducts
 	}
-	
+
 	if strings.Contains(urlLower, "/contact") {
 		return PageTypeContact
 	}
-	
+
 	if strings.Contains(urlLower, "/blog") || strings.Contains(urlLower, "/news") {
 		return PageTypeBlog
 	}
-	
-	if strings.Contains(urlLower, "/shop") || strings.Contains(urlLower, "/store") || 
-	   strings.Contains(urlLower, "/cart") || strings.Contains(urlLower, "/checkout") {
+
+	if strings.Contains(urlLower, "/shop") || strings.Contains(urlLower, "/store") ||
+		strings.Contains(urlLower, "/cart") || strings.Contains(urlLower, "/checkout") {
 		return PageTypeEcommerce
 	}
-	
+
 	return PageTypeOther
 }
 
@@ -503,13 +503,13 @@ func (c *SmartWebsiteCrawler) analyzePages(ctx context.Context, pages []string) 
 		wg.Add(1)
 		go func(pageURL string) {
 			defer wg.Done()
-			
+
 			// Acquire semaphore
 			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
 
 			analysis := c.analyzePage(ctx, pageURL)
-			
+
 			mu.Lock()
 			analyses = append(analyses, analysis)
 			mu.Unlock()
@@ -523,20 +523,20 @@ func (c *SmartWebsiteCrawler) analyzePages(ctx context.Context, pages []string) 
 // analyzePage analyzes a single page
 func (c *SmartWebsiteCrawler) analyzePage(ctx context.Context, pageURL string) PageAnalysis {
 	startTime := time.Now()
-	
+
 	analysis := PageAnalysis{
-		URL:            pageURL,
-		PageType:       string(c.detectPageType(pageURL)),
-		RelevanceScore: 0.0,
-		ContentQuality: 0.0,
-		Keywords:       []string{},
+		URL:                pageURL,
+		PageType:           string(c.detectPageType(pageURL)),
+		RelevanceScore:     0.0,
+		ContentQuality:     0.0,
+		Keywords:           []string{},
 		IndustryIndicators: []string{},
-		BusinessInfo:   BusinessInfo{},
-		MetaTags:       make(map[string]string),
-		StructuredData: make(map[string]interface{}),
-		StatusCode:     0,
-		ContentLength:  0,
-		Priority:       c.calculatePagePriority(pageURL, ""),
+		BusinessInfo:       BusinessInfo{},
+		MetaTags:           make(map[string]string),
+		StructuredData:     make(map[string]interface{}),
+		StatusCode:         0,
+		ContentLength:      0,
+		Priority:           c.calculatePagePriority(pageURL, ""),
 	}
 
 	// Create request with timeout
@@ -634,7 +634,7 @@ func (c *SmartWebsiteCrawler) checkRobotsTxt(ctx context.Context, baseURL string
 	}
 
 	robotsURL := fmt.Sprintf("%s://%s/robots.txt", parsedURL.Scheme, parsedURL.Host)
-	
+
 	req, err := http.NewRequestWithContext(ctx, "GET", robotsURL, nil)
 	if err != nil {
 		return false, err
@@ -658,7 +658,7 @@ func (c *SmartWebsiteCrawler) checkRobotsTxt(ctx context.Context, baseURL string
 	}
 
 	content := strings.ToLower(string(body))
-	
+
 	// Check for disallow rules
 	if strings.Contains(content, "disallow: /") {
 		return true, nil // Blocked
@@ -710,7 +710,7 @@ func (c *SmartWebsiteCrawler) extractIndustryIndicators(content string) []string
 
 func (c *SmartWebsiteCrawler) calculateRelevanceScore(analysis PageAnalysis) float64 {
 	score := 0.0
-	
+
 	// Base score by page type
 	switch analysis.PageType {
 	case "about", "services", "products":
@@ -722,56 +722,56 @@ func (c *SmartWebsiteCrawler) calculateRelevanceScore(analysis PageAnalysis) flo
 	default:
 		score = 0.5
 	}
-	
+
 	// Adjust based on content quality
 	score *= analysis.ContentQuality
-	
+
 	// Adjust based on keyword density
 	if len(analysis.Keywords) > 0 {
 		score += 0.1
 	}
-	
+
 	// Adjust based on industry indicators
 	if len(analysis.IndustryIndicators) > 0 {
 		score += 0.1
 	}
-	
+
 	if score > 1.0 {
 		score = 1.0
 	}
-	
+
 	return score
 }
 
 func (c *SmartWebsiteCrawler) calculateContentQuality(analysis PageAnalysis) float64 {
 	quality := 0.5
-	
+
 	// Length factor
 	if analysis.ContentLength > 1000 {
 		quality += 0.2
 	} else if analysis.ContentLength > 500 {
 		quality += 0.1
 	}
-	
+
 	// Title factor
 	if analysis.Title != "" {
 		quality += 0.1
 	}
-	
+
 	// Meta tags factor
 	if len(analysis.MetaTags) > 0 {
 		quality += 0.1
 	}
-	
+
 	// Structured data factor
 	if len(analysis.StructuredData) > 0 {
 		quality += 0.1
 	}
-	
+
 	if quality > 1.0 {
 		quality = 1.0
 	}
-	
+
 	return quality
 }
 
@@ -779,39 +779,39 @@ func (c *SmartWebsiteCrawler) aggregateResults(result *CrawlResult, analyses []P
 	// Aggregate keywords from all pages
 	keywordCounts := make(map[string]int)
 	industryScores := make(map[string]float64)
-	
+
 	for _, analysis := range analyses {
 		// Aggregate keywords
 		for _, keyword := range analysis.Keywords {
 			keywordCounts[keyword]++
 		}
-		
+
 		// Aggregate industry indicators
 		for _, indicator := range analysis.IndustryIndicators {
 			industryScores[indicator] += analysis.RelevanceScore
 		}
-		
+
 		// Update business info with most relevant data
 		if analysis.RelevanceScore > 0.8 && analysis.BusinessInfo.BusinessName != "" {
 			result.BusinessInfo = analysis.BusinessInfo
 		}
 	}
-	
+
 	// Sort keywords by frequency
 	type keywordFreq struct {
 		keyword string
 		count   int
 	}
-	
+
 	var sortedKeywords []keywordFreq
 	for keyword, count := range keywordCounts {
 		sortedKeywords = append(sortedKeywords, keywordFreq{keyword, count})
 	}
-	
+
 	sort.Slice(sortedKeywords, func(i, j int) bool {
 		return sortedKeywords[i].count > sortedKeywords[j].count
 	})
-	
+
 	// Take top keywords
 	for i, kf := range sortedKeywords {
 		if i >= 20 { // Limit to top 20 keywords
@@ -819,7 +819,7 @@ func (c *SmartWebsiteCrawler) aggregateResults(result *CrawlResult, analyses []P
 		}
 		result.Keywords = append(result.Keywords, kf.keyword)
 	}
-	
+
 	result.IndustryScore = industryScores
 	result.RelevantPages = len(analyses)
 }

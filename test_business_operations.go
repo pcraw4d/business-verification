@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/database"
+	"kyb-platform/internal/database"
 )
 
 func main() {

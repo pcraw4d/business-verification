@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"kyb-platform/internal/models"
 	"kyb-platform/internal/observability"
-	"kyb-platform/internal/services"
 )
 
 // UnifiedComplianceRepository implements the UnifiedComplianceRepository interface
@@ -26,7 +26,7 @@ func NewUnifiedComplianceRepository(db *sql.DB, logger *observability.Logger) *U
 }
 
 // SaveComplianceTracking saves a compliance tracking record
-func (ucr *UnifiedComplianceRepository) SaveComplianceTracking(ctx context.Context, tracking *services.ComplianceTracking) error {
+func (ucr *UnifiedComplianceRepository) SaveComplianceTracking(ctx context.Context, tracking *models.ComplianceTracking) error {
 	query := `
 		INSERT INTO compliance_tracking (
 			id, merchant_id, compliance_type, compliance_framework, check_type,
@@ -87,7 +87,7 @@ func (ucr *UnifiedComplianceRepository) SaveComplianceTracking(ctx context.Conte
 }
 
 // GetComplianceTracking retrieves compliance tracking records with filtering
-func (ucr *UnifiedComplianceRepository) GetComplianceTracking(ctx context.Context, filters *services.ComplianceTrackingFilters) ([]*services.ComplianceTracking, error) {
+func (ucr *UnifiedComplianceRepository) GetComplianceTracking(ctx context.Context, filters *models.ComplianceTrackingFilters) ([]*models.ComplianceTracking, error) {
 	query, args := ucr.buildComplianceTrackingQuery(filters)
 
 	rows, err := ucr.db.QueryContext(ctx, query, args...)
@@ -100,7 +100,7 @@ func (ucr *UnifiedComplianceRepository) GetComplianceTracking(ctx context.Contex
 	}
 	defer rows.Close()
 
-	var records []*services.ComplianceTracking
+	var records []*models.ComplianceTracking
 	for rows.Next() {
 		record, err := ucr.scanComplianceTracking(rows)
 		if err != nil {
@@ -123,7 +123,7 @@ func (ucr *UnifiedComplianceRepository) GetComplianceTracking(ctx context.Contex
 }
 
 // GetComplianceTrackingByID retrieves a specific compliance tracking record by ID
-func (ucr *UnifiedComplianceRepository) GetComplianceTrackingByID(ctx context.Context, id string) (*services.ComplianceTracking, error) {
+func (ucr *UnifiedComplianceRepository) GetComplianceTrackingByID(ctx context.Context, id string) (*models.ComplianceTracking, error) {
 	query := `
 		SELECT id, merchant_id, compliance_type, compliance_framework, check_type,
 			   status, score, risk_level, requirements, check_method, source,
@@ -152,7 +152,7 @@ func (ucr *UnifiedComplianceRepository) GetComplianceTrackingByID(ctx context.Co
 }
 
 // UpdateComplianceTracking updates an existing compliance tracking record
-func (ucr *UnifiedComplianceRepository) UpdateComplianceTracking(ctx context.Context, tracking *services.ComplianceTracking) error {
+func (ucr *UnifiedComplianceRepository) UpdateComplianceTracking(ctx context.Context, tracking *models.ComplianceTracking) error {
 	query := `
 		UPDATE compliance_tracking SET
 			status = $2, score = $3, risk_level = $4, requirements = $5,
@@ -224,7 +224,7 @@ func (ucr *UnifiedComplianceRepository) DeleteComplianceTracking(ctx context.Con
 }
 
 // GetMerchantComplianceSummary retrieves compliance summary for a merchant
-func (ucr *UnifiedComplianceRepository) GetMerchantComplianceSummary(ctx context.Context, merchantID string) (*services.MerchantComplianceSummary, error) {
+func (ucr *UnifiedComplianceRepository) GetMerchantComplianceSummary(ctx context.Context, merchantID string) (*models.MerchantComplianceSummary, error) {
 	query := `
 		SELECT 
 			merchant_id,
@@ -244,7 +244,7 @@ func (ucr *UnifiedComplianceRepository) GetMerchantComplianceSummary(ctx context
 
 	row := ucr.db.QueryRowContext(ctx, query, merchantID)
 
-	var summary services.MerchantComplianceSummary
+	var summary models.MerchantComplianceSummary
 	var averageScore sql.NullFloat64
 	var lastCheckDate sql.NullTime
 	var nextReviewDate sql.NullTime
@@ -314,7 +314,7 @@ func (ucr *UnifiedComplianceRepository) GetMerchantComplianceSummary(ctx context
 }
 
 // GetComplianceAlerts retrieves compliance alerts for monitoring
-func (ucr *UnifiedComplianceRepository) GetComplianceAlerts(ctx context.Context, filters *services.ComplianceAlertFilters) ([]*services.UnifiedComplianceAlert, error) {
+func (ucr *UnifiedComplianceRepository) GetComplianceAlerts(ctx context.Context, filters *models.ComplianceAlertFilters) ([]*models.UnifiedComplianceAlert, error) {
 	query, args := ucr.buildComplianceAlertsQuery(filters)
 
 	rows, err := ucr.db.QueryContext(ctx, query, args...)
@@ -327,9 +327,9 @@ func (ucr *UnifiedComplianceRepository) GetComplianceAlerts(ctx context.Context,
 	}
 	defer rows.Close()
 
-	var alerts []*services.UnifiedComplianceAlert
+	var alerts []*models.UnifiedComplianceAlert
 	for rows.Next() {
-		alert := &services.UnifiedComplianceAlert{}
+		alert := &models.UnifiedComplianceAlert{}
 		err := rows.Scan(
 			&alert.ID,
 			&alert.MerchantID,
@@ -365,7 +365,7 @@ func (ucr *UnifiedComplianceRepository) GetComplianceAlerts(ctx context.Context,
 }
 
 // GetComplianceTrends retrieves compliance trends for reporting
-func (ucr *UnifiedComplianceRepository) GetComplianceTrends(ctx context.Context, filters *services.ComplianceTrendFilters) ([]*services.UnifiedComplianceTrend, error) {
+func (ucr *UnifiedComplianceRepository) GetComplianceTrends(ctx context.Context, filters *models.ComplianceTrendFilters) ([]*models.UnifiedComplianceTrend, error) {
 	query, args := ucr.buildComplianceTrendsQuery(filters)
 
 	rows, err := ucr.db.QueryContext(ctx, query, args...)
@@ -378,9 +378,9 @@ func (ucr *UnifiedComplianceRepository) GetComplianceTrends(ctx context.Context,
 	}
 	defer rows.Close()
 
-	var trends []*services.UnifiedComplianceTrend
+	var trends []*models.UnifiedComplianceTrend
 	for rows.Next() {
-		trend := &services.UnifiedComplianceTrend{}
+		trend := &models.UnifiedComplianceTrend{}
 		var averageScore sql.NullFloat64
 		err := rows.Scan(
 			&trend.Date,
@@ -418,7 +418,7 @@ func (ucr *UnifiedComplianceRepository) GetComplianceTrends(ctx context.Context,
 
 // Helper methods
 
-func (ucr *UnifiedComplianceRepository) buildComplianceTrackingQuery(filters *services.ComplianceTrackingFilters) (string, []interface{}) {
+func (ucr *UnifiedComplianceRepository) buildComplianceTrackingQuery(filters *models.ComplianceTrackingFilters) (string, []interface{}) {
 	query := `
 		SELECT id, merchant_id, compliance_type, compliance_framework, check_type,
 			   status, score, risk_level, requirements, check_method, source,
@@ -556,7 +556,7 @@ func (ucr *UnifiedComplianceRepository) buildComplianceTrackingQuery(filters *se
 	return query, args
 }
 
-func (ucr *UnifiedComplianceRepository) buildComplianceAlertsQuery(filters *services.ComplianceAlertFilters) (string, []interface{}) {
+func (ucr *UnifiedComplianceRepository) buildComplianceAlertsQuery(filters *models.ComplianceAlertFilters) (string, []interface{}) {
 	query := `
 		SELECT 
 			id, merchant_id, compliance_type, compliance_framework, status,
@@ -636,7 +636,7 @@ func (ucr *UnifiedComplianceRepository) buildComplianceAlertsQuery(filters *serv
 	return query, args
 }
 
-func (ucr *UnifiedComplianceRepository) buildComplianceTrendsQuery(filters *services.ComplianceTrendFilters) (string, []interface{}) {
+func (ucr *UnifiedComplianceRepository) buildComplianceTrendsQuery(filters *models.ComplianceTrendFilters) (string, []interface{}) {
 	// Determine date grouping
 	dateGrouping := "DATE(created_at)"
 	if filters.GroupBy == "week" {
@@ -697,8 +697,8 @@ func (ucr *UnifiedComplianceRepository) buildComplianceTrendsQuery(filters *serv
 	return query, args
 }
 
-func (ucr *UnifiedComplianceRepository) scanComplianceTracking(rows *sql.Rows) (*services.ComplianceTracking, error) {
-	record := &services.ComplianceTracking{}
+func (ucr *UnifiedComplianceRepository) scanComplianceTracking(rows *sql.Rows) (*models.ComplianceTracking, error) {
+	record := &models.ComplianceTracking{}
 	var requirements, rawData, result, findings, recommendations, evidence, metadata sql.NullString
 	var tags sql.NullString
 	var checkedBy, reviewedBy, approvedBy, assignedTo, notes sql.NullString
@@ -796,8 +796,8 @@ func (ucr *UnifiedComplianceRepository) scanComplianceTracking(rows *sql.Rows) (
 	return record, nil
 }
 
-func (ucr *UnifiedComplianceRepository) scanComplianceTrackingRow(row *sql.Row) (*services.ComplianceTracking, error) {
-	record := &services.ComplianceTracking{}
+func (ucr *UnifiedComplianceRepository) scanComplianceTrackingRow(row *sql.Row) (*models.ComplianceTracking, error) {
+	record := &models.ComplianceTracking{}
 	var requirements, rawData, result, findings, recommendations, evidence, metadata sql.NullString
 	var tags sql.NullString
 	var checkedBy, reviewedBy, approvedBy, assignedTo, notes sql.NullString

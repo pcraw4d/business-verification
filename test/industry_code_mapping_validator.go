@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/classification"
+	"kyb-platform/internal/classification"
 )
 
 // IndustryCodeMappingValidator provides comprehensive validation for industry code mappings

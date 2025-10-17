@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/models"
+	"kyb-platform/internal/models"
 )
 
 // TestDataSets provides comprehensive test data for different scenarios

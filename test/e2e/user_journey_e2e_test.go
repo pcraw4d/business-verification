@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/api/handlers"
-	"github.com/pcraw4d/business-verification/internal/database"
-	"github.com/pcraw4d/business-verification/internal/services"
-	"github.com/pcraw4d/business-verification/test/mocks"
+	"kyb-platform/internal/api/handlers"
+	"kyb-platform/internal/database"
+	"kyb-platform/internal/services"
+	"kyb-platform/test/mocks"
 )
 
 // TestUserJourneyE2E tests complete user journeys end-to-end

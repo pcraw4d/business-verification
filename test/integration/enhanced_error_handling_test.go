@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pcraw4d/business-verification/internal/shared"
-	"github.com/pcraw4d/business-verification/test/mocks"
+	"kyb-platform/internal/shared"
+	"kyb-platform/test/mocks"
 )
 
 // TestEnhancedErrorScenarios tests comprehensive error scenarios for the classification system

@@ -19,7 +19,7 @@ import (
 // It consolidates the functionality of multiple monitoring systems into a single,
 // efficient, and maintainable solution.
 type UnifiedPerformanceMonitor struct {
-	config     *MonitoringConfig
+	config     *UnifiedMonitoringConfig
 	db         *sql.DB
 	exporters  []MetricExporter
 	alerters   []AlertHandler
@@ -29,27 +29,27 @@ type UnifiedPerformanceMonitor struct {
 	mu         sync.RWMutex
 }
 
-// MonitoringConfig contains configuration for the unified monitoring system.
-type MonitoringConfig struct {
-	DatabaseURL        string
-	CollectionInterval time.Duration
-	RetentionPeriod    time.Duration
-	AlertThresholds    map[string]AlertThreshold
-	Exporters          []ExporterConfig
-	Components         []ComponentConfig
-	BatchSize          int
-	FlushInterval      time.Duration
+// UnifiedMonitoringConfig contains configuration for the unified monitoring system.
+type UnifiedMonitoringConfig struct {
+	DatabaseURL            string
+	CollectionInterval     time.Duration
+	RetentionPeriod        time.Duration
+	UnifiedAlertThresholds map[string]UnifiedAlertThreshold
+	Exporters              []ExporterConfig
+	Components             []ComponentConfig
+	BatchSize              int
+	FlushInterval          time.Duration
 }
 
-// AlertThreshold defines alerting thresholds for specific metrics.
-type AlertThreshold struct {
-	MetricName string
-	Component  string
-	Condition  string // 'gt', 'lt', 'eq', 'ne'
-	Value      float64
-	Severity   string
-	Duration   time.Duration
-	Cooldown   time.Duration
+// UnifiedAlertThreshold defines alerting thresholds for specific metrics.
+type UnifiedAlertThreshold struct {
+	UnifiedMetricName string
+	Component         string
+	Condition         string // 'gt', 'lt', 'eq', 'ne'
+	Value             float64
+	Severity          string
+	Duration          time.Duration
+	Cooldown          time.Duration
 }
 
 // ExporterConfig contains configuration for metric exporters.
@@ -69,7 +69,7 @@ type ComponentConfig struct {
 
 // MetricCollector interface for collecting metrics from different components.
 type MetricCollector interface {
-	Collect(ctx context.Context) ([]Metric, error)
+	Collect(ctx context.Context) ([]UnifiedMetric, error)
 	GetType() string
 	GetComponent() string
 	GetInterval() time.Duration
@@ -77,93 +77,93 @@ type MetricCollector interface {
 	Stop() error
 }
 
-// Metric represents a single performance metric.
-type Metric struct {
-	ID                string                 `json:"id"`
-	Timestamp         time.Time              `json:"timestamp"`
-	Component         string                 `json:"component"`
-	ComponentInstance string                 `json:"component_instance"`
-	ServiceName       string                 `json:"service_name"`
-	MetricType        string                 `json:"metric_type"`
-	MetricCategory    string                 `json:"metric_category"`
-	MetricName        string                 `json:"metric_name"`
-	MetricValue       float64                `json:"metric_value"`
-	MetricUnit        string                 `json:"metric_unit"`
-	Tags              map[string]string      `json:"tags"`
-	Metadata          map[string]interface{} `json:"metadata"`
-	RequestID         *string                `json:"request_id"`
-	OperationID       *string                `json:"operation_id"`
-	UserID            *string                `json:"user_id"`
-	ConfidenceScore   *float64               `json:"confidence_score"`
-	DataSource        string                 `json:"data_source"`
+// UnifiedMetric represents a single performance metric.
+type UnifiedMetric struct {
+	ID                    string                 `json:"id"`
+	Timestamp             time.Time              `json:"timestamp"`
+	Component             string                 `json:"component"`
+	ComponentInstance     string                 `json:"component_instance"`
+	ServiceName           string                 `json:"service_name"`
+	UnifiedMetricType     string                 `json:"metric_type"`
+	UnifiedMetricCategory string                 `json:"metric_category"`
+	UnifiedMetricName     string                 `json:"metric_name"`
+	UnifiedMetricValue    float64                `json:"metric_value"`
+	UnifiedMetricUnit     string                 `json:"metric_unit"`
+	Tags                  map[string]string      `json:"tags"`
+	Metadata              map[string]interface{} `json:"metadata"`
+	RequestID             *string                `json:"request_id"`
+	OperationID           *string                `json:"operation_id"`
+	UserID                *string                `json:"user_id"`
+	ConfidenceScore       *float64               `json:"confidence_score"`
+	DataSource            string                 `json:"data_source"`
 }
 
-// Alert represents a performance alert.
-type Alert struct {
-	ID                string                 `json:"id"`
-	CreatedAt         time.Time              `json:"created_at"`
-	AlertType         string                 `json:"alert_type"`
-	AlertCategory     string                 `json:"alert_category"`
-	Severity          string                 `json:"severity"`
-	Component         string                 `json:"component"`
-	ComponentInstance string                 `json:"component_instance"`
-	ServiceName       string                 `json:"service_name"`
-	AlertName         string                 `json:"alert_name"`
-	Description       string                 `json:"description"`
-	Condition         map[string]interface{} `json:"condition"`
-	CurrentValue      *float64               `json:"current_value"`
-	ThresholdValue    *float64               `json:"threshold_value"`
-	Status            string                 `json:"status"`
-	AcknowledgedBy    *string                `json:"acknowledged_by"`
-	AcknowledgedAt    *time.Time             `json:"acknowledged_at"`
-	ResolvedAt        *time.Time             `json:"resolved_at"`
-	RelatedMetrics    []string               `json:"related_metrics"`
-	RelatedRequests   []string               `json:"related_requests"`
-	Tags              map[string]string      `json:"tags"`
-	Metadata          map[string]interface{} `json:"metadata"`
+// UnifiedAlert represents a performance alert.
+type UnifiedAlert struct {
+	ID                    string                 `json:"id"`
+	CreatedAt             time.Time              `json:"created_at"`
+	UnifiedAlertType      string                 `json:"alert_type"`
+	UnifiedAlertCategory  string                 `json:"alert_category"`
+	Severity              string                 `json:"severity"`
+	Component             string                 `json:"component"`
+	ComponentInstance     string                 `json:"component_instance"`
+	ServiceName           string                 `json:"service_name"`
+	UnifiedAlertName      string                 `json:"alert_name"`
+	Description           string                 `json:"description"`
+	Condition             map[string]interface{} `json:"condition"`
+	CurrentValue          *float64               `json:"current_value"`
+	ThresholdValue        *float64               `json:"threshold_value"`
+	Status                string                 `json:"status"`
+	AcknowledgedBy        *string                `json:"acknowledged_by"`
+	AcknowledgedAt        *time.Time             `json:"acknowledged_at"`
+	ResolvedAt            *time.Time             `json:"resolved_at"`
+	RelatedUnifiedMetrics []string               `json:"related_metrics"`
+	RelatedRequests       []string               `json:"related_requests"`
+	Tags                  map[string]string      `json:"tags"`
+	Metadata              map[string]interface{} `json:"metadata"`
 }
 
 // HealthScore represents component health scores.
 type HealthScore struct {
-	ID                 string                 `json:"id"`
-	Timestamp          time.Time              `json:"timestamp"`
-	Component          string                 `json:"component"`
-	ComponentInstance  string                 `json:"component_instance"`
-	ServiceName        string                 `json:"service_name"`
-	OverallHealth      float64                `json:"overall_health"`
-	PerformanceHealth  float64                `json:"performance_health"`
-	ResourceHealth     float64                `json:"resource_health"`
-	AvailabilityHealth float64                `json:"availability_health"`
-	SecurityHealth     float64                `json:"security_health"`
-	ActiveAlerts       int                    `json:"active_alerts"`
-	CriticalAlerts     int                    `json:"critical_alerts"`
-	WarningAlerts      int                    `json:"warning_alerts"`
-	AvgResponseTime    *float64               `json:"avg_response_time"`
-	ErrorRate          *float64               `json:"error_rate"`
-	Throughput         *float64               `json:"throughput"`
-	CPUUsage           *float64               `json:"cpu_usage"`
-	MemoryUsage        *float64               `json:"memory_usage"`
-	DiskUsage          *float64               `json:"disk_usage"`
-	Tags               map[string]string      `json:"tags"`
-	Metadata           map[string]interface{} `json:"metadata"`
+	ID                    string                 `json:"id"`
+	Timestamp             time.Time              `json:"timestamp"`
+	Component             string                 `json:"component"`
+	ComponentInstance     string                 `json:"component_instance"`
+	ServiceName           string                 `json:"service_name"`
+	OverallHealth         float64                `json:"overall_health"`
+	PerformanceHealth     float64                `json:"performance_health"`
+	ResourceHealth        float64                `json:"resource_health"`
+	AvailabilityHealth    float64                `json:"availability_health"`
+	SecurityHealth        float64                `json:"security_health"`
+	ActiveUnifiedAlerts   int                    `json:"active_alerts"`
+	CriticalUnifiedAlerts int                    `json:"critical_alerts"`
+	WarningUnifiedAlerts  int                    `json:"warning_alerts"`
+	AvgResponseTime       *float64               `json:"avg_response_time"`
+	ErrorRate             *float64               `json:"error_rate"`
+	Throughput            *float64               `json:"throughput"`
+	CPUUsage              *float64               `json:"cpu_usage"`
+	MemoryUsage           *float64               `json:"memory_usage"`
+	DiskUsage             *float64               `json:"disk_usage"`
+	Tags                  map[string]string      `json:"tags"`
+	Metadata              map[string]interface{} `json:"metadata"`
 }
 
 // MetricExporter interface for exporting metrics to external systems.
 type MetricExporter interface {
-	Export(ctx context.Context, metrics []Metric) error
+	Export(ctx context.Context, metrics []UnifiedMetric) error
 	GetType() string
 	IsEnabled() bool
 }
 
 // AlertHandler interface for handling alerts.
 type AlertHandler interface {
-	HandleAlert(ctx context.Context, alert Alert) error
+	HandleAlert(ctx context.Context, alert UnifiedAlert) error
 	GetType() string
 	IsEnabled() bool
 }
 
 // NewUnifiedPerformanceMonitor creates a new unified performance monitor.
-func NewUnifiedPerformanceMonitor(config *MonitoringConfig, db *sql.DB, logger *zap.Logger) *UnifiedPerformanceMonitor {
+func NewUnifiedPerformanceMonitor(config *UnifiedMonitoringConfig, db *sql.DB, logger *zap.Logger) *UnifiedPerformanceMonitor {
 	return &UnifiedPerformanceMonitor{
 		config:     config,
 		db:         db,
@@ -189,8 +189,8 @@ func (m *UnifiedPerformanceMonitor) RegisterExporter(exporter MetricExporter) {
 	m.exporters = append(m.exporters, exporter)
 }
 
-// RegisterAlerter registers an alert handler.
-func (m *UnifiedPerformanceMonitor) RegisterAlerter(alerter AlertHandler) {
+// RegisterUnifiedAlerter registers an alert handler.
+func (m *UnifiedPerformanceMonitor) RegisterUnifiedAlerter(alerter AlertHandler) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.alerters = append(m.alerters, alerter)
@@ -238,8 +238,8 @@ func (m *UnifiedPerformanceMonitor) Stop() error {
 	return nil
 }
 
-// RecordMetric records a single performance metric.
-func (m *UnifiedPerformanceMonitor) RecordMetric(ctx context.Context, metric Metric) error {
+// RecordUnifiedMetric records a single performance metric.
+func (m *UnifiedPerformanceMonitor) RecordUnifiedMetric(ctx context.Context, metric UnifiedMetric) error {
 	// Generate ID if not provided
 	if metric.ID == "" {
 		metric.ID = uuid.New().String()
@@ -256,19 +256,19 @@ func (m *UnifiedPerformanceMonitor) RecordMetric(ctx context.Context, metric Met
 	}
 
 	// Insert into database
-	if err := m.insertMetric(ctx, metric); err != nil {
+	if err := m.insertUnifiedMetric(ctx, metric); err != nil {
 		m.logger.Error("Failed to insert metric", zap.Error(err))
 		return fmt.Errorf("failed to insert metric: %w", err)
 	}
 
 	// Export to external systems
-	if err := m.exportMetrics(ctx, []Metric{metric}); err != nil {
+	if err := m.exportUnifiedMetrics(ctx, []UnifiedMetric{metric}); err != nil {
 		m.logger.Error("Failed to export metrics", zap.Error(err))
 		// Don't return error for export failures
 	}
 
 	// Check for alerts
-	if err := m.checkAlerts(ctx, metric); err != nil {
+	if err := m.checkUnifiedAlerts(ctx, metric); err != nil {
 		m.logger.Error("Failed to check alerts", zap.Error(err))
 		// Don't return error for alert check failures
 	}
@@ -276,8 +276,8 @@ func (m *UnifiedPerformanceMonitor) RecordMetric(ctx context.Context, metric Met
 	return nil
 }
 
-// RecordMetrics records multiple performance metrics in batch.
-func (m *UnifiedPerformanceMonitor) RecordMetrics(ctx context.Context, metrics []Metric) error {
+// RecordUnifiedMetrics records multiple performance metrics in batch.
+func (m *UnifiedPerformanceMonitor) RecordUnifiedMetrics(ctx context.Context, metrics []UnifiedMetric) error {
 	if len(metrics) == 0 {
 		return nil
 	}
@@ -296,20 +296,20 @@ func (m *UnifiedPerformanceMonitor) RecordMetrics(ctx context.Context, metrics [
 	}
 
 	// Insert into database in batch
-	if err := m.insertMetricsBatch(ctx, metrics); err != nil {
+	if err := m.insertUnifiedMetricsBatch(ctx, metrics); err != nil {
 		m.logger.Error("Failed to insert metrics batch", zap.Error(err))
 		return fmt.Errorf("failed to insert metrics batch: %w", err)
 	}
 
 	// Export to external systems
-	if err := m.exportMetrics(ctx, metrics); err != nil {
+	if err := m.exportUnifiedMetrics(ctx, metrics); err != nil {
 		m.logger.Error("Failed to export metrics", zap.Error(err))
 		// Don't return error for export failures
 	}
 
 	// Check for alerts
 	for _, metric := range metrics {
-		if err := m.checkAlerts(ctx, metric); err != nil {
+		if err := m.checkUnifiedAlerts(ctx, metric); err != nil {
 			m.logger.Error("Failed to check alerts", zap.Error(err))
 			// Don't return error for alert check failures
 		}
@@ -318,8 +318,8 @@ func (m *UnifiedPerformanceMonitor) RecordMetrics(ctx context.Context, metrics [
 	return nil
 }
 
-// GetMetrics retrieves metrics based on filters.
-func (m *UnifiedPerformanceMonitor) GetMetrics(ctx context.Context, filters MetricFilters) ([]Metric, error) {
+// GetUnifiedMetrics retrieves metrics based on filters.
+func (m *UnifiedPerformanceMonitor) GetUnifiedMetrics(ctx context.Context, filters UnifiedMetricFilters) ([]UnifiedMetric, error) {
 	query := `
 		SELECT id, timestamp, component, component_instance, service_name,
 		       metric_type, metric_category, metric_name, metric_value, metric_unit,
@@ -344,15 +344,15 @@ func (m *UnifiedPerformanceMonitor) GetMetrics(ctx context.Context, filters Metr
 		argIndex++
 	}
 
-	if filters.MetricType != "" {
+	if filters.UnifiedMetricType != "" {
 		query += fmt.Sprintf(" AND metric_type = $%d", argIndex)
-		args = append(args, filters.MetricType)
+		args = append(args, filters.UnifiedMetricType)
 		argIndex++
 	}
 
-	if filters.MetricCategory != "" {
+	if filters.UnifiedMetricCategory != "" {
 		query += fmt.Sprintf(" AND metric_category = $%d", argIndex)
-		args = append(args, filters.MetricCategory)
+		args = append(args, filters.UnifiedMetricCategory)
 		argIndex++
 	}
 
@@ -381,17 +381,17 @@ func (m *UnifiedPerformanceMonitor) GetMetrics(ctx context.Context, filters Metr
 	}
 	defer rows.Close()
 
-	var metrics []Metric
+	var metrics []UnifiedMetric
 	for rows.Next() {
-		var metric Metric
+		var metric UnifiedMetric
 		var tagsJSON, metadataJSON sql.NullString
 		var requestID, operationID, userID sql.NullString
 		var confidenceScore sql.NullFloat64
 
 		err := rows.Scan(
 			&metric.ID, &metric.Timestamp, &metric.Component, &metric.ComponentInstance,
-			&metric.ServiceName, &metric.MetricType, &metric.MetricCategory,
-			&metric.MetricName, &metric.MetricValue, &metric.MetricUnit,
+			&metric.ServiceName, &metric.UnifiedMetricType, &metric.UnifiedMetricCategory,
+			&metric.UnifiedMetricName, &metric.UnifiedMetricValue, &metric.UnifiedMetricUnit,
 			&tagsJSON, &metadataJSON, &requestID, &operationID, &userID,
 			&confidenceScore, &metric.DataSource, &metric.Timestamp,
 		)
@@ -457,8 +457,8 @@ func (m *UnifiedPerformanceMonitor) GetHealthScores(ctx context.Context, compone
 			&healthScore.ComponentInstance, &healthScore.ServiceName,
 			&healthScore.OverallHealth, &healthScore.PerformanceHealth,
 			&healthScore.ResourceHealth, &healthScore.AvailabilityHealth,
-			&healthScore.SecurityHealth, &healthScore.ActiveAlerts,
-			&healthScore.CriticalAlerts, &healthScore.WarningAlerts,
+			&healthScore.SecurityHealth, &healthScore.ActiveUnifiedAlerts,
+			&healthScore.CriticalUnifiedAlerts, &healthScore.WarningUnifiedAlerts,
 			&avgResponseTime, &errorRate, &throughput, &cpuUsage,
 			&memoryUsage, &diskUsage, &tagsJSON, &metadataJSON,
 		)
@@ -498,15 +498,15 @@ func (m *UnifiedPerformanceMonitor) GetHealthScores(ctx context.Context, compone
 	return healthScores, nil
 }
 
-// MetricFilters defines filters for querying metrics.
-type MetricFilters struct {
-	Component      string
-	ServiceName    string
-	MetricType     string
-	MetricCategory string
-	StartTime      time.Time
-	EndTime        time.Time
-	Limit          int
+// UnifiedMetricFilters defines filters for querying metrics.
+type UnifiedMetricFilters struct {
+	Component             string
+	ServiceName           string
+	UnifiedMetricType     string
+	UnifiedMetricCategory string
+	StartTime             time.Time
+	EndTime               time.Time
+	Limit                 int
 }
 
 // collectionLoop runs the metric collection loop.
@@ -519,13 +519,13 @@ func (m *UnifiedPerformanceMonitor) collectionLoop(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			m.collectMetrics(ctx)
+			m.collectUnifiedMetrics(ctx)
 		}
 	}
 }
 
-// collectMetrics collects metrics from all registered collectors.
-func (m *UnifiedPerformanceMonitor) collectMetrics(ctx context.Context) {
+// collectUnifiedMetrics collects metrics from all registered collectors.
+func (m *UnifiedPerformanceMonitor) collectUnifiedMetrics(ctx context.Context) {
 	m.mu.RLock()
 	collectors := make(map[string]MetricCollector)
 	for name, collector := range m.collectors {
@@ -541,7 +541,7 @@ func (m *UnifiedPerformanceMonitor) collectMetrics(ctx context.Context) {
 		}
 
 		if len(metrics) > 0 {
-			if err := m.RecordMetrics(ctx, metrics); err != nil {
+			if err := m.RecordUnifiedMetrics(ctx, metrics); err != nil {
 				m.logger.Error("Failed to record metrics", zap.String("collector", name), zap.Error(err))
 			}
 		}
@@ -558,15 +558,15 @@ func (m *UnifiedPerformanceMonitor) alertProcessingLoop(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			m.processAlerts(ctx)
+			m.processUnifiedAlerts(ctx)
 		}
 	}
 }
 
-// processAlerts processes active alerts.
-func (m *UnifiedPerformanceMonitor) processAlerts(ctx context.Context) {
+// processUnifiedAlerts processes active alerts.
+func (m *UnifiedPerformanceMonitor) processUnifiedAlerts(ctx context.Context) {
 	// Get active alerts
-	alerts, err := m.getActiveAlerts(ctx)
+	alerts, err := m.getActiveUnifiedAlerts(ctx)
 	if err != nil {
 		m.logger.Error("Failed to get active alerts", zap.Error(err))
 		return
@@ -621,8 +621,8 @@ func (m *UnifiedPerformanceMonitor) calculateHealthScores(ctx context.Context) {
 	}
 }
 
-// insertMetric inserts a single metric into the database.
-func (m *UnifiedPerformanceMonitor) insertMetric(ctx context.Context, metric Metric) error {
+// insertUnifiedMetric inserts a single metric into the database.
+func (m *UnifiedPerformanceMonitor) insertUnifiedMetric(ctx context.Context, metric UnifiedMetric) error {
 	tagsJSON, _ := json.Marshal(metric.Tags)
 	metadataJSON, _ := json.Marshal(metric.Metadata)
 
@@ -637,8 +637,8 @@ func (m *UnifiedPerformanceMonitor) insertMetric(ctx context.Context, metric Met
 
 	_, err := m.db.ExecContext(ctx, query,
 		metric.ID, metric.Timestamp, metric.Component, metric.ComponentInstance,
-		metric.ServiceName, metric.MetricType, metric.MetricCategory,
-		metric.MetricName, metric.MetricValue, metric.MetricUnit,
+		metric.ServiceName, metric.UnifiedMetricType, metric.UnifiedMetricCategory,
+		metric.UnifiedMetricName, metric.UnifiedMetricValue, metric.UnifiedMetricUnit,
 		tagsJSON, metadataJSON, metric.RequestID, metric.OperationID,
 		metric.UserID, metric.ConfidenceScore, metric.DataSource,
 	)
@@ -646,8 +646,8 @@ func (m *UnifiedPerformanceMonitor) insertMetric(ctx context.Context, metric Met
 	return err
 }
 
-// insertMetricsBatch inserts multiple metrics into the database in batch.
-func (m *UnifiedPerformanceMonitor) insertMetricsBatch(ctx context.Context, metrics []Metric) error {
+// insertUnifiedMetricsBatch inserts multiple metrics into the database in batch.
+func (m *UnifiedPerformanceMonitor) insertUnifiedMetricsBatch(ctx context.Context, metrics []UnifiedMetric) error {
 	if len(metrics) == 0 {
 		return nil
 	}
@@ -674,8 +674,8 @@ func (m *UnifiedPerformanceMonitor) insertMetricsBatch(ctx context.Context, metr
 
 		_, err := stmt.ExecContext(ctx,
 			metric.ID, metric.Timestamp, metric.Component, metric.ComponentInstance,
-			metric.ServiceName, metric.MetricType, metric.MetricCategory,
-			metric.MetricName, metric.MetricValue, metric.MetricUnit,
+			metric.ServiceName, metric.UnifiedMetricType, metric.UnifiedMetricCategory,
+			metric.UnifiedMetricName, metric.UnifiedMetricValue, metric.UnifiedMetricUnit,
 			tagsJSON, metadataJSON, metric.RequestID, metric.OperationID,
 			metric.UserID, metric.ConfidenceScore, metric.DataSource,
 		)
@@ -687,8 +687,8 @@ func (m *UnifiedPerformanceMonitor) insertMetricsBatch(ctx context.Context, metr
 	return nil
 }
 
-// exportMetrics exports metrics to all registered exporters.
-func (m *UnifiedPerformanceMonitor) exportMetrics(ctx context.Context, metrics []Metric) error {
+// exportUnifiedMetrics exports metrics to all registered exporters.
+func (m *UnifiedPerformanceMonitor) exportUnifiedMetrics(ctx context.Context, metrics []UnifiedMetric) error {
 	for _, exporter := range m.exporters {
 		if exporter.IsEnabled() {
 			if err := exporter.Export(ctx, metrics); err != nil {
@@ -699,33 +699,33 @@ func (m *UnifiedPerformanceMonitor) exportMetrics(ctx context.Context, metrics [
 	return nil
 }
 
-// checkAlerts checks if a metric triggers any alerts.
-func (m *UnifiedPerformanceMonitor) checkAlerts(ctx context.Context, metric Metric) error {
+// checkUnifiedAlerts checks if a metric triggers any alerts.
+func (m *UnifiedPerformanceMonitor) checkUnifiedAlerts(ctx context.Context, metric UnifiedMetric) error {
 	// Check against configured thresholds
-	for _, threshold := range m.config.AlertThresholds {
-		if threshold.Component == metric.Component && threshold.MetricName == metric.MetricName {
+	for _, threshold := range m.config.UnifiedAlertThresholds {
+		if threshold.Component == metric.Component && threshold.UnifiedMetricName == metric.UnifiedMetricName {
 			if m.evaluateThreshold(metric, threshold) {
-				alert := Alert{
-					ID:                uuid.New().String(),
-					CreatedAt:         time.Now(),
-					AlertType:         "threshold",
-					AlertCategory:     "performance",
-					Severity:          threshold.Severity,
-					Component:         metric.Component,
-					ComponentInstance: metric.ComponentInstance,
-					ServiceName:       metric.ServiceName,
-					AlertName:         fmt.Sprintf("%s threshold exceeded", metric.MetricName),
-					Description:       fmt.Sprintf("Metric %s exceeded threshold %f", metric.MetricName, threshold.Value),
-					Condition:         map[string]interface{}{"threshold": threshold.Value, "condition": threshold.Condition},
-					CurrentValue:      &metric.MetricValue,
-					ThresholdValue:    &threshold.Value,
-					Status:            "active",
-					RelatedMetrics:    []string{metric.ID},
-					Tags:              metric.Tags,
-					Metadata:          metric.Metadata,
+				alert := UnifiedAlert{
+					ID:                    uuid.New().String(),
+					CreatedAt:             time.Now(),
+					UnifiedAlertType:      "threshold",
+					UnifiedAlertCategory:  "performance",
+					Severity:              threshold.Severity,
+					Component:             metric.Component,
+					ComponentInstance:     metric.ComponentInstance,
+					ServiceName:           metric.ServiceName,
+					UnifiedAlertName:      fmt.Sprintf("%s threshold exceeded", metric.UnifiedMetricName),
+					Description:           fmt.Sprintf("UnifiedMetric %s exceeded threshold %f", metric.UnifiedMetricName, threshold.Value),
+					Condition:             map[string]interface{}{"threshold": threshold.Value, "condition": threshold.Condition},
+					CurrentValue:          &metric.UnifiedMetricValue,
+					ThresholdValue:        &threshold.Value,
+					Status:                "active",
+					RelatedUnifiedMetrics: []string{metric.ID},
+					Tags:                  metric.Tags,
+					Metadata:              metric.Metadata,
 				}
 
-				if err := m.createAlert(ctx, alert); err != nil {
+				if err := m.createUnifiedAlert(ctx, alert); err != nil {
 					m.logger.Error("Failed to create alert", zap.Error(err))
 				}
 			}
@@ -735,27 +735,27 @@ func (m *UnifiedPerformanceMonitor) checkAlerts(ctx context.Context, metric Metr
 }
 
 // evaluateThreshold evaluates if a metric meets alert threshold conditions.
-func (m *UnifiedPerformanceMonitor) evaluateThreshold(metric Metric, threshold AlertThreshold) bool {
+func (m *UnifiedPerformanceMonitor) evaluateThreshold(metric UnifiedMetric, threshold UnifiedAlertThreshold) bool {
 	switch threshold.Condition {
 	case "gt":
-		return metric.MetricValue > threshold.Value
+		return metric.UnifiedMetricValue > threshold.Value
 	case "lt":
-		return metric.MetricValue < threshold.Value
+		return metric.UnifiedMetricValue < threshold.Value
 	case "eq":
-		return metric.MetricValue == threshold.Value
+		return metric.UnifiedMetricValue == threshold.Value
 	case "ne":
-		return metric.MetricValue != threshold.Value
+		return metric.UnifiedMetricValue != threshold.Value
 	default:
 		return false
 	}
 }
 
-// createAlert creates a new alert in the database.
-func (m *UnifiedPerformanceMonitor) createAlert(ctx context.Context, alert Alert) error {
+// createUnifiedAlert creates a new alert in the database.
+func (m *UnifiedPerformanceMonitor) createUnifiedAlert(ctx context.Context, alert UnifiedAlert) error {
 	conditionJSON, _ := json.Marshal(alert.Condition)
 	tagsJSON, _ := json.Marshal(alert.Tags)
 	metadataJSON, _ := json.Marshal(alert.Metadata)
-	relatedMetricsJSON, _ := json.Marshal(alert.RelatedMetrics)
+	relatedUnifiedMetricsJSON, _ := json.Marshal(alert.RelatedUnifiedMetrics)
 	relatedRequestsJSON, _ := json.Marshal(alert.RelatedRequests)
 
 	query := `
@@ -768,17 +768,17 @@ func (m *UnifiedPerformanceMonitor) createAlert(ctx context.Context, alert Alert
 	`
 
 	_, err := m.db.ExecContext(ctx, query,
-		alert.ID, alert.CreatedAt, alert.AlertType, alert.AlertCategory, alert.Severity,
-		alert.Component, alert.ComponentInstance, alert.ServiceName, alert.AlertName,
+		alert.ID, alert.CreatedAt, alert.UnifiedAlertType, alert.UnifiedAlertCategory, alert.Severity,
+		alert.Component, alert.ComponentInstance, alert.ServiceName, alert.UnifiedAlertName,
 		alert.Description, conditionJSON, alert.CurrentValue, alert.ThresholdValue,
-		alert.Status, relatedMetricsJSON, relatedRequestsJSON, tagsJSON, metadataJSON,
+		alert.Status, relatedUnifiedMetricsJSON, relatedRequestsJSON, tagsJSON, metadataJSON,
 	)
 
 	return err
 }
 
-// getActiveAlerts retrieves active alerts from the database.
-func (m *UnifiedPerformanceMonitor) getActiveAlerts(ctx context.Context) ([]Alert, error) {
+// getActiveUnifiedAlerts retrieves active alerts from the database.
+func (m *UnifiedPerformanceMonitor) getActiveUnifiedAlerts(ctx context.Context) ([]UnifiedAlert, error) {
 	query := `
 		SELECT id, created_at, alert_type, alert_category, severity,
 		       component, component_instance, service_name, alert_name,
@@ -796,20 +796,20 @@ func (m *UnifiedPerformanceMonitor) getActiveAlerts(ctx context.Context) ([]Aler
 	}
 	defer rows.Close()
 
-	var alerts []Alert
+	var alerts []UnifiedAlert
 	for rows.Next() {
-		var alert Alert
-		var conditionJSON, tagsJSON, metadataJSON, relatedMetricsJSON, relatedRequestsJSON sql.NullString
+		var alert UnifiedAlert
+		var conditionJSON, tagsJSON, metadataJSON, relatedUnifiedMetricsJSON, relatedRequestsJSON sql.NullString
 		var acknowledgedBy sql.NullString
 		var acknowledgedAt, resolvedAt sql.NullTime
 
 		err := rows.Scan(
-			&alert.ID, &alert.CreatedAt, &alert.AlertType, &alert.AlertCategory,
+			&alert.ID, &alert.CreatedAt, &alert.UnifiedAlertType, &alert.UnifiedAlertCategory,
 			&alert.Severity, &alert.Component, &alert.ComponentInstance,
-			&alert.ServiceName, &alert.AlertName, &alert.Description,
+			&alert.ServiceName, &alert.UnifiedAlertName, &alert.Description,
 			&conditionJSON, &alert.CurrentValue, &alert.ThresholdValue,
 			&alert.Status, &acknowledgedBy, &acknowledgedAt, &resolvedAt,
-			&relatedMetricsJSON, &relatedRequestsJSON, &tagsJSON, &metadataJSON,
+			&relatedUnifiedMetricsJSON, &relatedRequestsJSON, &tagsJSON, &metadataJSON,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan alert: %w", err)
@@ -825,8 +825,8 @@ func (m *UnifiedPerformanceMonitor) getActiveAlerts(ctx context.Context) ([]Aler
 		if metadataJSON.Valid {
 			json.Unmarshal([]byte(metadataJSON.String), &alert.Metadata)
 		}
-		if relatedMetricsJSON.Valid {
-			json.Unmarshal([]byte(relatedMetricsJSON.String), &alert.RelatedMetrics)
+		if relatedUnifiedMetricsJSON.Valid {
+			json.Unmarshal([]byte(relatedUnifiedMetricsJSON.String), &alert.RelatedUnifiedMetrics)
 		}
 		if relatedRequestsJSON.Valid {
 			json.Unmarshal([]byte(relatedRequestsJSON.String), &alert.RelatedRequests)
@@ -871,7 +871,7 @@ func (m *UnifiedPerformanceMonitor) getComponents(ctx context.Context) ([]string
 // calculateComponentHealthScore calculates health score for a component.
 func (m *UnifiedPerformanceMonitor) calculateComponentHealthScore(ctx context.Context, component string) (*HealthScore, error) {
 	// Get recent metrics for the component
-	metrics, err := m.GetMetrics(ctx, MetricFilters{
+	metrics, err := m.GetUnifiedMetrics(ctx, UnifiedMetricFilters{
 		Component: component,
 		StartTime: time.Now().Add(-5 * time.Minute),
 		EndTime:   time.Now(),
@@ -908,13 +908,13 @@ func (m *UnifiedPerformanceMonitor) calculateComponentHealthScore(ctx context.Co
 	healthScore.OverallHealth = (performanceHealth + resourceHealth + availabilityHealth + securityHealth) / 4.0
 
 	// Get alert counts
-	activeAlerts, criticalAlerts, warningAlerts, err := m.getAlertCounts(ctx, component)
+	activeUnifiedAlerts, criticalUnifiedAlerts, warningUnifiedAlerts, err := m.getUnifiedAlertCounts(ctx, component)
 	if err != nil {
 		m.logger.Error("Failed to get alert counts", zap.String("component", component), zap.Error(err))
 	} else {
-		healthScore.ActiveAlerts = activeAlerts
-		healthScore.CriticalAlerts = criticalAlerts
-		healthScore.WarningAlerts = warningAlerts
+		healthScore.ActiveUnifiedAlerts = activeUnifiedAlerts
+		healthScore.CriticalUnifiedAlerts = criticalUnifiedAlerts
+		healthScore.WarningUnifiedAlerts = warningUnifiedAlerts
 	}
 
 	// Extract performance indicators
@@ -929,19 +929,19 @@ func (m *UnifiedPerformanceMonitor) calculateComponentHealthScore(ctx context.Co
 }
 
 // calculatePerformanceHealth calculates performance health score.
-func (m *UnifiedPerformanceMonitor) calculatePerformanceHealth(metrics []Metric) float64 {
+func (m *UnifiedPerformanceMonitor) calculatePerformanceHealth(metrics []UnifiedMetric) float64 {
 	var responseTimeSum float64
 	var responseTimeCount int
 	var errorRateSum float64
 	var errorRateCount int
 
 	for _, metric := range metrics {
-		if metric.MetricCategory == "latency" || metric.MetricName == "response_time" {
-			responseTimeSum += metric.MetricValue
+		if metric.UnifiedMetricCategory == "latency" || metric.UnifiedMetricName == "response_time" {
+			responseTimeSum += metric.UnifiedMetricValue
 			responseTimeCount++
 		}
-		if metric.MetricCategory == "error_rate" {
-			errorRateSum += metric.MetricValue
+		if metric.UnifiedMetricCategory == "error_rate" {
+			errorRateSum += metric.UnifiedMetricValue
 			errorRateCount++
 		}
 	}
@@ -970,21 +970,21 @@ func (m *UnifiedPerformanceMonitor) calculatePerformanceHealth(metrics []Metric)
 }
 
 // calculateResourceHealth calculates resource health score.
-func (m *UnifiedPerformanceMonitor) calculateResourceHealth(metrics []Metric) float64 {
+func (m *UnifiedPerformanceMonitor) calculateResourceHealth(metrics []UnifiedMetric) float64 {
 	var cpuSum, memorySum, diskSum float64
 	var cpuCount, memoryCount, diskCount int
 
 	for _, metric := range metrics {
-		if metric.MetricName == "cpu_usage" {
-			cpuSum += metric.MetricValue
+		if metric.UnifiedMetricName == "cpu_usage" {
+			cpuSum += metric.UnifiedMetricValue
 			cpuCount++
 		}
-		if metric.MetricName == "memory_usage" {
-			memorySum += metric.MetricValue
+		if metric.UnifiedMetricName == "memory_usage" {
+			memorySum += metric.UnifiedMetricValue
 			memoryCount++
 		}
-		if metric.MetricName == "disk_usage" {
-			diskSum += metric.MetricValue
+		if metric.UnifiedMetricName == "disk_usage" {
+			diskSum += metric.UnifiedMetricValue
 			diskCount++
 		}
 	}
@@ -1013,21 +1013,21 @@ func (m *UnifiedPerformanceMonitor) calculateResourceHealth(metrics []Metric) fl
 }
 
 // calculateAvailabilityHealth calculates availability health score.
-func (m *UnifiedPerformanceMonitor) calculateAvailabilityHealth(metrics []Metric) float64 {
+func (m *UnifiedPerformanceMonitor) calculateAvailabilityHealth(metrics []UnifiedMetric) float64 {
 	// Simplified availability calculation
 	// In production, you'd want more sophisticated logic based on uptime, error rates, etc.
 	return 1.0
 }
 
 // calculateSecurityHealth calculates security health score.
-func (m *UnifiedPerformanceMonitor) calculateSecurityHealth(metrics []Metric) float64 {
+func (m *UnifiedPerformanceMonitor) calculateSecurityHealth(metrics []UnifiedMetric) float64 {
 	// Simplified security calculation
 	// In production, you'd want more sophisticated logic based on security metrics
 	return 1.0
 }
 
-// getAlertCounts retrieves alert counts for a component.
-func (m *UnifiedPerformanceMonitor) getAlertCounts(ctx context.Context, component string) (int, int, int, error) {
+// getUnifiedAlertCounts retrieves alert counts for a component.
+func (m *UnifiedPerformanceMonitor) getUnifiedAlertCounts(ctx context.Context, component string) (int, int, int, error) {
 	query := `
 		SELECT 
 			COUNT(*) as total_alerts,
@@ -1037,13 +1037,13 @@ func (m *UnifiedPerformanceMonitor) getAlertCounts(ctx context.Context, componen
 		WHERE component = $1 AND status = 'active'
 	`
 
-	var totalAlerts, criticalAlerts, warningAlerts int
-	err := m.db.QueryRowContext(ctx, query, component).Scan(&totalAlerts, &criticalAlerts, &warningAlerts)
+	var totalUnifiedAlerts, criticalUnifiedAlerts, warningUnifiedAlerts int
+	err := m.db.QueryRowContext(ctx, query, component).Scan(&totalUnifiedAlerts, &criticalUnifiedAlerts, &warningUnifiedAlerts)
 	if err != nil {
 		return 0, 0, 0, fmt.Errorf("failed to get alert counts: %w", err)
 	}
 
-	return totalAlerts, criticalAlerts, warningAlerts, nil
+	return totalUnifiedAlerts, criticalUnifiedAlerts, warningUnifiedAlerts, nil
 }
 
 // updateHealthScore updates health score in the database.
@@ -1067,8 +1067,8 @@ func (m *UnifiedPerformanceMonitor) updateHealthScore(ctx context.Context, healt
 		healthScore.ComponentInstance, healthScore.ServiceName,
 		healthScore.OverallHealth, healthScore.PerformanceHealth,
 		healthScore.ResourceHealth, healthScore.AvailabilityHealth,
-		healthScore.SecurityHealth, healthScore.ActiveAlerts,
-		healthScore.CriticalAlerts, healthScore.WarningAlerts,
+		healthScore.SecurityHealth, healthScore.ActiveUnifiedAlerts,
+		healthScore.CriticalUnifiedAlerts, healthScore.WarningUnifiedAlerts,
 		healthScore.AvgResponseTime, healthScore.ErrorRate,
 		healthScore.Throughput, healthScore.CPUUsage,
 		healthScore.MemoryUsage, healthScore.DiskUsage,
@@ -1079,12 +1079,12 @@ func (m *UnifiedPerformanceMonitor) updateHealthScore(ctx context.Context, healt
 }
 
 // Helper functions for extracting specific metrics
-func (m *UnifiedPerformanceMonitor) extractAvgResponseTime(metrics []Metric) *float64 {
+func (m *UnifiedPerformanceMonitor) extractAvgResponseTime(metrics []UnifiedMetric) *float64 {
 	var sum float64
 	var count int
 	for _, metric := range metrics {
-		if metric.MetricName == "response_time" {
-			sum += metric.MetricValue
+		if metric.UnifiedMetricName == "response_time" {
+			sum += metric.UnifiedMetricValue
 			count++
 		}
 	}
@@ -1095,12 +1095,12 @@ func (m *UnifiedPerformanceMonitor) extractAvgResponseTime(metrics []Metric) *fl
 	return nil
 }
 
-func (m *UnifiedPerformanceMonitor) extractErrorRate(metrics []Metric) *float64 {
+func (m *UnifiedPerformanceMonitor) extractErrorRate(metrics []UnifiedMetric) *float64 {
 	var sum float64
 	var count int
 	for _, metric := range metrics {
-		if metric.MetricName == "error_rate" {
-			sum += metric.MetricValue
+		if metric.UnifiedMetricName == "error_rate" {
+			sum += metric.UnifiedMetricValue
 			count++
 		}
 	}
@@ -1111,12 +1111,12 @@ func (m *UnifiedPerformanceMonitor) extractErrorRate(metrics []Metric) *float64 
 	return nil
 }
 
-func (m *UnifiedPerformanceMonitor) extractThroughput(metrics []Metric) *float64 {
+func (m *UnifiedPerformanceMonitor) extractThroughput(metrics []UnifiedMetric) *float64 {
 	var sum float64
 	var count int
 	for _, metric := range metrics {
-		if metric.MetricName == "throughput" {
-			sum += metric.MetricValue
+		if metric.UnifiedMetricName == "throughput" {
+			sum += metric.UnifiedMetricValue
 			count++
 		}
 	}
@@ -1127,12 +1127,12 @@ func (m *UnifiedPerformanceMonitor) extractThroughput(metrics []Metric) *float64
 	return nil
 }
 
-func (m *UnifiedPerformanceMonitor) extractCPUUsage(metrics []Metric) *float64 {
+func (m *UnifiedPerformanceMonitor) extractCPUUsage(metrics []UnifiedMetric) *float64 {
 	var sum float64
 	var count int
 	for _, metric := range metrics {
-		if metric.MetricName == "cpu_usage" {
-			sum += metric.MetricValue
+		if metric.UnifiedMetricName == "cpu_usage" {
+			sum += metric.UnifiedMetricValue
 			count++
 		}
 	}
@@ -1143,12 +1143,12 @@ func (m *UnifiedPerformanceMonitor) extractCPUUsage(metrics []Metric) *float64 {
 	return nil
 }
 
-func (m *UnifiedPerformanceMonitor) extractMemoryUsage(metrics []Metric) *float64 {
+func (m *UnifiedPerformanceMonitor) extractMemoryUsage(metrics []UnifiedMetric) *float64 {
 	var sum float64
 	var count int
 	for _, metric := range metrics {
-		if metric.MetricName == "memory_usage" {
-			sum += metric.MetricValue
+		if metric.UnifiedMetricName == "memory_usage" {
+			sum += metric.UnifiedMetricValue
 			count++
 		}
 	}
@@ -1159,12 +1159,12 @@ func (m *UnifiedPerformanceMonitor) extractMemoryUsage(metrics []Metric) *float6
 	return nil
 }
 
-func (m *UnifiedPerformanceMonitor) extractDiskUsage(metrics []Metric) *float64 {
+func (m *UnifiedPerformanceMonitor) extractDiskUsage(metrics []UnifiedMetric) *float64 {
 	var sum float64
 	var count int
 	for _, metric := range metrics {
-		if metric.MetricName == "disk_usage" {
-			sum += metric.MetricValue
+		if metric.UnifiedMetricName == "disk_usage" {
+			sum += metric.UnifiedMetricValue
 			count++
 		}
 	}

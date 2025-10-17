@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/pcraw4d/business-verification/internal/modules/classification_optimization"
+	"kyb-platform/internal/modules/classification_optimization"
 	"go.uber.org/zap"
 )
 

@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -393,32 +394,44 @@ func (asfs *AdvancedSecurityFeedbackSystem) simulateSecurityFeedbackCollection(c
 	// Simulate some security feedback data
 	feedback := []*UserFeedback{
 		{
-			ID:                   "security_feedback_1",
-			UserID:               "user_123",
-			BusinessName:         "Test Business",
-			FeedbackType:         feedbackType,
-			FeedbackText:         "Security validation passed",
-			ConfidenceScore:      0.95,
-			Status:               FeedbackStatusProcessed,
-			ProcessingTimeMs:     150,
-			ClassificationMethod: MethodSecurity,
-			CreatedAt:            time.Now().Add(-1 * time.Hour),
+			ID:                     uuid.New(),
+			UserID:                 "user_123",
+			Category:               "security",
+			Rating:                 5,
+			Comments:               "Security validation passed",
+			ClassificationAccuracy: 0.95,
+			PerformanceRating:      5,
+			UsabilityRating:        4,
+			BusinessImpact: BusinessImpactRating{
+				TimeSaved:        30,
+				CostReduction:    "high",
+				ErrorReduction:   25,
+				ProductivityGain: 20,
+				ROI:              "positive",
+			},
+			SubmittedAt: time.Now().Add(-1 * time.Hour),
 			Metadata: map[string]interface{}{
 				"security_score":  0.95,
 				"validation_type": "website_verification",
 			},
 		},
 		{
-			ID:                   "security_feedback_2",
-			UserID:               "user_456",
-			BusinessName:         "Another Business",
-			FeedbackType:         feedbackType,
-			FeedbackText:         "Trusted data source validation failed",
-			ConfidenceScore:      0.3,
-			Status:               FeedbackStatusProcessed,
-			ProcessingTimeMs:     200,
-			ClassificationMethod: MethodSecurity,
-			CreatedAt:            time.Now().Add(-2 * time.Hour),
+			ID:                     uuid.New(),
+			UserID:                 "user_456",
+			Category:               "security",
+			Rating:                 2,
+			Comments:               "Trusted data source validation failed",
+			ClassificationAccuracy: 0.3,
+			PerformanceRating:      2,
+			UsabilityRating:        3,
+			BusinessImpact: BusinessImpactRating{
+				TimeSaved:        15,
+				CostReduction:    "medium",
+				ErrorReduction:   15,
+				ProductivityGain: 10,
+				ROI:              "neutral",
+			},
+			SubmittedAt: time.Now().Add(-2 * time.Hour),
 			Metadata: map[string]interface{}{
 				"security_score":  0.3,
 				"validation_type": "data_source_trust",
@@ -429,7 +442,7 @@ func (asfs *AdvancedSecurityFeedbackSystem) simulateSecurityFeedbackCollection(c
 	// Filter by cutoff time
 	var filteredFeedback []*UserFeedback
 	for _, fb := range feedback {
-		if fb.CreatedAt.After(cutoffTime) {
+		if fb.SubmittedAt.After(cutoffTime) {
 			filteredFeedback = append(filteredFeedback, fb)
 		}
 	}
