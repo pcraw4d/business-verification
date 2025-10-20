@@ -80,12 +80,7 @@ class RiskIndicatorsDataService {
      * @returns {Object} Merchant data
      */
     async loadMerchantData(merchantId) {
-        try {
-            return await this.dataIntegration.getMerchantById(merchantId);
-        } catch (error) {
-            console.warn('Failed to load merchant data:', error);
-            return { id: merchantId, name: 'Unknown Merchant' };
-        }
+        return await this.dataIntegration.getMerchantById(merchantId);
     }
     
     /**
@@ -120,8 +115,7 @@ class RiskIndicatorsDataService {
             
             return data;
         } catch (error) {
-            console.warn('Failed to load stored analytics:', error);
-            return {};
+            throw error; // Let Promise.allSettled handle the error
         }
     }
     
@@ -150,9 +144,7 @@ class RiskIndicatorsDataService {
             
             return await response.json();
         } catch (error) {
-            console.warn('Failed to load risk assessment:', error);
-            // Return mock risk assessment data
-            return this.generateMockRiskAssessment(merchantId);
+            throw error; // Let Promise.allSettled handle the error
         }
     }
     
