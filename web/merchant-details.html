@@ -818,29 +818,35 @@
                 // This will be implemented with the exact same logic as the dashboard page
                 console.log('Populating Business Intelligence results:', data);
                 
-                // Show progressive disclosure sections
+                // Show progressive disclosure sections (with null checks)
                 setTimeout(() => {
-                    document.getElementById('coreResults').classList.add('visible');
+                    const element = document.getElementById('coreResults');
+                    if (element) element.classList.add('visible');
                 }, 100);
                 
                 setTimeout(() => {
-                    document.getElementById('securityIndicators').classList.add('visible');
+                    const element = document.getElementById('securityIndicators');
+                    if (element) element.classList.add('visible');
                 }, 200);
                 
                 setTimeout(() => {
-                    document.getElementById('qualityMetrics').classList.add('visible');
+                    const element = document.getElementById('qualityMetrics');
+                    if (element) element.classList.add('visible');
                 }, 300);
                 
                 setTimeout(() => {
-                    document.getElementById('riskAssessment').classList.add('visible');
+                    const element = document.getElementById('riskAssessment');
+                    if (element) element.classList.add('visible');
                 }, 400);
                 
                 setTimeout(() => {
-                    document.getElementById('businessIntelligence').classList.add('visible');
+                    const element = document.getElementById('businessIntelligence');
+                    if (element) element.classList.add('visible');
                 }, 500);
                 
                 setTimeout(() => {
-                    document.getElementById('verificationStatus').classList.add('visible');
+                    const element = document.getElementById('verificationStatus');
+                    if (element) element.classList.add('visible');
                 }, 600);
             }
 
@@ -950,7 +956,8 @@
             return 'demo-merchant-123';
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
+        // Initialize NEW Risk Indicators Tab (run after existing DOMContentLoaded)
+        setTimeout(function() {
             console.log('🚀 DOM loaded, initializing NEW Risk Indicators Tab...');
             console.log('🔍 Checking if D3.js is loaded:', typeof d3);
             console.log('🔍 Checking if MerchantRiskIndicatorsTab class exists:', typeof MerchantRiskIndicatorsTab);
@@ -1006,7 +1013,7 @@
             } else {
                 console.error('❌ Risk Indicators tab button not found');
             }
-        });
+        }, 1000); // Wait 1 second for DOM to be fully ready
     </script>
 </body>
 </html>
