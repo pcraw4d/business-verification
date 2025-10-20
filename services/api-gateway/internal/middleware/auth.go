@@ -78,10 +78,20 @@ func isPublicEndpoint(path string) bool {
 		"/api/v1/classify",              // Classification endpoint is public for now
 		"/api/v1/classification/health", // Classification health check
 		"/api/v1/merchant/health",       // Merchant health check
+		"/api/v1/merchants",             // Merchant endpoints for frontend
+		"/api/v1/merchants/",            // Merchant endpoints with ID
+		"/api/v1/merchants/search",      // Merchant search
+		"/api/v1/merchants/analytics",   // Merchant analytics
+		"/api/v1/risk",                  // Risk assessment endpoints
+		"/api/v1/risk/",                 // Risk assessment endpoints with path
 	}
 
 	for _, publicPath := range publicPaths {
 		if path == publicPath {
+			return true
+		}
+		// Handle dynamic paths like /api/v1/merchants/{id}
+		if strings.HasPrefix(path, publicPath) && (publicPath == "/api/v1/merchants/" || publicPath == "/api/v1/risk/") {
 			return true
 		}
 	}

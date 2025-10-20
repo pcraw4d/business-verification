@@ -62,8 +62,8 @@ func main() {
 	// Setup router
 	router := mux.NewRouter()
 
-	// Apply middleware (disable CORS completely - let Railway handle it)
-	// router.Use(middleware.CORS(cfg.CORS))  // Disabled - Railway handles CORS
+	// Apply middleware
+	router.Use(middleware.CORS(cfg.CORS))  // Enable CORS middleware
 	router.Use(middleware.Logging(logger))
 	router.Use(middleware.RateLimit(cfg.RateLimit))
 	router.Use(middleware.Authentication(supabaseClient, logger))
@@ -101,10 +101,50 @@ func main() {
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		w.WriteHeader(http.StatusOK)
 	}).Methods("OPTIONS")
-	api.HandleFunc("/merchants", gatewayHandler.ProxyToMerchants).Methods("GET", "POST")
-	api.HandleFunc("/merchants/{id}", gatewayHandler.ProxyToMerchants).Methods("GET", "PUT", "DELETE")
-	api.HandleFunc("/merchants/search", gatewayHandler.ProxyToMerchants).Methods("POST")
-	api.HandleFunc("/merchants/analytics", gatewayHandler.ProxyToMerchants).Methods("GET")
+	// Merchant routes with CORS support
+	api.HandleFunc("/merchants", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "OPTIONS" {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		gatewayHandler.ProxyToMerchants(w, r)
+	}).Methods("GET", "POST", "OPTIONS")
+	
+	api.HandleFunc("/merchants/{id}", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "OPTIONS" {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		gatewayHandler.ProxyToMerchants(w, r)
+	}).Methods("GET", "PUT", "DELETE", "OPTIONS")
+	
+	api.HandleFunc("/merchants/search", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "OPTIONS" {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		gatewayHandler.ProxyToMerchants(w, r)
+	}).Methods("POST", "OPTIONS")
+	
+	api.HandleFunc("/merchants/analytics", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "OPTIONS" {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		gatewayHandler.ProxyToMerchants(w, r)
+	}).Methods("GET", "OPTIONS")
 
 	// Health check routes for backend services
 	api.HandleFunc("/classification/health", gatewayHandler.ProxyToClassificationHealth).Methods("GET")
