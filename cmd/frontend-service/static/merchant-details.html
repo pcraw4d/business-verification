@@ -993,10 +993,23 @@
             }
             
             // Listen for tab activation
+            console.log('🔍 Looking for Risk Indicators tab button...');
             const riskIndicatorsTabButton = document.querySelector('[data-tab="risk-indicators"]');
+            console.log('🔍 Found button:', riskIndicatorsTabButton);
+            console.log('🔍 All tab buttons:', document.querySelectorAll('.tab-button'));
+            console.log('🔍 All data-tab attributes:', document.querySelectorAll('[data-tab]'));
+            
             if (riskIndicatorsTabButton) {
                 console.log('✅ Risk Indicators tab button found');
-                riskIndicatorsTabButton.addEventListener('click', function() {
+                
+                // Remove any existing event listeners by cloning the button
+                const newButton = riskIndicatorsTabButton.cloneNode(true);
+                riskIndicatorsTabButton.parentNode.replaceChild(newButton, riskIndicatorsTabButton);
+                
+                // Add our new event listener to the clean button
+                newButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
                     console.log('🎯 NEW Risk Indicators Tab button clicked!');
                     
                     // Handle tab switching (add/remove active classes)
@@ -1010,7 +1023,7 @@
                     // Add active class to Risk Indicators tab and button
                     const tabElement = document.getElementById('risk-indicators');
                     if (tabElement) tabElement.classList.add('active');
-                    riskIndicatorsTabButton.classList.add('active');
+                    newButton.classList.add('active');
                     
                     const merchantId = getMerchantId();
                     console.log('🎯 Risk Indicators Tab clicked, merchant ID:', merchantId);
@@ -1036,7 +1049,7 @@
             } else {
                 console.error('❌ Risk Indicators tab button not found');
             }
-        }, 1000); // Wait 1 second for DOM to be fully ready
+        }, 2000); // Wait 2 seconds for DOM to be fully ready
     </script>
 </body>
 </html>
