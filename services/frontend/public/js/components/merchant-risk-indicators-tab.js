@@ -20,7 +20,7 @@ class MerchantRiskIndicatorsTab {
         // Reuse existing components (initialize later when D3.js is available)
         this.visualization = null;
         this.explainability = new RiskExplainability();
-        this.levelIndicator = new RiskLevelIndicator({ container: null });
+        this.levelIndicator = null; // Initialize later to avoid DOM manipulation
         this.dataService = new RiskIndicatorsDataService();
         
         // UI template helper
@@ -44,6 +44,23 @@ class MerchantRiskIndicatorsTab {
                 return true;
             } catch (error) {
                 console.error('❌ Failed to initialize RiskVisualization:', error);
+                return false;
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Initialize level indicator component when needed
+     */
+    initializeLevelIndicator(container) {
+        if (!this.levelIndicator && container) {
+            try {
+                this.levelIndicator = new RiskLevelIndicator({ container: container });
+                console.log('✅ RiskLevelIndicator component initialized');
+                return true;
+            } catch (error) {
+                console.error('❌ Failed to initialize RiskLevelIndicator:', error);
                 return false;
             }
         }
