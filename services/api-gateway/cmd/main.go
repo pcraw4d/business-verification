@@ -62,8 +62,8 @@ func main() {
 	// Setup router
 	router := mux.NewRouter()
 
-	// Apply middleware
-	router.Use(middleware.CORS(cfg.CORS))  // Enable CORS middleware
+	// Apply middleware - CORS must be first to handle preflight requests
+	router.Use(middleware.CORS(cfg.CORS)) // Enable CORS middleware (FIRST)
 	router.Use(middleware.Logging(logger))
 	router.Use(middleware.RateLimit(cfg.RateLimit))
 	router.Use(middleware.Authentication(supabaseClient, logger))
@@ -112,7 +112,7 @@ func main() {
 		}
 		gatewayHandler.ProxyToMerchants(w, r)
 	}).Methods("GET", "POST", "OPTIONS")
-	
+
 	api.HandleFunc("/merchants/{id}", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "OPTIONS" {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -123,7 +123,7 @@ func main() {
 		}
 		gatewayHandler.ProxyToMerchants(w, r)
 	}).Methods("GET", "PUT", "DELETE", "OPTIONS")
-	
+
 	api.HandleFunc("/merchants/search", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "OPTIONS" {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -134,7 +134,7 @@ func main() {
 		}
 		gatewayHandler.ProxyToMerchants(w, r)
 	}).Methods("POST", "OPTIONS")
-	
+
 	api.HandleFunc("/merchants/analytics", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "OPTIONS" {
 			w.Header().Set("Access-Control-Allow-Origin", "*")

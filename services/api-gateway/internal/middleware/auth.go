@@ -16,9 +16,16 @@ func Authentication(supabaseClient *supabase.Client, logger *zap.Logger) func(ht
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Skip authentication for health checks and public endpoints
 			if isPublicEndpoint(r.URL.Path) {
+				logger.Info("Skipping authentication for public endpoint",
+					zap.String("path", r.URL.Path),
+					zap.String("method", r.Method))
 				next.ServeHTTP(w, r)
 				return
 			}
+			
+			logger.Info("Authentication required for endpoint",
+				zap.String("path", r.URL.Path),
+				zap.String("method", r.Method))
 
 			// Extract token from Authorization header
 			authHeader := r.Header.Get("Authorization")
@@ -34,6 +41,10 @@ func Authentication(supabaseClient *supabase.Client, logger *zap.Logger) func(ht
 				logger.Warn("Invalid authorization header format",
 					zap.String("path", r.URL.Path),
 					zap.String("header", authHeader))
+				// Set CORS headers before returning error
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 				http.Error(w, "Invalid authorization header", http.StatusUnauthorized)
 				return
 			}
@@ -47,6 +58,10 @@ func Authentication(supabaseClient *supabase.Client, logger *zap.Logger) func(ht
 				logger.Warn("Token validation failed",
 					zap.String("path", r.URL.Path),
 					zap.Error(err))
+				// Set CORS headers before returning error
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 				http.Error(w, "Invalid token", http.StatusUnauthorized)
 				return
 			}
