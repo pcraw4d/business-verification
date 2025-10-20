@@ -952,6 +952,7 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 DOM loaded, initializing NEW Risk Indicators Tab...');
+            console.log('🔍 Checking if D3.js is loaded:', typeof d3);
             console.log('🔍 Checking if MerchantRiskIndicatorsTab class exists:', typeof MerchantRiskIndicatorsTab);
             console.log('🔍 Checking if RiskIndicatorsUITemplate exists:', typeof RiskIndicatorsUITemplate);
             console.log('🔍 Checking if RiskIndicatorsDataService exists:', typeof RiskIndicatorsDataService);
@@ -964,6 +965,13 @@
                 }
                 window.riskIndicatorsTab = new MerchantRiskIndicatorsTab('riskIndicatorsContainer');
                 console.log('✅ NEW Risk Indicators Tab initialized successfully');
+                
+                // Try to initialize visualization component if D3.js is available
+                if (typeof d3 !== 'undefined') {
+                    window.riskIndicatorsTab.initializeVisualization();
+                } else {
+                    console.warn('⚠️ D3.js not available, visualization will be initialized later');
+                }
             } catch (error) {
                 console.error('❌ Failed to initialize NEW Risk Indicators Tab:', error);
             }

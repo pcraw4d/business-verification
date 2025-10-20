@@ -16,7 +16,7 @@ func createTestRiskEngine() *RiskEngine {
 	config := &Config{
 		MaxConcurrentRequests: 10,
 		RequestTimeout:        30 * time.Second,
-		CacheTTL:             5 * time.Minute,
+		CacheTTL:              5 * time.Minute,
 		CircuitBreakerConfig: CircuitBreakerConfig{
 			FailureThreshold: 5,
 			RecoveryTimeout:  30 * time.Second,

@@ -17,8 +17,8 @@ class MerchantRiskIndicatorsTab {
         this.riskData = null;
         this.isInitialized = false;
         
-        // Reuse existing components
-        this.visualization = new RiskVisualization();
+        // Reuse existing components (initialize later when D3.js is available)
+        this.visualization = null;
         this.explainability = new RiskExplainability();
         this.levelIndicator = new RiskLevelIndicator({ container: null });
         this.dataService = new RiskIndicatorsDataService();
@@ -31,6 +31,23 @@ class MerchantRiskIndicatorsTab {
         this.eventHandlers = new Map();
         
         console.log('🎯 Risk Indicators Tab initialized');
+    }
+    
+    /**
+     * Initialize visualization component when D3.js is available
+     */
+    initializeVisualization() {
+        if (typeof d3 !== 'undefined' && !this.visualization) {
+            try {
+                this.visualization = new RiskVisualization();
+                console.log('✅ RiskVisualization component initialized with D3.js');
+                return true;
+            } catch (error) {
+                console.error('❌ Failed to initialize RiskVisualization:', error);
+                return false;
+            }
+        }
+        return false;
     }
     
     /**
