@@ -394,8 +394,8 @@ class MerchantRiskTab {
         // Bind UI events
         this.bindUIEvents();
 
-        // Initialize visualizations
-        this.initializeVisualizations();
+        // Don't initialize visualizations here - they'll be initialized after loadRiskAssessmentContent()
+        // This method is called from updateRiskUI() which happens before the HTML is fully set up
     }
 
     /**
