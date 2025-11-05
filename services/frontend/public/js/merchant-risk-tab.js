@@ -462,36 +462,37 @@ class MerchantRiskTab {
      * Initialize risk gauge
      */
     initializeRiskGauge() {
-        // Get the canvas element - check both direct ID and inside container
-        let container = document.getElementById('riskGauge');
-        if (!container) {
-            console.log('❌ Risk gauge container not found');
+        // Try to find canvas element directly by ID first
+        let canvas = document.getElementById('riskGauge');
+        
+        // If found element is not a canvas, look for canvas inside it or search by ID again
+        if (!canvas) {
+            console.error('❌ Risk gauge canvas not found by ID');
             return;
         }
-
-        console.log('🔍 Found riskGauge container:', container, 'TagName:', container.tagName);
-        console.log('🔍 Container HTML:', container.outerHTML.substring(0, 200));
-
-        // Find the canvas element - it might be the container itself or inside it
-        let canvas = null;
-        if (container.tagName === 'CANVAS') {
-            canvas = container;
-            console.log('✅ Container is the canvas element itself');
-        } else {
-            // Look for canvas inside the container
-            canvas = container.querySelector('canvas');
-            if (!canvas) {
-                console.error('❌ Canvas element not found inside container');
-                console.error('Container HTML:', container.outerHTML.substring(0, 300));
-                console.error('Container children:', Array.from(container.children).map(c => c.tagName));
-                return;
-            } else {
+        
+        console.log('🔍 Found riskGauge element:', canvas, 'TagName:', canvas.tagName);
+        console.log('🔍 Element HTML:', canvas.outerHTML.substring(0, 200));
+        
+        // If it's not a canvas, it's a container div - find the canvas inside
+        if (canvas.tagName !== 'CANVAS') {
+            console.log('⚠️ Element is not a canvas, searching for canvas inside...');
+            const canvasElement = canvas.querySelector('canvas#riskGauge') || canvas.querySelector('canvas');
+            if (canvasElement) {
+                canvas = canvasElement;
                 console.log('✅ Found canvas element inside container');
+            } else {
+                console.error('❌ Canvas element not found inside container');
+                console.error('Container HTML:', canvas.outerHTML.substring(0, 300));
+                console.error('Container children:', Array.from(canvas.children).map(c => `${c.tagName}#${c.id || 'no-id'}`));
+                return;
             }
+        } else {
+            console.log('✅ Element is the canvas itself');
         }
         
-        if (!canvas) {
-            console.error('❌ Failed to get canvas element');
+        if (!canvas || canvas.tagName !== 'CANVAS') {
+            console.error('❌ Failed to get valid canvas element');
             return;
         }
 
@@ -745,41 +746,46 @@ class MerchantRiskTab {
      * Initialize risk factor chart
      */
     initializeRiskFactorChart() {
-        // Find the canvas element - check both direct ID and inside container
-        let container = document.getElementById('riskFactorChart');
-        if (!container) {
-            console.log('❌ Risk factor chart container not found');
+        // Try to find canvas element directly by ID first
+        let canvas = document.getElementById('riskFactorChart');
+        
+        if (!canvas) {
+            console.error('❌ Risk factor chart canvas not found by ID');
             return;
         }
-
-        console.log('🔍 Initializing risk factor chart...');
-        console.log('🔍 Found container:', container, 'TagName:', container.tagName);
         
-        // Find the canvas element - it might be the container itself or inside it
-        let canvas = null;
-        if (container.tagName === 'CANVAS') {
-            canvas = container;
-            console.log('✅ Container is the canvas element itself');
-        } else {
-            // Look for canvas inside the container
-            canvas = container.querySelector('canvas');
-            if (!canvas) {
+        console.log('🔍 Initializing risk factor chart...');
+        console.log('🔍 Found element:', canvas, 'TagName:', canvas.tagName);
+        console.log('🔍 Element HTML:', canvas.outerHTML.substring(0, 200));
+        
+        // If it's not a canvas, it's a container div - find the canvas inside
+        if (canvas.tagName !== 'CANVAS') {
+            console.log('⚠️ Element is not a canvas, searching for canvas inside...');
+            const canvasElement = canvas.querySelector('canvas#riskFactorChart') || canvas.querySelector('canvas');
+            if (canvasElement) {
+                canvas = canvasElement;
+                console.log('✅ Found canvas element inside container');
+            } else {
                 console.error('❌ Canvas element not found inside container');
-                console.error('Container HTML:', container.outerHTML.substring(0, 300));
-                // Create canvas element
+                console.error('Container HTML:', canvas.outerHTML.substring(0, 300));
+                console.error('Container children:', Array.from(canvas.children).map(c => `${c.tagName}#${c.id || 'no-id'}`));
+                // Create canvas element as fallback
+                const container = canvas;
                 canvas = document.createElement('canvas');
                 canvas.id = 'riskFactorChartCanvas';
                 canvas.style.width = '100%';
                 canvas.style.height = '100%';
+                canvas.style.maxHeight = '200px';
+                canvas.style.maxWidth = '100%';
                 container.appendChild(canvas);
                 console.log('✅ Created new canvas element inside container');
-            } else {
-                console.log('✅ Found canvas element inside container');
             }
+        } else {
+            console.log('✅ Element is the canvas itself');
         }
         
-        if (!canvas) {
-            console.error('❌ Failed to get or create canvas element');
+        if (!canvas || canvas.tagName !== 'CANVAS') {
+            console.error('❌ Failed to get valid canvas element');
             return;
         }
         
