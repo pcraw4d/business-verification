@@ -25,7 +25,8 @@ class MerchantRiskTab {
         this.riskData = null;
         this.isInitialized = false;
 
-        this.init();
+        // Don't auto-initialize - wait for explicit call
+        // this.init();
     }
 
     /**
@@ -56,51 +57,72 @@ class MerchantRiskTab {
             this.currentMerchantId = 'mock-merchant-123';
         }
 
-        // Initialize WebSocket client
-        this.components.websocket = new RiskWebSocketClient({
-            reconnectInterval: 1000,
-            maxReconnectAttempts: 5
-        });
+        // Initialize WebSocket client (disabled until service is deployed)
+        // this.components.websocket = new RiskWebSocketClient({
+        //     reconnectInterval: 1000,
+        //     maxReconnectAttempts: 5
+        // });
+        console.log('🔍 WebSocket client disabled (service not deployed yet)');
 
         // Initialize visualization component
-        this.components.visualization = new RiskVisualization({
-            animationDuration: 1000,
-            colorScheme: {
-                low: '#27ae60',
-                medium: '#f39c12',
-                high: '#e74c3c',
-                critical: '#8e44ad'
-            }
-        });
+        if (typeof RiskVisualization !== 'undefined') {
+            this.components.visualization = new RiskVisualization({
+                animationDuration: 1000,
+                colorScheme: {
+                    low: '#27ae60',
+                    medium: '#f39c12',
+                    high: '#e74c3c',
+                    critical: '#8e44ad'
+                }
+            });
+        } else {
+            console.warn('⚠️ RiskVisualization not available');
+        }
 
         // Initialize explainability component
-        this.components.explainability = new RiskExplainability({
-            animationDuration: 1000,
-            colorScheme: {
-                positive: '#27ae60',
-                negative: '#e74c3c',
-                neutral: '#95a5a6'
-            }
-        });
+        if (typeof RiskExplainability !== 'undefined') {
+            this.components.explainability = new RiskExplainability({
+                animationDuration: 1000,
+                colorScheme: {
+                    positive: '#27ae60',
+                    negative: '#e74c3c',
+                    neutral: '#95a5a6'
+                }
+            });
+        } else {
+            console.warn('⚠️ RiskExplainability not available');
+        }
 
         // Initialize scenario analysis component
-        this.components.scenarios = new RiskScenarioAnalysis({
-            animationDuration: 1000,
-            simulationRuns: 1000
-        });
+        if (typeof RiskScenarioAnalysis !== 'undefined') {
+            this.components.scenarios = new RiskScenarioAnalysis({
+                animationDuration: 1000,
+                simulationRuns: 1000
+            });
+        } else {
+            console.warn('⚠️ RiskScenarioAnalysis not available');
+        }
 
         // Initialize history tracking component
-        this.components.history = new RiskHistoryTracking({
-            animationDuration: 1000,
-            defaultTimeRange: 90
-        });
+        if (typeof RiskHistoryTracking !== 'undefined') {
+            this.components.history = new RiskHistoryTracking({
+                animationDuration: 1000,
+                defaultTimeRange: 90
+            });
+        } else {
+            console.warn('⚠️ RiskHistoryTracking not available');
+        }
 
         // Initialize export component
-        this.components.export = new RiskExport({
-            defaultFormat: 'pdf',
-            includeCharts: true,
-            includeExplanations: true
-        });
+        if (typeof RiskExport !== 'undefined') {
+            this.components.export = new RiskExport({
+                defaultFormat: 'pdf',
+                includeCharts: true,
+                includeExplanations: true
+            });
+        } else {
+            console.warn('⚠️ RiskExport not available');
+        }
 
         // Set up event listeners
         this.setupEventListeners();
@@ -889,19 +911,24 @@ class MerchantRiskTab {
     }
 }
 
-// Initialize when DOM is ready
+// Make available globally for browser FIRST (before any DOMContentLoaded)
+if (typeof window !== 'undefined') {
+    window.MerchantRiskTab = MerchantRiskTab;
+    console.log('✅ MerchantRiskTab class loaded and available globally');
+}
+
+// Initialize when DOM is ready (optional - main initialization happens from merchant-details.html)
 document.addEventListener('DOMContentLoaded', () => {
-    // Only initialize if we're on the merchant detail page
-    if (document.getElementById('riskAssessmentContent')) {
-        window.merchantRiskTab = new MerchantRiskTab();
+    // Only initialize if we're on the merchant detail page with riskAssessmentContainer
+    if (document.getElementById('riskAssessmentContainer') || document.getElementById('riskAssessmentContent')) {
+        console.log('🔍 Auto-initializing MerchantRiskTab from DOMContentLoaded');
+        if (!window.merchantRiskTab) {
+            window.merchantRiskTab = new MerchantRiskTab();
+        }
     }
 });
 
-// Export for use in other modules
+// Node.js export
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = MerchantRiskTab;
 }
-
-// Make available globally
-window.MerchantRiskTab = MerchantRiskTab;
-console.log('✅ MerchantRiskTab class loaded and available globally');

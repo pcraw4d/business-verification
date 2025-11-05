@@ -723,10 +723,7 @@
 
         <!-- Risk Assessment Tab -->
         <div class="tab-content" id="risk-assessment">
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6">Risk Assessment</h2>
-                <p class="text-gray-600">Risk assessment content will be implemented here with identical UI to the risk dashboard page.</p>
-            </div>
+            <div id="riskAssessmentContainer"></div>
         </div>
 
         <!-- Risk Indicators Tab -->
@@ -869,9 +866,9 @@
             }
 
             switchTab(tabId) {
-                // Skip Risk Indicators tab - let our new implementation handle it
-                if (tabId === 'risk-indicators') {
-                    console.log('🔄 Skipping Risk Indicators tab - handled by new implementation');
+                // Skip Risk Indicators and Risk Assessment tabs - let our new implementations handle them
+                if (tabId === 'risk-indicators' || tabId === 'risk-assessment') {
+                    console.log(`🔄 Skipping ${tabId} tab - handled by new implementation`);
                     return;
                 }
                 
@@ -931,6 +928,25 @@
     <script src="js/components/risk-indicators-data-service.js"></script>
     <script src="js/components/website-risk-display.js"></script>
     <script src="js/components/merchant-risk-indicators-tab.js"></script>
+    
+    <!-- Risk Assessment Components -->
+    <script src="js/components/risk-visualization.js" onerror="console.error('❌ Failed to load risk-visualization.js')"></script>
+    <script src="js/components/risk-explainability.js" onerror="console.error('❌ Failed to load risk-explainability.js')"></script>
+    <script src="js/components/risk-scenarios.js" onerror="console.error('❌ Failed to load risk-scenarios.js')"></script>
+    <script src="js/components/risk-history.js" onerror="console.error('❌ Failed to load risk-history.js')"></script>
+    <script src="js/components/risk-export.js" onerror="console.error('❌ Failed to load risk-export.js')"></script>
+    <script src="js/merchant-risk-tab.js" onerror="console.error('❌ Failed to load merchant-risk-tab.js')"></script>
+    <script>
+        // Verify all scripts loaded successfully
+        console.log('🔍 Script loading verification:');
+        console.log('  - RiskVisualization:', typeof RiskVisualization);
+        console.log('  - RiskExplainability:', typeof RiskExplainability);
+        console.log('  - RiskScenarioAnalysis:', typeof RiskScenarioAnalysis);
+        console.log('  - RiskHistoryTracking:', typeof RiskHistoryTracking);
+        console.log('  - RiskExport:', typeof RiskExport);
+        console.log('  - MerchantRiskTab:', typeof MerchantRiskTab);
+        console.log('  - window.MerchantRiskTab:', typeof window.MerchantRiskTab);
+    </script>
 
     <!-- Initialize Risk Indicators Tab -->
     <script>
@@ -1051,6 +1067,108 @@
                 console.error('❌ Risk Indicators tab button not found');
             }
         }, 2000); // Wait 2 seconds for DOM to be fully ready
+        
+        // Initialize Risk Assessment Tab (separate timeout to ensure all scripts are loaded)
+        setTimeout(function() {
+            try {
+                console.log('🚀 Initializing Risk Assessment Tab...');
+                console.log('🔍 Checking if MerchantRiskTab class exists:', typeof MerchantRiskTab);
+                console.log('🔍 Checking if RiskScenarioAnalysis exists:', typeof RiskScenarioAnalysis);
+                console.log('🔍 Checking if RiskHistoryTracking exists:', typeof RiskHistoryTracking);
+                console.log('🔍 Checking if RiskExport exists:', typeof RiskExport);
+                
+                if (typeof MerchantRiskTab === 'undefined') {
+                    console.error('❌ MerchantRiskTab class not found! Make sure js/merchant-risk-tab.js is loaded.');
+                    return;
+                }
+                
+                try {
+                    window.merchantRiskTab = new MerchantRiskTab();
+                    console.log('✅ Risk Assessment Tab initialized successfully');
+                } catch (error) {
+                    console.error('❌ Failed to initialize Risk Assessment Tab:', error);
+                    console.error('Error stack:', error.stack);
+                    return;
+                }
+                
+                // Set up Risk Assessment tab click handler
+                const riskAssessmentTabButton = document.querySelector('[data-tab="risk-assessment"]');
+                console.log('🔍 Risk Assessment tab button:', riskAssessmentTabButton);
+                
+                if (riskAssessmentTabButton) {
+                    console.log('✅ Risk Assessment tab button found');
+                    
+                    // Remove any existing event listeners by cloning the button
+                    const newRiskAssessmentButton = riskAssessmentTabButton.cloneNode(true);
+                    riskAssessmentTabButton.parentNode.replaceChild(newRiskAssessmentButton, riskAssessmentTabButton);
+                    
+                    // Add click event listener
+                    newRiskAssessmentButton.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('🎯 Risk Assessment Tab button clicked!');
+                        
+                        // Handle tab switching (add/remove active classes)
+                        document.querySelectorAll('.tab-content').forEach(tab => {
+                            tab.classList.remove('active');
+                        });
+                        document.querySelectorAll('.tab-button').forEach(button => {
+                            button.classList.remove('active');
+                        });
+                        
+                        // Add active class to Risk Assessment tab and button
+                        const tabElement = document.getElementById('risk-assessment');
+                        if (tabElement) tabElement.classList.add('active');
+                        newRiskAssessmentButton.classList.add('active');
+                        
+                        // Load risk assessment content
+                        const merchantId = getMerchantId();
+                        console.log('🎯 Risk Assessment Tab clicked, merchant ID:', merchantId);
+                        
+                        const container = document.getElementById('riskAssessmentContainer');
+                        console.log('🔍 Risk Assessment container:', container);
+                        console.log('🔍 window.merchantRiskTab:', window.merchantRiskTab);
+                        
+                        if (container && window.merchantRiskTab) {
+                            console.log('🎯 Loading Risk Assessment content...');
+                            window.merchantRiskTab.loadRiskAssessmentContent(container).catch(error => {
+                                console.error('❌ Error loading Risk Assessment content:', error);
+                                console.error('Error stack:', error.stack);
+                                if (container) {
+                                    container.innerHTML = `
+                                        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                                            <h3 class="font-bold">Error Loading Risk Assessment</h3>
+                                            <p>Unable to load risk assessment data. Please try again later.</p>
+                                            <p class="text-sm mt-2">Error: ${error.message}</p>
+                                        </div>
+                                    `;
+                                }
+                            });
+                        } else {
+                            console.error('❌ Risk Assessment container or MerchantRiskTab not found');
+                            console.error('Container:', container);
+                            console.error('MerchantRiskTab:', window.merchantRiskTab);
+                            if (container) {
+                                container.innerHTML = `
+                                    <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+                                        <h3 class="font-bold">Risk Assessment Tab</h3>
+                                        <p>Merchant ID: ${merchantId || 'Not found'}</p>
+                                        <p>Container: ${container ? 'Found' : 'Not found'}</p>
+                                        <p>MerchantRiskTab: ${window.merchantRiskTab ? 'Found' : 'Not found'}</p>
+                                        <p>Initializing Risk Assessment content...</p>
+                                    </div>
+                                `;
+                            }
+                        }
+                    });
+                } else {
+                    console.error('❌ Risk Assessment tab button not found');
+                }
+            } catch (error) {
+                console.error('❌ Error in Risk Assessment initialization:', error);
+                console.error('Error stack:', error.stack);
+            }
+        }, 3000); // Wait 3 seconds for all scripts to load
     </script>
 </body>
 </html>
