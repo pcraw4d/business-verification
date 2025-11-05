@@ -725,17 +725,28 @@ class MerchantRiskTab {
      * Initialize risk gauge
      */
     initializeRiskGauge() {
+        // Get the canvas element, not the container div
         const gaugeContainer = document.getElementById('riskGauge');
         if (!gaugeContainer) {
             console.log('❌ Risk gauge container not found');
             return;
         }
 
+        // If it's not a canvas, try to find the canvas inside
+        let canvas = gaugeContainer;
+        if (gaugeContainer.tagName !== 'CANVAS') {
+            canvas = gaugeContainer.querySelector('canvas');
+            if (!canvas) {
+                console.error('❌ Canvas element not found in riskGauge container');
+                return;
+            }
+        }
+
         console.log('🔍 Initializing advanced risk gauge...');
         
-        const ctx = gaugeContainer.getContext('2d');
-        const centerX = gaugeContainer.width / 2;
-        const centerY = gaugeContainer.height / 2 + 10; // Optimized center for better fit
+        const ctx = canvas.getContext('2d');
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2 + 10; // Optimized center for better fit
         const radius = 85; // Reduced radius to ensure numbers fit within canvas
         
         // Clear canvas with subtle gradient background
@@ -743,7 +754,7 @@ class MerchantRiskTab {
         bgGradient.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
         bgGradient.addColorStop(1, 'rgba(255, 255, 255, 0.05)');
         ctx.fillStyle = bgGradient;
-        ctx.fillRect(0, 0, gaugeContainer.width, gaugeContainer.height);
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         
         // Draw outer glow effect
         ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
