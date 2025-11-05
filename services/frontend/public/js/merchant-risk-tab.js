@@ -288,8 +288,19 @@ class MerchantRiskTab {
      * Create risk tab UI
      */
     createRiskTabUI() {
+        // This method is deprecated - UI is now created by loadRiskAssessmentContent()
+        // Only proceed if riskAssessmentContent exists (old code path)
         const riskContent = document.getElementById('riskAssessmentContent');
-        if (!riskContent) return;
+        if (!riskContent) {
+            // No old container found, UI will be created by loadRiskAssessmentContent()
+            return;
+        }
+
+        // Only create UI if loadRiskAssessmentContent hasn't been called yet
+        if (document.getElementById('riskAssessmentContainer')) {
+            // New container exists, don't create old UI
+            return;
+        }
 
         riskContent.innerHTML = `
             <div class="risk-tab-container">
@@ -451,29 +462,41 @@ class MerchantRiskTab {
      * Initialize risk gauge
      */
     initializeRiskGauge() {
-        // Get the canvas element - it might be directly accessible or inside a container
-        let canvas = document.getElementById('riskGauge');
-        if (!canvas) {
-            console.log('❌ Risk gauge canvas not found');
+        // Get the canvas element - check both direct ID and inside container
+        let container = document.getElementById('riskGauge');
+        if (!container) {
+            console.log('❌ Risk gauge container not found');
             return;
         }
 
-        console.log('🔍 Found riskGauge element:', canvas, 'TagName:', canvas.tagName);
+        console.log('🔍 Found riskGauge container:', container, 'TagName:', container.tagName);
+        console.log('🔍 Container HTML:', container.outerHTML.substring(0, 200));
 
-        // If it's not a canvas, try to find the canvas inside
-        if (canvas.tagName !== 'CANVAS') {
-            const canvasElement = canvas.querySelector('canvas');
-            if (canvasElement) {
-                canvas = canvasElement;
-                console.log('✅ Found canvas inside container');
-            } else {
-                console.error('❌ Canvas element not found. Container is:', canvas.tagName);
-                console.error('Container HTML:', canvas.outerHTML.substring(0, 200));
+        // Find the canvas element - it might be the container itself or inside it
+        let canvas = null;
+        if (container.tagName === 'CANVAS') {
+            canvas = container;
+            console.log('✅ Container is the canvas element itself');
+        } else {
+            // Look for canvas inside the container
+            canvas = container.querySelector('canvas');
+            if (!canvas) {
+                console.error('❌ Canvas element not found inside container');
+                console.error('Container HTML:', container.outerHTML.substring(0, 300));
+                console.error('Container children:', Array.from(container.children).map(c => c.tagName));
                 return;
+            } else {
+                console.log('✅ Found canvas element inside container');
             }
+        }
+        
+        if (!canvas) {
+            console.error('❌ Failed to get canvas element');
+            return;
         }
 
         console.log('🔍 Initializing advanced risk gauge...');
+        console.log('🔍 Canvas dimensions:', canvas.width, 'x', canvas.height);
         
         const ctx = canvas.getContext('2d');
         const centerX = canvas.width / 2;
@@ -629,32 +652,45 @@ class MerchantRiskTab {
      * Initialize risk trend chart
      */
     initializeRiskTrendChart() {
-        // Find the canvas element - it might be directly accessible or inside a container
-        let canvas = document.getElementById('riskTrendChart');
-        if (!canvas) {
-            console.log('❌ Risk trend chart canvas not found');
+        // Find the canvas element - check both direct ID and inside container
+        let container = document.getElementById('riskTrendChart');
+        if (!container) {
+            console.log('❌ Risk trend chart container not found');
             return;
         }
 
         console.log('🔍 Initializing risk trend chart...');
-        console.log('🔍 Found element:', canvas, 'TagName:', canvas.tagName);
+        console.log('🔍 Found container:', container, 'TagName:', container.tagName);
+        console.log('🔍 Chart container dimensions:', container.offsetWidth, 'x', container.offsetHeight);
+        console.log('🔍 Chart container style:', container.style.cssText);
+        console.log('🔍 Chart container parent:', container.parentElement);
         
-        // If it's not a canvas, try to find the canvas inside
-        if (canvas.tagName !== 'CANVAS') {
-            const canvasElement = canvas.querySelector('canvas');
-            if (canvasElement) {
-                canvas = canvasElement;
-            } else {
-                console.error('❌ Canvas element not found. Element is:', canvas.tagName);
-                // Create a canvas element if it doesn't exist
-                const container = canvas;
+        // Find the canvas element - it might be the container itself or inside it
+        let canvas = null;
+        if (container.tagName === 'CANVAS') {
+            canvas = container;
+            console.log('✅ Container is the canvas element itself');
+        } else {
+            // Look for canvas inside the container
+            canvas = container.querySelector('canvas');
+            if (!canvas) {
+                console.error('❌ Canvas element not found inside container');
+                console.error('Container HTML:', container.outerHTML.substring(0, 300));
+                // Create canvas element
                 canvas = document.createElement('canvas');
                 canvas.id = 'riskTrendChartCanvas';
                 canvas.style.width = '100%';
                 canvas.style.height = '100%';
                 container.appendChild(canvas);
-                console.log('✅ Created new canvas element');
+                console.log('✅ Created new canvas element inside container');
+            } else {
+                console.log('✅ Found canvas element inside container');
             }
+        }
+        
+        if (!canvas) {
+            console.error('❌ Failed to get or create canvas element');
+            return;
         }
         
         // Destroy existing chart if it exists
@@ -709,32 +745,42 @@ class MerchantRiskTab {
      * Initialize risk factor chart
      */
     initializeRiskFactorChart() {
-        // Find the canvas element - it might be directly accessible or inside a container
-        let canvas = document.getElementById('riskFactorChart');
-        if (!canvas) {
-            console.log('❌ Risk factor chart canvas not found');
+        // Find the canvas element - check both direct ID and inside container
+        let container = document.getElementById('riskFactorChart');
+        if (!container) {
+            console.log('❌ Risk factor chart container not found');
             return;
         }
 
         console.log('🔍 Initializing risk factor chart...');
-        console.log('🔍 Found element:', canvas, 'TagName:', canvas.tagName);
+        console.log('🔍 Found container:', container, 'TagName:', container.tagName);
         
-        // If it's not a canvas, try to find the canvas inside
-        if (canvas.tagName !== 'CANVAS') {
-            const canvasElement = canvas.querySelector('canvas');
-            if (canvasElement) {
-                canvas = canvasElement;
-            } else {
-                console.error('❌ Canvas element not found. Element is:', canvas.tagName);
-                // Create a canvas element if it doesn't exist
-                const container = canvas;
+        // Find the canvas element - it might be the container itself or inside it
+        let canvas = null;
+        if (container.tagName === 'CANVAS') {
+            canvas = container;
+            console.log('✅ Container is the canvas element itself');
+        } else {
+            // Look for canvas inside the container
+            canvas = container.querySelector('canvas');
+            if (!canvas) {
+                console.error('❌ Canvas element not found inside container');
+                console.error('Container HTML:', container.outerHTML.substring(0, 300));
+                // Create canvas element
                 canvas = document.createElement('canvas');
                 canvas.id = 'riskFactorChartCanvas';
                 canvas.style.width = '100%';
                 canvas.style.height = '100%';
                 container.appendChild(canvas);
-                console.log('✅ Created new canvas element');
+                console.log('✅ Created new canvas element inside container');
+            } else {
+                console.log('✅ Found canvas element inside container');
             }
+        }
+        
+        if (!canvas) {
+            console.error('❌ Failed to get or create canvas element');
+            return;
         }
         
         // Destroy existing chart if it exists
@@ -1238,48 +1284,95 @@ class MerchantRiskTab {
                 </div>
             `;
 
-            // Initialize components
-            await this.initializeComponents();
-            
-            // Load initial data
+            // Load initial data first (before UI initialization)
             await this.loadInitialData();
+            
+            // Initialize components (but skip createRiskTabUI since we're using loadRiskAssessmentContent)
+            // We'll manually initialize only what we need
+            this.isInitialized = true;
             
             // Update UI with loaded data
             this.updateRiskUI();
             
-            // Initialize visualizations after UI is updated with a small delay
-            // Give extra time for DOM to fully render
-            setTimeout(() => {
-                // Verify canvas elements exist before initializing
-                const gauge = document.getElementById('riskGauge');
-                const trendChart = document.getElementById('riskTrendChart');
-                const factorChart = document.getElementById('riskFactorChart');
-                
-                console.log('🔍 Canvas elements check before initialization:');
-                console.log('  - riskGauge:', gauge, 'TagName:', gauge?.tagName, 'HTML:', gauge?.outerHTML?.substring(0, 100));
-                console.log('  - riskTrendChart:', trendChart, 'TagName:', trendChart?.tagName, 'HTML:', trendChart?.outerHTML?.substring(0, 100));
-                console.log('  - riskFactorChart:', factorChart, 'TagName:', factorChart?.tagName, 'HTML:', factorChart?.outerHTML?.substring(0, 100));
-                
-                if (!gauge || !trendChart || !factorChart) {
-                    console.error('❌ Some canvas elements are missing!');
-                    console.error('  - riskGauge missing:', !gauge);
-                    console.error('  - riskTrendChart missing:', !trendChart);
-                    console.error('  - riskFactorChart missing:', !factorChart);
-                    return;
-                }
-                
-                // Check if they're actually canvas elements
-                if (gauge.tagName !== 'CANVAS' || trendChart.tagName !== 'CANVAS' || factorChart.tagName !== 'CANVAS') {
-                    console.error('❌ Elements are not canvas elements!');
-                    console.error('  - riskGauge is:', gauge.tagName);
-                    console.error('  - riskTrendChart is:', trendChart.tagName);
-                    console.error('  - riskFactorChart is:', factorChart.tagName);
-                    return;
-                }
-                
-                this.initializeVisualizations();
-                this.addExportEventListeners();
-            }, 300);
+            // Initialize visualizations after UI is updated with a delay to ensure DOM is ready
+            // Use requestAnimationFrame to ensure DOM is fully rendered
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    // Verify canvas elements exist before initializing
+                    const gauge = document.getElementById('riskGauge');
+                    const trendChart = document.getElementById('riskTrendChart');
+                    const factorChart = document.getElementById('riskFactorChart');
+                    
+                    console.log('🔍 Canvas elements check before initialization:');
+                    console.log('  - riskGauge:', gauge, 'TagName:', gauge?.tagName);
+                    if (gauge) {
+                        console.log('  - riskGauge HTML:', gauge.outerHTML.substring(0, 150));
+                        console.log('  - riskGauge parent:', gauge.parentElement);
+                    }
+                    console.log('  - riskTrendChart:', trendChart, 'TagName:', trendChart?.tagName);
+                    if (trendChart) {
+                        console.log('  - riskTrendChart HTML:', trendChart.outerHTML.substring(0, 150));
+                        console.log('  - riskTrendChart parent:', trendChart.parentElement);
+                    }
+                    console.log('  - riskFactorChart:', factorChart, 'TagName:', factorChart?.tagName);
+                    if (factorChart) {
+                        console.log('  - riskFactorChart HTML:', factorChart.outerHTML.substring(0, 150));
+                    }
+                    
+                    if (!gauge || !trendChart || !factorChart) {
+                        console.error('❌ Some canvas elements are missing!');
+                        console.error('  - riskGauge missing:', !gauge);
+                        console.error('  - riskTrendChart missing:', !trendChart);
+                        console.error('  - riskFactorChart missing:', !factorChart);
+                        console.error('🔍 Container HTML:', container.innerHTML.substring(0, 500));
+                        return;
+                    }
+                    
+                    // Check if they're actually canvas elements
+                    if (gauge.tagName !== 'CANVAS') {
+                        console.error('❌ riskGauge is not a canvas! It is:', gauge.tagName);
+                        console.error('  - riskGauge HTML:', gauge.outerHTML);
+                        // Try to find canvas inside if it's a container
+                        const canvasInside = gauge.querySelector('canvas');
+                        if (canvasInside) {
+                            console.log('  ✅ Found canvas inside gauge container');
+                        } else {
+                            console.error('  ❌ No canvas found inside gauge container');
+                            return;
+                        }
+                    }
+                    
+                    if (trendChart.tagName !== 'CANVAS') {
+                        console.error('❌ riskTrendChart is not a canvas! It is:', trendChart.tagName);
+                        console.error('  - riskTrendChart HTML:', trendChart.outerHTML);
+                        // Try to find canvas inside if it's a container
+                        const canvasInside = trendChart.querySelector('canvas');
+                        if (canvasInside) {
+                            console.log('  ✅ Found canvas inside trendChart container');
+                        } else {
+                            console.error('  ❌ No canvas found inside trendChart container');
+                            return;
+                        }
+                    }
+                    
+                    if (factorChart.tagName !== 'CANVAS') {
+                        console.error('❌ riskFactorChart is not a canvas! It is:', factorChart.tagName);
+                        console.error('  - riskFactorChart HTML:', factorChart.outerHTML);
+                        // Try to find canvas inside if it's a container
+                        const canvasInside = factorChart.querySelector('canvas');
+                        if (canvasInside) {
+                            console.log('  ✅ Found canvas inside factorChart container');
+                        } else {
+                            console.error('  ❌ No canvas found inside factorChart container');
+                            return;
+                        }
+                    }
+                    
+                    console.log('✅ All canvas elements validated, initializing visualizations...');
+                    this.initializeVisualizations();
+                    this.addExportEventListeners();
+                });
+            });
 
         } catch (error) {
             console.error('Error loading risk assessment content:', error);
