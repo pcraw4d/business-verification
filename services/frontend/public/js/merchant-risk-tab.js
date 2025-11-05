@@ -1305,10 +1305,12 @@ class MerchantRiskTab {
             // Update UI with loaded data
             this.updateRiskUI();
             
-            // Initialize visualizations after UI is updated with a delay to ensure DOM is ready
-            // Use requestAnimationFrame to ensure DOM is fully rendered
-            requestAnimationFrame(() => {
+            // Wait a bit longer for DOM to fully render the HTML we just set
+            // Use multiple requestAnimationFrame calls to ensure DOM is fully ready
+            console.log('⏳ Waiting for DOM to render before initializing visualizations...');
+            setTimeout(() => {
                 requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
                     // Verify canvas elements exist before initializing
                     const gauge = document.getElementById('riskGauge');
                     const trendChart = document.getElementById('riskTrendChart');
@@ -1382,8 +1384,9 @@ class MerchantRiskTab {
                     console.log('✅ All canvas elements validated, initializing visualizations...');
                     this.initializeVisualizations();
                     this.addExportEventListeners();
+                    });
                 });
-            });
+            }, 500); // Wait 500ms for DOM to be fully ready
 
         } catch (error) {
             console.error('Error loading risk assessment content:', error);
