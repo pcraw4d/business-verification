@@ -10,6 +10,9 @@
  * - WebSocket real-time updates
  */
 
+// MerchantRiskTab v3.0 - Canvas detection fixes
+console.log('📦 Loading MerchantRiskTab v3.0 - Canvas detection fixes applied');
+
 class MerchantRiskTab {
     constructor() {
         this.components = {

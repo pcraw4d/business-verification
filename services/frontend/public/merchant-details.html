@@ -934,7 +934,16 @@
     <script src="js/components/risk-scenarios.js" onerror="console.error('❌ Failed to load risk-scenarios.js')"></script>
     <script src="js/components/risk-history.js" onerror="console.error('❌ Failed to load risk-history.js')"></script>
     <script src="js/components/risk-export.js" onerror="console.error('❌ Failed to load risk-export.js')"></script>
-    <script src="js/merchant-risk-tab.js?v=3" onerror="console.error('❌ Failed to load merchant-risk-tab.js', this.src)"></script>
+    <script>
+        // Force cache busting with timestamp
+        const timestamp = new Date().getTime();
+        const script = document.createElement('script');
+        script.src = `js/merchant-risk-tab.js?v=3.0&t=${timestamp}`;
+        script.onerror = function() {
+            console.error('❌ Failed to load merchant-risk-tab.js', this.src);
+        };
+        document.head.appendChild(script);
+    </script>
     <script>
         // Verify all scripts loaded successfully - this should run immediately after scripts load
         try {
