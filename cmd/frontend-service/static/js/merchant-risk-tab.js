@@ -52,6 +52,14 @@ class MerchantRiskTab {
      * Initialize all components
      */
     async initializeComponents() {
+        // Check if we're using the new loadRiskAssessmentContent() flow
+        // If so, don't create UI here - it will be created by loadRiskAssessmentContent()
+        const riskContainer = document.getElementById('riskAssessmentContainer');
+        if (riskContainer && riskContainer.querySelector('canvas#riskGauge')) {
+            console.log('✅ UI already exists from loadRiskAssessmentContent(), skipping UI creation in initializeComponents()');
+            // Still initialize component objects but don't create UI
+        }
+        
         // Get merchant ID from URL or page context
         this.currentMerchantId = this.getCurrentMerchantId();
         
