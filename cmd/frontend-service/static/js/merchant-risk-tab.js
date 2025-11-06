@@ -144,11 +144,29 @@ class MerchantRiskTab {
         // Don't create UI here - it's created by loadRiskAssessmentContent()
         // Only create UI if we're NOT using the new loadRiskAssessmentContent() flow
         const riskContainer = document.getElementById('riskAssessmentContainer');
-        if (!riskContainer || !riskContainer.querySelector('canvas#riskGauge')) {
-            // Old flow - create UI here
+        
+        // Check if canvas elements exist (from loadRiskAssessmentContent) or if container is empty
+        const hasCanvasElements = riskContainer && riskContainer.querySelector('canvas#riskGauge');
+        const containerIsEmpty = !riskContainer || riskContainer.children.length === 0 || riskContainer.innerHTML.trim() === '';
+        
+        if (!hasCanvasElements && !containerIsEmpty) {
+            // Container has content but no canvas - might be old HTML, check if it's divs
+            const gaugeDiv = riskContainer.querySelector('div#riskGauge');
+            if (gaugeDiv && gaugeDiv.children.length === 0) {
+                console.log('⚠️ Found empty div for riskGauge - this is old HTML, will be replaced by loadRiskAssessmentContent()');
+                // Don't create UI - let loadRiskAssessmentContent() handle it
+                return;
+            }
+        }
+        
+        if (!hasCanvasElements && containerIsEmpty) {
+            // Old flow - container is empty, create UI here
+            console.log('📝 Creating UI in initializeComponents() - old flow');
             this.createRiskTabUI();
-        } else {
+        } else if (hasCanvasElements) {
             console.log('✅ UI already created by loadRiskAssessmentContent(), skipping createRiskTabUI() in initializeComponents()');
+        } else {
+            console.log('⏸️ Skipping UI creation - container exists but has old HTML, will be replaced by loadRiskAssessmentContent()');
         }
 
         this.isInitialized = true;
