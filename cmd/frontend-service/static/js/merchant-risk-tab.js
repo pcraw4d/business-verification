@@ -2190,6 +2190,32 @@ class MerchantRiskTab {
             // We'll manually initialize only what we need
             this.isInitialized = true;
             
+            // Verify the HTML was set correctly - check for canvas elements
+            const verifyGauge = container.querySelector('canvas#riskGauge');
+            const verifyTrendChart = container.querySelector('canvas#riskTrendChart');
+            const verifyFactorChart = container.querySelector('canvas#riskFactorChart');
+            
+            if (!verifyGauge || !verifyTrendChart || !verifyFactorChart) {
+                console.error('❌ CRITICAL: Canvas elements not found in HTML after setting innerHTML!');
+                console.error('  - riskGauge canvas:', verifyGauge ? 'Found' : 'MISSING');
+                console.error('  - riskTrendChart canvas:', verifyTrendChart ? 'Found' : 'MISSING');
+                console.error('  - riskFactorChart canvas:', verifyFactorChart ? 'Found' : 'MISSING');
+                console.error('  - Container HTML length:', container.innerHTML.length);
+                console.error('  - Container HTML preview:', container.innerHTML.substring(0, 500));
+                
+                // Check if old divs exist
+                const oldGaugeDiv = container.querySelector('div#riskGauge');
+                if (oldGaugeDiv) {
+                    console.error('  - Found OLD div#riskGauge - createRiskTabUI() may have overwritten!');
+                    console.error('  - Old div HTML:', oldGaugeDiv.outerHTML);
+                }
+            } else {
+                console.log('✅ Verified: Canvas elements exist in HTML after setting innerHTML');
+                console.log('  - riskGauge canvas:', verifyGauge.tagName, verifyGauge.id);
+                console.log('  - riskTrendChart canvas:', verifyTrendChart.tagName, verifyTrendChart.id);
+                console.log('  - riskFactorChart canvas:', verifyFactorChart.tagName, verifyFactorChart.id);
+            }
+            
             // Update UI with loaded data
             this.updateRiskUI();
             
