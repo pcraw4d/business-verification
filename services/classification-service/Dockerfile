@@ -7,17 +7,18 @@ WORKDIR /app
 # Install dependencies
 RUN apk add --no-cache git ca-certificates
 
-# Copy go mod files (go.sum is optional)
-COPY go.mod ./
+# Copy go mod files from the classification service directory
+COPY services/classification-service/go.mod ./services/classification-service/
+COPY services/classification-service/go.sum* ./services/classification-service/
 
-# Download dependencies (this will create go.sum if missing)
+# Set working directory to the service directory
+WORKDIR /app/services/classification-service
+
+# Download dependencies
 RUN go mod download
 
-# Copy go.sum if it exists (optional)
-COPY go.sum* ./
-
-# Copy source code
-COPY . .
+# Copy source code from the service directory
+COPY services/classification-service/ ./
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o classification-service ./cmd/main.go
@@ -36,7 +37,7 @@ RUN mkdir -p /app
 WORKDIR /app
 
 # Copy binary from builder stage
-COPY --from=builder /app/classification-service .
+COPY --from=builder /app/services/classification-service/classification-service .
 
 # Change ownership to non-root user
 RUN chown appuser:appuser /app/classification-service
