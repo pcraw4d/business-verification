@@ -19,13 +19,25 @@ func CORS(cfg config.CORSConfig) func(http.Handler) http.Handler {
 			fmt.Printf("CORS: Allowed origins: %v\n", cfg.AllowedOrigins)
 
 			// Always set CORS headers (override any Railway settings)
-			if isOriginAllowed(origin, cfg.AllowedOrigins) {
-				w.Header().Set("Access-Control-Allow-Origin", origin)
-				fmt.Printf("CORS: Set Access-Control-Allow-Origin to: %s\n", origin)
+			// If AllowCredentials is true, we cannot use "*" - must use specific origin
+			if cfg.AllowCredentials && origin != "" {
+				// With credentials, must use specific origin, not "*"
+				if isOriginAllowed(origin, cfg.AllowedOrigins) || len(cfg.AllowedOrigins) == 1 && cfg.AllowedOrigins[0] == "*" {
+					w.Header().Set("Access-Control-Allow-Origin", origin)
+					fmt.Printf("CORS: Set Access-Control-Allow-Origin to: %s (with credentials)\n", origin)
+				} else {
+					// Default to allowing the requesting origin
+					w.Header().Set("Access-Control-Allow-Origin", origin)
+					fmt.Printf("CORS: Set Access-Control-Allow-Origin to requesting origin: %s\n", origin)
+				}
 			} else if len(cfg.AllowedOrigins) == 1 && cfg.AllowedOrigins[0] == "*" {
+				// Without credentials, can use "*"
 				w.Header().Set("Access-Control-Allow-Origin", "*")
 				fmt.Printf("CORS: Set Access-Control-Allow-Origin to: *\n")
-			} else {
+			} else if isOriginAllowed(origin, cfg.AllowedOrigins) {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+				fmt.Printf("CORS: Set Access-Control-Allow-Origin to: %s\n", origin)
+			} else if origin != "" {
 				// Default to allowing the requesting origin
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 				fmt.Printf("CORS: Set Access-Control-Allow-Origin to requesting origin: %s\n", origin)
