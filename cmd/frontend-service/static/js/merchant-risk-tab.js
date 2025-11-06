@@ -2160,15 +2160,42 @@ class MerchantRiskTab {
                         
                         if (!gauge || !trendChart || !factorChart) {
                             console.error('❌ Some canvas elements are missing!');
-                            console.error('  - riskGauge missing:', !gauge);
-                            console.error('  - riskTrendChart missing:', !trendChart);
-                            console.error('  - riskFactorChart missing:', !factorChart);
-                            return;
+                            console.error('  - riskGauge missing:', !gauge, gauge ? `Found: ${gauge.tagName}` : 'Not found');
+                            console.error('  - riskTrendChart missing:', !trendChart, trendChart ? `Found: ${trendChart.tagName}` : 'Not found');
+                            console.error('  - riskFactorChart missing:', !factorChart, factorChart ? `Found: ${factorChart.tagName}` : 'Not found');
+                            
+                            // Debug: Show what's actually in the container
+                            console.error('🔍 Debugging: Searching for riskFactorChart in container...');
+                            const allElements = container.querySelectorAll('*');
+                            console.error(`  - Total elements in container: ${allElements.length}`);
+                            const riskFactorElements = container.querySelectorAll('[id*="riskFactor"], [id*="RiskFactor"], canvas');
+                            console.error(`  - Elements with riskFactor in ID: ${riskFactorElements.length}`);
+                            riskFactorElements.forEach((el, idx) => {
+                                console.error(`    [${idx}] ${el.tagName}#${el.id || 'no-id'}`);
+                            });
+                            
+                            // Try alternative search
+                            const altSearch = container.querySelector('#riskFactorChart') || 
+                                             document.querySelector('#riskFactorChart') ||
+                                             container.querySelector('canvas[id="riskFactorChart"]');
+                            console.error('  - Alternative search result:', altSearch);
+                            
+                            // Don't return - continue anyway and let individual methods handle missing elements
+                            console.warn('⚠️ Continuing despite missing elements - individual methods will handle errors');
                         }
                         
-                        console.log('✅ All canvas elements found, initializing visualizations...');
-                        this.initializeVisualizations();
-                        this.addExportEventListeners();
+                        // Only initialize visualizations if we have at least some canvas elements
+                        // Individual methods will handle missing elements gracefully
+                        if (gauge || trendChart || factorChart) {
+                            console.log('✅ Found canvas elements, initializing visualizations...');
+                            console.log(`  - riskGauge: ${gauge ? 'Found' : 'Missing'}`);
+                            console.log(`  - riskTrendChart: ${trendChart ? 'Found' : 'Missing'}`);
+                            console.log(`  - riskFactorChart: ${factorChart ? 'Found' : 'Missing'}`);
+                            this.initializeVisualizations();
+                            this.addExportEventListeners();
+                        } else {
+                            console.error('❌ No canvas elements found at all - cannot initialize visualizations');
+                        }
                     });
                 });
             }, 500); // Wait 500ms for DOM to be fully ready
