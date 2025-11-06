@@ -144,7 +144,7 @@ class MerchantRiskTab {
 
         // Don't create UI here - it's created by loadRiskAssessmentContent()
         // Only create UI if we're NOT using the new loadRiskAssessmentContent() flow
-        const riskContainer = document.getElementById('riskAssessmentContainer');
+        // Reuse riskContainer from line 58 - don't redeclare
         
         // Check if canvas elements exist (from loadRiskAssessmentContent) or if container is empty
         const hasCanvasElements = riskContainer && riskContainer.querySelector('canvas#riskGauge');

@@ -974,25 +974,32 @@
     <script src="js/components/risk-history.js" onerror="console.error('❌ Failed to load risk-history.js')"></script>
     <script src="js/components/risk-export.js" onerror="console.error('❌ Failed to load risk-export.js')"></script>
     <script>
-        // Force cache busting with timestamp
+        // Force cache busting with timestamp and load merchant-risk-tab.js
         const timestamp = new Date().getTime();
         const script = document.createElement('script');
-        script.src = `js/merchant-risk-tab.js?v=3.0&t=${timestamp}`;
+        script.src = `js/merchant-risk-tab.js?v=3.1&t=${timestamp}`;
         script.onerror = function() {
             console.error('❌ Failed to load merchant-risk-tab.js', this.src);
+        };
+        script.onload = function() {
+            console.log('✅ merchant-risk-tab.js loaded successfully');
+            console.log('🔍 MerchantRiskTab type:', typeof MerchantRiskTab);
+            console.log('🔍 window.MerchantRiskTab type:', typeof window.MerchantRiskTab);
         };
         document.head.appendChild(script);
     </script>
     <script>
-        // Verify all scripts loaded successfully
-        console.log('🔍 Script loading verification:');
-        console.log('  - RiskVisualization:', typeof RiskVisualization);
-        console.log('  - RiskExplainability:', typeof RiskExplainability);
-        console.log('  - RiskScenarioAnalysis:', typeof RiskScenarioAnalysis);
-        console.log('  - RiskHistoryTracking:', typeof RiskHistoryTracking);
-        console.log('  - RiskExport:', typeof RiskExport);
-        console.log('  - MerchantRiskTab:', typeof MerchantRiskTab);
-        console.log('  - window.MerchantRiskTab:', typeof window.MerchantRiskTab);
+        // Verify all scripts loaded successfully - wait a bit for async script to load
+        setTimeout(function() {
+            console.log('🔍 Script loading verification:');
+            console.log('  - RiskVisualization:', typeof RiskVisualization);
+            console.log('  - RiskExplainability:', typeof RiskExplainability);
+            console.log('  - RiskScenarioAnalysis:', typeof RiskScenarioAnalysis);
+            console.log('  - RiskHistoryTracking:', typeof RiskHistoryTracking);
+            console.log('  - RiskExport:', typeof RiskExport);
+            console.log('  - MerchantRiskTab:', typeof MerchantRiskTab);
+            console.log('  - window.MerchantRiskTab:', typeof window.MerchantRiskTab);
+        }, 100);
     </script>
 
     <!-- Initialize Risk Indicators Tab -->
