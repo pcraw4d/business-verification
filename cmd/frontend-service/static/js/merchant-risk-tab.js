@@ -133,8 +133,15 @@ class MerchantRiskTab {
         // Load initial data
         await this.loadInitialData();
 
-        // Create UI components
-        this.createRiskTabUI();
+        // Don't create UI here - it's created by loadRiskAssessmentContent()
+        // Only create UI if we're NOT using the new loadRiskAssessmentContent() flow
+        const riskContainer = document.getElementById('riskAssessmentContainer');
+        if (!riskContainer || !riskContainer.querySelector('canvas#riskGauge')) {
+            // Old flow - create UI here
+            this.createRiskTabUI();
+        } else {
+            console.log('✅ UI already created by loadRiskAssessmentContent(), skipping createRiskTabUI() in initializeComponents()');
+        }
 
         this.isInitialized = true;
         console.log('Risk tab initialized successfully');
@@ -299,9 +306,28 @@ class MerchantRiskTab {
      * Create risk tab UI
      */
     createRiskTabUI() {
+        // Don't create UI here - it's created by loadRiskAssessmentContent()
+        // This method is kept for backward compatibility but doesn't do anything
+        // The actual UI is created in loadRiskAssessmentContent()
         const riskContent = document.getElementById('riskAssessmentContainer') || document.getElementById('riskAssessmentContent');
         if (!riskContent) return;
+        
+        // Check if HTML has already been set by loadRiskAssessmentContent()
+        // We can tell by checking if there's a canvas element with id="riskGauge"
+        const existingGauge = riskContent.querySelector('canvas#riskGauge');
+        if (existingGauge) {
+            console.log('✅ UI already created by loadRiskAssessmentContent(), skipping createRiskTabUI()');
+            return;
+        }
+        
+        // Only create old-style UI if we're using the old container (riskAssessmentContent)
+        // and the new container doesn't exist
+        if (document.getElementById('riskAssessmentContainer') && !document.getElementById('riskAssessmentContent')) {
+            console.log('✅ Using new loadRiskAssessmentContent() flow, skipping createRiskTabUI()');
+            return;
+        }
 
+        console.log('⚠️ Falling back to old createRiskTabUI() - this should not happen');
         riskContent.innerHTML = `
             <div class="risk-tab-container">
                 <!-- Risk Overview Section -->
@@ -2124,11 +2150,12 @@ class MerchantRiskTab {
                 </div>
             `;
 
-            // Initialize components
-            await this.initializeComponents();
-            
-            // Load initial data
+            // Load initial data first (before UI initialization)
             await this.loadInitialData();
+            
+            // Initialize components (but skip createRiskTabUI since we're using loadRiskAssessmentContent)
+            // We'll manually initialize only what we need
+            this.isInitialized = true;
             
             // Update UI with loaded data
             this.updateRiskUI();
