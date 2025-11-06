@@ -332,9 +332,12 @@ class MerchantRiskTab {
      * Create risk tab UI
      */
     createRiskTabUI() {
-        // Don't create UI here - it's created by loadRiskAssessmentContent()
-        // This method is kept for backward compatibility but doesn't do anything
-        // The actual UI is created in loadRiskAssessmentContent()
+        // CRITICAL: Don't create UI if it was already created by loadRiskAssessmentContent()
+        if (this.uiCreatedByLoadRiskAssessmentContent) {
+            console.log('✅ UI already created by loadRiskAssessmentContent(), skipping createRiskTabUI()');
+            return;
+        }
+        
         const riskContent = document.getElementById('riskAssessmentContainer') || document.getElementById('riskAssessmentContent');
         if (!riskContent) return;
         
@@ -342,7 +345,7 @@ class MerchantRiskTab {
         // We can tell by checking if there's a canvas element with id="riskGauge"
         const existingGauge = riskContent.querySelector('canvas#riskGauge');
         if (existingGauge) {
-            console.log('✅ UI already created by loadRiskAssessmentContent(), skipping createRiskTabUI()');
+            console.log('✅ UI already created by loadRiskAssessmentContent() (canvas found), skipping createRiskTabUI()');
             return;
         }
         
@@ -2093,6 +2096,9 @@ class MerchantRiskTab {
             const merchantId = this.getMerchantId();
             this.currentMerchantId = merchantId;
 
+            // Set flag to prevent createRiskTabUI from overwriting
+            this.uiCreatedByLoadRiskAssessmentContent = true;
+            
             // Load the comprehensive risk assessment UI
             container.innerHTML = `
                 <div class="risk-content-loaded">
