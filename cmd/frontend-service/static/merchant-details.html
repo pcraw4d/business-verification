@@ -1229,7 +1229,11 @@
                 console.error('❌ Error in Risk Assessment initialization:', error);
                 console.error('Error stack:', error.stack);
             }
-        }, 3000); // Wait 3 seconds for all scripts to load
+        }
+        
+        // Try to initialize immediately, then retry if needed
+        setTimeout(initializeRiskAssessmentTab, 1000); // Initial delay
+        setTimeout(initializeRiskAssessmentTab, 3000); // Retry after 3 seconds if first attempt fails
     </script>
 </body>
 </html>
