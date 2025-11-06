@@ -1122,22 +1122,29 @@
             }
         }, 2000); // Wait 2 seconds for DOM to be fully ready
         
-        // Initialize Risk Assessment Tab (separate timeout to ensure all scripts are loaded)
-        setTimeout(function() {
+        // Initialize Risk Assessment Tab (wait for script to load)
+        function initializeRiskAssessmentTab() {
             try {
                 console.log('🚀 Initializing Risk Assessment Tab...');
                 console.log('🔍 Checking if MerchantRiskTab class exists:', typeof MerchantRiskTab);
+                console.log('🔍 Checking if window.MerchantRiskTab exists:', typeof window.MerchantRiskTab);
                 console.log('🔍 Checking if RiskScenarioAnalysis exists:', typeof RiskScenarioAnalysis);
                 console.log('🔍 Checking if RiskHistoryTracking exists:', typeof RiskHistoryTracking);
                 console.log('🔍 Checking if RiskExport exists:', typeof RiskExport);
                 
-                if (typeof MerchantRiskTab === 'undefined') {
+                // Try both MerchantRiskTab and window.MerchantRiskTab
+                const MerchantRiskTabClass = typeof MerchantRiskTab !== 'undefined' ? MerchantRiskTab : 
+                                           (typeof window.MerchantRiskTab !== 'undefined' ? window.MerchantRiskTab : null);
+                
+                if (!MerchantRiskTabClass) {
                     console.error('❌ MerchantRiskTab class not found! Make sure js/merchant-risk-tab.js is loaded.');
+                    // Retry after a delay
+                    setTimeout(initializeRiskAssessmentTab, 500);
                     return;
                 }
                 
                 try {
-                    window.merchantRiskTab = new MerchantRiskTab();
+                    window.merchantRiskTab = new MerchantRiskTabClass();
                     console.log('✅ Risk Assessment Tab initialized successfully');
                 } catch (error) {
                     console.error('❌ Failed to initialize Risk Assessment Tab:', error);
