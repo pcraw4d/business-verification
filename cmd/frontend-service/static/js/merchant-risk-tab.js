@@ -27,6 +27,7 @@ class MerchantRiskTab {
         this.currentMerchantId = null;
         this.riskData = null;
         this.isInitialized = false;
+        this.uiCreatedByLoadRiskAssessmentContent = false; // Flag to track if UI was created by loadRiskAssessmentContent
 
         // Don't auto-initialize - wait for explicit call
         // this.init();
