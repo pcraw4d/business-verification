@@ -27,22 +27,22 @@ class MerchantRiskIndicatorsTab {
         this.explainability = new RiskExplainability();
         this.levelIndicator = null; // Initialize later to avoid DOM manipulation
         
+        // Always initialize fallback data service (needed even if shared service exists)
+        this.dataService = new RiskIndicatorsDataService();
+        
         // Use shared data service if available, otherwise fallback to existing
         try {
             // Try to import shared services (will work if modules are loaded)
             if (typeof getRiskDataService !== 'undefined') {
                 this.sharedRiskService = getRiskDataService();
+                console.log('✅ Shared Risk Data Service loaded');
             }
             if (typeof getRiskVisualizations !== 'undefined') {
                 this.sharedRiskViz = getRiskVisualizations();
+                console.log('✅ Shared Risk Visualizations loaded');
             }
         } catch (e) {
             console.warn('Shared services not available, using fallback:', e);
-        }
-        
-        // Fallback to existing data service if shared not available
-        if (!this.sharedRiskService) {
-            this.dataService = new RiskIndicatorsDataService();
         }
         
         // UI template helper
@@ -119,20 +119,24 @@ class MerchantRiskIndicatorsTab {
      */
     async loadAndRender() {
         try {
+            console.log(`📊 Loading risk data for merchant: ${this.merchantId}`);
             // Show loading state
             this.showLoading();
             
             // Try to use shared risk service if available
             if (this.sharedRiskService) {
+                console.log('✅ Using shared risk service');
                 try {
                     // Load risk data with benchmarks
                     const riskData = await this.sharedRiskService.loadRiskData(this.merchantId, {
                         includeHistory: false,
-                        includePredictions: false,
+                        includePredictions: true,
                         includeBenchmarks: true,
                         includeExplanations: true,
                         includeRecommendations: true
                     });
+                    
+                    console.log('📦 Shared service returned data:', riskData);
                     
                     // Store benchmarks for radar chart
                     if (riskData.benchmarks) {
@@ -145,6 +149,7 @@ class MerchantRiskIndicatorsTab {
                     if (riskData.current) {
                         // Use existing data service to merge and normalize
                         // This maintains compatibility with existing UI templates
+                        console.log('🔄 Merging shared service data with existing structure');
                         const existingData = await this.dataService.loadAllRiskData(this.merchantId);
                         // Merge shared service data with existing structure
                         this.riskData = {
@@ -156,16 +161,20 @@ class MerchantRiskIndicatorsTab {
                         };
                     } else {
                         // Fallback to existing service if shared service doesn't return expected format
+                        console.log('⚠️ Shared service returned unexpected format, using fallback');
                         this.riskData = await this.dataService.loadAllRiskData(this.merchantId);
                     }
                 } catch (sharedError) {
-                    console.warn('Shared risk service failed, using fallback:', sharedError);
+                    console.warn('⚠️ Shared risk service failed, using fallback:', sharedError);
                     this.riskData = await this.dataService.loadAllRiskData(this.merchantId);
                 }
             } else {
                 // Use existing data service
+                console.log('📦 Using fallback data service');
                 this.riskData = await this.dataService.loadAllRiskData(this.merchantId);
             }
+            
+            console.log('✅ Risk data loaded:', this.riskData);
             
             // Render UI
             this.render();
@@ -182,8 +191,11 @@ class MerchantRiskIndicatorsTab {
             // Hide loading state
             this.hideLoading();
             
+            console.log('✅ Risk Indicators tab fully loaded and rendered');
+            
         } catch (error) {
-            console.error('Failed to load and render risk indicators:', error);
+            console.error('❌ Failed to load and render risk indicators:', error);
+            console.error('Error stack:', error.stack);
             this.showError(error);
         }
     }

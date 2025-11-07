@@ -750,30 +750,62 @@
                 this.initializeComponents();
             }
 
-            loadMerchantData() {
+            async loadMerchantData() {
                 try {
-                    // Load merchant data from session storage
+                    // Get merchant ID first
+                    const merchantId = getMerchantId();
+                    console.log('🔍 Loading merchant data for ID:', merchantId);
+                    
+                    // Try to load from session storage first
                     const merchantDataStr = sessionStorage.getItem('merchantData');
                     const apiResultsStr = sessionStorage.getItem('merchantApiResults');
                     
                     if (merchantDataStr) {
                         this.merchantData = JSON.parse(merchantDataStr);
                         this.populateMerchantDetails();
+                        console.log('✅ Loaded merchant data from session storage');
+                    } else if (merchantId) {
+                        // If no session storage, try to load from API
+                        console.log('📡 No session storage data, loading from API...');
+                        try {
+                            const apiConfig = typeof APIConfig !== 'undefined' ? APIConfig : null;
+                            if (apiConfig) {
+                                const endpoints = apiConfig.getEndpoints();
+                                const response = await fetch(endpoints.merchantById(merchantId), {
+                                    headers: apiConfig.getHeaders()
+                                });
+                                if (response.ok) {
+                                    this.merchantData = await response.json();
+                                    this.populateMerchantDetails();
+                                    // Store in session for next time
+                                    sessionStorage.setItem('merchantData', JSON.stringify(this.merchantData));
+                                    console.log('✅ Loaded merchant data from API');
+                                } else {
+                                    console.warn('⚠️ API returned error:', response.status);
+                                }
+                            }
+                        } catch (apiError) {
+                            console.error('❌ Failed to load from API:', apiError);
+                        }
                     }
                     
                     if (apiResultsStr) {
                         this.apiResults = JSON.parse(apiResultsStr);
                         this.populateApiResults();
+                        console.log('✅ Loaded API results from session storage');
                     }
                     
                     // Update page title
                     if (this.merchantData && this.merchantData.businessName) {
-                        document.getElementById('merchantNameText').textContent = this.merchantData.businessName;
+                        const nameElement = document.getElementById('merchantNameText');
+                        if (nameElement) {
+                            nameElement.textContent = this.merchantData.businessName;
+                        }
                         document.title = `${this.merchantData.businessName} - Merchant Details - KYB Platform`;
                     }
                     
                 } catch (error) {
-                    console.error('Error loading merchant data:', error);
+                    console.error('❌ Error loading merchant data:', error);
                     this.showError('Failed to load merchant data');
                 }
             }
@@ -1009,6 +1041,8 @@
             console.log('🔍 Checking if MerchantRiskIndicatorsTab class exists:', typeof MerchantRiskIndicatorsTab);
             console.log('🔍 Checking if RiskIndicatorsUITemplate exists:', typeof RiskIndicatorsUITemplate);
             console.log('🔍 Checking if RiskIndicatorsDataService exists:', typeof RiskIndicatorsDataService);
+            console.log('🔍 Checking if APIConfig exists:', typeof APIConfig);
+            console.log('🔍 Checking if RealDataIntegration exists:', typeof RealDataIntegration);
             
             // Initialize Risk Indicators Tab
             try {
@@ -1024,6 +1058,16 @@
                     window.riskIndicatorsTab.initializeVisualization();
                 } else {
                     console.warn('⚠️ D3.js not available, visualization will be initialized later');
+                }
+                
+                // Auto-load if merchant ID is available and Risk Indicators tab is active
+                const merchantId = getMerchantId();
+                const riskIndicatorsTab = document.getElementById('risk-indicators');
+                if (merchantId && riskIndicatorsTab && riskIndicatorsTab.classList.contains('active')) {
+                    console.log('🔄 Auto-loading Risk Indicators tab for merchant:', merchantId);
+                    window.riskIndicatorsTab.init(merchantId).catch(error => {
+                        console.error('❌ Auto-load failed:', error);
+                    });
                 }
             } catch (error) {
                 console.error('❌ Failed to initialize NEW Risk Indicators Tab:', error);
@@ -1066,18 +1110,32 @@
                     console.log('🎯 Risk Indicators Tab clicked, merchant ID:', merchantId);
                     if (merchantId && window.riskIndicatorsTab) {
                         console.log('🎯 Calling NEW Risk Indicators Tab init...');
-                        window.riskIndicatorsTab.init(merchantId);
+                        window.riskIndicatorsTab.init(merchantId).catch(error => {
+                            console.error('❌ Failed to initialize Risk Indicators Tab:', error);
+                            const container = document.getElementById('riskIndicatorsContainer');
+                            if (container) {
+                                container.innerHTML = `
+                                    <div class="bg-red-50 border border-red-200 rounded-lg p-6">
+                                        <h3 class="font-bold text-red-800 mb-2">Error Loading Risk Indicators</h3>
+                                        <p class="text-red-600 mb-2">Merchant ID: ${merchantId}</p>
+                                        <p class="text-red-600 mb-4">Error: ${error.message || 'Unknown error'}</p>
+                                        <button onclick="window.riskIndicatorsTab.init('${merchantId}')" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                                            Retry
+                                        </button>
+                                    </div>
+                                `;
+                            }
+                        });
                     } else {
                         console.error('❌ No merchant ID found or risk indicators tab not initialized');
-                        // Show a simple test message if initialization fails
                         const container = document.getElementById('riskIndicatorsContainer');
                         if (container) {
                             container.innerHTML = `
                                 <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
-                                    <h3 class="font-bold">NEW Risk Indicators Tab</h3>
-                                    <p>Tab is working! Merchant ID: ${merchantId || 'Not found'}</p>
-                                    <p>This is a test message. The full Risk Indicators implementation should load here.</p>
-                                    <p>If you see this, the NEW implementation is working but needs data.</p>
+                                    <h3 class="font-bold">Risk Indicators Tab</h3>
+                                    <p>Merchant ID: ${merchantId || 'Not found'}</p>
+                                    <p>Tab Status: ${window.riskIndicatorsTab ? 'Initialized' : 'Not initialized'}</p>
+                                    <p class="mt-2">Please check the browser console for more details.</p>
                                 </div>
                             `;
                         }
