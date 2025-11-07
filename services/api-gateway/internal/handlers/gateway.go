@@ -370,10 +370,8 @@ func (h *GatewayHandler) ProxyToRiskAssessment(w http.ResponseWriter, r *http.Re
 		path = "/api/v1" + path
 	}
 
-	// Add query parameters if any
-	if r.URL.RawQuery != "" {
-		path += "?" + r.URL.RawQuery
-	}
+	// Note: Do NOT add query parameters here - proxyRequest handles them
+	// Adding them here causes them to be included in the path, which breaks parsing
 
 	// Add correlation ID for tracing
 	correlationID := r.Header.Get("X-Request-ID")
