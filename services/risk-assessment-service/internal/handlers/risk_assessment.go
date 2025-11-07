@@ -412,11 +412,13 @@ func (h *RiskAssessmentHandler) HandleRiskPredictions(w http.ResponseWriter, r *
 			
 			// Fallback: generate simple prediction
 			prediction = &models.RiskPrediction{
-				BusinessID:     merchantID,
-				HorizonMonths:  months,
-				PredictedScore: 70.0,
-				PredictedLevel: models.RiskLevelMedium,
-				Confidence:     0.75,
+				BusinessID:      merchantID,
+				PredictionDate:  time.Now(),
+				HorizonMonths:   months,
+				PredictedScore:  70.0,
+				PredictedLevel:  models.RiskLevelMedium,
+				ConfidenceScore: 0.75,
+				CreatedAt:       time.Now(),
 			}
 		}
 
@@ -427,7 +429,7 @@ func (h *RiskAssessmentHandler) HandleRiskPredictions(w http.ResponseWriter, r *
 		}
 
 		if includeConfidence {
-			predictionData["confidence"] = prediction.Confidence
+			predictionData["confidence"] = prediction.ConfidenceScore
 		}
 
 		if includeScenarios {
