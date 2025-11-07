@@ -74,7 +74,7 @@ for dir in "${SCAN_DIRS[@]}"; do
                 done <<< "$matches"
             fi
         done
-    done < <(find "$dir" -type f \( -name "*.go" -o -name "*.js" \) ! -name "*_test.go" ! -name "*.test.js" 2>/dev/null)
+    done < <(find "$dir" -type f \( -name "*.go" -o -name "*.js" \) ! -name "*_test.go" ! -name "*.test.js" ! -path "*/node_modules/*" ! -path "*/vendor/*" ! -path "*/.git/*" 2>/dev/null)
 done
 
 echo ""

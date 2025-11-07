@@ -353,23 +353,13 @@ func (h *GatewayHandler) ProxyToBI(w http.ResponseWriter, r *http.Request) {
 func (h *GatewayHandler) ProxyToRiskAssessment(w http.ResponseWriter, r *http.Request) {
 	// Note: CORS headers are handled by middleware, don't set them here to avoid duplicates
 
-	// Extract the path after /api/v1/risk/
-	// The Risk Assessment Service expects /api/v1/* paths (without /risk prefix)
-	// Example: /api/v1/risk/assess -> /api/v1/assess
+	// Extract the path - keep the full path including /risk
+	// The Risk Assessment Service expects /api/v1/risk/* paths
+	// Example: /api/v1/risk/benchmarks -> /api/v1/risk/benchmarks
 	path := r.URL.Path
 	
-	// Remove /api/v1/risk prefix and replace with /api/v1
-	if strings.HasPrefix(path, "/api/v1/risk") {
-		// Remove /api/v1/risk, keep the rest
-		suffix := strings.TrimPrefix(path, "/api/v1/risk")
-		if suffix == "" {
-			suffix = "/"
-		}
-		path = "/api/v1" + suffix
-	} else if strings.HasPrefix(path, "/api/v1") {
-		// Already has /api/v1, use as-is
-		path = path
-	} else {
+	// Ensure path starts with /api/v1
+	if !strings.HasPrefix(path, "/api/v1") {
 		// No /api/v1 prefix, add it
 		path = "/api/v1" + path
 	}

@@ -211,7 +211,7 @@ function extractComponentUsage(jsFiles, htmlFiles) {
         }
     }
     
-    return Array.from(usages);
+    return usages; // Return Set, not Array
 }
 
 // Main analysis
