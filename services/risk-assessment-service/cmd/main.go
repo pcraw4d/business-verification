@@ -543,6 +543,11 @@ func main() {
 	// Health check endpoint
 	router.HandleFunc("/health", healthCheckHandler).Methods("GET")
 
+	// Prometheus metrics endpoint (root level for standard scraping)
+	if prometheusMetrics != nil {
+		router.Handle("/metrics", prometheusMetrics.GetMetricsHandler()).Methods("GET")
+	}
+
 	// API routes
 	api := router.PathPrefix("/api/v1").Subrouter()
 
