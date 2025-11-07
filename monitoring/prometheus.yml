@@ -87,19 +87,21 @@ scrape_configs:
     scrape_interval: 30s
 
   # Blackbox exporter for HTTP health checks
-  - job_name: 'blackbox-http'
-    metrics_path: /probe
-    params:
-      module: [http_2xx]
-    static_configs:
-      - targets:
-        - https://api-gateway-service-production-21fd.up.railway.app/health
-        - https://merchant-service-production.up.railway.app/health
-        - https://risk-assessment-service-production.up.railway.app/health
-    relabel_configs:
-      - source_labels: [__address__]
-        target_label: __param_target
-      - source_labels: [__param_target]
-        target_label: instance
-      - target_label: __address__
-        replacement: localhost:9115
+  # NOTE: Requires blackbox-exporter service running on localhost:9115
+  # To enable: Start blackbox-exporter service and uncomment this section
+  # - job_name: 'blackbox-http'
+  #   metrics_path: /probe
+  #   params:
+  #     module: [http_2xx]
+  #   static_configs:
+  #     - targets:
+  #       - https://api-gateway-service-production-21fd.up.railway.app/health
+  #       - https://merchant-service-production.up.railway.app/health
+  #       - https://risk-assessment-service-production.up.railway.app/health
+  #   relabel_configs:
+  #     - source_labels: [__address__]
+  #       target_label: __param_target
+  #     - source_labels: [__param_target]
+  #       target_label: instance
+  #     - target_label: __address__
+  #       replacement: localhost:9115

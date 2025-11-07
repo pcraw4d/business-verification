@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 
 	"kyb-platform/services/api-gateway/internal/config"
@@ -70,6 +71,9 @@ func main() {
 
 	// Health check endpoint
 	router.HandleFunc("/health", gatewayHandler.HealthCheck).Methods("GET")
+
+	// Prometheus metrics endpoint
+	router.Handle("/metrics", promhttp.Handler()).Methods("GET")
 
 	// Root endpoint for debugging
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
