@@ -17,10 +17,11 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-  # Business Verification V3 API
+  # Business Verification V3 API (API Gateway)
   - job_name: 'business-verification-v3-api'
+    scheme: https
     static_configs:
-      - targets: ['localhost:8080']
+      - targets: ['api-gateway-service-production-21fd.up.railway.app']
     metrics_path: '/metrics'
     scrape_interval: 10s
     scrape_timeout: 5s
@@ -36,8 +37,9 @@ scrape_configs:
 
   # Merchant Service
   - job_name: 'merchant-service'
+    scheme: https
     static_configs:
-      - targets: ['localhost:8082']
+      - targets: ['merchant-service-production.up.railway.app']
     metrics_path: '/metrics'
     scrape_interval: 10s
     scrape_timeout: 5s
@@ -50,18 +52,35 @@ scrape_configs:
         target_label: service
         replacement: 'merchant-service'
 
-  # Node Exporter for system metrics
+  # Risk Assessment Service
+  - job_name: 'risk-assessment-service'
+    scheme: https
+    static_configs:
+      - targets: ['risk-assessment-service-production.up.railway.app']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    
+    # Add custom labels
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'risk-assessment-service'
+
+  # Node Exporter for system metrics (local only - disable if not running locally)
   - job_name: 'node-exporter'
     static_configs:
       - targets: ['localhost:9100']
 
-  # Database metrics (if available)
+  # Database metrics (local only - disable if not running locally)
   - job_name: 'postgres-exporter'
     static_configs:
       - targets: ['localhost:9187']
     scrape_interval: 30s
 
-  # Redis metrics (if using Redis)
+  # Redis metrics (local only - disable if not running locally)
   - job_name: 'redis-exporter'
     static_configs:
       - targets: ['localhost:9121']
@@ -74,8 +93,9 @@ scrape_configs:
       module: [http_2xx]
     static_configs:
       - targets:
-        - http://localhost:8080/health
-        - http://localhost:8080/api/v3/dashboard
+        - https://api-gateway-service-production-21fd.up.railway.app/health
+        - https://merchant-service-production.up.railway.app/health
+        - https://risk-assessment-service-production.up.railway.app/health
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
