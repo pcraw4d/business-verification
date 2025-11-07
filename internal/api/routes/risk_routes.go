@@ -64,4 +64,3 @@ func RegisterRiskRoutes(mux *http.ServeMux, riskHandler *handlers.RiskHandler) {
 				middleware.CORSMiddleware(
 					riskHandler.GetIndustryBenchmarksHandler))))
 }
-

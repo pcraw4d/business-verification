@@ -1822,10 +1822,10 @@ func (h *RiskHandler) GetRiskBenchmarksHandler(w http.ResponseWriter, r *http.Re
 	benchmarks, err := h.riskService.GetIndustryBenchmarks(ctx, industryCode)
 	if err != nil {
 		h.logger.Error("Failed to get industry benchmarks", map[string]interface{}{
-			"request_id":   requestID,
+			"request_id":    requestID,
 			"industry_code": industryCode,
 			"industry_type": industryType,
-			"error":        err.Error(),
+			"error":         err.Error(),
 		})
 		http.Error(w, "Failed to get industry benchmarks", http.StatusInternalServerError)
 		return
@@ -1835,11 +1835,11 @@ func (h *RiskHandler) GetRiskBenchmarksHandler(w http.ResponseWriter, r *http.Re
 	response := map[string]interface{}{
 		"industry_code": industryCode,
 		"industry_type": industryType,
-		"mcc":          mcc,
-		"naics":        naics,
-		"sic":          sic,
-		"benchmarks":   benchmarks,
-		"timestamp":    time.Now(),
+		"mcc":           mcc,
+		"naics":         naics,
+		"sic":           sic,
+		"benchmarks":    benchmarks,
+		"timestamp":     time.Now(),
 	}
 
 	// Set response headers
@@ -1859,10 +1859,10 @@ func (h *RiskHandler) GetRiskBenchmarksHandler(w http.ResponseWriter, r *http.Re
 	duration := time.Since(startTime)
 	h.logger.Info("Get risk benchmarks request completed", map[string]interface{}{
 		"request_id":    requestID,
-		"industry_code":  industryCode,
-		"industry_type":  industryType,
+		"industry_code": industryCode,
+		"industry_type": industryType,
 		"duration_ms":   duration.Milliseconds(),
-		"status_code":    http.StatusOK,
+		"status_code":   http.StatusOK,
 	})
 }
 
@@ -1924,11 +1924,11 @@ func (h *RiskHandler) GetRiskPredictionsHandler(w http.ResponseWriter, r *http.R
 		// Continue with empty history - predictions can still be generated
 		historyEntries = []risk.RiskHistoryEntry{}
 	}
-	
+
 	// Convert to internal structure for predictions
 	var currentScore float64 = 50.0 // Default score when no history available
 	var previousScore float64 = 50.0
-	
+
 	if len(historyEntries) > 0 {
 		// Get most recent score
 		currentScore = historyEntries[0].Score
@@ -1944,13 +1944,13 @@ func (h *RiskHandler) GetRiskPredictionsHandler(w http.ResponseWriter, r *http.R
 		var predictedScore float64
 		var confidence float64
 		var trend string
-		
+
 		if len(historyEntries) >= 2 {
 			// Use trend analysis
 			scoreChange := currentScore - previousScore
 			monthsSinceLast := float64(months)
 			predictedScore = currentScore + (scoreChange * monthsSinceLast / 3.0) // Project based on 3-month trend
-			
+
 			// Clamp to valid range
 			if predictedScore < 0 {
 				predictedScore = 0
@@ -1958,7 +1958,7 @@ func (h *RiskHandler) GetRiskPredictionsHandler(w http.ResponseWriter, r *http.R
 			if predictedScore > 100 {
 				predictedScore = 100
 			}
-			
+
 			// Determine trend
 			if scoreChange > 2 {
 				trend = "RISING"
@@ -1967,7 +1967,7 @@ func (h *RiskHandler) GetRiskPredictionsHandler(w http.ResponseWriter, r *http.R
 			} else {
 				trend = "STABLE"
 			}
-			
+
 			// Calculate confidence based on data points
 			confidence = 0.7 + (float64(len(historyEntries)) * 0.05)
 			if confidence > 0.95 {
@@ -1979,35 +1979,35 @@ func (h *RiskHandler) GetRiskPredictionsHandler(w http.ResponseWriter, r *http.R
 			trend = "STABLE"
 			confidence = 0.5
 		}
-		
+
 		prediction := map[string]interface{}{
-			"horizon_months": months,
+			"horizon_months":  months,
 			"predicted_score": predictedScore,
-			"trend":          trend,
+			"trend":           trend,
 		}
-		
+
 		if includeConfidence {
 			prediction["confidence"] = confidence
 		}
-		
+
 		if includeScenarios {
 			// Add scenario analysis
 			prediction["scenarios"] = map[string]interface{}{
-				"optimistic": predictedScore - 5,
-				"realistic":  predictedScore,
+				"optimistic":  predictedScore - 5,
+				"realistic":   predictedScore,
 				"pessimistic": predictedScore + 5,
 			}
 		}
-		
+
 		predictions = append(predictions, prediction)
 	}
 
 	// Create response
 	response := map[string]interface{}{
-		"merchant_id": merchantID,
-		"predictions": predictions,
+		"merchant_id":  merchantID,
+		"predictions":  predictions,
 		"generated_at": time.Now(),
-		"data_points": len(historyEntries),
+		"data_points":  len(historyEntries),
 	}
 
 	// Set response headers
@@ -2026,10 +2026,10 @@ func (h *RiskHandler) GetRiskPredictionsHandler(w http.ResponseWriter, r *http.R
 
 	duration := time.Since(startTime)
 	h.logger.Info("Get risk predictions request completed", map[string]interface{}{
-		"request_id":   requestID,
-		"merchant_id":  merchantID,
-		"horizons":     horizons,
-		"duration_ms":  duration.Milliseconds(),
-		"status_code":  http.StatusOK,
+		"request_id":  requestID,
+		"merchant_id": merchantID,
+		"horizons":    horizons,
+		"duration_ms": duration.Milliseconds(),
+		"status_code": http.StatusOK,
 	})
 }

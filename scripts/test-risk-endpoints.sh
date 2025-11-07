@@ -12,7 +12,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-API_BASE_URL="${API_BASE_URL:-http://localhost:8080}"
+API_BASE_URL="${API_BASE_URL:-https://api-gateway-service-production-21fd.up.railway.app}"
 TEST_MERCHANT_ID="${TEST_MERCHANT_ID:-test-merchant-123}"
 
 echo -e "${YELLOW}🧪 Testing Risk API Endpoints${NC}"

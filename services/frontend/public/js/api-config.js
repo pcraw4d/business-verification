@@ -16,7 +16,7 @@ class APIConfig {
         }
         
         // Production Railway API Gateway
-        return 'https://kyb-api-gateway-production.up.railway.app';
+        return 'https://api-gateway-service-production-21fd.up.railway.app';
     }
     
     /**
