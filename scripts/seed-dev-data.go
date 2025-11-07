@@ -52,51 +52,51 @@ func main() {
 func seedMerchants(ctx context.Context, client *supabase.Client, logger *zap.Logger) error {
 	merchants := []map[string]interface{}{
 		{
-			"id":            "merchant_001",
-			"name":          "Acme Corporation",
-			"legal_name":    "Acme Corporation LLC",
+			"id":             "merchant_001",
+			"name":           "Acme Corporation",
+			"legal_name":     "Acme Corporation LLC",
 			"portfolio_type": "onboarded",
-			"risk_level":    "low",
-			"status":        "active",
-			"industry":      "Technology",
-			"industry_code": "5734",
-			"created_at":    time.Now().Format(time.RFC3339),
-			"updated_at":    time.Now().Format(time.RFC3339),
+			"risk_level":     "low",
+			"status":         "active",
+			"industry":       "Technology",
+			"industry_code":  "5734",
+			"created_at":     time.Now().Format(time.RFC3339),
+			"updated_at":     time.Now().Format(time.RFC3339),
 		},
 		{
-			"id":            "merchant_002",
-			"name":          "Global Trading Co",
-			"legal_name":    "Global Trading Company Inc",
+			"id":             "merchant_002",
+			"name":           "Global Trading Co",
+			"legal_name":     "Global Trading Company Inc",
 			"portfolio_type": "prospective",
-			"risk_level":    "medium",
-			"status":        "active",
-			"industry":      "Retail",
-			"industry_code": "5999",
-			"created_at":    time.Now().Format(time.RFC3339),
-			"updated_at":    time.Now().Format(time.RFC3339),
+			"risk_level":     "medium",
+			"status":         "active",
+			"industry":       "Retail",
+			"industry_code":  "5999",
+			"created_at":     time.Now().Format(time.RFC3339),
+			"updated_at":     time.Now().Format(time.RFC3339),
 		},
 		{
-			"id":            "merchant_003",
-			"name":          "Secure Finance Ltd",
-			"legal_name":    "Secure Finance Limited",
+			"id":             "merchant_003",
+			"name":           "Secure Finance Ltd",
+			"legal_name":     "Secure Finance Limited",
 			"portfolio_type": "onboarded",
-			"risk_level":    "high",
-			"status":        "active",
-			"industry":      "Financial Services",
-			"industry_code": "6012",
-			"created_at":    time.Now().Format(time.RFC3339),
-			"updated_at":    time.Now().Format(time.RFC3339),
+			"risk_level":     "high",
+			"status":         "active",
+			"industry":       "Financial Services",
+			"industry_code":  "6012",
+			"created_at":     time.Now().Format(time.RFC3339),
+			"updated_at":     time.Now().Format(time.RFC3339),
 		},
 	}
 
 	for _, merchant := range merchants {
 		merchantJSON, _ := json.Marshal(merchant)
 		var result []map[string]interface{}
-		
+
 		_, err := client.From("merchants").
 			Upsert(string(merchantJSON), "", false).
 			ExecuteTo(&result)
-		
+
 		if err != nil {
 			logger.Warn("Failed to seed merchant",
 				zap.String("merchant_id", merchant["id"].(string)),
@@ -145,11 +145,11 @@ func seedRiskBenchmarks(ctx context.Context, client *supabase.Client, logger *za
 	for _, benchmark := range benchmarks {
 		benchmarkJSON, _ := json.Marshal(benchmark)
 		var result []map[string]interface{}
-		
+
 		_, err := client.From("risk_benchmarks").
 			Upsert(string(benchmarkJSON), "", false).
 			ExecuteTo(&result)
-		
+
 		if err != nil {
 			logger.Warn("Failed to seed benchmark",
 				zap.String("industry_code", benchmark["industry_code"].(string)),
@@ -162,4 +162,3 @@ func seedRiskBenchmarks(ctx context.Context, client *supabase.Client, logger *za
 
 	return nil
 }
-

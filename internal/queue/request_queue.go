@@ -22,15 +22,15 @@ const (
 
 // QueuedRequest represents a request that failed and is queued for retry
 type QueuedRequest struct {
-	ID        string
-	Type      string
-	Data      interface{}
-	Priority  RequestPriority
-	Attempts  int
+	ID          string
+	Type        string
+	Data        interface{}
+	Priority    RequestPriority
+	Attempts    int
 	MaxAttempts int
-	CreatedAt time.Time
-	NextRetry time.Time
-	Error     string
+	CreatedAt   time.Time
+	NextRetry   time.Time
+	Error       string
 }
 
 // RequestQueue manages a queue of failed requests for retry
@@ -92,7 +92,7 @@ func (rq *RequestQueue) Enqueue(ctx context.Context, req *QueuedRequest) error {
 
 	// Add to queue
 	rq.queue = append(rq.queue, req)
-	
+
 	// Add to priority map
 	if rq.priorityMap[req.Priority] == nil {
 		rq.priorityMap[req.Priority] = make([]*QueuedRequest, 0)
@@ -115,7 +115,7 @@ func (rq *RequestQueue) Dequeue(ctx context.Context) (*QueuedRequest, error) {
 
 	// Process by priority (Critical -> High -> Normal -> Low)
 	priorities := []RequestPriority{PriorityCritical, PriorityHigh, PriorityNormal, PriorityLow}
-	
+
 	for _, priority := range priorities {
 		queue := rq.priorityMap[priority]
 		if len(queue) == 0 {
@@ -128,7 +128,7 @@ func (rq *RequestQueue) Dequeue(ctx context.Context) (*QueuedRequest, error) {
 				// Remove from queue
 				rq.queue = rq.removeFromQueue(rq.queue, req.ID)
 				rq.priorityMap[priority] = append(queue[:i], queue[i+1:]...)
-				
+
 				return req, nil
 			}
 		}
@@ -185,7 +185,7 @@ func (rq *RequestQueue) ProcessQueue(ctx context.Context, handler func(ctx conte
 					delay := time.Duration(req.Attempts) * time.Minute
 					req.NextRetry = time.Now().Add(delay)
 					req.Error = err.Error()
-					
+
 					rq.mu.Lock()
 					rq.queue = append(rq.queue, req)
 					if rq.priorityMap[req.Priority] == nil {
@@ -226,7 +226,7 @@ func (rq *RequestQueue) GetQueueStats() map[string]interface{} {
 	defer rq.mu.RUnlock()
 
 	stats := map[string]interface{}{
-		"total_size": len(rq.queue),
+		"total_size":  len(rq.queue),
 		"by_priority": make(map[string]int),
 	}
 
@@ -264,4 +264,3 @@ func (req *QueuedRequest) MarshalJSON() ([]byte, error) {
 		Priority: req.Priority.String(),
 	})
 }
-

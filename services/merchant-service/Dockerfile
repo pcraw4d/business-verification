@@ -1,34 +1,22 @@
 # Build stage
 FROM golang:1.22-alpine AS builder
 
-# Set working directory to root of project
+# Set working directory
 WORKDIR /app
 
 # Install dependencies
 RUN apk add --no-cache git ca-certificates
 
-# Copy root go.mod and go.sum first (needed for replace directive)
+# Copy merchant-service go.mod first
 COPY go.mod go.sum* ./
 
-# Copy merchant-service go.mod
-COPY services/merchant-service/go.mod services/merchant-service/go.sum* ./services/merchant-service/
-
-# Download root dependencies
+# Download dependencies
 RUN go mod download
 
-# Download merchant-service dependencies
-WORKDIR /app/services/merchant-service
-RUN go mod download
-
-# Copy root internal packages (needed for replace directive)
-WORKDIR /app
-COPY internal ./internal
-
-# Copy merchant-service source code
-COPY services/merchant-service ./services/merchant-service
+# Copy merchant-service source code (including internal packages we copied)
+COPY . .
 
 # Build the application
-WORKDIR /app/services/merchant-service
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o merchant-service ./cmd/main.go
 
 # Final stage
@@ -45,7 +33,7 @@ RUN mkdir -p /app
 WORKDIR /app
 
 # Copy binary from builder stage
-COPY --from=builder /app/services/merchant-service/merchant-service .
+COPY --from=builder /app/merchant-service .
 
 # Change ownership to non-root user
 RUN chown appuser:appuser /app/merchant-service

@@ -12,11 +12,11 @@ import (
 
 // FallbackMetrics tracks fallback data usage across services
 type FallbackMetrics struct {
-	mu          sync.RWMutex
-	usage       map[string]*ServiceFallbackStats
-	logger      *zap.Logger
-	startTime   time.Time
-	
+	mu        sync.RWMutex
+	usage     map[string]*ServiceFallbackStats
+	logger    *zap.Logger
+	startTime time.Time
+
 	// Prometheus metrics
 	fallbackTotal      *prometheus.CounterVec
 	fallbackRate       *prometheus.GaugeVec
@@ -45,7 +45,7 @@ func NewFallbackMetrics(logger *zap.Logger) *FallbackMetrics {
 		usage:     make(map[string]*ServiceFallbackStats),
 		logger:    logger,
 		startTime: time.Now(),
-		
+
 		// Initialize Prometheus metrics
 		fallbackTotal: promauto.NewCounterVec(
 			prometheus.CounterOpts{
@@ -97,7 +97,7 @@ func NewFallbackMetrics(logger *zap.Logger) *FallbackMetrics {
 func (fm *FallbackMetrics) RecordFallbackUsage(ctx context.Context, serviceName, category, source string, duration time.Duration) {
 	fm.mu.Lock()
 	defer fm.mu.Unlock()
-	
+
 	stats, exists := fm.usage[serviceName]
 	if !exists {
 		stats = &ServiceFallbackStats{
@@ -107,21 +107,21 @@ func (fm *FallbackMetrics) RecordFallbackUsage(ctx context.Context, serviceName,
 		}
 		fm.usage[serviceName] = stats
 	}
-	
+
 	stats.TotalRequests++
 	stats.FallbackCount++
 	stats.FallbackRate = float64(stats.FallbackCount) / float64(stats.TotalRequests) * 100
 	stats.LastFallback = time.Now()
 	stats.TotalDuration += duration
 	stats.AverageDuration = stats.TotalDuration / time.Duration(stats.FallbackCount)
-	
+
 	if category != "" {
 		stats.ByCategory[category]++
 	}
 	if source != "" {
 		stats.BySource[source]++
 	}
-	
+
 	// Update Prometheus metrics
 	fm.fallbackTotal.WithLabelValues(serviceName, category, source).Inc()
 	fm.fallbackRate.WithLabelValues(serviceName).Set(stats.FallbackRate)
@@ -133,7 +133,7 @@ func (fm *FallbackMetrics) RecordFallbackUsage(ctx context.Context, serviceName,
 	if source != "" {
 		fm.fallbackBySource.WithLabelValues(serviceName, source).Inc()
 	}
-	
+
 	fm.logger.Info("Fallback usage recorded",
 		zap.String("service", serviceName),
 		zap.String("category", category),
@@ -145,7 +145,7 @@ func (fm *FallbackMetrics) RecordFallbackUsage(ctx context.Context, serviceName,
 func (fm *FallbackMetrics) RecordRequest(ctx context.Context, serviceName string) {
 	fm.mu.Lock()
 	defer fm.mu.Unlock()
-	
+
 	stats, exists := fm.usage[serviceName]
 	if !exists {
 		stats = &ServiceFallbackStats{
@@ -155,10 +155,10 @@ func (fm *FallbackMetrics) RecordRequest(ctx context.Context, serviceName string
 		}
 		fm.usage[serviceName] = stats
 	}
-	
+
 	stats.TotalRequests++
 	stats.FallbackRate = float64(stats.FallbackCount) / float64(stats.TotalRequests) * 100
-	
+
 	// Update Prometheus metrics
 	fm.requestsTotal.WithLabelValues(serviceName).Inc()
 	fm.fallbackRate.WithLabelValues(serviceName).Set(stats.FallbackRate)
@@ -168,7 +168,7 @@ func (fm *FallbackMetrics) RecordRequest(ctx context.Context, serviceName string
 func (fm *FallbackMetrics) GetStats(serviceName string) *ServiceFallbackStats {
 	fm.mu.RLock()
 	defer fm.mu.RUnlock()
-	
+
 	stats, exists := fm.usage[serviceName]
 	if !exists {
 		return &ServiceFallbackStats{
@@ -177,7 +177,7 @@ func (fm *FallbackMetrics) GetStats(serviceName string) *ServiceFallbackStats {
 			BySource:    make(map[string]int64),
 		}
 	}
-	
+
 	// Return a copy to avoid race conditions
 	return &ServiceFallbackStats{
 		ServiceName:     stats.ServiceName,
@@ -196,7 +196,7 @@ func (fm *FallbackMetrics) GetStats(serviceName string) *ServiceFallbackStats {
 func (fm *FallbackMetrics) GetAllStats() map[string]*ServiceFallbackStats {
 	fm.mu.RLock()
 	defer fm.mu.RUnlock()
-	
+
 	result := make(map[string]*ServiceFallbackStats)
 	for serviceName, stats := range fm.usage {
 		result[serviceName] = &ServiceFallbackStats{
@@ -211,7 +211,7 @@ func (fm *FallbackMetrics) GetAllStats() map[string]*ServiceFallbackStats {
 			AverageDuration: stats.AverageDuration,
 		}
 	}
-	
+
 	return result
 }
 
@@ -219,34 +219,34 @@ func (fm *FallbackMetrics) GetAllStats() map[string]*ServiceFallbackStats {
 func (fm *FallbackMetrics) GetSummary() FallbackMetricsSummary {
 	fm.mu.RLock()
 	defer fm.mu.RUnlock()
-	
+
 	summary := FallbackMetricsSummary{
-		TotalServices:     len(fm.usage),
-		TotalRequests:     0,
-		TotalFallbacks:    0,
+		TotalServices:       len(fm.usage),
+		TotalRequests:       0,
+		TotalFallbacks:      0,
 		OverallFallbackRate: 0,
-		Uptime:            time.Since(fm.startTime),
-		ByCategory:        make(map[string]int64),
-		BySource:          make(map[string]int64),
+		Uptime:              time.Since(fm.startTime),
+		ByCategory:          make(map[string]int64),
+		BySource:            make(map[string]int64),
 	}
-	
+
 	for _, stats := range fm.usage {
 		summary.TotalRequests += stats.TotalRequests
 		summary.TotalFallbacks += stats.FallbackCount
-		
+
 		for category, count := range stats.ByCategory {
 			summary.ByCategory[category] += count
 		}
-		
+
 		for source, count := range stats.BySource {
 			summary.BySource[source] += count
 		}
 	}
-	
+
 	if summary.TotalRequests > 0 {
 		summary.OverallFallbackRate = float64(summary.TotalFallbacks) / float64(summary.TotalRequests) * 100
 	}
-	
+
 	return summary
 }
 
@@ -269,4 +269,3 @@ func copyMap(src map[string]int64) map[string]int64 {
 	}
 	return dst
 }
-

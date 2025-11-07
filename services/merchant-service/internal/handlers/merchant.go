@@ -11,10 +11,10 @@ import (
 
 	"go.uber.org/zap"
 
-	"kyb-platform/internal/cache"
-	"kyb-platform/internal/metrics"
-	"kyb-platform/internal/queue"
-	"kyb-platform/internal/resilience"
+	"kyb-platform/services/merchant-service/internal/cache"
+	"kyb-platform/services/merchant-service/internal/metrics"
+	"kyb-platform/services/merchant-service/internal/queue"
+	"kyb-platform/services/merchant-service/internal/resilience"
 	"kyb-platform/services/merchant-service/internal/config"
 	"kyb-platform/services/merchant-service/internal/supabase"
 )
@@ -696,7 +696,7 @@ func (h *MerchantHandler) listMerchants(ctx context.Context, page, pageSize int,
 	var result []map[string]interface{}
 	_, err := h.supabaseClient.GetClient().From("merchants").
 		Select("*", "", false).
-		Range((page-1)*pageSize, page*pageSize-1).
+		Range((page-1)*pageSize, page*pageSize-1, "").
 		ExecuteTo(&result)
 	
 	if err != nil {

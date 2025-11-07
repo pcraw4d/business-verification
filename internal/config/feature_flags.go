@@ -123,9 +123,9 @@ func (fm *FeatureFlagManager) loadDefaultFlags() {
 			Percentage:  100,
 			StartTime:   time.Now(),
 			Metadata: map[string]interface{}{
-				"status":      "incomplete",
-				"todo":        "Complete database queries for benchmarks",
-				"production":  false,
+				"status":     "incomplete",
+				"todo":       "Complete database queries for benchmarks",
+				"production": false,
 			},
 		},
 		"incomplete_risk_predictions": {
@@ -135,9 +135,9 @@ func (fm *FeatureFlagManager) loadDefaultFlags() {
 			Percentage:  100,
 			StartTime:   time.Now(),
 			Metadata: map[string]interface{}{
-				"status":      "incomplete",
-				"todo":        "Complete ML service integration",
-				"production":  false,
+				"status":     "incomplete",
+				"todo":       "Complete ML service integration",
+				"production": false,
 			},
 		},
 		"incomplete_merchant_analytics": {
@@ -147,9 +147,9 @@ func (fm *FeatureFlagManager) loadDefaultFlags() {
 			Percentage:  100,
 			StartTime:   time.Now(),
 			Metadata: map[string]interface{}{
-				"status":      "incomplete",
-				"todo":        "Complete analytics data aggregation",
-				"production":  false,
+				"status":     "incomplete",
+				"todo":       "Complete analytics data aggregation",
+				"production": false,
 			},
 		},
 	}

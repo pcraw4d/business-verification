@@ -35,11 +35,11 @@ func (s CircuitState) String() string {
 
 // CircuitBreakerConfig holds configuration for circuit breaker behavior
 type CircuitBreakerConfig struct {
-	FailureThreshold    int           // Number of failures before opening circuit
-	SuccessThreshold    int           // Number of successes in half-open state to close circuit
-	Timeout             time.Duration // Time to wait before attempting half-open
-	MaxRequests         int           // Max requests in half-open state (default: 1)
-	ResetTimeout        time.Duration // Time to wait before resetting failure count
+	FailureThreshold int           // Number of failures before opening circuit
+	SuccessThreshold int           // Number of successes in half-open state to close circuit
+	Timeout          time.Duration // Time to wait before attempting half-open
+	MaxRequests      int           // Max requests in half-open state (default: 1)
+	ResetTimeout     time.Duration // Time to wait before resetting failure count
 }
 
 // DefaultCircuitBreakerConfig returns a default circuit breaker configuration
@@ -84,31 +84,31 @@ func (cb *CircuitBreaker) Execute(ctx context.Context, fn func() error) error {
 	if !cb.allowRequest() {
 		return fmt.Errorf("circuit breaker is %s", cb.getState())
 	}
-	
+
 	// Execute the function
 	err := fn()
-	
+
 	// Update circuit state based on result
 	cb.onResult(err)
-	
+
 	return err
 }
 
 // ExecuteWithResult executes a function that returns a result through the circuit breaker
 func ExecuteWithResult[T any](cb *CircuitBreaker, ctx context.Context, fn func() (T, error)) (T, error) {
 	var zero T
-	
+
 	// Check if we should allow the request
 	if !cb.allowRequest() {
 		return zero, fmt.Errorf("circuit breaker is %s", cb.getState())
 	}
-	
+
 	// Execute the function
 	result, err := fn()
-	
+
 	// Update circuit state based on result
 	cb.onResult(err)
-	
+
 	return result, err
 }
 
@@ -116,7 +116,7 @@ func ExecuteWithResult[T any](cb *CircuitBreaker, ctx context.Context, fn func()
 func (cb *CircuitBreaker) allowRequest() bool {
 	cb.mu.RLock()
 	defer cb.mu.RUnlock()
-	
+
 	switch cb.state {
 	case CircuitClosed:
 		return true
@@ -147,7 +147,7 @@ func (cb *CircuitBreaker) allowRequest() bool {
 func (cb *CircuitBreaker) onResult(err error) {
 	cb.mu.Lock()
 	defer cb.mu.Unlock()
-	
+
 	if err != nil {
 		cb.onFailure()
 	} else {
@@ -159,7 +159,7 @@ func (cb *CircuitBreaker) onResult(err error) {
 func (cb *CircuitBreaker) onFailure() {
 	cb.failureCount++
 	cb.lastFailure = time.Now()
-	
+
 	switch cb.state {
 	case CircuitClosed:
 		// Open circuit if failure threshold reached
@@ -179,7 +179,7 @@ func (cb *CircuitBreaker) onFailure() {
 // onSuccess handles a successful request
 func (cb *CircuitBreaker) onSuccess() {
 	cb.failureCount = 0
-	
+
 	switch cb.state {
 	case CircuitHalfOpen:
 		cb.successCount++
@@ -215,7 +215,7 @@ func (cb *CircuitBreaker) GetState() CircuitState {
 func (cb *CircuitBreaker) GetStats() CircuitBreakerStats {
 	cb.mu.RLock()
 	defer cb.mu.RUnlock()
-	
+
 	return CircuitBreakerStats{
 		State:         cb.state.String(),
 		FailureCount:  cb.failureCount,
@@ -235,4 +235,3 @@ type CircuitBreakerStats struct {
 	LastFailure   time.Time
 	StateChange   time.Time
 }
-
