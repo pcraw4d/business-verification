@@ -360,9 +360,14 @@ func (h *GatewayHandler) ProxyToRiskAssessment(w http.ResponseWriter, r *http.Re
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Request-ID")
 
 	// Extract the path after /api/v1/risk/
-	path := strings.TrimPrefix(r.URL.Path, "/api/v1/risk")
+	// The Risk Assessment Service expects /api/v1/risk/* paths
+	path := strings.TrimPrefix(r.URL.Path, "/api/v1")
 	if path == "" {
-		path = "/"
+		path = "/api/v1"
+	}
+	// Ensure path starts with /api/v1
+	if !strings.HasPrefix(path, "/api/v1") {
+		path = "/api/v1" + path
 	}
 
 	// Add query parameters if any
