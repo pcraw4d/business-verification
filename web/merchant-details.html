@@ -1215,27 +1215,56 @@
                     const apiConfig = typeof APIConfig !== 'undefined' ? APIConfig : null;
                     if (apiConfig && merchantId) {
                         const endpoints = apiConfig.getEndpoints();
-                        const response = await fetch(endpoints.merchantById(merchantId), {
-                            headers: apiConfig.getHeaders()
-                        });
+                        console.log('📡 Fetching merchant data from:', endpoints.merchantById(merchantId));
                         
-                        if (response.ok) {
+                        try {
+                            const response = await fetch(endpoints.merchantById(merchantId), {
+                                headers: apiConfig.getHeaders()
+                            });
+                            
+                            console.log('📡 Merchant API response status:', response.status);
+                            console.log('📡 Merchant API response headers:', Object.fromEntries(response.headers.entries()));
+                            
+                            if (!response.ok) {
+                                const errorText = await response.text().catch(() => 'Unknown error');
+                                console.error('❌ Merchant API error:', response.status, errorText.substring(0, 200));
+                                throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 100)}`);
+                            }
+                            
+                            const contentType = response.headers.get('content-type') || '';
+                            if (!contentType.includes('application/json')) {
+                                const text = await response.text();
+                                console.error('❌ Merchant API returned non-JSON:', text.substring(0, 200));
+                                throw new Error(`API returned non-JSON. Status: ${response.status}`);
+                            }
+                            
                             const merchantData = await response.json();
-                            console.log('📦 Merchant data from API:', merchantData);
+                            console.log('📦 Merchant data from API (full):', JSON.stringify(merchantData, null, 2));
+                            console.log('📦 Merchant data keys:', Object.keys(merchantData));
+                            
+                            // Update merchant data
+                            this.merchantData = merchantData;
+                            this.populateMerchantDetails();
                             
                             // Check if BI data is embedded in merchant response
-                            if (merchantData.businessIntelligence || merchantData.business_intelligence) {
+                            if (merchantData.businessIntelligence || merchantData.business_intelligence || merchantData.business_intelligence_results) {
                                 if (!this.apiResults) {
                                     this.apiResults = {};
                                 }
-                                this.apiResults.businessIntelligence = merchantData.businessIntelligence || merchantData.business_intelligence;
+                                this.apiResults.businessIntelligence = merchantData.businessIntelligence || merchantData.business_intelligence || merchantData.business_intelligence_results;
                                 this.populateBusinessIntelligenceResults(this.apiResults.businessIntelligence);
                                 
                                 // Store in sessionStorage
                                 sessionStorage.setItem('merchantApiResults', JSON.stringify(this.apiResults));
+                                sessionStorage.setItem('merchantData', JSON.stringify(merchantData));
                                 console.log('✅ Loaded and stored BI data from merchant API');
                                 return;
+                            } else {
+                                console.log('⚠️ No BI data found in merchant response, will try BI service');
                             }
+                        } catch (fetchError) {
+                            console.error('❌ Failed to fetch merchant data:', fetchError);
+                            throw fetchError;
                         }
                     }
                     

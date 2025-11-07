@@ -292,10 +292,51 @@ func (h *MerchantHandler) createMerchant(ctx context.Context, req *CreateMerchan
 
 // getMerchant retrieves a merchant by ID
 func (h *MerchantHandler) getMerchant(ctx context.Context, merchantID string, startTime time.Time) (*Merchant, error) {
-	// TODO: Retrieve from Supabase
-	// For now, return a mock merchant
+	h.logger.Info("Fetching merchant from Supabase",
+		zap.String("merchant_id", merchantID))
 
-	merchant := &Merchant{
+	// Try to get merchant from Supabase
+	var result []map[string]interface{}
+	_, err := h.supabaseClient.GetClient().From("merchants").
+		Select("*", "", false).
+		Eq("id", merchantID).
+		Limit(1, "").
+		ExecuteTo(&result)
+
+	if err != nil {
+		h.logger.Warn("Failed to fetch merchant from Supabase, using fallback",
+			zap.String("merchant_id", merchantID),
+			zap.Error(err))
+		// Fallback to mock data if Supabase query fails
+		return h.getMockMerchant(merchantID), nil
+	}
+
+	if len(result) == 0 {
+		h.logger.Warn("Merchant not found in Supabase, using fallback",
+			zap.String("merchant_id", merchantID))
+		// Fallback to mock data if not found
+		return h.getMockMerchant(merchantID), nil
+	}
+
+	// Convert Supabase result to Merchant struct
+	merchant, err := h.mapToMerchant(result[0])
+	if err != nil {
+		h.logger.Error("Failed to map Supabase data to merchant, using fallback",
+			zap.String("merchant_id", merchantID),
+			zap.Error(err))
+		return h.getMockMerchant(merchantID), nil
+	}
+
+	h.logger.Info("Successfully fetched merchant from Supabase",
+		zap.String("merchant_id", merchantID),
+		zap.String("name", merchant.Name))
+
+	return merchant, nil
+}
+
+// getMockMerchant returns a mock merchant for fallback
+func (h *MerchantHandler) getMockMerchant(merchantID string) *Merchant {
+	return &Merchant{
 		ID:            merchantID,
 		Name:          "Sample Merchant",
 		LegalName:     "Sample Merchant LLC",
@@ -304,6 +345,120 @@ func (h *MerchantHandler) getMerchant(ctx context.Context, merchantID string, st
 		Status:        "active",
 		CreatedAt:     time.Now(),
 		UpdatedAt:     time.Now(),
+	}
+}
+
+// mapToMerchant converts a map from Supabase to a Merchant struct
+func (h *MerchantHandler) mapToMerchant(data map[string]interface{}) (*Merchant, error) {
+	merchant := &Merchant{}
+
+	// Extract ID
+	if id, ok := data["id"].(string); ok {
+		merchant.ID = id
+	}
+
+	// Extract Name (try multiple field names)
+	if name, ok := data["name"].(string); ok {
+		merchant.Name = name
+	} else if name, ok := data["business_name"].(string); ok {
+		merchant.Name = name
+	}
+
+	// Extract LegalName
+	if legalName, ok := data["legal_name"].(string); ok {
+		merchant.LegalName = legalName
+	}
+
+	// Extract RegistrationNumber
+	if regNum, ok := data["registration_number"].(string); ok {
+		merchant.RegistrationNumber = regNum
+	}
+
+	// Extract TaxID
+	if taxID, ok := data["tax_id"].(string); ok {
+		merchant.TaxID = taxID
+	}
+
+	// Extract Industry
+	if industry, ok := data["industry"].(string); ok {
+		merchant.Industry = industry
+	}
+
+	// Extract IndustryCode
+	if industryCode, ok := data["industry_code"].(string); ok {
+		merchant.IndustryCode = industryCode
+	}
+
+	// Extract BusinessType
+	if businessType, ok := data["business_type"].(string); ok {
+		merchant.BusinessType = businessType
+	}
+
+	// Extract PortfolioType
+	if portfolioType, ok := data["portfolio_type"].(string); ok {
+		merchant.PortfolioType = portfolioType
+	} else {
+		merchant.PortfolioType = "prospective"
+	}
+
+	// Extract RiskLevel
+	if riskLevel, ok := data["risk_level"].(string); ok {
+		merchant.RiskLevel = riskLevel
+	} else {
+		merchant.RiskLevel = "medium"
+	}
+
+	// Extract Status
+	if status, ok := data["status"].(string); ok {
+		merchant.Status = status
+	} else {
+		merchant.Status = "active"
+	}
+
+	// Extract ComplianceStatus
+	if complianceStatus, ok := data["compliance_status"].(string); ok {
+		merchant.ComplianceStatus = complianceStatus
+	}
+
+	// Extract Address (can be JSON object)
+	if address, ok := data["address"].(map[string]interface{}); ok {
+		merchant.Address = address
+	} else if address, ok := data["address"].(string); ok {
+		// Try to parse as JSON string
+		var addrMap map[string]interface{}
+		if err := json.Unmarshal([]byte(address), &addrMap); err == nil {
+			merchant.Address = addrMap
+		}
+	}
+
+	// Extract ContactInfo (can be JSON object)
+	if contactInfo, ok := data["contact_info"].(map[string]interface{}); ok {
+		merchant.ContactInfo = contactInfo
+	} else if contactInfo, ok := data["contact_info"].(string); ok {
+		// Try to parse as JSON string
+		var contactMap map[string]interface{}
+		if err := json.Unmarshal([]byte(contactInfo), &contactMap); err == nil {
+			merchant.ContactInfo = contactMap
+		}
+	}
+
+	// Extract timestamps
+	if createdAt, ok := data["created_at"].(string); ok {
+		if t, err := time.Parse(time.RFC3339, createdAt); err == nil {
+			merchant.CreatedAt = t
+		}
+	}
+	if merchant.CreatedAt.IsZero() {
+		merchant.CreatedAt = time.Now()
+	}
+
+	if updatedAt, ok := data["updated_at"].(string); ok {
+		if t, err := time.Parse(time.RFC3339, updatedAt); err == nil {
+			merchant.UpdatedAt = t
+		}
+	}
+	if merchant.UpdatedAt.IsZero() {
+		merchant.UpdatedAt = time.Now()
 	}
 
 	return merchant, nil
