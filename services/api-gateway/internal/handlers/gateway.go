@@ -354,10 +354,7 @@ func (h *GatewayHandler) ProxyToBI(w http.ResponseWriter, r *http.Request) {
 
 // ProxyToRiskAssessment proxies requests to the Risk Assessment service
 func (h *GatewayHandler) ProxyToRiskAssessment(w http.ResponseWriter, r *http.Request) {
-	// Set CORS headers for risk assessment service
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, PUT, DELETE, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Request-ID")
+	// Note: CORS headers are handled by middleware, don't set them here to avoid duplicates
 
 	// Extract the path after /api/v1/risk/
 	// The Risk Assessment Service expects /api/v1/risk/* paths

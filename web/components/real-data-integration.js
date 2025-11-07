@@ -69,6 +69,14 @@ class RealDataIntegration {
                 headers: { 'Content-Type': 'application/json' }
             });
 
+            // Check if response is JSON
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('API returned non-JSON response:', text.substring(0, 200));
+                throw new Error(`API returned HTML instead of JSON. Status: ${response.status}`);
+            }
+
             const data = await response.json();
             
             // Cache the result

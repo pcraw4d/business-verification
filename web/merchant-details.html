@@ -811,20 +811,37 @@
             }
 
             populateMerchantDetails() {
-                if (!this.merchantData) return;
+                if (!this.merchantData) {
+                    console.warn('⚠️ No merchant data to populate');
+                    return;
+                }
 
-                // Populate merchant details tab
-                document.getElementById('businessName').textContent = this.merchantData.businessName || '-';
-                document.getElementById('websiteUrl').textContent = this.merchantData.websiteUrl || '-';
-                document.getElementById('businessDescription').textContent = this.merchantData.businessDescription || '-';
-                document.getElementById('registrationNumber').textContent = this.merchantData.registrationNumber || '-';
-                document.getElementById('streetAddress').textContent = this.merchantData.streetAddress || '-';
-                document.getElementById('city').textContent = this.merchantData.city || '-';
-                document.getElementById('state').textContent = this.merchantData.state || '-';
-                document.getElementById('postalCode').textContent = this.merchantData.postalCode || '-';
-                document.getElementById('country').textContent = this.merchantData.country || '-';
-                document.getElementById('phoneNumber').textContent = this.merchantData.phoneNumber || '-';
-                document.getElementById('email').textContent = this.merchantData.email || '-';
+                console.log('📝 Populating merchant details:', this.merchantData);
+
+                // Helper function to safely set text content
+                const setText = (id, value, fallback = '-') => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.textContent = value || fallback;
+                    } else {
+                        console.warn(`⚠️ Element with ID '${id}' not found`);
+                    }
+                };
+
+                // Populate merchant details tab with null checks
+                setText('businessName', this.merchantData.businessName);
+                setText('websiteUrl', this.merchantData.websiteUrl);
+                setText('businessDescription', this.merchantData.businessDescription);
+                setText('registrationNumber', this.merchantData.registrationNumber);
+                setText('streetAddress', this.merchantData.streetAddress);
+                setText('city', this.merchantData.city);
+                setText('state', this.merchantData.state);
+                setText('postalCode', this.merchantData.postalCode);
+                setText('country', this.merchantData.country);
+                setText('phoneNumber', this.merchantData.phoneNumber);
+                setText('email', this.merchantData.email);
+                
+                console.log('✅ Merchant details populated');
             }
 
             populateApiResults() {
@@ -847,10 +864,124 @@
             }
 
             populateBusinessIntelligenceResults(data) {
-                // This will be implemented with the exact same logic as the dashboard page
-                console.log('Populating Business Intelligence results:', data);
+                console.log('📊 Populating Business Intelligence results:', data);
                 
-                // Show progressive disclosure sections (with null checks)
+                // Extract data from various possible structures
+                let result = data;
+                if (data.business_intelligence) {
+                    result = data.business_intelligence;
+                } else if (data.response) {
+                    result = data.response;
+                }
+                
+                // Extract classification codes
+                let mccCodes = [];
+                let sicCodes = [];
+                let naicsCodes = [];
+                let primaryIndustry = 'Unknown';
+                let confidenceScore = 0;
+                
+                // Try different data structures
+                if (result.response && result.response.classification_codes) {
+                    const codes = result.response.classification_codes;
+                    mccCodes = codes.mcc || [];
+                    sicCodes = codes.sic || [];
+                    naicsCodes = codes.naics || [];
+                    primaryIndustry = result.response.primary_classification?.industry_name || result.response.detected_industry || 'Unknown';
+                    confidenceScore = result.response.primary_classification?.confidence_score || result.response.overall_confidence || 0;
+                } else if (result.classification_codes) {
+                    mccCodes = result.classification_codes.mcc || [];
+                    sicCodes = result.classification_codes.sic || [];
+                    naicsCodes = result.classification_codes.naics || [];
+                    primaryIndustry = result.primary_classification?.industry_name || result.detected_industry || 'Unknown';
+                    confidenceScore = result.primary_classification?.confidence_score || result.overall_confidence || 0;
+                } else if (result.classification && result.classification.classification_codes) {
+                    const codes = result.classification.classification_codes;
+                    mccCodes = codes.mcc || [];
+                    sicCodes = codes.sic || [];
+                    naicsCodes = codes.naics || [];
+                }
+                
+                // Populate primary industry and confidence
+                const primaryIndustryEl = document.getElementById('primaryIndustry');
+                const industryCodeEl = document.getElementById('industryCode');
+                const confidenceScoreEl = document.getElementById('confidenceScore');
+                
+                if (primaryIndustryEl) primaryIndustryEl.textContent = primaryIndustry;
+                if (industryCodeEl && naicsCodes.length > 0) {
+                    industryCodeEl.textContent = naicsCodes[0].code || '-';
+                }
+                if (confidenceScoreEl) {
+                    confidenceScoreEl.textContent = `${Math.round(confidenceScore * 100)}%`;
+                }
+                
+                // Populate MCC codes
+                const mccList = document.getElementById('mccCodesList');
+                if (mccList) {
+                    if (mccCodes.length > 0) {
+                        mccList.innerHTML = mccCodes.slice(0, 3).map((code, index) => {
+                            const codeObj = typeof code === 'string' ? { code, description: code } : code;
+                            return `
+                                <div class="bg-white rounded-lg p-3 border border-gray-200">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <span class="bg-blue-100 text-blue-600 text-xs font-bold px-2 py-1 rounded-full">#${index + 1}</span>
+                                        <span class="text-xs text-gray-500">${Math.round((codeObj.confidence || 0.8) * 100)}%</span>
+                                    </div>
+                                    <h6 class="font-medium text-gray-900 mb-1 text-sm">${codeObj.description || codeObj.code}</h6>
+                                    <p class="text-xs text-gray-600 font-mono">${codeObj.code}</p>
+                                </div>
+                            `;
+                        }).join('');
+                    } else {
+                        mccList.innerHTML = '<p class="text-sm text-gray-500">No MCC codes found</p>';
+                    }
+                }
+                
+                // Populate SIC codes
+                const sicList = document.getElementById('sicCodesList');
+                if (sicList) {
+                    if (sicCodes.length > 0) {
+                        sicList.innerHTML = sicCodes.slice(0, 3).map((code, index) => {
+                            const codeObj = typeof code === 'string' ? { code, description: code } : code;
+                            return `
+                                <div class="bg-white rounded-lg p-3 border border-gray-200">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <span class="bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded-full">#${index + 1}</span>
+                                        <span class="text-xs text-gray-500">${Math.round((codeObj.confidence || 0.8) * 100)}%</span>
+                                    </div>
+                                    <h6 class="font-medium text-gray-900 mb-1 text-sm">${codeObj.description || codeObj.code}</h6>
+                                    <p class="text-xs text-gray-600 font-mono">${codeObj.code}</p>
+                                </div>
+                            `;
+                        }).join('');
+                    } else {
+                        sicList.innerHTML = '<p class="text-sm text-gray-500">No SIC codes found</p>';
+                    }
+                }
+                
+                // Populate NAICS codes
+                const naicsList = document.getElementById('naicsCodesList');
+                if (naicsList) {
+                    if (naicsCodes.length > 0) {
+                        naicsList.innerHTML = naicsCodes.slice(0, 3).map((code, index) => {
+                            const codeObj = typeof code === 'string' ? { code, description: code } : code;
+                            return `
+                                <div class="bg-white rounded-lg p-3 border border-gray-200">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <span class="bg-green-100 text-green-600 text-xs font-bold px-2 py-1 rounded-full">#${index + 1}</span>
+                                        <span class="text-xs text-gray-500">${Math.round((codeObj.confidence || 0.8) * 100)}%</span>
+                                    </div>
+                                    <h6 class="font-medium text-gray-900 mb-1 text-sm">${codeObj.description || codeObj.code}</h6>
+                                    <p class="text-xs text-gray-600 font-mono">${codeObj.code}</p>
+                                </div>
+                            `;
+                        }).join('');
+                    } else {
+                        naicsList.innerHTML = '<p class="text-sm text-gray-500">No NAICS codes found</p>';
+                    }
+                }
+                
+                // Show progressive disclosure sections
                 setTimeout(() => {
                     const element = document.getElementById('coreResults');
                     if (element) element.classList.add('visible');
@@ -865,21 +996,6 @@
                     const element = document.getElementById('qualityMetrics');
                     if (element) element.classList.add('visible');
                 }, 300);
-                
-                setTimeout(() => {
-                    const element = document.getElementById('riskAssessment');
-                    if (element) element.classList.add('visible');
-                }, 400);
-                
-                setTimeout(() => {
-                    const element = document.getElementById('businessIntelligence');
-                    if (element) element.classList.add('visible');
-                }, 500);
-                
-                setTimeout(() => {
-                    const element = document.getElementById('verificationStatus');
-                    if (element) element.classList.add('visible');
-                }, 600);
             }
 
             populateRiskAssessmentResults(data) {
