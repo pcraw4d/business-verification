@@ -369,7 +369,7 @@ func (h *RiskAssessmentHandler) HandleRiskBenchmarks(w http.ResponseWriter, r *h
 	
 	// Try to query benchmarks from Supabase
 	var result []map[string]interface{}
-	queryErr := h.supabaseClient.GetClient().From("risk_benchmarks").
+	_, queryErr := h.supabaseClient.GetClient().From("risk_benchmarks").
 		Select("*", "", false).
 		Eq("industry_code", industryCode).
 		Eq("industry_type", industryType).
