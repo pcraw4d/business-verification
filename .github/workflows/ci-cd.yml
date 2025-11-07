@@ -68,6 +68,46 @@ jobs:
         run: |
           go list -json -deps ./... | nancy sleuth
 
+      - name: Run Enhanced Placeholder Detection
+        id: placeholder-detection
+        run: |
+          node scripts/enhanced-placeholder-detector.js . scripts/placeholder-allowlist.json test-results || true
+        continue-on-error: true
+
+      - name: Generate Placeholder Report
+        if: always()
+        run: |
+          mkdir -p test-results
+          LATEST_REPORT=$(ls -t test-results/placeholder-detection-report-*.json 2>/dev/null | head -1)
+          if [ -n "$LATEST_REPORT" ]; then
+            node scripts/generate-placeholder-report.js "$LATEST_REPORT" > test-results/placeholder-report.md || true
+            echo "PLACEHOLDER_REPORT=test-results/placeholder-report.md" >> $GITHUB_ENV
+          fi
+
+      - name: Comment PR with Placeholder Report
+        if: github.event_name == 'pull_request' && always() && env.PLACEHOLDER_REPORT != ''
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const reportPath = process.env.PLACEHOLDER_REPORT;
+            if (reportPath && fs.existsSync(reportPath)) {
+              const report = fs.readFileSync(reportPath, 'utf8');
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `## 🔍 Placeholder Data Detection Report\n\n${report}`
+              });
+            }
+
+      - name: Fail if Critical/High Findings
+        if: steps.placeholder-detection.outcome == 'failure'
+        run: |
+          echo "❌ Critical or high severity placeholder findings detected!"
+          echo "Please review the placeholder detection report and address the issues."
+          exit 1
+
   # Backend testing and validation
   backend-tests:
     name: Backend Tests

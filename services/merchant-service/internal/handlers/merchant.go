@@ -11,23 +11,65 @@ import (
 
 	"go.uber.org/zap"
 
+	"kyb-platform/internal/cache"
+	"kyb-platform/internal/metrics"
+	"kyb-platform/internal/queue"
+	"kyb-platform/internal/resilience"
 	"kyb-platform/services/merchant-service/internal/config"
 	"kyb-platform/services/merchant-service/internal/supabase"
 )
 
 // MerchantHandler handles merchant management requests
 type MerchantHandler struct {
-	supabaseClient *supabase.Client
-	logger         *zap.Logger
-	config         *config.Config
+	supabaseClient  *supabase.Client
+	logger          *zap.Logger
+	config          *config.Config
+	circuitBreaker  *resilience.CircuitBreaker
+	redisCache      *cache.RedisCacheImpl // Redis cache for merchant data
+	fallbackMetrics *metrics.FallbackMetrics // Metrics for tracking fallback usage
+	requestQueue    *queue.RequestQueue // Queue for failed requests
 }
 
 // NewMerchantHandler creates a new merchant handler
 func NewMerchantHandler(supabaseClient *supabase.Client, logger *zap.Logger, config *config.Config) *MerchantHandler {
+	// Create circuit breaker for Supabase connection
+	cbConfig := resilience.DefaultCircuitBreakerConfig()
+	cbConfig.FailureThreshold = 5
+	cbConfig.Timeout = 30 * time.Second
+	circuitBreaker := resilience.NewCircuitBreaker(cbConfig)
+	
+	// Initialize Redis cache if enabled
+	var redisCache *cache.RedisCacheImpl
+	if config.Merchant.RedisEnabled && config.Merchant.RedisURL != "" {
+		cacheConfig := &cache.RedisCacheConfig{
+			Addr:     config.Merchant.RedisURL,
+			Password: "",
+			DB:       0,
+			TTL:      config.Merchant.CacheTTL,
+			PoolSize: 10,
+		}
+		var err error
+		redisCache, err = cache.NewRedisCache(cacheConfig, logger)
+		if err != nil {
+			logger.Warn("Failed to initialize Redis cache, continuing without cache",
+				zap.Error(err))
+		}
+	}
+	
+	// Initialize fallback metrics
+	fallbackMetrics := metrics.NewFallbackMetrics(logger)
+	
+	// Initialize request queue for failed API calls (Phase 2.5: Request Queuing)
+	requestQueue := queue.NewRequestQueue(logger, 1000) // Max 1000 queued requests
+	
 	return &MerchantHandler{
-		supabaseClient: supabaseClient,
-		logger:         logger,
-		config:         config,
+		supabaseClient:  supabaseClient,
+		logger:          logger,
+		config:          config,
+		circuitBreaker:  circuitBreaker,
+		redisCache:      redisCache,
+		fallbackMetrics: fallbackMetrics,
+		requestQueue:    requestQueue,
 	}
 }
 
@@ -176,7 +218,23 @@ func (h *MerchantHandler) HandleGetMerchant(w http.ResponseWriter, r *http.Reque
 		h.logger.Error("Failed to get merchant",
 			zap.String("merchant_id", merchantID),
 			zap.Error(err))
-		http.Error(w, fmt.Sprintf("Failed to get merchant: %v", err), http.StatusInternalServerError)
+		
+		// Determine appropriate HTTP status code based on error
+		statusCode := http.StatusInternalServerError
+		errorMsg := fmt.Sprintf("Failed to get merchant: %v", err)
+		
+		// Check if it's a "not found" error
+		if strings.Contains(err.Error(), "not found") {
+			statusCode = http.StatusNotFound
+			errorMsg = "Merchant not found"
+		} else if strings.Contains(err.Error(), "unavailable") {
+			// Database unavailable - return 503 Service Unavailable
+			statusCode = http.StatusServiceUnavailable
+			errorMsg = "Service temporarily unavailable"
+			w.Header().Set("Retry-After", "30") // Suggest retry after 30 seconds
+		}
+		
+		http.Error(w, errorMsg, statusCode)
 		return
 	}
 
@@ -290,52 +348,213 @@ func (h *MerchantHandler) createMerchant(ctx context.Context, req *CreateMerchan
 	return merchant, nil
 }
 
-// getMerchant retrieves a merchant by ID
+// getMerchant retrieves a merchant by ID from Supabase.
+//
+// FALLBACK BEHAVIOR:
+//   - If Supabase query fails (connection error, timeout, etc.), returns mock merchant data
+//   - If merchant is not found in database, returns mock merchant data
+//   - If data mapping fails, returns mock merchant data
+//
+// The fallback ensures UI functionality continues even when Supabase is unavailable.
+// In production, consider returning proper HTTP 404/503 status codes instead of mock data.
+//
+// TODO: Add retry logic with exponential backoff for Supabase queries
+// TODO: Implement circuit breaker pattern for Supabase connection
 func (h *MerchantHandler) getMerchant(ctx context.Context, merchantID string, startTime time.Time) (*Merchant, error) {
 	h.logger.Info("Fetching merchant from Supabase",
 		zap.String("merchant_id", merchantID))
 
-	// Try to get merchant from Supabase
+	// Check cache first if Redis is enabled
+	if h.redisCache != nil {
+		cacheKey := fmt.Sprintf("merchant:%s", merchantID)
+		cachedData, err := h.redisCache.Get(ctx, cacheKey)
+		if err == nil && cachedData != nil {
+			// Deserialize cached merchant
+			var cachedMerchant Merchant
+			if err := json.Unmarshal(cachedData, &cachedMerchant); err == nil {
+				h.logger.Info("Retrieved merchant from cache",
+					zap.String("merchant_id", merchantID))
+				return &cachedMerchant, nil
+			}
+		}
+	}
+
+	// Try to get merchant from Supabase with retry logic and circuit breaker
 	var result []map[string]interface{}
-	_, err := h.supabaseClient.GetClient().From("merchants").
-		Select("*", "", false).
-		Eq("id", merchantID).
-		Limit(1, "").
-		ExecuteTo(&result)
+	err := h.circuitBreaker.Execute(ctx, func() error {
+		// Use retry logic for the Supabase query
+		retryConfig := resilience.DefaultRetryConfig()
+		retryConfig.MaxAttempts = 3
+		retryConfig.InitialDelay = 100 * time.Millisecond
+		
+		retryResult, retryErr := resilience.RetryWithBackoff(ctx, retryConfig, func() ([]map[string]interface{}, error) {
+			var queryResult []map[string]interface{}
+			_, queryErr := h.supabaseClient.GetClient().From("merchants").
+				Select("*", "", false).
+				Eq("id", merchantID).
+				Limit(1, "").
+				ExecuteTo(&queryResult)
+			
+			if queryErr != nil {
+				return nil, queryErr
+			}
+			
+			return queryResult, nil
+		})
+		
+		if retryErr != nil {
+			return retryErr
+		}
+		
+		result = retryResult
+		return nil
+	})
 
 	if err != nil {
-		h.logger.Warn("Failed to fetch merchant from Supabase, using fallback",
+		h.logger.Warn("Failed to fetch merchant from Supabase",
 			zap.String("merchant_id", merchantID),
+			zap.String("environment", h.config.Environment),
 			zap.Error(err))
-		// Fallback to mock data if Supabase query fails
-		return h.getMockMerchant(merchantID), nil
+		
+		// Phase 2.5: Queue failed request for retry
+		if h.requestQueue != nil {
+			queuedReq := &queue.QueuedRequest{
+				Type:        "get_merchant",
+				Data:        merchantID,
+				Priority:    queue.PriorityNormal,
+				MaxAttempts: 3,
+				Error:       err.Error(),
+			}
+			if queueErr := h.requestQueue.Enqueue(ctx, queuedReq); queueErr != nil {
+				h.logger.Warn("Failed to queue request for retry",
+					zap.String("merchant_id", merchantID),
+					zap.Error(queueErr))
+			} else {
+				h.logger.Info("Request queued for retry",
+					zap.String("merchant_id", merchantID),
+					zap.String("request_id", queuedReq.ID))
+			}
+		}
+		
+		// In production, return 503 Service Unavailable instead of mock data
+		if h.config.Environment == "production" && !h.config.Merchant.AllowMockData {
+			return nil, fmt.Errorf("database unavailable: %w", err)
+		}
+		
+		// FALLBACK: Return mock data when Supabase query fails (development only)
+		// This ensures the UI continues to function even when database is unavailable
+		fallbackStart := time.Now()
+		mockMerchant, mockErr := h.getMockMerchant(merchantID)
+		if mockErr != nil {
+			return nil, mockErr
+		}
+		
+		// Record fallback usage metrics
+		if h.fallbackMetrics != nil {
+			h.fallbackMetrics.RecordFallbackUsage(ctx, "merchant-service", "database_fallback", "supabase", time.Since(fallbackStart))
+		}
+		
+		return mockMerchant, nil
 	}
 
 	if len(result) == 0 {
-		h.logger.Warn("Merchant not found in Supabase, using fallback",
-			zap.String("merchant_id", merchantID))
-		// Fallback to mock data if not found
-		return h.getMockMerchant(merchantID), nil
+		h.logger.Warn("Merchant not found in Supabase",
+			zap.String("merchant_id", merchantID),
+			zap.String("environment", h.config.Environment))
+		
+		// In production, return proper 404 response instead of mock data
+		if h.config.Environment == "production" && !h.config.Merchant.AllowMockData {
+			return nil, fmt.Errorf("merchant not found: %s", merchantID)
+		}
+		
+		// FALLBACK: Return mock data when merchant not found (development only)
+		fallbackStart := time.Now()
+		mockMerchant, mockErr := h.getMockMerchant(merchantID)
+		if mockErr != nil {
+			return nil, mockErr
+		}
+		
+		// Record fallback usage metrics
+		if h.fallbackMetrics != nil {
+			h.fallbackMetrics.RecordFallbackUsage(ctx, "merchant-service", "missing_record", "supabase", time.Since(fallbackStart))
+		}
+		
+		return mockMerchant, nil
 	}
 
 	// Convert Supabase result to Merchant struct
 	merchant, err := h.mapToMerchant(result[0])
 	if err != nil {
-		h.logger.Error("Failed to map Supabase data to merchant, using fallback",
+		h.logger.Error("Failed to map Supabase data to merchant",
 			zap.String("merchant_id", merchantID),
+			zap.String("environment", h.config.Environment),
 			zap.Error(err))
-		return h.getMockMerchant(merchantID), nil
+		
+		// In production, return error instead of mock data
+		if h.config.Environment == "production" && !h.config.Merchant.AllowMockData {
+			return nil, fmt.Errorf("data mapping failed: %w", err)
+		}
+		
+		// FALLBACK: Return mock data when data mapping fails (development only)
+		fallbackStart := time.Now()
+		mockMerchant, mockErr := h.getMockMerchant(merchantID)
+		if mockErr != nil {
+			return nil, mockErr
+		}
+		
+		// Record fallback usage metrics
+		if h.fallbackMetrics != nil {
+			h.fallbackMetrics.RecordFallbackUsage(ctx, "merchant-service", "database_fallback", "supabase", time.Since(fallbackStart))
+		}
+		
+		return mockMerchant, nil
 	}
 
 	h.logger.Info("Successfully fetched merchant from Supabase",
 		zap.String("merchant_id", merchantID),
 		zap.String("name", merchant.Name))
 
+	// Record successful request (non-fallback)
+	if h.fallbackMetrics != nil {
+		h.fallbackMetrics.RecordRequest(ctx, "merchant-service")
+	}
+
+	// Cache the result if Redis is enabled
+	if h.redisCache != nil {
+		cacheKey := fmt.Sprintf("merchant:%s", merchantID)
+		merchantJSON, err := json.Marshal(merchant)
+		if err == nil {
+			if err := h.redisCache.Set(ctx, cacheKey, merchantJSON, h.config.Merchant.CacheTTL); err != nil {
+				h.logger.Warn("Failed to cache merchant",
+					zap.String("merchant_id", merchantID),
+					zap.Error(err))
+			}
+		}
+	}
+
 	return merchant, nil
 }
 
-// getMockMerchant returns a mock merchant for fallback
-func (h *MerchantHandler) getMockMerchant(merchantID string) *Merchant {
+// getMockMerchant returns a mock merchant for fallback scenarios.
+//
+// This function is used when:
+//   - Supabase query fails (connection error, timeout)
+//   - Merchant not found in database
+//   - Data mapping fails
+//
+// The mock data ensures UI functionality continues, but should be replaced with
+// proper error handling in production (e.g., return 404/503 HTTP status codes).
+//
+// FALLBACK DATA - DO NOT USE AS PRIMARY DATA SOURCE
+//
+// PRODUCTION SAFETY: In production, mock data is only returned if explicitly allowed
+// via ALLOW_MOCK_DATA environment variable. Otherwise, this function should not be called.
+func (h *MerchantHandler) getMockMerchant(merchantID string) (*Merchant, error) {
+	// Production safety check: prevent mock data in production unless explicitly allowed
+	if h.config.Environment == "production" && !h.config.Merchant.AllowMockData {
+		return nil, fmt.Errorf("mock data not allowed in production environment")
+	}
+	
 	return &Merchant{
 		ID:            merchantID,
 		Name:          "Sample Merchant",
@@ -345,7 +564,7 @@ func (h *MerchantHandler) getMockMerchant(merchantID string) *Merchant {
 		Status:        "active",
 		CreatedAt:     time.Now(),
 		UpdatedAt:     time.Now(),
-	}
+	}, nil
 }
 
 // mapToMerchant converts a map from Supabase to a Merchant struct
@@ -464,37 +683,99 @@ func (h *MerchantHandler) mapToMerchant(data map[string]interface{}) (*Merchant,
 	return merchant, nil
 }
 
-// listMerchants lists merchants with pagination
+// listMerchants lists merchants with pagination.
+//
+// FALLBACK BEHAVIOR:
+//   - In production: Returns empty result set if query fails or no merchants found
+//   - In development: Returns mock data if query fails (when allowed)
+//
+// TODO: Implement Supabase query with pagination support
+// TODO: Add filtering and sorting capabilities
 func (h *MerchantHandler) listMerchants(ctx context.Context, page, pageSize int, startTime time.Time) (*MerchantListResponse, error) {
-	// TODO: Retrieve from Supabase
-	// For now, return mock data
-
-	merchants := []Merchant{
-		{
-			ID:            "merchant_1",
-			Name:          "Sample Merchant 1",
-			LegalName:     "Sample Merchant 1 LLC",
-			PortfolioType: "prospective",
-			RiskLevel:     "medium",
-			Status:        "active",
-			CreatedAt:     time.Now(),
-			UpdatedAt:     time.Now(),
-		},
-		{
-			ID:            "merchant_2",
-			Name:          "Sample Merchant 2",
-			LegalName:     "Sample Merchant 2 LLC",
-			PortfolioType: "active",
-			RiskLevel:     "low",
-			Status:        "active",
-			CreatedAt:     time.Now(),
-			UpdatedAt:     time.Now(),
-		},
+	// Try to query Supabase for merchants
+	var result []map[string]interface{}
+	_, err := h.supabaseClient.GetClient().From("merchants").
+		Select("*", "", false).
+		Range((page-1)*pageSize, page*pageSize-1).
+		ExecuteTo(&result)
+	
+	if err != nil {
+		h.logger.Warn("Failed to fetch merchants from Supabase",
+			zap.String("environment", h.config.Environment),
+			zap.Error(err))
+		
+		// In production, return empty result set instead of mock data
+		if h.config.Environment == "production" && !h.config.Merchant.AllowMockData {
+			return &MerchantListResponse{
+				Merchants:   []Merchant{},
+				Total:       0,
+				Page:        page,
+				PageSize:    pageSize,
+				TotalPages:  0,
+				HasNext:     false,
+				HasPrevious: false,
+			}, nil
+		}
+		
+		// FALLBACK: Return mock data for development (when allowed)
+		merchants := []Merchant{
+			{
+				ID:            "merchant_1",
+				Name:          "Sample Merchant 1",
+				LegalName:     "Sample Merchant 1 LLC",
+				PortfolioType: "prospective",
+				RiskLevel:     "medium",
+				Status:        "active",
+				CreatedAt:     time.Now(),
+				UpdatedAt:     time.Now(),
+			},
+			{
+				ID:            "merchant_2",
+				Name:          "Sample Merchant 2",
+				LegalName:     "Sample Merchant 2 LLC",
+				PortfolioType: "active",
+				RiskLevel:     "low",
+				Status:        "active",
+				CreatedAt:     time.Now(),
+				UpdatedAt:     time.Now(),
+			},
+		}
+		
+		total := len(merchants)
+		totalPages := (total + pageSize - 1) / pageSize
+		
+		return &MerchantListResponse{
+			Merchants:   merchants,
+			Total:       total,
+			Page:        page,
+			PageSize:    pageSize,
+			TotalPages:  totalPages,
+			HasNext:     page < totalPages,
+			HasPrevious: page > 1,
+		}, nil
 	}
-
+	
+	// Convert results to Merchant structs
+	merchants := make([]Merchant, 0, len(result))
+	for _, row := range result {
+		merchant, err := h.mapToMerchant(row)
+		if err != nil {
+			h.logger.Warn("Failed to map merchant data, skipping",
+				zap.Error(err))
+			continue
+		}
+		merchants = append(merchants, *merchant)
+	}
+	
+	// TODO: Get total count from Supabase for accurate pagination
 	total := len(merchants)
 	totalPages := (total + pageSize - 1) / pageSize
-
+	
+	// Record successful request (non-fallback)
+	if h.fallbackMetrics != nil {
+		h.fallbackMetrics.RecordRequest(ctx, "merchant-service")
+	}
+	
 	response := &MerchantListResponse{
 		Merchants:   merchants,
 		Total:       total,
@@ -504,7 +785,7 @@ func (h *MerchantHandler) listMerchants(ctx context.Context, page, pageSize int,
 		HasNext:     page < totalPages,
 		HasPrevious: page > 1,
 	}
-
+	
 	return response, nil
 }
 

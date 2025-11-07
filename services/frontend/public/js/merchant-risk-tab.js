@@ -248,9 +248,26 @@ class MerchantRiskTab {
     }
 
     /**
-     * Generate mock risk data for development
+     * Generate mock risk data for development/testing.
+     * 
+     * FALLBACK BEHAVIOR:
+     *   - Used during development when API is unavailable
+     *   - Used when risk assessment API call fails
+     *   - Should be disabled in production builds
+     * 
+     * FALLBACK DATA - DO NOT USE AS PRIMARY DATA SOURCE
+     * 
+     * PRODUCTION SAFETY: In production, mock data is only generated if explicitly allowed.
+     * 
+     * @returns {Object} Mock risk data
      */
     generateMockRiskData() {
+        // Production safety check
+        if (typeof APIConfig !== 'undefined' && APIConfig.isProduction && APIConfig.isProduction()) {
+            if (!APIConfig.allowMockData || !APIConfig.allowMockData()) {
+                throw new Error('Mock data not allowed in production environment');
+            }
+        }
         return {
             id: `risk_${this.currentMerchantId}_${Date.now()}`,
             merchantId: this.currentMerchantId,

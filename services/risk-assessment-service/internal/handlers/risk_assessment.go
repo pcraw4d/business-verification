@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -234,7 +235,9 @@ func (h *RiskAssessmentHandler) HandleRiskPrediction(w http.ResponseWriter, r *h
 	// Warnings functionality can be added later
 
 	// TODO: Retrieve business data from database using ID from URL
-	// For now, create a mock business request
+	// FALLBACK: Create mock business request when database record not found
+	// This is a development placeholder and should be replaced with real database query
+	// In production, return proper 404 response if merchant not found
 	business := &models.RiskAssessmentRequest{
 		BusinessName:      "Sample Business",
 		BusinessAddress:   "123 Sample St, Sample City, SC 12345",
@@ -315,17 +318,118 @@ func (h *RiskAssessmentHandler) HandleRiskBenchmarks(w http.ResponseWriter, r *h
 		zap.String("industry_code", industryCode),
 		zap.String("industry_type", industryType))
 
-	// Get industry benchmarks from external data service or database
-	// For now, return mock benchmarks - can be enhanced with real data
-	benchmarks := map[string]interface{}{
-		"industry": industryCode,
-		"benchmarks": map[string]float64{
-			"average_score": 70.0,
-			"median_score":  72.0,
-			"percentile_75": 80.0,
-			"percentile_90": 85.0,
-		},
-		"last_updated": time.Now().Format(time.RFC3339),
+	// Check feature flag for incomplete features in production
+	// In production, disable incomplete features unless explicitly enabled
+	if h.config.Server.Host != "" {
+		env := os.Getenv("ENVIRONMENT")
+		if env == "" {
+			env = os.Getenv("ENV")
+		}
+		if env == "production" {
+			enableIncomplete := os.Getenv("ENABLE_INCOMPLETE_RISK_BENCHMARKS")
+			if enableIncomplete != "true" {
+				h.logger.Warn("Incomplete feature disabled in production",
+					zap.String("feature", "risk_benchmarks"))
+				http.Error(w, "Feature not available in production", http.StatusServiceUnavailable)
+				return
+			}
+		}
+	}
+
+	// Helper function to safely extract float64 from map
+	getFloat64 := func(data map[string]interface{}, key string, defaultValue float64) float64 {
+		if val, ok := data[key]; ok {
+			switch v := val.(type) {
+			case float64:
+				return v
+			case float32:
+				return float64(v)
+			case int:
+				return float64(v)
+			case int64:
+				return float64(v)
+			}
+		}
+		return defaultValue
+	}
+	
+	// Helper function to safely extract string from map
+	getString := func(data map[string]interface{}, key string, defaultValue string) string {
+		if val, ok := data[key]; ok {
+			if str, ok := val.(string); ok {
+				return str
+			}
+		}
+		return defaultValue
+	}
+	
+	// Get industry benchmarks from Supabase database
+	// FALLBACK: Return mock benchmarks when database query fails
+	var benchmarks map[string]interface{}
+	
+	// Try to query benchmarks from Supabase
+	var result []map[string]interface{}
+	queryErr := h.supabaseClient.GetClient().From("risk_benchmarks").
+		Select("*", "", false).
+		Eq("industry_code", industryCode).
+		Eq("industry_type", industryType).
+		Limit(1, "").
+		ExecuteTo(&result)
+	
+	if queryErr != nil || len(result) == 0 {
+		// FALLBACK: Return mock benchmarks when database query fails or no data found
+		h.logger.Warn("Failed to fetch benchmarks from database, using fallback",
+			zap.String("industry_code", industryCode),
+			zap.String("industry_type", industryType),
+			zap.Error(queryErr))
+		
+		benchmarks = map[string]interface{}{
+			"industry": industryCode,
+			"benchmarks": map[string]float64{
+				"average_score": 70.0,
+				"median_score":  72.0,
+				"percentile_75": 80.0,
+				"percentile_90": 85.0,
+			},
+			"last_updated": time.Now().Format(time.RFC3339),
+			"is_fallback":  true, // Flag to indicate this is fallback data
+		}
+	} else {
+		// Use real data from database
+		benchmarkData := result[0]
+		benchmarkMap := map[string]interface{}{
+			"industry": industryCode,
+			"benchmarks": map[string]float64{
+				"average_score": getFloat64(benchmarkData, "average_score", 70.0),
+				"median_score":  getFloat64(benchmarkData, "median_score", 72.0),
+				"percentile_75": getFloat64(benchmarkData, "percentile_75", 80.0),
+				"percentile_90": getFloat64(benchmarkData, "percentile_90", 85.0),
+			},
+			"last_updated": getString(benchmarkData, "updated_at", time.Now().Format(time.RFC3339)),
+			"is_fallback":  false,
+		}
+		
+		// Validate data before using (Phase 2.4: Data Validation Before Fallback)
+		validator := validation.NewDataValidator()
+		if err := validator.ValidateBenchmarkData(benchmarkMap); err != nil {
+			h.logger.Warn("Benchmark data validation failed, using fallback",
+				zap.String("industry_code", industryCode),
+				zap.Error(err))
+			// Use fallback if validation fails
+			benchmarks = map[string]interface{}{
+				"industry": industryCode,
+				"benchmarks": map[string]float64{
+					"average_score": 70.0,
+					"median_score":  72.0,
+					"percentile_75": 80.0,
+					"percentile_90": 85.0,
+				},
+				"last_updated": time.Now().Format(time.RFC3339),
+				"is_fallback":  true,
+			}
+		} else {
+			benchmarks = benchmarkMap
+		}
 	}
 
 	// Create response
@@ -389,12 +493,15 @@ func (h *RiskAssessmentHandler) HandleRiskPredictions(w http.ResponseWriter, r *
 		zap.Ints("horizons", horizons))
 
 	// TODO: Get risk history from database for the merchant
-	// For now, generate predictions based on current assessment or mock data
+	// FALLBACK: Generate predictions based on current assessment or mock data
+	// This is a development placeholder and should be replaced with real database query
+	// In production, return proper 404 response if merchant not found
 	predictions := []map[string]interface{}{}
 	
 	for _, months := range horizons {
 		// Use ML service to generate prediction
-		// Create a mock business request - in production, fetch from database
+		// FALLBACK: Create mock business request when database record not found
+		// TODO: Fetch real merchant data from database using merchantID
 		business := &models.RiskAssessmentRequest{
 			BusinessName:    "Merchant " + merchantID,
 			BusinessAddress: "Unknown",
@@ -405,12 +512,14 @@ func (h *RiskAssessmentHandler) HandleRiskPredictions(w http.ResponseWriter, r *
 		// Get prediction from ML service
 		prediction, err := h.mlService.PredictFutureRisk(r.Context(), "auto", business, months)
 		if err != nil {
-			h.logger.Warn("Failed to get ML prediction, using fallback",
+			h.logger.Warn("Failed to get ML prediction",
 				zap.Error(err),
 				zap.String("merchant_id", merchantID),
 				zap.Int("horizon_months", months))
 			
-			// Fallback: generate simple prediction
+			// FALLBACK: Generate simple prediction when ML service fails
+			// This ensures API continues to return responses even when ML service is unavailable
+			// In production, consider returning 503 Service Unavailable instead
 			prediction = &models.RiskPrediction{
 				BusinessID:      merchantID,
 				PredictionDate:  time.Now(),
@@ -420,6 +529,8 @@ func (h *RiskAssessmentHandler) HandleRiskPredictions(w http.ResponseWriter, r *
 				ConfidenceScore: 0.75,
 				CreatedAt:       time.Now(),
 			}
+			// Mark as fallback data
+			// Note: This would require adding IsFallback field to RiskPrediction model
 		}
 
 		predictionData := map[string]interface{}{

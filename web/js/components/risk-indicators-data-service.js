@@ -19,9 +19,16 @@ class RiskIndicatorsDataService {
     }
     
     /**
-     * Main method - loads and combines all risk data sources
+     * Main method - loads and combines all risk data sources.
+     * 
+     * FALLBACK BEHAVIOR:
+     *   - If any data source fails, uses fallback data for that specific source
+     *   - All fallback responses include isFallback: true flag
+     *   - Logs warnings when fallback data is used
+     *   - If all sources fail, returns mock data as last resort
+     * 
      * @param {string} merchantId - Merchant ID
-     * @returns {Object} Combined risk data
+     * @returns {Object} Combined risk data with fallback flags
      */
     async loadAllRiskData(merchantId) {
         try {
@@ -43,15 +50,33 @@ class RiskIndicatorsDataService {
             ]);
             
             // Extract successful results, use fallback data for failed ones
-            const merchantData = results[0].status === 'fulfilled' ? results[0].value : this.getFallbackMerchantData(merchantId);
-            const analyticsData = results[1].status === 'fulfilled' ? results[1].value : this.getFallbackAnalyticsData(merchantId);
-            const riskAssessment = results[2].status === 'fulfilled' ? results[2].value : this.getFallbackRiskAssessment(merchantId);
+            // FALLBACK: If any source fails, use fallback data with isFallback flag
+            const sources = ['merchant-api', 'analytics-api', 'risk-api'];
+            const sourceNames = ['merchant data', 'analytics data', 'risk assessment'];
+            
+            const merchantData = results[0].status === 'fulfilled' 
+                ? results[0].value 
+                : (() => {
+                    this.notifyFallbackUsage(sources[0], results[0].reason?.message || 'Unknown error');
+                    return { ...this.getFallbackMerchantData(merchantId), isFallback: true };
+                })();
+            const analyticsData = results[1].status === 'fulfilled' 
+                ? results[1].value 
+                : (() => {
+                    this.notifyFallbackUsage(sources[1], results[1].reason?.message || 'Unknown error');
+                    return { ...this.getFallbackAnalyticsData(merchantId), isFallback: true };
+                })();
+            const riskAssessment = results[2].status === 'fulfilled' 
+                ? results[2].value 
+                : (() => {
+                    this.notifyFallbackUsage(sources[2], results[2].reason?.message || 'Unknown error');
+                    return { ...this.getFallbackRiskAssessment(merchantId), isFallback: true };
+                })();
             
             // Log any failures
             results.forEach((result, index) => {
                 if (result.status === 'rejected') {
-                    const sources = ['merchant data', 'analytics data', 'risk assessment'];
-                    console.warn(`⚠️ Failed to load ${sources[index]}, using fallback data:`, result.reason);
+                    console.warn(`⚠️ Failed to load ${sourceNames[index]}, using fallback data:`, result.reason);
                 }
             });
             
@@ -69,18 +94,41 @@ class RiskIndicatorsDataService {
             
         } catch (error) {
             console.error('❌ Failed to load risk data:', error);
-            // Return mock data as fallback
-            return this.generateMockRiskData(merchantId);
+            // FALLBACK: Return mock data as last resort when all sources fail
+            // This ensures UI continues to function even during complete service outage
+            const mockData = this.generateMockRiskData(merchantId);
+            mockData.isFallback = true;
+            mockData.fallbackReason = error.message;
+            return mockData;
         }
     }
     
     /**
-     * Load merchant data using existing RealDataIntegration
+     * Load merchant data using existing RealDataIntegration with retry logic
      * @param {string} merchantId - Merchant ID
      * @returns {Object} Merchant data
      */
     async loadMerchantData(merchantId) {
-        return await this.dataIntegration.getMerchantById(merchantId);
+        const loadFn = async () => {
+            return await this.dataIntegration.getMerchantById(merchantId);
+        };
+        
+        // Use circuit breaker if available
+        if (this.merchantCircuitBreaker) {
+            return await this.merchantCircuitBreaker.execute(loadFn);
+        }
+        
+        // Use retry logic if available (from retry-utils.js)
+        if (typeof window !== 'undefined' && window.retryWithBackoff) {
+            return await window.retryWithBackoff(loadFn, {
+                maxAttempts: 3,
+                initialDelay: 100,
+                maxDelay: 5000
+            });
+        }
+        
+        // Fallback to direct call
+        return await loadFn();
     }
     
     /**
@@ -97,18 +145,32 @@ class RiskIndicatorsDataService {
                 return JSON.parse(cached);
             }
             
-            // Fetch from API
+            // Fetch from API with retry logic
             const endpoints = this.apiConfig.getEndpoints();
-            const response = await fetch(endpoints.merchantById(merchantId), {
-                method: 'GET',
-                headers: this.apiConfig.getHeaders()
-            });
+            const fetchFn = async () => {
+                const response = await fetch(endpoints.merchantById(merchantId), {
+                    method: 'GET',
+                    headers: this.apiConfig.getHeaders()
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                return await response.json();
+            };
             
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            // Use retry logic if available (from retry-utils.js)
+            let data;
+            if (typeof window !== 'undefined' && window.retryWithBackoff) {
+                data = await window.retryWithBackoff(fetchFn, {
+                    maxAttempts: 3,
+                    initialDelay: 100,
+                    maxDelay: 5000
+                });
+            } else {
+                data = await fetchFn();
             }
-            
-            const data = await response.json();
             
             // Cache in session storage
             sessionStorage.setItem(`analytics_${merchantId}`, JSON.stringify(data));
@@ -137,28 +199,45 @@ class RiskIndicatorsDataService {
                 includeExplanations: true
             };
             
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: this.apiConfig.getHeaders(),
-                body: JSON.stringify(requestBody)
-            });
+            // Fetch with retry logic
+            const fetchFn = async () => {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: this.apiConfig.getHeaders(),
+                    body: JSON.stringify(requestBody)
+                });
+                
+                console.log(`📡 Risk assessment response status: ${response.status}`);
+                
+                if (!response.ok) {
+                    const errorText = await response.text().catch(() => 'Unknown error');
+                    console.error(`❌ Risk assessment API error (${response.status}):`, errorText.substring(0, 200));
+                    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText.substring(0, 100)}`);
+                }
+                
+                const contentType = response.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) {
+                    const text = await response.text();
+                    console.error('❌ Risk assessment API returned non-JSON:', text.substring(0, 200));
+                    throw new Error(`API returned non-JSON response. Status: ${response.status}`);
+                }
+                
+                return await response.json();
+            };
             
-            console.log(`📡 Risk assessment response status: ${response.status}`);
-            
-            if (!response.ok) {
-                const errorText = await response.text().catch(() => 'Unknown error');
-                console.error(`❌ Risk assessment API error (${response.status}):`, errorText.substring(0, 200));
-                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText.substring(0, 100)}`);
+            // Use circuit breaker if available, otherwise use retry logic
+            let data;
+            if (this.riskCircuitBreaker) {
+                data = await this.riskCircuitBreaker.execute(fetchFn);
+            } else if (typeof window !== 'undefined' && window.retryWithBackoff) {
+                data = await window.retryWithBackoff(fetchFn, {
+                    maxAttempts: 3,
+                    initialDelay: 100,
+                    maxDelay: 5000
+                });
+            } else {
+                data = await fetchFn();
             }
-            
-            const contentType = response.headers.get('content-type') || '';
-            if (!contentType.includes('application/json')) {
-                const text = await response.text();
-                console.error('❌ Risk assessment API returned non-JSON:', text.substring(0, 200));
-                throw new Error(`API returned non-JSON response. Status: ${response.status}`);
-            }
-            
-            const data = await response.json();
             console.log('✅ Risk assessment loaded successfully');
             return data;
         } catch (error) {
@@ -564,12 +643,29 @@ class RiskIndicatorsDataService {
     }
     
     /**
-     * Generate mock risk data for development/fallback
+     * Generate mock risk data for development/fallback.
+     * 
+     * FALLBACK BEHAVIOR:
+     *   - Used when all data sources fail (catastrophic fallback)
+     *   - Ensures UI continues to function during service outages
+     *   - Should only be used as last resort
+     * 
+     * FALLBACK DATA - DO NOT USE AS PRIMARY DATA SOURCE
+     * 
+     * PRODUCTION SAFETY: In production, mock data is only generated if explicitly allowed.
+     * 
      * @param {string} merchantId - Merchant ID
-     * @returns {Object} Mock risk data
+     * @returns {Object} Mock risk data with isFallback flag
      */
     generateMockRiskData(merchantId) {
-        console.log('🎭 Generating mock risk data for development');
+        // Production safety check
+        if (this.apiConfig && this.apiConfig.isProduction && this.apiConfig.isProduction()) {
+            if (!this.apiConfig.allowMockData || !this.apiConfig.allowMockData()) {
+                throw new Error('Mock data not allowed in production environment');
+            }
+        }
+        
+        console.log('🎭 Generating mock risk data for development/fallback');
         
         return {
             merchantId: merchantId,
@@ -691,7 +787,17 @@ class RiskIndicatorsDataService {
     }
     
     /**
-     * Get fallback merchant data when API fails
+     * Get fallback merchant data when API fails.
+     * 
+     * FALLBACK BEHAVIOR:
+     *   - Used when merchant API call fails (network error, timeout, 500 error)
+     *   - Returns minimal merchant data to allow UI to continue functioning
+     *   - Should be replaced with proper error handling in production
+     * 
+     * FALLBACK DATA - DO NOT USE AS PRIMARY DATA SOURCE
+     * 
+     * @param {string} merchantId - Merchant ID
+     * @returns {Object} Fallback merchant data
      */
     getFallbackMerchantData(merchantId) {
         return {
@@ -710,7 +816,17 @@ class RiskIndicatorsDataService {
     }
     
     /**
-     * Get fallback analytics data when API fails
+     * Get fallback analytics data when API fails.
+     * 
+     * FALLBACK BEHAVIOR:
+     *   - Used when Business Analytics API call fails
+     *   - Returns minimal analytics data structure
+     *   - Allows risk indicators to display with reduced functionality
+     * 
+     * FALLBACK DATA - DO NOT USE AS PRIMARY DATA SOURCE
+     * 
+     * @param {string} merchantId - Merchant ID
+     * @returns {Object} Fallback analytics data
      */
     getFallbackAnalyticsData(merchantId) {
         return {
@@ -762,7 +878,17 @@ class RiskIndicatorsDataService {
     }
     
     /**
-     * Get fallback risk assessment data when API fails
+     * Get fallback risk assessment data when API fails.
+     * 
+     * FALLBACK BEHAVIOR:
+     *   - Used when Risk Assessment API call fails
+     *   - Returns conservative risk scores (low-medium risk)
+     *   - Allows risk visualization to display with default values
+     * 
+     * FALLBACK DATA - DO NOT USE AS PRIMARY DATA SOURCE
+     * 
+     * @param {string} merchantId - Merchant ID
+     * @returns {Object} Fallback risk assessment data
      */
     getFallbackRiskAssessment(merchantId) {
         return {

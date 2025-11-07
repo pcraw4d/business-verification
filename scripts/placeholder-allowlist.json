@@ -1,0 +1,30 @@
+{
+  "allowed_patterns": [
+    {
+      "file": "services/merchant-service/internal/handlers/merchant.go",
+      "line": 362,
+      "pattern": "Sample Merchant",
+      "reason": "Fallback data when Supabase unavailable",
+      "category": "database_fallback",
+      "severity": "low",
+      "expires": null
+    }
+  ],
+  "allowed_functions": [
+    "getMockMerchant",
+    "getFallbackMerchantData",
+    "generateMockRiskData",
+    "getFallbackBenchmarks",
+    "getFallbackAnalyticsData",
+    "getFallbackRiskAssessment"
+  ],
+  "allowed_files": [
+    "**/*_test.go",
+    "**/*.test.js",
+    "**/*.test.ts",
+    "scripts/**",
+    "test/**",
+    "tests/**"
+  ]
+}
+

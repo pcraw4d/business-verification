@@ -10,10 +10,11 @@ import (
 
 // Config holds all application configurations for the Merchant Service
 type Config struct {
-	Server   ServerConfig
-	Supabase SupabaseConfig
-	Merchant MerchantConfig
-	Logging  LoggingConfig
+	Environment string         // Environment: development, staging, production
+	Server      ServerConfig
+	Supabase    SupabaseConfig
+	Merchant    MerchantConfig
+	Logging     LoggingConfig
 }
 
 // ServerConfig holds server-specific configurations
@@ -41,6 +42,9 @@ type MerchantConfig struct {
 	CacheTTL              time.Duration
 	BulkOperationLimit    int
 	SearchLimit           int
+	AllowMockData         bool // Allow mock data in production (default: false)
+	RedisURL              string // Redis connection URL for caching
+	RedisEnabled          bool   // Enable Redis caching
 }
 
 // LoggingConfig holds logging configurations
@@ -51,7 +55,18 @@ type LoggingConfig struct {
 
 // Load loads configuration from environment variables
 func Load() (*Config, error) {
+	// Get environment (check both ENV and ENVIRONMENT for compatibility)
+	env := getEnvAsString("ENVIRONMENT", "")
+	if env == "" {
+		env = getEnvAsString("ENV", "development")
+	}
+	
+	// Determine if mock data is allowed (default: false in production)
+	allowMockDataDefault := env != "production"
+	allowMockData := getEnvAsBool("ALLOW_MOCK_DATA", allowMockDataDefault)
+	
 	cfg := &Config{
+		Environment: env,
 		Server: ServerConfig{
 			Port:         getEnvAsString("PORT", "8082"),
 			Host:         getEnvAsString("HOST", "0.0.0.0"),
@@ -72,6 +87,9 @@ func Load() (*Config, error) {
 			CacheTTL:              getEnvAsDuration("CACHE_TTL", 5*time.Minute),
 			BulkOperationLimit:    getEnvAsInt("BULK_OPERATION_LIMIT", 1000),
 			SearchLimit:           getEnvAsInt("SEARCH_LIMIT", 100),
+			AllowMockData:         allowMockData,
+			RedisURL:              getEnvAsString("REDIS_URL", ""),
+			RedisEnabled:          getEnvAsBool("REDIS_ENABLED", false),
 		},
 		Logging: LoggingConfig{
 			Level:  getEnvAsString("LOG_LEVEL", "info"),

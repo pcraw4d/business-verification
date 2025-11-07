@@ -34,6 +34,22 @@ scrape_configs:
         replacement: '${1}'
         target_label: host
 
+  # Merchant Service
+  - job_name: 'merchant-service'
+    static_configs:
+      - targets: ['localhost:8082']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    
+    # Add custom labels
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'merchant-service'
+
   # Node Exporter for system metrics
   - job_name: 'node-exporter'
     static_configs:

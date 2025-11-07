@@ -115,6 +115,43 @@ func (fm *FeatureFlagManager) loadDefaultFlags() {
 				"fallback_strategy": "legacy_implementation",
 			},
 		},
+		// Feature flags for incomplete features - disable in production
+		"incomplete_risk_benchmarks": {
+			Name:        "incomplete_risk_benchmarks",
+			Description: "Enable risk benchmarks endpoint (may be incomplete)",
+			Enabled:     fm.getEnvBool("ENABLE_INCOMPLETE_RISK_BENCHMARKS", fm.env != "production"),
+			Percentage:  100,
+			StartTime:   time.Now(),
+			Metadata: map[string]interface{}{
+				"status":      "incomplete",
+				"todo":        "Complete database queries for benchmarks",
+				"production":  false,
+			},
+		},
+		"incomplete_risk_predictions": {
+			Name:        "incomplete_risk_predictions",
+			Description: "Enable risk predictions endpoint (may be incomplete)",
+			Enabled:     fm.getEnvBool("ENABLE_INCOMPLETE_RISK_PREDICTIONS", fm.env != "production"),
+			Percentage:  100,
+			StartTime:   time.Now(),
+			Metadata: map[string]interface{}{
+				"status":      "incomplete",
+				"todo":        "Complete ML service integration",
+				"production":  false,
+			},
+		},
+		"incomplete_merchant_analytics": {
+			Name:        "incomplete_merchant_analytics",
+			Description: "Enable merchant analytics endpoint (may be incomplete)",
+			Enabled:     fm.getEnvBool("ENABLE_INCOMPLETE_MERCHANT_ANALYTICS", fm.env != "production"),
+			Percentage:  100,
+			StartTime:   time.Now(),
+			Metadata: map[string]interface{}{
+				"status":      "incomplete",
+				"todo":        "Complete analytics data aggregation",
+				"production":  false,
+			},
+		},
 	}
 
 	// Load flags from environment

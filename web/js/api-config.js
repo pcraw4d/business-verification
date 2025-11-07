@@ -85,6 +85,39 @@ class APIConfig {
     }
     
     /**
+     * Check if current environment is production
+     * @returns {boolean} True if production environment
+     */
+    static isProduction() {
+        return this.getEnvironment() === 'production';
+    }
+    
+    /**
+     * Check if current environment is development
+     * @returns {boolean} True if development environment
+     */
+    static isDevelopment() {
+        return this.getEnvironment() === 'development';
+    }
+    
+    /**
+     * Check if mock data is allowed in current environment
+     * @returns {boolean} True if mock data is allowed
+     */
+    static allowMockData() {
+        // Mock data is only allowed in development or if explicitly enabled
+        if (!this.isProduction()) {
+            return true;
+        }
+        // Check for explicit flag (could be set via meta tag or config)
+        const allowMockMeta = document.querySelector('meta[name="allow-mock-data"]');
+        if (allowMockMeta && allowMockMeta.content === 'true') {
+            return true;
+        }
+        return false;
+    }
+    
+    /**
      * Log current API configuration for debugging
      */
     static logConfig() {

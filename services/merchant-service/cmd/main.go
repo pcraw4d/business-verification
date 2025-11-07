@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 
 	"kyb-platform/services/merchant-service/internal/config"
@@ -61,6 +62,9 @@ func main() {
 
 	// Register routes
 	router.HandleFunc("/health", merchantHandler.HandleHealth).Methods("GET")
+	
+	// Prometheus metrics endpoint
+	router.Handle("/metrics", promhttp.Handler()).Methods("GET")
 
 	// Merchant management routes
 	router.HandleFunc("/api/v1/merchants", merchantHandler.HandleCreateMerchant).Methods("POST")

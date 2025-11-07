@@ -300,12 +300,22 @@ class SharedRiskDataService {
     }
     
     /**
-     * Get fallback benchmarks when API is not available
-     * @param {Object} industryCodes - Industry codes
-     * @returns {Object} Fallback benchmark data
+     * Get fallback benchmarks when API is not available.
+     * 
+     * FALLBACK BEHAVIOR:
+     *   - Used when risk benchmarks endpoint is unavailable or returns error
+     *   - Returns industry average values as placeholder
+     *   - Response includes isFallback: true flag to indicate fallback data
+     * 
+     * FALLBACK DATA - DO NOT USE AS PRIMARY DATA SOURCE
+     * 
+     * TODO: Replace with real benchmark data from backend endpoint
+     * 
+     * @param {Object} industryCodes - Industry codes (MCC, NAICS, SIC)
+     * @returns {Object} Fallback benchmark data with isFallback flag
      */
     getFallbackBenchmarks(industryCodes) {
-        // Return structured fallback data
+        // FALLBACK: Return structured fallback data when API is unavailable
         // This will be replaced with real data when backend endpoint is ready
         return {
             industryCodes,
