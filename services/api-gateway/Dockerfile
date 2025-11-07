@@ -1,7 +1,7 @@
 # Build stage
 FROM golang:1.22-alpine AS builder
 
-# Force rebuild: Fixed CORS duplicate headers and API routing issues
+# Force rebuild: Fixed API routing for risk benchmarks/predictions endpoints (preserve /risk in path)
 # Set working directory
 WORKDIR /app
 

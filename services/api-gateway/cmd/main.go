@@ -28,7 +28,7 @@ func main() {
 	}
 	defer logger.Sync()
 
-	logger.Info("🚀 Starting KYB API Gateway Service v1.0.18 - FIX CORS DUPLICATE HEADERS AND API ROUTING")
+	logger.Info("🚀 Starting KYB API Gateway Service v1.0.19 - Fixed risk benchmarks/predictions routing")
 
 	// Load configuration
 	cfg, err := config.Load()
