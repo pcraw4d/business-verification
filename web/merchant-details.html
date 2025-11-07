@@ -792,6 +792,10 @@
                         this.apiResults = JSON.parse(apiResultsStr);
                         this.populateApiResults();
                         console.log('✅ Loaded API results from session storage');
+                    } else if (merchantId) {
+                        // If no API results in session storage, try to load from API
+                        console.log('📡 No API results in session storage, attempting to load from API...');
+                        await this.loadBusinessIntelligenceData(merchantId);
                     }
                     
                     // Update page title
@@ -858,11 +862,25 @@
             }
 
             populateApiResults() {
-                if (!this.apiResults) return;
+                if (!this.apiResults) {
+                    console.warn('⚠️ No API results available');
+                    return;
+                }
+
+                console.log('📦 API Results structure:', Object.keys(this.apiResults));
+                console.log('📦 API Results:', JSON.stringify(this.apiResults, null, 2));
 
                 // Populate Business Intelligence results
                 if (this.apiResults.businessIntelligence) {
+                    console.log('✅ Found businessIntelligence in apiResults');
                     this.populateBusinessIntelligenceResults(this.apiResults.businessIntelligence);
+                } else {
+                    console.warn('⚠️ No businessIntelligence in apiResults');
+                    // Try to load from API
+                    const merchantId = getMerchantId();
+                    if (merchantId) {
+                        this.loadBusinessIntelligenceData(merchantId);
+                    }
                 }
 
                 // Populate Risk Assessment results
@@ -878,7 +896,22 @@
 
             populateBusinessIntelligenceResults(data) {
                 console.log('📊 Populating Business Intelligence results:', data);
+                console.log('📊 Data type:', typeof data);
+                console.log('📊 Is data null?', data === null);
+                console.log('📊 Is data undefined?', data === undefined);
+                console.log('📊 Data keys:', data ? Object.keys(data) : 'N/A');
                 console.log('📊 Actual BI data structure:', JSON.stringify(data, null, 2));
+                
+                // Check if data is empty or invalid
+                if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) {
+                    console.warn('⚠️ Business Intelligence data is empty or invalid');
+                    console.log('🔍 Attempting to load BI data from API...');
+                    const merchantId = getMerchantId();
+                    if (merchantId) {
+                        await this.loadBusinessIntelligenceData(merchantId);
+                    }
+                    return;
+                }
                 
                 // Extract data from various possible structures
                 let result = data;
@@ -943,83 +976,144 @@
                     classificationReasoning = dataObj.reasoning || dataObj.explanation || '';
                 }
                 
+                // Log extracted data
+                console.log('📊 Extracted data:', {
+                    mccCodes: mccCodes.length,
+                    sicCodes: sicCodes.length,
+                    naicsCodes: naicsCodes.length,
+                    primaryIndustry,
+                    confidenceScore,
+                    methodsUsed: methodsUsed.length,
+                    websiteKeywords: websiteKeywords.length,
+                    hasReasoning: !!classificationReasoning
+                });
+                
                 // Populate primary industry and confidence
                 const primaryIndustryEl = document.getElementById('primaryIndustry');
                 const industryCodeEl = document.getElementById('industryCode');
                 const confidenceScoreEl = document.getElementById('confidenceScore');
                 
-                if (primaryIndustryEl) primaryIndustryEl.textContent = primaryIndustry;
-                if (industryCodeEl && naicsCodes.length > 0) {
-                    industryCodeEl.textContent = naicsCodes[0].code || '-';
+                console.log('🔍 Element check:', {
+                    primaryIndustryEl: !!primaryIndustryEl,
+                    industryCodeEl: !!industryCodeEl,
+                    confidenceScoreEl: !!confidenceScoreEl
+                });
+                
+                if (primaryIndustryEl) {
+                    primaryIndustryEl.textContent = primaryIndustry;
+                    console.log(`✅ Set primaryIndustry to: ${primaryIndustry}`);
+                } else {
+                    console.warn('⚠️ primaryIndustry element not found');
                 }
+                
+                if (industryCodeEl) {
+                    if (naicsCodes.length > 0) {
+                        const code = typeof naicsCodes[0] === 'string' ? naicsCodes[0] : (naicsCodes[0].code || naicsCodes[0].naics_code || '-');
+                        industryCodeEl.textContent = code;
+                        console.log(`✅ Set industryCode to: ${code}`);
+                    } else {
+                        industryCodeEl.textContent = '-';
+                        console.warn('⚠️ No NAICS codes available');
+                    }
+                } else {
+                    console.warn('⚠️ industryCode element not found');
+                }
+                
                 if (confidenceScoreEl) {
                     confidenceScoreEl.textContent = `${Math.round(confidenceScore * 100)}%`;
+                    console.log(`✅ Set confidenceScore to: ${Math.round(confidenceScore * 100)}%`);
+                } else {
+                    console.warn('⚠️ confidenceScore element not found');
                 }
                 
                 // Populate MCC codes
                 const mccList = document.getElementById('mccCodesList');
+                console.log('🔍 MCC list element:', !!mccList, 'MCC codes count:', mccCodes.length);
                 if (mccList) {
                     if (mccCodes.length > 0) {
-                        mccList.innerHTML = mccCodes.slice(0, 3).map((code, index) => {
+                        const mccHTML = mccCodes.slice(0, 3).map((code, index) => {
                             const codeObj = typeof code === 'string' ? { code, description: code } : code;
+                            const codeValue = codeObj.code || codeObj.mcc_code || codeObj.mcc || (typeof code === 'string' ? code : 'Unknown');
+                            const description = codeObj.description || codeObj.name || codeValue;
                             return `
                                 <div class="bg-white rounded-lg p-3 border border-gray-200">
                                     <div class="flex justify-between items-start mb-2">
                                         <span class="bg-blue-100 text-blue-600 text-xs font-bold px-2 py-1 rounded-full">#${index + 1}</span>
                                         <span class="text-xs text-gray-500">${Math.round((codeObj.confidence || 0.8) * 100)}%</span>
                                     </div>
-                                    <h6 class="font-medium text-gray-900 mb-1 text-sm">${codeObj.description || codeObj.code}</h6>
-                                    <p class="text-xs text-gray-600 font-mono">${codeObj.code}</p>
+                                    <h6 class="font-medium text-gray-900 mb-1 text-sm">${description}</h6>
+                                    <p class="text-xs text-gray-600 font-mono">${codeValue}</p>
                                 </div>
                             `;
                         }).join('');
+                        mccList.innerHTML = mccHTML;
+                        console.log(`✅ Populated ${mccCodes.slice(0, 3).length} MCC codes`);
                     } else {
                         mccList.innerHTML = '<p class="text-sm text-gray-500">No MCC codes found</p>';
+                        console.warn('⚠️ No MCC codes to display');
                     }
+                } else {
+                    console.error('❌ mccCodesList element not found in DOM');
                 }
                 
                 // Populate SIC codes
                 const sicList = document.getElementById('sicCodesList');
+                console.log('🔍 SIC list element:', !!sicList, 'SIC codes count:', sicCodes.length);
                 if (sicList) {
                     if (sicCodes.length > 0) {
-                        sicList.innerHTML = sicCodes.slice(0, 3).map((code, index) => {
+                        const sicHTML = sicCodes.slice(0, 3).map((code, index) => {
                             const codeObj = typeof code === 'string' ? { code, description: code } : code;
+                            const codeValue = codeObj.code || codeObj.sic_code || codeObj.sic || (typeof code === 'string' ? code : 'Unknown');
+                            const description = codeObj.description || codeObj.name || codeValue;
                             return `
                                 <div class="bg-white rounded-lg p-3 border border-gray-200">
                                     <div class="flex justify-between items-start mb-2">
                                         <span class="bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded-full">#${index + 1}</span>
                                         <span class="text-xs text-gray-500">${Math.round((codeObj.confidence || 0.8) * 100)}%</span>
                                     </div>
-                                    <h6 class="font-medium text-gray-900 mb-1 text-sm">${codeObj.description || codeObj.code}</h6>
-                                    <p class="text-xs text-gray-600 font-mono">${codeObj.code}</p>
+                                    <h6 class="font-medium text-gray-900 mb-1 text-sm">${description}</h6>
+                                    <p class="text-xs text-gray-600 font-mono">${codeValue}</p>
                                 </div>
                             `;
                         }).join('');
+                        sicList.innerHTML = sicHTML;
+                        console.log(`✅ Populated ${sicCodes.slice(0, 3).length} SIC codes`);
                     } else {
                         sicList.innerHTML = '<p class="text-sm text-gray-500">No SIC codes found</p>';
+                        console.warn('⚠️ No SIC codes to display');
                     }
+                } else {
+                    console.error('❌ sicCodesList element not found in DOM');
                 }
                 
                 // Populate NAICS codes
                 const naicsList = document.getElementById('naicsCodesList');
+                console.log('🔍 NAICS list element:', !!naicsList, 'NAICS codes count:', naicsCodes.length);
                 if (naicsList) {
                     if (naicsCodes.length > 0) {
-                        naicsList.innerHTML = naicsCodes.slice(0, 3).map((code, index) => {
+                        const naicsHTML = naicsCodes.slice(0, 3).map((code, index) => {
                             const codeObj = typeof code === 'string' ? { code, description: code } : code;
+                            const codeValue = codeObj.code || codeObj.naics_code || codeObj.naics || (typeof code === 'string' ? code : 'Unknown');
+                            const description = codeObj.description || codeObj.name || codeValue;
                             return `
                                 <div class="bg-white rounded-lg p-3 border border-gray-200">
                                     <div class="flex justify-between items-start mb-2">
                                         <span class="bg-green-100 text-green-600 text-xs font-bold px-2 py-1 rounded-full">#${index + 1}</span>
                                         <span class="text-xs text-gray-500">${Math.round((codeObj.confidence || 0.8) * 100)}%</span>
                                     </div>
-                                    <h6 class="font-medium text-gray-900 mb-1 text-sm">${codeObj.description || codeObj.code}</h6>
-                                    <p class="text-xs text-gray-600 font-mono">${codeObj.code}</p>
+                                    <h6 class="font-medium text-gray-900 mb-1 text-sm">${description}</h6>
+                                    <p class="text-xs text-gray-600 font-mono">${codeValue}</p>
                                 </div>
                             `;
                         }).join('');
+                        naicsList.innerHTML = naicsHTML;
+                        console.log(`✅ Populated ${naicsCodes.slice(0, 3).length} NAICS codes`);
                     } else {
                         naicsList.innerHTML = '<p class="text-sm text-gray-500">No NAICS codes found</p>';
+                        console.warn('⚠️ No NAICS codes to display');
                     }
+                } else {
+                    console.error('❌ naicsCodesList element not found in DOM');
                 }
                 
                 // Populate method breakdown
@@ -1100,6 +1194,98 @@
 
             populateRiskIndicatorsResults(data) {
                 console.log('Populating Risk Indicators results:', data);
+            }
+
+            async loadBusinessIntelligenceData(merchantId) {
+                try {
+                    console.log('📡 Loading Business Intelligence data from API for merchant:', merchantId);
+                    
+                    // Try to get BI data from merchant data first
+                    if (this.merchantData && this.merchantData.businessIntelligence) {
+                        console.log('✅ Found BI data in merchant data');
+                        if (!this.apiResults) {
+                            this.apiResults = {};
+                        }
+                        this.apiResults.businessIntelligence = this.merchantData.businessIntelligence;
+                        this.populateBusinessIntelligenceResults(this.apiResults.businessIntelligence);
+                        return;
+                    }
+                    
+                    // Try to fetch from merchant API (might have BI embedded)
+                    const apiConfig = typeof APIConfig !== 'undefined' ? APIConfig : null;
+                    if (apiConfig && merchantId) {
+                        const endpoints = apiConfig.getEndpoints();
+                        const response = await fetch(endpoints.merchantById(merchantId), {
+                            headers: apiConfig.getHeaders()
+                        });
+                        
+                        if (response.ok) {
+                            const merchantData = await response.json();
+                            console.log('📦 Merchant data from API:', merchantData);
+                            
+                            // Check if BI data is embedded in merchant response
+                            if (merchantData.businessIntelligence || merchantData.business_intelligence) {
+                                if (!this.apiResults) {
+                                    this.apiResults = {};
+                                }
+                                this.apiResults.businessIntelligence = merchantData.businessIntelligence || merchantData.business_intelligence;
+                                this.populateBusinessIntelligenceResults(this.apiResults.businessIntelligence);
+                                
+                                // Store in sessionStorage
+                                sessionStorage.setItem('merchantApiResults', JSON.stringify(this.apiResults));
+                                console.log('✅ Loaded and stored BI data from merchant API');
+                                return;
+                            }
+                        }
+                    }
+                    
+                    // If still no data, try BI service directly
+                    if (apiConfig) {
+                        const endpoints = apiConfig.getEndpoints();
+                        // Check if we have merchant data to use for BI analysis
+                        if (this.merchantData) {
+                            console.log('📡 Attempting to fetch BI data from BI service...');
+                            try {
+                                const biResponse = await fetch(`${apiConfig.getBaseURL()}/api/v1/bi/analyze`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        ...apiConfig.getHeaders()
+                                    },
+                                    body: JSON.stringify({
+                                        business_name: this.merchantData.businessName || this.merchantData.name,
+                                        website_url: this.merchantData.websiteUrl || this.merchantData.website,
+                                        description: this.merchantData.businessDescription || this.merchantData.description || ''
+                                    })
+                                });
+                                
+                                if (biResponse.ok) {
+                                    const biData = await biResponse.json();
+                                    console.log('✅ BI data from BI service:', biData);
+                                    
+                                    if (!this.apiResults) {
+                                        this.apiResults = {};
+                                    }
+                                    this.apiResults.businessIntelligence = biData;
+                                    this.populateBusinessIntelligenceResults(biData);
+                                    
+                                    // Store in sessionStorage
+                                    sessionStorage.setItem('merchantApiResults', JSON.stringify(this.apiResults));
+                                    console.log('✅ Loaded and stored BI data from BI service');
+                                    return;
+                                } else {
+                                    console.warn('⚠️ BI service returned error:', biResponse.status);
+                                }
+                            } catch (biError) {
+                                console.error('❌ Failed to fetch from BI service:', biError);
+                            }
+                        }
+                    }
+                    
+                    console.warn('⚠️ Could not load BI data from any source');
+                } catch (error) {
+                    console.error('❌ Error loading Business Intelligence data:', error);
+                }
             }
 
             bindEvents() {
