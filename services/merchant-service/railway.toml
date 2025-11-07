@@ -1,6 +1,7 @@
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile"
+dockerfilePath = "services/merchant-service/Dockerfile"
+dockerContext = "."
 
 [deploy]
 startCommand = "./merchant-service"
