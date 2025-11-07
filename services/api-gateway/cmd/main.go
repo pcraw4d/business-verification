@@ -28,7 +28,7 @@ func main() {
 	}
 	defer logger.Sync()
 
-	logger.Info("🚀 Starting KYB API Gateway Service v1.0.17 - FIX BI CORS HEADERS")
+	logger.Info("🚀 Starting KYB API Gateway Service v1.0.18 - FIX CORS DUPLICATE HEADERS AND API ROUTING")
 
 	// Load configuration
 	cfg, err := config.Load()
@@ -94,86 +94,27 @@ func main() {
 	// API Gateway routes
 	api := router.PathPrefix("/api/v1").Subrouter()
 	api.HandleFunc("/classify", gatewayHandler.ProxyToClassification).Methods("POST")
-	api.HandleFunc("/classify", func(w http.ResponseWriter, r *http.Request) {
-		// Handle OPTIONS requests for CORS preflight
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		w.WriteHeader(http.StatusOK)
-	}).Methods("OPTIONS")
-	// Merchant routes with CORS support
-	api.HandleFunc("/merchants", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "OPTIONS" {
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		gatewayHandler.ProxyToMerchants(w, r)
-	}).Methods("GET", "POST", "OPTIONS")
+	// OPTIONS handled by CORS middleware
+	// Merchant routes - CORS handled by middleware
+	api.HandleFunc("/merchants", gatewayHandler.ProxyToMerchants).Methods("GET", "POST", "OPTIONS")
 
-	api.HandleFunc("/merchants/{id}", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "OPTIONS" {
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		gatewayHandler.ProxyToMerchants(w, r)
-	}).Methods("GET", "PUT", "DELETE", "OPTIONS")
+	api.HandleFunc("/merchants/{id}", gatewayHandler.ProxyToMerchants).Methods("GET", "PUT", "DELETE", "OPTIONS")
 
-	api.HandleFunc("/merchants/search", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "OPTIONS" {
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		gatewayHandler.ProxyToMerchants(w, r)
-	}).Methods("POST", "OPTIONS")
+	api.HandleFunc("/merchants/search", gatewayHandler.ProxyToMerchants).Methods("POST", "OPTIONS")
 
-	api.HandleFunc("/merchants/analytics", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "OPTIONS" {
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		gatewayHandler.ProxyToMerchants(w, r)
-	}).Methods("GET", "OPTIONS")
+	api.HandleFunc("/merchants/analytics", gatewayHandler.ProxyToMerchants).Methods("GET", "OPTIONS")
 
 	// Health check routes for backend services
 	api.HandleFunc("/classification/health", gatewayHandler.ProxyToClassificationHealth).Methods("GET")
 	api.HandleFunc("/merchant/health", gatewayHandler.ProxyToMerchantHealth).Methods("GET")
 	api.HandleFunc("/risk/health", gatewayHandler.ProxyToRiskAssessmentHealth).Methods("GET")
 
-	// Risk Assessment routes
-	api.HandleFunc("/risk/assess", func(w http.ResponseWriter, r *http.Request) {
-		// Handle OPTIONS requests for CORS preflight (middleware handles CORS, but OPTIONS needs early return)
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		gatewayHandler.ProxyToRiskAssessment(w, r)
-	}).Methods("POST", "OPTIONS")
+	// Risk Assessment routes - CORS handled by middleware
+	api.HandleFunc("/risk/assess", gatewayHandler.ProxyToRiskAssessment).Methods("POST", "OPTIONS")
 	api.PathPrefix("/risk").HandlerFunc(gatewayHandler.ProxyToRiskAssessment)
 
-	// Business Intelligence routes
-	api.HandleFunc("/bi/analyze", func(w http.ResponseWriter, r *http.Request) {
-		// Handle OPTIONS requests for CORS preflight
-		if r.Method == "OPTIONS" {
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		gatewayHandler.ProxyToBI(w, r)
-	}).Methods("POST", "OPTIONS")
+	// Business Intelligence routes - CORS handled by middleware
+	api.HandleFunc("/bi/analyze", gatewayHandler.ProxyToBI).Methods("POST", "OPTIONS")
 	api.PathPrefix("/bi").HandlerFunc(gatewayHandler.ProxyToBI)
 
 	// Frontend proxy (for development)

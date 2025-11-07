@@ -354,13 +354,23 @@ func (h *GatewayHandler) ProxyToRiskAssessment(w http.ResponseWriter, r *http.Re
 	// Note: CORS headers are handled by middleware, don't set them here to avoid duplicates
 
 	// Extract the path after /api/v1/risk/
-	// The Risk Assessment Service expects /api/v1/risk/* paths
-	path := strings.TrimPrefix(r.URL.Path, "/api/v1")
-	if path == "" {
-		path = "/api/v1"
-	}
-	// Ensure path starts with /api/v1
-	if !strings.HasPrefix(path, "/api/v1") {
+	// The Risk Assessment Service expects /api/v1/* paths (without /risk prefix)
+	// Example: /api/v1/risk/assess -> /api/v1/assess
+	path := r.URL.Path
+	
+	// Remove /api/v1/risk prefix and replace with /api/v1
+	if strings.HasPrefix(path, "/api/v1/risk") {
+		// Remove /api/v1/risk, keep the rest
+		suffix := strings.TrimPrefix(path, "/api/v1/risk")
+		if suffix == "" {
+			suffix = "/"
+		}
+		path = "/api/v1" + suffix
+	} else if strings.HasPrefix(path, "/api/v1") {
+		// Already has /api/v1, use as-is
+		path = path
+	} else {
+		// No /api/v1 prefix, add it
 		path = "/api/v1" + path
 	}
 

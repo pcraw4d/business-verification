@@ -1,7 +1,7 @@
 # Build stage
 FROM golang:1.22-alpine AS builder
 
-# Force rebuild for deployment
+# Force rebuild: Fixed CORS duplicate headers and API routing issues
 # Set working directory
 WORKDIR /app
 

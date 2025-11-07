@@ -127,23 +127,42 @@ class RiskIndicatorsDataService {
     async loadRiskAssessment(merchantId) {
         try {
             const endpoints = this.apiConfig.getEndpoints();
-            const response = await fetch(endpoints.riskAssess, {
+            const url = endpoints.riskAssess;
+            console.log(`🔍 Loading risk assessment from: ${url} for merchant: ${merchantId}`);
+            
+            const requestBody = { 
+                merchantId,
+                includeTrendAnalysis: true,
+                includeRecommendations: true,
+                includeExplanations: true
+            };
+            
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: this.apiConfig.getHeaders(),
-                body: JSON.stringify({ 
-                    merchantId,
-                    includeTrendAnalysis: true,
-                    includeRecommendations: true,
-                    includeExplanations: true
-                })
+                body: JSON.stringify(requestBody)
             });
             
+            console.log(`📡 Risk assessment response status: ${response.status}`);
+            
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorText = await response.text().catch(() => 'Unknown error');
+                console.error(`❌ Risk assessment API error (${response.status}):`, errorText.substring(0, 200));
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText.substring(0, 100)}`);
             }
             
-            return await response.json();
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('❌ Risk assessment API returned non-JSON:', text.substring(0, 200));
+                throw new Error(`API returned non-JSON response. Status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('✅ Risk assessment loaded successfully');
+            return data;
         } catch (error) {
+            console.error('❌ Failed to load risk assessment:', error);
             throw error; // Let Promise.allSettled handle the error
         }
     }
