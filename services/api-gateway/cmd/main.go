@@ -153,11 +153,8 @@ func main() {
 
 	// Risk Assessment routes
 	api.HandleFunc("/risk/assess", func(w http.ResponseWriter, r *http.Request) {
-		// Handle OPTIONS requests for CORS preflight
+		// Handle OPTIONS requests for CORS preflight (middleware handles CORS, but OPTIONS needs early return)
 		if r.Method == "OPTIONS" {
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Request-ID")
 			w.WriteHeader(http.StatusOK)
 			return
 		}

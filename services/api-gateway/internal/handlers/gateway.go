@@ -333,10 +333,7 @@ func (h *GatewayHandler) proxyRequest(w http.ResponseWriter, r *http.Request, ta
 
 // ProxyToBI proxies requests to the Business Intelligence service
 func (h *GatewayHandler) ProxyToBI(w http.ResponseWriter, r *http.Request) {
-	// Set CORS headers for BI service
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	// Note: CORS headers are handled by middleware, don't set them here to avoid duplicates
 
 	// Extract the path after /api/v1/bi/
 	path := strings.TrimPrefix(r.URL.Path, "/api/v1/bi")
