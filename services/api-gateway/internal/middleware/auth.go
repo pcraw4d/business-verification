@@ -22,7 +22,7 @@ func Authentication(supabaseClient *supabase.Client, logger *zap.Logger) func(ht
 				next.ServeHTTP(w, r)
 				return
 			}
-			
+
 			logger.Info("Authentication required for endpoint",
 				zap.String("path", r.URL.Path),
 				zap.String("method", r.Method))

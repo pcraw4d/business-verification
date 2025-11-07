@@ -930,6 +930,42 @@
     <script src="js/components/risk-indicators-ui-template.js"></script>
     <script src="js/components/risk-indicators-data-service.js"></script>
     <script src="js/components/website-risk-display.js"></script>
+    
+    <!-- Shared Component Library (load as modules) -->
+    <script type="module">
+        // Import and expose shared components globally
+        try {
+            const { getEventBus } = await import('./shared/events/event-bus.js');
+            const { getRiskDataService } = await import('./shared/data-services/risk-data-service.js');
+            const { getMerchantDataService } = await import('./shared/data-services/merchant-data-service.js');
+            const { getRiskVisualizations } = await import('./shared/visualizations/risk-visualizations.js');
+            const { getCrossTabNavigation } = await import('./shared/navigation/cross-tab-navigation.js');
+            const { getExportService } = await import('./shared/components/export-service.js');
+            const { getAlertService } = await import('./shared/components/alert-service.js');
+            
+            // Make available globally for non-module scripts
+            window.getEventBus = getEventBus;
+            window.getRiskDataService = getRiskDataService;
+            window.getMerchantDataService = getMerchantDataService;
+            window.getRiskVisualizations = getRiskVisualizations;
+            window.getCrossTabNavigation = getCrossTabNavigation;
+            window.getExportService = getExportService;
+            window.getAlertService = getAlertService;
+            
+            console.log('✅ Shared component library loaded');
+            
+            // Dispatch event when components are ready
+            window.dispatchEvent(new CustomEvent('sharedComponentsReady'));
+        } catch (error) {
+            console.error('❌ Failed to load shared components:', error);
+            // Components will use fallback behavior
+        }
+    </script>
+    
+    <!-- Predictive Risk Forecast Component -->
+    <script src="js/components/predictive-risk-forecast.js"></script>
+    
+    <!-- Main Risk Indicators Tab Component -->
     <script src="js/components/merchant-risk-indicators-tab.js"></script>
 
     <!-- Initialize Risk Indicators Tab -->

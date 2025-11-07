@@ -3,11 +3,11 @@
  * 
  * Main controller that wires existing risk visualization components together
  * to create a fully functional Risk Indicators tab. Leverages:
- * - RiskVisualization component (radar charts, gauges, trends)
+ * - Shared Risk Data Service (unified data access)
+ * - Shared Risk Visualizations (reusable charts)
  * - RiskExplainability component (SHAP plots, feature importance)
  * - RiskLevelIndicator component (badges, colors, icons)
  * - RiskIndicatorsUITemplate (HTML templates)
- * - RiskIndicatorsDataService (data aggregation)
  */
 
 class MerchantRiskIndicatorsTab {
@@ -17,11 +17,33 @@ class MerchantRiskIndicatorsTab {
         this.riskData = null;
         this.isInitialized = false;
         
+        // Shared components (use if available, fallback to existing)
+        this.sharedRiskService = null;
+        this.sharedRiskViz = null;
+        this.benchmarks = null; // Will be loaded from Business Analytics
+        
         // Reuse existing components (initialize later when D3.js is available)
         this.visualization = null;
         this.explainability = new RiskExplainability();
         this.levelIndicator = null; // Initialize later to avoid DOM manipulation
-        this.dataService = new RiskIndicatorsDataService();
+        
+        // Use shared data service if available, otherwise fallback to existing
+        try {
+            // Try to import shared services (will work if modules are loaded)
+            if (typeof getRiskDataService !== 'undefined') {
+                this.sharedRiskService = getRiskDataService();
+            }
+            if (typeof getRiskVisualizations !== 'undefined') {
+                this.sharedRiskViz = getRiskVisualizations();
+            }
+        } catch (e) {
+            console.warn('Shared services not available, using fallback:', e);
+        }
+        
+        // Fallback to existing data service if shared not available
+        if (!this.sharedRiskService) {
+            this.dataService = new RiskIndicatorsDataService();
+        }
         
         // UI template helper
         this.uiTemplate = RiskIndicatorsUITemplate;
@@ -93,20 +115,69 @@ class MerchantRiskIndicatorsTab {
     
     /**
      * Load data and render the UI
+     * Uses shared risk data service if available, otherwise falls back to existing service
      */
     async loadAndRender() {
         try {
             // Show loading state
             this.showLoading();
             
-            // Load all data via data service
-            this.riskData = await this.dataService.loadAllRiskData(this.merchantId);
+            // Try to use shared risk service if available
+            if (this.sharedRiskService) {
+                try {
+                    // Load risk data with benchmarks
+                    const riskData = await this.sharedRiskService.loadRiskData(this.merchantId, {
+                        includeHistory: false,
+                        includePredictions: false,
+                        includeBenchmarks: true,
+                        includeExplanations: true,
+                        includeRecommendations: true
+                    });
+                    
+                    // Store benchmarks for radar chart
+                    if (riskData.benchmarks) {
+                        this.benchmarks = riskData.benchmarks;
+                    }
+                    
+                    // Convert shared service format to expected format
+                    // The existing code expects riskData with categories, overallRiskScore, etc.
+                    // We need to adapt the shared service response
+                    if (riskData.current) {
+                        // Use existing data service to merge and normalize
+                        // This maintains compatibility with existing UI templates
+                        const existingData = await this.dataService.loadAllRiskData(this.merchantId);
+                        // Merge shared service data with existing structure
+                        this.riskData = {
+                            ...existingData,
+                            // Override with shared service data where available
+                            currentAssessment: riskData.current,
+                            benchmarks: riskData.benchmarks,
+                            predictions: riskData.predictions
+                        };
+                    } else {
+                        // Fallback to existing service if shared service doesn't return expected format
+                        this.riskData = await this.dataService.loadAllRiskData(this.merchantId);
+                    }
+                } catch (sharedError) {
+                    console.warn('Shared risk service failed, using fallback:', sharedError);
+                    this.riskData = await this.dataService.loadAllRiskData(this.merchantId);
+                }
+            } else {
+                // Use existing data service
+                this.riskData = await this.dataService.loadAllRiskData(this.merchantId);
+            }
             
             // Render UI
             this.render();
             
             // Initialize visualizations using existing components
             await this.initializeVisualizations();
+            
+            // Initialize predictive forecast (unique to Risk Indicators tab)
+            await this.initializePredictiveForecast();
+            
+            // Add contextual links to other tabs
+            this.addContextualLinks();
             
             // Hide loading state
             this.hideLoading();
@@ -176,6 +247,9 @@ class MerchantRiskIndicatorsTab {
                         ${this.uiTemplate.getRadarChartHTML()}
                     </div>
                     
+                    <!-- Predictive Risk Forecast Section (Unique to Risk Indicators) -->
+                    ${this.uiTemplate.getPredictiveForecastHTML()}
+                    
                     <!-- Recommendations Section -->
                     <div id="riskRecommendations" class="mb-6">
                         ${this.uiTemplate.getRecommendationsHTML(this.riskData.recommendations)}
@@ -184,6 +258,11 @@ class MerchantRiskIndicatorsTab {
                     <!-- Website Risk Findings Section -->
                     <div id="websiteRiskFindings" class="mb-6">
                         ${this.uiTemplate.getWebsiteRiskFindingsHTML(this.riskData.websiteRisks)}
+                    </div>
+                    
+                    <!-- Contextual Links Section -->
+                    <div id="contextualLinks" class="mb-6">
+                        <!-- Contextual links will be rendered here -->
                     </div>
                 </div>
             </div>
@@ -217,19 +296,49 @@ class MerchantRiskIndicatorsTab {
     }
     
     /**
-     * Initialize radar chart using existing RiskVisualization component
+     * Initialize radar chart using shared RiskVisualizations component
      */
     async initializeRadarChart() {
         try {
-            const radarData = this.prepareRadarData();
             const canvas = document.getElementById('riskRadarChart');
+            if (!canvas) {
+                console.warn('Radar chart canvas not found');
+                return;
+            }
             
-            if (canvas && this.visualization.createRiskRadarChart) {
-                // Use existing RiskVisualization component
+            // Prepare category scores
+            const categories = this.riskData.categories;
+            const categoryScores = {};
+            const categoryOrder = ['financial', 'operational', 'regulatory', 'reputational', 'cybersecurity', 'content'];
+            categoryOrder.forEach(cat => {
+                categoryScores[cat] = categories[cat] || { score: 0 };
+            });
+            
+            // Load industry benchmarks from Business Analytics (replaces mock data)
+            let benchmarks = this.benchmarks;
+            if (!benchmarks && this.sharedRiskService) {
+                try {
+                    benchmarks = await this.sharedRiskService.loadIndustryBenchmarks(this.merchantId);
+                    this.benchmarks = benchmarks;
+                } catch (error) {
+                    console.warn('Failed to load industry benchmarks, using fallback:', error);
+                    benchmarks = null;
+                }
+            }
+            
+            // Use shared risk visualizations if available
+            if (this.sharedRiskViz) {
+                this.sharedRiskViz.createRiskRadarChart('riskRadarChart', categoryScores, benchmarks, {
+                    max: 100
+                });
+                console.log('📈 Radar chart initialized with shared component');
+            } else if (this.visualization && this.visualization.createRiskRadarChart) {
+                // Fallback to existing RiskVisualization component
+                const radarData = this.prepareRadarData(benchmarks);
                 this.visualization.createRiskRadarChart('riskRadarChart', radarData);
-                console.log('📈 Radar chart initialized');
+                console.log('📈 Radar chart initialized with existing component');
             } else {
-                console.warn('Radar chart canvas not found or RiskVisualization not available');
+                console.warn('No visualization component available for radar chart');
             }
         } catch (error) {
             console.error('Failed to initialize radar chart:', error);
@@ -237,32 +346,174 @@ class MerchantRiskIndicatorsTab {
     }
     
     /**
-     * Initialize SHAP analysis using existing RiskExplainability component
+     * Initialize SHAP analysis - Links to Risk Assessment tab instead of duplicating
+     * The Risk Assessment tab has comprehensive SHAP analysis, so we link to it
      */
     async initializeSHAPAnalysis() {
         try {
-            if (this.riskData.shapData && this.explainability) {
-                // Create SHAP force plot if container exists
-                const shapContainer = document.getElementById('shapForcePlot');
-                if (shapContainer && this.explainability.createSHAPForcePlot) {
-                    this.explainability.createSHAPForcePlot('shapForcePlot', this.riskData.shapData);
-                }
-                
-                // Create "Why this score?" panel
-                const whyScoreContainer = document.getElementById('whyScorePanel');
-                if (whyScoreContainer && this.explainability.createWhyScorePanel) {
-                    this.explainability.createWhyScorePanel('whyScorePanel', {
-                        overallScore: this.riskData.overallRiskScore,
-                        contributions: this.riskData.shapData.feature_contributions,
-                        recommendations: this.riskData.recommendations
+            // Instead of duplicating SHAP analysis, add a link to Risk Assessment tab
+            const shapContainer = document.getElementById('shapForcePlot');
+            if (shapContainer) {
+                // Add link to Risk Assessment tab for detailed SHAP analysis
+                shapContainer.innerHTML = `
+                    <div class="text-center p-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                        <i class="fas fa-chart-line text-4xl text-blue-600 mb-4"></i>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Detailed Risk Explanation</h3>
+                        <p class="text-gray-600 mb-4">View comprehensive SHAP analysis and feature importance in the Risk Assessment tab.</p>
+                        <a href="#risk-assessment-tab" 
+                           onclick="event.preventDefault(); 
+                                    const tab = document.querySelector('[data-tab=\\'risk-assessment\\']') || document.querySelector('[href=\\'#risk-assessment-tab\\']');
+                                    if (tab) tab.click();
+                                    return false;"
+                           class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-arrow-right mr-2"></i>
+                            View Risk Assessment
+                        </a>
+                    </div>
+                `;
+            }
+            
+            // Also update "Why this score?" panel
+            const whyScoreContainer = document.getElementById('whyScorePanel');
+            if (whyScoreContainer) {
+                whyScoreContainer.innerHTML = `
+                    <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <p class="text-sm text-blue-800">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            For detailed risk score explanations, SHAP feature contributions, and scenario analysis, 
+                            visit the <a href="#risk-assessment-tab" 
+                                        onclick="event.preventDefault(); 
+                                                 const tab = document.querySelector('[data-tab=\\'risk-assessment\\']') || document.querySelector('[href=\\'#risk-assessment-tab\\']');
+                                                 if (tab) tab.click();
+                                                 return false;"
+                                        class="underline font-semibold">Risk Assessment tab</a>.
+                        </p>
+                    </div>
+                `;
+            }
+            
+            console.log('🔗 SHAP analysis linked to Risk Assessment tab');
+        } catch (error) {
+            console.error('Failed to initialize SHAP analysis link:', error);
+        }
+    }
+    
+    /**
+     * Initialize predictive risk forecast (unique feature for Risk Indicators tab)
+     */
+    async initializePredictiveForecast() {
+        try {
+            // Initialize predictive forecast component
+            if (typeof PredictiveRiskForecast === 'undefined') {
+                console.warn('PredictiveRiskForecast component not available');
+                return;
+            }
+            
+            this.predictiveForecast = new PredictiveRiskForecast();
+            
+            // Load predictions if available from shared service
+            let predictions = null;
+            if (this.sharedRiskService && this.riskData.predictions) {
+                predictions = this.riskData.predictions;
+            } else if (this.sharedRiskService) {
+                // Try to load predictions
+                try {
+                    const riskData = await this.sharedRiskService.loadRiskData(this.merchantId, {
+                        includePredictions: true
                     });
+                    predictions = riskData.predictions;
+                } catch (error) {
+                    console.warn('Failed to load predictions:', error);
                 }
-                
-                console.log('🧠 SHAP analysis initialized');
+            }
+            
+            // Initialize forecast component
+            await this.predictiveForecast.init(this.merchantId, predictions);
+            
+            console.log('📊 Predictive forecast initialized');
+        } catch (error) {
+            console.error('Failed to initialize predictive forecast:', error);
+        }
+    }
+    
+    /**
+     * Add contextual links to other tabs
+     */
+    addContextualLinks() {
+        try {
+            // Use cross-tab navigation if available
+            if (typeof getCrossTabNavigation !== 'undefined') {
+                const crossTabNav = getCrossTabNavigation();
+                const context = {
+                    merchantId: this.merchantId,
+                    riskLevel: this.riskData.riskLevel,
+                    category: this.getHighestRiskCategory()
+                };
+                crossTabNav.renderContextualLinks('contextualLinks', context);
+            } else {
+                // Fallback: Add basic contextual links
+                const container = document.getElementById('contextualLinks');
+                if (container) {
+                    container.innerHTML = `
+                        <div class="bg-white rounded-lg shadow-lg p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Related Information</h3>
+                            <div class="space-y-2">
+                                <a href="#risk-assessment-tab" 
+                                   onclick="event.preventDefault(); 
+                                            const tab = document.querySelector('[data-tab=\\'risk-assessment\\']') || document.querySelector('[href=\\'#risk-assessment-tab\\']');
+                                            if (tab) tab.click();
+                                            return false;"
+                                   class="flex items-center p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                                    <i class="fas fa-chart-line mr-3 text-blue-600"></i>
+                                    <div class="flex-1">
+                                        <div class="font-medium text-gray-900">View Detailed Risk Analysis</div>
+                                        <div class="text-sm text-gray-600">See comprehensive risk assessment with trend analysis and SHAP explanations</div>
+                                    </div>
+                                    <i class="fas fa-chevron-right text-gray-400"></i>
+                                </a>
+                                <a href="#business-analytics-tab" 
+                                   onclick="event.preventDefault(); 
+                                            const tab = document.querySelector('[data-tab=\\'business-analytics\\']') || document.querySelector('[href=\\'#business-analytics-tab\\']');
+                                            if (tab) tab.click();
+                                            return false;"
+                                   class="flex items-center p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                                    <i class="fas fa-chart-bar mr-3 text-blue-600"></i>
+                                    <div class="flex-1">
+                                        <div class="font-medium text-gray-900">See Industry Classification</div>
+                                        <div class="text-sm text-gray-600">View MCC, NAICS, and SIC industry codes</div>
+                                    </div>
+                                    <i class="fas fa-chevron-right text-gray-400"></i>
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                }
             }
         } catch (error) {
-            console.error('Failed to initialize SHAP analysis:', error);
+            console.error('Failed to add contextual links:', error);
         }
+    }
+    
+    /**
+     * Get highest risk category
+     */
+    getHighestRiskCategory() {
+        if (!this.riskData || !this.riskData.categories) {
+            return null;
+        }
+        
+        const categories = this.riskData.categories;
+        let highestCategory = null;
+        let highestScore = 0;
+        
+        Object.entries(categories).forEach(([category, data]) => {
+            if (data.score > highestScore) {
+                highestScore = data.score;
+                highestCategory = category;
+            }
+        });
+        
+        return highestCategory;
     }
     
     /**
@@ -415,36 +666,47 @@ class MerchantRiskIndicatorsTab {
     }
     
     /**
-     * Prepare radar chart data
+     * Prepare radar chart data (fallback method for existing RiskVisualization component)
+     * @param {Object} benchmarks - Industry benchmarks (optional)
      * @returns {Object} Radar chart data
      */
-    prepareRadarData() {
+    prepareRadarData(benchmarks = null) {
         const categories = this.riskData.categories;
         const categoryOrder = ['financial', 'operational', 'regulatory', 'reputational', 'cybersecurity', 'content'];
         
+        const datasets = [{
+            label: 'Current Risk Level',
+            data: categoryOrder.map(cat => categories[cat]?.score || 0),
+            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+            borderColor: 'rgba(59, 130, 246, 1)',
+            borderWidth: 2,
+            pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+            pointBorderColor: '#fff',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: 'rgba(59, 130, 246, 1)'
+        }];
+        
+        // Use real industry benchmarks if available, otherwise use fallback
+        let industryAverages = [25, 35, 45, 30, 40, 20]; // Fallback mock data
+        if (benchmarks && benchmarks.averages) {
+            industryAverages = categoryOrder.map(cat => benchmarks.averages[cat] || 0);
+        }
+        
+        datasets.push({
+            label: 'Industry Average',
+            data: industryAverages,
+            backgroundColor: 'rgba(156, 163, 175, 0.2)',
+            borderColor: 'rgba(156, 163, 175, 1)',
+            borderWidth: 2,
+            pointBackgroundColor: 'rgba(156, 163, 175, 1)',
+            pointBorderColor: '#fff',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: 'rgba(156, 163, 175, 1)'
+        });
+        
         return {
             labels: categoryOrder.map(cat => this.helpers.formatCategoryName(cat)),
-            datasets: [{
-                label: 'Current Risk Level',
-                data: categoryOrder.map(cat => categories[cat]?.score || 0),
-                backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                borderColor: 'rgba(59, 130, 246, 1)',
-                borderWidth: 2,
-                pointBackgroundColor: 'rgba(59, 130, 246, 1)',
-                pointBorderColor: '#fff',
-                pointHoverBackgroundColor: '#fff',
-                pointHoverBorderColor: 'rgba(59, 130, 246, 1)'
-            }, {
-                label: 'Industry Average',
-                data: [25, 35, 45, 30, 40, 20], // Mock industry averages
-                backgroundColor: 'rgba(156, 163, 175, 0.2)',
-                borderColor: 'rgba(156, 163, 175, 1)',
-                borderWidth: 2,
-                pointBackgroundColor: 'rgba(156, 163, 175, 1)',
-                pointBorderColor: '#fff',
-                pointHoverBackgroundColor: '#fff',
-                pointHoverBorderColor: 'rgba(156, 163, 175, 1)'
-            }]
+            datasets: datasets
         };
     }
     

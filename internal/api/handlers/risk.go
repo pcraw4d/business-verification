@@ -1777,3 +1777,259 @@ func (h *RiskHandler) GetIndustryBenchmarksHandler(w http.ResponseWriter, r *htt
 		"status_code": http.StatusOK,
 	})
 }
+
+// GetRiskBenchmarksHandler handles GET /v1/risk/benchmarks requests
+// Query parameters: mcc, naics, sic (at least one required)
+func (h *RiskHandler) GetRiskBenchmarksHandler(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	requestID := r.Context().Value("request_id").(string)
+
+	h.logger.Info("Get risk benchmarks request received", map[string]interface{}{
+		"request_id": requestID,
+		"method":     r.Method,
+		"path":       r.URL.Path,
+		"user_agent": r.UserAgent(),
+	})
+
+	// Parse query parameters
+	mcc := r.URL.Query().Get("mcc")
+	naics := r.URL.Query().Get("naics")
+	sic := r.URL.Query().Get("sic")
+
+	// At least one industry code is required
+	if mcc == "" && naics == "" && sic == "" {
+		h.logger.Error("No industry codes provided", map[string]interface{}{
+			"request_id": requestID,
+		})
+		http.Error(w, "At least one industry code (mcc, naics, or sic) is required", http.StatusBadRequest)
+		return
+	}
+
+	// Determine industry identifier (prefer MCC, then NAICS, then SIC)
+	industryCode := mcc
+	industryType := "mcc"
+	if industryCode == "" {
+		industryCode = naics
+		industryType = "naics"
+	}
+	if industryCode == "" {
+		industryCode = sic
+		industryType = "sic"
+	}
+
+	// Get industry benchmarks
+	ctx := context.WithValue(r.Context(), "request_id", requestID)
+	benchmarks, err := h.riskService.GetIndustryBenchmarks(ctx, industryCode)
+	if err != nil {
+		h.logger.Error("Failed to get industry benchmarks", map[string]interface{}{
+			"request_id":   requestID,
+			"industry_code": industryCode,
+			"industry_type": industryType,
+			"error":        err.Error(),
+		})
+		http.Error(w, "Failed to get industry benchmarks", http.StatusInternalServerError)
+		return
+	}
+
+	// Create response with industry code metadata
+	response := map[string]interface{}{
+		"industry_code": industryCode,
+		"industry_type": industryType,
+		"mcc":          mcc,
+		"naics":        naics,
+		"sic":          sic,
+		"benchmarks":   benchmarks,
+		"timestamp":    time.Now(),
+	}
+
+	// Set response headers
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Request-ID", requestID)
+
+	// Encode response
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		h.logger.Error("Failed to encode benchmarks response", map[string]interface{}{
+			"request_id": requestID,
+			"error":      err.Error(),
+		})
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+
+	duration := time.Since(startTime)
+	h.logger.Info("Get risk benchmarks request completed", map[string]interface{}{
+		"request_id":    requestID,
+		"industry_code":  industryCode,
+		"industry_type":  industryType,
+		"duration_ms":   duration.Milliseconds(),
+		"status_code":    http.StatusOK,
+	})
+}
+
+// GetRiskPredictionsHandler handles GET /v1/risk/predictions/{merchant_id} requests
+// Query parameters: horizons (comma-separated: 3,6,12), includeScenarios (bool), includeConfidence (bool)
+func (h *RiskHandler) GetRiskPredictionsHandler(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	requestID := r.Context().Value("request_id").(string)
+
+	h.logger.Info("Get risk predictions request received", map[string]interface{}{
+		"request_id": requestID,
+		"method":     r.Method,
+		"path":       r.URL.Path,
+		"user_agent": r.UserAgent(),
+	})
+
+	// Extract merchant ID from URL path
+	pathParts := strings.Split(r.URL.Path, "/")
+	if len(pathParts) < 5 {
+		h.logger.Error("Invalid predictions URL", map[string]interface{}{
+			"request_id": requestID,
+			"path":       r.URL.Path,
+		})
+		http.Error(w, "Invalid merchant ID", http.StatusBadRequest)
+		return
+	}
+	merchantID := pathParts[4]
+
+	// Parse query parameters
+	horizonsStr := r.URL.Query().Get("horizons")
+	includeScenarios := r.URL.Query().Get("includeScenarios") == "true"
+	includeConfidence := r.URL.Query().Get("includeConfidence") == "true"
+
+	// Parse horizons (default: 3, 6, 12 months)
+	horizons := []int{3, 6, 12}
+	if horizonsStr != "" {
+		horizonParts := strings.Split(horizonsStr, ",")
+		horizons = []int{}
+		for _, part := range horizonParts {
+			months, err := strconv.Atoi(strings.TrimSpace(part))
+			if err == nil && months > 0 {
+				horizons = append(horizons, months)
+			}
+		}
+		if len(horizons) == 0 {
+			horizons = []int{3, 6, 12}
+		}
+	}
+
+	// Get risk history for predictions
+	ctx := context.WithValue(r.Context(), "request_id", requestID)
+	historyEntries, err := h.riskHistoryService.GetRiskHistory(ctx, merchantID)
+	if err != nil {
+		h.logger.Error("Failed to get risk history for predictions", map[string]interface{}{
+			"request_id":  requestID,
+			"merchant_id": merchantID,
+			"error":       err.Error(),
+		})
+		// Continue with empty history - predictions can still be generated
+		historyEntries = []risk.RiskHistoryEntry{}
+	}
+	
+	// Convert to internal structure for predictions
+	var currentScore float64 = 50.0 // Default score when no history available
+	var previousScore float64 = 50.0
+	
+	if len(historyEntries) > 0 {
+		// Get most recent score
+		currentScore = historyEntries[0].Score
+		if len(historyEntries) > 1 {
+			previousScore = historyEntries[1].Score
+		}
+	}
+
+	// Generate predictions for each horizon
+	predictions := []map[string]interface{}{}
+	for _, months := range horizons {
+		// Calculate predicted score based on trend
+		var predictedScore float64
+		var confidence float64
+		var trend string
+		
+		if len(historyEntries) >= 2 {
+			// Use trend analysis
+			scoreChange := currentScore - previousScore
+			monthsSinceLast := float64(months)
+			predictedScore = currentScore + (scoreChange * monthsSinceLast / 3.0) // Project based on 3-month trend
+			
+			// Clamp to valid range
+			if predictedScore < 0 {
+				predictedScore = 0
+			}
+			if predictedScore > 100 {
+				predictedScore = 100
+			}
+			
+			// Determine trend
+			if scoreChange > 2 {
+				trend = "RISING"
+			} else if scoreChange < -2 {
+				trend = "IMPROVING"
+			} else {
+				trend = "STABLE"
+			}
+			
+			// Calculate confidence based on data points
+			confidence = 0.7 + (float64(len(historyEntries)) * 0.05)
+			if confidence > 0.95 {
+				confidence = 0.95
+			}
+		} else {
+			// Insufficient data - use current score with low confidence
+			predictedScore = currentScore
+			trend = "STABLE"
+			confidence = 0.5
+		}
+		
+		prediction := map[string]interface{}{
+			"horizon_months": months,
+			"predicted_score": predictedScore,
+			"trend":          trend,
+		}
+		
+		if includeConfidence {
+			prediction["confidence"] = confidence
+		}
+		
+		if includeScenarios {
+			// Add scenario analysis
+			prediction["scenarios"] = map[string]interface{}{
+				"optimistic": predictedScore - 5,
+				"realistic":  predictedScore,
+				"pessimistic": predictedScore + 5,
+			}
+		}
+		
+		predictions = append(predictions, prediction)
+	}
+
+	// Create response
+	response := map[string]interface{}{
+		"merchant_id": merchantID,
+		"predictions": predictions,
+		"generated_at": time.Now(),
+		"data_points": len(historyEntries),
+	}
+
+	// Set response headers
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Request-ID", requestID)
+
+	// Encode response
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		h.logger.Error("Failed to encode predictions response", map[string]interface{}{
+			"request_id": requestID,
+			"error":      err.Error(),
+		})
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+
+	duration := time.Since(startTime)
+	h.logger.Info("Get risk predictions request completed", map[string]interface{}{
+		"request_id":   requestID,
+		"merchant_id":  merchantID,
+		"horizons":     horizons,
+		"duration_ms":  duration.Milliseconds(),
+		"status_code":  http.StatusOK,
+	})
+}

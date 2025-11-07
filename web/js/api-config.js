@@ -46,6 +46,7 @@ class APIConfig {
             riskScenarios: `${baseURL}/api/v1/risk/scenarios`,
             riskExplain: (assessmentId) => `${baseURL}/api/v1/risk/explain/${assessmentId}`,
             riskWebSocket: `wss://${baseURL.replace('https://', '').replace('http://', '')}/api/v1/risk/ws`,
+            riskBenchmarks: `${baseURL}/api/v1/risk/benchmarks`,
             
             // Risk indicators endpoints (NEW)
             riskIndicators: (merchantId) => `${baseURL}/api/v1/merchants/${merchantId}/risk-indicators`,

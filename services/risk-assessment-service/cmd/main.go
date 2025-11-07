@@ -552,6 +552,10 @@ func main() {
 	api.HandleFunc("/assess/{id}", riskAssessmentHandler.HandleGetRiskAssessment).Methods("GET")
 	api.HandleFunc("/assess/{id}/predict", riskAssessmentHandler.HandleRiskPrediction).Methods("POST")
 	api.HandleFunc("/assess/{id}/history", riskAssessmentHandler.HandleRiskHistory).Methods("GET")
+	
+	// Risk benchmarks and predictions endpoints (NEW)
+	api.HandleFunc("/risk/benchmarks", riskAssessmentHandler.HandleRiskBenchmarks).Methods("GET")
+	api.HandleFunc("/risk/predictions/{merchant_id}", riskAssessmentHandler.HandleRiskPredictions).Methods("GET")
 
 	// Advanced prediction endpoints
 	api.HandleFunc("/risk/predict-advanced", advancedPredictionHandler.HandleAdvancedPrediction).Methods("POST")

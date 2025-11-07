@@ -4,8 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
+	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 
 	"kyb-platform/services/risk-assessment-service/internal/config"
@@ -278,6 +281,182 @@ func (h *RiskAssessmentHandler) HandleRiskPrediction(w http.ResponseWriter, r *h
 func (h *RiskAssessmentHandler) HandleRiskHistory(w http.ResponseWriter, r *http.Request) {
 	// TODO: Implement risk history
 	http.Error(w, "Not implemented", http.StatusNotImplemented)
+}
+
+// HandleRiskBenchmarks handles GET /api/v1/risk/benchmarks
+// Query parameters: mcc, naics, sic (at least one required)
+func (h *RiskAssessmentHandler) HandleRiskBenchmarks(w http.ResponseWriter, r *http.Request) {
+	h.logger.Info("Processing risk benchmarks request")
+
+	// Parse query parameters
+	mcc := r.URL.Query().Get("mcc")
+	naics := r.URL.Query().Get("naics")
+	sic := r.URL.Query().Get("sic")
+
+	// At least one industry code is required
+	if mcc == "" && naics == "" && sic == "" {
+		h.errorHandler.HandleError(w, r, fmt.Errorf("at least one industry code (mcc, naics, or sic) is required"))
+		return
+	}
+
+	// Determine industry identifier (prefer MCC, then NAICS, then SIC)
+	industryCode := mcc
+	industryType := "mcc"
+	if industryCode == "" {
+		industryCode = naics
+		industryType = "naics"
+	}
+	if industryCode == "" {
+		industryCode = sic
+		industryType = "sic"
+	}
+
+	h.logger.Info("Getting industry benchmarks",
+		zap.String("industry_code", industryCode),
+		zap.String("industry_type", industryType))
+
+	// Get industry benchmarks from external data service or database
+	// For now, return mock benchmarks - can be enhanced with real data
+	benchmarks := map[string]interface{}{
+		"industry": industryCode,
+		"benchmarks": map[string]float64{
+			"average_score": 70.0,
+			"median_score":  72.0,
+			"percentile_75": 80.0,
+			"percentile_90": 85.0,
+		},
+		"last_updated": time.Now().Format(time.RFC3339),
+	}
+
+	// Create response
+	response := map[string]interface{}{
+		"industry_code": industryCode,
+		"industry_type": industryType,
+		"mcc":          mcc,
+		"naics":        naics,
+		"sic":          sic,
+		"benchmarks":   benchmarks,
+		"timestamp":    time.Now().Format(time.RFC3339),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+
+	h.logger.Info("Risk benchmarks request completed",
+		zap.String("industry_code", industryCode),
+		zap.String("industry_type", industryType))
+}
+
+// HandleRiskPredictions handles GET /api/v1/risk/predictions/{merchant_id}
+// Query parameters: horizons (comma-separated: 3,6,12), includeScenarios (bool), includeConfidence (bool)
+func (h *RiskAssessmentHandler) HandleRiskPredictions(w http.ResponseWriter, r *http.Request) {
+	h.logger.Info("Processing risk predictions request")
+
+	// Extract merchant ID from URL path
+	vars := mux.Vars(r)
+	merchantID := vars["merchant_id"]
+	if merchantID == "" {
+		h.errorHandler.HandleError(w, r, fmt.Errorf("merchant_id is required"))
+		return
+	}
+
+	// Parse query parameters
+	horizonsStr := r.URL.Query().Get("horizons")
+	includeScenarios := r.URL.Query().Get("includeScenarios") == "true"
+	includeConfidence := r.URL.Query().Get("includeConfidence") == "true"
+
+	// Parse horizons (default: 3, 6, 12 months)
+	horizons := []int{3, 6, 12}
+	if horizonsStr != "" {
+		horizonParts := strings.Split(horizonsStr, ",")
+		horizons = []int{}
+		for _, part := range horizonParts {
+			months := strings.TrimSpace(part)
+			if months != "" {
+				if m, err := strconv.Atoi(months); err == nil && m > 0 {
+					horizons = append(horizons, m)
+				}
+			}
+		}
+		if len(horizons) == 0 {
+			horizons = []int{3, 6, 12}
+		}
+	}
+
+	h.logger.Info("Getting risk predictions",
+		zap.String("merchant_id", merchantID),
+		zap.Ints("horizons", horizons))
+
+	// TODO: Get risk history from database for the merchant
+	// For now, generate predictions based on current assessment or mock data
+	predictions := []map[string]interface{}{}
+	
+	for _, months := range horizons {
+		// Use ML service to generate prediction
+		// Create a mock business request - in production, fetch from database
+		business := &models.RiskAssessmentRequest{
+			BusinessName:    "Merchant " + merchantID,
+			BusinessAddress: "Unknown",
+			Industry:        "General",
+			Country:         "US",
+		}
+
+		// Get prediction from ML service
+		prediction, err := h.mlService.PredictFutureRisk(r.Context(), "auto", business, months)
+		if err != nil {
+			h.logger.Warn("Failed to get ML prediction, using fallback",
+				zap.Error(err),
+				zap.String("merchant_id", merchantID),
+				zap.Int("horizon_months", months))
+			
+			// Fallback: generate simple prediction
+			prediction = &models.RiskPrediction{
+				BusinessID:     merchantID,
+				HorizonMonths:  months,
+				PredictedScore: 70.0,
+				PredictedLevel: models.RiskLevelMedium,
+				Confidence:     0.75,
+			}
+		}
+
+		predictionData := map[string]interface{}{
+			"horizon_months":  months,
+			"predicted_score": prediction.PredictedScore,
+			"trend":           "STABLE", // Can be enhanced with trend analysis
+		}
+
+		if includeConfidence {
+			predictionData["confidence"] = prediction.Confidence
+		}
+
+		if includeScenarios {
+			// Add scenario analysis
+			predictionData["scenarios"] = map[string]interface{}{
+				"optimistic":  prediction.PredictedScore - 5,
+				"realistic":   prediction.PredictedScore,
+				"pessimistic": prediction.PredictedScore + 5,
+			}
+		}
+
+		predictions = append(predictions, predictionData)
+	}
+
+	// Create response
+	response := map[string]interface{}{
+		"merchant_id":  merchantID,
+		"predictions":  predictions,
+		"generated_at": time.Now().Format(time.RFC3339),
+		"data_points":  0, // TODO: Get actual count from database
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+
+	h.logger.Info("Risk predictions request completed",
+		zap.String("merchant_id", merchantID),
+		zap.Int("num_predictions", len(predictions)))
 }
 
 // HandleComplianceCheck handles POST /api/v1/compliance/check

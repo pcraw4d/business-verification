@@ -420,6 +420,18 @@ class RiskIndicatorsUITemplate {
         `;
     }
     
+    /**
+     * Generate HTML for predictive risk forecast section
+     * @returns {string} HTML string for predictive forecast container
+     */
+    static getPredictiveForecastHTML() {
+        return `
+            <div id="predictiveRiskForecast" class="mb-6">
+                <!-- Predictive forecast will be rendered here by PredictiveRiskForecast component -->
+            </div>
+        `;
+    }
+    
     // Helper methods
     
     static getRiskIcon(category) {
