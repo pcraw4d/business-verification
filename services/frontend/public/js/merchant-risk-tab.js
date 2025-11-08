@@ -21,7 +21,10 @@ class MerchantRiskTab {
             explainability: null,
             scenarios: null,
             history: null,
-            export: null
+            export: null,
+            tooltip: null,
+            scorePanel: null,
+            dragDrop: null
         };
 
         this.currentMerchantId = null;
@@ -96,6 +99,49 @@ class MerchantRiskTab {
             console.warn('⚠️ RiskExplainability not available');
         }
 
+        // Initialize tooltip system
+        if (typeof RiskTooltipSystem !== 'undefined') {
+            this.components.tooltip = new RiskTooltipSystem();
+            console.log('✅ RiskTooltipSystem initialized');
+        } else if (typeof window !== 'undefined' && window.riskTooltipSystem) {
+            this.components.tooltip = window.riskTooltipSystem;
+        }
+
+        // Initialize score panel
+        if (typeof RiskScorePanel !== 'undefined') {
+            const scorePanelContainer = document.getElementById('riskScorePanel');
+            if (scorePanelContainer) {
+                this.components.scorePanel = new RiskScorePanel('riskScorePanel', {
+                    collapsed: false,
+                    showBreakdown: true,
+                    showFactors: true
+                });
+                this.components.scorePanel.init();
+                console.log('✅ RiskScorePanel initialized');
+            }
+        }
+
+        // Initialize drag and drop
+        if (typeof RiskDragDrop !== 'undefined') {
+            const riskConfigContainer = document.getElementById('riskConfigContainer');
+            if (riskConfigContainer) {
+                this.components.dragDrop = new RiskDragDrop('riskConfigContainer', {
+                    onDragStart: (element, event) => {
+                        console.log('Drag started:', element);
+                    },
+                    onDrag: (element, event, position) => {
+                        // Update position during drag
+                    },
+                    onDragEnd: (element, event) => {
+                        console.log('Drag ended:', element);
+                        // Save new configuration
+                    }
+                });
+                this.components.dragDrop.init();
+                console.log('✅ RiskDragDrop initialized');
+            }
+        }
+
         // Initialize scenario analysis component
         if (typeof RiskScenarioAnalysis !== 'undefined') {
             this.components.scenarios = new RiskScenarioAnalysis({
@@ -135,9 +181,26 @@ class MerchantRiskTab {
 
         // Create UI components
         this.createRiskTabUI();
+        
+        // Initialize WebsiteRiskDisplay if available
+        if (typeof WebsiteRiskDisplay !== 'undefined') {
+            this.initializeWebsiteRiskDisplay();
+        }
 
         this.isInitialized = true;
         console.log('Risk tab initialized successfully');
+    }
+    
+    /**
+     * Initialize Website Risk Display component
+     */
+    initializeWebsiteRiskDisplay() {
+        const container = document.getElementById('websiteRiskDisplay');
+        if (!container) return;
+        
+        // This will be populated when risk data is loaded
+        // For now, just mark that it's available
+        console.log('✅ WebsiteRiskDisplay available for integration');
     }
 
     /**

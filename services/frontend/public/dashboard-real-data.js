@@ -14,6 +14,8 @@ class DashboardRealData {
         this.refreshInterval = null;
         this.isLoading = false;
         this.charts = {};
+        this.crossTabNavigation = null;
+        this.dashboardUtils = null;
         
         this.init();
     }
@@ -28,6 +30,7 @@ class DashboardRealData {
             this.initializeCharts();
             this.bindEvents();
             this.startAutoRefresh();
+            await this.initializeDashboardUtilities();
         } catch (error) {
             console.error('Failed to initialize dashboard:', error);
             this.showErrorState(error.message);
@@ -83,8 +86,10 @@ class DashboardRealData {
         this.updateElement('suspendedMerchants', this.businessIntelligence.suspended_merchants || 0);
         
         // Revenue metrics
-        this.updateElement('totalRevenue', this.formatCurrency(this.businessIntelligence.total_revenue || 0));
-        this.updateElement('averageRevenue', this.formatCurrency(this.businessIntelligence.average_revenue || 0));
+        // Use DashboardUtils if available
+        const formatCurrency = this.dashboardUtils?.formatCurrency || this.formatCurrency.bind(this);
+        this.updateElement('totalRevenue', formatCurrency(this.businessIntelligence.total_revenue || 0));
+        this.updateElement('averageRevenue', formatCurrency(this.businessIntelligence.average_revenue || 0));
         this.updateElement('monthlyGrowth', `${this.businessIntelligence.monthly_growth || 0}%`);
         
         // Risk metrics
@@ -661,6 +666,41 @@ class DashboardRealData {
         if (this.refreshInterval) {
             clearInterval(this.refreshInterval);
             this.refreshInterval = null;
+        }
+    }
+
+    /**
+     * Initialize dashboard utilities
+     */
+    async initializeDashboardUtilities() {
+        try {
+            // Load shared components
+            if (typeof loadSharedComponents === 'function') {
+                await loadSharedComponents();
+            }
+
+            // Initialize cross-tab navigation
+            if (typeof getCrossTabNavigation !== 'undefined') {
+                this.crossTabNavigation = getCrossTabNavigation();
+            } else if (typeof window !== 'undefined' && window.getCrossTabNavigation) {
+                this.crossTabNavigation = window.getCrossTabNavigation();
+            }
+
+            // Initialize dashboard utils
+            if (typeof DashboardUtils !== 'undefined') {
+                this.dashboardUtils = DashboardUtils;
+            } else if (typeof window !== 'undefined' && window.DashboardUtils) {
+                this.dashboardUtils = window.DashboardUtils;
+            }
+
+            // Make refreshDashboard available globally
+            window.refreshDashboard = () => {
+                this.loadDashboardData();
+            };
+
+            console.log('✅ Dashboard utilities initialized');
+        } catch (error) {
+            console.error('Error initializing dashboard utilities:', error);
         }
     }
 

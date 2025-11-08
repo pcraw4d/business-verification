@@ -171,6 +171,30 @@ func (s *FrontendService) handleMerchantDetail(w http.ResponseWriter, r *http.Re
 	http.ServeFile(w, r, "./static/merchant-detail.html")
 }
 
+func (s *FrontendService) handleAdminDashboard(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./static/admin-dashboard.html")
+}
+
+func (s *FrontendService) handleRegister(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./static/register.html")
+}
+
+func (s *FrontendService) handleSessions(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./static/sessions.html")
+}
+
+func (s *FrontendService) handleAdminModels(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./static/admin-models.html")
+}
+
+func (s *FrontendService) handleAnalyticsInsights(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./static/analytics-insights.html")
+}
+
+func (s *FrontendService) handleAdminQueue(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./static/admin-queue.html")
+}
+
 func (s *FrontendService) setupRoutes() {
 	// Serve static files
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static/"))))
@@ -205,6 +229,12 @@ func (s *FrontendService) setupRoutes() {
 	http.HandleFunc("/business-growth-analytics", s.handleBusinessGrowthAnalytics)
 	http.HandleFunc("/merchant-hub-integration", s.handleMerchantHubIntegration)
 	http.HandleFunc("/merchant-detail", s.handleMerchantDetail)
+	http.HandleFunc("/admin", s.handleAdminDashboard)
+	http.HandleFunc("/register", s.handleRegister)
+	http.HandleFunc("/sessions", s.handleSessions)
+	http.HandleFunc("/admin/models", s.handleAdminModels)
+	http.HandleFunc("/analytics-insights", s.handleAnalyticsInsights)
+	http.HandleFunc("/admin/queue", s.handleAdminQueue)
 
 	// Default route - serve main index page
 	http.HandleFunc("/", s.handleDashboard)

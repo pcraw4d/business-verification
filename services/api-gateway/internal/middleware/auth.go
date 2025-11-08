@@ -75,6 +75,10 @@ func Authentication(supabaseClient *supabase.Client, logger *zap.Logger) func(ht
 				if userEmail, exists := userMap["email"]; exists {
 					ctx = context.WithValue(ctx, "user_email", userEmail)
 				}
+				// Add role to context
+				if role, exists := userMap["role"]; exists {
+					ctx = context.WithValue(ctx, "user_role", role)
+				}
 			}
 
 			logger.Info("User authenticated",
@@ -112,4 +116,43 @@ func isPublicEndpoint(path string) bool {
 	}
 
 	return false
+}
+
+// RequireAdmin is a middleware that requires admin role
+func RequireAdmin(logger *zap.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Get user role from context
+			role := r.Context().Value("user_role")
+			if role == nil {
+				logger.Warn("Admin access denied: no role in context",
+					zap.String("path", r.URL.Path))
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+				http.Error(w, "Admin access required", http.StatusForbidden)
+				return
+			}
+
+			// Check if role is admin
+			roleStr := ""
+			if r, ok := role.(string); ok {
+				roleStr = r
+			} else if r, ok := role.(interface{ String() string }); ok {
+				roleStr = r.String()
+			}
+
+			if roleStr != "admin" && roleStr != "Admin" {
+				logger.Warn("Admin access denied: insufficient privileges",
+					zap.String("path", r.URL.Path),
+					zap.String("role", roleStr))
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+				http.Error(w, "Admin access required", http.StatusForbidden)
+				return
+			}
+
+			logger.Info("Admin access granted",
+				zap.String("path", r.URL.Path))
+
+			next.ServeHTTP(w, r)
+		})
+	}
 }

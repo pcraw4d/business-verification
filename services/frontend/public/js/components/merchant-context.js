@@ -22,7 +22,12 @@ class MerchantContext {
         this.loadCurrentMerchant();
     }
 
-    loadSessionManager() {
+    async loadSessionManager() {
+        // Ensure shared components are loaded
+        if (typeof loadSharedComponents === 'function') {
+            await loadSharedComponents();
+        }
+        
         // Check if session manager is available
         if (typeof SessionManager !== 'undefined') {
             this.sessionManager = new SessionManager();

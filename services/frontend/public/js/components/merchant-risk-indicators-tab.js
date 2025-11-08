@@ -21,7 +21,7 @@ class MerchantRiskIndicatorsTab {
         this.visualization = null;
         this.explainability = new RiskExplainability();
         this.levelIndicator = null; // Initialize later to avoid DOM manipulation
-        this.dataService = new RiskIndicatorsDataService();
+        this.dataService = null; // Will be initialized with service getter
         
         // UI template helper
         this.uiTemplate = RiskIndicatorsUITemplate;
@@ -77,6 +77,9 @@ class MerchantRiskIndicatorsTab {
             return;
         }
         
+        // Initialize data service using service getter
+        await this.initializeDataService();
+        
         this.merchantId = merchantId;
         console.log(`🚀 Initializing Risk Indicators Tab for merchant: ${merchantId}`);
         
@@ -92,6 +95,39 @@ class MerchantRiskIndicatorsTab {
     }
     
     /**
+     * Initialize data service using service getter
+     */
+    async initializeDataService() {
+        try {
+            // Ensure shared components are loaded
+            if (typeof loadSharedComponents === 'function') {
+                await loadSharedComponents();
+            }
+            
+            // Try to get risk data service from getter
+            if (typeof getRiskDataService !== 'undefined') {
+                this.dataService = getRiskDataService();
+            } else if (typeof window !== 'undefined' && window.getRiskDataService) {
+                this.dataService = window.getRiskDataService();
+            } else {
+                // Fallback to direct instantiation
+                if (typeof RiskIndicatorsDataService !== 'undefined') {
+                    this.dataService = new RiskIndicatorsDataService();
+                } else {
+                    console.warn('RiskIndicatorsDataService not available, using fallback');
+                    this.dataService = null;
+                }
+            }
+        } catch (error) {
+            console.error('Error initializing data service:', error);
+            // Fallback to direct instantiation
+            if (typeof RiskIndicatorsDataService !== 'undefined') {
+                this.dataService = new RiskIndicatorsDataService();
+            }
+        }
+    }
+    
+    /**
      * Load data and render the UI
      */
     async loadAndRender() {
@@ -100,6 +136,9 @@ class MerchantRiskIndicatorsTab {
             this.showLoading();
             
             // Load all data via data service
+            if (!this.dataService) {
+                throw new Error('Data service not initialized');
+            }
             this.riskData = await this.dataService.loadAllRiskData(this.merchantId);
             
             // Render UI
@@ -575,7 +614,9 @@ class MerchantRiskIndicatorsTab {
      */
     async refresh() {
         console.log('🔄 Refreshing risk indicators');
-        this.dataService.clearCache(this.merchantId);
+        if (this.dataService) {
+            this.dataService.clearCache(this.merchantId);
+        }
         await this.loadAndRender();
         this.showToast('Risk indicators refreshed', 'success');
     }
@@ -669,7 +710,9 @@ class MerchantRiskIndicatorsTab {
         
         // Clear cache
         if (this.merchantId) {
+            if (this.dataService) {
             this.dataService.clearCache(this.merchantId);
+        }
         }
         
         // Hide tooltip
