@@ -22,7 +22,7 @@
         },
         "targets": [
           {
-            "expr": "kyb_fallback_rate_percent",
+            "expr": "kyb_fallback_rate_percent or on() vector(0)",
             "legendFormat": "{{service}}",
             "refId": "A",
             "datasource": {
@@ -102,7 +102,7 @@
         },
         "targets": [
           {
-            "expr": "sum(rate(kyb_fallback_total[5m])) by (service)",
+            "expr": "sum(rate(kyb_fallback_total[5m])) by (service) or on() vector(0)",
             "legendFormat": "{{service}}",
             "refId": "A",
             "datasource": {
@@ -169,7 +169,7 @@
         },
         "targets": [
           {
-            "expr": "sum(kyb_fallback_by_category_total) by (category)",
+            "expr": "sum(kyb_fallback_by_category_total) by (category) or on() vector(0)",
             "legendFormat": "{{category}}",
             "refId": "A",
             "datasource": {
@@ -215,7 +215,7 @@
         },
         "targets": [
           {
-            "expr": "sum(kyb_fallback_by_source_total) by (source)",
+            "expr": "sum(kyb_fallback_by_source_total) by (source) or on() vector(0)",
             "legendFormat": "{{source}}",
             "refId": "A",
             "datasource": {
@@ -261,7 +261,7 @@
         },
         "targets": [
           {
-            "expr": "histogram_quantile(0.95, sum(rate(kyb_fallback_duration_seconds_bucket[5m])) by (service, le))",
+            "expr": "histogram_quantile(0.95, sum(rate(kyb_fallback_duration_seconds_bucket[5m])) by (service, le)) or on() vector(0)",
             "legendFormat": "P95 - {{service}}",
             "refId": "A",
             "datasource": {
@@ -270,7 +270,7 @@
             }
           },
           {
-            "expr": "histogram_quantile(0.50, sum(rate(kyb_fallback_duration_seconds_bucket[5m])) by (service, le))",
+            "expr": "histogram_quantile(0.50, sum(rate(kyb_fallback_duration_seconds_bucket[5m])) by (service, le)) or on() vector(0)",
             "legendFormat": "P50 - {{service}}",
             "refId": "B",
             "datasource": {
@@ -337,7 +337,7 @@
         },
         "targets": [
           {
-            "expr": "sum(rate(kyb_requests_total[5m])) by (service)",
+            "expr": "sum(rate(kyb_requests_total[5m])) by (service) or on() vector(0)",
             "legendFormat": "Total Requests - {{service}}",
             "refId": "A",
             "datasource": {
@@ -346,7 +346,7 @@
             }
           },
           {
-            "expr": "sum(rate(kyb_fallback_total[5m])) by (service)",
+            "expr": "sum(rate(kyb_fallback_total[5m])) by (service) or on() vector(0)",
             "legendFormat": "Fallbacks - {{service}}",
             "refId": "B",
             "datasource": {
@@ -413,7 +413,7 @@
         },
         "targets": [
           {
-            "expr": "kyb_fallback_rate_percent{service=\"merchant-service\"}",
+            "expr": "kyb_fallback_rate_percent{service=\"merchant-service\"} or on() vector(0)",
             "refId": "A",
             "datasource": {
               "type": "prometheus",
@@ -473,7 +473,7 @@
         },
         "targets": [
           {
-            "expr": "kyb_fallback_rate_percent{service=\"risk-assessment-service\"}",
+            "expr": "kyb_fallback_rate_percent{service=\"risk-assessment-service\"} or on() vector(0)",
             "refId": "A",
             "datasource": {
               "type": "prometheus",
