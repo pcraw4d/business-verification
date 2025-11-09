@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com data:; img-src 'self' data: https:; connect-src 'self' https:;">
     <title>Merchant Details - KYB Platform</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -742,41 +743,73 @@
             }
 
             init() {
+                console.log('🔍 MerchantDetails.init() called');
+                console.log('🔍 Page URL:', window.location.href);
+                console.log('🔍 Document ready state:', document.readyState);
                 this.loadMerchantData();
                 this.bindEvents();
                 this.initializeComponents();
+                console.log('🔍 MerchantDetails initialization complete');
             }
 
             loadMerchantData() {
                 try {
+                    console.log('🔍 loadMerchantData() called');
                     // Load merchant data from session storage
                     const merchantDataStr = sessionStorage.getItem('merchantData');
                     const apiResultsStr = sessionStorage.getItem('merchantApiResults');
                     
+                    console.log('🔍 SessionStorage check:');
+                    console.log('🔍 merchantData exists:', !!merchantDataStr);
+                    console.log('🔍 merchantApiResults exists:', !!apiResultsStr);
+                    
                     if (merchantDataStr) {
+                        console.log('🔍 Parsing merchantData from sessionStorage...');
                         this.merchantData = JSON.parse(merchantDataStr);
+                        console.log('🔍 merchantData parsed successfully:', Object.keys(this.merchantData));
                         this.populateMerchantDetails();
+                    } else {
+                        console.warn('⚠️ No merchantData found in sessionStorage');
                     }
                     
                     if (apiResultsStr) {
+                        console.log('🔍 Parsing apiResults from sessionStorage...');
                         this.apiResults = JSON.parse(apiResultsStr);
+                        console.log('🔍 apiResults parsed successfully:', Object.keys(this.apiResults));
                         this.populateApiResults();
+                    } else {
+                        console.warn('⚠️ No apiResults found in sessionStorage');
                     }
                     
                     // Update page title
                     if (this.merchantData && this.merchantData.businessName) {
-                        document.getElementById('merchantNameText').textContent = this.merchantData.businessName;
-                        document.title = `${this.merchantData.businessName} - Merchant Details - KYB Platform`;
+                        const titleElement = document.getElementById('merchantNameText');
+                        if (titleElement) {
+                            titleElement.textContent = this.merchantData.businessName;
+                            document.title = `${this.merchantData.businessName} - Merchant Details - KYB Platform`;
+                            console.log('✅ Page title updated:', this.merchantData.businessName);
+                        } else {
+                            console.warn('⚠️ merchantNameText element not found');
+                        }
+                    } else {
+                        console.warn('⚠️ No businessName in merchantData');
                     }
                     
+                    console.log('✅ loadMerchantData() completed successfully');
                 } catch (error) {
-                    console.error('Error loading merchant data:', error);
+                    console.error('❌ Error loading merchant data:', error);
+                    console.error('❌ Error stack:', error.stack);
                     this.showError('Failed to load merchant data');
                 }
             }
 
             populateMerchantDetails() {
-                if (!this.merchantData) return;
+                console.log('🔍 populateMerchantDetails() called');
+                if (!this.merchantData) {
+                    console.warn('⚠️ No merchantData available to populate');
+                    return;
+                }
+                console.log('🔍 Populating merchant details with data:', Object.keys(this.merchantData));
 
                 // Populate merchant details tab
                 document.getElementById('businessName').textContent = this.merchantData.businessName || '-';
@@ -1174,7 +1207,16 @@
 
         // Initialize when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
-            window.merchantDetails = new MerchantDetails();
+            console.log('🔍 Initializing MerchantDetails class...');
+            console.log('🔍 Window location:', window.location.href);
+            console.log('🔍 Document ready state:', document.readyState);
+            try {
+                window.merchantDetails = new MerchantDetails();
+                console.log('✅ MerchantDetails instance created successfully');
+            } catch (error) {
+                console.error('❌ Error creating MerchantDetails instance:', error);
+                console.error('❌ Error stack:', error.stack);
+            }
         });
     </script>
 
