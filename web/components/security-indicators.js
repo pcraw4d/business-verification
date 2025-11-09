@@ -36,7 +36,11 @@ class SecurityIndicators {
 
         this.container = document.getElementById(this.options.containerId);
         if (!this.container) {
-            console.warn(`Security indicators container with ID '${this.options.containerId}' not found`);
+            // Container may not exist yet (e.g., before results are displayed)
+            // Only log warning in debug mode to reduce console noise
+            if (this.options.debug || window.location.search.includes('debug=true')) {
+                console.debug(`Security indicators container with ID '${this.options.containerId}' not found yet`);
+            }
             return;
         }
 

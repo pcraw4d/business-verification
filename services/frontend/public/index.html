@@ -393,7 +393,7 @@
                 <h2 class="text-2xl font-bold text-gray-900 mb-6">Enhanced Business Intelligence Testing</h2>
                 
                 <!-- Input Form -->
-                <form id="classificationForm" class="space-y-6">
+                <form id="classificationForm" class="space-y-6" method="POST" action="#">
                     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <div>
                             <label for="businessName" class="block text-sm font-medium text-gray-700 mb-2">
@@ -1411,6 +1411,20 @@
                 displayError('Business intelligence analysis failed. Please try again.');
             }
             
+            // Initialize security indicators now that container exists
+            if (!securityIndicators && typeof SecurityIndicators !== 'undefined') {
+                const container = document.getElementById('security-indicators');
+                if (container) {
+                    securityIndicators = new SecurityIndicators({
+                        containerId: 'security-indicators',
+                        showDetailed: true,
+                        showTooltips: true,
+                        theme: 'default'
+                    });
+                    securityIndicators.init();
+                }
+            }
+            
             // Update security indicators with result data
             updateSecurityIndicators(result);
         }
@@ -1651,13 +1665,17 @@
             }
             
             if (typeof SecurityIndicators !== 'undefined') {
-                securityIndicators = new SecurityIndicators({
-                    containerId: 'security-indicators',
-                    showDetailed: true,
-                    showTooltips: true,
-                    theme: 'default'
-                });
-                securityIndicators.init();
+                // Only initialize if container exists (will be created when results are displayed)
+                const container = document.getElementById('security-indicators');
+                if (container) {
+                    securityIndicators = new SecurityIndicators({
+                        containerId: 'security-indicators',
+                        showDetailed: true,
+                        showTooltips: true,
+                        theme: 'default'
+                    });
+                    securityIndicators.init();
+                }
             }
         }
 
