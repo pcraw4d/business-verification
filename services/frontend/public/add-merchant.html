@@ -982,20 +982,13 @@
                     
                     // Make API calls in parallel for all three analyses
                     // Use Promise.allSettled to ensure all promises resolve even if some fail
+                    // Note: We don't use .catch() here because it would convert rejections to fulfillments,
+                    // which defeats the purpose of Promise.allSettled(). Let rejections propagate naturally.
                     console.log('🔍 Calling APIs in parallel...');
                     const [businessIntelligenceResult, riskAssessmentResult, riskIndicatorsResult] = await Promise.allSettled([
-                        this.callBusinessIntelligenceAPI(data.apiData.businessIntelligence).catch(err => {
-                            console.warn('🔍 Business Intelligence API call failed, continuing with other APIs:', err);
-                            return null;
-                        }),
-                        this.callRiskAssessmentAPI(data.apiData.riskAssessment).catch(err => {
-                            console.warn('🔍 Risk Assessment API call failed, continuing with other APIs:', err);
-                            return null;
-                        }),
-                        this.callRiskIndicatorsAPI(data.apiData.riskIndicators).catch(err => {
-                            console.warn('🔍 Risk Indicators API call failed, continuing with other APIs:', err);
-                            return null;
-                        })
+                        this.callBusinessIntelligenceAPI(data.apiData.businessIntelligence),
+                        this.callRiskAssessmentAPI(data.apiData.riskAssessment),
+                        this.callRiskIndicatorsAPI(data.apiData.riskIndicators)
                     ]);
                     
                     console.log('🔍 All API calls completed. Results:', {
@@ -1004,7 +997,26 @@
                         riskIndicators: riskIndicatorsResult
                     });
                     
+                    // Log API results for debugging with proper status checking
+                    console.log('🔍 API Results Summary:');
+                    if (businessIntelligenceResult.status === 'fulfilled') {
+                        console.log('🔍 Business Intelligence: SUCCESS', businessIntelligenceResult.value);
+                    } else {
+                        console.warn('🔍 Business Intelligence: FAILED', businessIntelligenceResult.reason);
+                    }
+                    if (riskAssessmentResult.status === 'fulfilled') {
+                        console.log('🔍 Risk Assessment: SUCCESS', riskAssessmentResult.value);
+                    } else {
+                        console.warn('🔍 Risk Assessment: FAILED', riskAssessmentResult.reason);
+                    }
+                    if (riskIndicatorsResult.status === 'fulfilled') {
+                        console.log('🔍 Risk Indicators: SUCCESS', riskIndicatorsResult.value);
+                    } else {
+                        console.warn('🔍 Risk Indicators: FAILED', riskIndicatorsResult.reason);
+                    }
+                    
                     // Store API results in session storage
+                    // Promise.allSettled properly tracks rejections, so we can check status correctly
                     const apiResults = {
                         businessIntelligence: businessIntelligenceResult.status === 'fulfilled' ? businessIntelligenceResult.value : null,
                         riskAssessment: riskAssessmentResult.status === 'fulfilled' ? riskAssessmentResult.value : null,
@@ -1015,12 +1027,6 @@
                             riskIndicators: riskIndicatorsResult.status === 'rejected' ? riskIndicatorsResult.reason : null
                         }
                     };
-                    
-                    // Log API results for debugging
-                    console.log('🔍 API Results Summary:');
-                    console.log('🔍 Business Intelligence:', businessIntelligenceResult.status, businessIntelligenceResult.value || businessIntelligenceResult.reason);
-                    console.log('🔍 Risk Assessment:', riskAssessmentResult.status, riskAssessmentResult.value || riskAssessmentResult.reason);
-                    console.log('🔍 Risk Indicators:', riskIndicatorsResult.status, riskIndicatorsResult.value || riskIndicatorsResult.reason);
                     
                     // Additional debugging for Business Intelligence API
                     if (businessIntelligenceResult.status === 'rejected') {
