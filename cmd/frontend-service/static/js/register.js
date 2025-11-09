@@ -9,7 +9,30 @@ class RegisterForm {
         this.loading = document.getElementById('loading');
         this.successMessage = document.getElementById('successMessage');
         
+        // Get API base URL
+        this.apiBaseURL = this.getAPIBaseURL();
+        
         this.init();
+    }
+
+    /**
+     * Get the API base URL
+     */
+    getAPIBaseURL() {
+        // Check if APIConfig is available
+        if (typeof APIConfig !== 'undefined') {
+            return APIConfig.getBaseURL();
+        }
+        
+        // Check if we're in development (localhost)
+        if (window.location.hostname === 'localhost' || 
+            window.location.hostname === '127.0.0.1' ||
+            window.location.hostname === '0.0.0.0') {
+            return 'http://localhost:8080';
+        }
+        
+        // Production Railway API Gateway
+        return 'https://api-gateway-service-production-21fd.up.railway.app';
     }
 
     /**
@@ -71,8 +94,11 @@ class RegisterForm {
         this.setLoading(true);
 
         try {
-            // Submit registration
-            const response = await fetch('/api/v1/auth/register', {
+            // Submit registration to API gateway
+            const apiURL = `${this.apiBaseURL}/api/v1/auth/register`;
+            console.log('Registering user at:', apiURL);
+            
+            const response = await fetch(apiURL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
