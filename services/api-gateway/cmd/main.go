@@ -123,6 +123,9 @@ func main() {
 	api.HandleFunc("/bi/analyze", gatewayHandler.ProxyToBI).Methods("POST", "OPTIONS")
 	api.PathPrefix("/bi").HandlerFunc(gatewayHandler.ProxyToBI)
 
+	// Authentication routes - CORS handled by middleware
+	api.HandleFunc("/auth/register", gatewayHandler.HandleAuthRegister).Methods("POST", "OPTIONS")
+
 	// Frontend proxy (for development)
 	if cfg.Environment == "development" {
 		router.PathPrefix("/").Handler(http.FileServer(http.Dir("./web/")))

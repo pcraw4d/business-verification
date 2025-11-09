@@ -103,6 +103,7 @@ func isPublicEndpoint(path string) bool {
 		"/api/v1/merchants/analytics",   // Merchant analytics
 		"/api/v1/risk",                  // Risk assessment endpoints
 		"/api/v1/risk/",                 // Risk assessment endpoints with path
+		"/api/v1/auth/register",         // Registration endpoint is public
 	}
 
 	for _, publicPath := range publicPaths {

@@ -381,3 +381,63 @@ func (h *GatewayHandler) ProxyToRiskAssessment(w http.ResponseWriter, r *http.Re
 func (h *GatewayHandler) ProxyToRiskAssessmentHealth(w http.ResponseWriter, r *http.Request) {
 	h.proxyRequest(w, r, h.config.Services.RiskAssessmentURL, "/health")
 }
+
+// HandleAuthRegister handles user registration requests
+func (h *GatewayHandler) HandleAuthRegister(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse request body
+	var req struct {
+		Email     string `json:"email"`
+		Username  string `json:"username"`
+		Password  string `json:"password"`
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+		Company   string `json:"company"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.logger.Error("Failed to decode registration request", zap.Error(err))
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error":   "Invalid request body",
+			"message": "Please provide all required fields",
+		})
+		return
+	}
+
+	// Validate required fields
+	if req.Email == "" || req.Username == "" || req.Password == "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error":   "Missing required fields",
+			"message": "Email, username, and password are required",
+		})
+		return
+	}
+
+	// TODO: Implement actual registration with Supabase
+	// For now, return a success response (this is a placeholder)
+	h.logger.Info("User registration request",
+		zap.String("email", req.Email),
+		zap.String("username", req.Username),
+		zap.String("company", req.Company))
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "Registration successful. Please check your email for verification instructions.",
+		"user": map[string]interface{}{
+			"email":     req.Email,
+			"username":  req.Username,
+			"first_name": req.FirstName,
+			"last_name":  req.LastName,
+			"company":    req.Company,
+		},
+	})
+}
