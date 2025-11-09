@@ -17,6 +17,9 @@ Run this before deploying:
    - Classification: `services/classification-service`
    - Merchant: `services/merchant-service`
    - Risk Assessment: `services/risk-assessment-service`
+   - BI Service: `cmd/business-intelligence-gateway`
+   - Pipeline Service: `cmd/pipeline-service`
+   - Service Discovery: `cmd/service-discovery`
 
 2. **Builder Type** (Settings → Build & Deploy)
    - Must be set to: **Dockerfile** (NOT Railpack)
@@ -43,6 +46,9 @@ All Dockerfiles should have:
 | Classification | ✅ | ✅ | ✅ | Fixed |
 | Merchant | ✅ | ✅ | ✅ | Ready |
 | Risk Assessment | ✅ | ✅ | ✅ | Ready |
+| BI Service | ✅ | ✅ | ✅ | Fixed |
+| Pipeline Service | ✅ | ✅ | ✅ | Fixed |
+| Service Discovery | ✅ | ✅ | ✅ | Fixed |
 
 ## 🚀 Deployment Steps
 

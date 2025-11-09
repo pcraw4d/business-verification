@@ -2,8 +2,8 @@ FROM golang:1.22-alpine
 
 WORKDIR /app
 
-# Install git and ca-certificates
-RUN apk add --no-cache git ca-certificates
+# Install git, ca-certificates, and wget (needed for health checks)
+RUN apk add --no-cache git ca-certificates wget
 
 # Copy go.mod first for better caching (go.sum is optional)
 COPY go.mod ./
@@ -25,7 +25,7 @@ EXPOSE 8085
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8085/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT:-8085}/health || exit 1
 
 # Run the application
 CMD ["./pipeline-service"]
