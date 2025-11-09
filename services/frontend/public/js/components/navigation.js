@@ -173,7 +173,7 @@ class KYBNavigation {
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="analytics-insights.html" class="nav-link" data-page="analytics-insights">
+                                <a href="/analytics-insights" class="nav-link" data-page="analytics-insights">
                                     <i class="fas fa-lightbulb"></i>
                                     <span class="nav-text">Insights</span>
                                 </a>
@@ -185,19 +185,19 @@ class KYBNavigation {
                         <h3 class="nav-section-title">Administration</h3>
                         <ul class="nav-list">
                             <li class="nav-item">
-                                <a href="admin-dashboard.html" class="nav-link" data-page="admin-dashboard">
+                                <a href="/admin" class="nav-link" data-page="admin-dashboard">
                                     <i class="fas fa-shield-alt"></i>
                                     <span class="nav-text">Admin Dashboard</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="admin-models.html" class="nav-link" data-page="admin-models">
+                                <a href="/admin/models" class="nav-link" data-page="admin-models">
                                     <i class="fas fa-brain"></i>
                                     <span class="nav-text">ML Models</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="admin-queue.html" class="nav-link" data-page="admin-queue">
+                                <a href="/admin/queue" class="nav-link" data-page="admin-queue">
                                     <i class="fas fa-tasks"></i>
                                     <span class="nav-text">Queue</span>
                                 </a>
@@ -209,7 +209,7 @@ class KYBNavigation {
                         <h3 class="nav-section-title">Account</h3>
                         <ul class="nav-list">
                             <li class="nav-item">
-                                <a href="sessions.html" class="nav-link" data-page="sessions">
+                                <a href="/sessions" class="nav-link" data-page="sessions">
                                     <i class="fas fa-users"></i>
                                     <span class="nav-text">Sessions</span>
                                 </a>
@@ -224,7 +224,7 @@ class KYBNavigation {
                         <span class="status-text">Live</span>
                     </div>
                     <div id="authLinks" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(0,0,0,0.1);">
-                        <a href="register.html" class="nav-link" id="registerLink" style="display: none;">
+                        <a href="/register" class="nav-link" id="registerLink" style="display: none;">
                             <i class="fas fa-user-plus"></i>
                             <span class="nav-text">Register</span>
                         </a>

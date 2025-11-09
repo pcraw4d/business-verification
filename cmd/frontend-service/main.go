@@ -230,11 +230,17 @@ func (s *FrontendService) setupRoutes() {
 	http.HandleFunc("/merchant-hub-integration", s.handleMerchantHubIntegration)
 	http.HandleFunc("/merchant-detail", s.handleMerchantDetail)
 	http.HandleFunc("/admin", s.handleAdminDashboard)
+	http.HandleFunc("/admin.html", s.handleAdminDashboard)
 	http.HandleFunc("/register", s.handleRegister)
+	http.HandleFunc("/register.html", s.handleRegister)
 	http.HandleFunc("/sessions", s.handleSessions)
+	http.HandleFunc("/sessions.html", s.handleSessions)
 	http.HandleFunc("/admin/models", s.handleAdminModels)
+	http.HandleFunc("/admin/models.html", s.handleAdminModels)
 	http.HandleFunc("/analytics-insights", s.handleAnalyticsInsights)
+	http.HandleFunc("/analytics-insights.html", s.handleAnalyticsInsights)
 	http.HandleFunc("/admin/queue", s.handleAdminQueue)
+	http.HandleFunc("/admin/queue.html", s.handleAdminQueue)
 
 	// Default route - serve main index page
 	http.HandleFunc("/", s.handleDashboard)
