@@ -853,7 +853,7 @@ class MerchantComparison {
         const merchant = merchantNumber === 1 ? this.merchant1 : this.merchant2;
         if (merchant) {
             // Navigate to merchant detail page
-            window.location.href = `merchant-detail.html?id=${merchant.id}`;
+            window.location.href = `merchant-details.html?id=${merchant.id}`;
         }
     }
 

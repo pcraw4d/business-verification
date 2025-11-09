@@ -150,7 +150,7 @@ class KYBNavigation {
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="merchant-detail.html" class="nav-link" data-page="merchant-detail">
+                                <a href="merchant-details.html" class="nav-link" data-page="merchant-details">
                                     <i class="fas fa-user-tie"></i>
                                     <span class="nav-text">Merchant Detail</span>
                                 </a>

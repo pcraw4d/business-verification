@@ -10,6 +10,17 @@
     <link rel="stylesheet" href="css/risk-indicators.css">
     <script src="components/navigation.js"></script>
     <script src="components/merchant-context.js"></script>
+    <script src="components/session-manager.js"></script>
+    <script src="components/coming-soon-banner.js"></script>
+    <script src="components/mock-data-warning.js"></script>
+    <!-- Risk Assessment Components -->
+    <script src="js/components/risk-websocket-client.js"></script>
+    <script src="js/components/risk-tooltip-system.js"></script>
+    <script src="js/components/risk-score-panel.js"></script>
+    <script src="js/components/risk-drag-drop.js"></script>
+    <script src="js/components/data-enrichment.js"></script>
+    <script src="js/components/external-data-sources.js"></script>
+    <script src="js/components/export-button.js"></script>
     <style>
         .gradient-bg {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -151,6 +162,219 @@
         .tab-button:hover {
             background: rgba(52, 152, 219, 0.1);
         }
+        
+        /* Risk Assessment Styles from merchant-detail.html */
+        .risk-overview {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .risk-score-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .risk-score-value {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .risk-score-label {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-bottom: 15px;
+        }
+
+        .risk-score-trend {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+
+        .risk-categories {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .risk-category {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .category-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .category-score {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .category-score.low {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .category-score.medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .category-score.high {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .risk-charts {
+            margin-top: 30px;
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-container h4 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-badge.verified {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        /* Activity List Styles */
+        .activity-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #3498db;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e3f2fd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1976d2;
+            flex-shrink: 0;
+        }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 4px;
+        }
+
+        .activity-description {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-bottom: 4px;
+        }
+
+        .activity-date {
+            font-size: 0.8rem;
+            color: #95a5a6;
+        }
+
+        .activity-amount {
+            font-weight: 600;
+            color: #27ae60;
+        }
+        
+        /* Info Grid Styles */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .info-label {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value {
+            font-size: 1rem;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+        
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .risk-overview {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .risk-score-card {
+                padding: 20px;
+            }
+
+            .risk-score-value {
+                font-size: 2.5rem;
+            }
+            
+            .tab-button {
+                padding: 8px 12px;
+                font-size: 0.8rem;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -195,6 +419,22 @@
                     <button class="tab-button" data-tab="risk-indicators" class="whitespace-nowrap py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
                         <i class="fas fa-gauge-high mr-2"></i>
                         Risk Indicators
+                    </button>
+                    <button class="tab-button" data-tab="overview" class="whitespace-nowrap py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        Overview
+                    </button>
+                    <button class="tab-button" data-tab="contact" class="whitespace-nowrap py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        <i class="fas fa-address-book mr-2"></i>
+                        Contact
+                    </button>
+                    <button class="tab-button" data-tab="financial" class="whitespace-nowrap py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        <i class="fas fa-chart-line mr-2"></i>
+                        Financial
+                    </button>
+                    <button class="tab-button" data-tab="compliance" class="whitespace-nowrap py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        <i class="fas fa-clipboard-check mr-2"></i>
+                        Compliance
                     </button>
                 </nav>
             </div>
@@ -724,12 +964,115 @@
 
         <!-- Risk Assessment Tab -->
         <div class="tab-content" id="risk-assessment">
-            <div id="riskAssessmentContainer"></div>
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mr-4">
+                            <i class="fas fa-shield-alt text-purple-600 text-xl"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-gray-900">Risk Assessment</h2>
+                    </div>
+                    <div id="riskExportButtonContainer" style="display: inline-block;"></div>
+                </div>
+                <div id="riskAssessmentContainer">
+                    <!-- Risk Score Panel -->
+                    <div id="riskScorePanel"></div>
+                    
+                    <!-- Website Risk Display -->
+                    <div id="websiteRiskDisplay" style="margin-top: 1.5rem;"></div>
+                    
+                    <!-- Risk Configuration (Drag and Drop) -->
+                    <div id="riskConfigContainer" style="display: none;">
+                        <h4 style="margin-bottom: 1rem;">Risk Configuration</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                            <div data-draggable="true" style="padding: 1rem; background: #f8f9fa; border-radius: 4px; cursor: grab;">
+                                <strong>Risk Factor 1</strong>
+                            </div>
+                            <div data-draggable="true" style="padding: 1rem; background: #f8f9fa; border-radius: 4px; cursor: grab;">
+                                <strong>Risk Factor 2</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Risk Indicators Tab -->
         <div class="tab-content" id="risk-indicators">
             <div id="riskIndicatorsContainer"></div>
+        </div>
+
+        <!-- Overview Tab -->
+        <div class="tab-content" id="overview">
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <div class="flex items-center mb-6">
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                        <i class="fas fa-info-circle text-blue-600 text-xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-900">Business Overview</h2>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="overviewGrid">
+                    <!-- Overview info will be populated here -->
+                </div>
+            </div>
+
+            <!-- Recent Activity Card -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center mb-6">
+                    <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mr-4">
+                        <i class="fas fa-history text-yellow-600 text-xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-900">Recent Activity</h2>
+                </div>
+                <div class="space-y-4" id="activityList">
+                    <!-- Activity items will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Tab -->
+        <div class="tab-content" id="contact">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center mb-6">
+                    <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mr-4">
+                        <i class="fas fa-address-book text-green-600 text-xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-900">Contact Information</h2>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="contactGrid">
+                    <!-- Contact info will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Financial Tab -->
+        <div class="tab-content" id="financial">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center mb-6">
+                    <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4">
+                        <i class="fas fa-chart-line text-red-600 text-xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-900">Financial Information</h2>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="financialGrid">
+                    <!-- Financial info will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Compliance Tab -->
+        <div class="tab-content" id="compliance">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center mb-6">
+                    <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mr-4">
+                        <i class="fas fa-clipboard-check text-purple-600 text-xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-900">Compliance Status</h2>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="complianceGrid">
+                    <!-- Compliance info will be populated here -->
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1162,12 +1505,6 @@
             }
 
             switchTab(tabId) {
-                // Skip Risk Indicators and Risk Assessment tabs - let our new implementations handle them
-                if (tabId === 'risk-indicators' || tabId === 'risk-assessment') {
-                    console.log(`🔄 Skipping ${tabId} tab - handled by new implementation`);
-                    return;
-                }
-                
                 // Remove active class from all tabs and buttons
                 document.querySelectorAll('.tab-content').forEach(tab => {
                     tab.classList.remove('active');
@@ -1182,12 +1519,233 @@
                 
                 if (tabElement) tabElement.classList.add('active');
                 if (buttonElement) buttonElement.classList.add('active');
+                
+                // Handle special tab initializations
+                if (tabId === 'risk-indicators' && window.riskIndicatorsTab) {
+                    const merchantId = this.getMerchantId();
+                    if (merchantId) {
+                        window.riskIndicatorsTab.init(merchantId);
+                    }
+                } else if (tabId === 'risk-assessment') {
+                    // Initialize MerchantRiskTab if not already initialized
+                    if (!window.merchantRiskTab && typeof MerchantRiskTab !== 'undefined') {
+                        window.merchantRiskTab = new MerchantRiskTab();
+                    }
+                    
+                    if (window.merchantRiskTab) {
+                        const container = document.getElementById('riskAssessmentContainer');
+                        if (container) {
+                            window.merchantRiskTab.loadRiskAssessmentContent(container).catch(error => {
+                                console.error('Error loading Risk Assessment content:', error);
+                            });
+                        }
+                    }
+                } else if (tabId === 'overview') {
+                    this.loadOverviewTab();
+                } else if (tabId === 'contact') {
+                    this.loadContactTab();
+                } else if (tabId === 'financial') {
+                    this.loadFinancialTab();
+                } else if (tabId === 'compliance') {
+                    this.loadComplianceTab();
+                }
+            }
+            
+            getMerchantId() {
+                // Try to get from URL parameters first
+                const urlParams = new URLSearchParams(window.location.search);
+                const merchantIdFromUrl = urlParams.get('merchantId') || urlParams.get('id');
+                if (merchantIdFromUrl) {
+                    return merchantIdFromUrl;
+                }
+                
+                // Try to get from session storage
+                const merchantDataStr = sessionStorage.getItem('merchantData');
+                if (merchantDataStr) {
+                    try {
+                        const merchantData = JSON.parse(merchantDataStr);
+                        return merchantData.id || merchantData.merchantId || merchantData.businessId;
+                    } catch (e) {
+                        console.warn('Failed to parse merchant data from session storage:', e);
+                    }
+                }
+                
+                // Try to get from global merchant details instance
+                if (this.merchantData) {
+                    return this.merchantData.id || this.merchantData.merchantId || this.merchantData.businessId;
+                }
+                
+                return null;
+            }
+            
+            loadOverviewTab() {
+                const grid = document.getElementById('overviewGrid');
+                const activityList = document.getElementById('activityList');
+                
+                if (!grid || !activityList) return;
+                
+                if (this.merchantData) {
+                    // Populate overview grid
+                    grid.innerHTML = `
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-gray-700">Business ID</label>
+                            <p class="text-sm text-gray-900">${this.merchantData.id || this.merchantData.businessId || '-'}</p>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-gray-700">Industry</label>
+                            <p class="text-sm text-gray-900">${this.merchantData.industry || 'Not specified'}</p>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-gray-700">Status</label>
+                            <p class="text-sm text-gray-900">Active</p>
+                        </div>
+                    `;
+                    
+                    // Populate activity list (placeholder)
+                    activityList.innerHTML = `
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <p class="text-sm text-gray-600">No recent activity recorded</p>
+                        </div>
+                    `;
+                }
+            }
+            
+            loadContactTab() {
+                const grid = document.getElementById('contactGrid');
+                if (!grid || !this.merchantData) return;
+                
+                grid.innerHTML = `
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">Address</label>
+                        <p class="text-sm text-gray-900">${this.merchantData.streetAddress || '-'}${this.merchantData.city ? ', ' + this.merchantData.city : ''}${this.merchantData.state ? ', ' + this.merchantData.state : ''} ${this.merchantData.postalCode || ''}</p>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">Phone</label>
+                        <p class="text-sm text-gray-900">${this.merchantData.phoneNumber || 'Not provided'}</p>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">Email</label>
+                        <p class="text-sm text-gray-900">${this.merchantData.email || 'Not provided'}</p>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">Website</label>
+                        <p class="text-sm text-gray-900">
+                            ${this.merchantData.websiteUrl ? `<a href="${this.merchantData.websiteUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${this.merchantData.websiteUrl}</a>` : 'Not provided'}
+                        </p>
+                    </div>
+                `;
+            }
+            
+            loadFinancialTab() {
+                const grid = document.getElementById('financialGrid');
+                if (!grid) return;
+                
+                // Placeholder - will be populated from API
+                grid.innerHTML = `
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">Annual Revenue</label>
+                        <p class="text-sm text-gray-900">Not disclosed</p>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">Employee Count</label>
+                        <p class="text-sm text-gray-900">Not disclosed</p>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">Founded Year</label>
+                        <p class="text-sm text-gray-900">Not disclosed</p>
+                    </div>
+                `;
+            }
+            
+            loadComplianceTab() {
+                const grid = document.getElementById('complianceGrid');
+                if (!grid) return;
+                
+                // Placeholder - will be populated from API
+                grid.innerHTML = `
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">KYB Status</label>
+                        <p class="text-sm text-gray-900"><span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Verified</span></p>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">Last Verification</label>
+                        <p class="text-sm text-gray-900">-</p>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">Compliance Score</label>
+                        <p class="text-sm text-gray-900">-</p>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">Next Review</label>
+                        <p class="text-sm text-gray-900">-</p>
+                    </div>
+                `;
             }
 
             initializeComponents() {
                 // Initialize navigation if available
                 if (typeof KYBNavigation !== 'undefined') {
                     new KYBNavigation();
+                }
+                
+                // Initialize session manager if available
+                if (typeof SessionManager !== 'undefined') {
+                    new SessionManager();
+                }
+                
+                // Initialize mock data warning if available
+                if (typeof MockDataWarning !== 'undefined') {
+                    new MockDataWarning();
+                }
+                
+                // Initialize coming soon banner if available
+                if (typeof ComingSoonBanner !== 'undefined') {
+                    new ComingSoonBanner();
+                }
+                
+                // Initialize export buttons
+                this.initializeExportButtons();
+                
+                // Initialize data enrichment
+                this.initializeDataEnrichment();
+            }
+            
+            initializeExportButtons() {
+                if (typeof ExportButton === 'undefined') {
+                    return;
+                }
+                
+                // Risk export button
+                const riskExportContainer = document.getElementById('riskExportButtonContainer');
+                if (riskExportContainer) {
+                    const riskExportButton = new ExportButton({
+                        container: riskExportContainer,
+                        exportType: 'risk',
+                        formats: ['csv', 'pdf', 'json'],
+                        onExportStart: (format) => {
+                            console.log(`Starting risk ${format} export...`);
+                        },
+                        onExportComplete: (format, result) => {
+                            console.log(`Risk export completed: ${format}`, result);
+                        },
+                        onExportError: (format, error) => {
+                            console.error(`Risk export failed: ${format}`, error);
+                            alert(`Risk export failed: ${error.message}`);
+                        }
+                    });
+                    riskExportButton.init();
+                }
+            }
+            
+            initializeDataEnrichment() {
+                if (typeof DataEnrichment === 'undefined') {
+                    return;
+                }
+                
+                const merchantId = this.getMerchantId();
+                if (merchantId) {
+                    window.dataEnrichment = new DataEnrichment(merchantId);
+                    window.dataEnrichment.init();
                 }
             }
 
