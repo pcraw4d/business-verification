@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Merchant - KYB Platform</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="components/navigation.js"></script>
-    <script src="components/mobile-optimization.js"></script>
+    <script src="components/navigation.js" defer></script>
+    <script src="components/mobile-optimization.js" defer></script>
     <style>
         /* Enhanced Form Styles from Classification Improvement Plan */
         body {
@@ -15,6 +15,28 @@
             margin: 0;
             padding: 0;
             min-height: 100vh;
+        }
+
+        /* Container styles for navigation layout */
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+            box-sizing: border-box;
+        }
+
+        /* Ensure form is visible when inside main-content */
+        .main-content .container {
+            display: block;
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .main-content .merchant-form {
+            display: block;
+            visibility: visible;
+            opacity: 1;
         }
 
         .header-section {

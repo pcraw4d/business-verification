@@ -238,6 +238,7 @@ class KYBNavigation {
                     padding: 0;
                     display: flex;
                     min-height: 100vh;
+                    background: inherit;
                 }
 
                 .kyb-sidebar {
@@ -426,7 +427,8 @@ class KYBNavigation {
                     flex: 1;
                     margin-left: 280px;
                     min-height: 100vh;
-                    background: transparent;
+                    background: inherit;
+                    overflow-x: hidden;
                 }
 
                 .main-content {
