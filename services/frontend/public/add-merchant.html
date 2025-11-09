@@ -974,23 +974,58 @@
             }
 
             async processMerchantVerification(data) {
+                // CRITICAL: Store form data IMMEDIATELY before any API calls
+                // This ensures data is available even if APIs fail
+                console.log('🔍 Storing merchant data in sessionStorage immediately...');
+                try {
+                    sessionStorage.setItem('merchantData', JSON.stringify(data));
+                    console.log('✅ Merchant data stored in sessionStorage');
+                } catch (storageError) {
+                    console.error('❌ Failed to store merchant data:', storageError);
+                    // Continue anyway - we'll try again later
+                }
+                
+                // Set up a fallback redirect timer to ensure we redirect even if APIs hang
+                const FALLBACK_REDIRECT_DELAY = 5000; // 5 seconds max wait
+                const fallbackRedirectTimer = setTimeout(() => {
+                    console.warn('⚠️ Fallback redirect triggered - APIs taking too long');
+                    this.finalizeRedirect();
+                }, FALLBACK_REDIRECT_DELAY);
+                
                 try {
                     console.log('🔍 Starting merchant verification process with data:', data);
                     console.log('🔍 About to call APIs in parallel...');
                     
-                    // Store base data in session storage
-                    sessionStorage.setItem('merchantData', JSON.stringify(data));
-                    
                     // Make API calls in parallel for all three analyses
                     // Use Promise.allSettled to ensure all promises resolve even if some fail
-                    // Note: We don't use .catch() here because it would convert rejections to fulfillments,
-                    // which defeats the purpose of Promise.allSettled(). Let rejections propagate naturally.
+                    // Add a timeout wrapper to prevent hanging indefinitely
                     console.log('🔍 Calling APIs in parallel...');
-                    const [businessIntelligenceResult, riskAssessmentResult, riskIndicatorsResult] = await Promise.allSettled([
+                    
+                    const apiCallsPromise = Promise.allSettled([
                         this.callBusinessIntelligenceAPI(data.apiData.businessIntelligence),
                         this.callRiskAssessmentAPI(data.apiData.riskAssessment),
                         this.callRiskIndicatorsAPI(data.apiData.riskIndicators)
                     ]);
+                    
+                    // Add overall timeout to API calls (35 seconds max)
+                    const apiTimeoutPromise = new Promise((resolve) => {
+                        setTimeout(() => {
+                            resolve('timeout');
+                        }, 35000);
+                    });
+                    
+                    const result = await Promise.race([apiCallsPromise, apiTimeoutPromise]);
+                    
+                    // Clear fallback timer since we got a result
+                    clearTimeout(fallbackRedirectTimer);
+                    
+                    if (result === 'timeout') {
+                        console.warn('⚠️ API calls timed out, proceeding with redirect');
+                        this.finalizeRedirect();
+                        return;
+                    }
+                    
+                    const [businessIntelligenceResult, riskAssessmentResult, riskIndicatorsResult] = result;
                     
                     console.log('🔍 All API calls completed. Results:', {
                         businessIntelligence: businessIntelligenceResult,
@@ -1039,26 +1074,63 @@
                         console.log('🔍 Business Intelligence API Success - Full Response:', businessIntelligenceResult.value);
                     }
                     
-                    sessionStorage.setItem('merchantApiResults', JSON.stringify(apiResults));
-                    console.log('🔍 Stored merchant data and API results in sessionStorage');
-                    console.log('🔍 About to redirect to merchant-details page...');
+                    try {
+                        sessionStorage.setItem('merchantApiResults', JSON.stringify(apiResults));
+                        console.log('✅ Stored API results in sessionStorage');
+                    } catch (storageError) {
+                        console.error('❌ Failed to store API results:', storageError);
+                    }
                     
-                    // Ensure redirect happens - use setTimeout to ensure it's not blocked
-                    setTimeout(() => {
-                        console.log('🔍 Executing redirect to /merchant-details');
-                        window.location.href = '/merchant-details';
-                    }, 100);
+                    console.log('🔍 About to redirect to merchant-details page...');
+                    this.finalizeRedirect();
                     
                 } catch (error) {
+                    // Clear fallback timer
+                    clearTimeout(fallbackRedirectTimer);
+                    
                     console.error('❌ Error in merchant verification process:', error);
                     console.error('❌ Error stack:', error.stack);
+                    
+                    // Store error in sessionStorage
+                    try {
+                        const errorResults = {
+                            businessIntelligence: null,
+                            riskAssessment: null,
+                            riskIndicators: null,
+                            errors: {
+                                general: error.message || 'Unknown error occurred during verification'
+                            }
+                        };
+                        sessionStorage.setItem('merchantApiResults', JSON.stringify(errorResults));
+                    } catch (storageError) {
+                        console.error('❌ Failed to store error results:', storageError);
+                    }
+                    
                     // Even if there's an error, still redirect to merchant details page
                     // The page can handle missing data gracefully
                     console.log('🔍 Redirecting to merchant-details despite error...');
-                    setTimeout(() => {
-                        window.location.href = '/merchant-details';
-                    }, 100);
+                    this.finalizeRedirect();
                 }
+            }
+            
+            finalizeRedirect() {
+                console.log('🔍 Finalizing redirect to /merchant-details');
+                // Use a small delay to ensure sessionStorage is written
+                setTimeout(() => {
+                    console.log('🔍 Executing redirect to /merchant-details');
+                    console.log('🔍 Current URL:', window.location.href);
+                    console.log('🔍 Target URL:', window.location.origin + '/merchant-details');
+                    
+                    // Verify sessionStorage has data before redirecting
+                    const merchantData = sessionStorage.getItem('merchantData');
+                    if (merchantData) {
+                        console.log('✅ Merchant data confirmed in sessionStorage before redirect');
+                    } else {
+                        console.warn('⚠️ No merchant data in sessionStorage - redirecting anyway');
+                    }
+                    
+                    window.location.href = '/merchant-details';
+                }, 100);
             }
 
             async callBusinessIntelligenceAPI(apiData) {
