@@ -531,7 +531,7 @@
             </div>
 
             <!-- Merchant Detail Card -->
-            <div class="nav-card" data-page="merchant-detail">
+            <div class="nav-card" data-page="merchant-details">
                 <div class="nav-card-header">
                     <div class="nav-card-icon">
                         <i class="fas fa-user-tie"></i>
@@ -548,7 +548,7 @@
                     <li><i class="fas fa-check"></i> Transaction history</li>
                 </ul>
                 <div class="nav-card-actions">
-                    <a href="merchant-detail.html" class="btn btn-primary">
+                    <a href="merchant-details.html" class="btn btn-primary">
                         <i class="fas fa-external-link-alt"></i>
                         Open Detail
                     </a>
@@ -835,11 +835,11 @@
                     case 'merchant-portfolio':
                         window.location.href = 'merchant-portfolio.html';
                         break;
-                    case 'merchant-detail':
+                    case 'merchant-details':
                         if (this.currentMerchant) {
-                            window.location.href = `merchant-detail.html?merchant=${this.currentMerchant.id}`;
+                            window.location.href = `merchant-details.html?merchant=${this.currentMerchant.id}`;
                         } else {
-                            window.location.href = 'merchant-detail.html';
+                            window.location.href = 'merchant-details.html';
                         }
                         break;
                     case 'bulk-operations':
@@ -873,9 +873,9 @@
 
         function openDetailInContext() {
             if (window.merchantHubIntegration.currentMerchant) {
-                window.location.href = `merchant-detail.html?merchant=${window.merchantHubIntegration.currentMerchant.id}`;
+                window.location.href = `merchant-details.html?merchant=${window.merchantHubIntegration.currentMerchant.id}`;
             } else {
-                window.location.href = 'merchant-detail.html';
+                window.location.href = 'merchant-details.html';
             }
         }
 

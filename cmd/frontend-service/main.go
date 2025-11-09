@@ -168,7 +168,33 @@ func (s *FrontendService) handleMerchantHubIntegration(w http.ResponseWriter, r 
 }
 
 func (s *FrontendService) handleMerchantDetail(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/merchant-detail.html")
+	// Redirect to consolidated merchant-details page, preserving query parameters
+	redirectURL := "/merchant-details"
+	if r.URL.RawQuery != "" {
+		redirectURL += "?" + r.URL.RawQuery
+	}
+	log.Printf("Redirecting from /merchant-detail to %s", redirectURL)
+	http.Redirect(w, r, redirectURL, http.StatusMovedPermanently)
+}
+
+func (s *FrontendService) handleMerchantDetailsNew(w http.ResponseWriter, r *http.Request) {
+	// Redirect to consolidated merchant-details page, preserving query parameters
+	redirectURL := "/merchant-details"
+	if r.URL.RawQuery != "" {
+		redirectURL += "?" + r.URL.RawQuery
+	}
+	log.Printf("Redirecting from /merchant-details-new to %s", redirectURL)
+	http.Redirect(w, r, redirectURL, http.StatusMovedPermanently)
+}
+
+func (s *FrontendService) handleMerchantDetailsOld(w http.ResponseWriter, r *http.Request) {
+	// Redirect to consolidated merchant-details page, preserving query parameters
+	redirectURL := "/merchant-details"
+	if r.URL.RawQuery != "" {
+		redirectURL += "?" + r.URL.RawQuery
+	}
+	log.Printf("Redirecting from /merchant-details-old to %s", redirectURL)
+	http.Redirect(w, r, redirectURL, http.StatusMovedPermanently)
 }
 
 func (s *FrontendService) handleAdminDashboard(w http.ResponseWriter, r *http.Request) {
@@ -246,8 +272,13 @@ func (s *FrontendService) setupRoutes() {
 	http.HandleFunc("/business-growth-analytics.html", s.handleBusinessGrowthAnalytics)
 	http.HandleFunc("/merchant-hub-integration", s.handleMerchantHubIntegration)
 	http.HandleFunc("/merchant-hub-integration.html", s.handleMerchantHubIntegration)
+	// Redirect old merchant detail URLs to consolidated page
 	http.HandleFunc("/merchant-detail", s.handleMerchantDetail)
 	http.HandleFunc("/merchant-detail.html", s.handleMerchantDetail)
+	http.HandleFunc("/merchant-details-new", s.handleMerchantDetailsNew)
+	http.HandleFunc("/merchant-details-new.html", s.handleMerchantDetailsNew)
+	http.HandleFunc("/merchant-details-old", s.handleMerchantDetailsOld)
+	http.HandleFunc("/merchant-details-old.html", s.handleMerchantDetailsOld)
 	http.HandleFunc("/dashboard-hub.html", s.handleDashboardHub)
 	http.HandleFunc("/risk-assessment-portfolio.html", s.handleRiskAssessmentPortfolio)
 	http.HandleFunc("/admin", s.handleAdminDashboard)
