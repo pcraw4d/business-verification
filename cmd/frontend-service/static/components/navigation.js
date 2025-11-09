@@ -227,6 +227,12 @@ class KYBNavigation {
 
         // Add navigation styles
         this.addNavigationStyles();
+
+        // Dispatch custom event to notify that navigation is ready
+        // This allows other scripts to initialize after content is moved
+        window.dispatchEvent(new CustomEvent('navigationReady', {
+            detail: { mainContent: mainContent }
+        }));
     }
 
     addNavigationStyles() {

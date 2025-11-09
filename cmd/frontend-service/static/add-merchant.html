@@ -1311,8 +1311,15 @@
             }
         };
 
-        // Initialize when DOM is loaded
-        document.addEventListener('DOMContentLoaded', () => {
+        // Initialize when DOM is loaded or navigation is ready
+        function initializeForm() {
+            // Check if form exists
+            const form = document.getElementById('merchantForm');
+            if (!form) {
+                console.warn('Merchant form not found, waiting for navigation...');
+                return;
+            }
+            
             new MerchantFormHandler();
             
             // Add test button
@@ -1321,7 +1328,18 @@
             testButton.style.cssText = 'position: fixed; top: 10px; right: 10px; z-index: 9999; background: #007bff; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;';
             testButton.onclick = testAPICall;
             document.body.appendChild(testButton);
-        });
+        }
+
+        // Try to initialize immediately if DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeForm);
+        } else {
+            // DOM is already loaded, but navigation might move content
+            // Wait for navigation to be ready
+            window.addEventListener('navigationReady', initializeForm, { once: true });
+            // Also try immediately in case navigation already ran
+            setTimeout(initializeForm, 100);
+        }
 
         // Add notification animations
         const style = document.createElement('style');
