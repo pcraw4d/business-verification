@@ -4,8 +4,8 @@ FROM golang:1.22-alpine AS builder
 # Set working directory
 WORKDIR /app
 
-# Install dependencies
-RUN apk add --no-cache git ca-certificates
+# Install dependencies including wget for health checks
+RUN apk add --no-cache git ca-certificates wget
 
 # Copy go mod files
 COPY go.mod go.sum* ./
@@ -22,8 +22,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o classification-se
 # Final stage
 FROM alpine:latest
 
-# Install ca-certificates for HTTPS requests
-RUN apk --no-cache add ca-certificates
+# Install ca-certificates and wget for HTTPS requests and health checks
+RUN apk --no-cache add ca-certificates wget
 
 # Create non-root user
 RUN adduser -D -s /bin/sh appuser
@@ -43,6 +43,10 @@ USER appuser
 
 # Expose port (Railway will set PORT environment variable)
 EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT:-8080}/health || exit 1
 
 # Run the application
 CMD ["./classification-service"]
