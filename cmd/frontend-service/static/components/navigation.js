@@ -43,7 +43,7 @@ class KYBNavigation {
         const navigationHTML = `
             <div class="kyb-sidebar">
                 <div class="sidebar-header">
-                    <a href="index.html" class="brand-link">
+                    <a href="/" class="brand-link">
                         <i class="fas fa-shield-alt"></i>
                         <span class="brand-text">KYB Platform</span>
                     </a>
@@ -57,13 +57,13 @@ class KYBNavigation {
                         <h3 class="nav-section-title">Platform</h3>
                         <ul class="nav-list">
                             <li class="nav-item">
-                                <a href="index.html" class="nav-link" data-page="home">
+                                <a href="/" class="nav-link" data-page="home">
                                     <i class="fas fa-home"></i>
                                     <span class="nav-text">Home</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="dashboard-hub.html" class="nav-link" data-page="home">
+                                <a href="/dashboard-hub" class="nav-link" data-page="home">
                                     <i class="fas fa-th-large"></i>
                                     <span class="nav-text">Dashboard Hub</span>
                                 </a>
@@ -75,26 +75,26 @@ class KYBNavigation {
                         <h3 class="nav-section-title">Merchant Verification & Risk</h3>
                         <ul class="nav-list">
                             <li class="nav-item">
-                                <a href="add-merchant.html" class="nav-link" data-page="add-merchant">
+                                <a href="/add-merchant" class="nav-link" data-page="add-merchant">
                                     <i class="fas fa-plus-circle"></i>
                                     <span class="nav-text">Add Merchant</span>
                                     <span class="nav-badge new">NEW</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="dashboard.html" class="nav-link" data-page="business-intelligence">
+                                <a href="/dashboard" class="nav-link" data-page="business-intelligence">
                                     <i class="fas fa-chart-line"></i>
                                     <span class="nav-text">Business Intelligence</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="risk-dashboard.html" class="nav-link" data-page="risk-assessment">
+                                <a href="/risk-dashboard" class="nav-link" data-page="risk-assessment">
                                     <i class="fas fa-exclamation-triangle"></i>
                                     <span class="nav-text">Risk Assessment</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="enhanced-risk-indicators.html" class="nav-link" data-page="risk-indicators">
+                                <a href="/enhanced-risk-indicators" class="nav-link" data-page="risk-indicators">
                                     <i class="fas fa-gauge-high"></i>
                                     <span class="nav-text">Risk Indicators</span>
                                 </a>
@@ -106,20 +106,20 @@ class KYBNavigation {
                         <h3 class="nav-section-title">Compliance</h3>
                         <ul class="nav-list">
                             <li class="nav-item">
-                                <a href="compliance-dashboard.html" class="nav-link" data-page="compliance-status">
+                                <a href="/compliance-dashboard" class="nav-link" data-page="compliance-status">
                                     <i class="fas fa-clipboard-check"></i>
                                     <span class="nav-text">Compliance Status</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="compliance-gap-analysis.html" class="nav-link" data-page="compliance-gaps">
+                                <a href="/compliance-gap-analysis" class="nav-link" data-page="compliance-gaps">
                                     <i class="fas fa-search-minus"></i>
                                     <span class="nav-text">Gap Analysis</span>
                                     <span class="nav-badge new">NEW</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="compliance-progress-tracking.html" class="nav-link" data-page="compliance-progress">
+                                <a href="/compliance-progress-tracking" class="nav-link" data-page="compliance-progress">
                                     <i class="fas fa-tasks"></i>
                                     <span class="nav-text">Progress Tracking</span>
                                 </a>
@@ -131,26 +131,26 @@ class KYBNavigation {
                         <h3 class="nav-section-title">Merchant Management</h3>
                         <ul class="nav-list">
                             <li class="nav-item">
-                                <a href="merchant-hub-integration.html" class="nav-link" data-page="merchant-hub">
+                                <a href="/merchant-hub-integration" class="nav-link" data-page="merchant-hub">
                                     <i class="fas fa-sitemap"></i>
                                     <span class="nav-text">Merchant Hub</span>
                                     <span class="nav-badge new">NEW</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="merchant-portfolio.html" class="nav-link" data-page="merchant-portfolio">
+                                <a href="/merchant-portfolio" class="nav-link" data-page="merchant-portfolio">
                                     <i class="fas fa-store"></i>
                                     <span class="nav-text">Merchant Portfolio</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="risk-assessment-portfolio.html" class="nav-link" data-page="risk-assessment-portfolio">
+                                <a href="/risk-assessment-portfolio" class="nav-link" data-page="risk-assessment-portfolio">
                                     <i class="fas fa-shield-alt"></i>
                                     <span class="nav-text">Risk Assessment Portfolio</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="merchant-detail.html" class="nav-link" data-page="merchant-detail">
+                                <a href="/merchant-detail" class="nav-link" data-page="merchant-detail">
                                     <i class="fas fa-user-tie"></i>
                                     <span class="nav-text">Merchant Detail</span>
                                 </a>
@@ -162,21 +162,63 @@ class KYBNavigation {
                         <h3 class="nav-section-title">Market Intelligence</h3>
                         <ul class="nav-list">
                             <li class="nav-item">
-                                <a href="market-analysis-dashboard.html" class="nav-link" data-page="market-analysis">
+                                <a href="/market-analysis-dashboard" class="nav-link" data-page="market-analysis">
                                     <i class="fas fa-chart-bar"></i>
                                     <span class="nav-text">Market Analysis</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="competitive-analysis-dashboard.html" class="nav-link" data-page="competitive-analysis">
+                                <a href="/competitive-analysis-dashboard" class="nav-link" data-page="competitive-analysis">
                                     <i class="fas fa-users"></i>
                                     <span class="nav-text">Competitive Analysis</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="business-growth-analytics.html" class="nav-link" data-page="growth-analytics">
+                                <a href="/business-growth-analytics" class="nav-link" data-page="growth-analytics">
                                     <i class="fas fa-trending-up"></i>
                                     <span class="nav-text">Growth Analytics</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="/analytics-insights" class="nav-link" data-page="analytics-insights">
+                                    <i class="fas fa-lightbulb"></i>
+                                    <span class="nav-text">Insights</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="nav-section" id="adminNavSection" style="display: none;">
+                        <h3 class="nav-section-title">Administration</h3>
+                        <ul class="nav-list">
+                            <li class="nav-item">
+                                <a href="/admin" class="nav-link" data-page="admin-dashboard">
+                                    <i class="fas fa-shield-alt"></i>
+                                    <span class="nav-text">Admin Dashboard</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="/admin/models" class="nav-link" data-page="admin-models">
+                                    <i class="fas fa-brain"></i>
+                                    <span class="nav-text">ML Models</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="/admin/queue" class="nav-link" data-page="admin-queue">
+                                    <i class="fas fa-tasks"></i>
+                                    <span class="nav-text">Queue</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="nav-section">
+                        <h3 class="nav-section-title">Account</h3>
+                        <ul class="nav-list">
+                            <li class="nav-item">
+                                <a href="/sessions" class="nav-link" data-page="sessions">
+                                    <i class="fas fa-users"></i>
+                                    <span class="nav-text">Sessions</span>
                                 </a>
                             </li>
                         </ul>
@@ -187,6 +229,12 @@ class KYBNavigation {
                     <div class="nav-status">
                         <span class="status-indicator live"></span>
                         <span class="status-text">Live</span>
+                    </div>
+                    <div id="authLinks" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(0,0,0,0.1);">
+                        <a href="/register" class="nav-link" id="registerLink" style="display: none;">
+                            <i class="fas fa-user-plus"></i>
+                            <span class="nav-text">Register</span>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -228,11 +276,82 @@ class KYBNavigation {
         // Add navigation styles
         this.addNavigationStyles();
 
+        // Check admin role and show/hide admin section
+        this.checkAdminRole();
+        
+        // Check authentication and show/hide auth links
+        this.checkAuthStatus();
+
         // Dispatch custom event to notify that navigation is ready
         // This allows other scripts to initialize after content is moved
         window.dispatchEvent(new CustomEvent('navigationReady', {
             detail: { mainContent: mainContent }
         }));
+    }
+
+    async checkAdminRole() {
+        try {
+            const token = this.getAuthToken();
+            if (!token) {
+                return;
+            }
+
+            // Decode JWT to check role
+            const payload = this.decodeJWT(token);
+            if (payload && (payload.role === 'admin' || payload.role === 'Admin')) {
+                const adminSection = document.getElementById('adminNavSection');
+                if (adminSection) {
+                    adminSection.style.display = 'block';
+                }
+            }
+        } catch (error) {
+            console.error('Error checking admin role:', error);
+        }
+    }
+
+    getAuthToken() {
+        const token = localStorage.getItem('jwt_token') || localStorage.getItem('auth_token') || localStorage.getItem('access_token');
+        if (token) {
+            return token;
+        }
+
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'jwt_token' || name === 'auth_token' || name === 'access_token') {
+                return value;
+            }
+        }
+
+        return null;
+    }
+
+    decodeJWT(token) {
+        try {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            return JSON.parse(jsonPayload);
+        } catch (error) {
+            console.error('Error decoding JWT:', error);
+            return null;
+        }
+    }
+
+    checkAuthStatus() {
+        const token = this.getAuthToken();
+        const registerLink = document.getElementById('registerLink');
+        
+        // Show register link if user is not authenticated
+        if (registerLink) {
+            if (!token) {
+                registerLink.style.display = 'block';
+            } else {
+                registerLink.style.display = 'none';
+            }
+        }
     }
 
     addNavigationStyles() {

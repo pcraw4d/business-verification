@@ -195,11 +195,20 @@ func (s *FrontendService) handleAdminQueue(w http.ResponseWriter, r *http.Reques
 	http.ServeFile(w, r, "./static/admin-queue.html")
 }
 
+func (s *FrontendService) handleDashboardHub(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./static/dashboard-hub.html")
+}
+
+func (s *FrontendService) handleRiskAssessmentPortfolio(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./static/risk-assessment-portfolio.html")
+}
+
 func (s *FrontendService) setupRoutes() {
 	// Serve static files
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static/"))))
 	http.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("./static/js/"))))
-	http.Handle("/components/", http.StripPrefix("/components/", http.FileServer(http.Dir("./static/js/components/"))))
+	// Components can be in both locations for compatibility
+	http.Handle("/components/", http.StripPrefix("/components/", http.FileServer(http.Dir("./static/components/"))))
 	http.Handle("/styles/", http.StripPrefix("/styles/", http.FileServer(http.Dir("./static/styles/"))))
 
 	// API endpoints
@@ -208,6 +217,7 @@ func (s *FrontendService) setupRoutes() {
 
 	// Legacy page routes
 	http.HandleFunc("/dashboard", s.handleDashboard)
+	http.HandleFunc("/dashboard-hub", s.handleDashboardHub)
 	http.HandleFunc("/merchant-hub", s.handleMerchantHub)
 	http.HandleFunc("/merchant-portfolio", s.handleMerchantPortfolio)
 	http.HandleFunc("/business-intelligence", s.handleBusinessIntelligence)
@@ -219,16 +229,29 @@ func (s *FrontendService) setupRoutes() {
 	http.HandleFunc("/merchant-bulk-operations", s.handleMerchantBulkOperations)
 	http.HandleFunc("/monitoring-dashboard", s.handleMonitoringDashboard)
 	http.HandleFunc("/api-test", s.handleApiTest)
+	http.HandleFunc("/risk-assessment-portfolio", s.handleRiskAssessmentPortfolio)
 
 	// Additional routes for navigation
 	http.HandleFunc("/enhanced-risk-indicators", s.handleEnhancedRiskIndicators)
+	http.HandleFunc("/enhanced-risk-indicators.html", s.handleEnhancedRiskIndicators)
 	http.HandleFunc("/compliance-gap-analysis", s.handleComplianceGapAnalysis)
+	http.HandleFunc("/compliance-gap-analysis.html", s.handleComplianceGapAnalysis)
 	http.HandleFunc("/compliance-progress-tracking", s.handleComplianceProgressTracking)
+	http.HandleFunc("/compliance-progress-tracking.html", s.handleComplianceProgressTracking)
 	http.HandleFunc("/market-analysis-dashboard", s.handleMarketAnalysisDashboard)
+	http.HandleFunc("/market-analysis-dashboard.html", s.handleMarketAnalysisDashboard)
 	http.HandleFunc("/competitive-analysis-dashboard", s.handleCompetitiveAnalysisDashboard)
+	http.HandleFunc("/competitive-analysis-dashboard.html", s.handleCompetitiveAnalysisDashboard)
 	http.HandleFunc("/business-growth-analytics", s.handleBusinessGrowthAnalytics)
+	http.HandleFunc("/business-growth-analytics.html", s.handleBusinessGrowthAnalytics)
 	http.HandleFunc("/merchant-hub-integration", s.handleMerchantHubIntegration)
+	http.HandleFunc("/merchant-hub-integration.html", s.handleMerchantHubIntegration)
 	http.HandleFunc("/merchant-detail", s.handleMerchantDetail)
+	http.HandleFunc("/merchant-detail.html", s.handleMerchantDetail)
+	http.HandleFunc("/dashboard-hub", s.handleDashboardHub)
+	http.HandleFunc("/dashboard-hub.html", s.handleDashboardHub)
+	http.HandleFunc("/risk-assessment-portfolio", s.handleRiskAssessmentPortfolio)
+	http.HandleFunc("/risk-assessment-portfolio.html", s.handleRiskAssessmentPortfolio)
 	http.HandleFunc("/admin", s.handleAdminDashboard)
 	http.HandleFunc("/admin.html", s.handleAdminDashboard)
 	http.HandleFunc("/register", s.handleRegister)
@@ -241,6 +264,21 @@ func (s *FrontendService) setupRoutes() {
 	http.HandleFunc("/analytics-insights.html", s.handleAnalyticsInsights)
 	http.HandleFunc("/admin/queue", s.handleAdminQueue)
 	http.HandleFunc("/admin/queue.html", s.handleAdminQueue)
+
+	// Backward compatibility routes with .html extensions
+	http.HandleFunc("/add-merchant.html", s.handleAddMerchant)
+	http.HandleFunc("/dashboard.html", s.handleDashboard)
+	http.HandleFunc("/merchant-hub.html", s.handleMerchantHub)
+	http.HandleFunc("/merchant-portfolio.html", s.handleMerchantPortfolio)
+	http.HandleFunc("/business-intelligence.html", s.handleBusinessIntelligence)
+	http.HandleFunc("/compliance-dashboard.html", s.handleComplianceDashboard)
+	http.HandleFunc("/risk-dashboard.html", s.handleRiskDashboard)
+	http.HandleFunc("/merchant-details.html", s.handleMerchantDetails)
+	http.HandleFunc("/merchant-comparison.html", s.handleMerchantComparison)
+	http.HandleFunc("/merchant-bulk-operations.html", s.handleMerchantBulkOperations)
+	http.HandleFunc("/monitoring-dashboard.html", s.handleMonitoringDashboard)
+	http.HandleFunc("/api-test.html", s.handleApiTest)
+	http.HandleFunc("/index.html", s.handleDashboard)
 
 	// Default route - serve main index page
 	http.HandleFunc("/", s.handleDashboard)
