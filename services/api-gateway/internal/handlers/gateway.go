@@ -96,8 +96,28 @@ func (h *GatewayHandler) ProxyToMerchants(w http.ResponseWriter, r *http.Request
 
 // enhancedClassificationProxy enhances classification responses with smart crawling data
 func (h *GatewayHandler) enhancedClassificationProxy(w http.ResponseWriter, r *http.Request) {
-	// First, get the original response from the classification service
-	originalResponse, err := h.getOriginalClassificationResponse(r)
+	// Read the request body once and store it for reuse
+	// HTTP request bodies can only be read once, so we need to read it first
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		h.logger.Error("Failed to read request body", zap.Error(err))
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	// Restore the body so it can be used for the classification service request
+	r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
+	// Parse request data for enhancement
+	var requestData map[string]interface{}
+	if err := json.Unmarshal(bodyBytes, &requestData); err != nil {
+		h.logger.Warn("Failed to parse request body for enhancement", zap.Error(err))
+		// Continue anyway - we can still proxy the request
+	}
+
+	// Get the original response from the classification service
+	originalResponse, err := h.getOriginalClassificationResponse(r, bodyBytes)
 	if err != nil {
 		h.logger.Error("Failed to get original classification response", zap.Error(err))
 		http.Error(w, "Classification service unavailable", http.StatusServiceUnavailable)
@@ -105,7 +125,7 @@ func (h *GatewayHandler) enhancedClassificationProxy(w http.ResponseWriter, r *h
 	}
 
 	// Enhance the response with smart crawling data
-	enhancedResponse := h.enhanceClassificationResponse(originalResponse, r)
+	enhancedResponse := h.enhanceClassificationResponse(originalResponse, requestData)
 
 	// Return the enhanced response
 	w.Header().Set("Content-Type", "application/json")
@@ -113,51 +133,111 @@ func (h *GatewayHandler) enhancedClassificationProxy(w http.ResponseWriter, r *h
 }
 
 // getOriginalClassificationResponse gets the original response from the classification service
-func (h *GatewayHandler) getOriginalClassificationResponse(r *http.Request) (map[string]interface{}, error) {
-	// Create a new request to the classification service
-	req, err := http.NewRequest(r.Method, h.config.Services.ClassificationURL+"/classify", r.Body)
+func (h *GatewayHandler) getOriginalClassificationResponse(r *http.Request, bodyBytes []byte) (map[string]interface{}, error) {
+	classificationURL := h.config.Services.ClassificationURL + "/classify"
+	h.logger.Info("Proxying request to classification service",
+		zap.String("url", classificationURL),
+		zap.Int("body_size", len(bodyBytes)),
+		zap.String("method", r.Method))
+
+	// Log request body for debugging (first 500 chars)
+	bodyPreview := string(bodyBytes)
+	if len(bodyPreview) > 500 {
+		bodyPreview = bodyPreview[:500] + "..."
+	}
+	h.logger.Debug("Request body preview", zap.String("body", bodyPreview))
+
+	// Create a new request to the classification service with the body bytes
+	req, err := http.NewRequest(r.Method, classificationURL, bytes.NewBuffer(bodyBytes))
 	if err != nil {
-		return nil, err
+		h.logger.Error("Failed to create request to classification service", zap.Error(err))
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	// Copy headers
+	// Copy headers (but exclude some that shouldn't be forwarded)
 	for key, values := range r.Header {
+		// Skip hop-by-hop headers
+		if strings.EqualFold(key, "Connection") ||
+			strings.EqualFold(key, "Keep-Alive") ||
+			strings.EqualFold(key, "Proxy-Authenticate") ||
+			strings.EqualFold(key, "Proxy-Authorization") ||
+			strings.EqualFold(key, "Te") ||
+			strings.EqualFold(key, "Trailers") ||
+			strings.EqualFold(key, "Transfer-Encoding") ||
+			strings.EqualFold(key, "Upgrade") {
+			continue
+		}
 		for _, value := range values {
 			req.Header.Add(key, value)
 		}
 	}
 
+	// Ensure Content-Type is set
+	if req.Header.Get("Content-Type") == "" {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	// Set Content-Length explicitly
+	req.ContentLength = int64(len(bodyBytes))
+
+	h.logger.Debug("Making request to classification service",
+		zap.String("url", classificationURL),
+		zap.String("content_type", req.Header.Get("Content-Type")),
+		zap.Int64("content_length", req.ContentLength))
+
 	// Make the request
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := h.httpClient.Do(req)
 	if err != nil {
-		return nil, err
+		h.logger.Error("Failed to make request to classification service",
+			zap.String("url", classificationURL),
+			zap.Error(err))
+		return nil, fmt.Errorf("failed to make request to classification service: %w", err)
 	}
 	defer resp.Body.Close()
+
+	h.logger.Info("Received response from classification service",
+		zap.Int("status_code", resp.StatusCode),
+		zap.String("status", resp.Status))
+
+	// Check response status
+	if resp.StatusCode != http.StatusOK {
+		bodyText, _ := io.ReadAll(resp.Body)
+		h.logger.Error("Classification service returned error",
+			zap.Int("status_code", resp.StatusCode),
+			zap.String("status", resp.Status),
+			zap.String("response", string(bodyText)),
+			zap.String("url", classificationURL))
+		return nil, fmt.Errorf("classification service returned status %d: %s", resp.StatusCode, string(bodyText))
+	}
 
 	// Parse the response
 	var response map[string]interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		return nil, err
+		h.logger.Error("Failed to decode classification response",
+			zap.Error(err),
+			zap.String("url", classificationURL))
+		return nil, fmt.Errorf("failed to decode classification response: %w", err)
 	}
+
+	h.logger.Info("Successfully received classification response",
+		zap.String("url", classificationURL),
+		zap.Any("response_keys", getMapKeys(response)))
 
 	return response, nil
 }
 
-// enhanceClassificationResponse enhances the classification response with smart crawling data
-func (h *GatewayHandler) enhanceClassificationResponse(originalResponse map[string]interface{}, r *http.Request) map[string]interface{} {
-	// Parse the request to get business name and website URL
-	var requestData map[string]interface{}
-	if r.Body != nil {
-		// Read the body
-		bodyBytes, err := io.ReadAll(r.Body)
-		if err == nil {
-			json.Unmarshal(bodyBytes, &requestData)
-			// Restore the body for potential future use
-			r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
-		}
+// Helper function to get keys from a map for logging
+func getMapKeys(m map[string]interface{}) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
 	}
+	return keys
+}
 
+// enhanceClassificationResponse enhances the classification response with smart crawling data
+func (h *GatewayHandler) enhanceClassificationResponse(originalResponse map[string]interface{}, requestData map[string]interface{}) map[string]interface{} {
+	// Extract business name and website URL from request data
 	businessName := ""
 	websiteURL := ""
 	if requestData != nil {
