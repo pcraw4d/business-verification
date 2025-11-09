@@ -36,11 +36,7 @@ class SecurityIndicators {
 
         this.container = document.getElementById(this.options.containerId);
         if (!this.container) {
-            // Silently return if container doesn't exist - this is expected on pages that don't use security indicators
-            // Only log in development mode for debugging
-            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                console.debug(`Security indicators container with ID '${this.options.containerId}' not found (this is normal on pages that don't use security indicators)`);
-            }
+            console.warn(`Security indicators container with ID '${this.options.containerId}' not found`);
             return;
         }
 

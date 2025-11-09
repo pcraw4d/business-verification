@@ -1,0 +1,56 @@
+name: Frontend File Sync Check
+
+on:
+  pull_request:
+    paths:
+      - 'services/frontend/public/**'
+      - 'cmd/frontend-service/static/**'
+  push:
+    branches: [main]
+    paths:
+      - 'services/frontend/public/**'
+
+jobs:
+  check-sync:
+    name: Verify Frontend Files Are Synced
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Check for unsynced files
+        run: |
+          echo "🔍 Checking if frontend files are synced..."
+          
+          SOURCE_DIR="services/frontend/public"
+          TARGET_DIR="cmd/frontend-service/static"
+          
+          # Check critical files
+          CRITICAL_FILES=("add-merchant.html" "merchant-details.html")
+          UNSYNCED=0
+          
+          for file in "${CRITICAL_FILES[@]}"; do
+            if [ -f "$SOURCE_DIR/$file" ]; then
+              if [ ! -f "$TARGET_DIR/$file" ]; then
+                echo "❌ $file exists in source but not in deployment directory"
+                UNSYNCED=$((UNSYNCED + 1))
+              elif ! diff -q "$SOURCE_DIR/$file" "$TARGET_DIR/$file" > /dev/null 2>&1; then
+                echo "⚠️  $file differs between source and deployment directories"
+                echo "   Run: ./scripts/sync-frontend-files.sh"
+                UNSYNCED=$((UNSYNCED + 1))
+              else
+                echo "✅ $file is synced"
+              fi
+            fi
+          done
+          
+          if [ $UNSYNCED -gt 0 ]; then
+            echo ""
+            echo "❌ Found $UNSYNCED unsynced file(s)"
+            echo "📋 To fix: Run ./scripts/sync-frontend-files.sh and commit the changes"
+            exit 1
+          else
+            echo "✅ All critical files are synced"
+          fi
+
