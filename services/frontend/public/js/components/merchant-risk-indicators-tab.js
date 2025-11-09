@@ -615,7 +615,7 @@ class MerchantRiskIndicatorsTab {
     async refresh() {
         console.log('🔄 Refreshing risk indicators');
         if (this.dataService) {
-            this.dataService.clearCache(this.merchantId);
+        this.dataService.clearCache(this.merchantId);
         }
         await this.loadAndRender();
         this.showToast('Risk indicators refreshed', 'success');

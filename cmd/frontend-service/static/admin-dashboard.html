@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KYB Platform - Admin Dashboard</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="components/navigation.js" defer></script>
+    <script src="js/components/admin-memory-monitor.js" defer></script>
+    <script src="js/components/admin-system-metrics.js" defer></script>
+    <script src="js/admin-dashboard.js" defer></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .admin-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .admin-content {
+            flex: 1;
+            padding: 2rem;
+            margin-left: 250px;
+        }
+
+        .admin-header {
+            margin-bottom: 2rem;
+        }
+
+        .admin-header h1 {
+            font-size: 2rem;
+            color: #1a1a1a;
+            margin-bottom: 0.5rem;
+        }
+
+        .admin-header p {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        .admin-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .admin-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .admin-card h2 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: #1a1a1a;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .admin-card h2 i {
+            color: #4a90e2;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #4a90e2;
+            margin: 0.5rem 0;
+        }
+
+        .metric-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .metric-change {
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+        }
+
+        .metric-change.positive {
+            color: #28a745;
+        }
+
+        .metric-change.negative {
+            color: #dc3545;
+        }
+
+        .admin-section {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .admin-section h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #1a1a1a;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+
+        .btn-primary {
+            background: #4a90e2;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #357abd;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 1rem;
+        }
+
+        .access-denied {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .access-denied h2 {
+            color: #dc3545;
+            margin-bottom: 1rem;
+        }
+
+        .access-denied p {
+            color: #666;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <div class="admin-content" id="adminContent">
+            <div class="admin-header">
+                <h1><i class="fas fa-shield-alt"></i> Admin Dashboard</h1>
+                <p>System monitoring and management</p>
+            </div>
+
+            <div id="accessDenied" class="access-denied" style="display: none;">
+                <h2><i class="fas fa-lock"></i> Access Denied</h2>
+                <p>You do not have admin privileges to access this page.</p>
+                <a href="/dashboard" class="btn btn-primary">Return to Dashboard</a>
+            </div>
+
+            <div id="adminDashboard" style="display: none;">
+                <div class="admin-grid">
+                    <div class="admin-card">
+                        <h2><i class="fas fa-memory"></i> Memory Usage</h2>
+                        <div id="memoryUsage" class="metric-value">-</div>
+                        <div class="metric-label">Current Heap Allocation</div>
+                        <div id="memoryChange" class="metric-change"></div>
+                    </div>
+
+                    <div class="admin-card">
+                        <h2><i class="fas fa-tachometer-alt"></i> GC Cycles</h2>
+                        <div id="gcCycles" class="metric-value">-</div>
+                        <div class="metric-label">Total GC Cycles</div>
+                        <div id="gcChange" class="metric-change"></div>
+                    </div>
+
+                    <div class="admin-card">
+                        <h2><i class="fas fa-server"></i> System Status</h2>
+                        <div id="systemStatus" class="metric-value">-</div>
+                        <div class="metric-label">System Health</div>
+                        <div id="systemChange" class="metric-change"></div>
+                    </div>
+                </div>
+
+                <div class="admin-section">
+                    <h2><i class="fas fa-chart-line"></i> Memory Profile History</h2>
+                    <div id="memoryMonitor"></div>
+                </div>
+
+                <div class="admin-section">
+                    <h2><i class="fas fa-cog"></i> System Metrics</h2>
+                    <div id="systemMetrics"></div>
+                </div>
+
+                <div class="admin-section">
+                    <h2><i class="fas fa-tools"></i> System Actions</h2>
+                    <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                        <button class="btn btn-primary" id="optimizeMemoryBtn" onclick="adminDashboard.optimizeMemory(this)">
+                            <i class="fas fa-magic"></i> Optimize Memory
+                        </button>
+                        <button class="btn btn-primary" onclick="adminDashboard.refreshMetrics()">
+                            <i class="fas fa-sync"></i> Refresh Metrics
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="loading" class="loading">
+                <i class="fas fa-spinner fa-spin"></i> Loading admin dashboard...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize navigation
+        if (typeof KYBNavigation !== 'undefined') {
+            const nav = new KYBNavigation();
+        }
+
+        // Initialize admin dashboard when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof AdminDashboard !== 'undefined') {
+                const dashboard = new AdminDashboard();
+                dashboard.init();
+            }
+        });
+    </script>
+</body>
+</html>
+

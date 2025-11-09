@@ -32,7 +32,8 @@ class KYBNavigation {
             'enhanced-risk-indicators': 'risk-indicators',
             'merchant-hub-integration': 'merchant-hub',
             'merchant-portfolio': 'merchant-portfolio',
-            'merchant-detail': 'merchant-detail'
+            'merchant-detail': 'merchant-detail',
+            'risk-assessment-portfolio': 'risk-assessment-portfolio'
         };
 
         return pageMap[filename] || 'home';
@@ -143,6 +144,12 @@ class KYBNavigation {
                                 </a>
                             </li>
                             <li class="nav-item">
+                                <a href="risk-assessment-portfolio.html" class="nav-link" data-page="risk-assessment-portfolio">
+                                    <i class="fas fa-shield-alt"></i>
+                                    <span class="nav-text">Risk Assessment Portfolio</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
                                 <a href="merchant-detail.html" class="nav-link" data-page="merchant-detail">
                                     <i class="fas fa-user-tie"></i>
                                     <span class="nav-text">Merchant Detail</span>
@@ -172,48 +179,6 @@ class KYBNavigation {
                                     <span class="nav-text">Growth Analytics</span>
                                 </a>
                             </li>
-                            <li class="nav-item">
-                                <a href="analytics-insights.html" class="nav-link" data-page="analytics-insights">
-                                    <i class="fas fa-lightbulb"></i>
-                                    <span class="nav-text">Insights</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                    
-                    <div class="nav-section" id="adminNavSection" style="display: none;">
-                        <h3 class="nav-section-title">Administration</h3>
-                        <ul class="nav-list">
-                            <li class="nav-item">
-                                <a href="admin-dashboard.html" class="nav-link" data-page="admin-dashboard">
-                                    <i class="fas fa-shield-alt"></i>
-                                    <span class="nav-text">Admin Dashboard</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="admin-models.html" class="nav-link" data-page="admin-models">
-                                    <i class="fas fa-brain"></i>
-                                    <span class="nav-text">ML Models</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="admin-queue.html" class="nav-link" data-page="admin-queue">
-                                    <i class="fas fa-tasks"></i>
-                                    <span class="nav-text">Queue</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                    
-                    <div class="nav-section">
-                        <h3 class="nav-section-title">Account</h3>
-                        <ul class="nav-list">
-                            <li class="nav-item">
-                                <a href="sessions.html" class="nav-link" data-page="sessions">
-                                    <i class="fas fa-users"></i>
-                                    <span class="nav-text">Sessions</span>
-                                </a>
-                            </li>
                         </ul>
                     </div>
                 </div>
@@ -222,12 +187,6 @@ class KYBNavigation {
                     <div class="nav-status">
                         <span class="status-indicator live"></span>
                         <span class="status-text">Live</span>
-                    </div>
-                    <div id="authLinks" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(0,0,0,0.1);">
-                        <a href="register.html" class="nav-link" id="registerLink" style="display: none;">
-                            <i class="fas fa-user-plus"></i>
-                            <span class="nav-text">Register</span>
-                        </a>
                     </div>
                 </div>
             </div>
@@ -268,77 +227,6 @@ class KYBNavigation {
 
         // Add navigation styles
         this.addNavigationStyles();
-        
-        // Check admin role and show/hide admin section
-        this.checkAdminRole();
-        
-        // Check authentication and show/hide auth links
-        this.checkAuthStatus();
-    }
-
-    async checkAdminRole() {
-        try {
-            const token = this.getAuthToken();
-            if (!token) {
-                return;
-            }
-
-            // Decode JWT to check role
-            const payload = this.decodeJWT(token);
-            if (payload && (payload.role === 'admin' || payload.role === 'Admin')) {
-                const adminSection = document.getElementById('adminNavSection');
-                if (adminSection) {
-                    adminSection.style.display = 'block';
-                }
-            }
-        } catch (error) {
-            console.error('Error checking admin role:', error);
-        }
-    }
-
-    getAuthToken() {
-        const token = localStorage.getItem('auth_token') || localStorage.getItem('access_token');
-        if (token) {
-            return token;
-        }
-
-        const cookies = document.cookie.split(';');
-        for (let cookie of cookies) {
-            const [name, value] = cookie.trim().split('=');
-            if (name === 'auth_token' || name === 'access_token') {
-                return value;
-            }
-        }
-
-        return null;
-    }
-
-    decodeJWT(token) {
-        try {
-            const base64Url = token.split('.')[1];
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-            }).join(''));
-            return JSON.parse(jsonPayload);
-        } catch (error) {
-            console.error('Error decoding JWT:', error);
-            return null;
-        }
-    }
-
-    checkAuthStatus() {
-        const token = this.getAuthToken();
-        const registerLink = document.getElementById('registerLink');
-        
-        // Show register link if user is not authenticated
-        if (registerLink) {
-            if (!token) {
-                registerLink.style.display = 'block';
-            } else {
-                registerLink.style.display = 'none';
-            }
-        }
     }
 
     addNavigationStyles() {

@@ -21,13 +21,15 @@ class MerchantRiskTab {
             explainability: null,
             scenarios: null,
             history: null,
-            export: null
+            export: null,
+            tooltip: null,
+            scorePanel: null,
+            dragDrop: null
         };
 
         this.currentMerchantId = null;
         this.riskData = null;
         this.isInitialized = false;
-        this.uiCreatedByLoadRiskAssessmentContent = false; // Flag to track if UI was created by loadRiskAssessmentContent
 
         // Don't auto-initialize - wait for explicit call
         // this.init();
@@ -53,14 +55,6 @@ class MerchantRiskTab {
      * Initialize all components
      */
     async initializeComponents() {
-        // Check if we're using the new loadRiskAssessmentContent() flow
-        // If so, don't create UI here - it will be created by loadRiskAssessmentContent()
-        const riskContainer = document.getElementById('riskAssessmentContainer');
-        if (riskContainer && riskContainer.querySelector('canvas#riskGauge')) {
-            console.log('✅ UI already exists from loadRiskAssessmentContent(), skipping UI creation in initializeComponents()');
-            // Still initialize component objects but don't create UI
-        }
-        
         // Get merchant ID from URL or page context
         this.currentMerchantId = this.getCurrentMerchantId();
         
@@ -105,6 +99,49 @@ class MerchantRiskTab {
             console.warn('⚠️ RiskExplainability not available');
         }
 
+        // Initialize tooltip system
+        if (typeof RiskTooltipSystem !== 'undefined') {
+            this.components.tooltip = new RiskTooltipSystem();
+            console.log('✅ RiskTooltipSystem initialized');
+        } else if (typeof window !== 'undefined' && window.riskTooltipSystem) {
+            this.components.tooltip = window.riskTooltipSystem;
+        }
+
+        // Initialize score panel
+        if (typeof RiskScorePanel !== 'undefined') {
+            const scorePanelContainer = document.getElementById('riskScorePanel');
+            if (scorePanelContainer) {
+                this.components.scorePanel = new RiskScorePanel('riskScorePanel', {
+                    collapsed: false,
+                    showBreakdown: true,
+                    showFactors: true
+                });
+                this.components.scorePanel.init();
+                console.log('✅ RiskScorePanel initialized');
+            }
+        }
+
+        // Initialize drag and drop
+        if (typeof RiskDragDrop !== 'undefined') {
+            const riskConfigContainer = document.getElementById('riskConfigContainer');
+            if (riskConfigContainer) {
+                this.components.dragDrop = new RiskDragDrop('riskConfigContainer', {
+                    onDragStart: (element, event) => {
+                        console.log('Drag started:', element);
+                    },
+                    onDrag: (element, event, position) => {
+                        // Update position during drag
+                    },
+                    onDragEnd: (element, event) => {
+                        console.log('Drag ended:', element);
+                        // Save new configuration
+                    }
+                });
+                this.components.dragDrop.init();
+                console.log('✅ RiskDragDrop initialized');
+            }
+        }
+
         // Initialize scenario analysis component
         if (typeof RiskScenarioAnalysis !== 'undefined') {
             this.components.scenarios = new RiskScenarioAnalysis({
@@ -142,36 +179,28 @@ class MerchantRiskTab {
         // Load initial data
         await this.loadInitialData();
 
-        // Don't create UI here - it's created by loadRiskAssessmentContent()
-        // Only create UI if we're NOT using the new loadRiskAssessmentContent() flow
-        // Reuse riskContainer from line 58 - don't redeclare
+        // Create UI components
+        this.createRiskTabUI();
         
-        // Check if canvas elements exist (from loadRiskAssessmentContent) or if container is empty
-        const hasCanvasElements = riskContainer && riskContainer.querySelector('canvas#riskGauge');
-        const containerIsEmpty = !riskContainer || riskContainer.children.length === 0 || riskContainer.innerHTML.trim() === '';
-        
-        if (!hasCanvasElements && !containerIsEmpty) {
-            // Container has content but no canvas - might be old HTML, check if it's divs
-            const gaugeDiv = riskContainer.querySelector('div#riskGauge');
-            if (gaugeDiv && gaugeDiv.children.length === 0) {
-                console.log('⚠️ Found empty div for riskGauge - this is old HTML, will be replaced by loadRiskAssessmentContent()');
-                // Don't create UI - let loadRiskAssessmentContent() handle it
-                return;
-            }
-        }
-        
-        if (!hasCanvasElements && containerIsEmpty) {
-            // Old flow - container is empty, create UI here
-            console.log('📝 Creating UI in initializeComponents() - old flow');
-            this.createRiskTabUI();
-        } else if (hasCanvasElements) {
-            console.log('✅ UI already created by loadRiskAssessmentContent(), skipping createRiskTabUI() in initializeComponents()');
-        } else {
-            console.log('⏸️ Skipping UI creation - container exists but has old HTML, will be replaced by loadRiskAssessmentContent()');
+        // Initialize WebsiteRiskDisplay if available
+        if (typeof WebsiteRiskDisplay !== 'undefined') {
+            this.initializeWebsiteRiskDisplay();
         }
 
         this.isInitialized = true;
         console.log('Risk tab initialized successfully');
+    }
+    
+    /**
+     * Initialize Website Risk Display component
+     */
+    initializeWebsiteRiskDisplay() {
+        const container = document.getElementById('websiteRiskDisplay');
+        if (!container) return;
+        
+        // This will be populated when risk data is loaded
+        // For now, just mark that it's available
+        console.log('✅ WebsiteRiskDisplay available for integration');
     }
 
     /**
@@ -242,10 +271,9 @@ class MerchantRiskTab {
             // Load risk assessment data
             this.riskData = await this.loadRiskAssessmentData();
             
-            // Subscribe to WebSocket updates (disabled until service is deployed)
+            // Subscribe to WebSocket updates
             if (this.components.websocket) {
-                console.log('🔍 WebSocket disabled (service not deployed yet)');
-                // this.components.websocket.subscribe(this.currentMerchantId);
+                this.components.websocket.subscribe(this.currentMerchantId);
             }
 
         } catch (error) {
@@ -260,12 +288,6 @@ class MerchantRiskTab {
      */
     async loadRiskAssessmentData() {
         try {
-            // For now, use mock data since the risk assessment service isn't deployed yet
-            console.log('🔍 Using mock risk assessment data (service not deployed yet)');
-            return this.generateMockRiskData();
-            
-            // TODO: Uncomment when risk assessment service is deployed
-            /*
             const endpoints = APIConfig.getEndpoints();
             const response = await fetch(endpoints.riskAssess, {
                 method: 'POST',
@@ -282,7 +304,6 @@ class MerchantRiskTab {
             }
 
             return await response.json();
-            */
         } catch (error) {
             console.error('Error loading risk assessment data:', error);
             return this.generateMockRiskData();
@@ -290,9 +311,26 @@ class MerchantRiskTab {
     }
 
     /**
-     * Generate mock risk data for development
+     * Generate mock risk data for development/testing.
+     * 
+     * FALLBACK BEHAVIOR:
+     *   - Used during development when API is unavailable
+     *   - Used when risk assessment API call fails
+     *   - Should be disabled in production builds
+     * 
+     * FALLBACK DATA - DO NOT USE AS PRIMARY DATA SOURCE
+     * 
+     * PRODUCTION SAFETY: In production, mock data is only generated if explicitly allowed.
+     * 
+     * @returns {Object} Mock risk data
      */
     generateMockRiskData() {
+        // Production safety check
+        if (typeof APIConfig !== 'undefined' && APIConfig.isProduction && APIConfig.isProduction()) {
+            if (!APIConfig.allowMockData || !APIConfig.allowMockData()) {
+                throw new Error('Mock data not allowed in production environment');
+            }
+        }
         return {
             id: `risk_${this.currentMerchantId}_${Date.now()}`,
             merchantId: this.currentMerchantId,
@@ -333,31 +371,20 @@ class MerchantRiskTab {
      * Create risk tab UI
      */
     createRiskTabUI() {
-        // CRITICAL: Don't create UI if it was already created by loadRiskAssessmentContent()
-        if (this.uiCreatedByLoadRiskAssessmentContent) {
-            console.log('✅ UI already created by loadRiskAssessmentContent(), skipping createRiskTabUI()');
-            return;
-        }
-        
-        const riskContent = document.getElementById('riskAssessmentContainer') || document.getElementById('riskAssessmentContent');
-        if (!riskContent) return;
-        
-        // Check if HTML has already been set by loadRiskAssessmentContent()
-        // We can tell by checking if there's a canvas element with id="riskGauge"
-        const existingGauge = riskContent.querySelector('canvas#riskGauge');
-        if (existingGauge) {
-            console.log('✅ UI already created by loadRiskAssessmentContent() (canvas found), skipping createRiskTabUI()');
-            return;
-        }
-        
-        // Only create old-style UI if we're using the old container (riskAssessmentContent)
-        // and the new container doesn't exist
-        if (document.getElementById('riskAssessmentContainer') && !document.getElementById('riskAssessmentContent')) {
-            console.log('✅ Using new loadRiskAssessmentContent() flow, skipping createRiskTabUI()');
+        // This method is deprecated - UI is now created by loadRiskAssessmentContent()
+        // Only proceed if riskAssessmentContent exists (old code path)
+        const riskContent = document.getElementById('riskAssessmentContent');
+        if (!riskContent) {
+            // No old container found, UI will be created by loadRiskAssessmentContent()
             return;
         }
 
-        console.log('⚠️ Falling back to old createRiskTabUI() - this should not happen');
+        // Only create UI if loadRiskAssessmentContent hasn't been called yet
+        if (document.getElementById('riskAssessmentContainer')) {
+            // New container exists, don't create old UI
+            return;
+        }
+
         riskContent.innerHTML = `
             <div class="risk-tab-container">
                 <!-- Risk Overview Section -->
@@ -450,8 +477,8 @@ class MerchantRiskTab {
         // Bind UI events
         this.bindUIEvents();
 
-        // Initialize visualizations (using new implementation)
-        // this.initializeVisualizations(); // Legacy function - disabled
+        // Don't initialize visualizations here - they'll be initialized after loadRiskAssessmentContent()
+        // This method is called from updateRiskUI() which happens before the HTML is fully set up
     }
 
     /**
@@ -481,272 +508,6 @@ class MerchantRiskTab {
                 this.switchExplanationTab(e.target.getAttribute('data-tab'));
             });
         });
-    }
-
-    /**
-     * Initialize visualizations
-     */
-    initializeVisualizations() {
-        if (!this.riskData) return;
-
-        // Create risk gauge
-        if (this.components.visualization) {
-            this.components.visualization.createRiskGauge('riskGauge', this.riskData.overallScore);
-        }
-
-        // Create risk trend chart
-        this.createRiskTrendChart();
-
-        // Create SHAP force plot
-        if (this.components.explainability && this.riskData.shapValues) {
-            this.components.explainability.createSHAPForcePlot('shapForcePlot', {
-                features: this.riskData.shapValues
-            });
-        }
-
-        // Create feature importance chart
-        if (this.components.explainability && this.riskData.factorContributions) {
-            this.components.explainability.createFeatureImportanceWaterfall('featureImportance', 
-                this.riskData.factorContributions.map(f => ({
-                    name: f.feature,
-                    importance: f.contribution,
-                    description: f.reason
-                }))
-            );
-        }
-
-        // Create why score panel
-        if (this.components.explainability) {
-            this.components.explainability.createWhyScorePanel('whyScorePanel', {
-                overallScore: this.riskData.overallScore,
-                baseScore: 5.0,
-                contributions: this.riskData.factorContributions,
-                summary: this.generateRiskSummary(),
-                keyFactors: this.extractKeyFactors()
-            });
-        }
-
-        // Create scenario builder
-        if (this.components.scenarios) {
-            this.components.scenarios.createScenarioBuilder('scenarioBuilder');
-        }
-
-        // Create risk history timeline
-        if (this.components.history) {
-            this.components.history.createRiskHistoryTimeline('riskHistoryTimeline', []);
-            this.components.history.createRiskTrendSummary('riskTrendSummary', {
-                currentScore: this.riskData.overallScore,
-                change: this.riskData.trend,
-                averageScore: 6.8,
-                volatility: 1.2,
-                trendDirection: this.riskData.trend > 0 ? 'up' : this.riskData.trend < 0 ? 'down' : 'stable',
-                trendStrength: 'moderate',
-                insights: this.generateRiskInsights()
-            });
-        }
-    }
-
-    /**
-     * Create risk trend chart
-     */
-    createRiskTrendChart() {
-        // Generate mock trend data
-        const trendData = {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-            historical: [6.8, 7.0, 6.9, 7.1, 7.0, 7.2],
-            prediction: [7.2, 7.3, 7.4, 7.5, 7.6, 7.7],
-            confidenceUpper: [7.4, 7.5, 7.6, 7.7, 7.8, 7.9],
-            confidenceLower: [7.0, 7.1, 7.2, 7.3, 7.4, 7.5]
-        };
-
-        if (this.components.visualization) {
-            this.components.visualization.createRiskTrendChart('riskTrendChart', trendData);
-        }
-    }
-
-    /**
-     * Generate risk summary
-     */
-    generateRiskSummary() {
-        const score = this.riskData.overallScore;
-        const trend = this.riskData.trend;
-        
-        let summary = `The risk score of ${score.toFixed(1)} indicates `;
-        
-        if (score <= 3) {
-            summary += 'a low risk profile with strong financial stability and compliance.';
-        } else if (score <= 6) {
-            summary += 'a moderate risk profile with some areas requiring attention.';
-        } else if (score <= 8) {
-            summary += 'a high risk profile with significant concerns that need immediate attention.';
-        } else {
-            summary += 'a critical risk profile requiring immediate intervention and monitoring.';
-        }
-
-        if (Math.abs(trend) > 0.1) {
-            summary += ` The risk has ${trend > 0 ? 'increased' : 'decreased'} by ${Math.abs(trend).toFixed(1)} points recently.`;
-        }
-
-        return summary;
-    }
-
-    /**
-     * Extract key factors
-     */
-    extractKeyFactors() {
-        return this.riskData.factorContributions
-            .filter(f => Math.abs(f.contribution) > 0.5)
-            .map(f => ({
-                name: f.feature,
-                description: f.reason,
-                impact: f.contribution
-            }))
-            .sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact))
-            .slice(0, 3);
-    }
-
-    /**
-     * Generate risk insights
-     */
-    generateRiskInsights() {
-        const insights = [];
-        
-        if (this.riskData.categories.financial > 7) {
-            insights.push('Financial risk is elevated due to revenue volatility and cash flow concerns.');
-        }
-        
-        if (this.riskData.categories.compliance < 5) {
-            insights.push('Strong compliance record provides risk mitigation benefits.');
-        }
-        
-        if (this.riskData.trend > 0.2) {
-            insights.push('Risk trend is increasing, requiring closer monitoring.');
-        }
-        
-        if (this.riskData.confidence < 0.8) {
-            insights.push('Prediction confidence is moderate, consider additional data sources.');
-        }
-
-        return insights.length > 0 ? insights : ['Risk profile is within normal parameters.'];
-    }
-
-    /**
-     * Switch explanation tab
-     */
-    switchExplanationTab(tabName) {
-        // Update tab buttons
-        document.querySelectorAll('.explanation-tab').forEach(tab => {
-            tab.classList.remove('active');
-        });
-        document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-
-        // Update content visibility
-        document.getElementById('shapForcePlot').style.display = tabName === 'shap' ? 'block' : 'none';
-        document.getElementById('featureImportance').style.display = tabName === 'importance' ? 'block' : 'none';
-        document.getElementById('whyScorePanel').style.display = tabName === 'why' ? 'block' : 'none';
-    }
-
-    /**
-     * Handle risk update from WebSocket
-     */
-    handleRiskUpdate(data) {
-        if (data.merchantId === this.currentMerchantId) {
-            this.riskData = { ...this.riskData, ...data.riskData };
-            this.updateRiskUI();
-        }
-    }
-
-    /**
-     * Handle risk prediction from WebSocket
-     */
-    handleRiskPrediction(data) {
-        if (data.merchantId === this.currentMerchantId) {
-            this.riskData.predictions = data.predictions;
-            this.riskData.confidence = data.confidence;
-            this.updatePredictionUI();
-        }
-    }
-
-    /**
-     * Handle risk alert from WebSocket
-     */
-    handleRiskAlert(data) {
-        if (data.merchantId === this.currentMerchantId) {
-            this.showRiskAlert(data);
-        }
-    }
-
-    /**
-     * Update risk UI
-     */
-    updateRiskUI() {
-        console.log('🔍 Updating risk UI with data:', this.riskData);
-        
-        // Update overall risk score
-        const overallScoreElement = document.getElementById('overallRiskScore');
-        if (overallScoreElement && this.riskData.overallScore) {
-            overallScoreElement.textContent = this.riskData.overallScore.toFixed(1);
-            overallScoreElement.className = `risk-score-value ${this.getRiskLevel(this.riskData.overallScore)}`;
-        }
-
-           // Update risk categories with visual components
-           if (this.riskData.categories) {
-               const categoriesContainer = document.getElementById('riskCategories');
-               if (categoriesContainer) {
-                   categoriesContainer.innerHTML = Object.entries(this.riskData.categories)
-                       .map(([category, score]) => `
-                           <div class="risk-category" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; margin-bottom: 8px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid ${this.getCategoryColor(score)};">
-                               <div style="display: flex; align-items: center; gap: 10px;">
-                                   <div style="width: 8px; height: 8px; background: ${this.getCategoryColor(score)}; border-radius: 50%;"></div>
-                                   <span class="category-name" style="font-weight: 500; color: #2d3748; text-transform: capitalize;">${category}</span>
-                               </div>
-                               <div style="display: flex; align-items: center; gap: 8px;">
-                                   <div class="category-progress" style="width: 60px; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
-                                       <div style="width: ${(score / 10) * 100}%; height: 100%; background: ${this.getCategoryColor(score)}; transition: width 0.3s ease;"></div>
-                                   </div>
-                                   <span class="category-score ${this.getRiskLevel(score)}" style="font-weight: 600; color: ${this.getCategoryColor(score)}; min-width: 30px; text-align: right;">${score.toFixed(1)}</span>
-                               </div>
-                           </div>
-                       `).join('');
-               }
-           }
-
-        // Update risk trend
-        const trendElement = document.getElementById('riskTrend');
-        if (trendElement && this.riskData.trend) {
-            const trend = this.riskData.trend;
-            const icon = trend.direction === 'up' ? 'fa-arrow-up' : 'fa-arrow-down';
-            const color = trend.direction === 'up' ? 'text-red-500' : 'text-green-500';
-            trendElement.innerHTML = `
-                <i class="fas ${icon} ${color}"></i>
-                <span>${trend.change} from last month</span>
-            `;
-        } else if (trendElement) {
-            // Default trend if no data
-            trendElement.innerHTML = `
-                <i class="fas fa-minus text-gray-500"></i>
-                <span>No trend data available</span>
-            `;
-        }
-
-        // Update risk gauge
-        if (this.components.visualization) {
-            const gauge = this.components.visualization.d3Visualizations.get('riskGauge');
-            if (gauge) {
-                gauge.update(this.riskData.overallScore);
-            }
-        }
-
-        // Update category scores (legacy method)
-        Object.entries(this.riskData.categories || {}).forEach(([category, score]) => {
-            const element = document.querySelector(`[data-category="${category}"] .category-score`);
-            if (element) {
-                element.textContent = score.toFixed(1);
-                element.className = `category-score ${this.getRiskLevel(score)}`;
-            }
-        });
-
-        console.log('✅ Risk UI updated successfully');
     }
 
     /**
@@ -1028,44 +789,42 @@ class MerchantRiskTab {
         
         // Store chart reference globally
         try {
+            const trendData = this.riskData?.trendData || {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Risk Score',
+                    data: [6.8, 7.0, 6.9, 7.1, 7.0, 7.2],
+                    borderColor: '#e53e3e',
+                    backgroundColor: 'rgba(229, 62, 62, 0.1)',
+                    tension: 0.4
+                }]
+            };
+            
             window.riskTrendChart = new Chart(ctx, {
                 type: 'line',
-                data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                    datasets: [{
-                        label: 'Risk Score',
-                        data: [6.8, 7.1, 6.9, 7.3, 7.0, 7.2],
-                        borderColor: 'rgb(75, 192, 192)',
-                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                        tension: 0.1
-                    }]
-                },
+                data: trendData,
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        title: {
-                            display: true,
-                            text: 'Risk Score Trend'
-                        },
                         legend: {
                             display: false
                         }
                     },
                     scales: {
                         y: {
-                            beginAtZero: true,
+                            beginAtZero: false,
+                            min: 0,
                             max: 10
                         }
                     }
                 }
             });
+            
+            console.log('✅ Risk trend chart initialized successfully');
         } catch (error) {
-            console.error('Error creating risk trend chart:', error);
-            return;
+            console.error('❌ Error creating risk trend chart:', error);
         }
-        
-        console.log('✅ Risk trend chart initialized successfully');
     }
 
     /**
@@ -1120,51 +879,50 @@ class MerchantRiskTab {
             window.riskFactorChart.destroy();
         }
         
-        // Create a radar chart using Chart.js
         const ctx = canvas.getContext('2d');
-        // Store chart reference globally
+        
         try {
+            const factorData = this.riskData?.riskFactors || [
+                { name: 'Financial', score: 8.1 },
+                { name: 'Operational', score: 6.5 },
+                { name: 'Compliance', score: 4.2 },
+                { name: 'Market', score: 7.8 },
+                { name: 'Reputation', score: 6.9 }
+            ];
+            
             window.riskFactorChart = new Chart(ctx, {
-                type: 'radar',
+                type: 'bar',
                 data: {
-                    labels: ['Financial', 'Operational', 'Regulatory', 'Reputational', 'Cybersecurity'],
+                    labels: factorData.map(f => f.name),
                     datasets: [{
-                        label: 'Current Risk',
-                        data: [8.1, 6.5, 4.2, 7.8, 6.9],
-                        borderColor: 'rgb(255, 99, 132)',
-                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                        pointBackgroundColor: 'rgb(255, 99, 132)',
-                        pointBorderColor: '#fff',
-                        pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: 'rgb(255, 99, 132)'
+                        label: 'Risk Score',
+                        data: factorData.map(f => f.score),
+                        backgroundColor: factorData.map(f => 
+                            f.score > 7 ? '#e53e3e' : f.score > 4 ? '#f6ad55' : '#48bb78'
+                        )
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        title: {
-                            display: true,
-                            text: 'Risk Factor Analysis'
-                        },
                         legend: {
                             display: false
                         }
                     },
                     scales: {
-                        r: {
+                        y: {
                             beginAtZero: true,
                             max: 10
                         }
                     }
                 }
             });
+            
+            console.log('✅ Risk factor chart initialized successfully');
         } catch (error) {
-            console.error('Error creating risk factor chart:', error);
-            return;
+            console.error('❌ Error creating risk factor chart:', error);
         }
-        
-        console.log('✅ Risk factor chart initialized successfully');
     }
 
     /**
@@ -1172,498 +930,31 @@ class MerchantRiskTab {
      */
     initializeSHAPExplanation() {
         const shapContainer = document.getElementById('shapExplanation');
-        if (!shapContainer) return;
-
-        console.log('🔍 Initializing SHAP explanation...');
-
-        shapContainer.innerHTML = `
-            <div class="shap-explanation" style="margin-top: 15px;">
-                <div class="shap-summary" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                    <h5 style="margin-bottom: 10px; color: #495057; font-weight: 600;">Risk Score Breakdown</h5>
-                    <p style="color: #6c757d; font-size: 14px; margin: 0;">The overall risk score of 7.2 is influenced by the following key factors:</p>
-                </div>
-                
-                <div class="shap-factors" style="display: grid; gap: 12px;">
-                    <div class="shap-factor positive" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #fff5f5; border-left: 4px solid #e53e3e; border-radius: 4px;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div style="width: 8px; height: 8px; background: #e53e3e; border-radius: 50%;"></div>
-                            <span class="factor-name" style="font-weight: 500; color: #2d3748;">High Transaction Volume</span>
-                        </div>
-                        <span class="factor-impact" style="background: #fed7d7; color: #c53030; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 14px;">+2.3</span>
-                    </div>
-                    
-                    <div class="shap-factor negative" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f0fff4; border-left: 4px solid #38a169; border-radius: 4px;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div style="width: 8px; height: 8px; background: #38a169; border-radius: 50%;"></div>
-                            <span class="factor-name" style="font-weight: 500; color: #2d3748;">Strong Credit History</span>
-                        </div>
-                        <span class="factor-impact" style="background: #c6f6d5; color: #2f855a; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 14px;">-1.8</span>
-                    </div>
-                    
-                    <div class="shap-factor positive" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #fff5f5; border-left: 4px solid #e53e3e; border-radius: 4px;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div style="width: 8px; height: 8px; background: #e53e3e; border-radius: 50%;"></div>
-                            <span class="factor-name" style="font-weight: 500; color: #2d3748;">Recent Address Change</span>
-                        </div>
-                        <span class="factor-impact" style="background: #fed7d7; color: #c53030; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 14px;">+1.2</span>
-                    </div>
-                    
-                    <div class="shap-factor positive" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #fff5f5; border-left: 4px solid #e53e3e; border-radius: 4px;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div style="width: 8px; height: 8px; background: #e53e3e; border-radius: 50%;"></div>
-                            <span class="factor-name" style="font-weight: 500; color: #2d3748;">High Market Volatility</span>
-                        </div>
-                        <span class="factor-impact" style="background: #fed7d7; color: #c53030; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 14px;">+0.9</span>
-                    </div>
-                    
-                    <div class="shap-factor negative" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f0fff4; border-left: 4px solid #38a169; border-radius: 4px;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div style="width: 8px; height: 8px; background: #38a169; border-radius: 50%;"></div>
-                            <span class="factor-name" style="font-weight: 500; color: #2d3748;">Stable Business Model</span>
-                        </div>
-                        <span class="factor-impact" style="background: #c6f6d5; color: #2f855a; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 14px;">-0.7</span>
-                    </div>
-                </div>
-                
-                <div class="shap-interactive" style="margin-top: 20px; padding: 15px; background: #f7fafc; border-radius: 8px;">
-                    <h6 style="margin-bottom: 10px; color: #4a5568; font-weight: 600;">Interactive Force Plot</h6>
-                    <div id="shapForcePlot" style="height: 300px; background: white; border: 1px solid #e2e8f0; border-radius: 4px; position: relative; overflow: hidden;">
-                        <canvas id="shapForceCanvas" width="100%" height="300" style="width: 100%; height: 300px; cursor: pointer;"></canvas>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        // Initialize SHAP force plot after HTML is rendered
-        setTimeout(() => {
-            this.initializeSHAPForcePlot();
-        }, 100);
-        
-        console.log('✅ SHAP explanation initialized successfully');
-    }
-    
-    /**
-     * Initialize SHAP force plot visualization
-     */
-    initializeSHAPForcePlot() {
-        const canvas = document.getElementById('shapForceCanvas');
-        if (!canvas) {
-            console.log('❌ SHAP force plot canvas not found');
+        if (!shapContainer) {
+            console.log('❌ SHAP explanation container not found');
             return;
         }
 
-        console.log('🔍 Initializing SHAP force plot...');
+        console.log('🔍 Initializing SHAP explanation...');
         
-        const ctx = canvas.getContext('2d');
-        const width = canvas.width = canvas.offsetWidth;
-        const height = canvas.height = 300;
-        
-        // Clear canvas
-        ctx.clearRect(0, 0, width, height);
-        
-        // SHAP values for visualization - consistent with 7.2 final score
-        const shapValues = [
-            { name: 'High Transaction Volume', value: 2.5, color: '#e53e3e' },
-            { name: 'Strong Credit History', value: -1.8, color: '#38a169' },
-            { name: 'Recent Address Change', value: 1.2, color: '#e53e3e' },
-            { name: 'High Market Volatility', value: 0.9, color: '#e53e3e' },
-            { name: 'Stable Business Model', value: -0.6, color: '#38a169' }
-        ];
-        
-        // Helper function to measure text width
-        const measureText = (text, fontSize = '10px') => {
-            ctx.font = fontSize + ' Arial';
-            return ctx.measureText(text).width;
-        };
-        
-        // Helper function to split text into lines that fit within maxWidth
-        const splitTextIntoLines = (text, maxWidth, fontSize = '10px') => {
-            ctx.font = fontSize + ' Arial';
-            const words = text.split(' ');
-            const lines = [];
-            let currentLine = '';
-            
-            for (const word of words) {
-                const testLine = currentLine ? `${currentLine} ${word}` : word;
-                const testWidth = ctx.measureText(testLine).width;
-                
-                if (testWidth <= maxWidth) {
-                    currentLine = testLine;
-                } else {
-                    if (currentLine) {
-                        lines.push(currentLine);
-                        currentLine = word;
-                    } else {
-                        // Single word is too long, force it
-                        lines.push(word);
-                    }
-                }
+        // Use explainability component if available
+        if (this.components.explainability && this.riskData?.factorContributions) {
+            try {
+                this.components.explainability.createFeatureImportanceWaterfall('shapExplanation', 
+                    this.riskData.factorContributions.map(f => ({
+                        name: f.feature || f.name,
+                        importance: f.contribution || f.score,
+                        description: f.reason || f.description || ''
+                    }))
+                );
+                console.log('✅ SHAP explanation initialized successfully');
+            } catch (error) {
+                console.error('❌ Error initializing SHAP explanation:', error);
+                shapContainer.innerHTML = '<p class="text-gray-500">SHAP explanation will be available once data is loaded.</p>';
             }
-            
-            if (currentLine) {
-                lines.push(currentLine);
-            }
-            
-            return lines;
-        };
-        
-        // Calculate positions and draw force plot
-        const centerY = height / 2 - 20; // Move up to leave room for labels
-        const baseScore = 5.0; // Base score before SHAP contributions
-        
-        // Calculate dynamic spacing based on text width - balance size with frame constraints
-        const maxLabelWidth = 100; // Width for labels
-        const minBarSpacing = 20; // Moderate spacing between bars
-        const barScaleFactor = 30; // Balanced bar size to fit in frame
-        
-        // Calculate total width needed - ensure it fits in frame
-        let totalWidth = 0;
-        shapValues.forEach((factor) => {
-            const barWidth = Math.abs(factor.value) * barScaleFactor;
-            const labelWidth = Math.max(measureText(factor.name, '12px'), maxLabelWidth);
-            const spacing = Math.max(minBarSpacing, labelWidth + 10);
-            totalWidth += barWidth + spacing;
-        });
-        
-        // Ensure total width doesn't exceed canvas width with proper margins
-        const availableWidth = width - 200; // Leave 100px margin on each side for base score and final score
-        let scaleFactor = 1;
-        if (totalWidth > availableWidth) {
-            scaleFactor = availableWidth / totalWidth;
-            // Recalculate total width with scaling
-            totalWidth = 0;
-            shapValues.forEach((factor) => {
-                const barWidth = Math.abs(factor.value) * barScaleFactor * scaleFactor;
-                const labelWidth = Math.max(measureText(factor.name, '12px'), maxLabelWidth);
-                const spacing = Math.max(minBarSpacing, labelWidth + 10) * scaleFactor;
-                totalWidth += barWidth + spacing;
-            });
+        } else {
+            shapContainer.innerHTML = '<p class="text-gray-500">SHAP explanation will be available once data is loaded.</p>';
         }
-        
-        // Start bars after the base score with proper spacing
-        let currentX = 120; // Start after base score text with spacing
-        
-        // Draw base score with proper positioning to avoid truncation
-        ctx.fillStyle = '#4a5568';
-        ctx.font = '16px Arial'; // Smaller font to ensure fit
-        ctx.textAlign = 'left'; // Left align to prevent truncation
-        const baseScoreText = 'Base Score: 5.0';
-        const baseScoreX = 20; // Fixed left margin to ensure visibility
-        ctx.fillText(baseScoreText, baseScoreX, centerY - 40);
-        
-        // Store bar positions for interactivity
-        const barPositions = [];
-        
-        // Draw SHAP contributions with scaled elements
-        shapValues.forEach((factor, index) => {
-            const barWidth = Math.abs(factor.value) * barScaleFactor * scaleFactor; // Scaled bars
-            const barHeight = 40; // Increased height
-            const barX = currentX + 40;
-            const barY = centerY - barHeight / 2;
-            
-            // Store bar position for hover detection
-            barPositions.push({
-                x: barX,
-                y: barY,
-                width: barWidth,
-                height: barHeight,
-                factor: factor,
-                index: index
-            });
-            
-            // Draw bar with rounded corners effect
-            ctx.fillStyle = factor.color;
-            ctx.fillRect(barX, barY, barWidth, barHeight);
-            
-            // Add subtle border
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(barX, barY, barWidth, barHeight);
-            
-            // Draw value with larger font - fix formatting
-            ctx.fillStyle = 'white';
-            ctx.font = 'bold 14px Arial';
-            ctx.textAlign = 'center';
-            const valueText = factor.value.toFixed(1);
-            console.log(`DEBUG: Drawing value for ${factor.name}: ${factor.value} -> ${valueText}`); // Debug log
-            ctx.fillText(valueText, barX + barWidth / 2, centerY + 5);
-            
-            // Draw factor name with larger font and proper text wrapping
-            ctx.fillStyle = '#4a5568';
-            ctx.font = '12px Arial';
-            ctx.textAlign = 'center';
-            
-            // Split text into lines that fit within maxLabelWidth
-            const lines = splitTextIntoLines(factor.name, maxLabelWidth, '12px');
-            
-            // Draw each line
-            lines.forEach((line, lineIndex) => {
-                ctx.fillText(line, barX + barWidth / 2, centerY + 60 + (lineIndex * 16));
-            });
-            
-            // Calculate spacing for next bar - use scaled spacing
-            const labelWidth = Math.max(measureText(factor.name, '12px'), maxLabelWidth);
-            const spacing = Math.max(minBarSpacing, labelWidth + 10) * scaleFactor; // Scaled spacing
-            currentX += barWidth + spacing;
-        });
-        
-        // Draw final score with larger font - ensure it fits
-        const finalScore = baseScore + shapValues.reduce((sum, factor) => sum + factor.value, 0);
-        ctx.fillStyle = '#2d3748';
-        ctx.font = 'bold 16px Arial'; // Smaller font to ensure fit
-        ctx.textAlign = 'center';
-        
-        // Ensure final score fits within canvas
-        const finalScoreText = `Final Score: ${finalScore.toFixed(1)}`;
-        const finalScoreWidth = ctx.measureText(finalScoreText).width;
-        
-        // Position final score to ensure it's completely visible within frame
-        let finalScoreX = currentX + 20; // Reduced spacing from last bar
-        if (finalScoreX + finalScoreWidth/2 > width - 20) {
-            finalScoreX = width - finalScoreWidth/2 - 20;
-        }
-        if (finalScoreX - finalScoreWidth/2 < 20) {
-            finalScoreX = finalScoreWidth/2 + 20;
-        }
-        
-        ctx.fillText(finalScoreText, finalScoreX, centerY - 40);
-        
-        // Add comprehensive interactive features
-        let hoveredBar = null;
-        let tooltip = null;
-        
-        // Create tooltip element
-        const createTooltip = () => {
-            if (!tooltip) {
-                tooltip = document.createElement('div');
-                tooltip.style.cssText = `
-                    position: fixed;
-                    background: rgba(0, 0, 0, 0.95);
-                    color: white;
-                    padding: 12px 16px;
-                    border-radius: 8px;
-                    font-size: 12px;
-                    font-family: Arial, sans-serif;
-                    pointer-events: none;
-                    z-index: 10000;
-                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-                    max-width: 250px;
-                    line-height: 1.4;
-                    border: 1px solid #333;
-                    opacity: 0;
-                    transition: opacity 0.2s ease;
-                `;
-                document.body.appendChild(tooltip);
-            }
-            return tooltip;
-        };
-        
-        // Mouse move handler for hover effects
-        canvas.addEventListener('mousemove', (e) => {
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            
-            console.log(`DEBUG: Mouse position: x=${x}, y=${y}`); // Debug log
-            
-            // Check if mouse is over any bar
-            let foundBar = null;
-            barPositions.forEach((bar, index) => {
-                console.log(`DEBUG: Checking bar ${index}: x=${bar.x}, y=${bar.y}, width=${bar.width}, height=${bar.height}`); // Debug log
-                if (x >= bar.x && x <= bar.x + bar.width && 
-                    y >= bar.y && y <= bar.y + bar.height) {
-                    foundBar = bar;
-                    console.log(`DEBUG: Found bar: ${bar.factor.name}`); // Debug log
-                }
-            });
-            
-            if (foundBar && foundBar !== hoveredBar) {
-                hoveredBar = foundBar;
-                canvas.style.cursor = 'pointer';
-                console.log(`DEBUG: Showing tooltip for ${foundBar.factor.name}`); // Debug log
-                
-                // Show tooltip
-                const tooltip = createTooltip();
-                const impact = foundBar.factor.value > 0 ? 'increases' : 'decreases';
-                const impactColor = foundBar.factor.value > 0 ? '#e53e3e' : '#38a169';
-                
-                tooltip.innerHTML = `
-                    <div style="font-weight: bold; margin-bottom: 6px; color: ${impactColor}; font-size: 13px;">
-                        ${foundBar.factor.name}
-                    </div>
-                    <div style="margin-bottom: 6px; font-size: 12px;">
-                        <strong>Impact:</strong> ${impact} risk by ${Math.abs(foundBar.factor.value).toFixed(1)} points
-                    </div>
-                    <div style="font-size: 11px; color: #ccc; line-height: 1.4; margin-bottom: 6px;">
-                        ${getFactorExplanation(foundBar.factor.name)}
-                    </div>
-                    <div style="font-size: 10px; color: #999; border-top: 1px solid #444; padding-top: 4px;">
-                        💡 Click for detailed analysis
-                    </div>
-                `;
-                
-                // Position tooltip with better positioning logic
-                const tooltipRect = tooltip.getBoundingClientRect();
-                const viewportWidth = window.innerWidth;
-                const viewportHeight = window.innerHeight;
-                
-                let tooltipX = e.clientX + 10;
-                let tooltipY = e.clientY - 10;
-                
-                // Ensure tooltip doesn't go off screen
-                if (tooltipX + tooltipRect.width > viewportWidth - 20) {
-                    tooltipX = e.clientX - tooltipRect.width - 10;
-                }
-                if (tooltipY < 20) {
-                    tooltipY = e.clientY + 20;
-                }
-                
-                tooltip.style.left = tooltipX + 'px';
-                tooltip.style.top = tooltipY + 'px';
-                tooltip.style.opacity = '1';
-                tooltip.style.display = 'block';
-                
-            } else if (!foundBar && hoveredBar) {
-                hoveredBar = null;
-                canvas.style.cursor = 'default';
-                console.log('DEBUG: Hiding tooltip'); // Debug log
-                
-                // Hide tooltip
-                if (tooltip) {
-                    tooltip.style.opacity = '0';
-                    setTimeout(() => {
-                        if (tooltip) {
-                            tooltip.style.display = 'none';
-                        }
-                    }, 200);
-                }
-            }
-        });
-        
-        // Click handler for detailed view (optional - keep for users who want detailed modal)
-        canvas.addEventListener('click', (e) => {
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            
-            // Check if click is on any bar
-            barPositions.forEach(bar => {
-                if (x >= bar.x && x <= bar.x + bar.width && 
-                    y >= bar.y && y <= bar.y + bar.height) {
-                    
-                    // Show detailed factor analysis (optional detailed view)
-                    showFactorDetails(bar.factor);
-                }
-            });
-        });
-        
-        // Mouse leave handler
-        canvas.addEventListener('mouseleave', () => {
-            hoveredBar = null;
-            canvas.style.cursor = 'default';
-            if (tooltip) {
-                tooltip.style.opacity = '0';
-                setTimeout(() => {
-                    if (tooltip) {
-                        tooltip.style.display = 'none';
-                    }
-                }, 200);
-            }
-        });
-        
-        // Helper function to get factor explanations
-        const getFactorExplanation = (factorName) => {
-            const explanations = {
-                'High Transaction Volume': 'Large transaction volumes can indicate higher risk due to increased exposure to potential fraud or financial instability.',
-                'Strong Credit History': 'A positive credit history reduces risk by demonstrating financial responsibility and reliability.',
-                'Recent Address Change': 'Recent address changes may indicate instability or potential fraud risk.',
-                'High Market Volatility': 'Market volatility increases business risk due to uncertain economic conditions.',
-                'Stable Business Model': 'A stable business model reduces risk by providing predictable revenue streams.'
-            };
-            return explanations[factorName] || 'This factor contributes to the overall risk assessment.';
-        };
-        
-        // Helper function to show detailed factor analysis
-        const showFactorDetails = (factor) => {
-            const modal = document.createElement('div');
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.7);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 2000;
-            `;
-            
-            const content = document.createElement('div');
-            content.style.cssText = `
-                background: white;
-                padding: 30px;
-                border-radius: 12px;
-                max-width: 500px;
-                width: 90%;
-                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            `;
-            
-            const impact = factor.value > 0 ? 'increases' : 'decreases';
-            const impactColor = factor.value > 0 ? '#e53e3e' : '#38a169';
-            
-            content.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h3 style="margin: 0; color: #2d3748; font-size: 20px;">${factor.name}</h3>
-                    <button onclick="this.closest('.modal').remove()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #718096;">&times;</button>
-                </div>
-                <div style="margin-bottom: 20px;">
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                        <div style="width: 20px; height: 20px; background: ${factor.color}; border-radius: 4px;"></div>
-                        <span style="font-weight: bold; color: ${impactColor};">
-                            ${impact.charAt(0).toUpperCase() + impact.slice(1)} risk by ${Math.abs(factor.value).toFixed(1)} points
-                        </span>
-                    </div>
-                    <p style="color: #4a5568; line-height: 1.6; margin: 0;">
-                        ${getFactorExplanation(factor.name)}
-                    </p>
-                </div>
-                <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                    <h4 style="margin: 0 0 10px 0; color: #2d3748; font-size: 14px;">Recommendations</h4>
-                    <ul style="margin: 0; padding-left: 20px; color: #4a5568; font-size: 14px;">
-                        ${getFactorRecommendations(factor.name)}
-                    </ul>
-                </div>
-                <button onclick="this.closest('.modal').remove()" style="background: #4299e1; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px;">
-                    Close
-                </button>
-            `;
-            
-            modal.className = 'modal';
-            modal.appendChild(content);
-            document.body.appendChild(modal);
-            
-            // Close on background click
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    modal.remove();
-                }
-            });
-        };
-        
-        // Helper function to get factor recommendations
-        const getFactorRecommendations = (factorName) => {
-            const recommendations = {
-                'High Transaction Volume': '<li>Monitor transaction patterns for anomalies</li><li>Implement additional fraud detection measures</li><li>Consider transaction limits or holds</li>',
-                'Strong Credit History': '<li>Continue maintaining good credit practices</li><li>Monitor credit score regularly</li><li>Leverage positive credit for better terms</li>',
-                'Recent Address Change': '<li>Verify new address documentation</li><li>Monitor for additional changes</li><li>Consider enhanced due diligence</li>',
-                'High Market Volatility': '<li>Diversify revenue streams</li><li>Implement risk hedging strategies</li><li>Monitor market conditions closely</li>',
-                'Stable Business Model': '<li>Continue current business practices</li><li>Document stable processes</li><li>Use stability for growth opportunities</li>'
-            };
-            return recommendations[factorName] || '<li>Monitor this factor regularly</li><li>Consider additional risk mitigation</li>';
-        };
-        
-        console.log('✅ SHAP force plot initialized successfully');
     }
 
     /**
@@ -1671,159 +962,23 @@ class MerchantRiskTab {
      */
     initializeScenarioAnalysis() {
         const scenarioContainer = document.getElementById('scenarioAnalysis');
-        if (!scenarioContainer) return;
+        if (!scenarioContainer) {
+            console.log('❌ Scenario analysis container not found');
+            return;
+        }
 
         console.log('🔍 Initializing scenario analysis...');
-
-        scenarioContainer.innerHTML = `
-            <div class="scenario-analysis" style="margin-top: 15px;">
-                <div class="scenario-description" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                    <h5 style="margin-bottom: 10px; color: #495057; font-weight: 600;">What-If Analysis</h5>
-                    <p style="color: #6c757d; font-size: 14px; margin: 0;">Adjust the parameters below to see how different scenarios would affect the risk score:</p>
-                </div>
-                
-                <div class="scenario-controls" style="display: grid; gap: 20px; margin-bottom: 25px;">
-                    <div class="scenario-parameter" style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                        <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #2d3748;">Transaction Volume</label>
-                        <div style="display: flex; align-items: center; gap: 15px;">
-                            <input type="range" min="0" max="100" value="50" class="scenario-slider" id="transactionVolume" 
-                                   style="flex: 1; height: 6px; background: #e2e8f0; border-radius: 3px; outline: none; cursor: pointer;">
-                            <span class="scenario-value" style="min-width: 50px; text-align: center; font-weight: 600; color: #4a5568;">50%</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #718096; margin-top: 5px;">
-                            <span>Low</span>
-                            <span>High</span>
-                        </div>
-                    </div>
-                    
-                    <div class="scenario-parameter" style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                        <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #2d3748;">Credit Score</label>
-                        <div style="display: flex; align-items: center; gap: 15px;">
-                            <input type="range" min="300" max="850" value="650" class="scenario-slider" id="creditScore"
-                                   style="flex: 1; height: 6px; background: #e2e8f0; border-radius: 3px; outline: none; cursor: pointer;">
-                            <span class="scenario-value" style="min-width: 50px; text-align: center; font-weight: 600; color: #4a5568;">650</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #718096; margin-top: 5px;">
-                            <span>300</span>
-                            <span>850</span>
-                        </div>
-                    </div>
-                    
-                    <div class="scenario-parameter" style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                        <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #2d3748;">Market Conditions</label>
-                        <div style="display: flex; align-items: center; gap: 15px;">
-                            <input type="range" min="0" max="100" value="30" class="scenario-slider" id="marketConditions"
-                                   style="flex: 1; height: 6px; background: #e2e8f0; border-radius: 3px; outline: none; cursor: pointer;">
-                            <span class="scenario-value" style="min-width: 50px; text-align: center; font-weight: 600; color: #4a5568;">30%</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #718096; margin-top: 5px;">
-                            <span>Stable</span>
-                            <span>Volatile</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="scenario-results" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-                    <div class="scenario-result" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; text-align: center;">
-                        <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">Predicted Risk Score</div>
-                        <div class="scenario-score" style="font-size: 32px; font-weight: 700; margin-bottom: 5px;">6.8</div>
-                        <div style="font-size: 12px; opacity: 0.8;">Current Scenario</div>
-                    </div>
-                    
-                    <div class="scenario-comparison" style="background: #f7fafc; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                        <h6 style="margin-bottom: 15px; color: #4a5568; font-weight: 600;">Impact Analysis</h6>
-                        <div style="display: grid; gap: 8px;">
-                            <div style="display: flex; justify-content: space-between; font-size: 14px;">
-                                <span style="color: #718096;">vs. Baseline:</span>
-                                <span style="color: #38a169; font-weight: 600;">-0.4</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; font-size: 14px;">
-                                <span style="color: #718096;">Confidence:</span>
-                                <span style="color: #4a5568; font-weight: 600;">87%</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; font-size: 14px;">
-                                <span style="color: #718096;">Risk Level:</span>
-                                <span style="color: #d69e2e; font-weight: 600;">Medium</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="scenario-actions" style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <button class="btn btn-primary" style="background: #4299e1; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px;">
-                        <i class="fas fa-play"></i> Run Monte Carlo
-                    </button>
-                    <button class="btn btn-secondary" style="background: #718096; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px;">
-                        <i class="fas fa-chart-bar"></i> Stress Test
-                    </button>
-                    <button class="btn btn-outline" style="background: transparent; color: #4a5568; border: 1px solid #e2e8f0; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px;">
-                        <i class="fas fa-undo"></i> Reset
-                    </button>
-                </div>
-            </div>
-        `;
         
-        // Add event listeners for sliders
-        this.addScenarioEventListeners();
-        
-        console.log('✅ Scenario analysis initialized successfully');
-    }
-    
-    /**
-     * Add event listeners for scenario sliders
-     */
-    addScenarioEventListeners() {
-        const transactionSlider = document.getElementById('transactionVolume');
-        const creditSlider = document.getElementById('creditScore');
-        const marketSlider = document.getElementById('marketConditions');
-        
-        if (transactionSlider) {
-            transactionSlider.addEventListener('input', (e) => {
-                const value = e.target.value;
-                const valueSpan = e.target.nextElementSibling;
-                if (valueSpan) valueSpan.textContent = value + '%';
-                this.updateScenarioScore();
-            });
-        }
-        
-        if (creditSlider) {
-            creditSlider.addEventListener('input', (e) => {
-                const value = e.target.value;
-                const valueSpan = e.target.nextElementSibling;
-                if (valueSpan) valueSpan.textContent = value;
-                this.updateScenarioScore();
-            });
-        }
-        
-        if (marketSlider) {
-            marketSlider.addEventListener('input', (e) => {
-                const value = e.target.value;
-                const valueSpan = e.target.nextElementSibling;
-                if (valueSpan) valueSpan.textContent = value + '%';
-                this.updateScenarioScore();
-            });
-        }
-    }
-    
-    /**
-     * Update scenario score based on slider values
-     */
-    updateScenarioScore() {
-        const transactionValue = document.getElementById('transactionVolume')?.value || 50;
-        const creditValue = document.getElementById('creditScore')?.value || 650;
-        const marketValue = document.getElementById('marketConditions')?.value || 30;
-        
-        // Simple calculation for demo purposes
-        const baseScore = 7.2;
-        const transactionImpact = (transactionValue - 50) * 0.02;
-        const creditImpact = (650 - creditValue) * 0.01;
-        const marketImpact = (marketValue - 30) * 0.015;
-        
-        const newScore = Math.max(0, Math.min(10, baseScore + transactionImpact + creditImpact + marketImpact));
-        
-        const scoreElement = document.querySelector('.scenario-score');
-        if (scoreElement) {
-            scoreElement.textContent = newScore.toFixed(1);
+        if (this.components.scenarios) {
+            try {
+                this.components.scenarios.createScenarioBuilder('scenarioAnalysis');
+                console.log('✅ Scenario analysis initialized successfully');
+            } catch (error) {
+                console.error('❌ Error initializing scenario analysis:', error);
+                scenarioContainer.innerHTML = '<p class="text-gray-500">Scenario analysis will be available once data is loaded.</p>';
+            }
+        } else {
+            scenarioContainer.innerHTML = '<p class="text-gray-500">Scenario analysis will be available once data is loaded.</p>';
         }
     }
 
@@ -1832,155 +987,201 @@ class MerchantRiskTab {
      */
     initializeRiskHistoryChart() {
         const historyContainer = document.getElementById('riskHistoryChart');
-        if (!historyContainer) return;
+        if (!historyContainer) {
+            console.log('❌ Risk history chart container not found');
+            return;
+        }
 
         console.log('🔍 Initializing risk history chart...');
-
-        historyContainer.innerHTML = `
-            <div class="risk-history-chart" style="margin-top: 15px;">
-                <div class="history-summary" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                    <h5 style="margin-bottom: 10px; color: #495057; font-weight: 600;">Risk Evolution (12 months)</h5>
-                    <p style="color: #6c757d; font-size: 14px; margin: 0;">Track how risk scores have changed over time with key events and trends:</p>
-                </div>
-                
-                <div class="history-timeline" style="position: relative; height: 300px; background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-                    <div class="timeline-line" style="position: absolute; top: 50%; left: 5%; right: 5%; height: 2px; background: #e2e8f0; transform: translateY(-50%);"></div>
-                    
-                    <div class="history-point" style="position: absolute; top: 50%; left: 8%; transform: translateY(-50%);">
-                        <div class="history-dot" style="width: 12px; height: 12px; background: #4299e1; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></div>
-                        <div class="history-label" style="position: absolute; top: -40px; left: 50%; transform: translateX(-50%); background: #4299e1; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap;">
-                            Jan: 6.8
-                        </div>
-                        <div class="history-event" style="position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%); font-size: 11px; color: #718096; text-align: center; width: 80px;">
-                            Business Launch
-                        </div>
-                    </div>
-                    
-                    <div class="history-point" style="position: absolute; top: 50%; left: 28%; transform: translateY(-50%);">
-                        <div class="history-dot" style="width: 12px; height: 12px; background: #e53e3e; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></div>
-                        <div class="history-label" style="position: absolute; top: -40px; left: 50%; transform: translateX(-50%); background: #e53e3e; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap;">
-                            Apr: 7.1
-                        </div>
-                        <div class="history-event" style="position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%); font-size: 11px; color: #718096; text-align: center; width: 80px;">
-                            Payment Spike
-                        </div>
-                    </div>
-                    
-                    <div class="history-point" style="position: absolute; top: 50%; left: 48%; transform: translateY(-50%);">
-                        <div class="history-dot" style="width: 12px; height: 12px; background: #38a169; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></div>
-                        <div class="history-label" style="position: absolute; top: -40px; left: 50%; transform: translateX(-50%); background: #38a169; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap;">
-                            Aug: 6.9
-                        </div>
-                        <div class="history-event" style="position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%); font-size: 11px; color: #718096; text-align: center; width: 80px;">
-                            Credit Improvement
-                        </div>
-                    </div>
-                    
-                    <div class="history-point" style="position: absolute; top: 50%; left: 68%; transform: translateY(-50%);">
-                        <div class="history-dot" style="width: 12px; height: 12px; background: #d69e2e; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></div>
-                        <div class="history-label" style="position: absolute; top: -40px; left: 50%; transform: translateX(-50%); background: #d69e2e; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap;">
-                            Oct: 7.0
-                        </div>
-                        <div class="history-event" style="position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%); font-size: 11px; color: #718096; text-align: center; width: 80px;">
-                            Market Volatility
-                        </div>
-                    </div>
-                    
-                    <div class="history-point current" style="position: absolute; top: 50%; left: 88%; transform: translateY(-50%);">
-                        <div class="history-dot" style="width: 16px; height: 16px; background: #667eea; border-radius: 50%; border: 4px solid white; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"></div>
-                        <div class="history-label" style="position: absolute; top: -40px; left: 50%; transform: translateX(-50%); background: #667eea; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap; font-weight: 600;">
-                            Dec: 7.2
-                        </div>
-                        <div class="history-event" style="position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%); font-size: 11px; color: #667eea; text-align: center; width: 80px; font-weight: 600;">
-                            Current
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="history-stats" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
-                    <div class="stat-card" style="background: #f7fafc; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0;">
-                        <div style="font-size: 24px; font-weight: 700; color: #4a5568; margin-bottom: 5px;">+0.4</div>
-                        <div style="font-size: 12px; color: #718096;">12-Month Change</div>
-                    </div>
-                    <div class="stat-card" style="background: #f7fafc; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0;">
-                        <div style="font-size: 24px; font-weight: 700; color: #4a5568; margin-bottom: 5px;">6.8</div>
-                        <div style="font-size: 12px; color: #718096;">Lowest Score</div>
-                    </div>
-                    <div class="stat-card" style="background: #f7fafc; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0;">
-                        <div style="font-size: 24px; font-weight: 700; color: #4a5568; margin-bottom: 5px;">7.1</div>
-                        <div style="font-size: 12px; color: #718096;">Highest Score</div>
-                    </div>
-                </div>
-                
-                <div class="history-actions" style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <button class="btn btn-primary" style="background: #4299e1; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px;">
-                        <i class="fas fa-download"></i> Export History
-                    </button>
-                    <button class="btn btn-secondary" style="background: #718096; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px;">
-                        <i class="fas fa-chart-line"></i> View Trends
-                    </button>
-                    <button class="btn btn-outline" style="background: transparent; color: #4a5568; border: 1px solid #e2e8f0; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px;">
-                        <i class="fas fa-calendar"></i> Set Alerts
-                    </button>
-                </div>
-            </div>
-        `;
         
-        console.log('✅ Risk history chart initialized successfully');
+        if (this.components.history) {
+            try {
+                const historyData = this.riskData?.history || [];
+                this.components.history.createRiskHistoryTimeline('riskHistoryChart', historyData);
+                console.log('✅ Risk history chart initialized successfully');
+            } catch (error) {
+                console.error('❌ Error initializing risk history chart:', error);
+                historyContainer.innerHTML = '<p class="text-gray-500">Risk history will be available once data is loaded.</p>';
+            }
+        } else {
+            historyContainer.innerHTML = '<p class="text-gray-500">Risk history will be available once data is loaded.</p>';
+        }
     }
-    
+
     /**
-     * Add event listeners for export buttons
+     * Add export event listeners
      */
     addExportEventListeners() {
         const exportPDF = document.getElementById('exportPDF');
         const exportExcel = document.getElementById('exportExcel');
         const exportCSV = document.getElementById('exportCSV');
-        
+
         if (exportPDF) {
             exportPDF.addEventListener('click', () => {
-                console.log('🔍 Exporting PDF report...');
-                this.exportPDF();
+                if (this.components.export) {
+                    this.components.export.exportRiskReport({
+                        merchantId: this.currentMerchantId,
+                        format: 'pdf'
+                    });
+                }
             });
         }
-        
+
         if (exportExcel) {
             exportExcel.addEventListener('click', () => {
-                console.log('🔍 Exporting Excel report...');
-                this.exportExcel();
+                if (this.components.export) {
+                    this.components.export.exportRiskReport({
+                        merchantId: this.currentMerchantId,
+                        format: 'excel'
+                    });
+                }
             });
         }
-        
+
         if (exportCSV) {
             exportCSV.addEventListener('click', () => {
-                console.log('🔍 Exporting CSV report...');
-                this.exportCSV();
+                if (this.components.export) {
+                    this.components.export.exportRiskReport({
+                        merchantId: this.currentMerchantId,
+                        format: 'csv'
+                    });
+                }
             });
         }
     }
-    
+
     /**
-     * Export PDF report
+     * Generate risk summary
      */
-    exportPDF() {
-        // For demo purposes, show a success message
-        alert('PDF export functionality would be implemented here. This would generate a comprehensive risk assessment report with charts and data.');
+    generateRiskSummary() {
+        const score = this.riskData.overallScore;
+        const trend = this.riskData.trend;
+        
+        let summary = `The risk score of ${score.toFixed(1)} indicates `;
+        
+        if (score <= 3) {
+            summary += 'a low risk profile with strong financial stability and compliance.';
+        } else if (score <= 6) {
+            summary += 'a moderate risk profile with some areas requiring attention.';
+        } else if (score <= 8) {
+            summary += 'a high risk profile with significant concerns that need immediate attention.';
+        } else {
+            summary += 'a critical risk profile requiring immediate intervention and monitoring.';
+        }
+
+        if (Math.abs(trend) > 0.1) {
+            summary += ` The risk has ${trend > 0 ? 'increased' : 'decreased'} by ${Math.abs(trend).toFixed(1)} points recently.`;
+        }
+
+        return summary;
     }
-    
+
     /**
-     * Export Excel report
+     * Extract key factors
      */
-    exportExcel() {
-        // For demo purposes, show a success message
-        alert('Excel export functionality would be implemented here. This would generate a formatted Excel file with risk data and charts.');
+    extractKeyFactors() {
+        return this.riskData.factorContributions
+            .filter(f => Math.abs(f.contribution) > 0.5)
+            .map(f => ({
+                name: f.feature,
+                description: f.reason,
+                impact: f.contribution
+            }))
+            .sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact))
+            .slice(0, 3);
     }
-    
+
     /**
-     * Export CSV report
+     * Generate risk insights
      */
-    exportCSV() {
-        // For demo purposes, show a success message
-        alert('CSV export functionality would be implemented here. This would generate a CSV file with risk assessment data.');
+    generateRiskInsights() {
+        const insights = [];
+        
+        if (this.riskData.categories.financial > 7) {
+            insights.push('Financial risk is elevated due to revenue volatility and cash flow concerns.');
+        }
+        
+        if (this.riskData.categories.compliance < 5) {
+            insights.push('Strong compliance record provides risk mitigation benefits.');
+        }
+        
+        if (this.riskData.trend > 0.2) {
+            insights.push('Risk trend is increasing, requiring closer monitoring.');
+        }
+        
+        if (this.riskData.confidence < 0.8) {
+            insights.push('Prediction confidence is moderate, consider additional data sources.');
+        }
+
+        return insights.length > 0 ? insights : ['Risk profile is within normal parameters.'];
+    }
+
+    /**
+     * Switch explanation tab
+     */
+    switchExplanationTab(tabName) {
+        // Update tab buttons
+        document.querySelectorAll('.explanation-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+
+        // Update content visibility
+        document.getElementById('shapForcePlot').style.display = tabName === 'shap' ? 'block' : 'none';
+        document.getElementById('featureImportance').style.display = tabName === 'importance' ? 'block' : 'none';
+        document.getElementById('whyScorePanel').style.display = tabName === 'why' ? 'block' : 'none';
+    }
+
+    /**
+     * Handle risk update from WebSocket
+     */
+    handleRiskUpdate(data) {
+        if (data.merchantId === this.currentMerchantId) {
+            this.riskData = { ...this.riskData, ...data.riskData };
+            this.updateRiskUI();
+        }
+    }
+
+    /**
+     * Handle risk prediction from WebSocket
+     */
+    handleRiskPrediction(data) {
+        if (data.merchantId === this.currentMerchantId) {
+            this.riskData.predictions = data.predictions;
+            this.riskData.confidence = data.confidence;
+            this.updatePredictionUI();
+        }
+    }
+
+    /**
+     * Handle risk alert from WebSocket
+     */
+    handleRiskAlert(data) {
+        if (data.merchantId === this.currentMerchantId) {
+            this.showRiskAlert(data);
+        }
+    }
+
+    /**
+     * Update risk UI
+     */
+    updateRiskUI() {
+        // Update risk gauge
+        if (this.components.visualization) {
+            const gauge = this.components.visualization.d3Visualizations.get('riskGauge');
+            if (gauge) {
+                gauge.update(this.riskData.overallScore);
+            }
+        }
+
+        // Update category scores
+        Object.entries(this.riskData.categories).forEach(([category, score]) => {
+            const element = document.querySelector(`[data-category="${category}"] .category-score`);
+            if (element) {
+                element.textContent = score.toFixed(1);
+                element.className = `category-score ${this.getRiskLevel(score)}`;
+            }
+        });
     }
 
     /**
@@ -2054,12 +1255,6 @@ class MerchantRiskTab {
         if (score <= 8) return 'high';
         return 'critical';
     }
-    
-    getCategoryColor(score) {
-        if (score <= 3) return '#38a169'; // Green
-        if (score <= 7) return '#d69e2e'; // Yellow/Orange
-        return '#e53e3e'; // Red
-    }
 
     /**
      * Refresh risk data
@@ -2097,9 +1292,6 @@ class MerchantRiskTab {
             const merchantId = this.getMerchantId();
             this.currentMerchantId = merchantId;
 
-            // Set flag to prevent createRiskTabUI from overwriting
-            this.uiCreatedByLoadRiskAssessmentContent = true;
-            
             // Load the comprehensive risk assessment UI
             container.innerHTML = `
                 <div class="risk-content-loaded">
@@ -2190,32 +1382,6 @@ class MerchantRiskTab {
             // We'll manually initialize only what we need
             this.isInitialized = true;
             
-            // Verify the HTML was set correctly - check for canvas elements
-            const verifyGauge = container.querySelector('canvas#riskGauge');
-            const verifyTrendChart = container.querySelector('canvas#riskTrendChart');
-            const verifyFactorChart = container.querySelector('canvas#riskFactorChart');
-            
-            if (!verifyGauge || !verifyTrendChart || !verifyFactorChart) {
-                console.error('❌ CRITICAL: Canvas elements not found in HTML after setting innerHTML!');
-                console.error('  - riskGauge canvas:', verifyGauge ? 'Found' : 'MISSING');
-                console.error('  - riskTrendChart canvas:', verifyTrendChart ? 'Found' : 'MISSING');
-                console.error('  - riskFactorChart canvas:', verifyFactorChart ? 'Found' : 'MISSING');
-                console.error('  - Container HTML length:', container.innerHTML.length);
-                console.error('  - Container HTML preview:', container.innerHTML.substring(0, 500));
-                
-                // Check if old divs exist
-                const oldGaugeDiv = container.querySelector('div#riskGauge');
-                if (oldGaugeDiv) {
-                    console.error('  - Found OLD div#riskGauge - createRiskTabUI() may have overwritten!');
-                    console.error('  - Old div HTML:', oldGaugeDiv.outerHTML);
-                }
-            } else {
-                console.log('✅ Verified: Canvas elements exist in HTML after setting innerHTML');
-                console.log('  - riskGauge canvas:', verifyGauge.tagName, verifyGauge.id);
-                console.log('  - riskTrendChart canvas:', verifyTrendChart.tagName, verifyTrendChart.id);
-                console.log('  - riskFactorChart canvas:', verifyFactorChart.tagName, verifyFactorChart.id);
-            }
-            
             // Update UI with loaded data
             this.updateRiskUI();
             
@@ -2225,63 +1391,79 @@ class MerchantRiskTab {
             setTimeout(() => {
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
-                        // Verify canvas elements exist before initializing
-                        const gauge = document.getElementById('riskGauge');
-                        const trendChart = document.getElementById('riskTrendChart');
-                        const factorChart = document.getElementById('riskFactorChart');
-                        
-                        console.log('🔍 Canvas elements check before initialization:');
-                        console.log('  - riskGauge:', gauge, 'TagName:', gauge?.tagName);
-                        if (gauge) {
-                            console.log('  - riskGauge HTML:', gauge.outerHTML.substring(0, 150));
-                        }
-                        console.log('  - riskTrendChart:', trendChart, 'TagName:', trendChart?.tagName);
-                        if (trendChart) {
-                            console.log('  - riskTrendChart HTML:', trendChart.outerHTML.substring(0, 150));
-                        }
-                        console.log('  - riskFactorChart:', factorChart, 'TagName:', factorChart?.tagName);
-                        if (factorChart) {
-                            console.log('  - riskFactorChart HTML:', factorChart.outerHTML.substring(0, 150));
-                        }
-                        
-                        if (!gauge || !trendChart || !factorChart) {
-                            console.error('❌ Some canvas elements are missing!');
-                            console.error('  - riskGauge missing:', !gauge, gauge ? `Found: ${gauge.tagName}` : 'Not found');
-                            console.error('  - riskTrendChart missing:', !trendChart, trendChart ? `Found: ${trendChart.tagName}` : 'Not found');
-                            console.error('  - riskFactorChart missing:', !factorChart, factorChart ? `Found: ${factorChart.tagName}` : 'Not found');
-                            
-                            // Debug: Show what's actually in the container
-                            console.error('🔍 Debugging: Searching for riskFactorChart in container...');
-                            const allElements = container.querySelectorAll('*');
-                            console.error(`  - Total elements in container: ${allElements.length}`);
-                            const riskFactorElements = container.querySelectorAll('[id*="riskFactor"], [id*="RiskFactor"], canvas');
-                            console.error(`  - Elements with riskFactor in ID: ${riskFactorElements.length}`);
-                            riskFactorElements.forEach((el, idx) => {
-                                console.error(`    [${idx}] ${el.tagName}#${el.id || 'no-id'}`);
-                            });
-                            
-                            // Try alternative search
-                            const altSearch = container.querySelector('#riskFactorChart') || 
-                                             document.querySelector('#riskFactorChart') ||
-                                             container.querySelector('canvas[id="riskFactorChart"]');
-                            console.error('  - Alternative search result:', altSearch);
-                            
-                            // Don't return - continue anyway and let individual methods handle missing elements
-                            console.warn('⚠️ Continuing despite missing elements - individual methods will handle errors');
-                        }
-                        
-                        // Only initialize visualizations if we have at least some canvas elements
-                        // Individual methods will handle missing elements gracefully
-                        if (gauge || trendChart || factorChart) {
-                            console.log('✅ Found canvas elements, initializing visualizations...');
-                            console.log(`  - riskGauge: ${gauge ? 'Found' : 'Missing'}`);
-                            console.log(`  - riskTrendChart: ${trendChart ? 'Found' : 'Missing'}`);
-                            console.log(`  - riskFactorChart: ${factorChart ? 'Found' : 'Missing'}`);
-                            this.initializeVisualizations();
-                            this.addExportEventListeners();
+                    // Verify canvas elements exist before initializing
+                    const gauge = document.getElementById('riskGauge');
+                    const trendChart = document.getElementById('riskTrendChart');
+                    const factorChart = document.getElementById('riskFactorChart');
+                    
+                    console.log('🔍 Canvas elements check before initialization:');
+                    console.log('  - riskGauge:', gauge, 'TagName:', gauge?.tagName);
+                    if (gauge) {
+                        console.log('  - riskGauge HTML:', gauge.outerHTML.substring(0, 150));
+                        console.log('  - riskGauge parent:', gauge.parentElement);
+                    }
+                    console.log('  - riskTrendChart:', trendChart, 'TagName:', trendChart?.tagName);
+                    if (trendChart) {
+                        console.log('  - riskTrendChart HTML:', trendChart.outerHTML.substring(0, 150));
+                        console.log('  - riskTrendChart parent:', trendChart.parentElement);
+                    }
+                    console.log('  - riskFactorChart:', factorChart, 'TagName:', factorChart?.tagName);
+                    if (factorChart) {
+                        console.log('  - riskFactorChart HTML:', factorChart.outerHTML.substring(0, 150));
+                    }
+                    
+                    if (!gauge || !trendChart || !factorChart) {
+                        console.error('❌ Some canvas elements are missing!');
+                        console.error('  - riskGauge missing:', !gauge);
+                        console.error('  - riskTrendChart missing:', !trendChart);
+                        console.error('  - riskFactorChart missing:', !factorChart);
+                        console.error('🔍 Container HTML:', container.innerHTML.substring(0, 500));
+                        return;
+                    }
+                    
+                    // Check if they're actually canvas elements
+                    if (gauge.tagName !== 'CANVAS') {
+                        console.error('❌ riskGauge is not a canvas! It is:', gauge.tagName);
+                        console.error('  - riskGauge HTML:', gauge.outerHTML);
+                        // Try to find canvas inside if it's a container
+                        const canvasInside = gauge.querySelector('canvas');
+                        if (canvasInside) {
+                            console.log('  ✅ Found canvas inside gauge container');
                         } else {
-                            console.error('❌ No canvas elements found at all - cannot initialize visualizations');
+                            console.error('  ❌ No canvas found inside gauge container');
+                            return;
                         }
+                    }
+                    
+                    if (trendChart.tagName !== 'CANVAS') {
+                        console.error('❌ riskTrendChart is not a canvas! It is:', trendChart.tagName);
+                        console.error('  - riskTrendChart HTML:', trendChart.outerHTML);
+                        // Try to find canvas inside if it's a container
+                        const canvasInside = trendChart.querySelector('canvas');
+                        if (canvasInside) {
+                            console.log('  ✅ Found canvas inside trendChart container');
+                        } else {
+                            console.error('  ❌ No canvas found inside trendChart container');
+                            return;
+                        }
+                    }
+                    
+                    if (factorChart.tagName !== 'CANVAS') {
+                        console.error('❌ riskFactorChart is not a canvas! It is:', factorChart.tagName);
+                        console.error('  - riskFactorChart HTML:', factorChart.outerHTML);
+                        // Try to find canvas inside if it's a container
+                        const canvasInside = factorChart.querySelector('canvas');
+                        if (canvasInside) {
+                            console.log('  ✅ Found canvas inside factorChart container');
+                        } else {
+                            console.error('  ❌ No canvas found inside factorChart container');
+                            return;
+                        }
+                    }
+                    
+                    console.log('✅ All canvas elements validated, initializing visualizations...');
+                    this.initializeVisualizations();
+                    this.addExportEventListeners();
                     });
                 });
             }, 500); // Wait 500ms for DOM to be fully ready
@@ -2305,46 +1487,19 @@ class MerchantRiskTab {
      * Get merchant ID from URL or global variable
      */
     getMerchantId() {
-        console.log('🔍 Getting merchant ID...');
-        
         // Try to get from URL parameter
         const urlParams = new URLSearchParams(window.location.search);
         const merchantId = urlParams.get('merchantId');
-        if (merchantId) {
-            console.log('✅ Found merchant ID from URL:', merchantId);
-            return merchantId;
-        }
-
-        // Try to get from merchant details instance
-        console.log('🔍 Checking window.merchantDetailsInstance:', window.merchantDetailsInstance);
-        if (window.merchantDetailsInstance?.merchantData?.id) {
-            console.log('✅ Found merchant ID from merchantData.id:', window.merchantDetailsInstance.merchantData.id);
-            return window.merchantDetailsInstance.merchantData.id;
-        }
-
-        // Try to get from merchant details instance business name as fallback
-        if (window.merchantDetailsInstance?.merchantData?.businessName) {
-            const businessNameId = window.merchantDetailsInstance.merchantData.businessName.toLowerCase().replace(/\s+/g, '-');
-            console.log('✅ Using business name as merchant ID:', businessNameId);
-            return businessNameId;
-        }
+        if (merchantId) return merchantId;
 
         // Try to get from global variable
-        if (window.currentMerchantId) {
-            console.log('✅ Found merchant ID from global variable:', window.currentMerchantId);
-            return window.currentMerchantId;
-        }
+        if (window.currentMerchantId) return window.currentMerchantId;
 
         // Try to get from merchant detail page
         const merchantIdElement = document.querySelector('[data-merchant-id]');
-        if (merchantIdElement) {
-            const id = merchantIdElement.getAttribute('data-merchant-id');
-            console.log('✅ Found merchant ID from data attribute:', id);
-            return id;
-        }
+        if (merchantIdElement) return merchantIdElement.getAttribute('data-merchant-id');
 
         // Default fallback
-        console.log('⚠️ No merchant ID found, using default fallback');
         return 'demo-merchant-001';
     }
 

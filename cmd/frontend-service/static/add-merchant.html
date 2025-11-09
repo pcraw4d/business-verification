@@ -958,10 +958,6 @@
                     
                     // Make API calls in parallel for all three analyses
                     console.log('🔍 Calling APIs in parallel...');
-                    console.log('🔍 Business Intelligence API data:', data.apiData.businessIntelligence);
-                    console.log('🔍 Risk Assessment API data:', data.apiData.riskAssessment);
-                    console.log('🔍 Risk Indicators API data:', data.apiData.riskIndicators);
-                    
                     const [businessIntelligenceResult, riskAssessmentResult, riskIndicatorsResult] = await Promise.allSettled([
                         this.callBusinessIntelligenceAPI(data.apiData.businessIntelligence),
                         this.callRiskAssessmentAPI(data.apiData.riskAssessment),
@@ -1014,12 +1010,11 @@
             }
 
             async callBusinessIntelligenceAPI(apiData) {
-                console.log('🚀 ENTERING callBusinessIntelligenceAPI function');
                 console.log('🔍 Making Business Intelligence API call with data:', apiData);
-                console.log('🔍 API URL:', 'https://api-gateway-service-production-21fd.up.railway.app/api/v1/bi/analyze');
+                console.log('🔍 API URL:', 'https://api-gateway-service-production-21fd.up.railway.app/api/v1/classify');
                 
                 try {
-                    const response = await fetch('https://api-gateway-service-production-21fd.up.railway.app/api/v1/bi/analyze', {
+                    const response = await fetch('https://api-gateway-service-production-21fd.up.railway.app/api/v1/classify', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -1266,9 +1261,9 @@
                 };
                 
                 console.log('🧪 Test data:', testData);
-                console.log('🧪 API URL:', 'https://api-gateway-service-production-21fd.up.railway.app/api/v1/bi/analyze');
+                console.log('🧪 API URL:', 'https://api-gateway-service-production-21fd.up.railway.app/api/v1/classify');
                 
-                const response = await fetch('https://api-gateway-service-production-21fd.up.railway.app/api/v1/bi/analyze', {
+                const response = await fetch('https://api-gateway-service-production-21fd.up.railway.app/api/v1/classify', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
