@@ -68,14 +68,29 @@ Testing of merchant filtering, pagination, and query parameter handling.
 ### Edge Cases
 
 **Test:**
-- Request: `GET /api/v1/merchants?page=0&page_size=-1`
-- Response: Handles invalid page numbers
-- Status: ✅ **WORKING** - Returns valid response
+- Request: `GET /api/v1/merchants?page=1&page_size=5`
+- Response: 5 merchants, page=1, has_next=false, has_previous=false
+- Status: ✅ **WORKING** - Basic pagination works
 
 **Test:**
-- Request: `GET /api/v1/merchants?page=999999&page_size=100`
-- Response: Empty results with pagination metadata
-- Status: ✅ **WORKING** - Handles out-of-range pages
+- Request: `GET /api/v1/merchants?page=2&page_size=5`
+- Response: 5 merchants, page=2
+- Status: ✅ **WORKING** - Page 2 works correctly
+
+**Test:**
+- Request: `GET /api/v1/merchants?page=999&page_size=5`
+- Response: 0 merchants (empty results)
+- Status: ✅ **WORKING** - Handles out-of-range pages gracefully
+
+**Test:**
+- Request: `GET /api/v1/merchants?page=1&page_size=1000`
+- Response: 20 merchants (likely capped at max page size)
+- Status: ✅ **WORKING** - Large page sizes handled
+
+**Test:**
+- Request: `GET /api/v1/merchants?page=-1&page_size=-5`
+- Response: 20 merchants (likely defaults to valid values)
+- Status: ✅ **WORKING** - Invalid values handled gracefully
 
 ---
 

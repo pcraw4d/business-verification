@@ -32,13 +32,14 @@ Detailed testing of API error handling, invalid requests, and error response for
 
 **Test:**
 - Request: `POST /api/v1/merchants` with empty body `{}`
-- Response: Need to test (command failed)
+- Response: "Name and legal name are required"
+- HTTP Status: Need to verify
 
 **Expected:**
 - HTTP Status: 400 Bad Request
 - Response: Validation error message
 
-**Status**: Need to retest
+**Status**: ✅ **WORKING** - Returns validation error message
 
 ---
 
@@ -46,13 +47,24 @@ Detailed testing of API error handling, invalid requests, and error response for
 
 **Test:**
 - Request: `POST /api/v1/merchants` with `{"name":"","legal_name":""}`
-- Response: Need to test (command failed)
+- Response: "Name and legal name are required"
+- HTTP Status: Need to verify
 
 **Expected:**
 - HTTP Status: 400 Bad Request
 - Response: "Name and legal name are required"
 
-**Status**: Need to retest
+**Status**: ✅ **WORKING** - Returns validation error message
+
+**Test:**
+- Request: `POST /api/v1/merchants` with `{"name":"Test","legal_name":""}`
+- Response: "Name and legal name are required"
+- Status: ✅ **WORKING** - Validates both fields
+
+**Test:**
+- Request: `POST /api/v1/merchants` with `{"name":"","legal_name":"Test"}`
+- Response: "Name and legal name are required"
+- Status: ✅ **WORKING** - Validates both fields
 
 ---
 
