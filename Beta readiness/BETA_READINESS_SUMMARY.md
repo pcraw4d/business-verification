@@ -40,11 +40,15 @@ Comprehensive automated testing and analysis completed for the KYB Platform beta
 
 ### High Priority Issues
 
-1. **Classification Accuracy** ⚠️
+1. **Classification Accuracy** ⚠️ **ROOT CAUSE IDENTIFIED**
    - Multiple business types incorrectly classified as "Food & Beverage"
    - Tech startups, retail stores, financial services all misclassified
-   - **Impact**: Core functionality broken
+   - **Root Cause**: Handler uses hardcoded placeholder function instead of actual classification algorithm
+   - **Location**: `services/classification-service/internal/handlers/classification.go:generateEnhancedClassification()`
+   - **Fix**: Replace placeholder with actual classification service calls (UnifiedClassifier, MultiMethodClassifier, etc.)
+   - **Impact**: Core functionality broken (0% accuracy for non-restaurant businesses)
    - **Priority**: CRITICAL
+   - **See**: `CLASSIFICATION_ALGORITHM_ROOT_CAUSE_ANALYSIS.md` for detailed analysis
 
 2. **Test Coverage** ⚠️
    - API Gateway: 0% coverage
