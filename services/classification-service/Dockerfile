@@ -7,6 +7,10 @@ WORKDIR /app
 # Install dependencies including wget for health checks
 RUN apk add --no-cache git ca-certificates wget
 
+# Disable Go workspace mode to avoid "module appears multiple times" error
+# This is necessary because both root and service have the same module name
+ENV GOWORK=off
+
 # Copy root go.mod and go.sum to establish module context
 COPY go.mod go.sum* ./
 
@@ -25,7 +29,8 @@ COPY services/classification-service/cmd/ ./services/classification-service/cmd/
 COPY services/classification-service/internal/ ./services/classification-service/internal/
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o classification-service ./services/classification-service/cmd/main.go
+# Explicitly disable workspace mode in build command
+RUN CGO_ENABLED=0 GOOS=linux GOWORK=off go build -a -installsuffix cgo -o classification-service ./services/classification-service/cmd/main.go
 
 # Final stage
 FROM alpine:latest

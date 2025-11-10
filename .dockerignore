@@ -48,6 +48,10 @@ playwright-report/
 kyb-platform
 kyb-platform-*
 
+# Go workspace files (should not be used in Docker builds)
+go.work
+go.work.sum
+
 # Test files
 *.test
 *.out
