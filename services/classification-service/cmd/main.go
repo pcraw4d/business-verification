@@ -6,12 +6,16 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 
+	"kyb-platform/internal/classification"
+	"kyb-platform/internal/classification/repository"
+	"kyb-platform/services/classification-service/internal/adapters"
 	"kyb-platform/services/classification-service/internal/config"
 	"kyb-platform/services/classification-service/internal/handlers"
 	"kyb-platform/services/classification-service/internal/supabase"
@@ -47,8 +51,39 @@ func main() {
 		logger.Fatal("Failed to initialize Supabase client", zap.Error(err))
 	}
 
+	// Create database client adapter for classification repository
+	stdLogger := log.New(&zapLoggerAdapter{logger: logger}, "", 0)
+	dbClient, err := adapters.CreateDatabaseClient(&cfg.Supabase, stdLogger)
+	if err != nil {
+		logger.Fatal("Failed to create database client adapter", zap.Error(err))
+	}
+
+	// Connect to database
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := dbClient.Connect(ctx); err != nil {
+		logger.Warn("Failed to connect to database, continuing anyway", zap.Error(err))
+	}
+
+	// Initialize classification repository
+	keywordRepo := repository.NewSupabaseKeywordRepository(dbClient, stdLogger)
+
+	// Initialize classification services
+	industryDetector := classification.NewIndustryDetectionService(keywordRepo, stdLogger)
+	codeGenerator := classification.NewClassificationCodeGenerator(keywordRepo, stdLogger)
+
+	logger.Info("✅ Classification services initialized",
+		zap.Bool("industry_detector", industryDetector != nil),
+		zap.Bool("code_generator", codeGenerator != nil))
+
 	// Initialize handlers
-	classificationHandler := handlers.NewClassificationHandler(supabaseClient, logger, cfg)
+	classificationHandler := handlers.NewClassificationHandler(
+		supabaseClient,
+		logger,
+		cfg,
+		industryDetector,
+		codeGenerator,
+	)
 
 	// Setup router
 	router := mux.NewRouter()
@@ -188,4 +223,14 @@ type responseWriter struct {
 func (rw *responseWriter) WriteHeader(code int) {
 	rw.statusCode = code
 	rw.ResponseWriter.WriteHeader(code)
+}
+
+// zapLoggerAdapter adapts zap.Logger to io.Writer for standard log.Logger
+type zapLoggerAdapter struct {
+	logger *zap.Logger
+}
+
+func (z *zapLoggerAdapter) Write(p []byte) (n int, err error) {
+	z.logger.Info(strings.TrimSpace(string(p)))
+	return len(p), nil
 }

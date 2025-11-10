@@ -4,29 +4,41 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
 
 	"go.uber.org/zap"
 
+	"kyb-platform/internal/classification"
 	"kyb-platform/services/classification-service/internal/config"
 	"kyb-platform/services/classification-service/internal/supabase"
 )
 
 // ClassificationHandler handles classification requests
 type ClassificationHandler struct {
-	supabaseClient *supabase.Client
-	logger         *zap.Logger
-	config         *config.Config
+	supabaseClient        *supabase.Client
+	logger                *zap.Logger
+	config                *config.Config
+	industryDetector       *classification.IndustryDetectionService
+	codeGenerator         *classification.ClassificationCodeGenerator
 }
 
 // NewClassificationHandler creates a new classification handler
-func NewClassificationHandler(supabaseClient *supabase.Client, logger *zap.Logger, config *config.Config) *ClassificationHandler {
+func NewClassificationHandler(
+	supabaseClient *supabase.Client,
+	logger *zap.Logger,
+	config *config.Config,
+	industryDetector *classification.IndustryDetectionService,
+	codeGenerator *classification.ClassificationCodeGenerator,
+) *ClassificationHandler {
 	return &ClassificationHandler{
-		supabaseClient: supabaseClient,
-		logger:         logger,
-		config:         config,
+		supabaseClient:  supabaseClient,
+		logger:          logger,
+		config:          config,
+		industryDetector: industryDetector,
+		codeGenerator:   codeGenerator,
 	}
 }
 
@@ -178,8 +190,11 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 
 // processClassification processes a classification request
 func (h *ClassificationHandler) processClassification(ctx context.Context, req *ClassificationRequest, startTime time.Time) (*ClassificationResponse, error) {
-	// Generate enhanced classification with smart crawling data
-	enhancedResult := h.generateEnhancedClassification(req)
+	// Generate enhanced classification using actual classification services
+	enhancedResult, err := h.generateEnhancedClassification(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("classification failed: %w", err)
+	}
 
 	// Convert enhanced result to response format
 	classification := &ClassificationResult{
@@ -715,84 +730,151 @@ type WebsiteAnalysisData struct {
 	StructuredData    map[string]interface{} `json:"structured_data,omitempty"`
 }
 
-// generateEnhancedClassification generates enhanced classification with smart crawling data
-func (h *ClassificationHandler) generateEnhancedClassification(req *ClassificationRequest) *EnhancedClassificationResult {
-	// For now, generate realistic data that simulates the unified classification approach
-	// In a full implementation, this would call the actual unified classifier
+// generateEnhancedClassification generates enhanced classification using actual classification services
+func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Context, req *ClassificationRequest) (*EnhancedClassificationResult, error) {
+	// Step 1: Detect industry using IndustryDetectionService
+	industryResult, err := h.industryDetector.DetectIndustry(ctx, req.BusinessName, req.Description, req.WebsiteURL)
+	if err != nil {
+		h.logger.Error("Industry detection failed",
+			zap.String("request_id", req.RequestID),
+			zap.Error(err))
+		// Fallback to default industry
+		industryResult = &classification.IndustryDetectionResult{
+			IndustryName: "General Business",
+			Confidence:   0.30,
+			Keywords:     []string{},
+			Reasoning:    fmt.Sprintf("Industry detection failed: %v", err),
+		}
+	}
 
-	// Simulate website analysis data
+	// Step 2: Generate classification codes using ClassificationCodeGenerator
+	codesInfo, err := h.codeGenerator.GenerateClassificationCodes(
+		ctx,
+		industryResult.Keywords,
+		industryResult.IndustryName,
+		industryResult.Confidence,
+	)
+	if err != nil {
+		h.logger.Warn("Code generation failed, using empty codes",
+			zap.String("request_id", req.RequestID),
+			zap.Error(err))
+		codesInfo = &classification.ClassificationCodesInfo{
+			MCC:   []classification.MCCCode{},
+			SIC:   []classification.SICCode{},
+			NAICS: []classification.NAICSCode{},
+		}
+	}
+
+	// Step 3: Convert classification codes to handler format
+	mccCodes := make([]IndustryCode, 0, len(codesInfo.MCC))
+	for _, code := range codesInfo.MCC {
+		mccCodes = append(mccCodes, IndustryCode{
+			Code:        code.Code,
+			Description: code.Description,
+			Confidence:  code.Confidence,
+		})
+	}
+
+	sicCodes := make([]IndustryCode, 0, len(codesInfo.SIC))
+	for _, code := range codesInfo.SIC {
+		sicCodes = append(sicCodes, IndustryCode{
+			Code:        code.Code,
+			Description: code.Description,
+			Confidence:  code.Confidence,
+		})
+	}
+
+	naicsCodes := make([]IndustryCode, 0, len(codesInfo.NAICS))
+	for _, code := range codesInfo.NAICS {
+		naicsCodes = append(naicsCodes, IndustryCode{
+			Code:        code.Code,
+			Description: code.Description,
+			Confidence:  code.Confidence,
+		})
+	}
+
+	// Step 4: Build website analysis data (simplified for now)
 	websiteAnalysis := &WebsiteAnalysisData{
-		Success:           true,
-		PagesAnalyzed:     8,
-		RelevantPages:     5,
-		KeywordsExtracted: []string{"wine", "grape", "retail", "beverage", "store", "shop", "food", "drink"},
-		IndustrySignals:   []string{"food_beverage", "retail", "beverage_industry"},
-		AnalysisMethod:    "smart_crawling",
-		ProcessingTime:    1200 * time.Millisecond,
-		OverallRelevance:  0.92,
-		ContentQuality:    0.88,
+		Success:           req.WebsiteURL != "",
+		PagesAnalyzed:     0, // Will be populated by actual website scraper if implemented
+		RelevantPages:     0,
+		KeywordsExtracted: industryResult.Keywords,
+		IndustrySignals:   []string{strings.ToLower(strings.ReplaceAll(industryResult.IndustryName, " ", "_"))},
+		AnalysisMethod:    industryResult.Method,
+		ProcessingTime:    industryResult.ProcessingTime,
+		OverallRelevance:  industryResult.Confidence,
+		ContentQuality:    industryResult.Confidence,
 		StructuredData: map[string]interface{}{
-			"business_type": "Store",
-			"industry":      "Food & Beverage",
+			"business_type": "Business",
+			"industry":      industryResult.IndustryName,
 		},
 	}
 
-	// Simulate dynamic weighting based on data sources
+	// Step 5: Build method weights (simplified)
 	methodWeights := map[string]float64{
-		"website_content": 45.0, // High weight due to rich website data
-		"business_name":   25.0, // Medium weight from business name
-		"website_url":     15.0, // Lower weight from URL
-		"structured_data": 15.0, // Medium weight from structured data
+		"database_driven": 100.0, // Using database-driven classification
 	}
 
-	// Generate enhanced classification reasoning with actual weights
-	reasoning := fmt.Sprintf("Primary industry identified as 'Food & Beverage' with 92%% confidence. ")
-	reasoning += "Classification based on website content (45%%), business name (25%%), website URL (15%%), structured data (15%%). "
-
+	// Step 6: Build reasoning
+	reasoning := fmt.Sprintf("Primary industry identified as '%s' with %.0f%% confidence. ", 
+		industryResult.IndustryName, industryResult.Confidence*100)
+	reasoning += industryResult.Reasoning
 	if req.WebsiteURL != "" {
-		reasoning += fmt.Sprintf("Website analysis of %s analyzed 8 pages with 5 relevant pages. ", req.WebsiteURL)
+		reasoning += fmt.Sprintf(" Website URL provided: %s.", req.WebsiteURL)
 	}
-	reasoning += "Structured data extraction found business name and industry information. "
-	reasoning += "Website keywords extracted: wine, grape, retail, beverage, store. "
-	reasoning += "Industry signal detection identified 'food_beverage' with 95%% strength. "
-	reasoning += "Classification based on 12 keywords and industry pattern matching. "
-	reasoning += "High confidence classification based on multiple data sources and weighted analysis."
-
-	// Generate industry codes based on the business type
-	mccCodes := []IndustryCode{
-		{Code: "5813", Description: "Drinking Places (Alcoholic Beverages)", Confidence: 0.95},
-		{Code: "5814", Description: "Fast Food Restaurants", Confidence: 0.85},
-		{Code: "5411", Description: "Grocery Stores, Supermarkets", Confidence: 0.75},
+	if len(industryResult.Keywords) > 0 {
+		reasoning += fmt.Sprintf(" Keywords matched: %s.", strings.Join(industryResult.Keywords, ", "))
 	}
 
-	sicCodes := []IndustryCode{
-		{Code: "5813", Description: "Drinking Places (Alcoholic Beverages)", Confidence: 0.95},
-		{Code: "5812", Description: "Eating Places", Confidence: 0.85},
-		{Code: "5411", Description: "Grocery Stores", Confidence: 0.75},
-	}
-
-	naicsCodes := []IndustryCode{
-		{Code: "445310", Description: "Beer, Wine, and Liquor Stores", Confidence: 0.95},
-		{Code: "722511", Description: "Full-Service Restaurants", Confidence: 0.85},
-		{Code: "445110", Description: "Supermarkets and Other Grocery Stores", Confidence: 0.75},
-	}
-
+	// Step 7: Build result
 	return &EnhancedClassificationResult{
 		BusinessName:            req.BusinessName,
-		PrimaryIndustry:         "Food & Beverage",
-		IndustryConfidence:      0.92,
-		BusinessType:            "Retail Store",
-		BusinessTypeConfidence:  0.88,
+		PrimaryIndustry:         industryResult.IndustryName,
+		IndustryConfidence:      industryResult.Confidence,
+		BusinessType:            h.determineBusinessType(industryResult.Keywords, industryResult.IndustryName),
+		BusinessTypeConfidence:  industryResult.Confidence * 0.9, // Slightly lower than industry confidence
 		MCCCodes:                mccCodes,
 		SICCodes:                sicCodes,
 		NAICSCodes:              naicsCodes,
-		Keywords:                websiteAnalysis.KeywordsExtracted,
-		ConfidenceScore:         0.92,
+		Keywords:                industryResult.Keywords,
+		ConfidenceScore:         industryResult.Confidence,
 		ClassificationReasoning: reasoning,
 		WebsiteAnalysis:         websiteAnalysis,
 		MethodWeights:           methodWeights,
 		Timestamp:               time.Now(),
+	}, nil
+}
+
+// determineBusinessType determines business type from keywords and industry
+func (h *ClassificationHandler) determineBusinessType(keywords []string, industry string) string {
+	// Simple heuristic based on industry name
+	industryLower := strings.ToLower(industry)
+	if strings.Contains(industryLower, "retail") || strings.Contains(industryLower, "store") {
+		return "Retail Store"
 	}
+	if strings.Contains(industryLower, "service") {
+		return "Service Business"
+	}
+	if strings.Contains(industryLower, "technology") || strings.Contains(industryLower, "software") {
+		return "Technology Company"
+	}
+	if strings.Contains(industryLower, "health") || strings.Contains(industryLower, "medical") {
+		return "Healthcare Provider"
+	}
+	if strings.Contains(industryLower, "financial") {
+		return "Financial Services"
+	}
+	return "Business"
+}
+
+// zapLoggerAdapter adapts zap.Logger to io.Writer for standard log.Logger
+type zapLoggerAdapter struct {
+	logger *zap.Logger
+}
+
+func (z *zapLoggerAdapter) Write(p []byte) (n int, err error) {
+	z.logger.Info(strings.TrimSpace(string(p)))
+	return len(p), nil
 }
 
 // convertIndustryCodes converts IndustryCode to handlers.IndustryCode
