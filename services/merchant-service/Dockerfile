@@ -7,17 +7,28 @@ WORKDIR /app
 # Install dependencies
 RUN apk add --no-cache git ca-certificates
 
-# Copy merchant-service go.mod first
+# Disable Go workspace mode to avoid "module appears multiple times" error
+# This is necessary because we're using a replace directive to reference the root module
+ENV GOWORK=off
+
+# Copy root go.mod and go.sum to establish module context
 COPY go.mod go.sum* ./
 
 # Download dependencies
 RUN go mod download
 
-# Copy merchant-service source code (including internal packages we copied)
-COPY . .
+# Copy pkg/ directory (needed for kyb-platform/pkg/errors)
+RUN mkdir -p ./pkg
+COPY pkg ./pkg
+
+# Copy service-specific source code
+COPY services/merchant-service/cmd/ ./services/merchant-service/cmd/
+COPY services/merchant-service/internal/ ./services/merchant-service/internal/
+COPY services/merchant-service/go.mod ./services/merchant-service/go.mod
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o merchant-service ./cmd/main.go
+# Explicitly disable workspace mode in build command
+RUN CGO_ENABLED=0 GOOS=linux GOWORK=off go build -a -installsuffix cgo -o merchant-service ./services/merchant-service/cmd/main.go
 
 # Final stage
 FROM alpine:latest

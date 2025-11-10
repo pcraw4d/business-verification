@@ -7,9 +7,13 @@ require (
 	github.com/gorilla/mux v1.8.1
 	github.com/prometheus/client_golang v1.23.2
 	github.com/redis/go-redis/v9 v9.14.0
+	github.com/supabase-community/postgrest-go v0.0.11
 	github.com/supabase-community/supabase-go v0.0.4
 	go.uber.org/zap v1.27.0
+	kyb-platform v0.0.0
 )
+
+replace kyb-platform => ../..
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -21,7 +25,6 @@ require (
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/supabase-community/functions-go v0.0.0-20220927045802-22373e6cb51d // indirect
 	github.com/supabase-community/gotrue-go v1.2.0 // indirect
-	github.com/supabase-community/postgrest-go v0.0.11 // indirect
 	github.com/supabase-community/storage-go v0.7.0 // indirect
 	github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
