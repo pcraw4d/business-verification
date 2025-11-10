@@ -16,10 +16,10 @@ Analysis of frontend code quality, including JavaScript files, console logs, TOD
 ### File Count and Size
 
 **Statistics:**
-- Total JavaScript Files: Count needed
-- Total Lines of Code: Count needed
-- Average File Size: Count needed
-- Largest File: Count needed
+- Total JavaScript Files: 9,072 files
+- Total Lines of Code: 420,421 lines
+- Average File Size: ~46 lines per file
+- Largest File: Need to identify
 
 ---
 
@@ -28,16 +28,16 @@ Analysis of frontend code quality, including JavaScript files, console logs, TOD
 ### Console Logs
 
 **Statistics:**
-- Total Console Logs: Count needed
-- Console.log: Count needed
-- Console.error: Count needed
-- Console.warn: Count needed
-- Debugger Statements: Count needed
+- Total Console Logs: 804 console.log/error/warn statements found
+- Console.log: ~600+ instances (estimated)
+- Console.error: ~100+ instances (estimated)
+- Console.warn: ~50+ instances (estimated)
+- Debugger Statements: Need to search specifically
 
 **Issues:**
-- ⚠️ Console logs in production code
-- ⚠️ Debugger statements present
+- ⚠️ Console logs in production code (804 instances across 94 files)
 - ⚠️ Should be removed or replaced with proper logging
+- ⚠️ Extensive debugging code in production
 
 **Recommendations:**
 - Remove console.log statements
@@ -50,14 +50,14 @@ Analysis of frontend code quality, including JavaScript files, console logs, TOD
 ### TODO/FIXME Comments
 
 **Statistics:**
-- Total TODOs: Count needed
-- Total FIXMEs: Count needed
-- Total XXXs: Count needed
-- Total HACKs: Count needed
-- Total BUGs: Count needed
+- Total TODOs: 78 TODO/FIXME/XXX/HACK/BUG comments found
+- Total FIXMEs: Included in count
+- Total XXXs: Included in count
+- Total HACKs: Included in count
+- Total BUGs: Included in count
 
 **Issues:**
-- ⚠️ Incomplete implementations
+- ⚠️ Incomplete implementations (78 TODO/FIXME comments)
 - ⚠️ Known issues
 - ⚠️ Technical debt
 
@@ -74,16 +74,16 @@ Analysis of frontend code quality, including JavaScript files, console logs, TOD
 ### API Call Patterns
 
 **Statistics:**
-- Total API Calls: Count needed
-- Fetch API: Count needed
-- XMLHttpRequest: Count needed
-- Axios: Count needed
-- Other: Count needed
+- Total API Calls: 199 fetch/XMLHttpRequest/axios calls found
+- Fetch API: ~150+ instances (estimated)
+- XMLHttpRequest: ~30+ instances (estimated)
+- Axios: Some instances found
+- Other: Need to identify
 
 **Issues:**
-- ⚠️ Multiple API call methods
-- ⚠️ No centralized API client
-- ⚠️ Potential redundant calls
+- ⚠️ Multiple API call methods (fetch, XMLHttpRequest, axios)
+- ⚠️ No centralized API client (though api-config.js exists)
+- ⚠️ Potential redundant calls (199 API calls across 69 files)
 
 **Recommendations:**
 - Standardize on one API call method
@@ -98,16 +98,17 @@ Analysis of frontend code quality, including JavaScript files, console logs, TOD
 ### Event Listeners
 
 **Statistics:**
-- Total Event Listeners: Count needed
-- setInterval: Count needed
-- setTimeout: Count needed
-- addEventListener: Count needed
-- removeEventListener: Count needed
+- Total Event Listeners: 880 matches (setInterval, setTimeout, addEventListener, removeEventListener)
+- setInterval: Included in count
+- setTimeout: Included in count
+- addEventListener: Included in count
+- removeEventListener: Included in count
 
 **Issues:**
-- ⚠️ Event listeners may not be cleaned up
-- ⚠️ Timers may not be cleared
-- ⚠️ Potential memory leaks
+- ⚠️ Event listeners may not be cleaned up (880 instances found)
+- ⚠️ Timers may not be cleared (setTimeout/setInterval found)
+- ⚠️ Potential memory leaks - need thorough review
+- ✅ Some components have proper cleanup (destroy() methods found)
 
 **Recommendations:**
 - Ensure event listeners are removed

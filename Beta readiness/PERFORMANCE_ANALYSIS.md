@@ -27,33 +27,33 @@ Analysis of API performance, response times, and optimization opportunities acro
 ### Health Check Endpoint (`GET /health`)
 
 **Results:**
-- Average Response Time: Count needed
-- Min Response Time: Count needed
-- Max Response Time: Count needed
+- Average Response Time: 0.43 seconds
+- Min Response Time: ~0.40 seconds (estimated)
+- Max Response Time: ~0.45 seconds (estimated)
 
-**Assessment**: ✅/⚠️
+**Assessment**: ⚠️ Slightly slow for a health check (target < 100ms)
 
 ---
 
 ### Classification Endpoint (`POST /api/v1/classify`)
 
 **Results:**
-- Average Response Time: Count needed
-- Min Response Time: Count needed
-- Max Response Time: Count needed
+- Average Response Time: 0.22 seconds
+- Min Response Time: ~0.20 seconds (estimated)
+- Max Response Time: ~0.25 seconds (estimated)
 
-**Assessment**: ✅/⚠️
+**Assessment**: ✅ Good performance (target < 500ms)
 
 ---
 
 ### Merchant List Endpoint (`GET /api/v1/merchants`)
 
 **Results:**
-- Average Response Time: Count needed
-- Min Response Time: Count needed
-- Max Response Time: Count needed
+- Average Response Time: 0.22 seconds
+- Min Response Time: ~0.20 seconds (estimated)
+- Max Response Time: ~0.25 seconds (estimated)
 
-**Assessment**: ✅/⚠️
+**Assessment**: ✅ Good performance (target < 500ms)
 
 ---
 
@@ -70,9 +70,9 @@ Analysis of API performance, response times, and optimization opportunities acro
 
 | Endpoint | Target | Actual | Status |
 |----------|--------|--------|--------|
-| Health Check | < 100ms | Count needed | ✅/⚠️ |
-| Classification | < 500ms | Count needed | ✅/⚠️ |
-| Merchant List | < 500ms | Count needed | ✅/⚠️ |
+| Health Check | < 100ms | 430ms | ⚠️ Slow |
+| Classification | < 500ms | 220ms | ✅ Good |
+| Merchant List | < 500ms | 220ms | ✅ Good |
 
 ---
 
@@ -81,15 +81,15 @@ Analysis of API performance, response times, and optimization opportunities acro
 ### Query Analysis
 
 **SQL Queries Found:**
-- API Gateway: Count needed
-- Classification Service: Count needed
-- Merchant Service: Count needed
-- Risk Assessment Service: Count needed
+- API Gateway: 25 SQL-related matches (includes Dockerfile, config, handlers)
+- Classification Service: 20 SQL-related matches
+- Merchant Service: 531 SQL-related matches (includes handlers, observability, cache)
+- Risk Assessment Service: 6,116 SQL-related matches (extensive database usage)
 
 **Potential Issues:**
-- ⚠️ N+1 query problems: Count needed
-- ⚠️ Missing indexes: Count needed
-- ⚠️ Slow queries: Count needed
+- ⚠️ N+1 query problems: Potential in Merchant Service (for loops with database calls)
+- ⚠️ Missing indexes: Need to review query patterns
+- ⚠️ Slow queries: Risk Assessment Service has extensive database usage - needs optimization
 
 ---
 
@@ -118,40 +118,43 @@ Analysis of API performance, response times, and optimization opportunities acro
 ### JavaScript Files
 
 **Statistics:**
-- Total JS Files: Count needed
-- Total Lines of Code: Count needed
-- Average File Size: Count needed
+- Total JS Files: 9,072 files
+- Total Lines of Code: 420,421 lines
+- Average File Size: ~46 lines per file
 
 **Issues:**
 - ⚠️ No minification found
 - ⚠️ No bundling found
 - ⚠️ No code splitting found
+- ⚠️ Very large codebase (420K+ lines)
 
 ---
 
 ### CSS Files
 
 **Statistics:**
-- Total CSS Files: Count needed
-- Total Lines of Code: Count needed
+- Total CSS Files: 7 files
+- Total Lines of Code: Count needed (to be measured)
 
 **Issues:**
 - ⚠️ No minification found
 - ⚠️ No compression found
+- ⚠️ Limited CSS files (may be inline styles)
 
 ---
 
 ### API Calls
 
 **Statistics:**
-- Total API Calls: Count needed
-- Redundant Calls: Count needed
-- Unnecessary Calls: Count needed
+- Total API Calls: 199 fetch/XMLHttpRequest calls found
+- Redundant Calls: Need to analyze patterns
+- Unnecessary Calls: Need to analyze patterns
 
 **Issues:**
-- ⚠️ Potential redundant requests
-- ⚠️ No request deduplication
-- ⚠️ No request batching
+- ⚠️ Potential redundant requests (199 API calls across 69 files)
+- ⚠️ No request deduplication found
+- ⚠️ No request batching found
+- ⚠️ Multiple API call methods (fetch, XMLHttpRequest, axios)
 
 ---
 
@@ -160,14 +163,15 @@ Analysis of API performance, response times, and optimization opportunities acro
 ### Event Listeners
 
 **Statistics:**
-- Total Event Listeners: Count needed
-- Cleaned Up: Count needed
-- Potential Leaks: Count needed
+- Total Event Listeners: 880 matches (setInterval, setTimeout, addEventListener, removeEventListener)
+- Cleaned Up: Some components have destroy() methods
+- Potential Leaks: Need to verify all listeners are cleaned up
 
 **Issues:**
-- ⚠️ Event listeners may not be cleaned up
-- ⚠️ Timers may not be cleared
-- ⚠️ Memory leaks possible
+- ⚠️ Event listeners may not be cleaned up (880 instances found)
+- ⚠️ Timers may not be cleared (setTimeout/setInterval found)
+- ⚠️ Memory leaks possible - need thorough review
+- ✅ Some components have proper cleanup (destroy() methods found)
 
 ---
 
