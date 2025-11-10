@@ -386,7 +386,7 @@ func (udm *UnifiedDatabaseMonitor) calculateQueryStats(metrics *DatabaseMetrics)
 
 	// Find max query time
 	for _, stats := range udm.queryStats {
-		if stats.MaxTime.Milliseconds() > metrics.MaxQueryTime {
+		if float64(stats.MaxTime.Milliseconds()) > metrics.MaxQueryTime {
 			metrics.MaxQueryTime = float64(stats.MaxTime.Milliseconds())
 		}
 	}

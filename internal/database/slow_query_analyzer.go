@@ -328,7 +328,7 @@ func (sqa *SlowQueryAnalyzer) identifySlowQueries(ctx context.Context, analysis 
 			AverageTime:       time.Duration(meanTime) * time.Millisecond,
 			MaxTime:           time.Duration(maxTime) * time.Millisecond,
 			MinTime:           time.Duration(minTime) * time.Millisecond,
-			Rows:              rows,
+			Rows:              rowsAffected,
 			SharedBlksHit:     sharedBlksHit,
 			SharedBlksRead:    sharedBlksRead,
 			SharedBlksWritten: sharedBlksWritten,
