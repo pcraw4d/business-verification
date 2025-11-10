@@ -19,6 +19,7 @@
 - **Expected**: `classify: ${baseURL}/api/v1/classify`
 - **Status**: ✅ **PASSED**
 - **Result**: Endpoint path correctly set to `/api/v1/classify`
+- **Verified**: Deployed file contains correct endpoint path
 
 ### 2. ✅ Script Loading Verification
 **Test**: Verify api-config.js script is loaded in add-merchant.html
@@ -26,19 +27,40 @@
 - **Expected**: `<script src="js/api-config.js"></script>` present
 - **Status**: ✅ **PASSED**
 - **Result**: Script tag found in deployed HTML
+- **Verified**: Script tag confirmed in deployed version
 
 ### 3. ✅ API Gateway Health Check
 **Test**: Verify API gateway is accessible
 - **URL**: https://api-gateway-service-production-21fd.up.railway.app/health
 - **Status**: ✅ **PASSED**
 - **Result**: API gateway is healthy and responding
+- **Verified**: Health endpoint returns 200 OK with service status
 
 ### 4. ✅ Page Accessibility
 **Test**: Verify both pages are accessible
 - **Add Merchant**: https://frontend-service-production-b225.up.railway.app/add-merchant.html
 - **Merchant Details**: https://frontend-service-production-b225.up.railway.app/merchant-details
 - **Status**: ✅ **PASSED**
-- **Result**: Both pages are accessible
+- **Result**: Both pages are accessible (HTTP 200 OK)
+
+### 5. ✅ Code Deployment Verification
+**Test**: Verify deployed code uses centralized API config
+- **Status**: ✅ **PASSED**
+- **Result**: Deployed code contains `APIConfig.getEndpoints().classify`
+- **Verified**: No hardcoded API URLs found in deployed version
+
+### 6. ✅ Redirect Code Verification
+**Test**: Verify redirect uses absolute URL
+- **Status**: ✅ **PASSED**
+- **Result**: Deployed code contains `window.location.origin + '/merchant-details'`
+- **Verified**: Absolute URL redirect pattern confirmed
+
+### 7. ✅ API Endpoint Test
+**Test**: Verify API endpoint is functional
+- **URL**: https://api-gateway-service-production-21fd.up.railway.app/api/v1/classify
+- **Status**: ✅ **PASSED**
+- **Result**: API endpoint responds successfully with classification data
+- **Verified**: Test request returned valid JSON response with classification results
 
 ---
 
