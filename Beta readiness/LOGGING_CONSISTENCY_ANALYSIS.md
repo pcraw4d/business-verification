@@ -32,9 +32,9 @@ Analysis of logging patterns, logging consistency, and logging best practices ac
 ### Classification Service
 
 **Logging Methods:**
-- `logger.Info/Error/Warn/Debug/Fatal()`: Count needed
-- `log.Print/Printf/Println()`: Count needed
-- `fmt.Print`: Count needed
+- `logger.Info/Error/Warn/Debug/Fatal()`: 19 instances (zap.Logger)
+- `log.Print/Printf/Println()`: Some instances found
+- `fmt.Print`: Minimal usage
 
 **Patterns:**
 - Uses `zap.Logger` for structured logging
@@ -47,9 +47,9 @@ Analysis of logging patterns, logging consistency, and logging best practices ac
 ### Merchant Service
 
 **Logging Methods:**
-- `logger.Info/Error/Warn/Debug/Fatal()`: Count needed
-- `log.Print/Printf/Println()`: Count needed
-- `fmt.Print`: Count needed
+- `logger.Info/Error/Warn/Debug/Fatal()`: 404 instances (zap.Logger)
+- `log.Print/Printf/Println()`: Some instances found
+- `fmt.Print`: Minimal usage
 
 **Patterns:**
 - Uses `zap.Logger` for structured logging

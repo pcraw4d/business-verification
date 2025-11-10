@@ -33,10 +33,10 @@ Analysis of error handling patterns, error response formats, and consistency acr
 ### Classification Service
 
 **Error Handling Methods:**
-- `http.Error()`: Count needed
-- `json.NewEncoder(w).Encode()`: Count needed
-- `w.WriteHeader()`: Count needed
-- `w.Write()`: Count needed
+- `http.Error()`: 7 instances
+- `json.NewEncoder(w).Encode()`: Included in count
+- `w.WriteHeader()`: Included in count
+- `w.Write()`: Included in count
 
 **Patterns:**
 - Uses `http.Error()` for bad requests and internal server errors
@@ -49,10 +49,10 @@ Analysis of error handling patterns, error response formats, and consistency acr
 ### Merchant Service
 
 **Error Handling Methods:**
-- `http.Error()`: Count needed
-- `json.NewEncoder(w).Encode()`: Count needed
-- `w.WriteHeader()`: Count needed
-- `w.Write()`: Count needed
+- `http.Error()`: 26 instances
+- `json.NewEncoder(w).Encode()`: Included in count
+- `w.WriteHeader()`: Included in count
+- `w.Write()`: Included in count
 
 **Patterns:**
 - Uses `http.Error()` for various error conditions

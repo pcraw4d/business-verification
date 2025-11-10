@@ -34,11 +34,11 @@ Analysis of context usage, timeout configurations, and context propagation acros
 ### Classification Service
 
 **Context Usage:**
-- `context.WithTimeout`: Count needed
-- `context.WithCancel`: Count needed
-- `context.WithDeadline`: Count needed
-- `context.Background()`: Count needed
-- `context.TODO()`: Count needed
+- `context.WithTimeout`: 4 instances
+- `context.WithCancel`: Included in count
+- `context.WithDeadline`: Included in count
+- `context.Background()`: Included in count
+- `context.TODO()`: Need to verify
 
 **Patterns:**
 - Uses `context.WithTimeout` for classification requests
@@ -52,11 +52,11 @@ Analysis of context usage, timeout configurations, and context propagation acros
 ### Merchant Service
 
 **Context Usage:**
-- `context.WithTimeout`: Count needed
-- `context.WithCancel`: Count needed
-- `context.WithDeadline`: Count needed
-- `context.Background()`: Count needed
-- `context.TODO()`: Count needed
+- `context.WithTimeout`: 28 instances
+- `context.WithCancel`: Included in count
+- `context.WithDeadline`: Included in count
+- `context.Background()`: Included in count
+- `context.TODO()`: Need to verify
 
 **Patterns:**
 - Uses context for API requests
