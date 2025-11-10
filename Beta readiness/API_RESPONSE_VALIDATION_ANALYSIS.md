@@ -27,6 +27,9 @@ Analysis of API response formats, consistency, validation, and error handling ac
 - `request_id`
 - `risk_assessment`
 - `status`
+- `success`
+- `timestamp`
+- `verification_status`
 
 **Status**: ✅ Structured and consistent
 
@@ -77,9 +80,9 @@ Analysis of API response formats, consistency, validation, and error handling ac
 
 **Request**: `GET /api/v1/merchants/invalid-id-12345`
 
-**Response**: Need to verify error format
+**Response**: Returns merchant data (no error field found)
 
-**Status**: Need to test
+**Status**: ⚠️ **ISSUE** - Should return 404 or structured error
 
 ---
 
@@ -87,9 +90,9 @@ Analysis of API response formats, consistency, validation, and error handling ac
 
 **Request**: `POST /api/v1/merchants` with invalid data
 
-**Response**: Need to verify error format
+**Response**: "Name and legal name are required"
 
-**Status**: Need to test
+**Status**: ✅ **GOOD** - Returns validation error message
 
 ---
 
@@ -97,9 +100,9 @@ Analysis of API response formats, consistency, validation, and error handling ac
 
 **Request**: `POST /api/v1/classify` with empty body
 
-**Response**: Need to verify error format
+**Response**: "Classification service unavailable"
 
-**Status**: Need to test
+**Status**: ⚠️ **ISSUE** - Should return validation error, not service unavailable
 
 ---
 
