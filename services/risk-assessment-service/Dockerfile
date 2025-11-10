@@ -38,8 +38,8 @@ ENV CGO_CFLAGS="-I/app/onnxruntime/include"
 # Copy go mod files
 COPY go.mod go.sum ./
 
-# Download dependencies
-RUN go mod download
+# Verify go.sum is up to date and download dependencies
+RUN go mod verify && go mod download
 
 # Copy source code
 COPY . .
