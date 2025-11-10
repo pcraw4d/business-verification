@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+	"os"
+	"strconv"
 	"time"
 )
 
@@ -216,7 +218,35 @@ func LoadMonitoringConfig() *MonitoringConfig {
 	config := DefaultMonitoringConfig()
 
 	// Load from environment variables if available
-	// This would typically use a configuration library like viper
+	// Prometheus configuration
+	if port := os.Getenv("PROMETHEUS_PORT"); port != "" {
+		if p, err := strconv.Atoi(port); err == nil {
+			config.Prometheus.Port = p
+		}
+	}
+	if enabled := os.Getenv("PROMETHEUS_ENABLED"); enabled != "" {
+		config.Prometheus.Enabled = enabled == "true" || enabled == "1"
+	}
+
+	// Grafana configuration
+	if baseURL := os.Getenv("GRAFANA_BASE_URL"); baseURL != "" {
+		config.Grafana.BaseURL = baseURL
+		config.Grafana.Enabled = true
+	}
+	if apiKey := os.Getenv("GRAFANA_API_KEY"); apiKey != "" {
+		config.Grafana.APIKey = apiKey
+	}
+	if username := os.Getenv("GRAFANA_USERNAME"); username != "" {
+		config.Grafana.Username = username
+	}
+	if password := os.Getenv("GRAFANA_PASSWORD"); password != "" {
+		config.Grafana.Password = password
+	}
+
+	// Alerting configuration
+	if enabled := os.Getenv("ALERTING_ENABLED"); enabled != "" {
+		config.Alerting.Enabled = enabled == "true" || enabled == "1"
+	}
 
 	return config
 }

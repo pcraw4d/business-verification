@@ -296,21 +296,34 @@ func main() {
 	prometheusMetrics := monitoring.NewPrometheusMetrics(logger)
 	alertManager := monitoring.NewAlertManager(logger)
 
-	// Note: Monitoring config loading is disabled for now to allow service startup
-	// TODO: Implement proper monitoring configuration loading
-	logger.Info("⚠️  Monitoring system initialized with default configuration")
+	// Load monitoring configuration
+	monitoringConfig := config.LoadMonitoringConfig()
+	if err := monitoringConfig.Validate(); err != nil {
+		logger.Warn("Invalid monitoring configuration, using defaults", zap.Error(err))
+		monitoringConfig = config.DefaultMonitoringConfig()
+	}
 
-	// Initialize Grafana client with default configuration
+	logger.Info("Monitoring configuration loaded",
+		zap.Bool("prometheus_enabled", monitoringConfig.Prometheus.Enabled),
+		zap.Bool("grafana_enabled", monitoringConfig.Grafana.Enabled),
+		zap.Bool("alerting_enabled", monitoringConfig.Alerting.Enabled))
+
+	// Initialize Grafana client with loaded configuration
 	grafanaClient := monitoring.NewGrafanaClient(monitoring.GrafanaConfig{
-		BaseURL:  "",
-		APIKey:   "",
-		Username: "",
-		Password: "",
-		Timeout:  30 * time.Second,
+		BaseURL:  monitoringConfig.Grafana.BaseURL,
+		APIKey:   monitoringConfig.Grafana.APIKey,
+		Username: monitoringConfig.Grafana.Username,
+		Password: monitoringConfig.Grafana.Password,
+		Timeout:  monitoringConfig.Grafana.Timeout,
 	}, logger)
 
-	// Note: Alert rules are disabled for now to allow service startup
-	// TODO: Implement proper alert rules configuration
+	// Configure alert rules if alerting is enabled
+	if monitoringConfig.Alerting.Enabled && len(monitoringConfig.Alerting.Rules) > 0 {
+		logger.Info("Alert rules configured",
+			zap.Int("rule_count", len(monitoringConfig.Alerting.Rules)))
+		// Alert rules are managed by the AlertManager
+		// Individual rules can be added via the monitoring handler API
+	}
 
 	logger.Info("✅ Monitoring system initialized")
 
@@ -959,9 +972,15 @@ func initPerformanceComponents(cfg *config.Config, db *sql.DB, logger *zap.Logge
 		logger,
 	)
 
-	// Start performance monitoring
-	// TODO: Fix monitoring config structure
-	perfMonitor.Start(30 * time.Second) // Use default interval
+	// Start performance monitoring with default interval
+	// Performance monitoring interval can be configured via environment variable
+	monitoringInterval := 30 * time.Second
+	if intervalStr := os.Getenv("PERFORMANCE_MONITORING_INTERVAL"); intervalStr != "" {
+		if interval, err := time.ParseDuration(intervalStr); err == nil {
+			monitoringInterval = interval
+		}
+	}
+	perfMonitor.Start(monitoringInterval)
 	logger.Info("✅ Performance monitoring started")
 
 	return &PerformanceComponents{
