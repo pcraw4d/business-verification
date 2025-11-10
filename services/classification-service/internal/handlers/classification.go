@@ -733,10 +733,16 @@ type WebsiteAnalysisData struct {
 // generateEnhancedClassification generates enhanced classification using actual classification services
 func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Context, req *ClassificationRequest) (*EnhancedClassificationResult, error) {
 	// Step 1: Detect industry using IndustryDetectionService
+	h.logger.Info("Starting industry detection",
+		zap.String("request_id", req.RequestID),
+		zap.String("business_name", req.BusinessName),
+		zap.String("description", req.Description))
+	
 	industryResult, err := h.industryDetector.DetectIndustry(ctx, req.BusinessName, req.Description, req.WebsiteURL)
 	if err != nil {
 		h.logger.Error("Industry detection failed",
 			zap.String("request_id", req.RequestID),
+			zap.String("business_name", req.BusinessName),
 			zap.Error(err))
 		// Fallback to default industry
 		industryResult = &classification.IndustryDetectionResult{
@@ -745,9 +751,20 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 			Keywords:     []string{},
 			Reasoning:    fmt.Sprintf("Industry detection failed: %v", err),
 		}
+	} else {
+		h.logger.Info("Industry detection successful",
+			zap.String("request_id", req.RequestID),
+			zap.String("industry", industryResult.IndustryName),
+			zap.Float64("confidence", industryResult.Confidence),
+			zap.Int("keywords_count", len(industryResult.Keywords)))
 	}
 
 	// Step 2: Generate classification codes using ClassificationCodeGenerator
+	h.logger.Info("Starting code generation",
+		zap.String("request_id", req.RequestID),
+		zap.String("industry", industryResult.IndustryName),
+		zap.Int("keywords_count", len(industryResult.Keywords)))
+	
 	codesInfo, err := h.codeGenerator.GenerateClassificationCodes(
 		ctx,
 		industryResult.Keywords,
@@ -757,12 +774,19 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 	if err != nil {
 		h.logger.Warn("Code generation failed, using empty codes",
 			zap.String("request_id", req.RequestID),
+			zap.String("industry", industryResult.IndustryName),
 			zap.Error(err))
 		codesInfo = &classification.ClassificationCodesInfo{
 			MCC:   []classification.MCCCode{},
 			SIC:   []classification.SICCode{},
 			NAICS: []classification.NAICSCode{},
 		}
+	} else {
+		h.logger.Info("Code generation successful",
+			zap.String("request_id", req.RequestID),
+			zap.Int("mcc_count", len(codesInfo.MCC)),
+			zap.Int("sic_count", len(codesInfo.SIC)),
+			zap.Int("naics_count", len(codesInfo.NAICS)))
 	}
 
 	// Step 3: Convert classification codes to handler format
