@@ -16,30 +16,27 @@
 - Updated `.dockerignore` to exclude `go.work` and `go.work.sum` files
 
 ### 2. Railway Configuration Files
+- Updated root `railway.json` to point to `classification-service` instead of `risk-assessment-service`
 - Updated `services/classification-service/railway.json` with correct paths
-- This file should be used by Railway when the service is configured correctly
+- Both files now have consistent configuration for classification-service
 
 ### 3. Railway Dashboard Configuration
 Configure Railway to build from the **repository root** and use the correct railway.json.
 
 ## Railway Dashboard Configuration
 
-**CRITICAL**: Ensure Railway is configured to use the correct service and railway.json!
+**Root railway.json has been fixed!** The root `railway.json` now correctly points to `classification-service`.
 
-The root `railway.json` points to `risk-assessment-service`, so Railway dashboard settings must override it.
-
-1. Go to Railway Dashboard → Your Project → **Classification Service** (not Risk Assessment Service)
+1. Go to Railway Dashboard → Your Project → **Classification Service**
 2. Go to **Settings** → **Service Settings**
 3. Set **Root Directory** to: `.` (repository root) - this is needed for Dockerfile to access root `internal/` and `pkg/`
 4. Go to **Settings** → **Build & Deploy**
-5. **CRITICAL**: Set **Dockerfile Path** to: `services/classification-service/Dockerfile`
-   - The root `railway.json` has `services/risk-assessment-service/Dockerfile` - you MUST override this in dashboard!
-6. **CRITICAL**: Set **Start Command** to: `./classification-service`
-   - The root `railway.json` has `cd services/risk-assessment-service && ./risk-assessment-service` - override this!
+5. Verify **Dockerfile Path** is: `services/classification-service/Dockerfile` (should match root railway.json)
+6. Verify **Start Command** is: `./classification-service` (should match root railway.json)
 7. Ensure **Builder** is set to: `DOCKERFILE`
 8. Save and redeploy
 
-**Why this is needed**: When building from repo root, Railway may use the root `railway.json` which has wrong paths. Dashboard settings override the railway.json file.
+**Note**: The root `railway.json` is now correctly configured, so Railway should automatically use the right paths. You can still override settings in the dashboard if needed.
 
 ## How It Works
 
@@ -77,11 +74,11 @@ If you still see the "module appears multiple times" error:
 - Ensure Railway is building from repository root, not service directory
 
 If Railway is using the wrong Dockerfile or railway.json:
-- **Root cause**: Root `railway.json` points to `risk-assessment-service`
-- **Solution**: Override in Railway dashboard settings (see above)
+- **Root cause**: Root `railway.json` was pointing to `risk-assessment-service` (now fixed)
+- **Solution**: Root `railway.json` has been updated to point to `classification-service`
 - Check Railway dashboard settings for the Classification Service
-- Verify dashboard has `dockerfilePath: services/classification-service/Dockerfile` (not risk-assessment-service)
-- Verify dashboard has `startCommand: ./classification-service` (not risk-assessment-service command)
+- Verify root `railway.json` has `dockerfilePath: services/classification-service/Dockerfile`
+- Verify root `railway.json` has `startCommand: ./classification-service`
 - Ensure you're editing the correct service in Railway dashboard
-- The service-specific `services/classification-service/railway.json` is correct, but Railway may use root one when building from repo root
+- If issues persist, you can override settings in Railway dashboard
 
