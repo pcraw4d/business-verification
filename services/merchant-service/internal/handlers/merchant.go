@@ -298,7 +298,7 @@ func (h *MerchantHandler) HandleListMerchants(w http.ResponseWriter, r *http.Req
 }
 
 // createMerchant creates a new merchant
-func (h *MerchantHandler) createMerchant(ctx context.Context, req *CreateMerchantRequest, startTime time.Time) (*Merchant, error) {
+func (h *MerchantHandler) createMerchant(ctx context.Context, req *CreateMerchantRequest, startTime time.Time, userID string) (*Merchant, error) {
 	// Generate merchant ID
 	merchantID := h.generateMerchantID()
 
@@ -337,7 +337,7 @@ func (h *MerchantHandler) createMerchant(ctx context.Context, req *CreateMerchan
 		RiskLevel:          riskLevel,
 		ComplianceStatus:   req.ComplianceStatus,
 		Status:             status,
-		CreatedBy:          "system", // TODO: Get from auth context
+		CreatedBy:          userID,
 		CreatedAt:          time.Now(),
 		UpdatedAt:          time.Now(),
 	}
