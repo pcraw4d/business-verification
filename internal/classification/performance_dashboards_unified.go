@@ -11,19 +11,22 @@ import (
 
 // PerformanceDashboardsUnified provides comprehensive database performance monitoring and dashboard functionality
 // using the unified monitoring schema instead of the old redundant tables
-type PerformanceDashboardsUnified struct {
+// UnifiedPerformanceDashboards provides unified performance dashboards
+// (renamed to avoid conflict with performance_dashboards.go)
+type UnifiedPerformanceDashboards struct {
 	db *sql.DB
 }
 
-// NewPerformanceDashboardsUnified creates a new instance of PerformanceDashboardsUnified
-func NewPerformanceDashboardsUnified(db *sql.DB) *PerformanceDashboardsUnified {
-	return &PerformanceDashboardsUnified{
+// NewUnifiedPerformanceDashboards creates a new instance of UnifiedPerformanceDashboards
+func NewUnifiedPerformanceDashboards(db *sql.DB) *UnifiedPerformanceDashboards {
+	return &UnifiedPerformanceDashboards{
 		db: db,
 	}
 }
 
-// PerformanceMetric represents a performance metric from unified_performance_metrics
-type PerformanceMetric struct {
+// UnifiedPerformanceMetric represents a performance metric from unified_performance_metrics
+// (renamed to avoid conflict with performance_dashboards.go)
+type UnifiedPerformanceMetric struct {
 	ID                string          `json:"id"`
 	Timestamp         time.Time       `json:"timestamp"`
 	Component         string          `json:"component"`
@@ -44,8 +47,9 @@ type PerformanceMetric struct {
 	CreatedAt         time.Time       `json:"created_at"`
 }
 
-// PerformanceAlert represents a performance alert from unified_performance_alerts
-type PerformanceAlert struct {
+// UnifiedPerformanceAlert represents a performance alert from unified_performance_alerts
+// (renamed to avoid conflict with performance_alerting.go and performance_dashboards.go)
+type UnifiedPerformanceAlert struct {
 	ID                string          `json:"id"`
 	Timestamp         time.Time       `json:"timestamp"`
 	Component         string          `json:"component"`
@@ -68,8 +72,9 @@ type PerformanceAlert struct {
 	CreatedAt         time.Time       `json:"created_at"`
 }
 
-// PerformanceReport represents a performance report from unified_performance_reports
-type PerformanceReport struct {
+// UnifiedPerformanceReport represents a performance report from unified_performance_reports
+// (renamed to avoid conflict with performance_dashboards.go)
+type UnifiedPerformanceReport struct {
 	ID                string          `json:"id"`
 	Timestamp         time.Time       `json:"timestamp"`
 	Component         string          `json:"component"`
@@ -87,8 +92,9 @@ type PerformanceReport struct {
 	CreatedAt         time.Time       `json:"created_at"`
 }
 
-// IntegrationHealth represents integration health from performance_integration_health
-type IntegrationHealth struct {
+// UnifiedIntegrationHealth represents integration health from performance_integration_health
+// (renamed to avoid conflict with performance_dashboards.go)
+type UnifiedIntegrationHealth struct {
 	ID                string          `json:"id"`
 	Timestamp         time.Time       `json:"timestamp"`
 	Component         string          `json:"component"`
@@ -106,8 +112,9 @@ type IntegrationHealth struct {
 	CreatedAt         time.Time       `json:"created_at"`
 }
 
-// QueryPerformanceAnalysis represents query performance analysis derived from unified metrics
-type QueryPerformanceAnalysis struct {
+// UnifiedQueryPerformanceAnalysis represents query performance analysis derived from unified metrics
+// (renamed to avoid conflict with performance_dashboards.go)
+type UnifiedQueryPerformanceAnalysis struct {
 	QueryID              int64   `json:"query_id"`
 	QueryText            string  `json:"query_text"`
 	Calls                int64   `json:"calls"`
@@ -122,8 +129,9 @@ type QueryPerformanceAnalysis struct {
 	Recommendations      string  `json:"recommendations"`
 }
 
-// IndexPerformanceAnalysis represents index performance analysis derived from unified metrics
-type IndexPerformanceAnalysis struct {
+// UnifiedIndexPerformanceAnalysis represents index performance analysis derived from unified metrics
+// (renamed to avoid conflict with performance_dashboards.go)
+type UnifiedIndexPerformanceAnalysis struct {
 	TableName            string  `json:"table_name"`
 	IndexName            string  `json:"index_name"`
 	IndexSizeMB          float64 `json:"index_size_mb"`
@@ -136,8 +144,9 @@ type IndexPerformanceAnalysis struct {
 	Recommendations      string  `json:"recommendations"`
 }
 
-// TablePerformanceAnalysis represents table performance analysis derived from unified metrics
-type TablePerformanceAnalysis struct {
+// UnifiedTablePerformanceAnalysis represents table performance analysis derived from unified metrics
+// (renamed to avoid conflict with performance_dashboards.go)
+type UnifiedTablePerformanceAnalysis struct {
 	TableName            string  `json:"table_name"`
 	TableSizeMB          float64 `json:"table_size_mb"`
 	RowCount             int64   `json:"row_count"`
@@ -153,8 +162,9 @@ type TablePerformanceAnalysis struct {
 	Recommendations      string  `json:"recommendations"`
 }
 
-// ConnectionPerformanceAnalysis represents connection performance analysis derived from unified metrics
-type ConnectionPerformanceAnalysis struct {
+// UnifiedConnectionPerformanceAnalysis represents connection performance analysis derived from unified metrics
+// (renamed to avoid conflict with performance_dashboards.go)
+type UnifiedConnectionPerformanceAnalysis struct {
 	ConnectionCount       int     `json:"connection_count"`
 	ActiveConnections     int     `json:"active_connections"`
 	IdleConnections       int     `json:"idle_connections"`
@@ -164,8 +174,9 @@ type ConnectionPerformanceAnalysis struct {
 	Recommendations       string  `json:"recommendations"`
 }
 
-// PerformanceDashboard represents performance dashboard data derived from unified metrics
-type PerformanceDashboard struct {
+// UnifiedPerformanceDashboard represents performance dashboard data derived from unified metrics
+// (renamed to avoid conflict with performance_dashboards.go)
+type UnifiedPerformanceDashboard struct {
 	DashboardSection string `json:"dashboard_section"`
 	MetricName       string `json:"metric_name"`
 	CurrentValue     string `json:"current_value"`
@@ -175,8 +186,9 @@ type PerformanceDashboard struct {
 	Recommendations  string `json:"recommendations"`
 }
 
-// PerformanceTrend represents performance trend data derived from unified metrics
-type PerformanceTrend struct {
+// UnifiedPerformanceTrend represents performance trend data derived from unified metrics
+// (renamed to avoid conflict with performance_dashboards.go)
+type UnifiedPerformanceTrend struct {
 	MetricName          string  `json:"metric_name"`
 	DateRecorded        string  `json:"date_recorded"`
 	AvgValue            float64 `json:"avg_value"`
@@ -186,8 +198,9 @@ type PerformanceTrend struct {
 	PerformanceCategory string  `json:"performance_category"`
 }
 
-// PerformanceSummary represents performance summary data derived from unified metrics
-type PerformanceSummary struct {
+// UnifiedPerformanceSummary represents performance summary data derived from unified metrics
+// (renamed to avoid conflict with performance_dashboards.go)
+type UnifiedPerformanceSummary struct {
 	SummaryCategory string    `json:"summary_category"`
 	TotalMetrics    int       `json:"total_metrics"`
 	OkCount         int       `json:"ok_count"`
@@ -197,8 +210,9 @@ type PerformanceSummary struct {
 	LastUpdated     time.Time `json:"last_updated"`
 }
 
-// PerformanceDataExport represents exported performance data derived from unified metrics
-type PerformanceDataExport struct {
+// UnifiedPerformanceDataExport represents exported performance data derived from unified metrics
+// (renamed to avoid conflict with performance_dashboards.go)
+type UnifiedPerformanceDataExport struct {
 	ExportDate    string  `json:"export_date"`
 	MetricName    string  `json:"metric_name"`
 	DailyAvgValue float64 `json:"daily_avg_value"`
@@ -207,8 +221,9 @@ type PerformanceDataExport struct {
 	StatusSummary string  `json:"status_summary"`
 }
 
-// PerformanceValidation represents performance monitoring setup validation
-type PerformanceValidation struct {
+// UnifiedPerformanceValidation represents performance monitoring setup validation
+// (renamed to avoid conflict with performance_dashboards.go)
+type UnifiedPerformanceValidation struct {
 	Component      string `json:"component"`
 	Status         string `json:"status"`
 	Details        string `json:"details"`
@@ -216,7 +231,7 @@ type PerformanceValidation struct {
 }
 
 // CollectPerformanceMetrics collects comprehensive performance metrics from unified_performance_metrics
-func (pd *PerformanceDashboardsUnified) CollectPerformanceMetrics(ctx context.Context) ([]PerformanceMetric, error) {
+func (pd *UnifiedPerformanceDashboards) CollectPerformanceMetrics(ctx context.Context) ([]UnifiedPerformanceMetric, error) {
 	query := `
 		SELECT 
 			id, timestamp, component, component_instance, service_name,
@@ -235,9 +250,9 @@ func (pd *PerformanceDashboardsUnified) CollectPerformanceMetrics(ctx context.Co
 	}
 	defer rows.Close()
 
-	var results []PerformanceMetric
+	var results []UnifiedPerformanceMetric
 	for rows.Next() {
-		var result PerformanceMetric
+		var result UnifiedPerformanceMetric
 		err := rows.Scan(
 			&result.ID,
 			&result.Timestamp,
@@ -268,7 +283,7 @@ func (pd *PerformanceDashboardsUnified) CollectPerformanceMetrics(ctx context.Co
 }
 
 // GetPerformanceAlerts gets current performance alerts from unified_performance_alerts
-func (pd *PerformanceDashboardsUnified) GetPerformanceAlerts(ctx context.Context) ([]PerformanceAlert, error) {
+func (pd *UnifiedPerformanceDashboards) GetPerformanceAlerts(ctx context.Context) ([]UnifiedPerformanceAlert, error) {
 	query := `
 		SELECT 
 			id, timestamp, component, component_instance, service_name,
@@ -288,9 +303,9 @@ func (pd *PerformanceDashboardsUnified) GetPerformanceAlerts(ctx context.Context
 	}
 	defer rows.Close()
 
-	var results []PerformanceAlert
+	var results []UnifiedPerformanceAlert
 	for rows.Next() {
-		var result PerformanceAlert
+		var result UnifiedPerformanceAlert
 		err := rows.Scan(
 			&result.ID,
 			&result.Timestamp,
@@ -323,7 +338,7 @@ func (pd *PerformanceDashboardsUnified) GetPerformanceAlerts(ctx context.Context
 }
 
 // GetPerformanceSummary gets performance summary derived from unified metrics
-func (pd *PerformanceDashboardsUnified) GetPerformanceSummary(ctx context.Context) ([]PerformanceSummary, error) {
+func (pd *UnifiedPerformanceDashboards) GetPerformanceSummary(ctx context.Context) ([]UnifiedPerformanceSummary, error) {
 	query := `
 		SELECT 
 			component as summary_category,
@@ -349,9 +364,9 @@ func (pd *PerformanceDashboardsUnified) GetPerformanceSummary(ctx context.Contex
 	}
 	defer rows.Close()
 
-	var results []PerformanceSummary
+	var results []UnifiedPerformanceSummary
 	for rows.Next() {
-		var result PerformanceSummary
+		var result UnifiedPerformanceSummary
 		err := rows.Scan(
 			&result.SummaryCategory,
 			&result.TotalMetrics,
@@ -371,7 +386,7 @@ func (pd *PerformanceDashboardsUnified) GetPerformanceSummary(ctx context.Contex
 }
 
 // GetPerformanceTrends gets performance trends over time from unified metrics
-func (pd *PerformanceDashboardsUnified) GetPerformanceTrends(ctx context.Context, daysBack int) ([]PerformanceTrend, error) {
+func (pd *UnifiedPerformanceDashboards) GetPerformanceTrends(ctx context.Context, daysBack int) ([]UnifiedPerformanceTrend, error) {
 	query := `
 		SELECT 
 			metric_name,
@@ -397,9 +412,9 @@ func (pd *PerformanceDashboardsUnified) GetPerformanceTrends(ctx context.Context
 	}
 	defer rows.Close()
 
-	var results []PerformanceTrend
+	var results []UnifiedPerformanceTrend
 	for rows.Next() {
-		var result PerformanceTrend
+		var result UnifiedPerformanceTrend
 		var dateRecorded time.Time
 		err := rows.Scan(
 			&result.MetricName,
@@ -421,7 +436,7 @@ func (pd *PerformanceDashboardsUnified) GetPerformanceTrends(ctx context.Context
 }
 
 // GetCurrentPerformanceStatus gets current performance status summary from unified metrics
-func (pd *PerformanceDashboardsUnified) GetCurrentPerformanceStatus(ctx context.Context) (map[string]interface{}, error) {
+func (pd *UnifiedPerformanceDashboards) GetCurrentPerformanceStatus(ctx context.Context) (map[string]interface{}, error) {
 	status := make(map[string]interface{})
 
 	// Get performance metrics
@@ -466,7 +481,7 @@ func (pd *PerformanceDashboardsUnified) GetCurrentPerformanceStatus(ctx context.
 }
 
 // GetPerformanceInsights gets performance insights and recommendations from unified metrics
-func (pd *PerformanceDashboardsUnified) GetPerformanceInsights(ctx context.Context) (map[string]interface{}, error) {
+func (pd *UnifiedPerformanceDashboards) GetPerformanceInsights(ctx context.Context) (map[string]interface{}, error) {
 	insights := make(map[string]interface{})
 
 	// Get performance trends
@@ -528,7 +543,7 @@ func (pd *PerformanceDashboardsUnified) GetPerformanceInsights(ctx context.Conte
 }
 
 // ExportPerformanceData exports performance data for analysis from unified metrics
-func (pd *PerformanceDashboardsUnified) ExportPerformanceData(ctx context.Context, daysBack int) ([]PerformanceDataExport, error) {
+func (pd *UnifiedPerformanceDashboards) ExportPerformanceData(ctx context.Context, daysBack int) ([]UnifiedPerformanceDataExport, error) {
 	query := `
 		SELECT 
 			DATE(timestamp) as export_date,
@@ -553,9 +568,9 @@ func (pd *PerformanceDashboardsUnified) ExportPerformanceData(ctx context.Contex
 	}
 	defer rows.Close()
 
-	var results []PerformanceDataExport
+	var results []UnifiedPerformanceDataExport
 	for rows.Next() {
-		var result PerformanceDataExport
+		var result UnifiedPerformanceDataExport
 		var exportDate time.Time
 		err := rows.Scan(
 			&exportDate,
@@ -576,8 +591,8 @@ func (pd *PerformanceDashboardsUnified) ExportPerformanceData(ctx context.Contex
 }
 
 // ValidatePerformanceMonitoringSetup validates performance monitoring setup using unified tables
-func (pd *PerformanceDashboardsUnified) ValidatePerformanceMonitoringSetup(ctx context.Context) ([]PerformanceValidation, error) {
-	var results []PerformanceValidation
+func (pd *UnifiedPerformanceDashboards) ValidatePerformanceMonitoringSetup(ctx context.Context) ([]UnifiedPerformanceValidation, error) {
+	var results []UnifiedPerformanceValidation
 
 	// Check if unified tables exist and have data
 	validationQueries := []struct {
@@ -611,7 +626,7 @@ func (pd *PerformanceDashboardsUnified) ValidatePerformanceMonitoringSetup(ctx c
 		var count int64
 		err := pd.db.QueryRowContext(ctx, vq.query).Scan(&count)
 
-		validation := PerformanceValidation{
+		validation := UnifiedPerformanceValidation{
 			Component: vq.component,
 			Details:   vq.details,
 		}
@@ -634,7 +649,7 @@ func (pd *PerformanceDashboardsUnified) ValidatePerformanceMonitoringSetup(ctx c
 }
 
 // MonitorPerformanceContinuously starts continuous performance monitoring using unified tables
-func (pd *PerformanceDashboardsUnified) MonitorPerformanceContinuously(ctx context.Context, interval time.Duration) {
+func (pd *UnifiedPerformanceDashboards) MonitorPerformanceContinuously(ctx context.Context, interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 

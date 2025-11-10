@@ -495,7 +495,7 @@ func (prg *PerformanceReportGenerator) generatePerformanceMetrics(ctx context.Co
 	metrics.QueryPerformance = &QueryPerformanceSummary{
 		AverageResponseTime: 250 * time.Millisecond,
 		P95ResponseTime:     800 * time.Millisecond,
-		P99ResponseTime:     1.5 * time.Second,
+		P99ResponseTime:     time.Duration(1500) * time.Millisecond, // 1.5 seconds
 		TotalQueries:        10000,
 		SlowQueries:         150,
 		ErrorRate:           0.5,
@@ -632,7 +632,7 @@ func (prg *PerformanceReportGenerator) generateSlowQueryAnalysis(ctx context.Con
 	analysis.TopSlowQueries = []*SlowQuerySummary{
 		{
 			QueryID:           "query_001",
-			AverageTime:       2.5 * time.Second,
+			AverageTime:       time.Duration(2500) * time.Millisecond, // 2.5 seconds
 			CallCount:         1000,
 			Priority:          "High",
 			MainIssues:        []string{"Sequential scan", "Missing index"},
@@ -640,7 +640,7 @@ func (prg *PerformanceReportGenerator) generateSlowQueryAnalysis(ctx context.Con
 		},
 		{
 			QueryID:           "query_002",
-			AverageTime:       1.8 * time.Second,
+			AverageTime:       time.Duration(1800) * time.Millisecond, // 1.8 seconds
 			CallCount:         500,
 			Priority:          "High",
 			MainIssues:        []string{"Complex join", "Temporary files"},
@@ -648,7 +648,7 @@ func (prg *PerformanceReportGenerator) generateSlowQueryAnalysis(ctx context.Con
 		},
 		{
 			QueryID:           "query_003",
-			AverageTime:       1.2 * time.Second,
+			AverageTime:       time.Duration(1200) * time.Millisecond, // 1.2 seconds
 			CallCount:         2000,
 			Priority:          "Medium",
 			MainIssues:        []string{"Suboptimal index usage"},

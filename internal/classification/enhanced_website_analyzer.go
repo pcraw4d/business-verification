@@ -16,8 +16,9 @@ type EnhancedWebsiteAnalyzer struct {
 	structuredDataExtractor *StructuredDataExtractor
 }
 
-// ClassificationCode represents a classification code (MCC, SIC, NAICS)
-type ClassificationCode struct {
+// WebsiteClassificationCode represents a classification code (MCC, SIC, NAICS)
+// (renamed to avoid conflict with crosswalk_types.go)
+type WebsiteClassificationCode struct {
 	Code        string  `json:"code"`
 	Description string  `json:"description"`
 	Confidence  float64 `json:"confidence"`
@@ -43,9 +44,9 @@ type BusinessClassificationResult struct {
 	IndustryConfidence     float64              `json:"industry_confidence"`
 	BusinessType           string               `json:"business_type"`
 	BusinessTypeConfidence float64              `json:"business_type_confidence"`
-	MCCCodes               []ClassificationCode `json:"mcc_codes"`
-	SICCodes               []ClassificationCode `json:"sic_codes"`
-	NAICSCodes             []ClassificationCode `json:"naics_codes"`
+	MCCCodes               []WebsiteClassificationCode `json:"mcc_codes"`
+	SICCodes               []WebsiteClassificationCode `json:"sic_codes"`
+	NAICSCodes             []WebsiteClassificationCode `json:"naics_codes"`
 	Keywords               []string             `json:"keywords"`
 	ConfidenceScore        float64              `json:"confidence_score"`
 	AnalysisMethod         string               `json:"analysis_method"`
@@ -163,9 +164,9 @@ func (ewa *EnhancedWebsiteAnalyzer) extractStructuredDataFromRelevantPages(crawl
 // performBusinessClassification performs business classification based on all analysis results
 func (ewa *EnhancedWebsiteAnalyzer) performBusinessClassification(crawlResult *CrawlResult, relevanceAnalysis *RelevanceAnalysisResult, structuredData *StructuredDataResult) *BusinessClassificationResult {
 	classification := &BusinessClassificationResult{
-		MCCCodes:       []ClassificationCode{},
-		SICCodes:       []ClassificationCode{},
-		NAICSCodes:     []ClassificationCode{},
+		MCCCodes:       []WebsiteClassificationCode{},
+		SICCodes:       []WebsiteClassificationCode{},
+		NAICSCodes:     []WebsiteClassificationCode{},
 		Keywords:       []string{},
 		AnalysisMethod: "enhanced_website_analysis",
 	}
@@ -234,78 +235,78 @@ func (ewa *EnhancedWebsiteAnalyzer) performBusinessClassification(crawlResult *C
 }
 
 // generateClassificationCodes generates classification codes based on industry
-func (ewa *EnhancedWebsiteAnalyzer) generateClassificationCodes(industry string) ([]ClassificationCode, []ClassificationCode, []ClassificationCode) {
-	var mccCodes, sicCodes, naicsCodes []ClassificationCode
+func (ewa *EnhancedWebsiteAnalyzer) generateClassificationCodes(industry string) ([]WebsiteClassificationCode, []WebsiteClassificationCode, []WebsiteClassificationCode) {
+	var mccCodes, sicCodes, naicsCodes []WebsiteClassificationCode
 
 	// Industry-specific code mappings
 	industryMappings := map[string]struct {
-		mcc   []ClassificationCode
-		sic   []ClassificationCode
-		naics []ClassificationCode
+		mcc   []WebsiteClassificationCode
+		sic   []WebsiteClassificationCode
+		naics []WebsiteClassificationCode
 	}{
 		"food_beverage": {
-			mcc: []ClassificationCode{
+			mcc: []WebsiteClassificationCode{
 				{Code: "5813", Description: "Drinking Places (Alcoholic Beverages)", Confidence: 0.95},
 				{Code: "5814", Description: "Fast Food Restaurants", Confidence: 0.85},
 				{Code: "5411", Description: "Grocery Stores, Supermarkets", Confidence: 0.75},
 			},
-			sic: []ClassificationCode{
+			sic: []WebsiteClassificationCode{
 				{Code: "5813", Description: "Drinking Places (Alcoholic Beverages)", Confidence: 0.95},
 				{Code: "5812", Description: "Eating Places", Confidence: 0.85},
 				{Code: "5411", Description: "Grocery Stores", Confidence: 0.75},
 			},
-			naics: []ClassificationCode{
+			naics: []WebsiteClassificationCode{
 				{Code: "445310", Description: "Beer, Wine, and Liquor Stores", Confidence: 0.95},
 				{Code: "722511", Description: "Full-Service Restaurants", Confidence: 0.85},
 				{Code: "445110", Description: "Supermarkets and Other Grocery Stores", Confidence: 0.75},
 			},
 		},
 		"technology": {
-			mcc: []ClassificationCode{
+			mcc: []WebsiteClassificationCode{
 				{Code: "7372", Description: "Computer Programming Services", Confidence: 0.95},
 				{Code: "7371", Description: "Computer Programming Services", Confidence: 0.85},
 				{Code: "7379", Description: "Computer Related Services", Confidence: 0.75},
 			},
-			sic: []ClassificationCode{
+			sic: []WebsiteClassificationCode{
 				{Code: "7372", Description: "Computer Programming Services", Confidence: 0.95},
 				{Code: "7371", Description: "Computer Programming Services", Confidence: 0.85},
 				{Code: "7379", Description: "Computer Related Services", Confidence: 0.75},
 			},
-			naics: []ClassificationCode{
+			naics: []WebsiteClassificationCode{
 				{Code: "541511", Description: "Custom Computer Programming Services", Confidence: 0.95},
 				{Code: "541512", Description: "Computer Systems Design Services", Confidence: 0.85},
 				{Code: "541519", Description: "Other Computer Related Services", Confidence: 0.75},
 			},
 		},
 		"healthcare": {
-			mcc: []ClassificationCode{
+			mcc: []WebsiteClassificationCode{
 				{Code: "8011", Description: "Doctors and Physicians", Confidence: 0.95},
 				{Code: "8021", Description: "Dentists and Orthodontists", Confidence: 0.85},
 				{Code: "8041", Description: "Chiropractors", Confidence: 0.75},
 			},
-			sic: []ClassificationCode{
+			sic: []WebsiteClassificationCode{
 				{Code: "8011", Description: "Offices and Clinics of Doctors of Medicine", Confidence: 0.95},
 				{Code: "8021", Description: "Offices and Clinics of Dentists", Confidence: 0.85},
 				{Code: "8041", Description: "Offices and Clinics of Chiropractors", Confidence: 0.75},
 			},
-			naics: []ClassificationCode{
+			naics: []WebsiteClassificationCode{
 				{Code: "621111", Description: "Offices of Physicians (except Mental Health Specialists)", Confidence: 0.95},
 				{Code: "621210", Description: "Offices of Dentists", Confidence: 0.85},
 				{Code: "621310", Description: "Offices of Chiropractors", Confidence: 0.75},
 			},
 		},
 		"retail": {
-			mcc: []ClassificationCode{
+			mcc: []WebsiteClassificationCode{
 				{Code: "5310", Description: "Department Stores", Confidence: 0.95},
 				{Code: "5311", Description: "Department Stores", Confidence: 0.85},
 				{Code: "5411", Description: "Grocery Stores, Supermarkets", Confidence: 0.75},
 			},
-			sic: []ClassificationCode{
+			sic: []WebsiteClassificationCode{
 				{Code: "5311", Description: "Department Stores", Confidence: 0.95},
 				{Code: "5312", Description: "Variety Stores", Confidence: 0.85},
 				{Code: "5411", Description: "Grocery Stores", Confidence: 0.75},
 			},
-			naics: []ClassificationCode{
+			naics: []WebsiteClassificationCode{
 				{Code: "452111", Description: "Department Stores", Confidence: 0.95},
 				{Code: "452112", Description: "Discount Department Stores", Confidence: 0.85},
 				{Code: "445110", Description: "Supermarkets and Other Grocery Stores", Confidence: 0.75},

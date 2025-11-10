@@ -44,8 +44,9 @@ type PerformanceMetric struct {
 	CreatedAt         time.Time       `json:"created_at"`
 }
 
-// PerformanceAlert represents a performance alert from unified_performance_alerts
-type PerformanceAlert struct {
+// DashboardPerformanceAlert represents a performance alert from unified_performance_alerts
+// (renamed to avoid conflict with performance_alerting.go)
+type DashboardPerformanceAlert struct {
 	ID                string          `json:"id"`
 	Timestamp         time.Time       `json:"timestamp"`
 	Component         string          `json:"component"`

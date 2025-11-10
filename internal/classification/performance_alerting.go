@@ -11,8 +11,9 @@ import (
 	"github.com/lib/pq" // For array scanning
 )
 
-// parseJSONField parses a JSON field from database result
-func parseJSONField(data []byte, target interface{}) error {
+// parseJSONFieldAlerting parses a JSON field from database result
+// (renamed to avoid conflict with classification_accuracy_monitoring.go)
+func parseJSONFieldAlerting(data []byte, target interface{}) error {
 	if len(data) == 0 {
 		return nil
 	}
@@ -384,11 +385,11 @@ func (pa *PerformanceAlerting) GetAlertStatistics(ctx context.Context, hoursBack
 	}
 
 	// Parse JSON fields
-	if err := parseJSONField(alertsByCategory, &result.AlertsByCategory); err != nil {
+		if err := parseJSONFieldAlerting(alertsByCategory, &result.AlertsByCategory); err != nil {
 		log.Printf("Warning: failed to parse alerts by category: %v", err)
 	}
 
-	if err := parseJSONField(alertsByType, &result.AlertsByType); err != nil {
+		if err := parseJSONFieldAlerting(alertsByType, &result.AlertsByType); err != nil {
 		log.Printf("Warning: failed to parse alerts by type: %v", err)
 	}
 

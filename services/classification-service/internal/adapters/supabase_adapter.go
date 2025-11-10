@@ -1,7 +1,6 @@
 package adapters
 
 import (
-	"context"
 	"log"
 
 	"kyb-platform/internal/database"

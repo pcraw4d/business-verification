@@ -11,30 +11,31 @@ import (
 // SmartCrawlingIntegration integrates smart crawling with existing classification pipeline
 type SmartCrawlingIntegration struct {
 	logger             *log.Logger
-	enhancedAnalyzer   *EnhancedWebsiteAnalyzer
+	enhancedAnalyzer   *IntegrationEnhancedWebsiteAnalyzer
 	existingClassifier ClassificationService
 }
 
-// EnhancedWebsiteAnalyzer represents the enhanced website analyzer (placeholder)
-type EnhancedWebsiteAnalyzer struct {
+// IntegrationEnhancedWebsiteAnalyzer represents the enhanced website analyzer (placeholder)
+// (renamed to avoid conflict with enhanced_website_analyzer.go)
+type IntegrationEnhancedWebsiteAnalyzer struct {
 	logger *log.Logger
 }
 
-// NewEnhancedWebsiteAnalyzer creates a new enhanced website analyzer
-func NewEnhancedWebsiteAnalyzer(logger *log.Logger) *EnhancedWebsiteAnalyzer {
-	return &EnhancedWebsiteAnalyzer{logger: logger}
+// NewIntegrationEnhancedWebsiteAnalyzer creates a new enhanced website analyzer
+func NewIntegrationEnhancedWebsiteAnalyzer(logger *log.Logger) *IntegrationEnhancedWebsiteAnalyzer {
+	return &IntegrationEnhancedWebsiteAnalyzer{logger: logger}
 }
 
 // AnalyzeWebsite performs website analysis (placeholder implementation)
-func (ewa *EnhancedWebsiteAnalyzer) AnalyzeWebsite(ctx context.Context, websiteURL string) (*EnhancedAnalysisResult, error) {
+func (ewa *IntegrationEnhancedWebsiteAnalyzer) AnalyzeWebsite(ctx context.Context, websiteURL string) (*IntegrationEnhancedAnalysisResult, error) {
 	// Placeholder implementation - would integrate with actual smart crawling
-	result := &EnhancedAnalysisResult{
+		result := &IntegrationEnhancedAnalysisResult{
 		WebsiteURL:        websiteURL,
 		AnalysisTimestamp: time.Now(),
 		Success:           true,
 		ProcessingTime:    100 * time.Millisecond,
 		OverallConfidence: 0.8,
-		BusinessClassification: &BusinessClassificationResult{
+		BusinessClassification: &IntegrationBusinessClassificationResult{
 			PrimaryIndustry:        "Technology",
 			IndustryConfidence:     0.8,
 			BusinessType:           "Software Development",
@@ -47,13 +48,14 @@ func (ewa *EnhancedWebsiteAnalyzer) AnalyzeWebsite(ctx context.Context, websiteU
 	return result, nil
 }
 
-// EnhancedAnalysisResult represents the result of enhanced analysis
-type EnhancedAnalysisResult struct {
+// IntegrationEnhancedAnalysisResult represents the result of enhanced analysis
+// (renamed to avoid conflict with enhanced_website_analyzer.go)
+type IntegrationEnhancedAnalysisResult struct {
 	WebsiteURL             string                        `json:"website_url"`
-	CrawlResult            *CrawlResult                  `json:"crawl_result"`
-	RelevanceAnalysis      *RelevanceAnalysisResult      `json:"relevance_analysis"`
+	CrawlResult            *IntegrationCrawlResult                  `json:"crawl_result"`
+	RelevanceAnalysis      *IntegrationRelevanceAnalysisResult      `json:"relevance_analysis"`
 	StructuredData         *StructuredDataResult         `json:"structured_data"`
-	BusinessClassification *BusinessClassificationResult `json:"business_classification"`
+	BusinessClassification *IntegrationBusinessClassificationResult `json:"business_classification"`
 	AnalysisTimestamp      time.Time                     `json:"analysis_timestamp"`
 	ProcessingTime         time.Duration                 `json:"processing_time"`
 	OverallConfidence      float64                       `json:"overall_confidence"`
@@ -61,37 +63,40 @@ type EnhancedAnalysisResult struct {
 	Error                  string                        `json:"error,omitempty"`
 }
 
-// BusinessClassificationResult represents the final business classification
-type BusinessClassificationResult struct {
+// IntegrationBusinessClassificationResult represents the final business classification
+// (renamed to avoid conflict with enhanced_website_analyzer.go)
+type IntegrationBusinessClassificationResult struct {
 	PrimaryIndustry        string               `json:"primary_industry"`
 	IndustryConfidence     float64              `json:"industry_confidence"`
 	BusinessType           string               `json:"business_type"`
 	BusinessTypeConfidence float64              `json:"business_type_confidence"`
-	MCCCodes               []ClassificationCode `json:"mcc_codes"`
-	SICCodes               []ClassificationCode `json:"sic_codes"`
-	NAICSCodes             []ClassificationCode `json:"naics_codes"`
+			MCCCodes               []WebsiteClassificationCode `json:"mcc_codes"`
+			SICCodes               []WebsiteClassificationCode `json:"sic_codes"`
+			NAICSCodes             []WebsiteClassificationCode `json:"naics_codes"`
 	Keywords               []string             `json:"keywords"`
 	ConfidenceScore        float64              `json:"confidence_score"`
 	AnalysisMethod         string               `json:"analysis_method"`
 }
 
-// CrawlResult represents the result of a smart crawl operation
-type CrawlResult struct {
+// IntegrationCrawlResult represents the result of a smart crawl operation
+// (renamed to avoid conflict with content_relevance_analyzer.go)
+type IntegrationCrawlResult struct {
 	BaseURL       string             `json:"base_url"`
-	PagesAnalyzed []PageAnalysis     `json:"pages_analyzed"`
+	PagesAnalyzed []IntegrationPageAnalysis     `json:"pages_analyzed"`
 	TotalPages    int                `json:"total_pages"`
 	RelevantPages int                `json:"relevant_pages"`
 	Keywords      []string           `json:"keywords"`
 	IndustryScore map[string]float64 `json:"industry_score"`
-	BusinessInfo  BusinessInfo       `json:"business_info"`
-	SiteStructure SiteStructure      `json:"site_structure"`
+	BusinessInfo  IntegrationBusinessInfo       `json:"business_info"`
+	SiteStructure IntegrationSiteStructure      `json:"site_structure"`
 	CrawlDuration time.Duration      `json:"crawl_duration"`
 	Success       bool               `json:"success"`
 	Error         string             `json:"error,omitempty"`
 }
 
-// PageAnalysis represents analysis of a single page
-type PageAnalysis struct {
+// IntegrationPageAnalysis represents analysis of a single page
+// (renamed to avoid conflict with content_relevance_analyzer.go)
+type IntegrationPageAnalysis struct {
 	URL                string                 `json:"url"`
 	Title              string                 `json:"title"`
 	PageType           string                 `json:"page_type"`
@@ -99,7 +104,7 @@ type PageAnalysis struct {
 	ContentQuality     float64                `json:"content_quality"`
 	Keywords           []string               `json:"keywords"`
 	IndustryIndicators []string               `json:"industry_indicators"`
-	BusinessInfo       BusinessInfo           `json:"business_info"`
+	BusinessInfo       IntegrationBusinessInfo           `json:"business_info"`
 	MetaTags           map[string]string      `json:"meta_tags"`
 	StructuredData     map[string]interface{} `json:"structured_data"`
 	ResponseTime       time.Duration          `json:"response_time"`
@@ -109,21 +114,23 @@ type PageAnalysis struct {
 	Priority           int                    `json:"priority"`
 }
 
-// BusinessInfo represents extracted business information
-type BusinessInfo struct {
+// IntegrationBusinessInfo represents extracted business information
+// (renamed to avoid conflict with content_relevance_analyzer.go)
+type IntegrationBusinessInfo struct {
 	BusinessName  string      `json:"business_name"`
 	Description   string      `json:"description"`
 	Services      []string    `json:"services"`
 	Products      []string    `json:"products"`
-	ContactInfo   ContactInfo `json:"contact_info"`
+	ContactInfo   IntegrationContactInfo `json:"contact_info"`
 	BusinessHours string      `json:"business_hours"`
 	Location      string      `json:"location"`
 	Industry      string      `json:"industry"`
 	BusinessType  string      `json:"business_type"`
 }
 
-// ContactInfo represents contact information
-type ContactInfo struct {
+// IntegrationContactInfo represents contact information
+// (renamed to avoid conflict with content_relevance_analyzer.go)
+type IntegrationContactInfo struct {
 	Phone   string            `json:"phone"`
 	Email   string            `json:"email"`
 	Address string            `json:"address"`
@@ -131,8 +138,9 @@ type ContactInfo struct {
 	Social  map[string]string `json:"social"`
 }
 
-// SiteStructure represents the discovered site structure
-type SiteStructure struct {
+// IntegrationSiteStructure represents the discovered site structure
+// (renamed to avoid conflict with content_relevance_analyzer.go)
+type IntegrationSiteStructure struct {
 	Homepage        string   `json:"homepage"`
 	AboutPages      []string `json:"about_pages"`
 	ServicePages    []string `json:"service_pages"`
@@ -144,12 +152,13 @@ type SiteStructure struct {
 	TotalDiscovered int      `json:"total_discovered"`
 }
 
-// RelevanceAnalysisResult represents the result of content relevance analysis
-type RelevanceAnalysisResult struct {
+// IntegrationRelevanceAnalysisResult represents the result of content relevance analysis
+// (renamed to avoid conflict with content_relevance_analyzer.go)
+type IntegrationRelevanceAnalysisResult struct {
 	OverallRelevance    float64            `json:"overall_relevance"`
 	PageRelevance       map[string]float64 `json:"page_relevance"`
 	TopKeywords         []KeywordSignal    `json:"top_keywords"`
-	DetectedIndustries  []IndustrySignal   `json:"detected_industries"`
+	DetectedIndustries  []IntegrationIndustrySignal   `json:"detected_industries"`
 	ContentQualityScore float64            `json:"content_quality_score"`
 	ConfidenceScore     float64            `json:"confidence_score"`
 	AnalysisDuration    time.Duration      `json:"analysis_duration"`
@@ -166,8 +175,9 @@ type KeywordSignal struct {
 	Source     string  `json:"source"`
 }
 
-// IndustrySignal represents an industry-specific signal
-type IndustrySignal struct {
+// IntegrationIndustrySignal represents an industry-specific signal
+// (renamed to avoid conflict with content_relevance_analyzer.go)
+type IntegrationIndustrySignal struct {
 	Industry   string  `json:"industry"`
 	Signal     string  `json:"signal"`
 	Strength   float64 `json:"strength"`
@@ -178,7 +188,7 @@ type IndustrySignal struct {
 
 // StructuredDataResult represents structured data extraction results
 type StructuredDataResult struct {
-	BusinessInfo    BusinessInfo             `json:"business_info"`
+	BusinessInfo    IntegrationBusinessInfo             `json:"business_info"`
 	ExtractionScore float64                  `json:"extraction_score"`
 	SchemaOrgData   map[string]interface{}   `json:"schema_org_data"`
 	OpenGraphData   map[string]interface{}   `json:"open_graph_data"`
@@ -238,7 +248,7 @@ type WebsiteAnalysisResult struct {
 func NewSmartCrawlingIntegration(logger *log.Logger, existingClassifier ClassificationService) *SmartCrawlingIntegration {
 	return &SmartCrawlingIntegration{
 		logger:             logger,
-		enhancedAnalyzer:   NewEnhancedWebsiteAnalyzer(logger),
+		enhancedAnalyzer:   NewIntegrationEnhancedWebsiteAnalyzer(logger),
 		existingClassifier: existingClassifier,
 	}
 }
@@ -292,7 +302,7 @@ func (sci *SmartCrawlingIntegration) ClassifyBusinessWithSmartCrawling(ctx conte
 }
 
 // convertEnhancedResultToWebsiteAnalysis converts enhanced analysis result to website analysis format
-func (sci *SmartCrawlingIntegration) convertEnhancedResultToWebsiteAnalysis(enhancedResult *EnhancedAnalysisResult) *WebsiteAnalysisResult {
+func (sci *SmartCrawlingIntegration) convertEnhancedResultToWebsiteAnalysis(enhancedResult *IntegrationEnhancedAnalysisResult) *WebsiteAnalysisResult {
 	if enhancedResult == nil {
 		return nil
 	}

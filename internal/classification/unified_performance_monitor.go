@@ -99,8 +99,9 @@ type UnifiedPerformanceStats struct {
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// UnifiedPerformanceAlert represents a unified alert that can span multiple components
-type UnifiedPerformanceAlert struct {
+// MonitorUnifiedPerformanceAlert represents a unified alert that can span multiple components
+// (renamed to avoid conflict with performance_dashboards_unified.go)
+type MonitorUnifiedPerformanceAlert struct {
 	ID                 string                 `json:"id"`
 	Timestamp          time.Time              `json:"timestamp"`
 	AlertType          string                 `json:"alert_type"` // "performance", "security", "resource", "system"

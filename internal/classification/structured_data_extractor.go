@@ -13,8 +13,9 @@ type StructuredDataExtractor struct {
 	logger *log.Logger
 }
 
-// BusinessInfo represents extracted business information (imported from smart_website_crawler.go)
-type BusinessInfo struct {
+// ExtractorBusinessInfo represents extracted business information
+// (renamed to avoid conflict with content_relevance_analyzer.go)
+type ExtractorBusinessInfo struct {
 	BusinessName  string      `json:"business_name"`
 	Description   string      `json:"description"`
 	Services      []string    `json:"services"`
@@ -26,8 +27,9 @@ type BusinessInfo struct {
 	BusinessType  string      `json:"business_type"`
 }
 
-// ContactInfo represents contact information (imported from smart_website_crawler.go)
-type ContactInfo struct {
+// ExtractorContactInfo represents contact information
+// (renamed to avoid conflict with content_relevance_analyzer.go)
+type ExtractorContactInfo struct {
 	Phone   string            `json:"phone"`
 	Email   string            `json:"email"`
 	Address string            `json:"address"`
@@ -35,8 +37,9 @@ type ContactInfo struct {
 	Social  map[string]string `json:"social"`
 }
 
-// StructuredDataResult represents extracted structured data
-type StructuredDataResult struct {
+// ExtractorStructuredDataResult represents extracted structured data
+// (renamed to avoid conflict with smart_crawling_integration.go)
+type ExtractorStructuredDataResult struct {
 	SchemaOrgData   []SchemaOrgItem   `json:"schema_org_data"`
 	OpenGraphData   map[string]string `json:"open_graph_data"`
 	TwitterCardData map[string]string `json:"twitter_card_data"`

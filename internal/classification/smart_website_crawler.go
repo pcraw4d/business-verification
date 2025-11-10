@@ -26,8 +26,9 @@ type SmartWebsiteCrawler struct {
 	pageTimeout   time.Duration
 }
 
-// CrawlResult represents the result of a smart crawl operation
-type CrawlResult struct {
+// CrawlerCrawlResult represents the result of a smart crawl operation
+// (renamed to avoid conflict with content_relevance_analyzer.go)
+type CrawlerCrawlResult struct {
 	BaseURL       string             `json:"base_url"`
 	PagesAnalyzed []PageAnalysis     `json:"pages_analyzed"`
 	TotalPages    int                `json:"total_pages"`
@@ -41,8 +42,9 @@ type CrawlResult struct {
 	Error         string             `json:"error,omitempty"`
 }
 
-// PageAnalysis represents analysis of a single page
-type PageAnalysis struct {
+// CrawlerPageAnalysis represents analysis of a single page
+// (renamed to avoid conflict with content_relevance_analyzer.go)
+type CrawlerPageAnalysis struct {
 	URL                string                 `json:"url"`
 	Title              string                 `json:"title"`
 	PageType           string                 `json:"page_type"`
@@ -60,8 +62,9 @@ type PageAnalysis struct {
 	Priority           int                    `json:"priority"`
 }
 
-// BusinessInfo represents extracted business information
-type BusinessInfo struct {
+// CrawlerBusinessInfo represents extracted business information
+// (renamed to avoid conflict with content_relevance_analyzer.go)
+type CrawlerBusinessInfo struct {
 	BusinessName  string      `json:"business_name"`
 	Description   string      `json:"description"`
 	Services      []string    `json:"services"`
@@ -73,8 +76,9 @@ type BusinessInfo struct {
 	BusinessType  string      `json:"business_type"`
 }
 
-// ContactInfo represents contact information
-type ContactInfo struct {
+// CrawlerContactInfo represents contact information
+// (renamed to avoid conflict with content_relevance_analyzer.go)
+type CrawlerContactInfo struct {
 	Phone   string            `json:"phone"`
 	Email   string            `json:"email"`
 	Address string            `json:"address"`
@@ -82,8 +86,9 @@ type ContactInfo struct {
 	Social  map[string]string `json:"social"`
 }
 
-// SiteStructure represents the discovered site structure
-type SiteStructure struct {
+// CrawlerSiteStructure represents the discovered site structure
+// (renamed to avoid conflict with content_relevance_analyzer.go)
+type CrawlerSiteStructure struct {
 	Homepage        string   `json:"homepage"`
 	AboutPages      []string `json:"about_pages"`
 	ServicePages    []string `json:"service_pages"`
