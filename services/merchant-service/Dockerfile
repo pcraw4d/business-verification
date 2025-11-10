@@ -8,27 +8,21 @@ WORKDIR /app
 RUN apk add --no-cache git ca-certificates
 
 # Disable Go workspace mode to avoid "module appears multiple times" error
-# This is necessary because we're using a replace directive to reference the root module
 ENV GOWORK=off
 
-# Copy root go.mod and go.sum to establish module context
-COPY go.mod go.sum* ./
+# Copy the entire repository structure (needed for module resolution)
+# Railway builds from repository root, so we copy everything
+COPY . .
 
-# Download dependencies
+# Change to service directory where go.mod is located
+WORKDIR /app/services/merchant-service
+
+# Download dependencies for the merchant service module
 RUN go mod download
 
-# Copy pkg/ directory (needed for kyb-platform/pkg/errors)
-RUN mkdir -p ./pkg
-COPY pkg ./pkg
-
-# Copy service-specific source code
-COPY services/merchant-service/cmd/ ./services/merchant-service/cmd/
-COPY services/merchant-service/internal/ ./services/merchant-service/internal/
-COPY services/merchant-service/go.mod ./services/merchant-service/go.mod
-
-# Build the application
-# Explicitly disable workspace mode in build command
-RUN CGO_ENABLED=0 GOOS=linux GOWORK=off go build -a -installsuffix cgo -o merchant-service ./services/merchant-service/cmd/main.go
+# Build the application from the service directory
+# This ensures Go can find the go.mod file and resolve imports correctly
+RUN CGO_ENABLED=0 GOOS=linux GOWORK=off go build -a -installsuffix cgo -o merchant-service ./cmd/main.go
 
 # Final stage
 FROM alpine:latest
@@ -44,7 +38,7 @@ RUN mkdir -p /app
 WORKDIR /app
 
 # Copy binary from builder stage
-COPY --from=builder /app/merchant-service .
+COPY --from=builder /app/services/merchant-service/merchant-service .
 
 # Change ownership to non-root user
 RUN chown appuser:appuser /app/merchant-service
