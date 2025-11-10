@@ -21,10 +21,14 @@ Testing of navigation flows, URL parameter handling, and page transitions across
 3. Pass merchant ID as URL parameter
 
 **Implementation:**
-- `merchant-portfolio.js`: `viewMerchant(merchantId)` → `merchant-detail.html?id=${merchantId}`
-- Status: ⚠️ **ISSUE** - Uses old URL `merchant-detail.html` instead of `merchant-details.html`
-- **Impact**: Navigation from portfolio will redirect through old URL handler (which works but uses deprecated path)
-- **Priority**: MEDIUM - Works but should be updated for consistency
+- `merchant-portfolio.js`: `viewMerchant(merchantId)` → `merchant-detail.html?id=${merchantId}` ❌
+- `merchant-hub.html`: `viewMerchant(merchantId)` → `merchant-details.html?id=${merchantId}` ✅
+- `merchant-hub-integration.html`: Uses `merchant-details.html?merchant=${id}` ✅
+
+**Status**: ✅ **FIXED** - Updated `merchant-portfolio.js` to use `merchant-details.html`
+- **Fix**: Changed `merchant-detail.html` to `merchant-details.html` in `viewMerchant()` method
+- **Impact**: Navigation now goes directly to consolidated merchant details page
+- **Priority**: COMPLETED
 
 ---
 

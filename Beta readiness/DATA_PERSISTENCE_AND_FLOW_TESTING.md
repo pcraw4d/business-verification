@@ -21,12 +21,13 @@ Testing of data persistence mechanisms, sessionStorage usage, URL parameter hand
 3. Global merchant data instance
 
 **Implementation:**
-- `getMerchantId()` checks URL parameters first
+- `getMerchantId()` checks URL parameters first (`urlParams.get('merchantId') || urlParams.get('id')`)
 - Falls back to sessionStorage if URL params not found
+- Extracts ID from sessionStorage: `merchantData.id || merchantData.merchantId || merchantData.businessId`
 - Uses `URLSearchParams` for URL parsing
 - Uses `sessionStorage.getItem('merchantData')` for storage
 
-**Status**: ✅ **GOOD** - Proper fallback mechanism
+**Status**: ✅ **GOOD** - Proper fallback mechanism with multiple ID field support
 
 ---
 

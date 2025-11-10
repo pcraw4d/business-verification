@@ -16,44 +16,48 @@ Analysis of merchant data distribution across industries, portfolio types, risk 
 ### Industry Distribution
 
 **Findings:**
-- Need to analyze industry distribution
-- Need to identify most common industries
-- Need to verify data quality
+- Total merchants: 20
+- Industries: 20 different industries
+- Most common: Technology (2), Professional Services (2)
+- Distribution: Mostly 1 merchant per industry
+- Industries found: Accommodation, Automotive, Beauty, Construction, Education, Energy, Finance, Fitness, Food Services, Healthcare, Manufacturing, Media, Pet Services, Professional Services, Real Estate, Retail, Technology, Transportation
 
-**Status**: Need to analyze
+**Status**: ✅ **ANALYZED** - Diverse industry distribution
 
 ---
 
 ### Portfolio Type Distribution
 
 **Findings:**
-- Need to analyze portfolio type distribution
-- Need to identify most common portfolio types
-- Need to verify data quality
+- Total merchants: 20
+- Portfolio types: All 20 are "prospective" (100%)
+- Other types: 0 (no active, approved, rejected, etc.)
 
-**Status**: Need to analyze
+**Status**: ⚠️ **ISSUE** - All merchants are prospective, no diversity
 
 ---
 
 ### Risk Level Distribution
 
 **Findings:**
-- Need to analyze risk level distribution
-- Need to identify most common risk levels
-- Need to verify data quality
+- Total merchants: 20
+- Risk levels: All 20 are "medium" (100%)
+- Other levels: 0 (no low, high, critical)
 
-**Status**: Need to analyze
+**Status**: ⚠️ **ISSUE** - All merchants are medium risk, no diversity
 
 ---
 
 ### Status Distribution
 
 **Findings:**
-- Need to analyze status distribution
-- Need to identify most common statuses
-- Need to verify data quality
+- Total merchants: 20
+- Status distribution:
+  - Active: 18 (90%)
+  - Inactive: 1 (5%)
+  - Pending: 1 (5%)
 
-**Status**: Need to analyze
+**Status**: ✅ **ANALYZED** - Mostly active merchants
 
 ---
 
