@@ -173,8 +173,11 @@ func (h *MerchantHandler) HandleCreateMerchant(w http.ResponseWriter, r *http.Re
 	ctx, cancel := context.WithTimeout(r.Context(), h.config.Merchant.RequestTimeout)
 	defer cancel()
 
+	// Extract user ID from request (headers or context)
+	userID := h.getUserIDFromRequest(r)
+
 	// Create merchant
-	merchant, err := h.createMerchant(ctx, &req, startTime)
+	merchant, err := h.createMerchant(ctx, &req, startTime, userID)
 	if err != nil {
 		h.logger.Error("Failed to create merchant", zap.Error(err))
 		http.Error(w, fmt.Sprintf("Failed to create merchant: %v", err), http.StatusInternalServerError)
