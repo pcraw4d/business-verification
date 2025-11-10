@@ -129,10 +129,10 @@ func main() {
 	<-quit
 	logger.Info("🛑 Classification Service shutting down...")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer shutdownCancel()
 
-	if err := httpServer.Shutdown(ctx); err != nil {
+	if err := httpServer.Shutdown(shutdownCtx); err != nil {
 		logger.Fatal("Classification Service forced to shutdown", zap.Error(err))
 	}
 

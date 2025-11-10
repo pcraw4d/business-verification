@@ -293,14 +293,14 @@ func (uc *UnifiedClassifier) combineKeywordsWithWeights(sources []DataSource, we
 	for keyword, score := range keywordMap {
 		contextualKeywords = append(contextualKeywords, ContextualKeyword{
 			Keyword: keyword,
-			Score:   score,
-			Source:  strings.Join(keywordSources[keyword], ","),
+			Weight:  score, // Use Weight instead of Score
+			Context: strings.Join(keywordSources[keyword], ","), // Use Context instead of Source
 		})
 	}
 
-	// Sort by score (highest first)
+	// Sort by weight (highest first)
 	sort.Slice(contextualKeywords, func(i, j int) bool {
-		return contextualKeywords[i].Score > contextualKeywords[j].Score
+		return contextualKeywords[i].Weight > contextualKeywords[j].Weight
 	})
 
 	uc.logger.Printf("📊 [UnifiedClassifier] Combined %d unique keywords from %d sources", len(contextualKeywords), len(sources))
@@ -320,8 +320,13 @@ func (uc *UnifiedClassifier) performWeightedClassification(ctx context.Context, 
 		}, nil
 	}
 
-	// Use the existing classification system with weighted keywords
-	return uc.keywordRepo.ClassifyBusinessByContextualKeywords(ctx, keywords)
+	// Convert ContextualKeyword to string slice for ClassifyBusinessByKeywords
+	keywordStrings := make([]string, len(keywords))
+	for i, kw := range keywords {
+		keywordStrings[i] = kw.Keyword
+	}
+	// Use the existing classification system with keywords
+	return uc.keywordRepo.ClassifyBusinessByKeywords(ctx, keywordStrings)
 }
 
 // generateIndustryCodes generates top 3 codes for each industry classification type
@@ -358,10 +363,15 @@ func (uc *UnifiedClassifier) getTopIndustryCodes(ctx context.Context, industryID
 	}
 
 	// Filter by code type
-	var filteredCodes []ClassificationCode
+	var filteredCodes []IndustryCode
 	for _, code := range codes {
 		if code.CodeType == codeType {
-			filteredCodes = append(filteredCodes, *code)
+			// Convert repository.ClassificationCode to IndustryCode
+			filteredCodes = append(filteredCodes, IndustryCode{
+				Code:        code.Code,
+				Description: code.Description,
+				Confidence:  0.8, // Default confidence
+			})
 		}
 	}
 
@@ -426,8 +436,9 @@ func (uc *UnifiedClassifier) extractKeywordsFromWebsiteAnalysis(analysis *Enhanc
 	var keywords []string
 
 	if analysis.RelevanceAnalysis != nil {
-		for _, signal := range analysis.RelevanceAnalysis.KeywordSignals {
-			keywords = append(keywords, signal.Keyword)
+		// Extract keywords from IndustrySignals
+		for _, signal := range analysis.RelevanceAnalysis.IndustrySignals {
+			keywords = append(keywords, signal.Signal)
 		}
 	}
 
@@ -450,7 +461,7 @@ func (uc *UnifiedClassifier) extractKeywordsFromStructuredData(structuredData *E
 	var keywords []string
 
 	// Extract from Schema.org data
-	for _, item := range structuredData.SchemaOrg {
+	for _, item := range structuredData.SchemaOrgData {
 		if item.Type == "Organization" || item.Type == "LocalBusiness" {
 			if name, ok := item.Properties["name"].(string); ok {
 				keywords = append(keywords, uc.extractKeywordsFromBusinessName(name)...)
@@ -490,9 +501,9 @@ func (uc *UnifiedClassifier) calculateURLConfidence(websiteURL string) float64 {
 	return 0.3
 }
 
-func (uc *UnifiedClassifier) calculateStructuredDataConfidence(structuredData *StructuredDataResult) float64 {
+func (uc *UnifiedClassifier) calculateStructuredDataConfidence(structuredData *ExtractorStructuredDataResult) float64 {
 	// Higher confidence when structured data is available
-	if len(structuredData.SchemaOrg) > 0 {
+	if len(structuredData.SchemaOrgData) > 0 {
 		return 0.9
 	}
 	return 0.5
@@ -502,7 +513,7 @@ func (uc *UnifiedClassifier) determineBusinessType(keywords []ContextualKeyword,
 	// Simple business type determination based on keywords
 	keywordMap := make(map[string]float64)
 	for _, kw := range keywords {
-		keywordMap[kw.Keyword] = kw.Score
+		keywordMap[kw.Keyword] = kw.Weight
 	}
 
 	// Check for business type indicators
@@ -527,7 +538,7 @@ func (uc *UnifiedClassifier) calculateBusinessTypeConfidence(keywords []Contextu
 
 	totalScore := 0.0
 	for _, kw := range keywords {
-		totalScore += kw.Score
+		totalScore += kw.Weight
 	}
 
 	avgScore := totalScore / float64(len(keywords))
@@ -553,7 +564,7 @@ func (uc *UnifiedClassifier) extractTopKeywords(keywords []ContextualKeyword) []
 	return topKeywords
 }
 
-func (uc *UnifiedClassifier) calculateOverallConfidence(classificationResult *ClassificationResult, weights map[string]float64, sources []DataSource) float64 {
+func (uc *UnifiedClassifier) calculateOverallConfidence(classificationResult *repository.ClassificationResult, weights map[string]float64, sources []DataSource) float64 {
 	// Base confidence from classification
 	baseConfidence := classificationResult.Confidence
 
@@ -612,8 +623,8 @@ func (uc *UnifiedClassifier) convertWebsiteAnalysis(analysis *EnhancedAnalysisRe
 
 	return &WebsiteAnalysisData{
 		Success:           analysis.Success,
-		PagesAnalyzed:     analysis.CrawlResult.PagesAnalyzed,
-		RelevantPages:     len(analysis.CrawlResult.RelevantPages),
+		PagesAnalyzed:     len(analysis.CrawlResult.PagesAnalyzed),
+		RelevantPages:     analysis.CrawlResult.RelevantPages,
 		KeywordsExtracted: uc.extractKeywordsFromWebsiteAnalysis(analysis),
 		IndustrySignals:   uc.extractIndustrySignalsFromWebsiteAnalysis(analysis),
 		AnalysisMethod:    "smart_crawling",
