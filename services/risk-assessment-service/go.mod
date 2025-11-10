@@ -10,7 +10,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/prometheus/client_golang v1.23.2
 	github.com/stretchr/testify v1.11.1
-	github.com/supabase-community/supabase-go v0.0.1
+	github.com/supabase-community/supabase-go v0.0.4
 	github.com/yalue/onnxruntime_go v1.21.0
 	go.uber.org/zap v1.27.0
 )
