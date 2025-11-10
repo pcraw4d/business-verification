@@ -35,8 +35,8 @@ Testing of merchant filtering, pagination, and query parameter handling.
 
 **Test:**
 - Request: `GET /api/v1/merchants?status=active`
-- Response: Count needed
-- Status: Need to test
+- Response: 5 merchants (all active)
+- Status: ✅ **WORKING** - Status filtering works
 
 ---
 
@@ -44,8 +44,13 @@ Testing of merchant filtering, pagination, and query parameter handling.
 
 **Test:**
 - Request: `GET /api/v1/merchants?portfolio_type=prospective&risk_level=medium`
-- Response: Count needed
-- Status: Need to test
+- Response: 5 merchants (all prospective and medium risk)
+- Status: ✅ **WORKING** - Combined filtering works
+
+**Test:**
+- Request: `GET /api/v1/merchants?portfolio_type=prospective&risk_level=high`
+- Response: 5 merchants (all prospective and high risk)
+- Status: ✅ **WORKING** - Multiple filter combinations work
 
 ---
 
