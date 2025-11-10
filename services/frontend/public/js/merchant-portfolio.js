@@ -720,7 +720,7 @@ class MerchantPortfolio {
      * Navigate to merchant detail view
      */
     viewMerchant(merchantId) {
-        window.location.href = `merchant-detail.html?id=${merchantId}`;
+        window.location.href = `merchant-details.html?id=${merchantId}`;
     }
 
     /**
