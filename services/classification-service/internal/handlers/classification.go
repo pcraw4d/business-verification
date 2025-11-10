@@ -732,6 +732,18 @@ type WebsiteAnalysisData struct {
 
 // generateEnhancedClassification generates enhanced classification using actual classification services
 func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Context, req *ClassificationRequest) (*EnhancedClassificationResult, error) {
+	// Check if classification services are initialized
+	if h.industryDetector == nil {
+		h.logger.Error("Industry detector is nil - classification services not initialized",
+			zap.String("request_id", req.RequestID))
+		return nil, fmt.Errorf("classification services not initialized: industry detector is nil")
+	}
+	if h.codeGenerator == nil {
+		h.logger.Error("Code generator is nil - classification services not initialized",
+			zap.String("request_id", req.RequestID))
+		return nil, fmt.Errorf("classification services not initialized: code generator is nil")
+	}
+
 	// Step 1: Detect industry using IndustryDetectionService
 	h.logger.Info("Starting industry detection",
 		zap.String("request_id", req.RequestID),
