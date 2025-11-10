@@ -1,12 +1,12 @@
-# Build stage - Go 1.23.0 for compatibility with go.mod (requires go >= 1.23.0)
-FROM golang:1.23.0-alpine3.19 AS builder
+# Build stage - Go 1.24.0 for compatibility with go.mod (requires go >= 1.24.0)
+FROM golang:1.24-alpine AS builder
 
 # Force cache bust for Railway - updated timestamp and image
-ARG CACHE_BUST=2025-10-13-04-10
-ARG BUILD_DATE=2025-10-13T04:10:00Z
+ARG CACHE_BUST=2025-11-10-04-58
+ARG BUILD_DATE=2025-11-10T04:58:00Z
 
-# Verify Go version and ensure it's 1.23+
-RUN go version && go version | grep -q "go1.23" || (echo "ERROR: Go version must be 1.23 or higher" && exit 1)
+# Verify Go version and ensure it's 1.24+
+RUN go version && go version | grep -qE "go1\.(24|2[5-9]|[3-9][0-9])" || (echo "ERROR: Go version must be 1.24 or higher" && exit 1)
 
 # Set working directory
 WORKDIR /app
@@ -94,7 +94,7 @@ RUN echo "Copied model files:" && \
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 
 # Set environment variables for ONNX Runtime
-ENV LD_LIBRARY_PATH=/app/onnxruntime/lib:$LD_LIBRARY_PATH
+ENV LD_LIBRARY_PATH=/app/onnxruntime/lib
 ENV LSTM_MODEL_PATH=/app/models/risk_lstm_v1.onnx
 ENV XGBOOST_MODEL_PATH=/app/models/xgb_model.json
 ENV ENABLE_ENSEMBLE=true
