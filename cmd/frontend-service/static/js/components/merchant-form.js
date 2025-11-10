@@ -48,13 +48,38 @@ class MerchantFormComponent {
         console.log('🔍 [DEBUG] bindEvents() called');
         
         try {
-            // Form submission
+            // Form submission - listen to both form submit and button click
             console.log('🔍 [DEBUG] Attaching submit event listener to form');
             this.form.addEventListener('submit', (e) => {
                 console.log('🔍 [DEBUG] Form submit event triggered');
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('✅ [DEBUG] Default form submission prevented');
                 this.handleSubmit(e);
             });
-            console.log('✅ [DEBUG] Submit event listener attached');
+            console.log('✅ [DEBUG] Submit event listener attached to form');
+            
+            // Also listen to button click as backup
+            if (this.submitBtn) {
+                console.log('🔍 [DEBUG] Attaching click event listener to submit button');
+                this.submitBtn.addEventListener('click', (e) => {
+                    console.log('🔍 [DEBUG] Submit button clicked');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('✅ [DEBUG] Default button click prevented');
+                    // Trigger form validation and submission
+                    if (this.form.checkValidity()) {
+                        console.log('🔍 [DEBUG] Form is valid, triggering handleSubmit');
+                        this.handleSubmit(e);
+                    } else {
+                        console.warn('⚠️ [DEBUG] Form validation failed on button click');
+                        this.form.reportValidity();
+                    }
+                });
+                console.log('✅ [DEBUG] Click event listener attached to submit button');
+            } else {
+                console.warn('⚠️ [DEBUG] Submit button not found, skipping click listener');
+            }
             
             // Clear form
             if (this.clearBtn) {
