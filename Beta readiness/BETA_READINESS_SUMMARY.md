@@ -163,10 +163,12 @@ Comprehensive automated testing and analysis completed for the KYB Platform beta
 
 ### Critical (Before Beta)
 
-1. **Fix Classification Accuracy**
-   - Investigate classification algorithm
-   - Fix misclassification issues
+1. **Fix Classification Accuracy (ROOT CAUSE IDENTIFIED)**
+   - Replace hardcoded placeholder in `services/classification-service/internal/handlers/classification.go:generateEnhancedClassification()` (lines 718-796)
+   - Integrate actual classification services (UnifiedClassifier, MultiMethodClassifier, IndustryDetectionService)
    - Test with diverse business types
+   - **Estimated effort: 5-9 hours**
+   - **See**: `CLASSIFICATION_ALGORITHM_ROOT_CAUSE_ANALYSIS.md` for implementation details
 
 2. **Add Critical Tests**
    - Add tests for API Gateway
