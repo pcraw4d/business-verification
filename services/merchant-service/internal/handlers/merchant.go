@@ -342,8 +342,45 @@ func (h *MerchantHandler) createMerchant(ctx context.Context, req *CreateMerchan
 		UpdatedAt:          time.Now(),
 	}
 
-	// TODO: Save to Supabase
-	// For now, return the created merchant
+	// Save to Supabase
+	merchantData := map[string]interface{}{
+		"id":                  merchant.ID,
+		"name":                merchant.Name,
+		"legal_name":          merchant.LegalName,
+		"registration_number": merchant.RegistrationNumber,
+		"tax_id":              merchant.TaxID,
+		"industry":            merchant.Industry,
+		"industry_code":       merchant.IndustryCode,
+		"business_type":      merchant.BusinessType,
+		"founded_date":        merchant.FoundedDate,
+		"employee_count":      merchant.EmployeeCount,
+		"annual_revenue":      merchant.AnnualRevenue,
+		"address":             merchant.Address,
+		"contact_info":       merchant.ContactInfo,
+		"portfolio_type":     merchant.PortfolioType,
+		"risk_level":          merchant.RiskLevel,
+		"compliance_status":   merchant.ComplianceStatus,
+		"status":              merchant.Status,
+		"created_by":          merchant.CreatedBy,
+		"created_at":          merchant.CreatedAt.Format(time.RFC3339),
+		"updated_at":          merchant.UpdatedAt.Format(time.RFC3339),
+	}
+
+	var insertResult []map[string]interface{}
+	_, err := h.supabaseClient.GetClient().From("merchants").
+		Insert(merchantData, false, "", "", "").
+		ExecuteTo(&insertResult)
+
+	if err != nil {
+		h.logger.Error("Failed to save merchant to Supabase",
+			zap.String("merchant_id", merchant.ID),
+			zap.Error(err))
+		return nil, fmt.Errorf("failed to save merchant to database: %w", err)
+	}
+
+	h.logger.Info("Merchant saved to Supabase successfully",
+		zap.String("merchant_id", merchant.ID),
+		zap.String("name", merchant.Name))
 
 	return merchant, nil
 }
