@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="components/navigation.js" defer></script>
     <script src="components/mobile-optimization.js" defer></script>
+    <script src="js/api-config.js"></script>
     <style>
         /* Enhanced Form Styles from Classification Improvement Plan */
         body {
@@ -1117,24 +1118,40 @@
                 console.log('🔍 Finalizing redirect to /merchant-details');
                 // Use a small delay to ensure sessionStorage is written
                 setTimeout(() => {
-                    console.log('🔍 Executing redirect to /merchant-details');
-                    console.log('🔍 Current URL:', window.location.href);
-                    console.log('🔍 Target URL:', window.location.origin + '/merchant-details');
-                    
-                    // Verify sessionStorage has data before redirecting
-                    const merchantData = sessionStorage.getItem('merchantData');
-                    if (merchantData) {
-                        console.log('✅ Merchant data confirmed in sessionStorage before redirect');
-                    } else {
-                        console.warn('⚠️ No merchant data in sessionStorage - redirecting anyway');
+                    try {
+                        console.log('🔍 Executing redirect to /merchant-details');
+                        console.log('🔍 Current URL:', window.location.href);
+                        
+                        // Use absolute URL to avoid hash interference
+                        const targetUrl = window.location.origin + '/merchant-details';
+                        console.log('🔍 Target URL:', targetUrl);
+                        
+                        // Verify sessionStorage has data before redirecting
+                        const merchantData = sessionStorage.getItem('merchantData');
+                        if (merchantData) {
+                            console.log('✅ Merchant data confirmed in sessionStorage before redirect');
+                        } else {
+                            console.warn('⚠️ No merchant data in sessionStorage - redirecting anyway');
+                        }
+                        
+                        // Perform redirect with error handling
+                        window.location.href = targetUrl;
+                    } catch (error) {
+                        console.error('❌ Error during redirect:', error);
+                        // Fallback: try relative path
+                        try {
+                            window.location.href = '/merchant-details';
+                        } catch (fallbackError) {
+                            console.error('❌ Fallback redirect also failed:', fallbackError);
+                            this.showNotification('Failed to redirect. Please navigate to /merchant-details manually.', 'error');
+                        }
                     }
-                    
-                    window.location.href = '/merchant-details';
                 }, 100);
             }
 
             async callBusinessIntelligenceAPI(apiData) {
-                const apiUrl = 'https://api-gateway-service-production-21fd.up.railway.app/api/v1/classify';
+                // Use centralized API configuration
+                const apiUrl = APIConfig.getEndpoints().classify;
                 console.log('🔍 Making Business Intelligence API call');
                 console.log('🔍 API URL:', apiUrl);
                 console.log('🔍 Request data:', JSON.stringify(apiData, null, 2));
@@ -1452,9 +1469,11 @@
                 };
                 
                 console.log('🧪 Test data:', testData);
-                console.log('🧪 API URL:', 'https://api-gateway-service-production-21fd.up.railway.app/api/v1/classify');
+                // Use centralized API configuration
+                const apiUrl = APIConfig.getEndpoints().classify;
+                console.log('🧪 API URL:', apiUrl);
                 
-                const response = await fetch('https://api-gateway-service-production-21fd.up.railway.app/api/v1/classify', {
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

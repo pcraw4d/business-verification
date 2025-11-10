@@ -28,7 +28,7 @@ class APIConfig {
         
         return {
             // Classification endpoints
-            classify: `${baseURL}/v1/classify`,
+            classify: `${baseURL}/api/v1/classify`,
             
             // Merchant management endpoints
             merchants: `${baseURL}/api/v1/merchants`,
