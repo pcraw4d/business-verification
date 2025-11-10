@@ -4,42 +4,88 @@
  */
 class MerchantFormComponent {
     constructor(formId = 'merchantForm') {
+        console.log('🔍 [DEBUG] MerchantFormComponent constructor called with formId:', formId);
+        console.log('🔍 [DEBUG] Document ready state:', document.readyState);
+        console.log('🔍 [DEBUG] Window location:', window.location.href);
+        
         this.form = document.getElementById(formId);
         this.submitBtn = document.getElementById('submitBtn');
         this.clearBtn = document.getElementById('clearFormBtn');
         this.submitLoading = document.getElementById('submitLoading');
         this.isSubmitting = false;
         
+        console.log('🔍 [DEBUG] Form element found:', !!this.form);
+        console.log('🔍 [DEBUG] Submit button found:', !!this.submitBtn);
+        console.log('🔍 [DEBUG] Clear button found:', !!this.clearBtn);
+        console.log('🔍 [DEBUG] Submit loading element found:', !!this.submitLoading);
+        
         if (!this.form) {
-            console.error('Merchant form not found');
+            console.error('❌ [ERROR] Merchant form not found with ID:', formId);
+            console.error('❌ [ERROR] Available form elements:', Array.from(document.querySelectorAll('form')).map(f => f.id || '(no id)'));
             return;
         }
         
+        console.log('✅ [DEBUG] Form found, calling init()...');
         this.init();
+        console.log('✅ [DEBUG] MerchantFormComponent initialization complete');
     }
 
     init() {
-        this.bindEvents();
-        this.initializeMobileOptimization();
+        console.log('🔍 [DEBUG] init() called');
+        try {
+            this.bindEvents();
+            console.log('✅ [DEBUG] bindEvents() completed');
+            this.initializeMobileOptimization();
+            console.log('✅ [DEBUG] initializeMobileOptimization() completed');
+        } catch (error) {
+            console.error('❌ [ERROR] Error in init():', error);
+            console.error('❌ [ERROR] Error stack:', error.stack);
+            throw error;
+        }
     }
 
     bindEvents() {
-        // Form submission
-        this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+        console.log('🔍 [DEBUG] bindEvents() called');
         
-        // Clear form
-        if (this.clearBtn) {
-            this.clearBtn.addEventListener('click', () => this.clearForm());
-        }
-        
-        // Real-time validation
-        this.form.addEventListener('input', (e) => this.validateField(e.target));
-        this.form.addEventListener('blur', (e) => this.validateField(e.target));
-        
-        // Phone number formatting
-        const phoneInput = document.getElementById('phoneNumber');
-        if (phoneInput) {
-            phoneInput.addEventListener('input', (e) => this.formatPhoneNumber(e.target));
+        try {
+            // Form submission
+            console.log('🔍 [DEBUG] Attaching submit event listener to form');
+            this.form.addEventListener('submit', (e) => {
+                console.log('🔍 [DEBUG] Form submit event triggered');
+                this.handleSubmit(e);
+            });
+            console.log('✅ [DEBUG] Submit event listener attached');
+            
+            // Clear form
+            if (this.clearBtn) {
+                console.log('🔍 [DEBUG] Attaching click event listener to clear button');
+                this.clearBtn.addEventListener('click', () => this.clearForm());
+                console.log('✅ [DEBUG] Clear button event listener attached');
+            } else {
+                console.warn('⚠️ [DEBUG] Clear button not found, skipping event listener');
+            }
+            
+            // Real-time validation
+            console.log('🔍 [DEBUG] Attaching input and blur event listeners for validation');
+            this.form.addEventListener('input', (e) => this.validateField(e.target));
+            this.form.addEventListener('blur', (e) => this.validateField(e.target));
+            console.log('✅ [DEBUG] Validation event listeners attached');
+            
+            // Phone number formatting
+            const phoneInput = document.getElementById('phoneNumber');
+            if (phoneInput) {
+                console.log('🔍 [DEBUG] Attaching phone number formatting listener');
+                phoneInput.addEventListener('input', (e) => this.formatPhoneNumber(e.target));
+                console.log('✅ [DEBUG] Phone number formatting listener attached');
+            } else {
+                console.warn('⚠️ [DEBUG] Phone input not found, skipping formatting listener');
+            }
+            
+            console.log('✅ [DEBUG] All event listeners attached successfully');
+        } catch (error) {
+            console.error('❌ [ERROR] Error in bindEvents():', error);
+            console.error('❌ [ERROR] Error stack:', error.stack);
+            throw error;
         }
     }
 
@@ -190,30 +236,52 @@ class MerchantFormComponent {
     }
 
     async handleSubmit(e) {
-        e.preventDefault();
-        
-        if (this.isSubmitting) {
-            return;
-        }
-        
-        if (!this.validateForm()) {
-            this.scrollToFirstError();
-            this.showNotification('Please fix the errors in the form before submitting.', 'error');
-            return;
-        }
-
-        this.isSubmitting = true;
-        this.setLoading(true);
+        console.log('🔍 [DEBUG] handleSubmit() called');
+        console.log('🔍 [DEBUG] Event object:', e);
+        console.log('🔍 [DEBUG] Current isSubmitting state:', this.isSubmitting);
         
         try {
+            e.preventDefault();
+            console.log('✅ [DEBUG] Default form submission prevented');
+            
+            if (this.isSubmitting) {
+                console.warn('⚠️ [DEBUG] Form is already submitting, ignoring duplicate submission');
+                return;
+            }
+            
+            console.log('🔍 [DEBUG] Starting form validation...');
+            const isValid = this.validateForm();
+            console.log('🔍 [DEBUG] Form validation result:', isValid);
+            
+            if (!isValid) {
+                console.warn('⚠️ [DEBUG] Form validation failed, showing errors');
+                this.scrollToFirstError();
+                this.showNotification('Please fix the errors in the form before submitting.', 'error');
+                return;
+            }
+
+            console.log('✅ [DEBUG] Form validation passed, proceeding with submission');
+            this.isSubmitting = true;
+            this.setLoading(true);
+            console.log('🔍 [DEBUG] Loading state set to true');
+            
+            console.log('🔍 [DEBUG] Collecting form data...');
             const formData = this.collectFormData();
+            console.log('✅ [DEBUG] Form data collected:', Object.keys(formData));
+            
+            console.log('🔍 [DEBUG] Starting processMerchantVerification...');
             await this.processMerchantVerification(formData);
+            console.log('✅ [DEBUG] processMerchantVerification completed');
         } catch (error) {
-            console.error('Error in handleSubmit:', error);
+            console.error('❌ [ERROR] Error in handleSubmit:', error);
+            console.error('❌ [ERROR] Error name:', error.name);
+            console.error('❌ [ERROR] Error message:', error.message);
+            console.error('❌ [ERROR] Error stack:', error.stack);
             this.showNotification('An error occurred while processing your request. Redirecting anyway...', 'error');
             
             // Store form data even on error
             try {
+                console.log('🔍 [DEBUG] Attempting to store form data on error...');
                 const formData = this.collectFormData();
                 this.storeData(formData, { errors: { general: error.message } });
                 // Try to extract merchant ID from stored data if available
@@ -223,66 +291,84 @@ class MerchantFormComponent {
                     try {
                         const parsed = JSON.parse(storedData);
                         merchantId = parsed.merchantId || parsed.id || null;
+                        console.log('🔍 [DEBUG] Extracted merchant ID from stored data:', merchantId);
                     } catch (e) {
-                        // Ignore
+                        console.warn('⚠️ [DEBUG] Failed to parse stored merchant data:', e);
                     }
                 }
+                console.log('🔍 [DEBUG] Redirecting after error, merchantId:', merchantId);
                 this.finalizeRedirect(merchantId);
             } catch (storageError) {
-                console.error('Error storing data:', storageError);
+                console.error('❌ [ERROR] Error storing data:', storageError);
+                console.error('❌ [ERROR] Storage error stack:', storageError.stack);
                 this.finalizeRedirect(null);
             }
         }
     }
 
     collectFormData() {
-        const formData = new FormData(this.form);
-        const data = {};
-        
-        for (let [key, value] of formData.entries()) {
-            data[key] = value.trim();
-        }
-        
-        // Generate business ID for API calls
-        data.businessId = this.generateBusinessId(data.businessName);
-        
-        // Add timestamp and session info
-        data.timestamp = new Date().toISOString();
-        data.sessionId = this.generateSessionId();
-        
-        // Structure data for API calls
-        data.apiData = {
-            businessIntelligence: {
-                business_name: data.businessName,
-                geographic_region: data.country || 'us',
-                website_url: data.websiteUrl || '',
-                description: 'Business analysis request',
-                analysis_type: data.analysisType || 'comprehensive'
-            },
-            riskAssessment: {
-                business_id: data.businessId,
-                business_name: data.businessName,
-                categories: this.getSelectedCategories(data.assessmentType),
-                include_history: true,
-                include_predictions: true
-            },
-            riskIndicators: {
-                business_id: data.businessId,
-                business_name: data.businessName,
-                merchant_data: {
-                    name: data.businessName,
-                    website: data.websiteUrl,
-                    description: 'Business analysis request',
-                    address: this.formatAddress(data),
-                    phone: data.phoneNumber,
-                    email: data.email,
-                    registration: data.registrationNumber,
-                    country: data.country
-                }
+        console.log('🔍 [DEBUG] collectFormData() called');
+        try {
+            const formData = new FormData(this.form);
+            const data = {};
+            
+            console.log('🔍 [DEBUG] Collecting form field values...');
+            for (let [key, value] of formData.entries()) {
+                data[key] = value.trim();
             }
-        };
-        
-        return data;
+            console.log('🔍 [DEBUG] Form fields collected:', Object.keys(data));
+            
+            // Generate business ID for API calls
+            console.log('🔍 [DEBUG] Generating business ID...');
+            data.businessId = this.generateBusinessId(data.businessName);
+            console.log('🔍 [DEBUG] Generated business ID:', data.businessId);
+            
+            // Add timestamp and session info
+            data.timestamp = new Date().toISOString();
+            data.sessionId = this.generateSessionId();
+            console.log('🔍 [DEBUG] Added timestamp and session ID');
+            
+            // Structure data for API calls
+            console.log('🔍 [DEBUG] Structuring data for API calls...');
+            data.apiData = {
+                businessIntelligence: {
+                    business_name: data.businessName,
+                    geographic_region: data.country || 'us',
+                    website_url: data.websiteUrl || '',
+                    description: 'Business analysis request',
+                    analysis_type: data.analysisType || 'comprehensive'
+                },
+                riskAssessment: {
+                    business_id: data.businessId,
+                    business_name: data.businessName,
+                    categories: this.getSelectedCategories(data.assessmentType),
+                    include_history: true,
+                    include_predictions: true
+                },
+                riskIndicators: {
+                    business_id: data.businessId,
+                    business_name: data.businessName,
+                    merchant_data: {
+                        name: data.businessName,
+                        website: data.websiteUrl,
+                        description: 'Business analysis request',
+                        address: this.formatAddress(data),
+                        phone: data.phoneNumber,
+                        email: data.email,
+                        registration: data.registrationNumber,
+                        country: data.country
+                    }
+                }
+            };
+            
+            console.log('✅ [DEBUG] Form data collection complete');
+            console.log('🔍 [DEBUG] Final data structure keys:', Object.keys(data));
+            return data;
+        } catch (error) {
+            console.error('❌ [ERROR] Error in collectFormData():', error);
+            console.error('❌ [ERROR] Error stack:', error.stack);
+            throw error;
+        }
     }
 
     generateBusinessId(businessName) {
@@ -336,59 +422,87 @@ class MerchantFormComponent {
     }
 
     async processMerchantVerification(data) {
+        console.log('🔍 [DEBUG] processMerchantVerification() called');
+        console.log('🔍 [DEBUG] Data keys:', Object.keys(data));
+        
         // Store form data immediately before API calls
+        console.log('🔍 [DEBUG] Storing form data in sessionStorage...');
         this.storeData(data);
+        console.log('✅ [DEBUG] Form data stored');
         
         let savedMerchantId = null;
         
         // First, save the merchant to the portfolio
         try {
-            console.log('💾 Saving merchant to portfolio...');
+            console.log('💾 [DEBUG] Starting merchant save to portfolio...');
+            console.log('💾 [DEBUG] Calling saveMerchantToPortfolio()...');
             const merchantResponse = await this.saveMerchantToPortfolio(data);
+            console.log('🔍 [DEBUG] saveMerchantToPortfolio() returned:', merchantResponse);
+            
             if (merchantResponse && merchantResponse.id) {
                 savedMerchantId = merchantResponse.id;
-                console.log('✅ Merchant saved to portfolio with ID:', savedMerchantId);
+                console.log('✅ [DEBUG] Merchant saved to portfolio with ID:', savedMerchantId);
                 // Update the data with the saved merchant ID
                 data.merchantId = savedMerchantId;
                 data.id = savedMerchantId;
+                console.log('🔍 [DEBUG] Updating stored data with merchant ID...');
                 this.storeData(data);
+                console.log('✅ [DEBUG] Data updated with merchant ID');
+            } else {
+                console.warn('⚠️ [DEBUG] Merchant response missing ID:', merchantResponse);
             }
         } catch (error) {
-            console.error('❌ Failed to save merchant to portfolio:', error);
+            console.error('❌ [ERROR] Failed to save merchant to portfolio:', error);
+            console.error('❌ [ERROR] Error name:', error.name);
+            console.error('❌ [ERROR] Error message:', error.message);
+            console.error('❌ [ERROR] Error stack:', error.stack);
             // Continue anyway - we'll use the generated businessId
             this.showNotification('Warning: Merchant may not be saved to portfolio. Continuing with verification...', 'error');
         }
         
         // Set up fallback redirect timer (max 10 seconds)
         const FALLBACK_REDIRECT_DELAY = 10000;
+        console.log('🔍 [DEBUG] Setting up fallback redirect timer:', FALLBACK_REDIRECT_DELAY, 'ms');
         const fallbackRedirectTimer = setTimeout(() => {
-            console.warn('⚠️ Fallback redirect triggered - APIs taking too long');
+            console.warn('⚠️ [DEBUG] Fallback redirect triggered - APIs taking too long');
             this.finalizeRedirect(savedMerchantId);
         }, FALLBACK_REDIRECT_DELAY);
         
         try {
+            console.log('🔍 [DEBUG] Starting parallel API calls...');
             // Make API calls in parallel
             const apiCallsPromise = Promise.allSettled([
                 this.callBusinessIntelligenceAPI(data.apiData.businessIntelligence),
                 this.callRiskAssessmentAPI(data.apiData.riskAssessment),
                 this.callRiskIndicatorsAPI(data.apiData.riskIndicators)
             ]);
+            console.log('✅ [DEBUG] API calls promise created');
             
             // Add overall timeout (30 seconds max)
+            console.log('🔍 [DEBUG] Setting up API timeout (30 seconds)...');
             const apiTimeoutPromise = new Promise((resolve) => {
-                setTimeout(() => resolve('timeout'), 30000);
+                setTimeout(() => {
+                    console.warn('⚠️ [DEBUG] API timeout promise resolved');
+                    resolve('timeout');
+                }, 30000);
             });
             
+            console.log('🔍 [DEBUG] Racing API calls against timeout...');
             const result = await Promise.race([apiCallsPromise, apiTimeoutPromise]);
             clearTimeout(fallbackRedirectTimer);
+            console.log('🔍 [DEBUG] Promise race completed, result type:', typeof result);
             
             if (result === 'timeout') {
-                console.warn('⚠️ API calls timed out, proceeding with redirect');
+                console.warn('⚠️ [DEBUG] API calls timed out, proceeding with redirect');
                 this.finalizeRedirect(savedMerchantId);
                 return;
             }
             
+            console.log('🔍 [DEBUG] API calls completed, processing results...');
             const [businessIntelligenceResult, riskAssessmentResult, riskIndicatorsResult] = result;
+            console.log('🔍 [DEBUG] Business Intelligence status:', businessIntelligenceResult.status);
+            console.log('🔍 [DEBUG] Risk Assessment status:', riskAssessmentResult.status);
+            console.log('🔍 [DEBUG] Risk Indicators status:', riskIndicatorsResult.status);
             
             // Store API results
             const apiResults = {
@@ -402,12 +516,17 @@ class MerchantFormComponent {
                 }
             };
             
+            console.log('🔍 [DEBUG] Storing API results...');
             this.storeData(data, apiResults);
+            console.log('✅ [DEBUG] API results stored, finalizing redirect...');
             this.finalizeRedirect(savedMerchantId);
             
         } catch (error) {
             clearTimeout(fallbackRedirectTimer);
-            console.error('❌ Error in merchant verification process:', error);
+            console.error('❌ [ERROR] Error in merchant verification process:', error);
+            console.error('❌ [ERROR] Error name:', error.name);
+            console.error('❌ [ERROR] Error message:', error.message);
+            console.error('❌ [ERROR] Error stack:', error.stack);
             
             // Store error results
             const errorResults = {
@@ -418,7 +537,9 @@ class MerchantFormComponent {
                     general: error.message || 'Unknown error occurred during verification'
                 }
             };
+            console.log('🔍 [DEBUG] Storing error results...');
             this.storeData(data, errorResults);
+            console.log('🔍 [DEBUG] Finalizing redirect after error...');
             this.finalizeRedirect(savedMerchantId);
         }
     }
@@ -505,13 +626,17 @@ class MerchantFormComponent {
             });
 
             clearTimeout(timeoutId);
+            console.log('🔍 [DEBUG] Business Intelligence API response received');
+            console.log('🔍 [DEBUG] Response status:', response.status);
 
             if (!response.ok) {
+                console.error('❌ [ERROR] Business Intelligence API error:', response.status, response.statusText);
                 let errorText = 'Unknown error';
                 try {
                     errorText = await response.text();
+                    console.error('❌ [ERROR] Error response text:', errorText);
                 } catch (e) {
-                    // Ignore
+                    console.warn('⚠️ [DEBUG] Could not read error response text');
                 }
                 
                 const error = new Error(`Business Intelligence API error: ${response.status} ${response.statusText}`);
@@ -521,20 +646,32 @@ class MerchantFormComponent {
             }
 
             const contentType = response.headers.get('content-type') || '';
+            console.log('🔍 [DEBUG] Response content-type:', contentType);
             if (contentType.includes('application/json')) {
-                return await response.json();
+                console.log('🔍 [DEBUG] Parsing JSON response...');
+                const result = await response.json();
+                console.log('✅ [DEBUG] Business Intelligence API call successful');
+                return result;
             } else {
+                console.warn('⚠️ [DEBUG] Unexpected content-type, reading as text');
                 const text = await response.text();
+                console.error('❌ [ERROR] Response text:', text);
                 throw new Error(`Expected JSON but received ${contentType}`);
             }
         } catch (error) {
             clearTimeout(timeoutId);
+            console.error('❌ [ERROR] Error in callBusinessIntelligenceAPI:', error);
+            console.error('❌ [ERROR] Error name:', error.name);
+            console.error('❌ [ERROR] Error message:', error.message);
+            console.error('❌ [ERROR] Error stack:', error.stack);
             
             if (error.name === 'AbortError') {
+                console.error('❌ [ERROR] Request was aborted (timeout)');
                 throw new Error('Business Intelligence API call timed out');
             }
             
             if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                console.error('❌ [ERROR] Network error detected');
                 throw new Error('Network error: Unable to reach API. Please check your connection.');
             }
             
@@ -543,13 +680,18 @@ class MerchantFormComponent {
     }
 
     async callRiskAssessmentAPI(apiData) {
+        console.log('🔍 [DEBUG] callRiskAssessmentAPI() called');
+        console.log('🔍 [DEBUG] API data:', apiData);
         // Generate risk assessment data based on business name
         return new Promise((resolve) => {
+            console.log('🔍 [DEBUG] Creating risk assessment promise...');
             setTimeout(() => {
+                console.log('🔍 [DEBUG] Risk assessment timeout completed, generating data...');
                 const businessName = apiData.business_name || '';
                 const riskScore = this.calculateRiskScore(businessName);
+                console.log('🔍 [DEBUG] Calculated risk score:', riskScore);
                 
-                resolve({
+                const result = {
                     success: true,
                     assessment: {
                         overall_risk_score: riskScore,
@@ -565,16 +707,22 @@ class MerchantFormComponent {
                         factors: this.generateRiskFactors(riskScore),
                         recommendations: this.generateRiskRecommendations(riskScore)
                     }
-                });
+                };
+                console.log('✅ [DEBUG] Risk assessment data generated');
+                resolve(result);
             }, 800);
         });
     }
 
     async callRiskIndicatorsAPI(apiData) {
+        console.log('🔍 [DEBUG] callRiskIndicatorsAPI() called');
+        console.log('🔍 [DEBUG] API data:', apiData);
         // Generate risk indicators data
         return new Promise((resolve) => {
+            console.log('🔍 [DEBUG] Creating risk indicators promise...');
             setTimeout(() => {
-                resolve({
+                console.log('🔍 [DEBUG] Risk indicators timeout completed, generating data...');
+                const result = {
                     success: true,
                     risk_indicators: {
                         financial: 15,
@@ -589,23 +737,50 @@ class MerchantFormComponent {
                         regulatory: 'rising',
                         cybersecurity: 'escalating'
                     }
-                });
+                };
+                console.log('✅ [DEBUG] Risk indicators data generated');
+                resolve(result);
             }, 1000);
         });
     }
 
     async saveMerchantToPortfolio(formData) {
+        console.log('🔍 [DEBUG] saveMerchantToPortfolio() called');
+        console.log('🔍 [DEBUG] Form data received:', Object.keys(formData));
+        
+        // Check APIConfig availability
+        console.log('🔍 [DEBUG] Checking APIConfig availability...');
+        console.log('🔍 [DEBUG] window.APIConfig exists:', typeof window.APIConfig !== 'undefined');
+        console.log('🔍 [DEBUG] window.APIConfig value:', window.APIConfig);
+        
         if (!window.APIConfig) {
+            console.error('❌ [ERROR] APIConfig not available');
+            console.error('❌ [ERROR] window object keys:', Object.keys(window).filter(k => k.includes('API') || k.includes('Config')));
             throw new Error('APIConfig not available');
         }
         
-        const apiUrl = APIConfig.getEndpoints().merchants;
-        const timeout = 15000; // 15 seconds
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        console.log('✅ [DEBUG] APIConfig is available');
         
-        // Prepare merchant data for API
-        const merchantRequest = {
+        try {
+            const endpoints = APIConfig.getEndpoints();
+            console.log('🔍 [DEBUG] APIConfig.getEndpoints() result:', endpoints);
+            console.log('🔍 [DEBUG] Available endpoints:', Object.keys(endpoints));
+            
+            const apiUrl = APIConfig.getEndpoints().merchants;
+            console.log('🔍 [DEBUG] Merchant API URL:', apiUrl);
+            
+            if (!apiUrl) {
+                throw new Error('Merchant API endpoint not found in APIConfig');
+            }
+            
+            const timeout = 15000; // 15 seconds
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeout);
+            console.log('🔍 [DEBUG] Request timeout set to 15000ms');
+            
+            // Prepare merchant data for API
+            console.log('🔍 [DEBUG] Preparing merchant request data...');
+            const merchantRequest = {
             name: formData.businessName,
             legal_name: formData.businessName, // Use business name as legal name if not provided
             registration_number: formData.registrationNumber || '',
@@ -633,22 +808,32 @@ class MerchantFormComponent {
             }
         };
         
-        try {
-            console.log('💾 Sending merchant data to API:', merchantRequest);
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                },
-                body: JSON.stringify(merchantRequest),
-                signal: controller.signal,
-                credentials: 'omit'
-            });
+            console.log('🔍 [DEBUG] Merchant request data prepared:', merchantRequest);
+            
+            try {
+                console.log('💾 [DEBUG] Sending merchant data to API...');
+                console.log('💾 [DEBUG] API URL:', apiUrl);
+                console.log('💾 [DEBUG] Request method: POST');
+                console.log('💾 [DEBUG] Request payload:', JSON.stringify(merchantRequest, null, 2));
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify(merchantRequest),
+                    signal: controller.signal,
+                    credentials: 'omit'
+                });
 
-            clearTimeout(timeoutId);
+                clearTimeout(timeoutId);
+                console.log('🔍 [DEBUG] Fetch request completed');
+                console.log('🔍 [DEBUG] Response status:', response.status);
+                console.log('🔍 [DEBUG] Response statusText:', response.statusText);
+                console.log('🔍 [DEBUG] Response headers:', Object.fromEntries(response.headers.entries()));
 
-            if (!response.ok) {
+                if (!response.ok) {
                 let errorText = 'Unknown error';
                 try {
                     errorText = await response.text();
@@ -663,26 +848,45 @@ class MerchantFormComponent {
                 throw error;
             }
 
-            const contentType = response.headers.get('content-type') || '';
-            if (contentType.includes('application/json')) {
-                const merchant = await response.json();
-                console.log('✅ Merchant saved successfully:', merchant);
-                return merchant;
-            } else {
-                const text = await response.text();
-                throw new Error(`Expected JSON but received ${contentType}`);
+                const contentType = response.headers.get('content-type') || '';
+                console.log('🔍 [DEBUG] Response content-type:', contentType);
+                
+                if (contentType.includes('application/json')) {
+                    console.log('🔍 [DEBUG] Parsing JSON response...');
+                    const merchant = await response.json();
+                    console.log('✅ [DEBUG] Merchant saved successfully:', merchant);
+                    console.log('✅ [DEBUG] Merchant ID:', merchant.id);
+                    return merchant;
+                } else {
+                    console.warn('⚠️ [DEBUG] Unexpected content-type, attempting to read as text');
+                    const text = await response.text();
+                    console.error('❌ [ERROR] Response text:', text);
+                    throw new Error(`Expected JSON but received ${contentType}`);
+                }
+            } catch (fetchError) {
+                clearTimeout(timeoutId);
+                console.error('❌ [ERROR] Error in fetch request:', fetchError);
+                console.error('❌ [ERROR] Error name:', fetchError.name);
+                console.error('❌ [ERROR] Error message:', fetchError.message);
+                console.error('❌ [ERROR] Error stack:', fetchError.stack);
+                
+                if (fetchError.name === 'AbortError') {
+                    console.error('❌ [ERROR] Request was aborted (timeout)');
+                    throw new Error('Merchant save request timed out');
+                }
+                
+                if (fetchError.name === 'TypeError' && fetchError.message.includes('fetch')) {
+                    console.error('❌ [ERROR] Network error detected');
+                    throw new Error('Network error: Unable to reach merchant service. Please check your connection.');
+                }
+                
+                throw fetchError;
             }
         } catch (error) {
-            clearTimeout(timeoutId);
-            
-            if (error.name === 'AbortError') {
-                throw new Error('Merchant save request timed out');
-            }
-            
-            if (error.name === 'TypeError' && error.message.includes('fetch')) {
-                throw new Error('Network error: Unable to reach merchant service. Please check your connection.');
-            }
-            
+            console.error('❌ [ERROR] Error in saveMerchantToPortfolio:', error);
+            console.error('❌ [ERROR] Error name:', error.name);
+            console.error('❌ [ERROR] Error message:', error.message);
+            console.error('❌ [ERROR] Error stack:', error.stack);
             throw error;
         }
     }

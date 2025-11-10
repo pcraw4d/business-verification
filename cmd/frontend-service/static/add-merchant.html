@@ -771,13 +771,39 @@
     <script src="js/components/merchant-form.js"></script>
     <script>
         // Initialize form component when DOM is loaded
-        document.addEventListener('DOMContentLoaded', () => {
+        console.log('🔍 [DEBUG] Initialization script loaded');
+        console.log('🔍 [DEBUG] Document ready state:', document.readyState);
+        console.log('🔍 [DEBUG] MerchantFormComponent defined:', typeof MerchantFormComponent !== 'undefined');
+        
+        function initializeForm() {
+            console.log('🔍 [DEBUG] initializeForm() called');
+            console.log('🔍 [DEBUG] MerchantFormComponent type:', typeof MerchantFormComponent);
+            
             if (typeof MerchantFormComponent !== 'undefined') {
-                new MerchantFormComponent('merchantForm');
+                console.log('✅ [DEBUG] MerchantFormComponent is defined, creating instance...');
+                try {
+                    const instance = new MerchantFormComponent('merchantForm');
+                    console.log('✅ [DEBUG] MerchantFormComponent instance created:', instance);
+                    window.merchantFormInstance = instance; // Store globally for debugging
+                } catch (error) {
+                    console.error('❌ [ERROR] Failed to create MerchantFormComponent instance:', error);
+                    console.error('❌ [ERROR] Error name:', error.name);
+                    console.error('❌ [ERROR] Error message:', error.message);
+                    console.error('❌ [ERROR] Error stack:', error.stack);
+                }
             } else {
-                console.error('MerchantFormComponent not found');
+                console.error('❌ [ERROR] MerchantFormComponent not found');
+                console.error('❌ [ERROR] Available window properties:', Object.keys(window).filter(k => k.includes('Merchant') || k.includes('Form')));
             }
-        });
+        }
+        
+        if (document.readyState === 'loading') {
+            console.log('🔍 [DEBUG] Document still loading, waiting for DOMContentLoaded...');
+            document.addEventListener('DOMContentLoaded', initializeForm);
+        } else {
+            console.log('🔍 [DEBUG] Document already loaded, initializing immediately...');
+            initializeForm();
+        }
     </script>
 </body>
 </html>
