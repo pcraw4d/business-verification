@@ -674,12 +674,12 @@ func (h *RiskAssessmentHandler) HandleRiskPredictions(w http.ResponseWriter, r *
 	// Get data points count from database (historical assessments for this merchant)
 	dataPointsCount := 0
 	var countResult []map[string]interface{}
-	_, err = h.supabaseClient.GetClient().From("risk_assessments").
+	_, countErr := h.supabaseClient.GetClient().From("risk_assessments").
 		Select("count", "", false).
 		Eq("business_id", merchantID).
 		ExecuteTo(&countResult)
 	
-	if err == nil && len(countResult) > 0 {
+	if countErr == nil && len(countResult) > 0 {
 		// Extract count from result
 		if count, ok := countResult[0]["count"].(float64); ok {
 			dataPointsCount = int(count)
@@ -689,7 +689,7 @@ func (h *RiskAssessmentHandler) HandleRiskPredictions(w http.ResponseWriter, r *
 	} else {
 		h.logger.Warn("Failed to get data points count",
 			zap.String("merchant_id", merchantID),
-			zap.Error(err))
+			zap.Error(countErr))
 		// Use predictions count as fallback
 		dataPointsCount = len(predictions)
 	}
