@@ -755,12 +755,35 @@ func (h *MerchantHandler) mapToMerchant(data map[string]interface{}) (*Merchant,
 // TODO: Implement Supabase query with pagination support
 // TODO: Add filtering and sorting capabilities
 func (h *MerchantHandler) listMerchants(ctx context.Context, page, pageSize int, startTime time.Time) (*MerchantListResponse, error) {
-	// Try to query Supabase for merchants
+	// Query Supabase for merchants with pagination, using retry logic and circuit breaker
 	var result []map[string]interface{}
-	_, err := h.supabaseClient.GetClient().From("merchants").
-		Select("*", "", false).
-		Range((page-1)*pageSize, page*pageSize-1, "").
-		ExecuteTo(&result)
+	err := h.circuitBreaker.Execute(ctx, func() error {
+		// Use retry logic for the Supabase query
+		retryConfig := resilience.DefaultRetryConfig()
+		retryConfig.MaxAttempts = 3
+		retryConfig.InitialDelay = 100 * time.Millisecond
+		
+		retryResult, retryErr := resilience.RetryWithBackoff(ctx, retryConfig, func() ([]map[string]interface{}, error) {
+			var queryResult []map[string]interface{}
+			_, queryErr := h.supabaseClient.GetClient().From("merchants").
+				Select("*", "", false).
+				Range((page-1)*pageSize, page*pageSize-1, "").
+				ExecuteTo(&queryResult)
+			
+			if queryErr != nil {
+				return nil, queryErr
+			}
+			
+			return queryResult, nil
+		})
+		
+		if retryErr != nil {
+			return retryErr
+		}
+		
+		result = retryResult
+		return nil
+	})
 	
 	if err != nil {
 		h.logger.Warn("Failed to fetch merchants from Supabase",
