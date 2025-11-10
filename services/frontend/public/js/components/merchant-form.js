@@ -216,12 +216,22 @@ class MerchantFormComponent {
             try {
                 const formData = this.collectFormData();
                 this.storeData(formData, { errors: { general: error.message } });
+                // Try to extract merchant ID from stored data if available
+                const storedData = sessionStorage.getItem('merchantData');
+                let merchantId = null;
+                if (storedData) {
+                    try {
+                        const parsed = JSON.parse(storedData);
+                        merchantId = parsed.merchantId || parsed.id || null;
+                    } catch (e) {
+                        // Ignore
+                    }
+                }
+                this.finalizeRedirect(merchantId);
             } catch (storageError) {
                 console.error('Error storing data:', storageError);
+                this.finalizeRedirect(null);
             }
-            
-            // Redirect even on error - merchant-details can handle missing data
-            this.finalizeRedirect();
         }
     }
 
@@ -329,11 +339,31 @@ class MerchantFormComponent {
         // Store form data immediately before API calls
         this.storeData(data);
         
+        let savedMerchantId = null;
+        
+        // First, save the merchant to the portfolio
+        try {
+            console.log('💾 Saving merchant to portfolio...');
+            const merchantResponse = await this.saveMerchantToPortfolio(data);
+            if (merchantResponse && merchantResponse.id) {
+                savedMerchantId = merchantResponse.id;
+                console.log('✅ Merchant saved to portfolio with ID:', savedMerchantId);
+                // Update the data with the saved merchant ID
+                data.merchantId = savedMerchantId;
+                data.id = savedMerchantId;
+                this.storeData(data);
+            }
+        } catch (error) {
+            console.error('❌ Failed to save merchant to portfolio:', error);
+            // Continue anyway - we'll use the generated businessId
+            this.showNotification('Warning: Merchant may not be saved to portfolio. Continuing with verification...', 'error');
+        }
+        
         // Set up fallback redirect timer (max 10 seconds)
         const FALLBACK_REDIRECT_DELAY = 10000;
         const fallbackRedirectTimer = setTimeout(() => {
             console.warn('⚠️ Fallback redirect triggered - APIs taking too long');
-            this.finalizeRedirect();
+            this.finalizeRedirect(savedMerchantId);
         }, FALLBACK_REDIRECT_DELAY);
         
         try {
@@ -354,7 +384,7 @@ class MerchantFormComponent {
             
             if (result === 'timeout') {
                 console.warn('⚠️ API calls timed out, proceeding with redirect');
-                this.finalizeRedirect();
+                this.finalizeRedirect(savedMerchantId);
                 return;
             }
             
@@ -373,7 +403,7 @@ class MerchantFormComponent {
             };
             
             this.storeData(data, apiResults);
-            this.finalizeRedirect();
+            this.finalizeRedirect(savedMerchantId);
             
         } catch (error) {
             clearTimeout(fallbackRedirectTimer);
@@ -389,7 +419,7 @@ class MerchantFormComponent {
                 }
             };
             this.storeData(data, errorResults);
-            this.finalizeRedirect();
+            this.finalizeRedirect(savedMerchantId);
         }
     }
 
@@ -404,32 +434,52 @@ class MerchantFormComponent {
         return String(error);
     }
 
-    finalizeRedirect() {
+    finalizeRedirect(merchantId = null) {
         // Verify data is stored before redirecting
         const merchantData = sessionStorage.getItem('merchantData');
         if (!merchantData) {
             console.warn('⚠️ No merchant data in sessionStorage - redirecting anyway');
+        } else {
+            console.log('✅ Merchant data confirmed in sessionStorage');
         }
         
-        // Use window.location.replace() to prevent back-button issues
-        // Use absolute URL to avoid hash interference
-        const targetUrl = window.location.origin + '/merchant-details';
+        // Build target URL with merchant ID if available
+        let targetUrl = '/merchant-details';
+        if (merchantId) {
+            targetUrl += `?id=${encodeURIComponent(merchantId)}`;
+            console.log('🔀 Redirecting with merchant ID:', merchantId);
+        } else {
+            console.log('🔀 Redirecting without merchant ID (will use sessionStorage data)');
+        }
         
-        try {
-            // Small delay to ensure sessionStorage is written
-            setTimeout(() => {
-                window.location.replace(targetUrl);
-            }, 50);
-        } catch (error) {
-            console.error('❌ Error during redirect:', error);
-            // Fallback: try relative path
+        console.log('🔀 Full redirect URL:', targetUrl);
+        console.log('🔀 Current URL:', window.location.href);
+        
+        // Add a small delay to ensure sessionStorage writes are flushed before redirect
+        // This prevents race conditions where navigation happens before data persistence completes
+        setTimeout(() => {
             try {
-                window.location.replace('/merchant-details');
-            } catch (fallbackError) {
-                console.error('❌ Fallback redirect also failed:', fallbackError);
-                this.showNotification('Failed to redirect. Please navigate to /merchant-details manually.', 'error');
+                console.log('🔀 Executing redirect after sessionStorage flush delay...');
+                // Use window.location.href for maximum compatibility
+                window.location.href = targetUrl;
+            } catch (error) {
+                console.error('❌ Error during redirect:', error);
+                // Fallback: try absolute URL
+                try {
+                    const absoluteUrl = window.location.origin + targetUrl;
+                    console.log('🔀 Trying absolute URL:', absoluteUrl);
+                    window.location.href = absoluteUrl;
+                } catch (fallbackError) {
+                    console.error('❌ Fallback redirect also failed:', fallbackError);
+                    // Last resort: show notification with manual link
+                    const absoluteUrl = window.location.origin + targetUrl;
+                    this.showNotification(
+                        `Redirect failed. Please <a href="${absoluteUrl}" style="color: white; text-decoration: underline; font-weight: bold;">click here</a> to view merchant details.`, 
+                        'error'
+                    );
+                }
             }
-        }
+        }, 100); // 100ms delay to ensure sessionStorage writes complete
     }
 
     async callBusinessIntelligenceAPI(apiData) {
@@ -542,6 +592,99 @@ class MerchantFormComponent {
                 });
             }, 1000);
         });
+    }
+
+    async saveMerchantToPortfolio(formData) {
+        if (!window.APIConfig) {
+            throw new Error('APIConfig not available');
+        }
+        
+        const apiUrl = APIConfig.getEndpoints().merchants;
+        const timeout = 15000; // 15 seconds
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        
+        // Prepare merchant data for API
+        const merchantRequest = {
+            name: formData.businessName,
+            legal_name: formData.businessName, // Use business name as legal name if not provided
+            registration_number: formData.registrationNumber || '',
+            tax_id: formData.registrationNumber || '', // Use registration number as tax ID if available
+            industry: '', // Will be populated from business intelligence results if available
+            industry_code: '',
+            business_type: '',
+            portfolio_type: 'prospective', // Default to prospective
+            risk_level: 'medium', // Default risk level
+            status: 'active',
+            address: {
+                street1: formData.streetAddress || '',
+                street2: '',
+                city: formData.city || '',
+                state: formData.state || '',
+                postal_code: formData.postalCode || '',
+                country: formData.country || '',
+                country_code: formData.country || ''
+            },
+            contact_info: {
+                phone: formData.phoneNumber || '',
+                email: formData.email || '',
+                website: formData.websiteUrl || '',
+                primary_contact: ''
+            }
+        };
+        
+        try {
+            console.log('💾 Sending merchant data to API:', merchantRequest);
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify(merchantRequest),
+                signal: controller.signal,
+                credentials: 'omit'
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                let errorText = 'Unknown error';
+                try {
+                    errorText = await response.text();
+                } catch (e) {
+                    // Ignore
+                }
+                
+                const error = new Error(`Failed to save merchant: ${response.status} ${response.statusText}`);
+                error.status = response.status;
+                error.statusText = response.statusText;
+                error.details = errorText;
+                throw error;
+            }
+
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                const merchant = await response.json();
+                console.log('✅ Merchant saved successfully:', merchant);
+                return merchant;
+            } else {
+                const text = await response.text();
+                throw new Error(`Expected JSON but received ${contentType}`);
+            }
+        } catch (error) {
+            clearTimeout(timeoutId);
+            
+            if (error.name === 'AbortError') {
+                throw new Error('Merchant save request timed out');
+            }
+            
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                throw new Error('Network error: Unable to reach merchant service. Please check your connection.');
+            }
+            
+            throw error;
+        }
     }
 
     calculateRiskScore(businessName) {
