@@ -807,8 +807,14 @@ func (h *MerchantHandler) listMerchants(ctx context.Context, page, pageSize int,
 		merchants = append(merchants, *merchant)
 	}
 	
-	// TODO: Get total count from Supabase for accurate pagination
-	total := len(merchants)
+	// Get total count from Supabase for accurate pagination
+	total, err := h.supabaseClient.GetTableCount(ctx, "merchants")
+	if err != nil {
+		h.logger.Warn("Failed to get total count from Supabase, using current page count",
+			zap.Error(err))
+		// Fallback to current page count if query fails
+		total = len(merchants)
+	}
 	totalPages := (total + pageSize - 1) / pageSize
 	
 	// Record successful request (non-fallback)
