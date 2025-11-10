@@ -79,6 +79,10 @@ vendor/
 *.mod.bak
 *.sum.bak
 
+# Go workspace files (should not be used in Docker builds)
+go.work
+go.work.sum
+
 # Railway specific
 .railway/
 railway.json

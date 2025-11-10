@@ -11,6 +11,10 @@ RUN go version && go version | grep -qE "go1\.(24|2[5-9]|[3-9][0-9])" || (echo "
 # Set working directory
 WORKDIR /app
 
+# Disable Go workspace mode to avoid version conflicts
+# This is necessary because both root and service have workspace files
+ENV GOWORK=off
+
 # Install dependencies including build tools for ONNX Runtime
 RUN apk add --no-cache git ca-certificates tzdata gcc musl-dev wget tar
 
@@ -47,7 +51,8 @@ RUN echo "Files in /app after COPY . .:" && \
     ls -la /app/models/ 2>/dev/null || echo "No models directory found"
 
 # Build the application with ONNX Runtime support
-RUN GOOS=linux GOARCH=amd64 go build \
+# Explicitly disable workspace mode in build command
+RUN GOOS=linux GOARCH=amd64 GOWORK=off go build \
     -a -installsuffix cgo \
     -ldflags='-w -s' \
     -o risk-assessment-service \
