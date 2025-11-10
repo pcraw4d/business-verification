@@ -849,16 +849,14 @@ func (h *MerchantHandler) listMerchants(ctx context.Context, page, pageSize int,
 				"portfolio_type": true, "risk_level": true, "status": true,
 			}
 			if validSortFields[sortBy] {
-				orderColumn := sortBy
 				if sortOrder == "desc" {
-					orderColumn = orderColumn + ".desc"
+					query = query.Order(sortBy, &postgrest.OrderOpts{Descending: true})
 				} else {
-					orderColumn = orderColumn + ".asc"
+					query = query.Order(sortBy, &postgrest.OrderOpts{Descending: false})
 				}
-				query = query.Order(orderColumn, "")
 			} else {
 				// Default to created_at desc if invalid sort field
-				query = query.Order("created_at.desc", "")
+				query = query.Order("created_at", &postgrest.OrderOpts{Descending: true})
 			}
 			
 			// Apply pagination
