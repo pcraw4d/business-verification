@@ -601,9 +601,9 @@ func (s *ServiceDiscoveryServer) registerDefaultServices() {
 		{
 			ID:        "api-gateway",
 			Name:      "API Gateway",
-			URL:       "https://kyb-api-gateway-production.up.railway.app",
+			URL:       "https://api-gateway-service-production-21fd.up.railway.app",
 			Version:   "4.0.0-CACHE-BUST-REBUILD",
-			HealthURL: "https://kyb-api-gateway-production.up.railway.app/health",
+			HealthURL: "https://api-gateway-service-production-21fd.up.railway.app/health",
 			Tags:      []string{"gateway", "api", "core"},
 			Metadata: map[string]string{
 				"description": "Main API Gateway for KYB Platform",
@@ -613,9 +613,9 @@ func (s *ServiceDiscoveryServer) registerDefaultServices() {
 		{
 			ID:        "classification-service",
 			Name:      "Classification Service",
-			URL:       "https://kyb-classification-service-production.up.railway.app",
+			URL:       "https://classification-service-production.up.railway.app",
 			Version:   "3.2.0",
-			HealthURL: "https://kyb-classification-service-production.up.railway.app/health",
+			HealthURL: "https://classification-service-production.up.railway.app/health",
 			Tags:      []string{"classification", "core", "business"},
 			Metadata: map[string]string{
 				"description": "Business classification and risk assessment",
@@ -625,9 +625,9 @@ func (s *ServiceDiscoveryServer) registerDefaultServices() {
 		{
 			ID:        "merchant-service",
 			Name:      "Merchant Service",
-			URL:       "https://kyb-merchant-service-production.up.railway.app",
+			URL:       "https://merchant-service-production.up.railway.app",
 			Version:   "3.2.0",
-			HealthURL: "https://kyb-merchant-service-production.up.railway.app/health",
+			HealthURL: "https://merchant-service-production.up.railway.app/health",
 			Tags:      []string{"merchant", "core", "business"},
 			Metadata: map[string]string{
 				"description": "Merchant management and operations",
@@ -637,9 +637,9 @@ func (s *ServiceDiscoveryServer) registerDefaultServices() {
 		{
 			ID:        "monitoring-service",
 			Name:      "Monitoring Service",
-			URL:       "https://kyb-monitoring-production.up.railway.app",
+			URL:       "https://monitoring-service-production.up.railway.app",
 			Version:   "4.0.0-CACHE-BUST-REBUILD",
-			HealthURL: "https://kyb-monitoring-production.up.railway.app/health",
+			HealthURL: "https://monitoring-service-production.up.railway.app/health",
 			Tags:      []string{"monitoring", "observability", "core"},
 			Metadata: map[string]string{
 				"description": "System monitoring and alerting",
@@ -649,9 +649,9 @@ func (s *ServiceDiscoveryServer) registerDefaultServices() {
 		{
 			ID:        "pipeline-service",
 			Name:      "Pipeline Service",
-			URL:       "https://kyb-pipeline-service-production.up.railway.app",
+			URL:       "https://pipeline-service-production.up.railway.app",
 			Version:   "4.0.0-CACHE-BUST-REBUILD",
-			HealthURL: "https://kyb-pipeline-service-production.up.railway.app/health",
+			HealthURL: "https://pipeline-service-production.up.railway.app/health",
 			Tags:      []string{"pipeline", "processing", "core"},
 			Metadata: map[string]string{
 				"description": "Event processing pipeline",
@@ -661,9 +661,9 @@ func (s *ServiceDiscoveryServer) registerDefaultServices() {
 		{
 			ID:        "frontend-service",
 			Name:      "Frontend Service",
-			URL:       "https://kyb-frontend-production.up.railway.app",
+			URL:       "https://frontend-service-production-b225.up.railway.app",
 			Version:   "4.0.0-CACHE-BUST-REBUILD",
-			HealthURL: "https://kyb-frontend-production.up.railway.app/health",
+			HealthURL: "https://frontend-service-production-b225.up.railway.app/health",
 			Tags:      []string{"frontend", "ui", "core"},
 			Metadata: map[string]string{
 				"description": "Web frontend interface",
@@ -673,12 +673,24 @@ func (s *ServiceDiscoveryServer) registerDefaultServices() {
 		{
 			ID:        "business-intelligence-gateway",
 			Name:      "Business Intelligence Gateway",
-			URL:       "https://bi-gateway-production.up.railway.app",
+			URL:       "https://bi-service-production.up.railway.app",
 			Version:   "4.0.0-BI",
-			HealthURL: "https://bi-gateway-production.up.railway.app/health",
+			HealthURL: "https://bi-service-production.up.railway.app/health",
 			Tags:      []string{"bi", "analytics", "reports"},
 			Metadata: map[string]string{
 				"description": "Business intelligence and analytics",
+				"environment": "production",
+			},
+		},
+		{
+			ID:        "risk-assessment-service",
+			Name:      "Risk Assessment Service",
+			URL:       "https://risk-assessment-service-production.up.railway.app",
+			Version:   "1.0.0",
+			HealthURL: "https://risk-assessment-service-production.up.railway.app/health",
+			Tags:      []string{"risk", "assessment", "core"},
+			Metadata: map[string]string{
+				"description": "Risk assessment and analysis",
 				"environment": "production",
 			},
 		},
