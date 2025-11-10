@@ -644,6 +644,59 @@ func (h *RiskAssessmentHandler) HandleRiskPredictions(w http.ResponseWriter, r *
 		zap.String("merchant_id", merchantID),
 		zap.Ints("horizons", horizons))
 
+	// Try to fetch real merchant data from database using merchantID
+	var business *models.RiskAssessmentRequest
+	
+	// First, try to get merchant from merchants table
+	var merchantResult []map[string]interface{}
+	_, err := h.supabaseClient.GetClient().From("merchants").
+		Select("*", "", false).
+		Eq("id", merchantID).
+		Single().
+		ExecuteTo(&merchantResult)
+
+	if err == nil && len(merchantResult) > 0 {
+		// Extract business data from merchant
+		merchantData := merchantResult[0]
+		business = &models.RiskAssessmentRequest{
+			BusinessName:    getString(merchantData, "name"),
+			BusinessAddress: getString(merchantData, "address"),
+			Industry:        getString(merchantData, "industry"),
+			Country:         "US", // Default, can be enhanced to extract from address
+		}
+	} else {
+		// Fallback: Try to get latest assessment for this merchant
+		var assessmentResult []map[string]interface{}
+		_, err := h.supabaseClient.GetClient().From("risk_assessments").
+			Select("*", "", false).
+			Eq("business_id", merchantID).
+			Order("created_at", false).
+			Limit(1, "").
+			ExecuteTo(&assessmentResult)
+
+		if err == nil && len(assessmentResult) > 0 {
+			assessmentData := assessmentResult[0]
+			business = &models.RiskAssessmentRequest{
+				BusinessName:    getString(assessmentData, "business_name"),
+				BusinessAddress: getString(assessmentData, "business_address"),
+				Industry:        getString(assessmentData, "industry"),
+				Country:         getString(assessmentData, "country"),
+			}
+		}
+	}
+
+	// Final fallback to mock data if merchant not found
+	if business == nil || business.BusinessName == "" {
+		h.logger.Warn("Merchant not found, using fallback data",
+			zap.String("merchant_id", merchantID))
+		business = &models.RiskAssessmentRequest{
+			BusinessName:    "Merchant " + merchantID,
+			BusinessAddress: "Unknown",
+			Industry:        "General",
+			Country:         "US",
+		}
+	}
+
 	// TODO: Get risk history from database for the merchant
 	// FALLBACK: Generate predictions based on current assessment or mock data
 	// This is a development placeholder and should be replaced with real database query
@@ -651,15 +704,6 @@ func (h *RiskAssessmentHandler) HandleRiskPredictions(w http.ResponseWriter, r *
 	predictions := []map[string]interface{}{}
 	
 	for _, months := range horizons {
-		// Use ML service to generate prediction
-		// FALLBACK: Create mock business request when database record not found
-		// TODO: Fetch real merchant data from database using merchantID
-		business := &models.RiskAssessmentRequest{
-			BusinessName:    "Merchant " + merchantID,
-			BusinessAddress: "Unknown",
-			Industry:        "General",
-			Country:         "US",
-		}
 
 		// Get prediction from ML service
 		prediction, err := h.mlService.PredictFutureRisk(r.Context(), "auto", business, months)
