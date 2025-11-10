@@ -804,6 +804,40 @@
             console.log('🔍 [DEBUG] Document already loaded, initializing immediately...');
             initializeForm();
         }
+        
+        // Add direct test after a delay to verify button exists and can be clicked
+        setTimeout(() => {
+            const testBtn = document.getElementById('submitBtn');
+            const testForm = document.getElementById('merchantForm');
+            console.log('🔍 [DEBUG] Post-init check - Submit button exists:', !!testBtn);
+            console.log('🔍 [DEBUG] Post-init check - Form exists:', !!testForm);
+            
+            if (testBtn) {
+                console.log('🔍 [DEBUG] Testing direct button click handler...');
+                // Test if we can attach a handler directly
+                testBtn.addEventListener('click', () => {
+                    console.log('✅ [DEBUG] DIRECT CLICK HANDLER FIRED - Button is clickable!');
+                }, true);
+                
+                // Also test onclick
+                const originalOnclick = testBtn.onclick;
+                testBtn.onclick = function(e) {
+                    console.log('✅ [DEBUG] DIRECT ONCLICK HANDLER FIRED!');
+                    if (originalOnclick) {
+                        return originalOnclick.call(this, e);
+                    }
+                };
+            }
+            
+            // Monitor for form submission attempts
+            if (testForm) {
+                testForm.addEventListener('submit', (e) => {
+                    console.log('🔍 [DEBUG] FORM SUBMIT DETECTED (monitor)');
+                    console.log('🔍 [DEBUG] Submit event defaultPrevented:', e.defaultPrevented);
+                    console.log('🔍 [DEBUG] Submit event target:', e.target);
+                }, true);
+            }
+        }, 2000);
     </script>
 </body>
 </html>
