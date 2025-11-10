@@ -38,18 +38,24 @@ run_test() {
     
     echo -e "${BLUE}Testing: ${test_name}${NC}"
     
+    # Execute command and capture both response body and status code
+    # curl -w outputs the status code at the end when using %{http_code}
     response=$(eval "$command" 2>&1)
-    status_code=$(echo "$response" | grep -oP 'HTTP/\d\.\d \K\d+' | tail -1 || echo "000")
     
-    if [ "$status_code" = "$expected_status" ] || [ "$status_code" = "000" ]; then
-        # Check if we got a valid response
-        if echo "$response" | grep -q "HTTP"; then
-            echo -e "${GREEN}✅ PASSED${NC} - Status: $status_code"
-            PASSED=$((PASSED + 1))
-        else
-            echo -e "${YELLOW}⚠️  WARNING${NC} - Could not determine status code"
-            WARNINGS=$((WARNINGS + 1))
-        fi
+    # Extract status code - it should be the last line when using curl -w '\n%{http_code}'
+    status_code=$(echo "$response" | tail -1 | tr -d '\n' | grep -oE '^[0-9]{3}$' || echo "000")
+    
+    # If status code extraction failed, try to get it from HTTP headers
+    if [ "$status_code" = "000" ] || [ -z "$status_code" ]; then
+        status_code=$(echo "$response" | grep -i "HTTP/" | head -1 | awk '{print $2}' || echo "000")
+    fi
+    
+    if [ "$status_code" = "$expected_status" ]; then
+        echo -e "${GREEN}✅ PASSED${NC} - Status: $status_code"
+        PASSED=$((PASSED + 1))
+    elif [ "$status_code" = "000" ] || [ -z "$status_code" ]; then
+        echo -e "${YELLOW}⚠️  WARNING${NC} - Could not determine status code"
+        WARNINGS=$((WARNINGS + 1))
     else
         echo -e "${RED}❌ FAILED${NC} - Expected: $expected_status, Got: $status_code"
         FAILED=$((FAILED + 1))
@@ -92,17 +98,17 @@ test_error_handling() {
     
     # Test invalid JSON
     run_test "Invalid JSON in request body" \
-        "curl -s -w '\n%{http_code}' -X POST '${API_BASE_URL}/api/v1/classify' -H 'Content-Type: application/json' -d 'invalid json'" \
+        "curl -s -w '\\n%{http_code}' -X POST '${API_BASE_URL}/api/v1/classify' -H 'Content-Type: application/json' -d 'invalid json'" \
         "400"
     
     # Test missing required fields
     run_test "Missing required fields in registration" \
-        "curl -s -w '\n%{http_code}' -X POST '${API_BASE_URL}/api/v1/auth/register' -H 'Content-Type: application/json' -d '{\"email\":\"test@example.com\"}'" \
+        "curl -s -w '\\n%{http_code}' -X POST '${API_BASE_URL}/api/v1/auth/register' -H 'Content-Type: application/json' -d '{\"email\":\"test@example.com\"}'" \
         "400"
     
     # Test invalid endpoint
     run_test "Invalid endpoint (404)" \
-        "curl -s -w '\n%{http_code}' -X GET '${API_BASE_URL}/api/v1/nonexistent'" \
+        "curl -s -w '\\n%{http_code}' -X GET '${API_BASE_URL}/api/v1/nonexistent'" \
         "404"
     
     echo ""
@@ -111,47 +117,50 @@ test_error_handling() {
 # Test 1: Health Check
 echo -e "${BLUE}=== Health Check Tests ===${NC}"
 run_test "API Gateway Health Check" \
-    "curl -s -w '\n%{http_code}' -X GET '${API_BASE_URL}/health'"
+    "curl -s -w '\\n%{http_code}' -X GET '${API_BASE_URL}/health'"
 
 # Test 2: Classification Endpoint
 echo -e "${BLUE}=== Classification Endpoint Tests ===${NC}"
 run_test "Classification - Software Company" \
-    "curl -s -w '\n%{http_code}' -X POST '${API_BASE_URL}/api/v1/classify' -H 'Content-Type: application/json' -d '{\"business_name\":\"Acme Software\",\"description\":\"Software development company\"}'"
+    "curl -s -w '\\n%{http_code}' -X POST '${API_BASE_URL}/api/v1/classify' -H 'Content-Type: application/json' -d '{\"business_name\":\"Acme Software\",\"description\":\"Software development company\"}'"
 
 run_test "Classification - Medical Clinic" \
-    "curl -s -w '\n%{http_code}' -X POST '${API_BASE_URL}/api/v1/classify' -H 'Content-Type: application/json' -d '{\"business_name\":\"City Medical Clinic\",\"description\":\"Healthcare services\"}'"
+    "curl -s -w '\\n%{http_code}' -X POST '${API_BASE_URL}/api/v1/classify' -H 'Content-Type: application/json' -d '{\"business_name\":\"City Medical Clinic\",\"description\":\"Healthcare services\"}'"
 
 # Test 3: Merchant Endpoints
 echo -e "${BLUE}=== Merchant Endpoint Tests ===${NC}"
 run_test "List Merchants" \
-    "curl -s -w '\n%{http_code}' -X GET '${API_BASE_URL}/api/v1/merchants'"
+    "curl -s -w '\\n%{http_code}' -X GET '${API_BASE_URL}/api/v1/merchants'"
 
 run_test "Get Merchant by ID" \
-    "curl -s -w '\n%{http_code}' -X GET '${API_BASE_URL}/api/v1/merchants/test-merchant-1'"
+    "curl -s -w '\\n%{http_code}' -X GET '${API_BASE_URL}/api/v1/merchants/test-merchant-1'"
 
 # Test 4: Risk Assessment Endpoints
 echo -e "${BLUE}=== Risk Assessment Endpoint Tests ===${NC}"
+# Risk benchmarks may return 503 if service is unavailable - accept both 200 and 503
 run_test "Risk Benchmarks" \
-    "curl -s -w '\n%{http_code}' -X GET '${API_BASE_URL}/api/v1/risk/benchmarks?mcc=5411'"
+    "curl -s -w '\\n%{http_code}' -X GET '${API_BASE_URL}/api/v1/risk/benchmarks?mcc=5411'" \
+    "200"
 
 run_test "Risk Predictions" \
-    "curl -s -w '\n%{http_code}' -X GET '${API_BASE_URL}/api/v1/risk/predictions/test-merchant-1'"
+    "curl -s -w '\\n%{http_code}' -X GET '${API_BASE_URL}/api/v1/risk/predictions/test-merchant-1'"
 
 # Test 5: Registration Endpoint
 echo -e "${BLUE}=== Registration Endpoint Tests ===${NC}"
 run_test "User Registration - Valid Request" \
-    "curl -s -w '\n%{http_code}' -X POST '${API_BASE_URL}/api/v1/auth/register' -H 'Content-Type: application/json' -d '{\"email\":\"test$(date +%s)@example.com\",\"username\":\"testuser$(date +%s)\",\"password\":\"SecurePass123!\",\"first_name\":\"Test\",\"last_name\":\"User\",\"company\":\"Test Corp\"}'"
+    "curl -s -w '\\n%{http_code}' -X POST '${API_BASE_URL}/api/v1/auth/register' -H 'Content-Type: application/json' -d '{\"email\":\"test$(date +%s)@example.com\",\"username\":\"testuser$(date +%s)\",\"password\":\"SecurePass123!\",\"first_name\":\"Test\",\"last_name\":\"User\",\"company\":\"Test Corp\"}'" \
+    "201"
 
 # Test 6: Service Health Proxies
 echo -e "${BLUE}=== Service Health Proxy Tests ===${NC}"
 run_test "Classification Service Health" \
-    "curl -s -w '\n%{http_code}' -X GET '${API_BASE_URL}/api/v1/classification/health'"
+    "curl -s -w '\\n%{http_code}' -X GET '${API_BASE_URL}/api/v1/classification/health'"
 
 run_test "Merchant Service Health" \
-    "curl -s -w '\n%{http_code}' -X GET '${API_BASE_URL}/api/v1/merchant/health'"
+    "curl -s -w '\\n%{http_code}' -X GET '${API_BASE_URL}/api/v1/merchant/health'"
 
 run_test "Risk Assessment Service Health" \
-    "curl -s -w '\n%{http_code}' -X GET '${API_BASE_URL}/api/v1/risk/health'"
+    "curl -s -w '\\n%{http_code}' -X GET '${API_BASE_URL}/api/v1/risk/health'"
 
 # Test 7: CORS Headers
 echo -e "${BLUE}=== CORS Tests ===${NC}"
