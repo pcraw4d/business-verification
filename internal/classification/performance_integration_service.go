@@ -250,12 +250,12 @@ func (pis *PerformanceIntegrationService) GetSystemHealth() *PerformanceIntegrat
 }
 
 // GetPerformanceReport generates a comprehensive performance report
-func (pis *PerformanceIntegrationService) GetPerformanceReport(ctx context.Context, reportPeriod time.Duration) (*UnifiedPerformanceReport, error) {
+func (pis *PerformanceIntegrationService) GetPerformanceReport(ctx context.Context, reportPeriod time.Duration) (*MonitorUnifiedPerformanceReport, error) {
 	return pis.unifiedMonitor.GenerateUnifiedReport(ctx, reportPeriod)
 }
 
 // GetActiveAlerts returns currently active performance alerts
-func (pis *PerformanceIntegrationService) GetActiveAlerts(ctx context.Context, limit int) ([]*UnifiedPerformanceAlert, error) {
+func (pis *PerformanceIntegrationService) GetActiveAlerts(ctx context.Context, limit int) ([]*MonitorUnifiedPerformanceAlert, error) {
 	return pis.unifiedMonitor.GetUnifiedAlerts(ctx, false, limit)
 }
 
@@ -326,7 +326,7 @@ func (pis *PerformanceIntegrationService) autoReportingLoop() {
 
 // sendHealthAlert sends an alert about system health issues
 func (pis *PerformanceIntegrationService) sendHealthAlert(health *PerformanceIntegrationHealth) {
-	alert := &UnifiedPerformanceAlert{
+	alert := &MonitorUnifiedPerformanceAlert{
 		ID:                 fmt.Sprintf("health_alert_%d", time.Now().Unix()),
 		Timestamp:          time.Now(),
 		AlertType:          "system",
@@ -352,7 +352,7 @@ func (pis *PerformanceIntegrationService) sendHealthAlert(health *PerformanceInt
 }
 
 // storeReport stores a performance report to the configured location
-func (pis *PerformanceIntegrationService) storeReport(report *UnifiedPerformanceReport) error {
+func (pis *PerformanceIntegrationService) storeReport(report *MonitorUnifiedPerformanceReport) error {
 	// TODO: Implement report storage (file system, database, cloud storage, etc.)
 	pis.logger.Info("Storing performance report",
 		zap.String("report_id", report.ReportID),

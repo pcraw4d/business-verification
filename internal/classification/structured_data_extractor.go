@@ -20,7 +20,7 @@ type ExtractorBusinessInfo struct {
 	Description   string      `json:"description"`
 	Services      []string    `json:"services"`
 	Products      []string    `json:"products"`
-	ContactInfo   ContactInfo `json:"contact_info"`
+	ContactInfo   ExtractorContactInfo `json:"contact_info"`
 	BusinessHours string      `json:"business_hours"`
 	Location      string      `json:"location"`
 	Industry      string      `json:"industry"`
@@ -44,8 +44,8 @@ type ExtractorStructuredDataResult struct {
 	OpenGraphData   map[string]string `json:"open_graph_data"`
 	TwitterCardData map[string]string `json:"twitter_card_data"`
 	Microdata       []MicrodataItem   `json:"microdata"`
-	BusinessInfo    BusinessInfo      `json:"business_info"`
-	ContactInfo     ContactInfo       `json:"contact_info"`
+	BusinessInfo    ExtractorBusinessInfo      `json:"business_info"`
+	ContactInfo     ExtractorContactInfo       `json:"contact_info"`
 	ProductInfo     []ProductInfo     `json:"product_info"`
 	ServiceInfo     []ServiceInfo     `json:"service_info"`
 	EventInfo       []EventInfo       `json:"event_info"`
@@ -112,16 +112,16 @@ func NewStructuredDataExtractor(logger *log.Logger) *StructuredDataExtractor {
 }
 
 // ExtractStructuredData extracts all types of structured data from HTML content
-func (sde *StructuredDataExtractor) ExtractStructuredData(htmlContent string) *StructuredDataResult {
+func (sde *StructuredDataExtractor) ExtractStructuredData(htmlContent string) *ExtractorStructuredDataResult {
 	sde.logger.Printf("🔍 [StructuredData] Starting structured data extraction")
 
-	result := &StructuredDataResult{
+	result := &ExtractorStructuredDataResult{
 		SchemaOrgData:   []SchemaOrgItem{},
 		OpenGraphData:   make(map[string]string),
 		TwitterCardData: make(map[string]string),
 		Microdata:       []MicrodataItem{},
-		BusinessInfo:    BusinessInfo{},
-		ContactInfo:     ContactInfo{},
+		BusinessInfo:    ExtractorBusinessInfo{},
+		ContactInfo:     ExtractorContactInfo{},
 		ProductInfo:     []ProductInfo{},
 		ServiceInfo:     []ServiceInfo{},
 		EventInfo:       []EventInfo{},
@@ -151,7 +151,7 @@ func (sde *StructuredDataExtractor) ExtractStructuredData(htmlContent string) *S
 }
 
 // extractSchemaOrgJSONLD extracts Schema.org JSON-LD structured data
-func (sde *StructuredDataExtractor) extractSchemaOrgJSONLD(htmlContent string, result *StructuredDataResult) {
+func (sde *StructuredDataExtractor) extractSchemaOrgJSONLD(htmlContent string, result *ExtractorStructuredDataResult) {
 	// Find all JSON-LD script tags
 	jsonLDPattern := regexp.MustCompile(`<script[^>]*type=["']application/ld\+json["'][^>]*>(.*?)</script>`)
 	matches := jsonLDPattern.FindAllStringSubmatch(htmlContent, -1)
@@ -174,7 +174,7 @@ func (sde *StructuredDataExtractor) extractSchemaOrgJSONLD(htmlContent string, r
 }
 
 // processSchemaOrgData processes Schema.org structured data
-func (sde *StructuredDataExtractor) processSchemaOrgData(data interface{}, result *StructuredDataResult) {
+func (sde *StructuredDataExtractor) processSchemaOrgData(data interface{}, result *ExtractorStructuredDataResult) {
 	switch v := data.(type) {
 	case map[string]interface{}:
 		sde.processSchemaOrgObject(v, result)
@@ -186,7 +186,7 @@ func (sde *StructuredDataExtractor) processSchemaOrgData(data interface{}, resul
 }
 
 // processSchemaOrgObject processes a single Schema.org object
-func (sde *StructuredDataExtractor) processSchemaOrgObject(obj map[string]interface{}, result *StructuredDataResult) {
+func (sde *StructuredDataExtractor) processSchemaOrgObject(obj map[string]interface{}, result *ExtractorStructuredDataResult) {
 	// Get the type
 	typeValue, hasType := obj["@type"]
 	if !hasType {
@@ -217,7 +217,7 @@ func (sde *StructuredDataExtractor) processSchemaOrgObject(obj map[string]interf
 }
 
 // extractBusinessInfoFromSchemaOrg extracts business information from Schema.org data
-func (sde *StructuredDataExtractor) extractBusinessInfoFromSchemaOrg(schemaType string, obj map[string]interface{}, result *StructuredDataResult) {
+func (sde *StructuredDataExtractor) extractBusinessInfoFromSchemaOrg(schemaType string, obj map[string]interface{}, result *ExtractorStructuredDataResult) {
 	switch schemaType {
 	case "Organization", "Corporation", "LocalBusiness", "Store", "Restaurant", "ProfessionalService":
 		sde.extractOrganizationInfo(obj, result)
@@ -231,7 +231,7 @@ func (sde *StructuredDataExtractor) extractBusinessInfoFromSchemaOrg(schemaType 
 }
 
 // extractOrganizationInfo extracts organization information
-func (sde *StructuredDataExtractor) extractOrganizationInfo(obj map[string]interface{}, result *StructuredDataResult) {
+func (sde *StructuredDataExtractor) extractOrganizationInfo(obj map[string]interface{}, result *ExtractorStructuredDataResult) {
 	// Business name
 	if name, exists := obj["name"]; exists {
 		result.BusinessInfo.BusinessName = fmt.Sprintf("%v", name)
@@ -313,7 +313,7 @@ func (sde *StructuredDataExtractor) extractOrganizationInfo(obj map[string]inter
 }
 
 // extractProductInfo extracts product information
-func (sde *StructuredDataExtractor) extractProductInfo(obj map[string]interface{}, result *StructuredDataResult) {
+func (sde *StructuredDataExtractor) extractProductInfo(obj map[string]interface{}, result *ExtractorStructuredDataResult) {
 	product := ProductInfo{
 		Confidence: 0.9,
 	}
@@ -368,7 +368,7 @@ func (sde *StructuredDataExtractor) extractProductInfo(obj map[string]interface{
 }
 
 // extractServiceInfo extracts service information
-func (sde *StructuredDataExtractor) extractServiceInfo(obj map[string]interface{}, result *StructuredDataResult) {
+func (sde *StructuredDataExtractor) extractServiceInfo(obj map[string]interface{}, result *ExtractorStructuredDataResult) {
 	service := ServiceInfo{
 		Confidence: 0.9,
 	}
@@ -393,7 +393,7 @@ func (sde *StructuredDataExtractor) extractServiceInfo(obj map[string]interface{
 }
 
 // extractEventInfo extracts event information
-func (sde *StructuredDataExtractor) extractEventInfo(obj map[string]interface{}, result *StructuredDataResult) {
+func (sde *StructuredDataExtractor) extractEventInfo(obj map[string]interface{}, result *ExtractorStructuredDataResult) {
 	event := EventInfo{
 		Confidence: 0.9,
 	}
@@ -432,14 +432,14 @@ func (sde *StructuredDataExtractor) extractEventInfo(obj map[string]interface{},
 }
 
 // extractSchemaOrgMicrodata extracts Schema.org microdata
-func (sde *StructuredDataExtractor) extractSchemaOrgMicrodata(htmlContent string, result *StructuredDataResult) {
+func (sde *StructuredDataExtractor) extractSchemaOrgMicrodata(htmlContent string, result *ExtractorStructuredDataResult) {
 	// This is a simplified implementation
 	// In a real implementation, you would parse HTML and extract microdata attributes
 	sde.logger.Printf("📊 [StructuredData] Microdata extraction not fully implemented")
 }
 
 // extractOpenGraphData extracts Open Graph data
-func (sde *StructuredDataExtractor) extractOpenGraphData(htmlContent string, result *StructuredDataResult) {
+func (sde *StructuredDataExtractor) extractOpenGraphData(htmlContent string, result *ExtractorStructuredDataResult) {
 	ogPattern := regexp.MustCompile(`<meta[^>]*property=["']og:([^"']+)["'][^>]*content=["']([^"']+)["'][^>]*>`)
 	matches := ogPattern.FindAllStringSubmatch(htmlContent, -1)
 
@@ -453,7 +453,7 @@ func (sde *StructuredDataExtractor) extractOpenGraphData(htmlContent string, res
 }
 
 // extractTwitterCardData extracts Twitter Card data
-func (sde *StructuredDataExtractor) extractTwitterCardData(htmlContent string, result *StructuredDataResult) {
+func (sde *StructuredDataExtractor) extractTwitterCardData(htmlContent string, result *ExtractorStructuredDataResult) {
 	twitterPattern := regexp.MustCompile(`<meta[^>]*name=["']twitter:([^"']+)["'][^>]*content=["']([^"']+)["'][^>]*>`)
 	matches := twitterPattern.FindAllStringSubmatch(htmlContent, -1)
 
@@ -467,7 +467,7 @@ func (sde *StructuredDataExtractor) extractTwitterCardData(htmlContent string, r
 }
 
 // extractBusinessInfoFromStructuredData extracts business information from all structured data
-func (sde *StructuredDataExtractor) extractBusinessInfoFromStructuredData(result *StructuredDataResult) {
+func (sde *StructuredDataExtractor) extractBusinessInfoFromStructuredData(result *ExtractorStructuredDataResult) {
 	// Extract from Open Graph data
 	if title, exists := result.OpenGraphData["title"]; exists && result.BusinessInfo.BusinessName == "" {
 		result.BusinessInfo.BusinessName = title
@@ -492,7 +492,7 @@ func (sde *StructuredDataExtractor) extractBusinessInfoFromStructuredData(result
 }
 
 // calculateExtractionScore calculates the quality score of structured data extraction
-func (sde *StructuredDataExtractor) calculateExtractionScore(result *StructuredDataResult) float64 {
+func (sde *StructuredDataExtractor) calculateExtractionScore(result *ExtractorStructuredDataResult) float64 {
 	score := 0.0
 
 	// Schema.org data score

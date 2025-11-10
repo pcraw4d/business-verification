@@ -369,7 +369,7 @@ func testRetailEcommerceClassification(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Classify business
-			result, err := repo.ClassifyBusiness(ctx, tc.businessName, tc.description, tc.websiteURL)
+			result, err := repo.ClassifyBusiness(ctx, tc.businessName, tc.websiteURL)
 			require.NoError(t, err)
 			require.NotNil(t, result)
 
@@ -441,7 +441,7 @@ func TestRetailEcommerceKeywordsPerformance(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			start := time.Now()
 
-			result, err := repo.ClassifyBusiness(ctx, "Test Business", tc.description, "")
+			result, err := repo.ClassifyBusiness(ctx, "Test Business", "")
 
 			duration := time.Since(start)
 
@@ -507,7 +507,7 @@ func TestRetailEcommerceKeywordsEdgeCases(t *testing.T) {
 
 	for _, ec := range edgeCases {
 		t.Run(ec.name, func(t *testing.T) {
-			result, err := repo.ClassifyBusiness(ctx, ec.businessName, ec.description, ec.websiteURL)
+			result, err := repo.ClassifyBusiness(ctx, ec.businessName, ec.websiteURL)
 
 			if ec.expectError {
 				assert.Error(t, err, "Expected error for edge case: %s", ec.name)

@@ -142,7 +142,7 @@ func (cra *ContentRelevanceAnalyzer) AnalyzeContentRelevance(ctx context.Context
 	// Analyze each page
 	for _, page := range crawlResult.PagesAnalyzed {
 		pageRelevance := cra.analyzePageRelevance(page)
-		result.PageRelevance[page.URL] = pageRelevance.OverallRelevance
+		result.PageRelevance[page.URL] = pageRelevance.RelevanceScore
 
 		// Aggregate business indicators
 		indicators := cra.extractBusinessIndicators(page)

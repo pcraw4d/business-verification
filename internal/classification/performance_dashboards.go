@@ -269,7 +269,7 @@ func (pd *PerformanceDashboardsUnified) CollectPerformanceMetrics(ctx context.Co
 }
 
 // GetPerformanceAlerts gets current performance alerts from unified_performance_alerts
-func (pd *PerformanceDashboardsUnified) GetPerformanceAlerts(ctx context.Context) ([]PerformanceAlert, error) {
+func (pd *PerformanceDashboardsUnified) GetPerformanceAlerts(ctx context.Context) ([]DashboardPerformanceAlert, error) {
 	query := `
 		SELECT 
 			id, timestamp, component, component_instance, service_name,
@@ -289,9 +289,9 @@ func (pd *PerformanceDashboardsUnified) GetPerformanceAlerts(ctx context.Context
 	}
 	defer rows.Close()
 
-	var results []PerformanceAlert
+	var results []DashboardPerformanceAlert
 	for rows.Next() {
-		var result PerformanceAlert
+		var result DashboardPerformanceAlert
 		err := rows.Scan(
 			&result.ID,
 			&result.Timestamp,

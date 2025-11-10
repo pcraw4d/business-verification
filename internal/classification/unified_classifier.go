@@ -7,13 +7,15 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"kyb-platform/internal/classification/repository"
 )
 
 // UnifiedClassifier integrates website analysis with existing classification methods
 type UnifiedClassifier struct {
 	logger           *log.Logger
 	websiteAnalyzer  *EnhancedWebsiteAnalyzer
-	keywordRepo      KeywordRepository
+	keywordRepo      repository.KeywordRepository
 	scoringAlgorithm *EnhancedScoringAlgorithm
 }
 
@@ -72,7 +74,7 @@ type WebsiteAnalysisData struct {
 func NewUnifiedClassifier(
 	logger *log.Logger,
 	websiteAnalyzer *EnhancedWebsiteAnalyzer,
-	keywordRepo KeywordRepository,
+	keywordRepo repository.KeywordRepository,
 	scoringAlgorithm *EnhancedScoringAlgorithm,
 ) *UnifiedClassifier {
 	return &UnifiedClassifier{
@@ -306,14 +308,14 @@ func (uc *UnifiedClassifier) combineKeywordsWithWeights(sources []DataSource, we
 }
 
 // performWeightedClassification performs classification using weighted keywords
-func (uc *UnifiedClassifier) performWeightedClassification(ctx context.Context, keywords []ContextualKeyword, weights map[string]float64) (*ClassificationResult, error) {
+func (uc *UnifiedClassifier) performWeightedClassification(ctx context.Context, keywords []ContextualKeyword, weights map[string]float64) (*repository.ClassificationResult, error) {
 	if len(keywords) == 0 {
-		return &ClassificationResult{
-			Industry:   &Industry{Name: "General Business", ID: 26},
+		return &repository.ClassificationResult{
+			Industry:   &repository.Industry{Name: "General Business", ID: 26},
 			Confidence: 0.50,
 			Keywords:   []string{},
 			Patterns:   []string{},
-			Codes:      []ClassificationCode{},
+			Codes:      []repository.ClassificationCode{},
 			Reasoning:  "No keywords available for classification",
 		}, nil
 	}
@@ -323,7 +325,7 @@ func (uc *UnifiedClassifier) performWeightedClassification(ctx context.Context, 
 }
 
 // generateIndustryCodes generates top 3 codes for each industry classification type
-func (uc *UnifiedClassifier) generateIndustryCodes(ctx context.Context, classificationResult *ClassificationResult, keywords []ContextualKeyword) struct {
+func (uc *UnifiedClassifier) generateIndustryCodes(ctx context.Context, classificationResult *repository.ClassificationResult, keywords []ContextualKeyword) struct {
 	MCC   []IndustryCode
 	SIC   []IndustryCode
 	NAICS []IndustryCode
@@ -444,7 +446,7 @@ func (uc *UnifiedClassifier) extractIndustrySignalsFromWebsiteAnalysis(analysis 
 	return signals
 }
 
-func (uc *UnifiedClassifier) extractKeywordsFromStructuredData(structuredData *StructuredDataResult) []string {
+func (uc *UnifiedClassifier) extractKeywordsFromStructuredData(structuredData *ExtractorStructuredDataResult) []string {
 	var keywords []string
 
 	// Extract from Schema.org data

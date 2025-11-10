@@ -117,8 +117,9 @@ type MonitorUnifiedPerformanceAlert struct {
 	Metadata           map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// UnifiedPerformanceReport represents a comprehensive performance report
-type UnifiedPerformanceReport struct {
+// MonitorUnifiedPerformanceReport represents a comprehensive performance report
+// (renamed to avoid conflict with performance_dashboards_unified.go)
+type MonitorUnifiedPerformanceReport struct {
 	ReportID     string        `json:"report_id"`
 	GeneratedAt  time.Time     `json:"generated_at"`
 	ReportPeriod time.Duration `json:"report_period"`
@@ -141,8 +142,8 @@ type UnifiedPerformanceReport struct {
 	ResourceRecommendations    []string `json:"resource_recommendations"`
 
 	// Alerts and issues
-	ActiveAlerts   []*UnifiedPerformanceAlert `json:"active_alerts"`
-	ResolvedAlerts []*UnifiedPerformanceAlert `json:"resolved_alerts"`
+	ActiveAlerts   []*MonitorUnifiedPerformanceAlert `json:"active_alerts"`
+	ResolvedAlerts []*MonitorUnifiedPerformanceAlert `json:"resolved_alerts"`
 
 	// Metadata
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
@@ -310,7 +311,7 @@ func (upm *UnifiedPerformanceMonitor) GetUnifiedStats() *UnifiedPerformanceStats
 }
 
 // GetUnifiedAlerts returns current unified performance alerts
-func (upm *UnifiedPerformanceMonitor) GetUnifiedAlerts(ctx context.Context, includeResolved bool, limit int) ([]*UnifiedPerformanceAlert, error) {
+func (upm *UnifiedPerformanceMonitor) GetUnifiedAlerts(ctx context.Context, includeResolved bool, limit int) ([]*MonitorUnifiedPerformanceAlert, error) {
 	// Get alerts from comprehensive monitor
 	comprehensiveAlerts, err := upm.comprehensiveMonitor.GetPerformanceAlerts(ctx, includeResolved)
 	if err != nil {
@@ -318,9 +319,9 @@ func (upm *UnifiedPerformanceMonitor) GetUnifiedAlerts(ctx context.Context, incl
 	}
 
 	// Convert to unified alerts
-	var unifiedAlerts []*UnifiedPerformanceAlert
+	var unifiedAlerts []*MonitorUnifiedPerformanceAlert
 	for _, alert := range comprehensiveAlerts {
-		unifiedAlert := &UnifiedPerformanceAlert{
+		unifiedAlert := &MonitorUnifiedPerformanceAlert{
 			ID:                 alert.ID,
 			Timestamp:          alert.Timestamp,
 			AlertType:          "performance",
@@ -339,7 +340,7 @@ func (upm *UnifiedPerformanceMonitor) GetUnifiedAlerts(ctx context.Context, incl
 	// Add security alerts
 	securityAlerts := upm.securityMonitor.GetSecurityAlerts(false, limit)
 	for _, alert := range securityAlerts {
-		unifiedAlert := &UnifiedPerformanceAlert{
+		unifiedAlert := &MonitorUnifiedPerformanceAlert{
 			ID:                 alert.ID,
 			Timestamp:          alert.Timestamp,
 			AlertType:          "security",
@@ -359,8 +360,8 @@ func (upm *UnifiedPerformanceMonitor) GetUnifiedAlerts(ctx context.Context, incl
 }
 
 // GenerateUnifiedReport generates a comprehensive performance report
-func (upm *UnifiedPerformanceMonitor) GenerateUnifiedReport(ctx context.Context, reportPeriod time.Duration) (*UnifiedPerformanceReport, error) {
-	report := &UnifiedPerformanceReport{
+func (upm *UnifiedPerformanceMonitor) GenerateUnifiedReport(ctx context.Context, reportPeriod time.Duration) (*MonitorUnifiedPerformanceReport, error) {
+	report := &MonitorUnifiedPerformanceReport{
 		ReportID:     generateReportID(),
 		GeneratedAt:  time.Now(),
 		ReportPeriod: reportPeriod,
@@ -662,7 +663,7 @@ func (upm *UnifiedPerformanceMonitor) calculateResourceUtilization(stats *Unifie
 	return (memoryUtilization + requestUtilization) / 2
 }
 
-func (upm *UnifiedPerformanceMonitor) countAlertsBySeverity(alerts []*UnifiedPerformanceAlert, severity string) int {
+func (upm *UnifiedPerformanceMonitor) countAlertsBySeverity(alerts []*MonitorUnifiedPerformanceAlert, severity string) int {
 	count := 0
 	for _, alert := range alerts {
 		if alert.Severity == severity {

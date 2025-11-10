@@ -29,7 +29,7 @@ type EnhancedAnalysisResult struct {
 	WebsiteURL             string                        `json:"website_url"`
 	CrawlResult            *CrawlResult                  `json:"crawl_result"`
 	RelevanceAnalysis      *RelevanceAnalysisResult      `json:"relevance_analysis"`
-	StructuredData         *StructuredDataResult         `json:"structured_data"`
+	StructuredData         *ExtractorStructuredDataResult         `json:"structured_data"`
 	BusinessClassification *BusinessClassificationResult `json:"business_classification"`
 	AnalysisTimestamp      time.Time                     `json:"analysis_timestamp"`
 	ProcessingTime         time.Duration                 `json:"processing_time"`
@@ -113,7 +113,7 @@ func (ewa *EnhancedWebsiteAnalyzer) AnalyzeWebsite(ctx context.Context, websiteU
 }
 
 // extractStructuredDataFromRelevantPages extracts structured data from the most relevant pages
-func (ewa *EnhancedWebsiteAnalyzer) extractStructuredDataFromRelevantPages(crawlResult *CrawlResult, relevanceAnalysis *RelevanceAnalysisResult) *StructuredDataResult {
+func (ewa *EnhancedWebsiteAnalyzer) extractStructuredDataFromRelevantPages(crawlResult *CrawlResult, relevanceAnalysis *RelevanceAnalysisResult) *ExtractorStructuredDataResult {
 	// Find the most relevant pages (top 3)
 	var relevantPages []PageAnalysis
 	for _, page := range crawlResult.PagesAnalyzed {
@@ -137,13 +137,12 @@ func (ewa *EnhancedWebsiteAnalyzer) extractStructuredDataFromRelevantPages(crawl
 	// Extract structured data from relevant pages
 	// For now, we'll simulate this - in a real implementation, you'd re-fetch the pages
 	// and extract structured data from their HTML content
-	structuredData := &StructuredDataResult{
+	structuredData := &ExtractorStructuredDataResult{
 		SchemaOrgData:   []SchemaOrgItem{},
 		OpenGraphData:   make(map[string]string),
 		TwitterCardData: make(map[string]string),
 		Microdata:       []MicrodataItem{},
-		BusinessInfo:    BusinessInfo{},
-		ContactInfo:     ContactInfo{},
+		BusinessInfo:    ExtractorBusinessInfo{},
 		ProductInfo:     []ProductInfo{},
 		ServiceInfo:     []ServiceInfo{},
 		EventInfo:       []EventInfo{},
@@ -153,7 +152,23 @@ func (ewa *EnhancedWebsiteAnalyzer) extractStructuredDataFromRelevantPages(crawl
 	// Aggregate business information from relevant pages
 	for _, page := range relevantPages {
 		if page.BusinessInfo.BusinessName != "" && structuredData.BusinessInfo.BusinessName == "" {
-			structuredData.BusinessInfo = page.BusinessInfo
+			structuredData.BusinessInfo = ExtractorBusinessInfo{
+				BusinessName:  page.BusinessInfo.BusinessName,
+				Description:   page.BusinessInfo.Description,
+				Services:      page.BusinessInfo.Services,
+				Products:      page.BusinessInfo.Products,
+				ContactInfo:   ExtractorContactInfo{
+					Phone:   page.BusinessInfo.ContactInfo.Phone,
+					Email:   page.BusinessInfo.ContactInfo.Email,
+					Address: page.BusinessInfo.ContactInfo.Address,
+					Website: page.BusinessInfo.ContactInfo.Website,
+					Social:  page.BusinessInfo.ContactInfo.Social,
+				},
+				BusinessHours: page.BusinessInfo.BusinessHours,
+				Location:      page.BusinessInfo.Location,
+				Industry:      page.BusinessInfo.Industry,
+				BusinessType:  page.BusinessInfo.BusinessType,
+			}
 		}
 	}
 
@@ -162,7 +177,7 @@ func (ewa *EnhancedWebsiteAnalyzer) extractStructuredDataFromRelevantPages(crawl
 }
 
 // performBusinessClassification performs business classification based on all analysis results
-func (ewa *EnhancedWebsiteAnalyzer) performBusinessClassification(crawlResult *CrawlResult, relevanceAnalysis *RelevanceAnalysisResult, structuredData *StructuredDataResult) *BusinessClassificationResult {
+func (ewa *EnhancedWebsiteAnalyzer) performBusinessClassification(crawlResult *CrawlResult, relevanceAnalysis *RelevanceAnalysisResult, structuredData *ExtractorStructuredDataResult) *BusinessClassificationResult {
 	classification := &BusinessClassificationResult{
 		MCCCodes:       []WebsiteClassificationCode{},
 		SICCodes:       []WebsiteClassificationCode{},
