@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 
 	"kyb-platform/services/api-gateway/internal/config"
+	gatewayerrors "kyb-platform/services/api-gateway/internal/errors"
 	"kyb-platform/services/api-gateway/internal/supabase"
 )
 
@@ -101,7 +102,7 @@ func (h *GatewayHandler) enhancedClassificationProxy(w http.ResponseWriter, r *h
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		h.logger.Error("Failed to read request body", zap.Error(err))
-		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		gatewayerrors.WriteBadRequest(w, r, "Failed to read request body")
 		return
 	}
 	defer r.Body.Close()
@@ -113,12 +114,7 @@ func (h *GatewayHandler) enhancedClassificationProxy(w http.ResponseWriter, r *h
 	var requestData map[string]interface{}
 	if err := json.Unmarshal(bodyBytes, &requestData); err != nil {
 		h.logger.Warn("Invalid JSON in request body", zap.Error(err))
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{
-			"error":   "Invalid JSON",
-			"message": "Request body must be valid JSON",
-		})
+		gatewayerrors.WriteBadRequest(w, r, "Request body must be valid JSON")
 		return
 	}
 
@@ -126,7 +122,7 @@ func (h *GatewayHandler) enhancedClassificationProxy(w http.ResponseWriter, r *h
 	originalResponse, err := h.getOriginalClassificationResponse(r, bodyBytes)
 	if err != nil {
 		h.logger.Error("Failed to get original classification response", zap.Error(err))
-		http.Error(w, "Classification service unavailable", http.StatusServiceUnavailable)
+		gatewayerrors.WriteServiceUnavailable(w, r, "Classification service unavailable")
 		return
 	}
 
@@ -355,7 +351,7 @@ func (h *GatewayHandler) proxyRequest(w http.ResponseWriter, r *http.Request, ta
 		bodyBytes, err := io.ReadAll(r.Body)
 		if err != nil {
 			h.logger.Error("Failed to read request body", zap.Error(err))
-			http.Error(w, "Failed to read request body", http.StatusBadRequest)
+			gatewayerrors.WriteBadRequest(w, r, "Failed to read request body")
 			return
 		}
 		body = bytes.NewReader(bodyBytes)
@@ -365,7 +361,7 @@ func (h *GatewayHandler) proxyRequest(w http.ResponseWriter, r *http.Request, ta
 	proxyReq, err := http.NewRequestWithContext(ctx, r.Method, target, body)
 	if err != nil {
 		h.logger.Error("Failed to create proxy request", zap.Error(err))
-		http.Error(w, "Failed to create proxy request", http.StatusInternalServerError)
+		gatewayerrors.WriteInternalError(w, r, "Failed to create proxy request")
 		return
 	}
 
@@ -387,7 +383,7 @@ func (h *GatewayHandler) proxyRequest(w http.ResponseWriter, r *http.Request, ta
 	resp, err := h.httpClient.Do(proxyReq)
 	if err != nil {
 		h.logger.Error("Proxy request failed", zap.Error(err))
-		http.Error(w, "Backend service unavailable", http.StatusServiceUnavailable)
+		gatewayerrors.WriteServiceUnavailable(w, r, "Backend service unavailable")
 		return
 	}
 	defer resp.Body.Close()
@@ -471,7 +467,7 @@ func (h *GatewayHandler) ProxyToRiskAssessmentHealth(w http.ResponseWriter, r *h
 // HandleAuthRegister handles user registration requests
 func (h *GatewayHandler) HandleAuthRegister(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		gatewayerrors.WriteMethodNotAllowed(w, r, "Method not allowed")
 		return
 	}
 
@@ -487,45 +483,25 @@ func (h *GatewayHandler) HandleAuthRegister(w http.ResponseWriter, r *http.Reque
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.logger.Error("Failed to decode registration request", zap.Error(err))
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{
-			"error":   "Invalid request body",
-			"message": "Please provide all required fields",
-		})
+		gatewayerrors.WriteBadRequest(w, r, "Invalid request body: Please provide all required fields")
 		return
 	}
 
 	// Validate required fields
 	if req.Email == "" || req.Username == "" || req.Password == "" {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{
-			"error":   "Missing required fields",
-			"message": "Email, username, and password are required",
-		})
+		gatewayerrors.WriteBadRequest(w, r, "Missing required fields: Email, username, and password are required")
 		return
 	}
 
 	// Validate email format
 	if !strings.Contains(req.Email, "@") || !strings.Contains(req.Email, ".") {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{
-			"error":   "Invalid email format",
-			"message": "Please provide a valid email address",
-		})
+		gatewayerrors.WriteBadRequest(w, r, "Invalid email format: Please provide a valid email address")
 		return
 	}
 
 	// Validate password strength
 	if len(req.Password) < 8 {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{
-			"error":   "Password too short",
-			"message": "Password must be at least 8 characters long",
-		})
+		gatewayerrors.WriteBadRequest(w, r, "Password too short: Password must be at least 8 characters long")
 		return
 	}
 
@@ -548,21 +524,11 @@ func (h *GatewayHandler) HandleAuthRegister(w http.ResponseWriter, r *http.Reque
 
 		// Check if it's a duplicate email error
 		if strings.Contains(err.Error(), "already registered") || strings.Contains(err.Error(), "already exists") {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusConflict)
-			json.NewEncoder(w).Encode(map[string]string{
-				"error":   "Email already registered",
-				"message": "An account with this email already exists",
-			})
+			gatewayerrors.WriteConflict(w, r, "Email already registered: An account with this email already exists")
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{
-			"error":   "Registration failed",
-			"message": "Unable to complete registration. Please try again later.",
-		})
+		gatewayerrors.WriteInternalError(w, r, "Unable to complete registration. Please try again later.")
 		return
 	}
 
