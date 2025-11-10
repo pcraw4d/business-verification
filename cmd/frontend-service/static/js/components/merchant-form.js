@@ -48,75 +48,101 @@ class MerchantFormComponent {
         console.log('🔍 [DEBUG] bindEvents() called');
         
         try {
-            // Form submission - use capture phase to catch early
-            console.log('🔍 [DEBUG] Attaching submit event listener to form (capture phase)');
-            this.form.addEventListener('submit', (e) => {
-                console.log('🔍 [DEBUG] Form submit event triggered (CAPTURED)');
+            // Form submission - use capture phase to catch early, non-passive
+            const self = this;
+            const handleFormSubmit = function(e) {
+                console.log('🔍 [DEBUG] Form submit event triggered - handler FIRED!');
+                console.log('🔍 [DEBUG] Event type:', e.type);
+                console.log('🔍 [DEBUG] Event target:', e.target);
+                
+                // CRITICAL: Prevent default FIRST
                 e.preventDefault();
                 e.stopPropagation();
                 e.stopImmediatePropagation();
+                
                 console.log('✅ [DEBUG] Default form submission prevented and propagation stopped');
-                this.handleSubmit(e);
-            }, true); // Use capture phase
-            console.log('✅ [DEBUG] Submit event listener attached to form (capture)');
+                console.log('🔍 [DEBUG] Event defaultPrevented after preventDefault:', e.defaultPrevented);
+                
+                self.handleSubmit(e);
+            };
+            
+            console.log('🔍 [DEBUG] Attaching submit event listener to form (capture phase, non-passive)');
+            this.form.addEventListener('submit', handleFormSubmit, { capture: true, passive: false });
+            console.log('✅ [DEBUG] Submit event listener attached to form (capture, non-passive)');
             
             // Also add in bubble phase as backup
-            this.form.addEventListener('submit', (e) => {
-                console.log('🔍 [DEBUG] Form submit event triggered (BUBBLE)');
-                e.preventDefault();
-                e.stopPropagation();
-                e.stopImmediatePropagation();
-                console.log('✅ [DEBUG] Default form submission prevented (bubble)');
-                this.handleSubmit(e);
-            }, false);
-            console.log('✅ [DEBUG] Submit event listener attached to form (bubble)');
+            console.log('🔍 [DEBUG] Attaching submit event listener to form (bubble phase, non-passive)');
+            this.form.addEventListener('submit', handleFormSubmit, { capture: false, passive: false });
+            console.log('✅ [DEBUG] Submit event listener attached to form (bubble, non-passive)');
             
-            // Also listen to button click - use capture phase
+            // Also listen to button click - use capture phase and handle immediately
             if (this.submitBtn) {
                 console.log('🔍 [DEBUG] Attaching click event listener to submit button (capture phase)');
-                const handleButtonClick = (e) => {
-                    console.log('🔍 [DEBUG] Submit button clicked (CAPTURED)');
+                
+                // Store reference to this for use in handlers
+                const self = this;
+                
+                const handleButtonClick = function(e) {
+                    console.log('🔍 [DEBUG] Submit button clicked - handler FIRED!');
+                    console.log('🔍 [DEBUG] Event type:', e.type);
+                    console.log('🔍 [DEBUG] Event target:', e.target);
+                    
+                    // CRITICAL: Prevent default FIRST
                     e.preventDefault();
                     e.stopPropagation();
                     e.stopImmediatePropagation();
-                    console.log('✅ [DEBUG] Default button click prevented and propagation stopped');
                     
-                    // Small delay to ensure form submit event doesn't fire
-                    setTimeout(() => {
-                        console.log('🔍 [DEBUG] Processing button click after delay');
-                        // Trigger form validation and submission
-                        if (this.form.checkValidity()) {
-                            console.log('🔍 [DEBUG] Form is valid, triggering handleSubmit');
-                            this.handleSubmit(e);
-                        } else {
-                            console.warn('⚠️ [DEBUG] Form validation failed on button click');
-                            this.form.reportValidity();
-                        }
-                    }, 10);
+                    console.log('✅ [DEBUG] Default prevented, propagation stopped');
+                    console.log('🔍 [DEBUG] Event defaultPrevented after preventDefault:', e.defaultPrevented);
+                    
+                    // Process immediately - no delay
+                    console.log('🔍 [DEBUG] Processing button click immediately');
+                    
+                    // Trigger form validation and submission
+                    if (self.form.checkValidity()) {
+                        console.log('🔍 [DEBUG] Form is valid, calling handleSubmit');
+                        self.handleSubmit(e);
+                    } else {
+                        console.warn('⚠️ [DEBUG] Form validation failed on button click');
+                        self.form.reportValidity();
+                    }
+                    
+                    return false;
                 };
                 
-                this.submitBtn.addEventListener('click', handleButtonClick, true); // Capture phase
-                console.log('✅ [DEBUG] Click event listener attached to submit button (capture)');
+                // Capture phase - highest priority
+                this.submitBtn.addEventListener('click', handleButtonClick, { capture: true, passive: false });
+                console.log('✅ [DEBUG] Click event listener attached to submit button (capture, non-passive)');
                 
-                // Also add in bubble phase
-                this.submitBtn.addEventListener('click', handleButtonClick, false);
-                console.log('✅ [DEBUG] Click event listener attached to submit button (bubble)');
+                // Bubble phase - backup
+                this.submitBtn.addEventListener('click', handleButtonClick, { capture: false, passive: false });
+                console.log('✅ [DEBUG] Click event listener attached to submit button (bubble, non-passive)');
                 
-                // Also set onclick as absolute last resort
-                this.submitBtn.onclick = (e) => {
+                // onclick handler - set early and don't let it be overwritten
+                const originalOnclick = this.submitBtn.onclick;
+                this.submitBtn.onclick = function(e) {
                     console.log('🔍 [DEBUG] Submit button onclick handler triggered');
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (this.form.checkValidity()) {
-                        console.log('🔍 [DEBUG] Form is valid (onclick), triggering handleSubmit');
-                        this.handleSubmit(e);
+                    if (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }
+                    if (self.form.checkValidity()) {
+                        console.log('🔍 [DEBUG] Form is valid (onclick), calling handleSubmit');
+                        self.handleSubmit(e);
                     } else {
                         console.warn('⚠️ [DEBUG] Form validation failed (onclick)');
-                        this.form.reportValidity();
+                        self.form.reportValidity();
                     }
                     return false;
                 };
                 console.log('✅ [DEBUG] onclick handler attached to submit button');
+                
+                // Make button type="button" to prevent form submission
+                if (this.submitBtn.type === 'submit') {
+                    console.log('🔍 [DEBUG] Changing button type from submit to button');
+                    this.submitBtn.type = 'button';
+                    console.log('✅ [DEBUG] Button type changed to prevent default form submission');
+                }
             } else {
                 console.warn('⚠️ [DEBUG] Submit button not found, skipping click listener');
             }
