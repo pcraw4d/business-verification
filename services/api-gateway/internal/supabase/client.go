@@ -1,8 +1,12 @@
 package supabase
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"time"
 
 	"github.com/supabase-community/supabase-go"
