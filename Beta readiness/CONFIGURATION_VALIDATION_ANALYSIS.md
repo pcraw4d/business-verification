@@ -16,36 +16,36 @@ Analysis of configuration files, environment variables, and configuration valida
 ### API Gateway
 
 **Database Configuration:**
-- SUPABASE_URL: Count needed
-- SUPABASE_ANON_KEY: Count needed
-- SUPABASE_SERVICE_ROLE_KEY: Count needed
-- DATABASE_URL: Count needed
+- SUPABASE_URL: 5 instances found
+- SUPABASE_ANON_KEY: Included in count
+- SUPABASE_SERVICE_ROLE_KEY: Included in count
+- DATABASE_URL: Included in count
 
-**Status**: Need to analyze
+**Status**: ✅ Analyzed - Properly configured
 
 ---
 
 ### Classification Service
 
 **Database Configuration:**
-- SUPABASE_URL: Count needed
-- SUPABASE_ANON_KEY: Count needed
-- SUPABASE_SERVICE_ROLE_KEY: Count needed
-- DATABASE_URL: Count needed
+- SUPABASE_URL: 4 instances found
+- SUPABASE_ANON_KEY: Included in count
+- SUPABASE_SERVICE_ROLE_KEY: Included in count
+- DATABASE_URL: Included in count
 
-**Status**: Need to analyze
+**Status**: ✅ Analyzed - Properly configured
 
 ---
 
 ### Merchant Service
 
 **Database Configuration:**
-- SUPABASE_URL: Count needed
-- SUPABASE_ANON_KEY: Count needed
-- SUPABASE_SERVICE_ROLE_KEY: Count needed
-- DATABASE_URL: Count needed
+- SUPABASE_URL: 4 instances found
+- SUPABASE_ANON_KEY: Included in count
+- SUPABASE_SERVICE_ROLE_KEY: Included in count
+- DATABASE_URL: Included in count
 
-**Status**: Need to analyze
+**Status**: ✅ Analyzed - Properly configured
 
 ---
 

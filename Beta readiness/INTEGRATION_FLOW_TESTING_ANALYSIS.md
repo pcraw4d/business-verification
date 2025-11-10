@@ -22,8 +22,8 @@ Analysis of integration flows, end-to-end workflows, and data consistency across
 
 **Test Results:**
 - Request: `POST /api/v1/classify` with business data
-- Response: Classification with industry, codes, confidence
-- Status: ✅ Working
+- Response: Classification with industry "Food & Beverage", codes, confidence
+- Status: ✅ Working (though classification accuracy needs improvement per previous analysis)
 
 ---
 
@@ -52,7 +52,8 @@ Analysis of integration flows, end-to-end workflows, and data consistency across
 **Test Results:**
 - Merchant ID: `merch_001`
 - Risk Prediction: `GET /api/v1/risk/predictions/merch_001`
-- Status: ✅ Working
+- Response: No prediction found (returns "No prediction")
+- Status: ⚠️ **ISSUE** - Risk prediction endpoint not returning data for valid merchant ID
 
 ---
 
