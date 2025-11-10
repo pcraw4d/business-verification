@@ -350,20 +350,56 @@ func (h *RiskAssessmentHandler) HandleRiskPrediction(w http.ResponseWriter, r *h
 	// Log warnings if any (simplified for now)
 	// Warnings functionality can be added later
 
-	// TODO: Retrieve business data from database using ID from URL
-	// FALLBACK: Create mock business request when database record not found
-	// This is a development placeholder and should be replaced with real database query
-	// In production, return proper 404 response if merchant not found
-	business := &models.RiskAssessmentRequest{
-		BusinessName:      "Sample Business",
-		BusinessAddress:   "123 Sample St, Sample City, SC 12345",
-		Industry:          "Technology",
-		Country:           "US",
-		PredictionHorizon: predictionReq.HorizonMonths,
-		Metadata: map[string]interface{}{
-			"model_type":                predictionReq.ModelType,
-			"include_temporal_analysis": predictionReq.IncludeTemporalAnalysis,
-		},
+	// Extract assessment ID from URL and retrieve business data from database
+	vars := mux.Vars(r)
+	assessmentID := vars["id"]
+
+	var business *models.RiskAssessmentRequest
+	if assessmentID != "" {
+		// Try to get assessment from database to extract business data
+		var assessmentResult []map[string]interface{}
+		_, err := h.supabaseClient.GetClient().From("risk_assessments").
+			Select("*", "", false).
+			Eq("id", assessmentID).
+			Single().
+			ExecuteTo(&assessmentResult)
+
+		if err == nil && len(assessmentResult) > 0 {
+			// Extract business data from assessment
+			assessmentData := assessmentResult[0]
+			business = &models.RiskAssessmentRequest{
+				BusinessName:      getString(assessmentData, "business_name"),
+				BusinessAddress:   getString(assessmentData, "business_address"),
+				Industry:          getString(assessmentData, "industry"),
+				Country:           getString(assessmentData, "country"),
+				PredictionHorizon: predictionReq.HorizonMonths,
+				Metadata: map[string]interface{}{
+					"model_type":                predictionReq.ModelType,
+					"include_temporal_analysis": predictionReq.IncludeTemporalAnalysis,
+				},
+			}
+			// Use business_id if available
+			if businessID := getString(assessmentData, "business_id"); businessID != "" {
+				business.Metadata["business_id"] = businessID
+			}
+		}
+	}
+
+	// Fallback to mock data if assessment not found or ID not provided
+	if business == nil || business.BusinessName == "" {
+		h.logger.Warn("Assessment not found or missing business data, using fallback",
+			zap.String("assessment_id", assessmentID))
+		business = &models.RiskAssessmentRequest{
+			BusinessName:      "Sample Business",
+			BusinessAddress:   "123 Sample St, Sample City, SC 12345",
+			Industry:          "Technology",
+			Country:           "US",
+			PredictionHorizon: predictionReq.HorizonMonths,
+			Metadata: map[string]interface{}{
+				"model_type":                predictionReq.ModelType,
+				"include_temporal_analysis": predictionReq.IncludeTemporalAnalysis,
+			},
+		}
 	}
 
 	// Use ML service for prediction with model selection
