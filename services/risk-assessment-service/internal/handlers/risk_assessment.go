@@ -170,8 +170,124 @@ func (h *RiskAssessmentHandler) HandleRiskAssessment(w http.ResponseWriter, r *h
 
 // HandleGetRiskAssessment handles GET /api/v1/assess/{id}
 func (h *RiskAssessmentHandler) HandleGetRiskAssessment(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement get risk assessment by ID
-	http.Error(w, "Not implemented", http.StatusNotImplemented)
+	// Extract assessment ID from URL
+	vars := mux.Vars(r)
+	assessmentID := vars["id"]
+
+	if assessmentID == "" {
+		h.errorHandler.HandleError(w, r, fmt.Errorf("assessment ID is required"))
+		return
+	}
+
+	h.logger.Info("Retrieving risk assessment",
+		zap.String("assessment_id", assessmentID))
+
+	// Query Supabase for the assessment
+	var result []map[string]interface{}
+	_, err := h.supabaseClient.GetClient().From("risk_assessments").
+		Select("*", "", false).
+		Eq("id", assessmentID).
+		Single().
+		ExecuteTo(&result)
+
+	if err != nil {
+		h.logger.Error("Failed to retrieve risk assessment",
+			zap.String("assessment_id", assessmentID),
+			zap.Error(err))
+		h.errorHandler.HandleError(w, r, fmt.Errorf("failed to retrieve risk assessment: %w", err))
+		return
+	}
+
+	if len(result) == 0 {
+		h.logger.Warn("Risk assessment not found",
+			zap.String("assessment_id", assessmentID))
+		h.errorHandler.HandleError(w, r, fmt.Errorf("risk assessment not found"))
+		return
+	}
+
+	// Convert result to RiskAssessmentResponse
+	assessmentData := result[0]
+	response := &models.RiskAssessmentResponse{
+		ID:                getString(assessmentData, "id"),
+		BusinessID:        getString(assessmentData, "business_id"),
+		RiskScore:         getFloat64(assessmentData, "risk_score"),
+		RiskLevel:         models.RiskLevel(getString(assessmentData, "risk_level")),
+		PredictionHorizon: getInt(assessmentData, "prediction_horizon"),
+		ConfidenceScore:   getFloat64(assessmentData, "confidence_score"),
+		Status:            models.AssessmentStatus(getString(assessmentData, "status")),
+		Metadata:          make(map[string]interface{}),
+	}
+
+	// Parse risk factors if available
+	if riskFactors, ok := assessmentData["risk_factors"].([]interface{}); ok {
+		response.RiskFactors = parseRiskFactors(riskFactors)
+	}
+
+	// Parse metadata if available
+	if metadata, ok := assessmentData["metadata"].(map[string]interface{}); ok {
+		response.Metadata = metadata
+	}
+
+	// Parse timestamps
+	if createdAt, ok := assessmentData["created_at"].(string); ok {
+		if t, err := time.Parse(time.RFC3339, createdAt); err == nil {
+			response.CreatedAt = t
+		}
+	}
+	if updatedAt, ok := assessmentData["updated_at"].(string); ok {
+		if t, err := time.Parse(time.RFC3339, updatedAt); err == nil {
+			response.UpdatedAt = t
+		}
+	}
+
+	// Return response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+
+	h.logger.Info("Risk assessment retrieved successfully",
+		zap.String("assessment_id", assessmentID))
+}
+
+// Helper functions for parsing assessment data
+func getString(data map[string]interface{}, key string) string {
+	if val, ok := data[key].(string); ok {
+		return val
+	}
+	return ""
+}
+
+func getFloat64(data map[string]interface{}, key string) float64 {
+	if val, ok := data[key].(float64); ok {
+		return val
+	}
+	return 0.0
+}
+
+func getInt(data map[string]interface{}, key string) int {
+	if val, ok := data[key].(float64); ok {
+		return int(val)
+	}
+	return 0
+}
+
+func parseRiskFactors(factors []interface{}) []models.RiskFactor {
+	result := make([]models.RiskFactor, 0, len(factors))
+	for _, f := range factors {
+		if factorMap, ok := f.(map[string]interface{}); ok {
+			factor := models.RiskFactor{
+				Category:    models.RiskCategory(getString(factorMap, "category")),
+				Name:        getString(factorMap, "name"),
+				Score:       getFloat64(factorMap, "score"),
+				Weight:      getFloat64(factorMap, "weight"),
+				Description: getString(factorMap, "description"),
+				Source:      getString(factorMap, "source"),
+				Confidence:  getFloat64(factorMap, "confidence"),
+			}
+			result = append(result, factor)
+		}
+	}
+	return result
 }
 
 // HandleRiskPrediction handles POST /api/v1/assess/{id}/predict
@@ -555,12 +671,35 @@ func (h *RiskAssessmentHandler) HandleRiskPredictions(w http.ResponseWriter, r *
 		predictions = append(predictions, predictionData)
 	}
 
+	// Get data points count from database (historical assessments for this merchant)
+	dataPointsCount := 0
+	var countResult []map[string]interface{}
+	_, err = h.supabaseClient.GetClient().From("risk_assessments").
+		Select("count", "", false).
+		Eq("business_id", merchantID).
+		ExecuteTo(&countResult)
+	
+	if err == nil && len(countResult) > 0 {
+		// Extract count from result
+		if count, ok := countResult[0]["count"].(float64); ok {
+			dataPointsCount = int(count)
+		} else if count, ok := countResult[0]["count"].(int); ok {
+			dataPointsCount = count
+		}
+	} else {
+		h.logger.Warn("Failed to get data points count",
+			zap.String("merchant_id", merchantID),
+			zap.Error(err))
+		// Use predictions count as fallback
+		dataPointsCount = len(predictions)
+	}
+
 	// Create response
 	response := map[string]interface{}{
 		"merchant_id":  merchantID,
 		"predictions":  predictions,
 		"generated_at": time.Now().Format(time.RFC3339),
-		"data_points":  0, // TODO: Get actual count from database
+		"data_points":  dataPointsCount,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
