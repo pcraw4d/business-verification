@@ -109,11 +109,17 @@ func (h *GatewayHandler) enhancedClassificationProxy(w http.ResponseWriter, r *h
 	// Restore the body so it can be used for the classification service request
 	r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
-	// Parse request data for enhancement
+	// Validate JSON before proxying
 	var requestData map[string]interface{}
 	if err := json.Unmarshal(bodyBytes, &requestData); err != nil {
-		h.logger.Warn("Failed to parse request body for enhancement", zap.Error(err))
-		// Continue anyway - we can still proxy the request
+		h.logger.Warn("Invalid JSON in request body", zap.Error(err))
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error":   "Invalid JSON",
+			"message": "Request body must be valid JSON",
+		})
+		return
 	}
 
 	// Get the original response from the classification service

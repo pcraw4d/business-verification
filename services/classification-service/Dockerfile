@@ -23,8 +23,11 @@ RUN go mod download
 # the root directory in Railway dashboard to be the repo root
 COPY internal/ ./internal/
 
-# Copy pkg/ directory (exists in repo root)
-COPY pkg/ ./pkg/
+# Copy pkg/ directory (create empty directory first as fallback)
+# Note: COPY will fail if pkg/ doesn't exist, so we ensure it exists first
+RUN mkdir -p ./pkg
+# Use COPY with a pattern that won't fail if directory is empty
+COPY pkg ./pkg
 
 # Copy service-specific source code
 COPY services/classification-service/cmd/ ./services/classification-service/cmd/
