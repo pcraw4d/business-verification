@@ -31,12 +31,13 @@ Analysis of Railway deployment configurations across all services to identify in
 ### Build Commands
 
 **Patterns Found:**
-- Count needed
+- All services use Dockerfile builder
+- No explicit build commands in railway.json
+- Build handled by Dockerfile
 
 **Inconsistencies:**
-- ⚠️ Different build commands across services
-- ⚠️ Some services use default build
-- ⚠️ Some services specify custom build
+- ✅ Consistent - All use Dockerfile builder
+- ⚠️ Some services specify dockerfilePath, some don't
 
 **Recommendations:**
 - Standardize build commands
@@ -50,12 +51,14 @@ Analysis of Railway deployment configurations across all services to identify in
 ### Start Command Patterns
 
 **Patterns Found:**
-- Count needed
+- API Gateway: `./api-gateway`
+- Classification Service: `./classification-service`
+- Merchant Service: `./merchant-service`
+- Risk Assessment Service: `./startup_debug.sh`
 
 **Inconsistencies:**
-- ⚠️ Different start commands
-- ⚠️ Some services use default start
-- ⚠️ Some services specify custom start
+- ⚠️ Risk Assessment Service uses startup script (different pattern)
+- ✅ Other services use consistent pattern
 
 **Recommendations:**
 - Standardize start commands
@@ -69,12 +72,13 @@ Analysis of Railway deployment configurations across all services to identify in
 ### Health Check Patterns
 
 **Patterns Found:**
-- Count needed
+- All services use `/health` path ✅
+- Health check timeout: 30 seconds (consistent) ✅
+- Health check interval: 60 seconds (API Gateway), not specified (others)
 
 **Inconsistencies:**
-- ⚠️ Different health check paths
-- ⚠️ Different health check intervals
-- ⚠️ Different health check timeouts
+- ⚠️ Health check interval not specified in all services
+- ⚠️ Different restart policy max retries (3 vs 10)
 
 **Recommendations:**
 - Standardize health check paths (`/health`)
@@ -145,14 +149,12 @@ Analysis of Railway deployment configurations across all services to identify in
 ### Builder Types
 
 **Patterns Found:**
-- Dockerfile: Count needed
-- Railpack: Count needed
-- Nixpacks: Count needed
+- Dockerfile: All services ✅
+- Railpack: 0 services
+- Nixpacks: 0 services
 
 **Inconsistencies:**
-- ⚠️ Different builder types
-- ⚠️ Some services use Dockerfile
-- ⚠️ Some services use Railpack
+- ✅ Consistent - All services use Dockerfile builder
 
 **Recommendations:**
 - Standardize builder type
@@ -223,48 +225,62 @@ Analysis of Railway deployment configurations across all services to identify in
 ### API Gateway
 
 **Configuration:**
-- Builder: Count needed
-- Root: Count needed
-- Build Command: Count needed
-- Start Command: Count needed
+- Builder: DOCKERFILE ✅
+- Root: Not specified (defaults to service directory)
+- Build Command: Not specified (handled by Dockerfile)
+- Start Command: `./api-gateway` ✅
+- Health Check: `/health`, 30s timeout, 60s interval ✅
+- Restart Policy: ON_FAILURE, 10 retries ✅
 
-**Status**: ✅/⚠️
+**Status**: ✅ Good configuration
 
 ---
 
 ### Classification Service
 
 **Configuration:**
-- Builder: Count needed
-- Root: Count needed
-- Build Command: Count needed
-- Start Command: Count needed
+- Builder: DOCKERFILE ✅
+- Root: Not specified (defaults to service directory)
+- Build Command: Not specified (handled by Dockerfile)
+- Start Command: `./classification-service` ✅
+- Health Check: `/health`, 30s timeout ✅
+- Restart Policy: ON_FAILURE, 10 retries ✅
+- Has railway.toml with additional configuration
 
-**Status**: ✅/⚠️
+**Status**: ✅ Good configuration
 
 ---
 
 ### Merchant Service
 
 **Configuration:**
-- Builder: Count needed
-- Root: Count needed
-- Build Command: Count needed
-- Start Command: Count needed
+- Builder: DOCKERFILE ✅
+- Root: Not specified (defaults to service directory)
+- Build Command: Not specified (handled by Dockerfile)
+- Start Command: `./merchant-service` ✅
+- Health Check: `/health`, 30s timeout ✅
+- Restart Policy: ON_FAILURE, 10 retries ✅
+- Has railway.toml with additional configuration
+- dockerContext: "../.." (points to root)
 
-**Status**: ✅/⚠️
+**Status**: ✅ Good configuration
 
 ---
 
 ### Risk Assessment Service
 
 **Configuration:**
-- Builder: Count needed
-- Root: Count needed
-- Build Command: Count needed
-- Start Command: Count needed
+- Builder: DOCKERFILE ✅
+- Root: Not specified (defaults to service directory)
+- Build Command: Not specified (handled by Dockerfile)
+- Start Command: `./startup_debug.sh` ⚠️ (different pattern)
+- Health Check: `/health`, 30s timeout ✅
+- Restart Policy: ON_FAILURE, 3 retries ⚠️ (different from others)
+- Has railway.toml with additional configuration
+- Has railway.json with environment-specific variables
+- dockerfilePath: "services/risk-assessment-service/Dockerfile.go123"
 
-**Status**: ✅/⚠️
+**Status**: ⚠️ Different patterns (startup script, fewer retries)
 
 ---
 

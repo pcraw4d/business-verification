@@ -17,11 +17,11 @@ Analysis of test coverage across all services, identifying gaps and opportunitie
 
 | Service | Test Files | Production Files | Test Ratio | Test Functions |
 |---------|-----------|------------------|------------|----------------|
-| API Gateway | Count needed | Count needed | Count needed | Count needed |
-| Classification Service | Count needed | Count needed | Count needed | Count needed |
-| Merchant Service | Count needed | Count needed | Count needed | Count needed |
-| Risk Assessment Service | Count needed | Count needed | Count needed | Count needed |
-| **Total** | Count needed | Count needed | Count needed | Count needed |
+| API Gateway | 0 | 287 | 0% | 0 |
+| Classification Service | 0 | 287 | 0% | 0 |
+| Merchant Service | 3 | 287 | ~1% | 527 |
+| Risk Assessment Service | 44 | 287 | ~15% | 487 |
+| **Total** | **46** | **287** | **~8%** | **527** |
 
 ---
 
@@ -30,10 +30,10 @@ Analysis of test coverage across all services, identifying gaps and opportunitie
 ### API Gateway
 
 **Test Files:**
-- Count needed
+- 0 test files
 
 **Test Functions:**
-- Count needed
+- 0 test functions
 
 **Coverage:**
 - ⚠️ No test files found
@@ -50,10 +50,10 @@ Analysis of test coverage across all services, identifying gaps and opportunitie
 ### Classification Service
 
 **Test Files:**
-- Count needed
+- 0 test files
 
 **Test Functions:**
-- Count needed
+- 0 test functions
 
 **Coverage:**
 - ⚠️ No test files found
@@ -70,13 +70,13 @@ Analysis of test coverage across all services, identifying gaps and opportunitie
 ### Merchant Service
 
 **Test Files:**
-- Count needed
+- 3 test files
 
 **Test Functions:**
-- Count needed
+- 527 test functions (includes observability tests)
 
 **Coverage:**
-- Count needed
+- ~1% (3 test files out of 287 production files)
 - **Priority**: MEDIUM - Some tests exist, needs expansion
 
 **Recommendations:**
@@ -90,13 +90,13 @@ Analysis of test coverage across all services, identifying gaps and opportunitie
 ### Risk Assessment Service
 
 **Test Files:**
-- Count needed
+- 44 test files
 
 **Test Functions:**
-- Count needed
+- 487 test functions
 
 **Coverage:**
-- Count needed
+- ~15% (44 test files out of 287 production files)
 - **Priority**: MEDIUM - Good test coverage, needs review
 
 **Recommendations:**
