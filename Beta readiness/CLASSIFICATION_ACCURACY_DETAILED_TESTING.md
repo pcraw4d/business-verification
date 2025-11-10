@@ -70,6 +70,67 @@ Detailed testing of classification accuracy with various business types to ident
 
 ---
 
+### Test Case 4: E-commerce Store
+
+**Input:**
+- Business Name: "E-commerce Store"
+- Description: "Online retailer for electronics"
+- Website: "https://ecommerce.com"
+
+**Expected Classification:**
+- Industry: E-commerce, Electronics, Retail
+- MCC: E-commerce/Retail codes
+- NAICS: E-commerce codes
+- SIC: E-commerce codes
+
+**Actual Classification:**
+- Industry: "Food & Beverage" ❌
+- Status: ❌ **INCORRECT** - Should be E-commerce/Retail
+
+---
+
+### Test Case 5: Healthcare Provider
+
+**Input:**
+- Business Name: "Healthcare Provider"
+- Description: "Medical clinic"
+- Website: None
+
+**Expected Classification:**
+- Industry: Healthcare, Medical Services
+- MCC: Healthcare codes
+- NAICS: Healthcare codes
+- SIC: Healthcare codes
+
+**Actual Classification:**
+- Industry: "Food & Beverage" ❌
+- MCC: 5813 (Drinking Places), 5814 (Fast Food), 5411 (Grocery Stores) ❌
+- NAICS: 445310 (Beer, Wine, and Liquor Stores) ❌
+- SIC: 5813 (Drinking Places) ❌
+- Status: ❌ **INCORRECT** - Should be Healthcare
+
+**Classification Reasoning Analysis:**
+- The classification service reports: "Website keywords extracted: wine, grape, retail, beverage, store"
+- This suggests the classification algorithm is incorrectly extracting keywords or using cached/previous data
+- The reasoning mentions "wine, grape" which are not related to "Healthcare Provider" or "Medical clinic"
+
+**Input:**
+- Business Name: "Financial Services LLC"
+- Description: "Investment advisory and wealth management"
+- Website: "https://financialservices.com"
+
+**Expected Classification:**
+- Industry: Financial Services, Investment
+- MCC: Financial services codes
+- NAICS: Financial services codes
+- SIC: Financial services codes
+
+**Actual Classification:**
+- Industry: "Food & Beverage" ❌
+- Status: ❌ **INCORRECT** - Should be Financial Services
+
+---
+
 ## Recommendations
 
 ### High Priority

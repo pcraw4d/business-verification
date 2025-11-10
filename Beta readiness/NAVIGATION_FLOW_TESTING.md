@@ -23,6 +23,8 @@ Testing of navigation flows, URL parameter handling, and page transitions across
 **Implementation:**
 - `merchant-portfolio.js`: `viewMerchant(merchantId)` → `merchant-detail.html?id=${merchantId}`
 - Status: ⚠️ **ISSUE** - Uses old URL `merchant-detail.html` instead of `merchant-details.html`
+- **Impact**: Navigation from portfolio will redirect through old URL handler (which works but uses deprecated path)
+- **Priority**: MEDIUM - Works but should be updated for consistency
 
 ---
 

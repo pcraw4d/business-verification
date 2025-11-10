@@ -17,14 +17,14 @@ Detailed testing of API error handling, invalid requests, and error response for
 
 **Test:**
 - Request: `GET /api/v1/merchants/merch_999_invalid`
-- Response: Need to test
-- HTTP Status: Need to test
+- Response: Returns merchant data (no error field)
+- HTTP Status: 200 OK ❌
 
 **Expected:**
 - HTTP Status: 404 Not Found
 - Response: Structured error with message
 
-**Status**: Need to test
+**Status**: ❌ **ISSUE** - Returns 200 instead of 404 for invalid IDs
 
 ---
 
@@ -32,13 +32,13 @@ Detailed testing of API error handling, invalid requests, and error response for
 
 **Test:**
 - Request: `POST /api/v1/merchants` with empty body `{}`
-- Response: Need to test
+- Response: Need to test (command failed)
 
 **Expected:**
 - HTTP Status: 400 Bad Request
 - Response: Validation error message
 
-**Status**: Need to test
+**Status**: Need to retest
 
 ---
 
@@ -46,13 +46,13 @@ Detailed testing of API error handling, invalid requests, and error response for
 
 **Test:**
 - Request: `POST /api/v1/merchants` with `{"name":"","legal_name":""}`
-- Response: Need to test
+- Response: Need to test (command failed)
 
 **Expected:**
 - HTTP Status: 400 Bad Request
 - Response: "Name and legal name are required"
 
-**Status**: Need to test
+**Status**: Need to retest
 
 ---
 
