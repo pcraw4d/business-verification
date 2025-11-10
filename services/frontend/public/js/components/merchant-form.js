@@ -48,35 +48,75 @@ class MerchantFormComponent {
         console.log('🔍 [DEBUG] bindEvents() called');
         
         try {
-            // Form submission - listen to both form submit and button click
-            console.log('🔍 [DEBUG] Attaching submit event listener to form');
+            // Form submission - use capture phase to catch early
+            console.log('🔍 [DEBUG] Attaching submit event listener to form (capture phase)');
             this.form.addEventListener('submit', (e) => {
-                console.log('🔍 [DEBUG] Form submit event triggered');
+                console.log('🔍 [DEBUG] Form submit event triggered (CAPTURED)');
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('✅ [DEBUG] Default form submission prevented');
+                e.stopImmediatePropagation();
+                console.log('✅ [DEBUG] Default form submission prevented and propagation stopped');
                 this.handleSubmit(e);
-            });
-            console.log('✅ [DEBUG] Submit event listener attached to form');
+            }, true); // Use capture phase
+            console.log('✅ [DEBUG] Submit event listener attached to form (capture)');
             
-            // Also listen to button click as backup
+            // Also add in bubble phase as backup
+            this.form.addEventListener('submit', (e) => {
+                console.log('🔍 [DEBUG] Form submit event triggered (BUBBLE)');
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                console.log('✅ [DEBUG] Default form submission prevented (bubble)');
+                this.handleSubmit(e);
+            }, false);
+            console.log('✅ [DEBUG] Submit event listener attached to form (bubble)');
+            
+            // Also listen to button click - use capture phase
             if (this.submitBtn) {
-                console.log('🔍 [DEBUG] Attaching click event listener to submit button');
-                this.submitBtn.addEventListener('click', (e) => {
-                    console.log('🔍 [DEBUG] Submit button clicked');
+                console.log('🔍 [DEBUG] Attaching click event listener to submit button (capture phase)');
+                const handleButtonClick = (e) => {
+                    console.log('🔍 [DEBUG] Submit button clicked (CAPTURED)');
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('✅ [DEBUG] Default button click prevented');
-                    // Trigger form validation and submission
+                    e.stopImmediatePropagation();
+                    console.log('✅ [DEBUG] Default button click prevented and propagation stopped');
+                    
+                    // Small delay to ensure form submit event doesn't fire
+                    setTimeout(() => {
+                        console.log('🔍 [DEBUG] Processing button click after delay');
+                        // Trigger form validation and submission
+                        if (this.form.checkValidity()) {
+                            console.log('🔍 [DEBUG] Form is valid, triggering handleSubmit');
+                            this.handleSubmit(e);
+                        } else {
+                            console.warn('⚠️ [DEBUG] Form validation failed on button click');
+                            this.form.reportValidity();
+                        }
+                    }, 10);
+                };
+                
+                this.submitBtn.addEventListener('click', handleButtonClick, true); // Capture phase
+                console.log('✅ [DEBUG] Click event listener attached to submit button (capture)');
+                
+                // Also add in bubble phase
+                this.submitBtn.addEventListener('click', handleButtonClick, false);
+                console.log('✅ [DEBUG] Click event listener attached to submit button (bubble)');
+                
+                // Also set onclick as absolute last resort
+                this.submitBtn.onclick = (e) => {
+                    console.log('🔍 [DEBUG] Submit button onclick handler triggered');
+                    e.preventDefault();
+                    e.stopPropagation();
                     if (this.form.checkValidity()) {
-                        console.log('🔍 [DEBUG] Form is valid, triggering handleSubmit');
+                        console.log('🔍 [DEBUG] Form is valid (onclick), triggering handleSubmit');
                         this.handleSubmit(e);
                     } else {
-                        console.warn('⚠️ [DEBUG] Form validation failed on button click');
+                        console.warn('⚠️ [DEBUG] Form validation failed (onclick)');
                         this.form.reportValidity();
                     }
-                });
-                console.log('✅ [DEBUG] Click event listener attached to submit button');
+                    return false;
+                };
+                console.log('✅ [DEBUG] onclick handler attached to submit button');
             } else {
                 console.warn('⚠️ [DEBUG] Submit button not found, skipping click listener');
             }
@@ -263,11 +303,19 @@ class MerchantFormComponent {
     async handleSubmit(e) {
         console.log('🔍 [DEBUG] handleSubmit() called');
         console.log('🔍 [DEBUG] Event object:', e);
+        console.log('🔍 [DEBUG] Event type:', e?.type);
+        console.log('🔍 [DEBUG] Event target:', e?.target);
         console.log('🔍 [DEBUG] Current isSubmitting state:', this.isSubmitting);
         
-        try {
+        // Prevent default again just in case
+        if (e) {
             e.preventDefault();
-            console.log('✅ [DEBUG] Default form submission prevented');
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+        }
+        
+        try {
+            console.log('✅ [DEBUG] Default form submission prevented (in handleSubmit)');
             
             if (this.isSubmitting) {
                 console.warn('⚠️ [DEBUG] Form is already submitting, ignoring duplicate submission');
