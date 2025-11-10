@@ -52,8 +52,8 @@ Analysis of integration flows, end-to-end workflows, and data consistency across
 **Test Results:**
 - Merchant ID: `merch_001`
 - Risk Prediction: `GET /api/v1/risk/predictions/merch_001`
-- Response: No prediction found (returns "No prediction")
-- Status: ⚠️ **ISSUE** - Risk prediction endpoint not returning data for valid merchant ID
+- Response: Returns prediction data with horizons (3, 6, 12 months) and predicted scores
+- Status: ✅ **WORKING** - Risk prediction endpoint returns data correctly
 
 ---
 
