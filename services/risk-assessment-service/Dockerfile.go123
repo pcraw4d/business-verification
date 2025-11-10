@@ -1,10 +1,10 @@
 # =============================================================================
 # RISK ASSESSMENT SERVICE - PRODUCTION DOCKERFILE
-# Go 1.23.0 Required - Railway Build Fix
+# Go 1.24.0 Required - Railway Build Fix
 # =============================================================================
 
-# Build stage - Go 1.23.0 for compatibility with go.mod (requires go >= 1.23.0)
-FROM golang:1.23.0-alpine3.19 AS builder
+# Build stage - Go 1.24.0 for compatibility with go.mod (requires go >= 1.24.0)
+FROM golang:1.24-alpine AS builder
 
 # Force cache bust for Railway - multiple mechanisms
 ARG CACHE_BUST=2025-10-13-04-30
@@ -13,10 +13,10 @@ ARG RAILWAY_BUILD_ID=force-rebuild-$(date +%s)
 ARG FORCE_REBUILD=true
 ARG DOCKERFILE_VERSION=go123-v2
 
-# Verify Go version and ensure it's 1.23+
+# Verify Go version and ensure it's 1.24+
 RUN echo "=== GO VERSION CHECK ===" && \
     go version && \
-    go version | grep -q "go1.23" || (echo "ERROR: Go version must be 1.23 or higher" && exit 1) && \
+    go version | grep -qE "go1\.(24|2[5-9]|[3-9][0-9])" || (echo "ERROR: Go version must be 1.24 or higher" && exit 1) && \
     echo "=== GO VERSION VERIFIED ===" && \
     echo "Build ID: $RAILWAY_BUILD_ID"
 
