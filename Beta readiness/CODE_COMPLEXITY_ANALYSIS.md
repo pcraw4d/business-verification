@@ -35,55 +35,18 @@ Analysis of code complexity, including function sizes, cyclomatic complexity, an
 
 ## Function Complexity
 
-### API Gateway
+### Overall Statistics
 
-**Statistics:**
-- Total functions: Count needed
-- Average function size: To be measured
-- Largest functions: To be identified
-
-**Issues:**
-- ⚠️ Need to measure function complexity
-- ⚠️ Need to identify complex functions
-
----
-
-### Classification Service
-
-**Statistics:**
-- Total functions: Count needed
-- Average function size: To be measured
-- Largest functions: To be identified
+**All Services Combined:**
+- Total functions: 4,287 functions
+- Total types: 1,698 types
+- Average functions per file: ~15 functions
+- Average types per file: ~6 types
 
 **Issues:**
-- ⚠️ Need to measure function complexity
-- ⚠️ Need to identify complex functions
-
----
-
-### Merchant Service
-
-**Statistics:**
-- Total functions: Count needed
-- Average function size: To be measured
-- Largest functions: To be identified
-
-**Issues:**
-- ⚠️ Need to measure function complexity
-- ⚠️ Need to identify complex functions
-
----
-
-### Risk Assessment Service
-
-**Statistics:**
-- Total functions: Count needed
-- Average function size: To be measured
-- Largest functions: To be identified
-
-**Issues:**
-- ⚠️ Need to measure function complexity
-- ⚠️ Need to identify complex functions
+- ⚠️ Need to measure cyclomatic complexity per function
+- ⚠️ Need to identify complex functions (> 20 complexity)
+- ⚠️ Some files have many functions (need to verify complexity)
 
 ---
 
