@@ -7,17 +7,25 @@ WORKDIR /app
 # Install dependencies including wget for health checks
 RUN apk add --no-cache git ca-certificates wget
 
-# Copy go mod files
+# Copy root go.mod and go.sum to establish module context
 COPY go.mod go.sum* ./
 
 # Download dependencies
 RUN go mod download
 
-# Copy source code
-COPY . .
+# Copy the entire project structure (needed for internal packages)
+# This assumes Railway is building from the repository root
+# If Railway builds from services/classification-service, we need to configure
+# the root directory in Railway dashboard to be the repo root
+COPY internal/ ./internal/
+COPY pkg/ ./pkg/ 2>/dev/null || true
+
+# Copy service-specific source code
+COPY services/classification-service/cmd/ ./services/classification-service/cmd/
+COPY services/classification-service/internal/ ./services/classification-service/internal/
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o classification-service ./cmd/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o classification-service ./services/classification-service/cmd/main.go
 
 # Final stage
 FROM alpine:latest

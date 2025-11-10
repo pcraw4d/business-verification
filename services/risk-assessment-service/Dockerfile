@@ -71,12 +71,6 @@ WORKDIR /app
 # Copy binary from builder stage
 COPY --from=builder /app/risk-assessment-service .
 
-# Debug script copy removed - file does not exist
-
-# Copy startup debug script
-COPY startup_debug.sh .
-RUN chmod +x startup_debug.sh
-
 # Copy ONNX Runtime libraries from builder stage (robust copy)
 COPY --from=builder /app/onnxruntime/ /app/onnxruntime/
 
@@ -119,5 +113,5 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT:-8080}/health || exit 1
 
-# Run the application with debug information
-CMD ["./startup_debug.sh"]
+# Run the application
+CMD ["./risk-assessment-service"]
