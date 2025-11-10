@@ -664,7 +664,8 @@ class MerchantFormComponent {
         }
         
         // Build target URL with merchant ID if available
-        let targetUrl = '/merchant-details';
+        // Use .html extension for compatibility with both route patterns
+        let targetUrl = '/merchant-details.html';
         if (merchantId) {
             targetUrl += `?id=${encodeURIComponent(merchantId)}`;
             console.log('🔀 Redirecting with merchant ID:', merchantId);
@@ -674,6 +675,7 @@ class MerchantFormComponent {
         
         console.log('🔀 Full redirect URL:', targetUrl);
         console.log('🔀 Current URL:', window.location.href);
+        console.log('🔀 Current origin:', window.location.origin);
         
         // Add a small delay to ensure sessionStorage writes are flushed before redirect
         // This prevents race conditions where navigation happens before data persistence completes
