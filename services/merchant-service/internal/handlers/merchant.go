@@ -2,15 +2,19 @@ package handlers
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"go.uber.org/zap"
+	postgrest "github.com/supabase-community/postgrest-go"
 
+	"kyb-platform/pkg/errors"
 	"kyb-platform/services/merchant-service/internal/cache"
 	"kyb-platform/services/merchant-service/internal/metrics"
 	"kyb-platform/services/merchant-service/internal/queue"
@@ -159,14 +163,45 @@ func (h *MerchantHandler) HandleCreateMerchant(w http.ResponseWriter, r *http.Re
 	var req CreateMerchantRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.logger.Error("Failed to decode request", zap.Error(err))
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		errors.WriteBadRequest(w, r, "Invalid request body: Please provide valid JSON")
 		return
 	}
 
 	// Validate required fields
 	if req.Name == "" || req.LegalName == "" {
-		http.Error(w, "Name and legal name are required", http.StatusBadRequest)
+		errors.WriteBadRequest(w, r, "Name and legal name are required")
 		return
+	}
+
+	// Sanitize input to prevent XSS and injection attacks
+	req.Name = sanitizeInput(req.Name)
+	req.LegalName = sanitizeInput(req.LegalName)
+	if req.RegistrationNumber != "" {
+		req.RegistrationNumber = sanitizeInput(req.RegistrationNumber)
+	}
+	if req.TaxID != "" {
+		req.TaxID = sanitizeInput(req.TaxID)
+	}
+	if req.Industry != "" {
+		req.Industry = sanitizeInput(req.Industry)
+	}
+	if req.IndustryCode != "" {
+		req.IndustryCode = sanitizeInput(req.IndustryCode)
+	}
+	if req.BusinessType != "" {
+		req.BusinessType = sanitizeInput(req.BusinessType)
+	}
+	if req.PortfolioType != "" {
+		req.PortfolioType = sanitizeInput(req.PortfolioType)
+	}
+	if req.RiskLevel != "" {
+		req.RiskLevel = sanitizeInput(req.RiskLevel)
+	}
+	if req.ComplianceStatus != "" {
+		req.ComplianceStatus = sanitizeInput(req.ComplianceStatus)
+	}
+	if req.Status != "" {
+		req.Status = sanitizeInput(req.Status)
 	}
 
 	// Create context with timeout
@@ -180,7 +215,7 @@ func (h *MerchantHandler) HandleCreateMerchant(w http.ResponseWriter, r *http.Re
 	merchant, err := h.createMerchant(ctx, &req, startTime, userID)
 	if err != nil {
 		h.logger.Error("Failed to create merchant", zap.Error(err))
-		http.Error(w, fmt.Sprintf("Failed to create merchant: %v", err), http.StatusInternalServerError)
+		errors.WriteInternalError(w, r, fmt.Sprintf("Failed to create merchant: %v", err))
 		return
 	}
 
@@ -188,7 +223,7 @@ func (h *MerchantHandler) HandleCreateMerchant(w http.ResponseWriter, r *http.Re
 	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(merchant); err != nil {
 		h.logger.Error("Failed to encode response", zap.Error(err))
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		errors.WriteInternalError(w, r, "Failed to encode response")
 		return
 	}
 
@@ -207,7 +242,7 @@ func (h *MerchantHandler) HandleGetMerchant(w http.ResponseWriter, r *http.Reque
 	// Extract merchant ID from path
 	merchantID := h.extractMerchantIDFromPath(r.URL.Path)
 	if merchantID == "" {
-		http.Error(w, "Merchant ID is required", http.StatusBadRequest)
+		errors.WriteBadRequest(w, r, "Merchant ID is required")
 		return
 	}
 
@@ -223,28 +258,25 @@ func (h *MerchantHandler) HandleGetMerchant(w http.ResponseWriter, r *http.Reque
 			zap.Error(err))
 		
 		// Determine appropriate HTTP status code based on error
-		statusCode := http.StatusInternalServerError
-		errorMsg := fmt.Sprintf("Failed to get merchant: %v", err)
-		
 		// Check if it's a "not found" error
 		if strings.Contains(err.Error(), "not found") {
-			statusCode = http.StatusNotFound
-			errorMsg = "Merchant not found"
+			errors.WriteNotFound(w, r, "Merchant not found")
+			return
 		} else if strings.Contains(err.Error(), "unavailable") {
 			// Database unavailable - return 503 Service Unavailable
-			statusCode = http.StatusServiceUnavailable
-			errorMsg = "Service temporarily unavailable"
 			w.Header().Set("Retry-After", "30") // Suggest retry after 30 seconds
+			errors.WriteServiceUnavailable(w, r, "Service temporarily unavailable")
+			return
 		}
 		
-		http.Error(w, errorMsg, statusCode)
+		errors.WriteInternalError(w, r, fmt.Sprintf("Failed to get merchant: %v", err))
 		return
 	}
 
 	// Send response
 	if err := json.NewEncoder(w).Encode(merchant); err != nil {
 		h.logger.Error("Failed to encode response", zap.Error(err))
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		errors.WriteInternalError(w, r, "Failed to encode response")
 		return
 	}
 
@@ -274,22 +306,43 @@ func (h *MerchantHandler) HandleListMerchants(w http.ResponseWriter, r *http.Req
 		pageSize = h.config.Merchant.SearchLimit
 	}
 
+	// Parse filtering parameters
+	filters := MerchantFilters{
+		PortfolioType: r.URL.Query().Get("portfolio_type"),
+		RiskLevel:     r.URL.Query().Get("risk_level"),
+		Status:        r.URL.Query().Get("status"),
+		SearchQuery:   r.URL.Query().Get("search"),
+	}
+
+	// Parse sorting parameters
+	sortBy := r.URL.Query().Get("sort_by")
+	if sortBy == "" {
+		sortBy = "created_at" // Default sort by creation date
+	}
+	sortOrder := r.URL.Query().Get("sort_order")
+	if sortOrder == "" {
+		sortOrder = "desc" // Default to descending (newest first)
+	}
+	if sortOrder != "asc" && sortOrder != "desc" {
+		sortOrder = "desc" // Validate sort order
+	}
+
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(r.Context(), h.config.Merchant.RequestTimeout)
 	defer cancel()
 
-	// List merchants
-	response, err := h.listMerchants(ctx, page, pageSize, startTime)
+	// List merchants with filters and sorting
+	response, err := h.listMerchants(ctx, page, pageSize, filters, sortBy, sortOrder, startTime)
 	if err != nil {
 		h.logger.Error("Failed to list merchants", zap.Error(err))
-		http.Error(w, fmt.Sprintf("Failed to list merchants: %v", err), http.StatusInternalServerError)
+		errors.WriteInternalError(w, r, fmt.Sprintf("Failed to list merchants: %v", err))
 		return
 	}
 
 	// Send response
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		h.logger.Error("Failed to encode response", zap.Error(err))
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		errors.WriteInternalError(w, r, "Failed to encode response")
 		return
 	}
 
@@ -370,14 +423,13 @@ func (h *MerchantHandler) createMerchant(ctx context.Context, req *CreateMerchan
 	}
 
 	// Save to Supabase with retry logic and circuit breaker
-	var insertResult []map[string]interface{}
 	err := h.circuitBreaker.Execute(ctx, func() error {
 		// Use retry logic for the Supabase insert
 		retryConfig := resilience.DefaultRetryConfig()
 		retryConfig.MaxAttempts = 3
 		retryConfig.InitialDelay = 100 * time.Millisecond
 		
-		retryResult, retryErr := resilience.RetryWithBackoff(ctx, retryConfig, func() ([]map[string]interface{}, error) {
+		_, retryErr := resilience.RetryWithBackoff(ctx, retryConfig, func() ([]map[string]interface{}, error) {
 			var queryResult []map[string]interface{}
 			_, queryErr := h.supabaseClient.GetClient().From("merchants").
 				Insert(merchantData, false, "", "", "").
@@ -394,7 +446,6 @@ func (h *MerchantHandler) createMerchant(ctx context.Context, req *CreateMerchan
 			return retryErr
 		}
 		
-		insertResult = retryResult
 		return nil
 	})
 
@@ -752,9 +803,16 @@ func (h *MerchantHandler) mapToMerchant(data map[string]interface{}) (*Merchant,
 //   - In production: Returns empty result set if query fails or no merchants found
 //   - In development: Returns mock data if query fails (when allowed)
 //
-// TODO: Implement Supabase query with pagination support
-// TODO: Add filtering and sorting capabilities
-func (h *MerchantHandler) listMerchants(ctx context.Context, page, pageSize int, startTime time.Time) (*MerchantListResponse, error) {
+// MerchantFilters represents filtering options for merchant listing
+type MerchantFilters struct {
+	PortfolioType string
+	RiskLevel     string
+	Status        string
+	SearchQuery   string
+}
+
+// listMerchants lists merchants with pagination, filtering, and sorting support
+func (h *MerchantHandler) listMerchants(ctx context.Context, page, pageSize int, filters MerchantFilters, sortBy, sortOrder string, startTime time.Time) (*MerchantListResponse, error) {
 	// Query Supabase for merchants with pagination, using retry logic and circuit breaker
 	var result []map[string]interface{}
 	err := h.circuitBreaker.Execute(ctx, func() error {
@@ -765,10 +823,46 @@ func (h *MerchantHandler) listMerchants(ctx context.Context, page, pageSize int,
 		
 		retryResult, retryErr := resilience.RetryWithBackoff(ctx, retryConfig, func() ([]map[string]interface{}, error) {
 			var queryResult []map[string]interface{}
-			_, queryErr := h.supabaseClient.GetClient().From("merchants").
-				Select("*", "", false).
-				Range((page-1)*pageSize, page*pageSize-1, "").
-				ExecuteTo(&queryResult)
+			
+			// Build query with filters and sorting
+			query := h.supabaseClient.GetClient().From("merchants").Select("*", "", false)
+			
+			// Apply filters
+			if filters.PortfolioType != "" {
+				query = query.Eq("portfolio_type", filters.PortfolioType)
+			}
+			if filters.RiskLevel != "" {
+				query = query.Eq("risk_level", filters.RiskLevel)
+			}
+			if filters.Status != "" {
+				query = query.Eq("status", filters.Status)
+			}
+			if filters.SearchQuery != "" {
+				// Search in name and legal_name fields
+				query = query.Or("name.ilike.%"+filters.SearchQuery+"%,legal_name.ilike.%"+filters.SearchQuery+"%", "")
+			}
+			
+			// Apply sorting
+			// Validate sortBy to prevent SQL injection
+			validSortFields := map[string]bool{
+				"name": true, "legal_name": true, "created_at": true, "updated_at": true,
+				"portfolio_type": true, "risk_level": true, "status": true,
+			}
+			if validSortFields[sortBy] {
+				orderColumn := sortBy
+				if sortOrder == "desc" {
+					orderColumn = orderColumn + ".desc"
+				} else {
+					orderColumn = orderColumn + ".asc"
+				}
+				query = query.Order(orderColumn, "")
+			} else {
+				// Default to created_at desc if invalid sort field
+				query = query.Order("created_at.desc", "")
+			}
+			
+			// Apply pagination
+			_, queryErr := query.Range((page-1)*pageSize, page*pageSize-1, "").ExecuteTo(&queryResult)
 			
 			if queryErr != nil {
 				return nil, queryErr
@@ -918,13 +1012,92 @@ func (h *MerchantHandler) getUserIDFromRequest(r *http.Request) string {
 	// This is a fallback if API Gateway doesn't set context
 	authHeader := r.Header.Get("Authorization")
 	if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
-		// In a full implementation, we would decode the JWT token
-		// For now, we'll use "system" as fallback
-		// TODO: Decode JWT to extract user ID if needed
+		// Extract token from Bearer header
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+		
+		// Decode JWT to extract user ID
+		// Note: We decode without full validation since API Gateway already validated the token
+		userID, err := h.decodeJWTUserID(tokenString)
+		if err == nil && userID != "" {
+			h.logger.Debug("Extracted user ID from JWT token",
+				zap.String("user_id", userID))
+			return userID
+		}
+		
+		// Log warning if decoding failed but continue with fallback
+		if err != nil {
+			h.logger.Warn("Failed to decode JWT token for user ID extraction",
+				zap.Error(err))
+		}
 	}
 
 	// Fallback to "system" if no user ID found
 	return "system"
+}
+
+// sanitizeInput sanitizes input to prevent XSS and SQL injection
+func sanitizeInput(input string) string {
+	if input == "" {
+		return input
+	}
+	
+	// Trim whitespace
+	sanitized := strings.TrimSpace(input)
+	
+	// Remove HTML tags (basic implementation)
+	htmlTagRegex := regexp.MustCompile(`<[^>]*>`)
+	sanitized = htmlTagRegex.ReplaceAllString(sanitized, "")
+	
+	// Remove potentially dangerous SQL patterns (basic protection)
+	// Note: Since we use parameterized queries, this is defense-in-depth
+	dangerousPatterns := []string{
+		"';", "\";", "--", "/*", "*/",
+	}
+	
+	for _, pattern := range dangerousPatterns {
+		sanitized = strings.ReplaceAll(sanitized, pattern, "")
+	}
+	
+	return sanitized
+}
+
+// decodeJWTUserID decodes a JWT token and extracts the user ID from the "sub" claim
+// This is a lightweight decode without full signature validation since the token
+// was already validated by the API Gateway
+func (h *MerchantHandler) decodeJWTUserID(tokenString string) (string, error) {
+	// Split token into parts (header.payload.signature)
+	parts := strings.Split(tokenString, ".")
+	if len(parts) != 3 {
+		return "", fmt.Errorf("invalid token format: expected 3 parts, got %d", len(parts))
+	}
+
+	// Decode the payload (second part)
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return "", fmt.Errorf("failed to decode JWT payload: %w", err)
+	}
+
+	// Parse the payload as JSON to extract claims
+	var claims map[string]interface{}
+	if err := json.Unmarshal(payload, &claims); err != nil {
+		return "", fmt.Errorf("failed to parse JWT claims: %w", err)
+	}
+
+	// Extract user ID from "sub" claim (Supabase standard) or "user_id" claim
+	userID := ""
+	if sub, ok := claims["sub"].(string); ok && sub != "" {
+		userID = sub
+	} else if userIDClaim, ok := claims["user_id"].(string); ok && userIDClaim != "" {
+		userID = userIDClaim
+	} else if id, ok := claims["id"].(string); ok && id != "" {
+		userID = id
+	}
+
+	if userID == "" {
+		return "", fmt.Errorf("user ID not found in JWT claims")
+	}
+
+	return userID, nil
 }
 
 // HandleHealth handles health check requests
@@ -994,7 +1167,7 @@ func (h *MerchantHandler) HandleMerchantAnalytics(w http.ResponseWriter, r *http
 	analytics, err := h.supabaseClient.GetMerchantAnalytics(ctx)
 	if err != nil {
 		h.logger.Error("Failed to get merchant analytics", zap.Error(err))
-		http.Error(w, "Failed to get analytics data", http.StatusInternalServerError)
+		errors.WriteInternalError(w, r, "Failed to get analytics data")
 		return
 	}
 
@@ -1018,7 +1191,7 @@ func (h *MerchantHandler) HandleMerchantStatistics(w http.ResponseWriter, r *htt
 	statistics, err := h.supabaseClient.GetMerchantStatistics(ctx)
 	if err != nil {
 		h.logger.Error("Failed to get merchant statistics", zap.Error(err))
-		http.Error(w, "Failed to get statistics data", http.StatusInternalServerError)
+		errors.WriteInternalError(w, r, "Failed to get statistics data")
 		return
 	}
 
@@ -1048,7 +1221,7 @@ func (h *MerchantHandler) HandleMerchantSearch(w http.ResponseWriter, r *http.Re
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&searchReq); err != nil {
-		http.Error(w, "Invalid search request", http.StatusBadRequest)
+		errors.WriteBadRequest(w, r, "Invalid search request: Please provide valid JSON")
 		return
 	}
 
@@ -1070,7 +1243,7 @@ func (h *MerchantHandler) HandleMerchantSearch(w http.ResponseWriter, r *http.Re
 	results, err := h.supabaseClient.SearchMerchants(ctx, searchReq.Query, searchReq.Page, searchReq.PageSize, searchReq.SortBy, searchReq.SortOrder)
 	if err != nil {
 		h.logger.Error("Failed to search merchants", zap.Error(err))
-		http.Error(w, "Search failed", http.StatusInternalServerError)
+		errors.WriteInternalError(w, r, "Search failed")
 		return
 	}
 
@@ -1099,7 +1272,7 @@ func (h *MerchantHandler) HandleMerchantPortfolioTypes(w http.ResponseWriter, r 
 	portfolioTypes, err := h.supabaseClient.GetMerchantPortfolioTypes(ctx)
 	if err != nil {
 		h.logger.Error("Failed to get portfolio types", zap.Error(err))
-		http.Error(w, "Failed to get portfolio types", http.StatusInternalServerError)
+		errors.WriteInternalError(w, r, "Failed to get portfolio types")
 		return
 	}
 
@@ -1123,7 +1296,7 @@ func (h *MerchantHandler) HandleMerchantRiskLevels(w http.ResponseWriter, r *htt
 	riskLevels, err := h.supabaseClient.GetMerchantRiskLevels(ctx)
 	if err != nil {
 		h.logger.Error("Failed to get risk levels", zap.Error(err))
-		http.Error(w, "Failed to get risk levels", http.StatusInternalServerError)
+		errors.WriteInternalError(w, r, "Failed to get risk levels")
 		return
 	}
 
