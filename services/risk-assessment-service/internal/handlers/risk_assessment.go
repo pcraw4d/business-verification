@@ -671,7 +671,7 @@ func (h *RiskAssessmentHandler) HandleRiskPredictions(w http.ResponseWriter, r *
 		_, err := h.supabaseClient.GetClient().From("risk_assessments").
 			Select("*", "", false).
 			Eq("business_id", merchantID).
-			Order("created_at", &postgrest.OrderOpts{Descending: true}).
+			Order("created_at", &postgrest.OrderOpts{Ascending: false}).
 			Limit(1, "").
 			ExecuteTo(&assessmentResult)
 
