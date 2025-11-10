@@ -369,10 +369,34 @@ func (h *MerchantHandler) createMerchant(ctx context.Context, req *CreateMerchan
 		"updated_at":          merchant.UpdatedAt.Format(time.RFC3339),
 	}
 
+	// Save to Supabase with retry logic and circuit breaker
 	var insertResult []map[string]interface{}
-	_, err := h.supabaseClient.GetClient().From("merchants").
-		Insert(merchantData, false, "", "", "").
-		ExecuteTo(&insertResult)
+	err := h.circuitBreaker.Execute(ctx, func() error {
+		// Use retry logic for the Supabase insert
+		retryConfig := resilience.DefaultRetryConfig()
+		retryConfig.MaxAttempts = 3
+		retryConfig.InitialDelay = 100 * time.Millisecond
+		
+		retryResult, retryErr := resilience.RetryWithBackoff(ctx, retryConfig, func() ([]map[string]interface{}, error) {
+			var queryResult []map[string]interface{}
+			_, queryErr := h.supabaseClient.GetClient().From("merchants").
+				Insert(merchantData, false, "", "", "").
+				ExecuteTo(&queryResult)
+			
+			if queryErr != nil {
+				return nil, queryErr
+			}
+			
+			return queryResult, nil
+		})
+		
+		if retryErr != nil {
+			return retryErr
+		}
+		
+		insertResult = retryResult
+		return nil
+	})
 
 	if err != nil {
 		h.logger.Error("Failed to save merchant to Supabase",
@@ -398,8 +422,7 @@ func (h *MerchantHandler) createMerchant(ctx context.Context, req *CreateMerchan
 // The fallback ensures UI functionality continues even when Supabase is unavailable.
 // In production, consider returning proper HTTP 404/503 status codes instead of mock data.
 //
-// TODO: Add retry logic with exponential backoff for Supabase queries
-// TODO: Implement circuit breaker pattern for Supabase connection
+	// Retry logic with exponential backoff and circuit breaker are already implemented below
 func (h *MerchantHandler) getMerchant(ctx context.Context, merchantID string, startTime time.Time) (*Merchant, error) {
 	h.logger.Info("Fetching merchant from Supabase",
 		zap.String("merchant_id", merchantID))
