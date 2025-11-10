@@ -29,7 +29,9 @@ Analysis of database query patterns, N+1 query problems, missing indexes, and op
 - SQL-related matches: 531
 - Database operations: Extensive Supabase usage
 - Query patterns: CRUD operations, search, analytics
-- Potential N+1 queries: Need to verify
+- Potential N+1 queries: Found 2 for loops with database operations
+  - Line 760: `for _, row := range result` (in merchant.go)
+  - Line 800: `for i, part := range parts` (in merchant.go)
 
 **Risk Assessment Service:**
 - SQL-related matches: 6,116
@@ -63,12 +65,15 @@ Analysis of database query patterns, N+1 query problems, missing indexes, and op
 - Migration files contain index definitions
 - Risk Assessment Service has index management (`internal/database/index_manager.go`)
 - Query optimization scripts exist
+- 10 files with CREATE INDEX statements found
 
 **Index Patterns:**
 - Time-based indexes (created_at)
 - Foreign key indexes (business_id, user_id)
 - Composite indexes for common queries
 - Partial indexes for active records
+- Performance indexes for risk assessments
+- Batch job indexes for status and creation time
 
 ---
 

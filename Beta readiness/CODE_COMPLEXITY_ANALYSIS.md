@@ -16,13 +16,20 @@ Analysis of code complexity, including function sizes, cyclomatic complexity, an
 ### Largest Files
 
 **Findings:**
-- Need to identify largest Go files
-- Need to identify largest JavaScript files
-- Need to measure file sizes
+- Total Go files: 288 files (excluding tests)
+- Total lines: 272,194 lines
+- Average file size: 945 lines per file
+- Largest files:
+  - `services/risk-assessment-service/internal/ml/models/lstm_onnx_model.go`: 1,669 lines
+  - `services/risk-assessment-service/internal/validation/country_validation_rules.go`: 1,266 lines
+  - `services/risk-assessment-service/internal/reporting/report_service.go`: 1,243 lines
+  - `services/merchant-service/internal/observability/unified_monitoring.go`: 1,176 lines
+  - `services/risk-assessment-service/internal/external/thomson_reuters/worldcheck.go`: 1,159 lines
 
 **Issues:**
-- ⚠️ Large files may indicate high complexity
+- ⚠️ Very large files (1,000+ lines) indicate high complexity
 - ⚠️ Need to review for refactoring opportunities
+- ⚠️ Average file size (945 lines) is quite large
 
 ---
 

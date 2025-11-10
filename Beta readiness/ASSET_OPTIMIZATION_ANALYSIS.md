@@ -46,13 +46,14 @@ Analysis of frontend assets (JavaScript, CSS, HTML) for optimization opportuniti
 ### HTML Files
 
 **Statistics:**
-- Total HTML Files: Count needed
+- Total HTML Files: 35 files
 - Average File Size: To be measured
 
 **Issues:**
 - ⚠️ No minification found
 - ⚠️ No compression found
 - ⚠️ May contain inline styles/scripts
+- ⚠️ Large JavaScript files found (500KB+ node_modules files)
 
 ---
 
@@ -61,13 +62,14 @@ Analysis of frontend assets (JavaScript, CSS, HTML) for optimization opportuniti
 ### Build Tools
 
 **Findings:**
-- ⚠️ No package.json found in frontend
-- ⚠️ No webpack.config.js found
+- ✅ package.json files found (9 files, including node_modules)
+- ✅ webpack.config.js found (1 file in web/)
 - ⚠️ No vite.config.js found
 - ⚠️ No rollup.config.js found
-- ⚠️ No build process found
+- ⚠️ Bundle optimizer exists but no build process configured
+- ⚠️ Large node_modules files in frontend (500KB+)
 
-**Status**: ⚠️ No build process configured
+**Status**: ⚠️ Build process exists but not configured for frontend service
 
 ---
 
