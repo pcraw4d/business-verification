@@ -845,6 +845,36 @@ func (h *MerchantHandler) extractMerchantIDFromPath(path string) string {
 	return ""
 }
 
+// getUserIDFromRequest extracts user ID from request context or headers
+// Checks multiple sources: context (from API Gateway), headers, or falls back to "system"
+func (h *MerchantHandler) getUserIDFromRequest(r *http.Request) string {
+	ctx := r.Context()
+
+	// Try to get from context (set by API Gateway auth middleware)
+	if userID := ctx.Value("user_id"); userID != nil {
+		if id, ok := userID.(string); ok && id != "" {
+			return id
+		}
+	}
+
+	// Try to get from X-User-ID header (common pattern for user identification)
+	if userID := r.Header.Get("X-User-ID"); userID != "" {
+		return userID
+	}
+
+	// Try to get from Authorization header and extract user info
+	// This is a fallback if API Gateway doesn't set context
+	authHeader := r.Header.Get("Authorization")
+	if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
+		// In a full implementation, we would decode the JWT token
+		// For now, we'll use "system" as fallback
+		// TODO: Decode JWT to extract user ID if needed
+	}
+
+	// Fallback to "system" if no user ID found
+	return "system"
+}
+
 // HandleHealth handles health check requests
 func (h *MerchantHandler) HandleHealth(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
