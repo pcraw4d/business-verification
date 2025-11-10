@@ -962,13 +962,27 @@ func initPerformanceComponents(cfg *config.Config, db *sql.DB, logger *zap.Logge
 	queryOptimizer := query.NewQueryOptimizer(db, cacheInstance, logger)
 	logger.Info("✅ Query optimizer initialized")
 
-	// Initialize performance monitor with nil interfaces for now
-	// TODO: Implement proper interface adapters for cache, pool, and query components
+	// Initialize performance monitor with interface adapters
+	var cacheMonitor performance.CacheMonitor
+	if cacheInstance != nil {
+		cacheMonitor = performance.NewCacheAdapter(cacheInstance)
+	}
+
+	var poolMonitor performance.PoolMonitor
+	if connectionPool != nil {
+		poolMonitor = performance.NewPoolAdapter(connectionPool)
+	}
+
+	var queryMonitor performance.QueryMonitor
+	if queryOptimizer != nil {
+		queryMonitor = performance.NewQueryAdapter(queryOptimizer)
+	}
+
 	perfMonitor := performance.NewPerformanceMonitor(
 		db,
-		nil, // cacheInstance - needs interface adapter
-		nil, // connectionPool - needs interface adapter
-		nil, // queryOptimizer - needs interface adapter
+		cacheMonitor,
+		poolMonitor,
+		queryMonitor,
 		logger,
 	)
 
