@@ -501,23 +501,94 @@ func (h *GatewayHandler) HandleAuthRegister(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// TODO: Implement actual registration with Supabase
-	// For now, return a success response (this is a placeholder)
-	h.logger.Info("User registration request",
+	// Validate email format
+	if !strings.Contains(req.Email, "@") || !strings.Contains(req.Email, ".") {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error":   "Invalid email format",
+			"message": "Please provide a valid email address",
+		})
+		return
+	}
+
+	// Validate password strength
+	if len(req.Password) < 8 {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error":   "Password too short",
+			"message": "Password must be at least 8 characters long",
+		})
+		return
+	}
+
+	// Prepare user metadata for Supabase
+	userMetadata := map[string]interface{}{
+		"username":   req.Username,
+		"first_name": req.FirstName,
+		"last_name":  req.LastName,
+		"company":    req.Company,
+	}
+
+	// Register user with Supabase Auth
+	ctx := r.Context()
+	authResult, err := h.supabaseClient.RegisterUser(ctx, req.Email, req.Password, userMetadata)
+	if err != nil {
+		h.logger.Error("User registration failed",
+			zap.String("email", req.Email),
+			zap.String("username", req.Username),
+			zap.Error(err))
+
+		// Check if it's a duplicate email error
+		if strings.Contains(err.Error(), "already registered") || strings.Contains(err.Error(), "already exists") {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error":   "Email already registered",
+				"message": "An account with this email already exists",
+			})
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error":   "Registration failed",
+			"message": "Unable to complete registration. Please try again later.",
+		})
+		return
+	}
+
+	// Extract user information from auth result
+	userInfo := map[string]interface{}{
+		"email": req.Email,
+	}
+	
+	if user, ok := authResult["user"].(map[string]interface{}); ok {
+		if id, ok := user["id"].(string); ok {
+			userInfo["id"] = id
+		}
+		if email, ok := user["email"].(string); ok {
+			userInfo["email"] = email
+		}
+		// Add metadata if available
+		if userMetadata, ok := user["user_metadata"].(map[string]interface{}); ok {
+			userInfo["username"] = userMetadata["username"]
+			userInfo["first_name"] = userMetadata["first_name"]
+			userInfo["last_name"] = userMetadata["last_name"]
+			userInfo["company"] = userMetadata["company"]
+		}
+	}
+
+	h.logger.Info("User registered successfully",
 		zap.String("email", req.Email),
-		zap.String("username", req.Username),
-		zap.String("company", req.Company))
+		zap.String("username", req.Username))
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"message": "Registration successful. Please check your email for verification instructions.",
-		"user": map[string]interface{}{
-			"email":     req.Email,
-			"username":  req.Username,
-			"first_name": req.FirstName,
-			"last_name":  req.LastName,
-			"company":    req.Company,
-		},
+		"user":    userInfo,
 	})
 }
