@@ -172,8 +172,9 @@ func (ma *MonitoringAdapter) RecordDatabaseMetrics(ctx context.Context, metrics 
 	return nil
 }
 
-// PerformanceMetric represents a legacy performance metric
-type PerformanceMetric struct {
+// LegacyPerformanceMetric represents a legacy performance metric
+// (renamed to avoid conflict with parallel_performance_monitor.go)
+type LegacyPerformanceMetric struct {
 	Name      string                 `json:"name"`
 	Value     float64                `json:"value"`
 	Unit      string                 `json:"unit"`
@@ -183,7 +184,7 @@ type PerformanceMetric struct {
 }
 
 // RecordPerformanceMetric records a performance metric using the unified monitoring system
-func (ma *MonitoringAdapter) RecordPerformanceMetric(ctx context.Context, component, serviceName string, metric *PerformanceMetric) error {
+func (ma *MonitoringAdapter) RecordPerformanceMetric(ctx context.Context, component, serviceName string, metric *LegacyPerformanceMetric) error {
 	// Determine metric type and category based on name and value
 	metricType := MetricTypePerformance
 	metricCategory := MetricCategoryGeneral

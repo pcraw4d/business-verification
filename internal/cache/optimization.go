@@ -20,8 +20,9 @@ type CacheManager struct {
 	mu      sync.RWMutex
 }
 
-// CacheConfig contains cache optimization settings
-type CacheConfig struct {
+// OptimizationCacheConfig contains cache optimization settings
+// (renamed to avoid conflict with types.go CacheConfig)
+type OptimizationCacheConfig struct {
 	L1TTL           time.Duration `yaml:"l1_ttl"`
 	L2TTL           time.Duration `yaml:"l2_ttl"`
 	MaxL1Size       int           `yaml:"max_l1_size"`

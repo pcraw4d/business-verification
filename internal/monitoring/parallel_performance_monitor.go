@@ -106,15 +106,8 @@ type MetricPoint struct {
 	Timestamp time.Time
 }
 
-// MetricType represents the type of metric
-type MetricType string
-
-const (
-	MetricTypeCounter   MetricType = "counter"
-	MetricTypeGauge     MetricType = "gauge"
-	MetricTypeHistogram MetricType = "histogram"
-	MetricTypeSummary   MetricType = "summary"
-)
+// MetricType is defined in unified_monitoring_service.go to avoid duplication
+// Using the type from unified_monitoring_service.go
 
 // MetricStatus represents the status of a metric
 type MetricStatus string
@@ -277,35 +270,8 @@ type PerformanceAlert struct {
 	Resolution     string
 }
 
-// AlertType represents the type of alert
-type AlertType string
-
-const (
-	AlertTypePerformance  AlertType = "performance"
-	AlertTypeBottleneck   AlertType = "bottleneck"
-	AlertTypeOptimization AlertType = "optimization"
-	AlertTypeSystem       AlertType = "system"
-)
-
-// AlertSeverity represents the severity of an alert
-type AlertSeverity string
-
-const (
-	AlertSeverityInfo     AlertSeverity = "info"
-	AlertSeverityWarning  AlertSeverity = "warning"
-	AlertSeverityError    AlertSeverity = "error"
-	AlertSeverityCritical AlertSeverity = "critical"
-)
-
-// AlertStatus represents the status of an alert
-type AlertStatus string
-
-const (
-	AlertStatusActive       AlertStatus = "active"
-	AlertStatusAcknowledged AlertStatus = "acknowledged"
-	AlertStatusResolved     AlertStatus = "resolved"
-	AlertStatusSuppressed   AlertStatus = "suppressed"
-)
+// AlertType, AlertSeverity, and AlertStatus are defined in unified_monitoring_service.go
+// to avoid duplication. These types are imported from that file.
 
 // HistoricalTracker tracks historical performance data
 type HistoricalTracker struct {

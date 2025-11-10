@@ -50,7 +50,7 @@ type FeatureFlagDashboardConfig struct {
 
 	// Alerting configuration
 	AlertingEnabled bool            `json:"alerting_enabled"`
-	AlertThresholds AlertThresholds `json:"alert_thresholds"`
+	AlertThresholds FeatureFlagAlertThresholds `json:"alert_thresholds"`
 }
 
 // FeatureFlagAnalytics holds analytics data for feature flags
@@ -226,8 +226,9 @@ type PerformanceTrend struct {
 	Throughput     float64       `json:"throughput"`
 }
 
-// AlertThresholds holds alerting thresholds
-type AlertThresholds struct {
+// FeatureFlagAlertThresholds holds alerting thresholds for feature flags
+// (renamed to avoid conflict with optimization.go)
+type FeatureFlagAlertThresholds struct {
 	// Performance thresholds
 	MaxLatencyThreshold    time.Duration `json:"max_latency_threshold"`
 	MaxErrorRateThreshold  float64       `json:"max_error_rate_threshold"`
