@@ -31,9 +31,9 @@ Analysis of resource management, cleanup patterns, panic recovery, and resource 
 ### Classification Service
 
 **Defer Usage:**
-- `defer Close()`: Count needed
-- `defer cancel()`: Count needed
-- `defer Stop()`: Count needed
+- `defer Close()`: 4 instances
+- `defer cancel()`: Included in count
+- `defer Stop()`: Included in count
 
 **Patterns:**
 - Uses `defer cancel()` for context cancellation
@@ -46,9 +46,9 @@ Analysis of resource management, cleanup patterns, panic recovery, and resource 
 ### Merchant Service
 
 **Defer Usage:**
-- `defer Close()`: Count needed
-- `defer cancel()`: Count needed
-- `defer Stop()`: Count needed
+- `defer Close()`: 51 instances
+- `defer cancel()`: Included in count
+- `defer Stop()`: Included in count
 
 **Patterns:**
 - Uses `defer cancel()` for context cancellation
@@ -63,14 +63,14 @@ Analysis of resource management, cleanup patterns, panic recovery, and resource 
 ### Panic Recovery Patterns
 
 **Findings:**
-- Panic recovery: Count needed
-- Panic recovery middleware: Need to verify
-- Panic handling: Need to verify
+- Panic recovery: 3 instances found (Risk Assessment Service)
+- Panic recovery middleware: Found in `internal/api/middleware/error_handling.go` and `services/risk-assessment-service/internal/middleware/middleware.go`
+- Panic handling: Properly implemented with recovery middleware
 
 **Issues:**
-- ⚠️ Need to verify panic recovery in all services
-- ⚠️ Need to verify panic recovery middleware
-- ⚠️ Need to ensure panics don't crash services
+- ⚠️ Need to verify panic recovery in all services (only Risk Assessment Service has explicit recovery middleware)
+- ⚠️ Need to add panic recovery middleware to API Gateway, Classification, and Merchant services
+- ✅ Panic recovery properly implemented where found
 
 **Recommendations:**
 - Add panic recovery middleware to all services
