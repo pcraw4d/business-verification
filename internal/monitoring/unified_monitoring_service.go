@@ -35,6 +35,11 @@ const (
 	MetricTypeResource    MetricType = "resource"
 	MetricTypeBusiness    MetricType = "business"
 	MetricTypeSecurity    MetricType = "security"
+	// Additional metric types for parallel performance monitoring
+	MetricTypeCounter   MetricType = "counter"
+	MetricTypeGauge     MetricType = "gauge"
+	MetricTypeHistogram MetricType = "histogram"
+	MetricTypeSummary   MetricType = "summary"
 )
 
 // MetricCategory represents the category of metric
@@ -83,6 +88,11 @@ const (
 	AlertTypeAnomaly      AlertType = "anomaly"
 	AlertTypeTrend        AlertType = "trend"
 	AlertTypeAvailability AlertType = "availability"
+	// Additional alert types for parallel performance monitoring
+	AlertTypePerformance  AlertType = "performance"
+	AlertTypeBottleneck   AlertType = "bottleneck"
+	AlertTypeOptimization AlertType = "optimization"
+	AlertTypeSystem       AlertType = "system"
 )
 
 // AlertCategory represents the category of alert

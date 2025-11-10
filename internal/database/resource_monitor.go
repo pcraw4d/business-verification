@@ -54,13 +54,13 @@ type ResourceMetrics struct {
 	Timestamp         time.Time
 	CPUMetrics        *CPUMetrics
 	MemoryMetrics     *MemoryMetrics
-	ConnectionMetrics *ConnectionMetrics
+	ConnectionMetrics *ResourceConnectionMetrics
 	DiskSpaceMetrics  *DiskSpaceMetrics
-	LockMetrics       *LockMetrics
-	QueryMetrics      *QueryMetrics
+	LockMetrics       *ResourceLockMetrics
+	QueryMetrics      *ResourceQueryMetrics
 	IndexMetrics      *IndexMetrics
-	CacheMetrics      *CacheMetrics
-	SystemMetrics     *SystemMetrics
+	CacheMetrics      *ResourceCacheMetrics
+	SystemMetrics     *ResourceSystemMetrics
 }
 
 // CPUMetrics contains CPU-related metrics
@@ -85,8 +85,9 @@ type MemoryMetrics struct {
 	MemoryUtilization  float64
 }
 
-// ConnectionMetrics contains connection-related metrics
-type ConnectionMetrics struct {
+// ResourceConnectionMetrics contains connection-related metrics
+// (renamed to avoid conflict with performance_monitor.go)
+type ResourceConnectionMetrics struct {
 	TotalConnections      int
 	ActiveConnections     int
 	IdleConnections       int
@@ -107,8 +108,9 @@ type DiskSpaceMetrics struct {
 	GrowthRate      float64 // MB per hour
 }
 
-// LockMetrics contains lock-related metrics
-type LockMetrics struct {
+// ResourceLockMetrics contains lock-related metrics
+// (renamed to avoid conflict with performance_monitor.go)
+type ResourceLockMetrics struct {
 	LockWaits       int
 	Deadlocks       int
 	LockTimeouts    int
@@ -118,8 +120,9 @@ type LockMetrics struct {
 	BlockingQueries int
 }
 
-// QueryMetrics contains query-related metrics
-type QueryMetrics struct {
+// ResourceQueryMetrics contains query-related metrics
+// (renamed to avoid conflict with performance_monitor.go)
+type ResourceQueryMetrics struct {
 	TotalQueries     int64
 	SlowQueries      int64
 	AverageQueryTime time.Duration
@@ -141,8 +144,9 @@ type IndexMetrics struct {
 	IndexUtilization float64
 }
 
-// CacheMetrics contains cache-related metrics
-type CacheMetrics struct {
+// ResourceCacheMetrics contains cache-related metrics
+// (renamed to avoid conflict with performance_monitor.go and redis_cache.go)
+type ResourceCacheMetrics struct {
 	SharedBuffers     int64
 	SharedBuffersUsed int64
 	SharedBuffersHit  int64
@@ -153,8 +157,9 @@ type CacheMetrics struct {
 	CacheUtilization  float64
 }
 
-// SystemMetrics contains system-level metrics
-type SystemMetrics struct {
+// ResourceSystemMetrics contains system-level metrics
+// (renamed to avoid conflict with performance_monitor.go)
+type ResourceSystemMetrics struct {
 	Uptime        time.Duration
 	Version       string
 	Configuration map[string]string
@@ -494,7 +499,7 @@ func (rm *ResourceMonitor) collectMemoryMetrics(ctx context.Context) error {
 
 // collectConnectionMetrics collects connection-related metrics
 func (rm *ResourceMonitor) collectConnectionMetrics(ctx context.Context) error {
-	rm.metrics.ConnectionMetrics = &ConnectionMetrics{}
+	rm.metrics.ConnectionMetrics = &ResourceConnectionMetrics{}
 
 	// Get connection statistics
 	query := `
@@ -611,7 +616,7 @@ func (rm *ResourceMonitor) collectDiskSpaceMetrics(ctx context.Context) error {
 
 // collectLockMetrics collects lock-related metrics
 func (rm *ResourceMonitor) collectLockMetrics(ctx context.Context) error {
-	rm.metrics.LockMetrics = &LockMetrics{}
+	rm.metrics.LockMetrics = &ResourceLockMetrics{}
 
 	// Get lock statistics
 	query := `
@@ -647,7 +652,7 @@ func (rm *ResourceMonitor) collectLockMetrics(ctx context.Context) error {
 
 // collectQueryMetrics collects query-related metrics
 func (rm *ResourceMonitor) collectQueryMetrics(ctx context.Context) error {
-	rm.metrics.QueryMetrics = &QueryMetrics{}
+	rm.metrics.QueryMetrics = &ResourceQueryMetrics{}
 
 	// Get query statistics from pg_stat_statements
 	query := `
@@ -757,7 +762,7 @@ func (rm *ResourceMonitor) collectIndexMetrics(ctx context.Context) error {
 
 // collectCacheMetrics collects cache-related metrics
 func (rm *ResourceMonitor) collectCacheMetrics(ctx context.Context) error {
-	rm.metrics.CacheMetrics = &CacheMetrics{}
+	rm.metrics.CacheMetrics = &ResourceCacheMetrics{}
 
 	// Get shared buffer statistics
 	query := `
@@ -794,7 +799,7 @@ func (rm *ResourceMonitor) collectCacheMetrics(ctx context.Context) error {
 
 // collectSystemMetrics collects system-level metrics
 func (rm *ResourceMonitor) collectSystemMetrics(ctx context.Context) error {
-	rm.metrics.SystemMetrics = &SystemMetrics{
+	rm.metrics.SystemMetrics = &ResourceSystemMetrics{
 		Configuration: make(map[string]string),
 	}
 

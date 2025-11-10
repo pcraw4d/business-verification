@@ -376,7 +376,9 @@ func (lts *LoadTestingSuite) runLoadPhase(ctx context.Context, userCount int, ph
 
 						// Categorize error
 						errorType := lts.categorizeError(err)
-						atomic.AddInt64(&result.ErrorTypes[errorType], 1)
+						// Can't take address of map index, so increment via temp variable
+						currentCount := result.ErrorTypes[errorType]
+						result.ErrorTypes[errorType] = currentCount + 1
 
 						if lts.isTimeoutError(err) {
 							atomic.AddInt64(&result.TimeoutCount, 1)
@@ -476,8 +478,6 @@ func (lts *LoadTestingSuite) categorizeError(err error) string {
 	if err == nil {
 		return "none"
 	}
-
-	errStr := err.Error()
 
 	switch {
 	case lts.isTimeoutError(err):

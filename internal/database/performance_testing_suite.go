@@ -377,7 +377,7 @@ func (suite *DatabasePerformanceTestSuite) RunIndexPerformanceTest(ctx context.C
 				rows.Close()
 
 				// Check if the expected index is mentioned in the explain plan
-				if !contains(explainText, test.index) && !contains(explainText, "Index Scan") {
+				if !performanceContains(explainText, test.index) && !performanceContains(explainText, "Index Scan") {
 					suite.logger.Printf("Warning: Index %s may not be used for query %s", test.index, test.name)
 				}
 			}
@@ -812,14 +812,15 @@ func (suite *DatabasePerformanceTestSuite) generateResourceUsageRecommendations(
 }
 
 // Helper function to check if string contains substring
-func contains(s, substr string) bool {
+// (renamed to avoid conflict with load_testing_suite.go)
+func performanceContains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(substr) == 0 ||
 		(len(s) > len(substr) && (s[:len(substr)] == substr ||
 			s[len(s)-len(substr):] == substr ||
-			containsSubstring(s, substr))))
+			performanceContainsSubstring(s, substr))))
 }
 
-func containsSubstring(s, substr string) bool {
+func performanceContainsSubstring(s, substr string) bool {
 	for i := 0; i <= len(s)-len(substr); i++ {
 		if s[i:i+len(substr)] == substr {
 			return true

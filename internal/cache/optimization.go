@@ -11,12 +11,13 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-// CacheManager handles multi-level caching optimization
-type CacheManager struct {
+// OptimizationCacheManager handles multi-level caching optimization
+// (renamed to avoid conflict with intelligent_cache.go CacheManager)
+type OptimizationCacheManager struct {
 	l1Cache *sync.Map     // In-memory L1 cache
 	l2Cache *redis.Client // Redis L2 cache
-	config  *CacheConfig
-	stats   *CacheStats
+	config  *OptimizationCacheConfig
+	stats   *OptimizationCacheStats
 	mu      sync.RWMutex
 }
 
@@ -32,8 +33,9 @@ type OptimizationCacheConfig struct {
 	Compression     bool          `yaml:"compression"`
 }
 
-// CacheStats tracks cache performance metrics
-type CacheStats struct {
+// OptimizationCacheStats tracks cache performance metrics
+// (renamed to avoid conflict with memory.go CacheStats)
+type OptimizationCacheStats struct {
 	L1Hits        int64 `json:"l1_hits"`
 	L1Misses      int64 `json:"l1_misses"`
 	L2Hits        int64 `json:"l2_hits"`
@@ -44,21 +46,22 @@ type CacheStats struct {
 	mu            sync.RWMutex
 }
 
-// CacheEntry represents a cached item
-type CacheEntry struct {
+// OptimizationCacheEntry represents a cached item
+// (renamed to avoid conflict with intelligent_cache.go CacheEntry)
+type OptimizationCacheEntry struct {
 	Data        interface{} `json:"data"`
 	ExpiresAt   time.Time   `json:"expires_at"`
 	CreatedAt   time.Time   `json:"created_at"`
 	AccessCount int64       `json:"access_count"`
 }
 
-// NewCacheManager creates a new optimized cache manager
-func NewCacheManager(redisClient *redis.Client, config *CacheConfig) *CacheManager {
-	cm := &CacheManager{
+// NewOptimizationCacheManager creates a new optimized cache manager
+func NewOptimizationCacheManager(redisClient *redis.Client, config *OptimizationCacheConfig) *OptimizationCacheManager {
+	cm := &OptimizationCacheManager{
 		l1Cache: &sync.Map{},
 		l2Cache: redisClient,
 		config:  config,
-		stats:   &CacheStats{},
+		stats:   &OptimizationCacheStats{},
 	}
 
 	// Start cache warming if enabled
@@ -73,7 +76,7 @@ func NewCacheManager(redisClient *redis.Client, config *CacheConfig) *CacheManag
 }
 
 // Get retrieves a value from cache with multi-level fallback
-func (cm *CacheManager) Get(ctx context.Context, key string) (interface{}, error) {
+func (cm *OptimizationCacheManager) Get(ctx context.Context, key string) (interface{}, error) {
 	cm.stats.mu.Lock()
 	cm.stats.TotalRequests++
 	cm.stats.mu.Unlock()
@@ -110,7 +113,7 @@ func (cm *CacheManager) Get(ctx context.Context, key string) (interface{}, error
 }
 
 // Set stores a value in cache with write strategy
-func (cm *CacheManager) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+func (cm *OptimizationCacheManager) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
 	switch cm.config.Strategy {
 	case "write-through":
 		return cm.writeThrough(ctx, key, value, ttl)
@@ -124,7 +127,7 @@ func (cm *CacheManager) Set(ctx context.Context, key string, value interface{}, 
 }
 
 // writeThrough writes to both L1 and L2 caches immediately
-func (cm *CacheManager) writeThrough(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+func (cm *OptimizationCacheManager) writeThrough(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
 	// Write to L1 cache
 	cm.setInL1(key, value, ttl)
 
@@ -133,7 +136,7 @@ func (cm *CacheManager) writeThrough(ctx context.Context, key string, value inte
 }
 
 // writeBehind writes to L1 immediately and L2 asynchronously
-func (cm *CacheManager) writeBehind(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+func (cm *OptimizationCacheManager) writeBehind(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
 	// Write to L1 cache immediately
 	cm.setInL1(key, value, ttl)
 
@@ -148,7 +151,7 @@ func (cm *CacheManager) writeBehind(ctx context.Context, key string, value inter
 }
 
 // writeAround writes only to L2 cache, bypassing L1
-func (cm *CacheManager) writeAround(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+func (cm *OptimizationCacheManager) writeAround(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
 	// Remove from L1 cache if exists
 	cm.l1Cache.Delete(key)
 
@@ -157,7 +160,7 @@ func (cm *CacheManager) writeAround(ctx context.Context, key string, value inter
 }
 
 // Invalidate removes a key from all cache levels
-func (cm *CacheManager) Invalidate(ctx context.Context, key string) error {
+func (cm *OptimizationCacheManager) Invalidate(ctx context.Context, key string) error {
 	// Remove from L1 cache
 	cm.l1Cache.Delete(key)
 
@@ -166,7 +169,7 @@ func (cm *CacheManager) Invalidate(ctx context.Context, key string) error {
 }
 
 // InvalidatePattern removes keys matching a pattern from all cache levels
-func (cm *CacheManager) InvalidatePattern(ctx context.Context, pattern string) error {
+func (cm *OptimizationCacheManager) InvalidatePattern(ctx context.Context, pattern string) error {
 	// Get matching keys from L2 cache
 	keys, err := cm.l2Cache.Keys(ctx, pattern).Result()
 	if err != nil {
@@ -183,7 +186,7 @@ func (cm *CacheManager) InvalidatePattern(ctx context.Context, pattern string) e
 	// Remove from L1 cache (iterate through all keys)
 	cm.l1Cache.Range(func(key, value interface{}) bool {
 		if keyStr, ok := key.(string); ok {
-			if matched, _ := matchPattern(keyStr, pattern); matched {
+			if matched, _ := matchOptimizationPattern(keyStr, pattern); matched {
 				cm.l1Cache.Delete(key)
 			}
 		}
@@ -194,7 +197,7 @@ func (cm *CacheManager) InvalidatePattern(ctx context.Context, pattern string) e
 }
 
 // GetStats returns current cache statistics
-func (cm *CacheManager) GetStats() *CacheStats {
+func (cm *OptimizationCacheManager) GetStats() *OptimizationCacheStats {
 	cm.stats.mu.RLock()
 	defer cm.stats.mu.RUnlock()
 
@@ -208,7 +211,7 @@ func (cm *CacheManager) GetStats() *CacheStats {
 		cm.stats.L2Size = int64(len(info))
 	}
 
-	return &CacheStats{
+	return &OptimizationCacheStats{
 		L1Hits:        cm.stats.L1Hits,
 		L1Misses:      cm.stats.L1Misses,
 		L2Hits:        cm.stats.L2Hits,
@@ -220,7 +223,7 @@ func (cm *CacheManager) GetStats() *CacheStats {
 }
 
 // GetHitRate returns the overall cache hit rate
-func (cm *CacheManager) GetHitRate() float64 {
+func (cm *OptimizationCacheManager) GetHitRate() float64 {
 	cm.stats.mu.RLock()
 	defer cm.stats.mu.RUnlock()
 
@@ -233,9 +236,9 @@ func (cm *CacheManager) GetHitRate() float64 {
 }
 
 // L1 cache operations
-func (cm *CacheManager) getFromL1(key string) (interface{}, bool) {
+func (cm *OptimizationCacheManager) getFromL1(key string) (interface{}, bool) {
 	if value, ok := cm.l1Cache.Load(key); ok {
-		entry, ok := value.(*CacheEntry)
+		entry, ok := value.(*OptimizationCacheEntry)
 		if !ok {
 			return nil, false
 		}
@@ -254,8 +257,8 @@ func (cm *CacheManager) getFromL1(key string) (interface{}, bool) {
 	return nil, false
 }
 
-func (cm *CacheManager) setInL1(key string, value interface{}, ttl time.Duration) {
-	entry := &CacheEntry{
+func (cm *OptimizationCacheManager) setInL1(key string, value interface{}, ttl time.Duration) {
+	entry := &OptimizationCacheEntry{
 		Data:        value,
 		ExpiresAt:   time.Now().Add(ttl),
 		CreatedAt:   time.Now(),
@@ -270,7 +273,7 @@ func (cm *CacheManager) setInL1(key string, value interface{}, ttl time.Duration
 	}
 }
 
-func (cm *CacheManager) getL1Size() int {
+func (cm *OptimizationCacheManager) getL1Size() int {
 	size := 0
 	cm.l1Cache.Range(func(key, value interface{}) bool {
 		size++
@@ -279,14 +282,14 @@ func (cm *CacheManager) getL1Size() int {
 	return size
 }
 
-func (cm *CacheManager) evictL1LRU() {
+func (cm *OptimizationCacheManager) evictL1LRU() {
 	// Simple LRU eviction - remove oldest entries
 	// In production, you might want a more sophisticated eviction strategy
 	var oldestKey interface{}
 	var oldestTime time.Time
 
 	cm.l1Cache.Range(func(key, value interface{}) bool {
-		if entry, ok := value.(*CacheEntry); ok {
+		if entry, ok := value.(*OptimizationCacheEntry); ok {
 			if oldestTime.IsZero() || entry.CreatedAt.Before(oldestTime) {
 				oldestTime = entry.CreatedAt
 				oldestKey = key
@@ -301,7 +304,7 @@ func (cm *CacheManager) evictL1LRU() {
 }
 
 // L2 cache operations
-func (cm *CacheManager) getFromL2(ctx context.Context, key string) (interface{}, error) {
+func (cm *OptimizationCacheManager) getFromL2(ctx context.Context, key string) (interface{}, error) {
 	data, err := cm.l2Cache.Get(ctx, key).Result()
 	if err != nil {
 		if err == redis.Nil {
@@ -318,7 +321,7 @@ func (cm *CacheManager) getFromL2(ctx context.Context, key string) (interface{},
 	return value, nil
 }
 
-func (cm *CacheManager) setInL2(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+func (cm *OptimizationCacheManager) setInL2(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
 	data, err := json.Marshal(value)
 	if err != nil {
 		return fmt.Errorf("failed to marshal data for caching: %w", err)
@@ -328,7 +331,7 @@ func (cm *CacheManager) setInL2(ctx context.Context, key string, value interface
 }
 
 // Cache warming
-func (cm *CacheManager) startCacheWarming() {
+func (cm *OptimizationCacheManager) startCacheWarming() {
 	ticker := time.NewTicker(cm.config.WarmingInterval)
 	defer ticker.Stop()
 
@@ -339,7 +342,7 @@ func (cm *CacheManager) startCacheWarming() {
 	}
 }
 
-func (cm *CacheManager) warmCache() error {
+func (cm *OptimizationCacheManager) warmCache() error {
 	log.Println("Starting cache warming...")
 
 	// Get frequently accessed business IDs
@@ -357,7 +360,7 @@ func (cm *CacheManager) warmCache() error {
 	return nil
 }
 
-func (cm *CacheManager) getFrequentlyAccessedBusinesses() ([]string, error) {
+func (cm *OptimizationCacheManager) getFrequentlyAccessedBusinesses() ([]string, error) {
 	// This would typically query your database for frequently accessed businesses
 	// For now, return a sample list
 	return []string{
@@ -367,7 +370,7 @@ func (cm *CacheManager) getFrequentlyAccessedBusinesses() ([]string, error) {
 	}, nil
 }
 
-func (cm *CacheManager) preloadBusinessData(businessID string) {
+func (cm *OptimizationCacheManager) preloadBusinessData(businessID string) {
 	ctx := context.Background()
 
 	// Check if already cached
@@ -390,7 +393,7 @@ func (cm *CacheManager) preloadBusinessData(businessID string) {
 }
 
 // Cache cleanup
-func (cm *CacheManager) startCacheCleanup() {
+func (cm *OptimizationCacheManager) startCacheCleanup() {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 
@@ -399,11 +402,11 @@ func (cm *CacheManager) startCacheCleanup() {
 	}
 }
 
-func (cm *CacheManager) cleanupExpiredL1Entries() {
+func (cm *OptimizationCacheManager) cleanupExpiredL1Entries() {
 	now := time.Now()
 
 	cm.l1Cache.Range(func(key, value interface{}) bool {
-		if entry, ok := value.(*CacheEntry); ok {
+		if entry, ok := value.(*OptimizationCacheEntry); ok {
 			if now.After(entry.ExpiresAt) {
 				cm.l1Cache.Delete(key)
 			}
@@ -413,7 +416,9 @@ func (cm *CacheManager) cleanupExpiredL1Entries() {
 }
 
 // Utility functions
-func matchPattern(str, pattern string) (bool, error) {
+// matchOptimizationPattern checks if a string matches a pattern (for optimization cache)
+// (renamed to avoid conflict with query_cache_manager.go matchPattern)
+func matchOptimizationPattern(str, pattern string) (bool, error) {
 	// Simple pattern matching - in production, you might want more sophisticated matching
 	// This is a basic implementation for demonstration
 	if pattern == "*" {
@@ -430,22 +435,22 @@ func matchPattern(str, pattern string) (bool, error) {
 
 // CacheOptimizer provides cache optimization utilities
 type CacheOptimizer struct {
-	cacheManager *CacheManager
+	cacheManager *OptimizationCacheManager
 }
 
 // NewCacheOptimizer creates a new cache optimizer
-func NewCacheOptimizer(cacheManager *CacheManager) *CacheOptimizer {
+func NewCacheOptimizer(cacheManager *OptimizationCacheManager) *CacheOptimizer {
 	return &CacheOptimizer{
 		cacheManager: cacheManager,
 	}
 }
 
 // OptimizeCacheConfiguration optimizes cache settings based on usage patterns
-func (co *CacheOptimizer) OptimizeCacheConfiguration() (*CacheConfig, error) {
+func (co *CacheOptimizer) OptimizeCacheConfiguration() (*OptimizationCacheConfig, error) {
 	stats := co.cacheManager.GetStats()
 
 	// Analyze hit rates and adjust configuration
-	config := &CacheConfig{
+	config := &OptimizationCacheConfig{
 		L1TTL:           co.cacheManager.config.L1TTL,
 		L2TTL:           co.cacheManager.config.L2TTL,
 		MaxL1Size:       co.cacheManager.config.MaxL1Size,
@@ -467,7 +472,7 @@ func (co *CacheOptimizer) OptimizeCacheConfiguration() (*CacheConfig, error) {
 	}
 
 	// Adjust L1 size based on usage
-	if stats.L1Size > config.MaxL1Size*0.9 {
+	if stats.L1Size > int(float64(config.MaxL1Size)*0.9) {
 		config.MaxL1Size = config.MaxL1Size * 2
 	}
 
@@ -491,12 +496,12 @@ func (co *CacheOptimizer) GenerateCacheReport() (*CacheReport, error) {
 // CacheReport contains cache performance analysis
 type CacheReport struct {
 	Timestamp       time.Time   `json:"timestamp"`
-	Stats           *CacheStats `json:"stats"`
+	Stats           *OptimizationCacheStats `json:"stats"`
 	HitRate         float64     `json:"hit_rate"`
 	Recommendations []string    `json:"recommendations"`
 }
 
-func (co *CacheOptimizer) generateRecommendations(stats *CacheStats) []string {
+func (co *CacheOptimizer) generateRecommendations(stats *OptimizationCacheStats) []string {
 	var recommendations []string
 
 	hitRate := co.cacheManager.GetHitRate()
@@ -505,7 +510,7 @@ func (co *CacheOptimizer) generateRecommendations(stats *CacheStats) []string {
 		recommendations = append(recommendations, "Cache hit rate is low - consider increasing TTL or improving cache warming")
 	}
 
-	if stats.L1Size > co.cacheManager.config.MaxL1Size*0.8 {
+	if stats.L1Size > int(float64(co.cacheManager.config.MaxL1Size)*0.8) {
 		recommendations = append(recommendations, "L1 cache is nearly full - consider increasing max size or improving eviction strategy")
 	}
 

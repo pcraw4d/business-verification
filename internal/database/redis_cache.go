@@ -166,7 +166,9 @@ func ConfigureRedis(ctx context.Context, cache *RedisCache, config *CacheConfig)
 // =============================================================================
 
 // CacheMetrics represents cache performance metrics
-type CacheMetrics struct {
+// RedisCacheMetrics contains cache-related metrics
+// (renamed to avoid conflict with performance_monitor.go)
+type RedisCacheMetrics struct {
 	Hits        int64
 	Misses      int64
 	HitRate     float64
@@ -176,8 +178,8 @@ type CacheMetrics struct {
 }
 
 // GetCacheMetrics retrieves cache performance metrics
-func (c *RedisCache) GetCacheMetrics(ctx context.Context) (*CacheMetrics, error) {
-	metrics := &CacheMetrics{
+func (c *RedisCache) GetCacheMetrics(ctx context.Context) (*RedisCacheMetrics, error) {
+	metrics := &RedisCacheMetrics{
 		Hits:        int64(len(c.data)), // Simplified for in-memory cache
 		Misses:      0,                  // Would need to track this in real implementation
 		HitRate:     1.0,                // Simplified

@@ -244,7 +244,7 @@ func (cqe *CachedQueryExecutor) InvalidateCacheByUserID(ctx context.Context, use
 }
 
 // GetCacheMetrics returns cache performance metrics
-func (cqe *CachedQueryExecutor) GetCacheMetrics() *CacheMetrics {
+func (cqe *CachedQueryExecutor) GetCacheMetrics() *QueryCacheMetrics {
 	return cqe.cacheManager.GetMetrics()
 }
 
@@ -471,6 +471,6 @@ func (ci *CacheIntegration) InvalidateUserCache(ctx context.Context, userID stri
 }
 
 // GetPerformanceMetrics returns cache performance metrics
-func (ci *CacheIntegration) GetPerformanceMetrics() *CacheMetrics {
+func (ci *CacheIntegration) GetPerformanceMetrics() *QueryCacheMetrics {
 	return ci.executor.GetCacheMetrics()
 }

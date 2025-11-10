@@ -289,7 +289,7 @@ func (pm *PerformanceMonitor) collectQueryMetrics(ctx context.Context) error {
 		totalQueries += int64(calls)
 		totalTime += totalTimeMs
 
-		if meanTimeMs > pm.config.SlowQueryThreshold.Milliseconds() {
+		if meanTimeMs > float64(pm.config.SlowQueryThreshold.Milliseconds()) {
 			slowQueries += int64(calls)
 
 			// Add to slow queries list

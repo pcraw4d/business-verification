@@ -9,15 +9,17 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// RedisCache implements a Redis-based cache
-type RedisCache struct {
+// SimpleRedisCache implements a Redis-based cache
+// (renamed to avoid conflict with redis.go RedisCacheImpl)
+type SimpleRedisCache struct {
 	client *redis.Client
 	prefix string
 	ttl    time.Duration
 }
 
-// NewRedisCache creates a new Redis cache instance
-func NewRedisCache(addr, password string, db int, prefix string, ttl time.Duration) (*RedisCache, error) {
+// NewSimpleRedisCache creates a new Redis cache instance
+// (renamed to avoid conflict with redis.go NewRedisCache)
+func NewSimpleRedisCache(addr, password string, db int, prefix string, ttl time.Duration) (*SimpleRedisCache, error) {
 	client := redis.NewClient(&redis.Options{
 		Addr:     addr,
 		Password: password,
@@ -32,7 +34,7 @@ func NewRedisCache(addr, password string, db int, prefix string, ttl time.Durati
 		return nil, fmt.Errorf("failed to connect to Redis: %w", err)
 	}
 
-	return &RedisCache{
+	return &SimpleRedisCache{
 		client: client,
 		prefix: prefix,
 		ttl:    ttl,
@@ -40,7 +42,7 @@ func NewRedisCache(addr, password string, db int, prefix string, ttl time.Durati
 }
 
 // Get retrieves a value from cache
-func (c *RedisCache) Get(ctx context.Context, key string) (interface{}, error) {
+func (c *SimpleRedisCache) Get(ctx context.Context, key string) (interface{}, error) {
 	fullKey := c.getFullKey(key)
 
 	data, err := c.client.Get(ctx, fullKey).Bytes()
@@ -60,12 +62,12 @@ func (c *RedisCache) Get(ctx context.Context, key string) (interface{}, error) {
 }
 
 // Set stores a value in cache
-func (c *RedisCache) Set(ctx context.Context, key string, value interface{}) error {
+func (c *SimpleRedisCache) Set(ctx context.Context, key string, value interface{}) error {
 	return c.SetWithTTL(ctx, key, value, c.ttl)
 }
 
 // SetWithTTL stores a value in cache with custom TTL
-func (c *RedisCache) SetWithTTL(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+func (c *SimpleRedisCache) SetWithTTL(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
 	fullKey := c.getFullKey(key)
 
 	data, err := json.Marshal(value)
@@ -81,13 +83,13 @@ func (c *RedisCache) SetWithTTL(ctx context.Context, key string, value interface
 }
 
 // Delete removes a value from cache
-func (c *RedisCache) Delete(ctx context.Context, key string) error {
+func (c *SimpleRedisCache) Delete(ctx context.Context, key string) error {
 	fullKey := c.getFullKey(key)
 	return c.client.Del(ctx, fullKey).Err()
 }
 
 // Clear removes all keys with the cache prefix
-func (c *RedisCache) Clear(ctx context.Context) error {
+func (c *SimpleRedisCache) Clear(ctx context.Context) error {
 	pattern := c.prefix + "*"
 	iter := c.client.Scan(ctx, 0, pattern, 0).Iterator()
 
@@ -101,7 +103,7 @@ func (c *RedisCache) Clear(ctx context.Context) error {
 }
 
 // Exists checks if a key exists in cache
-func (c *RedisCache) Exists(ctx context.Context, key string) (bool, error) {
+func (c *SimpleRedisCache) Exists(ctx context.Context, key string) (bool, error) {
 	fullKey := c.getFullKey(key)
 	count, err := c.client.Exists(ctx, fullKey).Result()
 	if err != nil {
@@ -111,7 +113,7 @@ func (c *RedisCache) Exists(ctx context.Context, key string) (bool, error) {
 }
 
 // getFullKey returns the full cache key with prefix
-func (c *RedisCache) getFullKey(key string) string {
+func (c *SimpleRedisCache) getFullKey(key string) string {
 	if c.prefix == "" {
 		return key
 	}
@@ -119,11 +121,11 @@ func (c *RedisCache) getFullKey(key string) string {
 }
 
 // Close closes the Redis connection
-func (c *RedisCache) Close() error {
+func (c *SimpleRedisCache) Close() error {
 	return c.client.Close()
 }
 
 // Health checks the health of the Redis connection
-func (c *RedisCache) Health(ctx context.Context) error {
+func (c *SimpleRedisCache) Health(ctx context.Context) error {
 	return c.client.Ping(ctx).Err()
 }

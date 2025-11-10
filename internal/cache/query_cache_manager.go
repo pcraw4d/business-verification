@@ -20,13 +20,15 @@ import (
 type QueryCacheManager struct {
 	redisClient *redis.Client
 	localCache  *LocalCache
-	config      *CacheConfig
-	metrics     *CacheMetrics
+	config      *QueryCacheConfig
+	metrics     *QueryCacheMetrics
 	mu          sync.RWMutex
 }
 
 // CacheConfig defines the configuration for query caching
-type CacheConfig struct {
+// QueryCacheConfig holds configuration for query cache
+// (renamed to avoid conflict with types.go CacheConfig)
+type QueryCacheConfig struct {
 	// Redis configuration
 	RedisHost     string `json:"redis_host"`
 	RedisPort     int    `json:"redis_port"`
@@ -54,7 +56,9 @@ type CacheConfig struct {
 }
 
 // CacheMetrics tracks cache performance metrics
-type CacheMetrics struct {
+// QueryCacheMetrics tracks metrics for query cache
+// (renamed to avoid conflict with intelligent_cache.go CacheMetrics)
+type QueryCacheMetrics struct {
 	Hits           int64         `json:"hits"`
 	Misses         int64         `json:"misses"`
 	Sets           int64         `json:"sets"`
@@ -91,9 +95,9 @@ type LocalCache struct {
 }
 
 // NewQueryCacheManager creates a new query cache manager
-func NewQueryCacheManager(config *CacheConfig) (*QueryCacheManager, error) {
+func NewQueryCacheManager(config *QueryCacheConfig) (*QueryCacheManager, error) {
 	if config == nil {
-		config = getDefaultCacheConfig()
+		config = getDefaultQueryCacheConfig()
 	}
 
 	// Initialize Redis client
@@ -120,7 +124,7 @@ func NewQueryCacheManager(config *CacheConfig) (*QueryCacheManager, error) {
 	}
 
 	// Initialize metrics
-	metrics := &CacheMetrics{}
+	metrics := &QueryCacheMetrics{}
 
 	manager := &QueryCacheManager{
 		redisClient: redisClient,
@@ -251,7 +255,7 @@ func (qcm *QueryCacheManager) InvalidateByPattern(ctx context.Context, pattern s
 }
 
 // GetMetrics returns current cache metrics
-func (qcm *QueryCacheManager) GetMetrics() *CacheMetrics {
+func (qcm *QueryCacheManager) GetMetrics() *QueryCacheMetrics {
 	qcm.metrics.mu.RLock()
 	defer qcm.metrics.mu.RUnlock()
 
@@ -261,7 +265,7 @@ func (qcm *QueryCacheManager) GetMetrics() *CacheMetrics {
 		qcm.metrics.HitRate = float64(qcm.metrics.Hits) / float64(total) * 100
 	}
 
-	return &CacheMetrics{
+	return &QueryCacheMetrics{
 		Hits:           qcm.metrics.Hits,
 		Misses:         qcm.metrics.Misses,
 		Sets:           qcm.metrics.Sets,
@@ -462,9 +466,9 @@ func (qcm *QueryCacheManager) startMetricsCollection() {
 	}
 }
 
-// getDefaultCacheConfig returns default cache configuration
-func getDefaultCacheConfig() *CacheConfig {
-	return &CacheConfig{
+// getDefaultQueryCacheConfig returns default cache configuration
+func getDefaultQueryCacheConfig() *QueryCacheConfig {
+	return &QueryCacheConfig{
 		RedisHost:          "localhost",
 		RedisPort:          6379,
 		RedisPassword:      "",

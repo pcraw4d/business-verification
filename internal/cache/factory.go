@@ -29,26 +29,11 @@ func (cf *CacheFactory) CreateCache(config *CacheConfig) (Cache, error) {
 		return nil, fmt.Errorf("cache configuration cannot be nil")
 	}
 
-	// CacheConfig from types.go has Type field, optimization.go CacheConfig does not
-	// Use reflection or type assertion to check which one we have
-	// For now, assume it's types.go CacheConfig which has Type field
-	// If it doesn't have Type, we'll get a compile error which we need to fix
-	
-	// Check if config has Type field using interface{} conversion
-	type cacheConfigWithType interface {
-		GetType() CacheType
-	}
-	
-	// Try to access Type field directly (will work for types.go CacheConfig)
-	// If this fails at compile time, we need to use a different approach
-	var cacheType CacheType
-	if configWithType, ok := interface{}(config).(interface{ GetType() CacheType }); ok {
-		cacheType = configWithType.GetType()
-	} else {
-		// Fallback: assume it's types.go CacheConfig and access Type directly
-		// This will fail if optimization.go CacheConfig is passed
-		cacheType = config.Type
-	}
+	// CacheConfig from types.go has Type field
+	// We assume the config passed is from types.go (which has Type field)
+	// If optimization.go CacheConfig is passed, it will fail at compile time
+	// which is expected - use types.go CacheConfig instead
+	cacheType := config.Type
 	
 	switch cacheType {
 	case MemoryCache:

@@ -300,13 +300,14 @@ func (sqa *SlowQueryAnalyzer) identifySlowQueries(ctx context.Context, analysis 
 
 	for rows.Next() {
 		var queryText string
-		var calls, totalTime, meanTime, maxTime, minTime, rows int64
+		var calls, totalTime, meanTime, maxTime, minTime int64
+		var rowsAffected int64 // Renamed to avoid conflict with rows parameter
 		var sharedBlksHit, sharedBlksRead, sharedBlksWritten int64
 		var localBlksHit, localBlksRead, localBlksWritten int64
 		var tempBlksRead, tempBlksWritten int64
 		var queryStart, lastExec sql.NullTime
 
-		err := rows.Scan(&queryText, &calls, &totalTime, &meanTime, &maxTime, &minTime, &rows,
+		err := rows.Scan(&queryText, &calls, &totalTime, &meanTime, &maxTime, &minTime, &rowsAffected,
 			&sharedBlksHit, &sharedBlksRead, &sharedBlksWritten,
 			&localBlksHit, &localBlksRead, &localBlksWritten,
 			&tempBlksRead, &tempBlksWritten, &queryStart, &lastExec)
