@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -37,37 +38,20 @@ func NewGatewayHandler(supabaseClient *supabase.Client, logger *zap.Logger, cfg 
 }
 
 // HealthCheck handles health check requests
+// Optimized for fast response (< 100ms target)
 func (h *GatewayHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	// Check Supabase connection
-	supabaseStatus := "connected"
-	if err := h.supabaseClient.HealthCheck(ctx); err != nil {
-		supabaseStatus = "disconnected"
-		h.logger.Error("Supabase health check failed", zap.Error(err))
-	}
-
-	// Get table counts for monitoring
-	tableCounts := make(map[string]int)
-	tables := []string{"classifications", "merchants", "risk_keywords", "business_risk_assessments"}
-
-	for _, table := range tables {
-		if count, err := h.supabaseClient.GetTableCount(ctx, table); err == nil {
-			tableCounts[table] = count
-		}
-	}
-
+	startTime := time.Now()
+	
+	// Check if detailed health check is requested
+	detailed := r.URL.Query().Get("detailed") == "true"
+	
+	// Basic response (always fast)
 	response := map[string]interface{}{
 		"status":      "healthy",
 		"service":     "api-gateway",
 		"version":     "1.0.0",
 		"timestamp":   time.Now().UTC().Format(time.RFC3339),
 		"environment": h.config.Environment,
-		"supabase_status": map[string]interface{}{
-			"connected": supabaseStatus == "connected",
-			"url":       h.config.Supabase.URL,
-		},
-		"table_counts": tableCounts,
 		"features": map[string]bool{
 			"supabase_integration": true,
 			"authentication":       true,
@@ -75,7 +59,56 @@ func (h *GatewayHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 			"cors_enabled":         true,
 		},
 	}
-
+	
+	// Only perform expensive checks if detailed=true
+	if detailed {
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second) // Shorter timeout
+		defer cancel()
+		
+		// Quick Supabase connection check (non-blocking with timeout)
+		supabaseStatus := "connected"
+		supabaseChan := make(chan error, 1)
+		go func() {
+			supabaseChan <- h.supabaseClient.HealthCheck(ctx)
+		}()
+		
+		select {
+		case err := <-supabaseChan:
+			if err != nil {
+				supabaseStatus = "disconnected"
+				h.logger.Warn("Supabase health check failed", zap.Error(err))
+			}
+		case <-ctx.Done():
+			supabaseStatus = "timeout"
+			h.logger.Warn("Supabase health check timed out")
+		}
+		
+		response["supabase_status"] = map[string]interface{}{
+			"connected": supabaseStatus == "connected",
+			"url":       h.config.Supabase.URL,
+		}
+		
+		// Get table counts only if requested and we have time
+		if r.URL.Query().Get("counts") == "true" {
+			tableCounts := make(map[string]int)
+			tables := []string{"classifications", "merchants", "risk_keywords", "business_risk_assessments"}
+			
+			// Use a separate context with shorter timeout for table counts
+			countsCtx, countsCancel := context.WithTimeout(ctx, 1*time.Second)
+			defer countsCancel()
+			
+			for _, table := range tables {
+				if count, err := h.supabaseClient.GetTableCount(countsCtx, table); err == nil {
+					tableCounts[table] = count
+				}
+			}
+			response["table_counts"] = tableCounts
+		}
+	}
+	
+	// Add response time
+	response["response_time_ms"] = time.Since(startTime).Milliseconds()
+	
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -115,6 +148,13 @@ func (h *GatewayHandler) enhancedClassificationProxy(w http.ResponseWriter, r *h
 	if err := json.Unmarshal(bodyBytes, &requestData); err != nil {
 		h.logger.Warn("Invalid JSON in request body", zap.Error(err))
 		gatewayerrors.WriteBadRequest(w, r, "Request body must be valid JSON")
+		return
+	}
+
+	// Validate required fields before proxying
+	if businessName, ok := requestData["business_name"].(string); !ok || businessName == "" {
+		h.logger.Warn("Missing required field: business_name")
+		gatewayerrors.WriteBadRequest(w, r, "business_name is required")
 		return
 	}
 
