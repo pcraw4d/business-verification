@@ -1128,24 +1128,66 @@
                     
                     // Update page title - wait for DOM to be ready
                     if (this.merchantData && this.merchantData.businessName) {
-                        const updateTitle = (retries = 10) => {
-                            const titleElement = document.getElementById('merchantNameText');
+                        const updateTitle = (retries = 15) => {
+                            // Strategy 1: Try getElementById
+                            let titleElement = document.getElementById('merchantNameText');
+                            
+                            // Strategy 2: Try querySelector with multiple selectors
+                            if (!titleElement) {
+                                titleElement = document.querySelector('h1#merchantNameText') ||
+                                              document.querySelector('h1[id="merchantNameText"]') ||
+                                              document.querySelector('#merchantNameText');
+                            }
+                            
+                            // Strategy 3: Search within header/container
+                            if (!titleElement) {
+                                const header = document.querySelector('header') || 
+                                              document.querySelector('.flex.items-center') ||
+                                              document.querySelector('[class*="flex"][class*="items-center"]');
+                                if (header) {
+                                    titleElement = header.querySelector('#merchantNameText') ||
+                                                  header.querySelector('h1');
+                                }
+                            }
+                            
+                            // Strategy 4: Search all h1 elements
+                            if (!titleElement) {
+                                const allH1s = document.querySelectorAll('h1');
+                                for (const h1 of allH1s) {
+                                    if (h1.id === 'merchantNameText' || 
+                                        h1.textContent === 'Loading...' ||
+                                        h1.textContent.trim() === '') {
+                                        titleElement = h1;
+                                        break;
+                                    }
+                                }
+                            }
+                            
                             if (titleElement) {
                                 titleElement.textContent = this.merchantData.businessName;
                                 document.title = `${this.merchantData.businessName} - Merchant Details - KYB Platform`;
-                                console.log('✅ Page title updated:', this.merchantData.businessName);
+                                console.log('✅ Page title updated:', this.merchantData.businessName, {
+                                    elementId: titleElement.id,
+                                    elementTag: titleElement.tagName,
+                                    elementText: titleElement.textContent.substring(0, 50)
+                                });
                             } else if (retries > 0) {
                                 // Retry if element not found yet
-                                setTimeout(() => updateTitle(retries - 1), 100);
+                                setTimeout(() => updateTitle(retries - 1), 200);
                             } else {
                                 console.warn('⚠️ merchantNameText element not found after all retries');
-                                // Try alternative selector
-                                const altElement = document.querySelector('h1#merchantNameText, h1[id="merchantNameText"]');
-                                if (altElement) {
-                                    altElement.textContent = this.merchantData.businessName;
-                                    document.title = `${this.merchantData.businessName} - Merchant Details - KYB Platform`;
-                                    console.log('✅ Page title updated using alternative selector');
-                                }
+                                // Always update document.title as fallback
+                                document.title = `${this.merchantData.businessName} - Merchant Details - KYB Platform`;
+                                console.log('✅ Document title updated as fallback');
+                                
+                                // Log available h1 elements for debugging
+                                const allH1s = Array.from(document.querySelectorAll('h1'));
+                                console.log('🔍 Available h1 elements:', allH1s.map(h => ({
+                                    id: h.id,
+                                    text: h.textContent.substring(0, 50),
+                                    classes: h.className.substring(0, 50),
+                                    parent: h.parentElement ? h.parentElement.tagName : 'none'
+                                })));
                             }
                         };
                         updateTitle();
@@ -2151,42 +2193,69 @@
                     console.log('🔍 Document ready state:', document.readyState);
                     console.log('🔍 Body exists:', !!document.body);
                     
-                    // Try multiple selectors to find the button
-                    let riskIndicatorsTabButton = document.querySelector('[data-tab="risk-indicators"]');
-                    console.log('🔍 QuerySelector result:', riskIndicatorsTabButton);
+                    // Strategy 1: Search within tab navigation container first
+                    const tabNav = document.querySelector('nav[aria-label="Tabs"]') || 
+                                   document.querySelector('.border-b.border-gray-200 nav') ||
+                                   document.querySelector('nav.-mb-px');
                     
+                    let riskIndicatorsTabButton = null;
+                    
+                    if (tabNav) {
+                        console.log('✅ Tab navigation container found');
+                        // Search within container
+                        riskIndicatorsTabButton = tabNav.querySelector('[data-tab="risk-indicators"]');
+                        if (!riskIndicatorsTabButton) {
+                            // Search by text within container
+                            const buttons = tabNav.querySelectorAll('button');
+                            for (const btn of buttons) {
+                                const text = (btn.textContent || btn.innerText || '').trim();
+                                if (text.includes('Risk Indicators') || text.includes('Indicators')) {
+                                    riskIndicatorsTabButton = btn;
+                                    console.log('✅ Found button by text in tab nav container');
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Strategy 2: Search all buttons by text content (most reliable)
                     if (!riskIndicatorsTabButton) {
-                        // Try finding by text content - search ALL buttons first
+                        console.log('🔍 Searching all buttons by text content...');
                         const allButtons = document.querySelectorAll('button');
-                        console.log('🔍 All buttons found:', allButtons.length);
-                        console.log('🔍 Buttons with tab-button class:', document.querySelectorAll('.tab-button').length);
-                        console.log('🔍 Buttons with data-tab attribute:', document.querySelectorAll('button[data-tab]').length);
+                        console.log('🔍 Total buttons found:', allButtons.length);
                         
-                        // Log details of all buttons for debugging
-                        allButtons.forEach((btn, idx) => {
-                            console.log(`🔍 Button ${idx}:`, {
-                                text: (btn.textContent || '').trim().substring(0, 50),
-                                dataTab: btn.getAttribute('data-tab'),
-                                classes: btn.className,
-                                id: btn.id,
-                                tagName: btn.tagName
-                            });
-                        });
-                        
-                        // Try finding by text content
                         for (const btn of allButtons) {
-                            const text = btn.textContent || btn.innerText || '';
+                            const text = (btn.textContent || btn.innerText || '').trim();
                             const dataTab = btn.getAttribute('data-tab');
-                            if (dataTab === 'risk-indicators' || text.includes('Risk Indicators')) {
+                            
+                            // Log first few buttons for debugging
+                            if (allButtons.length <= 10) {
+                                console.log(`🔍 Button: "${text.substring(0, 30)}" | data-tab="${dataTab}" | classes="${btn.className.substring(0, 50)}"`);
+                            }
+                            
+                            // Match by data-tab attribute or text content
+                            if (dataTab === 'risk-indicators' || 
+                                text.toLowerCase().includes('risk indicators') ||
+                                text.toLowerCase().includes('indicators')) {
                                 riskIndicatorsTabButton = btn;
-                                console.log('✅ Found button by text content or data-tab');
+                                console.log('✅ Found button by text content:', text.substring(0, 50));
                                 break;
                             }
                         }
                     }
                     
+                    // Strategy 3: Try querySelector on document (fallback)
+                    if (!riskIndicatorsTabButton) {
+                        riskIndicatorsTabButton = document.querySelector('[data-tab="risk-indicators"]');
+                    }
+                    
                     if (riskIndicatorsTabButton) {
-                        console.log('✅ Risk Indicators tab button found');
+                        console.log('✅ Risk Indicators tab button found:', {
+                            text: (riskIndicatorsTabButton.textContent || '').trim().substring(0, 50),
+                            dataTab: riskIndicatorsTabButton.getAttribute('data-tab'),
+                            classes: riskIndicatorsTabButton.className,
+                            id: riskIndicatorsTabButton.id
+                        });
                         setupButtonHandler(riskIndicatorsTabButton);
                         return;
                     } else if (retries > 0) {
@@ -2194,10 +2263,13 @@
                         setTimeout(() => findButton(retries - 1), 200);
                     } else {
                         console.error('❌ Risk Indicators tab button not found after all retries');
-                        console.error('🔍 Available buttons:', Array.from(document.querySelectorAll('button')).map(b => ({
-                            text: (b.textContent || '').trim(),
+                        const allButtons = Array.from(document.querySelectorAll('button'));
+                        console.error('🔍 All available buttons:', allButtons.map(b => ({
+                            text: (b.textContent || '').trim().substring(0, 50),
                             dataTab: b.getAttribute('data-tab'),
-                            classes: b.className
+                            classes: b.className.substring(0, 100),
+                            id: b.id,
+                            parent: b.parentElement ? b.parentElement.tagName : 'none'
                         })));
                     }
                 };
@@ -2294,42 +2366,69 @@
                         console.log('🔍 Document ready state:', document.readyState);
                         console.log('🔍 Body exists:', !!document.body);
                         
-                        // Try multiple selectors to find the button
-                        let riskAssessmentTabButton = document.querySelector('[data-tab="risk-assessment"]');
-                        console.log('🔍 QuerySelector result:', riskAssessmentTabButton);
+                        // Strategy 1: Search within tab navigation container first
+                        const tabNav = document.querySelector('nav[aria-label="Tabs"]') || 
+                                       document.querySelector('.border-b.border-gray-200 nav') ||
+                                       document.querySelector('nav.-mb-px');
                         
+                        let riskAssessmentTabButton = null;
+                        
+                        if (tabNav) {
+                            console.log('✅ Tab navigation container found');
+                            // Search within container
+                            riskAssessmentTabButton = tabNav.querySelector('[data-tab="risk-assessment"]');
+                            if (!riskAssessmentTabButton) {
+                                // Search by text within container
+                                const buttons = tabNav.querySelectorAll('button');
+                                for (const btn of buttons) {
+                                    const text = (btn.textContent || btn.innerText || '').trim();
+                                    if (text.includes('Risk Assessment') || text.includes('Assessment')) {
+                                        riskAssessmentTabButton = btn;
+                                        console.log('✅ Found button by text in tab nav container');
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Strategy 2: Search all buttons by text content (most reliable)
                         if (!riskAssessmentTabButton) {
-                            // Try finding by text content - search ALL buttons first
+                            console.log('🔍 Searching all buttons by text content...');
                             const allButtons = document.querySelectorAll('button');
-                            console.log('🔍 All buttons found:', allButtons.length);
-                            console.log('🔍 Buttons with tab-button class:', document.querySelectorAll('.tab-button').length);
-                            console.log('🔍 Buttons with data-tab attribute:', document.querySelectorAll('button[data-tab]').length);
+                            console.log('🔍 Total buttons found:', allButtons.length);
                             
-                            // Log details of all buttons for debugging
-                            allButtons.forEach((btn, idx) => {
-                                console.log(`🔍 Button ${idx}:`, {
-                                    text: (btn.textContent || '').trim().substring(0, 50),
-                                    dataTab: btn.getAttribute('data-tab'),
-                                    classes: btn.className,
-                                    id: btn.id,
-                                    tagName: btn.tagName
-                                });
-                            });
-                            
-                            // Try finding by text content
                             for (const btn of allButtons) {
-                                const text = btn.textContent || btn.innerText || '';
+                                const text = (btn.textContent || btn.innerText || '').trim();
                                 const dataTab = btn.getAttribute('data-tab');
-                                if (dataTab === 'risk-assessment' || text.includes('Risk Assessment')) {
+                                
+                                // Log first few buttons for debugging
+                                if (allButtons.length <= 10) {
+                                    console.log(`🔍 Button: "${text.substring(0, 30)}" | data-tab="${dataTab}" | classes="${btn.className.substring(0, 50)}"`);
+                                }
+                                
+                                // Match by data-tab attribute or text content
+                                if (dataTab === 'risk-assessment' || 
+                                    text.toLowerCase().includes('risk assessment') ||
+                                    text.toLowerCase().includes('assessment')) {
                                     riskAssessmentTabButton = btn;
-                                    console.log('✅ Found button by text content or data-tab');
+                                    console.log('✅ Found button by text content:', text.substring(0, 50));
                                     break;
                                 }
                             }
                         }
                         
+                        // Strategy 3: Try querySelector on document (fallback)
+                        if (!riskAssessmentTabButton) {
+                            riskAssessmentTabButton = document.querySelector('[data-tab="risk-assessment"]');
+                        }
+                        
                         if (riskAssessmentTabButton) {
-                            console.log('✅ Risk Assessment tab button found');
+                            console.log('✅ Risk Assessment tab button found:', {
+                                text: (riskAssessmentTabButton.textContent || '').trim().substring(0, 50),
+                                dataTab: riskAssessmentTabButton.getAttribute('data-tab'),
+                                classes: riskAssessmentTabButton.className,
+                                id: riskAssessmentTabButton.id
+                            });
                             setupButtonHandler(riskAssessmentTabButton);
                             return;
                         } else if (retries > 0) {
