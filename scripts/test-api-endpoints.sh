@@ -315,16 +315,16 @@ generate_report() {
         echo "========================"
         echo "Date: $(date)"
         echo "API Base URL: $API_BASE_URL"
-        echo ""
+echo ""
         echo "Test Results:"
         echo "  Total Tests: $TESTS_TOTAL"
         echo "  Passed: $TESTS_PASSED"
         echo "  Failed: $TESTS_FAILED"
-        echo ""
+echo ""
         echo "Success Rate: $(( TESTS_PASSED * 100 / TESTS_TOTAL ))%"
     } > "$report_file"
     
-    echo ""
+echo ""
     echo "=========================================="
     echo "Test Report Generated: $report_file"
     echo "=========================================="
@@ -336,13 +336,13 @@ generate_report() {
 
 # Main execution
 main() {
-    echo "=========================================="
+echo "=========================================="
     echo "KYB Platform API Endpoint Testing"
-    echo "=========================================="
+echo "=========================================="
     echo "API Base URL: $API_BASE_URL"
     echo "Test Results Directory: $TEST_RESULTS_DIR"
-    echo ""
-    
+echo ""
+
     # Run all tests
     test_health_check
     test_classification
@@ -359,10 +359,10 @@ main() {
     
     # Exit with appropriate code
     if [ $TESTS_FAILED -eq 0 ]; then
-        exit 0
-    else
-        exit 1
-    fi
+    exit 0
+else
+    exit 1
+fi
 }
 
 # Run main function

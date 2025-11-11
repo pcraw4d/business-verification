@@ -13,6 +13,7 @@ import (
 	postgrest "github.com/supabase-community/postgrest-go"
 	"go.uber.org/zap"
 
+	"kyb-platform/pkg/errors"
 	"kyb-platform/services/risk-assessment-service/internal/config"
 	"kyb-platform/services/risk-assessment-service/internal/engine"
 	"kyb-platform/services/risk-assessment-service/internal/external"
@@ -436,7 +437,7 @@ func (h *RiskAssessmentHandler) HandleRiskPrediction(w http.ResponseWriter, r *h
 // HandleRiskHistory handles GET /api/v1/assess/{id}/history
 func (h *RiskAssessmentHandler) HandleRiskHistory(w http.ResponseWriter, r *http.Request) {
 	// TODO: Implement risk history
-	http.Error(w, "Not implemented", http.StatusNotImplemented)
+	errors.WriteError(w, r, http.StatusNotImplemented, "NOT_IMPLEMENTED", "Risk history endpoint is not yet implemented", "")
 }
 
 // HandleRiskBenchmarks handles GET /api/v1/risk/benchmarks
@@ -483,7 +484,7 @@ func (h *RiskAssessmentHandler) HandleRiskBenchmarks(w http.ResponseWriter, r *h
 			if enableIncomplete != "true" {
 				h.logger.Warn("Incomplete feature disabled in production",
 					zap.String("feature", "risk_benchmarks"))
-				http.Error(w, "Feature not available in production", http.StatusServiceUnavailable)
+				errors.WriteServiceUnavailable(w, r, "Feature not available in production")
 				return
 			}
 		}
@@ -795,31 +796,31 @@ func (h *RiskAssessmentHandler) HandleRiskPredictions(w http.ResponseWriter, r *
 // HandleComplianceCheck handles POST /api/v1/compliance/check
 func (h *RiskAssessmentHandler) HandleComplianceCheck(w http.ResponseWriter, r *http.Request) {
 	// TODO: Implement compliance check
-	http.Error(w, "Not implemented", http.StatusNotImplemented)
+	errors.WriteError(w, r, http.StatusNotImplemented, "NOT_IMPLEMENTED", "Compliance check endpoint is not yet implemented", "")
 }
 
 // HandleSanctionsScreening handles POST /api/v1/sanctions/screen
 func (h *RiskAssessmentHandler) HandleSanctionsScreening(w http.ResponseWriter, r *http.Request) {
 	// TODO: Implement sanctions screening
-	http.Error(w, "Not implemented", http.StatusNotImplemented)
+	errors.WriteError(w, r, http.StatusNotImplemented, "NOT_IMPLEMENTED", "Sanctions screening endpoint is not yet implemented", "")
 }
 
 // HandleAdverseMediaMonitoring handles POST /api/v1/media/monitor
 func (h *RiskAssessmentHandler) HandleAdverseMediaMonitoring(w http.ResponseWriter, r *http.Request) {
 	// TODO: Implement adverse media monitoring
-	http.Error(w, "Not implemented", http.StatusNotImplemented)
+	errors.WriteError(w, r, http.StatusNotImplemented, "NOT_IMPLEMENTED", "Adverse media monitoring endpoint is not yet implemented", "")
 }
 
 // HandleRiskTrends handles GET /api/v1/analytics/trends
 func (h *RiskAssessmentHandler) HandleRiskTrends(w http.ResponseWriter, r *http.Request) {
 	// TODO: Implement risk trends analytics
-	http.Error(w, "Not implemented", http.StatusNotImplemented)
+	errors.WriteError(w, r, http.StatusNotImplemented, "NOT_IMPLEMENTED", "Risk trends analytics endpoint is not yet implemented", "")
 }
 
 // HandleRiskInsights handles GET /api/v1/analytics/insights
 func (h *RiskAssessmentHandler) HandleRiskInsights(w http.ResponseWriter, r *http.Request) {
 	// TODO: Implement risk insights analytics
-	http.Error(w, "Not implemented", http.StatusNotImplemented)
+	errors.WriteError(w, r, http.StatusNotImplemented, "NOT_IMPLEMENTED", "Risk insights analytics endpoint is not yet implemented", "")
 }
 
 // HandleBatchRiskAssessment handles POST /api/v1/assess/batch

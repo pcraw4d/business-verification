@@ -65,6 +65,7 @@ func main() {
 
 	// Apply middleware - CORS must be first to handle preflight requests
 	router.Use(middleware.CORS(cfg.CORS)) // Enable CORS middleware (FIRST)
+	router.Use(middleware.SecurityHeaders) // Add security headers
 	router.Use(middleware.Logging(logger))
 	router.Use(middleware.RateLimit(cfg.RateLimit))
 	router.Use(middleware.Authentication(supabaseClient, logger))

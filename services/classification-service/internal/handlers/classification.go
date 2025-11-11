@@ -2,18 +2,28 @@ package handlers
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"go.uber.org/zap"
 
 	"kyb-platform/internal/classification"
+	"kyb-platform/pkg/errors"
 	"kyb-platform/services/classification-service/internal/config"
 	"kyb-platform/services/classification-service/internal/supabase"
 )
+
+// cacheEntry represents a cached classification result
+type cacheEntry struct {
+	response   *ClassificationResponse
+	expiresAt  time.Time
+}
 
 // ClassificationHandler handles classification requests
 type ClassificationHandler struct {
@@ -22,6 +32,8 @@ type ClassificationHandler struct {
 	config                *config.Config
 	industryDetector       *classification.IndustryDetectionService
 	codeGenerator         *classification.ClassificationCodeGenerator
+	cache                 map[string]*cacheEntry
+	cacheMutex            sync.RWMutex
 }
 
 // NewClassificationHandler creates a new classification handler
@@ -32,12 +44,81 @@ func NewClassificationHandler(
 	industryDetector *classification.IndustryDetectionService,
 	codeGenerator *classification.ClassificationCodeGenerator,
 ) *ClassificationHandler {
-	return &ClassificationHandler{
+	handler := &ClassificationHandler{
 		supabaseClient:  supabaseClient,
 		logger:          logger,
 		config:          config,
 		industryDetector: industryDetector,
 		codeGenerator:   codeGenerator,
+		cache:           make(map[string]*cacheEntry),
+	}
+	
+	// Start cache cleanup goroutine
+	if config.Classification.CacheEnabled {
+		go handler.cleanupCache()
+	}
+	
+	return handler
+}
+
+// cleanupCache periodically removes expired cache entries
+func (h *ClassificationHandler) cleanupCache() {
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
+	
+	for range ticker.C {
+		h.cacheMutex.Lock()
+		now := time.Now()
+		for key, entry := range h.cache {
+			if now.After(entry.expiresAt) {
+				delete(h.cache, key)
+			}
+		}
+		h.cacheMutex.Unlock()
+	}
+}
+
+// getCacheKey generates a cache key from the request
+func (h *ClassificationHandler) getCacheKey(req *ClassificationRequest) string {
+	// Create a hash of the business name and description for cache key
+	data := fmt.Sprintf("%s|%s|%s", req.BusinessName, req.Description, req.WebsiteURL)
+	hash := sha256.Sum256([]byte(data))
+	return fmt.Sprintf("%x", hash)
+}
+
+// getCachedResponse retrieves a cached response if available and not expired
+func (h *ClassificationHandler) getCachedResponse(key string) (*ClassificationResponse, bool) {
+	if !h.config.Classification.CacheEnabled {
+		return nil, false
+	}
+	
+	h.cacheMutex.RLock()
+	defer h.cacheMutex.RUnlock()
+	
+	entry, exists := h.cache[key]
+	if !exists {
+		return nil, false
+	}
+	
+	if time.Now().After(entry.expiresAt) {
+		return nil, false
+	}
+	
+	return entry.response, true
+}
+
+// setCachedResponse stores a response in the cache
+func (h *ClassificationHandler) setCachedResponse(key string, response *ClassificationResponse) {
+	if !h.config.Classification.CacheEnabled {
+		return
+	}
+	
+	h.cacheMutex.Lock()
+	defer h.cacheMutex.Unlock()
+	
+	h.cache[key] = &cacheEntry{
+		response:  response,
+		expiresAt: time.Now().Add(h.config.Classification.CacheTTL),
 	}
 }
 
@@ -146,19 +227,43 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 	var req ClassificationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.logger.Error("Failed to decode request", zap.Error(err))
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		errors.WriteBadRequest(w, r, "Invalid request body: Please provide valid JSON")
 		return
 	}
 
 	// Validate request
 	if req.BusinessName == "" {
-		http.Error(w, "business_name is required", http.StatusBadRequest)
+		errors.WriteBadRequest(w, r, "business_name is required")
 		return
+	}
+
+	// Sanitize input to prevent XSS and injection attacks
+	req.BusinessName = sanitizeInput(req.BusinessName)
+	if req.Description != "" {
+		req.Description = sanitizeInput(req.Description)
+	}
+	if req.WebsiteURL != "" {
+		req.WebsiteURL = sanitizeInput(req.WebsiteURL)
 	}
 
 	// Generate request ID if not provided
 	if req.RequestID == "" {
 		req.RequestID = h.generateRequestID()
+	}
+
+	// Check cache first if enabled
+	if h.config.Classification.CacheEnabled {
+		cacheKey := h.getCacheKey(&req)
+		if cachedResponse, found := h.getCachedResponse(cacheKey); found {
+			h.logger.Info("Classification served from cache",
+				zap.String("request_id", req.RequestID),
+				zap.String("business_name", req.BusinessName))
+			w.Header().Set("X-Cache", "HIT")
+			w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d", int(h.config.Classification.CacheTTL.Seconds())))
+			json.NewEncoder(w).Encode(cachedResponse)
+			return
+		}
+		w.Header().Set("X-Cache", "MISS")
 	}
 
 	// Create context with timeout
@@ -171,14 +276,26 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 		h.logger.Error("Classification failed",
 			zap.String("request_id", req.RequestID),
 			zap.Error(err))
-		http.Error(w, fmt.Sprintf("Classification failed: %v", err), http.StatusInternalServerError)
+		errors.WriteInternalError(w, r, fmt.Sprintf("Classification failed: %v", err))
 		return
+	}
+
+	// Cache the response if enabled
+	if h.config.Classification.CacheEnabled && err == nil {
+		cacheKey := h.getCacheKey(&req)
+		h.setCachedResponse(cacheKey, response)
+	}
+
+	// Set cache headers for browser caching
+	if h.config.Classification.CacheEnabled {
+		w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d", int(h.config.Classification.CacheTTL.Seconds())))
+		w.Header().Set("ETag", fmt.Sprintf(`"%s"`, req.RequestID))
 	}
 
 	// Send response
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		h.logger.Error("Failed to encode response", zap.Error(err))
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		errors.WriteInternalError(w, r, "Failed to encode response")
 		return
 	}
 
@@ -299,6 +416,32 @@ func (h *ClassificationHandler) generateRiskAssessment(req *ClassificationReques
 }
 
 // generateRequestID generates a unique request ID
+// sanitizeInput sanitizes input to prevent XSS and SQL injection
+func sanitizeInput(input string) string {
+	if input == "" {
+		return input
+	}
+	
+	// Trim whitespace
+	sanitized := strings.TrimSpace(input)
+	
+	// Remove HTML tags (basic implementation)
+	htmlTagRegex := regexp.MustCompile(`<[^>]*>`)
+	sanitized = htmlTagRegex.ReplaceAllString(sanitized, "")
+	
+	// Remove potentially dangerous SQL patterns (basic protection)
+	// Note: Since we use parameterized queries, this is defense-in-depth
+	dangerousPatterns := []string{
+		"';", "\";", "--", "/*", "*/",
+	}
+	
+	for _, pattern := range dangerousPatterns {
+		sanitized = strings.ReplaceAll(sanitized, pattern, "")
+	}
+	
+	return sanitized
+}
+
 func (h *ClassificationHandler) generateRequestID() string {
 	return fmt.Sprintf("req_%d", time.Now().UnixNano())
 }

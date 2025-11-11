@@ -41,7 +41,7 @@ func NewGatewayHandler(supabaseClient *supabase.Client, logger *zap.Logger, cfg 
 // Optimized for fast response (< 100ms target)
 func (h *GatewayHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
-	
+
 	// Check if detailed health check is requested
 	detailed := r.URL.Query().Get("detailed") == "true"
 	
@@ -108,7 +108,7 @@ func (h *GatewayHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	
 	// Add response time
 	response["response_time_ms"] = time.Since(startTime).Milliseconds()
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }

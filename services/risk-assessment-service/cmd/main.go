@@ -772,13 +772,43 @@ func main() {
 		logger.Info("Skipping batch job manager start - no database connection")
 	}
 
-	// Start Prometheus metrics server (disabled for now)
-	// TODO: Enable Prometheus metrics server with proper configuration
-	logger.Info("⚠️  Prometheus metrics server disabled - using default configuration")
+	// Start Prometheus metrics server if enabled
+	if monitoringConfig.Prometheus.Enabled && monitoringConfig.Prometheus.Port > 0 {
+		metricsServerCtx, metricsServerCancel := context.WithCancel(context.Background())
+		defer metricsServerCancel()
+		
+		go func() {
+			if err := prometheusMetrics.StartMetricsServer(metricsServerCtx, monitoringConfig.Prometheus.Port); err != nil && err != http.ErrServerClosed {
+				logger.Error("Prometheus metrics server failed", zap.Error(err))
+			}
+		}()
+		logger.Info("✅ Prometheus metrics server started",
+			zap.Int("port", monitoringConfig.Prometheus.Port),
+			zap.String("path", monitoringConfig.Prometheus.Path))
+	} else {
+		logger.Info("ℹ️  Prometheus metrics available at /metrics endpoint on main server")
+	}
 
-	// Create Grafana dashboard (disabled for now)
-	// TODO: Enable Grafana dashboard creation with proper configuration
-	logger.Info("⚠️  Grafana dashboard creation disabled - using default configuration")
+	// Create Grafana dashboard if enabled and configured
+	if monitoringConfig.Grafana.Enabled && monitoringConfig.Grafana.AutoCreate && monitoringConfig.Grafana.BaseURL != "" {
+		grafanaCtx, grafanaCancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer grafanaCancel()
+		
+		if err := grafanaClient.CreateRiskAssessmentDashboard(grafanaCtx); err != nil {
+			logger.Warn("Failed to create Grafana dashboard",
+				zap.Error(err),
+				zap.String("base_url", monitoringConfig.Grafana.BaseURL))
+		} else {
+			logger.Info("✅ Grafana dashboard created successfully",
+				zap.String("dashboard_uid", monitoringConfig.Grafana.DashboardUID),
+				zap.String("base_url", monitoringConfig.Grafana.BaseURL))
+		}
+	} else {
+		logger.Info("ℹ️  Grafana dashboard creation skipped",
+			zap.Bool("enabled", monitoringConfig.Grafana.Enabled),
+			zap.Bool("auto_create", monitoringConfig.Grafana.AutoCreate),
+			zap.String("base_url", monitoringConfig.Grafana.BaseURL))
+	}
 
 	// Start server in a goroutine
 	go func() {

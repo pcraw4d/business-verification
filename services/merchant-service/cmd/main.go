@@ -56,6 +56,7 @@ func main() {
 	router := mux.NewRouter()
 
 	// Add middleware
+	router.Use(securityHeadersMiddleware()) // Add security headers first
 	router.Use(loggingMiddleware(logger))
 	router.Use(corsMiddleware())
 	router.Use(rateLimitMiddleware())
@@ -153,6 +154,44 @@ func corsMiddleware() func(http.Handler) http.Handler {
 				w.WriteHeader(http.StatusOK)
 				return
 			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// securityHeadersMiddleware adds security headers to HTTP responses
+func securityHeadersMiddleware() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Set security headers
+			// HSTS (only for HTTPS)
+			if r.TLS != nil {
+				w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+			}
+
+			// X-Frame-Options
+			w.Header().Set("X-Frame-Options", "DENY")
+
+			// X-Content-Type-Options
+			w.Header().Set("X-Content-Type-Options", "nosniff")
+
+			// X-XSS-Protection
+			w.Header().Set("X-XSS-Protection", "1; mode=block")
+
+			// Referrer-Policy
+			w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+
+			// Permissions-Policy
+			w.Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+
+			// Remove server information
+			w.Header().Set("Server", "")
+
+			// Additional security headers
+			w.Header().Set("X-Permitted-Cross-Domain-Policies", "none")
+			w.Header().Set("X-Download-Options", "noopen")
+			w.Header().Set("X-DNS-Prefetch-Control", "off")
 
 			next.ServeHTTP(w, r)
 		})
