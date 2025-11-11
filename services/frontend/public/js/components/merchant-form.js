@@ -449,7 +449,14 @@ class MerchantFormComponent {
         
         // Log all form values before validation
         const formData = new FormData(this.form);
-        console.log(`🔍 [VALIDATION] FormData entries:`, Array.from(formData.entries()));
+        const formDataEntries = Array.from(formData.entries());
+        console.log(`🔍 [VALIDATION] FormData entries (${formDataEntries.length}):`, formDataEntries);
+        // Also log as an object for easier reading
+        const formDataObj = {};
+        formDataEntries.forEach(([key, value]) => {
+            formDataObj[key] = value;
+        });
+        console.log(`🔍 [VALIDATION] FormData as object:`, formDataObj);
         
         fields.forEach(field => {
             const fieldName = field.name || field.id || 'unknown';
@@ -528,6 +535,19 @@ class MerchantFormComponent {
             
             if (!isValid) {
                 console.warn('⚠️ [DEBUG] Form validation failed, showing errors');
+                
+                // Check if form is actually empty (all required fields empty)
+                const requiredFields = Array.from(this.form.querySelectorAll('[required]'));
+                const emptyRequiredFields = requiredFields.filter(field => {
+                    const value = field.tagName === 'SELECT' ? field.value : field.value.trim();
+                    return !value || (field.tagName === 'SELECT' && field.selectedIndex === 0 && field.options[0].value === '');
+                });
+                
+                if (emptyRequiredFields.length === requiredFields.length) {
+                    console.warn('⚠️ [DEBUG] All required fields are empty - form may have been cleared or not filled out');
+                    console.warn('⚠️ [DEBUG] Required fields:', requiredFields.map(f => ({ name: f.name || f.id, value: f.value, selectedIndex: f.selectedIndex })));
+                }
+                
                 this.scrollToFirstError();
                 this.showNotification('Please fix the errors in the form before submitting.', 'error');
                 return;
