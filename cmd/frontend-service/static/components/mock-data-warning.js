@@ -115,6 +115,20 @@ class MockDataWarning {
             </div>
         `;
 
+        // If container is document.body, create a wrapper div to avoid clearing the body
+        // This prevents the warning from clearing all page content
+        if (this.container === document.body) {
+            let wrapper = document.getElementById('mock-data-warning-wrapper');
+            if (!wrapper) {
+                wrapper = document.createElement('div');
+                wrapper.id = 'mock-data-warning-wrapper';
+                wrapper.style.cssText = 'position: fixed; top: 0; left: 0; z-index: 10000;';
+                document.body.appendChild(wrapper);
+            }
+            this.container = wrapper;
+        }
+        
+        // Only set innerHTML on the container (which is now the wrapper, not body)
         this.container.innerHTML = warningHTML;
         this.addStyles();
     }
