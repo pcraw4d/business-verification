@@ -1927,10 +1927,13 @@
                     // Remove 'visible' class from all progressive-disclosure elements inside hidden tabs
                     // This prevents opacity: 1 from making content visible even when parent is display: none
                     const progressiveElements = tab.querySelectorAll('.progressive-disclosure');
-                    progressiveElements.forEach(el => {
+                    console.log(`🔍 Tab ${currentTabId}: Found ${progressiveElements.length} progressive-disclosure elements`);
+                    progressiveElements.forEach((el, idx) => {
+                        const hadVisible = el.classList.contains('visible');
                         el.classList.remove('visible');
                         // Also force opacity to 0 to ensure content is hidden
                         el.style.opacity = '0';
+                        console.log(`🔍 Tab ${currentTabId}: Progressive-disclosure ${idx} - hadVisible: ${hadVisible}, removed visible class, set opacity: 0`);
                     });
                     
                     const afterDisplay = window.getComputedStyle(tab).display;
