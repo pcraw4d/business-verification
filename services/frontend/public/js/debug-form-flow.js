@@ -86,10 +86,10 @@ class FormFlowDebugger {
             panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
         });
         
-        // Keyboard shortcut: Ctrl+Shift+D
+        // Keyboard shortcut: Ctrl+Shift+D (PC) or Cmd+Shift+D (Mac)
         document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.shiftKey && e.key === 'D') {
-                panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'D') {
+                panel.style.display = panel.style.display === 'none' ? 'block' : 'block';
             }
         });
     }
