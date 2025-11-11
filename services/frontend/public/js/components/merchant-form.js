@@ -307,7 +307,13 @@ class MerchantFormComponent {
         const value = field.tagName === 'SELECT' ? rawValue : rawValue.trim();
         const errorElement = document.getElementById(fieldName + 'Error');
         
-        console.log(`🔍 [VALIDATION] Validating field: ${fieldName}, type: ${field.tagName}, value: "${value}", required: ${field.hasAttribute('required')}`);
+        // Additional debugging for select elements
+        let selectDebug = '';
+        if (field.tagName === 'SELECT') {
+            selectDebug = `, selectedIndex: ${field.selectedIndex}, selectedOption: ${field.options[field.selectedIndex] ? field.options[field.selectedIndex].value + ' (' + field.options[field.selectedIndex].text + ')' : 'null'}`;
+        }
+        
+        console.log(`🔍 [VALIDATION] Validating field: ${fieldName}, type: ${field.tagName}, value: "${value}", required: ${field.hasAttribute('required')}${selectDebug}`);
         
         // Clear previous validation
         field.classList.remove('error', 'success');
@@ -438,9 +444,27 @@ class MerchantFormComponent {
         const invalidFields = [];
 
         console.log(`🔍 [VALIDATION] Starting form validation for ${fields.length} fields`);
+        console.log(`🔍 [VALIDATION] Form element:`, this.form);
+        console.log(`🔍 [VALIDATION] Form HTML:`, this.form.outerHTML.substring(0, 200) + '...');
+        
+        // Log all form values before validation
+        const formData = new FormData(this.form);
+        console.log(`🔍 [VALIDATION] FormData entries:`, Array.from(formData.entries()));
         
         fields.forEach(field => {
             const fieldName = field.name || field.id || 'unknown';
+            // For select elements, also log selectedIndex and selected option
+            if (field.tagName === 'SELECT') {
+                console.log(`🔍 [VALIDATION] Select field ${fieldName} details:`, {
+                    value: field.value,
+                    selectedIndex: field.selectedIndex,
+                    selectedOption: field.options[field.selectedIndex] ? {
+                        value: field.options[field.selectedIndex].value,
+                        text: field.options[field.selectedIndex].text
+                    } : null,
+                    optionsCount: field.options.length
+                });
+            }
             const fieldValid = this.validateField(field);
             if (!fieldValid) {
                 isValid = false;
@@ -455,6 +479,20 @@ class MerchantFormComponent {
 
         if (!isValid) {
             console.warn(`⚠️ [VALIDATION] Form validation failed. Invalid fields:`, invalidFields);
+            // Also log the actual form element to see if it has values
+            console.warn(`⚠️ [VALIDATION] Form element reference:`, this.form);
+            console.warn(`⚠️ [VALIDATION] Country field element:`, this.form.querySelector('[name="country"]'));
+            const countryField = this.form.querySelector('[name="country"]');
+            if (countryField) {
+                console.warn(`⚠️ [VALIDATION] Country field value:`, countryField.value);
+                console.warn(`⚠️ [VALIDATION] Country field selectedIndex:`, countryField.selectedIndex);
+                console.warn(`⚠️ [VALIDATION] Country field options:`, Array.from(countryField.options).map((opt, idx) => ({
+                    index: idx,
+                    value: opt.value,
+                    text: opt.text,
+                    selected: opt.selected
+                })));
+            }
         } else {
             console.log(`✅ [VALIDATION] Form validation passed`);
         }
