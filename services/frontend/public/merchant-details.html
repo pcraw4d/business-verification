@@ -1905,8 +1905,33 @@
                         if (tab.id !== tabId) {
                             const computedDisplay = window.getComputedStyle(tab).display;
                             const inlineDisplay = tab.style.display;
-                            if (computedDisplay !== 'none') {
-                                console.warn(`⚠️ Tab ${tab.id} is still visible! computed=${computedDisplay}, inline=${inlineDisplay}`);
+                            const hasActive = tab.classList.contains('active');
+                            const isVisible = tab.offsetParent !== null;
+                            const rect = tab.getBoundingClientRect();
+                            
+                            console.log(`🔍 Tab ${tab.id} state:`, {
+                                computedDisplay,
+                                inlineDisplay,
+                                hasActive,
+                                isVisible,
+                                width: rect.width,
+                                height: rect.height,
+                                top: rect.top,
+                                left: rect.left
+                            });
+                            
+                            if (computedDisplay !== 'none' || isVisible) {
+                                console.warn(`⚠️ Tab ${tab.id} is still visible! computed=${computedDisplay}, inline=${inlineDisplay}, isVisible=${isVisible}`);
+                                
+                                // Check for CSS rules that might override
+                                const styles = window.getComputedStyle(tab);
+                                console.warn(`⚠️ Tab ${tab.id} computed styles:`, {
+                                    display: styles.display,
+                                    visibility: styles.visibility,
+                                    opacity: styles.opacity,
+                                    position: styles.position,
+                                    zIndex: styles.zIndex
+                                });
                             }
                         }
                     });
