@@ -1337,15 +1337,17 @@
                     return populatedCount > 0; // Return true if any fields were populated
                 };
 
-                // Wait for DOM to be fully ready
+                // Wait for DOM to be fully ready with MutationObserver support
                 const waitForDOM = (callback, maxWait = 5000) => {
                     const startTime = Date.now();
+                    let observer = null;
+                    let timeoutId = null;
                     
                     const checkDOM = () => {
                         // Check if body exists and has content
                         if (!document.body || document.body.children.length === 0) {
                             if (Date.now() - startTime < maxWait) {
-                                setTimeout(checkDOM, 100);
+                                timeoutId = setTimeout(checkDOM, 100);
                                 return;
                             }
                         }
@@ -1359,6 +1361,14 @@
                         if (!tabContainer) {
                             tabContainer = document.querySelector('[id="merchant-details"]');
                         }
+                        // Also try searching within main content container
+                        if (!tabContainer) {
+                            const mainContent = document.querySelector('.max-w-7xl.mx-auto');
+                            if (mainContent) {
+                                tabContainer = mainContent.querySelector('#merchant-details') ||
+                                             mainContent.querySelector('.tab-content');
+                            }
+                        }
                         
                         if (tabContainer) {
                             console.log('✅ Tab container found, proceeding with population');
@@ -1369,44 +1379,98 @@
                                     hasActive: tabContainer.classList.contains('active')
                                 });
                             }
+                            // Clean up observer and timeout
+                            if (observer) observer.disconnect();
+                            if (timeoutId) clearTimeout(timeoutId);
                             callback();
-                        } else {
-                            // If not found and we haven't exceeded max wait, keep trying
-                            if (Date.now() - startTime < maxWait) {
-                                setTimeout(checkDOM, 100);
-                            } else {
-                                console.error('❌ Tab container not found after waiting for DOM');
-                                const allTabContents = document.querySelectorAll('.tab-content, [id*="merchant"], [class*="tab"]');
-                                console.error('🔍 Available tab-content elements:', Array.from(allTabContents).map(t => ({
-                                    id: t.id,
-                                    className: t.className,
-                                    tagName: t.tagName,
-                                    innerHTML: t.innerHTML.substring(0, 100)
-                                })));
-                                console.error('🔍 All elements with id containing "merchant":', Array.from(document.querySelectorAll('[id*="merchant"]')).map(e => ({
-                                    id: e.id,
-                                    tagName: e.tagName,
-                                    className: e.className
-                                })));
-                                if (window.formFlowDebugger) {
-                                    window.formFlowDebugger.log('error', 'Tab container not found after waiting', {
-                                        waitTime: Date.now() - startTime,
-                                        readyState: document.readyState
-                                    });
-                                }
-                                callback(); // Still try to populate, maybe it will work
-                            }
+                            return true;
                         }
+                        return false;
                     };
                     
-                    // Start checking
-                    if (document.readyState === 'complete' || document.readyState === 'interactive') {
-                        checkDOM();
-                    } else {
-                        window.addEventListener('load', checkDOM);
-                        // Also start checking immediately in case load already fired
-                        setTimeout(checkDOM, 100);
+                    // Use MutationObserver to detect when tab container is added
+                    const setupObserver = () => {
+                        if (!document.body) return;
+                        
+                        observer = new MutationObserver((mutations) => {
+                            mutations.forEach((mutation) => {
+                                mutation.addedNodes.forEach((node) => {
+                                    if (node.nodeType === 1) { // Element node
+                                        // Check if it's the tab container or contains it
+                                        if (node.id === 'merchant-details' ||
+                                            node.classList.contains('tab-content') ||
+                                            (node.querySelector && node.querySelector('#merchant-details'))) {
+                                            console.log('✅ Tab container detected via MutationObserver');
+                                            if (checkDOM()) {
+                                                return; // Container found, callback called
+                                            }
+                                        }
+                                    }
+                                });
+                            });
+                        });
+                        
+                        observer.observe(document.body, {
+                            childList: true,
+                            subtree: true
+                        });
+                        console.log('✅ MutationObserver started for tab container discovery');
+                    };
+                    
+                    // Start checking immediately
+                    if (checkDOM()) {
+                        return; // Container already exists
                     }
+                    
+                    // Set up MutationObserver
+                    if (document.body) {
+                        setupObserver();
+                    } else {
+                        if (document.readyState === 'loading') {
+                            document.addEventListener('DOMContentLoaded', setupObserver);
+                        } else {
+                            setTimeout(setupObserver, 100);
+                        }
+                    }
+                    
+                    // Also use polling as fallback
+                    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                        timeoutId = setTimeout(checkDOM, 100);
+                    } else {
+                        window.addEventListener('load', () => {
+                            timeoutId = setTimeout(checkDOM, 100);
+                        });
+                        timeoutId = setTimeout(checkDOM, 100);
+                    }
+                    
+                    // Timeout after maxWait
+                    setTimeout(() => {
+                        if (observer) observer.disconnect();
+                        if (timeoutId) clearTimeout(timeoutId);
+                        
+                        if (!checkDOM()) {
+                            console.error('❌ Tab container not found after waiting for DOM');
+                            const allTabContents = document.querySelectorAll('.tab-content, [id*="merchant"], [class*="tab"]');
+                            console.error('🔍 Available tab-content elements:', Array.from(allTabContents).map(t => ({
+                                id: t.id,
+                                className: t.className,
+                                tagName: t.tagName,
+                                innerHTML: t.innerHTML.substring(0, 100)
+                            })));
+                            console.error('🔍 All elements with id containing "merchant":', Array.from(document.querySelectorAll('[id*="merchant"]')).map(e => ({
+                                id: e.id,
+                                tagName: e.tagName,
+                                className: e.className
+                            })));
+                            if (window.formFlowDebugger) {
+                                window.formFlowDebugger.log('error', 'Tab container not found after waiting', {
+                                    waitTime: Date.now() - startTime,
+                                    readyState: document.readyState
+                                });
+                            }
+                            callback(); // Still try to populate, maybe it will work
+                        }
+                    }, maxWait);
                 };
                 
                 // Retry logic with multiple attempts
@@ -2159,6 +2223,186 @@
             return 'demo-merchant-123';
         }
 
+        // Comprehensive DOM structure logging to diagnose rendering issues
+        const logDOMStructure = () => {
+            console.log('🔍 ========== DOM STRUCTURE DIAGNOSTICS ==========');
+            console.log('🔍 Document ready state:', document.readyState);
+            console.log('🔍 Body exists:', !!document.body);
+            console.log('🔍 Body children count:', document.body ? document.body.children.length : 0);
+            
+            // Check for main content container
+            const mainContent = document.querySelector('.max-w-7xl.mx-auto');
+            console.log('🔍 Main content container (.max-w-7xl):', !!mainContent);
+            
+            // Check for tab navigation
+            const tabNav = document.querySelector('nav[aria-label="Tabs"]');
+            console.log('🔍 Tab navigation (nav[aria-label="Tabs"]):', !!tabNav);
+            if (tabNav) {
+                console.log('🔍 Tab nav children:', tabNav.children.length);
+                console.log('🔍 Tab nav buttons:', tabNav.querySelectorAll('button').length);
+            }
+            
+            // Check for tab buttons
+            const tabButtons = document.querySelectorAll('.tab-button, button[data-tab]');
+            console.log('🔍 Tab buttons found:', tabButtons.length);
+            if (tabButtons.length > 0) {
+                Array.from(tabButtons).forEach((btn, idx) => {
+                    console.log(`🔍 Tab button ${idx}:`, {
+                        text: (btn.textContent || '').trim().substring(0, 30),
+                        dataTab: btn.getAttribute('data-tab'),
+                        classes: btn.className.substring(0, 50),
+                        visible: btn.offsetParent !== null,
+                        display: window.getComputedStyle(btn).display
+                    });
+                });
+            }
+            
+            // Check for tab content
+            const tabContent = document.querySelectorAll('.tab-content');
+            console.log('🔍 Tab content containers:', tabContent.length);
+            if (tabContent.length > 0) {
+                Array.from(tabContent).forEach((tab, idx) => {
+                    console.log(`🔍 Tab content ${idx}:`, {
+                        id: tab.id,
+                        classes: tab.className.substring(0, 50),
+                        visible: tab.offsetParent !== null,
+                        display: window.getComputedStyle(tab).display,
+                        hasActive: tab.classList.contains('active')
+                    });
+                });
+            }
+            
+            // Check for merchantNameText
+            const merchantName = document.getElementById('merchantNameText');
+            console.log('🔍 merchantNameText element:', !!merchantName);
+            if (merchantName) {
+                console.log('🔍 merchantNameText:', {
+                    visible: merchantName.offsetParent !== null,
+                    display: window.getComputedStyle(merchantName).display,
+                    text: merchantName.textContent.substring(0, 50)
+                });
+            }
+            
+            // Check for h1 elements
+            const h1Elements = document.querySelectorAll('h1');
+            console.log('🔍 Total h1 elements:', h1Elements.length);
+            
+            // Check for all buttons
+            const allButtons = document.querySelectorAll('button');
+            console.log('🔍 Total buttons in document:', allButtons.length);
+            
+            // Check CSS visibility
+            if (mainContent) {
+                const styles = window.getComputedStyle(mainContent);
+                console.log('🔍 Main content CSS:', {
+                    display: styles.display,
+                    visibility: styles.visibility,
+                    opacity: styles.opacity,
+                    height: styles.height,
+                    width: styles.width
+                });
+            }
+            
+            console.log('🔍 ================================================');
+        };
+        
+        // MutationObserver to detect when content is added
+        const observeDOMChanges = () => {
+            const observer = new MutationObserver((mutations) => {
+                let contentAdded = false;
+                mutations.forEach((mutation) => {
+                    if (mutation.addedNodes.length > 0) {
+                        mutation.addedNodes.forEach((node) => {
+                            if (node.nodeType === 1) { // Element node
+                                // Check if it's a tab button or tab content
+                                if (node.matches && (
+                                    node.matches('.tab-button') ||
+                                    node.matches('button[data-tab]') ||
+                                    node.matches('.tab-content') ||
+                                    node.matches('#merchant-details') ||
+                                    node.matches('nav[aria-label="Tabs"]')
+                                )) {
+                                    contentAdded = true;
+                                    console.log('✅ Tab-related content detected in DOM:', {
+                                        tagName: node.tagName,
+                                        id: node.id,
+                                        classes: node.className,
+                                        dataTab: node.getAttribute('data-tab')
+                                    });
+                                }
+                                // Check if node contains tab buttons
+                                if (node.querySelectorAll) {
+                                    const tabButtons = node.querySelectorAll('.tab-button, button[data-tab]');
+                                    if (tabButtons.length > 0) {
+                                        contentAdded = true;
+                                        console.log(`✅ Found ${tabButtons.length} tab buttons in added node`);
+                                    }
+                                }
+                            }
+                        });
+                    }
+                });
+                
+                if (contentAdded) {
+                    console.log('🔄 Tab content detected - re-running discovery...');
+                    // Re-run button discovery after a short delay
+                    setTimeout(() => {
+                        if (window.setupRiskIndicatorsButton) {
+                            window.setupRiskIndicatorsButton();
+                        }
+                        if (window.setupRiskAssessmentButton) {
+                            window.setupRiskAssessmentButton();
+                        }
+                    }, 100);
+                }
+            });
+            
+            // Start observing
+            if (document.body) {
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true
+                });
+                console.log('✅ MutationObserver started to detect tab content');
+            } else {
+                // Wait for body
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', () => {
+                        if (document.body) {
+                            observer.observe(document.body, {
+                                childList: true,
+                                subtree: true
+                            });
+                            console.log('✅ MutationObserver started (after DOMContentLoaded)');
+                        }
+                    });
+                } else {
+                    setTimeout(() => {
+                        if (document.body) {
+                            observer.observe(document.body, {
+                                childList: true,
+                                subtree: true
+                            });
+                            console.log('✅ MutationObserver started (after timeout)');
+                        }
+                    }, 100);
+                }
+            }
+        };
+        
+        // Log DOM structure on page load
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            logDOMStructure();
+            observeDOMChanges();
+        } else {
+            window.addEventListener('load', () => {
+                logDOMStructure();
+                observeDOMChanges();
+            });
+            // Also log immediately
+            setTimeout(logDOMStructure, 100);
+        }
+        
         // Initialize NEW Risk Indicators Tab (run after existing DOMContentLoaded)
         setTimeout(function() {
             console.log('🚀 DOM loaded, initializing NEW Risk Indicators Tab...');
@@ -2187,7 +2431,8 @@
             }
             
             // Listen for tab activation - retry if button not found
-            const setupRiskIndicatorsButton = () => {
+            // Make globally accessible for MutationObserver
+            window.setupRiskIndicatorsButton = function() {
                 const findButton = (retries = 10) => {
                     console.log('🔍 Looking for Risk Indicators tab button... (attempts remaining:', retries, ')');
                     console.log('🔍 Document ready state:', document.readyState);
@@ -2330,9 +2575,9 @@
             
             // Wait for DOM to be fully ready before setting up button
             if (document.readyState === 'complete' || document.readyState === 'interactive') {
-                setupRiskIndicatorsButton();
+                window.setupRiskIndicatorsButton();
             } else {
-                window.addEventListener('load', setupRiskIndicatorsButton);
+                window.addEventListener('load', window.setupRiskIndicatorsButton);
             }
         }, 2000); // Wait 2 seconds for DOM to be fully ready
         
@@ -2360,7 +2605,8 @@
                 }
                 
                 // Set up Risk Assessment tab click handler - retry if button not found
-                const setupRiskAssessmentButton = () => {
+                // Make globally accessible for MutationObserver
+                window.setupRiskAssessmentButton = function() {
                     const findButton = (retries = 10) => {
                         console.log('🔍 Looking for Risk Assessment tab button... (attempts remaining:', retries, ')');
                         console.log('🔍 Document ready state:', document.readyState);
@@ -2519,9 +2765,9 @@
                 
                 // Wait for DOM to be fully ready before setting up button
                 if (document.readyState === 'complete' || document.readyState === 'interactive') {
-                    setupRiskAssessmentButton();
+                    window.setupRiskAssessmentButton();
                 } else {
-                    window.addEventListener('load', setupRiskAssessmentButton);
+                    window.addEventListener('load', window.setupRiskAssessmentButton);
                 }
             } catch (error) {
                 console.error('❌ Error in Risk Assessment initialization:', error);

@@ -733,6 +733,20 @@ class ComingSoonBanner {
             const contentType = response.headers.get('content-type');
             if (!contentType || !contentType.includes('application/json')) {
                 console.warn('⚠️ API returned non-JSON response for features, using empty array');
+                console.warn('🔍 Response details:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    contentType: contentType,
+                    url: response.url
+                });
+                // Try to read response text for debugging (clone response first)
+                try {
+                    const clonedResponse = response.clone();
+                    const text = await clonedResponse.text();
+                    console.warn('🔍 Response body (first 500 chars):', text.substring(0, 500));
+                } catch (e) {
+                    console.warn('🔍 Could not read response body:', e.message);
+                }
                 return [];
             }
 
