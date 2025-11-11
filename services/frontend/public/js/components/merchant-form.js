@@ -560,6 +560,15 @@ class MerchantFormComponent {
         console.log('🔍 [DEBUG] Event target:', e?.target);
         console.log('🔍 [DEBUG] Current isSubmitting state:', this.isSubmitting);
         
+        // Debug logging
+        if (window.formFlowDebugger) {
+            window.formFlowDebugger.log('form', 'handleSubmit called', {
+                eventType: e?.type,
+                isSubmitting: this.isSubmitting,
+                formId: this.form?.id
+            });
+        }
+        
         // Prevent default again just in case
         if (e) {
             e.preventDefault();
@@ -944,10 +953,22 @@ class MerchantFormComponent {
     }
 
     finalizeRedirect(merchantId = null) {
+        // Debug logging
+        if (window.formFlowDebugger) {
+            window.formFlowDebugger.log('redirect', 'finalizeRedirect called', {
+                merchantId,
+                hasMerchantData: !!sessionStorage.getItem('merchantData'),
+                currentUrl: window.location.href
+            });
+        }
+        
         // Verify data is stored before redirecting
         const merchantData = sessionStorage.getItem('merchantData');
         if (!merchantData) {
             console.warn('⚠️ No merchant data in sessionStorage - redirecting anyway');
+            if (window.formFlowDebugger) {
+                window.formFlowDebugger.log('error', 'No merchant data in sessionStorage before redirect');
+            }
         } else {
             console.log('✅ Merchant data confirmed in sessionStorage');
         }

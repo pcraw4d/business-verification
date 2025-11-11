@@ -8,6 +8,8 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/risk-indicators.css">
+    <script src="js/api-config.js"></script>
+    <script src="js/debug-form-flow.js"></script>
     <script src="components/navigation.js"></script>
     <script src="components/merchant-context.js"></script>
     <script src="components/session-manager.js"></script>
@@ -1284,6 +1286,13 @@
                         const tabContainer = document.getElementById('merchant-details');
                         if (tabContainer) {
                             console.log('✅ Tab container found, proceeding with population');
+                            if (window.formFlowDebugger) {
+                                window.formFlowDebugger.log('dom', 'Tab container found', {
+                                    id: tabContainer.id,
+                                    className: tabContainer.className,
+                                    hasActive: tabContainer.classList.contains('active')
+                                });
+                            }
                             callback();
                         } else {
                             // If not found and we haven't exceeded max wait, keep trying
@@ -1291,6 +1300,12 @@
                                 setTimeout(checkDOM, 100);
                             } else {
                                 console.error('❌ Tab container not found after waiting for DOM');
+                                if (window.formFlowDebugger) {
+                                    window.formFlowDebugger.log('error', 'Tab container not found after waiting', {
+                                        waitTime: Date.now() - startTime,
+                                        readyState: document.readyState
+                                    });
+                                }
                                 callback(); // Still try to populate, maybe it will work
                             }
                         }
