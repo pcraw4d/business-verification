@@ -1955,13 +1955,14 @@
                     tabElement.style.display = 'block'; // Force show to ensure visibility
                     tabElement.style.visibility = 'visible'; // Also show visibility to ensure content is visible
                     
-                    // If this is the business-analytics tab, ensure progressive-disclosure elements can be visible
-                    // (They will be made visible by populateBusinessIntelligenceResults if needed)
+                    // If this is the business-analytics tab, ensure progressive-disclosure elements are visible
                     if (tabId === 'business-analytics') {
-                        // Remove inline opacity styles that might have been set when tab was hidden
+                        // Remove inline opacity styles and add visible class to show progressive-disclosure elements
                         const progressiveElements = tabElement.querySelectorAll('.progressive-disclosure');
-                        progressiveElements.forEach(el => {
+                        progressiveElements.forEach((el, idx) => {
                             el.style.opacity = ''; // Remove inline opacity to allow CSS to control it
+                            el.classList.add('visible'); // Add visible class to make content visible
+                            console.log(`✅ Business Analytics: Added 'visible' class to progressive-disclosure ${idx}`);
                         });
                     }
                     
