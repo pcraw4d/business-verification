@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com data:; img-src 'self' data: https:; connect-src 'self' https:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://d3js.org; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com data:; img-src 'self' data: https:; connect-src 'self' https:;">
     <title>Merchant Details - KYB Platform</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -1154,18 +1154,45 @@
                 }
                 console.log('🔍 Populating merchant details with data:', Object.keys(this.merchantData));
 
-                // Populate merchant details tab
-                document.getElementById('businessName').textContent = this.merchantData.businessName || '-';
-                document.getElementById('websiteUrl').textContent = this.merchantData.websiteUrl || '-';
-                document.getElementById('businessDescription').textContent = this.merchantData.businessDescription || '-';
-                document.getElementById('registrationNumber').textContent = this.merchantData.registrationNumber || '-';
-                document.getElementById('streetAddress').textContent = this.merchantData.streetAddress || '-';
-                document.getElementById('city').textContent = this.merchantData.city || '-';
-                document.getElementById('state').textContent = this.merchantData.state || '-';
-                document.getElementById('postalCode').textContent = this.merchantData.postalCode || '-';
-                document.getElementById('country').textContent = this.merchantData.country || '-';
-                document.getElementById('phoneNumber').textContent = this.merchantData.phoneNumber || '-';
-                document.getElementById('email').textContent = this.merchantData.email || '-';
+                // Helper function to safely set text content
+                const setTextContent = (elementId, value, fallback = '-') => {
+                    const element = document.getElementById(elementId);
+                    if (element) {
+                        element.textContent = value || fallback;
+                        return true;
+                    } else {
+                        console.warn(`⚠️ Element with id "${elementId}" not found in DOM`);
+                        return false;
+                    }
+                };
+
+                // Populate merchant details tab with null checks
+                const fields = [
+                    { id: 'businessName', value: this.merchantData.businessName },
+                    { id: 'websiteUrl', value: this.merchantData.websiteUrl },
+                    { id: 'businessDescription', value: this.merchantData.businessDescription },
+                    { id: 'registrationNumber', value: this.merchantData.registrationNumber },
+                    { id: 'streetAddress', value: this.merchantData.streetAddress },
+                    { id: 'city', value: this.merchantData.city },
+                    { id: 'state', value: this.merchantData.state },
+                    { id: 'postalCode', value: this.merchantData.postalCode },
+                    { id: 'country', value: this.merchantData.country },
+                    { id: 'phoneNumber', value: this.merchantData.phoneNumber },
+                    { id: 'email', value: this.merchantData.email }
+                ];
+
+                let populatedCount = 0;
+                fields.forEach(field => {
+                    if (setTextContent(field.id, field.value)) {
+                        populatedCount++;
+                    }
+                });
+
+                console.log(`✅ Populated ${populatedCount} out of ${fields.length} fields`);
+                
+                if (populatedCount === 0) {
+                    console.error('❌ No fields were populated - check if the merchant details tab HTML structure exists');
+                }
             }
 
             populateApiResults() {
