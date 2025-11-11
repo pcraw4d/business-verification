@@ -2167,6 +2167,135 @@
             }
         }
 
+        // DOM Structure Diagnostic - Check for Business Analytics content outside tab system
+        const diagnoseBusinessAnalyticsContent = () => {
+            console.log('🔍 ========== BUSINESS ANALYTICS CONTENT DIAGNOSTIC ==========');
+            
+            // Check if Business Analytics content exists in #business-analytics tab
+            const businessAnalyticsTab = document.getElementById('business-analytics');
+            console.log('🔍 #business-analytics tab:', {
+                exists: !!businessAnalyticsTab,
+                display: businessAnalyticsTab ? window.getComputedStyle(businessAnalyticsTab).display : 'N/A',
+                inlineDisplay: businessAnalyticsTab ? businessAnalyticsTab.style.display : 'N/A',
+                hasActive: businessAnalyticsTab ? businessAnalyticsTab.classList.contains('active') : false,
+                visible: businessAnalyticsTab ? businessAnalyticsTab.offsetParent !== null : false,
+                children: businessAnalyticsTab ? businessAnalyticsTab.children.length : 0
+            });
+            
+            // Check for Core Classification Results
+            const coreResults = document.getElementById('coreResults');
+            console.log('🔍 #coreResults element:', {
+                exists: !!coreResults,
+                parent: coreResults ? coreResults.parentElement.id : 'N/A',
+                parentDisplay: coreResults ? window.getComputedStyle(coreResults.parentElement).display : 'N/A',
+                visible: coreResults ? coreResults.offsetParent !== null : false,
+                display: coreResults ? window.getComputedStyle(coreResults).display : 'N/A'
+            });
+            
+            // Check for dashboardResults
+            const dashboardResults = document.getElementById('dashboardResults');
+            console.log('🔍 #dashboardResults element:', {
+                exists: !!dashboardResults,
+                parent: dashboardResults ? dashboardResults.parentElement.id : 'N/A',
+                parentDisplay: dashboardResults ? window.getComputedStyle(dashboardResults.parentElement).display : 'N/A',
+                visible: dashboardResults ? dashboardResults.offsetParent !== null : false,
+                display: dashboardResults ? window.getComputedStyle(dashboardResults).display : 'N/A'
+            });
+            
+            // Check for "Core Classification Results" heading anywhere in DOM
+            const coreClassificationHeadings = Array.from(document.querySelectorAll('h3')).filter(h3 => 
+                h3.textContent.includes('Core Classification')
+            );
+            console.log('🔍 "Core Classification Results" headings found:', coreClassificationHeadings.length);
+            coreClassificationHeadings.forEach((h3, idx) => {
+                let parent = h3.parentElement;
+                let tabContent = null;
+                while (parent && parent !== document.body) {
+                    if (parent.classList.contains('tab-content')) {
+                        tabContent = parent;
+                        break;
+                    }
+                    parent = parent.parentElement;
+                }
+                console.log(`🔍 Heading ${idx}:`, {
+                    text: h3.textContent.substring(0, 50),
+                    inTabContent: !!tabContent,
+                    tabContentId: tabContent ? tabContent.id : 'N/A',
+                    tabContentDisplay: tabContent ? window.getComputedStyle(tabContent).display : 'N/A',
+                    visible: h3.offsetParent !== null,
+                    display: window.getComputedStyle(h3).display
+                });
+            });
+            
+            // Check for "Website Keywords Used" heading anywhere in DOM
+            const websiteKeywordsHeadings = Array.from(document.querySelectorAll('h5')).filter(h5 => 
+                h5.textContent.includes('Website Keywords')
+            );
+            console.log('🔍 "Website Keywords Used" headings found:', websiteKeywordsHeadings.length);
+            websiteKeywordsHeadings.forEach((h5, idx) => {
+                let parent = h5.parentElement;
+                let tabContent = null;
+                while (parent && parent !== document.body) {
+                    if (parent.classList.contains('tab-content')) {
+                        tabContent = parent;
+                        break;
+                    }
+                    parent = parent.parentElement;
+                }
+                console.log(`🔍 Heading ${idx}:`, {
+                    text: h5.textContent.substring(0, 50),
+                    inTabContent: !!tabContent,
+                    tabContentId: tabContent ? tabContent.id : 'N/A',
+                    tabContentDisplay: tabContent ? window.getComputedStyle(tabContent).display : 'N/A',
+                    visible: h5.offsetParent !== null,
+                    display: window.getComputedStyle(h5).display
+                });
+            });
+            
+            // Check all tab-content elements and their display states
+            const allTabContents = document.querySelectorAll('.tab-content');
+            console.log('🔍 All tab-content elements:');
+            allTabContents.forEach((tab, idx) => {
+                const computedStyle = window.getComputedStyle(tab);
+                const hasCoreResults = tab.querySelector('#coreResults') !== null;
+                const hasDashboardResults = tab.querySelector('#dashboardResults') !== null;
+                console.log(`🔍 Tab ${idx} (${tab.id}):`, {
+                    display: computedStyle.display,
+                    inlineDisplay: tab.style.display || 'none',
+                    visibility: computedStyle.visibility,
+                    opacity: computedStyle.opacity,
+                    hasActive: tab.classList.contains('active'),
+                    visible: tab.offsetParent !== null,
+                    hasCoreResults: hasCoreResults,
+                    hasDashboardResults: hasDashboardResults,
+                    childrenCount: tab.children.length
+                });
+            });
+            
+            // Check for CSS rules that might override display
+            if (businessAnalyticsTab) {
+                const styles = window.getComputedStyle(businessAnalyticsTab);
+                console.log('🔍 #business-analytics computed styles:', {
+                    display: styles.display,
+                    visibility: styles.visibility,
+                    opacity: styles.opacity,
+                    position: styles.position,
+                    zIndex: styles.zIndex,
+                    height: styles.height,
+                    width: styles.width
+                });
+            }
+            
+            // Check if content is outside .max-w-7xl container
+            const maxWContainer = document.querySelector('.max-w-7xl');
+            if (maxWContainer && coreResults) {
+                const isInContainer = maxWContainer.contains(coreResults);
+                console.log('🔍 #coreResults is inside .max-w-7xl:', isInContainer);
+            }
+            
+            console.log('🔍 ================================================');
+        };
+
         // Make diagnostic function globally available
         window.diagnoseBusinessAnalyticsContent = diagnoseBusinessAnalyticsContent;
         
@@ -2368,135 +2497,6 @@
                     height: styles.height,
                     width: styles.width
                 });
-            }
-            
-            console.log('🔍 ================================================');
-        };
-        
-        // DOM Structure Diagnostic - Check for Business Analytics content outside tab system
-        const diagnoseBusinessAnalyticsContent = () => {
-            console.log('🔍 ========== BUSINESS ANALYTICS CONTENT DIAGNOSTIC ==========');
-            
-            // Check if Business Analytics content exists in #business-analytics tab
-            const businessAnalyticsTab = document.getElementById('business-analytics');
-            console.log('🔍 #business-analytics tab:', {
-                exists: !!businessAnalyticsTab,
-                display: businessAnalyticsTab ? window.getComputedStyle(businessAnalyticsTab).display : 'N/A',
-                inlineDisplay: businessAnalyticsTab ? businessAnalyticsTab.style.display : 'N/A',
-                hasActive: businessAnalyticsTab ? businessAnalyticsTab.classList.contains('active') : false,
-                visible: businessAnalyticsTab ? businessAnalyticsTab.offsetParent !== null : false,
-                children: businessAnalyticsTab ? businessAnalyticsTab.children.length : 0
-            });
-            
-            // Check for Core Classification Results
-            const coreResults = document.getElementById('coreResults');
-            console.log('🔍 #coreResults element:', {
-                exists: !!coreResults,
-                parent: coreResults ? coreResults.parentElement.id : 'N/A',
-                parentDisplay: coreResults ? window.getComputedStyle(coreResults.parentElement).display : 'N/A',
-                visible: coreResults ? coreResults.offsetParent !== null : false,
-                display: coreResults ? window.getComputedStyle(coreResults).display : 'N/A'
-            });
-            
-            // Check for dashboardResults
-            const dashboardResults = document.getElementById('dashboardResults');
-            console.log('🔍 #dashboardResults element:', {
-                exists: !!dashboardResults,
-                parent: dashboardResults ? dashboardResults.parentElement.id : 'N/A',
-                parentDisplay: dashboardResults ? window.getComputedStyle(dashboardResults.parentElement).display : 'N/A',
-                visible: dashboardResults ? dashboardResults.offsetParent !== null : false,
-                display: dashboardResults ? window.getComputedStyle(dashboardResults).display : 'N/A'
-            });
-            
-            // Check for "Core Classification Results" heading anywhere in DOM
-            const coreClassificationHeadings = Array.from(document.querySelectorAll('h3')).filter(h3 => 
-                h3.textContent.includes('Core Classification')
-            );
-            console.log('🔍 "Core Classification Results" headings found:', coreClassificationHeadings.length);
-            coreClassificationHeadings.forEach((h3, idx) => {
-                let parent = h3.parentElement;
-                let tabContent = null;
-                while (parent && parent !== document.body) {
-                    if (parent.classList.contains('tab-content')) {
-                        tabContent = parent;
-                        break;
-                    }
-                    parent = parent.parentElement;
-                }
-                console.log(`🔍 Heading ${idx}:`, {
-                    text: h3.textContent.substring(0, 50),
-                    inTabContent: !!tabContent,
-                    tabContentId: tabContent ? tabContent.id : 'N/A',
-                    tabContentDisplay: tabContent ? window.getComputedStyle(tabContent).display : 'N/A',
-                    visible: h3.offsetParent !== null,
-                    display: window.getComputedStyle(h3).display
-                });
-            });
-            
-            // Check for "Website Keywords Used" heading anywhere in DOM
-            const websiteKeywordsHeadings = Array.from(document.querySelectorAll('h5')).filter(h5 => 
-                h5.textContent.includes('Website Keywords')
-            );
-            console.log('🔍 "Website Keywords Used" headings found:', websiteKeywordsHeadings.length);
-            websiteKeywordsHeadings.forEach((h5, idx) => {
-                let parent = h5.parentElement;
-                let tabContent = null;
-                while (parent && parent !== document.body) {
-                    if (parent.classList.contains('tab-content')) {
-                        tabContent = parent;
-                        break;
-                    }
-                    parent = parent.parentElement;
-                }
-                console.log(`🔍 Heading ${idx}:`, {
-                    text: h5.textContent.substring(0, 50),
-                    inTabContent: !!tabContent,
-                    tabContentId: tabContent ? tabContent.id : 'N/A',
-                    tabContentDisplay: tabContent ? window.getComputedStyle(tabContent).display : 'N/A',
-                    visible: h5.offsetParent !== null,
-                    display: window.getComputedStyle(h5).display
-                });
-            });
-            
-            // Check all tab-content elements and their display states
-            const allTabContents = document.querySelectorAll('.tab-content');
-            console.log('🔍 All tab-content elements:');
-            allTabContents.forEach((tab, idx) => {
-                const computedStyle = window.getComputedStyle(tab);
-                const hasCoreResults = tab.querySelector('#coreResults') !== null;
-                const hasDashboardResults = tab.querySelector('#dashboardResults') !== null;
-                console.log(`🔍 Tab ${idx} (${tab.id}):`, {
-                    display: computedStyle.display,
-                    inlineDisplay: tab.style.display || 'none',
-                    visibility: computedStyle.visibility,
-                    opacity: computedStyle.opacity,
-                    hasActive: tab.classList.contains('active'),
-                    visible: tab.offsetParent !== null,
-                    hasCoreResults: hasCoreResults,
-                    hasDashboardResults: hasDashboardResults,
-                    childrenCount: tab.children.length
-                });
-            });
-            
-            // Check for CSS rules that might override display
-            if (businessAnalyticsTab) {
-                const styles = window.getComputedStyle(businessAnalyticsTab);
-                console.log('🔍 #business-analytics computed styles:', {
-                    display: styles.display,
-                    visibility: styles.visibility,
-                    opacity: styles.opacity,
-                    position: styles.position,
-                    zIndex: styles.zIndex,
-                    height: styles.height,
-                    width: styles.width
-                });
-            }
-            
-            // Check if content is outside .max-w-7xl container
-            const maxWContainer = document.querySelector('.max-w-7xl');
-            if (maxWContainer && coreResults) {
-                const isInContainer = maxWContainer.contains(coreResults);
-                console.log('🔍 #coreResults is inside .max-w-7xl:', isInContainer);
             }
             
             console.log('🔍 ================================================');
