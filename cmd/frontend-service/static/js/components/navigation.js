@@ -14,6 +14,23 @@ class KYBNavigation {
 
     getCurrentPage() {
         const path = window.location.pathname;
+        
+        // Handle paths with multiple segments (e.g., /admin/models, /admin/queue)
+        if (path.startsWith('/admin/')) {
+            const segment = path.split('/').pop();
+            if (segment === 'models') {
+                return 'admin-models';
+            } else if (segment === 'queue') {
+                return 'admin-queue';
+            }
+        }
+        
+        // Handle root admin path
+        if (path === '/admin' || path === '/admin/') {
+            return 'admin-dashboard';
+        }
+        
+        // Handle other paths
         const filename = path.split('/').pop().replace('.html', '');
         
         const pageMap = {
@@ -32,7 +49,11 @@ class KYBNavigation {
             'enhanced-risk-indicators': 'risk-indicators',
             'merchant-hub-integration': 'merchant-hub',
             'merchant-portfolio': 'merchant-portfolio',
-            'merchant-detail': 'merchant-detail'
+            'merchant-detail': 'merchant-detail',
+            'risk-assessment-portfolio': 'risk-assessment-portfolio',
+            'analytics-insights': 'analytics-insights',
+            'admin': 'admin-dashboard',
+            'sessions': 'sessions'
         };
 
         return pageMap[filename] || 'home';
@@ -245,6 +266,15 @@ class KYBNavigation {
     addNavigationToPage() {
         // Check if navigation already exists
         if (document.querySelector('.kyb-sidebar')) {
+            return;
+        }
+
+        // Skip navigation on pages that have their own layout (like merchant-details)
+        // These pages have their own navigation and should not be wrapped
+        const skipNavigationPages = ['merchant-details', 'add-merchant'];
+        const currentPage = this.getCurrentPage();
+        if (skipNavigationPages.includes(currentPage)) {
+            console.log(`Skipping navigation for page: ${currentPage}`);
             return;
         }
 

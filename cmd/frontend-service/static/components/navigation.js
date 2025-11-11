@@ -207,6 +207,15 @@ class KYBNavigation {
             return;
         }
 
+        // Skip navigation on pages that have their own layout (like merchant-details)
+        // These pages have their own navigation and should not be wrapped
+        const skipNavigationPages = ['merchant-details', 'add-merchant'];
+        const currentPage = this.getCurrentPage();
+        if (skipNavigationPages.includes(currentPage)) {
+            console.log(`Skipping navigation for page: ${currentPage}`);
+            return;
+        }
+
         // Create navigation element
         const navElement = document.createElement('div');
         navElement.innerHTML = this.navigationHTML;
