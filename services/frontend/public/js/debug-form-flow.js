@@ -176,32 +176,60 @@ class FormFlowDebugger {
                 justify-content: center;
                 box-shadow: 0 2px 10px rgba(0, 255, 0, 0.5);
             `;
-            toggleBtn.addEventListener('click', (e) => {
+            // Add click handler with multiple event types for maximum compatibility
+            const handleToggle = (e) => {
+                console.log('🔍 Toggle button clicked!', e);
                 e.preventDefault();
                 e.stopPropagation();
+                e.stopImmediatePropagation();
+                
                 try {
                     // Get panel reference - try multiple ways
                     const panelElement = document.getElementById('formFlowDebugPanel') || panel || window._debugPanel;
+                    console.log('🔍 Panel element found:', !!panelElement, panelElement);
+                    
                     if (!panelElement) {
-                        console.error('Debug panel not found!');
+                        console.error('❌ Debug panel not found!');
                         self.log('system', 'ERROR: Debug panel element not found when toggling');
                         return;
                     }
+                    
                     const currentDisplay = panelElement.style.display || window.getComputedStyle(panelElement).display;
+                    console.log('🔍 Current display:', currentDisplay);
+                    
                     const newDisplay = currentDisplay === 'none' || currentDisplay === '' ? 'block' : 'none';
+                    console.log('🔍 Setting display to:', newDisplay);
+                    
                     panelElement.style.display = newDisplay;
+                    
+                    // Force a reflow to ensure the change takes effect
+                    panelElement.offsetHeight;
+                    
+                    console.log('✅ Debug panel toggled:', newDisplay, 'Actual display:', window.getComputedStyle(panelElement).display);
+                    
                     self.log('system', `Debug panel ${newDisplay === 'block' ? 'opened' : 'closed'} via toggle button`, {
                         previousDisplay: currentDisplay,
                         newDisplay: newDisplay,
-                        panelExists: !!panelElement
+                        panelExists: !!panelElement,
+                        actualDisplay: window.getComputedStyle(panelElement).display
                     });
-                    console.log('Debug panel toggled:', newDisplay);
                 } catch (error) {
-                    console.error('Error toggling debug panel:', error);
-                    self.log('system', 'ERROR toggling debug panel', { error: error.message });
+                    console.error('❌ Error toggling debug panel:', error, error.stack);
+                    self.log('system', 'ERROR toggling debug panel', { error: error.message, stack: error.stack });
                 }
-            });
+            };
+            
+            // Attach multiple event types to ensure it works
+            toggleBtn.addEventListener('click', handleToggle, { capture: true });
+            toggleBtn.addEventListener('click', handleToggle, { capture: false });
+            toggleBtn.addEventListener('mousedown', handleToggle, { capture: true });
+            
+            // Also set onclick as fallback
+            toggleBtn.onclick = handleToggle;
+            
             document.body.appendChild(toggleBtn);
+            
+            console.log('✅ Toggle button added to DOM with ID:', toggleBtn.id, 'Panel ID:', panel.id);
             
             // Log that toggle button was created
             self.log('system', 'Debug panel toggle button created', {
