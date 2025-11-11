@@ -1822,36 +1822,77 @@
                     }
                 }
                 
-                // Show progressive disclosure sections
-                setTimeout(() => {
-                    const element = document.getElementById('coreResults');
-                    if (element) element.classList.add('visible');
-                }, 100);
+                // Show progressive disclosure sections ONLY if Business Analytics tab is active
+                const businessAnalyticsTab = document.getElementById('business-analytics');
+                const isBusinessAnalyticsActive = businessAnalyticsTab && 
+                    businessAnalyticsTab.classList.contains('active') && 
+                    window.getComputedStyle(businessAnalyticsTab).display !== 'none';
                 
-                setTimeout(() => {
-                    const element = document.getElementById('securityIndicators');
-                    if (element) element.classList.add('visible');
-                }, 200);
-                
-                setTimeout(() => {
-                    const element = document.getElementById('qualityMetrics');
-                    if (element) element.classList.add('visible');
-                }, 300);
-                
-                setTimeout(() => {
-                    const element = document.getElementById('riskAssessment');
-                    if (element) element.classList.add('visible');
-                }, 400);
-                
-                setTimeout(() => {
-                    const element = document.getElementById('businessIntelligence');
-                    if (element) element.classList.add('visible');
-                }, 500);
-                
-                setTimeout(() => {
-                    const element = document.getElementById('verificationStatus');
-                    if (element) element.classList.add('visible');
-                }, 600);
+                if (isBusinessAnalyticsActive) {
+                    setTimeout(() => {
+                        const element = document.getElementById('coreResults');
+                        if (element) {
+                            element.classList.add('visible');
+                            element.style.opacity = ''; // Remove any inline opacity that might have been set
+                        }
+                    }, 100);
+                    
+                    setTimeout(() => {
+                        const element = document.getElementById('securityIndicators');
+                        if (element) {
+                            element.classList.add('visible');
+                            element.style.opacity = '';
+                        }
+                    }, 200);
+                    
+                    setTimeout(() => {
+                        const element = document.getElementById('qualityMetrics');
+                        if (element) {
+                            element.classList.add('visible');
+                            element.style.opacity = '';
+                        }
+                    }, 300);
+                    
+                    setTimeout(() => {
+                        const element = document.getElementById('riskAssessment');
+                        if (element) {
+                            element.classList.add('visible');
+                            element.style.opacity = '';
+                        }
+                    }, 400);
+                    
+                    setTimeout(() => {
+                        const element = document.getElementById('businessIntelligence');
+                        if (element) {
+                            element.classList.add('visible');
+                            element.style.opacity = '';
+                        }
+                    }, 500);
+                    
+                    setTimeout(() => {
+                        const element = document.getElementById('verificationStatus');
+                        if (element) {
+                            element.classList.add('visible');
+                            element.style.opacity = '';
+                        }
+                    }, 600);
+                } else {
+                    // Business Analytics tab is not active, ensure all progressive-disclosure elements are hidden
+                    const progressiveElements = [
+                        document.getElementById('coreResults'),
+                        document.getElementById('securityIndicators'),
+                        document.getElementById('qualityMetrics'),
+                        document.getElementById('riskAssessment'),
+                        document.getElementById('businessIntelligence'),
+                        document.getElementById('verificationStatus')
+                    ];
+                    progressiveElements.forEach(element => {
+                        if (element) {
+                            element.classList.remove('visible');
+                            element.style.opacity = '0';
+                        }
+                    });
+                }
             }
 
             populateRiskAssessmentResults(data) {
@@ -1882,6 +1923,16 @@
                     tab.classList.remove('active');
                     tab.style.display = 'none'; // Force hide to prevent any CSS conflicts
                     tab.style.visibility = 'hidden'; // Also hide visibility to ensure content is not visible
+                    
+                    // Remove 'visible' class from all progressive-disclosure elements inside hidden tabs
+                    // This prevents opacity: 1 from making content visible even when parent is display: none
+                    const progressiveElements = tab.querySelectorAll('.progressive-disclosure');
+                    progressiveElements.forEach(el => {
+                        el.classList.remove('visible');
+                        // Also force opacity to 0 to ensure content is hidden
+                        el.style.opacity = '0';
+                    });
+                    
                     const afterDisplay = window.getComputedStyle(tab).display;
                     console.log(`🔍 Hiding tab ${currentTabId}: before=${beforeDisplay}, after=${afterDisplay}, inline=${tab.style.display}`);
                 });
@@ -1900,6 +1951,17 @@
                     tabElement.classList.add('active');
                     tabElement.style.display = 'block'; // Force show to ensure visibility
                     tabElement.style.visibility = 'visible'; // Also show visibility to ensure content is visible
+                    
+                    // If this is the business-analytics tab, ensure progressive-disclosure elements can be visible
+                    // (They will be made visible by populateBusinessIntelligenceResults if needed)
+                    if (tabId === 'business-analytics') {
+                        // Remove inline opacity styles that might have been set when tab was hidden
+                        const progressiveElements = tabElement.querySelectorAll('.progressive-disclosure');
+                        progressiveElements.forEach(el => {
+                            el.style.opacity = ''; // Remove inline opacity to allow CSS to control it
+                        });
+                    }
+                    
                     const afterDisplay = window.getComputedStyle(tabElement).display;
                     console.log('✅ Activated tab:', tabId, 'Element ID:', tabElement.id);
                     console.log(`🔍 Showing tab ${tabId}: before=${beforeDisplay}, after=${afterDisplay}, inline=${tabElement.style.display}`);
@@ -2659,6 +2721,14 @@
                     tab.classList.remove('active');
                     tab.style.display = 'none';
                     tab.style.visibility = 'hidden';
+                    
+                    // Remove 'visible' class from all progressive-disclosure elements inside hidden tabs
+                    // This prevents opacity: 1 from making content visible even when parent is display: none
+                    const progressiveElements = tab.querySelectorAll('.progressive-disclosure');
+                    progressiveElements.forEach(el => {
+                        el.classList.remove('visible');
+                        el.style.opacity = '0';
+                    });
                 }
             });
             
@@ -3138,6 +3208,13 @@
                             tab.classList.remove('active');
                             tab.style.display = 'none'; // Force hide to prevent any CSS conflicts
                             tab.style.visibility = 'hidden'; // Also hide visibility to ensure content is not visible
+                            
+                            // Remove 'visible' class from all progressive-disclosure elements inside hidden tabs
+                            const progressiveElements = tab.querySelectorAll('.progressive-disclosure');
+                            progressiveElements.forEach(el => {
+                                el.classList.remove('visible');
+                                el.style.opacity = '0';
+                            });
                         });
                         document.querySelectorAll('.tab-button').forEach(button => {
                             button.classList.remove('active');
@@ -3333,6 +3410,13 @@
                                 tab.classList.remove('active');
                                 tab.style.display = 'none'; // Force hide to prevent any CSS conflicts
                                 tab.style.visibility = 'hidden'; // Also hide visibility to ensure content is not visible
+                                
+                                // Remove 'visible' class from all progressive-disclosure elements inside hidden tabs
+                                const progressiveElements = tab.querySelectorAll('.progressive-disclosure');
+                                progressiveElements.forEach(el => {
+                                    el.classList.remove('visible');
+                                    el.style.opacity = '0';
+                                });
                             });
                             document.querySelectorAll('.tab-button').forEach(button => {
                                 button.classList.remove('active');
