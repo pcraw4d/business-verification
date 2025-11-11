@@ -786,23 +786,54 @@ class MerchantFormComponent {
         setTimeout(() => {
             try {
                 console.log('🔀 Executing redirect after sessionStorage flush delay...');
-                // Use window.location.href for maximum compatibility
-                window.location.href = targetUrl;
+                console.log('🔀 Attempting navigation to:', targetUrl);
+                
+                // Force navigation - try multiple methods
+                // Method 1: window.location.href (most compatible)
+                try {
+                    window.location.href = targetUrl;
+                    console.log('✅ [DEBUG] window.location.href set successfully');
+                    // Give it a moment, then check if navigation started
+                    setTimeout(() => {
+                        if (window.location.href.includes('merchant-details')) {
+                            console.log('✅ [DEBUG] Navigation successful!');
+                        } else {
+                            console.warn('⚠️ [DEBUG] Navigation may not have started, trying alternative...');
+                            // Try method 2
+                            window.location.assign(targetUrl);
+                        }
+                    }, 50);
+                } catch (hrefError) {
+                    console.error('❌ [ERROR] window.location.href failed:', hrefError);
+                    throw hrefError;
+                }
             } catch (error) {
-                console.error('❌ Error during redirect:', error);
+                console.error('❌ [ERROR] Error during redirect:', error);
+                console.error('❌ [ERROR] Error name:', error.name);
+                console.error('❌ [ERROR] Error message:', error.message);
+                console.error('❌ [ERROR] Error stack:', error.stack);
+                
                 // Fallback: try absolute URL
                 try {
                     const absoluteUrl = window.location.origin + targetUrl;
                     console.log('🔀 Trying absolute URL:', absoluteUrl);
                     window.location.href = absoluteUrl;
                 } catch (fallbackError) {
-                    console.error('❌ Fallback redirect also failed:', fallbackError);
-                    // Last resort: show notification with manual link
-                    const absoluteUrl = window.location.origin + targetUrl;
-                    this.showNotification(
-                        `Redirect failed. Please <a href="${absoluteUrl}" style="color: white; text-decoration: underline; font-weight: bold;">click here</a> to view merchant details.`, 
-                        'error'
-                    );
+                    console.error('❌ [ERROR] Fallback redirect also failed:', fallbackError);
+                    
+                    // Try window.location.assign as last resort
+                    try {
+                        console.log('🔀 Trying window.location.assign...');
+                        window.location.assign(window.location.origin + targetUrl);
+                    } catch (assignError) {
+                        console.error('❌ [ERROR] window.location.assign also failed:', assignError);
+                        // Last resort: show notification with manual link
+                        const absoluteUrl = window.location.origin + targetUrl;
+                        this.showNotification(
+                            `Redirect failed. Please <a href="${absoluteUrl}" style="color: white; text-decoration: underline; font-weight: bold;">click here</a> to view merchant details.`, 
+                            'error'
+                        );
+                    }
                 }
             }
         }, 100); // 100ms delay to ensure sessionStorage writes complete
