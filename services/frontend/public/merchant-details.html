@@ -2229,8 +2229,7 @@
                 console.warn('⚠️ #coreResults parent chain:', parentChain);
             }
             
-            // Check for Core Classification Results
-            const coreResults = document.getElementById('coreResults');
+            // Check for Core Classification Results (coreResults already declared above)
             console.log('🔍 #coreResults element:', {
                 exists: !!coreResults,
                 parent: coreResults ? coreResults.parentElement.id : 'N/A',
