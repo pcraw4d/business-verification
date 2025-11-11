@@ -1189,17 +1189,30 @@
                     { id: 'email', value: this.merchantData.email }
                 ];
 
-                let populatedCount = 0;
-                fields.forEach(field => {
-                    if (setTextContent(field.id, field.value)) {
-                        populatedCount++;
-                    }
-                });
+                    let populatedCount = 0;
+                    fields.forEach(field => {
+                        if (setTextContent(field.id, field.value)) {
+                            populatedCount++;
+                        }
+                    });
 
-                console.log(`✅ Populated ${populatedCount} out of ${fields.length} fields`);
-                
-                if (populatedCount === 0) {
-                    console.error('❌ No fields were populated - check if the merchant details tab HTML structure exists');
+                    console.log(`✅ Populated ${populatedCount} out of ${fields.length} fields`);
+                    
+                    if (populatedCount === 0) {
+                        console.error('❌ No fields were populated - check if the merchant details tab HTML structure exists');
+                        // Log available elements for debugging
+                        console.log('🔍 Available elements with similar IDs:', 
+                            Array.from(document.querySelectorAll('[id*="business"], [id*="address"], [id*="city"], [id*="country"]'))
+                                .map(el => el.id)
+                        );
+                    }
+                };
+
+                // Try immediately, then retry after a short delay if needed
+                populateFields();
+                if (document.querySelectorAll('#businessName, #websiteUrl, #streetAddress').length === 0) {
+                    console.log('🔍 Elements not found immediately, retrying after 100ms...');
+                    setTimeout(populateFields, 100);
                 }
             }
 
