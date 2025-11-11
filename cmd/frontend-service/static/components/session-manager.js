@@ -123,6 +123,19 @@ class SessionManager {
             </div>
         `;
 
+        // If container is document.body, create a wrapper div to avoid clearing the body
+        // This prevents the session manager from clearing all page content
+        if (this.container === document.body) {
+            let wrapper = document.getElementById('session-manager-wrapper');
+            if (!wrapper) {
+                wrapper = document.createElement('div');
+                wrapper.id = 'session-manager-wrapper';
+                wrapper.style.cssText = 'position: fixed; top: 0; left: 0; z-index: 10000;';
+                document.body.appendChild(wrapper);
+            }
+            this.container = wrapper;
+        }
+        
         this.container.innerHTML = sessionHTML;
         this.addStyles();
     }
