@@ -835,8 +835,37 @@
                             testBtn.style.border = '2px solid #4CAF50';
                             testBtn.title = 'Handlers attached - Click to test';
                             console.log('✅ [DEBUG] Button marked as ready (green border)');
+                            
+                            // Check for CSS issues that might block clicks
+                            const computedStyle = window.getComputedStyle(testBtn);
+                            console.log('🔍 [DEBUG] Button CSS check:');
+                            console.log('  - pointer-events:', computedStyle.pointerEvents);
+                            console.log('  - z-index:', computedStyle.zIndex);
+                            console.log('  - position:', computedStyle.position);
+                            console.log('  - display:', computedStyle.display);
+                            console.log('  - visibility:', computedStyle.visibility);
+                            console.log('  - opacity:', computedStyle.opacity);
+                            
+                            // Check if button is actually clickable
+                            const rect = testBtn.getBoundingClientRect();
+                            console.log('🔍 [DEBUG] Button position:', { 
+                                top: rect.top, 
+                                left: rect.left, 
+                                width: rect.width, 
+                                height: rect.height,
+                                visible: rect.width > 0 && rect.height > 0
+                            });
+                            
+                            // Check for overlaying elements
+                            const elementAtPoint = document.elementFromPoint(rect.left + rect.width/2, rect.top + rect.height/2);
+                            if (elementAtPoint !== testBtn && !testBtn.contains(elementAtPoint)) {
+                                console.warn('⚠️ [DEBUG] Element at button center is NOT the button:', elementAtPoint);
+                                console.warn('⚠️ [DEBUG] This might indicate an overlay blocking clicks!');
+                            } else {
+                                console.log('✅ [DEBUG] Button is not blocked by overlays');
+                            }
                         }
-                        }
+                    }
                     } else {
                     console.warn('⚠️ [DEBUG] Component instance not found in window.merchantFormInstance');
                 }

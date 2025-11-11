@@ -132,9 +132,23 @@ class MerchantFormComponent {
                         
                         if (isValid) {
                             console.log('🔍 [DEBUG] Form is valid, calling handleSubmit');
-                            self.handleSubmit(e);
+                            // Call handleSubmit and ensure it completes
+                            const submitPromise = self.handleSubmit(e);
+                            if (submitPromise && typeof submitPromise.then === 'function') {
+                                submitPromise.catch(err => {
+                                    console.error('❌ [ERROR] handleSubmit promise rejected:', err);
+                                    console.error('❌ [ERROR] Error stack:', err.stack);
+                                });
+                            }
                         } else {
                             console.warn('⚠️ [DEBUG] Form validation failed on button click');
+                            // Get invalid fields for debugging
+                            const invalidFields = Array.from(self.form.elements).filter(el => !el.validity.valid && el.required);
+                            console.warn('⚠️ [DEBUG] Invalid required fields:', invalidFields.map(f => ({ 
+                                name: f.name || f.id, 
+                                value: f.value, 
+                                validationMessage: f.validationMessage 
+                            })));
                             if (self.form) {
                                 self.form.reportValidity();
                             }
