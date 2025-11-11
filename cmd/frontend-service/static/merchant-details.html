@@ -2201,15 +2201,14 @@
             const coreResults = document.getElementById('coreResults');
             const isCoreResultsInTab = businessAnalyticsTab && coreResults ? businessAnalyticsTab.contains(coreResults) : false;
             
-            console.log('🔍 #business-analytics tab:', {
-                exists: !!businessAnalyticsTab,
-                display: businessAnalyticsTab ? window.getComputedStyle(businessAnalyticsTab).display : 'N/A',
-                inlineDisplay: businessAnalyticsTab ? businessAnalyticsTab.style.display : 'N/A',
-                hasActive: businessAnalyticsTab ? businessAnalyticsTab.classList.contains('active') : false,
-                visible: businessAnalyticsTab ? businessAnalyticsTab.offsetParent !== null : false,
-                children: businessAnalyticsTab ? businessAnalyticsTab.children.length : 0,
-                containsCoreResults: isCoreResultsInTab
-            });
+            console.log('🔍 #business-analytics tab:');
+            console.log('  - exists:', !!businessAnalyticsTab);
+            console.log('  - display:', businessAnalyticsTab ? window.getComputedStyle(businessAnalyticsTab).display : 'N/A');
+            console.log('  - inlineDisplay:', businessAnalyticsTab ? businessAnalyticsTab.style.display : 'N/A');
+            console.log('  - hasActive class:', businessAnalyticsTab ? businessAnalyticsTab.classList.contains('active') : false);
+            console.log('  - visible (offsetParent):', businessAnalyticsTab ? businessAnalyticsTab.offsetParent !== null : false);
+            console.log('  - children count:', businessAnalyticsTab ? businessAnalyticsTab.children.length : 0);
+            console.log('  - containsCoreResults:', isCoreResultsInTab);
             
             if (!isCoreResultsInTab && coreResults) {
                 console.warn('⚠️ CRITICAL: #coreResults is NOT inside #business-analytics tab!');
