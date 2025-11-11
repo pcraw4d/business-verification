@@ -1208,12 +1208,38 @@
                     }
                 };
 
-                // Try immediately, then retry after a short delay if needed
+                // Try immediately, then retry multiple times if needed
                 populateFields();
-                if (document.querySelectorAll('#businessName, #websiteUrl, #streetAddress').length === 0) {
-                    console.log('🔍 Elements not found immediately, retrying after 100ms...');
-                    setTimeout(populateFields, 100);
-                }
+                
+                // Retry logic with multiple attempts
+                let retryCount = 0;
+                const maxRetries = 5;
+                const retryInterval = 200; // 200ms between retries
+                
+                const checkAndRetry = () => {
+                    const foundElements = document.querySelectorAll('#businessName, #websiteUrl, #streetAddress, #city, #state, #postalCode, #country');
+                    if (foundElements.length === 0 && retryCount < maxRetries) {
+                        retryCount++;
+                        console.log(`🔍 Elements not found, retry attempt ${retryCount}/${maxRetries}...`);
+                        setTimeout(() => {
+                            populateFields();
+                            checkAndRetry();
+                        }, retryInterval);
+                    } else if (foundElements.length > 0) {
+                        console.log(`✅ Found ${foundElements.length} merchant detail elements after ${retryCount} retries`);
+                    } else {
+                        console.error('❌ Merchant detail elements not found after all retries');
+                        // Log all available IDs for debugging
+                        const allIds = Array.from(document.querySelectorAll('[id]')).map(el => el.id);
+                        console.log('🔍 Available element IDs:', allIds.filter(id => 
+                            id.includes('business') || id.includes('address') || id.includes('city') || 
+                            id.includes('state') || id.includes('country') || id.includes('postal')
+                        ));
+                    }
+                };
+                
+                // Start retry check after initial attempt
+                setTimeout(checkAndRetry, 100);
             }
 
             populateApiResults() {
