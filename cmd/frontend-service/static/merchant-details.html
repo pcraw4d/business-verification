@@ -1934,7 +1934,18 @@
             
             // Listen for tab activation
             console.log('🔍 Looking for Risk Indicators tab button...');
-            const riskIndicatorsTabButton = document.querySelector('[data-tab="risk-indicators"]');
+            // Try multiple selectors to find the button
+            let riskIndicatorsTabButton = document.querySelector('[data-tab="risk-indicators"]');
+            if (!riskIndicatorsTabButton) {
+                // Try finding by text content
+                const allButtons = document.querySelectorAll('.tab-button, button[data-tab]');
+                for (const btn of allButtons) {
+                    if (btn.textContent && btn.textContent.includes('Risk Indicators')) {
+                        riskIndicatorsTabButton = btn;
+                        break;
+                    }
+                }
+            }
             console.log('🔍 Found button:', riskIndicatorsTabButton);
             console.log('🔍 All tab buttons:', document.querySelectorAll('.tab-button'));
             console.log('🔍 All data-tab attributes:', document.querySelectorAll('[data-tab]'));
@@ -2015,7 +2026,18 @@
                 }
                 
                 // Set up Risk Assessment tab click handler
-                const riskAssessmentTabButton = document.querySelector('[data-tab="risk-assessment"]');
+                // Try multiple selectors to find the button
+                let riskAssessmentTabButton = document.querySelector('[data-tab="risk-assessment"]');
+                if (!riskAssessmentTabButton) {
+                    // Try finding by text content
+                    const allButtons = document.querySelectorAll('.tab-button, button[data-tab]');
+                    for (const btn of allButtons) {
+                        if (btn.textContent && btn.textContent.includes('Risk Assessment')) {
+                            riskAssessmentTabButton = btn;
+                            break;
+                        }
+                    }
+                }
                 console.log('🔍 Risk Assessment tab button:', riskAssessmentTabButton);
                 
                 if (riskAssessmentTabButton) {

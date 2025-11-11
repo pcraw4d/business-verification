@@ -38,7 +38,26 @@ class RiskTooltipSystem {
             max-width: 300px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         `;
-        document.body.appendChild(this.tooltipElement);
+        // Wait for body to be available before appending
+        if (document.body) {
+            document.body.appendChild(this.tooltipElement);
+        } else {
+            // If body not ready, wait for DOMContentLoaded
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => {
+                    if (document.body && this.tooltipElement) {
+                        document.body.appendChild(this.tooltipElement);
+                    }
+                });
+            } else {
+                // Fallback: try again after a short delay
+                setTimeout(() => {
+                    if (document.body && this.tooltipElement) {
+                        document.body.appendChild(this.tooltipElement);
+                    }
+                }, 100);
+            }
+        }
     }
 
     /**
