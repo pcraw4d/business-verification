@@ -2306,56 +2306,95 @@
             console.log('🔍 ================================================');
         };
         
+        // Initialize flags to track button setup status
+        window.riskIndicatorsButtonSetup = false;
+        window.riskAssessmentButtonSetup = false;
+        window.tabObserver = null;
+        
         // MutationObserver to detect when content is added
         const observeDOMChanges = () => {
+            // Check if both buttons are already set up - if so, disconnect observer
+            if (window.riskIndicatorsButtonSetup && window.riskAssessmentButtonSetup) {
+                if (window.tabObserver) {
+                    window.tabObserver.disconnect();
+                    window.tabObserver = null;
+                    console.log('✅ Both buttons set up - MutationObserver disconnected');
+                }
+                return;
+            }
+            
+            // Debounce timer to prevent rapid re-triggers
+            let debounceTimer = null;
+            
             const observer = new MutationObserver((mutations) => {
-                let contentAdded = false;
-                mutations.forEach((mutation) => {
-                    if (mutation.addedNodes.length > 0) {
-                        mutation.addedNodes.forEach((node) => {
-                            if (node.nodeType === 1) { // Element node
-                                // Check if it's a tab button or tab content
-                                if (node.matches && (
-                                    node.matches('.tab-button') ||
-                                    node.matches('button[data-tab]') ||
-                                    node.matches('.tab-content') ||
-                                    node.matches('#merchant-details') ||
-                                    node.matches('nav[aria-label="Tabs"]')
-                                )) {
-                                    contentAdded = true;
-                                    console.log('✅ Tab-related content detected in DOM:', {
-                                        tagName: node.tagName,
-                                        id: node.id,
-                                        classes: node.className,
-                                        dataTab: node.getAttribute('data-tab')
-                                    });
-                                }
-                                // Check if node contains tab buttons
-                                if (node.querySelectorAll) {
-                                    const tabButtons = node.querySelectorAll('.tab-button, button[data-tab]');
-                                    if (tabButtons.length > 0) {
+                // Clear existing debounce timer
+                if (debounceTimer) {
+                    clearTimeout(debounceTimer);
+                }
+                
+                // Debounce: only process after 500ms of no mutations
+                debounceTimer = setTimeout(() => {
+                    // Check if both buttons are already set up
+                    if (window.riskIndicatorsButtonSetup && window.riskAssessmentButtonSetup) {
+                        if (window.tabObserver) {
+                            window.tabObserver.disconnect();
+                            window.tabObserver = null;
+                            console.log('✅ Both buttons set up - MutationObserver disconnected');
+                        }
+                        return;
+                    }
+                    
+                    let contentAdded = false;
+                    mutations.forEach((mutation) => {
+                        if (mutation.addedNodes.length > 0) {
+                            mutation.addedNodes.forEach((node) => {
+                                if (node.nodeType === 1) { // Element node
+                                    // Check if it's a tab button or tab content
+                                    if (node.matches && (
+                                        node.matches('.tab-button') ||
+                                        node.matches('button[data-tab]') ||
+                                        node.matches('.tab-content') ||
+                                        node.matches('#merchant-details') ||
+                                        node.matches('nav[aria-label="Tabs"]')
+                                    )) {
                                         contentAdded = true;
-                                        console.log(`✅ Found ${tabButtons.length} tab buttons in added node`);
+                                        console.log('✅ Tab-related content detected in DOM:', {
+                                            tagName: node.tagName,
+                                            id: node.id,
+                                            classes: node.className,
+                                            dataTab: node.getAttribute('data-tab')
+                                        });
+                                    }
+                                    // Check if node contains tab buttons
+                                    if (node.querySelectorAll) {
+                                        const tabButtons = node.querySelectorAll('.tab-button, button[data-tab]');
+                                        if (tabButtons.length > 0) {
+                                            contentAdded = true;
+                                            console.log(`✅ Found ${tabButtons.length} tab buttons in added node`);
+                                        }
                                     }
                                 }
+                            });
+                        }
+                    });
+                    
+                    if (contentAdded) {
+                        console.log('🔄 Tab content detected - checking if setup needed...');
+                        // Only re-run if buttons are not already set up
+                        setTimeout(() => {
+                            if (!window.riskIndicatorsButtonSetup && window.setupRiskIndicatorsButton) {
+                                window.setupRiskIndicatorsButton();
                             }
-                        });
+                            if (!window.riskAssessmentButtonSetup && window.setupRiskAssessmentButton) {
+                                window.setupRiskAssessmentButton();
+                            }
+                        }, 100);
                     }
-                });
-                
-                if (contentAdded) {
-                    console.log('🔄 Tab content detected - re-running discovery...');
-                    // Re-run button discovery after a short delay
-                    setTimeout(() => {
-                        if (window.setupRiskIndicatorsButton) {
-                            window.setupRiskIndicatorsButton();
-                        }
-                        if (window.setupRiskAssessmentButton) {
-                            window.setupRiskAssessmentButton();
-                        }
-                    }, 100);
-                }
+                }, 500); // 500ms debounce
             });
+            
+            // Store observer reference globally so it can be disconnected
+            window.tabObserver = observer;
             
             // Start observing
             if (document.body) {
@@ -2502,6 +2541,14 @@
                             id: riskIndicatorsTabButton.id
                         });
                         setupButtonHandler(riskIndicatorsTabButton);
+                        // Mark as set up to prevent re-initialization
+                        window.riskIndicatorsButtonSetup = true;
+                        // Check if we can disconnect observer
+                        if (window.riskIndicatorsButtonSetup && window.riskAssessmentButtonSetup && window.tabObserver) {
+                            window.tabObserver.disconnect();
+                            window.tabObserver = null;
+                            console.log('✅ Both buttons set up - MutationObserver disconnected');
+                        }
                         return;
                     } else if (retries > 0) {
                         // Retry after a short delay
@@ -2522,10 +2569,20 @@
                 const setupButtonHandler = (button) => {
                     if (!button) return;
                     
+                    // Check if button already has our handler (prevent infinite loop)
+                    if (button.hasAttribute('data-risk-indicators-handler')) {
+                        console.log('✅ Risk Indicators button handler already set up, skipping');
+                        return;
+                    }
+                    
                     console.log('✅ Setting up Risk Indicators tab button handler');
+                    
+                    // Mark button as having handler
+                    button.setAttribute('data-risk-indicators-handler', 'true');
                     
                     // Remove any existing event listeners by cloning the button
                     const newButton = button.cloneNode(true);
+                    newButton.setAttribute('data-risk-indicators-handler', 'true');
                     button.parentNode.replaceChild(newButton, button);
                     
                     // Add our new event listener to the clean button
@@ -2676,6 +2733,14 @@
                                 id: riskAssessmentTabButton.id
                             });
                             setupButtonHandler(riskAssessmentTabButton);
+                            // Mark as set up to prevent re-initialization
+                            window.riskAssessmentButtonSetup = true;
+                            // Check if we can disconnect observer
+                            if (window.riskIndicatorsButtonSetup && window.riskAssessmentButtonSetup && window.tabObserver) {
+                                window.tabObserver.disconnect();
+                                window.tabObserver = null;
+                                console.log('✅ Both buttons set up - MutationObserver disconnected');
+                            }
                             return;
                         } else if (retries > 0) {
                             // Retry after a short delay
@@ -2693,10 +2758,20 @@
                     const setupButtonHandler = (button) => {
                         if (!button) return;
                         
+                        // Check if button already has our handler (prevent infinite loop)
+                        if (button.hasAttribute('data-risk-assessment-handler')) {
+                            console.log('✅ Risk Assessment button handler already set up, skipping');
+                            return;
+                        }
+                        
                         console.log('✅ Setting up Risk Assessment tab button handler');
+                        
+                        // Mark button as having handler
+                        button.setAttribute('data-risk-assessment-handler', 'true');
                         
                         // Remove any existing event listeners by cloning the button
                         const newRiskAssessmentButton = button.cloneNode(true);
+                        newRiskAssessmentButton.setAttribute('data-risk-assessment-handler', 'true');
                         button.parentNode.replaceChild(newRiskAssessmentButton, button);
                         
                         // Add click event listener
