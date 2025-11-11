@@ -1156,19 +1156,41 @@
 
                 // Wait a bit for DOM to be fully ready, especially if tabs are involved
                 const populateFields = () => {
-                    // Helper function to safely set text content
+                    // First, ensure the merchant-details tab is visible
+                    const merchantDetailsTab = document.getElementById('merchant-details');
+                    if (!merchantDetailsTab) {
+                        console.error('❌ Merchant details tab container not found!');
+                        return;
+                    }
+                    
+                    // Ensure the tab is active (visible)
+                    if (!merchantDetailsTab.classList.contains('active')) {
+                        console.log('🔍 Merchant details tab not active, activating it...');
+                        merchantDetailsTab.classList.add('active');
+                        // Also activate the corresponding button
+                        const tabButton = document.querySelector('[data-tab="merchant-details"]');
+                        if (tabButton) {
+                            tabButton.classList.add('active');
+                        }
+                    }
+                    
+                    // Helper function to safely set text content - search within tab container first
                     const setTextContent = (elementId, value, fallback = '-') => {
-                        const element = document.getElementById(elementId);
+                        // First try to find within the tab container
+                        let element = merchantDetailsTab.querySelector(`#${elementId}`);
+                        // If not found, try document-wide
+                        if (!element) {
+                            element = document.getElementById(elementId);
+                        }
+                        // If still not found, try querySelector
+                        if (!element) {
+                            element = document.querySelector(`#${elementId}`);
+                        }
+                        
                         if (element) {
                             element.textContent = value || fallback;
                             return true;
                         } else {
-                            // Try querySelector as fallback (in case element is in a hidden tab)
-                            const elementByQuery = document.querySelector(`#${elementId}`);
-                            if (elementByQuery) {
-                                elementByQuery.textContent = value || fallback;
-                                return true;
-                            }
                             console.warn(`⚠️ Element with id "${elementId}" not found in DOM`);
                             return false;
                         }
@@ -1200,11 +1222,26 @@
                     
                     if (populatedCount === 0) {
                         console.error('❌ No fields were populated - check if the merchant details tab HTML structure exists');
-                        // Log available elements for debugging
-                        console.log('🔍 Available elements with similar IDs:', 
-                            Array.from(document.querySelectorAll('[id*="business"], [id*="address"], [id*="city"], [id*="country"]'))
-                                .map(el => el.id)
-                        );
+                        // Log available elements for debugging - fix invalid selector syntax
+                        const businessEls = Array.from(document.querySelectorAll('[id*="business"]')).map(el => el.id);
+                        const addressEls = Array.from(document.querySelectorAll('[id*="address"]')).map(el => el.id);
+                        const cityEls = Array.from(document.querySelectorAll('[id*="city"]')).map(el => el.id);
+                        const countryEls = Array.from(document.querySelectorAll('[id*="country"]')).map(el => el.id);
+                        console.log('🔍 Available elements with similar IDs:', {
+                            business: businessEls,
+                            address: addressEls,
+                            city: cityEls,
+                            country: countryEls
+                        });
+                        // Also check what's actually in the tab container
+                        if (merchantDetailsTab) {
+                            const tabElements = Array.from(merchantDetailsTab.querySelectorAll('[id]')).map(el => ({
+                                id: el.id,
+                                tagName: el.tagName,
+                                textContent: el.textContent.substring(0, 50)
+                            }));
+                            console.log('🔍 Elements inside merchant-details tab:', tabElements);
+                        }
                     }
                 };
 
@@ -1217,10 +1254,19 @@
                 const retryInterval = 200; // 200ms between retries
                 
                 const checkAndRetry = () => {
-                    const foundElements = document.querySelectorAll('#businessName, #websiteUrl, #streetAddress, #city, #state, #postalCode, #country');
+                    // Check if tab container exists and is visible
+                    const merchantDetailsTab = document.getElementById('merchant-details');
+                    if (!merchantDetailsTab) {
+                        console.error('❌ Merchant details tab container not found!');
+                        return;
+                    }
+                    
+                    // Search within the tab container
+                    const foundElements = merchantDetailsTab.querySelectorAll('#businessName, #websiteUrl, #streetAddress, #city, #state, #postalCode, #country');
                     if (foundElements.length === 0 && retryCount < maxRetries) {
                         retryCount++;
                         console.log(`🔍 Elements not found, retry attempt ${retryCount}/${maxRetries}...`);
+                        console.log(`🔍 Tab container exists: ${!!merchantDetailsTab}, is active: ${merchantDetailsTab.classList.contains('active')}`);
                         setTimeout(() => {
                             populateFields();
                             checkAndRetry();
@@ -1229,12 +1275,14 @@
                         console.log(`✅ Found ${foundElements.length} merchant detail elements after ${retryCount} retries`);
                     } else {
                         console.error('❌ Merchant detail elements not found after all retries');
-                        // Log all available IDs for debugging
-                        const allIds = Array.from(document.querySelectorAll('[id]')).map(el => el.id);
-                        console.log('🔍 Available element IDs:', allIds.filter(id => 
+                        // Log all available IDs within the tab for debugging
+                        const allIds = Array.from(merchantDetailsTab.querySelectorAll('[id]')).map(el => el.id);
+                        console.log('🔍 Available element IDs in tab:', allIds.filter(id => 
                             id.includes('business') || id.includes('address') || id.includes('city') || 
                             id.includes('state') || id.includes('country') || id.includes('postal')
                         ));
+                        // Also log all IDs in the tab
+                        console.log('🔍 All IDs in merchant-details tab:', allIds);
                     }
                 };
                 
