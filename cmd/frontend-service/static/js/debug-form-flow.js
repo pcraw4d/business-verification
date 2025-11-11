@@ -94,9 +94,30 @@ class FormFlowDebugger {
             panel.appendChild(content);
             document.body.appendChild(panel);
             
-            // Toggle button
-            document.getElementById('toggleDebugPanel').addEventListener('click', () => {
-                panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            // Log panel creation
+            this.log('system', 'Debug panel created and added to DOM', {
+                panelId: panel.id,
+                panelExists: !!panel,
+                bodyExists: !!document.body
+            });
+            
+            // Toggle button inside panel header
+            document.getElementById('toggleDebugPanel').addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                try {
+                    const panelElement = document.getElementById('formFlowDebugPanel') || panel || window._debugPanel;
+                    if (!panelElement) {
+                        console.error('Debug panel not found!');
+                        return;
+                    }
+                    const currentDisplay = panelElement.style.display || window.getComputedStyle(panelElement).display;
+                    const newDisplay = currentDisplay === 'none' || currentDisplay === '' ? 'block' : 'none';
+                    panelElement.style.display = newDisplay;
+                    this.log('system', `Debug panel ${newDisplay === 'block' ? 'opened' : 'closed'} via header toggle button`);
+                } catch (error) {
+                    console.error('Error toggling debug panel:', error);
+                }
             });
             
             // Store panel reference for keyboard shortcut
@@ -108,9 +129,24 @@ class FormFlowDebugger {
                 if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === '`') {
                     e.preventDefault();
                     e.stopPropagation();
-                    const currentDisplay = panel.style.display;
-                    panel.style.display = currentDisplay === 'none' || currentDisplay === '' ? 'block' : 'none';
-                    this.log('system', `Debug panel ${panel.style.display === 'block' ? 'opened' : 'closed'} via keyboard shortcut`);
+                    try {
+                        const panelElement = document.getElementById('formFlowDebugPanel') || panel || window._debugPanel;
+                        if (!panelElement) {
+                            console.error('Debug panel not found for keyboard shortcut!');
+                            return;
+                        }
+                        const currentDisplay = panelElement.style.display || window.getComputedStyle(panelElement).display;
+                        const newDisplay = currentDisplay === 'none' || currentDisplay === '' ? 'block' : 'none';
+                        panelElement.style.display = newDisplay;
+                        this.log('system', `Debug panel ${newDisplay === 'block' ? 'opened' : 'closed'} via keyboard shortcut`, {
+                            previousDisplay: currentDisplay,
+                            newDisplay: newDisplay
+                        });
+                        console.log('Debug panel toggled via keyboard:', newDisplay);
+                    } catch (error) {
+                        console.error('Error toggling debug panel via keyboard:', error);
+                        this.log('system', 'ERROR toggling debug panel via keyboard', { error: error.message });
+                    }
                 }
             });
             
@@ -137,12 +173,39 @@ class FormFlowDebugger {
                 justify-content: center;
                 box-shadow: 0 2px 10px rgba(0, 255, 0, 0.5);
             `;
-            toggleBtn.addEventListener('click', () => {
-                const currentDisplay = panel.style.display;
-                panel.style.display = currentDisplay === 'none' || currentDisplay === '' ? 'block' : 'none';
-                this.log('system', `Debug panel ${panel.style.display === 'block' ? 'opened' : 'closed'} via toggle button`);
+            toggleBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                try {
+                    // Get panel reference - try multiple ways
+                    const panelElement = document.getElementById('formFlowDebugPanel') || panel || window._debugPanel;
+                    if (!panelElement) {
+                        console.error('Debug panel not found!');
+                        this.log('system', 'ERROR: Debug panel element not found when toggling');
+                        return;
+                    }
+                    const currentDisplay = panelElement.style.display || window.getComputedStyle(panelElement).display;
+                    const newDisplay = currentDisplay === 'none' || currentDisplay === '' ? 'block' : 'none';
+                    panelElement.style.display = newDisplay;
+                    this.log('system', `Debug panel ${newDisplay === 'block' ? 'opened' : 'closed'} via toggle button`, {
+                        previousDisplay: currentDisplay,
+                        newDisplay: newDisplay,
+                        panelExists: !!panelElement
+                    });
+                    console.log('Debug panel toggled:', newDisplay);
+                } catch (error) {
+                    console.error('Error toggling debug panel:', error);
+                    this.log('system', 'ERROR toggling debug panel', { error: error.message });
+                }
             });
             document.body.appendChild(toggleBtn);
+            
+            // Log that toggle button was created
+            this.log('system', 'Debug panel toggle button created', {
+                buttonId: toggleBtn.id,
+                panelId: panel.id,
+                panelExists: !!panel
+            });
         };
         
         tryCreatePanel();
