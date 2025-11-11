@@ -83,9 +83,13 @@ class MerchantFormComponent {
                 const self = this;
                 
                 const handleButtonClick = function(e) {
+                    console.log('🔍 [DEBUG] ========== COMPONENT BUTTON CLICK HANDLER FIRED ==========');
                     console.log('🔍 [DEBUG] Submit button clicked - handler FIRED!');
                     console.log('🔍 [DEBUG] Event type:', e.type);
                     console.log('🔍 [DEBUG] Event target:', e.target);
+                    console.log('🔍 [DEBUG] Event currentTarget:', e.currentTarget);
+                    console.log('🔍 [DEBUG] Handler context (self):', self);
+                    console.log('🔍 [DEBUG] Form element:', self.form);
                     
                     // CRITICAL: Prevent default FIRST
                     e.preventDefault();
@@ -99,7 +103,11 @@ class MerchantFormComponent {
                     console.log('🔍 [DEBUG] Processing button click immediately');
                     
                     // Trigger form validation and submission
-                    if (self.form.checkValidity()) {
+                    console.log('🔍 [DEBUG] Checking form validity...');
+                    const isValid = self.form.checkValidity();
+                    console.log('🔍 [DEBUG] Form validity result:', isValid);
+                    
+                    if (isValid) {
                         console.log('🔍 [DEBUG] Form is valid, calling handleSubmit');
                         self.handleSubmit(e);
                     } else {
@@ -110,17 +118,26 @@ class MerchantFormComponent {
                     return false;
                 };
                 
-                // Capture phase - highest priority
+                // Capture phase - highest priority - MUST be first
                 this.submitBtn.addEventListener('click', handleButtonClick, { capture: true, passive: false });
                 console.log('✅ [DEBUG] Click event listener attached to submit button (capture, non-passive)');
+                
+                // Also attach to mousedown as backup (fires before click)
+                this.submitBtn.addEventListener('mousedown', function(e) {
+                    console.log('🔍 [DEBUG] Submit button mousedown - handler FIRED!');
+                    // Don't prevent default on mousedown, just log
+                }, { capture: true, passive: true });
+                console.log('✅ [DEBUG] Mousedown event listener attached (capture, passive)');
                 
                 // Bubble phase - backup
                 this.submitBtn.addEventListener('click', handleButtonClick, { capture: false, passive: false });
                 console.log('✅ [DEBUG] Click event listener attached to submit button (bubble, non-passive)');
                 
                 // onclick handler - set early and don't let it be overwritten
+                // Use Object.defineProperty to make it non-configurable
                 const originalOnclick = this.submitBtn.onclick;
-                this.submitBtn.onclick = function(e) {
+                const onclickHandler = function(e) {
+                    console.log('🔍 [DEBUG] ========== ONCLICK HANDLER FIRED ==========');
                     console.log('🔍 [DEBUG] Submit button onclick handler triggered');
                     if (e) {
                         e.preventDefault();
@@ -135,7 +152,20 @@ class MerchantFormComponent {
                     }
                     return false;
                 };
-                console.log('✅ [DEBUG] onclick handler attached to submit button');
+                
+                // Try to make onclick non-configurable
+                try {
+                    Object.defineProperty(this.submitBtn, 'onclick', {
+                        value: onclickHandler,
+                        writable: false,
+                        configurable: false
+                    });
+                    console.log('✅ [DEBUG] onclick handler attached (non-configurable)');
+                } catch (e) {
+                    // Fallback if defineProperty fails
+                    this.submitBtn.onclick = onclickHandler;
+                    console.log('✅ [DEBUG] onclick handler attached (fallback method)');
+                }
                 
                 // Make button type="button" to prevent form submission
                 if (this.submitBtn.type === 'submit') {

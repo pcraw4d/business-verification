@@ -117,7 +117,7 @@ class MerchantContext {
                         <div class="merchant-status" id="sidebarMerchantStatus">Select a merchant</div>
                     </div>
                     <div class="merchant-actions">
-                        <a href="merchant-detail.html" class="nav-link-small">
+                        <a href="merchant-details.html" class="nav-link-small">
                             <i class="fas fa-eye"></i>
                             View Details
                         </a>

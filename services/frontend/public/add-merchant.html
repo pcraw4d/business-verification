@@ -815,12 +815,18 @@
             if (testBtn) {
                 console.log('🔍 [DEBUG] Button type:', testBtn.type);
                 console.log('🔍 [DEBUG] Button disabled:', testBtn.disabled);
+                console.log('🔍 [DEBUG] Button onclick:', typeof testBtn.onclick);
                 
-                // Don't overwrite onclick - just monitor
-                testBtn.addEventListener('click', (e) => {
-                    console.log('✅ [DEBUG] DIRECT CLICK HANDLER FIRED - Button is clickable!');
-                    console.log('🔍 [DEBUG] Direct handler - defaultPrevented:', e.defaultPrevented);
-                }, { capture: true, passive: false });
+                // Check if component handlers are still attached
+                if (window.merchantFormInstance) {
+                    console.log('✅ [DEBUG] Component instance found:', window.merchantFormInstance);
+                    console.log('🔍 [DEBUG] Component submitBtn:', window.merchantFormInstance.submitBtn);
+                } else {
+                    console.warn('⚠️ [DEBUG] Component instance not found in window.merchantFormInstance');
+                }
+                
+                // Don't add a handler that might interfere - just log button state
+                console.log('🔍 [DEBUG] Button event listeners count:', testBtn.getEventListeners ? 'N/A (getEventListeners not available)' : 'Cannot check');
             }
             
             // Monitor for form submission attempts - but don't interfere
