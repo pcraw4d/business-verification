@@ -45,53 +45,69 @@ class FormFlowDebugger {
     }
 
     createDebugPanel() {
-        // Create floating debug panel
-        const panel = document.createElement('div');
-        panel.id = 'formFlowDebugPanel';
-        panel.style.cssText = `
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            width: 400px;
-            max-height: 80vh;
-            background: rgba(0, 0, 0, 0.9);
-            color: #0f0;
-            font-family: 'Courier New', monospace;
-            font-size: 11px;
-            padding: 10px;
-            border: 2px solid #0f0;
-            border-radius: 5px;
-            z-index: 99999;
-            overflow-y: auto;
-            display: none;
-        `;
-        
-        const header = document.createElement('div');
-        header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #0f0; padding-bottom: 5px;';
-        header.innerHTML = `
-            <strong>🔍 Form Flow Debugger</strong>
-            <button id="toggleDebugPanel" style="background: #0f0; color: #000; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Toggle</button>
-        `;
-        
-        const content = document.createElement('div');
-        content.id = 'debugPanelContent';
-        content.style.cssText = 'max-height: 70vh; overflow-y: auto;';
-        
-        panel.appendChild(header);
-        panel.appendChild(content);
-        document.body.appendChild(panel);
-        
-        // Toggle button
-        document.getElementById('toggleDebugPanel').addEventListener('click', () => {
-            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-        });
-        
-        // Keyboard shortcut: Ctrl+Shift+D (PC) or Cmd+Shift+D (Mac)
-        document.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'D') {
-                panel.style.display = panel.style.display === 'none' ? 'block' : 'block';
+        // Wait for body to be available
+        const tryCreatePanel = () => {
+            if (!document.body) {
+                // Body not ready yet, wait for DOMContentLoaded
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', tryCreatePanel);
+                    return;
+                }
+                // If still not available, try again after a short delay
+                setTimeout(tryCreatePanel, 50);
+                return;
             }
-        });
+            
+            // Create floating debug panel
+            const panel = document.createElement('div');
+            panel.id = 'formFlowDebugPanel';
+            panel.style.cssText = `
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                width: 400px;
+                max-height: 80vh;
+                background: rgba(0, 0, 0, 0.9);
+                color: #0f0;
+                font-family: 'Courier New', monospace;
+                font-size: 11px;
+                padding: 10px;
+                border: 2px solid #0f0;
+                border-radius: 5px;
+                z-index: 99999;
+                overflow-y: auto;
+                display: none;
+            `;
+            
+            const header = document.createElement('div');
+            header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #0f0; padding-bottom: 5px;';
+            header.innerHTML = `
+                <strong>🔍 Form Flow Debugger</strong>
+                <button id="toggleDebugPanel" style="background: #0f0; color: #000; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;">Toggle</button>
+            `;
+            
+            const content = document.createElement('div');
+            content.id = 'debugPanelContent';
+            content.style.cssText = 'max-height: 70vh; overflow-y: auto;';
+            
+            panel.appendChild(header);
+            panel.appendChild(content);
+            document.body.appendChild(panel);
+            
+            // Toggle button
+            document.getElementById('toggleDebugPanel').addEventListener('click', () => {
+                panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            });
+            
+            // Keyboard shortcut: Ctrl+Shift+D (PC) or Cmd+Shift+D (Mac)
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'D') {
+                    panel.style.display = panel.style.display === 'none' ? 'block' : 'block';
+                }
+            });
+        };
+        
+        tryCreatePanel();
     }
 
     log(category, message, data = null) {
