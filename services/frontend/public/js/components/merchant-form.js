@@ -101,6 +101,8 @@ class MerchantFormComponent {
                 const handleButtonClick = function(e) {
                     console.log('🔍 [DEBUG] ========== COMPONENT BUTTON CLICK HANDLER FIRED ==========');
                     console.log('🔍 [DEBUG] Submit button clicked - handler FIRED!');
+                    console.log('🔍 [DEBUG] Handler function reference:', handleButtonClick);
+                    console.log('🔍 [DEBUG] Handler attached to element:', self.submitBtn);
                     console.log('🔍 [DEBUG] Event type:', e ? e.type : 'NO EVENT');
                     console.log('🔍 [DEBUG] Event target:', e ? e.target : 'NO EVENT');
                     console.log('🔍 [DEBUG] Event currentTarget:', e ? e.currentTarget : 'NO EVENT');

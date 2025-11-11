@@ -857,13 +857,46 @@
                             });
                             
                             // Check for overlaying elements
-                            const elementAtPoint = document.elementFromPoint(rect.left + rect.width/2, rect.top + rect.height/2);
-                            if (elementAtPoint !== testBtn && !testBtn.contains(elementAtPoint)) {
+                            const centerX = rect.left + rect.width/2;
+                            const centerY = rect.top + rect.height/2;
+                            const elementAtPoint = document.elementFromPoint(centerX, centerY);
+                            console.log('🔍 [DEBUG] Element at button center coordinates:', { x: centerX, y: centerY, element: elementAtPoint });
+                            
+                            if (elementAtPoint === null) {
+                                console.warn('⚠️ [DEBUG] elementFromPoint returned null - button may not be in viewport or coordinates are invalid');
+                            } else if (elementAtPoint !== testBtn && !testBtn.contains(elementAtPoint)) {
                                 console.warn('⚠️ [DEBUG] Element at button center is NOT the button:', elementAtPoint);
                                 console.warn('⚠️ [DEBUG] This might indicate an overlay blocking clicks!');
+                                console.warn('⚠️ [DEBUG] Overlaying element tag:', elementAtPoint.tagName);
+                                console.warn('⚠️ [DEBUG] Overlaying element classes:', elementAtPoint.className);
                             } else {
                                 console.log('✅ [DEBUG] Button is not blocked by overlays');
                             }
+                            
+                            // Add a DIRECT click handler that can't be blocked - as ultimate fallback
+                            console.log('🔍 [DEBUG] Adding ULTIMATE FALLBACK click handler...');
+                            testBtn.addEventListener('click', function(e) {
+                                console.log('🚨 [ULTIMATE FALLBACK] Button clicked - this handler should ALWAYS fire!');
+                                console.log('🚨 [ULTIMATE FALLBACK] Event:', e);
+                                console.log('🚨 [ULTIMATE FALLBACK] Target:', e.target);
+                                
+                                // If component handlers haven't fired, trigger handleSubmit directly
+                                if (window.merchantFormInstance) {
+                                    console.log('🚨 [ULTIMATE FALLBACK] Triggering handleSubmit directly...');
+                                    const mockEvent = {
+                                        preventDefault: () => {},
+                                        stopPropagation: () => {},
+                                        stopImmediatePropagation: () => {},
+                                        type: 'click',
+                                        target: testBtn,
+                                        currentTarget: testBtn
+                                    };
+                                    window.merchantFormInstance.handleSubmit(mockEvent).catch(err => {
+                                        console.error('❌ [ULTIMATE FALLBACK] handleSubmit error:', err);
+                                    });
+                                }
+                            }, { capture: true, passive: false, once: false });
+                            console.log('✅ [DEBUG] Ultimate fallback handler attached');
                         }
                     }
                     } else {
