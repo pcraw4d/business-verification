@@ -286,9 +286,13 @@ class MerchantContext {
     loadCurrentMerchant() {
         // Try to load current merchant from session
         if (this.sessionManager) {
-            const currentMerchant = this.sessionManager.getCurrentMerchant();
-            if (currentMerchant) {
-                this.updateMerchantContext(currentMerchant);
+            // SessionManager uses getCurrentSession() not getCurrentMerchant()
+            const currentSession = this.sessionManager.getCurrentSession ? this.sessionManager.getCurrentSession() : null;
+            if (currentSession && currentSession.merchant) {
+                this.updateMerchantContext(currentSession.merchant);
+            } else if (currentSession) {
+                // If session itself is the merchant data
+                this.updateMerchantContext(currentSession);
             }
         }
 
