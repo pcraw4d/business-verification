@@ -61,6 +61,12 @@ class FormFlowDebugger {
                 return;
             }
             
+            // Check if panel was previously open
+            const wasPanelOpen = sessionStorage.getItem('debugPanelOpen') === 'true';
+            if (wasPanelOpen) {
+                console.log('💾 Restoring debug panel state: open (from sessionStorage)');
+            }
+            
             // Create floating debug panel
             const panel = document.createElement('div');
             panel.id = 'formFlowDebugPanel';
@@ -79,7 +85,7 @@ class FormFlowDebugger {
                 border-radius: 5px;
                 z-index: 99999;
                 overflow-y: auto;
-                display: none;
+                display: ${wasPanelOpen ? 'block' : 'none'};
             `;
             
             const header = document.createElement('div');
@@ -117,7 +123,13 @@ class FormFlowDebugger {
                     const currentDisplay = panelElement.style.display || window.getComputedStyle(panelElement).display;
                     const newDisplay = currentDisplay === 'none' || currentDisplay === '' ? 'block' : 'none';
                     panelElement.style.display = newDisplay;
-                    self.log('system', `Debug panel ${newDisplay === 'block' ? 'opened' : 'closed'} via header toggle button`);
+                    
+                    // Save state to sessionStorage
+                    sessionStorage.setItem('debugPanelOpen', newDisplay === 'block' ? 'true' : 'false');
+                    
+                    self.log('system', `Debug panel ${newDisplay === 'block' ? 'opened' : 'closed'} via header toggle button`, {
+                        persisted: true
+                    });
                 } catch (error) {
                     console.error('Error toggling debug panel:', error);
                 }
@@ -141,6 +153,10 @@ class FormFlowDebugger {
                         const currentDisplay = panelElement.style.display || window.getComputedStyle(panelElement).display;
                         const newDisplay = currentDisplay === 'none' || currentDisplay === '' ? 'block' : 'none';
                         panelElement.style.display = newDisplay;
+                        
+                        // Save state to sessionStorage
+                        sessionStorage.setItem('debugPanelOpen', newDisplay === 'block' ? 'true' : 'false');
+                        
                         self.log('system', `Debug panel ${newDisplay === 'block' ? 'opened' : 'closed'} via keyboard shortcut`, {
                             previousDisplay: currentDisplay,
                             newDisplay: newDisplay
@@ -198,6 +214,10 @@ class FormFlowDebugger {
                     
                     panelElement.style.display = newDisplay;
                     
+                    // Save state to sessionStorage so it persists across page navigations
+                    sessionStorage.setItem('debugPanelOpen', newDisplay === 'block' ? 'true' : 'false');
+                    console.log('💾 Saved panel state to sessionStorage:', newDisplay === 'block' ? 'open' : 'closed');
+                    
                     // Force a reflow
                     panelElement.offsetHeight;
                     
@@ -206,7 +226,8 @@ class FormFlowDebugger {
                     if (window.formFlowDebugger && window.formFlowDebugger.log) {
                         window.formFlowDebugger.log('system', `Debug panel ${newDisplay === 'block' ? 'opened' : 'closed'} via toggle function`, {
                             previousDisplay: currentDisplay,
-                            newDisplay: newDisplay
+                            newDisplay: newDisplay,
+                            persisted: true
                         });
                     }
                 } catch (error) {
