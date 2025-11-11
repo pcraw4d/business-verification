@@ -301,8 +301,13 @@ class MerchantFormComponent {
 
     validateField(field) {
         const fieldName = field.name;
-        const value = field.value.trim();
+        // For select elements, use value directly (don't trim, as it might be a code like "US")
+        // For input/textarea, trim whitespace
+        const rawValue = field.value;
+        const value = field.tagName === 'SELECT' ? rawValue : rawValue.trim();
         const errorElement = document.getElementById(fieldName + 'Error');
+        
+        console.log(`🔍 [VALIDATION] Validating field: ${fieldName}, type: ${field.tagName}, value: "${value}", required: ${field.hasAttribute('required')}`);
         
         // Clear previous validation
         field.classList.remove('error', 'success');
@@ -310,6 +315,7 @@ class MerchantFormComponent {
 
         // Required field validation
         if (field.hasAttribute('required') && !value) {
+            console.warn(`⚠️ [VALIDATION] Required field ${fieldName} is empty`);
             this.showError(field, errorElement, 'This field is required');
             return false;
         }
@@ -351,13 +357,24 @@ class MerchantFormComponent {
                 break;
             
             case 'country':
-                if (field.hasAttribute('required') && !value) {
-                    this.showError(field, errorElement, 'Please select a country');
-                    return false;
+                // For select, check if a valid option is selected (not the empty default)
+                if (field.hasAttribute('required')) {
+                    if (!value || value === '') {
+                        console.warn(`⚠️ [VALIDATION] Country field is required but empty or has empty value`);
+                        this.showError(field, errorElement, 'Please select a country');
+                        return false;
+                    }
+                    // Also check if it's the default "Select Country" option
+                    if (field.selectedIndex === 0 && field.options[0].value === '') {
+                        console.warn(`⚠️ [VALIDATION] Country field has default option selected`);
+                        this.showError(field, errorElement, 'Please select a country');
+                        return false;
+                    }
                 }
                 break;
         }
 
+        console.log(`✅ [VALIDATION] Field ${fieldName} is valid`);
         this.showSuccess(field, errorElement);
         return true;
     }
@@ -418,12 +435,29 @@ class MerchantFormComponent {
     validateForm() {
         const fields = this.form.querySelectorAll('input, select, textarea');
         let isValid = true;
+        const invalidFields = [];
 
+        console.log(`🔍 [VALIDATION] Starting form validation for ${fields.length} fields`);
+        
         fields.forEach(field => {
-            if (!this.validateField(field)) {
+            const fieldName = field.name || field.id || 'unknown';
+            const fieldValid = this.validateField(field);
+            if (!fieldValid) {
                 isValid = false;
+                invalidFields.push({
+                    name: fieldName,
+                    type: field.tagName,
+                    value: field.value,
+                    required: field.hasAttribute('required')
+                });
             }
         });
+
+        if (!isValid) {
+            console.warn(`⚠️ [VALIDATION] Form validation failed. Invalid fields:`, invalidFields);
+        } else {
+            console.log(`✅ [VALIDATION] Form validation passed`);
+        }
 
         return isValid;
     }

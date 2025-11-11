@@ -880,6 +880,14 @@
                                 console.log('🚨 [ULTIMATE FALLBACK] Event:', e);
                                 console.log('🚨 [ULTIMATE FALLBACK] Target:', e.target);
                                 
+                                // Prevent default to stop any native behavior
+                                if (e && typeof e.preventDefault === 'function') {
+                                    e.preventDefault();
+                                }
+                                if (e && typeof e.stopPropagation === 'function') {
+                                    e.stopPropagation();
+                                }
+                                
                                 // If component handlers haven't fired, trigger handleSubmit directly
                                 if (window.merchantFormInstance) {
                                     console.log('🚨 [ULTIMATE FALLBACK] Triggering handleSubmit directly...');
@@ -894,6 +902,8 @@
                                     window.merchantFormInstance.handleSubmit(mockEvent).catch(err => {
                                         console.error('❌ [ULTIMATE FALLBACK] handleSubmit error:', err);
                                     });
+                                } else {
+                                    console.error('❌ [ULTIMATE FALLBACK] merchantFormInstance not found!');
                                 }
                             }, { capture: true, passive: false, once: false });
                             console.log('✅ [DEBUG] Ultimate fallback handler attached');
