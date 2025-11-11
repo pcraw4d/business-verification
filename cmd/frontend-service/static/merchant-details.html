@@ -143,10 +143,12 @@
         }
         /* Tab Styles */
         .tab-content {
-            display: none;
+            display: none !important;
+            visibility: hidden !important;
         }
         .tab-content.active {
-            display: block;
+            display: block !important;
+            visibility: visible !important;
         }
         .tab-button {
             background: none;
@@ -1879,6 +1881,7 @@
                     const beforeDisplay = window.getComputedStyle(tab).display;
                     tab.classList.remove('active');
                     tab.style.display = 'none'; // Force hide to prevent any CSS conflicts
+                    tab.style.visibility = 'hidden'; // Also hide visibility to ensure content is not visible
                     const afterDisplay = window.getComputedStyle(tab).display;
                     console.log(`🔍 Hiding tab ${currentTabId}: before=${beforeDisplay}, after=${afterDisplay}, inline=${tab.style.display}`);
                 });
@@ -1896,6 +1899,7 @@
                     const beforeDisplay = window.getComputedStyle(tabElement).display;
                     tabElement.classList.add('active');
                     tabElement.style.display = 'block'; // Force show to ensure visibility
+                    tabElement.style.visibility = 'visible'; // Also show visibility to ensure content is visible
                     const afterDisplay = window.getComputedStyle(tabElement).display;
                     console.log('✅ Activated tab:', tabId, 'Element ID:', tabElement.id);
                     console.log(`🔍 Showing tab ${tabId}: before=${beforeDisplay}, after=${afterDisplay}, inline=${tabElement.style.display}`);
@@ -2429,8 +2433,215 @@
             console.log('🔍 ================================================');
         };
 
-        // Make diagnostic function globally available
+        // Enhanced CSS Diagnostic - Check computed styles and CSS rules
+        const diagnoseCSSStyles = () => {
+            console.log('🔍 ========== CSS STYLES DIAGNOSTIC ==========');
+            
+            const businessAnalyticsTab = document.getElementById('business-analytics');
+            const coreResults = document.getElementById('coreResults');
+            const dashboardResults = document.getElementById('dashboardResults');
+            const overviewTab = document.getElementById('overview');
+            
+            if (!businessAnalyticsTab || !coreResults) {
+                console.error('❌ Required elements not found');
+                return;
+            }
+            
+            // Check Business Analytics tab computed styles
+            console.log('🔍 #business-analytics tab computed styles:');
+            const baStyles = window.getComputedStyle(businessAnalyticsTab);
+            console.log({
+                display: baStyles.display,
+                visibility: baStyles.visibility,
+                position: baStyles.position,
+                zIndex: baStyles.zIndex,
+                opacity: baStyles.opacity,
+                transform: baStyles.transform,
+                width: baStyles.width,
+                height: baStyles.height,
+                top: baStyles.top,
+                left: baStyles.left,
+                right: baStyles.right,
+                bottom: baStyles.bottom,
+                overflow: baStyles.overflow,
+                clip: baStyles.clip,
+                clipPath: baStyles.clipPath
+            });
+            
+            // Check inline styles
+            console.log('🔍 #business-analytics tab inline styles:');
+            console.log({
+                display: businessAnalyticsTab.style.display,
+                visibility: businessAnalyticsTab.style.visibility,
+                position: businessAnalyticsTab.style.position,
+                zIndex: businessAnalyticsTab.style.zIndex,
+                opacity: businessAnalyticsTab.style.opacity
+            });
+            
+            // Check #coreResults computed styles
+            console.log('🔍 #coreResults computed styles:');
+            const coreStyles = window.getComputedStyle(coreResults);
+            console.log({
+                display: coreStyles.display,
+                visibility: coreStyles.visibility,
+                position: coreStyles.position,
+                zIndex: coreStyles.zIndex,
+                opacity: coreStyles.opacity,
+                transform: coreStyles.transform,
+                width: coreStyles.width,
+                height: coreStyles.height,
+                top: coreStyles.top,
+                left: coreStyles.left,
+                right: coreStyles.right,
+                bottom: coreStyles.bottom,
+                overflow: coreStyles.overflow,
+                clip: coreStyles.clip,
+                clipPath: coreStyles.clipPath,
+                offsetParent: coreResults.offsetParent ? coreResults.offsetParent.id : 'null'
+            });
+            
+            // Check #coreResults inline styles
+            console.log('🔍 #coreResults inline styles:');
+            console.log({
+                display: coreResults.style.display,
+                visibility: coreResults.style.visibility,
+                position: coreResults.style.position,
+                zIndex: coreResults.style.zIndex,
+                opacity: coreResults.style.opacity
+            });
+            
+            // Check parent chain styles
+            console.log('🔍 Parent chain styles:');
+            let element = coreResults;
+            let depth = 0;
+            while (element && element !== document.body && depth < 10) {
+                const styles = window.getComputedStyle(element);
+                console.log(`  Level ${depth} (${element.tagName}${element.id ? '#' + element.id : ''}${element.className ? '.' + element.className.split(' ').join('.') : ''}):`, {
+                    display: styles.display,
+                    visibility: styles.visibility,
+                    position: styles.position,
+                    zIndex: styles.zIndex,
+                    opacity: styles.opacity
+                });
+                element = element.parentElement;
+                depth++;
+            }
+            
+            // Check for CSS rules that might override display: none
+            console.log('🔍 Checking for CSS rules that might override display:');
+            const allStylesheets = Array.from(document.styleSheets);
+            let foundRules = [];
+            
+            allStylesheets.forEach((sheet, sheetIdx) => {
+                try {
+                    const rules = Array.from(sheet.cssRules || sheet.rules || []);
+                    rules.forEach((rule, ruleIdx) => {
+                        if (rule.selectorText) {
+                            // Check if rule targets business-analytics or coreResults
+                            if (rule.selectorText.includes('business-analytics') || 
+                                rule.selectorText.includes('coreResults') ||
+                                rule.selectorText.includes('dashboardResults') ||
+                                rule.selectorText.includes('.tab-content') ||
+                                rule.selectorText.includes('#business-analytics')) {
+                                
+                                const ruleStyles = rule.style;
+                                if (ruleStyles.display || ruleStyles.visibility || ruleStyles.position) {
+                                    foundRules.push({
+                                        selector: rule.selectorText,
+                                        display: ruleStyles.display,
+                                        visibility: ruleStyles.visibility,
+                                        position: ruleStyles.position,
+                                        zIndex: ruleStyles.zIndex,
+                                        opacity: ruleStyles.opacity,
+                                        sheetIndex: sheetIdx,
+                                        ruleIndex: ruleIdx
+                                    });
+                                }
+                            }
+                        }
+                    });
+                } catch (e) {
+                    // Cross-origin stylesheets may throw errors
+                    console.log(`⚠️ Could not access stylesheet ${sheetIdx}:`, e.message);
+                }
+            });
+            
+            if (foundRules.length > 0) {
+                console.log('🔍 Found CSS rules that might affect Business Analytics content:');
+                foundRules.forEach(rule => {
+                    console.log('  Rule:', rule);
+                });
+            } else {
+                console.log('✅ No CSS rules found that directly target Business Analytics content');
+            }
+            
+            // Check if content is actually visible in viewport
+            console.log('🔍 Viewport visibility check:');
+            const coreRect = coreResults.getBoundingClientRect();
+            const baRect = businessAnalyticsTab.getBoundingClientRect();
+            console.log({
+                coreResults: {
+                    inViewport: coreRect.width > 0 && coreRect.height > 0 && 
+                               coreRect.top < window.innerHeight && 
+                               coreRect.bottom > 0 &&
+                               coreRect.left < window.innerWidth &&
+                               coreRect.right > 0,
+                    rect: {
+                        top: coreRect.top,
+                        left: coreRect.left,
+                        width: coreRect.width,
+                        height: coreRect.height
+                    }
+                },
+                businessAnalyticsTab: {
+                    inViewport: baRect.width > 0 && baRect.height > 0 && 
+                               baRect.top < window.innerHeight && 
+                               baRect.bottom > 0 &&
+                               baRect.left < window.innerWidth &&
+                               baRect.right > 0,
+                    rect: {
+                        top: baRect.top,
+                        left: baRect.left,
+                        width: baRect.width,
+                        height: baRect.height
+                    }
+                }
+            });
+            
+            // Check Overview tab for comparison
+            if (overviewTab) {
+                console.log('🔍 #overview tab computed styles (for comparison):');
+                const overviewStyles = window.getComputedStyle(overviewTab);
+                console.log({
+                    display: overviewStyles.display,
+                    visibility: overviewStyles.visibility,
+                    position: overviewStyles.position,
+                    zIndex: overviewStyles.zIndex,
+                    opacity: overviewStyles.opacity
+                });
+                
+                const overviewRect = overviewTab.getBoundingClientRect();
+                console.log('🔍 #overview tab viewport visibility:', {
+                    inViewport: overviewRect.width > 0 && overviewRect.height > 0 && 
+                               overviewRect.top < window.innerHeight && 
+                               overviewRect.bottom > 0 &&
+                               overviewRect.left < window.innerWidth &&
+                               overviewRect.right > 0,
+                    rect: {
+                        top: overviewRect.top,
+                        left: overviewRect.left,
+                        width: overviewRect.width,
+                        height: overviewRect.height
+                    }
+                });
+            }
+            
+            console.log('🔍 ================================================');
+        };
+
+        // Make diagnostic functions globally available
         window.diagnoseBusinessAnalyticsContent = diagnoseBusinessAnalyticsContent;
+        window.diagnoseCSSStyles = diagnoseCSSStyles;
         
         // Initialize when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
@@ -2443,9 +2654,11 @@
                 if (tab.id === 'merchant-details') {
                     tab.classList.add('active');
                     tab.style.display = 'block';
+                    tab.style.visibility = 'visible';
                 } else {
                     tab.classList.remove('active');
                     tab.style.display = 'none';
+                    tab.style.visibility = 'hidden';
                 }
             });
             
@@ -2920,9 +3133,11 @@
                         e.stopPropagation();
                         console.log('🎯 NEW Risk Indicators Tab button clicked!');
                         
-                        // Handle tab switching (add/remove active classes)
+                        // Handle tab switching (add/remove active classes and set inline styles)
                         document.querySelectorAll('.tab-content').forEach(tab => {
                             tab.classList.remove('active');
+                            tab.style.display = 'none'; // Force hide to prevent any CSS conflicts
+                            tab.style.visibility = 'hidden'; // Also hide visibility to ensure content is not visible
                         });
                         document.querySelectorAll('.tab-button').forEach(button => {
                             button.classList.remove('active');
@@ -2930,7 +3145,11 @@
                         
                         // Add active class to Risk Indicators tab and button
                         const tabElement = document.getElementById('risk-indicators');
-                        if (tabElement) tabElement.classList.add('active');
+                        if (tabElement) {
+                            tabElement.classList.add('active');
+                            tabElement.style.display = 'block'; // Force show to ensure visibility
+                            tabElement.style.visibility = 'visible'; // Also show visibility to ensure content is visible
+                        }
                         newButton.classList.add('active');
                         
                         const merchantId = getMerchantId();
@@ -3109,9 +3328,11 @@
                             e.stopPropagation();
                             console.log('🎯 Risk Assessment Tab button clicked!');
                             
-                            // Handle tab switching (add/remove active classes)
+                            // Handle tab switching (add/remove active classes and set inline styles)
                             document.querySelectorAll('.tab-content').forEach(tab => {
                                 tab.classList.remove('active');
+                                tab.style.display = 'none'; // Force hide to prevent any CSS conflicts
+                                tab.style.visibility = 'hidden'; // Also hide visibility to ensure content is not visible
                             });
                             document.querySelectorAll('.tab-button').forEach(button => {
                                 button.classList.remove('active');
@@ -3119,7 +3340,11 @@
                             
                             // Add active class to Risk Assessment tab and button
                             const tabElement = document.getElementById('risk-assessment');
-                            if (tabElement) tabElement.classList.add('active');
+                            if (tabElement) {
+                                tabElement.classList.add('active');
+                                tabElement.style.display = 'block'; // Force show to ensure visibility
+                                tabElement.style.visibility = 'visible'; // Also show visibility to ensure content is visible
+                            }
                             newRiskAssessmentButton.classList.add('active');
                             
                             // Load risk assessment content
