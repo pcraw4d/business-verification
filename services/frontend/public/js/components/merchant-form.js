@@ -697,15 +697,33 @@ class MerchantFormComponent {
         // Use .html extension for compatibility with both route patterns
         let targetUrl = '/merchant-details.html';
         if (merchantId) {
-            targetUrl += `?id=${encodeURIComponent(merchantId)}`;
+            // Try both 'id' and 'merchantId' parameters for maximum compatibility
+            targetUrl += `?id=${encodeURIComponent(merchantId)}&merchantId=${encodeURIComponent(merchantId)}`;
             console.log('🔀 Redirecting with merchant ID:', merchantId);
         } else {
-            console.log('🔀 Redirecting without merchant ID (will use sessionStorage data)');
+            // Try to get merchant ID from sessionStorage as fallback
+            try {
+                const storedData = sessionStorage.getItem('merchantData');
+                if (storedData) {
+                    const parsed = JSON.parse(storedData);
+                    const fallbackId = parsed.id || parsed.merchantId || parsed.businessId;
+                    if (fallbackId) {
+                        targetUrl += `?id=${encodeURIComponent(fallbackId)}&merchantId=${encodeURIComponent(fallbackId)}`;
+                        console.log('🔀 Using merchant ID from sessionStorage:', fallbackId);
+                    }
+                }
+            } catch (e) {
+                console.warn('⚠️ [DEBUG] Could not extract merchant ID from sessionStorage:', e);
+            }
+            if (!targetUrl.includes('?')) {
+                console.log('🔀 Redirecting without merchant ID (will use sessionStorage data)');
+            }
         }
         
         console.log('🔀 Full redirect URL:', targetUrl);
         console.log('🔀 Current URL:', window.location.href);
         console.log('🔀 Current origin:', window.location.origin);
+        console.log('🔀 Absolute redirect URL:', window.location.origin + targetUrl);
         
         // Add a small delay to ensure sessionStorage writes are flushed before redirect
         // This prevents race conditions where navigation happens before data persistence completes
