@@ -99,12 +99,49 @@ class FormFlowDebugger {
                 panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
             });
             
+            // Store panel reference for keyboard shortcut
+            window._debugPanel = panel;
+            
             // Keyboard shortcut: Ctrl+Shift+D (PC) or Cmd+Shift+D (Mac)
             document.addEventListener('keydown', (e) => {
                 if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'D') {
-                    panel.style.display = panel.style.display === 'none' ? 'block' : 'block';
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const currentDisplay = panel.style.display;
+                    panel.style.display = currentDisplay === 'none' || currentDisplay === '' ? 'block' : 'none';
+                    this.log('system', `Debug panel ${panel.style.display === 'block' ? 'opened' : 'closed'} via keyboard shortcut`);
                 }
             });
+            
+            // Create a small always-visible toggle button in the corner
+            const toggleBtn = document.createElement('button');
+            toggleBtn.id = 'debugPanelToggleBtn';
+            toggleBtn.innerHTML = '🔍';
+            toggleBtn.title = 'Toggle Debug Panel (Cmd+Shift+D)';
+            toggleBtn.style.cssText = `
+                position: fixed;
+                bottom: 10px;
+                right: 10px;
+                width: 40px;
+                height: 40px;
+                background: rgba(0, 255, 0, 0.8);
+                color: #000;
+                border: 2px solid #0f0;
+                border-radius: 50%;
+                cursor: pointer;
+                z-index: 99998;
+                font-size: 18px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 2px 10px rgba(0, 255, 0, 0.5);
+            `;
+            toggleBtn.addEventListener('click', () => {
+                const currentDisplay = panel.style.display;
+                panel.style.display = currentDisplay === 'none' || currentDisplay === '' ? 'block' : 'none';
+                this.log('system', `Debug panel ${panel.style.display === 'block' ? 'opened' : 'closed'} via toggle button`);
+            });
+            document.body.appendChild(toggleBtn);
         };
         
         tryCreatePanel();
@@ -270,28 +307,59 @@ class FormFlowDebugger {
         // Check periodically
         setInterval(checkUrlChange, 100);
         
-        // Monitor location.assign
-        const originalAssign = window.location.assign.bind(window.location);
-        window.location.assign = (url) => {
-            this.log('redirect', 'window.location.assign called', { url });
-            return originalAssign(url);
-        };
+        // Monitor location.assign (use try-catch as it may not be writable)
+        try {
+            const originalAssign = window.location.assign.bind(window.location);
+            Object.defineProperty(window.location, 'assign', {
+                value: (url) => {
+                    this.log('redirect', 'window.location.assign called', { url });
+                    return originalAssign(url);
+                },
+                writable: true,
+                configurable: true
+            });
+        } catch (e) {
+            // Location.assign may not be overridable, that's okay
+            this.log('system', 'Could not override location.assign', { error: e.message });
+        }
         
-        // Monitor location.replace
-        const originalReplace = window.location.replace.bind(window.location);
-        window.location.replace = (url) => {
-            this.log('redirect', 'window.location.replace called', { url });
-            return originalReplace(url);
-        };
+        // Monitor location.replace (use try-catch as it may not be writable)
+        try {
+            const originalReplace = window.location.replace.bind(window.location);
+            Object.defineProperty(window.location, 'replace', {
+                value: (url) => {
+                    this.log('redirect', 'window.location.replace called', { url });
+                    return originalReplace(url);
+                },
+                writable: true,
+                configurable: true
+            });
+        } catch (e) {
+            // Location.replace may not be overridable, that's okay
+            this.log('system', 'Could not override location.replace', { error: e.message });
+        }
         
-        // Monitor location.href assignment
-        Object.defineProperty(window.location, 'href', {
-            get: () => window.location.href,
-            set: (url) => {
-                this.log('redirect', 'window.location.href set', { url });
-                window.location.href = url;
+        // Monitor location.href assignment (read-only in some contexts, so we'll just log)
+        try {
+            const originalHrefDescriptor = Object.getOwnPropertyDescriptor(window.location, 'href');
+            if (originalHrefDescriptor && originalHrefDescriptor.set) {
+                const originalSetter = originalHrefDescriptor.set;
+                Object.defineProperty(window.location, 'href', {
+                    get: () => {
+                        // Use the original getter if available
+                        return originalHrefDescriptor.get ? originalHrefDescriptor.get() : window.location.href;
+                    },
+                    set: (url) => {
+                        this.log('redirect', 'window.location.href set', { url });
+                        return originalSetter.call(window.location, url);
+                    },
+                    configurable: true
+                });
             }
-        });
+        } catch (e) {
+            // Location.href may not be overridable, that's okay
+            this.log('system', 'Could not override location.href', { error: e.message });
+        }
     }
 
     monitorDOMChanges() {
