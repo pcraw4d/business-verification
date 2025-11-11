@@ -1871,20 +1871,40 @@
             }
 
             switchTab(tabId) {
-                // Remove active class from all tabs and buttons
+                console.log('🔄 Switching to tab:', tabId);
+                
+                // Explicitly hide ALL tabs first using both class removal and inline styles
                 document.querySelectorAll('.tab-content').forEach(tab => {
                     tab.classList.remove('active');
+                    tab.style.display = 'none'; // Force hide to prevent any CSS conflicts
                 });
+                
+                // Remove active class from all buttons
                 document.querySelectorAll('.tab-button').forEach(button => {
                     button.classList.remove('active');
                 });
 
-                // Add active class to selected tab and button
+                // Find and show only the selected tab
                 const tabElement = document.getElementById(tabId);
                 const buttonElement = document.querySelector(`[data-tab="${tabId}"]`);
                 
-                if (tabElement) tabElement.classList.add('active');
-                if (buttonElement) buttonElement.classList.add('active');
+                if (tabElement) {
+                    tabElement.classList.add('active');
+                    tabElement.style.display = 'block'; // Force show to ensure visibility
+                    console.log('✅ Activated tab:', tabId, 'Element ID:', tabElement.id);
+                } else {
+                    console.error('❌ Tab element not found for ID:', tabId);
+                    // Log all available tab IDs for debugging
+                    const allTabs = document.querySelectorAll('.tab-content');
+                    console.log('📋 Available tab IDs:', Array.from(allTabs).map(t => t.id));
+                }
+                
+                if (buttonElement) {
+                    buttonElement.classList.add('active');
+                    console.log('✅ Activated button for tab:', tabId);
+                } else {
+                    console.error('❌ Button element not found for tab:', tabId);
+                }
                 
                 // Handle special tab initializations
                 if (tabId === 'risk-indicators' && window.riskIndicatorsTab) {
@@ -2134,6 +2154,27 @@
             console.log('🔍 Initializing MerchantDetails class...');
             console.log('🔍 Window location:', window.location.href);
             console.log('🔍 Document ready state:', document.readyState);
+            
+            // Ensure only merchant-details tab is visible on page load
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                if (tab.id === 'merchant-details') {
+                    tab.classList.add('active');
+                    tab.style.display = 'block';
+                } else {
+                    tab.classList.remove('active');
+                    tab.style.display = 'none';
+                }
+            });
+            
+            // Ensure merchant-details button is active
+            document.querySelectorAll('.tab-button').forEach(button => {
+                if (button.getAttribute('data-tab') === 'merchant-details') {
+                    button.classList.add('active');
+                } else {
+                    button.classList.remove('active');
+                }
+            });
+            
             try {
                 window.merchantDetails = new MerchantDetails();
                 console.log('✅ MerchantDetails instance created successfully');
