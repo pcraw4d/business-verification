@@ -1154,17 +1154,25 @@
                 }
                 console.log('🔍 Populating merchant details with data:', Object.keys(this.merchantData));
 
-                // Helper function to safely set text content
-                const setTextContent = (elementId, value, fallback = '-') => {
-                    const element = document.getElementById(elementId);
-                    if (element) {
-                        element.textContent = value || fallback;
-                        return true;
-                    } else {
-                        console.warn(`⚠️ Element with id "${elementId}" not found in DOM`);
-                        return false;
-                    }
-                };
+                // Wait a bit for DOM to be fully ready, especially if tabs are involved
+                const populateFields = () => {
+                    // Helper function to safely set text content
+                    const setTextContent = (elementId, value, fallback = '-') => {
+                        const element = document.getElementById(elementId);
+                        if (element) {
+                            element.textContent = value || fallback;
+                            return true;
+                        } else {
+                            // Try querySelector as fallback (in case element is in a hidden tab)
+                            const elementByQuery = document.querySelector(`#${elementId}`);
+                            if (elementByQuery) {
+                                elementByQuery.textContent = value || fallback;
+                                return true;
+                            }
+                            console.warn(`⚠️ Element with id "${elementId}" not found in DOM`);
+                            return false;
+                        }
+                    };
 
                 // Populate merchant details tab with null checks
                 const fields = [

@@ -35,10 +35,19 @@ class DataEnrichment {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
+            // Check if response is JSON before parsing
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                console.warn('⚠️ API returned non-JSON response for supported sources, using empty array');
+                this.supportedSources = [];
+                return [];
+            }
+
             this.supportedSources = await response.json();
             return this.supportedSources;
         } catch (error) {
-            console.error('Error loading supported sources:', error);
+            console.warn('⚠️ Error loading supported sources, using empty array:', error.message);
+            this.supportedSources = [];
             return [];
         }
     }

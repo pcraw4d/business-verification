@@ -558,10 +558,17 @@ class MockDataWarning {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
+            // Check if response is JSON before parsing
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                console.warn('⚠️ API returned non-JSON response, using default data');
+                throw new Error('Non-JSON response received');
+            }
+
             const data = await response.json();
             return data.success ? data.data : null;
         } catch (error) {
-            console.error('Error fetching data source info:', error);
+            console.warn('⚠️ Error fetching data source info, using default mock data:', error.message);
             // Return default mock data info
             return {
                 source: 'mock',
@@ -644,10 +651,12 @@ class MockDataWarning {
         
         // Show/hide switch to real data button based on environment
         const switchBtn = document.getElementById('switchToRealDataBtn');
-        if (this.dataSource === 'mock' && this.canSwitchToRealData()) {
-            switchBtn.style.display = 'flex';
-        } else {
-            switchBtn.style.display = 'none';
+        if (switchBtn) {
+            if (this.dataSource === 'mock' && this.canSwitchToRealData()) {
+                switchBtn.style.display = 'flex';
+            } else {
+                switchBtn.style.display = 'none';
+            }
         }
     }
 

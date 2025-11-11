@@ -729,10 +729,17 @@ class ComingSoonBanner {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
+            // Check if response is JSON before parsing
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                console.warn('⚠️ API returned non-JSON response for features, using empty array');
+                return [];
+            }
+
             const data = await response.json();
             return data.success ? data.data.features : [];
         } catch (error) {
-            console.error('Error fetching features by status:', error);
+            console.warn('⚠️ Error fetching features by status, using empty array:', error.message);
             return [];
         }
     }
