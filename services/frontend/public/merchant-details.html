@@ -1152,12 +1152,25 @@
                 console.log('🔍 populateMerchantDetails() called');
                 if (!this.merchantData) {
                     console.warn('⚠️ No merchantData available to populate');
+                    if (window.formFlowDebugger) {
+                        window.formFlowDebugger.log('error', 'No merchantData available to populate');
+                    }
                     return;
                 }
                 console.log('🔍 Populating merchant details with data:', Object.keys(this.merchantData));
                 console.log('🔍 Document ready state:', document.readyState);
                 console.log('🔍 Document body exists:', !!document.body);
                 console.log('🔍 Document body children count:', document.body ? document.body.children.length : 0);
+                
+                // Debug logging
+                if (window.formFlowDebugger) {
+                    window.formFlowDebugger.log('dom', 'populateMerchantDetails called', {
+                        readyState: document.readyState,
+                        bodyExists: !!document.body,
+                        bodyChildren: document.body ? document.body.children.length : 0,
+                        dataKeys: Object.keys(this.merchantData)
+                    });
+                }
 
                 // Wait a bit for DOM to be fully ready, especially if tabs are involved
                 const populateFields = () => {
