@@ -1156,11 +1156,28 @@
 
                 // Wait a bit for DOM to be fully ready, especially if tabs are involved
                 const populateFields = () => {
-                    // First, ensure the merchant-details tab is visible
-                    const merchantDetailsTab = document.getElementById('merchant-details');
+                    // First, ensure the merchant-details tab is visible - try multiple methods
+                    let merchantDetailsTab = document.getElementById('merchant-details');
+                    
+                    // If not found, try querySelector as fallback
                     if (!merchantDetailsTab) {
-                        console.error('❌ Merchant details tab container not found!');
-                        return;
+                        merchantDetailsTab = document.querySelector('.tab-content#merchant-details');
+                    }
+                    
+                    // If still not found, try finding any tab-content with merchant-details
+                    if (!merchantDetailsTab) {
+                        const allTabContents = document.querySelectorAll('.tab-content');
+                        for (const tab of allTabContents) {
+                            if (tab.id === 'merchant-details') {
+                                merchantDetailsTab = tab;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (!merchantDetailsTab) {
+                        // Don't log error here - let retry logic handle it
+                        return false; // Return false to indicate failure
                     }
                     
                     // Ensure the tab is active (visible)
@@ -1221,7 +1238,7 @@
                     console.log(`✅ Populated ${populatedCount} out of ${fields.length} fields`);
                     
                     if (populatedCount === 0) {
-                        console.error('❌ No fields were populated - check if the merchant details tab HTML structure exists');
+                        console.warn('⚠️ No fields were populated - check if the merchant details tab HTML structure exists');
                         // Log available elements for debugging - fix invalid selector syntax
                         const businessEls = Array.from(document.querySelectorAll('[id*="business"]')).map(el => el.id);
                         const addressEls = Array.from(document.querySelectorAll('[id*="address"]')).map(el => el.id);
@@ -1243,51 +1260,38 @@
                             console.log('🔍 Elements inside merchant-details tab:', tabElements);
                         }
                     }
+                    
+                    return populatedCount > 0; // Return true if any fields were populated
                 };
 
-                // Try immediately, then retry multiple times if needed
-                populateFields();
-                
                 // Retry logic with multiple attempts
                 let retryCount = 0;
-                const maxRetries = 5;
-                const retryInterval = 200; // 200ms between retries
+                const maxRetries = 10; // Increased retries
+                const retryInterval = 300; // 300ms between retries (slightly longer)
                 
-                const checkAndRetry = () => {
-                    // Check if tab container exists and is visible
-                    const merchantDetailsTab = document.getElementById('merchant-details');
-                    if (!merchantDetailsTab) {
-                        console.error('❌ Merchant details tab container not found!');
-                        return;
-                    }
+                const attemptPopulate = () => {
+                    const success = populateFields();
                     
-                    // Search within the tab container
-                    const foundElements = merchantDetailsTab.querySelectorAll('#businessName, #websiteUrl, #streetAddress, #city, #state, #postalCode, #country');
-                    if (foundElements.length === 0 && retryCount < maxRetries) {
+                    if (!success && retryCount < maxRetries) {
                         retryCount++;
-                        console.log(`🔍 Elements not found, retry attempt ${retryCount}/${maxRetries}...`);
-                        console.log(`🔍 Tab container exists: ${!!merchantDetailsTab}, is active: ${merchantDetailsTab.classList.contains('active')}`);
-                        setTimeout(() => {
-                            populateFields();
-                            checkAndRetry();
-                        }, retryInterval);
-                    } else if (foundElements.length > 0) {
-                        console.log(`✅ Found ${foundElements.length} merchant detail elements after ${retryCount} retries`);
+                        console.log(`🔍 Populate attempt ${retryCount}/${maxRetries} failed, retrying in ${retryInterval}ms...`);
+                        setTimeout(attemptPopulate, retryInterval);
+                    } else if (!success) {
+                        console.error('❌ Failed to populate merchant details after all retries!');
+                        // Log what tab containers DO exist
+                        const allTabs = document.querySelectorAll('.tab-content, [id*="merchant"], [class*="tab"]');
+                        console.log('🔍 Available tab-like elements:', Array.from(allTabs).map(el => ({
+                            id: el.id,
+                            className: el.className,
+                            tagName: el.tagName
+                        })));
                     } else {
-                        console.error('❌ Merchant detail elements not found after all retries');
-                        // Log all available IDs within the tab for debugging
-                        const allIds = Array.from(merchantDetailsTab.querySelectorAll('[id]')).map(el => el.id);
-                        console.log('🔍 Available element IDs in tab:', allIds.filter(id => 
-                            id.includes('business') || id.includes('address') || id.includes('city') || 
-                            id.includes('state') || id.includes('country') || id.includes('postal')
-                        ));
-                        // Also log all IDs in the tab
-                        console.log('🔍 All IDs in merchant-details tab:', allIds);
+                        console.log(`✅ Successfully populated merchant details after ${retryCount} retries`);
                     }
                 };
                 
-                // Start retry check after initial attempt
-                setTimeout(checkAndRetry, 100);
+                // Try immediately, then retry if needed
+                attemptPopulate();
             }
 
             populateApiResults() {
