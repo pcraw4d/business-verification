@@ -406,35 +406,35 @@
         <div class="bg-white rounded-lg shadow-lg mb-8">
             <div class="border-b border-gray-200">
                 <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-                    <button class="tab-button active" data-tab="merchant-details" class="whitespace-nowrap py-2 px-1 border-b-2 border-blue-500 font-medium text-sm text-blue-600">
+                    <button class="tab-button active whitespace-nowrap py-2 px-1 border-b-2 border-blue-500 font-medium text-sm text-blue-600" data-tab="merchant-details">
                         <i class="fas fa-info-circle mr-2"></i>
                         Merchant Details
                     </button>
-                    <button class="tab-button" data-tab="business-analytics" class="whitespace-nowrap py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    <button class="tab-button whitespace-nowrap py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="business-analytics">
                         <i class="fas fa-chart-line mr-2"></i>
                         Business Analytics
                     </button>
-                    <button class="tab-button" data-tab="risk-assessment" class="whitespace-nowrap py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    <button class="tab-button whitespace-nowrap py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="risk-assessment">
                         <i class="fas fa-exclamation-triangle mr-2"></i>
                         Risk Assessment
                     </button>
-                    <button class="tab-button" data-tab="risk-indicators" class="whitespace-nowrap py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    <button class="tab-button whitespace-nowrap py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="risk-indicators">
                         <i class="fas fa-gauge-high mr-2"></i>
                         Risk Indicators
                     </button>
-                    <button class="tab-button" data-tab="overview" class="whitespace-nowrap py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    <button class="tab-button whitespace-nowrap py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="overview">
                         <i class="fas fa-info-circle mr-2"></i>
                         Overview
                     </button>
-                    <button class="tab-button" data-tab="contact" class="whitespace-nowrap py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    <button class="tab-button whitespace-nowrap py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="contact">
                         <i class="fas fa-address-book mr-2"></i>
                         Contact
                     </button>
-                    <button class="tab-button" data-tab="financial" class="whitespace-nowrap py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    <button class="tab-button whitespace-nowrap py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="financial">
                         <i class="fas fa-chart-line mr-2"></i>
                         Financial
                     </button>
-                    <button class="tab-button" data-tab="compliance" class="whitespace-nowrap py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    <button class="tab-button whitespace-nowrap py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="compliance">
                         <i class="fas fa-clipboard-check mr-2"></i>
                         Compliance
                     </button>
@@ -1126,16 +1126,24 @@
                         console.warn('⚠️ No apiResults found in sessionStorage');
                     }
                     
-                    // Update page title
+                    // Update page title - wait for DOM to be ready
                     if (this.merchantData && this.merchantData.businessName) {
-                        const titleElement = document.getElementById('merchantNameText');
-                        if (titleElement) {
-                            titleElement.textContent = this.merchantData.businessName;
-                            document.title = `${this.merchantData.businessName} - Merchant Details - KYB Platform`;
-                            console.log('✅ Page title updated:', this.merchantData.businessName);
-                        } else {
-                            console.warn('⚠️ merchantNameText element not found');
-                        }
+                        const updateTitle = () => {
+                            const titleElement = document.getElementById('merchantNameText');
+                            if (titleElement) {
+                                titleElement.textContent = this.merchantData.businessName;
+                                document.title = `${this.merchantData.businessName} - Merchant Details - KYB Platform`;
+                                console.log('✅ Page title updated:', this.merchantData.businessName);
+                            } else {
+                                // Retry if element not found yet
+                                if (document.readyState === 'loading') {
+                                    setTimeout(updateTitle, 100);
+                                } else {
+                                    console.warn('⚠️ merchantNameText element not found after DOM ready');
+                                }
+                            }
+                        };
+                        updateTitle();
                     } else {
                         console.warn('⚠️ No businessName in merchantData');
                     }
@@ -2008,7 +2016,7 @@
     <!-- Risk Indicators Components -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="js/api-config.js"></script>
+    <!-- api-config.js already loaded in head, no need to load again -->
     <script src="js/components/real-data-integration.js"></script>
     <script src="js/components/risk-visualization.js"></script>
     <script src="js/components/risk-explainability.js"></script>
@@ -2111,74 +2119,95 @@
                 console.error('❌ Failed to initialize NEW Risk Indicators Tab:', error);
             }
             
-            // Listen for tab activation
-            console.log('🔍 Looking for Risk Indicators tab button...');
-            // Try multiple selectors to find the button
-            let riskIndicatorsTabButton = document.querySelector('[data-tab="risk-indicators"]');
-            if (!riskIndicatorsTabButton) {
-                // Try finding by text content
-                const allButtons = document.querySelectorAll('.tab-button, button[data-tab]');
-                for (const btn of allButtons) {
-                    if (btn.textContent && btn.textContent.includes('Risk Indicators')) {
-                        riskIndicatorsTabButton = btn;
-                        break;
-                    }
-                }
-            }
-            console.log('🔍 Found button:', riskIndicatorsTabButton);
-            console.log('🔍 All tab buttons:', document.querySelectorAll('.tab-button'));
-            console.log('🔍 All data-tab attributes:', document.querySelectorAll('[data-tab]'));
-            
-            if (riskIndicatorsTabButton) {
-                console.log('✅ Risk Indicators tab button found');
-                
-                // Remove any existing event listeners by cloning the button
-                const newButton = riskIndicatorsTabButton.cloneNode(true);
-                riskIndicatorsTabButton.parentNode.replaceChild(newButton, riskIndicatorsTabButton);
-                
-                // Add our new event listener to the clean button
-                newButton.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('🎯 NEW Risk Indicators Tab button clicked!');
-                    
-                    // Handle tab switching (add/remove active classes)
-                    document.querySelectorAll('.tab-content').forEach(tab => {
-                        tab.classList.remove('active');
-                    });
-                    document.querySelectorAll('.tab-button').forEach(button => {
-                        button.classList.remove('active');
-                    });
-                    
-                    // Add active class to Risk Indicators tab and button
-                    const tabElement = document.getElementById('risk-indicators');
-                    if (tabElement) tabElement.classList.add('active');
-                    newButton.classList.add('active');
-                    
-                    const merchantId = getMerchantId();
-                    console.log('🎯 Risk Indicators Tab clicked, merchant ID:', merchantId);
-                    if (merchantId && window.riskIndicatorsTab) {
-                        console.log('🎯 Calling NEW Risk Indicators Tab init...');
-                        window.riskIndicatorsTab.init(merchantId);
-                    } else {
-                        console.error('❌ No merchant ID found or risk indicators tab not initialized');
-                        // Show a simple test message if initialization fails
-                        const container = document.getElementById('riskIndicatorsContainer');
-                        if (container) {
-                            container.innerHTML = `
-                                <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
-                                    <h3 class="font-bold">NEW Risk Indicators Tab</h3>
-                                    <p>Tab is working! Merchant ID: ${merchantId || 'Not found'}</p>
-                                    <p>This is a test message. The full Risk Indicators implementation should load here.</p>
-                                    <p>If you see this, the NEW implementation is working but needs data.</p>
-                                </div>
-                            `;
+            // Listen for tab activation - retry if button not found
+            const setupRiskIndicatorsButton = () => {
+                const findButton = (retries = 10) => {
+                    console.log('🔍 Looking for Risk Indicators tab button... (attempts remaining:', retries, ')');
+                    // Try multiple selectors to find the button
+                    let riskIndicatorsTabButton = document.querySelector('[data-tab="risk-indicators"]');
+                    if (!riskIndicatorsTabButton) {
+                        // Try finding by text content
+                        const allButtons = document.querySelectorAll('.tab-button, button[data-tab]');
+                        for (const btn of allButtons) {
+                            if (btn.textContent && btn.textContent.includes('Risk Indicators')) {
+                                riskIndicatorsTabButton = btn;
+                                break;
+                            }
                         }
                     }
-                });
-            } else {
-                console.error('❌ Risk Indicators tab button not found');
-            }
+                    
+                    if (riskIndicatorsTabButton) {
+                        console.log('✅ Risk Indicators tab button found');
+                        return riskIndicatorsTabButton;
+                    } else if (retries > 0) {
+                        // Retry after a short delay
+                        setTimeout(() => {
+                            const btn = findButton(retries - 1);
+                            if (btn) setupButtonHandler(btn);
+                        }, 200);
+                        return null;
+                    } else {
+                        console.error('❌ Risk Indicators tab button not found after all retries');
+                        return null;
+                    }
+                };
+                
+                const setupButtonHandler = (button) => {
+                    if (!button) return;
+                    
+                    console.log('✅ Setting up Risk Indicators tab button handler');
+                    
+                    // Remove any existing event listeners by cloning the button
+                    const newButton = button.cloneNode(true);
+                    button.parentNode.replaceChild(newButton, button);
+                    
+                    // Add our new event listener to the clean button
+                    newButton.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('🎯 NEW Risk Indicators Tab button clicked!');
+                        
+                        // Handle tab switching (add/remove active classes)
+                        document.querySelectorAll('.tab-content').forEach(tab => {
+                            tab.classList.remove('active');
+                        });
+                        document.querySelectorAll('.tab-button').forEach(button => {
+                            button.classList.remove('active');
+                        });
+                        
+                        // Add active class to Risk Indicators tab and button
+                        const tabElement = document.getElementById('risk-indicators');
+                        if (tabElement) tabElement.classList.add('active');
+                        newButton.classList.add('active');
+                        
+                        const merchantId = getMerchantId();
+                        console.log('🎯 Risk Indicators Tab clicked, merchant ID:', merchantId);
+                        if (merchantId && window.riskIndicatorsTab) {
+                            console.log('🎯 Calling NEW Risk Indicators Tab init...');
+                            window.riskIndicatorsTab.init(merchantId);
+                        } else {
+                            console.error('❌ No merchant ID found or risk indicators tab not initialized');
+                            // Show a simple test message if initialization fails
+                            const container = document.getElementById('riskIndicatorsContainer');
+                            if (container) {
+                                container.innerHTML = `
+                                    <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+                                        <h3 class="font-bold">NEW Risk Indicators Tab</h3>
+                                        <p>Tab is working! Merchant ID: ${merchantId || 'Not found'}</p>
+                                        <p>This is a test message. The full Risk Indicators implementation should load here.</p>
+                                        <p>If you see this, the NEW implementation is working but needs data.</p>
+                                    </div>
+                                `;
+                            }
+                        }
+                    });
+                };
+                
+                const button = findButton();
+                if (button) setupButtonHandler(button);
+            };
+            
+            setupRiskIndicatorsButton();
         }, 2000); // Wait 2 seconds for DOM to be fully ready
         
         // Initialize Risk Assessment Tab (separate timeout to ensure all scripts are loaded)
@@ -2204,27 +2233,114 @@
                     return;
                 }
                 
-                // Set up Risk Assessment tab click handler
-                // Try multiple selectors to find the button
-                let riskAssessmentTabButton = document.querySelector('[data-tab="risk-assessment"]');
-                if (!riskAssessmentTabButton) {
-                    // Try finding by text content
-                    const allButtons = document.querySelectorAll('.tab-button, button[data-tab]');
-                    for (const btn of allButtons) {
-                        if (btn.textContent && btn.textContent.includes('Risk Assessment')) {
-                            riskAssessmentTabButton = btn;
-                            break;
+                // Set up Risk Assessment tab click handler - retry if button not found
+                const setupRiskAssessmentButton = () => {
+                    const findButton = (retries = 10) => {
+                        console.log('🔍 Looking for Risk Assessment tab button... (attempts remaining:', retries, ')');
+                        // Try multiple selectors to find the button
+                        let riskAssessmentTabButton = document.querySelector('[data-tab="risk-assessment"]');
+                        if (!riskAssessmentTabButton) {
+                            // Try finding by text content
+                            const allButtons = document.querySelectorAll('.tab-button, button[data-tab]');
+                            for (const btn of allButtons) {
+                                if (btn.textContent && btn.textContent.includes('Risk Assessment')) {
+                                    riskAssessmentTabButton = btn;
+                                    break;
+                                }
+                            }
                         }
-                    }
-                }
-                console.log('🔍 Risk Assessment tab button:', riskAssessmentTabButton);
-                
-                if (riskAssessmentTabButton) {
-                    console.log('✅ Risk Assessment tab button found');
+                        
+                        if (riskAssessmentTabButton) {
+                            console.log('✅ Risk Assessment tab button found');
+                            return riskAssessmentTabButton;
+                        } else if (retries > 0) {
+                            // Retry after a short delay
+                            setTimeout(() => {
+                                const btn = findButton(retries - 1);
+                                if (btn) setupButtonHandler(btn);
+                            }, 200);
+                            return null;
+                        } else {
+                            console.error('❌ Risk Assessment tab button not found after all retries');
+                            return null;
+                        }
+                    };
                     
-                    // Remove any existing event listeners by cloning the button
-                    const newRiskAssessmentButton = riskAssessmentTabButton.cloneNode(true);
-                    riskAssessmentTabButton.parentNode.replaceChild(newRiskAssessmentButton, riskAssessmentTabButton);
+                    const setupButtonHandler = (button) => {
+                        if (!button) return;
+                        
+                        console.log('✅ Setting up Risk Assessment tab button handler');
+                        
+                        // Remove any existing event listeners by cloning the button
+                        const newRiskAssessmentButton = button.cloneNode(true);
+                        button.parentNode.replaceChild(newRiskAssessmentButton, button);
+                        
+                        // Add click event listener
+                        newRiskAssessmentButton.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log('🎯 Risk Assessment Tab button clicked!');
+                            
+                            // Handle tab switching (add/remove active classes)
+                            document.querySelectorAll('.tab-content').forEach(tab => {
+                                tab.classList.remove('active');
+                            });
+                            document.querySelectorAll('.tab-button').forEach(button => {
+                                button.classList.remove('active');
+                            });
+                            
+                            // Add active class to Risk Assessment tab and button
+                            const tabElement = document.getElementById('risk-assessment');
+                            if (tabElement) tabElement.classList.add('active');
+                            newRiskAssessmentButton.classList.add('active');
+                            
+                            // Load risk assessment content
+                            const merchantId = getMerchantId();
+                            console.log('🎯 Risk Assessment Tab clicked, merchant ID:', merchantId);
+                            
+                            const container = document.getElementById('riskAssessmentContainer');
+                            console.log('🔍 Risk Assessment container:', container);
+                            console.log('🔍 window.merchantRiskTab:', window.merchantRiskTab);
+                            
+                            if (container && window.merchantRiskTab) {
+                                console.log('🎯 Loading Risk Assessment content...');
+                                window.merchantRiskTab.loadRiskAssessmentContent(container).catch(error => {
+                                    console.error('❌ Error loading Risk Assessment content:', error);
+                                    console.error('Error stack:', error.stack);
+                                    if (container) {
+                                        container.innerHTML = `
+                                            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                                                <h3 class="font-bold">Error Loading Risk Assessment</h3>
+                                                <p>Unable to load risk assessment data. Please try again later.</p>
+                                                <p class="text-sm mt-2">Error: ${error.message}</p>
+                                            </div>
+                                        `;
+                                    }
+                                });
+                            } else {
+                                console.error('❌ Risk Assessment container or MerchantRiskTab not found');
+                                console.error('Container:', container);
+                                console.error('MerchantRiskTab:', window.merchantRiskTab);
+                                if (container) {
+                                    container.innerHTML = `
+                                        <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+                                            <h3 class="font-bold">Risk Assessment Tab</h3>
+                                            <p>Merchant ID: ${merchantId || 'Not found'}</p>
+                                            <p>Container: ${container ? 'Found' : 'Not found'}</p>
+                                            <p>MerchantRiskTab: ${window.merchantRiskTab ? 'Found' : 'Not found'}</p>
+                                            <p>Initializing Risk Assessment content...</p>
+                                        </div>
+                                    `;
+                                }
+                            }
+                        });
+                    };
+                    
+                    const button = findButton();
+                    if (button) setupButtonHandler(button);
+                };
+                
+                setupRiskAssessmentButton();
                     
                     // Add click event listener
                     newRiskAssessmentButton.addEventListener('click', function(e) {
