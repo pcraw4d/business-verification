@@ -2339,13 +2339,45 @@
             });
             
             // Check if content is outside .max-w-7xl container (check main content container specifically)
-            const mainMaxWContainer = document.querySelector('.max-w-7xl.mx-auto');
+            // Find the main content container (the one that comes AFTER the nav, not the nav itself)
+            const allMaxWContainersWithAuto = document.querySelectorAll('.max-w-7xl.mx-auto');
+            let mainMaxWContainer = null;
+            if (allMaxWContainersWithAuto.length > 0) {
+                // The main content container should be the one that contains the tab navigation
+                for (const container of allMaxWContainersWithAuto) {
+                    const hasTabNav = container.querySelector('nav[aria-label="Tabs"]') !== null;
+                    if (hasTabNav) {
+                        mainMaxWContainer = container;
+                        break;
+                    }
+                }
+                // If we didn't find it by tab nav, use the last one (should be the main content)
+                if (!mainMaxWContainer && allMaxWContainersWithAuto.length > 1) {
+                    mainMaxWContainer = allMaxWContainersWithAuto[allMaxWContainersWithAuto.length - 1];
+                } else if (!mainMaxWContainer) {
+                    mainMaxWContainer = allMaxWContainersWithAuto[0];
+                }
+            }
+            
             if (mainMaxWContainer && coreResults) {
                 const isInContainer = mainMaxWContainer.contains(coreResults);
-                console.log('🔍 #coreResults is inside main .max-w-7xl.mx-auto:', isInContainer);
+                console.log('🔍 Main content container found:', {
+                    hasTabNav: mainMaxWContainer.querySelector('nav[aria-label="Tabs"]') !== null,
+                    containerIndex: Array.from(allMaxWContainersWithAuto).indexOf(mainMaxWContainer),
+                    isInContainer: isInContainer
+                });
+                console.log('🔍 #coreResults is inside main content .max-w-7xl.mx-auto:', isInContainer);
                 if (!isInContainer) {
-                    console.warn('⚠️ #coreResults is OUTSIDE the main .max-w-7xl container!');
+                    console.warn('⚠️ #coreResults is OUTSIDE the main content .max-w-7xl container!');
                     console.warn('⚠️ This means the content is not part of the tab system!');
+                    
+                    // Find which container actually contains it
+                    for (let i = 0; i < allMaxWContainers.length; i++) {
+                        if (allMaxWContainers[i].contains(coreResults)) {
+                            console.warn(`⚠️ #coreResults is actually inside .max-w-7xl container ${i + 1} (likely the nav container)`);
+                            break;
+                        }
+                    }
                 }
             }
             
