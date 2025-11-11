@@ -395,12 +395,25 @@ class FormFlowDebugger {
             });
         });
         
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
+        // Wait for body to be available before observing
+        const startObserving = () => {
+            if (document.body && document.body instanceof Node) {
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true
+                });
+                this.log('dom', 'DOM mutation observer started');
+            } else {
+                // Body not ready yet, try again
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', startObserving);
+                } else {
+                    setTimeout(startObserving, 50);
+                }
+            }
+        };
         
-        this.log('dom', 'DOM mutation observer started');
+        startObserving();
     }
 
     // Export logs for analysis
