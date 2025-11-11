@@ -1382,7 +1382,10 @@ class MerchantFormComponent {
     }
 
     clearForm() {
+        console.log('🔍 [DEBUG] clearForm() called - form is being reset');
+        this.form._lastResetTime = Date.now(); // Track when form was reset
         this.form.reset();
+        console.log('✅ [DEBUG] Form reset complete');
         
         // Clear all validation states
         const fields = this.form.querySelectorAll('input, select, textarea');
