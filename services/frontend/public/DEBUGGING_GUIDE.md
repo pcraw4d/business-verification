@@ -7,8 +7,9 @@ A comprehensive debugging system has been implemented to track the entire add-me
 ## Features
 
 ### 1. **Floating Debug Panel**
-- **Toggle**: Press `Ctrl+Shift+D` or click the "Toggle" button
-- **Location**: Top-right corner of the page
+- **Toggle**: Press `Ctrl+Shift+\`` (backtick) or `Cmd+Shift+\`` (Mac) or click the toggle button (🔍) in bottom-right corner
+- **Location**: Top-right corner of the page (when open)
+- **Toggle Button**: Small green circular button (🔍) in bottom-right corner (always visible)
 - **Display**: Real-time logs with color-coded categories
 - **Auto-scroll**: Automatically scrolls to show latest logs
 
@@ -58,7 +59,7 @@ Logs are color-coded by category:
 
 ### Accessing the Debug Panel
 
-1. **Keyboard Shortcut**: Press `Ctrl+Shift+D` anywhere on the page
+1. **Keyboard Shortcut**: Press `Ctrl+Shift+\`` (backtick) or `Cmd+Shift+\`` (Mac) anywhere on the page
 2. **Toggle Button**: Click the "Toggle" button in the debug panel (if visible)
 
 ### Getting a Summary
@@ -121,7 +122,7 @@ Returns the full array of log entries.
 
 1. **Open the add-merchant page**
    - Debug panel should initialize automatically
-   - Press `Ctrl+Shift+D` to show the panel
+   - Press `Ctrl+Shift+\`` (backtick) or `Cmd+Shift+\`` (Mac) to show the panel, or click the toggle button (🔍) in the bottom-right corner
 
 2. **Fill out and submit the form**
    - Watch the debug panel for real-time logs

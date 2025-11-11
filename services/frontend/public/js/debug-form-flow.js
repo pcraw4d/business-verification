@@ -102,9 +102,10 @@ class FormFlowDebugger {
             // Store panel reference for keyboard shortcut
             window._debugPanel = panel;
             
-            // Keyboard shortcut: Ctrl+Shift+D (PC) or Cmd+Shift+D (Mac)
+            // Keyboard shortcut: Ctrl+Shift+` (PC) or Cmd+Shift+` (Mac) - backtick key
+            // Changed from Cmd+Shift+D to avoid conflict with browser's "Save Bookmark" shortcut
             document.addEventListener('keydown', (e) => {
-                if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'D') {
+                if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === '`') {
                     e.preventDefault();
                     e.stopPropagation();
                     const currentDisplay = panel.style.display;
@@ -117,7 +118,7 @@ class FormFlowDebugger {
             const toggleBtn = document.createElement('button');
             toggleBtn.id = 'debugPanelToggleBtn';
             toggleBtn.innerHTML = '🔍';
-            toggleBtn.title = 'Toggle Debug Panel (Cmd+Shift+D)';
+            toggleBtn.title = 'Toggle Debug Panel (Cmd+Shift+`)';
             toggleBtn.style.cssText = `
                 position: fixed;
                 bottom: 10px;
@@ -459,7 +460,7 @@ if (typeof window !== 'undefined') {
         logs: () => window.formFlowDebugger.logs
     };
     
-    console.log('✅ Form Flow Debugger initialized. Press Ctrl+Shift+D to toggle panel.');
+    console.log('✅ Form Flow Debugger initialized. Press Ctrl+Shift+` (backtick) to toggle panel.');
     console.log('📊 Use window.debugFormFlow.summary() to get a summary');
     console.log('💾 Use window.debugFormFlow.export() to export logs');
 }
