@@ -1334,9 +1334,17 @@
                                 setTimeout(checkDOM, 100);
                             } else {
                                 console.error('❌ Tab container not found after waiting for DOM');
-                                console.error('🔍 Available tab-content elements:', Array.from(document.querySelectorAll('.tab-content')).map(t => ({
+                                const allTabContents = document.querySelectorAll('.tab-content, [id*="merchant"], [class*="tab"]');
+                                console.error('🔍 Available tab-content elements:', Array.from(allTabContents).map(t => ({
                                     id: t.id,
-                                    className: t.className
+                                    className: t.className,
+                                    tagName: t.tagName,
+                                    innerHTML: t.innerHTML.substring(0, 100)
+                                })));
+                                console.error('🔍 All elements with id containing "merchant":', Array.from(document.querySelectorAll('[id*="merchant"]')).map(e => ({
+                                    id: e.id,
+                                    tagName: e.tagName,
+                                    className: e.className
                                 })));
                                 if (window.formFlowDebugger) {
                                     window.formFlowDebugger.log('error', 'Tab container not found after waiting', {
@@ -2148,15 +2156,30 @@
                     console.log('🔍 QuerySelector result:', riskIndicatorsTabButton);
                     
                     if (!riskIndicatorsTabButton) {
+                        // Try finding by text content - search ALL buttons first
+                        const allButtons = document.querySelectorAll('button');
+                        console.log('🔍 All buttons found:', allButtons.length);
+                        console.log('🔍 Buttons with tab-button class:', document.querySelectorAll('.tab-button').length);
+                        console.log('🔍 Buttons with data-tab attribute:', document.querySelectorAll('button[data-tab]').length);
+                        
+                        // Log details of all buttons for debugging
+                        allButtons.forEach((btn, idx) => {
+                            console.log(`🔍 Button ${idx}:`, {
+                                text: (btn.textContent || '').trim().substring(0, 50),
+                                dataTab: btn.getAttribute('data-tab'),
+                                classes: btn.className,
+                                id: btn.id,
+                                tagName: btn.tagName
+                            });
+                        });
+                        
                         // Try finding by text content
-                        const allButtons = document.querySelectorAll('.tab-button, button[data-tab]');
-                        console.log('🔍 All tab buttons found:', allButtons.length);
                         for (const btn of allButtons) {
                             const text = btn.textContent || btn.innerText || '';
-                            console.log('🔍 Button text:', text.trim());
-                            if (text.includes('Risk Indicators')) {
+                            const dataTab = btn.getAttribute('data-tab');
+                            if (dataTab === 'risk-indicators' || text.includes('Risk Indicators')) {
                                 riskIndicatorsTabButton = btn;
-                                console.log('✅ Found button by text content');
+                                console.log('✅ Found button by text content or data-tab');
                                 break;
                             }
                         }
@@ -2276,15 +2299,30 @@
                         console.log('🔍 QuerySelector result:', riskAssessmentTabButton);
                         
                         if (!riskAssessmentTabButton) {
+                            // Try finding by text content - search ALL buttons first
+                            const allButtons = document.querySelectorAll('button');
+                            console.log('🔍 All buttons found:', allButtons.length);
+                            console.log('🔍 Buttons with tab-button class:', document.querySelectorAll('.tab-button').length);
+                            console.log('🔍 Buttons with data-tab attribute:', document.querySelectorAll('button[data-tab]').length);
+                            
+                            // Log details of all buttons for debugging
+                            allButtons.forEach((btn, idx) => {
+                                console.log(`🔍 Button ${idx}:`, {
+                                    text: (btn.textContent || '').trim().substring(0, 50),
+                                    dataTab: btn.getAttribute('data-tab'),
+                                    classes: btn.className,
+                                    id: btn.id,
+                                    tagName: btn.tagName
+                                });
+                            });
+                            
                             // Try finding by text content
-                            const allButtons = document.querySelectorAll('.tab-button, button[data-tab]');
-                            console.log('🔍 All tab buttons found:', allButtons.length);
                             for (const btn of allButtons) {
                                 const text = btn.textContent || btn.innerText || '';
-                                console.log('🔍 Button text:', text.trim());
-                                if (text.includes('Risk Assessment')) {
+                                const dataTab = btn.getAttribute('data-tab');
+                                if (dataTab === 'risk-assessment' || text.includes('Risk Assessment')) {
                                     riskAssessmentTabButton = btn;
-                                    console.log('✅ Found button by text content');
+                                    console.log('✅ Found button by text content or data-tab');
                                     break;
                                 }
                             }
