@@ -151,8 +151,17 @@ class MerchantFormComponent {
                 this._handleButtonClick = handleButtonClick;
                 
                 // Capture phase - highest priority - MUST be first
-                this.submitBtn.addEventListener('click', handleButtonClick, { capture: true, passive: false });
-                console.log('✅ [DEBUG] Click event listener attached to submit button (capture, non-passive)');
+                // Use once: false to ensure it stays attached
+                this.submitBtn.addEventListener('click', handleButtonClick, { capture: true, passive: false, once: false });
+                console.log('✅ [DEBUG] Click event listener attached to submit button (capture, non-passive, once: false)');
+                
+                // Verify the listener was actually attached
+                console.log('🔍 [DEBUG] Verifying listener attachment...');
+                // Note: getEventListeners is Chrome DevTools only, not available in production
+                // But we can verify by checking if the button has onclick or by trying to remove it
+                if (this.submitBtn.onclick) {
+                    console.log('✅ [DEBUG] Button onclick property is set');
+                }
                 
                 // Also attach to mousedown as backup (fires before click)
                 this.submitBtn.addEventListener('mousedown', function(e) {
@@ -197,7 +206,22 @@ class MerchantFormComponent {
                     // Fallback if defineProperty fails
                     this.submitBtn.onclick = onclickHandler;
                     console.log('✅ [DEBUG] onclick handler attached (fallback method)');
+                    console.warn('⚠️ [DEBUG] Could not make onclick non-configurable:', e.message);
                 }
+                
+                // Final verification - check if onclick is actually set
+                setTimeout(() => {
+                    if (this.submitBtn.onclick === onclickHandler) {
+                        console.log('✅ [DEBUG] onclick handler verified - still attached after 100ms');
+                    } else {
+                        console.error('❌ [ERROR] onclick handler was removed or changed!');
+                        console.error('❌ [ERROR] Expected:', onclickHandler);
+                        console.error('❌ [ERROR] Got:', this.submitBtn.onclick);
+                        // Re-attach it
+                        this.submitBtn.onclick = onclickHandler;
+                        console.log('✅ [DEBUG] onclick handler re-attached');
+                    }
+                }, 100);
                 
                 // Make button type="button" to prevent form submission
                 if (this.submitBtn.type === 'submit') {

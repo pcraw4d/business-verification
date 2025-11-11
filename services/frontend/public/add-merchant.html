@@ -791,7 +791,7 @@
                     console.error('❌ [ERROR] Error message:', error.message);
                     console.error('❌ [ERROR] Error stack:', error.stack);
                 }
-            } else {
+                    } else {
                 console.error('❌ [ERROR] MerchantFormComponent not found');
                 console.error('❌ [ERROR] Available window properties:', Object.keys(window).filter(k => k.includes('Merchant') || k.includes('Form')));
             }
@@ -800,13 +800,13 @@
         if (document.readyState === 'loading') {
             console.log('🔍 [DEBUG] Document still loading, waiting for DOMContentLoaded...');
             document.addEventListener('DOMContentLoaded', initializeForm);
-        } else {
+                    } else {
             console.log('🔍 [DEBUG] Document already loaded, initializing immediately...');
             initializeForm();
         }
         
         // Add direct test after a delay to verify button exists and can be clicked
-        setTimeout(() => {
+                setTimeout(() => {
             const testBtn = document.getElementById('submitBtn');
             const testForm = document.getElementById('merchantForm');
             console.log('🔍 [DEBUG] Post-init check - Submit button exists:', !!testBtn);
@@ -823,32 +823,21 @@
                     console.log('🔍 [DEBUG] Component submitBtn:', window.merchantFormInstance.submitBtn);
                     console.log('🔍 [DEBUG] Component form:', window.merchantFormInstance.form);
                     
-                    // Test if we can manually trigger handleSubmit - DIRECT CALL
-                    console.log('🔍 [DEBUG] Testing DIRECT handleSubmit call (bypassing events)...');
-                    try {
-                        // Directly call handleSubmit to bypass event system
-                        if (window.merchantFormInstance && typeof window.merchantFormInstance.handleSubmit === 'function') {
-                            console.log('🔍 [DEBUG] Calling handleSubmit directly...');
-                            const mockEvent = { 
-                                preventDefault: () => console.log('🔍 [DEBUG] preventDefault called'),
-                                stopPropagation: () => console.log('🔍 [DEBUG] stopPropagation called'),
-                                stopImmediatePropagation: () => console.log('🔍 [DEBUG] stopImmediatePropagation called'),
-                                type: 'click',
-                                target: testBtn,
-                                currentTarget: testBtn
-                            };
-                            window.merchantFormInstance.handleSubmit(mockEvent).catch(err => {
-                                console.error('❌ [ERROR] handleSubmit promise rejected:', err);
-                            });
-                            console.log('✅ [DEBUG] Direct handleSubmit call initiated');
-                        } else {
-                            console.error('❌ [ERROR] handleSubmit method not found on instance');
+                    // Don't auto-trigger - just verify handlers are accessible
+                    console.log('🔍 [DEBUG] Verifying handler accessibility...');
+                    if (window.merchantFormInstance) {
+                        console.log('✅ [DEBUG] handleSubmit method exists:', typeof window.merchantFormInstance.handleSubmit === 'function');
+                        console.log('✅ [DEBUG] _handleButtonClick stored:', typeof window.merchantFormInstance._handleButtonClick === 'function');
+                        console.log('✅ [DEBUG] _handleFormSubmit stored:', typeof window.merchantFormInstance._handleFormSubmit === 'function');
+                        
+                        // Add a visual indicator that handlers are ready
+                        if (testBtn) {
+                            testBtn.style.border = '2px solid #4CAF50';
+                            testBtn.title = 'Handlers attached - Click to test';
+                            console.log('✅ [DEBUG] Button marked as ready (green border)');
                         }
-                    } catch (error) {
-                        console.error('❌ [ERROR] Direct handleSubmit call failed:', error);
-                        console.error('❌ [ERROR] Error stack:', error.stack);
-                    }
-                } else {
+                        }
+                    } else {
                     console.warn('⚠️ [DEBUG] Component instance not found in window.merchantFormInstance');
                 }
                 
