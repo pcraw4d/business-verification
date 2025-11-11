@@ -45,6 +45,9 @@ class FormFlowDebugger {
     }
 
     createDebugPanel() {
+        // Store reference to 'this' for use in nested functions
+        const self = this;
+        
         // Wait for body to be available
         const tryCreatePanel = () => {
             if (!document.body) {
@@ -95,7 +98,7 @@ class FormFlowDebugger {
             document.body.appendChild(panel);
             
             // Log panel creation
-            this.log('system', 'Debug panel created and added to DOM', {
+            self.log('system', 'Debug panel created and added to DOM', {
                 panelId: panel.id,
                 panelExists: !!panel,
                 bodyExists: !!document.body
@@ -114,7 +117,7 @@ class FormFlowDebugger {
                     const currentDisplay = panelElement.style.display || window.getComputedStyle(panelElement).display;
                     const newDisplay = currentDisplay === 'none' || currentDisplay === '' ? 'block' : 'none';
                     panelElement.style.display = newDisplay;
-                    this.log('system', `Debug panel ${newDisplay === 'block' ? 'opened' : 'closed'} via header toggle button`);
+                    self.log('system', `Debug panel ${newDisplay === 'block' ? 'opened' : 'closed'} via header toggle button`);
                 } catch (error) {
                     console.error('Error toggling debug panel:', error);
                 }
@@ -138,14 +141,14 @@ class FormFlowDebugger {
                         const currentDisplay = panelElement.style.display || window.getComputedStyle(panelElement).display;
                         const newDisplay = currentDisplay === 'none' || currentDisplay === '' ? 'block' : 'none';
                         panelElement.style.display = newDisplay;
-                        this.log('system', `Debug panel ${newDisplay === 'block' ? 'opened' : 'closed'} via keyboard shortcut`, {
+                        self.log('system', `Debug panel ${newDisplay === 'block' ? 'opened' : 'closed'} via keyboard shortcut`, {
                             previousDisplay: currentDisplay,
                             newDisplay: newDisplay
                         });
                         console.log('Debug panel toggled via keyboard:', newDisplay);
                     } catch (error) {
                         console.error('Error toggling debug panel via keyboard:', error);
-                        this.log('system', 'ERROR toggling debug panel via keyboard', { error: error.message });
+                        self.log('system', 'ERROR toggling debug panel via keyboard', { error: error.message });
                     }
                 }
             });
@@ -181,13 +184,13 @@ class FormFlowDebugger {
                     const panelElement = document.getElementById('formFlowDebugPanel') || panel || window._debugPanel;
                     if (!panelElement) {
                         console.error('Debug panel not found!');
-                        this.log('system', 'ERROR: Debug panel element not found when toggling');
+                        self.log('system', 'ERROR: Debug panel element not found when toggling');
                         return;
                     }
                     const currentDisplay = panelElement.style.display || window.getComputedStyle(panelElement).display;
                     const newDisplay = currentDisplay === 'none' || currentDisplay === '' ? 'block' : 'none';
                     panelElement.style.display = newDisplay;
-                    this.log('system', `Debug panel ${newDisplay === 'block' ? 'opened' : 'closed'} via toggle button`, {
+                    self.log('system', `Debug panel ${newDisplay === 'block' ? 'opened' : 'closed'} via toggle button`, {
                         previousDisplay: currentDisplay,
                         newDisplay: newDisplay,
                         panelExists: !!panelElement
@@ -195,13 +198,13 @@ class FormFlowDebugger {
                     console.log('Debug panel toggled:', newDisplay);
                 } catch (error) {
                     console.error('Error toggling debug panel:', error);
-                    this.log('system', 'ERROR toggling debug panel', { error: error.message });
+                    self.log('system', 'ERROR toggling debug panel', { error: error.message });
                 }
             });
             document.body.appendChild(toggleBtn);
             
             // Log that toggle button was created
-            this.log('system', 'Debug panel toggle button created', {
+            self.log('system', 'Debug panel toggle button created', {
                 buttonId: toggleBtn.id,
                 panelId: panel.id,
                 panelExists: !!panel
