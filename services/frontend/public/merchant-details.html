@@ -2286,11 +2286,67 @@
                 });
             }
             
-            // Check if content is outside .max-w-7xl container
-            const maxWContainer = document.querySelector('.max-w-7xl');
-            if (maxWContainer && coreResults) {
-                const isInContainer = maxWContainer.contains(coreResults);
-                console.log('🔍 #coreResults is inside .max-w-7xl:', isInContainer);
+            // Check for duplicate #coreResults elements
+            const allCoreResults = document.querySelectorAll('#coreResults');
+            console.log('🔍 Total #coreResults elements found:', allCoreResults.length);
+            if (allCoreResults.length > 1) {
+                console.warn('⚠️ DUPLICATE #coreResults elements detected!');
+                allCoreResults.forEach((el, idx) => {
+                    let parent = el.parentElement;
+                    const parentChain = [];
+                    while (parent && parent !== document.body) {
+                        parentChain.push({
+                            tag: parent.tagName,
+                            id: parent.id || 'N/A',
+                            class: parent.className || 'N/A'
+                        });
+                        parent = parent.parentElement;
+                    }
+                    console.log(`🔍 #coreResults ${idx + 1} parent chain:`, parentChain);
+                });
+            }
+            
+            // Show full parent chain for #coreResults
+            if (coreResults) {
+                let parent = coreResults.parentElement;
+                const parentChain = [];
+                while (parent && parent !== document.body) {
+                    parentChain.push({
+                        tag: parent.tagName,
+                        id: parent.id || 'N/A',
+                        class: parent.className || 'N/A',
+                        isTabContent: parent.classList.contains('tab-content'),
+                        isMaxW7xl: parent.classList.contains('max-w-7xl')
+                    });
+                    parent = parent.parentElement;
+                }
+                console.log('🔍 #coreResults full parent chain:', parentChain);
+            }
+            
+            // Check ALL .max-w-7xl containers
+            const allMaxWContainers = document.querySelectorAll('.max-w-7xl');
+            console.log('🔍 Total .max-w-7xl containers found:', allMaxWContainers.length);
+            allMaxWContainers.forEach((container, idx) => {
+                const isInContainer = container.contains(coreResults);
+                const containerInfo = {
+                    index: idx,
+                    id: container.id || 'N/A',
+                    classes: container.className,
+                    containsCoreResults: isInContainer,
+                    location: container.getBoundingClientRect()
+                };
+                console.log(`🔍 .max-w-7xl container ${idx + 1}:`, containerInfo);
+            });
+            
+            // Check if content is outside .max-w-7xl container (check main content container specifically)
+            const mainMaxWContainer = document.querySelector('.max-w-7xl.mx-auto');
+            if (mainMaxWContainer && coreResults) {
+                const isInContainer = mainMaxWContainer.contains(coreResults);
+                console.log('🔍 #coreResults is inside main .max-w-7xl.mx-auto:', isInContainer);
+                if (!isInContainer) {
+                    console.warn('⚠️ #coreResults is OUTSIDE the main .max-w-7xl container!');
+                    console.warn('⚠️ This means the content is not part of the tab system!');
+                }
             }
             
             console.log('🔍 ================================================');
