@@ -2341,69 +2341,6 @@
                 };
                 
                 setupRiskAssessmentButton();
-                    
-                    // Add click event listener
-                    newRiskAssessmentButton.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        console.log('🎯 Risk Assessment Tab button clicked!');
-                        
-                        // Handle tab switching (add/remove active classes)
-                        document.querySelectorAll('.tab-content').forEach(tab => {
-                            tab.classList.remove('active');
-                        });
-                        document.querySelectorAll('.tab-button').forEach(button => {
-                            button.classList.remove('active');
-                        });
-                        
-                        // Add active class to Risk Assessment tab and button
-                        const tabElement = document.getElementById('risk-assessment');
-                        if (tabElement) tabElement.classList.add('active');
-                        newRiskAssessmentButton.classList.add('active');
-                        
-                        // Load risk assessment content
-                        const merchantId = getMerchantId();
-                        console.log('🎯 Risk Assessment Tab clicked, merchant ID:', merchantId);
-                        
-                        const container = document.getElementById('riskAssessmentContainer');
-                        console.log('🔍 Risk Assessment container:', container);
-                        console.log('🔍 window.merchantRiskTab:', window.merchantRiskTab);
-                        
-                        if (container && window.merchantRiskTab) {
-                            console.log('🎯 Loading Risk Assessment content...');
-                            window.merchantRiskTab.loadRiskAssessmentContent(container).catch(error => {
-                                console.error('❌ Error loading Risk Assessment content:', error);
-                                console.error('Error stack:', error.stack);
-                                if (container) {
-                                    container.innerHTML = `
-                                        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                                            <h3 class="font-bold">Error Loading Risk Assessment</h3>
-                                            <p>Unable to load risk assessment data. Please try again later.</p>
-                                            <p class="text-sm mt-2">Error: ${error.message}</p>
-                                        </div>
-                                    `;
-                                }
-                            });
-                        } else {
-                            console.error('❌ Risk Assessment container or MerchantRiskTab not found');
-                            console.error('Container:', container);
-                            console.error('MerchantRiskTab:', window.merchantRiskTab);
-                            if (container) {
-                                container.innerHTML = `
-                                    <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
-                                        <h3 class="font-bold">Risk Assessment Tab</h3>
-                                        <p>Merchant ID: ${merchantId || 'Not found'}</p>
-                                        <p>Container: ${container ? 'Found' : 'Not found'}</p>
-                                        <p>MerchantRiskTab: ${window.merchantRiskTab ? 'Found' : 'Not found'}</p>
-                                        <p>Initializing Risk Assessment content...</p>
-                                    </div>
-                                `;
-                            }
-                        }
-                    });
-                } else {
-                    console.error('❌ Risk Assessment tab button not found');
-                }
             } catch (error) {
                 console.error('❌ Error in Risk Assessment initialization:', error);
                 console.error('Error stack:', error.stack);
