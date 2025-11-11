@@ -823,24 +823,30 @@
                     console.log('🔍 [DEBUG] Component submitBtn:', window.merchantFormInstance.submitBtn);
                     console.log('🔍 [DEBUG] Component form:', window.merchantFormInstance.form);
                     
-                    // Test if we can manually trigger handleSubmit
-                    console.log('🔍 [DEBUG] Testing manual handleSubmit call...');
+                    // Test if we can manually trigger handleSubmit - DIRECT CALL
+                    console.log('🔍 [DEBUG] Testing DIRECT handleSubmit call (bypassing events)...');
                     try {
-                        // Create a mock event
-                        const mockEvent = new MouseEvent('click', {
-                            bubbles: true,
-                            cancelable: true,
-                            view: window
-                        });
-                        Object.defineProperty(mockEvent, 'target', { value: testBtn, writable: false });
-                        Object.defineProperty(mockEvent, 'currentTarget', { value: testBtn, writable: false });
-                        
-                        // Try to manually call the handler
-                        console.log('🔍 [DEBUG] Attempting to manually trigger button click handler...');
-                        testBtn.dispatchEvent(mockEvent);
-                        console.log('✅ [DEBUG] Manual event dispatch completed');
+                        // Directly call handleSubmit to bypass event system
+                        if (window.merchantFormInstance && typeof window.merchantFormInstance.handleSubmit === 'function') {
+                            console.log('🔍 [DEBUG] Calling handleSubmit directly...');
+                            const mockEvent = { 
+                                preventDefault: () => console.log('🔍 [DEBUG] preventDefault called'),
+                                stopPropagation: () => console.log('🔍 [DEBUG] stopPropagation called'),
+                                stopImmediatePropagation: () => console.log('🔍 [DEBUG] stopImmediatePropagation called'),
+                                type: 'click',
+                                target: testBtn,
+                                currentTarget: testBtn
+                            };
+                            window.merchantFormInstance.handleSubmit(mockEvent).catch(err => {
+                                console.error('❌ [ERROR] handleSubmit promise rejected:', err);
+                            });
+                            console.log('✅ [DEBUG] Direct handleSubmit call initiated');
+                        } else {
+                            console.error('❌ [ERROR] handleSubmit method not found on instance');
+                        }
                     } catch (error) {
-                        console.error('❌ [ERROR] Manual trigger failed:', error);
+                        console.error('❌ [ERROR] Direct handleSubmit call failed:', error);
+                        console.error('❌ [ERROR] Error stack:', error.stack);
                     }
                 } else {
                     console.warn('⚠️ [DEBUG] Component instance not found in window.merchantFormInstance');

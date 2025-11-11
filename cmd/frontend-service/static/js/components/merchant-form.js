@@ -51,20 +51,36 @@ class MerchantFormComponent {
             // Form submission - use capture phase to catch early, non-passive
             const self = this;
             const handleFormSubmit = function(e) {
+                console.log('🔍 [DEBUG] ========== FORM SUBMIT HANDLER FIRED ==========');
                 console.log('🔍 [DEBUG] Form submit event triggered - handler FIRED!');
                 console.log('🔍 [DEBUG] Event type:', e.type);
                 console.log('🔍 [DEBUG] Event target:', e.target);
+                console.log('🔍 [DEBUG] Handler context (self):', self);
                 
                 // CRITICAL: Prevent default FIRST
-                e.preventDefault();
-                e.stopPropagation();
-                e.stopImmediatePropagation();
+                if (e && typeof e.preventDefault === 'function') {
+                    e.preventDefault();
+                }
+                if (e && typeof e.stopPropagation === 'function') {
+                    e.stopPropagation();
+                }
+                if (e && typeof e.stopImmediatePropagation === 'function') {
+                    e.stopImmediatePropagation();
+                }
                 
                 console.log('✅ [DEBUG] Default form submission prevented and propagation stopped');
-                console.log('🔍 [DEBUG] Event defaultPrevented after preventDefault:', e.defaultPrevented);
+                console.log('🔍 [DEBUG] Event defaultPrevented after preventDefault:', e ? e.defaultPrevented : 'N/A');
                 
-                self.handleSubmit(e);
+                try {
+                    self.handleSubmit(e);
+                } catch (error) {
+                    console.error('❌ [ERROR] Error in handleFormSubmit calling handleSubmit:', error);
+                    console.error('❌ [ERROR] Error stack:', error.stack);
+                }
             };
+            
+            // Store handler reference for debugging
+            this._handleFormSubmit = handleFormSubmit;
             
             console.log('🔍 [DEBUG] Attaching submit event listener to form (capture phase, non-passive)');
             this.form.addEventListener('submit', handleFormSubmit, { capture: true, passive: false });
@@ -85,38 +101,54 @@ class MerchantFormComponent {
                 const handleButtonClick = function(e) {
                     console.log('🔍 [DEBUG] ========== COMPONENT BUTTON CLICK HANDLER FIRED ==========');
                     console.log('🔍 [DEBUG] Submit button clicked - handler FIRED!');
-                    console.log('🔍 [DEBUG] Event type:', e.type);
-                    console.log('🔍 [DEBUG] Event target:', e.target);
-                    console.log('🔍 [DEBUG] Event currentTarget:', e.currentTarget);
+                    console.log('🔍 [DEBUG] Event type:', e ? e.type : 'NO EVENT');
+                    console.log('🔍 [DEBUG] Event target:', e ? e.target : 'NO EVENT');
+                    console.log('🔍 [DEBUG] Event currentTarget:', e ? e.currentTarget : 'NO EVENT');
                     console.log('🔍 [DEBUG] Handler context (self):', self);
-                    console.log('🔍 [DEBUG] Form element:', self.form);
+                    console.log('🔍 [DEBUG] Form element:', self ? self.form : 'NO SELF');
                     
                     // CRITICAL: Prevent default FIRST
-                    e.preventDefault();
-                    e.stopPropagation();
-                    e.stopImmediatePropagation();
+                    if (e && typeof e.preventDefault === 'function') {
+                        e.preventDefault();
+                    }
+                    if (e && typeof e.stopPropagation === 'function') {
+                        e.stopPropagation();
+                    }
+                    if (e && typeof e.stopImmediatePropagation === 'function') {
+                        e.stopImmediatePropagation();
+                    }
                     
                     console.log('✅ [DEBUG] Default prevented, propagation stopped');
-                    console.log('🔍 [DEBUG] Event defaultPrevented after preventDefault:', e.defaultPrevented);
+                    console.log('🔍 [DEBUG] Event defaultPrevented after preventDefault:', e ? e.defaultPrevented : 'N/A');
                     
                     // Process immediately - no delay
                     console.log('🔍 [DEBUG] Processing button click immediately');
                     
                     // Trigger form validation and submission
                     console.log('🔍 [DEBUG] Checking form validity...');
-                    const isValid = self.form.checkValidity();
-                    console.log('🔍 [DEBUG] Form validity result:', isValid);
-                    
-                    if (isValid) {
-                        console.log('🔍 [DEBUG] Form is valid, calling handleSubmit');
-                        self.handleSubmit(e);
-                    } else {
-                        console.warn('⚠️ [DEBUG] Form validation failed on button click');
-                        self.form.reportValidity();
+                    try {
+                        const isValid = self.form ? self.form.checkValidity() : false;
+                        console.log('🔍 [DEBUG] Form validity result:', isValid);
+                        
+                        if (isValid) {
+                            console.log('🔍 [DEBUG] Form is valid, calling handleSubmit');
+                            self.handleSubmit(e);
+                        } else {
+                            console.warn('⚠️ [DEBUG] Form validation failed on button click');
+                            if (self.form) {
+                                self.form.reportValidity();
+                            }
+                        }
+                    } catch (error) {
+                        console.error('❌ [ERROR] Error in handleButtonClick:', error);
+                        console.error('❌ [ERROR] Error stack:', error.stack);
                     }
                     
                     return false;
                 };
+                
+                // Store handler reference for debugging
+                this._handleButtonClick = handleButtonClick;
                 
                 // Capture phase - highest priority - MUST be first
                 this.submitBtn.addEventListener('click', handleButtonClick, { capture: true, passive: false });
