@@ -576,42 +576,69 @@ class MockDataWarning {
 
     updateWarningContent() {
         const warning = document.getElementById('mockDataWarning');
+        if (!warning) {
+            console.warn('⚠️ Mock data warning element not found in DOM');
+            return;
+        }
         
         // Set warning level class
         warning.className = `mock-data-warning warning-level-${this.warningLevel}`;
+        
+        // Helper function to safely set text content
+        const setTextContent = (elementId, value) => {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = value;
+                return true;
+            } else {
+                console.warn(`⚠️ Element with id "${elementId}" not found in DOM`);
+                return false;
+            }
+        };
         
         // Update title and subtitle based on data source
         const title = document.getElementById('warningTitle');
         const subtitle = document.getElementById('warningSubtitle');
         
-        if (this.dataSource === 'mock') {
-            title.textContent = 'Mock Data Active';
-            subtitle.textContent = 'This interface is using test data for demonstration purposes';
-        } else if (this.dataSource === 'staging') {
-            title.textContent = 'Staging Data Active';
-            subtitle.textContent = 'This interface is using staging environment data';
-        } else {
-            title.textContent = 'Test Data Active';
-            subtitle.textContent = 'This interface is using test data';
+        if (title && subtitle) {
+            if (this.dataSource === 'mock') {
+                title.textContent = 'Mock Data Active';
+                subtitle.textContent = 'This interface is using test data for demonstration purposes';
+            } else if (this.dataSource === 'staging') {
+                title.textContent = 'Staging Data Active';
+                subtitle.textContent = 'This interface is using staging environment data';
+            } else {
+                title.textContent = 'Test Data Active';
+                subtitle.textContent = 'This interface is using test data';
+            }
         }
         
         // Update data source information
         if (this.dataInfo) {
-            document.getElementById('dataSourceValue').textContent = this.formatDataSource(this.dataInfo.source);
+            setTextContent('dataSourceValue', this.formatDataSource(this.dataInfo.source));
             
             if (this.showDataCount && this.dataInfo.count) {
-                document.getElementById('dataCountItem').style.display = 'flex';
-                document.getElementById('dataCountValue').textContent = this.formatDataCount(this.dataInfo.count);
+                const dataCountItem = document.getElementById('dataCountItem');
+                if (dataCountItem) {
+                    dataCountItem.style.display = 'flex';
+                }
+                setTextContent('dataCountValue', this.formatDataCount(this.dataInfo.count));
             }
             
             if (this.dataInfo.last_updated) {
-                document.getElementById('lastUpdatedItem').style.display = 'flex';
-                document.getElementById('lastUpdatedValue').textContent = this.formatLastUpdated(this.dataInfo.last_updated);
+                const lastUpdatedItem = document.getElementById('lastUpdatedItem');
+                if (lastUpdatedItem) {
+                    lastUpdatedItem.style.display = 'flex';
+                }
+                setTextContent('lastUpdatedValue', this.formatLastUpdated(this.dataInfo.last_updated));
             }
             
             if (this.dataInfo.quality) {
-                document.getElementById('dataQualityItem').style.display = 'flex';
-                document.getElementById('dataQualityValue').textContent = this.formatDataQuality(this.dataInfo.quality);
+                const dataQualityItem = document.getElementById('dataQualityItem');
+                if (dataQualityItem) {
+                    dataQualityItem.style.display = 'flex';
+                }
+                setTextContent('dataQualityValue', this.formatDataQuality(this.dataInfo.quality));
             }
         }
         
