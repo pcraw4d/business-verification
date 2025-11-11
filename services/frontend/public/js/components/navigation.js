@@ -13,11 +13,14 @@ class KYBNavigation {
     }
 
     getCurrentPage() {
-        const path = window.location.pathname;
+        // Normalize path by removing trailing slashes
+        let path = window.location.pathname.replace(/\/+$/, '');
         
         // Handle paths with multiple segments (e.g., /admin/models, /admin/queue)
         if (path.startsWith('/admin/')) {
-            const segment = path.split('/').pop();
+            // Split path and filter out empty strings to handle trailing slashes
+            const segments = path.split('/').filter(segment => segment.length > 0);
+            const segment = segments[segments.length - 1]; // Get last non-empty segment
             if (segment === 'models') {
                 return 'admin-models';
             } else if (segment === 'queue') {
@@ -26,12 +29,13 @@ class KYBNavigation {
         }
         
         // Handle root admin path
-        if (path === '/admin' || path === '/admin/') {
+        if (path === '/admin') {
             return 'admin-dashboard';
         }
         
-        // Handle other paths
-        const filename = path.split('/').pop().replace('.html', '');
+        // Handle other paths - filter out empty strings to handle trailing slashes
+        const segments = path.split('/').filter(segment => segment.length > 0);
+        const filename = segments.length > 0 ? segments[segments.length - 1].replace('.html', '') : '';
         
         const pageMap = {
             'index': 'home',
