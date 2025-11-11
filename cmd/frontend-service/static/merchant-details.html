@@ -1153,6 +1153,9 @@
                     return;
                 }
                 console.log('🔍 Populating merchant details with data:', Object.keys(this.merchantData));
+                console.log('🔍 Document ready state:', document.readyState);
+                console.log('🔍 Document body exists:', !!document.body);
+                console.log('🔍 Document body children count:', document.body ? document.body.children.length : 0);
 
                 // Wait a bit for DOM to be fully ready, especially if tabs are involved
                 const populateFields = () => {
@@ -1264,10 +1267,49 @@
                     return populatedCount > 0; // Return true if any fields were populated
                 };
 
+                // Wait for DOM to be fully ready
+                const waitForDOM = (callback, maxWait = 5000) => {
+                    const startTime = Date.now();
+                    
+                    const checkDOM = () => {
+                        // Check if body exists and has content
+                        if (!document.body || document.body.children.length === 0) {
+                            if (Date.now() - startTime < maxWait) {
+                                setTimeout(checkDOM, 100);
+                                return;
+                            }
+                        }
+                        
+                        // Check if the tab container exists
+                        const tabContainer = document.getElementById('merchant-details');
+                        if (tabContainer) {
+                            console.log('✅ Tab container found, proceeding with population');
+                            callback();
+                        } else {
+                            // If not found and we haven't exceeded max wait, keep trying
+                            if (Date.now() - startTime < maxWait) {
+                                setTimeout(checkDOM, 100);
+                            } else {
+                                console.error('❌ Tab container not found after waiting for DOM');
+                                callback(); // Still try to populate, maybe it will work
+                            }
+                        }
+                    };
+                    
+                    // Start checking
+                    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                        checkDOM();
+                    } else {
+                        window.addEventListener('load', checkDOM);
+                        // Also start checking immediately in case load already fired
+                        setTimeout(checkDOM, 100);
+                    }
+                };
+                
                 // Retry logic with multiple attempts
                 let retryCount = 0;
-                const maxRetries = 10; // Increased retries
-                const retryInterval = 300; // 300ms between retries (slightly longer)
+                const maxRetries = 15; // Increased retries even more
+                const retryInterval = 300; // 300ms between retries
                 
                 const attemptPopulate = () => {
                     const success = populateFields();
@@ -1278,20 +1320,51 @@
                         setTimeout(attemptPopulate, retryInterval);
                     } else if (!success) {
                         console.error('❌ Failed to populate merchant details after all retries!');
-                        // Log what tab containers DO exist
-                        const allTabs = document.querySelectorAll('.tab-content, [id*="merchant"], [class*="tab"]');
-                        console.log('🔍 Available tab-like elements:', Array.from(allTabs).map(el => ({
-                            id: el.id,
-                            className: el.className,
-                            tagName: el.tagName
-                        })));
+                        // Log what tab containers DO exist - try multiple selectors
+                        console.log('🔍 Checking for tab elements with various selectors...');
+                        const selectors = [
+                            '.tab-content',
+                            '[id*="merchant"]',
+                            '[class*="tab"]',
+                            '#merchant-details',
+                            'div.tab-content',
+                            'div[id="merchant-details"]'
+                        ];
+                        
+                        selectors.forEach(selector => {
+                            try {
+                                const elements = document.querySelectorAll(selector);
+                                if (elements.length > 0) {
+                                    console.log(`🔍 Found ${elements.length} elements with selector "${selector}":`, 
+                                        Array.from(elements).map(el => ({
+                                            id: el.id,
+                                            className: el.className,
+                                            tagName: el.tagName,
+                                            innerHTML: el.innerHTML.substring(0, 100)
+                                        }))
+                                    );
+                                }
+                            } catch (e) {
+                                console.warn(`⚠️ Error with selector "${selector}":`, e);
+                            }
+                        });
+                        
+                        // Also log document structure
+                        console.log('🔍 Document body structure:', {
+                            bodyExists: !!document.body,
+                            bodyChildren: document.body ? document.body.children.length : 0,
+                            readyState: document.readyState,
+                            allIds: Array.from(document.querySelectorAll('[id]')).map(el => el.id).slice(0, 20)
+                        });
                     } else {
                         console.log(`✅ Successfully populated merchant details after ${retryCount} retries`);
                     }
                 };
                 
-                // Try immediately, then retry if needed
-                attemptPopulate();
+                // Wait for DOM to be ready, then start populating
+                waitForDOM(() => {
+                    attemptPopulate();
+                });
             }
 
             populateApiResults() {
