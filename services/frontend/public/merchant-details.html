@@ -2198,14 +2198,36 @@
             
             // Check if Business Analytics content exists in #business-analytics tab
             const businessAnalyticsTab = document.getElementById('business-analytics');
+            const coreResults = document.getElementById('coreResults');
+            const isCoreResultsInTab = businessAnalyticsTab && coreResults ? businessAnalyticsTab.contains(coreResults) : false;
+            
             console.log('🔍 #business-analytics tab:', {
                 exists: !!businessAnalyticsTab,
                 display: businessAnalyticsTab ? window.getComputedStyle(businessAnalyticsTab).display : 'N/A',
                 inlineDisplay: businessAnalyticsTab ? businessAnalyticsTab.style.display : 'N/A',
                 hasActive: businessAnalyticsTab ? businessAnalyticsTab.classList.contains('active') : false,
                 visible: businessAnalyticsTab ? businessAnalyticsTab.offsetParent !== null : false,
-                children: businessAnalyticsTab ? businessAnalyticsTab.children.length : 0
+                children: businessAnalyticsTab ? businessAnalyticsTab.children.length : 0,
+                containsCoreResults: isCoreResultsInTab
             });
+            
+            if (!isCoreResultsInTab && coreResults) {
+                console.warn('⚠️ CRITICAL: #coreResults is NOT inside #business-analytics tab!');
+                console.warn('⚠️ This means the content is outside the tab system!');
+                
+                // Find where #coreResults actually is
+                let parent = coreResults.parentElement;
+                let parentChain = [];
+                while (parent && parent !== document.body) {
+                    parentChain.push({
+                        tag: parent.tagName,
+                        id: parent.id || 'N/A',
+                        classes: parent.className || 'N/A'
+                    });
+                    parent = parent.parentElement;
+                }
+                console.warn('⚠️ #coreResults parent chain:', parentChain);
+            }
             
             // Check for Core Classification Results
             const coreResults = document.getElementById('coreResults');
