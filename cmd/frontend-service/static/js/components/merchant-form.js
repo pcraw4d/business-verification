@@ -365,14 +365,21 @@ class MerchantFormComponent {
             case 'country':
                 // For select, check if a valid option is selected (not the empty default)
                 if (field.hasAttribute('required')) {
-                    if (!value || value === '') {
-                        console.warn(`⚠️ [VALIDATION] Country field is required but empty or has empty value`);
-                        this.showError(field, errorElement, 'Please select a country');
-                        return false;
-                    }
-                    // Also check if it's the default "Select Country" option
-                    if (field.selectedIndex === 0 && field.options[0].value === '') {
-                        console.warn(`⚠️ [VALIDATION] Country field has default option selected`);
+                    // Check multiple conditions to ensure a valid country is selected
+                    const isEmptyValue = !value || value.trim() === '';
+                    const isFirstOption = field.selectedIndex === 0;
+                    const firstOptionIsPlaceholder = field.options[0] && field.options[0].value === '';
+                    const hasValidSelection = !isEmptyValue && !(isFirstOption && firstOptionIsPlaceholder);
+                    
+                    if (!hasValidSelection) {
+                        console.warn(`⚠️ [VALIDATION] Country field is required but invalid:`, {
+                            value: value,
+                            selectedIndex: field.selectedIndex,
+                            firstOptionValue: field.options[0] ? field.options[0].value : 'N/A',
+                            firstOptionText: field.options[0] ? field.options[0].text : 'N/A',
+                            selectedOptionValue: field.options[field.selectedIndex] ? field.options[field.selectedIndex].value : 'N/A',
+                            selectedOptionText: field.options[field.selectedIndex] ? field.options[field.selectedIndex].text : 'N/A'
+                        });
                         this.showError(field, errorElement, 'Please select a country');
                         return false;
                     }
@@ -599,20 +606,42 @@ class MerchantFormComponent {
                     }
                 }
                 
-                // TEMPORARY: Allow bypassing validation if form appears to have values in DOM but validation fails
-                // This is a workaround to test if validation is the issue
+                // Check if form actually has values but validation incorrectly failed
                 const businessNameField = this.form.querySelector('[name="businessName"]');
                 const countryField = this.form.querySelector('[name="country"]');
                 const hasBusinessName = businessNameField && businessNameField.value.trim().length > 0;
-                const hasCountry = countryField && countryField.value && countryField.selectedIndex > 0;
+                // Country is valid if it has a non-empty value AND selectedIndex > 0 (not the placeholder)
+                const hasCountry = countryField && 
+                    countryField.value && 
+                    countryField.value.trim() !== '' && 
+                    countryField.selectedIndex > 0 &&
+                    countryField.options[countryField.selectedIndex] &&
+                    countryField.options[countryField.selectedIndex].value !== '';
                 
                 if (hasBusinessName && hasCountry) {
                     console.warn('⚠️ [DEBUG] Form appears to have values but validation failed - this may be a validation bug');
                     console.warn('⚠️ [DEBUG] businessName value:', businessNameField.value);
                     console.warn('⚠️ [DEBUG] country value:', countryField.value, 'selectedIndex:', countryField.selectedIndex);
+                    console.warn('⚠️ [DEBUG] country selected option:', countryField.options[countryField.selectedIndex] ? {
+                        value: countryField.options[countryField.selectedIndex].value,
+                        text: countryField.options[countryField.selectedIndex].text
+                    } : 'N/A');
                     console.warn('⚠️ [DEBUG] Proceeding with submission despite validation failure (workaround)');
                     // Don't return - continue with submission
                 } else {
+                    // Log why validation failed
+                    if (!hasBusinessName) {
+                        console.warn('⚠️ [DEBUG] businessName is missing or empty');
+                    }
+                    if (!hasCountry) {
+                        console.warn('⚠️ [DEBUG] country is missing or invalid:', {
+                            exists: !!countryField,
+                            value: countryField ? countryField.value : 'N/A',
+                            selectedIndex: countryField ? countryField.selectedIndex : 'N/A',
+                            firstOptionValue: countryField && countryField.options[0] ? countryField.options[0].value : 'N/A',
+                            selectedOptionValue: countryField && countryField.options[countryField.selectedIndex] ? countryField.options[countryField.selectedIndex].value : 'N/A'
+                        });
+                    }
                     this.scrollToFirstError();
                     this.showNotification('Please fix the errors in the form before submitting.', 'error');
                     return;
