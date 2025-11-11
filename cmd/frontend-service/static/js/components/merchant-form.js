@@ -446,12 +446,18 @@ class MerchantFormComponent {
             return false;
         }
         
-        if (formElement !== this.form) {
-            console.error('❌ [VALIDATION] Form element mismatch! Using different form instance!');
-            console.error('❌ [VALIDATION] this.form:', this.form);
-            console.error('❌ [VALIDATION] document.getElementById:', formElement);
-            // Use the one from the DOM instead
-            this.form = formElement;
+        // Check if form elements are actually different (not just reference comparison)
+        if (formElement.id !== this.form.id || formElement !== this.form) {
+            // Only log if they're actually different (different IDs or different objects)
+            if (formElement.id !== this.form.id) {
+                console.warn('⚠️ [VALIDATION] Form element ID mismatch, updating reference');
+                this.form = formElement;
+            }
+            // If same ID but different object reference, it's likely the same form
+            // Just use the DOM version to be safe
+            if (formElement !== this.form && formElement.id === this.form.id) {
+                this.form = formElement;
+            }
         }
         
         const fields = this.form.querySelectorAll('input, select, textarea');
