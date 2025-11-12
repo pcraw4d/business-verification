@@ -207,9 +207,9 @@ class KYBNavigation {
             return;
         }
 
-        // Skip navigation on pages that have their own layout (like merchant-details)
-        // These pages have their own navigation and should not be wrapped
-        const skipNavigationPages = ['merchant-details', 'add-merchant'];
+        // Skip navigation on pages that have their own layout
+        // Note: merchant-details now uses the navigation sidebar
+        const skipNavigationPages = ['add-merchant'];
         const currentPage = this.getCurrentPage();
         if (skipNavigationPages.includes(currentPage)) {
             console.log(`Skipping navigation for page: ${currentPage}`);
@@ -225,12 +225,56 @@ class KYBNavigation {
         const mainContentWrapper = navElement.querySelector('.main-content-wrapper');
         const mainContent = navElement.querySelector('.main-content');
 
-        // Move existing body content to main content area
-        const existingContent = document.body.innerHTML;
-        mainContent.innerHTML = existingContent;
+        // CRITICAL: Preserve existing DOM elements by moving them instead of converting to HTML
+        // This preserves all event listeners and DOM references that were attached before navigation initialization
+        // 
+        // Previous approach (BROKEN):
+        //   const existingContent = document.body.innerHTML;  // Converts to HTML string, loses event listeners
+        //   mainContent.innerHTML = existingContent;         // Recreates elements, event listeners are gone
+        //   document.body.innerHTML = '';                    // Destroys all DOM references
+        //
+        // New approach (FIXED):
+        //   Move actual DOM nodes using appendChild - this preserves all event listeners and references
+        const existingBodyChildren = Array.from(document.body.childNodes);
+        
+        // Separate script tags from other elements
+        // Scripts should remain in body for proper execution order and to avoid re-execution issues
+        const scriptTags = [];
+        const nonScriptElements = [];
+        
+        existingBodyChildren.forEach(child => {
+            if (child.nodeType === Node.ELEMENT_NODE && child.tagName === 'SCRIPT') {
+                scriptTags.push(child);
+            } else {
+                nonScriptElements.push(child);
+            }
+        });
+        
+        // Move all non-script elements to main content area
+        // Using appendChild on actual DOM nodes preserves:
+        //   - Event listeners attached via addEventListener
+        //   - DOM references stored in variables
+        //   - JavaScript object references to elements
+        //   - Any other properties/methods attached to elements
+        const fragment = document.createDocumentFragment();
+        nonScriptElements.forEach(child => {
+            // appendChild automatically removes child from its current parent (body) and adds to fragment
+            // This preserves all event listeners because we're moving the actual node, not recreating it
+            fragment.appendChild(child);
+        });
+        mainContent.appendChild(fragment);
 
-        // Clear body and add new structure
+        // Clear body and rebuild structure
+        // Note: nonScriptElements are already moved, so body only contains scripts at this point
         document.body.innerHTML = '';
+        
+        // Re-append script tags to maintain execution order
+        // Scripts that have already executed won't re-execute, but we keep them for reference
+        scriptTags.forEach(script => {
+            document.body.appendChild(script);
+        });
+        
+        // Add navigation structure
         document.body.appendChild(sidebar);
         document.body.appendChild(mainContentWrapper);
 
