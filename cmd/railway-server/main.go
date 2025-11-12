@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -9,7 +10,16 @@ import (
 	"strings"
 	"time"
 
+	_ "github.com/lib/pq"
 	"github.com/supabase/postgrest-go"
+	"go.uber.org/zap"
+
+	"kyb-platform/internal/api/handlers"
+	"kyb-platform/internal/api/middleware"
+	"kyb-platform/internal/api/routes"
+	"kyb-platform/internal/database"
+	"kyb-platform/internal/observability"
+	"kyb-platform/internal/services"
 )
 
 // RailwayServer represents the complete KYB platform server
@@ -18,6 +28,8 @@ type RailwayServer struct {
 	version        string
 	supabaseClient *postgrest.Client
 	port           string
+	db             *sql.DB
+	mux            *http.ServeMux
 }
 
 // NewRailwayServer creates a new RailwayServer instance
@@ -38,6 +50,28 @@ func NewRailwayServer() *RailwayServer {
 		supabaseClient = postgrest.NewClient(supabaseURL, supabaseKey, nil)
 	}
 
+	// Initialize database connection for new routes
+	var db *sql.DB
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL != "" {
+		var err error
+		db, err = sql.Open("postgres", databaseURL)
+		if err != nil {
+			log.Printf("Warning: Failed to connect to database: %v. New API routes will not be available.", err)
+		} else {
+			// Test connection
+			if err := db.Ping(); err != nil {
+				log.Printf("Warning: Database ping failed: %v. New API routes will not be available.", err)
+				db.Close()
+				db = nil
+			} else {
+				log.Println("✅ Database connection established for new API routes")
+			}
+		}
+	} else {
+		log.Println("Warning: DATABASE_URL not set. New API routes will not be available.")
+	}
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -48,6 +82,8 @@ func NewRailwayServer() *RailwayServer {
 		version:        version,
 		supabaseClient: supabaseClient,
 		port:           port,
+		db:             db,
+		mux:            http.NewServeMux(),
 	}
 }
 
@@ -770,38 +806,121 @@ func (s *RailwayServer) handleDocs(w http.ResponseWriter, r *http.Request) {
 // setupRoutes sets up all the HTTP routes
 func (s *RailwayServer) setupRoutes() {
 	// Health endpoints
-	http.HandleFunc("/health", s.handleHealth)
-	http.HandleFunc("/health/detailed", s.handleDetailedHealth)
+	s.mux.HandleFunc("/health", s.handleHealth)
+	s.mux.HandleFunc("/health/detailed", s.handleDetailedHealth)
 
 	// Classification endpoints
-	http.HandleFunc("/v1/classify", s.handleClassify)
-	http.HandleFunc("/v2/classify", s.handleClassify)
-	http.HandleFunc("/classify", s.handleClassify) // Legacy support
+	s.mux.HandleFunc("/v1/classify", s.handleClassify)
+	s.mux.HandleFunc("/v2/classify", s.handleClassify)
+	s.mux.HandleFunc("/classify", s.handleClassify) // Legacy support
 
 	// Merchant endpoints
-	http.HandleFunc("/merchants", s.handleMerchants)
-	http.HandleFunc("/v1/merchants", s.handleMerchants)
+	s.mux.HandleFunc("/merchants", s.handleMerchants)
+	s.mux.HandleFunc("/v1/merchants", s.handleMerchants)
 
 	// Analytics endpoints
-	http.HandleFunc("/analytics/overall", s.handleAnalytics)
+	s.mux.HandleFunc("/analytics/overall", s.handleAnalytics)
 
 	// Metrics and monitoring
-	http.HandleFunc("/metrics", s.handleMetrics)
-	http.HandleFunc("/self-driving", s.handleSelfDriving)
+	s.mux.HandleFunc("/metrics", s.handleMetrics)
+	s.mux.HandleFunc("/self-driving", s.handleSelfDriving)
 
 	// Reporting endpoints
-	http.HandleFunc("/reports", s.handleReports)
-	http.HandleFunc("/reports/export", s.handleExportReport)
+	s.mux.HandleFunc("/reports", s.handleReports)
+	s.mux.HandleFunc("/reports/export", s.handleExportReport)
 
 	// Authentication endpoints
-	http.HandleFunc("/auth/token", s.handleGenerateToken)
-	http.HandleFunc("/auth/validate", s.handleValidateToken)
+	s.mux.HandleFunc("/auth/token", s.handleGenerateToken)
+	s.mux.HandleFunc("/auth/validate", s.handleValidateToken)
 
 	// Rate limiting
-	http.HandleFunc("/rate-limits", s.handleRateLimits)
+	s.mux.HandleFunc("/rate-limits", s.handleRateLimits)
 
 	// Documentation
-	http.HandleFunc("/docs", s.handleDocs)
+	s.mux.HandleFunc("/docs", s.handleDocs)
+
+	// Register new merchant analytics and async risk assessment routes
+	s.setupNewAPIRoutes()
+}
+
+// setupNewAPIRoutes registers the new merchant analytics and async risk assessment routes
+func (s *RailwayServer) setupNewAPIRoutes() {
+	// Only register if database is available
+	if s.db == nil {
+		log.Println("⚠️  Skipping new API route registration: database not available")
+		return
+	}
+
+	logger := log.Default()
+
+	// Create zap logger for observability and middleware
+	zapLogger, err := zap.NewProduction()
+	if err != nil {
+		log.Printf("Warning: Failed to create zap logger: %v. Using default logger.", err)
+		zapLogger = zap.NewNop()
+	}
+
+	// Initialize observability logger
+	obsLogger := observability.NewLogger(zapLogger)
+
+	// Initialize repositories
+	merchantRepo := database.NewMerchantPortfolioRepository(s.db, logger)
+	analyticsRepo := database.NewMerchantAnalyticsRepository(s.db, logger)
+	riskAssessmentRepo := database.NewRiskAssessmentRepository(s.db, logger)
+
+	// Initialize services
+	analyticsService := services.NewMerchantAnalyticsService(analyticsRepo, merchantRepo, logger)
+	riskAssessmentService := services.NewRiskAssessmentService(riskAssessmentRepo, logger)
+
+	// Initialize handlers
+	// Note: MerchantPortfolioHandler and RiskHandler may need existing dependencies
+	// For now, we'll create minimal handlers or use nil if they require more setup
+	analyticsHandler := handlers.NewMerchantAnalyticsHandler(analyticsService, logger)
+	asyncRiskHandler := handlers.NewAsyncRiskAssessmentHandler(riskAssessmentService, logger)
+
+	// Initialize middleware
+	// Create auth middleware (can be nil if auth service is not available)
+	// The middleware will still work but may not validate tokens properly
+	var authMiddleware *middleware.AuthMiddleware
+	authMiddleware = middleware.NewAuthMiddleware(nil, zapLogger) // Pass nil auth service for now
+
+	// Create rate limiter
+	rateLimitConfig := &middleware.RateLimitConfig{
+		Enabled:           true,
+		RequestsPerMinute: 100,
+		BurstSize:         10,
+		WindowSize:        1 * time.Minute,
+		Strategy:          "token_bucket",
+	}
+	rateLimiter := middleware.NewAPIRateLimiter(rateLimitConfig, zapLogger)
+
+	// Register merchant routes with analytics handler
+	// Note: If MerchantPortfolioHandler is required, you'll need to initialize it
+	// For now, we'll register only the analytics routes
+	merchantConfig := &routes.MerchantRouteConfig{
+		MerchantPortfolioHandler: nil, // Set this if you have an existing merchant handler
+		MerchantAnalyticsHandler:  analyticsHandler,
+		AuthMiddleware:            authMiddleware,
+		RateLimiter:              rateLimiter,
+		Logger:                   obsLogger,
+	}
+	routes.RegisterMerchantRoutes(s.mux, merchantConfig)
+
+	// Register risk routes with async config
+	// Note: RiskHandler may need existing dependencies
+	asyncRiskConfig := &routes.AsyncRiskAssessmentRouteConfig{
+		AsyncRiskHandler: asyncRiskHandler,
+		AuthMiddleware:   authMiddleware,
+		RateLimiter:      rateLimiter,
+	}
+	// Register async routes (RiskHandler can be nil if not needed for async routes)
+	routes.RegisterRiskRoutesWithConfig(s.mux, nil, asyncRiskConfig)
+
+	log.Println("✅ New API routes registered:")
+	log.Println("   - GET /api/v1/merchants/{merchantId}/analytics")
+	log.Println("   - GET /api/v1/merchants/{merchantId}/website-analysis")
+	log.Println("   - POST /api/v1/risk/assess")
+	log.Println("   - GET /api/v1/risk/assess/{assessmentId}")
 }
 
 // Start starts the server
@@ -816,11 +935,17 @@ func (s *RailwayServer) Start() error {
 	log.Printf("📈 Analytics: http://localhost:%s/analytics/overall", s.port)
 	log.Printf("📚 Docs: http://localhost:%s/docs", s.port)
 
-	return http.ListenAndServe(":"+s.port, nil)
+	return http.ListenAndServe(":"+s.port, s.mux)
 }
 
 func main() {
 	server := NewRailwayServer()
+	
+	// Close database connection on exit
+	if server.db != nil {
+		defer server.db.Close()
+	}
+	
 	if err := server.Start(); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}

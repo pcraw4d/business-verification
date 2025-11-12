@@ -11,6 +11,7 @@ import (
 // MerchantRouteConfig holds configuration for merchant route registration
 type MerchantRouteConfig struct {
 	MerchantPortfolioHandler *handlers.MerchantPortfolioHandler
+	MerchantAnalyticsHandler *handlers.MerchantAnalyticsHandler
 	AuthMiddleware           *middleware.AuthMiddleware
 	RateLimiter              *middleware.APIRateLimiter
 	Logger                   *observability.Logger
@@ -39,6 +40,9 @@ func RegisterMerchantRoutes(mux *http.ServeMux, config *MerchantRouteConfig) {
 
 	// Register merchant analytics routes
 	registerMerchantAnalyticsRoutes(mux, config)
+
+	// Register merchant-specific analytics routes
+	registerMerchantSpecificAnalyticsRoutes(mux, config)
 
 	config.Logger.Info("Merchant portfolio routes registered", map[string]interface{}{
 		"version": "v1",
@@ -258,6 +262,39 @@ func registerMerchantAnalyticsRoutes(mux *http.ServeMux, config *MerchantRouteCo
 			"GET /api/v1/merchants/portfolio-types",
 			"GET /api/v1/merchants/risk-levels",
 			"GET /api/v1/merchants/statistics",
+		},
+	})
+}
+
+// registerMerchantSpecificAnalyticsRoutes registers merchant-specific analytics routes
+func registerMerchantSpecificAnalyticsRoutes(mux *http.ServeMux, config *MerchantRouteConfig) {
+	// Only register if analytics handler is provided
+	if config.MerchantAnalyticsHandler == nil {
+		return
+	}
+
+	// Get merchant analytics by merchant ID
+	mux.Handle("GET /api/v1/merchants/{merchantId}/analytics",
+		config.AuthMiddleware.RequireAuth(
+			config.RateLimiter.Middleware(
+				http.HandlerFunc(config.MerchantAnalyticsHandler.GetMerchantAnalytics),
+			),
+		),
+	)
+
+	// Get website analysis by merchant ID
+	mux.Handle("GET /api/v1/merchants/{merchantId}/website-analysis",
+		config.AuthMiddleware.RequireAuth(
+			config.RateLimiter.Middleware(
+				http.HandlerFunc(config.MerchantAnalyticsHandler.GetWebsiteAnalysis),
+			),
+		),
+	)
+
+	config.Logger.Info("Merchant-specific analytics routes registered", map[string]interface{}{
+		"endpoints": []string{
+			"GET /api/v1/merchants/{merchantId}/analytics",
+			"GET /api/v1/merchants/{merchantId}/website-analysis",
 		},
 	})
 }

@@ -1,0 +1,92 @@
+{
+  "complete": {
+    "merchantId": "merchant-analytics-001",
+    "classification": {
+      "primaryIndustry": "Technology",
+      "confidenceScore": 0.95,
+      "riskLevel": "low",
+      "mccCodes": [
+        {
+          "code": "5734",
+          "description": "Computer Software Stores",
+          "confidence": 0.92
+        },
+        {
+          "code": "7372",
+          "description": "Computer Programming Services",
+          "confidence": 0.88
+        }
+      ],
+      "sicCodes": [
+        {
+          "code": "7372",
+          "description": "Prepackaged Software",
+          "confidence": 0.90
+        }
+      ],
+      "naicsCodes": [
+        {
+          "code": "541511",
+          "description": "Custom Computer Programming Services",
+          "confidence": 0.93
+        }
+      ]
+    },
+    "security": {
+      "trustScore": 0.85,
+      "sslValid": true,
+      "sslExpiryDate": "2025-12-31T00:00:00Z",
+      "securityHeaders": [
+        {
+          "header": "X-Frame-Options",
+          "present": true,
+          "value": "DENY"
+        },
+        {
+          "header": "X-Content-Type-Options",
+          "present": true,
+          "value": "nosniff"
+        }
+      ]
+    },
+    "quality": {
+      "completenessScore": 0.92,
+      "dataPoints": 45,
+      "missingFields": []
+    },
+    "intelligence": {
+      "businessAge": 5,
+      "employeeCount": 150,
+      "annualRevenue": 5000000
+    },
+    "timestamp": "2024-12-19T10:00:00Z"
+  },
+  "partial": {
+    "merchantId": "merchant-partial-456",
+    "classification": {
+      "primaryIndustry": "Retail",
+      "confidenceScore": 0.75,
+      "riskLevel": "medium",
+      "mccCodes": [],
+      "sicCodes": [],
+      "naicsCodes": []
+    },
+    "security": {
+      "trustScore": 0.65,
+      "sslValid": false,
+      "securityHeaders": []
+    },
+    "quality": {
+      "completenessScore": 0.45,
+      "dataPoints": 8,
+      "missingFields": ["website", "phone", "employee_count", "annual_revenue"]
+    },
+    "intelligence": {},
+    "timestamp": "2024-12-19T10:00:00Z"
+  },
+  "error": {
+    "error": "not_found",
+    "message": "Merchant not found"
+  }
+}
+

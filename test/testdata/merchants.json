@@ -1,0 +1,91 @@
+{
+  "complete": {
+    "id": "merchant-complete-123",
+    "name": "Complete Test Company",
+    "legal_name": "Complete Test Company Inc.",
+    "registration_number": "REG-123456",
+    "tax_id": "TAX-789012",
+    "industry": "Technology",
+    "industry_code": "541511",
+    "business_type": "Corporation",
+    "founded_date": "2019-01-15T00:00:00Z",
+    "employee_count": 150,
+    "annual_revenue": 5000000.00,
+    "address": {
+      "street1": "123 Main Street",
+      "street2": "Suite 100",
+      "city": "San Francisco",
+      "state": "CA",
+      "postal_code": "94102",
+      "country": "United States",
+      "country_code": "US"
+    },
+    "contact_info": {
+      "phone": "+1-555-123-4567",
+      "email": "contact@completetest.com",
+      "website": "https://www.completetest.com",
+      "primary_contact": "John Doe"
+    },
+    "portfolio_type": "onboarded",
+    "risk_level": "low",
+    "compliance_status": "compliant",
+    "status": "active"
+  },
+  "partial": {
+    "id": "merchant-partial-456",
+    "name": "Partial Test Company",
+    "legal_name": "Partial Test Company LLC",
+    "industry": "Retail",
+    "address": {
+      "street1": "456 Oak Avenue",
+      "city": "Los Angeles",
+      "state": "CA",
+      "postal_code": "90001",
+      "country": "United States",
+      "country_code": "US"
+    },
+    "contact_info": {
+      "email": "info@partialtest.com"
+    },
+    "portfolio_type": "prospective",
+    "risk_level": "medium",
+    "status": "active"
+  },
+  "minimal": {
+    "id": "merchant-minimal-789",
+    "name": "Minimal Test Company",
+    "legal_name": "Minimal Test Company",
+    "industry": "Services",
+    "address": {
+      "city": "New York",
+      "state": "NY",
+      "country": "United States",
+      "country_code": "US"
+    },
+    "portfolio_type": "pending",
+    "status": "pending"
+  },
+  "with_risk_assessment": {
+    "id": "merchant-risk-001",
+    "name": "High Risk Test Company",
+    "legal_name": "High Risk Test Company Inc.",
+    "industry": "Financial Services",
+    "portfolio_type": "onboarded",
+    "risk_level": "high",
+    "status": "active"
+  },
+  "with_analytics": {
+    "id": "merchant-analytics-001",
+    "name": "Analytics Test Company",
+    "legal_name": "Analytics Test Company Inc.",
+    "industry": "Technology",
+    "industry_code": "5734",
+    "contact_info": {
+      "website": "https://www.analyticstest.com"
+    },
+    "portfolio_type": "onboarded",
+    "risk_level": "low",
+    "status": "active"
+  }
+}
+

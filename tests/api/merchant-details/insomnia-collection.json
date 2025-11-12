@@ -1,0 +1,194 @@
+{
+	"_type": "export",
+	"__export_format": 4,
+	"__export_date": "2024-12-19T00:00:00.000Z",
+	"__export_source": "insomnia.desktop.app:v2023.5.8",
+	"resources": [
+		{
+			"_id": "req_merchant_analytics",
+			"parentId": "fld_business_analytics",
+			"modified": 1703001600000,
+			"created": 1703001600000,
+			"url": "{{ _.baseUrl }}/api/v1/merchants/{{ _.merchantId }}/analytics",
+			"name": "Get Merchant Analytics",
+			"description": "Retrieve comprehensive analytics data for a merchant",
+			"method": "GET",
+			"body": {},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Content-Type",
+					"value": "application/json"
+				},
+				{
+					"name": "Authorization",
+					"value": "Bearer {{ _.authToken }}"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1703001600000,
+			"isPrivate": false,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"settingRebuildPath": true,
+			"settingFollowRedirects": "global",
+			"_type": "request"
+		},
+		{
+			"_id": "req_website_analysis",
+			"parentId": "fld_business_analytics",
+			"modified": 1703001600000,
+			"created": 1703001600000,
+			"url": "{{ _.baseUrl }}/api/v1/merchants/{{ _.merchantId }}/website-analysis",
+			"name": "Get Website Analysis",
+			"description": "Retrieve website analysis data including SSL, security headers, and performance",
+			"method": "GET",
+			"body": {},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Content-Type",
+					"value": "application/json"
+				},
+				{
+					"name": "Authorization",
+					"value": "Bearer {{ _.authToken }}"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1703001600000,
+			"isPrivate": false,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"settingRebuildPath": true,
+			"settingFollowRedirects": "global",
+			"_type": "request"
+		},
+		{
+			"_id": "req_assess_risk",
+			"parentId": "fld_risk_assessment",
+			"modified": 1703001600000,
+			"created": 1703001600000,
+			"url": "{{ _.baseUrl }}/api/v1/risk/assess",
+			"name": "Assess Risk",
+			"description": "Trigger risk assessment for a merchant (async)",
+			"method": "POST",
+			"body": {
+				"mimeType": "application/json",
+				"text": "{\n  \"merchantId\": \"{{ _.merchantId }}\",\n  \"options\": {\n    \"includeHistory\": true,\n    \"includePredictions\": true\n  }\n}"
+			},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Content-Type",
+					"value": "application/json"
+				},
+				{
+					"name": "Authorization",
+					"value": "Bearer {{ _.authToken }}"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1703001600000,
+			"isPrivate": false,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"settingRebuildPath": true,
+			"settingFollowRedirects": "global",
+			"_type": "request"
+		},
+		{
+			"_id": "req_assessment_status",
+			"parentId": "fld_risk_assessment",
+			"modified": 1703001600000,
+			"created": 1703001600000,
+			"url": "{{ _.baseUrl }}/api/v1/risk/assess/{{ _.assessmentId }}",
+			"name": "Get Assessment Status",
+			"description": "Get the status of a risk assessment",
+			"method": "GET",
+			"body": {},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Content-Type",
+					"value": "application/json"
+				},
+				{
+					"name": "Authorization",
+					"value": "Bearer {{ _.authToken }}"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1703001600000,
+			"isPrivate": false,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"settingRebuildPath": true,
+			"settingFollowRedirects": "global",
+			"_type": "request"
+		},
+		{
+			"_id": "fld_business_analytics",
+			"parentId": "wrk_merchant_details",
+			"modified": 1703001600000,
+			"created": 1703001600000,
+			"name": "Business Analytics",
+			"description": "",
+			"environment": {},
+			"environmentPropertyOrder": null,
+			"metaSortKey": 1000000000000,
+			"_type": "request_group"
+		},
+		{
+			"_id": "fld_risk_assessment",
+			"parentId": "wrk_merchant_details",
+			"modified": 1703001600000,
+			"created": 1703001600000,
+			"name": "Risk Assessment",
+			"description": "",
+			"environment": {},
+			"environmentPropertyOrder": null,
+			"metaSortKey": 2000000000000,
+			"_type": "request_group"
+		},
+		{
+			"_id": "wrk_merchant_details",
+			"parentId": null,
+			"modified": 1703001600000,
+			"created": 1703001600000,
+			"name": "Merchant Details API",
+			"description": "API collection for merchant-details page endpoints",
+			"scope": null,
+			"_type": "workspace"
+		},
+		{
+			"_id": "env_base",
+			"parentId": "wrk_merchant_details",
+			"modified": 1703001600000,
+			"created": 1703001600000,
+			"name": "Base Environment",
+			"data": {
+				"baseUrl": "http://localhost:8080",
+				"merchantId": "test-merchant-123",
+				"assessmentId": "",
+				"authToken": ""
+			},
+			"dataPropertyOrder": {
+				"&": ["baseUrl", "merchantId", "assessmentId", "authToken"]
+			},
+			"color": null,
+			"isPrivate": false,
+			"metaSortKey": 1703001600000,
+			"_type": "environment"
+		}
+	]
+}
+

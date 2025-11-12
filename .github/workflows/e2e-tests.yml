@@ -3,8 +3,24 @@ name: E2E Tests and Quality Assurance
 on:
     push:
         branches: [main, develop]
+        paths:
+            - 'cmd/frontend-service/static/merchant-details.html'
+            - 'internal/api/handlers/merchant_analytics_handler.go'
+            - 'internal/api/handlers/async_risk_assessment_handler.go'
+            - 'test/e2e/merchant_details_e2e_test.go'
+            - 'test/e2e/merchant_analytics_api_test.go'
+            - 'test/integration/risk_assessment_integration_test.go'
+            - '.github/workflows/e2e-tests.yml'
     pull_request:
         branches: [main, develop]
+        paths:
+            - 'cmd/frontend-service/static/merchant-details.html'
+            - 'internal/api/handlers/merchant_analytics_handler.go'
+            - 'internal/api/handlers/async_risk_assessment_handler.go'
+            - 'test/e2e/merchant_details_e2e_test.go'
+            - 'test/e2e/merchant_analytics_api_test.go'
+            - 'test/integration/risk_assessment_integration_test.go'
+            - '.github/workflows/e2e-tests.yml'
     schedule:
         # Run tests daily at 2 AM UTC
         - cron: "0 2 * * *"
@@ -198,8 +214,23 @@ jobs:
                   SEC_TEST_API_KEY: ${{ secrets.TEST_API_KEY }}
                   SEC_ADMIN_API_KEY: ${{ secrets.ADMIN_API_KEY }}
                   SEC_USER_API_KEY: ${{ secrets.USER_API_KEY }}
+                  TEST_AUTH_TOKEN: ${{ secrets.TEST_API_KEY }}
               run: |
                   go test -v -tags=e2e -timeout=30m ./test/e2e/...
+                  
+            - name: Run merchant-details E2E tests
+              env:
+                  TEST_BASE_URL: ${{ matrix.environment == 'staging' && 'https://staging-api.kyb-platform.com' || 'https://kyb-api-gateway-production.up.railway.app' }}
+                  TEST_AUTH_TOKEN: ${{ secrets.TEST_API_KEY }}
+              run: |
+                  go test -v -tags=e2e -timeout=30m ./test/e2e/merchant_details_e2e_test.go ./test/e2e/merchant_analytics_api_test.go
+                  
+            - name: Run merchant-details integration tests
+              env:
+                  TEST_BASE_URL: ${{ matrix.environment == 'staging' && 'https://staging-api.kyb-platform.com' || 'https://kyb-api-gateway-production.up.railway.app' }}
+                  TEST_AUTH_TOKEN: ${{ secrets.TEST_API_KEY }}
+              run: |
+                  go test -v -tags=integration -timeout=30m ./test/integration/risk_assessment_integration_test.go
 
             - name: Upload E2E test results
               uses: actions/upload-artifact@v3
@@ -208,6 +239,15 @@ jobs:
                   name: e2e-test-results-${{ matrix.environment }}
                   path: |
                       test-reports/
+                      
+            - name: Upload merchant-details test results
+              uses: actions/upload-artifact@v3
+              if: always()
+              with:
+                  name: merchant-details-test-results-${{ matrix.environment }}
+                  path: |
+                      test-reports/
+                      test-results/
 
     # Job 4: Performance Tests
     performance-tests:

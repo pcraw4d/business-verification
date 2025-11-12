@@ -1,0 +1,195 @@
+{
+	"info": {
+		"name": "Merchant Details API Endpoints",
+		"description": "Postman collection for testing merchant-details page API endpoints",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "merchant-details-api"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{authToken}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "merchantId",
+			"value": "test-merchant-123",
+			"type": "string"
+		},
+		{
+			"key": "authToken",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Business Analytics",
+			"item": [
+				{
+					"name": "Get Merchant Analytics",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/merchants/{{merchantId}}/analytics",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "merchants", "{{merchantId}}", "analytics"]
+						},
+						"description": "Retrieve comprehensive analytics data for a merchant including classification, security, quality, and intelligence metrics"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Website Analysis",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/merchants/{{merchantId}}/website-analysis",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "merchants", "{{merchantId}}", "website-analysis"]
+						},
+						"description": "Retrieve website analysis data including SSL status, security headers, performance metrics, and accessibility score"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Risk Assessment",
+			"item": [
+				{
+					"name": "Assess Risk",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"merchantId\": \"{{merchantId}}\",\n  \"options\": {\n    \"includeHistory\": true,\n    \"includePredictions\": true\n  }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/risk/assess",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "risk", "assess"]
+						},
+						"description": "Trigger a risk assessment for a merchant. Returns 202 Accepted with assessment ID for async processing."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Assessment Status",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/risk/assess/{{assessmentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "risk", "assess", "{{assessmentId}}"]
+						},
+						"description": "Get the status of a risk assessment by assessment ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Risk Score",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/merchants/{{merchantId}}/risk-score",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "merchants", "{{merchantId}}", "risk-score"]
+						},
+						"description": "Retrieve risk score data for a merchant"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Website Risk",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/merchants/{{merchantId}}/website-risk",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "merchants", "{{merchantId}}", "website-risk"]
+						},
+						"description": "Retrieve website risk assessment data"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Base Merchant Data",
+			"item": [
+				{
+					"name": "Get Merchant by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/merchants/{{merchantId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "merchants", "{{merchantId}}"]
+						},
+						"description": "Retrieve base merchant information"
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
+

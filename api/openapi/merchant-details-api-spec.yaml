@@ -1,0 +1,797 @@
+openapi: 3.0.3
+info:
+  title: Merchant Details API
+  description: |
+    API endpoints for the merchant-details page, including business analytics,
+    risk assessment, and merchant-specific data retrieval.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: api-support@kyb-platform.com
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development server
+  - url: https://staging-api.kyb-platform.com/api/v1
+    description: Staging server
+  - url: https://api.kyb-platform.com/api/v1
+    description: Production server
+
+tags:
+  - name: Business Analytics
+    description: Merchant analytics and website analysis endpoints
+  - name: Risk Assessment
+    description: Risk assessment and scoring endpoints
+  - name: Merchant Data
+    description: Base merchant information endpoints
+
+paths:
+  /merchants/{merchantId}/analytics:
+    get:
+      tags:
+        - Business Analytics
+      summary: Get merchant analytics
+      description: |
+        Retrieve comprehensive analytics data for a merchant including:
+        - Classification data (industry, MCC, SIC, NAICS codes)
+        - Security metrics (SSL, security headers)
+        - Data quality metrics
+        - Business intelligence data
+      operationId: getMerchantAnalytics
+      parameters:
+        - name: merchantId
+          in: path
+          required: true
+          description: Unique identifier for the merchant
+          schema:
+            type: string
+            example: "merchant-123"
+      responses:
+        '200':
+          description: Analytics data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsData'
+              example:
+                merchantId: "merchant-123"
+                classification:
+                  primaryIndustry: "Technology"
+                  confidenceScore: 0.95
+                  riskLevel: "low"
+                  mccCodes:
+                    - code: "5734"
+                      description: "Computer Software Stores"
+                      confidence: 0.92
+                  sicCodes:
+                    - code: "7372"
+                      description: "Prepackaged Software"
+                      confidence: 0.88
+                  naicsCodes:
+                    - code: "541511"
+                      description: "Custom Computer Programming Services"
+                      confidence: 0.90
+                security:
+                  trustScore: 0.85
+                  sslValid: true
+                  sslExpiryDate: "2025-12-31T00:00:00Z"
+                  securityHeaders:
+                    - header: "X-Frame-Options"
+                      present: true
+                      value: "DENY"
+                quality:
+                  completenessScore: 0.92
+                  dataPoints: 45
+                  missingFields: []
+                intelligence:
+                  businessAge: 5
+                  employeeCount: 150
+                  annualRevenue: 5000000
+                timestamp: "2024-12-19T10:00:00Z"
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - bearerAuth: []
+
+  /merchants/{merchantId}/website-analysis:
+    get:
+      tags:
+        - Business Analytics
+      summary: Get website analysis
+      description: |
+        Retrieve website analysis data including SSL certificate status,
+        security headers, performance metrics, and accessibility score.
+      operationId: getWebsiteAnalysis
+      parameters:
+        - name: merchantId
+          in: path
+          required: true
+          description: Unique identifier for the merchant
+          schema:
+            type: string
+            example: "merchant-123"
+      responses:
+        '200':
+          description: Website analysis data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebsiteAnalysisData'
+              example:
+                merchantId: "merchant-123"
+                websiteUrl: "https://www.example.com"
+                ssl:
+                  valid: true
+                  expiryDate: "2025-12-31T00:00:00Z"
+                  issuer: "Let's Encrypt"
+                  grade: "A"
+                securityHeaders:
+                  - name: "X-Frame-Options"
+                    present: true
+                    value: "DENY"
+                  - name: "X-Content-Type-Options"
+                    present: true
+                    value: "nosniff"
+                  - name: "Strict-Transport-Security"
+                    present: true
+                    value: "max-age=31536000"
+                performance:
+                  loadTime: 1.2
+                  pageSize: 1024000
+                  requests: 45
+                  score: 85
+                accessibility:
+                  score: 0.92
+                  issues: []
+                lastAnalyzed: "2024-12-19T10:00:00Z"
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - bearerAuth: []
+
+  /risk/assess:
+    post:
+      tags:
+        - Risk Assessment
+      summary: Assess merchant risk
+      description: |
+        Trigger a risk assessment for a merchant. This endpoint returns
+        immediately with a 202 Accepted status and an assessment ID.
+        The assessment is processed asynchronously. Use the assessment ID
+        to check the status via the GET /risk/assess/{assessmentId} endpoint.
+      operationId: assessRisk
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RiskAssessmentRequest'
+            example:
+              merchantId: "merchant-123"
+              options:
+                includeHistory: true
+                includePredictions: true
+      responses:
+        '202':
+          description: Assessment started successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskAssessmentResponse'
+              example:
+                assessmentId: "assess-456"
+                status: "pending"
+                estimatedCompletion: "2024-12-19T10:05:00Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - bearerAuth: []
+
+  /risk/assess/{assessmentId}:
+    get:
+      tags:
+        - Risk Assessment
+      summary: Get assessment status
+      description: |
+        Get the status and results of a risk assessment by assessment ID.
+        Poll this endpoint until status is "completed" to get the final results.
+      operationId: getAssessmentStatus
+      parameters:
+        - name: assessmentId
+          in: path
+          required: true
+          description: Unique identifier for the assessment
+          schema:
+            type: string
+            example: "assess-456"
+      responses:
+        '200':
+          description: Assessment status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentStatus'
+              examples:
+                pending:
+                  summary: Assessment in progress
+                  value:
+                    assessmentId: "assess-456"
+                    merchantId: "merchant-123"
+                    status: "processing"
+                    progress: 65
+                    estimatedCompletion: "2024-12-19T10:05:00Z"
+                completed:
+                  summary: Assessment completed
+                  value:
+                    assessmentId: "assess-456"
+                    merchantId: "merchant-123"
+                    status: "completed"
+                    progress: 100
+                    result:
+                      overallScore: 0.75
+                      riskLevel: "medium"
+                      factors:
+                        - name: "Financial Stability"
+                          score: 0.8
+                          weight: 0.3
+                      completedAt: "2024-12-19T10:04:30Z"
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - bearerAuth: []
+
+  /merchants/{merchantId}/risk-score:
+    get:
+      tags:
+        - Risk Assessment
+      summary: Get merchant risk score
+      description: Retrieve the current risk score for a merchant
+      operationId: getRiskScore
+      parameters:
+        - name: merchantId
+          in: path
+          required: true
+          description: Unique identifier for the merchant
+          schema:
+            type: string
+            example: "merchant-123"
+      responses:
+        '200':
+          description: Risk score retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskScore'
+              example:
+                merchantId: "merchant-123"
+                overallScore: 0.75
+                riskLevel: "medium"
+                factors:
+                  - name: "Financial Stability"
+                    score: 0.8
+                    weight: 0.3
+                  - name: "Business History"
+                    score: 0.7
+                    weight: 0.25
+                lastUpdated: "2024-12-19T10:00:00Z"
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - bearerAuth: []
+
+  /merchants/{merchantId}/website-risk:
+    get:
+      tags:
+        - Risk Assessment
+      summary: Get website risk assessment
+      description: Retrieve website risk assessment data for a merchant
+      operationId: getWebsiteRisk
+      parameters:
+        - name: merchantId
+          in: path
+          required: true
+          description: Unique identifier for the merchant
+          schema:
+            type: string
+            example: "merchant-123"
+      responses:
+        '200':
+          description: Website risk data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebsiteRisk'
+              example:
+                merchantId: "merchant-123"
+                websiteUrl: "https://www.example.com"
+                riskScore: 0.65
+                indicators:
+                  - type: "ssl"
+                    status: "valid"
+                    score: 0.9
+                  - type: "security_headers"
+                    status: "good"
+                    score: 0.85
+                lastAnalyzed: "2024-12-19T10:00:00Z"
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Bearer token authentication. Obtain token from login endpoint
+        or session storage after authentication.
+
+  schemas:
+    AnalyticsData:
+      type: object
+      required:
+        - merchantId
+        - classification
+        - security
+        - quality
+        - timestamp
+      properties:
+        merchantId:
+          type: string
+          description: Unique identifier for the merchant
+        classification:
+          $ref: '#/components/schemas/ClassificationData'
+        security:
+          $ref: '#/components/schemas/SecurityData'
+        quality:
+          $ref: '#/components/schemas/QualityData'
+        intelligence:
+          $ref: '#/components/schemas/IntelligenceData'
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp when analytics were generated
+
+    ClassificationData:
+      type: object
+      properties:
+        primaryIndustry:
+          type: string
+          example: "Technology"
+        confidenceScore:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          example: 0.95
+        riskLevel:
+          type: string
+          enum: [low, medium, high]
+          example: "low"
+        mccCodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/IndustryCode'
+        sicCodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/IndustryCode'
+        naicsCodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/IndustryCode'
+
+    IndustryCode:
+      type: object
+      properties:
+        code:
+          type: string
+          example: "5734"
+        description:
+          type: string
+          example: "Computer Software Stores"
+        confidence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          example: 0.92
+
+    SecurityData:
+      type: object
+      properties:
+        trustScore:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          example: 0.85
+        sslValid:
+          type: boolean
+          example: true
+        sslExpiryDate:
+          type: string
+          format: date-time
+          nullable: true
+        securityHeaders:
+          type: array
+          items:
+            $ref: '#/components/schemas/SecurityHeader'
+
+    SecurityHeader:
+      type: object
+      properties:
+        header:
+          type: string
+          example: "X-Frame-Options"
+        present:
+          type: boolean
+        value:
+          type: string
+          nullable: true
+
+    QualityData:
+      type: object
+      properties:
+        completenessScore:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          example: 0.92
+        dataPoints:
+          type: integer
+          example: 45
+        missingFields:
+          type: array
+          items:
+            type: string
+          example: []
+
+    IntelligenceData:
+      type: object
+      properties:
+        businessAge:
+          type: integer
+          nullable: true
+          example: 5
+        employeeCount:
+          type: integer
+          nullable: true
+          example: 150
+        annualRevenue:
+          type: number
+          format: float
+          nullable: true
+          example: 5000000
+
+    WebsiteAnalysisData:
+      type: object
+      required:
+        - merchantId
+        - websiteUrl
+        - lastAnalyzed
+      properties:
+        merchantId:
+          type: string
+        websiteUrl:
+          type: string
+          format: uri
+        ssl:
+          $ref: '#/components/schemas/SSLData'
+        securityHeaders:
+          type: array
+          items:
+            $ref: '#/components/schemas/SecurityHeader'
+        performance:
+          $ref: '#/components/schemas/PerformanceData'
+        accessibility:
+          $ref: '#/components/schemas/AccessibilityData'
+        lastAnalyzed:
+          type: string
+          format: date-time
+
+    SSLData:
+      type: object
+      properties:
+        valid:
+          type: boolean
+        expiryDate:
+          type: string
+          format: date-time
+          nullable: true
+        issuer:
+          type: string
+          nullable: true
+        grade:
+          type: string
+          nullable: true
+
+    PerformanceData:
+      type: object
+      properties:
+        loadTime:
+          type: number
+          format: float
+          description: Load time in seconds
+        pageSize:
+          type: integer
+          description: Page size in bytes
+        requests:
+          type: integer
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+
+    AccessibilityData:
+      type: object
+      properties:
+        score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        issues:
+          type: array
+          items:
+            type: string
+
+    RiskAssessmentRequest:
+      type: object
+      required:
+        - merchantId
+      properties:
+        merchantId:
+          type: string
+          example: "merchant-123"
+        options:
+          $ref: '#/components/schemas/AssessmentOptions'
+
+    AssessmentOptions:
+      type: object
+      properties:
+        includeHistory:
+          type: boolean
+          default: false
+          description: Include historical risk data
+        includePredictions:
+          type: boolean
+          default: false
+          description: Include risk predictions
+
+    RiskAssessmentResponse:
+      type: object
+      required:
+        - assessmentId
+        - status
+      properties:
+        assessmentId:
+          type: string
+          example: "assess-456"
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+          example: "pending"
+        estimatedCompletion:
+          type: string
+          format: date-time
+          nullable: true
+
+    AssessmentStatus:
+      type: object
+      required:
+        - assessmentId
+        - merchantId
+        - status
+      properties:
+        assessmentId:
+          type: string
+        merchantId:
+          type: string
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Progress percentage
+        estimatedCompletion:
+          type: string
+          format: date-time
+          nullable: true
+        result:
+          $ref: '#/components/schemas/RiskAssessmentResult'
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    RiskAssessmentResult:
+      type: object
+      properties:
+        overallScore:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        riskLevel:
+          type: string
+          enum: [low, medium, high]
+        factors:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskFactor'
+
+    RiskFactor:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Financial Stability"
+        score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        weight:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+
+    RiskScore:
+      type: object
+      required:
+        - merchantId
+        - overallScore
+        - riskLevel
+        - lastUpdated
+      properties:
+        merchantId:
+          type: string
+        overallScore:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        riskLevel:
+          type: string
+          enum: [low, medium, high]
+        factors:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskFactor'
+        lastUpdated:
+          type: string
+          format: date-time
+
+    WebsiteRisk:
+      type: object
+      required:
+        - merchantId
+        - websiteUrl
+        - riskScore
+        - lastAnalyzed
+      properties:
+        merchantId:
+          type: string
+        websiteUrl:
+          type: string
+          format: uri
+        riskScore:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        indicators:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskIndicator'
+        lastAnalyzed:
+          type: string
+          format: date-time
+
+    RiskIndicator:
+      type: object
+      properties:
+        type:
+          type: string
+          example: "ssl"
+        status:
+          type: string
+          example: "valid"
+        score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          example: "not_found"
+        message:
+          type: string
+          example: "Merchant not found"
+        details:
+          type: object
+          additionalProperties: true
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid input parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "bad_request"
+            message: "Invalid request body"
+            details:
+              field: "merchantId"
+              reason: "merchantId is required"
+
+    Unauthorized:
+      description: Unauthorized - missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "unauthorized"
+            message: "Authentication required"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "not_found"
+            message: "Merchant not found"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "internal_error"
+            message: "An internal error occurred"
+

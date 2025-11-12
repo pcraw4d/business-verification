@@ -1,0 +1,122 @@
+{
+  "pending": {
+    "assessmentId": "assess-pending-001",
+    "merchantId": "merchant-risk-001",
+    "status": "pending",
+    "progress": 0,
+    "estimatedCompletion": "2024-12-19T10:05:00Z"
+  },
+  "processing": {
+    "assessmentId": "assess-processing-001",
+    "merchantId": "merchant-risk-001",
+    "status": "processing",
+    "progress": 65,
+    "estimatedCompletion": "2024-12-19T10:05:00Z"
+  },
+  "completed": {
+    "assessmentId": "assess-completed-001",
+    "merchantId": "merchant-risk-001",
+    "status": "completed",
+    "progress": 100,
+    "result": {
+      "overallScore": 0.75,
+      "riskLevel": "medium",
+      "factors": [
+        {
+          "name": "Financial Stability",
+          "score": 0.8,
+          "weight": 0.3
+        },
+        {
+          "name": "Business History",
+          "score": 0.7,
+          "weight": 0.25
+        },
+        {
+          "name": "Compliance",
+          "score": 0.75,
+          "weight": 0.25
+        },
+        {
+          "name": "Industry Risk",
+          "score": 0.7,
+          "weight": 0.2
+        }
+      ]
+    },
+    "completedAt": "2024-12-19T10:04:30Z"
+  },
+  "high_risk": {
+    "assessmentId": "assess-high-risk-001",
+    "merchantId": "merchant-risk-001",
+    "status": "completed",
+    "progress": 100,
+    "result": {
+      "overallScore": 0.85,
+      "riskLevel": "high",
+      "factors": [
+        {
+          "name": "Financial Stability",
+          "score": 0.6,
+          "weight": 0.3
+        },
+        {
+          "name": "Business History",
+          "score": 0.5,
+          "weight": 0.25
+        },
+        {
+          "name": "Compliance",
+          "score": 0.7,
+          "weight": 0.25
+        },
+        {
+          "name": "Industry Risk",
+          "score": 0.9,
+          "weight": 0.2
+        }
+      ]
+    },
+    "completedAt": "2024-12-19T10:04:30Z"
+  },
+  "low_risk": {
+    "assessmentId": "assess-low-risk-001",
+    "merchantId": "merchant-analytics-001",
+    "status": "completed",
+    "progress": 100,
+    "result": {
+      "overallScore": 0.25,
+      "riskLevel": "low",
+      "factors": [
+        {
+          "name": "Financial Stability",
+          "score": 0.9,
+          "weight": 0.3
+        },
+        {
+          "name": "Business History",
+          "score": 0.95,
+          "weight": 0.25
+        },
+        {
+          "name": "Compliance",
+          "score": 0.85,
+          "weight": 0.25
+        },
+        {
+          "name": "Industry Risk",
+          "score": 0.3,
+          "weight": 0.2
+        }
+      ]
+    },
+    "completedAt": "2024-12-19T10:04:30Z"
+  },
+  "failed": {
+    "assessmentId": "assess-failed-001",
+    "merchantId": "merchant-invalid-999",
+    "status": "failed",
+    "progress": 0
+  }
+}
+
