@@ -22,5 +22,6 @@ use ./services/merchant-service
 
 use (
 	.
+	./cmd/railway-server
 	./services/risk-assessment-service
 )
