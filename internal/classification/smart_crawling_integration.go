@@ -29,7 +29,7 @@ func NewIntegrationEnhancedWebsiteAnalyzer(logger *log.Logger) *IntegrationEnhan
 // AnalyzeWebsite performs website analysis (placeholder implementation)
 func (ewa *IntegrationEnhancedWebsiteAnalyzer) AnalyzeWebsite(ctx context.Context, websiteURL string) (*IntegrationEnhancedAnalysisResult, error) {
 	// Placeholder implementation - would integrate with actual smart crawling
-		result := &IntegrationEnhancedAnalysisResult{
+	result := &IntegrationEnhancedAnalysisResult{
 		WebsiteURL:        websiteURL,
 		AnalysisTimestamp: time.Now(),
 		Success:           true,
@@ -51,81 +51,81 @@ func (ewa *IntegrationEnhancedWebsiteAnalyzer) AnalyzeWebsite(ctx context.Contex
 // IntegrationEnhancedAnalysisResult represents the result of enhanced analysis
 // (renamed to avoid conflict with enhanced_website_analyzer.go)
 type IntegrationEnhancedAnalysisResult struct {
-	WebsiteURL             string                        `json:"website_url"`
+	WebsiteURL             string                                   `json:"website_url"`
 	CrawlResult            *IntegrationCrawlResult                  `json:"crawl_result"`
 	RelevanceAnalysis      *IntegrationRelevanceAnalysisResult      `json:"relevance_analysis"`
-	StructuredData         *StructuredDataResult         `json:"structured_data"`
+	StructuredData         *StructuredDataResult                    `json:"structured_data"`
 	BusinessClassification *IntegrationBusinessClassificationResult `json:"business_classification"`
-	AnalysisTimestamp      time.Time                     `json:"analysis_timestamp"`
-	ProcessingTime         time.Duration                 `json:"processing_time"`
-	OverallConfidence      float64                       `json:"overall_confidence"`
-	Success                bool                          `json:"success"`
-	Error                  string                        `json:"error,omitempty"`
+	AnalysisTimestamp      time.Time                                `json:"analysis_timestamp"`
+	ProcessingTime         time.Duration                            `json:"processing_time"`
+	OverallConfidence      float64                                  `json:"overall_confidence"`
+	Success                bool                                     `json:"success"`
+	Error                  string                                   `json:"error,omitempty"`
 }
 
 // IntegrationBusinessClassificationResult represents the final business classification
 // (renamed to avoid conflict with enhanced_website_analyzer.go)
 type IntegrationBusinessClassificationResult struct {
-	PrimaryIndustry        string               `json:"primary_industry"`
-	IndustryConfidence     float64              `json:"industry_confidence"`
-	BusinessType           string               `json:"business_type"`
-	BusinessTypeConfidence float64              `json:"business_type_confidence"`
-			MCCCodes               []WebsiteClassificationCode `json:"mcc_codes"`
-			SICCodes               []WebsiteClassificationCode `json:"sic_codes"`
-			NAICSCodes             []WebsiteClassificationCode `json:"naics_codes"`
-	Keywords               []string             `json:"keywords"`
-	ConfidenceScore        float64              `json:"confidence_score"`
-	AnalysisMethod         string               `json:"analysis_method"`
+	PrimaryIndustry        string                      `json:"primary_industry"`
+	IndustryConfidence     float64                     `json:"industry_confidence"`
+	BusinessType           string                      `json:"business_type"`
+	BusinessTypeConfidence float64                     `json:"business_type_confidence"`
+	MCCCodes               []WebsiteClassificationCode `json:"mcc_codes"`
+	SICCodes               []WebsiteClassificationCode `json:"sic_codes"`
+	NAICSCodes             []WebsiteClassificationCode `json:"naics_codes"`
+	Keywords               []string                    `json:"keywords"`
+	ConfidenceScore        float64                     `json:"confidence_score"`
+	AnalysisMethod         string                      `json:"analysis_method"`
 }
 
 // IntegrationCrawlResult represents the result of a smart crawl operation
 // (renamed to avoid conflict with content_relevance_analyzer.go)
 type IntegrationCrawlResult struct {
-	BaseURL       string             `json:"base_url"`
-	PagesAnalyzed []IntegrationPageAnalysis     `json:"pages_analyzed"`
-	TotalPages    int                `json:"total_pages"`
-	RelevantPages int                `json:"relevant_pages"`
-	Keywords      []string           `json:"keywords"`
-	IndustryScore map[string]float64 `json:"industry_score"`
-	BusinessInfo  IntegrationBusinessInfo       `json:"business_info"`
-	SiteStructure IntegrationSiteStructure      `json:"site_structure"`
-	CrawlDuration time.Duration      `json:"crawl_duration"`
-	Success       bool               `json:"success"`
-	Error         string             `json:"error,omitempty"`
+	BaseURL       string                    `json:"base_url"`
+	PagesAnalyzed []IntegrationPageAnalysis `json:"pages_analyzed"`
+	TotalPages    int                       `json:"total_pages"`
+	RelevantPages int                       `json:"relevant_pages"`
+	Keywords      []string                  `json:"keywords"`
+	IndustryScore map[string]float64        `json:"industry_score"`
+	BusinessInfo  IntegrationBusinessInfo   `json:"business_info"`
+	SiteStructure IntegrationSiteStructure  `json:"site_structure"`
+	CrawlDuration time.Duration             `json:"crawl_duration"`
+	Success       bool                      `json:"success"`
+	Error         string                    `json:"error,omitempty"`
 }
 
 // IntegrationPageAnalysis represents analysis of a single page
 // (renamed to avoid conflict with content_relevance_analyzer.go)
 type IntegrationPageAnalysis struct {
-	URL                string                 `json:"url"`
-	Title              string                 `json:"title"`
-	PageType           string                 `json:"page_type"`
-	RelevanceScore     float64                `json:"relevance_score"`
-	ContentQuality     float64                `json:"content_quality"`
-	Keywords           []string               `json:"keywords"`
-	IndustryIndicators []string               `json:"industry_indicators"`
-	BusinessInfo       IntegrationBusinessInfo           `json:"business_info"`
-	MetaTags           map[string]string      `json:"meta_tags"`
-	StructuredData     map[string]interface{} `json:"structured_data"`
-	ResponseTime       time.Duration          `json:"response_time"`
-	StatusCode         int                    `json:"status_code"`
-	ContentLength      int                    `json:"content_length"`
-	LastModified       time.Time              `json:"last_modified"`
-	Priority           int                    `json:"priority"`
+	URL                string                  `json:"url"`
+	Title              string                  `json:"title"`
+	PageType           string                  `json:"page_type"`
+	RelevanceScore     float64                 `json:"relevance_score"`
+	ContentQuality     float64                 `json:"content_quality"`
+	Keywords           []string                `json:"keywords"`
+	IndustryIndicators []string                `json:"industry_indicators"`
+	BusinessInfo       IntegrationBusinessInfo `json:"business_info"`
+	MetaTags           map[string]string       `json:"meta_tags"`
+	StructuredData     map[string]interface{}  `json:"structured_data"`
+	ResponseTime       time.Duration           `json:"response_time"`
+	StatusCode         int                     `json:"status_code"`
+	ContentLength      int                     `json:"content_length"`
+	LastModified       time.Time               `json:"last_modified"`
+	Priority           int                     `json:"priority"`
 }
 
 // IntegrationBusinessInfo represents extracted business information
 // (renamed to avoid conflict with content_relevance_analyzer.go)
 type IntegrationBusinessInfo struct {
-	BusinessName  string      `json:"business_name"`
-	Description   string      `json:"description"`
-	Services      []string    `json:"services"`
-	Products      []string    `json:"products"`
+	BusinessName  string                 `json:"business_name"`
+	Description   string                 `json:"description"`
+	Services      []string               `json:"services"`
+	Products      []string               `json:"products"`
 	ContactInfo   IntegrationContactInfo `json:"contact_info"`
-	BusinessHours string      `json:"business_hours"`
-	Location      string      `json:"location"`
-	Industry      string      `json:"industry"`
-	BusinessType  string      `json:"business_type"`
+	BusinessHours string                 `json:"business_hours"`
+	Location      string                 `json:"location"`
+	Industry      string                 `json:"industry"`
+	BusinessType  string                 `json:"business_type"`
 }
 
 // IntegrationContactInfo represents contact information
@@ -155,15 +155,15 @@ type IntegrationSiteStructure struct {
 // IntegrationRelevanceAnalysisResult represents the result of content relevance analysis
 // (renamed to avoid conflict with content_relevance_analyzer.go)
 type IntegrationRelevanceAnalysisResult struct {
-	OverallRelevance    float64            `json:"overall_relevance"`
-	PageRelevance       map[string]float64 `json:"page_relevance"`
-	TopKeywords         []KeywordSignal    `json:"top_keywords"`
-	DetectedIndustries  []IntegrationIndustrySignal   `json:"detected_industries"`
-	ContentQualityScore float64            `json:"content_quality_score"`
-	ConfidenceScore     float64            `json:"confidence_score"`
-	AnalysisDuration    time.Duration      `json:"analysis_duration"`
-	Success             bool               `json:"success"`
-	Error               string             `json:"error,omitempty"`
+	OverallRelevance    float64                     `json:"overall_relevance"`
+	PageRelevance       map[string]float64          `json:"page_relevance"`
+	TopKeywords         []KeywordSignal             `json:"top_keywords"`
+	DetectedIndustries  []IntegrationIndustrySignal `json:"detected_industries"`
+	ContentQualityScore float64                     `json:"content_quality_score"`
+	ConfidenceScore     float64                     `json:"confidence_score"`
+	AnalysisDuration    time.Duration               `json:"analysis_duration"`
+	Success             bool                        `json:"success"`
+	Error               string                      `json:"error,omitempty"`
 }
 
 // KeywordSignal represents a keyword with its relevance and confidence
@@ -188,7 +188,7 @@ type IntegrationIndustrySignal struct {
 
 // StructuredDataResult represents structured data extraction results
 type StructuredDataResult struct {
-	BusinessInfo    IntegrationBusinessInfo             `json:"business_info"`
+	BusinessInfo    IntegrationBusinessInfo  `json:"business_info"`
 	ExtractionScore float64                  `json:"extraction_score"`
 	SchemaOrgData   map[string]interface{}   `json:"schema_org_data"`
 	OpenGraphData   map[string]interface{}   `json:"open_graph_data"`
@@ -321,10 +321,10 @@ func (sci *SmartCrawlingIntegration) convertEnhancedResultToWebsiteAnalysis(enha
 		websiteAnalysis.KeywordsExtracted = enhancedResult.CrawlResult.Keywords
 		// Convert IntegrationBusinessInfo to BusinessInfo (from content_relevance_analyzer.go)
 		businessInfo := BusinessInfo{
-			BusinessName:  enhancedResult.CrawlResult.BusinessInfo.BusinessName,
-			Description:   enhancedResult.CrawlResult.BusinessInfo.Description,
-			Services:      enhancedResult.CrawlResult.BusinessInfo.Services,
-			Products:      enhancedResult.CrawlResult.BusinessInfo.Products,
+			BusinessName: enhancedResult.CrawlResult.BusinessInfo.BusinessName,
+			Description:  enhancedResult.CrawlResult.BusinessInfo.Description,
+			Services:     enhancedResult.CrawlResult.BusinessInfo.Services,
+			Products:     enhancedResult.CrawlResult.BusinessInfo.Products,
 			ContactInfo: ContactInfo{
 				Phone:   enhancedResult.CrawlResult.BusinessInfo.ContactInfo.Phone,
 				Email:   enhancedResult.CrawlResult.BusinessInfo.ContactInfo.Email,

@@ -26,30 +26,30 @@ type WebsiteClassificationCode struct {
 
 // EnhancedAnalysisResult represents the complete enhanced analysis result
 type EnhancedAnalysisResult struct {
-	WebsiteURL             string                        `json:"website_url"`
-	CrawlResult            *CrawlResult                  `json:"crawl_result"`
-	RelevanceAnalysis      *RelevanceAnalysisResult      `json:"relevance_analysis"`
-	StructuredData         *ExtractorStructuredDataResult         `json:"structured_data"`
-	BusinessClassification *BusinessClassificationResult `json:"business_classification"`
-	AnalysisTimestamp      time.Time                     `json:"analysis_timestamp"`
-	ProcessingTime         time.Duration                 `json:"processing_time"`
-	OverallConfidence      float64                       `json:"overall_confidence"`
-	Success                bool                          `json:"success"`
-	Error                  string                        `json:"error,omitempty"`
+	WebsiteURL             string                         `json:"website_url"`
+	CrawlResult            *CrawlResult                   `json:"crawl_result"`
+	RelevanceAnalysis      *RelevanceAnalysisResult       `json:"relevance_analysis"`
+	StructuredData         *ExtractorStructuredDataResult `json:"structured_data"`
+	BusinessClassification *BusinessClassificationResult  `json:"business_classification"`
+	AnalysisTimestamp      time.Time                      `json:"analysis_timestamp"`
+	ProcessingTime         time.Duration                  `json:"processing_time"`
+	OverallConfidence      float64                        `json:"overall_confidence"`
+	Success                bool                           `json:"success"`
+	Error                  string                         `json:"error,omitempty"`
 }
 
 // BusinessClassificationResult represents the final business classification
 type BusinessClassificationResult struct {
-	PrimaryIndustry        string               `json:"primary_industry"`
-	IndustryConfidence     float64              `json:"industry_confidence"`
-	BusinessType           string               `json:"business_type"`
-	BusinessTypeConfidence float64              `json:"business_type_confidence"`
+	PrimaryIndustry        string                      `json:"primary_industry"`
+	IndustryConfidence     float64                     `json:"industry_confidence"`
+	BusinessType           string                      `json:"business_type"`
+	BusinessTypeConfidence float64                     `json:"business_type_confidence"`
 	MCCCodes               []WebsiteClassificationCode `json:"mcc_codes"`
 	SICCodes               []WebsiteClassificationCode `json:"sic_codes"`
 	NAICSCodes             []WebsiteClassificationCode `json:"naics_codes"`
-	Keywords               []string             `json:"keywords"`
-	ConfidenceScore        float64              `json:"confidence_score"`
-	AnalysisMethod         string               `json:"analysis_method"`
+	Keywords               []string                    `json:"keywords"`
+	ConfidenceScore        float64                     `json:"confidence_score"`
+	AnalysisMethod         string                      `json:"analysis_method"`
 }
 
 // NewEnhancedWebsiteAnalyzer creates a new enhanced website analyzer
@@ -153,11 +153,11 @@ func (ewa *EnhancedWebsiteAnalyzer) extractStructuredDataFromRelevantPages(crawl
 	for _, page := range relevantPages {
 		if page.BusinessInfo.BusinessName != "" && structuredData.BusinessInfo.BusinessName == "" {
 			structuredData.BusinessInfo = ExtractorBusinessInfo{
-				BusinessName:  page.BusinessInfo.BusinessName,
-				Description:   page.BusinessInfo.Description,
-				Services:      page.BusinessInfo.Services,
-				Products:      page.BusinessInfo.Products,
-				ContactInfo:   ExtractorContactInfo{
+				BusinessName: page.BusinessInfo.BusinessName,
+				Description:  page.BusinessInfo.Description,
+				Services:     page.BusinessInfo.Services,
+				Products:     page.BusinessInfo.Products,
+				ContactInfo: ExtractorContactInfo{
 					Phone:   page.BusinessInfo.ContactInfo.Phone,
 					Email:   page.BusinessInfo.ContactInfo.Email,
 					Address: page.BusinessInfo.ContactInfo.Address,

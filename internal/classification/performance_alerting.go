@@ -385,11 +385,11 @@ func (pa *PerformanceAlerting) GetAlertStatistics(ctx context.Context, hoursBack
 	}
 
 	// Parse JSON fields
-		if err := parseJSONFieldAlerting(alertsByCategory, &result.AlertsByCategory); err != nil {
+	if err := parseJSONFieldAlerting(alertsByCategory, &result.AlertsByCategory); err != nil {
 		log.Printf("Warning: failed to parse alerts by category: %v", err)
 	}
 
-		if err := parseJSONFieldAlerting(alertsByType, &result.AlertsByType); err != nil {
+	if err := parseJSONFieldAlerting(alertsByType, &result.AlertsByType); err != nil {
 		log.Printf("Warning: failed to parse alerts by type: %v", err)
 	}
 

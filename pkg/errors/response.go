@@ -46,8 +46,8 @@ func WriteError(w http.ResponseWriter, r *http.Request, statusCode int, code, me
 		},
 		RequestID: requestID,
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
-		Path:     r.URL.Path,
-		Method:   r.Method,
+		Path:      r.URL.Path,
+		Method:    r.Method,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -102,4 +102,3 @@ func WriteServiceUnavailable(w http.ResponseWriter, r *http.Request, message str
 func WriteTooManyRequests(w http.ResponseWriter, r *http.Request, message string) {
 	WriteError(w, r, http.StatusTooManyRequests, "RATE_LIMIT_EXCEEDED", message, "")
 }
-

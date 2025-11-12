@@ -16,15 +16,15 @@ type StructuredDataExtractor struct {
 // ExtractorBusinessInfo represents extracted business information
 // (renamed to avoid conflict with content_relevance_analyzer.go)
 type ExtractorBusinessInfo struct {
-	BusinessName  string      `json:"business_name"`
-	Description   string      `json:"description"`
-	Services      []string    `json:"services"`
-	Products      []string    `json:"products"`
+	BusinessName  string               `json:"business_name"`
+	Description   string               `json:"description"`
+	Services      []string             `json:"services"`
+	Products      []string             `json:"products"`
 	ContactInfo   ExtractorContactInfo `json:"contact_info"`
-	BusinessHours string      `json:"business_hours"`
-	Location      string      `json:"location"`
-	Industry      string      `json:"industry"`
-	BusinessType  string      `json:"business_type"`
+	BusinessHours string               `json:"business_hours"`
+	Location      string               `json:"location"`
+	Industry      string               `json:"industry"`
+	BusinessType  string               `json:"business_type"`
 }
 
 // ExtractorContactInfo represents contact information
@@ -40,16 +40,16 @@ type ExtractorContactInfo struct {
 // ExtractorStructuredDataResult represents extracted structured data
 // (renamed to avoid conflict with smart_crawling_integration.go)
 type ExtractorStructuredDataResult struct {
-	SchemaOrgData   []SchemaOrgItem   `json:"schema_org_data"`
-	OpenGraphData   map[string]string `json:"open_graph_data"`
-	TwitterCardData map[string]string `json:"twitter_card_data"`
-	Microdata       []MicrodataItem   `json:"microdata"`
-	BusinessInfo    ExtractorBusinessInfo      `json:"business_info"`
-	ContactInfo     ExtractorContactInfo       `json:"contact_info"`
-	ProductInfo     []ProductInfo     `json:"product_info"`
-	ServiceInfo     []ServiceInfo     `json:"service_info"`
-	EventInfo       []EventInfo       `json:"event_info"`
-	ExtractionScore float64           `json:"extraction_score"`
+	SchemaOrgData   []SchemaOrgItem       `json:"schema_org_data"`
+	OpenGraphData   map[string]string     `json:"open_graph_data"`
+	TwitterCardData map[string]string     `json:"twitter_card_data"`
+	Microdata       []MicrodataItem       `json:"microdata"`
+	BusinessInfo    ExtractorBusinessInfo `json:"business_info"`
+	ContactInfo     ExtractorContactInfo  `json:"contact_info"`
+	ProductInfo     []ProductInfo         `json:"product_info"`
+	ServiceInfo     []ServiceInfo         `json:"service_info"`
+	EventInfo       []EventInfo           `json:"event_info"`
+	ExtractionScore float64               `json:"extraction_score"`
 }
 
 // SchemaOrgItem represents a Schema.org structured data item

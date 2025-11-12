@@ -34,7 +34,7 @@ func (cf *CacheFactory) CreateCache(config *CacheConfig) (Cache, error) {
 	// If optimization.go CacheConfig is passed, it will fail at compile time
 	// which is expected - use types.go CacheConfig instead
 	cacheType := config.Type
-	
+
 	switch cacheType {
 	case MemoryCache:
 		return cf.createMemoryCache(config)

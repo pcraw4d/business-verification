@@ -49,7 +49,7 @@ type FeatureFlagDashboardConfig struct {
 	ExportEndpoint string `json:"export_endpoint"`
 
 	// Alerting configuration
-	AlertingEnabled bool            `json:"alerting_enabled"`
+	AlertingEnabled bool                       `json:"alerting_enabled"`
 	AlertThresholds FeatureFlagAlertThresholds `json:"alert_thresholds"`
 }
 

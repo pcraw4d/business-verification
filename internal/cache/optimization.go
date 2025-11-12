@@ -495,10 +495,10 @@ func (co *CacheOptimizer) GenerateCacheReport() (*CacheReport, error) {
 
 // CacheReport contains cache performance analysis
 type CacheReport struct {
-	Timestamp       time.Time   `json:"timestamp"`
+	Timestamp       time.Time               `json:"timestamp"`
 	Stats           *OptimizationCacheStats `json:"stats"`
-	HitRate         float64     `json:"hit_rate"`
-	Recommendations []string    `json:"recommendations"`
+	HitRate         float64                 `json:"hit_rate"`
+	Recommendations []string                `json:"recommendations"`
 }
 
 func (co *CacheOptimizer) generateRecommendations(stats *OptimizationCacheStats) []string {

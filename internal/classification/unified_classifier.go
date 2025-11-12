@@ -293,7 +293,7 @@ func (uc *UnifiedClassifier) combineKeywordsWithWeights(sources []DataSource, we
 	for keyword, score := range keywordMap {
 		contextualKeywords = append(contextualKeywords, ContextualKeyword{
 			Keyword: keyword,
-			Weight:  score, // Use Weight instead of Score
+			Weight:  score,                                      // Use Weight instead of Score
 			Context: strings.Join(keywordSources[keyword], ","), // Use Context instead of Source
 		})
 	}
