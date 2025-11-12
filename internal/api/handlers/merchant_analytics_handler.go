@@ -126,4 +126,3 @@ func (h *MerchantAnalyticsHandler) GetWebsiteAnalysis(w http.ResponseWriter, r *
 		return
 	}
 }
-

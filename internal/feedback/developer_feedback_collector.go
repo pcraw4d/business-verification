@@ -293,7 +293,7 @@ func (dfc *DeveloperFeedbackCollector) calculateROI(feedback *DeveloperFeedback)
 		debtAdjustment = 0.4
 	}
 
-	adjustedScore := score * debtAdjustment
+	adjustedScore := float64(score) * debtAdjustment
 
 	if adjustedScore >= 4.5 {
 		return "Exceptional"

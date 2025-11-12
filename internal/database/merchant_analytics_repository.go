@@ -357,4 +357,3 @@ func (r *MerchantAnalyticsRepository) GetIntelligenceDataByMerchantID(ctx contex
 
 	return intelligence, nil
 }
-

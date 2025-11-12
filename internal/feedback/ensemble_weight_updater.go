@@ -27,7 +27,7 @@ func NewEnsembleWeightUpdater(config *AdvancedLearningConfig, logger *zap.Logger
 }
 
 // UpdateWeights updates ensemble weights based on feedback analysis
-func (ewu *EnsembleWeightUpdater) UpdateWeights(feedback []*UserFeedback) error {
+func (ewu *EnsembleWeightUpdater) UpdateWeights(feedback []*ClassificationClassificationUserFeedback) error {
 	ewu.mu.Lock()
 	defer ewu.mu.Unlock()
 
@@ -96,9 +96,9 @@ func (ewu *EnsembleWeightUpdater) UpdateWeights(feedback []*UserFeedback) error 
 }
 
 // analyzeMethodPerformance analyzes performance of each classification method
-func (ewu *EnsembleWeightUpdater) analyzeMethodPerformance(feedback []*UserFeedback) (map[ClassificationMethod]*MethodPerformanceMetrics, error) {
+func (ewu *EnsembleWeightUpdater) analyzeMethodPerformance(feedback []*ClassificationClassificationUserFeedback) (map[ClassificationMethod]*MethodPerformanceMetrics, error) {
 	// Group feedback by method
-	methodFeedback := make(map[ClassificationMethod][]*UserFeedback)
+	methodFeedback := make(map[ClassificationMethod][]*ClassificationClassificationUserFeedback)
 	for _, fb := range feedback {
 		methodFeedback[fb.ClassificationMethod] = append(methodFeedback[fb.ClassificationMethod], fb)
 	}
@@ -125,7 +125,7 @@ func (ewu *EnsembleWeightUpdater) analyzeMethodPerformance(feedback []*UserFeedb
 }
 
 // calculateMethodPerformance calculates performance metrics for a method
-func (ewu *EnsembleWeightUpdater) calculateMethodPerformance(feedback []*UserFeedback) *MethodPerformanceMetrics {
+func (ewu *EnsembleWeightUpdater) calculateMethodPerformance(feedback []*ClassificationClassificationUserFeedback) *MethodPerformanceMetrics {
 	metrics := &MethodPerformanceMetrics{
 		TotalFeedback: len(feedback),
 	}
@@ -306,13 +306,13 @@ func (ewu *EnsembleWeightUpdater) calculatePerformanceImpact(methodPerformance m
 }
 
 // calculateConfidenceCalibration calculates confidence calibration score
-func (ewu *EnsembleWeightUpdater) calculateConfidenceCalibration(feedback []*UserFeedback) float64 {
+func (ewu *EnsembleWeightUpdater) calculateConfidenceCalibration(feedback []*ClassificationClassificationUserFeedback) float64 {
 	if len(feedback) == 0 {
 		return 0.0
 	}
 
 	// Group by confidence bins
-	confidenceBins := make(map[int][]*UserFeedback)
+	confidenceBins := make(map[int][]*ClassificationClassificationUserFeedback)
 	for _, fb := range feedback {
 		if fb.ConfidenceScore > 0 {
 			bin := int(fb.ConfidenceScore * 10) // 0.1 bins
@@ -354,7 +354,7 @@ func (ewu *EnsembleWeightUpdater) calculateConfidenceCalibration(feedback []*Use
 }
 
 // calculateAverageResponseTime calculates average response time
-func (ewu *EnsembleWeightUpdater) calculateAverageResponseTime(feedback []*UserFeedback) time.Duration {
+func (ewu *EnsembleWeightUpdater) calculateAverageResponseTime(feedback []*ClassificationClassificationUserFeedback) time.Duration {
 	if len(feedback) == 0 {
 		return 0
 	}

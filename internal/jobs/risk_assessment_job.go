@@ -2,7 +2,6 @@ package jobs
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -20,12 +19,12 @@ type RiskAssessmentJob struct {
 
 // RiskAssessmentJobProcessor processes risk assessment jobs asynchronously
 type RiskAssessmentJobProcessor struct {
-	repo           *database.RiskAssessmentRepository
-	riskService    RiskAssessmentService
-	logger         *log.Logger
-	jobQueue       chan RiskAssessmentJob
-	workerCount    int
-	stopChan       chan struct{}
+	repo        *database.RiskAssessmentRepository
+	riskService RiskAssessmentService
+	logger      *log.Logger
+	jobQueue    chan RiskAssessmentJob
+	workerCount int
+	stopChan    chan struct{}
 }
 
 // RiskAssessmentService interface for performing actual risk assessment
@@ -201,4 +200,3 @@ func (m *MockRiskAssessmentService) PerformRiskAssessment(ctx context.Context, m
 
 	return result, nil
 }
-

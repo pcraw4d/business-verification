@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 // FeedbackValidator implements the FeedbackValidatorInterface
@@ -22,7 +24,7 @@ func NewFeedbackValidator(securityValidator SecurityValidator) *FeedbackValidato
 // ValidateUserFeedback validates user feedback data
 func (v *FeedbackValidator) ValidateUserFeedback(ctx context.Context, feedback UserFeedback) error {
 	// Validate required fields
-	if feedback.ID == "" {
+	if feedback.ID == uuid.Nil {
 		return fmt.Errorf("feedback ID is required")
 	}
 
@@ -30,52 +32,38 @@ func (v *FeedbackValidator) ValidateUserFeedback(ctx context.Context, feedback U
 		return fmt.Errorf("user ID is required")
 	}
 
-	if feedback.BusinessName == "" {
-		return fmt.Errorf("business name is required")
+	// Note: UserFeedback doesn't have many fields that ClassificationClassificationUserFeedback has
+	// These are stored in Metadata if needed
+	// TODO: Refactor to use ClassificationClassificationUserFeedback which has these fields
+
+	// Validate Category (UserFeedback has Category, not FeedbackType)
+	if feedback.Category == "" {
+		return fmt.Errorf("feedback category is required")
 	}
 
-	if feedback.OriginalClassificationID == "" {
-		return fmt.Errorf("original classification ID is required")
+	// Validate Comments (UserFeedback has Comments, not FeedbackText)
+	if len(feedback.Comments) > 5000 {
+		return fmt.Errorf("comments exceed maximum length of 5000 characters")
 	}
 
-	// Validate feedback type
-	if !isValidFeedbackType(feedback.FeedbackType) {
-		return fmt.Errorf("invalid feedback type: %s", feedback.FeedbackType)
+	// Validate ClassificationAccuracy (UserFeedback has ClassificationAccuracy, not ConfidenceScore)
+	if feedback.ClassificationAccuracy < 0.0 || feedback.ClassificationAccuracy > 1.0 {
+		return fmt.Errorf("classification accuracy must be between 0.0 and 1.0, got: %f", feedback.ClassificationAccuracy)
 	}
 
-	// Validate status
-	if !isValidFeedbackStatus(feedback.Status) {
-		return fmt.Errorf("invalid feedback status: %s", feedback.Status)
+	// Validate Rating
+	if feedback.Rating < 0 || feedback.Rating > 5 {
+		return fmt.Errorf("rating must be between 0 and 5, got: %d", feedback.Rating)
 	}
 
-	// Validate confidence score range
-	if feedback.ConfidenceScore < 0.0 || feedback.ConfidenceScore > 1.0 {
-		return fmt.Errorf("confidence score must be between 0.0 and 1.0, got: %f", feedback.ConfidenceScore)
+	// Validate SubmittedAt timestamp
+	if feedback.SubmittedAt.IsZero() {
+		return fmt.Errorf("submitted at timestamp is required")
 	}
 
-	// Validate business name format
-	if err := v.validateBusinessName(feedback.BusinessName); err != nil {
-		return fmt.Errorf("invalid business name: %w", err)
-	}
-
-	// Validate feedback text length
-	if len(feedback.FeedbackText) > 5000 {
-		return fmt.Errorf("feedback text exceeds maximum length of 5000 characters")
-	}
-
-	// Validate processing time
-	if feedback.ProcessingTimeMs < 0 {
-		return fmt.Errorf("processing time cannot be negative")
-	}
-
-	// Validate timestamps
-	if feedback.ProcessedAt != nil && feedback.ProcessedAt.Before(feedback.CreatedAt) {
-		return fmt.Errorf("processed at time cannot be before created at time")
-	}
-
-	// Security validation
-	if v.securityValidator != nil {
-		if err := v.securityValidator.ValidateFeedbackContent(ctx, feedback.FeedbackValue); err != nil {
+	// Security validation on metadata
+	if v.securityValidator != nil && feedback.Metadata != nil {
+		if err := v.securityValidator.ValidateFeedbackContent(ctx, feedback.Metadata); err != nil {
 			return fmt.Errorf("security validation failed: %w", err)
 		}
 	}

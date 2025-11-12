@@ -282,4 +282,3 @@ func (r *RiskAssessmentRepository) GetAssessmentsByMerchantID(ctx context.Contex
 
 	return assessments, nil
 }
-

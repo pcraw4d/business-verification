@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -406,8 +407,29 @@ func (als *AdvancedLearningSystem) updateEnsembleWeights() error {
 		return nil
 	}
 
-	// Update weights using the weight updater
-	return als.weightUpdater.UpdateWeights(feedback)
+	// Convert UserFeedback to ClassificationClassificationUserFeedback for weight updater
+	// Note: This is a temporary workaround - the weight updater expects ClassificationClassificationUserFeedback
+	// but we're receiving UserFeedback. For now, we'll skip weight updates if feedback doesn't match.
+	// TODO: Refactor to use consistent feedback types
+	classificationFeedback := make([]*ClassificationClassificationUserFeedback, 0)
+	for _, fb := range feedback {
+		// Only process feedback that has classification-related data
+		if fb.Category == CategoryClassificationAccuracy {
+			cf := &ClassificationClassificationUserFeedback{
+				ID:                   uuid.New().String(), // Convert UUID to string
+				UserID:               fb.UserID,
+				FeedbackType:         FeedbackTypeClassification,
+				ConfidenceScore:      fb.ClassificationAccuracy,
+				ClassificationMethod: MethodEnsemble, // Default to ensemble
+			}
+			classificationFeedback = append(classificationFeedback, cf)
+		}
+	}
+
+	if len(classificationFeedback) > 0 {
+		return als.weightUpdater.UpdateWeights(classificationFeedback)
+	}
+	return nil
 }
 
 // retrainMLModels retrains ML models with new feedback data

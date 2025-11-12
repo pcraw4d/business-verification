@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -59,38 +60,65 @@ func (s *FeedbackService) CollectUserFeedback(ctx context.Context, request Feedb
 	}
 
 	// Get current model version for the classification method
-	modelVersion, err := s.modelVersionManager.GetCurrentModelVersion(ctx, "ensemble")
+	// Stub: modelVersion not used in UserFeedback struct
+	_, err := s.modelVersionManager.GetCurrentModelVersion(ctx, "ensemble")
 	if err != nil {
 		s.logger.Warn("failed to get current model version, using default",
 			zap.Error(err))
-		modelVersion = "default"
 	}
 
 	// Create user feedback record
+	// Map FeedbackCollectionRequest fields to UserFeedback, preserving all data
 	feedback := UserFeedback{
-		ID:                        generateID(),
-		UserID:                    request.UserID,
-		BusinessName:              request.BusinessName,
-		OriginalClassificationID:  request.OriginalClassificationID,
-		FeedbackType:              request.FeedbackType,
-		FeedbackValue:             request.FeedbackValue,
-		FeedbackText:              request.FeedbackText,
-		SuggestedClassificationID: request.SuggestedClassificationID,
-		ConfidenceScore:           request.ConfidenceScore,
-		Status:                    FeedbackStatusPending,
-		ProcessingTimeMs:          0,
-		ModelVersionID:            modelVersion,
-		ClassificationMethod:      MethodEnsemble, // Default to ensemble
-		EnsembleWeight:            0.5,            // Default weight
-		CreatedAt:                 time.Now(),
-		ProcessedAt:               nil,
-		Metadata:                  request.Metadata,
+		ID:                     uuid.New(),
+		UserID:                 request.UserID,
+		Category:               s.mapFeedbackTypeToCategory(request.FeedbackType),
+		Comments:               request.FeedbackText,
+		ClassificationAccuracy: request.ConfidenceScore, // Map ConfidenceScore to ClassificationAccuracy
+		SubmittedAt:            time.Now(),
+		Metadata:               s.buildFeedbackMetadata(request),
+	}
+
+	// Extract rating from FeedbackValue if available
+	if rating, ok := request.FeedbackValue["rating"].(float64); ok {
+		feedback.Rating = int(rating)
+	} else if rating, ok := request.FeedbackValue["rating"].(int); ok {
+		feedback.Rating = rating
+	}
+
+	// Extract specific features from FeedbackValue if available
+	if features, ok := request.FeedbackValue["specific_features"].([]interface{}); ok {
+		feedback.SpecificFeatures = s.extractStringSlice(features)
+	}
+
+	// Extract improvement areas from FeedbackValue if available
+	if areas, ok := request.FeedbackValue["improvement_areas"].([]interface{}); ok {
+		feedback.ImprovementAreas = s.extractStringSlice(areas)
+	}
+
+	// Extract performance rating from FeedbackValue if available
+	if perfRating, ok := request.FeedbackValue["performance_rating"].(float64); ok {
+		feedback.PerformanceRating = int(perfRating)
+	} else if perfRating, ok := request.FeedbackValue["performance_rating"].(int); ok {
+		feedback.PerformanceRating = perfRating
+	}
+
+	// Extract usability rating from FeedbackValue if available
+	if usabilityRating, ok := request.FeedbackValue["usability_rating"].(float64); ok {
+		feedback.UsabilityRating = int(usabilityRating)
+	} else if usabilityRating, ok := request.FeedbackValue["usability_rating"].(int); ok {
+		feedback.UsabilityRating = usabilityRating
+	}
+
+	// Extract business impact from FeedbackValue if available
+	if businessImpact, ok := request.FeedbackValue["business_impact"].(map[string]interface{}); ok {
+		feedback.BusinessImpact = s.mapToBusinessImpactRating(businessImpact)
 	}
 
 	// Validate the feedback record
 	if err := s.validator.ValidateUserFeedback(ctx, feedback); err != nil {
 		s.logger.Error("user feedback validation failed",
-			zap.String("feedback_id", feedback.ID),
+			zap.String("feedback_id", feedback.ID.String()),
 			zap.Error(err))
 		return nil, fmt.Errorf("feedback validation failed: %w", err)
 	}
@@ -98,7 +126,7 @@ func (s *FeedbackService) CollectUserFeedback(ctx context.Context, request Feedb
 	// Save the feedback
 	if err := s.repository.SaveUserFeedback(ctx, feedback); err != nil {
 		s.logger.Error("failed to save user feedback",
-			zap.String("feedback_id", feedback.ID),
+			zap.String("feedback_id", feedback.ID.String()),
 			zap.Error(err))
 		return nil, fmt.Errorf("failed to save feedback: %w", err)
 	}
@@ -110,7 +138,7 @@ func (s *FeedbackService) CollectUserFeedback(ctx context.Context, request Feedb
 
 		if err := s.processor.ProcessUserFeedback(processCtx, feedback); err != nil {
 			s.logger.Error("failed to process user feedback",
-				zap.String("feedback_id", feedback.ID),
+				zap.String("feedback_id", feedback.ID.String()),
 				zap.Error(err))
 		}
 	}()
@@ -118,15 +146,15 @@ func (s *FeedbackService) CollectUserFeedback(ctx context.Context, request Feedb
 	processingTime := int(time.Since(startTime).Milliseconds())
 
 	s.logger.Info("user feedback collected successfully",
-		zap.String("feedback_id", feedback.ID),
+		zap.String("feedback_id", feedback.ID.String()),
 		zap.Int("processing_time_ms", processingTime))
 
 	return &FeedbackCollectionResponse{
-		ID:               feedback.ID,
-		Status:           string(feedback.Status),
+		ID:               feedback.ID.String(), // Convert UUID to string
+		Status:           "pending",            // Stub - UserFeedback doesn't have Status
 		ProcessingTimeMs: processingTime,
 		Message:          "Feedback collected successfully",
-		CreatedAt:        feedback.CreatedAt,
+		CreatedAt:        feedback.SubmittedAt, // Use SubmittedAt as CreatedAt substitute
 	}, nil
 }
 
@@ -422,4 +450,94 @@ func (s *FeedbackService) GetServiceMetrics(ctx context.Context) (map[string]int
 // generateID generates a unique ID for feedback records
 func generateID() string {
 	return fmt.Sprintf("feedback_%d", time.Now().UnixNano())
+}
+
+// mapFeedbackTypeToCategory maps FeedbackType to FeedbackCategory
+func (s *FeedbackService) mapFeedbackTypeToCategory(feedbackType FeedbackType) FeedbackCategory {
+	switch feedbackType {
+	case FeedbackTypeAccuracy, FeedbackTypeClassification:
+		return CategoryClassificationAccuracy
+	case FeedbackTypeConfidence:
+		return CategoryClassificationAccuracy
+	case FeedbackTypeRelevance:
+		return CategoryUserExperience
+	case FeedbackTypeSuggestion:
+		return CategoryFeatureRequest
+	case FeedbackTypeCorrection:
+		return CategoryBugReport
+	case FeedbackTypeSecurityValidation:
+		return CategoryRiskDetection
+	default:
+		return CategoryOverallSatisfaction
+	}
+}
+
+// buildFeedbackMetadata builds comprehensive metadata from FeedbackCollectionRequest
+// This preserves all data that doesn't directly map to UserFeedback fields
+func (s *FeedbackService) buildFeedbackMetadata(request FeedbackCollectionRequest) map[string]interface{} {
+	metadata := make(map[string]interface{})
+
+	// Copy existing metadata
+	if request.Metadata != nil {
+		for k, v := range request.Metadata {
+			metadata[k] = v
+		}
+	}
+
+	// Preserve all request fields that don't map directly to UserFeedback
+	metadata["feedback_type"] = string(request.FeedbackType)
+	metadata["business_name"] = request.BusinessName
+	metadata["original_classification_id"] = request.OriginalClassificationID
+	metadata["suggested_classification_id"] = request.SuggestedClassificationID
+	metadata["confidence_score"] = request.ConfidenceScore
+	metadata["feedback_value"] = request.FeedbackValue // Preserve entire FeedbackValue map
+
+	// Add timestamp for when feedback was collected
+	metadata["collected_at"] = time.Now().Format(time.RFC3339)
+
+	return metadata
+}
+
+// extractStringSlice safely extracts a []string from []interface{}
+func (s *FeedbackService) extractStringSlice(items []interface{}) []string {
+	result := make([]string, 0, len(items))
+	for _, item := range items {
+		if str, ok := item.(string); ok {
+			result = append(result, str)
+		}
+	}
+	return result
+}
+
+// mapToBusinessImpactRating maps a map[string]interface{} to BusinessImpactRating
+func (s *FeedbackService) mapToBusinessImpactRating(data map[string]interface{}) BusinessImpactRating {
+	impact := BusinessImpactRating{}
+
+	if timeSaved, ok := data["time_saved_minutes"].(int); ok {
+		impact.TimeSaved = timeSaved
+	} else if timeSaved, ok := data["time_saved_minutes"].(float64); ok {
+		impact.TimeSaved = int(timeSaved)
+	}
+
+	if costReduction, ok := data["cost_reduction"].(string); ok {
+		impact.CostReduction = costReduction
+	}
+
+	if errorReduction, ok := data["error_reduction_percentage"].(int); ok {
+		impact.ErrorReduction = errorReduction
+	} else if errorReduction, ok := data["error_reduction_percentage"].(float64); ok {
+		impact.ErrorReduction = int(errorReduction)
+	}
+
+	if productivityGain, ok := data["productivity_gain_percentage"].(int); ok {
+		impact.ProductivityGain = productivityGain
+	} else if productivityGain, ok := data["productivity_gain_percentage"].(float64); ok {
+		impact.ProductivityGain = int(productivityGain)
+	}
+
+	if roi, ok := data["roi_assessment"].(string); ok {
+		impact.ROI = roi
+	}
+
+	return impact
 }

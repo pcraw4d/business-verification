@@ -54,14 +54,14 @@ func (s *riskAssessmentService) StartAssessment(ctx context.Context, merchantID 
 
 	// Create assessment record
 	assessment := &models.RiskAssessment{
-		ID:                 assessmentID,
-		MerchantID:         merchantID,
-		Status:             models.AssessmentStatusPending,
-		Options:            options,
-		Progress:           0,
+		ID:                  assessmentID,
+		MerchantID:          merchantID,
+		Status:              models.AssessmentStatusPending,
+		Options:             options,
+		Progress:            0,
 		EstimatedCompletion: &estimatedCompletion,
-		CreatedAt:          time.Now(),
-		UpdatedAt:          time.Now(),
+		CreatedAt:           time.Now(),
+		UpdatedAt:           time.Now(),
 	}
 
 	// Save to database
@@ -114,7 +114,7 @@ func (s *riskAssessmentService) GetAssessmentStatus(ctx context.Context, assessm
 func (s *riskAssessmentService) ProcessAssessment(ctx context.Context, assessmentID string) error {
 	s.logger.Printf("Processing assessment: %s", assessmentID)
 
-	assessment, err := s.repo.GetAssessmentByID(ctx, assessmentID)
+	_, err := s.repo.GetAssessmentByID(ctx, assessmentID)
 	if err != nil {
 		return fmt.Errorf("assessment not found: %w", err)
 	}
@@ -125,4 +125,3 @@ func (s *riskAssessmentService) ProcessAssessment(ctx context.Context, assessmen
 
 	return nil
 }
-

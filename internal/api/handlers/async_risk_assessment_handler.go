@@ -141,4 +141,3 @@ func (h *AsyncRiskAssessmentHandler) GetAssessmentStatus(w http.ResponseWriter, 
 		return
 	}
 }
-

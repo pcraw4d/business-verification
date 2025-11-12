@@ -31,9 +31,12 @@ func (ewo *EnsembleWeightOptimizer) AnalyzeWeightOptimization(ctx context.Contex
 	}
 
 	// Group feedback by method
+	// Stub: UserFeedback doesn't have ClassificationMethod field
+	// TODO: Refactor to use ClassificationClassificationUserFeedback
 	methodFeedback := make(map[ClassificationMethod][]*UserFeedback)
 	for _, fb := range feedback {
-		methodFeedback[fb.ClassificationMethod] = append(methodFeedback[fb.ClassificationMethod], fb)
+		// Default to ensemble method since we don't have ClassificationMethod
+		methodFeedback[MethodEnsemble] = append(methodFeedback[MethodEnsemble], fb)
 	}
 
 	var recommendations []*WeightRecommendation
@@ -92,44 +95,17 @@ func (ewo *EnsembleWeightOptimizer) calculateMethodPerformance(feedback []*UserF
 	var accuracyCount, confidenceCount, processingTimeCount, errorCount, securityCount int
 	var consistencyScores []float64
 
+	// Stub: UserFeedback doesn't have FeedbackType, FeedbackValue, ConfidenceScore, or ProcessingTimeMs fields
+	// TODO: Refactor to use ClassificationClassificationUserFeedback
 	for _, fb := range feedback {
-		// Calculate accuracy
-		if fb.FeedbackType == FeedbackTypeAccuracy {
-			if accuracy, ok := fb.FeedbackValue["accuracy"].(string); ok && accuracy == "correct" {
-				totalAccuracy += 1.0
-			}
+		// Use ClassificationAccuracy from UserFeedback if available
+		if fb.ClassificationAccuracy > 0 {
+			totalAccuracy += fb.ClassificationAccuracy
 			accuracyCount++
+			consistencyScores = append(consistencyScores, fb.ClassificationAccuracy)
 		}
-
-		// Calculate confidence
-		if fb.ConfidenceScore > 0 {
-			totalConfidence += fb.ConfidenceScore
-			confidenceCount++
-		}
-
-		// Calculate processing time
-		if fb.ProcessingTimeMs > 0 {
-			totalProcessingTime += float64(fb.ProcessingTimeMs)
-			processingTimeCount++
-		}
-
-		// Calculate error rate
-		if fb.FeedbackType == FeedbackTypeCorrection {
-			errorCount++
-		}
-
-		// Calculate security score
-		if fb.FeedbackType == FeedbackTypeSecurityValidation {
-			if violated, ok := fb.FeedbackValue["violation"].(bool); ok && !violated {
-				totalAccuracy += 1.0 // Count as positive for security
-			}
-			securityCount++
-		}
-
-		// Calculate consistency (based on confidence variance)
-		if fb.ConfidenceScore > 0 {
-			consistencyScores = append(consistencyScores, fb.ConfidenceScore)
-		}
+		// Confidence, processing time, error rate, and security counts would need to be extracted from Metadata
+		// For now, skip these calculations
 	}
 
 	// Calculate final metrics
@@ -414,9 +390,9 @@ func (ewo *EnsembleWeightOptimizer) analyzeEnsembleDisagreements(feedback []*Use
 	// Look for feedback that indicates ensemble disagreements
 	var disagreementFeedback []*UserFeedback
 	for _, fb := range feedback {
-		if strings.Contains(strings.ToLower(fb.FeedbackText), "disagree") ||
-			strings.Contains(strings.ToLower(fb.FeedbackText), "conflict") ||
-			strings.Contains(strings.ToLower(fb.FeedbackText), "different") {
+		if strings.Contains(strings.ToLower(fb.Comments), "disagree") ||
+			strings.Contains(strings.ToLower(fb.Comments), "conflict") ||
+			strings.Contains(strings.ToLower(fb.Comments), "different") {
 			disagreementFeedback = append(disagreementFeedback, fb)
 		}
 	}
@@ -426,9 +402,11 @@ func (ewo *EnsembleWeightOptimizer) analyzeEnsembleDisagreements(feedback []*Use
 	}
 
 	// Analyze which methods are most often involved in disagreements
+	// Stub: UserFeedback doesn't have ClassificationMethod field
 	methodDisagreementCount := make(map[ClassificationMethod]int)
-	for _, fb := range disagreementFeedback {
-		methodDisagreementCount[fb.ClassificationMethod]++
+	for range disagreementFeedback {
+		// All feedback assigned to MethodEnsemble
+		methodDisagreementCount[MethodEnsemble]++
 	}
 
 	// Generate recommendations to reduce disagreements
@@ -460,13 +438,14 @@ func (ewo *EnsembleWeightOptimizer) analyzeTemporalPerformance(feedback []*UserF
 	var recommendations []*WeightRecommendation
 
 	// Group feedback by time periods
+	// Stub: UserFeedback doesn't have ClassificationMethod or CreatedAt fields
 	hourlyFeedback := make(map[ClassificationMethod]map[int][]*UserFeedback)
 	for _, fb := range feedback {
-		hour := fb.CreatedAt.Hour()
-		if hourlyFeedback[fb.ClassificationMethod] == nil {
-			hourlyFeedback[fb.ClassificationMethod] = make(map[int][]*UserFeedback)
+		hour := fb.SubmittedAt.Hour() // Use SubmittedAt instead of CreatedAt
+		if hourlyFeedback[MethodEnsemble] == nil {
+			hourlyFeedback[MethodEnsemble] = make(map[int][]*UserFeedback)
 		}
-		hourlyFeedback[fb.ClassificationMethod][hour] = append(hourlyFeedback[fb.ClassificationMethod][hour], fb)
+		hourlyFeedback[MethodEnsemble][hour] = append(hourlyFeedback[MethodEnsemble][hour], fb)
 	}
 
 	// Analyze performance variations by time
@@ -525,11 +504,9 @@ func (ewo *EnsembleWeightOptimizer) analyzeConfidenceBasedPerformance(feedback [
 	for method := range methodPerformance {
 		// Get feedback for this method
 		var methodFeedback []*UserFeedback
-		for _, fb := range feedback {
-			if fb.ClassificationMethod == method {
-				methodFeedback = append(methodFeedback, fb)
-			}
-		}
+		// Stub: UserFeedback doesn't have ClassificationMethod field
+		// For now, include all feedback (they're all assigned to MethodEnsemble)
+		methodFeedback = feedback
 
 		if len(methodFeedback) < ewo.config.MinFeedbackThreshold {
 			continue
@@ -540,7 +517,8 @@ func (ewo *EnsembleWeightOptimizer) analyzeConfidenceBasedPerformance(feedback [
 		for rangeName, rangeBounds := range confidenceRanges {
 			var rangeFeedback []*UserFeedback
 			for _, fb := range methodFeedback {
-				if fb.ConfidenceScore >= rangeBounds[0] && fb.ConfidenceScore < rangeBounds[1] {
+				// Use ClassificationAccuracy instead of ConfidenceScore
+				if fb.ClassificationAccuracy >= rangeBounds[0] && fb.ClassificationAccuracy < rangeBounds[1] {
 					rangeFeedback = append(rangeFeedback, fb)
 				}
 			}

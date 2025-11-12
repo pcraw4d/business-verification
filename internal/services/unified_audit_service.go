@@ -41,27 +41,8 @@ type UnifiedAuditRepository interface {
 	DeleteOldAuditLogs(ctx context.Context, olderThan time.Duration) (int64, error)
 }
 
-// LogMerchantOperationRequest represents a request to log a merchant operation
-type LogMerchantOperationRequest struct {
-	UserID       string                 `json:"user_id"`
-	APIKeyID     string                 `json:"api_key_id,omitempty"`
-	MerchantID   string                 `json:"merchant_id"`
-	SessionID    string                 `json:"session_id,omitempty"`
-	Action       string                 `json:"action"`
-	ResourceType string                 `json:"resource_type"`
-	ResourceID   string                 `json:"resource_id"`
-	Description  string                 `json:"description"`
-	OldValues    interface{}            `json:"old_values,omitempty"`
-	NewValues    interface{}            `json:"new_values,omitempty"`
-	Details      interface{}            `json:"details,omitempty"`
-	IPAddress    string                 `json:"ip_address,omitempty"`
-	UserAgent    string                 `json:"user_agent,omitempty"`
-	RequestID    string                 `json:"request_id,omitempty"`
-	UserName     string                 `json:"user_name,omitempty"`
-	UserRole     string                 `json:"user_role,omitempty"`
-	UserEmail    string                 `json:"user_email,omitempty"`
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
-}
+// LogMerchantOperationRequest is defined in audit_service.go to avoid duplicate type declaration
+// Use the type from audit_service.go instead
 
 // LogUserActionRequest represents a request to log a user action
 type LogUserActionRequest struct {
@@ -128,13 +109,25 @@ func (uas *UnifiedAuditService) LogMerchantOperation(ctx context.Context, req *L
 	auditLog.SetAction(models.AuditLogAction(req.Action))
 
 	// Set context
-	auditLog.SetUserContext(req.UserID, req.APIKeyID)
+	// Note: LogMerchantOperationRequest doesn't have APIKeyID field
+	auditLog.SetUserContext(req.UserID, "") // APIKeyID not available in request
 	auditLog.SetBusinessContext(req.MerchantID, req.SessionID)
 	auditLog.SetResourceInfo(req.ResourceType, req.ResourceID, "")
 	auditLog.SetRequestContext(req.RequestID, req.IPAddress, req.UserAgent)
 
 	// Set change tracking
-	if err := auditLog.SetChangeTracking(req.OldValues, req.NewValues, req.Details); err != nil {
+	// Note: LogMerchantOperationRequest doesn't have OldValues or NewValues fields
+	// Use Details and Metadata instead
+	var oldValues, newValues interface{}
+	if req.Metadata != nil {
+		if ov, ok := req.Metadata["old_values"]; ok {
+			oldValues = ov
+		}
+		if nv, ok := req.Metadata["new_values"]; ok {
+			newValues = nv
+		}
+	}
+	if err := auditLog.SetChangeTracking(oldValues, newValues, req.Details); err != nil {
 		uas.logger.Error("failed to set change tracking", map[string]interface{}{
 			"error": err.Error(),
 		})
@@ -409,7 +402,7 @@ func (uas *UnifiedAuditService) DeleteOldAuditLogs(ctx context.Context, olderTha
 
 // MigrateFromLegacyAuditService migrates from the legacy audit service
 func (uas *UnifiedAuditService) MigrateFromLegacyAuditService(ctx context.Context, legacyService *AuditService) error {
-	uas.logger.Info("migrating from legacy audit service to unified audit service")
+	uas.logger.Info("migrating from legacy audit service to unified audit service", map[string]interface{}{})
 
 	// This method can be used to gradually migrate from the legacy audit service
 	// to the unified audit service by intercepting calls and redirecting them

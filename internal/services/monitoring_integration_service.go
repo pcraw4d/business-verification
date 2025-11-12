@@ -17,33 +17,34 @@ type MonitoringIntegrationService struct {
 	config             *config.AlertingConfig
 	healthCheckService *HealthCheckService
 	alertingService    *EnhancedAlertingService
-	metricsCollector   MetricsCollector
-	performanceMonitor PerformanceMonitor
-	mu                 sync.RWMutex
-	started            bool
-	stopCh             chan struct{}
-	metricsTicker      *time.Ticker
-	healthCheckTicker  *time.Ticker
-	alertingTicker     *time.Ticker
+	// metricsCollector   MetricsCollector // Stub - type doesn't exist
+	// performanceMonitor PerformanceMonitor // Stub - type doesn't exist
+	mu                sync.RWMutex
+	started           bool
+	stopCh            chan struct{}
+	metricsTicker     *time.Ticker
+	healthCheckTicker *time.Ticker
+	alertingTicker    *time.Ticker
 }
 
 // NewMonitoringIntegrationService creates a new monitoring integration service
+// Stub: MetricsCollector and PerformanceMonitor types don't exist - parameters removed
 func NewMonitoringIntegrationService(
 	logger *zap.Logger,
 	config *config.AlertingConfig,
 	healthCheckService *HealthCheckService,
 	alertingService *EnhancedAlertingService,
-	metricsCollector MetricsCollector,
-	performanceMonitor PerformanceMonitor,
+	// metricsCollector MetricsCollector, // Stub - type doesn't exist
+	// performanceMonitor PerformanceMonitor, // Stub - type doesn't exist
 ) *MonitoringIntegrationService {
 	return &MonitoringIntegrationService{
 		logger:             logger,
 		config:             config,
 		healthCheckService: healthCheckService,
 		alertingService:    alertingService,
-		metricsCollector:   metricsCollector,
-		performanceMonitor: performanceMonitor,
-		stopCh:             make(chan struct{}),
+		// metricsCollector:   metricsCollector, // Stub
+		// performanceMonitor: performanceMonitor, // Stub
+		stopCh: make(chan struct{}),
 	}
 }
 
@@ -59,10 +60,11 @@ func (m *MonitoringIntegrationService) Start() error {
 	m.logger.Info("Starting monitoring integration service")
 
 	// Start metrics collection
-	if m.metricsCollector != nil {
-		m.metricsTicker = time.NewTicker(30 * time.Second)
-		go m.metricsCollectionLoop()
-	}
+	// Stub: metricsCollector field was commented out
+	// if m.metricsCollector != nil {
+	// 	m.metricsTicker = time.NewTicker(30 * time.Second)
+	// 	go m.metricsCollectionLoop()
+	// }
 
 	// Start health checks
 	if m.healthCheckService != nil {
@@ -155,16 +157,17 @@ func (m *MonitoringIntegrationService) GetSystemStatus() SystemStatus {
 	}
 
 	// Add metrics summary
-	if m.metricsCollector != nil {
-		status.Metrics = MetricsSummary{
-			RequestRate:  m.metricsCollector.GetRequestRate(),
-			ResponseTime: m.metricsCollector.GetResponseTime(),
-			ErrorRate:    m.metricsCollector.GetErrorRate(),
-			ActiveUsers:  m.metricsCollector.GetActiveUsers(),
-			MemoryUsage:  m.metricsCollector.GetMemoryUsage(),
-			CPUUsage:     m.metricsCollector.GetCPUUsage(),
-		}
-	}
+	// Stub: metricsCollector field was commented out
+	// if m.metricsCollector != nil {
+	// 	status.Metrics = MetricsSummary{
+	// 		RequestRate:  m.metricsCollector.GetRequestRate(),
+	// 		ResponseTime: m.metricsCollector.GetResponseTime(),
+	// 		ErrorRate:    m.metricsCollector.GetErrorRate(),
+	// 		ActiveUsers:  m.metricsCollector.GetActiveUsers(),
+	// 		MemoryUsage:  m.metricsCollector.GetMemoryUsage(),
+	// 		CPUUsage:     m.metricsCollector.GetCPUUsage(),
+	// 	}
+	// }
 
 	// Add active alerts
 	if m.alertingService != nil {
@@ -187,19 +190,10 @@ func (m *MonitoringIntegrationService) GetSystemStatus() SystemStatus {
 }
 
 // GetMetricsSummary returns a summary of current metrics
+// Stub: metricsCollector field was commented out
 func (m *MonitoringIntegrationService) GetMetricsSummary() MetricsSummary {
-	if m.metricsCollector == nil {
-		return MetricsSummary{}
-	}
-
-	return MetricsSummary{
-		RequestRate:  m.metricsCollector.GetRequestRate(),
-		ResponseTime: m.metricsCollector.GetResponseTime(),
-		ErrorRate:    m.metricsCollector.GetErrorRate(),
-		ActiveUsers:  m.metricsCollector.GetActiveUsers(),
-		MemoryUsage:  m.metricsCollector.GetMemoryUsage(),
-		CPUUsage:     m.metricsCollector.GetCPUUsage(),
-	}
+	// Stub: metricsCollector field was commented out
+	return MetricsSummary{}
 }
 
 // GetHealthSummary returns a summary of health checks
@@ -259,7 +253,7 @@ func (m *MonitoringIntegrationService) GetAlertsSummary() AlertsSummary {
 			ID:          alert.ID,
 			Title:       alert.Title,
 			Description: alert.Description,
-			Severity:    alert.Severity,
+			Severity:    string(alert.Severity), // Convert AlertSeverity to string
 			Source:      alert.Source,
 			Timestamp:   alert.Timestamp,
 		}
@@ -333,15 +327,16 @@ func (m *MonitoringIntegrationService) alertingLoop() {
 		select {
 		case <-m.alertingTicker.C:
 			// Collect current metrics
+			// Stub: metricsCollector field was commented out
 			metrics := make(map[string]float64)
-			if m.metricsCollector != nil {
-				metrics["high_error_rate"] = m.metricsCollector.GetErrorRate()
-				metrics["high_response_time"] = m.metricsCollector.GetResponseTime()
-				metrics["high_memory_usage"] = m.metricsCollector.GetMemoryUsage()
-				metrics["high_cpu_usage"] = m.metricsCollector.GetCPUUsage()
-				metrics["high_active_users"] = float64(m.metricsCollector.GetActiveUsers())
-				metrics["high_request_rate"] = m.metricsCollector.GetRequestRate()
-			}
+			// if m.metricsCollector != nil {
+			// 	metrics["high_error_rate"] = m.metricsCollector.GetErrorRate()
+			// 	metrics["high_response_time"] = m.metricsCollector.GetResponseTime()
+			// 	metrics["high_memory_usage"] = m.metricsCollector.GetMemoryUsage()
+			// 	metrics["high_cpu_usage"] = m.metricsCollector.GetCPUUsage()
+			// 	metrics["high_active_users"] = float64(m.metricsCollector.GetActiveUsers())
+			// 	metrics["high_request_rate"] = m.metricsCollector.GetRequestRate()
+			// }
 
 			// Check alert rules
 			if m.alertingService != nil {

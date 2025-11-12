@@ -47,15 +47,15 @@ func setupRoutesWithNewEndpoints() *http.ServeMux {
 	riskAssessmentService := services.NewRiskAssessmentService(riskAssessmentRepo, logger)
 
 	// 4. Initialize handlers
-	merchantHandler := handlers.NewMerchantPortfolioHandler(/* your existing params */)
+	// merchantHandler := handlers.NewMerchantPortfolioHandler(...) // your existing params
 	analyticsHandler := handlers.NewMerchantAnalyticsHandler(analyticsService, logger)
-	riskHandler := handlers.NewRiskHandler(/* your existing params */)
+	// riskHandler := handlers.NewRiskHandler(...) // your existing params
 	asyncRiskHandler := handlers.NewAsyncRiskAssessmentHandler(riskAssessmentService, logger)
 
 	// 5. Initialize middleware
-	authMiddleware := middleware.NewAuthMiddleware(/* your auth service */, logger)
+	authMiddleware := middleware.NewAuthMiddleware(...) // your auth service
 	rateLimiter := middleware.NewAPIRateLimiter(100, 1*time.Minute, logger)
-	obsLogger := observability.NewLogger(/* your config */)
+	obsLogger := observability.NewLogger(...) // your config
 
 	// 6. Register merchant routes (includes analytics)
 	merchantConfig := &routes.MerchantRouteConfig{
@@ -79,4 +79,3 @@ func setupRoutesWithNewEndpoints() *http.ServeMux {
 }
 
 */
-

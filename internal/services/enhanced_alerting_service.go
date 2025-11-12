@@ -100,7 +100,7 @@ func (a *EnhancedAlertingService) CreateAlert(alert *Alert) error {
 	}
 
 	if alert.Status == "" {
-		alert.Status = string(AlertStatusActive)
+		alert.Status = AlertStatusActive
 	}
 
 	// Check if alert should be suppressed
@@ -118,7 +118,7 @@ func (a *EnhancedAlertingService) CreateAlert(alert *Alert) error {
 	a.logger.Info("Alert created",
 		zap.String("alert_id", alert.ID),
 		zap.String("title", alert.Title),
-		zap.String("severity", alert.Severity))
+		zap.String("severity", string(alert.Severity)))
 
 	// Send notifications
 	go a.sendNotifications(alert)
@@ -136,12 +136,12 @@ func (a *EnhancedAlertingService) ResolveAlert(alertID string) error {
 		return fmt.Errorf("alert not found: %s", alertID)
 	}
 
-	if alert.Status == string(AlertStatusResolved) {
+	if alert.Status == AlertStatusResolved {
 		return fmt.Errorf("alert already resolved: %s", alertID)
 	}
 
 	now := time.Now()
-	alert.Status = string(AlertStatusResolved)
+	alert.Status = AlertStatusResolved
 	alert.ResolvedAt = &now
 
 	a.logger.Info("Alert resolved",
@@ -159,7 +159,7 @@ func (a *EnhancedAlertingService) GetActiveAlerts() []*Alert {
 
 	var activeAlerts []*Alert
 	for _, alert := range a.alerts {
-		if alert.Status == string(AlertStatusActive) {
+		if alert.Status == AlertStatusActive {
 			activeAlerts = append(activeAlerts, alert)
 		}
 	}
@@ -174,7 +174,7 @@ func (a *EnhancedAlertingService) GetAlertsBySeverity(severity AlertSeverity) []
 
 	var filteredAlerts []*Alert
 	for _, alert := range a.alerts {
-		if alert.Severity == string(severity) {
+		if alert.Severity == severity {
 			filteredAlerts = append(filteredAlerts, alert)
 		}
 	}
@@ -212,7 +212,7 @@ func (a *EnhancedAlertingService) CheckAlertRules(ctx context.Context, metrics m
 			alert := &Alert{
 				Title:       rule.Name,
 				Description: rule.Description,
-				Severity:    string(rule.Severity),
+				Severity:    AlertSeverity(rule.Severity), // Convert config.AlertSeverity to AlertSeverity
 				Source:      "alerting_service",
 				Labels:      rule.Labels,
 				Metadata:    rule.Metadata,

@@ -14,13 +14,9 @@ use ./pkg/analytics
 
 use ./pkg/api
 
-use ./cmd/railway-server
-
 use ./services/frontend
 
 use ./services/api-gateway
-
-use ./services/classification-service
 
 use ./services/merchant-service
 
