@@ -15,8 +15,21 @@ ENV GOWORK=off
 # Railway builds from repository root, so we copy everything
 COPY . .
 
+# Debug: Verify what was copied
+RUN echo "=== Debug: Checking repository structure ===" && \
+    ls -la /app/ | head -20 && \
+    echo "=== Checking services directory ===" && \
+    ls -la /app/services/ 2>/dev/null || echo "services directory not found" && \
+    echo "=== Checking api-gateway directory ===" && \
+    ls -la /app/services/api-gateway/ 2>/dev/null || echo "api-gateway directory not found" && \
+    echo "=== Checking cmd directory ===" && \
+    ls -la /app/services/api-gateway/cmd/ 2>/dev/null || echo "cmd directory not found"
+
 # Change to service directory where go.mod is located
 WORKDIR /app/services/api-gateway
+
+# Verify we're in the right place and files exist
+RUN pwd && ls -la && ls -la cmd/ 2>/dev/null || echo "cmd directory not found in current directory"
 
 # Download dependencies for the api-gateway service module
 RUN go mod download
