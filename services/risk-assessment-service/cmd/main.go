@@ -1022,7 +1022,7 @@ func initPerformanceComponents(cfg *config.Config, db *sql.DB, logger *zap.Logge
 				zap.Strings("addrs", redisAddrs),
 				zap.String("redis_url", cfg.Redis.URL),
 				zap.Int("db", cfg.Redis.DB))
-		redisConfig := &cache.CacheConfig{
+			redisConfig := &cache.CacheConfig{
 			Addrs:             redisAddrs,
 			Password:          cfg.Redis.Password,
 			DB:                cfg.Redis.DB,
