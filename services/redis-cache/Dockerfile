@@ -2,7 +2,8 @@
 FROM redis:7-alpine
 
 # Copy custom configuration
-COPY redis.conf /usr/local/etc/redis/redis.conf
+# When build context is repository root, use full path
+COPY services/redis-cache/redis.conf /usr/local/etc/redis/redis.conf
 
 # Create data directory
 RUN mkdir -p /data
