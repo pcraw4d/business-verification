@@ -35,30 +35,47 @@ We're migrating from a custom Redis service to Railway's managed Redis plugin. R
 
 ---
 
-### Step 2: Railway Automatically Provides Environment Variables
+### Step 2: Railway Provides Environment Variables (But They're Not Shared)
 
-Railway's Redis plugin automatically provides these environment variables:
+Railway's Redis plugin automatically provides these environment variables **in the Redis service**:
 
 - **`REDISHOST`** - Redis hostname
 - **`REDISPORT`** - Redis port (usually 6379)
 - **`REDISPASSWORD`** - Redis password
 - **`REDIS_URL`** - Complete Redis connection URL
 
-**These are automatically shared with all services in your project.**
+**⚠️ Important**: These variables are **NOT automatically shared** with other services. You need to manually share them (see Step 3).
 
 ---
 
-### Step 3: Verify Environment Variables
+### Step 3: Share Redis Variables with Other Services
 
-**In Railway Dashboard**:
+**⚠️ Required**: Redis variables are only in the Redis service. You must share them with other services.
+
+**Option A: Use Variable Interpolation (Recommended)** ⭐
+
 1. Go to **Project Settings** → **Variables**
-2. Verify these variables are present:
-   - `REDISHOST`
-   - `REDISPORT`
-   - `REDISPASSWORD`
-   - `REDIS_URL`
+2. Add these variables using Railway's interpolation syntax:
 
-**Note**: You don't need to set these manually - Railway provides them automatically.
+   ```
+   REDISHOST=${{Redis.REDISHOST}}
+   REDISPORT=${{Redis.REDISPORT}}
+   REDISPASSWORD=${{Redis.REDISPASSWORD}}
+   REDIS_URL=${{Redis.REDIS_URL}}
+   ```
+
+   **Note**: Replace `Redis` with your actual Redis service name if different.
+
+3. Mark as **Shared** (applies to all services)
+
+**Option B: Manually Copy Values**
+
+1. Go to **Redis service** → **Variables** tab
+2. Copy the values of `REDISHOST`, `REDISPORT`, `REDISPASSWORD`, `REDIS_URL`
+3. Go to **Project Settings** → **Variables**
+4. Add each as a shared variable with the copied values
+
+**See**: `docs/RAILWAY_REDIS_VARIABLE_SHARING.md` for detailed instructions.
 
 ---
 
