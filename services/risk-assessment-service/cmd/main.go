@@ -340,24 +340,28 @@ func main() {
 
 	// Initialize Redis cache independently (doesn't require database)
 	// Redis is used for caching and should work even if database is unavailable
+	// Railway's Redis plugin provides: REDISHOST, REDISPORT, REDISPASSWORD, REDIS_URL
 	// Note: We initialize Redis here but don't store it in a variable since it's also
 	// initialized in initPerformanceComponents if database is available
-	if cfg.Redis.URL != "" && cfg.Redis.URL != "redis://localhost:6379" {
-		logger.Info("🔧 Initializing Redis cache (independent of database)",
-			zap.String("redis_url", cfg.Redis.URL))
-		
-		// Parse Redis URL
-		redisAddr := cfg.Redis.URL
-		if strings.HasPrefix(redisAddr, "redis://") {
-			redisAddr = strings.TrimPrefix(redisAddr, "redis://")
-		}
-		if strings.HasPrefix(redisAddr, "rediss://") {
-			redisAddr = strings.TrimPrefix(redisAddr, "rediss://")
-		}
+	
+	// Check for Railway's Redis plugin environment variables first
+	redisHost := os.Getenv("REDISHOST")
+	redisPort := os.Getenv("REDISPORT")
+	redisPassword := os.Getenv("REDISPASSWORD")
+	redisURL := os.Getenv("REDIS_URL")
+	
+	// Use Railway's Redis plugin if available, otherwise fall back to configured URL
+	if redisHost != "" && redisPort != "" {
+		// Railway Redis plugin provides individual components
+		redisAddr := fmt.Sprintf("%s:%s", redisHost, redisPort)
+		logger.Info("🔧 Initializing Redis cache using Railway Redis plugin",
+			zap.String("redis_host", redisHost),
+			zap.String("redis_port", redisPort),
+			zap.Bool("has_password", redisPassword != ""))
 		
 		redisConfig := &cache.CacheConfig{
 			Addrs:             []string{redisAddr},
-			Password:          cfg.Redis.Password,
+			Password:          redisPassword,
 			DB:                cfg.Redis.DB,
 			PoolSize:          cfg.Redis.PoolSize,
 			MinIdleConns:      cfg.Redis.MinIdleConns,
@@ -367,8 +371,63 @@ func main() {
 			WriteTimeout:      cfg.Redis.WriteTimeout,
 			PoolTimeout:       cfg.Redis.PoolTimeout,
 			IdleTimeout:       cfg.Redis.IdleTimeout,
-			MaxConnAge:        30 * time.Minute, // Default
-			DefaultTTL:        5 * time.Minute,  // Default
+			MaxConnAge:        30 * time.Minute,
+			DefaultTTL:        5 * time.Minute,
+			KeyPrefix:         cfg.Redis.KeyPrefix,
+			EnableMetrics:     true,
+			EnableCompression: false,
+		}
+		
+		cacheLogger := &cacheLoggerWrapper{logger: logger}
+		var err error
+		_, err = cache.NewRedisCache(redisConfig, cacheLogger)
+		if err != nil {
+			logger.Warn("Failed to initialize Redis cache - continuing without Redis cache", zap.Error(err))
+		} else {
+			logger.Info("✅ Risk Assessment Service Redis cache initialized successfully (Railway plugin)",
+				zap.String("redis_host", redisHost),
+				zap.String("redis_port", redisPort),
+				zap.Int("pool_size", cfg.Redis.PoolSize))
+		}
+	} else if redisURL != "" && redisURL != "redis://localhost:6379" {
+		// Fall back to REDIS_URL if Railway plugin variables not available
+		logger.Info("🔧 Initializing Redis cache using REDIS_URL",
+			zap.String("redis_url", redisURL))
+		
+		// Parse Redis URL
+		redisAddr := redisURL
+		if strings.HasPrefix(redisAddr, "redis://") {
+			redisAddr = strings.TrimPrefix(redisAddr, "redis://")
+		}
+		if strings.HasPrefix(redisAddr, "rediss://") {
+			redisAddr = strings.TrimPrefix(redisAddr, "rediss://")
+		}
+		// Remove password if present in URL (format: redis://:password@host:port)
+		if strings.Contains(redisAddr, "@") {
+			parts := strings.Split(redisAddr, "@")
+			if len(parts) == 2 {
+				redisAddr = parts[1]
+				// Extract password if present
+				if strings.HasPrefix(parts[0], ":") {
+					redisPassword = strings.TrimPrefix(parts[0], ":")
+				}
+			}
+		}
+		
+		redisConfig := &cache.CacheConfig{
+			Addrs:             []string{redisAddr},
+			Password:          redisPassword,
+			DB:                cfg.Redis.DB,
+			PoolSize:          cfg.Redis.PoolSize,
+			MinIdleConns:      cfg.Redis.MinIdleConns,
+			MaxRetries:        cfg.Redis.MaxRetries,
+			DialTimeout:       cfg.Redis.DialTimeout,
+			ReadTimeout:       cfg.Redis.ReadTimeout,
+			WriteTimeout:      cfg.Redis.WriteTimeout,
+			PoolTimeout:       cfg.Redis.PoolTimeout,
+			IdleTimeout:       cfg.Redis.IdleTimeout,
+			MaxConnAge:        30 * time.Minute,
+			DefaultTTL:        5 * time.Minute,
 			KeyPrefix:         cfg.Redis.KeyPrefix,
 			EnableMetrics:     true,
 			EnableCompression: false,
@@ -381,11 +440,11 @@ func main() {
 			logger.Warn("Failed to initialize Redis cache - continuing without Redis cache", zap.Error(err))
 		} else {
 			logger.Info("✅ Risk Assessment Service Redis cache initialized successfully",
-				zap.String("redis_url", cfg.Redis.URL),
+				zap.String("redis_url", redisURL),
 				zap.Int("pool_size", cfg.Redis.PoolSize))
 		}
 	} else {
-		logger.Info("⚠️  Redis URL not configured - running without Redis cache")
+		logger.Info("⚠️  Redis not configured - running without Redis cache")
 	}
 
 	// Initialize database connection with performance optimizations (optional)
