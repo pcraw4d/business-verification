@@ -288,9 +288,22 @@ func (r *MerchantAnalyticsRepository) GetQualityMetricsByMerchantID(ctx context.
 
 	missingFields := []string{}
 	for rows.Next() {
-		var field sql.NullString
-		if err := rows.Scan(&field); err == nil && field.Valid {
-			missingFields = append(missingFields, field.String)
+		// Scan all 16 columns from the CASE expressions
+		var fields [16]sql.NullString
+		if err := rows.Scan(
+			&fields[0], &fields[1], &fields[2], &fields[3],
+			&fields[4], &fields[5], &fields[6], &fields[7],
+			&fields[8], &fields[9], &fields[10], &fields[11],
+			&fields[12], &fields[13], &fields[14], &fields[15],
+		); err != nil {
+			r.logger.Printf("Error scanning missing fields: %v", err)
+			continue
+		}
+		// Collect all valid (non-null) field names
+		for _, field := range fields {
+			if field.Valid {
+				missingFields = append(missingFields, field.String)
+			}
 		}
 	}
 

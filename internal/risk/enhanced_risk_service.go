@@ -45,6 +45,8 @@ func (s *EnhancedRiskService) PerformEnhancedRiskAssessment(
 	ctx context.Context,
 	request *EnhancedRiskAssessmentRequest,
 ) (*EnhancedRiskAssessmentResponse, error) {
+	startTime := time.Now() // Capture start time for accurate processing time calculation
+	
 	s.logger.Info("Starting enhanced risk assessment",
 		zap.String("business_id", request.BusinessID),
 		zap.String("assessment_id", request.AssessmentID))
@@ -148,7 +150,7 @@ func (s *EnhancedRiskService) PerformEnhancedRiskAssessment(
 		CorrelationData:  correlationData,
 		Alerts:           alerts,
 		ConfidenceScore:  s.calculateOverallConfidence(calibratedFactors),
-		ProcessingTimeMs: time.Since(time.Now()).Milliseconds(),
+		ProcessingTimeMs: time.Since(startTime).Milliseconds(), // Fixed: use startTime captured at function entry
 		Metadata: map[string]interface{}{
 			"version":              "2.0",
 			"assessment_type":      "enhanced",

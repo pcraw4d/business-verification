@@ -42,34 +42,37 @@ RUN wget -q https://github.com/microsoft/onnxruntime/releases/download/v1.16.0/o
 ENV CGO_ENABLED=1
 ENV CGO_LDFLAGS="-L/app/onnxruntime/lib"
 ENV CGO_CFLAGS="-I/app/onnxruntime/include"
+ENV GOWORK=off
 
-# Copy go mod files
-COPY go.mod go.sum ./
-
-# Download dependencies
-RUN go mod download
-
-# Copy source code
+# Copy the entire repository structure (needed for module resolution)
 COPY . .
+
+# Change to service directory where go.mod is located
+WORKDIR /app/services/risk-assessment-service
+
+# Download dependencies for the risk-assessment-service module
+RUN go mod download
 
 # Copy startup script to a known location in builder stage
 # Try both possible locations depending on build context
 RUN if [ -f ./startup_debug.sh ]; then \
-        cp ./startup_debug.sh /app/startup_debug.sh && chmod +x /app/startup_debug.sh; \
-    elif [ -f ./services/risk-assessment-service/startup_debug.sh ]; then \
-        cp ./services/risk-assessment-service/startup_debug.sh /app/startup_debug.sh && chmod +x /app/startup_debug.sh; \
+    cp ./startup_debug.sh /app/startup_debug.sh && chmod +x /app/startup_debug.sh; \
+    elif [ -f ../startup_debug.sh ]; then \
+    cp ../startup_debug.sh /app/startup_debug.sh && chmod +x /app/startup_debug.sh; \
     else \
-        echo "startup_debug.sh not found, will run binary directly"; \
+    echo "startup_debug.sh not found, will run binary directly"; \
     fi
 
 # Debug: List copied files including models
 RUN echo "Files in /app after COPY . .:" && \
     ls -la /app/ && \
-    echo "Model files:" && \
-    ls -la /app/models/ 2>/dev/null || echo "No models directory found"
+    echo "Model files in service directory:" && \
+    ls -la ./models/ 2>/dev/null || echo "No models directory found in service directory" && \
+    ls -la /app/services/risk-assessment-service/models/ 2>/dev/null || echo "No models directory found at /app/services/risk-assessment-service/models/"
 
-# Build the application with ONNX Runtime support
-RUN GOOS=linux GOARCH=amd64 go build \
+# Build the application with ONNX Runtime support from the service directory
+# This ensures Go can find the go.mod file and resolve imports correctly
+RUN GOOS=linux GOARCH=amd64 GOWORK=off go build \
     -a -installsuffix cgo \
     -ldflags='-w -s' \
     -o risk-assessment-service \
@@ -88,8 +91,8 @@ RUN adduser -D -s /bin/sh appuser
 RUN mkdir -p /app/logs /app/models /app/onnxruntime/lib
 WORKDIR /app
 
-# Copy binary from builder stage
-COPY --from=builder /app/risk-assessment-service .
+# Copy binary from builder stage (built in /app/services/risk-assessment-service)
+COPY --from=builder /app/services/risk-assessment-service/risk-assessment-service .
 
 # Create a startup wrapper script that will use startup_debug.sh if available, otherwise run binary directly
 RUN echo '#!/bin/sh' > /app/start.sh && \
@@ -104,8 +107,8 @@ RUN echo '#!/bin/sh' > /app/start.sh && \
 # If it doesn't exist, the wrapper script will handle it
 RUN --mount=from=builder,source=/app,target=/builder,rw \
     if [ -f /builder/startup_debug.sh ]; then \
-        cp /builder/startup_debug.sh ./startup_debug.sh && \
-        chmod +x ./startup_debug.sh; \
+    cp /builder/startup_debug.sh ./startup_debug.sh && \
+    chmod +x ./startup_debug.sh; \
     fi || true
 
 # Copy ONNX Runtime libraries from builder stage (robust copy)
@@ -117,9 +120,9 @@ RUN echo "Copied ONNX Runtime libraries:" && \
     echo "Library path contents:" && \
     find /app/onnxruntime -name "*.so*" -o -name "*.a" | head -10
 
-# Copy model files explicitly
-COPY --from=builder /app/models/risk_lstm_v1.onnx /app/models/risk_lstm_v1.onnx
-COPY --from=builder /app/models/xgb_model.json /app/models/xgb_model.json
+# Copy model files explicitly (models are in services/risk-assessment-service/models/)
+COPY --from=builder /app/services/risk-assessment-service/models/risk_lstm_v1.onnx /app/models/risk_lstm_v1.onnx
+COPY --from=builder /app/services/risk-assessment-service/models/xgb_model.json /app/models/xgb_model.json
 
 # Debug: List copied model files
 RUN echo "Copied model files:" && \

@@ -158,9 +158,12 @@ func (h *HealthCheckService) CheckExternalAPIsHealth() HealthCheckResult {
 	}
 
 	var failedAPIs []string
-	for range externalAPIs {
+	for _, apiURL := range externalAPIs {
 		// Mock check - in real implementation, make HTTP request
+		// For now, simulate a check (in production, use http.Get with timeout)
 		time.Sleep(50 * time.Millisecond)
+		// TODO: Replace with actual HTTP health check
+		// Example: if err := checkAPIHealth(apiURL); err != nil { failedAPIs = append(failedAPIs, apiURL) }
 	}
 
 	if len(failedAPIs) > 0 {

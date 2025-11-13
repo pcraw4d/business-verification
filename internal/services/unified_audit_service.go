@@ -109,20 +109,28 @@ func (uas *UnifiedAuditService) LogMerchantOperation(ctx context.Context, req *L
 	auditLog.SetAction(models.AuditLogAction(req.Action))
 
 	// Set context
-	// Note: LogMerchantOperationRequest doesn't have APIKeyID field
-	auditLog.SetUserContext(req.UserID, "") // APIKeyID not available in request
+	// Use APIKeyID from request if available, otherwise fall back to Metadata
+	apiKeyID := req.APIKeyID
+	if apiKeyID == "" && req.Metadata != nil {
+		if ak, ok := req.Metadata["api_key_id"].(string); ok {
+			apiKeyID = ak
+		}
+	}
+	auditLog.SetUserContext(req.UserID, apiKeyID)
 	auditLog.SetBusinessContext(req.MerchantID, req.SessionID)
 	auditLog.SetResourceInfo(req.ResourceType, req.ResourceID, "")
 	auditLog.SetRequestContext(req.RequestID, req.IPAddress, req.UserAgent)
 
 	// Set change tracking
-	// Note: LogMerchantOperationRequest doesn't have OldValues or NewValues fields
-	// Use Details and Metadata instead
-	var oldValues, newValues interface{}
-	if req.Metadata != nil {
+	// Use OldValues and NewValues from request if available, otherwise fall back to Metadata
+	oldValues := req.OldValues
+	newValues := req.NewValues
+	if oldValues == nil && req.Metadata != nil {
 		if ov, ok := req.Metadata["old_values"]; ok {
 			oldValues = ov
 		}
+	}
+	if newValues == nil && req.Metadata != nil {
 		if nv, ok := req.Metadata["new_values"]; ok {
 			newValues = nv
 		}

@@ -260,7 +260,10 @@ func (r *RiskAssessmentRepository) GetAssessmentsByMerchantID(ctx context.Contex
 		assessment.Status = models.AssessmentStatus(statusStr)
 
 		if len(optionsJSON) > 0 {
-			json.Unmarshal(optionsJSON, &assessment.Options)
+			if err := json.Unmarshal(optionsJSON, &assessment.Options); err != nil {
+				r.logger.Printf("Warning: Failed to unmarshal assessment options JSON for assessment %s: %v", assessment.ID, err)
+				// Continue with zero value for Options rather than failing silently
+			}
 		}
 
 		if len(resultJSON) > 0 {

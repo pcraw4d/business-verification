@@ -473,27 +473,46 @@ func (s *FeedbackService) mapFeedbackTypeToCategory(feedbackType FeedbackType) F
 }
 
 // buildFeedbackMetadata builds comprehensive metadata from FeedbackCollectionRequest
-// This preserves all data that doesn't directly map to UserFeedback fields
+// This preserves ALL data from the request to prevent data loss during migration
+// All fields from FeedbackCollectionRequest are explicitly preserved for future use
 func (s *FeedbackService) buildFeedbackMetadata(request FeedbackCollectionRequest) map[string]interface{} {
 	metadata := make(map[string]interface{})
 
-	// Copy existing metadata
+	// Copy existing metadata first (may contain additional context)
 	if request.Metadata != nil {
 		for k, v := range request.Metadata {
 			metadata[k] = v
 		}
 	}
 
-	// Preserve all request fields that don't map directly to UserFeedback
+	// Explicitly preserve ALL request fields to prevent data loss
+	// These fields may be needed for downstream processing or future refactoring
 	metadata["feedback_type"] = string(request.FeedbackType)
 	metadata["business_name"] = request.BusinessName
 	metadata["original_classification_id"] = request.OriginalClassificationID
 	metadata["suggested_classification_id"] = request.SuggestedClassificationID
 	metadata["confidence_score"] = request.ConfidenceScore
+	metadata["feedback_text"] = request.FeedbackText // Preserve original FeedbackText (mapped to Comments)
 	metadata["feedback_value"] = request.FeedbackValue // Preserve entire FeedbackValue map
+
+	// Preserve field mapping information for traceability
+	metadata["field_mapping"] = map[string]interface{}{
+		"feedback_type_to_category":           string(s.mapFeedbackTypeToCategory(request.FeedbackType)),
+		"feedback_text_to_comments":           true,
+		"confidence_score_to_classification_accuracy": true,
+		"feedback_value_extracted_fields": []string{
+			"rating",
+			"specific_features",
+			"improvement_areas",
+			"performance_rating",
+			"usability_rating",
+			"business_impact",
+		},
+	}
 
 	// Add timestamp for when feedback was collected
 	metadata["collected_at"] = time.Now().Format(time.RFC3339)
+	metadata["migration_version"] = "2.0" // Track migration version for future compatibility
 
 	return metadata
 }

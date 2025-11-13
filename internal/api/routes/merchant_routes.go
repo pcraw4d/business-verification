@@ -64,6 +64,11 @@ func RegisterMerchantRoutes(mux *http.ServeMux, config *MerchantRouteConfig) {
 
 // registerMerchantCRUDRoutes registers merchant CRUD operation routes
 func registerMerchantCRUDRoutes(mux *http.ServeMux, config *MerchantRouteConfig) {
+	// Guard against nil MerchantPortfolioHandler - only register CRUD routes if handler is provided
+	if config.MerchantPortfolioHandler == nil {
+		return
+	}
+
 	// Create merchant
 	mux.Handle("POST /api/v1/merchants",
 		config.AuthMiddleware.RequireAuth(
@@ -112,6 +117,11 @@ func registerMerchantCRUDRoutes(mux *http.ServeMux, config *MerchantRouteConfig)
 
 // registerMerchantSearchRoutes registers merchant search and listing routes
 func registerMerchantSearchRoutes(mux *http.ServeMux, config *MerchantRouteConfig) {
+	// Guard against nil MerchantPortfolioHandler
+	if config.MerchantPortfolioHandler == nil {
+		return
+	}
+
 	// List merchants with query parameters
 	mux.Handle("GET /api/v1/merchants",
 		config.AuthMiddleware.RequireAuth(
@@ -140,6 +150,11 @@ func registerMerchantSearchRoutes(mux *http.ServeMux, config *MerchantRouteConfi
 
 // registerBulkOperationRoutes registers bulk operation routes with enhanced rate limiting
 func registerBulkOperationRoutes(mux *http.ServeMux, config *MerchantRouteConfig) {
+	// Guard against nil MerchantPortfolioHandler
+	if config.MerchantPortfolioHandler == nil {
+		return
+	}
+
 	// Create enhanced rate limiter for bulk operations
 	bulkRateLimiter := middleware.NewAPIRateLimiter(&middleware.RateLimitConfig{
 		Enabled:           true,
@@ -182,6 +197,11 @@ func registerBulkOperationRoutes(mux *http.ServeMux, config *MerchantRouteConfig
 
 // registerSessionManagementRoutes registers session management routes
 func registerSessionManagementRoutes(mux *http.ServeMux, config *MerchantRouteConfig) {
+	// Guard against nil MerchantPortfolioHandler
+	if config.MerchantPortfolioHandler == nil {
+		return
+	}
+
 	// Start merchant session
 	mux.Handle("POST /api/v1/merchants/{id}/session",
 		config.AuthMiddleware.RequireAuth(
@@ -220,6 +240,11 @@ func registerSessionManagementRoutes(mux *http.ServeMux, config *MerchantRouteCo
 
 // registerMerchantAnalyticsRoutes registers merchant analytics and metadata routes
 func registerMerchantAnalyticsRoutes(mux *http.ServeMux, config *MerchantRouteConfig) {
+	// Guard against nil MerchantPortfolioHandler
+	if config.MerchantPortfolioHandler == nil {
+		return
+	}
+
 	// Get merchant analytics
 	mux.Handle("GET /api/v1/merchants/analytics",
 		config.AuthMiddleware.RequireAuth(

@@ -367,7 +367,11 @@ type LogMerchantOperationRequest struct {
 	UserName     string                 `json:"user_name"`
 	UserRole     string                 `json:"user_role"`
 	UserEmail    string                 `json:"user_email"`
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+	// Added fields to prevent data loss in audit logging
+	APIKeyID  string      `json:"api_key_id,omitempty"`  // API key identifier for audit trail
+	OldValues interface{} `json:"old_values,omitempty"`  // Previous values before change
+	NewValues interface{} `json:"new_values,omitempty"`  // New values after change
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // GetAuditTrail retrieves the audit trail for a specific merchant

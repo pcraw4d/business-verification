@@ -17,65 +17,68 @@ func RegisterRiskRoutes(mux *http.ServeMux, riskHandler *handlers.RiskHandler) {
 // RegisterRiskRoutesWithConfig registers risk assessment API routes
 // If asyncConfig is provided, it will also register async risk assessment routes
 func RegisterRiskRoutesWithConfig(mux *http.ServeMux, riskHandler *handlers.RiskHandler, asyncConfig *AsyncRiskAssessmentRouteConfig) {
-	// Risk assessment endpoints
-	mux.HandleFunc("POST /v1/risk/assess",
-		middleware.RequestIDMiddleware(
-			middleware.LoggingMiddleware(
-				middleware.CORSMiddleware(
-					riskHandler.AssessRiskHandler))))
+	// Guard against nil riskHandler - only register legacy routes if handler is provided
+	if riskHandler != nil {
+		// Risk assessment endpoints
+		mux.HandleFunc("POST /v1/risk/assess",
+			middleware.RequestIDMiddleware(
+				middleware.LoggingMiddleware(
+					middleware.CORSMiddleware(
+						riskHandler.AssessRiskHandler))))
+
+		// Risk history endpoints
+		mux.HandleFunc("GET /v1/risk/history/{business_id}",
+			middleware.RequestIDMiddleware(
+				middleware.LoggingMiddleware(
+					middleware.CORSMiddleware(
+						riskHandler.GetRiskHistoryHandler))))
+
+		// Risk benchmarks endpoint (NEW)
+		mux.HandleFunc("GET /v1/risk/benchmarks",
+			middleware.RequestIDMiddleware(
+				middleware.LoggingMiddleware(
+					middleware.CORSMiddleware(
+						riskHandler.GetRiskBenchmarksHandler))))
+
+		// Risk predictions endpoint (NEW)
+		mux.HandleFunc("GET /v1/risk/predictions/{merchant_id}",
+			middleware.RequestIDMiddleware(
+				middleware.LoggingMiddleware(
+					middleware.CORSMiddleware(
+						riskHandler.GetRiskPredictionsHandler))))
+
+		// Risk categories and factors
+		mux.HandleFunc("GET /v1/risk/categories",
+			middleware.RequestIDMiddleware(
+				middleware.LoggingMiddleware(
+					middleware.CORSMiddleware(
+						riskHandler.GetRiskCategoriesHandler))))
+
+		mux.HandleFunc("GET /v1/risk/factors",
+			middleware.RequestIDMiddleware(
+				middleware.LoggingMiddleware(
+					middleware.CORSMiddleware(
+						riskHandler.GetRiskFactorsHandler))))
+
+		// Risk thresholds
+		mux.HandleFunc("GET /v1/risk/thresholds",
+			middleware.RequestIDMiddleware(
+				middleware.LoggingMiddleware(
+					middleware.CORSMiddleware(
+						riskHandler.GetRiskThresholdsHandler))))
+
+		// Industry benchmarks (legacy endpoint - kept for backward compatibility)
+		mux.HandleFunc("GET /v1/risk/industry-benchmarks/{industry}",
+			middleware.RequestIDMiddleware(
+				middleware.LoggingMiddleware(
+					middleware.CORSMiddleware(
+						riskHandler.GetIndustryBenchmarksHandler))))
+	}
 
 	// Register async risk assessment routes if config is provided
 	if asyncConfig != nil {
 		RegisterAsyncRiskAssessmentRoutes(mux, asyncConfig)
 	}
-
-	// Risk history endpoints
-	mux.HandleFunc("GET /v1/risk/history/{business_id}",
-		middleware.RequestIDMiddleware(
-			middleware.LoggingMiddleware(
-				middleware.CORSMiddleware(
-					riskHandler.GetRiskHistoryHandler))))
-
-	// Risk benchmarks endpoint (NEW)
-	mux.HandleFunc("GET /v1/risk/benchmarks",
-		middleware.RequestIDMiddleware(
-			middleware.LoggingMiddleware(
-				middleware.CORSMiddleware(
-					riskHandler.GetRiskBenchmarksHandler))))
-
-	// Risk predictions endpoint (NEW)
-	mux.HandleFunc("GET /v1/risk/predictions/{merchant_id}",
-		middleware.RequestIDMiddleware(
-			middleware.LoggingMiddleware(
-				middleware.CORSMiddleware(
-					riskHandler.GetRiskPredictionsHandler))))
-
-	// Risk categories and factors
-	mux.HandleFunc("GET /v1/risk/categories",
-		middleware.RequestIDMiddleware(
-			middleware.LoggingMiddleware(
-				middleware.CORSMiddleware(
-					riskHandler.GetRiskCategoriesHandler))))
-
-	mux.HandleFunc("GET /v1/risk/factors",
-		middleware.RequestIDMiddleware(
-			middleware.LoggingMiddleware(
-				middleware.CORSMiddleware(
-					riskHandler.GetRiskFactorsHandler))))
-
-	// Risk thresholds
-	mux.HandleFunc("GET /v1/risk/thresholds",
-		middleware.RequestIDMiddleware(
-			middleware.LoggingMiddleware(
-				middleware.CORSMiddleware(
-					riskHandler.GetRiskThresholdsHandler))))
-
-	// Industry benchmarks (legacy endpoint - kept for backward compatibility)
-	mux.HandleFunc("GET /v1/risk/industry-benchmarks/{industry}",
-		middleware.RequestIDMiddleware(
-			middleware.LoggingMiddleware(
-				middleware.CORSMiddleware(
-					riskHandler.GetIndustryBenchmarksHandler))))
 }
 
 // AsyncRiskAssessmentRouteConfig holds configuration for async risk assessment routes

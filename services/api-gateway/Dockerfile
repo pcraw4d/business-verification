@@ -8,20 +8,22 @@ WORKDIR /app
 # Install dependencies
 RUN apk add --no-cache git ca-certificates
 
-# Copy go mod files (go.sum is optional)
-COPY go.mod ./
+# Disable Go workspace mode to avoid "module appears multiple times" error
+ENV GOWORK=off
 
-# Download dependencies (this will create go.sum if missing)
-RUN go mod download
-
-# Copy go.sum if it exists (optional)
-COPY go.sum* ./
-
-# Copy source code
+# Copy the entire repository structure (needed for module resolution)
+# Railway builds from repository root, so we copy everything
 COPY . .
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o api-gateway ./cmd/main.go
+# Change to service directory where go.mod is located
+WORKDIR /app/services/api-gateway
+
+# Download dependencies for the api-gateway service module
+RUN go mod download
+
+# Build the application from the service directory
+# This ensures Go can find the go.mod file and resolve imports correctly
+RUN CGO_ENABLED=0 GOOS=linux GOWORK=off go build -a -installsuffix cgo -o api-gateway ./cmd/main.go
 
 # Final stage
 FROM alpine:latest
@@ -36,8 +38,8 @@ RUN adduser -D -s /bin/sh appuser
 RUN mkdir -p /app
 WORKDIR /app
 
-# Copy binary from builder stage
-COPY --from=builder /app/api-gateway .
+# Copy binary from builder stage (built in /app/services/api-gateway)
+COPY --from=builder /app/services/api-gateway/api-gateway .
 
 # Change ownership to non-root user
 RUN chown appuser:appuser /app/api-gateway
