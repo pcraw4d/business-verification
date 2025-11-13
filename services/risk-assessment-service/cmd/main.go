@@ -942,24 +942,40 @@ func initPerformanceComponents(cfg *config.Config, db *sql.DB, logger *zap.Logge
 	// Initialize Redis cache
 	var cacheInstance cache.Cache
 	if perfConfig.Cache.Enabled && perfConfig.Cache.Type == "redis" {
+		// Use Redis URL from environment variable if available, otherwise use performance config defaults
+		redisAddrs := perfConfig.Cache.Redis.Addrs
+		if cfg.Redis.URL != "" && cfg.Redis.URL != "redis://localhost:6379" {
+			// Parse Redis URL and use it instead of default localhost
+			// Remove redis:// prefix if present and use as address
+			redisAddr := cfg.Redis.URL
+			if strings.HasPrefix(redisAddr, "redis://") {
+				redisAddr = strings.TrimPrefix(redisAddr, "redis://")
+			}
+			if strings.HasPrefix(redisAddr, "rediss://") {
+				redisAddr = strings.TrimPrefix(redisAddr, "rediss://")
+			}
+			redisAddrs = []string{redisAddr}
+		}
+		
 		logger.Info("🔧 Initializing Redis cache",
-			zap.Strings("addrs", perfConfig.Cache.Redis.Addrs),
-			zap.Int("db", perfConfig.Cache.Redis.DB))
+			zap.Strings("addrs", redisAddrs),
+			zap.String("redis_url", cfg.Redis.URL),
+			zap.Int("db", cfg.Redis.DB))
 		redisConfig := &cache.CacheConfig{
-			Addrs:             perfConfig.Cache.Redis.Addrs,
-			Password:          perfConfig.Cache.Redis.Password,
-			DB:                perfConfig.Cache.Redis.DB,
-			PoolSize:          perfConfig.Cache.Redis.PoolSize,
-			MinIdleConns:      perfConfig.Cache.Redis.MinIdleConns,
-			MaxRetries:        perfConfig.Cache.Redis.MaxRetries,
-			DialTimeout:       perfConfig.Cache.Redis.DialTimeout,
-			ReadTimeout:       perfConfig.Cache.Redis.ReadTimeout,
-			WriteTimeout:      perfConfig.Cache.Redis.WriteTimeout,
-			PoolTimeout:       perfConfig.Cache.Redis.PoolTimeout,
-			IdleTimeout:       perfConfig.Cache.Redis.IdleTimeout,
-			MaxConnAge:        perfConfig.Cache.Redis.MaxConnAge,
+			Addrs:             redisAddrs,
+			Password:          cfg.Redis.Password,
+			DB:                cfg.Redis.DB,
+			PoolSize:          cfg.Redis.PoolSize,
+			MinIdleConns:      cfg.Redis.MinIdleConns,
+			MaxRetries:        cfg.Redis.MaxRetries,
+			DialTimeout:       cfg.Redis.DialTimeout,
+			ReadTimeout:       cfg.Redis.ReadTimeout,
+			WriteTimeout:      cfg.Redis.WriteTimeout,
+			PoolTimeout:       cfg.Redis.PoolTimeout,
+			IdleTimeout:       cfg.Redis.IdleTimeout,
+			MaxConnAge:        perfConfig.Cache.Redis.MaxConnAge, // Use default from perf config
 			DefaultTTL:        perfConfig.Cache.DefaultTTL,
-			KeyPrefix:         perfConfig.Cache.Redis.KeyPrefix,
+			KeyPrefix:         cfg.Redis.KeyPrefix,
 			EnableMetrics:     perfConfig.Cache.EnableMetrics,
 			EnableCompression: perfConfig.Cache.EnableCompression,
 		}
@@ -972,8 +988,9 @@ func initPerformanceComponents(cfg *config.Config, db *sql.DB, logger *zap.Logge
 			logger.Warn("Failed to initialize Redis cache, falling back to no cache", zap.Error(err))
 		} else {
 			logger.Info("✅ Risk Assessment Service Redis cache initialized successfully",
-				zap.Strings("addrs", perfConfig.Cache.Redis.Addrs),
-				zap.Int("pool_size", perfConfig.Cache.Redis.PoolSize))
+				zap.Strings("addrs", redisAddrs),
+				zap.String("redis_url", cfg.Redis.URL),
+				zap.Int("pool_size", cfg.Redis.PoolSize))
 		}
 	} else {
 		if !perfConfig.Cache.Enabled {
