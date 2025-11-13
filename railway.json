@@ -88,10 +88,11 @@
     },
     {
       "name": "api-gateway",
-      "source": ".",
+      "source": "services/api-gateway",
       "build": {
         "builder": "DOCKERFILE",
-        "dockerfilePath": "services/api-gateway/Dockerfile"
+        "dockerfilePath": "Dockerfile",
+        "dockerContext": "../.."
       },
       "deploy": {
         "startCommand": "./api-gateway",
