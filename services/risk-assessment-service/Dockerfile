@@ -79,11 +79,22 @@ COPY --from=builder /app/risk-assessment-service .
 # Copy ONNX Runtime libraries from builder stage (robust copy)
 COPY --from=builder /app/onnxruntime/ /app/onnxruntime/
 
-# Debug: List copied libraries
+# Debug: List copied libraries and create symlink if needed
 RUN echo "Copied ONNX Runtime libraries:" && \
     ls -la /app/onnxruntime/lib/ && \
     echo "Library path contents:" && \
-    find /app/onnxruntime -name "*.so*" -o -name "*.a" | head -10
+    find /app/onnxruntime -name "*.so*" -o -name "*.a" | head -10 && \
+    echo "Creating symlink for ONNX Runtime library..." && \
+    if [ -f /app/onnxruntime/lib/libonnxruntime.so ] && [ ! -f /app/onnxruntime/lib/onnxruntime.so ]; then \
+        ln -s /app/onnxruntime/lib/libonnxruntime.so /app/onnxruntime/lib/onnxruntime.so && \
+        echo "✅ Created symlink: onnxruntime.so -> libonnxruntime.so"; \
+    elif [ -f /app/onnxruntime/lib/libonnxruntime.so.1 ] && [ ! -f /app/onnxruntime/lib/onnxruntime.so ]; then \
+        ln -s /app/onnxruntime/lib/libonnxruntime.so.1 /app/onnxruntime/lib/onnxruntime.so && \
+        echo "✅ Created symlink: onnxruntime.so -> libonnxruntime.so.1"; \
+    else \
+        echo "⚠️  No libonnxruntime.so found, checking for alternative names..."; \
+        ls -la /app/onnxruntime/lib/*.so* 2>/dev/null || echo "No .so files found"; \
+    fi
 
 # Copy model files explicitly
 COPY --from=builder /app/models/risk_lstm_v1.onnx /app/models/risk_lstm_v1.onnx

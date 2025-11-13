@@ -903,18 +903,25 @@ func main() {
 	}
 
 	// Create Grafana dashboard if enabled and configured
+	// Only attempt if Grafana is explicitly enabled and base URL is not localhost
 	if monitoringConfig.Grafana.Enabled && monitoringConfig.Grafana.AutoCreate && monitoringConfig.Grafana.BaseURL != "" {
-		grafanaCtx, grafanaCancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer grafanaCancel()
-		
-		if err := grafanaClient.CreateRiskAssessmentDashboard(grafanaCtx); err != nil {
-			logger.Warn("Failed to create Grafana dashboard",
-				zap.Error(err),
+		// Skip if base URL is localhost (Grafana not deployed)
+		if strings.Contains(monitoringConfig.Grafana.BaseURL, "localhost") || strings.Contains(monitoringConfig.Grafana.BaseURL, "127.0.0.1") {
+			logger.Info("ℹ️  Grafana dashboard creation skipped - localhost URL detected (Grafana not deployed)",
 				zap.String("base_url", monitoringConfig.Grafana.BaseURL))
 		} else {
-			logger.Info("✅ Grafana dashboard created successfully",
-				zap.String("dashboard_uid", monitoringConfig.Grafana.DashboardUID),
-				zap.String("base_url", monitoringConfig.Grafana.BaseURL))
+			grafanaCtx, grafanaCancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer grafanaCancel()
+
+			if err := grafanaClient.CreateRiskAssessmentDashboard(grafanaCtx); err != nil {
+				logger.Warn("Failed to create Grafana dashboard",
+					zap.Error(err),
+					zap.String("base_url", monitoringConfig.Grafana.BaseURL))
+			} else {
+				logger.Info("✅ Grafana dashboard created successfully",
+					zap.String("dashboard_uid", monitoringConfig.Grafana.DashboardUID),
+					zap.String("base_url", monitoringConfig.Grafana.BaseURL))
+			}
 		}
 	} else {
 		logger.Info("ℹ️  Grafana dashboard creation skipped",
@@ -1161,7 +1168,14 @@ func initPerformanceComponents(cfg *config.Config, db *sql.DB, logger *zap.Logge
 		RetryDelay:         perfConfig.ConnectionPool.RetryDelay,
 	}
 
-	connectionPool, err := pool.NewConnectionPool("", poolConfig, logger)
+	// Get database connection string from environment
+	// Use the same DATABASE_URL that was used to establish the database connection
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		return nil, fmt.Errorf("DATABASE_URL environment variable is required for connection pool")
+	}
+
+	connectionPool, err := pool.NewConnectionPool(databaseURL, poolConfig, logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize connection pool: %w", err)
 	}
