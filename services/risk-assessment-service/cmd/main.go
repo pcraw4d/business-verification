@@ -1023,35 +1023,36 @@ func initPerformanceComponents(cfg *config.Config, db *sql.DB, logger *zap.Logge
 				zap.String("redis_url", cfg.Redis.URL),
 				zap.Int("db", cfg.Redis.DB))
 			redisConfig := &cache.CacheConfig{
-			Addrs:             redisAddrs,
-			Password:          cfg.Redis.Password,
-			DB:                cfg.Redis.DB,
-			PoolSize:          cfg.Redis.PoolSize,
-			MinIdleConns:      cfg.Redis.MinIdleConns,
-			MaxRetries:        cfg.Redis.MaxRetries,
-			DialTimeout:       cfg.Redis.DialTimeout,
-			ReadTimeout:       cfg.Redis.ReadTimeout,
-			WriteTimeout:      cfg.Redis.WriteTimeout,
-			PoolTimeout:       cfg.Redis.PoolTimeout,
-			IdleTimeout:       cfg.Redis.IdleTimeout,
-			MaxConnAge:        perfConfig.Cache.Redis.MaxConnAge, // Use default from perf config
-			DefaultTTL:        perfConfig.Cache.DefaultTTL,
-			KeyPrefix:         cfg.Redis.KeyPrefix,
-			EnableMetrics:     perfConfig.Cache.EnableMetrics,
-			EnableCompression: perfConfig.Cache.EnableCompression,
-		}
+				Addrs:             redisAddrs,
+				Password:          cfg.Redis.Password,
+				DB:                cfg.Redis.DB,
+				PoolSize:          cfg.Redis.PoolSize,
+				MinIdleConns:      cfg.Redis.MinIdleConns,
+				MaxRetries:        cfg.Redis.MaxRetries,
+				DialTimeout:       cfg.Redis.DialTimeout,
+				ReadTimeout:       cfg.Redis.ReadTimeout,
+				WriteTimeout:      cfg.Redis.WriteTimeout,
+				PoolTimeout:       cfg.Redis.PoolTimeout,
+				IdleTimeout:       cfg.Redis.IdleTimeout,
+				MaxConnAge:        perfConfig.Cache.Redis.MaxConnAge, // Use default from perf config
+				DefaultTTL:        perfConfig.Cache.DefaultTTL,
+				KeyPrefix:         cfg.Redis.KeyPrefix,
+				EnableMetrics:     perfConfig.Cache.EnableMetrics,
+				EnableCompression: perfConfig.Cache.EnableCompression,
+			}
 
-		var err error
-		// Create a logger wrapper that implements cache.Logger interface
-		cacheLogger := &cacheLoggerWrapper{logger: logger}
-		cacheInstance, err = cache.NewRedisCache(redisConfig, cacheLogger)
-		if err != nil {
-			logger.Warn("Failed to initialize Redis cache, falling back to no cache", zap.Error(err))
-		} else {
-			logger.Info("✅ Risk Assessment Service Redis cache initialized successfully",
-				zap.Strings("addrs", redisAddrs),
-				zap.String("redis_url", cfg.Redis.URL),
-				zap.Int("pool_size", cfg.Redis.PoolSize))
+			var err error
+			// Create a logger wrapper that implements cache.Logger interface
+			cacheLogger := &cacheLoggerWrapper{logger: logger}
+			cacheInstance, err = cache.NewRedisCache(redisConfig, cacheLogger)
+			if err != nil {
+				logger.Warn("Failed to initialize Redis cache, falling back to no cache", zap.Error(err))
+			} else {
+				logger.Info("✅ Risk Assessment Service Redis cache initialized successfully",
+					zap.Strings("addrs", redisAddrs),
+					zap.String("redis_url", cfg.Redis.URL),
+					zap.Int("pool_size", cfg.Redis.PoolSize))
+			}
 		}
 	} else {
 		if !perfConfig.Cache.Enabled {
