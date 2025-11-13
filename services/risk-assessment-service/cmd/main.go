@@ -999,30 +999,56 @@ func initDatabaseWithPerformance(cfg *config.Config, logger *zap.Logger) (*sql.D
 	// Get database URL from configuration
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
-		// Try to construct Supabase PostgreSQL connection string
+		// Try to construct Supabase PostgreSQL connection string using Transaction Pooler
+		// Transaction pooler is ideal for stateless applications with brief, isolated queries
+		// Port 6543 for transaction mode (recommended for microservices/serverless)
 		if cfg.Supabase.URL != "" && cfg.Supabase.ServiceRoleKey != "" {
 			// Extract project reference from Supabase URL
 			// URL format: https://[project-ref].supabase.co
 			supabaseURL := cfg.Supabase.URL
 			if len(supabaseURL) > 0 {
 				// Parse the project reference from the URL
-				// This is a simplified approach - in production, you'd want more robust parsing
 				start := strings.Index(supabaseURL, "//") + 2
 				end := strings.Index(supabaseURL[start:], ".")
 				if end > 0 {
 					projectRef := supabaseURL[start : start+end]
-					// Construct PostgreSQL connection string for Supabase
-					// Use the direct connection format: postgresql://postgres:[password]@db.[project-ref].supabase.co:5432/postgres
-					databaseURL = fmt.Sprintf("postgresql://postgres:%s@db.%s.supabase.co:5432/postgres?sslmode=require",
-						cfg.Supabase.ServiceRoleKey, projectRef)
-					logger.Info("Using Supabase PostgreSQL connection", zap.String("project_ref", projectRef))
+					
+					// Get database password from environment or use service role key
+					// Note: Service role key is NOT the database password
+					// Database password should be set separately in Railway
+					dbPassword := os.Getenv("SUPABASE_DB_PASSWORD")
+					if dbPassword == "" {
+						// Try to get from Supabase service role key (not recommended, but fallback)
+						// In production, SUPABASE_DB_PASSWORD should be set explicitly
+						logger.Warn("SUPABASE_DB_PASSWORD not set - attempting to use service role key (not recommended)")
+						dbPassword = cfg.Supabase.ServiceRoleKey
+					}
+					
+					// Construct PostgreSQL connection string using Transaction Pooler
+					// Transaction pooler format: postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
+					// For Railway, we'll use the simpler format: postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
+					// Note: Region needs to be determined from Supabase dashboard or connection string
+					// For now, use the direct pooler format that Supabase provides
+					// The actual connection string should be obtained from Supabase dashboard
+					logger.Info("Attempting to construct Supabase Transaction Pooler connection",
+						zap.String("project_ref", projectRef),
+						zap.String("pooler_mode", "transaction"),
+						zap.Int("port", 6543))
+					
+					// Use transaction pooler format (port 6543)
+					// Format: postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true
+					// Note: This requires the actual pooler URL from Supabase dashboard
+					// For now, log a warning that DATABASE_URL should be set explicitly
+					logger.Warn("DATABASE_URL not set and cannot auto-construct pooler URL - please set DATABASE_URL with Transaction Pooler connection string from Supabase dashboard",
+						zap.String("expected_format", "postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true"))
 				}
 			}
 		}
 
 		// Fallback to local database if Supabase connection string couldn't be constructed
 		if databaseURL == "" {
-			databaseURL = "postgresql://username:password@localhost:5432/risk_assessment?sslmode=disable"
+			logger.Warn("No DATABASE_URL configured - database features will be disabled")
+			return nil, fmt.Errorf("DATABASE_URL environment variable is required for database connection")
 		}
 	}
 
