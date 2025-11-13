@@ -123,11 +123,10 @@
     },
     {
       "name": "redis-cache",
-      "source": "services/redis-cache",
+      "source": ".",
       "build": {
         "builder": "DOCKERFILE",
-        "dockerfilePath": "Dockerfile",
-        "dockerContext": "."
+        "dockerfilePath": "services/redis-cache/Dockerfile"
       },
       "deploy": {
         "startCommand": "redis-server /usr/local/etc/redis/redis.conf",
