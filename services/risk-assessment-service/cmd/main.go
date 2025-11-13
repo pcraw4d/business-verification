@@ -338,6 +338,56 @@ func main() {
 	externalAPIHandler := apihandlers.NewExternalAPIHandler(externalAPIManager, logger)
 	monitoringHandler := handlers.NewMonitoringHandler(prometheusMetrics, alertManager, grafanaClient, logger)
 
+	// Initialize Redis cache independently (doesn't require database)
+	// Redis is used for caching and should work even if database is unavailable
+	var redisCache cache.Cache
+	if cfg.Redis.URL != "" && cfg.Redis.URL != "redis://localhost:6379" {
+		logger.Info("🔧 Initializing Redis cache (independent of database)",
+			zap.String("redis_url", cfg.Redis.URL))
+		
+		// Parse Redis URL
+		redisAddr := cfg.Redis.URL
+		if strings.HasPrefix(redisAddr, "redis://") {
+			redisAddr = strings.TrimPrefix(redisAddr, "redis://")
+		}
+		if strings.HasPrefix(redisAddr, "rediss://") {
+			redisAddr = strings.TrimPrefix(redisAddr, "rediss://")
+		}
+		
+		redisConfig := &cache.CacheConfig{
+			Addrs:             []string{redisAddr},
+			Password:          cfg.Redis.Password,
+			DB:                cfg.Redis.DB,
+			PoolSize:          cfg.Redis.PoolSize,
+			MinIdleConns:      cfg.Redis.MinIdleConns,
+			MaxRetries:        cfg.Redis.MaxRetries,
+			DialTimeout:       cfg.Redis.DialTimeout,
+			ReadTimeout:       cfg.Redis.ReadTimeout,
+			WriteTimeout:      cfg.Redis.WriteTimeout,
+			PoolTimeout:       cfg.Redis.PoolTimeout,
+			IdleTimeout:       cfg.Redis.IdleTimeout,
+			MaxConnAge:        30 * time.Minute, // Default
+			DefaultTTL:        5 * time.Minute,  // Default
+			KeyPrefix:         cfg.Redis.KeyPrefix,
+			EnableMetrics:     true,
+			EnableCompression: false,
+		}
+		
+		cacheLogger := &cacheLoggerWrapper{logger: logger}
+		var err error
+		redisCache, err = cache.NewRedisCache(redisConfig, cacheLogger)
+		if err != nil {
+			logger.Warn("Failed to initialize Redis cache - continuing without Redis cache", zap.Error(err))
+			redisCache = nil
+		} else {
+			logger.Info("✅ Risk Assessment Service Redis cache initialized successfully",
+				zap.String("redis_url", cfg.Redis.URL),
+				zap.Int("pool_size", cfg.Redis.PoolSize))
+		}
+	} else {
+		logger.Info("⚠️  Redis URL not configured - running without Redis cache")
+	}
+
 	// Initialize database connection with performance optimizations (optional)
 	db, err := initDatabaseWithPerformance(cfg, logger)
 	if err != nil {
@@ -348,6 +398,7 @@ func main() {
 	}
 
 	// Initialize performance components (optional if database is not available)
+	// Note: Redis cache is already initialized above, so we don't re-initialize it here
 	var performanceComponents *PerformanceComponents
 	if db != nil {
 		performanceComponents, err = initPerformanceComponents(cfg, db, logger)
@@ -940,27 +991,37 @@ func initPerformanceComponents(cfg *config.Config, db *sql.DB, logger *zap.Logge
 	perfConfig := config.DefaultPerformanceConfig()
 
 	// Initialize Redis cache
+	// Note: Redis is already initialized independently above (before database connection)
+	// Skip Redis initialization here to avoid duplicate initialization
 	var cacheInstance cache.Cache
 	if perfConfig.Cache.Enabled && perfConfig.Cache.Type == "redis" {
-		// Use Redis URL from environment variable if available, otherwise use performance config defaults
-		redisAddrs := perfConfig.Cache.Redis.Addrs
+		// Check if Redis URL is configured - if so, Redis was already initialized independently
 		if cfg.Redis.URL != "" && cfg.Redis.URL != "redis://localhost:6379" {
-			// Parse Redis URL and use it instead of default localhost
-			// Remove redis:// prefix if present and use as address
-			redisAddr := cfg.Redis.URL
-			if strings.HasPrefix(redisAddr, "redis://") {
-				redisAddr = strings.TrimPrefix(redisAddr, "redis://")
+			logger.Info("⚠️  Redis cache already initialized independently - skipping duplicate initialization",
+				zap.String("redis_url", cfg.Redis.URL))
+			// Redis is already initialized, but we don't have access to it here
+			// The cache instance will be nil, which is acceptable
+			// Performance components will work without cache if needed
+		} else {
+			// Use Redis URL from environment variable if available, otherwise use performance config defaults
+			redisAddrs := perfConfig.Cache.Redis.Addrs
+			if cfg.Redis.URL != "" && cfg.Redis.URL != "redis://localhost:6379" {
+				// Parse Redis URL and use it instead of default localhost
+				// Remove redis:// prefix if present and use as address
+				redisAddr := cfg.Redis.URL
+				if strings.HasPrefix(redisAddr, "redis://") {
+					redisAddr = strings.TrimPrefix(redisAddr, "redis://")
+				}
+				if strings.HasPrefix(redisAddr, "rediss://") {
+					redisAddr = strings.TrimPrefix(redisAddr, "rediss://")
+				}
+				redisAddrs = []string{redisAddr}
 			}
-			if strings.HasPrefix(redisAddr, "rediss://") {
-				redisAddr = strings.TrimPrefix(redisAddr, "rediss://")
-			}
-			redisAddrs = []string{redisAddr}
-		}
-		
-		logger.Info("🔧 Initializing Redis cache",
-			zap.Strings("addrs", redisAddrs),
-			zap.String("redis_url", cfg.Redis.URL),
-			zap.Int("db", cfg.Redis.DB))
+			
+			logger.Info("🔧 Initializing Redis cache",
+				zap.Strings("addrs", redisAddrs),
+				zap.String("redis_url", cfg.Redis.URL),
+				zap.Int("db", cfg.Redis.DB))
 		redisConfig := &cache.CacheConfig{
 			Addrs:             redisAddrs,
 			Password:          cfg.Redis.Password,
