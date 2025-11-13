@@ -340,7 +340,8 @@ func main() {
 
 	// Initialize Redis cache independently (doesn't require database)
 	// Redis is used for caching and should work even if database is unavailable
-	var redisCache cache.Cache
+	// Note: We initialize Redis here but don't store it in a variable since it's also
+	// initialized in initPerformanceComponents if database is available
 	if cfg.Redis.URL != "" && cfg.Redis.URL != "redis://localhost:6379" {
 		logger.Info("🔧 Initializing Redis cache (independent of database)",
 			zap.String("redis_url", cfg.Redis.URL))
@@ -375,10 +376,9 @@ func main() {
 		
 		cacheLogger := &cacheLoggerWrapper{logger: logger}
 		var err error
-		redisCache, err = cache.NewRedisCache(redisConfig, cacheLogger)
+		_, err = cache.NewRedisCache(redisConfig, cacheLogger)
 		if err != nil {
 			logger.Warn("Failed to initialize Redis cache - continuing without Redis cache", zap.Error(err))
-			redisCache = nil
 		} else {
 			logger.Info("✅ Risk Assessment Service Redis cache initialized successfully",
 				zap.String("redis_url", cfg.Redis.URL),
