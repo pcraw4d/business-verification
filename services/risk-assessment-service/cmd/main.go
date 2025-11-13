@@ -188,6 +188,9 @@ func main() {
 	// Initialize Supabase client (optional)
 	var supabaseClient *supabase.Client
 	if cfg.Supabase.URL != "" && cfg.Supabase.APIKey != "" {
+		logger.Info("🔧 Initializing Supabase client",
+			zap.String("url", cfg.Supabase.URL),
+			zap.String("api_key_length", fmt.Sprintf("%d", len(cfg.Supabase.APIKey))))
 		supabaseConfig := &supabase.Config{
 			URL:            cfg.Supabase.URL,
 			APIKey:         cfg.Supabase.APIKey,
@@ -199,7 +202,7 @@ func main() {
 		if err != nil {
 			logger.Warn("Failed to initialize Supabase client - continuing without Supabase", zap.Error(err))
 		} else {
-			logger.Info("✅ Supabase client initialized")
+			logger.Info("✅ Risk Assessment Service Supabase client initialized successfully")
 		}
 	} else {
 		logger.Info("⚠️  Supabase not configured - running without Supabase features")
@@ -939,6 +942,9 @@ func initPerformanceComponents(cfg *config.Config, db *sql.DB, logger *zap.Logge
 	// Initialize Redis cache
 	var cacheInstance cache.Cache
 	if perfConfig.Cache.Enabled && perfConfig.Cache.Type == "redis" {
+		logger.Info("🔧 Initializing Redis cache",
+			zap.Strings("addrs", perfConfig.Cache.Redis.Addrs),
+			zap.Int("db", perfConfig.Cache.Redis.DB))
 		redisConfig := &cache.CacheConfig{
 			Addrs:             perfConfig.Cache.Redis.Addrs,
 			Password:          perfConfig.Cache.Redis.Password,
@@ -965,7 +971,16 @@ func initPerformanceComponents(cfg *config.Config, db *sql.DB, logger *zap.Logge
 		if err != nil {
 			logger.Warn("Failed to initialize Redis cache, falling back to no cache", zap.Error(err))
 		} else {
-			logger.Info("✅ Redis cache initialized")
+			logger.Info("✅ Risk Assessment Service Redis cache initialized successfully",
+				zap.Strings("addrs", perfConfig.Cache.Redis.Addrs),
+				zap.Int("pool_size", perfConfig.Cache.Redis.PoolSize))
+		}
+	} else {
+		if !perfConfig.Cache.Enabled {
+			logger.Info("⚠️  Redis cache disabled in performance config")
+		} else if perfConfig.Cache.Type != "redis" {
+			logger.Info("⚠️  Cache type is not 'redis', skipping Redis initialization",
+				zap.String("cache_type", perfConfig.Cache.Type))
 		}
 	}
 
