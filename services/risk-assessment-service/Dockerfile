@@ -1,9 +1,10 @@
 # Build stage - Go 1.24.0 for compatibility with go.mod (requires go >= 1.24.0)
-FROM golang:1.24-alpine AS builder
+# Use Debian-based image to match runtime environment (glibc compatibility)
+FROM golang:1.24 AS builder
 
 # Force cache bust for Railway - updated timestamp and image
-ARG CACHE_BUST=2025-11-10-04-58
-ARG BUILD_DATE=2025-11-10T04:58:00Z
+ARG CACHE_BUST=2025-11-14-00-05
+ARG BUILD_DATE=2025-11-14T00:05:00Z
 
 # Verify Go version and ensure it's 1.24+
 RUN go version && go version | grep -qE "go1\.(24|2[5-9]|[3-9][0-9])" || (echo "ERROR: Go version must be 1.24 or higher" && exit 1)
@@ -16,7 +17,16 @@ WORKDIR /app
 ENV GOWORK=off
 
 # Install dependencies including build tools for ONNX Runtime
-RUN apk add --no-cache git ca-certificates tzdata gcc musl-dev wget tar
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    git \
+    ca-certificates \
+    tzdata \
+    gcc \
+    g++ \
+    wget \
+    tar \
+    && rm -rf /var/lib/apt/lists/*
 
 # Download and install ONNX Runtime C libraries
 RUN wget -q https://github.com/microsoft/onnxruntime/releases/download/v1.16.0/onnxruntime-linux-x64-1.16.0.tgz && \
