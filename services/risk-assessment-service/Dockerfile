@@ -29,13 +29,14 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # Download and install ONNX Runtime C libraries
-# Using version 1.21.0 which supports API version 22 (required by yalue/onnxruntime_go v1.21.0)
+# Using version 1.23.2 (latest) which supports API version 22 (required by yalue/onnxruntime_go v1.21.0)
 # ONNX Runtime 1.18.1 only supports API versions [1, 18], but we need API 22
-# Version 1.21.0+ is required for API version 22 support
-RUN wget -q https://github.com/microsoft/onnxruntime/releases/download/v1.21.0/onnxruntime-linux-x64-1.21.0.tgz && \
-    tar -xzf onnxruntime-linux-x64-1.21.0.tgz && \
-    mv onnxruntime-linux-x64-1.21.0 onnxruntime && \
-    rm onnxruntime-linux-x64-1.21.0.tgz && \
+# Latest version 1.23.2 should have full API version 22 support
+# Release: https://github.com/microsoft/onnxruntime/releases/tag/v1.23.2
+RUN wget -q https://github.com/microsoft/onnxruntime/releases/download/v1.23.2/onnxruntime-linux-x64-1.23.2.tgz && \
+    tar -xzf onnxruntime-linux-x64-1.23.2.tgz && \
+    mv onnxruntime-linux-x64-1.23.2 onnxruntime && \
+    rm onnxruntime-linux-x64-1.23.2.tgz && \
     echo "ONNX Runtime installed:" && \
     ls -la /app/onnxruntime/ && \
     echo "Library files:" && \
