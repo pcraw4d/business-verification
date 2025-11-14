@@ -1132,3 +1132,116 @@ func (r *MerchantPortfolioRepository) getRiskLevelID(ctx context.Context, riskLe
 	}
 	return id, nil
 }
+
+// GetPortfolioDistribution gets count of merchants by portfolio type
+func (r *MerchantPortfolioRepository) GetPortfolioDistribution(ctx context.Context) (map[string]int, error) {
+	query := `
+		SELECT pt.type, COUNT(*) as count
+		FROM merchants m
+		JOIN portfolio_types pt ON m.portfolio_type_id = pt.id
+		GROUP BY pt.type
+	`
+
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query portfolio distribution: %w", err)
+	}
+	defer rows.Close()
+
+	dist := make(map[string]int)
+	for rows.Next() {
+		var portfolioType string
+		var count int
+		if err := rows.Scan(&portfolioType, &count); err != nil {
+			return nil, fmt.Errorf("failed to scan portfolio distribution: %w", err)
+		}
+		dist[portfolioType] = count
+	}
+
+	return dist, rows.Err()
+}
+
+// GetRiskDistribution gets count of merchants by risk level
+func (r *MerchantPortfolioRepository) GetRiskDistribution(ctx context.Context) (map[string]int, error) {
+	query := `
+		SELECT rl.level, COUNT(*) as count
+		FROM merchants m
+		JOIN risk_levels rl ON m.risk_level_id = rl.id
+		GROUP BY rl.level
+	`
+
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query risk distribution: %w", err)
+	}
+	defer rows.Close()
+
+	dist := make(map[string]int)
+	for rows.Next() {
+		var riskLevel string
+		var count int
+		if err := rows.Scan(&riskLevel, &count); err != nil {
+			return nil, fmt.Errorf("failed to scan risk distribution: %w", err)
+		}
+		dist[riskLevel] = count
+	}
+
+	return dist, rows.Err()
+}
+
+// GetIndustryDistribution gets count of merchants by industry
+func (r *MerchantPortfolioRepository) GetIndustryDistribution(ctx context.Context) (map[string]int, error) {
+	query := `
+		SELECT COALESCE(industry, 'Unknown') as industry, COUNT(*) as count
+		FROM merchants
+		WHERE industry IS NOT NULL AND industry != ''
+		GROUP BY industry
+		ORDER BY count DESC
+		LIMIT 10
+	`
+
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query industry distribution: %w", err)
+	}
+	defer rows.Close()
+
+	dist := make(map[string]int)
+	for rows.Next() {
+		var industry string
+		var count int
+		if err := rows.Scan(&industry, &count); err != nil {
+			return nil, fmt.Errorf("failed to scan industry distribution: %w", err)
+		}
+		dist[industry] = count
+	}
+
+	return dist, rows.Err()
+}
+
+// GetComplianceDistribution gets count of merchants by compliance status
+func (r *MerchantPortfolioRepository) GetComplianceDistribution(ctx context.Context) (map[string]int, error) {
+	query := `
+		SELECT COALESCE(compliance_status, 'pending') as compliance_status, COUNT(*) as count
+		FROM merchants
+		GROUP BY compliance_status
+	`
+
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query compliance distribution: %w", err)
+	}
+	defer rows.Close()
+
+	dist := make(map[string]int)
+	for rows.Next() {
+		var status string
+		var count int
+		if err := rows.Scan(&status, &count); err != nil {
+			return nil, fmt.Errorf("failed to scan compliance distribution: %w", err)
+		}
+		dist[status] = count
+	}
+
+	return dist, rows.Err()
+}

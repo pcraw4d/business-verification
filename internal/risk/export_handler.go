@@ -374,14 +374,6 @@ func (eh *ExportHandler) ExportData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create export request
-	exportReq := &ExportRequest{
-		BusinessID: req.BusinessID,
-		ExportType: req.ExportType,
-		Format:     req.Format,
-		Metadata:   req.Metadata,
-	}
-
 	// Perform immediate export (synchronous)
 	var response *ExportResponse
 	var err error

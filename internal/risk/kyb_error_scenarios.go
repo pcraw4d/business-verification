@@ -324,6 +324,7 @@ func CreateKYBErrorScenarios() []*ErrorScenario {
 
 func testDatabaseConnectionFailure(ctx *ErrorScenarioContext) ErrorScenarioResult {
 	startTime := time.Now()
+	_ = startTime // Suppress unused variable warning - may be used for metrics in future
 
 	// Simulate database connection failure
 	time.Sleep(100 * time.Millisecond)
@@ -334,6 +335,7 @@ func testDatabaseConnectionFailure(ctx *ErrorScenarioContext) ErrorScenarioResul
 	recoveryTime := time.Since(recoveryStart)
 
 	endTime := time.Now()
+	_ = endTime // Suppress unused variable warning - may be used for metrics in future
 
 	return ErrorScenarioResult{
 		Success:           true,
@@ -373,6 +375,7 @@ func testDatabaseConnectionFailure(ctx *ErrorScenarioContext) ErrorScenarioResul
 
 func testDatabaseQueryTimeout(ctx *ErrorScenarioContext) ErrorScenarioResult {
 	startTime := time.Now()
+	_ = startTime // Suppress unused variable warning - may be used for metrics in future
 
 	// Simulate query timeout
 	time.Sleep(50 * time.Millisecond)
@@ -383,6 +386,7 @@ func testDatabaseQueryTimeout(ctx *ErrorScenarioContext) ErrorScenarioResult {
 	recoveryTime := time.Since(recoveryStart)
 
 	endTime := time.Now()
+	_ = endTime // Suppress unused variable warning - may be used for metrics in future
 
 	return ErrorScenarioResult{
 		Success:           true,
@@ -421,6 +425,7 @@ func testDatabaseQueryTimeout(ctx *ErrorScenarioContext) ErrorScenarioResult {
 
 func testAPIServiceUnavailable(ctx *ErrorScenarioContext) ErrorScenarioResult {
 	startTime := time.Now()
+	_ = startTime // Suppress unused variable warning - may be used for metrics in future
 
 	// Simulate API service unavailable
 	time.Sleep(100 * time.Millisecond)
@@ -431,6 +436,7 @@ func testAPIServiceUnavailable(ctx *ErrorScenarioContext) ErrorScenarioResult {
 	recoveryTime := time.Since(recoveryStart)
 
 	endTime := time.Now()
+	_ = endTime // Suppress unused variable warning - may be used for metrics in future
 
 	return ErrorScenarioResult{
 		Success:           true,
@@ -470,6 +476,7 @@ func testAPIServiceUnavailable(ctx *ErrorScenarioContext) ErrorScenarioResult {
 
 func testAPIRateLimiting(ctx *ErrorScenarioContext) ErrorScenarioResult {
 	startTime := time.Now()
+	_ = startTime // Suppress unused variable warning - may be used for metrics in future
 
 	// Simulate rate limiting
 	time.Sleep(50 * time.Millisecond)
@@ -480,6 +487,7 @@ func testAPIRateLimiting(ctx *ErrorScenarioContext) ErrorScenarioResult {
 	recoveryTime := time.Since(recoveryStart)
 
 	endTime := time.Now()
+	_ = endTime // Suppress unused variable warning - may be used for metrics in future
 
 	return ErrorScenarioResult{
 		Success:           true,
@@ -518,11 +526,13 @@ func testAPIRateLimiting(ctx *ErrorScenarioContext) ErrorScenarioResult {
 
 func testInvalidBusinessData(ctx *ErrorScenarioContext) ErrorScenarioResult {
 	startTime := time.Now()
+	_ = startTime // Suppress unused variable warning - may be used for metrics in future
 
 	// Simulate invalid data processing
 	time.Sleep(25 * time.Millisecond)
 
 	endTime := time.Now()
+	_ = endTime // Suppress unused variable warning - may be used for metrics in future
 
 	return ErrorScenarioResult{
 		Success:           true,
@@ -560,6 +570,7 @@ func testInvalidBusinessData(ctx *ErrorScenarioContext) ErrorScenarioResult {
 
 func testRiskAssessmentFailure(ctx *ErrorScenarioContext) ErrorScenarioResult {
 	startTime := time.Now()
+	_ = startTime // Suppress unused variable warning - may be used for metrics in future
 
 	// Simulate risk assessment failure
 	time.Sleep(100 * time.Millisecond)
@@ -570,6 +581,7 @@ func testRiskAssessmentFailure(ctx *ErrorScenarioContext) ErrorScenarioResult {
 	recoveryTime := time.Since(recoveryStart)
 
 	endTime := time.Now()
+	_ = endTime // Suppress unused variable warning - may be used for metrics in future
 
 	return ErrorScenarioResult{
 		Success:           true,

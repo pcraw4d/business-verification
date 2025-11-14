@@ -31,8 +31,9 @@ type MerchantPortfolioServiceInterface interface {
 
 // MerchantPortfolioHandler handles merchant portfolio API endpoints
 type MerchantPortfolioHandler struct {
-	service MerchantPortfolioServiceInterface
-	logger  *log.Logger
+	service    MerchantPortfolioServiceInterface
+	repository *database.MerchantPortfolioRepository // Optional: for portfolio analytics
+	logger     *log.Logger
 }
 
 // NewMerchantPortfolioHandler creates a new merchant portfolio handler
@@ -44,6 +45,19 @@ func NewMerchantPortfolioHandler(service MerchantPortfolioServiceInterface, logg
 	return &MerchantPortfolioHandler{
 		service: service,
 		logger:  logger,
+	}
+}
+
+// NewMerchantPortfolioHandlerWithRepository creates a new merchant portfolio handler with repository for analytics
+func NewMerchantPortfolioHandlerWithRepository(service MerchantPortfolioServiceInterface, repository *database.MerchantPortfolioRepository, logger *log.Logger) *MerchantPortfolioHandler {
+	if logger == nil {
+		logger = log.Default()
+	}
+
+	return &MerchantPortfolioHandler{
+		service:    service,
+		repository: repository,
+		logger:     logger,
 	}
 }
 
@@ -231,6 +245,11 @@ func (h *MerchantPortfolioHandler) CreateMerchant(w http.ResponseWriter, r *http
 	}
 
 	// Create merchant
+	if h.service == nil {
+		h.logger.Printf("Error: MerchantPortfolioService is not initialized")
+		http.Error(w, "Service unavailable", http.StatusServiceUnavailable)
+		return
+	}
 	createdMerchant, err := h.service.CreateMerchant(ctx, merchant, getUserIDFromContext(ctx))
 	if err != nil {
 		h.logger.Printf("Error creating merchant: %v", err)
@@ -257,6 +276,11 @@ func (h *MerchantPortfolioHandler) GetMerchant(w http.ResponseWriter, r *http.Re
 
 	h.logger.Printf("Getting merchant: %s", merchantID)
 
+	if h.service == nil {
+		h.logger.Printf("Error: MerchantPortfolioService is not initialized")
+		http.Error(w, "Service unavailable", http.StatusServiceUnavailable)
+		return
+	}
 	merchant, err := h.service.GetMerchant(ctx, merchantID)
 	if err != nil {
 		h.logger.Printf("Error getting merchant %s: %v", merchantID, err)
@@ -284,6 +308,12 @@ func (h *MerchantPortfolioHandler) UpdateMerchant(w http.ResponseWriter, r *http
 	}
 
 	h.logger.Printf("Updating merchant: %s", merchantID)
+
+	if h.service == nil {
+		h.logger.Printf("Error: MerchantPortfolioService is not initialized")
+		http.Error(w, "Service unavailable", http.StatusServiceUnavailable)
+		return
+	}
 
 	var req UpdateMerchantRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -381,6 +411,11 @@ func (h *MerchantPortfolioHandler) DeleteMerchant(w http.ResponseWriter, r *http
 
 	h.logger.Printf("Deleting merchant: %s", merchantID)
 
+	if h.service == nil {
+		h.logger.Printf("Error: MerchantPortfolioService is not initialized")
+		http.Error(w, "Service unavailable", http.StatusServiceUnavailable)
+		return
+	}
 	if err := h.service.DeleteMerchant(ctx, merchantID, getUserIDFromContext(ctx)); err != nil {
 		h.logger.Printf("Error deleting merchant %s: %v", merchantID, err)
 		if err == database.ErrMerchantNotFound {
@@ -435,6 +470,11 @@ func (h *MerchantPortfolioHandler) ListMerchants(w http.ResponseWriter, r *http.
 	}
 
 	// Search merchants
+	if h.service == nil {
+		h.logger.Printf("Error: MerchantPortfolioService is not initialized")
+		http.Error(w, "Service unavailable", http.StatusServiceUnavailable)
+		return
+	}
 	result, err := h.service.SearchMerchants(ctx, filters, page, pageSize)
 	if err != nil {
 		h.logger.Printf("Error searching merchants: %v", err)
@@ -499,6 +539,11 @@ func (h *MerchantPortfolioHandler) SearchMerchants(w http.ResponseWriter, r *htt
 	}
 
 	// Search merchants
+	if h.service == nil {
+		h.logger.Printf("Error: MerchantPortfolioService is not initialized")
+		http.Error(w, "Service unavailable", http.StatusServiceUnavailable)
+		return
+	}
 	result, err := h.service.SearchMerchants(ctx, filters, req.Page, req.PageSize)
 	if err != nil {
 		h.logger.Printf("Error searching merchants: %v", err)
@@ -807,43 +852,141 @@ func (h *MerchantPortfolioHandler) BulkExportMerchants(w http.ResponseWriter, r 
 
 // GetMerchantAnalytics handles GET /api/v1/merchants/analytics
 func (h *MerchantPortfolioHandler) GetMerchantAnalytics(w http.ResponseWriter, r *http.Request) {
-	_ = r.Context() // Context will be used in future implementation
+	ctx := r.Context()
 	h.logger.Printf("Getting merchant analytics")
 
-	// For now, return mock analytics data
-	// TODO: Implement actual analytics calculation
-	response := map[string]interface{}{
-		"total_merchants": 5000,
-		"portfolio_distribution": map[string]interface{}{
-			"onboarded":   2500,
-			"deactivated": 500,
-			"prospective": 1500,
-			"pending":     500,
-		},
-		"risk_distribution": map[string]interface{}{
-			"high":   1000,
-			"medium": 3000,
-			"low":    1000,
-		},
-		"industry_distribution": map[string]interface{}{
-			"Technology":    1500,
-			"Retail":        1200,
-			"Healthcare":    800,
-			"Finance":       600,
-			"Manufacturing": 500,
-			"Other":         400,
-		},
-		"compliance_status": map[string]interface{}{
-			"compliant":     4000,
-			"non_compliant": 500,
-			"pending":       500,
-		},
-		"created_at": time.Now(),
+	// If repository is not available, return mock data for backward compatibility
+	if h.repository == nil {
+		h.logger.Printf("Warning: Repository not available, returning mock analytics data")
+		response := map[string]interface{}{
+			"total_merchants": 5000,
+			"portfolio_distribution": map[string]interface{}{
+				"onboarded":   2500,
+				"deactivated": 500,
+				"prospective": 1500,
+				"pending":     500,
+			},
+			"risk_distribution": map[string]interface{}{
+				"high":   1000,
+				"medium": 3000,
+				"low":    1000,
+			},
+			"industry_distribution": map[string]interface{}{
+				"Technology":    1500,
+				"Retail":        1200,
+				"Healthcare":    800,
+				"Finance":       600,
+				"Manufacturing": 500,
+				"Other":         400,
+			},
+			"compliance_status": map[string]interface{}{
+				"compliant":     4000,
+				"non_compliant": 500,
+				"pending":       500,
+			},
+			"created_at": time.Now(),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Get real analytics data from database
+	analytics, err := h.getPortfolioAnalytics(ctx)
+	if err != nil {
+		h.logger.Printf("Error getting portfolio analytics: %v", err)
+		http.Error(w, "failed to retrieve analytics", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(analytics); err != nil {
+		h.logger.Printf("Error encoding response: %v", err)
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
+
+// getPortfolioAnalytics retrieves portfolio-level analytics from the database
+func (h *MerchantPortfolioHandler) getPortfolioAnalytics(ctx context.Context) (map[string]interface{}, error) {
+	// Get total merchants count
+	totalCount, err := h.repository.CountMerchants(ctx, &models.MerchantSearchFilters{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to count merchants: %w", err)
+	}
+
+	// Get portfolio distribution
+	portfolioDist, err := h.repository.GetPortfolioDistribution(ctx)
+	if err != nil {
+		h.logger.Printf("Warning: failed to get portfolio distribution: %v", err)
+		portfolioDist = map[string]int{
+			"onboarded":   0,
+			"deactivated": 0,
+			"prospective": 0,
+			"pending":     0,
+		}
+	}
+
+	// Get risk distribution
+	riskDist, err := h.repository.GetRiskDistribution(ctx)
+	if err != nil {
+		h.logger.Printf("Warning: failed to get risk distribution: %v", err)
+		riskDist = map[string]int{
+			"high":   0,
+			"medium": 0,
+			"low":    0,
+		}
+	}
+
+	// Get industry distribution
+	industryDist, err := h.repository.GetIndustryDistribution(ctx)
+	if err != nil {
+		h.logger.Printf("Warning: failed to get industry distribution: %v", err)
+		industryDist = map[string]int{}
+	}
+
+	// Get compliance status distribution
+	complianceDist, err := h.repository.GetComplianceDistribution(ctx)
+	if err != nil {
+		h.logger.Printf("Warning: failed to get compliance distribution: %v", err)
+		complianceDist = map[string]int{
+			"compliant":     0,
+			"non_compliant": 0,
+			"pending":       0,
+		}
+	}
+
+	// Convert int maps to interface{} maps for JSON encoding
+	portfolioDistInterface := make(map[string]interface{})
+	for k, v := range portfolioDist {
+		portfolioDistInterface[k] = v
+	}
+
+	riskDistInterface := make(map[string]interface{})
+	for k, v := range riskDist {
+		riskDistInterface[k] = v
+	}
+
+	industryDistInterface := make(map[string]interface{})
+	for k, v := range industryDist {
+		industryDistInterface[k] = v
+	}
+
+	complianceDistInterface := make(map[string]interface{})
+	for k, v := range complianceDist {
+		complianceDistInterface[k] = v
+	}
+
+	return map[string]interface{}{
+		"total_merchants":       totalCount,
+		"portfolio_distribution": portfolioDistInterface,
+		"risk_distribution":     riskDistInterface,
+		"industry_distribution": industryDistInterface,
+		"compliance_status":     complianceDistInterface,
+		"created_at":            time.Now(),
+	}, nil
+}
+
 
 // GetPortfolioTypes handles GET /api/v1/merchants/portfolio-types
 func (h *MerchantPortfolioHandler) GetPortfolioTypes(w http.ResponseWriter, r *http.Request) {

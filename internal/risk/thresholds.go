@@ -1,11 +1,22 @@
 package risk
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
 )
+
+// ThresholdRepository interface for threshold persistence
+type ThresholdRepository interface {
+	CreateThreshold(ctx context.Context, config *ThresholdConfig) error
+	GetThreshold(ctx context.Context, id string) (*ThresholdConfig, error)
+	UpdateThreshold(ctx context.Context, config *ThresholdConfig) error
+	DeleteThreshold(ctx context.Context, id string) error
+	ListThresholds(ctx context.Context, category *RiskCategory, industryCode *string, activeOnly bool) ([]*ThresholdConfig, error)
+	LoadAllThresholds(ctx context.Context) ([]*ThresholdConfig, error)
+}
 
 // ThresholdConfig represents a risk threshold configuration
 type ThresholdConfig struct {
@@ -28,14 +39,26 @@ type ThresholdConfig struct {
 
 // ThresholdManager manages risk threshold configurations
 type ThresholdManager struct {
-	configs map[string]*ThresholdConfig
-	mutex   sync.RWMutex
+	configs    map[string]*ThresholdConfig
+	mutex      sync.RWMutex
+	repository ThresholdRepository
+	ctx        context.Context
 }
 
 // NewThresholdManager creates a new threshold manager
 func NewThresholdManager() *ThresholdManager {
 	return &ThresholdManager{
 		configs: make(map[string]*ThresholdConfig),
+		ctx:     context.Background(),
+	}
+}
+
+// NewThresholdManagerWithRepository creates a new threshold manager with database persistence
+func NewThresholdManagerWithRepository(repository ThresholdRepository) *ThresholdManager {
+	return &ThresholdManager{
+		configs:    make(map[string]*ThresholdConfig),
+		repository: repository,
+		ctx:        context.Background(),
 	}
 }
 
@@ -58,6 +81,14 @@ func (tm *ThresholdManager) RegisterConfig(config *ThresholdConfig) error {
 	}
 
 	config.UpdatedAt = time.Now()
+
+	// Persist to database if repository is available
+	if tm.repository != nil {
+		if err := tm.repository.CreateThreshold(tm.ctx, config); err != nil {
+			return fmt.Errorf("failed to persist threshold: %w", err)
+		}
+	}
+
 	tm.configs[config.ID] = config
 	return nil
 }
@@ -171,7 +202,17 @@ func (tm *ThresholdManager) UpdateConfig(id string, updates map[string]interface
 
 	config, exists := tm.configs[id]
 	if !exists {
-		return fmt.Errorf("threshold config with ID %s not found", id)
+		// Try to load from database if repository is available
+		if tm.repository != nil {
+			dbConfig, err := tm.repository.GetThreshold(tm.ctx, id)
+			if err != nil {
+				return fmt.Errorf("threshold config with ID %s not found", id)
+			}
+			config = dbConfig
+			tm.configs[id] = config
+		} else {
+			return fmt.Errorf("threshold config with ID %s not found", id)
+		}
 	}
 
 	// Update fields based on the updates map
@@ -207,6 +248,14 @@ func (tm *ThresholdManager) UpdateConfig(id string, updates map[string]interface
 	}
 
 	config.UpdatedAt = time.Now()
+
+	// Persist to database if repository is available
+	if tm.repository != nil {
+		if err := tm.repository.UpdateThreshold(tm.ctx, config); err != nil {
+			return fmt.Errorf("failed to persist threshold update: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -216,7 +265,22 @@ func (tm *ThresholdManager) DeleteConfig(id string) error {
 	defer tm.mutex.Unlock()
 
 	if _, exists := tm.configs[id]; !exists {
-		return fmt.Errorf("threshold config with ID %s not found", id)
+		// Check if it exists in database if repository is available
+		if tm.repository != nil {
+			_, err := tm.repository.GetThreshold(tm.ctx, id)
+			if err != nil {
+				return fmt.Errorf("threshold config with ID %s not found", id)
+			}
+		} else {
+			return fmt.Errorf("threshold config with ID %s not found", id)
+		}
+	}
+
+	// Delete from database if repository is available
+	if tm.repository != nil {
+		if err := tm.repository.DeleteThreshold(tm.ctx, id); err != nil {
+			return fmt.Errorf("failed to delete threshold from database: %w", err)
+		}
 	}
 
 	delete(tm.configs, id)
@@ -233,6 +297,57 @@ func (tm *ThresholdManager) ListConfigs() []*ThresholdConfig {
 		configs = append(configs, config)
 	}
 	return configs
+}
+
+// LoadFromDatabase loads all thresholds from the database into memory
+func (tm *ThresholdManager) LoadFromDatabase(ctx context.Context) error {
+	if tm.repository == nil {
+		return fmt.Errorf("repository not available")
+	}
+
+	tm.mutex.Lock()
+	defer tm.mutex.Unlock()
+
+	configs, err := tm.repository.LoadAllThresholds(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to load thresholds from database: %w", err)
+	}
+
+	// Clear existing configs and load from database
+	tm.configs = make(map[string]*ThresholdConfig)
+	for _, config := range configs {
+		tm.configs[config.ID] = config
+	}
+
+	return nil
+}
+
+// SyncToDatabase ensures all in-memory configs are persisted to database
+func (tm *ThresholdManager) SyncToDatabase(ctx context.Context) error {
+	if tm.repository == nil {
+		return fmt.Errorf("repository not available")
+	}
+
+	tm.mutex.RLock()
+	defer tm.mutex.RUnlock()
+
+	for _, config := range tm.configs {
+		// Check if it exists in database
+		_, err := tm.repository.GetThreshold(ctx, config.ID)
+		if err != nil {
+			// Doesn't exist, create it
+			if err := tm.repository.CreateThreshold(ctx, config); err != nil {
+				return fmt.Errorf("failed to sync threshold %s: %w", config.ID, err)
+			}
+		} else {
+			// Exists, update it
+			if err := tm.repository.UpdateThreshold(ctx, config); err != nil {
+				return fmt.Errorf("failed to sync threshold %s: %w", config.ID, err)
+			}
+		}
+	}
+
+	return nil
 }
 
 // validateRiskLevelProgression validates that risk levels progress logically
@@ -531,22 +646,62 @@ func (tcs *ThresholdConfigService) ValidateThresholds(thresholds map[RiskLevel]f
 }
 
 // ExportThresholds exports threshold configurations to JSON
+// If manager has a repository, exports from database; otherwise exports from memory
 func (tcs *ThresholdConfigService) ExportThresholds() ([]byte, error) {
-	configs := tcs.manager.ListConfigs()
+	var configs []*ThresholdConfig
+
+	// If repository is available, load from database to ensure we export all persisted configs
+	if tcs.manager.repository != nil {
+		ctx := context.Background()
+		// LoadAllThresholds returns []*ThresholdConfig (via adapter)
+		dbConfigs, err := tcs.manager.repository.LoadAllThresholds(ctx)
+		if err != nil {
+			// Fall back to memory if database load fails
+			configs = tcs.manager.ListConfigs()
+		} else {
+			// Repository adapter already converts to ThresholdConfig
+			configs = dbConfigs
+		}
+	} else {
+		// No repository, export from memory
+		configs = tcs.manager.ListConfigs()
+	}
+
 	return json.MarshalIndent(configs, "", "  ")
 }
 
 // ImportThresholds imports threshold configurations from JSON
+// If manager has a repository, imports are persisted to database; otherwise only in memory
 func (tcs *ThresholdConfigService) ImportThresholds(data []byte) error {
 	var configs []*ThresholdConfig
 	if err := json.Unmarshal(data, &configs); err != nil {
 		return fmt.Errorf("failed to unmarshal threshold configs: %w", err)
 	}
 
+	ctx := context.Background()
+	
+	// Import all configs - use upsert logic if repository is available
 	for _, config := range configs {
-		if err := tcs.manager.RegisterConfig(config); err != nil {
-			return fmt.Errorf("failed to register config %s: %w", config.ID, err)
+		if tcs.manager.repository != nil {
+			// Check if threshold exists in database
+			_, err := tcs.manager.repository.GetThreshold(ctx, config.ID)
+			if err != nil {
+				// Doesn't exist, create it
+				if err := tcs.manager.repository.CreateThreshold(ctx, config); err != nil {
+					return fmt.Errorf("failed to create imported config %s: %w", config.ID, err)
+				}
+			} else {
+				// Exists, update it
+				if err := tcs.manager.repository.UpdateThreshold(ctx, config); err != nil {
+					return fmt.Errorf("failed to update imported config %s: %w", config.ID, err)
+				}
+			}
 		}
+		
+		// Always register in memory (skip persistence since we already handled it above)
+		tcs.manager.mutex.Lock()
+		tcs.manager.configs[config.ID] = config
+		tcs.manager.mutex.Unlock()
 	}
 
 	return nil

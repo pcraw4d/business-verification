@@ -1,61 +1,43 @@
-version: "3.8"
-
 services:
-  postgres-test:
-    image: postgres:15-alpine
+  postgres:
+    image: postgres:15
+    container_name: kyb-test-postgres
     environment:
-      POSTGRES_DB: kyb_platform_test
-      POSTGRES_USER: test_user
-      POSTGRES_PASSWORD: test_password
+      POSTGRES_DB: kyb_test
+      POSTGRES_USER: kyb_test
+      POSTGRES_PASSWORD: kyb_test_password
     ports:
       - "5433:5432"
     volumes:
-      - postgres_test_data:/var/lib/postgresql/data
+      - postgres-test-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U test_user -d kyb_platform_test"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U kyb_test -d kyb_test"]
+      interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - kyb-test-network
 
-  redis-test:
+  redis:
     image: redis:7-alpine
+    container_name: kyb-test-redis
     ports:
-      - "6380:6379"
+      - "6379:6379"
     volumes:
-      - redis_test_data:/data
+      - redis-test-data:/data
+    command: redis-server --appendonly yes
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
+      interval: 5s
+      timeout: 3s
       retries: 5
-
-  api-test:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    environment:
-      DB_HOST: postgres-test
-      DB_PORT: 5432
-      DB_NAME: kyb_platform_test
-      DB_USER: test_user
-      DB_PASSWORD: test_password
-      REDIS_HOST: redis-test
-      REDIS_PORT: 6379
-      ENVIRONMENT: test
-      LOG_LEVEL: debug
-    ports:
-      - "8081:8080"
-    depends_on:
-      postgres-test:
-        condition: service_healthy
-      redis-test:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    networks:
+      - kyb-test-network
 
 volumes:
-  postgres_test_data:
-  redis_test_data:
+  postgres-test-data:
+  redis-test-data:
+
+networks:
+  kyb-test-network:
+    driver: bridge

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -19,6 +20,7 @@ import (
 	"kyb-platform/internal/api/routes"
 	"kyb-platform/internal/database"
 	"kyb-platform/internal/observability"
+	"kyb-platform/internal/risk"
 	"kyb-platform/internal/services"
 )
 
@@ -59,11 +61,16 @@ func NewRailwayServer() *RailwayServer {
 		if err != nil {
 			log.Printf("Warning: Failed to connect to database: %v. New API routes will not be available.", err)
 		} else {
-			// Test connection
-			if err := db.Ping(); err != nil {
-				log.Printf("Warning: Database ping failed: %v. New API routes will not be available.", err)
+			// Test connection with context timeout
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := db.PingContext(ctx); err != nil {
+				log.Printf("Warning: Database ping failed: %v. Routes will use in-memory storage.", err)
+				// Close and set to nil to prevent using broken connection
+				// Routes will still register but use in-memory thresholds
 				db.Close()
 				db = nil
+				log.Println("⚠️  Using in-memory threshold storage (database unavailable)")
 			} else {
 				log.Println("✅ Database connection established for new API routes")
 			}
@@ -814,9 +821,13 @@ func (s *RailwayServer) setupRoutes() {
 	s.mux.HandleFunc("/v2/classify", s.handleClassify)
 	s.mux.HandleFunc("/classify", s.handleClassify) // Legacy support
 
-	// Merchant endpoints
+	// Merchant endpoints (legacy - only register if they don't conflict with new API routes)
+	// Note: /api/v1/merchants/* routes are registered in setupNewAPIRoutes()
+	// Legacy routes are kept for backward compatibility but won't conflict with /api/v1/* paths
 	s.mux.HandleFunc("/merchants", s.handleMerchants)
-	s.mux.HandleFunc("/v1/merchants", s.handleMerchants)
+	// Commented out /v1/merchants to avoid conflict with /api/v1/merchants/* routes
+	// The new routes registered in setupNewAPIRoutes() handle /api/v1/merchants/* paths
+	// s.mux.HandleFunc("/v1/merchants", s.handleMerchants)
 
 	// Analytics endpoints
 	s.mux.HandleFunc("/analytics/overall", s.handleAnalytics)
@@ -845,11 +856,8 @@ func (s *RailwayServer) setupRoutes() {
 
 // setupNewAPIRoutes registers the new merchant analytics and async risk assessment routes
 func (s *RailwayServer) setupNewAPIRoutes() {
-	// Only register if database is available
-	if s.db == nil {
-		log.Println("⚠️  Skipping new API route registration: database not available")
-		return
-	}
+	// Routes can work with or without database (threshold manager supports in-memory mode)
+	// Only skip if we can't create handlers at all
 
 	logger := log.Default()
 
@@ -863,18 +871,46 @@ func (s *RailwayServer) setupNewAPIRoutes() {
 	// Initialize observability logger
 	obsLogger := observability.NewLogger(zapLogger)
 
-	// Initialize repositories
-	merchantRepo := database.NewMerchantPortfolioRepository(s.db, logger)
-	analyticsRepo := database.NewMerchantAnalyticsRepository(s.db, logger)
-	riskAssessmentRepo := database.NewRiskAssessmentRepository(s.db, logger)
+	// Initialize repositories (only if database is available)
+	var merchantRepo *database.MerchantPortfolioRepository
+	var analyticsRepo *database.MerchantAnalyticsRepository
+	var riskAssessmentRepo *database.RiskAssessmentRepository
 
-	// Initialize services
-	analyticsService := services.NewMerchantAnalyticsService(analyticsRepo, merchantRepo, logger)
-	riskAssessmentService := services.NewRiskAssessmentService(riskAssessmentRepo, logger)
+	if s.db != nil {
+		merchantRepo = database.NewMerchantPortfolioRepository(s.db, logger)
+		analyticsRepo = database.NewMerchantAnalyticsRepository(s.db, logger)
+		riskAssessmentRepo = database.NewRiskAssessmentRepository(s.db, logger)
+	} else {
+		log.Println("⚠️  Database unavailable - repositories not initialized. Some features will be limited.")
+		// Repositories will be nil, handlers should check for nil before use
+	}
+
+	// Initialize services (only if repositories are available)
+	// TODO: Create a proper wrapper function in database package: NewPostgresDBFromConnection(*sql.DB)
+	// For now, merchantPortfolioService is nil and handler methods check for nil before using it
+	// This prevents nil pointer dereference panics and returns 503 Service Unavailable instead
+	var merchantPortfolioService services.MerchantPortfolioServiceInterface = nil // TODO: Create proper DB wrapper
+	var analyticsService services.MerchantAnalyticsService
+	var riskAssessmentService services.RiskAssessmentService
+
+	if analyticsRepo != nil && merchantRepo != nil {
+		analyticsService = services.NewMerchantAnalyticsService(analyticsRepo, merchantRepo, logger)
+	} else {
+		log.Println("⚠️  Analytics service not initialized - database unavailable")
+		// analyticsService will be nil (interface), handlers should check for nil
+	}
+
+	if riskAssessmentRepo != nil {
+		// RiskAssessmentService requires a jobQueue parameter - pass nil for now
+		riskAssessmentService = services.NewRiskAssessmentService(riskAssessmentRepo, nil, logger)
+	} else {
+		log.Println("⚠️  Risk assessment service not initialized - database unavailable")
+		// riskAssessmentService will be nil (interface), handlers should check for nil
+	}
 
 	// Initialize handlers
-	// Note: MerchantPortfolioHandler and RiskHandler may need existing dependencies
-	// For now, we'll create minimal handlers or use nil if they require more setup
+	// Create MerchantPortfolioHandler with both service (for CRUD operations) and repository (for analytics)
+	merchantPortfolioHandler := handlers.NewMerchantPortfolioHandlerWithRepository(merchantPortfolioService, merchantRepo, logger)
 	analyticsHandler := handlers.NewMerchantAnalyticsHandler(analyticsService, logger)
 	asyncRiskHandler := handlers.NewAsyncRiskAssessmentHandler(riskAssessmentService, logger)
 
@@ -895,12 +931,10 @@ func (s *RailwayServer) setupNewAPIRoutes() {
 	rateLimiter := middleware.NewAPIRateLimiter(rateLimitConfig, zapLogger)
 
 	// Register merchant routes with analytics handler
-	// Note: If MerchantPortfolioHandler is required, you'll need to initialize it
-	// For now, we'll register only the analytics routes
 	merchantConfig := &routes.MerchantRouteConfig{
-		MerchantPortfolioHandler: nil, // Set this if you have an existing merchant handler
-		MerchantAnalyticsHandler:  analyticsHandler,
-		AuthMiddleware:            authMiddleware,
+		MerchantPortfolioHandler: merchantPortfolioHandler, // Now includes repository for analytics
+		MerchantAnalyticsHandler: analyticsHandler,
+		AuthMiddleware:           authMiddleware,
 		RateLimiter:              rateLimiter,
 		Logger:                   obsLogger,
 	}
@@ -916,11 +950,77 @@ func (s *RailwayServer) setupNewAPIRoutes() {
 	// Register async routes (RiskHandler can be nil if not needed for async routes)
 	routes.RegisterRiskRoutesWithConfig(s.mux, nil, asyncRiskConfig)
 
+	// Initialize enhanced risk handler and register routes
+	// Create enhanced risk service components using factory
+	enhancedRiskFactory := risk.NewEnhancedRiskServiceFactory(zapLogger)
+	enhancedCalculator := enhancedRiskFactory.CreateRiskFactorCalculator()
+	recommendationEngine := enhancedRiskFactory.CreateRecommendationEngine()
+	trendAnalysisService := enhancedRiskFactory.CreateTrendAnalysisService()
+	alertSystem := enhancedRiskFactory.CreateAlertSystem()
+
+	// Create and initialize ThresholdManager with database persistence
+	var thresholdManager *risk.ThresholdManager
+	if s.db != nil {
+		// Create threshold repository
+		thresholdRepo := database.NewThresholdRepository(s.db, logger)
+		// Create adapter to bridge database and risk packages
+		thresholdRepoAdapter := risk.NewThresholdRepositoryAdapter(thresholdRepo)
+		// Create manager with repository
+		thresholdManager = risk.NewThresholdManagerWithRepository(thresholdRepoAdapter)
+
+		// Load thresholds from database on startup
+		ctx := context.Background()
+		if err := thresholdManager.LoadFromDatabase(ctx); err != nil {
+			log.Printf("Warning: Failed to load thresholds from database: %v. Using default thresholds.", err)
+			// Fall back to default thresholds if database load fails
+			thresholdManager = risk.CreateDefaultThresholds()
+			// Try to sync defaults to database (non-blocking)
+			go func() {
+				if err := thresholdManager.SyncToDatabase(ctx); err != nil {
+					log.Printf("Warning: Failed to sync default thresholds to database: %v", err)
+				}
+			}()
+		} else {
+			log.Printf("✅ Loaded %d thresholds from database", len(thresholdManager.ListConfigs()))
+		}
+	} else {
+		// No database available, use in-memory defaults
+		log.Println("⚠️  Database not available, using in-memory threshold defaults")
+		thresholdManager = risk.CreateDefaultThresholds()
+	}
+
+	// Create risk detection service (can be nil for now - handlers check for nil)
+	var riskDetectionService *risk.RiskDetectionService = nil // TODO: Initialize when available
+
+	// Initialize enhanced risk handler
+	enhancedRiskHandler := handlers.NewEnhancedRiskHandler(
+		zapLogger,
+		riskDetectionService,
+		enhancedCalculator,
+		recommendationEngine,
+		trendAnalysisService,
+		alertSystem,
+		thresholdManager,
+	)
+
+	// Register enhanced risk routes (public endpoints)
+	routes.RegisterEnhancedRiskRoutes(s.mux, enhancedRiskHandler)
+
+	// Register enhanced risk admin routes
+	routes.RegisterEnhancedRiskAdminRoutes(s.mux, enhancedRiskHandler)
+
 	log.Println("✅ New API routes registered:")
+	log.Println("   - GET /api/v1/merchants/analytics (portfolio-level analytics)")
 	log.Println("   - GET /api/v1/merchants/{merchantId}/analytics")
 	log.Println("   - GET /api/v1/merchants/{merchantId}/website-analysis")
 	log.Println("   - POST /api/v1/risk/assess")
 	log.Println("   - GET /api/v1/risk/assess/{assessmentId}")
+	log.Println("   - GET /v1/risk/factors")
+	log.Println("   - GET /v1/risk/categories")
+	log.Println("   - GET /v1/risk/thresholds")
+	log.Println("   - POST /v1/admin/risk/thresholds")
+	log.Println("   - GET /v1/admin/risk/system/health")
+	log.Println("   - GET /v1/admin/risk/system/metrics")
 }
 
 // Start starts the server
@@ -940,12 +1040,12 @@ func (s *RailwayServer) Start() error {
 
 func main() {
 	server := NewRailwayServer()
-	
+
 	// Close database connection on exit
 	if server.db != nil {
 		defer server.db.Close()
 	}
-	
+
 	if err := server.Start(); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}

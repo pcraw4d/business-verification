@@ -103,6 +103,70 @@ type TestSuiteResult struct {
 	Metrics      map[string]interface{} `json:"metrics"`
 }
 
+// TestDetail contains details for individual tests
+type TestDetail struct {
+	TestName      string                 `json:"test_name"`
+	Status        string                 `json:"status"`
+	Duration      time.Duration          `json:"duration"`
+	ErrorMessage  string                 `json:"error_message,omitempty"`
+	Assertions    []string               `json:"assertions,omitempty"`
+	Metrics       map[string]interface{} `json:"metrics,omitempty"`
+}
+
+// ErrorMetrics contains error-related metrics
+type ErrorMetrics struct {
+	TotalErrors       int     `json:"total_errors"`
+	ErrorRate         float64 `json:"error_rate"`
+	CriticalErrors    int     `json:"critical_errors"`
+	WarningErrors     int     `json:"warning_errors"`
+	RecoveryTime      float64 `json:"recovery_time"`
+	ErrorCategories   map[string]int `json:"error_categories"`
+}
+
+// SecurityMetrics contains security-related metrics
+type SecurityMetrics struct {
+	SecurityScore     float64 `json:"security_score"`
+	Vulnerabilities   int     `json:"vulnerabilities"`
+	ThreatsDetected   int     `json:"threats_detected"`
+	SecurityIncidents int     `json:"security_incidents"`
+}
+
+// ErrorTestResults contains results from error testing
+type ErrorTestResults struct {
+	TotalTests      int                    `json:"total_tests"`
+	PassedTests     int                    `json:"passed_tests"`
+	FailedTests     int                    `json:"failed_tests"`
+	SkippedTests    int                    `json:"skipped_tests"`
+	ErrorDetails    []TestDetail           `json:"error_details"`
+	ErrorMetrics    *ErrorMetrics          `json:"error_metrics"`
+	RecoveryMetrics  map[string]interface{} `json:"recovery_metrics"`
+	SecurityMetrics  map[string]interface{} `json:"security_metrics"`
+}
+
+// PerformanceTestResults contains results from performance testing
+type PerformanceTestResults struct {
+	TotalTests         int                    `json:"total_tests"`
+	PassedTests        int                    `json:"passed_tests"`
+	FailedTests        int                    `json:"failed_tests"`
+	SkippedTests       int                    `json:"skipped_tests"`
+	PerformanceDetails []TestDetail           `json:"performance_details"`
+	PerformanceMetrics map[string]interface{} `json:"performance_metrics"`
+	ScalabilityMetrics map[string]interface{} `json:"scalability_metrics"`
+	ResourceMetrics    map[string]interface{} `json:"resource_metrics"`
+}
+
+// DatabaseTestResults contains results from database testing
+type DatabaseTestResults struct {
+	TotalTests      int                    `json:"total_tests"`
+	PassedTests     int                    `json:"passed_tests"`
+	FailedTests     int                    `json:"failed_tests"`
+	SkippedTests    int                    `json:"skipped_tests"`
+	DatabaseDetails []TestDetail           `json:"database_details"`
+	Performance     map[string]interface{} `json:"performance"`
+	DataIntegrity   map[string]interface{} `json:"data_integrity"`
+	Metrics         map[string]interface{} `json:"metrics"`
+}
+
 // NewAutomatedIntegrationTestSuite creates a new automated integration test suite
 func NewAutomatedIntegrationTestSuite(config *IntegrationTestConfig) *AutomatedIntegrationTestSuite {
 	logger := zap.NewNop()

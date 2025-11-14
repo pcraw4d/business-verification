@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -329,28 +330,28 @@ func (mtr *ManualTestRunner) GetGuide() *ManualTestingGuide {
 
 // PrintSummary prints a summary of the manual test results
 func (mtr *ManualTestRunner) PrintSummary() {
-	fmt.Println("\n" + "="*80)
+	fmt.Println("\n" + strings.Repeat("=", 80))
 	fmt.Println("MANUAL TEST SUITE SUMMARY")
-	fmt.Println("=" * 80)
+	fmt.Println(strings.Repeat("=", 80))
 	fmt.Printf("Test Session ID: %s\n", mtr.results.TestSessionID)
 	fmt.Printf("Tester: %s\n", mtr.results.TesterName)
 	fmt.Printf("Environment: %s\n", mtr.results.TestEnvironment)
 	fmt.Printf("Start Time: %s\n", mtr.results.StartTime.Format("2006-01-02 15:04:05"))
 	fmt.Printf("End Time: %s\n", mtr.results.EndTime.Format("2006-01-02 15:04:05"))
 	fmt.Printf("Total Duration: %s\n", mtr.results.TotalDuration)
-	fmt.Println("-" * 80)
+	fmt.Println(strings.Repeat("-", 80))
 	fmt.Printf("Total Scenarios: %d\n", mtr.results.TotalScenarios)
 	fmt.Printf("Passed Scenarios: %d\n", mtr.results.PassedScenarios)
 	fmt.Printf("Failed Scenarios: %d\n", mtr.results.FailedScenarios)
 	fmt.Printf("Skipped Scenarios: %d\n", mtr.results.SkippedScenarios)
 	fmt.Printf("Pass Rate: %.2f%%\n", mtr.results.PassRate)
-	fmt.Println("-" * 80)
+	fmt.Println(strings.Repeat("-", 80))
 	fmt.Printf("Total Issues: %d\n", len(mtr.results.IssuesFound))
 	fmt.Printf("Critical Issues: %d\n", mtr.countIssuesBySeverity("Critical"))
 	fmt.Printf("High Issues: %d\n", mtr.countIssuesBySeverity("High"))
 	fmt.Printf("Medium Issues: %d\n", mtr.countIssuesBySeverity("Medium"))
 	fmt.Printf("Low Issues: %d\n", mtr.countIssuesBySeverity("Low"))
-	fmt.Println("-" * 80)
+	fmt.Println(strings.Repeat("-", 80))
 
 	// Print scenario results
 	fmt.Println("SCENARIO RESULTS:")
@@ -367,14 +368,14 @@ func (mtr *ManualTestRunner) PrintSummary() {
 
 	// Print recommendations
 	if len(mtr.results.Recommendations) > 0 {
-		fmt.Println("-" * 80)
+		fmt.Println(strings.Repeat("-", 80))
 		fmt.Println("RECOMMENDATIONS:")
 		for i, recommendation := range mtr.results.Recommendations {
 			fmt.Printf("  %d. %s\n", i+1, recommendation)
 		}
 	}
 
-	fmt.Println("-" * 80)
+	fmt.Println(strings.Repeat("-", 80))
 	fmt.Printf("Reports generated in: %s\n", mtr.config.ReportOutputPath)
-	fmt.Println("=" * 80)
+	fmt.Println(strings.Repeat("=", 80))
 }

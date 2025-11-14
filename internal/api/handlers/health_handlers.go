@@ -67,8 +67,9 @@ type GoRuntimeInfo struct {
 	NumCgoCall   int64  `json:"num_cgo_call"`
 }
 
-// HealthHandler provides comprehensive health check endpoints
-type HealthHandler struct {
+// ComprehensiveHealthHandler provides comprehensive health check endpoints
+// Renamed from HealthHandler to avoid conflict with health_handler.go
+type ComprehensiveHealthHandler struct {
 	logger        *zap.Logger
 	healthChecker *health.RailwayHealthChecker
 	startTime     time.Time
@@ -80,9 +81,9 @@ type HealthHandler struct {
 	cacheTTL      time.Duration
 }
 
-// NewHealthHandler creates a new health handler
-func NewHealthHandler(logger *zap.Logger, healthChecker *health.RailwayHealthChecker, version, environment string) *HealthHandler {
-	return &HealthHandler{
+// NewComprehensiveHealthHandler creates a new comprehensive health handler
+func NewComprehensiveHealthHandler(logger *zap.Logger, healthChecker *health.RailwayHealthChecker, version, environment string) *ComprehensiveHealthHandler {
+	return &ComprehensiveHealthHandler{
 		logger:        logger,
 		healthChecker: healthChecker,
 		startTime:     time.Now(),
@@ -94,7 +95,7 @@ func NewHealthHandler(logger *zap.Logger, healthChecker *health.RailwayHealthChe
 }
 
 // HandleHealth handles the main health check endpoint
-func (h *HealthHandler) HandleHealth(w http.ResponseWriter, r *http.Request) {
+func (h *ComprehensiveHealthHandler) HandleHealth(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 
 	// Check if we can serve from cache
@@ -121,7 +122,7 @@ func (h *HealthHandler) HandleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleReadiness handles the readiness probe endpoint
-func (h *HealthHandler) HandleReadiness(w http.ResponseWriter, r *http.Request) {
+func (h *ComprehensiveHealthHandler) HandleReadiness(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 
 	// Perform readiness checks (critical dependencies only)
@@ -156,7 +157,7 @@ func (h *HealthHandler) HandleReadiness(w http.ResponseWriter, r *http.Request) 
 }
 
 // HandleLiveness handles the liveness probe endpoint
-func (h *HealthHandler) HandleLiveness(w http.ResponseWriter, r *http.Request) {
+func (h *ComprehensiveHealthHandler) HandleLiveness(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 
 	// Perform liveness checks (basic system health)
@@ -191,7 +192,7 @@ func (h *HealthHandler) HandleLiveness(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleDetailedHealth handles detailed health information
-func (h *HealthHandler) HandleDetailedHealth(w http.ResponseWriter, r *http.Request) {
+func (h *ComprehensiveHealthHandler) HandleDetailedHealth(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 
 	// Perform comprehensive health checks
@@ -201,7 +202,7 @@ func (h *HealthHandler) HandleDetailedHealth(w http.ResponseWriter, r *http.Requ
 }
 
 // HandleModuleHealth handles module-specific health checks
-func (h *HealthHandler) HandleModuleHealth(w http.ResponseWriter, r *http.Request) {
+func (h *ComprehensiveHealthHandler) HandleModuleHealth(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	moduleName := r.URL.Query().Get("module")
 
@@ -253,7 +254,7 @@ func (h *HealthHandler) HandleModuleHealth(w http.ResponseWriter, r *http.Reques
 }
 
 // performHealthChecks performs comprehensive health checks
-func (h *HealthHandler) performHealthChecks() *HealthStatus {
+func (h *ComprehensiveHealthHandler) performHealthChecks() *HealthStatus {
 	checks := make(map[string]HealthCheck)
 
 	// Basic system checks
@@ -306,7 +307,7 @@ func (h *HealthHandler) performHealthChecks() *HealthStatus {
 }
 
 // performReadinessChecks performs readiness checks (critical dependencies)
-func (h *HealthHandler) performReadinessChecks() *HealthStatus {
+func (h *ComprehensiveHealthHandler) performReadinessChecks() *HealthStatus {
 	checks := make(map[string]HealthCheck)
 
 	// Only check critical dependencies for readiness
@@ -344,7 +345,7 @@ func (h *HealthHandler) performReadinessChecks() *HealthStatus {
 }
 
 // performLivenessChecks performs liveness checks (basic system health)
-func (h *HealthHandler) performLivenessChecks() *HealthStatus {
+func (h *ComprehensiveHealthHandler) performLivenessChecks() *HealthStatus {
 	checks := make(map[string]HealthCheck)
 
 	// Only check basic system health for liveness
@@ -379,7 +380,7 @@ func (h *HealthHandler) performLivenessChecks() *HealthStatus {
 }
 
 // performDetailedHealthChecks performs detailed health checks with additional information
-func (h *HealthHandler) performDetailedHealthChecks() *HealthStatus {
+func (h *ComprehensiveHealthHandler) performDetailedHealthChecks() *HealthStatus {
 	status := h.performHealthChecks()
 
 	// Add additional detailed checks
@@ -397,7 +398,7 @@ func (h *HealthHandler) performDetailedHealthChecks() *HealthStatus {
 }
 
 // checkSystemHealth checks basic system health
-func (h *HealthHandler) checkSystemHealth() HealthCheck {
+func (h *ComprehensiveHealthHandler) checkSystemHealth() HealthCheck {
 	start := time.Now()
 
 	check := HealthCheck{
@@ -418,7 +419,7 @@ func (h *HealthHandler) checkSystemHealth() HealthCheck {
 }
 
 // checkDatabaseHealth checks database connectivity and performance
-func (h *HealthHandler) checkDatabaseHealth() HealthCheck {
+func (h *ComprehensiveHealthHandler) checkDatabaseHealth() HealthCheck {
 	start := time.Now()
 
 	check := HealthCheck{
@@ -442,7 +443,7 @@ func (h *HealthHandler) checkDatabaseHealth() HealthCheck {
 }
 
 // checkCacheHealth checks cache connectivity and performance
-func (h *HealthHandler) checkCacheHealth() HealthCheck {
+func (h *ComprehensiveHealthHandler) checkCacheHealth() HealthCheck {
 	start := time.Now()
 
 	check := HealthCheck{
@@ -466,7 +467,7 @@ func (h *HealthHandler) checkCacheHealth() HealthCheck {
 }
 
 // checkExternalAPIsHealth checks external API connectivity
-func (h *HealthHandler) checkExternalAPIsHealth() HealthCheck {
+func (h *ComprehensiveHealthHandler) checkExternalAPIsHealth() HealthCheck {
 	start := time.Now()
 
 	check := HealthCheck{
@@ -490,7 +491,7 @@ func (h *HealthHandler) checkExternalAPIsHealth() HealthCheck {
 }
 
 // checkMLModelsHealth checks ML model availability and performance
-func (h *HealthHandler) checkMLModelsHealth() HealthCheck {
+func (h *ComprehensiveHealthHandler) checkMLModelsHealth() HealthCheck {
 	start := time.Now()
 
 	check := HealthCheck{
@@ -514,7 +515,7 @@ func (h *HealthHandler) checkMLModelsHealth() HealthCheck {
 }
 
 // checkObservabilityHealth checks observability systems
-func (h *HealthHandler) checkObservabilityHealth() HealthCheck {
+func (h *ComprehensiveHealthHandler) checkObservabilityHealth() HealthCheck {
 	start := time.Now()
 
 	check := HealthCheck{
@@ -538,7 +539,7 @@ func (h *HealthHandler) checkObservabilityHealth() HealthCheck {
 }
 
 // checkMemoryHealth checks memory usage
-func (h *HealthHandler) checkMemoryHealth() HealthCheck {
+func (h *ComprehensiveHealthHandler) checkMemoryHealth() HealthCheck {
 	start := time.Now()
 
 	check := HealthCheck{
@@ -574,7 +575,7 @@ func (h *HealthHandler) checkMemoryHealth() HealthCheck {
 }
 
 // checkGoroutinesHealth checks goroutine count
-func (h *HealthHandler) checkGoroutinesHealth() HealthCheck {
+func (h *ComprehensiveHealthHandler) checkGoroutinesHealth() HealthCheck {
 	start := time.Now()
 
 	check := HealthCheck{
@@ -604,7 +605,7 @@ func (h *HealthHandler) checkGoroutinesHealth() HealthCheck {
 }
 
 // checkDiskHealth checks disk usage
-func (h *HealthHandler) checkDiskHealth() HealthCheck {
+func (h *ComprehensiveHealthHandler) checkDiskHealth() HealthCheck {
 	start := time.Now()
 
 	check := HealthCheck{
@@ -628,7 +629,7 @@ func (h *HealthHandler) checkDiskHealth() HealthCheck {
 }
 
 // checkNetworkHealth checks network connectivity
-func (h *HealthHandler) checkNetworkHealth() HealthCheck {
+func (h *ComprehensiveHealthHandler) checkNetworkHealth() HealthCheck {
 	start := time.Now()
 
 	check := HealthCheck{
@@ -652,7 +653,7 @@ func (h *HealthHandler) checkNetworkHealth() HealthCheck {
 }
 
 // calculateHealthMetrics calculates health metrics from checks
-func (h *HealthHandler) calculateHealthMetrics(checks map[string]HealthCheck) HealthMetrics {
+func (h *ComprehensiveHealthHandler) calculateHealthMetrics(checks map[string]HealthCheck) HealthMetrics {
 	metrics := HealthMetrics{
 		TotalChecks: len(checks),
 	}
@@ -704,7 +705,7 @@ func (h *HealthHandler) calculateHealthMetrics(checks map[string]HealthCheck) He
 }
 
 // serveHealthResponse serves the health response with appropriate status code
-func (h *HealthHandler) serveHealthResponse(w http.ResponseWriter, r *http.Request, status *HealthStatus, responseTime time.Duration) {
+func (h *ComprehensiveHealthHandler) serveHealthResponse(w http.ResponseWriter, r *http.Request, status *HealthStatus, responseTime time.Duration) {
 	// Set appropriate HTTP status code
 	var httpStatus int
 	switch status.Status {
@@ -735,7 +736,7 @@ func (h *HealthHandler) serveHealthResponse(w http.ResponseWriter, r *http.Reque
 }
 
 // getCachedHealthStatus returns cached health status
-func (h *HealthHandler) getCachedHealthStatus() *HealthStatus {
+func (h *ComprehensiveHealthHandler) getCachedHealthStatus() *HealthStatus {
 	checks := make(map[string]HealthCheck)
 	for name, check := range h.cache {
 		checks[name] = check

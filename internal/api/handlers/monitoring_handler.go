@@ -39,7 +39,7 @@ type DashboardMetrics struct {
 }
 
 // Alert represents an alert
-type Alert struct {
+type MonitoringAlert struct {
 	ID          string            `json:"id"`
 	Title       string            `json:"title"`
 	Description string            `json:"description"`
@@ -50,7 +50,7 @@ type Alert struct {
 }
 
 // HealthCheck represents a health check result
-type HealthCheck struct {
+type MonitoringHealthCheck struct {
 	Name        string  `json:"name"`
 	Status      string  `json:"status"`
 	Message     string  `json:"message"`
@@ -142,13 +142,13 @@ func (h *MonitoringHandler) collectMetrics() DashboardMetrics {
 }
 
 // getMockAlerts returns mock alerts for demonstration
-func (h *MonitoringHandler) getMockAlerts() []Alert {
-	alerts := []Alert{}
+func (h *MonitoringHandler) getMockAlerts() []MonitoringAlert {
+	alerts := []MonitoringAlert{}
 
 	// Randomly show 0-2 alerts
 	numAlerts := int(time.Now().Unix() % 3)
 
-	alertTypes := []Alert{
+	alertTypes := []MonitoringAlert{
 		{
 			ID:          "alert-1",
 			Title:       "High Error Rate",
@@ -186,8 +186,8 @@ func (h *MonitoringHandler) getMockAlerts() []Alert {
 }
 
 // getMockHealthChecks returns mock health checks for demonstration
-func (h *MonitoringHandler) getMockHealthChecks() []HealthCheck {
-	return []HealthCheck{
+func (h *MonitoringHandler) getMockHealthChecks() []MonitoringHealthCheck {
+	return []MonitoringHealthCheck{
 		{
 			Name:        "API Server",
 			Status:      "healthy",

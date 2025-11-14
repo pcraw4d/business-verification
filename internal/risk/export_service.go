@@ -607,6 +607,7 @@ func (es *ExportService) exportAlertsToCSV(alerts []RiskAlert) (string, error) {
 		if alert.AcknowledgedAt != nil {
 			acknowledgedAt = alert.AcknowledgedAt.Format(time.RFC3339)
 		}
+		_ = acknowledgedAt // Suppress unused variable warning - may be used in future CSV export
 
 		record := []string{
 			alert.ID,

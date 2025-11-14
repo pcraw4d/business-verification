@@ -571,7 +571,7 @@ func (uat *UserAcceptanceTesting) isTestCasePassed(testCase *UATTestCase, result
 	}
 
 	// Check completion time (with tolerance)
-	if expected.CompletionTime > 0 && actual.CompletionTime > expected.CompletionTime*1.5 {
+	if expected.CompletionTime > 0 && actual.CompletionTime > time.Duration(float64(expected.CompletionTime)*1.5) {
 		return false
 	}
 

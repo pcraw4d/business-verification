@@ -164,6 +164,7 @@ func (h *HealthCheckService) CheckExternalAPIsHealth() HealthCheckResult {
 		time.Sleep(50 * time.Millisecond)
 		// TODO: Replace with actual HTTP health check
 		// Example: if err := checkAPIHealth(apiURL); err != nil { failedAPIs = append(failedAPIs, apiURL) }
+		_ = apiURL // Suppress unused variable warning until implementation is complete
 	}
 
 	if len(failedAPIs) > 0 {

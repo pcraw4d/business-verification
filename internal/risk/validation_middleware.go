@@ -236,11 +236,9 @@ func (h *HTTPValidationHandler) ValidateBusinessDataRequest(r *http.Request, bus
 // WriteValidationErrorResponse writes validation error response to HTTP response writer
 func (h *HTTPValidationHandler) WriteValidationErrorResponse(w http.ResponseWriter, result *ValidationResult) {
 	requestID := "unknown"
-	if ctx := w.(*http.Request).Context(); ctx != nil {
-		if id := ctx.Value("request_id"); id != nil {
-			requestID = id.(string)
-		}
-	}
+	// TODO: Fix type assertion - w is http.ResponseWriter, not *http.Request
+	// For now, use a default request ID
+	_ = w
 
 	h.logger.Error("Writing validation error response",
 		zap.String("request_id", requestID),

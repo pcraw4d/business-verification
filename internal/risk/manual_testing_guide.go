@@ -346,9 +346,10 @@ func (mtg *ManualTestingGuide) executeTestStep(ctx context.Context, step TestSte
 		}
 
 		validationResult := mtg.validateStep(step, rule)
-		if validationResult.Status == "Failed" {
+		// ValidationResult has IsValid, Errors, and Warnings fields
+		if !validationResult.IsValid && len(validationResult.Errors) > 0 {
 			success = false
-			errorMessage = validationResult.Message
+			errorMessage = validationResult.Errors[0].Message
 			break
 		}
 	}
@@ -370,50 +371,34 @@ func (mtg *ManualTestingGuide) validateStep(step TestStep, rule *ValidationRule)
 
 	// Simulate validation logic based on rule type
 	switch rule.Type {
-	case "UI":
-		return ValidationResult{
-			RuleID:    rule.ID,
-			RuleName:  rule.Name,
-			Status:    "Passed",
-			Message:   "UI validation passed",
-			Timestamp: time.Now(),
-			Details:   make(map[string]interface{}),
-		}
-	case "API":
-		return ValidationResult{
-			RuleID:    rule.ID,
-			RuleName:  rule.Name,
-			Status:    "Passed",
-			Message:   "API validation passed",
-			Timestamp: time.Now(),
-			Details:   make(map[string]interface{}),
-		}
+        case "UI":
+                return ValidationResult{
+                        IsValid:  true,
+                        Errors:   []ValidationError{},
+                        Warnings: []ValidationError{},
+                }
+        case "API":
+                return ValidationResult{
+                        IsValid:  true,
+                        Errors:   []ValidationError{},
+                        Warnings: []ValidationError{},
+                }
 	case "Data":
 		return ValidationResult{
-			RuleID:    rule.ID,
-			RuleName:  rule.Name,
-			Status:    "Passed",
-			Message:   "Data validation passed",
-			Timestamp: time.Now(),
-			Details:   make(map[string]interface{}),
+			IsValid: true,
+			Errors:  []ValidationError{},
 		}
 	case "Business Logic":
 		return ValidationResult{
-			RuleID:    rule.ID,
-			RuleName:  rule.Name,
-			Status:    "Passed",
-			Message:   "Business logic validation passed",
-			Timestamp: time.Now(),
-			Details:   make(map[string]interface{}),
+			IsValid: true,
+			Errors:  []ValidationError{},
 		}
 	default:
 		return ValidationResult{
-			RuleID:    rule.ID,
-			RuleName:  rule.Name,
-			Status:    "Failed",
-			Message:   "Unknown validation rule type",
-			Timestamp: time.Now(),
-			Details:   make(map[string]interface{}),
+			IsValid: false,
+			Errors: []ValidationError{
+				{Message: "Unknown validation rule type"},
+			},
 		}
 	}
 }

@@ -245,10 +245,27 @@ func (tdg *TestDataGenerator) GenerateRiskAssessment(businessID string) *RiskAss
 		AssessedAt:   time.Now(),
 		ValidUntil:   time.Now().Add(24 * time.Hour),
 		AlertLevel:   RiskLevelMedium,
-		CategoryScores: map[RiskCategory]float64{
-			RiskCategoryFinancial:   80.0,
-			RiskCategoryOperational: 70.0,
-			RiskCategoryCompliance:  75.0,
+		CategoryScores: map[RiskCategory]RiskScore{
+			RiskCategoryFinancial: {
+				FactorID:     "financial",
+				FactorName:   "Financial",
+				Category:     RiskCategoryFinancial,
+				Score:        80.0,
+				Level:        RiskLevelHigh,
+				Confidence:   0.9,
+				Explanation:  "Financial risk assessment",
+				CalculatedAt: time.Now(),
+			},
+			RiskCategoryOperational: {
+				FactorID:     "operational",
+				FactorName:   "Operational",
+				Category:     RiskCategoryOperational,
+				Score:        70.0,
+				Level:        RiskLevelMedium,
+				Confidence:   0.8,
+				Explanation:  "Operational risk assessment",
+				CalculatedAt: time.Now(),
+			},
 		},
 		FactorScores: []RiskScore{
 			{
@@ -265,11 +282,14 @@ func (tdg *TestDataGenerator) GenerateRiskAssessment(businessID string) *RiskAss
 		Recommendations: []RiskRecommendation{
 			{
 				ID:          "rec-1",
-				Category:    RiskCategoryFinancial,
-				Priority:    RecommendationPriorityHigh,
+				RiskFactor:  "financial",
+				Priority:    RiskLevelHigh,
 				Title:       "Improve Financial Monitoring",
 				Description: "Implement regular financial monitoring",
-				Actions:     []string{"Set up monthly reviews", "Implement alerts"},
+				Action:      "Set up monthly reviews and implement alerts",
+				Impact:      "Medium",
+				Timeline:    "Within 30 days",
+				CreatedAt:   time.Now(),
 			},
 		},
 		Alerts: []RiskAlert{

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -26,7 +28,7 @@ type GapTracking struct {
 	DueDate     time.Time              `json:"due_date"`
 	StartDate   time.Time              `json:"start_date"`
 	Framework   string                 `json:"framework"`
-	Milestones  []Milestone            `json:"milestones"`
+	Milestones  []GapTrackingMilestone `json:"milestones"`
 	Team        []string               `json:"team"`
 	CreatedAt   time.Time              `json:"created_at"`
 	UpdatedAt   time.Time              `json:"updated_at"`
@@ -36,7 +38,7 @@ type GapTracking struct {
 }
 
 // Milestone represents a project milestone
-type Milestone struct {
+type GapTrackingMilestone struct {
 	ID          string     `json:"id"`
 	Name        string     `json:"name"`
 	Description string     `json:"description"`
@@ -289,7 +291,7 @@ func (h *GapTrackingHandler) CreateGapTracking(w http.ResponseWriter, r *http.Re
 
 	// Add milestones
 	for _, milestoneReq := range gapRequest.Milestones {
-		milestone := Milestone{
+		milestone := GapTrackingMilestone{
 			ID:          fmt.Sprintf("milestone_%d", time.Now().UnixNano()),
 			Name:        milestoneReq.Name,
 			Description: milestoneReq.Description,
@@ -534,11 +536,16 @@ func (h *GapTrackingHandler) getTeamPerformance(team []string) map[string]interf
 		averageProgress = float64(totalProgress) / float64(teamGaps)
 	}
 
+	completionRate := 0.0
+	if teamGaps > 0 {
+		completionRate = float64(completedGaps) / float64(teamGaps) * 100
+	}
+
 	return map[string]interface{}{
 		"total_gaps":       teamGaps,
 		"completed_gaps":   completedGaps,
 		"average_progress": averageProgress,
-		"completion_rate":  float64(completedGaps) / float64(teamGaps) * 100,
+		"completion_rate":  completionRate,
 	}
 }
 
@@ -567,7 +574,7 @@ func (h *GapTrackingHandler) assessGapRisk(gap *GapTracking) map[string]interfac
 	daysTotal := int(gap.DueDate.Sub(gap.StartDate).Hours() / 24)
 	if daysTotal > 0 {
 		expectedProgress := (float64(daysElapsed) / float64(daysTotal)) * 100
-		if gap.Progress < expectedProgress-20 {
+		if float64(gap.Progress) < expectedProgress-20 {
 			riskScore += 20
 		}
 	}
@@ -599,7 +606,7 @@ func (h *GapTrackingHandler) getGapRecommendations(gapID string) []string {
 	}
 }
 
-func (h *GapTrackingHandler) getNextMilestone(gap *GapTracking) *Milestone {
+func (h *GapTrackingHandler) getNextMilestone(gap *GapTracking) *GapTrackingMilestone {
 	for _, milestone := range gap.Milestones {
 		if !milestone.Completed {
 			return &milestone
@@ -657,21 +664,36 @@ func (h *GapTrackingHandler) getSystemRecommendations() []string {
 }
 
 func (h *GapTrackingHandler) getAllTeamPerformance() map[string]interface{} {
-	teams := make(map[string][]string)
+	// Map to store unique teams (represented as sorted team member arrays)
+	// Key: sorted team member names joined by comma (e.g., "Alice,Bob,Charlie")
+	// Value: the actual team array
+	uniqueTeams := make(map[string][]string)
 
-	// Group gaps by team
+	// Identify unique teams from gaps
 	for _, gap := range h.trackingData {
-		for _, teamMember := range gap.Team {
-			if _, exists := teams[teamMember]; !exists {
-				teams[teamMember] = []string{}
-			}
-			teams[teamMember] = append(teams[teamMember], gap.ID)
+		if len(gap.Team) == 0 {
+			continue
+		}
+
+		// Create a sorted copy of the team to use as a key
+		teamCopy := make([]string, len(gap.Team))
+		copy(teamCopy, gap.Team)
+		// Sort to ensure same team members in different order are treated as same team
+		sort.Strings(teamCopy)
+		teamKey := strings.Join(teamCopy, ",")
+
+		// Store the team if we haven't seen this combination before
+		if _, exists := uniqueTeams[teamKey]; !exists {
+			uniqueTeams[teamKey] = gap.Team // Store original order
 		}
 	}
 
+	// Calculate performance for each unique team
 	performance := make(map[string]interface{})
-	for team, gapIDs := range teams {
-		performance[team] = h.getTeamPerformance([]string{team})
+	for _, team := range uniqueTeams {
+		// Use team member names joined as the display key
+		displayKey := strings.Join(team, ", ")
+		performance[displayKey] = h.getTeamPerformance(team)
 	}
 
 	return performance
@@ -704,7 +726,7 @@ func getSampleTrackingData() []GapTracking {
 			DueDate:     now.AddDate(0, 0, 27),
 			StartDate:   now.AddDate(0, 0, -18),
 			Framework:   "SOC 2",
-			Milestones: []Milestone{
+			Milestones: []GapTrackingMilestone{
 				{ID: "mil-001", Name: "System Evaluation", Completed: true, DueDate: now.AddDate(0, 0, -13), CompletedAt: &now},
 				{ID: "mil-002", Name: "Vendor Selection", Completed: true, DueDate: now.AddDate(0, 0, -6), CompletedAt: &now},
 				{ID: "mil-003", Name: "Pilot Implementation", Completed: false, DueDate: now.AddDate(0, 0, 6)},
@@ -728,7 +750,7 @@ func getSampleTrackingData() []GapTracking {
 			DueDate:     now.AddDate(0, 0, 42),
 			StartDate:   now.AddDate(0, 0, -9),
 			Framework:   "GDPR",
-			Milestones: []Milestone{
+			Milestones: []GapTrackingMilestone{
 				{ID: "mil-005", Name: "Encryption Audit", Completed: true, DueDate: now.AddDate(0, 0, -4), CompletedAt: &now},
 				{ID: "mil-006", Name: "Standards Definition", Completed: true, DueDate: now.AddDate(0, 0, 1), CompletedAt: &now},
 				{ID: "mil-007", Name: "Database Encryption", Completed: false, DueDate: now.AddDate(0, 0, 21)},
@@ -752,7 +774,7 @@ func getSampleTrackingData() []GapTracking {
 			DueDate:     now.AddDate(0, 0, 72),
 			StartDate:   now.AddDate(0, 0, 1),
 			Framework:   "PCI DSS",
-			Milestones: []Milestone{
+			Milestones: []GapTrackingMilestone{
 				{ID: "mil-009", Name: "Curriculum Design", Completed: false, DueDate: now.AddDate(0, 0, 12)},
 				{ID: "mil-010", Name: "Content Creation", Completed: false, DueDate: now.AddDate(0, 0, 26)},
 				{ID: "mil-011", Name: "Pilot Training", Completed: false, DueDate: now.AddDate(0, 0, 42)},

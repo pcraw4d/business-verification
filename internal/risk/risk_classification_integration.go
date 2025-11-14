@@ -100,7 +100,16 @@ func (rci *RiskClassificationIntegration) ClassifyWithRiskAssessment(
 		return nil, fmt.Errorf("classification failed: %w", err)
 	}
 
-	result.Classification = classificationResult.Classifications[0] // Get the best classification
+	// TODO: MultiMethodClassificationResult doesn't have Classifications field
+	// It has PrimaryClassification and MethodResults instead
+	// result.Classification = classificationResult.Classifications[0] // Get the best classification
+	if classificationResult.PrimaryClassification != nil {
+		// Use primary classification if available
+		result.Classification = classificationResult.PrimaryClassification
+	} else if len(classificationResult.MethodResults) > 0 && classificationResult.MethodResults[0].Result != nil {
+		// Fallback to first method result
+		result.Classification = classificationResult.MethodResults[0].Result
+	}
 
 	// Step 2: Perform risk assessment if enabled
 	if rci.config.EnableRiskDetection {
