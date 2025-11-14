@@ -92,6 +92,12 @@ WORKDIR /app
 # Copy binary from builder stage
 COPY --from=builder /app/risk-assessment-service .
 
+# Verify binary exists and check its dependencies
+RUN echo "Verifying binary..." && \
+    ls -lh /app/risk-assessment-service && \
+    file /app/risk-assessment-service && \
+    ldd /app/risk-assessment-service 2>/dev/null | head -20 || echo "Binary is statically linked or ldd not available"
+
 # Copy ONNX Runtime libraries from builder stage (robust copy)
 COPY --from=builder /app/onnxruntime/ /app/onnxruntime/
 
