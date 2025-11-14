@@ -181,8 +181,9 @@ func (pm *PerformanceMonitor) checkAlerts() {
 		pm.addAlert(AlertTypeHighErrorRate, fmt.Sprintf("High error rate detected: %.2f%% (target: %.2f%%)", pm.errorRate*100, pm.targetErrorRate*100), AlertSeverityCritical, pm.targetErrorRate, pm.errorRate)
 	}
 
-	// Check throughput alert
-	if pm.requestsPerMinute < pm.targetThroughput {
+	// Check throughput alert - only alert if there are actual requests
+	// This prevents false alerts during initial startup when there's no traffic
+	if pm.requestsPerMinute < pm.targetThroughput && pm.requestCount > 0 {
 		pm.addAlert(AlertTypeLowThroughput, fmt.Sprintf("Low throughput detected: %.2f req/min (target: %.2f req/min)", pm.requestsPerMinute, pm.targetThroughput), AlertSeverityWarning, pm.targetThroughput, pm.requestsPerMinute)
 	}
 
