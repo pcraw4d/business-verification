@@ -60,14 +60,20 @@ RUN GOOS=linux GOARCH=amd64 GOWORK=off go build \
 
 # Debug script removed - file does not exist
 
-# Final stage
-FROM alpine:latest
+# Final stage - Use Debian for glibc compatibility (ONNX Runtime requires libstdc++.so.6)
+FROM debian:bookworm-slim
 
-# Install ca-certificates, timezone data, and wget for health checks
-RUN apk --no-cache add ca-certificates tzdata wget
+# Install ca-certificates, timezone data, wget for health checks, and libstdc++6 for ONNX Runtime
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    ca-certificates \
+    tzdata \
+    wget \
+    libstdc++6 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
-RUN adduser -D -s /bin/sh appuser
+RUN useradd -m -s /bin/bash appuser
 
 # Create app directory and required subdirectories
 RUN mkdir -p /app/logs /app/models /app/onnxruntime/lib
