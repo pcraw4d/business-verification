@@ -120,3 +120,12 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Safari-specific fixes */
+@supports (-webkit-appearance: none) {
+  /* Fix for tab navigation flexbox alignment in Safari */
+  .grid {
+    display: -webkit-grid;
+    display: grid;
+  }
+}
