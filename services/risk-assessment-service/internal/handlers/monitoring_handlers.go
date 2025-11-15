@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	errorspkg "kyb-platform/pkg/errors"
 	"kyb-platform/services/risk-assessment-service/internal/monitoring"
 
 	"go.uber.org/zap"
@@ -94,12 +95,12 @@ func (mh *MonitoringHandler) SuppressAlert(w http.ResponseWriter, r *http.Reques
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		errorspkg.WriteBadRequest(w, r, "Invalid request body")
 		return
 	}
 
 	if err := mh.alerts.SuppressAlert(request.AlertID, request.Duration); err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		errorspkg.WriteNotFound(w, r, err.Error())
 		return
 	}
 
@@ -171,7 +172,7 @@ func (mh *MonitoringHandler) GetTenantMetrics(w http.ResponseWriter, r *http.Req
 	tenantID := r.URL.Query().Get("tenant_id")
 
 	if tenantID == "" {
-		http.Error(w, "tenant_id parameter is required", http.StatusBadRequest)
+		errorspkg.WriteBadRequest(w, r, "tenant_id parameter is required")
 		return
 	}
 
@@ -202,7 +203,7 @@ func (mh *MonitoringHandler) GetTenantMetrics(w http.ResponseWriter, r *http.Req
 // CreateGrafanaDashboard creates a Grafana dashboard
 func (mh *MonitoringHandler) CreateGrafanaDashboard(w http.ResponseWriter, r *http.Request) {
 	if err := mh.grafana.CreateRiskAssessmentDashboard(r.Context()); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		errorspkg.WriteInternalError(w, r, err.Error())
 		return
 	}
 
@@ -222,7 +223,7 @@ func (mh *MonitoringHandler) GetGrafanaDashboard(w http.ResponseWriter, r *http.
 
 	dashboard, err := mh.grafana.GetDashboard(r.Context(), uid)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		errorspkg.WriteNotFound(w, r, err.Error())
 		return
 	}
 
@@ -234,12 +235,12 @@ func (mh *MonitoringHandler) GetGrafanaDashboard(w http.ResponseWriter, r *http.
 func (mh *MonitoringHandler) DeleteGrafanaDashboard(w http.ResponseWriter, r *http.Request) {
 	uid := r.URL.Query().Get("uid")
 	if uid == "" {
-		http.Error(w, "uid parameter is required", http.StatusBadRequest)
+		errorspkg.WriteBadRequest(w, r, "uid parameter is required")
 		return
 	}
 
 	if err := mh.grafana.DeleteDashboard(r.Context(), uid); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		errorspkg.WriteInternalError(w, r, err.Error())
 		return
 	}
 
@@ -282,7 +283,7 @@ func (mh *MonitoringHandler) GetMonitoringConfig(w http.ResponseWriter, r *http.
 func (mh *MonitoringHandler) UpdateMonitoringConfig(w http.ResponseWriter, r *http.Request) {
 	var config map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&config); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		errorspkg.WriteBadRequest(w, r, "Invalid request body")
 		return
 	}
 
