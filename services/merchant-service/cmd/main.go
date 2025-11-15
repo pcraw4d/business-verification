@@ -13,6 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 
+	"kyb-platform/pkg/errors"
 	"kyb-platform/services/merchant-service/internal/config"
 	"kyb-platform/services/merchant-service/internal/handlers"
 	"kyb-platform/services/merchant-service/internal/supabase"
@@ -221,7 +222,7 @@ func rateLimitMiddleware() func(http.Handler) http.Handler {
 
 			// Check rate limit (100 requests per minute)
 			if len(requests[clientIP]) >= 100 {
-				http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
+				errors.WriteError(w, r, http.StatusTooManyRequests, "RATE_LIMIT_EXCEEDED", "Rate limit exceeded", "Too many requests from this IP address")
 				return
 			}
 
