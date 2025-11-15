@@ -86,9 +86,10 @@ func RegisterRiskRoutesWithConfig(mux *http.ServeMux, riskHandler *handlers.Risk
 
 // AsyncRiskAssessmentRouteConfig holds configuration for async risk assessment routes
 type AsyncRiskAssessmentRouteConfig struct {
-	AsyncRiskHandler *handlers.AsyncRiskAssessmentHandler
-	AuthMiddleware   *middleware.AuthMiddleware
-	RateLimiter      *middleware.APIRateLimiter
+	AsyncRiskHandler     *handlers.AsyncRiskAssessmentHandler
+	RiskIndicatorsHandler *handlers.RiskIndicatorsHandler
+	AuthMiddleware       *middleware.AuthMiddleware
+	RateLimiter          *middleware.APIRateLimiter
 }
 
 // RegisterAsyncRiskAssessmentRoutes registers async risk assessment routes
@@ -115,6 +116,54 @@ func RegisterAsyncRiskAssessmentRoutes(mux *http.ServeMux, config *AsyncRiskAsse
 			),
 		),
 	)
+
+	// GET /api/v1/risk/history/{merchantId} - Get risk history
+	mux.Handle("GET /api/v1/risk/history/{merchantId}",
+		config.AuthMiddleware.RequireAuth(
+			config.RateLimiter.Middleware(
+				http.HandlerFunc(config.AsyncRiskHandler.GetRiskHistory),
+			),
+		),
+	)
+
+	// GET /api/v1/risk/predictions/{merchantId} - Get risk predictions
+	mux.Handle("GET /api/v1/risk/predictions/{merchantId}",
+		config.AuthMiddleware.RequireAuth(
+			config.RateLimiter.Middleware(
+				http.HandlerFunc(config.AsyncRiskHandler.GetRiskPredictions),
+			),
+		),
+	)
+
+	// GET /api/v1/risk/explain/{assessmentId} - Explain risk assessment
+	mux.Handle("GET /api/v1/risk/explain/{assessmentId}",
+		config.AuthMiddleware.RequireAuth(
+			config.RateLimiter.Middleware(
+				http.HandlerFunc(config.AsyncRiskHandler.ExplainRiskAssessment),
+			),
+		),
+	)
+
+	// Register risk indicators routes if handler is provided
+	if config.RiskIndicatorsHandler != nil {
+		// GET /api/v1/risk/indicators/{merchantId} - Get risk indicators
+		mux.Handle("GET /api/v1/risk/indicators/{merchantId}",
+			config.AuthMiddleware.RequireAuth(
+				config.RateLimiter.Middleware(
+					http.HandlerFunc(config.RiskIndicatorsHandler.GetRiskIndicators),
+				),
+			),
+		)
+
+		// GET /api/v1/risk/alerts/{merchantId} - Get risk alerts
+		mux.Handle("GET /api/v1/risk/alerts/{merchantId}",
+			config.AuthMiddleware.RequireAuth(
+				config.RateLimiter.Middleware(
+					http.HandlerFunc(config.RiskIndicatorsHandler.GetRiskAlerts),
+				),
+			),
+		)
+	}
 }
 
 // RegisterAsyncRiskAssessmentRoutesWithConfig is an alias for RegisterAsyncRiskAssessmentRoutes

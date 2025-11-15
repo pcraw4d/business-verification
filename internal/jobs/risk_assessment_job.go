@@ -97,33 +97,64 @@ func (p *RiskAssessmentJobProcessor) worker(id int) {
 	}
 }
 
-// processJob processes a single risk assessment job
+// Process processes a risk assessment job (public method for direct processing)
+func (j *RiskAssessmentJob) Process(ctx context.Context, repo *database.RiskAssessmentRepository, riskService RiskAssessmentService, logger *log.Logger) error {
+	if logger == nil {
+		logger = log.Default()
+	}
+
+	logger.Printf("Processing assessment: %s for merchant: %s", j.AssessmentID, j.MerchantID)
+
+	// Update status to processing
+	err := repo.UpdateAssessmentStatus(ctx, j.AssessmentID, models.AssessmentStatusProcessing, 10)
+	if err != nil {
+		logger.Printf("Error updating status to processing: %v", err)
+		return fmt.Errorf("failed to update status: %w", err)
+	}
+
+	// Perform the actual risk assessment
+	result, err := riskService.PerformRiskAssessment(ctx, j.MerchantID, j.Options)
+	if err != nil {
+		logger.Printf("Error performing risk assessment: %v", err)
+		// Update status to failed
+		repo.UpdateAssessmentStatus(ctx, j.AssessmentID, models.AssessmentStatusFailed, 0)
+		return fmt.Errorf("risk assessment failed: %w", err)
+	}
+
+	// Set assessment ID on result (if result struct supports it)
+	// Note: RiskAssessmentResult doesn't have an ID field, so we'll set it in the update
+
+	// Save assessment results to repository
+	err = repo.UpdateAssessmentResult(ctx, j.AssessmentID, result)
+	if err != nil {
+		logger.Printf("Error saving assessment result: %v", err)
+		repo.UpdateAssessmentStatus(ctx, j.AssessmentID, models.AssessmentStatusFailed, 0)
+		return fmt.Errorf("failed to save result: %w", err)
+	}
+
+	// Update status to completed
+	completedAt := time.Now()
+	err = repo.UpdateAssessmentStatus(ctx, j.AssessmentID, models.AssessmentStatusCompleted, 100)
+	if err != nil {
+		logger.Printf("Error updating status to completed: %v", err)
+		return fmt.Errorf("failed to update status: %w", err)
+	}
+
+	// Update completed timestamp if repository supports it
+	_ = completedAt // Use completedAt if repository method exists
+
+	logger.Printf("Assessment completed: %s", j.AssessmentID)
+	return nil
+}
+
+// processJob processes a single risk assessment job (internal method used by processor)
 func (p *RiskAssessmentJobProcessor) processJob(ctx context.Context, job RiskAssessmentJob, workerID int) {
 	p.logger.Printf("Worker %d processing assessment: %s", workerID, job.AssessmentID)
 
-	// Update status to processing
-	err := p.repo.UpdateAssessmentStatus(ctx, job.AssessmentID, models.AssessmentStatusProcessing, 10)
+	// Use the Process method
+	err := job.Process(ctx, p.repo, p.riskService, p.logger)
 	if err != nil {
-		p.logger.Printf("Error updating status to processing: %v", err)
-		return
-	}
-
-	// Simulate progress updates
-	go p.updateProgress(ctx, job.AssessmentID)
-
-	// Perform the actual risk assessment
-	result, err := p.riskService.PerformRiskAssessment(ctx, job.MerchantID, job.Options)
-	if err != nil {
-		p.logger.Printf("Error performing risk assessment: %v", err)
-		// Update status to failed
-		p.repo.UpdateAssessmentStatus(ctx, job.AssessmentID, models.AssessmentStatusFailed, 0)
-		return
-	}
-
-	// Update with result
-	err = p.repo.UpdateAssessmentResult(ctx, job.AssessmentID, result)
-	if err != nil {
-		p.logger.Printf("Error updating assessment result: %v", err)
+		p.logger.Printf("Worker %d failed to process assessment %s: %v", workerID, job.AssessmentID, err)
 		return
 	}
 

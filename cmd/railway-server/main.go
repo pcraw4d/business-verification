@@ -1124,11 +1124,13 @@ func (s *RailwayServer) setupNewAPIRoutes() {
 	var merchantRepo *database.MerchantPortfolioRepository
 	var analyticsRepo *database.MerchantAnalyticsRepository
 	var riskAssessmentRepo *database.RiskAssessmentRepository
+	var riskIndicatorsRepo *database.RiskIndicatorsRepository
 
 	if s.db != nil {
 		merchantRepo = database.NewMerchantPortfolioRepository(s.db, logger)
 		analyticsRepo = database.NewMerchantAnalyticsRepository(s.db, logger)
 		riskAssessmentRepo = database.NewRiskAssessmentRepository(s.db, logger)
+		riskIndicatorsRepo = database.NewRiskIndicatorsRepository(s.db, logger)
 	} else {
 		log.Println("⚠️  Database unavailable - repositories not initialized. Some features will be limited.")
 		// Repositories will be nil, handlers should check for nil before use
@@ -1141,9 +1143,17 @@ func (s *RailwayServer) setupNewAPIRoutes() {
 	var merchantPortfolioService services.MerchantPortfolioServiceInterface = nil // TODO: Create proper DB wrapper
 	var analyticsService services.MerchantAnalyticsService
 	var riskAssessmentService services.RiskAssessmentService
+	var riskIndicatorsService services.RiskIndicatorsService
+	var dataEnrichmentService services.DataEnrichmentService
 
 	if analyticsRepo != nil && merchantRepo != nil {
-		analyticsService = services.NewMerchantAnalyticsService(analyticsRepo, merchantRepo, logger)
+		// Initialize cache if Redis is available
+		var cacheClient services.Cache = nil
+		if s.redisOptimizer != nil {
+			// Use Redis optimizer as cache if available
+			// For now, pass nil - cache is optional
+		}
+		analyticsService = services.NewMerchantAnalyticsService(analyticsRepo, merchantRepo, cacheClient, logger)
 	} else {
 		log.Println("⚠️  Analytics service not initialized - database unavailable")
 		// analyticsService will be nil (interface), handlers should check for nil
@@ -1157,11 +1167,32 @@ func (s *RailwayServer) setupNewAPIRoutes() {
 		// riskAssessmentService will be nil (interface), handlers should check for nil
 	}
 
+	if riskIndicatorsRepo != nil {
+		riskIndicatorsService = services.NewRiskIndicatorsService(riskIndicatorsRepo, logger)
+	} else {
+		log.Println("⚠️  Risk indicators service not initialized - database unavailable")
+		// riskIndicatorsService will be nil (interface), handlers should check for nil
+	}
+
+	// Data enrichment service doesn't require database (returns mock data for now)
+	dataEnrichmentService = services.NewDataEnrichmentService(logger)
+
 	// Initialize handlers
 	// Create MerchantPortfolioHandler with both service (for CRUD operations) and repository (for analytics)
 	merchantPortfolioHandler := handlers.NewMerchantPortfolioHandlerWithRepository(merchantPortfolioService, merchantRepo, logger)
 	analyticsHandler := handlers.NewMerchantAnalyticsHandler(analyticsService, logger)
 	asyncRiskHandler := handlers.NewAsyncRiskAssessmentHandler(riskAssessmentService, logger)
+	
+	// Initialize risk indicators handler (can be nil if service is nil)
+	var riskIndicatorsHandler *handlers.RiskIndicatorsHandler
+	if riskIndicatorsService != nil {
+		riskIndicatorsHandler = handlers.NewRiskIndicatorsHandler(riskIndicatorsService, logger)
+	} else {
+		log.Println("⚠️  Risk indicators handler not initialized - service unavailable")
+	}
+	
+	// Initialize data enrichment handler
+	dataEnrichmentHandler := handlers.NewDataEnrichmentHandler(dataEnrichmentService, logger)
 
 	// Initialize middleware
 	// Create auth middleware (can be nil if auth service is not available)
@@ -1183,6 +1214,8 @@ func (s *RailwayServer) setupNewAPIRoutes() {
 	merchantConfig := &routes.MerchantRouteConfig{
 		MerchantPortfolioHandler: merchantPortfolioHandler, // Now includes repository for analytics
 		MerchantAnalyticsHandler: analyticsHandler,
+		AsyncRiskHandler:         asyncRiskHandler,
+		DataEnrichmentHandler:    dataEnrichmentHandler,
 		AuthMiddleware:           authMiddleware,
 		RateLimiter:              rateLimiter,
 		Logger:                   obsLogger,
@@ -1192,9 +1225,10 @@ func (s *RailwayServer) setupNewAPIRoutes() {
 	// Register risk routes with async config
 	// Note: RiskHandler may need existing dependencies
 	asyncRiskConfig := &routes.AsyncRiskAssessmentRouteConfig{
-		AsyncRiskHandler: asyncRiskHandler,
-		AuthMiddleware:   authMiddleware,
-		RateLimiter:      rateLimiter,
+		AsyncRiskHandler:     asyncRiskHandler,
+		RiskIndicatorsHandler: riskIndicatorsHandler,
+		AuthMiddleware:       authMiddleware,
+		RateLimiter:          rateLimiter,
 	}
 	// Register async routes (RiskHandler can be nil if not needed for async routes)
 	routes.RegisterRiskRoutesWithConfig(s.mux, nil, asyncRiskConfig)
@@ -1264,6 +1298,18 @@ func (s *RailwayServer) setupNewAPIRoutes() {
 	log.Println("   - GET /api/v1/merchants/{merchantId}/website-analysis")
 	log.Println("   - POST /api/v1/risk/assess")
 	log.Println("   - GET /api/v1/risk/assess/{assessmentId}")
+	log.Println("   - GET /api/v1/risk/history/{merchantId}")
+	log.Println("   - GET /api/v1/risk/predictions/{merchantId}")
+	log.Println("   - GET /api/v1/risk/explain/{assessmentId}")
+	log.Println("   - GET /api/v1/merchants/{merchantId}/risk-recommendations")
+	if riskIndicatorsHandler != nil {
+		log.Println("   - GET /api/v1/risk/indicators/{merchantId}")
+		log.Println("   - GET /api/v1/risk/alerts/{merchantId}")
+	}
+	if dataEnrichmentHandler != nil {
+		log.Println("   - POST /api/v1/merchants/{merchantId}/enrichment/trigger")
+		log.Println("   - GET /api/v1/merchants/{merchantId}/enrichment/sources")
+	}
 	log.Println("   - GET /v1/risk/factors")
 	log.Println("   - GET /v1/risk/categories")
 	log.Println("   - GET /v1/risk/thresholds")

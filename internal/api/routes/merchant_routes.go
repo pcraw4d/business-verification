@@ -12,6 +12,8 @@ import (
 type MerchantRouteConfig struct {
 	MerchantPortfolioHandler *handlers.MerchantPortfolioHandler
 	MerchantAnalyticsHandler *handlers.MerchantAnalyticsHandler
+	AsyncRiskHandler         *handlers.AsyncRiskAssessmentHandler
+	DataEnrichmentHandler    *handlers.DataEnrichmentHandler
 	AuthMiddleware           *middleware.AuthMiddleware
 	RateLimiter              *middleware.APIRateLimiter
 	Logger                   *observability.Logger
@@ -316,10 +318,45 @@ func registerMerchantSpecificAnalyticsRoutes(mux *http.ServeMux, config *Merchan
 		),
 	)
 
+	// Get risk recommendations by merchant ID (if async risk handler is provided)
+	if config.AsyncRiskHandler != nil {
+		mux.Handle("GET /api/v1/merchants/{merchantId}/risk-recommendations",
+			config.AuthMiddleware.RequireAuth(
+				config.RateLimiter.Middleware(
+					http.HandlerFunc(config.AsyncRiskHandler.GetRiskRecommendations),
+				),
+			),
+		)
+	}
+
+	// Data enrichment routes (if handler is provided)
+	if config.DataEnrichmentHandler != nil {
+		// POST /api/v1/merchants/{merchantId}/enrichment/trigger
+		mux.Handle("POST /api/v1/merchants/{merchantId}/enrichment/trigger",
+			config.AuthMiddleware.RequireAuth(
+				config.RateLimiter.Middleware(
+					http.HandlerFunc(config.DataEnrichmentHandler.TriggerEnrichment),
+				),
+			),
+		)
+
+		// GET /api/v1/merchants/{merchantId}/enrichment/sources
+		mux.Handle("GET /api/v1/merchants/{merchantId}/enrichment/sources",
+			config.AuthMiddleware.RequireAuth(
+				config.RateLimiter.Middleware(
+					http.HandlerFunc(config.DataEnrichmentHandler.GetEnrichmentSources),
+				),
+			),
+		)
+	}
+
 	config.Logger.Info("Merchant-specific analytics routes registered", map[string]interface{}{
 		"endpoints": []string{
 			"GET /api/v1/merchants/{merchantId}/analytics",
 			"GET /api/v1/merchants/{merchantId}/website-analysis",
+			"GET /api/v1/merchants/{merchantId}/risk-recommendations",
+			"POST /api/v1/merchants/{merchantId}/enrichment/trigger",
+			"GET /api/v1/merchants/{merchantId}/enrichment/sources",
 		},
 	})
 }

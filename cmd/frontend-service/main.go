@@ -120,7 +120,16 @@ func (s *FrontendService) handleAddMerchant(w http.ResponseWriter, r *http.Reque
 }
 
 func (s *FrontendService) handleMerchantDetails(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/merchant-details.html")
+	// Serve Next.js build output for merchant details
+	// Check if Next.js build exists, otherwise fall back to legacy HTML
+	nextJSFile := "./static/.next/server/app/merchant-details/[id]/page.html"
+	if _, err := os.Stat(nextJSFile); err == nil {
+		// Next.js build exists - serve it
+		http.ServeFile(w, r, nextJSFile)
+	} else {
+		// Fall back to legacy HTML
+		http.ServeFile(w, r, "./static/merchant-details.html")
+	}
 }
 
 func (s *FrontendService) handleMerchantComparison(w http.ResponseWriter, r *http.Request) {
@@ -230,7 +239,10 @@ func (s *FrontendService) handleRiskAssessmentPortfolio(w http.ResponseWriter, r
 }
 
 func (s *FrontendService) setupRoutes() {
-	// Serve static files
+	// Serve Next.js static files
+	http.Handle("/_next/", http.StripPrefix("/_next/", http.FileServer(http.Dir("./static/.next/static/"))))
+	
+	// Serve static files (legacy support)
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static/"))))
 	http.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("./static/js/"))))
 	// Components can be in both locations for compatibility
@@ -309,8 +321,29 @@ func (s *FrontendService) setupRoutes() {
 	http.HandleFunc("/api-test.html", s.handleApiTest)
 	http.HandleFunc("/index.html", s.handleDashboard)
 
+	// Next.js routes - catch-all for client-side routing
+	http.HandleFunc("/merchant-details/", s.handleMerchantDetailsRoute)
+	
 	// Default route - serve main index page
 	http.HandleFunc("/", s.handleDashboard)
+}
+
+// handleMerchantDetailsRoute handles Next.js merchant details routes
+func (s *FrontendService) handleMerchantDetailsRoute(w http.ResponseWriter, r *http.Request) {
+	// Extract merchant ID from path
+	path := r.URL.Path
+	// Path format: /merchant-details/{id}
+	// For Next.js, we need to serve the appropriate page
+	
+	// Check if Next.js build exists
+	nextJSFile := "./static/.next/server/app/merchant-details/[id]/page.html"
+	if _, err := os.Stat(nextJSFile); err == nil {
+		// Serve Next.js page
+		http.ServeFile(w, r, nextJSFile)
+	} else {
+		// Fall back to legacy HTML with query parameter
+		http.Redirect(w, r, "/merchant-details?"+r.URL.RawQuery, http.StatusTemporaryRedirect)
+	}
 }
 
 func main() {
