@@ -1967,12 +1967,18 @@ func (h *EnhancedRiskHandler) ImportThresholdsHandler(w http.ResponseWriter, r *
 
 // getRequestID safely extracts request ID from context
 func getRequestID(r *http.Request) string {
+	// Try header first
+	if id := r.Header.Get("X-Request-ID"); id != "" {
+		return id
+	}
+	// Try context
 	if id := r.Context().Value("request_id"); id != nil {
 		if str, ok := id.(string); ok {
 			return str
 		}
 	}
-	return fmt.Sprintf("req_%d", time.Now().UnixNano())
+	// Generate new UUID
+	return uuid.New().String()
 }
 
 // extractIDFromPath extracts an ID from a URL path after a given prefix

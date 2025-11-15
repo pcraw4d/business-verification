@@ -63,6 +63,12 @@ func NewRailwayServer() *RailwayServer {
 		if err != nil {
 			log.Printf("Warning: Failed to connect to database: %v. New API routes will not be available.", err)
 		} else {
+			// Configure connection pool settings
+			db.SetMaxOpenConns(25)                 // Maximum open connections
+			db.SetMaxIdleConns(5)                  // Maximum idle connections
+			db.SetConnMaxLifetime(5 * time.Minute) // Connection lifetime
+			db.SetConnMaxIdleTime(1 * time.Minute) // Idle connection timeout
+
 			// Test connection with context timeout
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
@@ -926,6 +932,120 @@ func (s *RailwayServer) handleDocs(w http.ResponseWriter, r *http.Request) {
     <div class="endpoint">
         <h3><span class="method get">GET</span> /rate-limits</h3>
         <p>Get rate limit information.</p>
+    </div>
+    
+    <h2>Risk Management Endpoints (Restored)</h2>
+    
+    <div class="endpoint">
+        <h3><span class="method get">GET</span> /v1/risk/thresholds</h3>
+        <p>Get all risk thresholds. Supports query parameters: category, industry_code.</p>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method post">POST</span> /v1/admin/risk/thresholds</h3>
+        <p>Create a new risk threshold configuration.</p>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method put">PUT</span> /v1/admin/risk/thresholds/{threshold_id}</h3>
+        <p>Update an existing risk threshold configuration.</p>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method delete">DELETE</span> /v1/admin/risk/thresholds/{threshold_id}</h3>
+        <p>Delete a risk threshold configuration.</p>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method get">GET</span> /v1/admin/risk/threshold-export</h3>
+        <p>Export all risk thresholds as JSON.</p>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method post">POST</span> /v1/admin/risk/threshold-import</h3>
+        <p>Import risk thresholds from JSON.</p>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method get">GET</span> /v1/risk/factors</h3>
+        <p>Get all risk factors. Supports query parameter: category.</p>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method get">GET</span> /v1/risk/categories</h3>
+        <p>Get all risk categories.</p>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method post">POST</span> /v1/admin/risk/recommendation-rules</h3>
+        <p>Create a new recommendation rule.</p>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method put">PUT</span> /v1/admin/risk/recommendation-rules/{rule_id}</h3>
+        <p>Update an existing recommendation rule.</p>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method delete">DELETE</span> /v1/admin/risk/recommendation-rules/{rule_id}</h3>
+        <p>Delete a recommendation rule.</p>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method post">POST</span> /v1/admin/risk/notification-channels</h3>
+        <p>Create a new notification channel (email, SMS, Slack, webhook, Teams, Discord, PagerDuty).</p>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method put">PUT</span> /v1/admin/risk/notification-channels/{channel_id}</h3>
+        <p>Update an existing notification channel.</p>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method delete">DELETE</span> /v1/admin/risk/notification-channels/{channel_id}</h3>
+        <p>Delete a notification channel.</p>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method get">GET</span> /v1/admin/risk/system/health</h3>
+        <p>Get system health status for risk management services.</p>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method get">GET</span> /v1/admin/risk/system/metrics</h3>
+        <p>Get system metrics for risk management services.</p>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method post">POST</span> /v1/admin/risk/system/cleanup</h3>
+        <p>Cleanup old system data (alerts, trends, assessments).</p>
+    </div>
+    
+    <h2>Enhanced Risk Assessment</h2>
+    
+    <div class="endpoint">
+        <h3><span class="method post">POST</span> /v1/risk/enhanced/assess</h3>
+        <p>Perform enhanced risk assessment with comprehensive analysis.</p>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method post">POST</span> /v1/risk/factors/calculate</h3>
+        <p>Calculate risk factor scores.</p>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method post">POST</span> /v1/risk/recommendations</h3>
+        <p>Get risk mitigation recommendations.</p>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method post">POST</span> /v1/risk/trends/analyze</h3>
+        <p>Analyze risk trends over time.</p>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method get">GET</span> /v1/risk/alerts</h3>
+        <p>Get active risk alerts.</p>
     </div>
 </body>
 </html>`, s.serviceName, s.version, s.serviceName, s.version)

@@ -157,6 +157,7 @@ supabase/.temp
 test-results/
 playwright-report/
 test-results.xml
+test_output/
 
 # Build artifacts
 build/

@@ -1,407 +1,148 @@
-# Feature Functionality Testing
+# Restoration Functionality Test Suite
 
-This directory contains comprehensive feature functionality tests for the KYB Platform. These tests validate all critical features including business classification, risk assessment, compliance checking, and merchant management.
+This directory contains test scripts to verify all restored functionality.
 
-## Overview
+## Test Scripts
 
-The feature functionality testing suite provides comprehensive validation of all platform features to ensure they meet quality standards and performance requirements. The tests are designed to be:
+### 1. `restoration_tests.sh` - Comprehensive Test Suite
+Tests all restored endpoints and functionality.
 
-- **Comprehensive**: Cover all major features and functionality
-- **Reliable**: Provide consistent and repeatable results
-- **Fast**: Execute efficiently with parallel processing
-- **Maintainable**: Easy to update and extend
-- **Informative**: Provide detailed reports and insights
+**Usage:**
+```bash
+# Default (localhost:8080)
+./test/restoration_tests.sh
 
-## Test Structure
-
-```
-test/
-├── feature_functionality_test.go      # Main test suite
-├── business_classification_test.go    # Business classification tests
-├── risk_assessment_test.go           # Risk assessment tests
-├── compliance_checking_test.go       # Compliance checking tests
-├── merchant_management_test.go       # Merchant management tests
-├── test_runner.go                    # Test execution framework
-├── test_config.yaml                  # Test configuration
-├── run_feature_tests.sh              # Test execution script
-└── README.md                         # This documentation
+# Custom base URL
+BASE_URL=http://localhost:3000 ./test/restoration_tests.sh
 ```
 
-## Test Categories
+**Tests:**
+- Threshold CRUD operations
+- Export/Import round-trip
+- Risk factors and categories
+- Recommendation rules CRUD
+- Notification channels
+- System monitoring endpoints
+- Request ID extraction
 
-### 1. Business Classification Tests
+### 2. `test_database_persistence.sh` - Database Persistence Test
+Tests that thresholds persist in the database across server restarts.
 
-Tests the multi-method business classification system:
+**Usage:**
+```bash
+./test/test_database_persistence.sh
+```
 
-- **MultiMethodClassification**: Tests the ensemble approach combining multiple classification methods
-- **KeywordBasedClassification**: Tests keyword-based industry classification
-- **MLBasedClassification**: Tests machine learning-based classification
-- **EnsembleClassification**: Tests ensemble classification combining all methods
-- **ConfidenceScoring**: Tests confidence scoring and validation
+**What it does:**
+1. Creates a threshold
+2. Verifies it exists
+3. Provides instructions for manual server restart test
 
-**Expected Results:**
-- Accuracy: ≥95%
-- Response Time: ≤1 second
-- Confidence Score: 0.8-1.0 for high-quality classifications
+### 3. `verify_persistence.sh` - Verify After Restart
+Verifies that thresholds created before restart still exist.
 
-### 2. Risk Assessment Tests
+**Usage:**
+```bash
+# After restarting the server
+./test/verify_persistence.sh
+```
 
-Tests the comprehensive risk assessment system:
+### 4. `test_graceful_degradation.sh` - Graceful Degradation Test
+Tests that the system works when database/Redis are unavailable.
 
-- **ComprehensiveRiskAssessment**: Tests end-to-end risk assessment workflow
-- **SecurityAnalysis**: Tests website security analysis
-- **DomainAnalysis**: Tests domain reputation and age analysis
-- **ReputationAnalysis**: Tests business reputation analysis
-- **ComplianceAnalysis**: Tests regulatory compliance analysis
-- **FinancialAnalysis**: Tests financial health analysis
-- **RiskScoring**: Tests risk scoring algorithms
+**Usage:**
+```bash
+./test/test_graceful_degradation.sh
+```
 
-**Expected Results:**
-- Accuracy: ≥90%
-- Response Time: ≤3 seconds
-- Risk Score Range: 0.0-1.0
+**What it tests:**
+- Health check reports service status
+- Threshold endpoints work with in-memory fallback
+- Classification works without Redis caching
 
-### 3. Compliance Checking Tests
+## Prerequisites
 
-Tests various compliance frameworks:
+1. **Server Running**: The server must be running on the target URL
+2. **jq**: Required for JSON parsing (install with `brew install jq` or `apt-get install jq`)
+3. **curl**: Required for HTTP requests (usually pre-installed)
 
-- **AMLCompliance**: Tests Anti-Money Laundering compliance
-- **KYCCompliance**: Tests Know Your Customer compliance
-- **KYBCompliance**: Tests Know Your Business compliance
-- **GDPRCompliance**: Tests General Data Protection Regulation compliance
-- **PCICompliance**: Tests Payment Card Industry compliance
-- **SOC2Compliance**: Tests Service Organization Control 2 compliance
+## Environment Variables
 
-**Expected Results:**
-- Accuracy: ≥95%
-- Response Time: ≤2 seconds
-- Compliance Status: Valid status for each framework
+- `BASE_URL`: Base URL of the API server (default: `http://localhost:8080`)
+- `TEST_OUTPUT_DIR`: Directory for test output files (default: `./test_output`)
 
-### 4. Merchant Management Tests
+## Test Output
 
-Tests merchant portfolio management functionality:
+Test results and data are saved to `test_output/` directory:
+- `threshold_id.txt`: Created threshold IDs
+- `thresholds_export.json`: Exported thresholds
+- `persistence_threshold_id.txt`: Threshold ID for persistence testing
 
-- **CreateMerchant**: Tests merchant creation
-- **GetMerchant**: Tests merchant retrieval
-- **UpdateMerchant**: Tests merchant updates
-- **DeleteMerchant**: Tests merchant deletion
-- **SearchMerchants**: Tests merchant search and filtering
-- **BulkOperations**: Tests bulk update operations
-- **PortfolioManagement**: Tests portfolio management features
-
-**Expected Results:**
-- Accuracy: 100%
-- Response Time: ≤500ms
-- Data Integrity: Complete and consistent
-
-## Running Tests
-
-### Quick Start
+## Running All Tests
 
 ```bash
-# Run all tests
-./test/run_feature_tests.sh
+# Make scripts executable
+chmod +x test/*.sh
 
-# Run with verbose output
-./test/run_feature_tests.sh --verbose
+# Run comprehensive test suite
+./test/restoration_tests.sh
 
-# Run specific test category
-./test/run_feature_tests.sh --business-classification
-./test/run_feature_tests.sh --risk-assessment
-./test/run_feature_tests.sh --compliance-checking
-./test/run_feature_tests.sh --merchant-management
+# Test database persistence
+./test/test_database_persistence.sh
+
+# Test graceful degradation
+./test/test_graceful_degradation.sh
 ```
 
-### Advanced Usage
+## Expected Results
 
-```bash
-# Run with custom configuration
-./test/run_feature_tests.sh --config custom_config.yaml
+### With Database Configured
+- ✅ All CRUD operations work
+- ✅ Thresholds persist across restarts
+- ✅ Export/Import works correctly
 
-# Run with custom timeout
-./test/run_feature_tests.sh --timeout 10m
+### Without Database (In-Memory Fallback)
+- ✅ GET endpoints return empty or in-memory data
+- ✅ CREATE/UPDATE/DELETE work in-memory
+- ✅ No persistence across restarts (expected)
 
-# Run benchmark tests
-./test/run_feature_tests.sh --benchmark
+### With Redis Configured
+- ✅ Classification endpoint uses caching
+- ✅ X-Cache header present in responses
 
-# Run load tests
-./test/run_feature_tests.sh --load-test --timeout 5m
-
-# Clean and run
-./test/run_feature_tests.sh --clean --verbose
-
-# Run without cleanup
-./test/run_feature_tests.sh --no-cleanup
-```
-
-### Using Go Test Directly
-
-```bash
-# Run all feature tests
-go test -v ./test/...
-
-# Run specific test
-go test -v -run TestFeatureFunctionality ./test/...
-
-# Run with timeout
-go test -v -timeout 30m ./test/...
-
-# Run benchmark tests
-go test -bench=. -benchmem ./test/...
-
-# Run with coverage
-go test -v -cover ./test/...
-```
-
-## Configuration
-
-### Test Configuration File
-
-The test configuration is defined in `test_config.yaml`:
-
-```yaml
-# Test execution settings
-test_execution:
-  timeout: "30m"
-  parallel_tests: true
-  verbose_output: true
-  generate_report: true
-  report_format: "json"
-
-# Service configuration
-services:
-  classification:
-    enabled: true
-    timeout: "30s"
-    confidence_threshold: 0.8
-    
-  risk_assessment:
-    enabled: true
-    timeout: "60s"
-    risk_threshold: 0.7
-
-# Test data configuration
-test_data:
-  path: "./testdata"
-  mock_data_enabled: true
-  real_data_enabled: false
-```
-
-### Environment Variables
-
-- `TEST_CONFIG_FILE`: Path to test configuration file
-- `TEST_REPORT_DIR`: Directory for test reports
-- `TEST_LOG_DIR`: Directory for test logs
-- `TEST_VERBOSE`: Enable verbose output
-- `TEST_PARALLEL`: Enable parallel execution
-- `TEST_TIMEOUT`: Test timeout duration
-
-## Test Data
-
-### Mock Data
-
-The tests use comprehensive mock data to ensure consistent and reliable results:
-
-- **Business Classification Data**: Sample businesses across various industries
-- **Risk Assessment Data**: Test cases for different risk levels
-- **Compliance Data**: Sample compliance scenarios
-- **Merchant Data**: Test merchant profiles and portfolios
-
-### Real Data (Optional)
-
-For integration testing, real data can be enabled:
-
-```yaml
-test_data:
-  real_data_enabled: true
-  data_sources:
-    - name: "production_data"
-      path: "./testdata/production.json"
-      type: "real"
-```
-
-## Test Reports
-
-### Report Formats
-
-Tests generate comprehensive reports in multiple formats:
-
-- **JSON**: Machine-readable format for CI/CD integration
-- **HTML**: Human-readable format with visualizations
-- **XML**: Standard format for test result aggregation
-
-### Report Contents
-
-- **Test Summary**: Overall test results and statistics
-- **Detailed Results**: Individual test results and assertions
-- **Performance Metrics**: Response times and throughput
-- **Error Analysis**: Failed tests and error details
-- **Recommendations**: Suggestions for improvements
-
-### Report Location
-
-Reports are saved to the `test-reports` directory:
-
-```
-test-reports/
-├── feature_functionality_report.json
-├── feature_functionality_report.html
-├── performance_metrics.json
-└── error_analysis.json
-```
-
-## Performance Testing
-
-### Benchmark Tests
-
-Benchmark tests measure performance characteristics:
-
-```bash
-# Run benchmark tests
-./test/run_feature_tests.sh --benchmark
-
-# Benchmark specific functionality
-go test -bench=BenchmarkBusinessClassification ./test/...
-go test -bench=BenchmarkRiskAssessment ./test/...
-```
-
-### Load Tests
-
-Load tests validate system performance under stress:
-
-```bash
-# Run load tests
-./test/run_feature_tests.sh --load-test --timeout 10m
-
-# Load test with custom concurrency
-go test -run TestLoad -test.timeout=10m ./test/...
-```
-
-### Performance Targets
-
-- **Business Classification**: <1 second response time
-- **Risk Assessment**: <3 seconds response time
-- **Compliance Checking**: <2 seconds response time
-- **Merchant Management**: <500ms response time
-
-## Continuous Integration
-
-### GitHub Actions Integration
-
-```yaml
-name: Feature Functionality Tests
-on: [push, pull_request]
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v2
-        with:
-          go-version: 1.22
-      - name: Run Feature Tests
-        run: ./test/run_feature_tests.sh --verbose
-      - name: Upload Test Reports
-        uses: actions/upload-artifact@v2
-        with:
-          name: test-reports
-          path: test/test-reports/
-```
-
-### Jenkins Integration
-
-```groovy
-pipeline {
-    agent any
-    stages {
-        stage('Feature Tests') {
-            steps {
-                sh './test/run_feature_tests.sh --verbose'
-            }
-            post {
-                always {
-                    publishTestResults testResultsPattern: 'test/test-reports/*.xml'
-                    publishHTML([
-                        allowMissing: false,
-                        alwaysLinkToLastBuild: true,
-                        keepAll: true,
-                        reportDir: 'test/test-reports',
-                        reportFiles: 'feature_functionality_report.html',
-                        reportName: 'Feature Test Report'
-                    ])
-                }
-            }
-        }
-    }
-}
-```
+### Without Redis
+- ✅ Classification endpoint works without caching
+- ✅ No X-Cache header (expected)
 
 ## Troubleshooting
 
-### Common Issues
+### Tests Fail with Connection Refused
+- Ensure the server is running: `go run cmd/railway-server/main.go`
+- Check the BASE_URL matches your server port
 
-1. **Test Timeout**: Increase timeout in configuration
-2. **Memory Issues**: Reduce parallel test execution
-3. **Service Unavailable**: Check service configuration
-4. **Data Issues**: Verify test data setup
+### Tests Fail with jq Errors
+- Install jq: `brew install jq` (macOS) or `apt-get install jq` (Linux)
+- Some tests will still work without jq, but output formatting will be limited
 
-### Debug Mode
+### Database Persistence Test Fails
+- Verify DATABASE_URL is set correctly
+- Check database connection in health endpoint: `curl http://localhost:8080/health/detailed`
+- Ensure database schema includes `risk_thresholds` table
 
-```bash
-# Run with debug logging
-TEST_VERBOSE=true ./test/run_feature_tests.sh --verbose
+### Threshold Not Found After Restart
+- This is expected if DATABASE_URL is not set (in-memory mode)
+- Check health endpoint to verify database status
+- Verify database connection logs on server startup
 
-# Run single test with debug
-go test -v -run TestBusinessClassification ./test/...
-```
+## Manual Testing Checklist
 
-### Log Analysis
+For complete verification, also perform these manual tests:
 
-Test logs are saved to the `test-logs` directory:
-
-```bash
-# View test logs
-tail -f test/test-logs/test.log
-
-# Search for errors
-grep -i error test/test-logs/test.log
-```
-
-## Contributing
-
-### Adding New Tests
-
-1. Create test file in appropriate category
-2. Follow naming conventions: `*_test.go`
-3. Use table-driven tests for multiple scenarios
-4. Include comprehensive assertions
-5. Update documentation
-
-### Test Guidelines
-
-- **Naming**: Use descriptive test names
-- **Structure**: Follow Arrange-Act-Assert pattern
-- **Assertions**: Use specific assertions with clear messages
-- **Data**: Use consistent test data
-- **Cleanup**: Clean up resources after tests
-
-### Code Review
-
-- Verify test coverage
-- Check assertion quality
-- Validate test data
-- Review performance impact
-- Ensure maintainability
-
-## Support
-
-For questions or issues with feature functionality testing:
-
-1. Check this documentation
-2. Review test logs and reports
-3. Consult the main project documentation
-4. Create an issue in the project repository
-
-## License
-
-This testing suite is part of the KYB Platform project and follows the same license terms.
+- [ ] Create threshold → Restart server → Verify threshold still exists
+- [ ] Export thresholds → Modify JSON → Import → Verify changes
+- [ ] Test all notification channel types (email, SMS, Slack, webhook, etc.)
+- [ ] Test error cases (invalid JSON, missing fields, non-existent IDs)
+- [ ] Test with X-Request-ID header and verify it's returned
+- [ ] Test system health endpoint with/without database
+- [ ] Test system metrics endpoint
+- [ ] Test cleanup endpoint with different data types
