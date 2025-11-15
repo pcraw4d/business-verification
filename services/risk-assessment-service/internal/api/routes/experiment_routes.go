@@ -12,7 +12,7 @@ import (
 
 // RegisterExperimentRoutes registers experiment-related routes
 func RegisterExperimentRoutes(router *mux.Router, experimentManager *testing.ExperimentManager, logger *zap.Logger) {
-	experimentHandlers := handlers.NewExperimentHandlers(experimentManager, logger)
+	experimentHandlers := handlers.NewExperimentHandler(nil, experimentManager, logger)
 
 	// Experiment management routes
 	experimentRouter := router.PathPrefix("/experiments").Subrouter()

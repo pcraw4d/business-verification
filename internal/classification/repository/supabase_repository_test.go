@@ -134,7 +134,7 @@ func TestSupabaseKeywordRepository_ClassifyBusiness(t *testing.T) {
 	ctx := context.Background()
 
 	// Test with empty inputs
-	result, err := repo.ClassifyBusiness(ctx, "", "", "")
+	result, err := repo.ClassifyBusiness(ctx, "", "")
 	if err != nil {
 		t.Errorf("Expected no error, got: %v", err)
 	}
@@ -279,7 +279,7 @@ func BenchmarkSupabaseKeywordRepository_ClassifyBusiness(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := repo.ClassifyBusiness(ctx, "Test Company", "Test description", "https://test.com")
+		_, err := repo.ClassifyBusiness(ctx, "Test Company", "https://test.com")
 		if err != nil {
 			b.Fatal(err)
 		}

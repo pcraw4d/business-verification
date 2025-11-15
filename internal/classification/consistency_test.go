@@ -449,7 +449,7 @@ func (m *MockConsistencyRepository) UpdateKeywordWeightByID(ctx context.Context,
 func (m *MockConsistencyRepository) IncrementUsageCount(ctx context.Context, keyword string, industryID int) error {
 	return nil
 }
-func (m *MockConsistencyRepository) ClassifyBusiness(ctx context.Context, businessName, description, websiteURL string) (*repository.ClassificationResult, error) {
+func (m *MockConsistencyRepository) ClassifyBusiness(ctx context.Context, businessName, websiteURL string) (*repository.ClassificationResult, error) {
 	return nil, nil
 }
 func (m *MockConsistencyRepository) SearchIndustriesByPattern(ctx context.Context, pattern string) ([]*repository.Industry, error) {

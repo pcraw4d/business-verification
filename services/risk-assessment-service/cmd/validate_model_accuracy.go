@@ -69,12 +69,17 @@ func mainValidateModelAccuracy() {
 
 	// Create validation config
 	validationConfig := validation.ValidationConfig{
-		NumBusinesses:        *numBusinesses,
-		SequenceLength:       *sequenceLength,
-		ValidationHorizons:   horizons,
-		CrossValidationFolds: *cvFolds,
-		TestDataRatio:        0.2,
-		RandomSeed:           time.Now().UnixNano(),
+		NumBusinesses:              *numBusinesses,
+		SequenceLength:             *sequenceLength,
+		ValidationHorizons:         horizons,
+		CrossValidationFolds:       *cvFolds,
+		ValidationSplit:            0.8,
+		TestSplit:                  0.2,
+		TargetAccuracy:             0.90,
+		MaxIterations:              100,
+		EnableCalibration:          true,
+		EnableEnsemble:             false,
+		EnableHyperparameterTuning: *enableTuning,
 	}
 
 	// Run baseline validation
@@ -99,7 +104,7 @@ func mainValidateModelAccuracy() {
 		logger.Info("Starting hyperparameter tuning...")
 
 		// Create hyperparameter tuner
-		tuner := training.NewHyperparameterTuner(logger, validator)
+		tuner := training.NewHyperparameterTuner(logger)
 
 		// Create tuning config
 		tuningConfig := training.TuningConfig{

@@ -474,7 +474,7 @@ func (m *MockPerformanceRepository) UpdateKeywordWeightByID(ctx context.Context,
 func (m *MockPerformanceRepository) IncrementUsageCount(ctx context.Context, keyword string, industryID int) error {
 	return nil
 }
-func (m *MockPerformanceRepository) ClassifyBusiness(ctx context.Context, businessName, description, websiteURL string) (*repository.ClassificationResult, error) {
+func (m *MockPerformanceRepository) ClassifyBusiness(ctx context.Context, businessName, websiteURL string) (*repository.ClassificationResult, error) {
 	return nil, nil
 }
 func (m *MockPerformanceRepository) ClassifyBusinessByKeywords(ctx context.Context, keywords []string) (*repository.ClassificationResult, error) {

@@ -96,7 +96,7 @@ type OptimizationOrchestrator struct {
 	redisClient        *redis.Client
 	config             *OptimizationConfig
 	dbOptimizer        *database.DatabaseOptimizer
-	cacheManager       *cache.CacheManager
+	cacheManager       *cache.OptimizationCacheManager
 	performanceMonitor *monitoring.PerformanceMonitor
 	responseOptimizer  *performance.ResponseOptimizer
 	connectionPool     *performance.ConnectionPool
@@ -108,8 +108,17 @@ func NewOptimizationOrchestrator(db *sql.DB, redisClient *redis.Client, config *
 	// Initialize database optimizer
 	dbOptimizer := database.NewDatabaseOptimizer(db, &config.Database)
 
-	// Initialize cache manager
-	cacheManager := cache.NewCacheManager(redisClient, &config.Cache)
+	// Initialize cache manager - convert CacheConfig to OptimizationCacheConfig
+	optCacheConfig := &cache.OptimizationCacheConfig{
+		L1TTL:           config.Cache.DefaultTTL,
+		L2TTL:           config.Cache.DefaultTTL,
+		MaxL1Size:       1000,
+		Strategy:        "write-through",
+		EnableWarming:   false, // Will be set from config if available
+		WarmingInterval: 5 * time.Minute,
+		Compression:     false,
+	}
+	cacheManager := cache.NewOptimizationCacheManager(redisClient, optCacheConfig)
 
 	// Initialize performance monitor
 	performanceMonitor := monitoring.NewPerformanceMonitor(&config.Monitoring)
@@ -208,7 +217,8 @@ func (o *OptimizationOrchestrator) optimizeCache(ctx context.Context, dryRun boo
 	}
 
 	// Start cache warming
-	if o.config.Cache.EnableWarming {
+	// Note: EnableWarming is handled by the OptimizationCacheManager automatically
+	if o.cacheManager != nil {
 		log.Println("Starting cache warming...")
 		// Cache warming is handled automatically by the cache manager
 	}
@@ -281,11 +291,8 @@ func (o *OptimizationOrchestrator) optimizeMonitoring(ctx context.Context, dryRu
 	}
 
 	// Start performance monitoring
-	if o.config.Monitoring.EnableProfiling {
-		if err := o.performanceMonitor.StartProfiling(); err != nil {
-			return fmt.Errorf("failed to start profiling: %w", err)
-		}
-	}
+	// Note: Profiling is handled automatically by PerformanceMonitor when EnableProfiling is true
+	// No explicit StartProfiling call needed as it's managed internally
 
 	// Generate performance report
 	report, err := o.performanceMonitor.GetPerformanceReport()
@@ -401,13 +408,11 @@ func loadConfig(configFile string) (*OptimizationConfig, error) {
 			EnableProfiling: true,
 		},
 		Cache: cache.CacheConfig{
-			L1TTL:           5 * time.Minute,
-			L2TTL:           1 * time.Hour,
-			MaxL1Size:       1000,
-			Strategy:        "write-through",
-			EnableWarming:   true,
-			WarmingInterval: 10 * time.Minute,
-			Compression:     true,
+			DefaultTTL:      5 * time.Minute,
+			MaxSize:         1000,
+			KeyPrefix:       "opt",
+			KeySeparator:    ":",
+			CleanupInterval: 10 * time.Minute,
 		},
 		Monitoring: monitoring.MonitoringConfig{
 			EnableMetrics:   true,

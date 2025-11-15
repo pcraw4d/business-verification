@@ -359,7 +359,7 @@ func (ap *AsyncProcessor) processJob(job Job) Result {
 
 	switch job.Type {
 	case "business_verification":
-		business := job.Data.(BusinessData)
+		_ = job.Data.(BusinessData) // business data available if needed
 		result := &VerificationResult{
 			ID:     job.ID,
 			Status: "verified",
@@ -404,13 +404,13 @@ func (ap *AsyncProcessor) Shutdown() {
 
 // PerformanceMonitor tracks API performance metrics
 type PerformanceMonitor struct {
-	metrics   map[string]*Metric
+	metrics   map[string]*OptimizationMetric
 	mu        sync.RWMutex
 	startTime time.Time
 }
 
-// Metric tracks a specific performance metric
-type Metric struct {
+// OptimizationMetric tracks a specific performance metric for optimization
+type OptimizationMetric struct {
 	Name        string
 	Count       int64
 	TotalTime   time.Duration
@@ -424,7 +424,7 @@ type Metric struct {
 // NewPerformanceMonitor creates a new performance monitor
 func NewPerformanceMonitor() *PerformanceMonitor {
 	return &PerformanceMonitor{
-		metrics:   make(map[string]*Metric),
+		metrics:   make(map[string]*OptimizationMetric),
 		startTime: time.Now(),
 	}
 }
@@ -436,7 +436,7 @@ func (pm *PerformanceMonitor) TrackRequest(endpoint string, method string, durat
 	pm.mu.Lock()
 	metric, exists := pm.metrics[key]
 	if !exists {
-		metric = &Metric{
+		metric = &OptimizationMetric{
 			Name:    key,
 			MinTime: duration,
 			MaxTime: duration,
@@ -465,15 +465,15 @@ func (pm *PerformanceMonitor) TrackRequest(endpoint string, method string, durat
 }
 
 // GetMetrics returns all performance metrics
-func (pm *PerformanceMonitor) GetMetrics() map[string]*Metric {
+func (pm *PerformanceMonitor) GetMetrics() map[string]*OptimizationMetric {
 	pm.mu.RLock()
 	defer pm.mu.RUnlock()
 
 	// Create a copy to avoid race conditions
-	metrics := make(map[string]*Metric)
+	metrics := make(map[string]*OptimizationMetric)
 	for key, metric := range pm.metrics {
 		metric.mu.RLock()
-		metrics[key] = &Metric{
+		metrics[key] = &OptimizationMetric{
 			Name:        metric.Name,
 			Count:       metric.Count,
 			TotalTime:   metric.TotalTime,
@@ -512,14 +512,14 @@ func generateID() string {
 	return fmt.Sprintf("job-%d", time.Now().UnixNano())
 }
 
-// Middleware for performance optimization
-func PerformanceMiddleware(monitor *PerformanceMonitor) func(http.Handler) http.Handler {
+// PerformanceMiddlewareFunc provides middleware for performance optimization
+func PerformanceMiddlewareFunc(monitor *PerformanceMonitor) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
 
 			// Create a response writer wrapper to capture status code
-			wrapper := &responseWriter{ResponseWriter: w, statusCode: 200}
+			wrapper := &optimizationResponseWriter{ResponseWriter: w, statusCode: 200}
 
 			next.ServeHTTP(wrapper, r)
 
@@ -529,12 +529,13 @@ func PerformanceMiddleware(monitor *PerformanceMonitor) func(http.Handler) http.
 	}
 }
 
-type responseWriter struct {
+// optimizationResponseWriter wraps http.ResponseWriter to capture status code (for optimization.go)
+type optimizationResponseWriter struct {
 	http.ResponseWriter
 	statusCode int
 }
 
-func (rw *responseWriter) WriteHeader(code int) {
+func (rw *optimizationResponseWriter) WriteHeader(code int) {
 	rw.statusCode = code
 	rw.ResponseWriter.WriteHeader(code)
 }

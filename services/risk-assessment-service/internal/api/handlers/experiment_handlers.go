@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 
 	"kyb-platform/services/risk-assessment-service/internal/middleware"
@@ -613,6 +614,61 @@ func (eh *ExperimentHandler) SelectModel(w http.ResponseWriter, r *http.Request)
 		"experiment_id": experimentID,
 		"request_id":    requestID,
 		"model_id":      modelID,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// CreateModelComparisonExperiment creates a model comparison experiment
+func (eh *ExperimentHandler) CreateModelComparisonExperiment(w http.ResponseWriter, r *http.Request) {
+	eh.CreateExperiment(w, r)
+}
+
+// CreateHyperparameterExperiment creates a hyperparameter tuning experiment
+func (eh *ExperimentHandler) CreateHyperparameterExperiment(w http.ResponseWriter, r *http.Request) {
+	eh.CreateExperiment(w, r)
+}
+
+// CreateFeatureExperiment creates a feature experiment
+func (eh *ExperimentHandler) CreateFeatureExperiment(w http.ResponseWriter, r *http.Request) {
+	eh.CreateExperiment(w, r)
+}
+
+// CreateIndustryExperiment creates an industry-specific experiment
+func (eh *ExperimentHandler) CreateIndustryExperiment(w http.ResponseWriter, r *http.Request) {
+	eh.CreateExperiment(w, r)
+}
+
+// GetExperimentStatus gets the status of an experiment
+func (eh *ExperimentHandler) GetExperimentStatus(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	experimentID := vars["id"]
+
+	if experimentID == "" {
+		http.Error(w, "experiment_id is required", http.StatusBadRequest)
+		return
+	}
+
+	// Use abTestManager to get experiment (same as GetExperiment method)
+	if eh.abTestManager == nil {
+		http.Error(w, "AB test manager not available", http.StatusInternalServerError)
+		return
+	}
+
+	experiment, err := eh.abTestManager.GetExperiment(experimentID)
+	if err != nil {
+		eh.logger.Error("Failed to get experiment status", zap.Error(err))
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"success":       true,
+		"experiment_id": experimentID,
+		"status":        experiment.Status,
+		"created_at":    experiment.CreatedAt,
+		"updated_at":    experiment.UpdatedAt,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

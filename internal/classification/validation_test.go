@@ -275,7 +275,7 @@ func (m *MockValidationRepository) UpdateKeywordWeightByID(ctx context.Context, 
 func (m *MockValidationRepository) IncrementUsageCount(ctx context.Context, keyword string, industryID int) error {
 	return nil
 }
-func (m *MockValidationRepository) ClassifyBusiness(ctx context.Context, businessName, description, websiteURL string) (*repository.ClassificationResult, error) {
+func (m *MockValidationRepository) ClassifyBusiness(ctx context.Context, businessName, websiteURL string) (*repository.ClassificationResult, error) {
 	return nil, nil
 }
 func (m *MockValidationRepository) ClassifyBusinessByKeywords(ctx context.Context, keywords []string) (*repository.ClassificationResult, error) {

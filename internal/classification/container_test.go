@@ -129,7 +129,7 @@ func (m *MockContainerRepository) SearchKeywords(ctx context.Context, query stri
 	}, nil
 }
 
-func (m *MockContainerRepository) ClassifyBusiness(ctx context.Context, businessName, description, websiteURL string) (*repository.ClassificationResult, error) {
+func (m *MockContainerRepository) ClassifyBusiness(ctx context.Context, businessName, websiteURL string) (*repository.ClassificationResult, error) {
 	return &repository.ClassificationResult{
 		Industry:   &repository.Industry{ID: 1, Name: "Test Industry"},
 		Confidence: 0.85,

@@ -462,7 +462,7 @@ func (m *MockE2ERepository) GetTopIndustriesByKeywords(ctx context.Context, keyw
 	return result, nil
 }
 
-func (m *MockE2ERepository) ClassifyBusiness(ctx context.Context, businessName, description, websiteURL string) (*repository.ClassificationResult, error) {
+func (m *MockE2ERepository) ClassifyBusiness(ctx context.Context, businessName, websiteURL string) (*repository.ClassificationResult, error) {
 	// Simple classification logic for testing
 	for keyword, keywords := range m.keywords {
 		if len(keywords) > 0 {

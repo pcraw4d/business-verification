@@ -11,9 +11,11 @@ import (
 )
 
 // ErrorTestRunner provides comprehensive error handling testing capabilities
+// NOTE: test_runners_backup is a subdirectory, so it's a separate package from internal/risk
+// Types like ErrorHandlingTestSuite are defined in the parent package and are not accessible
 type ErrorTestRunner struct {
 	logger    *zap.Logger
-	testSuite *ErrorHandlingTestSuite
+	testSuite interface{} // *ErrorHandlingTestSuite - defined in parent package
 	results   *ErrorTestResults
 }
 

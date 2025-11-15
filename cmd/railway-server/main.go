@@ -22,9 +22,10 @@ import (
 	"kyb-platform/internal/observability"
 	"kyb-platform/internal/risk"
 	"kyb-platform/internal/services"
+	redisoptimization "kyb-redis-optimization"
 )
 
-// RailwayServer represents the complete KYB platform server
+// RailwayServer represents the complete KYB platform server with all features
 type RailwayServer struct {
 	serviceName    string
 	version        string
@@ -32,6 +33,7 @@ type RailwayServer struct {
 	port           string
 	db             *sql.DB
 	mux            *http.ServeMux
+	redisOptimizer *redisoptimization.RedisOptimizer // Redis optimization support (optional)
 }
 
 // NewRailwayServer creates a new RailwayServer instance
@@ -84,6 +86,31 @@ func NewRailwayServer() *RailwayServer {
 		port = "8080"
 	}
 
+	// Initialize Redis optimizer (optional - graceful fallback if unavailable)
+	var redisOptimizer *redisoptimization.RedisOptimizer
+	redisURL := os.Getenv("REDIS_URL")
+	if redisURL != "" {
+		// Parse Redis URL (format: redis://:password@host:port or redis://host:port)
+		parts := strings.Split(redisURL, "://")
+		if len(parts) == 2 {
+			authAndHost := parts[1]
+			if strings.Contains(authAndHost, "@") {
+				authParts := strings.Split(authAndHost, "@")
+				if len(authParts) == 2 {
+					password := strings.TrimPrefix(authParts[0], ":")
+					hostPort := authParts[1]
+					redisOptimizer = redisoptimization.NewRedisOptimizer(hostPort, password, nil)
+					log.Println("✅ Redis optimization enabled")
+				}
+			} else {
+				redisOptimizer = redisoptimization.NewRedisOptimizer(authAndHost, "", nil)
+				log.Println("✅ Redis optimization enabled (no password)")
+			}
+		}
+	} else {
+		log.Println("⚠️  Redis optimization disabled (REDIS_URL not set)")
+	}
+
 	return &RailwayServer{
 		serviceName:    serviceName,
 		version:        version,
@@ -91,6 +118,7 @@ func NewRailwayServer() *RailwayServer {
 		port:           port,
 		db:             db,
 		mux:            http.NewServeMux(),
+		redisOptimizer: redisOptimizer,
 	}
 }
 
@@ -229,6 +257,44 @@ func (s *RailwayServer) handleDetailedHealth(w http.ResponseWriter, r *http.Requ
 		checks["database"] = map[string]string{"status": "not_configured"}
 	}
 
+	// Check PostgreSQL database (if available)
+	if s.db != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := s.db.PingContext(ctx); err != nil {
+			checks["postgres"] = map[string]string{"status": "unhealthy", "error": err.Error()}
+		} else {
+			checks["postgres"] = map[string]string{"status": "healthy"}
+		}
+	} else {
+		checks["postgres"] = map[string]string{"status": "not_configured"}
+	}
+
+	// Check Redis optimization (if available)
+	if s.redisOptimizer != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		redisHealth, err := s.redisOptimizer.HealthCheck(ctx)
+		if err != nil {
+			checks["redis"] = map[string]interface{}{
+				"status": "unhealthy",
+				"error":  err.Error(),
+			}
+		} else {
+			checks["redis"] = map[string]interface{}{
+				"status":  redisHealth.Status,
+				"latency": redisHealth.Latency.String(),
+				"connections": map[string]int{
+					"total":  redisHealth.TotalConnections,
+					"active": redisHealth.ActiveConnections,
+					"idle":   redisHealth.IdleConnections,
+				},
+			}
+		}
+	} else {
+		checks["redis"] = map[string]string{"status": "not_configured"}
+	}
+
 	// Check external services
 	checks["external_apis"] = map[string]string{"status": "healthy"}
 	checks["cache"] = map[string]string{"status": "healthy"}
@@ -246,6 +312,7 @@ func (s *RailwayServer) handleDetailedHealth(w http.ResponseWriter, r *http.Requ
 }
 
 // handleClassify handles business classification requests
+// Supports Redis caching when Redis optimizer is available
 func (s *RailwayServer) handleClassify(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -258,7 +325,26 @@ func (s *RailwayServer) handleClassify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Simulate classification processing
+	// Create cache key for Redis (if available)
+	cacheKey := fmt.Sprintf("classification:%s:%s", req.Name, req.Description)
+
+	// Try to get from Redis cache first (if available)
+	if s.redisOptimizer != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		cached, err := s.redisOptimizer.GetClient().Get(ctx, cacheKey).Result()
+		if err == nil {
+			// Cache hit - return cached result
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("X-Cache", "HIT")
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(cached))
+			return
+		}
+	}
+
+	// Cache miss or Redis unavailable - perform classification
 	start := time.Now()
 
 	// Generate mock classifications
@@ -298,6 +384,19 @@ func (s *RailwayServer) handleClassify(w http.ResponseWriter, r *http.Request) {
 		Timestamp:       time.Now().Format(time.RFC3339),
 	}
 
+	// Cache the result in Redis (if available)
+	if s.redisOptimizer != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		// Serialize response for caching
+		responseBytes, err := json.Marshal(response)
+		if err == nil {
+			// Use Redis optimizer's intelligent caching strategy
+			s.redisOptimizer.OptimizeCacheStrategy(ctx, cacheKey, string(responseBytes), "classification")
+		}
+	}
+
 	// Save to database if available
 	if s.supabaseClient != nil {
 		classificationData := map[string]interface{}{
@@ -316,6 +415,9 @@ func (s *RailwayServer) handleClassify(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	if s.redisOptimizer != nil {
+		w.Header().Set("X-Cache", "MISS")
+	}
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -508,6 +610,7 @@ func (s *RailwayServer) handleAnalytics(w http.ResponseWriter, r *http.Request) 
 }
 
 // handleMetrics handles performance metrics
+// Includes Redis performance data if Redis optimizer is available
 func (s *RailwayServer) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	// Mock metrics data
 	metrics := map[string]interface{}{
@@ -531,6 +634,27 @@ func (s *RailwayServer) handleMetrics(w http.ResponseWriter, r *http.Request) {
 			"4xx": 45,
 			"5xx": 25,
 		},
+	}
+
+	// Add Redis metrics if available
+	if s.redisOptimizer != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		redisStats, err := s.redisOptimizer.GetCacheStats(ctx)
+		if err == nil {
+			metrics["redis"] = map[string]interface{}{
+				"connections": map[string]int{
+					"total":  redisStats.TotalConnections,
+					"active": redisStats.ActiveConnections,
+					"idle":   redisStats.IdleConnections,
+				},
+				"performance": map[string]interface{}{
+					"hit_rate":  redisStats.HitRate,
+					"miss_rate": redisStats.MissRate,
+				},
+			}
+		}
 	}
 
 	response := MetricsResponse{
@@ -850,6 +974,11 @@ func (s *RailwayServer) setupRoutes() {
 	// Documentation
 	s.mux.HandleFunc("/docs", s.handleDocs)
 
+	// Redis optimization endpoint (only register if Redis is available)
+	if s.redisOptimizer != nil {
+		s.mux.HandleFunc("/redis-optimization", s.handleRedisOptimization)
+	}
+
 	// Register new merchant analytics and async risk assessment routes
 	s.setupNewAPIRoutes()
 }
@@ -1021,6 +1150,103 @@ func (s *RailwayServer) setupNewAPIRoutes() {
 	log.Println("   - POST /v1/admin/risk/thresholds")
 	log.Println("   - GET /v1/admin/risk/system/health")
 	log.Println("   - GET /v1/admin/risk/system/metrics")
+	if s.redisOptimizer != nil {
+		log.Println("   - GET/POST /redis-optimization (Redis optimization status and controls)")
+	}
+}
+
+// handleRedisOptimization provides Redis optimization status and controls
+func (s *RailwayServer) handleRedisOptimization(w http.ResponseWriter, r *http.Request) {
+	if s.redisOptimizer == nil {
+		http.Error(w, "Redis optimization not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	switch r.Method {
+	case http.MethodGet:
+		// Get optimization status
+		health, err := s.redisOptimizer.HealthCheck(ctx)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Redis health check failed: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		stats, err := s.redisOptimizer.GetCacheStats(ctx)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to get cache stats: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		response := map[string]interface{}{
+			"service":   s.serviceName,
+			"version":   s.version,
+			"timestamp": time.Now().Format(time.RFC3339),
+			"redis_optimization": map[string]interface{}{
+				"status": health.Status,
+				"health": health,
+				"stats":  stats,
+				"config": map[string]interface{}{
+					"pool_size":         100,
+					"min_idle_conns":    10,
+					"max_idle_conns":    50,
+					"enable_pipelining": true,
+					"compression":       true,
+				},
+			},
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(response)
+
+	case http.MethodPost:
+		// Warmup cache
+		var warmupReq struct {
+			Action string `json:"action"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&warmupReq); err != nil {
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
+
+		if warmupReq.Action == "warmup" {
+			warmupData := map[string]interface{}{
+				"warmup:classification:tech": map[string]string{
+					"mcc":   "5411",
+					"naics": "541511",
+				},
+				"warmup:analytics:summary": map[string]interface{}{
+					"total":        1250,
+					"success_rate": 0.944,
+				},
+			}
+
+			err := s.redisOptimizer.WarmupCache(ctx, warmupData)
+			if err != nil {
+				http.Error(w, fmt.Sprintf("Cache warmup failed: %v", err), http.StatusInternalServerError)
+				return
+			}
+
+			response := map[string]interface{}{
+				"status":  "success",
+				"message": "Cache warmup completed",
+				"items":   len(warmupData),
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(response)
+		} else {
+			http.Error(w, "Invalid action", http.StatusBadRequest)
+		}
+
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
 }
 
 // Start starts the server
@@ -1034,6 +1260,17 @@ func (s *RailwayServer) Start() error {
 	log.Printf("🤖 Self-Driving: http://localhost:%s/self-driving", s.port)
 	log.Printf("📈 Analytics: http://localhost:%s/analytics/overall", s.port)
 	log.Printf("📚 Docs: http://localhost:%s/docs", s.port)
+	if s.redisOptimizer != nil {
+		log.Printf("⚡ Redis Optimization: http://localhost:%s/redis-optimization", s.port)
+		log.Printf("✅ Redis optimization enabled")
+	} else {
+		log.Printf("⚠️  Redis optimization disabled (REDIS_URL not set)")
+	}
+	if s.db != nil {
+		log.Printf("✅ Database connection established")
+	} else {
+		log.Printf("⚠️  Database not available (DATABASE_URL not set or connection failed)")
+	}
 
 	return http.ListenAndServe(":"+s.port, s.mux)
 }
@@ -1044,6 +1281,17 @@ func main() {
 	// Close database connection on exit
 	if server.db != nil {
 		defer server.db.Close()
+	}
+
+	// Close Redis connection on exit (if available)
+	if server.redisOptimizer != nil {
+		defer func() {
+			if client := server.redisOptimizer.GetClient(); client != nil {
+				if err := client.Close(); err != nil {
+					log.Printf("Error closing Redis connection: %v", err)
+				}
+			}
+		}()
 	}
 
 	if err := server.Start(); err != nil {

@@ -207,7 +207,7 @@ func (m *MockKeywordRepository) IncrementUsageCount(ctx context.Context, keyword
 	return nil
 }
 
-func (m *MockKeywordRepository) ClassifyBusiness(ctx context.Context, businessName, description, websiteURL string) (*repository.ClassificationResult, error) {
+func (m *MockKeywordRepository) ClassifyBusiness(ctx context.Context, businessName, websiteURL string) (*repository.ClassificationResult, error) {
 	if m.classifyBusinessError != nil {
 		return nil, m.classifyBusinessError
 	}

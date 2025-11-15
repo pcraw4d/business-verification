@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+
+	"kyb-platform/internal/machine_learning"
 )
 
 // DataDiscoveryService provides automated data point discovery capabilities
@@ -14,7 +16,7 @@ type DataDiscoveryService struct {
 	config                *DataDiscoveryConfig
 	logger                *zap.Logger
 	patternDetector       *PatternDetector
-	contentClassifier     *ContentClassifier
+	contentClassifier     *machine_learning.ContentClassifier
 	fieldAnalyzer         *FieldAnalyzer
 	extractionRulesEngine *ExtractionRulesEngine
 	qualityScorer         *QualityScorer
@@ -124,11 +126,24 @@ func NewDataDiscoveryService(config *DataDiscoveryConfig, logger *zap.Logger) *D
 		config = DefaultDataDiscoveryConfig()
 	}
 
+	// Create ML content classifier with default config
+	mlConfig := machine_learning.ContentClassifierConfig{
+		ModelType:             "bert",
+		MaxSequenceLength:     512,
+		BatchSize:             32,
+		LearningRate:          0.0001,
+		Epochs:                10,
+		ValidationSplit:       0.2,
+		ConfidenceThreshold:   0.7,
+		ExplainabilityEnabled: config.EnableMLClassification,
+	}
+	mlClassifier := machine_learning.NewContentClassifier(mlConfig)
+
 	return &DataDiscoveryService{
 		config:                config,
 		logger:                logger,
 		patternDetector:       NewPatternDetector(config, logger),
-		contentClassifier:     NewContentClassifier(config, logger),
+		contentClassifier:     mlClassifier,
 		fieldAnalyzer:         NewFieldAnalyzer(config, logger),
 		extractionRulesEngine: NewExtractionRulesEngine(config, logger),
 		qualityScorer:         NewQualityScorer(config, logger),
@@ -153,12 +168,42 @@ func (s *DataDiscoveryService) DiscoverDataPoints(ctx context.Context, content *
 	}
 
 	// Step 1: Classify content to understand context
-	classification, err := s.contentClassifier.ClassifyContent(ctx, content)
+	// Extract content string and industry from ContentInput
+	contentStr := content.RawContent
+	if contentStr == "" {
+		contentStr = content.HTMLContent
+	}
+	industry := ""
+	if industryVal, ok := content.MetaData["industry"]; ok {
+		industry = industryVal
+	}
+
+	mlClassification, err := s.contentClassifier.ClassifyContent(ctx, contentStr, industry)
 	if err != nil {
 		s.logger.Warn("Content classification failed, continuing with discovery",
 			zap.Error(err))
 	} else {
-		result.ClassificationResult = classification
+		// Convert machine_learning.ClassificationResult to local ClassificationResult
+		// Extract business type and industry from classifications
+		businessType := ""
+		industryCategory := ""
+		contentCategories := []string{}
+		if len(mlClassification.Classifications) > 0 {
+			businessType = mlClassification.Classifications[0].Label
+			for _, pred := range mlClassification.Classifications {
+				contentCategories = append(contentCategories, pred.Label)
+			}
+		}
+
+		result.ClassificationResult = &ClassificationResult{
+			BusinessType:        businessType,
+			IndustryCategory:    industryCategory,
+			ContentCategories:   contentCategories,
+			QualityScore:        mlClassification.QualityScore,
+			TechnicalIndicators: []string{}, // Not available in ML result
+			ConfidenceScore:     mlClassification.Confidence,
+			Metadata:            make(map[string]interface{}),
+		}
 	}
 
 	// Step 2: Detect patterns in the content
@@ -171,7 +216,7 @@ func (s *DataDiscoveryService) DiscoverDataPoints(ctx context.Context, content *
 	}
 
 	// Step 3: Analyze fields and extract potential data points
-	fields, err := s.fieldAnalyzer.AnalyzeFields(ctx, content, patterns, classification)
+	fields, err := s.fieldAnalyzer.AnalyzeFields(ctx, content, patterns, result.ClassificationResult)
 	if err != nil {
 		s.logger.Warn("Field analysis failed, continuing with discovery",
 			zap.Error(err))
@@ -189,8 +234,8 @@ func (s *DataDiscoveryService) DiscoverDataPoints(ctx context.Context, content *
 	}
 
 	// Step 5: Perform quality scoring on discovered fields
-	businessContext := s.buildBusinessContext(content, classification)
-	qualityAssessments, err := s.qualityScorer.ScoreDiscoveredFields(ctx, result.DiscoveredFields, patterns, classification, businessContext)
+	businessContext := s.buildBusinessContext(content, result.ClassificationResult)
+	qualityAssessments, err := s.qualityScorer.ScoreDiscoveredFields(ctx, result.DiscoveredFields, patterns, result.ClassificationResult, businessContext)
 	if err != nil {
 		s.logger.Warn("Quality scoring failed",
 			zap.Error(err))

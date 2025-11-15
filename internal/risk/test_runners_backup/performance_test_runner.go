@@ -15,9 +15,11 @@ import (
 )
 
 // PerformanceTestRunner provides comprehensive performance testing capabilities
+// NOTE: test_runners_backup is a subdirectory, so it's a separate package from internal/risk
+// Types like PerformanceTestSuite are defined in the parent package and are not accessible
 type PerformanceTestRunner struct {
 	logger    *zap.Logger
-	testSuite *PerformanceTestSuite
+	testSuite interface{} // *PerformanceTestSuite - defined in parent package
 	results   *PerformanceTestResults
 }
 

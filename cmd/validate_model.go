@@ -1,16 +1,12 @@
 package main
 
 import (
-	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
+	"kyb-platform/internal/ml/validation"
 	"log"
 	"os"
 	"time"
-
-	"kyb-platform/services/risk-assessment-service/internal/ml/models"
-	"kyb-platform/services/risk-assessment-service/internal/ml/validation"
 
 	"go.uber.org/zap"
 )
@@ -49,65 +45,33 @@ func main() {
 		zap.Float64("confidence_level", *confidenceLevel),
 		zap.Int64("seed", *seed))
 
-	// Create validation service
-	validationService := validation.NewValidationService(logger)
+	// NOTE: This file uses internal packages that cannot be imported from outside the service.
+	// This file needs to be moved to services/risk-assessment-service/cmd/ or refactored
+	// to use a different approach (e.g., calling the service via API or using exported interfaces).
+	//
+	// Temporarily commented out to allow compilation:
+	//
+	// validationService := validation.NewValidationService(logger)
+	// model := models.NewXGBoostModel(logger)
+	// config := validation.ValidationConfig{...}
+	// report, err := validationService.ValidateModel(ctx, model, config)
+	// displayResults(report, logger)
 
-	// Create XGBoost model for validation
-	model := models.NewXGBoostModel(logger)
-
-	// Configure validation
-	config := validation.ValidationConfig{
-		CrossValidation: validation.CrossValidationConfig{
-			KFolds:          *kFolds,
-			ConfidenceLevel: *confidenceLevel,
-			RandomSeed:      *seed,
-			ParallelFolds:   *parallel,
-			MaxConcurrency:  4,
-		},
-		DataGeneration: validation.DataGenerationConfig{
-			TotalSamples:     *totalSamples,
-			TimeRange:        *timeRange,
-			RiskCategories:   getDefaultRiskCategories(),
-			IndustryWeights:  getDefaultIndustryWeights(),
-			GeographicBias:   getDefaultGeographicBias(),
-			SeasonalPatterns: true,
-			TrendStrength:    0.02,
-			NoiseLevel:       0.05,
-		},
-		OutputFormat: "json",
-		SaveResults:  *outputFile != "",
-		ResultsPath:  *outputFile,
-	}
-
-	// Run validation
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
-	defer cancel()
-
-	report, err := validationService.ValidateModel(ctx, model, config)
-	if err != nil {
-		logger.Fatal("Model validation failed", zap.Error(err))
-	}
-
-	// Display results
-	displayResults(report, logger)
-
-	// Save results if requested
-	if *outputFile != "" {
-		if err := saveReport(report, *outputFile); err != nil {
-			logger.Error("Failed to save report", zap.Error(err))
-		} else {
-			logger.Info("Report saved successfully", zap.String("file", *outputFile))
-		}
-	}
+	logger.Warn("Model validation is disabled - file needs to be moved to service directory or refactored")
+	fmt.Println("ERROR: This validation tool requires access to internal service packages.")
+	fmt.Println("Please move this file to services/risk-assessment-service/cmd/ or use the service API instead.")
+	os.Exit(1)
 
 	logger.Info("Model validation completed successfully")
 }
 
 // displayResults displays validation results in a formatted way
+// NOTE: Commented out due to internal package dependency
+/*
 func displayResults(report *validation.ValidationReport, logger *zap.Logger) {
-	fmt.Println("\n" + "="*80)
+	fmt.Println("\n" + strings.Repeat("=", 80))
 	fmt.Println("ML MODEL VALIDATION REPORT")
-	fmt.Println("=" * 80)
+	fmt.Println(strings.Repeat("=", 80))
 
 	// Summary
 	fmt.Printf("\n📊 VALIDATION SUMMARY\n")
@@ -249,7 +213,7 @@ func displayResults(report *validation.ValidationReport, logger *zap.Logger) {
 	fmt.Printf("Total Validation Time: %v\n", report.ValidationTime)
 	fmt.Printf("Generated At: %s\n", report.GeneratedAt.Format(time.RFC3339))
 
-	fmt.Println("\n" + "="*80)
+	fmt.Println("\n" + strings.Repeat("=", 80))
 }
 
 // saveReport saves the validation report to a JSON file
@@ -269,6 +233,7 @@ func saveReport(report *validation.ValidationReport, filename string) error {
 
 	return nil
 }
+*/
 
 // getDefaultRiskCategories returns default risk categories
 func getDefaultRiskCategories() []validation.RiskCategory {
