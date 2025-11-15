@@ -23,8 +23,8 @@ type ConsistencyTest struct {
 	Critical       bool    // Whether this is a critical consistency check
 }
 
-// ConsistencyResult represents the result of a consistency test
-type ConsistencyResult struct {
+// ConsistencyValidationResult represents the result of a consistency test
+type ConsistencyValidationResult struct {
 	Test           ConsistencyTest
 	Status         string // "PASS", "FAIL", "ERROR"
 	ErrorMessage   string
@@ -72,7 +72,7 @@ func main() {
 	fmt.Printf("Found %d consistency tests to run\n\n", len(tests))
 
 	// Run consistency tests
-	var results []ConsistencyResult
+	var results []ConsistencyValidationResult
 	var passed, failed, errors int
 
 	for i, test := range tests {
@@ -410,9 +410,9 @@ func getDataIntegrityConsistencyTests(ctx context.Context, db *sql.DB) ([]Consis
 }
 
 // runConsistencyTest runs a specific consistency test
-func runConsistencyTest(ctx context.Context, db *sql.DB, test ConsistencyTest) ConsistencyResult {
+func runConsistencyTest(ctx context.Context, db *sql.DB, test ConsistencyTest) ConsistencyValidationResult {
 	startTime := time.Now()
-	result := ConsistencyResult{
+	result := ConsistencyValidationResult{
 		Test:           test,
 		ExpectedResult: test.ExpectedResult,
 	}

@@ -14,19 +14,19 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// IndustryCoverageAnalysis represents the analysis of industry coverage
-type IndustryCoverageAnalysis struct {
-	AnalysisDate       time.Time                   `json:"analysis_date"`
-	TotalIndustries    int                         `json:"total_industries"`
-	CoverageByCategory map[string]CategoryCoverage `json:"coverage_by_category"`
-	MissingIndustries  []MissingIndustry           `json:"missing_industries"`
-	Underrepresented   []UnderrepresentedIndustry  `json:"underrepresented_industries"`
-	EmergingTrends     []EmergingIndustryTrend     `json:"emerging_trends"`
-	Recommendations    []CoverageRecommendation    `json:"recommendations"`
-	TaxonomyHierarchy  IndustryTaxonomy            `json:"taxonomy_hierarchy"`
+// IndustryCoverageAnalysisForScript represents the analysis of industry coverage
+type IndustryCoverageAnalysisForScript struct {
+	AnalysisDate       time.Time                            `json:"analysis_date"`
+	TotalIndustries    int                                  `json:"total_industries"`
+	CoverageByCategory map[string]CategoryCoverageForScript `json:"coverage_by_category"`
+	MissingIndustries  []MissingIndustryForScript           `json:"missing_industries"`
+	Underrepresented   []UnderrepresentedIndustryForScript  `json:"underrepresented_industries"`
+	EmergingTrends     []EmergingIndustryTrendForScript     `json:"emerging_trends"`
+	Recommendations    []CoverageRecommendationForScript    `json:"recommendations"`
+	TaxonomyHierarchy  IndustryTaxonomyForScript            `json:"taxonomy_hierarchy"`
 }
 
-type CategoryCoverage struct {
+type CategoryCoverageForScript struct {
 	Category           string  `json:"category"`
 	TotalIndustries    int     `json:"total_industries"`
 	CoveredIndustries  int     `json:"covered_industries"`
@@ -35,7 +35,7 @@ type CategoryCoverage struct {
 	AvgCodes           float64 `json:"avg_codes"`
 }
 
-type MissingIndustry struct {
+type MissingIndustryForScript struct {
 	IndustryName      string   `json:"industry_name"`
 	Category          string   `json:"category"`
 	Priority          string   `json:"priority"`
@@ -44,7 +44,7 @@ type MissingIndustry struct {
 	SuggestedCodes    []string `json:"suggested_codes"`
 }
 
-type UnderrepresentedIndustry struct {
+type UnderrepresentedIndustryForScript struct {
 	IndustryName        string `json:"industry_name"`
 	CurrentKeywords     int    `json:"current_keywords"`
 	RecommendedKeywords int    `json:"recommended_keywords"`
@@ -53,7 +53,7 @@ type UnderrepresentedIndustry struct {
 	ImprovementNeeded   string `json:"improvement_needed"`
 }
 
-type EmergingIndustryTrend struct {
+type EmergingIndustryTrendForScript struct {
 	TrendName         string   `json:"trend_name"`
 	Description       string   `json:"description"`
 	MarketGrowth      string   `json:"market_growth"`
@@ -61,26 +61,26 @@ type EmergingIndustryTrend struct {
 	Priority          string   `json:"priority"`
 }
 
-type CoverageRecommendation struct {
+type CoverageRecommendationForScript struct {
 	Recommendation string `json:"recommendation"`
 	Priority       string `json:"priority"`
 	Impact         string `json:"impact"`
 	Effort         string `json:"effort"`
 }
 
-type IndustryTaxonomy struct {
-	PrimaryCategories []PrimaryCategory `json:"primary_categories"`
+type IndustryTaxonomyForScript struct {
+	PrimaryCategories []PrimaryCategoryForScript `json:"primary_categories"`
 }
 
-type PrimaryCategory struct {
-	Name             string        `json:"name"`
-	Description      string        `json:"description"`
-	Subcategories    []Subcategory `json:"subcategories"`
-	CoverageStatus   string        `json:"coverage_status"`
-	MarketImportance string        `json:"market_importance"`
+type PrimaryCategoryForScript struct {
+	Name             string                 `json:"name"`
+	Description      string                 `json:"description"`
+	Subcategories    []SubcategoryForScript `json:"subcategories"`
+	CoverageStatus   string                 `json:"coverage_status"`
+	MarketImportance string                 `json:"market_importance"`
 }
 
-type Subcategory struct {
+type SubcategoryForScript struct {
 	Name           string `json:"name"`
 	Description    string `json:"description"`
 	CoverageStatus string `json:"coverage_status"`
@@ -99,7 +99,7 @@ func main() {
 	ctx := context.Background()
 
 	// Perform industry coverage analysis
-	analysis, err := performIndustryCoverageAnalysis(ctx, db)
+	analysis, err := performIndustryCoverageAnalysisForScript(ctx, db)
 	if err != nil {
 		log.Fatal("Failed to perform analysis:", err)
 	}
@@ -138,14 +138,14 @@ func main() {
 	fmt.Printf("🚀 Emerging trends identified: %d\n", len(analysis.EmergingTrends))
 }
 
-func performIndustryCoverageAnalysis(ctx context.Context, db *sql.DB) (*IndustryCoverageAnalysis, error) {
-	analysis := &IndustryCoverageAnalysis{
+func performIndustryCoverageAnalysisForScript(ctx context.Context, db *sql.DB) (*IndustryCoverageAnalysisForScript, error) {
+	analysis := &IndustryCoverageAnalysisForScript{
 		AnalysisDate:       time.Now(),
-		CoverageByCategory: make(map[string]CategoryCoverage),
-		MissingIndustries:  []MissingIndustry{},
-		Underrepresented:   []UnderrepresentedIndustry{},
-		EmergingTrends:     []EmergingIndustryTrend{},
-		Recommendations:    []CoverageRecommendation{},
+		CoverageByCategory: make(map[string]CategoryCoverageForScript),
+		MissingIndustries:  []MissingIndustryForScript{},
+		Underrepresented:   []UnderrepresentedIndustryForScript{},
+		EmergingTrends:     []EmergingIndustryTrendForScript{},
+		Recommendations:    []CoverageRecommendationForScript{},
 	}
 
 	// Get current industry data
@@ -231,8 +231,8 @@ func getCurrentIndustries(ctx context.Context, db *sql.DB) ([]Industry, error) {
 	return industries, nil
 }
 
-func analyzeCoverageByCategory(ctx context.Context, db *sql.DB, analysis *IndustryCoverageAnalysis, industries []Industry) error {
-	categoryStats := make(map[string]*CategoryCoverage)
+func analyzeCoverageByCategory(ctx context.Context, db *sql.DB, analysis *IndustryCoverageAnalysisForScript, industries []Industry) error {
+	categoryStats := make(map[string]*CategoryCoverageForScript)
 
 	// Initialize category statistics
 	categories := []string{"Technology", "Healthcare", "Finance", "Retail", "Manufacturing",
@@ -240,7 +240,7 @@ func analyzeCoverageByCategory(ctx context.Context, db *sql.DB, analysis *Indust
 		"Construction", "Agriculture", "Government", "Non-profit", "Other"}
 
 	for _, category := range categories {
-		categoryStats[category] = &CategoryCoverage{
+		categoryStats[category] = &CategoryCoverageForScript{
 			Category: category,
 		}
 	}
@@ -270,9 +270,9 @@ func analyzeCoverageByCategory(ctx context.Context, db *sql.DB, analysis *Indust
 	return nil
 }
 
-func identifyMissingIndustries(analysis *IndustryCoverageAnalysis) error {
+func identifyMissingIndustries(analysis *IndustryCoverageAnalysisForScript) error {
 	// Define comprehensive list of industries that should be covered
-	missingIndustries := []MissingIndustry{
+	missingIndustries := []MissingIndustryForScript{
 		// High Priority Missing Industries
 		{
 			IndustryName:      "Restaurant & Food Service",
@@ -344,11 +344,11 @@ func identifyMissingIndustries(analysis *IndustryCoverageAnalysis) error {
 	return nil
 }
 
-func identifyUnderrepresentedIndustries(ctx context.Context, db *sql.DB, analysis *IndustryCoverageAnalysis, industries []Industry) error {
+func identifyUnderrepresentedIndustries(ctx context.Context, db *sql.DB, analysis *IndustryCoverageAnalysisForScript, industries []Industry) error {
 	for _, industry := range industries {
 		// Check if industry has sufficient keywords (minimum 15 recommended)
 		if industry.KeywordCount < 15 {
-			analysis.Underrepresented = append(analysis.Underrepresented, UnderrepresentedIndustry{
+			analysis.Underrepresented = append(analysis.Underrepresented, UnderrepresentedIndustryForScript{
 				IndustryName:        industry.Name,
 				CurrentKeywords:     industry.KeywordCount,
 				RecommendedKeywords: 20,
@@ -360,7 +360,7 @@ func identifyUnderrepresentedIndustries(ctx context.Context, db *sql.DB, analysi
 
 		// Check if industry has sufficient classification codes (minimum 6 recommended)
 		if industry.CodeCount < 6 {
-			analysis.Underrepresented = append(analysis.Underrepresented, UnderrepresentedIndustry{
+			analysis.Underrepresented = append(analysis.Underrepresented, UnderrepresentedIndustryForScript{
 				IndustryName:        industry.Name,
 				CurrentKeywords:     industry.KeywordCount,
 				RecommendedKeywords: 20,
@@ -374,8 +374,8 @@ func identifyUnderrepresentedIndustries(ctx context.Context, db *sql.DB, analysi
 	return nil
 }
 
-func analyzeEmergingTrends(analysis *IndustryCoverageAnalysis) error {
-	emergingTrends := []EmergingIndustryTrend{
+func analyzeEmergingTrends(analysis *IndustryCoverageAnalysisForScript) error {
+	emergingTrends := []EmergingIndustryTrendForScript{
 		{
 			TrendName:         "Artificial Intelligence & Machine Learning",
 			Description:       "AI/ML services, automation, and intelligent systems",
@@ -424,8 +424,8 @@ func analyzeEmergingTrends(analysis *IndustryCoverageAnalysis) error {
 	return nil
 }
 
-func generateRecommendations(analysis *IndustryCoverageAnalysis) error {
-	recommendations := []CoverageRecommendation{
+func generateRecommendations(analysis *IndustryCoverageAnalysisForScript) error {
+	recommendations := []CoverageRecommendationForScript{
 		{
 			Recommendation: "Add Restaurant & Food Service industry with comprehensive keywords",
 			Priority:       "Critical",
@@ -468,15 +468,15 @@ func generateRecommendations(analysis *IndustryCoverageAnalysis) error {
 	return nil
 }
 
-func createTaxonomyHierarchy(analysis *IndustryCoverageAnalysis) error {
-	taxonomy := IndustryTaxonomy{
-		PrimaryCategories: []PrimaryCategory{
+func createTaxonomyHierarchy(analysis *IndustryCoverageAnalysisForScript) error {
+	taxonomy := IndustryTaxonomyForScript{
+		PrimaryCategories: []PrimaryCategoryForScript{
 			{
 				Name:             "Technology & Software",
 				Description:      "Technology companies, software development, and digital services",
 				CoverageStatus:   "Good",
 				MarketImportance: "High",
-				Subcategories: []Subcategory{
+				Subcategories: []SubcategoryForScript{
 					{Name: "Software Development", CoverageStatus: "Good", Keywords: 12, Codes: 7},
 					{Name: "Cloud Computing", CoverageStatus: "Good", Keywords: 14, Codes: 6},
 					{Name: "Artificial Intelligence", CoverageStatus: "Good", Keywords: 12, Codes: 6},
@@ -490,7 +490,7 @@ func createTaxonomyHierarchy(analysis *IndustryCoverageAnalysis) error {
 				Description:      "Healthcare providers, medical services, and health technology",
 				CoverageStatus:   "Good",
 				MarketImportance: "High",
-				Subcategories: []Subcategory{
+				Subcategories: []SubcategoryForScript{
 					{Name: "Medical Services", CoverageStatus: "Good", Keywords: 12, Codes: 9},
 					{Name: "Pharmaceuticals", CoverageStatus: "Good", Keywords: 12, Codes: 8},
 					{Name: "Medical Technology", CoverageStatus: "Good", Keywords: 12, Codes: 6},
@@ -504,7 +504,7 @@ func createTaxonomyHierarchy(analysis *IndustryCoverageAnalysis) error {
 				Description:      "Banking, investment, insurance, and financial technology",
 				CoverageStatus:   "Good",
 				MarketImportance: "High",
-				Subcategories: []Subcategory{
+				Subcategories: []SubcategoryForScript{
 					{Name: "Commercial Banking", CoverageStatus: "Good", Keywords: 12, Codes: 6},
 					{Name: "Investment Services", CoverageStatus: "Good", Keywords: 12, Codes: 6},
 					{Name: "Insurance", CoverageStatus: "Good", Keywords: 12, Codes: 6},
@@ -518,7 +518,7 @@ func createTaxonomyHierarchy(analysis *IndustryCoverageAnalysis) error {
 				Description:      "Industries that need to be added to achieve comprehensive coverage",
 				CoverageStatus:   "Missing",
 				MarketImportance: "High",
-				Subcategories: []Subcategory{
+				Subcategories: []SubcategoryForScript{
 					{Name: "Restaurant & Food Service", CoverageStatus: "Missing", Keywords: 0, Codes: 0},
 					{Name: "Professional Services", CoverageStatus: "Missing", Keywords: 0, Codes: 0},
 					{Name: "Construction & Building", CoverageStatus: "Missing", Keywords: 0, Codes: 0},
@@ -559,7 +559,7 @@ func getExpectedIndustryCount(category string) int {
 	return 3 // Default expected count
 }
 
-func generateCoverageReport(analysis *IndustryCoverageAnalysis) (string, error) {
+func generateCoverageReport(analysis *IndustryCoverageAnalysisForScript) (string, error) {
 	var report strings.Builder
 
 	report.WriteString("# 🏭 Industry Coverage Analysis Report\n\n")
@@ -638,7 +638,7 @@ func generateCoverageReport(analysis *IndustryCoverageAnalysis) (string, error) 
 		report.WriteString(fmt.Sprintf("**Coverage Status**: %s\n", primary.CoverageStatus))
 		report.WriteString(fmt.Sprintf("**Market Importance**: %s\n\n", primary.MarketImportance))
 
-		report.WriteString("| Subcategory | Coverage | Keywords | Codes |\n")
+		report.WriteString("| SubcategoryForScript | Coverage | Keywords | Codes |\n")
 		report.WriteString("|-------------|----------|----------|-------|\n")
 
 		for _, sub := range primary.Subcategories {

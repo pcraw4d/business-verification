@@ -9,6 +9,16 @@ import (
 	"time"
 )
 
+// BackupTestConfig contains configuration for backup testing
+type BackupTestConfig struct {
+	SupabaseURL       string
+	TestDatabaseURL   string
+	BackupDirectory   string
+	TestDataSize      int
+	RecoveryTimeout   time.Duration
+	ValidationRetries int
+}
+
 // DefaultBackupTestConfig creates a default configuration for backup testing
 func DefaultBackupTestConfig() *BackupTestConfig {
 	return &BackupTestConfig{

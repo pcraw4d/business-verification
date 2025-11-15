@@ -15,23 +15,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// IntegrationTestSuite provides comprehensive integration testing for the risk assessment system
-type IntegrationTestSuite struct {
-	logger           *zap.Logger
-	backupDir        string
-	riskService      *RiskService
-	storageService   *RiskStorageService
-	validationSvc    *RiskValidationService
-	exportSvc        *ExportService
-	backupSvc        *BackupService
-	jobManager       *ExportJobManager
-	backupJobManager *BackupJobManager
-	exportHandler    *ExportHandler
-	backupHandler    *BackupHandler
-	mux              *http.ServeMux
-}
-
 // NewIntegrationTestSuite creates a new integration test suite
+// Type definition is in test_suite_types.go
 func NewIntegrationTestSuite(t *testing.T) *IntegrationTestSuite {
 	logger := zap.NewNop()
 	backupDir := t.TempDir()

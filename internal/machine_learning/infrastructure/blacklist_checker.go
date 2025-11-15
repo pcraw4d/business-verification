@@ -23,17 +23,7 @@ type BlacklistChecker struct {
 	logger *log.Logger
 }
 
-// BlacklistEntry represents a blacklist entry
-type BlacklistEntry struct {
-	ID        string    `json:"id"`
-	Type      string    `json:"type"` // business, domain, ip
-	Value     string    `json:"value"`
-	Reason    string    `json:"reason"`
-	RiskLevel string    `json:"risk_level"` // low, medium, high, critical
-	Source    string    `json:"source"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-}
+// BlacklistEntry is defined in types.go to avoid redeclaration
 
 // NewBlacklistChecker creates a new blacklist checker
 func NewBlacklistChecker(logger *log.Logger) *BlacklistChecker {

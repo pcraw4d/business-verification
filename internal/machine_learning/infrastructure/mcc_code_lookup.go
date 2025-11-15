@@ -23,14 +23,7 @@ type MCCCodeLookup struct {
 	logger *log.Logger
 }
 
-// MCCCodeInfo represents MCC code information
-type MCCCodeInfo struct {
-	Code         string `json:"code"`
-	Description  string `json:"description"`
-	Category     string `json:"category"`
-	IsProhibited bool   `json:"is_prohibited"`
-	RiskLevel    string `json:"risk_level"` // low, medium, high, critical
-}
+// MCCCodeInfo is defined in types.go to avoid redeclaration
 
 // NewMCCCodeLookup creates a new MCC code lookup
 func NewMCCCodeLookup(logger *log.Logger) *MCCCodeLookup {
@@ -80,7 +73,7 @@ func (mcl *MCCCodeLookup) ClassifyByMCC(ctx context.Context, businessName, descr
 	industryScores := make(map[string]float64)
 
 	// Match business description to MCC codes
-	for code, mccInfo := range mcl.mccCodes {
+	for _, mccInfo := range mcl.mccCodes {
 		score := mcl.calculateMCCScore(text, mccInfo)
 		if score > 0 {
 			// Map MCC category to industry
@@ -266,14 +259,11 @@ func (mcl *MCCCodeLookup) loadMCCCodes() error {
 		"7273": {"7273", "Dating Services", "adult_entertainment", true, "high"},
 		"7841": {"7841", "Video Tape Rental Stores", "adult_entertainment", true, "high"},
 		"5967": {"5967", "Direct Marketing - Continuity/Subscription Merchants", "high_risk", true, "high"},
-		"6010": {"6010", "Financial Institutions - Manual Cash Disbursements", "money_services", true, "high"},
-		"6051": {"6051", "Non-Financial Institutions - Foreign Currency", "money_services", true, "critical"},
+		// Note: "6010", "6051", "5993", "7012", "5094" are already defined above in their respective categories
+		// Removing duplicates to avoid compilation errors
 
-		// High-risk MCC codes
-		"5993": {"5993", "Cigar Stores and Stands", "tobacco", false, "high"},
+		// High-risk MCC codes (additional entries not already defined)
 		"5921": {"5921", "Package Stores - Beer, Wine, and Liquor", "alcohol", false, "high"},
-		"7012": {"7012", "Timeshares", "travel", false, "high"},
-		"5094": {"5094", "Jewelry, Watches, Silverware, and Other Precious Metals", "precious_metals", false, "high"},
 	}
 
 	return nil

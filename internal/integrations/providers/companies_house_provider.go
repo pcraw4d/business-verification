@@ -1,4 +1,4 @@
-package integrations
+package providers
 
 import (
 	"context"
@@ -8,12 +8,14 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"kyb-platform/internal/integrations"
 )
 
 // CompaniesHouseProvider implements Companies House API integration for UK companies
 // This is a FREE government API that provides access to UK company registration data
 type CompaniesHouseProvider struct {
-	config ProviderConfig
+	config integrations.ProviderConfig
 	client *http.Client
 	health bool
 }
@@ -45,7 +47,7 @@ type CompaniesHouseResponse struct {
 }
 
 // NewCompaniesHouseProvider creates a new Companies House provider
-func NewCompaniesHouseProvider(config ProviderConfig) *CompaniesHouseProvider {
+func NewCompaniesHouseProvider(config integrations.ProviderConfig) *CompaniesHouseProvider {
 	// Companies House API is free but requires API key
 	// Rate limit: 600 requests per 5 minutes
 	if config.RateLimit == 0 {
@@ -95,7 +97,7 @@ func (c *CompaniesHouseProvider) GetType() string {
 	return c.config.Type
 }
 
-func (c *CompaniesHouseProvider) GetConfig() ProviderConfig {
+func (c *CompaniesHouseProvider) GetConfig() integrations.ProviderConfig {
 	return c.config
 }
 
@@ -107,9 +109,9 @@ func (c *CompaniesHouseProvider) GetCost() float64 {
 	return c.config.CostPerRequest // Always 0.0 for Companies House
 }
 
-func (c *CompaniesHouseProvider) GetQuota() QuotaInfo {
+func (c *CompaniesHouseProvider) GetQuota() integrations.QuotaInfo {
 	// Companies House has rate limits but no quota limits
-	return QuotaInfo{
+	return integrations.QuotaInfo{
 		DailyUsed:    0,
 		DailyLimit:   999999, // Effectively unlimited
 		MonthlyUsed:  0,
@@ -119,7 +121,7 @@ func (c *CompaniesHouseProvider) GetQuota() QuotaInfo {
 	}
 }
 
-func (c *CompaniesHouseProvider) SearchBusiness(ctx context.Context, query BusinessSearchQuery) (*BusinessData, error) {
+func (c *CompaniesHouseProvider) SearchBusiness(ctx context.Context, query integrations.BusinessSearchQuery) (*integrations.BusinessData, error) {
 	// Companies House API endpoint for company search
 	// Documentation: https://developer.company-information.service.gov.uk/
 	searchURL := fmt.Sprintf("%s/search/companies", c.config.BaseURL)
@@ -170,14 +172,14 @@ func (c *CompaniesHouseProvider) SearchBusiness(ctx context.Context, query Busin
 
 	company := chResponse.Items[0] // Take the first result
 
-	businessData := &BusinessData{
+	businessData := &integrations.BusinessData{
 		ID:             fmt.Sprintf("ch_%s", company.CompanyNumber),
 		ProviderID:     company.CompanyNumber,
 		ProviderName:   c.config.Name,
 		CompanyName:    company.CompanyName,
 		LegalName:      company.CompanyName,
 		BusinessNumber: company.CompanyNumber,
-		Address: Address{
+		Address: integrations.Address{
 			Street1:    company.RegisteredOfficeAddress.AddressLine1,
 			Street2:    company.RegisteredOfficeAddress.AddressLine2,
 			City:       company.RegisteredOfficeAddress.Locality,
@@ -188,7 +190,7 @@ func (c *CompaniesHouseProvider) SearchBusiness(ctx context.Context, query Busin
 		LastUpdated: time.Now(),
 		DataQuality: 0.95, // Government data is high quality
 		Confidence:  0.90, // High confidence for government data
-		DataSources: []DataSource{
+		DataSources: []integrations.DataSource{
 			{
 				Name:        "Companies House",
 				Type:        "government",
@@ -200,7 +202,7 @@ func (c *CompaniesHouseProvider) SearchBusiness(ctx context.Context, query Busin
 
 	// Add SIC codes if available
 	for _, sic := range company.SICCodes {
-		businessData.IndustryCodes = append(businessData.IndustryCodes, IndustryCode{
+		businessData.IndustryCodes = append(businessData.IndustryCodes, integrations.IndustryCode{
 			Type:        "SIC",
 			Code:        sic.SICCode,
 			Description: sic.SICDescription,
@@ -217,7 +219,7 @@ func (c *CompaniesHouseProvider) SearchBusiness(ctx context.Context, query Busin
 	return businessData, nil
 }
 
-func (c *CompaniesHouseProvider) GetBusinessDetails(ctx context.Context, businessID string) (*BusinessData, error) {
+func (c *CompaniesHouseProvider) GetBusinessDetails(ctx context.Context, businessID string) (*integrations.BusinessData, error) {
 	// Extract company number from business ID
 	companyNumber := strings.TrimPrefix(businessID, "ch_")
 
@@ -247,14 +249,14 @@ func (c *CompaniesHouseProvider) GetBusinessDetails(ctx context.Context, busines
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	businessData := &BusinessData{
+	businessData := &integrations.BusinessData{
 		ID:             fmt.Sprintf("ch_%s", company.CompanyNumber),
 		ProviderID:     company.CompanyNumber,
 		ProviderName:   c.config.Name,
 		CompanyName:    company.CompanyName,
 		LegalName:      company.CompanyName,
 		BusinessNumber: company.CompanyNumber,
-		Address: Address{
+		Address: integrations.Address{
 			Street1:    company.RegisteredOfficeAddress.AddressLine1,
 			Street2:    company.RegisteredOfficeAddress.AddressLine2,
 			City:       company.RegisteredOfficeAddress.Locality,
@@ -265,7 +267,7 @@ func (c *CompaniesHouseProvider) GetBusinessDetails(ctx context.Context, busines
 		LastUpdated: time.Now(),
 		DataQuality: 0.95,
 		Confidence:  0.90,
-		DataSources: []DataSource{
+		DataSources: []integrations.DataSource{
 			{
 				Name:        "Companies House",
 				Type:        "government",
@@ -277,7 +279,7 @@ func (c *CompaniesHouseProvider) GetBusinessDetails(ctx context.Context, busines
 
 	// Add SIC codes
 	for _, sic := range company.SICCodes {
-		businessData.IndustryCodes = append(businessData.IndustryCodes, IndustryCode{
+		businessData.IndustryCodes = append(businessData.IndustryCodes, integrations.IndustryCode{
 			Type:        "SIC",
 			Code:        sic.SICCode,
 			Description: sic.SICDescription,
@@ -294,16 +296,16 @@ func (c *CompaniesHouseProvider) GetBusinessDetails(ctx context.Context, busines
 	return businessData, nil
 }
 
-func (c *CompaniesHouseProvider) GetFinancialData(ctx context.Context, businessID string) (*FinancialData, error) {
+func (c *CompaniesHouseProvider) GetFinancialData(ctx context.Context, businessID string) (*integrations.FinancialData, error) {
 	// Companies House provides basic financial data through filings
 	// This is a simplified implementation - in production, you'd parse filing data
-	return &FinancialData{
+	return &integrations.FinancialData{
 		ProviderID:   businessID,
 		ProviderName: c.config.Name,
 		LastUpdated:  time.Now(),
 		DataQuality:  0.90,
 		Confidence:   0.85,
-		DataSources: []DataSource{
+		DataSources: []integrations.DataSource{
 			{
 				Name:        "Companies House Filings",
 				Type:        "government",
@@ -314,15 +316,15 @@ func (c *CompaniesHouseProvider) GetFinancialData(ctx context.Context, businessI
 	}, nil
 }
 
-func (c *CompaniesHouseProvider) GetComplianceData(ctx context.Context, businessID string) (*ComplianceData, error) {
+func (c *CompaniesHouseProvider) GetComplianceData(ctx context.Context, businessID string) (*integrations.ComplianceData, error) {
 	// Companies House provides compliance data through company status and filings
-	return &ComplianceData{
+	return &integrations.ComplianceData{
 		ProviderID:   businessID,
 		ProviderName: c.config.Name,
 		LastUpdated:  time.Now(),
 		DataQuality:  0.95,
 		Confidence:   0.90,
-		DataSources: []DataSource{
+		DataSources: []integrations.DataSource{
 			{
 				Name:        "Companies House Status",
 				Type:        "government",
@@ -333,18 +335,18 @@ func (c *CompaniesHouseProvider) GetComplianceData(ctx context.Context, business
 	}, nil
 }
 
-func (c *CompaniesHouseProvider) GetNewsData(ctx context.Context, businessID string) ([]NewsItem, error) {
+func (c *CompaniesHouseProvider) GetNewsData(ctx context.Context, businessID string) ([]integrations.NewsItem, error) {
 	// Companies House doesn't provide news data
-	return []NewsItem{}, nil
+	return []integrations.NewsItem{}, nil
 }
 
-func (c *CompaniesHouseProvider) ValidateData(data *BusinessData) (*DataValidationResult, error) {
+func (c *CompaniesHouseProvider) ValidateData(data *integrations.BusinessData) (*integrations.DataValidationResult, error) {
 	// Companies House data is government-verified, so it's generally high quality
-	issues := []ValidationIssue{}
+	issues := []integrations.ValidationIssue{}
 
 	// Check for required fields
 	if data.CompanyName == "" {
-		issues = append(issues, ValidationIssue{
+		issues = append(issues, integrations.ValidationIssue{
 			Field:       "company_name",
 			Type:        "missing",
 			Severity:    "high",
@@ -353,7 +355,7 @@ func (c *CompaniesHouseProvider) ValidateData(data *BusinessData) (*DataValidati
 	}
 
 	if data.ProviderID == "" {
-		issues = append(issues, ValidationIssue{
+		issues = append(issues, integrations.ValidationIssue{
 			Field:       "provider_id",
 			Type:        "missing",
 			Severity:    "high",
@@ -367,7 +369,7 @@ func (c *CompaniesHouseProvider) ValidateData(data *BusinessData) (*DataValidati
 		qualityScore = 0.8 // Still high because it's government data
 	}
 
-	return &DataValidationResult{
+	return &integrations.DataValidationResult{
 		IsValid:       len(issues) == 0,
 		QualityScore:  qualityScore,
 		Issues:        issues,

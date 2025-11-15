@@ -141,7 +141,7 @@ func main() {
 func generateIntegrityReport(ctx context.Context, db *sql.DB, dbURL string) (*IntegrityReport, error) {
 	report := &IntegrityReport{
 		GeneratedAt: time.Now(),
-		DatabaseURL: maskDatabaseURL(dbURL),
+		DatabaseURL: maskDatabaseURLForReport(dbURL),
 	}
 
 	// Run all validation tests
@@ -177,7 +177,7 @@ func generateIntegrityReport(ctx context.Context, db *sql.DB, dbURL string) (*In
 	report.Summary = generateReportSummary(report)
 
 	// Generate recommendations
-	report.Recommendations = generateRecommendations(report)
+	report.Recommendations = generateIntegrityRecommendations(report)
 
 	return report, nil
 }
@@ -433,15 +433,15 @@ func runOrphanedRecordsTests(ctx context.Context, db *sql.DB) ([]OrphanedRecordR
 	}
 
 	for _, rel := range relationships {
-		result := checkOrphanedRecords(ctx, db, rel.ChildTable, rel.ChildColumn, rel.ParentTable, rel.ParentColumn, rel.RelationshipType)
+		result := checkOrphanedRecordsForReport(ctx, db, rel.ChildTable, rel.ChildColumn, rel.ParentTable, rel.ParentColumn, rel.RelationshipType)
 		results = append(results, result)
 	}
 
 	return results, nil
 }
 
-// checkOrphanedRecords checks for orphaned records in a specific relationship
-func checkOrphanedRecords(ctx context.Context, db *sql.DB, childTable, childColumn, parentTable, parentColumn, relationshipType string) OrphanedRecordResult {
+// checkOrphanedRecordsForReport checks for orphaned records in a specific relationship
+func checkOrphanedRecordsForReport(ctx context.Context, db *sql.DB, childTable, childColumn, parentTable, parentColumn, relationshipType string) OrphanedRecordResult {
 	startTime := time.Now()
 	result := OrphanedRecordResult{
 		ChildTable:       childTable,
@@ -530,15 +530,15 @@ func runConsistencyTests(ctx context.Context, db *sql.DB) ([]ConsistencyResult, 
 	}
 
 	for _, test := range tests {
-		result := runConsistencyTest(ctx, db, test.TestName, test.Description, test.TestType, test.Query, test.ExpectedResult, test.Critical)
+		result := runConsistencyTestForReport(ctx, db, test.TestName, test.Description, test.TestType, test.Query, test.ExpectedResult, test.Critical)
 		results = append(results, result)
 	}
 
 	return results, nil
 }
 
-// runConsistencyTest runs a specific consistency test
-func runConsistencyTest(ctx context.Context, db *sql.DB, testName, description, testType, query string, expectedResult int, critical bool) ConsistencyResult {
+// runConsistencyTestForReport runs a specific consistency test
+func runConsistencyTestForReport(ctx context.Context, db *sql.DB, testName, description, testType, query string, expectedResult int, critical bool) ConsistencyResult {
 	startTime := time.Now()
 	result := ConsistencyResult{
 		TestName:       testName,
@@ -653,8 +653,8 @@ func generateReportSummary(report *IntegrityReport) ReportSummary {
 	}
 }
 
-// generateRecommendations generates recommendations based on validation results
-func generateRecommendations(report *IntegrityReport) []string {
+// generateIntegrityRecommendations generates recommendations based on validation results
+func generateIntegrityRecommendations(report *IntegrityReport) []string {
 	var recommendations []string
 
 	// Check for foreign key issues
@@ -968,8 +968,8 @@ func generateMarkdownReport(report *IntegrityReport) error {
 	return nil
 }
 
-// maskDatabaseURL masks sensitive information in database URL
-func maskDatabaseURL(dbURL string) string {
+// maskDatabaseURLForReport masks sensitive information in database URL
+func maskDatabaseURLForReport(dbURL string) string {
 	// Simple masking - in production, you'd want more sophisticated masking
 	if len(dbURL) > 20 {
 		return dbURL[:10] + "****" + dbURL[len(dbURL)-6:]

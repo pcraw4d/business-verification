@@ -10,14 +10,14 @@ import (
 
 // BackupRecoveryValidationReport represents a comprehensive validation report
 type BackupRecoveryValidationReport struct {
-	ReportMetadata     ReportMetadata      `json:"report_metadata"`
-	TestConfiguration  TestConfiguration   `json:"test_configuration"`
-	TestResults        []TestResult        `json:"test_results"`
-	PerformanceMetrics PerformanceMetrics  `json:"performance_metrics"`
-	DataIntegrity      DataIntegrityReport `json:"data_integrity"`
-	Recommendations    []Recommendation    `json:"recommendations"`
-	ComplianceStatus   ComplianceStatus    `json:"compliance_status"`
-	RiskAssessment     RiskAssessment      `json:"risk_assessment"`
+	ReportMetadata     ReportMetadata                   `json:"report_metadata"`
+	TestConfiguration  TestConfiguration                `json:"test_configuration"`
+	TestResults        []TestResult                     `json:"test_results"`
+	PerformanceMetrics BackupRecoveryPerformanceMetrics `json:"performance_metrics"`
+	DataIntegrity      DataIntegrityReport              `json:"data_integrity"`
+	Recommendations    []Recommendation                 `json:"recommendations"`
+	ComplianceStatus   ComplianceStatus                 `json:"compliance_status"`
+	RiskAssessment     RiskAssessment                   `json:"risk_assessment"`
 }
 
 // ReportMetadata contains metadata about the report
@@ -84,8 +84,8 @@ type PerformanceData struct {
 	MemoryUsageMB   float64 `json:"memory_usage_mb"`
 }
 
-// PerformanceMetrics contains overall performance metrics
-type PerformanceMetrics struct {
+// BackupRecoveryPerformanceMetrics contains overall performance metrics for backup recovery
+type BackupRecoveryPerformanceMetrics struct {
 	TotalTestTime         string  `json:"total_test_time"`
 	AverageBackupTime     string  `json:"average_backup_time"`
 	AverageRecoveryTime   string  `json:"average_recovery_time"`
@@ -473,9 +473,9 @@ func contains(s, substr string) bool {
 	return len(s) >= len(substr) && s[:len(substr)] == substr
 }
 
-func calculatePerformanceMetrics(results []*BackupTestResult) PerformanceMetrics {
+func calculatePerformanceMetrics(results []*BackupTestResult) BackupRecoveryPerformanceMetrics {
 	// Simplified calculation - in production, collect actual metrics
-	return PerformanceMetrics{
+	return BackupRecoveryPerformanceMetrics{
 		TotalTestTime:         calculateTotalDuration(results),
 		AverageBackupTime:     "2m30s",
 		AverageRecoveryTime:   "1m45s",

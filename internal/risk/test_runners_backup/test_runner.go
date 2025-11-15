@@ -40,8 +40,10 @@ type TestDetail struct {
 }
 
 // NewTestRunner creates a new test runner
-func NewTestRunner() *TestRunner {
-	logger := zap.NewNop()
+func NewTestRunner(logger *zap.Logger, config *TestConfig) *TestRunner {
+	if logger == nil {
+		logger = zap.NewNop()
+	}
 	return &TestRunner{
 		logger: logger,
 		results: &TestResults{
@@ -79,6 +81,36 @@ func (tr *TestRunner) RunAllTests(t *testing.T) *TestResults {
 		zap.Duration("execution_time", tr.results.ExecutionTime))
 
 	return tr.results
+}
+
+// RunUnitTests runs unit tests
+func (tr *TestRunner) RunUnitTests(t *testing.T) {
+	tr.logger.Info("Running unit tests")
+	// TODO: Implement unit test execution
+}
+
+// RunIntegrationTests runs integration tests
+func (tr *TestRunner) RunIntegrationTests(t *testing.T) {
+	tr.logger.Info("Running integration tests")
+	tr.RunAllTests(t)
+}
+
+// RunPerformanceTests runs performance tests
+func (tr *TestRunner) RunPerformanceTests(t *testing.T) {
+	tr.logger.Info("Running performance tests")
+	// TODO: Implement performance test execution
+}
+
+// RunConcurrencyTests runs concurrency tests
+func (tr *TestRunner) RunConcurrencyTests(t *testing.T) {
+	tr.logger.Info("Running concurrency tests")
+	// TODO: Implement concurrency test execution
+}
+
+// RunMemoryTests runs memory tests
+func (tr *TestRunner) RunMemoryTests(t *testing.T) {
+	tr.logger.Info("Running memory tests")
+	// TODO: Implement memory test execution
 }
 
 // runTestCategory runs a specific test category

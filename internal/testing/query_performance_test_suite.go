@@ -64,7 +64,7 @@ type TestResults struct {
 	ErrorRate           float64                     `json:"error_rate"`
 	Throughput          float64                     `json:"throughput"`
 	QueryResults        map[string]*QueryTestResult `json:"query_results"`
-	PerformanceMetrics  *PerformanceMetrics         `json:"performance_metrics"`
+	PerformanceMetrics  *QueryPerformanceMetrics    `json:"performance_metrics"`
 	Passed              bool                        `json:"passed"`
 	Failures            []string                    `json:"failures"`
 }
@@ -87,8 +87,8 @@ type QueryTestResult struct {
 	ResponseTimes       []time.Duration `json:"response_times"`
 }
 
-// PerformanceMetrics contains system performance metrics
-type PerformanceMetrics struct {
+// QueryPerformanceMetrics contains system performance metrics for query testing
+type QueryPerformanceMetrics struct {
 	CPUUsage            float64   `json:"cpu_usage"`
 	MemoryUsage         float64   `json:"memory_usage"`
 	DatabaseConnections int       `json:"database_connections"`

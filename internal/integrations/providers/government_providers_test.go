@@ -1,4 +1,4 @@
-package integrations
+package providers
 
 import (
 	"context"
@@ -6,6 +6,8 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"kyb-platform/internal/integrations"
 )
 
 func TestGovernmentProvidersIntegration(t *testing.T) {
@@ -45,7 +47,7 @@ func TestGovernmentProvidersIntegration(t *testing.T) {
 
 		// Test business search (this will fail without real API, but tests the structure)
 		ctx := context.Background()
-		query := BusinessSearchQuery{
+		query := integrations.BusinessSearchQuery{
 			CompanyName: "Apple Inc",
 			Country:     "US",
 		}
@@ -88,7 +90,7 @@ func TestGovernmentProvidersIntegration(t *testing.T) {
 
 		// Test business search
 		ctx := context.Background()
-		query := BusinessSearchQuery{
+		query := integrations.BusinessSearchQuery{
 			CompanyName: "Apple",
 			Country:     "GB",
 		}
@@ -138,7 +140,7 @@ func TestGovernmentProvidersIntegration(t *testing.T) {
 
 		// Test business search
 		ctx := context.Background()
-		query := BusinessSearchQuery{
+		query := integrations.BusinessSearchQuery{
 			CompanyName: "Apple Inc",
 			Country:     "US",
 		}
@@ -180,7 +182,7 @@ func TestGovernmentProvidersIntegration(t *testing.T) {
 
 		// Test business search with website
 		ctx := context.Background()
-		query := BusinessSearchQuery{
+		query := integrations.BusinessSearchQuery{
 			CompanyName: "Apple Inc",
 			Website:     "https://www.apple.com",
 			Country:     "US",
@@ -195,7 +197,7 @@ func TestGovernmentProvidersIntegration(t *testing.T) {
 		}
 
 		// Test business search without website (should fail)
-		queryNoWebsite := BusinessSearchQuery{
+		queryNoWebsite := integrations.BusinessSearchQuery{
 			CompanyName: "Apple Inc",
 			Country:     "US",
 		}
@@ -236,15 +238,15 @@ func TestGovernmentProvidersFactory(t *testing.T) {
 
 	t.Run("Register All Providers", func(t *testing.T) {
 		// Create a test service
-		config := BusinessDataAPIConfig{
+		config := integrations.BusinessDataAPIConfig{
 			CachingEnabled: true,
 			CacheTTL:       1 * time.Hour,
 			CacheSize:      1000,
 		}
-		service := NewBusinessDataAPIService(config)
+		service := integrations.NewBusinessDataAPIService(config)
 
 		// Test registering all providers
-		apiConfig := GovernmentAPIsConfig{
+		apiConfig := integrations.GovernmentAPIsConfig{
 			CompaniesHouseAPIKey:   os.Getenv("COMPANIES_HOUSE_API_KEY"),
 			OpenCorporatesAPIToken: os.Getenv("OPENCORPORATES_API_TOKEN"),
 		}
@@ -262,7 +264,7 @@ func TestGovernmentProvidersFactory(t *testing.T) {
 
 func TestGovernmentAPIsConfig(t *testing.T) {
 	t.Run("Default Config", func(t *testing.T) {
-		config := GetDefaultGovernmentAPIsConfig()
+		config := integrations.GetDefaultGovernmentAPIsConfig()
 
 		if config.CompaniesHouseAPIKey != "" {
 			t.Error("Expected empty Companies House API key in default config")
@@ -274,8 +276,8 @@ func TestGovernmentAPIsConfig(t *testing.T) {
 	})
 
 	t.Run("Config Validation", func(t *testing.T) {
-		config := GetDefaultGovernmentAPIsConfig()
-		warnings := ValidateGovernmentAPIsConfig(config)
+		config := integrations.GetDefaultGovernmentAPIsConfig()
+		warnings := integrations.ValidateGovernmentAPIsConfig(config)
 
 		// Should have warnings for missing API keys
 		if len(warnings) == 0 {
@@ -283,12 +285,12 @@ func TestGovernmentAPIsConfig(t *testing.T) {
 		}
 
 		// Test with API keys provided
-		configWithKeys := GovernmentAPIsConfig{
+		configWithKeys := integrations.GovernmentAPIsConfig{
 			CompaniesHouseAPIKey:   "test-key",
 			OpenCorporatesAPIToken: "test-token",
 		}
 
-		warningsWithKeys := ValidateGovernmentAPIsConfig(configWithKeys)
+		warningsWithKeys := integrations.ValidateGovernmentAPIsConfig(configWithKeys)
 		if len(warningsWithKeys) > 0 {
 			t.Logf("Warnings with API keys: %v", warningsWithKeys)
 		}
@@ -303,10 +305,10 @@ func TestProviderDataValidation(t *testing.T) {
 		provider := factory.CreateSECEdgarProvider()
 
 		// Test valid data
-		validData := &BusinessData{
+		validData := &integrations.BusinessData{
 			CompanyName: "Apple Inc",
 			ProviderID:  "0000320193",
-			DataSources: []DataSource{
+			DataSources: []integrations.DataSource{
 				{
 					Name:       "SEC EDGAR",
 					Type:       "government",
@@ -329,7 +331,7 @@ func TestProviderDataValidation(t *testing.T) {
 		}
 
 		// Test invalid data
-		invalidData := &BusinessData{
+		invalidData := &integrations.BusinessData{
 			// Missing required fields
 		}
 
@@ -351,11 +353,11 @@ func TestProviderDataValidation(t *testing.T) {
 		provider := factory.CreateWHOISProvider()
 
 		// Test valid data with website
-		validData := &BusinessData{
+		validData := &integrations.BusinessData{
 			CompanyName: "Apple Inc",
 			Website:     "https://www.apple.com",
 			ProviderID:  "apple.com",
-			DataSources: []DataSource{
+			DataSources: []integrations.DataSource{
 				{
 					Name:       "WHOIS",
 					Type:       "domain_registry",
@@ -374,7 +376,7 @@ func TestProviderDataValidation(t *testing.T) {
 		}
 
 		// Test invalid data without website
-		invalidData := &BusinessData{
+		invalidData := &integrations.BusinessData{
 			CompanyName: "Apple Inc",
 			// Missing website
 		}

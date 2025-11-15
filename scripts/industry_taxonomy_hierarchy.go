@@ -10,29 +10,29 @@ import (
 
 // IndustryTaxonomyHierarchy represents the complete industry taxonomy structure
 type IndustryTaxonomyHierarchy struct {
-	AnalysisDate       time.Time                  `json:"analysis_date"`
-	TotalCategories    int                        `json:"total_categories"`
-	PrimaryCategories  []PrimaryCategory          `json:"primary_categories"`
-	CoverageAnalysis   TaxonomyCoverageAnalysis   `json:"coverage_analysis"`
-	ImplementationPlan TaxonomyImplementationPlan `json:"implementation_plan"`
-	Recommendations    []TaxonomyRecommendation   `json:"recommendations"`
+	AnalysisDate       time.Time                    `json:"analysis_date"`
+	TotalCategories    int                          `json:"total_categories"`
+	PrimaryCategories  []PrimaryCategoryForTaxonomy `json:"primary_categories"`
+	CoverageAnalysis   TaxonomyCoverageAnalysis     `json:"coverage_analysis"`
+	ImplementationPlan TaxonomyImplementationPlan   `json:"implementation_plan"`
+	Recommendations    []TaxonomyRecommendation     `json:"recommendations"`
 }
 
-type PrimaryCategory struct {
-	ID                  int                  `json:"id"`
-	Name                string               `json:"name"`
-	Description         string               `json:"description"`
-	CategoryType        string               `json:"category_type"`
-	MarketSize          string               `json:"market_size"`
-	GrowthRate          string               `json:"growth_rate"`
-	CoverageStatus      string               `json:"coverage_status"`
-	Priority            string               `json:"priority"`
-	Subcategories       []Subcategory        `json:"subcategories"`
-	Keywords            []string             `json:"keywords"`
-	ClassificationCodes []ClassificationCode `json:"classification_codes"`
+type PrimaryCategoryForTaxonomy struct {
+	ID                  int                      `json:"id"`
+	Name                string                   `json:"name"`
+	Description         string                   `json:"description"`
+	CategoryType        string                   `json:"category_type"`
+	MarketSize          string                   `json:"market_size"`
+	GrowthRate          string                   `json:"growth_rate"`
+	CoverageStatus      string                   `json:"coverage_status"`
+	Priority            string                   `json:"priority"`
+	Subcategories       []SubcategoryForTaxonomy `json:"subcategories"`
+	Keywords            []string                 `json:"keywords"`
+	ClassificationCodes []ClassificationCode     `json:"classification_codes"`
 }
 
-type Subcategory struct {
+type SubcategoryForTaxonomy struct {
 	ID                  int                  `json:"id"`
 	Name                string               `json:"name"`
 	Description         string               `json:"description"`
@@ -135,7 +135,7 @@ func main() {
 func generateIndustryTaxonomyHierarchy() *IndustryTaxonomyHierarchy {
 	taxonomy := &IndustryTaxonomyHierarchy{
 		AnalysisDate:       time.Now(),
-		PrimaryCategories:  []PrimaryCategory{},
+		PrimaryCategories:  []PrimaryCategoryForTaxonomy{},
 		CoverageAnalysis:   TaxonomyCoverageAnalysis{},
 		ImplementationPlan: TaxonomyImplementationPlan{},
 		Recommendations:    []TaxonomyRecommendation{},
@@ -152,7 +152,7 @@ func generateIndustryTaxonomyHierarchy() *IndustryTaxonomyHierarchy {
 
 func createPrimaryCategories(taxonomy *IndustryTaxonomyHierarchy) {
 	// Technology & Digital Services
-	techCategory := PrimaryCategory{
+	techCategory := PrimaryCategoryForTaxonomy{
 		ID:             1,
 		Name:           "Technology & Digital Services",
 		Description:    "Technology companies, software development, digital services, and IT solutions",
@@ -167,7 +167,7 @@ func createPrimaryCategories(taxonomy *IndustryTaxonomyHierarchy) {
 			{CodeType: "SIC", Code: "7372", Description: "Prepackaged Software", IsPrimary: true},
 			{CodeType: "MCC", Code: "5734", Description: "Computer Software Stores", IsPrimary: true},
 		},
-		Subcategories: []Subcategory{
+		Subcategories: []SubcategoryForTaxonomy{
 			{
 				ID: 1, Name: "Software Development", Description: "Custom software development and programming services",
 				CategoryType: "secondary", MarketSize: "large", GrowthRate: "high_growth", CoverageStatus: "good", Priority: "critical",
@@ -191,11 +191,11 @@ func createPrimaryCategories(taxonomy *IndustryTaxonomyHierarchy) {
 	}
 
 	// Healthcare & Life Sciences
-	healthCategory := PrimaryCategory{
+	healthCategory := PrimaryCategoryForTaxonomy{
 		ID: 2, Name: "Healthcare & Life Sciences", Description: "Healthcare providers, medical services, pharmaceuticals, and health technology",
 		CategoryType: "primary", MarketSize: "very_large", GrowthRate: "growing", CoverageStatus: "good", Priority: "critical",
 		Keywords: []string{"healthcare", "medical", "health", "medicine", "pharmaceutical", "medical device", "hospital", "clinic"},
-		Subcategories: []Subcategory{
+		Subcategories: []SubcategoryForTaxonomy{
 			{
 				ID: 3, Name: "Medical Services", Description: "Healthcare providers, clinics, hospitals, and medical practices",
 				CategoryType: "secondary", MarketSize: "very_large", GrowthRate: "growing", CoverageStatus: "good", Priority: "critical",
@@ -210,11 +210,11 @@ func createPrimaryCategories(taxonomy *IndustryTaxonomyHierarchy) {
 	}
 
 	// Financial Services
-	financeCategory := PrimaryCategory{
+	financeCategory := PrimaryCategoryForTaxonomy{
 		ID: 3, Name: "Financial Services", Description: "Banking, investment, insurance, and financial technology",
 		CategoryType: "primary", MarketSize: "very_large", GrowthRate: "growing", CoverageStatus: "good", Priority: "critical",
 		Keywords: []string{"finance", "banking", "financial", "investment", "insurance", "credit", "fintech"},
-		Subcategories: []Subcategory{
+		Subcategories: []SubcategoryForTaxonomy{
 			{
 				ID: 5, Name: "Commercial Banking", Description: "Traditional banking, financial institutions, and lending",
 				CategoryType: "secondary", MarketSize: "very_large", GrowthRate: "stable", CoverageStatus: "good", Priority: "critical",
@@ -229,11 +229,11 @@ func createPrimaryCategories(taxonomy *IndustryTaxonomyHierarchy) {
 	}
 
 	// Missing Industries
-	missingCategory := PrimaryCategory{
+	missingCategory := PrimaryCategoryForTaxonomy{
 		ID: 4, Name: "Missing Industries", Description: "Industries that need to be added to achieve comprehensive coverage",
 		CategoryType: "primary", MarketSize: "very_large", GrowthRate: "stable", CoverageStatus: "missing", Priority: "critical",
 		Keywords: []string{},
-		Subcategories: []Subcategory{
+		Subcategories: []SubcategoryForTaxonomy{
 			{
 				ID: 7, Name: "Restaurant & Food Service", Description: "Food service, restaurants, and dining establishments",
 				CategoryType: "secondary", MarketSize: "very_large", GrowthRate: "stable", CoverageStatus: "missing", Priority: "critical",
@@ -247,7 +247,7 @@ func createPrimaryCategories(taxonomy *IndustryTaxonomyHierarchy) {
 		},
 	}
 
-	taxonomy.PrimaryCategories = []PrimaryCategory{techCategory, healthCategory, financeCategory, missingCategory}
+	taxonomy.PrimaryCategories = []PrimaryCategoryForTaxonomy{techCategory, healthCategory, financeCategory, missingCategory}
 	taxonomy.TotalCategories = len(taxonomy.PrimaryCategories)
 }
 

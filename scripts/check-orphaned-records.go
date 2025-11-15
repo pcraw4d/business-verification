@@ -22,8 +22,8 @@ type OrphanedRecordTest struct {
 	Description      string
 }
 
-// OrphanedRecordResult represents the result of an orphaned record test
-type OrphanedRecordResult struct {
+// OrphanedRecordValidationResult represents the result of an orphaned record test
+type OrphanedRecordValidationResult struct {
 	Test           OrphanedRecordTest
 	Status         string // "PASS", "FAIL", "ERROR"
 	ErrorMessage   string
@@ -71,7 +71,7 @@ func main() {
 	fmt.Printf("Found %d relationships to check for orphaned records\n\n", len(relationships))
 
 	// Run orphaned record detection tests
-	var results []OrphanedRecordResult
+	var results []OrphanedRecordValidationResult
 	var passed, failed, errors int
 
 	for i, relationship := range relationships {
@@ -383,9 +383,9 @@ func tableExists(tableName string, tables []string) bool {
 }
 
 // checkOrphanedRecords checks for orphaned records in a specific relationship
-func checkOrphanedRecords(ctx context.Context, db *sql.DB, test OrphanedRecordTest) OrphanedRecordResult {
+func checkOrphanedRecords(ctx context.Context, db *sql.DB, test OrphanedRecordTest) OrphanedRecordValidationResult {
 	startTime := time.Now()
-	result := OrphanedRecordResult{
+	result := OrphanedRecordValidationResult{
 		Test: test,
 	}
 

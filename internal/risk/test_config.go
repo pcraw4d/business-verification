@@ -9,6 +9,24 @@ import (
 	"go.uber.org/zap"
 )
 
+// PerformanceTestConfig contains configuration for performance tests
+type PerformanceTestConfig struct {
+	BenchmarkIterations   int           `json:"benchmark_iterations"`
+	TestTimeout           time.Duration `json:"test_timeout"`
+	MemoryThresholdMB     int           `json:"memory_threshold_mb"`
+	ConcurrentGoroutines  int           `json:"concurrent_goroutines"`
+	MemoryTestAssessments int           `json:"memory_test_assessments"`
+}
+
+// MockDataConfig contains configuration for mock data generation
+type MockDataConfig struct {
+	MockRiskFactorsCount       int           `json:"mock_risk_factors_count"`
+	MockHistoricalEntriesCount int           `json:"mock_historical_entries_count"`
+	MockRecommendationsCount   int           `json:"mock_recommendations_count"`
+	MockAlertsCount            int           `json:"mock_alerts_count"`
+	MockHistoricalTimeRange    time.Duration `json:"mock_historical_time_range"`
+}
+
 // TestConfig contains configuration for integration tests
 type TestConfig struct {
 	// Test Environment
@@ -45,6 +63,11 @@ type TestConfig struct {
 	EnablePerfTests   bool `json:"enable_perf_tests"`
 	EnableBackupTests bool `json:"enable_backup_tests"`
 	EnableExportTests bool `json:"enable_export_tests"`
+
+	// Embedded configurations
+	PerformanceTestConfig PerformanceTestConfig `json:"performance_test_config"`
+	IntegrationTestConfig IntegrationTestConfig `json:"integration_test_config"`
+	MockDataConfig        MockDataConfig        `json:"mock_data_config"`
 }
 
 // DefaultTestConfig returns the default test configuration

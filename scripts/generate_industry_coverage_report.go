@@ -64,18 +64,18 @@ type CoverageRecommendation struct {
 }
 
 type IndustryTaxonomy struct {
-	PrimaryCategories []PrimaryCategory `json:"primary_categories"`
+	PrimaryCategories []PrimaryCategoryForReport `json:"primary_categories"`
 }
 
-type PrimaryCategory struct {
-	Name             string        `json:"name"`
-	Description      string        `json:"description"`
-	Subcategories    []Subcategory `json:"subcategories"`
-	CoverageStatus   string        `json:"coverage_status"`
-	MarketImportance string        `json:"market_importance"`
+type PrimaryCategoryForReport struct {
+	Name             string                 `json:"name"`
+	Description      string                 `json:"description"`
+	Subcategories    []SubcategoryForReport `json:"subcategories"`
+	CoverageStatus   string                 `json:"coverage_status"`
+	MarketImportance string                 `json:"market_importance"`
 }
 
-type Subcategory struct {
+type SubcategoryForReport struct {
 	Name           string `json:"name"`
 	Description    string `json:"description"`
 	CoverageStatus string `json:"coverage_status"`
@@ -487,13 +487,13 @@ func generateRecommendations(analysis *IndustryCoverageAnalysis) {
 
 func createTaxonomyHierarchy(analysis *IndustryCoverageAnalysis) {
 	taxonomy := IndustryTaxonomy{
-		PrimaryCategories: []PrimaryCategory{
+		PrimaryCategories: []PrimaryCategoryForReport{
 			{
 				Name:             "Technology & Digital Services",
 				Description:      "Technology companies, software development, and digital services",
 				CoverageStatus:   "Good",
 				MarketImportance: "High",
-				Subcategories: []Subcategory{
+				Subcategories: []SubcategoryForReport{
 					{Name: "Software Development", CoverageStatus: "Good", Keywords: 12, Codes: 7},
 					{Name: "Cloud Computing", CoverageStatus: "Good", Keywords: 14, Codes: 6},
 					{Name: "Artificial Intelligence", CoverageStatus: "Good", Keywords: 12, Codes: 6},
@@ -507,7 +507,7 @@ func createTaxonomyHierarchy(analysis *IndustryCoverageAnalysis) {
 				Description:      "Healthcare providers, medical services, and health technology",
 				CoverageStatus:   "Good",
 				MarketImportance: "High",
-				Subcategories: []Subcategory{
+				Subcategories: []SubcategoryForReport{
 					{Name: "Medical Services", CoverageStatus: "Good", Keywords: 12, Codes: 9},
 					{Name: "Pharmaceuticals", CoverageStatus: "Good", Keywords: 12, Codes: 8},
 					{Name: "Medical Technology", CoverageStatus: "Good", Keywords: 12, Codes: 6},
@@ -521,7 +521,7 @@ func createTaxonomyHierarchy(analysis *IndustryCoverageAnalysis) {
 				Description:      "Banking, investment, insurance, and financial technology",
 				CoverageStatus:   "Good",
 				MarketImportance: "High",
-				Subcategories: []Subcategory{
+				Subcategories: []SubcategoryForReport{
 					{Name: "Commercial Banking", CoverageStatus: "Good", Keywords: 12, Codes: 6},
 					{Name: "Investment Services", CoverageStatus: "Good", Keywords: 12, Codes: 6},
 					{Name: "Insurance", CoverageStatus: "Good", Keywords: 12, Codes: 6},
@@ -535,7 +535,7 @@ func createTaxonomyHierarchy(analysis *IndustryCoverageAnalysis) {
 				Description:      "Industries that need to be added to achieve comprehensive coverage",
 				CoverageStatus:   "Missing",
 				MarketImportance: "High",
-				Subcategories: []Subcategory{
+				Subcategories: []SubcategoryForReport{
 					{Name: "Restaurant & Food Service", CoverageStatus: "Missing", Keywords: 0, Codes: 0},
 					{Name: "Professional Services", CoverageStatus: "Missing", Keywords: 0, Codes: 0},
 					{Name: "Government & Public Sector", CoverageStatus: "Missing", Keywords: 0, Codes: 0},
@@ -547,7 +547,7 @@ func createTaxonomyHierarchy(analysis *IndustryCoverageAnalysis) {
 				Description:      "High-growth emerging industry sectors",
 				CoverageStatus:   "Partial",
 				MarketImportance: "High",
-				Subcategories: []Subcategory{
+				Subcategories: []SubcategoryForReport{
 					{Name: "Artificial Intelligence & ML", CoverageStatus: "Partial", Keywords: 8, Codes: 3},
 					{Name: "Green Energy & Sustainability", CoverageStatus: "Partial", Keywords: 6, Codes: 2},
 					{Name: "E-commerce & Digital Commerce", CoverageStatus: "Partial", Keywords: 8, Codes: 4},

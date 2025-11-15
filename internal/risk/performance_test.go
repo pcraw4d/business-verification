@@ -14,20 +14,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// PerformanceTestSuite provides comprehensive performance testing
-type PerformanceTestSuite struct {
-	logger         *zap.Logger
-	storageService *RiskStorageService
-	validationSvc  *RiskValidationService
-	exportSvc      *ExportService
-	backupSvc      *BackupService
-	exportHandler  *ExportHandler
-	backupHandler  *BackupHandler
-	mux            *http.ServeMux
-	server         *httptest.Server
-}
-
 // NewPerformanceTestSuite creates a new performance test suite
+// Type definition is in test_suite_types.go
 func NewPerformanceTestSuite(t *testing.T) *PerformanceTestSuite {
 	logger := zap.NewNop()
 	backupDir := t.TempDir()
@@ -68,6 +56,7 @@ func NewPerformanceTestSuite(t *testing.T) *PerformanceTestSuite {
 }
 
 // Close closes the test server
+// Method is also declared in test_suite_types.go, but this is the actual implementation
 func (suite *PerformanceTestSuite) Close() {
 	suite.server.Close()
 }

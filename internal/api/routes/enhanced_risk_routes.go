@@ -153,4 +153,15 @@ func RegisterEnhancedRiskAdminRoutes(mux *http.ServeMux, enhancedRiskHandler *ha
 		corsMiddleware.Middleware(
 			loggingMiddleware.Middleware(
 				http.HandlerFunc(enhancedRiskHandler.CleanupSystemDataHandler))))
+
+	// Threshold export/import endpoints
+	mux.Handle("GET /v1/admin/risk/thresholds/export",
+		corsMiddleware.Middleware(
+			loggingMiddleware.Middleware(
+				http.HandlerFunc(enhancedRiskHandler.ExportThresholdsHandler))))
+
+	mux.Handle("POST /v1/admin/risk/thresholds/import",
+		corsMiddleware.Middleware(
+			loggingMiddleware.Middleware(
+				http.HandlerFunc(enhancedRiskHandler.ImportThresholdsHandler))))
 }

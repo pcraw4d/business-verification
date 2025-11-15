@@ -12,34 +12,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// DatabaseIntegrationTestSuite provides comprehensive database integration testing
-type DatabaseIntegrationTestSuite struct {
-	logger           *zap.Logger
-	db               *sql.DB
-	storageService   *RiskStorageService
-	validationSvc    *RiskValidationService
-	exportSvc        *ExportService
-	backupSvc        *BackupService
-	backupDir        string
-	testData         *DatabaseTestData
-	cleanupFunctions []func() error
-}
-
-// DatabaseTestData contains test data for database integration tests
-type DatabaseTestData struct {
-	BusinessID      string
-	AssessmentID    string
-	RiskFactors     []RiskFactorInput
-	RiskScores      []RiskScore
-	RiskAlerts      []RiskAlert
-	RiskTrends      []RiskTrend
-	RiskHistory     []RiskHistoryEntry
-	ExportJobs      []ExportJob
-	BackupJobs      []BackupJob
-	BackupSchedules []BackupSchedule
-}
-
 // NewDatabaseIntegrationTestSuite creates a new database integration test suite
+// Type definition is in test_suite_types.go
 func NewDatabaseIntegrationTestSuite(t *testing.T) *DatabaseIntegrationTestSuite {
 	logger := zap.NewNop()
 	backupDir := t.TempDir()

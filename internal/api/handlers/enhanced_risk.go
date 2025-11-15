@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -927,6 +928,13 @@ func (h *EnhancedRiskHandler) CreateRiskThresholdHandler(w http.ResponseWriter, 
 	}
 
 	// Create threshold configuration
+	// Default is_active to true if not explicitly set
+	isActive := true
+	if req.IsActive != nil {
+		// Use the explicitly provided value
+		isActive = *req.IsActive
+	}
+
 	config := &risk.ThresholdConfig{
 		ID:             req.ID,
 		Name:           req.Name,
@@ -936,7 +944,7 @@ func (h *EnhancedRiskHandler) CreateRiskThresholdHandler(w http.ResponseWriter, 
 		BusinessType:   req.BusinessType,
 		RiskLevels:     req.RiskLevels,
 		IsDefault:      req.IsDefault,
-		IsActive:       req.IsActive,
+		IsActive:       isActive,
 		Priority:       req.Priority,
 		Metadata:       req.Metadata,
 		CreatedAt:      time.Now(),
@@ -1035,7 +1043,10 @@ func (h *EnhancedRiskHandler) UpdateRiskThresholdHandler(w http.ResponseWriter, 
 	if len(req.RiskLevels) > 0 {
 		updates["risk_levels"] = req.RiskLevels
 	}
-	updates["is_active"] = req.IsActive
+	// Only update is_active if explicitly provided
+	if req.IsActive != nil {
+		updates["is_active"] = *req.IsActive
+	}
 	updates["is_default"] = req.IsDefault
 	updates["priority"] = req.Priority
 	if req.Metadata != nil {
@@ -1501,6 +1512,127 @@ func (h *EnhancedRiskHandler) CleanupSystemDataHandler(w http.ResponseWriter, r 
 	duration := time.Since(startTime)
 	h.logger.Info("Cleanup system data request completed",
 		zap.String("request_id", requestID),
+		zap.Duration("duration", duration))
+}
+
+// ExportThresholdsHandler handles GET /v1/admin/risk/thresholds/export requests
+func (h *EnhancedRiskHandler) ExportThresholdsHandler(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	requestID := getRequestID(r)
+
+	h.logger.Info("Export thresholds request received",
+		zap.String("request_id", requestID))
+
+	// Check if ThresholdManager is available
+	if h.thresholdManager == nil {
+		h.logger.Error("ThresholdManager is not initialized",
+			zap.String("request_id", requestID))
+		http.Error(w, "Threshold management service unavailable", http.StatusServiceUnavailable)
+		return
+	}
+
+	// Create ThresholdConfigService
+	thresholdService := risk.NewThresholdConfigService(h.thresholdManager)
+
+	// Export thresholds
+	exportData, err := thresholdService.ExportThresholds()
+	if err != nil {
+		h.logger.Error("Failed to export thresholds",
+			zap.String("request_id", requestID),
+			zap.Error(err))
+		http.Error(w, fmt.Sprintf("Failed to export thresholds: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	// Set response headers for file download
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Disposition", "attachment; filename=thresholds_export.json")
+	w.Header().Set("X-Request-ID", requestID)
+	w.WriteHeader(http.StatusOK)
+
+	// Write JSON data directly
+	if _, err := w.Write(exportData); err != nil {
+		h.logger.Error("Failed to write export data",
+			zap.String("request_id", requestID),
+			zap.Error(err))
+		return
+	}
+
+	duration := time.Since(startTime)
+	h.logger.Info("Export thresholds request completed",
+		zap.String("request_id", requestID),
+		zap.Int("bytes_exported", len(exportData)),
+		zap.Duration("duration", duration))
+}
+
+// ImportThresholdsHandler handles POST /v1/admin/risk/thresholds/import requests
+func (h *EnhancedRiskHandler) ImportThresholdsHandler(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	requestID := getRequestID(r)
+
+	h.logger.Info("Import thresholds request received",
+		zap.String("request_id", requestID))
+
+	// Check if ThresholdManager is available
+	if h.thresholdManager == nil {
+		h.logger.Error("ThresholdManager is not initialized",
+			zap.String("request_id", requestID))
+		http.Error(w, "Threshold management service unavailable", http.StatusServiceUnavailable)
+		return
+	}
+
+	// Read request body
+	importData, err := io.ReadAll(r.Body)
+	if err != nil {
+		h.logger.Error("Failed to read import data",
+			zap.String("request_id", requestID),
+			zap.Error(err))
+		http.Error(w, "Failed to read import data", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	if len(importData) == 0 {
+		http.Error(w, "Import data is required", http.StatusBadRequest)
+		return
+	}
+
+	// Create ThresholdConfigService
+	thresholdService := risk.NewThresholdConfigService(h.thresholdManager)
+
+	// Import thresholds
+	if err := thresholdService.ImportThresholds(importData); err != nil {
+		h.logger.Error("Failed to import thresholds",
+			zap.String("request_id", requestID),
+			zap.Error(err))
+		http.Error(w, fmt.Sprintf("Failed to import thresholds: %s", err.Error()), http.StatusBadRequest)
+		return
+	}
+
+	// Get count of imported thresholds
+	configs := h.thresholdManager.ListConfigs()
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Request-ID", requestID)
+	w.WriteHeader(http.StatusOK)
+
+	response := map[string]interface{}{
+		"message":        "Thresholds imported successfully",
+		"imported_count": len(configs),
+		"timestamp":      time.Now(),
+	}
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		h.logger.Error("Failed to encode response",
+			zap.String("request_id", requestID),
+			zap.Error(err))
+		return
+	}
+
+	duration := time.Since(startTime)
+	h.logger.Info("Import thresholds request completed",
+		zap.String("request_id", requestID),
+		zap.Int("imported_count", len(configs)),
 		zap.Duration("duration", duration))
 }
 

@@ -15,21 +15,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// APIIntegrationTestSuite provides comprehensive API integration testing
-type APIIntegrationTestSuite struct {
-	logger           *zap.Logger
-	backupDir        string
-	exportSvc        *ExportService
-	backupSvc        *BackupService
-	jobManager       *ExportJobManager
-	backupJobManager *BackupJobManager
-	exportHandler    *ExportHandler
-	backupHandler    *BackupHandler
-	mux              *http.ServeMux
-	server           *httptest.Server
-}
-
 // NewAPIIntegrationTestSuite creates a new API integration test suite
+// Type definition is in test_suite_types.go
 func NewAPIIntegrationTestSuite(t *testing.T) *APIIntegrationTestSuite {
 	logger := zap.NewNop()
 	backupDir := t.TempDir()
@@ -67,6 +54,7 @@ func NewAPIIntegrationTestSuite(t *testing.T) *APIIntegrationTestSuite {
 }
 
 // Close closes the test server
+// Method is also declared in test_suite_types.go, but this is the actual implementation
 func (suite *APIIntegrationTestSuite) Close() {
 	suite.server.Close()
 }

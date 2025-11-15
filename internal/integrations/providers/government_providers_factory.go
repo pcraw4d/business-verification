@@ -1,9 +1,11 @@
-package integrations
+package providers
 
 import (
 	"fmt"
 	"log"
 	"time"
+
+	"kyb-platform/internal/integrations"
 )
 
 // GovernmentProvidersFactory creates and configures government API providers
@@ -24,7 +26,7 @@ func NewGovernmentProvidersFactory(logger *log.Logger) *GovernmentProvidersFacto
 
 // CreateSECEdgarProvider creates a SEC EDGAR provider with default configuration
 func (f *GovernmentProvidersFactory) CreateSECEdgarProvider() *SECEdgarProvider {
-	config := ProviderConfig{
+	config := integrations.ProviderConfig{
 		Name:             "SEC EDGAR",
 		Type:             "sec_edgar",
 		BaseURL:          "https://data.sec.gov",
@@ -50,7 +52,7 @@ func (f *GovernmentProvidersFactory) CreateSECEdgarProvider() *SECEdgarProvider 
 
 // CreateCompaniesHouseProvider creates a Companies House provider with default configuration
 func (f *GovernmentProvidersFactory) CreateCompaniesHouseProvider(apiKey string) *CompaniesHouseProvider {
-	config := ProviderConfig{
+	config := integrations.ProviderConfig{
 		Name:             "Companies House",
 		Type:             "companies_house",
 		BaseURL:          "https://api.company-information.service.gov.uk",
@@ -82,7 +84,7 @@ func (f *GovernmentProvidersFactory) CreateCompaniesHouseProvider(apiKey string)
 
 // CreateOpenCorporatesProvider creates an OpenCorporates provider with default configuration
 func (f *GovernmentProvidersFactory) CreateOpenCorporatesProvider(apiToken string) *OpenCorporatesProvider {
-	config := ProviderConfig{
+	config := integrations.ProviderConfig{
 		Name:             "OpenCorporates",
 		Type:             "opencorporates",
 		BaseURL:          "https://api.opencorporates.com",
@@ -123,7 +125,7 @@ func (f *GovernmentProvidersFactory) CreateOpenCorporatesProvider(apiToken strin
 
 // CreateWHOISProvider creates a WHOIS provider with default configuration
 func (f *GovernmentProvidersFactory) CreateWHOISProvider() *WHOISProvider {
-	config := ProviderConfig{
+	config := integrations.ProviderConfig{
 		Name:             "WHOIS",
 		Type:             "whois",
 		RateLimit:        60, // Conservative: 1 request per second = 60 per minute
@@ -147,7 +149,7 @@ func (f *GovernmentProvidersFactory) CreateWHOISProvider() *WHOISProvider {
 }
 
 // RegisterAllGovernmentProviders registers all government API providers with the service
-func (f *GovernmentProvidersFactory) RegisterAllGovernmentProviders(service *BusinessDataAPIService, config GovernmentAPIsConfig) error {
+func (f *GovernmentProvidersFactory) RegisterAllGovernmentProviders(service *integrations.BusinessDataAPIService, config integrations.GovernmentAPIsConfig) error {
 	var errors []error
 
 	// Register SEC EDGAR provider (always free, no API key required)
@@ -195,46 +197,5 @@ func (f *GovernmentProvidersFactory) RegisterAllGovernmentProviders(service *Bus
 	return nil
 }
 
-// GovernmentAPIsConfig holds configuration for government API integrations
-type GovernmentAPIsConfig struct {
-	// Companies House API (UK) - Free but requires API key
-	CompaniesHouseAPIKey string `json:"companies_house_api_key"`
-
-	// OpenCorporates API - Free tier available, optional API token for higher limits
-	OpenCorporatesAPIToken string `json:"opencorporates_api_token"`
-
-	// SEC EDGAR API (US) - Completely free, no API key required
-	// No configuration needed
-
-	// WHOIS - Completely free, no API key required
-	// No configuration needed
-}
-
-// GetDefaultGovernmentAPIsConfig returns default configuration for government APIs
-func GetDefaultGovernmentAPIsConfig() GovernmentAPIsConfig {
-	return GovernmentAPIsConfig{
-		// Companies House API key should be set via environment variable
-		// or configuration file
-		CompaniesHouseAPIKey: "",
-
-		// OpenCorporates API token is optional for free tier
-		OpenCorporatesAPIToken: "",
-	}
-}
-
-// ValidateGovernmentAPIsConfig validates the government APIs configuration
-func ValidateGovernmentAPIsConfig(config GovernmentAPIsConfig) []string {
-	var warnings []string
-
-	// Companies House API key is recommended but not required for basic functionality
-	if config.CompaniesHouseAPIKey == "" {
-		warnings = append(warnings, "Companies House API key not provided - UK company data will not be available")
-	}
-
-	// OpenCorporates API token is optional
-	if config.OpenCorporatesAPIToken == "" {
-		warnings = append(warnings, "OpenCorporates API token not provided - using free tier with limited requests")
-	}
-
-	return warnings
-}
+// Note: GovernmentAPIsConfig, GetDefaultGovernmentAPIsConfig, and ValidateGovernmentAPIsConfig
+// are now defined in the parent integrations package

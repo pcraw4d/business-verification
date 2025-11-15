@@ -224,7 +224,31 @@ func (tm *ThresholdManager) UpdateConfig(id string, updates map[string]interface
 		config.Description = description
 	}
 
-	if riskLevels, ok := updates["risk_levels"].(map[RiskLevel]float64); ok {
+	// Handle risk_levels update - JSON unmarshals as map[string]float64, need to convert to map[RiskLevel]float64
+	if riskLevelsRaw, ok := updates["risk_levels"]; ok {
+		var riskLevels map[RiskLevel]float64
+		
+		// Try direct type assertion first (if already converted)
+		if rl, ok := riskLevelsRaw.(map[RiskLevel]float64); ok {
+			riskLevels = rl
+		} else if rlStr, ok := riskLevelsRaw.(map[string]float64); ok {
+			// Convert from map[string]float64 (JSON format) to map[RiskLevel]float64
+			riskLevels = make(map[RiskLevel]float64)
+			for k, v := range rlStr {
+				riskLevels[RiskLevel(k)] = v
+			}
+		} else if rlInterface, ok := riskLevelsRaw.(map[string]interface{}); ok {
+			// Handle case where values might be interface{} (from JSON unmarshaling)
+			riskLevels = make(map[RiskLevel]float64)
+			for k, v := range rlInterface {
+				if floatVal, ok := v.(float64); ok {
+					riskLevels[RiskLevel(k)] = floatVal
+				}
+			}
+		} else {
+			return fmt.Errorf("invalid risk_levels type: expected map[string]float64 or map[RiskLevel]float64")
+		}
+		
 		if err := tm.validateRiskLevelProgression(riskLevels); err != nil {
 			return fmt.Errorf("invalid risk level progression: %w", err)
 		}
@@ -717,7 +741,7 @@ type ThresholdConfigRequest struct {
 	BusinessType string                 `json:"business_type,omitempty"`
 	RiskLevels   map[RiskLevel]float64  `json:"risk_levels" validate:"required"`
 	IsDefault    bool                   `json:"is_default"`
-	IsActive     bool                   `json:"is_active"`
+	IsActive     *bool                  `json:"is_active,omitempty"` // Pointer to distinguish between not set (nil) and false
 	Priority     int                    `json:"priority"`
 	Metadata     map[string]interface{} `json:"metadata,omitempty"`
 	CreatedBy    string                 `json:"created_by"`

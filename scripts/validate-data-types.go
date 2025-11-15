@@ -24,8 +24,8 @@ type DataTypeTest struct {
 	Description string
 }
 
-// DataTypeResult represents the result of a data type validation
-type DataTypeResult struct {
+// DataTypeValidationResult represents the result of a data type validation
+type DataTypeValidationResult struct {
 	Test          DataTypeTest
 	Status        string // "PASS", "FAIL", "ERROR"
 	ErrorMessage  string
@@ -86,7 +86,7 @@ func main() {
 	fmt.Printf("Found %d columns to validate\n\n", len(columns))
 
 	// Run validation tests
-	var results []DataTypeResult
+	var results []DataTypeValidationResult
 	var passed, failed, errors int
 
 	for i, column := range columns {
@@ -275,9 +275,9 @@ func getColumnDescription(columnName, dataType string, maxLength sql.NullInt64) 
 }
 
 // validateDataType validates a specific column's data type and format
-func validateDataType(ctx context.Context, db *sql.DB, test DataTypeTest) DataTypeResult {
+func validateDataType(ctx context.Context, db *sql.DB, test DataTypeTest) DataTypeValidationResult {
 	startTime := time.Now()
-	result := DataTypeResult{
+	result := DataTypeValidationResult{
 		Test: test,
 	}
 

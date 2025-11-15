@@ -1,4 +1,4 @@
-package integrations
+package providers
 
 import (
 	"context"
@@ -7,12 +7,14 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"kyb-platform/internal/integrations"
 )
 
 // WHOISProvider implements WHOIS data integration for domain analysis
 // This is a FREE service that provides domain registration data
 type WHOISProvider struct {
-	config ProviderConfig
+	config integrations.ProviderConfig
 	client *net.Dialer
 	health bool
 }
@@ -33,7 +35,7 @@ type WHOISData struct {
 }
 
 // NewWHOISProvider creates a new WHOIS provider
-func NewWHOISProvider(config ProviderConfig) *WHOISProvider {
+func NewWHOISProvider(config integrations.ProviderConfig) *WHOISProvider {
 	// WHOIS is free but has rate limits
 	// Rate limit: varies by registry, typically 1-10 requests per second
 	if config.RateLimit == 0 {
@@ -78,7 +80,7 @@ func (w *WHOISProvider) GetType() string {
 	return w.config.Type
 }
 
-func (w *WHOISProvider) GetConfig() ProviderConfig {
+func (w *WHOISProvider) GetConfig() integrations.ProviderConfig {
 	return w.config
 }
 
@@ -90,9 +92,9 @@ func (w *WHOISProvider) GetCost() float64 {
 	return w.config.CostPerRequest // Always 0.0 for WHOIS
 }
 
-func (w *WHOISProvider) GetQuota() QuotaInfo {
+func (w *WHOISProvider) GetQuota() integrations.QuotaInfo {
 	// WHOIS has no quota limits, but we respect rate limits
-	return QuotaInfo{
+	return integrations.QuotaInfo{
 		DailyUsed:    0,
 		DailyLimit:   999999, // Effectively unlimited
 		MonthlyUsed:  0,
@@ -102,7 +104,7 @@ func (w *WHOISProvider) GetQuota() QuotaInfo {
 	}
 }
 
-func (w *WHOISProvider) SearchBusiness(ctx context.Context, query BusinessSearchQuery) (*BusinessData, error) {
+func (w *WHOISProvider) SearchBusiness(ctx context.Context, query integrations.BusinessSearchQuery) (*integrations.BusinessData, error) {
 	// WHOIS doesn't support business name search directly
 	// We need a domain to perform WHOIS lookup
 	if query.Website == "" {
@@ -122,7 +124,7 @@ func (w *WHOISProvider) SearchBusiness(ctx context.Context, query BusinessSearch
 	}
 
 	// Convert WHOIS data to BusinessData
-	businessData := &BusinessData{
+	businessData := &integrations.BusinessData{
 		ID:             fmt.Sprintf("whois_%s", domain),
 		ProviderID:     domain,
 		ProviderName:   w.config.Name,
@@ -130,14 +132,14 @@ func (w *WHOISProvider) SearchBusiness(ctx context.Context, query BusinessSearch
 		LegalName:      whoisData.RegistrantOrg,
 		BusinessNumber: domain,
 		Website:        query.Website,
-		Address: Address{
+		Address: integrations.Address{
 			Country: whoisData.Country,
 		},
 		Status:      w.determineDomainStatus(whoisData.Status),
 		LastUpdated: time.Now(),
 		DataQuality: 0.80, // Good quality but not business-verified
 		Confidence:  0.75, // Good confidence for domain data
-		DataSources: []DataSource{
+		DataSources: []integrations.DataSource{
 			{
 				Name:        "WHOIS",
 				Type:        "domain_registry",
@@ -155,7 +157,7 @@ func (w *WHOISProvider) SearchBusiness(ctx context.Context, query BusinessSearch
 	return businessData, nil
 }
 
-func (w *WHOISProvider) GetBusinessDetails(ctx context.Context, businessID string) (*BusinessData, error) {
+func (w *WHOISProvider) GetBusinessDetails(ctx context.Context, businessID string) (*integrations.BusinessData, error) {
 	// Extract domain from business ID
 	domain := strings.TrimPrefix(businessID, "whois_")
 
@@ -166,7 +168,7 @@ func (w *WHOISProvider) GetBusinessDetails(ctx context.Context, businessID strin
 	}
 
 	// Convert WHOIS data to BusinessData
-	businessData := &BusinessData{
+	businessData := &integrations.BusinessData{
 		ID:             fmt.Sprintf("whois_%s", domain),
 		ProviderID:     domain,
 		ProviderName:   w.config.Name,
@@ -174,14 +176,14 @@ func (w *WHOISProvider) GetBusinessDetails(ctx context.Context, businessID strin
 		LegalName:      whoisData.RegistrantOrg,
 		BusinessNumber: domain,
 		Website:        "https://" + domain,
-		Address: Address{
+		Address: integrations.Address{
 			Country: whoisData.Country,
 		},
 		Status:      w.determineDomainStatus(whoisData.Status),
 		LastUpdated: time.Now(),
 		DataQuality: 0.80,
 		Confidence:  0.75,
-		DataSources: []DataSource{
+		DataSources: []integrations.DataSource{
 			{
 				Name:        "WHOIS",
 				Type:        "domain_registry",
@@ -199,15 +201,15 @@ func (w *WHOISProvider) GetBusinessDetails(ctx context.Context, businessID strin
 	return businessData, nil
 }
 
-func (w *WHOISProvider) GetFinancialData(ctx context.Context, businessID string) (*FinancialData, error) {
+func (w *WHOISProvider) GetFinancialData(ctx context.Context, businessID string) (*integrations.FinancialData, error) {
 	// WHOIS doesn't provide financial data
-	return &FinancialData{
+	return &integrations.FinancialData{
 		ProviderID:   businessID,
 		ProviderName: w.config.Name,
 		LastUpdated:  time.Now(),
 		DataQuality:  0.0, // No financial data available
 		Confidence:   0.0,
-		DataSources: []DataSource{
+		DataSources: []integrations.DataSource{
 			{
 				Name:        "WHOIS",
 				Type:        "domain_registry",
@@ -218,15 +220,15 @@ func (w *WHOISProvider) GetFinancialData(ctx context.Context, businessID string)
 	}, nil
 }
 
-func (w *WHOISProvider) GetComplianceData(ctx context.Context, businessID string) (*ComplianceData, error) {
+func (w *WHOISProvider) GetComplianceData(ctx context.Context, businessID string) (*integrations.ComplianceData, error) {
 	// WHOIS provides basic compliance data through domain status
-	return &ComplianceData{
+	return &integrations.ComplianceData{
 		ProviderID:   businessID,
 		ProviderName: w.config.Name,
 		LastUpdated:  time.Now(),
 		DataQuality:  0.70,
 		Confidence:   0.75,
-		DataSources: []DataSource{
+		DataSources: []integrations.DataSource{
 			{
 				Name:        "WHOIS",
 				Type:        "domain_registry",
@@ -237,18 +239,18 @@ func (w *WHOISProvider) GetComplianceData(ctx context.Context, businessID string
 	}, nil
 }
 
-func (w *WHOISProvider) GetNewsData(ctx context.Context, businessID string) ([]NewsItem, error) {
+func (w *WHOISProvider) GetNewsData(ctx context.Context, businessID string) ([]integrations.NewsItem, error) {
 	// WHOIS doesn't provide news data
-	return []NewsItem{}, nil
+	return []integrations.NewsItem{}, nil
 }
 
-func (w *WHOISProvider) ValidateData(data *BusinessData) (*DataValidationResult, error) {
+func (w *WHOISProvider) ValidateData(data *integrations.BusinessData) (*integrations.DataValidationResult, error) {
 	// WHOIS data is domain registry data, not business data
-	issues := []ValidationIssue{}
+	issues := []integrations.ValidationIssue{}
 
 	// Check for required fields
 	if data.Website == "" {
-		issues = append(issues, ValidationIssue{
+		issues = append(issues, integrations.ValidationIssue{
 			Field:       "website",
 			Type:        "missing",
 			Severity:    "high",
@@ -257,7 +259,7 @@ func (w *WHOISProvider) ValidateData(data *BusinessData) (*DataValidationResult,
 	}
 
 	if data.ProviderID == "" {
-		issues = append(issues, ValidationIssue{
+		issues = append(issues, integrations.ValidationIssue{
 			Field:       "provider_id",
 			Type:        "missing",
 			Severity:    "high",
@@ -271,7 +273,7 @@ func (w *WHOISProvider) ValidateData(data *BusinessData) (*DataValidationResult,
 		qualityScore = 0.60
 	}
 
-	return &DataValidationResult{
+	return &integrations.DataValidationResult{
 		IsValid:       len(issues) == 0,
 		QualityScore:  qualityScore,
 		Issues:        issues,

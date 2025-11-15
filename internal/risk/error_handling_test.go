@@ -13,20 +13,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// ErrorHandlingTestSuite provides comprehensive error handling testing
-type ErrorHandlingTestSuite struct {
-	logger         *zap.Logger
-	storageService *RiskStorageService
-	validationSvc  *RiskValidationService
-	exportSvc      *ExportService
-	backupSvc      *BackupService
-	exportHandler  *ExportHandler
-	backupHandler  *BackupHandler
-	mux            *http.ServeMux
-	server         *httptest.Server
-}
-
 // NewErrorHandlingTestSuite creates a new error handling test suite
+// Type definition is in test_suite_types.go
 func NewErrorHandlingTestSuite(t *testing.T) *ErrorHandlingTestSuite {
 	logger := zap.NewNop()
 	backupDir := t.TempDir()
@@ -67,6 +55,7 @@ func NewErrorHandlingTestSuite(t *testing.T) *ErrorHandlingTestSuite {
 }
 
 // Close closes the test server
+// Method is also declared in test_suite_types.go, but this is the actual implementation
 func (suite *ErrorHandlingTestSuite) Close() {
 	suite.server.Close()
 }

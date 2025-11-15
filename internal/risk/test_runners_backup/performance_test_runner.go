@@ -30,9 +30,28 @@ type PerformanceTestResults struct {
 	ExecutionTime      time.Duration           `json:"execution_time"`
 	TestDetails        []PerformanceTestDetail `json:"test_details"`
 	Summary            map[string]interface{}  `json:"summary"`
-	PerformanceMetrics *PerformanceMetrics     `json:"performance_metrics"`
+	PerformanceMetrics *PerformanceTestMetrics `json:"performance_metrics"`
 	ScalabilityMetrics *ScalabilityMetrics     `json:"scalability_metrics"`
 	ResourceMetrics    *ResourceMetrics        `json:"resource_metrics"`
+}
+
+// PerformanceTestMetrics contains performance metrics specific to test execution
+type PerformanceTestMetrics struct {
+	LatencyDistribution map[string]int  `json:"latency_distribution"`
+	ThroughputTrend     []float64       `json:"throughput_trend"`
+	LatencyTrend        []time.Duration `json:"latency_trend"`
+	TotalOperations     int             `json:"total_operations"`
+	TotalDuration       time.Duration   `json:"total_duration"`
+	AverageThroughput   float64         `json:"average_throughput"`
+	MaxThroughput       float64         `json:"max_throughput"`
+	MinThroughput       float64         `json:"min_throughput"`
+	AverageLatency      time.Duration   `json:"average_latency"`
+	MaxLatency          time.Duration   `json:"max_latency"`
+	MinLatency          time.Duration   `json:"min_latency"`
+	P95Latency          time.Duration   `json:"p95_latency"`
+	P99Latency          time.Duration   `json:"p99_latency"`
+	ErrorRate           float64         `json:"error_rate"`
+	SuccessRate         float64         `json:"success_rate"`
 }
 
 // PerformanceTestDetail contains details about individual performance test execution
@@ -87,7 +106,7 @@ func NewPerformanceTestRunner() *PerformanceTestRunner {
 		results: &PerformanceTestResults{
 			TestDetails: make([]PerformanceTestDetail, 0),
 			Summary:     make(map[string]interface{}),
-			PerformanceMetrics: &PerformanceMetrics{
+			PerformanceMetrics: &PerformanceTestMetrics{
 				LatencyDistribution: make(map[string]int),
 				ThroughputTrend:     make([]float64, 0),
 				LatencyTrend:        make([]time.Duration, 0),

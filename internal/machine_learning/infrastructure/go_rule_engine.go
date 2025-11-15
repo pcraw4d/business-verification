@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"regexp"
 	"sync"
 	"time"
 )
@@ -68,153 +67,14 @@ type GoRuleEngineConfig struct {
 	TargetAccuracy     float64       `json:"target_accuracy"`      // >90%
 }
 
-// KeywordMatcher handles keyword-based matching for classification and risk detection
-type KeywordMatcher struct {
-	// Keyword databases
-	industryKeywords map[string][]string
-	riskKeywords     map[string][]string
+// Types KeywordMatcher, MCCCodeLookup, BlacklistChecker, and RuleEngineCache
+// are defined in their respective files (keyword_matcher.go, mcc_code_lookup.go,
+// blacklist_checker.go, rule_engine_cache.go) to avoid redeclaration
 
-	// Compiled regex patterns for performance
-	compiledPatterns map[string]*regexp.Regexp
-
-	// Thread safety
-	mu sync.RWMutex
-
-	// Logging
-	logger *log.Logger
-}
-
-// MCCCodeLookup handles MCC code lookup and validation
-type MCCCodeLookup struct {
-	// MCC code database
-	mccCodes map[string]*MCCCodeInfo
-
-	// Prohibited MCC codes
-	prohibitedMCCs map[string]bool
-
-	// Thread safety
-	mu sync.RWMutex
-
-	// Logging
-	logger *log.Logger
-}
-
-// BlacklistChecker handles blacklist checking for known bad actors
-type BlacklistChecker struct {
-	// Blacklist databases
-	businessBlacklist map[string]*BlacklistEntry
-	domainBlacklist   map[string]*BlacklistEntry
-
-	// Thread safety
-	mu sync.RWMutex
-
-	// Logging
-	logger *log.Logger
-}
-
-// RuleEngineCache provides high-performance caching for rule engine results
-type RuleEngineCache struct {
-	// Cache storage
-	classificationCache map[string]*CachedClassificationResult
-	riskCache           map[string]*CachedRiskResult
-
-	// Cache configuration
-	config CacheConfig
-
-	// Thread safety
-	mu sync.RWMutex
-
-	// Logging
-	logger *log.Logger
-}
-
-// MCCCodeInfo represents MCC code information
-type MCCCodeInfo struct {
-	Code         string `json:"code"`
-	Description  string `json:"description"`
-	Category     string `json:"category"`
-	IsProhibited bool   `json:"is_prohibited"`
-	RiskLevel    string `json:"risk_level"` // low, medium, high, critical
-}
-
-// BlacklistEntry represents a blacklist entry
-type BlacklistEntry struct {
-	ID        string    `json:"id"`
-	Type      string    `json:"type"` // business, domain, ip
-	Value     string    `json:"value"`
-	Reason    string    `json:"reason"`
-	RiskLevel string    `json:"risk_level"` // low, medium, high, critical
-	Source    string    `json:"source"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-}
-
-// CachedClassificationResult represents a cached classification result
-type CachedClassificationResult struct {
-	Result      *RuleEngineClassificationResponse `json:"result"`
-	CachedAt    time.Time                         `json:"cached_at"`
-	ExpiresAt   time.Time                         `json:"expires_at"`
-	AccessCount int                               `json:"access_count"`
-}
-
-// CachedRiskResult represents a cached risk detection result
-type CachedRiskResult struct {
-	Result      *RuleEngineRiskResponse `json:"result"`
-	CachedAt    time.Time               `json:"cached_at"`
-	ExpiresAt   time.Time               `json:"expires_at"`
-	AccessCount int                     `json:"access_count"`
-}
-
-// CacheConfig holds cache configuration
-type CacheConfig struct {
-	Enabled         bool          `json:"enabled"`
-	MaxSize         int           `json:"max_size"`
-	DefaultTTL      time.Duration `json:"default_ttl"`
-	CleanupInterval time.Duration `json:"cleanup_interval"`
-	MaxAccessCount  int           `json:"max_access_count"`
-}
-
-// RuleEngineClassificationRequest represents a classification request for the rule engine
-type RuleEngineClassificationRequest struct {
-	BusinessName string `json:"business_name"`
-	Description  string `json:"description"`
-	WebsiteURL   string `json:"website_url"`
-	MaxResults   int    `json:"max_results,omitempty"`
-}
-
-// RuleEngineRiskRequest represents a risk detection request for the rule engine
-type RuleEngineRiskRequest struct {
-	BusinessName   string   `json:"business_name"`
-	Description    string   `json:"description"`
-	WebsiteURL     string   `json:"website_url"`
-	WebsiteContent string   `json:"website_content,omitempty"`
-	RiskCategories []string `json:"risk_categories,omitempty"`
-}
-
-// RuleEngineClassificationResponse represents a classification response from the rule engine
-type RuleEngineClassificationResponse struct {
-	RequestID       string                     `json:"request_id"`
-	Classifications []ClassificationPrediction `json:"classifications"`
-	Confidence      float64                    `json:"confidence"`
-	ProcessingTime  time.Duration              `json:"processing_time"`
-	Timestamp       time.Time                  `json:"timestamp"`
-	Success         bool                       `json:"success"`
-	Error           string                     `json:"error,omitempty"`
-	Method          string                     `json:"method"` // keyword_matching, mcc_lookup
-}
-
-// RuleEngineRiskResponse represents a risk detection response from the rule engine
-type RuleEngineRiskResponse struct {
-	RequestID      string         `json:"request_id"`
-	RiskScore      float64        `json:"risk_score"`
-	RiskLevel      string         `json:"risk_level"`
-	DetectedRisks  []DetectedRisk `json:"detected_risks"`
-	ProcessingTime time.Duration  `json:"processing_time"`
-	Timestamp      time.Time      `json:"timestamp"`
-	Success        bool           `json:"success"`
-	Error          string         `json:"error,omitempty"`
-	Method         string         `json:"method"` // keyword_matching, mcc_lookup, blacklist_check
-}
+// Types MCCCodeInfo, BlacklistEntry, CachedClassificationResult, CachedRiskResult,
+// CacheConfig, RuleEngineClassificationRequest, RuleEngineRiskRequest,
+// RuleEngineClassificationResponse, and RuleEngineRiskResponse are defined in types.go
+// to avoid redeclaration
 
 // NewGoRuleEngine creates a new Go rule engine
 func NewGoRuleEngine(endpoint string, logger *log.Logger) *GoRuleEngine {

@@ -1,4 +1,4 @@
-package integrations
+package providers
 
 import (
 	"context"
@@ -7,12 +7,14 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"kyb-platform/internal/integrations"
 )
 
 // SECEdgarProvider implements SEC EDGAR API integration for US companies
 // This is a FREE government API that provides access to SEC filings and company data
 type SECEdgarProvider struct {
-	config ProviderConfig
+	config integrations.ProviderConfig
 	client *http.Client
 	health bool
 }
@@ -36,7 +38,7 @@ type SECEdgarResponse struct {
 }
 
 // NewSECEdgarProvider creates a new SEC EDGAR provider
-func NewSECEdgarProvider(config ProviderConfig) *SECEdgarProvider {
+func NewSECEdgarProvider(config integrations.ProviderConfig) *SECEdgarProvider {
 	// SEC EDGAR API is free and doesn't require authentication
 	// Rate limit: 10 requests per second
 	if config.RateLimit == 0 {
@@ -86,7 +88,7 @@ func (s *SECEdgarProvider) GetType() string {
 	return s.config.Type
 }
 
-func (s *SECEdgarProvider) GetConfig() ProviderConfig {
+func (s *SECEdgarProvider) GetConfig() integrations.ProviderConfig {
 	return s.config
 }
 
@@ -98,9 +100,9 @@ func (s *SECEdgarProvider) GetCost() float64 {
 	return s.config.CostPerRequest // Always 0.0 for SEC EDGAR
 }
 
-func (s *SECEdgarProvider) GetQuota() QuotaInfo {
+func (s *SECEdgarProvider) GetQuota() integrations.QuotaInfo {
 	// SEC EDGAR has no quota limits, but we respect rate limits
-	return QuotaInfo{
+	return integrations.QuotaInfo{
 		DailyUsed:    0,
 		DailyLimit:   999999, // Effectively unlimited
 		MonthlyUsed:  0,
@@ -110,7 +112,7 @@ func (s *SECEdgarProvider) GetQuota() QuotaInfo {
 	}
 }
 
-func (s *SECEdgarProvider) SearchBusiness(ctx context.Context, query BusinessSearchQuery) (*BusinessData, error) {
+func (s *SECEdgarProvider) SearchBusiness(ctx context.Context, query integrations.BusinessSearchQuery) (*integrations.BusinessData, error) {
 	// SEC EDGAR API endpoint for company search
 	// Documentation: https://www.sec.gov/edgar/sec-api-documentation
 	searchURL := fmt.Sprintf("%s/api/xbrl/companyfacts/CIK%s.json", s.config.BaseURL, s.normalizeCIK(query.CompanyName))
@@ -153,14 +155,14 @@ func (s *SECEdgarProvider) SearchBusiness(ctx context.Context, query BusinessSea
 
 	company := secResponse.Results[0] // Take the first result
 
-	businessData := &BusinessData{
+	businessData := &integrations.BusinessData{
 		ID:             fmt.Sprintf("sec_%s", company.CIK),
 		ProviderID:     company.CIK,
 		ProviderName:   s.config.Name,
 		CompanyName:    company.Title,
 		LegalName:      company.Title,
 		BusinessNumber: company.CIK,
-		Address: Address{
+		Address: integrations.Address{
 			Country: "US", // SEC EDGAR is US-only
 		},
 		Industry:    company.SICDescription,
@@ -168,7 +170,7 @@ func (s *SECEdgarProvider) SearchBusiness(ctx context.Context, query BusinessSea
 		LastUpdated: time.Now(),
 		DataQuality: 0.95, // Government data is high quality
 		Confidence:  0.90, // High confidence for government data
-		DataSources: []DataSource{
+		DataSources: []integrations.DataSource{
 			{
 				Name:        "SEC EDGAR",
 				Type:        "government",
@@ -180,7 +182,7 @@ func (s *SECEdgarProvider) SearchBusiness(ctx context.Context, query BusinessSea
 
 	// Add additional SEC-specific data
 	if company.SIC != "" {
-		businessData.IndustryCodes = append(businessData.IndustryCodes, IndustryCode{
+		businessData.IndustryCodes = append(businessData.IndustryCodes, integrations.IndustryCode{
 			Type:        "SIC",
 			Code:        company.SIC,
 			Description: company.SICDescription,
@@ -190,7 +192,7 @@ func (s *SECEdgarProvider) SearchBusiness(ctx context.Context, query BusinessSea
 	return businessData, nil
 }
 
-func (s *SECEdgarProvider) GetBusinessDetails(ctx context.Context, businessID string) (*BusinessData, error) {
+func (s *SECEdgarProvider) GetBusinessDetails(ctx context.Context, businessID string) (*integrations.BusinessData, error) {
 	// Extract CIK from business ID
 	cik := strings.TrimPrefix(businessID, "sec_")
 
@@ -225,21 +227,21 @@ func (s *SECEdgarProvider) GetBusinessDetails(ctx context.Context, businessID st
 	entityName, _ := companyFacts["entityName"].(string)
 	cikStr, _ := companyFacts["cik"].(string)
 
-	businessData := &BusinessData{
+	businessData := &integrations.BusinessData{
 		ID:             fmt.Sprintf("sec_%s", cikStr),
 		ProviderID:     cikStr,
 		ProviderName:   s.config.Name,
 		CompanyName:    entityName,
 		LegalName:      entityName,
 		BusinessNumber: cikStr,
-		Address: Address{
+		Address: integrations.Address{
 			Country: "US",
 		},
 		Status:      "active",
 		LastUpdated: time.Now(),
 		DataQuality: 0.95,
 		Confidence:  0.90,
-		DataSources: []DataSource{
+		DataSources: []integrations.DataSource{
 			{
 				Name:        "SEC EDGAR",
 				Type:        "government",
@@ -252,16 +254,16 @@ func (s *SECEdgarProvider) GetBusinessDetails(ctx context.Context, businessID st
 	return businessData, nil
 }
 
-func (s *SECEdgarProvider) GetFinancialData(ctx context.Context, businessID string) (*FinancialData, error) {
+func (s *SECEdgarProvider) GetFinancialData(ctx context.Context, businessID string) (*integrations.FinancialData, error) {
 	// SEC EDGAR provides financial data through XBRL filings
 	// This is a simplified implementation - in production, you'd parse XBRL data
-	return &FinancialData{
+	return &integrations.FinancialData{
 		ProviderID:   businessID,
 		ProviderName: s.config.Name,
 		LastUpdated:  time.Now(),
 		DataQuality:  0.95,
 		Confidence:   0.85,
-		DataSources: []DataSource{
+		DataSources: []integrations.DataSource{
 			{
 				Name:        "SEC EDGAR XBRL",
 				Type:        "government",
@@ -272,15 +274,15 @@ func (s *SECEdgarProvider) GetFinancialData(ctx context.Context, businessID stri
 	}, nil
 }
 
-func (s *SECEdgarProvider) GetComplianceData(ctx context.Context, businessID string) (*ComplianceData, error) {
+func (s *SECEdgarProvider) GetComplianceData(ctx context.Context, businessID string) (*integrations.ComplianceData, error) {
 	// SEC EDGAR provides compliance data through filings
-	return &ComplianceData{
+	return &integrations.ComplianceData{
 		ProviderID:   businessID,
 		ProviderName: s.config.Name,
 		LastUpdated:  time.Now(),
 		DataQuality:  0.95,
 		Confidence:   0.90,
-		DataSources: []DataSource{
+		DataSources: []integrations.DataSource{
 			{
 				Name:        "SEC EDGAR Filings",
 				Type:        "government",
@@ -291,18 +293,18 @@ func (s *SECEdgarProvider) GetComplianceData(ctx context.Context, businessID str
 	}, nil
 }
 
-func (s *SECEdgarProvider) GetNewsData(ctx context.Context, businessID string) ([]NewsItem, error) {
+func (s *SECEdgarProvider) GetNewsData(ctx context.Context, businessID string) ([]integrations.NewsItem, error) {
 	// SEC EDGAR doesn't provide news data
-	return []NewsItem{}, nil
+	return []integrations.NewsItem{}, nil
 }
 
-func (s *SECEdgarProvider) ValidateData(data *BusinessData) (*DataValidationResult, error) {
+func (s *SECEdgarProvider) ValidateData(data *integrations.BusinessData) (*integrations.DataValidationResult, error) {
 	// SEC EDGAR data is government-verified, so it's generally high quality
-	issues := []ValidationIssue{}
+	issues := []integrations.ValidationIssue{}
 
 	// Check for required fields
 	if data.CompanyName == "" {
-		issues = append(issues, ValidationIssue{
+		issues = append(issues, integrations.ValidationIssue{
 			Field:       "company_name",
 			Type:        "missing",
 			Severity:    "high",
@@ -311,7 +313,7 @@ func (s *SECEdgarProvider) ValidateData(data *BusinessData) (*DataValidationResu
 	}
 
 	if data.ProviderID == "" {
-		issues = append(issues, ValidationIssue{
+		issues = append(issues, integrations.ValidationIssue{
 			Field:       "provider_id",
 			Type:        "missing",
 			Severity:    "high",
@@ -325,7 +327,7 @@ func (s *SECEdgarProvider) ValidateData(data *BusinessData) (*DataValidationResu
 		qualityScore = 0.8 // Still high because it's government data
 	}
 
-	return &DataValidationResult{
+	return &integrations.DataValidationResult{
 		IsValid:       len(issues) == 0,
 		QualityScore:  qualityScore,
 		Issues:        issues,

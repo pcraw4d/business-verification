@@ -1,4 +1,4 @@
-package integrations
+package providers
 
 import (
 	"context"
@@ -8,12 +8,14 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"kyb-platform/internal/integrations"
 )
 
 // OpenCorporatesProvider implements OpenCorporates API integration
 // This is a FREE API with limited free tier that provides global company data
 type OpenCorporatesProvider struct {
-	config ProviderConfig
+	config integrations.ProviderConfig
 	client *http.Client
 	health bool
 }
@@ -52,7 +54,7 @@ type OpenCorporatesResponse struct {
 }
 
 // NewOpenCorporatesProvider creates a new OpenCorporates provider
-func NewOpenCorporatesProvider(config ProviderConfig) *OpenCorporatesProvider {
+func NewOpenCorporatesProvider(config integrations.ProviderConfig) *OpenCorporatesProvider {
 	// OpenCorporates API is free with rate limits
 	// Free tier: 500 requests per day
 	if config.RateLimit == 0 {
@@ -102,7 +104,7 @@ func (o *OpenCorporatesProvider) GetType() string {
 	return o.config.Type
 }
 
-func (o *OpenCorporatesProvider) GetConfig() ProviderConfig {
+func (o *OpenCorporatesProvider) GetConfig() integrations.ProviderConfig {
 	return o.config
 }
 
@@ -114,9 +116,9 @@ func (o *OpenCorporatesProvider) GetCost() float64 {
 	return o.config.CostPerRequest // Always 0.0 for OpenCorporates free tier
 }
 
-func (o *OpenCorporatesProvider) GetQuota() QuotaInfo {
+func (o *OpenCorporatesProvider) GetQuota() integrations.QuotaInfo {
 	// OpenCorporates free tier: 500 requests per day
-	return QuotaInfo{
+	return integrations.QuotaInfo{
 		DailyUsed:    0,
 		DailyLimit:   500,
 		MonthlyUsed:  0,
@@ -126,7 +128,7 @@ func (o *OpenCorporatesProvider) GetQuota() QuotaInfo {
 	}
 }
 
-func (o *OpenCorporatesProvider) SearchBusiness(ctx context.Context, query BusinessSearchQuery) (*BusinessData, error) {
+func (o *OpenCorporatesProvider) SearchBusiness(ctx context.Context, query integrations.BusinessSearchQuery) (*integrations.BusinessData, error) {
 	// OpenCorporates API endpoint for company search
 	// Documentation: https://api.opencorporates.com/documentation/API-Reference
 	searchURL := fmt.Sprintf("%s/v0.4/companies/search", o.config.BaseURL)
@@ -177,14 +179,14 @@ func (o *OpenCorporatesProvider) SearchBusiness(ctx context.Context, query Busin
 
 	company := ocResponse.Results.Companies[0] // Take the first result
 
-	businessData := &BusinessData{
+	businessData := &integrations.BusinessData{
 		ID:             fmt.Sprintf("oc_%s_%s", company.Company.JurisdictionCode, company.Company.CompanyNumber),
 		ProviderID:     company.Company.CompanyNumber,
 		ProviderName:   o.config.Name,
 		CompanyName:    company.Company.Name,
 		LegalName:      company.Company.Name,
 		BusinessNumber: company.Company.CompanyNumber,
-		Address: Address{
+		Address: integrations.Address{
 			Street1:    company.Company.RegisteredAddress.StreetAddress,
 			City:       company.Company.RegisteredAddress.Locality,
 			State:      company.Company.RegisteredAddress.Region,
@@ -195,7 +197,7 @@ func (o *OpenCorporatesProvider) SearchBusiness(ctx context.Context, query Busin
 		LastUpdated: time.Now(),
 		DataQuality: 0.85, // Good quality but not government-verified
 		Confidence:  0.80, // Good confidence for global data
-		DataSources: []DataSource{
+		DataSources: []integrations.DataSource{
 			{
 				Name:        "OpenCorporates",
 				Type:        "commercial",
@@ -207,7 +209,7 @@ func (o *OpenCorporatesProvider) SearchBusiness(ctx context.Context, query Busin
 
 	// Add industry codes if available
 	for _, code := range company.Company.IndustryCodes {
-		businessData.IndustryCodes = append(businessData.IndustryCodes, IndustryCode{
+		businessData.IndustryCodes = append(businessData.IndustryCodes, integrations.IndustryCode{
 			Type:        code.CodeType,
 			Code:        code.Code,
 			Description: code.Description,
@@ -224,7 +226,7 @@ func (o *OpenCorporatesProvider) SearchBusiness(ctx context.Context, query Busin
 	return businessData, nil
 }
 
-func (o *OpenCorporatesProvider) GetBusinessDetails(ctx context.Context, businessID string) (*BusinessData, error) {
+func (o *OpenCorporatesProvider) GetBusinessDetails(ctx context.Context, businessID string) (*integrations.BusinessData, error) {
 	// Extract jurisdiction and company number from business ID
 	parts := strings.Split(strings.TrimPrefix(businessID, "oc_"), "_")
 	if len(parts) != 2 {
@@ -265,14 +267,14 @@ func (o *OpenCorporatesProvider) GetBusinessDetails(ctx context.Context, busines
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	businessData := &BusinessData{
+	businessData := &integrations.BusinessData{
 		ID:             fmt.Sprintf("oc_%s_%s", company.Company.JurisdictionCode, company.Company.CompanyNumber),
 		ProviderID:     company.Company.CompanyNumber,
 		ProviderName:   o.config.Name,
 		CompanyName:    company.Company.Name,
 		LegalName:      company.Company.Name,
 		BusinessNumber: company.Company.CompanyNumber,
-		Address: Address{
+		Address: integrations.Address{
 			Street1:    company.Company.RegisteredAddress.StreetAddress,
 			City:       company.Company.RegisteredAddress.Locality,
 			State:      company.Company.RegisteredAddress.Region,
@@ -283,7 +285,7 @@ func (o *OpenCorporatesProvider) GetBusinessDetails(ctx context.Context, busines
 		LastUpdated: time.Now(),
 		DataQuality: 0.85,
 		Confidence:  0.80,
-		DataSources: []DataSource{
+		DataSources: []integrations.DataSource{
 			{
 				Name:        "OpenCorporates",
 				Type:        "commercial",
@@ -295,7 +297,7 @@ func (o *OpenCorporatesProvider) GetBusinessDetails(ctx context.Context, busines
 
 	// Add industry codes
 	for _, code := range company.Company.IndustryCodes {
-		businessData.IndustryCodes = append(businessData.IndustryCodes, IndustryCode{
+		businessData.IndustryCodes = append(businessData.IndustryCodes, integrations.IndustryCode{
 			Type:        code.CodeType,
 			Code:        code.Code,
 			Description: code.Description,
@@ -312,15 +314,15 @@ func (o *OpenCorporatesProvider) GetBusinessDetails(ctx context.Context, busines
 	return businessData, nil
 }
 
-func (o *OpenCorporatesProvider) GetFinancialData(ctx context.Context, businessID string) (*FinancialData, error) {
+func (o *OpenCorporatesProvider) GetFinancialData(ctx context.Context, businessID string) (*integrations.FinancialData, error) {
 	// OpenCorporates provides limited financial data
-	return &FinancialData{
+	return &integrations.FinancialData{
 		ProviderID:   businessID,
 		ProviderName: o.config.Name,
 		LastUpdated:  time.Now(),
 		DataQuality:  0.70,
 		Confidence:   0.75,
-		DataSources: []DataSource{
+		DataSources: []integrations.DataSource{
 			{
 				Name:        "OpenCorporates",
 				Type:        "commercial",
@@ -331,15 +333,15 @@ func (o *OpenCorporatesProvider) GetFinancialData(ctx context.Context, businessI
 	}, nil
 }
 
-func (o *OpenCorporatesProvider) GetComplianceData(ctx context.Context, businessID string) (*ComplianceData, error) {
+func (o *OpenCorporatesProvider) GetComplianceData(ctx context.Context, businessID string) (*integrations.ComplianceData, error) {
 	// OpenCorporates provides basic compliance data through company status
-	return &ComplianceData{
+	return &integrations.ComplianceData{
 		ProviderID:   businessID,
 		ProviderName: o.config.Name,
 		LastUpdated:  time.Now(),
 		DataQuality:  0.80,
 		Confidence:   0.75,
-		DataSources: []DataSource{
+		DataSources: []integrations.DataSource{
 			{
 				Name:        "OpenCorporates",
 				Type:        "commercial",
@@ -350,18 +352,18 @@ func (o *OpenCorporatesProvider) GetComplianceData(ctx context.Context, business
 	}, nil
 }
 
-func (o *OpenCorporatesProvider) GetNewsData(ctx context.Context, businessID string) ([]NewsItem, error) {
+func (o *OpenCorporatesProvider) GetNewsData(ctx context.Context, businessID string) ([]integrations.NewsItem, error) {
 	// OpenCorporates doesn't provide news data
-	return []NewsItem{}, nil
+	return []integrations.NewsItem{}, nil
 }
 
-func (o *OpenCorporatesProvider) ValidateData(data *BusinessData) (*DataValidationResult, error) {
+func (o *OpenCorporatesProvider) ValidateData(data *integrations.BusinessData) (*integrations.DataValidationResult, error) {
 	// OpenCorporates data is commercial but generally reliable
-	issues := []ValidationIssue{}
+	issues := []integrations.ValidationIssue{}
 
 	// Check for required fields
 	if data.CompanyName == "" {
-		issues = append(issues, ValidationIssue{
+		issues = append(issues, integrations.ValidationIssue{
 			Field:       "company_name",
 			Type:        "missing",
 			Severity:    "high",
@@ -370,7 +372,7 @@ func (o *OpenCorporatesProvider) ValidateData(data *BusinessData) (*DataValidati
 	}
 
 	if data.ProviderID == "" {
-		issues = append(issues, ValidationIssue{
+		issues = append(issues, integrations.ValidationIssue{
 			Field:       "provider_id",
 			Type:        "missing",
 			Severity:    "high",
@@ -384,7 +386,7 @@ func (o *OpenCorporatesProvider) ValidateData(data *BusinessData) (*DataValidati
 		qualityScore = 0.70
 	}
 
-	return &DataValidationResult{
+	return &integrations.DataValidationResult{
 		IsValid:       len(issues) == 0,
 		QualityScore:  qualityScore,
 		Issues:        issues,

@@ -28,30 +28,8 @@ type RuleEngineCache struct {
 	cancel context.CancelFunc
 }
 
-// CachedClassificationResult represents a cached classification result
-type CachedClassificationResult struct {
-	Result      *RuleEngineClassificationResponse `json:"result"`
-	CachedAt    time.Time                         `json:"cached_at"`
-	ExpiresAt   time.Time                         `json:"expires_at"`
-	AccessCount int                               `json:"access_count"`
-}
-
-// CachedRiskResult represents a cached risk detection result
-type CachedRiskResult struct {
-	Result      *RuleEngineRiskResponse `json:"result"`
-	CachedAt    time.Time               `json:"cached_at"`
-	ExpiresAt   time.Time               `json:"expires_at"`
-	AccessCount int                     `json:"access_count"`
-}
-
-// CacheConfig holds cache configuration
-type CacheConfig struct {
-	Enabled         bool          `json:"enabled"`
-	MaxSize         int           `json:"max_size"`
-	DefaultTTL      time.Duration `json:"default_ttl"`
-	CleanupInterval time.Duration `json:"cleanup_interval"`
-	MaxAccessCount  int           `json:"max_access_count"`
-}
+// Types CachedClassificationResult, CachedRiskResult, and CacheConfig
+// are defined in types.go to avoid redeclaration
 
 // NewRuleEngineCache creates a new rule engine cache
 func NewRuleEngineCache(logger *log.Logger) *RuleEngineCache {
@@ -320,11 +298,4 @@ func (rec *RuleEngineCache) evictLeastUsedRisk() {
 	}
 }
 
-// CacheStats represents cache statistics
-type CacheStats struct {
-	ClassificationEntries int     `json:"classification_entries"`
-	RiskEntries           int     `json:"risk_entries"`
-	TotalEntries          int     `json:"total_entries"`
-	MaxSize               int     `json:"max_size"`
-	HitRate               float64 `json:"hit_rate"`
-}
+// CacheStats is defined in types.go to avoid redeclaration

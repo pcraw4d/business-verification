@@ -190,6 +190,7 @@ const (
 	ExportTypeAlerts      ExportType = "alerts"
 	ExportTypeReports     ExportType = "reports"
 	ExportTypeAll         ExportType = "all"
+	ExportTypeAllData     ExportType = "all_data" // Alias for ExportTypeAll
 )
 
 // ExportRequest represents a request to export risk data

@@ -68,111 +68,11 @@ type MLArchitectureConfig struct {
 	AlertingEnabled bool `json:"alerting_enabled"`
 }
 
-// PythonMLService represents the Python ML service for all ML models
-type PythonMLService struct {
-	// Service configuration
-	endpoint string
-	config   PythonMLServiceConfig
+// PythonMLService and PythonMLServiceConfig are defined in python_ml_service.go
+// GoRuleEngine and GoRuleEngineConfig are defined in go_rule_engine.go
+// Types removed to avoid redeclaration
 
-	// Model management
-	models map[string]*MLModel
-
-	// Performance tracking
-	metrics *ServiceMetrics
-
-	// Health status
-	healthStatus *HealthStatus
-
-	// Thread safety
-	mu sync.RWMutex
-
-	// Logging
-	logger *log.Logger
-}
-
-// PythonMLServiceConfig holds configuration for the Python ML service
-type PythonMLServiceConfig struct {
-	// Service configuration
-	Host string `json:"host"`
-	Port int    `json:"port"`
-
-	// Model configuration
-	DefaultModelType    string        `json:"default_model_type"` // bert, distilbert, custom
-	SupportedModelTypes []string      `json:"supported_model_types"`
-	ModelCacheEnabled   bool          `json:"model_cache_enabled"`
-	ModelCacheSize      int           `json:"model_cache_size"`
-	ModelUpdateInterval time.Duration `json:"model_update_interval"`
-
-	// Performance configuration
-	MaxBatchSize        int           `json:"max_batch_size"`
-	InferenceTimeout    time.Duration `json:"inference_timeout"`
-	ModelLoadingTimeout time.Duration `json:"model_loading_timeout"`
-
-	// Resource limits
-	MaxMemoryUsage      int64 `json:"max_memory_usage"` // in MB
-	MaxCPUUsage         int   `json:"max_cpu_usage"`    // percentage
-	MaxConcurrentModels int   `json:"max_concurrent_models"`
-
-	// Monitoring
-	MetricsEnabled      bool `json:"metrics_enabled"`
-	PerformanceTracking bool `json:"performance_tracking"`
-	ModelVersioning     bool `json:"model_versioning"`
-}
-
-// GoRuleEngine represents the Go rule engine for rule-based systems
-type GoRuleEngine struct {
-	// Service configuration
-	endpoint string
-	config   GoRuleEngineConfig
-
-	// Rule systems
-	keywordMatcher   *KeywordMatcher
-	mccCodeLookup    *MCCCodeLookup
-	blacklistChecker *BlacklistChecker
-
-	// Caching
-	cache *RuleEngineCache
-
-	// Performance tracking
-	metrics *ServiceMetrics
-
-	// Health status
-	healthStatus *HealthStatus
-
-	// Thread safety
-	mu sync.RWMutex
-
-	// Logging
-	logger *log.Logger
-}
-
-// GoRuleEngineConfig holds configuration for the Go rule engine
-type GoRuleEngineConfig struct {
-	// Service configuration
-	Host string `json:"host"`
-	Port int    `json:"port"`
-
-	// Rule system configuration
-	KeywordMatchingEnabled bool `json:"keyword_matching_enabled"`
-	MCCCodeLookupEnabled   bool `json:"mcc_code_lookup_enabled"`
-	BlacklistCheckEnabled  bool `json:"blacklist_check_enabled"`
-
-	// Performance configuration
-	MaxConcurrentRules int           `json:"max_concurrent_rules"`
-	RuleTimeout        time.Duration `json:"rule_timeout"`
-	CacheEnabled       bool          `json:"cache_enabled"`
-	CacheSize          int           `json:"cache_size"`
-	CacheTTL           time.Duration `json:"cache_ttl"`
-
-	// Rule data sources
-	KeywordDatabasePath   string `json:"keyword_database_path"`
-	MCCCodeDatabasePath   string `json:"mcc_code_database_path"`
-	BlacklistDatabasePath string `json:"blacklist_database_path"`
-
-	// Performance targets
-	TargetResponseTime time.Duration `json:"target_response_time"` // <10ms
-	TargetAccuracy     float64       `json:"target_accuracy"`      // >90%
-}
+// GoRuleEngineConfig is defined in go_rule_engine.go - removed duplicate
 
 // APIGateway represents the API gateway with intelligent routing
 type APIGateway struct {
@@ -203,6 +103,85 @@ type APIGateway struct {
 
 	// Logging
 	logger *log.Logger
+}
+
+// NewAPIGateway creates a new API gateway instance
+func NewAPIGateway(config APIGatewayConfig, logger *log.Logger) *APIGateway {
+	if logger == nil {
+		logger = log.Default()
+	}
+	endpoint := fmt.Sprintf("%s:%d", config.Host, config.Port)
+	return &APIGateway{
+		endpoint: endpoint,
+		config:   config,
+		router: &IntelligentRouter{
+			config: IntelligentRouterConfig{
+				DefaultStrategy: config.DefaultRoutingStrategy,
+			},
+			strategy: config.DefaultRoutingStrategy,
+			logger:   logger,
+		},
+		featureFlags: &FeatureFlagManager{
+			flags: make(map[string]bool),
+			config: FeatureFlagConfig{
+				UpdateInterval: config.FeatureFlagUpdateInterval,
+				Enabled:        config.FeatureFlagsEnabled,
+			},
+			logger: logger,
+		},
+		circuitBreaker: &CircuitBreaker{
+			config: CircuitBreakerConfig{
+				FailureThreshold: config.CircuitBreakerThreshold,
+				Timeout:          config.CircuitBreakerTimeout,
+			},
+			state: "closed",
+		},
+		metrics: &ServiceMetrics{},
+		healthStatus: &HealthStatus{
+			Status:    "unknown",
+			LastCheck: time.Now(),
+			Checks:    make(map[string]HealthCheck),
+		},
+		logger: logger,
+	}
+}
+
+// Initialize initializes the API gateway
+func (ag *APIGateway) Initialize(ctx context.Context) error {
+	ag.mu.Lock()
+	defer ag.mu.Unlock()
+	ag.logger.Printf("🚪 API Gateway initialized at %s", ag.endpoint)
+	return nil
+}
+
+// Start starts the API gateway
+func (ag *APIGateway) Start(ctx context.Context) error {
+	ag.mu.Lock()
+	defer ag.mu.Unlock()
+	ag.logger.Printf("🚀 API Gateway started")
+	return nil
+}
+
+// Stop stops the API gateway
+func (ag *APIGateway) Stop(ctx context.Context) error {
+	ag.mu.Lock()
+	defer ag.mu.Unlock()
+	ag.logger.Printf("🛑 API Gateway stopped")
+	return nil
+}
+
+// HealthCheck performs a health check on the API gateway
+func (ag *APIGateway) HealthCheck(ctx context.Context) (*HealthStatus, error) {
+	ag.mu.RLock()
+	defer ag.mu.RUnlock()
+	return ag.healthStatus, nil
+}
+
+// GetMetrics returns the API gateway metrics
+func (ag *APIGateway) GetMetrics(ctx context.Context) (*ServiceMetrics, error) {
+	ag.mu.RLock()
+	defer ag.mu.RUnlock()
+	return ag.metrics, nil
 }
 
 // APIGatewayConfig holds configuration for the API gateway
@@ -240,56 +219,8 @@ type APIGatewayConfig struct {
 	RequestLoggingEnabled bool `json:"request_logging_enabled"`
 }
 
-// ModelRegistry manages model versions and deployments
-type ModelRegistry struct {
-	// Registry configuration
-	config ModelRegistryConfig
-
-	// Model storage
-	models map[string]*ModelVersion
-
-	// Deployment tracking
-	deployments map[string]*ModelDeployment
-
-	// Version history
-	versionHistory map[string][]*ModelVersion
-
-	// Performance tracking
-	metrics *ServiceMetrics
-
-	// Thread safety
-	mu sync.RWMutex
-
-	// Logging
-	logger *log.Logger
-}
-
-// ModelRegistryConfig holds configuration for the model registry
-type ModelRegistryConfig struct {
-	// Registry configuration
-	StorageType    string        `json:"storage_type"` // local, s3, gcs, azure
-	StoragePath    string        `json:"storage_path"`
-	BackupEnabled  bool          `json:"backup_enabled"`
-	BackupInterval time.Duration `json:"backup_interval"`
-
-	// Model management
-	MaxModelVersions int           `json:"max_model_versions"`
-	ModelRetention   time.Duration `json:"model_retention"`
-	AutoCleanup      bool          `json:"auto_cleanup"`
-
-	// Versioning
-	VersioningEnabled  bool   `json:"versioning_enabled"`
-	VersioningStrategy string `json:"versioning_strategy"` // semantic, timestamp, hash
-
-	// Deployment
-	AutoDeploymentEnabled bool `json:"auto_deployment_enabled"`
-	DeploymentValidation  bool `json:"deployment_validation"`
-
-	// Monitoring
-	MetricsEnabled      bool `json:"metrics_enabled"`
-	DeploymentTracking  bool `json:"deployment_tracking"`
-	PerformanceTracking bool `json:"performance_tracking"`
-}
+// ModelRegistry and ModelRegistryConfig are defined in model_registry.go
+// Types removed to avoid redeclaration
 
 // ServiceDiscovery manages service discovery and registration
 type ServiceDiscovery struct {
@@ -310,6 +241,52 @@ type ServiceDiscovery struct {
 
 	// Logging
 	logger *log.Logger
+}
+
+// NewServiceDiscovery creates a new service discovery instance
+func NewServiceDiscovery(config ServiceDiscoveryConfig, logger *log.Logger) *ServiceDiscovery {
+	if logger == nil {
+		logger = log.Default()
+	}
+	return &ServiceDiscovery{
+		config:   config,
+		registry: make(map[string]*ServiceInstance),
+		healthMonitor: &HealthMonitor{
+			config: HealthMonitorConfig{
+				CheckInterval: config.HealthCheckInterval,
+				CheckTimeout:  config.HealthCheckTimeout,
+				Enabled:       config.HealthCheckEnabled,
+			},
+			checks: make(map[string]*HealthCheck),
+			logger: logger,
+		},
+		metrics: &ServiceMetrics{},
+		logger:  logger,
+	}
+}
+
+// Initialize initializes the service discovery
+func (sd *ServiceDiscovery) Initialize(ctx context.Context) error {
+	sd.mu.Lock()
+	defer sd.mu.Unlock()
+	sd.logger.Printf("🔍 Service Discovery initialized")
+	return nil
+}
+
+// Start starts the service discovery
+func (sd *ServiceDiscovery) Start(ctx context.Context) error {
+	sd.mu.Lock()
+	defer sd.mu.Unlock()
+	sd.logger.Printf("🚀 Service Discovery started")
+	return nil
+}
+
+// Stop stops the service discovery
+func (sd *ServiceDiscovery) Stop(ctx context.Context) error {
+	sd.mu.Lock()
+	defer sd.mu.Unlock()
+	sd.logger.Printf("🛑 Service Discovery stopped")
+	return nil
 }
 
 // ServiceDiscoveryConfig holds configuration for service discovery
@@ -362,6 +339,52 @@ type LoadBalancer struct {
 	logger *log.Logger
 }
 
+// NewLoadBalancer creates a new load balancer instance
+func NewLoadBalancer(config LoadBalancerConfig, logger *log.Logger) *LoadBalancer {
+	if logger == nil {
+		logger = log.Default()
+	}
+	return &LoadBalancer{
+		config:    config,
+		instances: make(map[string][]*ServiceInstance),
+		healthMonitor: &HealthMonitor{
+			config: HealthMonitorConfig{
+				CheckInterval: config.HealthCheckInterval,
+				CheckTimeout:  config.HealthCheckTimeout,
+				Enabled:       config.HealthCheckEnabled,
+			},
+			checks: make(map[string]*HealthCheck),
+			logger: logger,
+		},
+		metrics: &ServiceMetrics{},
+		logger:  logger,
+	}
+}
+
+// Initialize initializes the load balancer
+func (lb *LoadBalancer) Initialize(ctx context.Context) error {
+	lb.mu.Lock()
+	defer lb.mu.Unlock()
+	lb.logger.Printf("⚖️ Load Balancer initialized")
+	return nil
+}
+
+// Start starts the load balancer
+func (lb *LoadBalancer) Start(ctx context.Context) error {
+	lb.mu.Lock()
+	defer lb.mu.Unlock()
+	lb.logger.Printf("🚀 Load Balancer started")
+	return nil
+}
+
+// Stop stops the load balancer
+func (lb *LoadBalancer) Stop(ctx context.Context) error {
+	lb.mu.Lock()
+	defer lb.mu.Unlock()
+	lb.logger.Printf("🛑 Load Balancer stopped")
+	return nil
+}
+
 // LoadBalancerConfig holds configuration for the load balancer
 type LoadBalancerConfig struct {
 	// Load balancing configuration
@@ -387,115 +410,52 @@ type LoadBalancerConfig struct {
 
 // Supporting types and interfaces
 
-// MLModel represents a machine learning model
-type MLModel struct {
-	ID         string    `json:"id"`
-	Name       string    `json:"name"`
-	Type       string    `json:"type"` // bert, distilbert, custom
-	Version    string    `json:"version"`
-	ModelPath  string    `json:"model_path"`
-	ConfigPath string    `json:"config_path"`
-	IsActive   bool      `json:"is_active"`
-	IsDeployed bool      `json:"is_deployed"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
-	LastUsed   time.Time `json:"last_used"`
+// Types MLModel, ModelVersion, ModelDeployment, ModelMetrics, ServiceInstance, ServiceMetrics,
+// HealthStatus, HealthCheck, LoadBalancingStrategy, CircuitBreaker, and CircuitBreakerConfig
+// are defined in types.go to avoid redeclaration
+
+// IntelligentRouter handles intelligent routing decisions
+type IntelligentRouter struct {
+	config   IntelligentRouterConfig
+	strategy string
+	logger   *log.Logger
+	mu       sync.RWMutex
 }
 
-// ModelVersion represents a version of a model
-type ModelVersion struct {
-	ID         string       `json:"id"`
-	ModelID    string       `json:"model_id"`
-	Version    string       `json:"version"`
-	ModelPath  string       `json:"model_path"`
-	ConfigPath string       `json:"config_path"`
-	Metrics    ModelMetrics `json:"metrics"`
-	IsActive   bool         `json:"is_active"`
-	CreatedAt  time.Time    `json:"created_at"`
-	DeployedAt time.Time    `json:"deployed_at"`
+// IntelligentRouterConfig holds configuration for intelligent routing
+type IntelligentRouterConfig struct {
+	DefaultStrategy string  `json:"default_strategy"` // ml_first, rules_first, hybrid
+	MLThreshold     float64 `json:"ml_threshold"`
+	RulesThreshold  float64 `json:"rules_threshold"`
 }
 
-// ModelDeployment represents a model deployment
-type ModelDeployment struct {
-	ID          string    `json:"id"`
-	ModelID     string    `json:"model_id"`
-	Version     string    `json:"version"`
-	ServiceName string    `json:"service_name"`
-	Endpoint    string    `json:"endpoint"`
-	Status      string    `json:"status"` // deploying, active, failed, stopped
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
-}
-
-// ModelMetrics represents model performance metrics
-type ModelMetrics struct {
-	Accuracy      float64       `json:"accuracy"`
-	Precision     float64       `json:"precision"`
-	Recall        float64       `json:"recall"`
-	F1Score       float64       `json:"f1_score"`
-	InferenceTime time.Duration `json:"inference_time"`
-	Throughput    int           `json:"throughput"` // requests per second
-}
-
-// ServiceInstance represents a service instance
-type ServiceInstance struct {
-	ID          string                 `json:"id"`
-	ServiceName string                 `json:"service_name"`
-	Endpoint    string                 `json:"endpoint"`
-	Health      string                 `json:"health"` // healthy, unhealthy, unknown
-	LastCheck   time.Time              `json:"last_check"`
-	Tags        []string               `json:"tags"`
-	Metadata    map[string]interface{} `json:"metadata"`
-}
-
-// ServiceMetrics represents service performance metrics
-type ServiceMetrics struct {
-	RequestCount   int64         `json:"request_count"`
-	SuccessCount   int64         `json:"success_count"`
-	ErrorCount     int64         `json:"error_count"`
-	AverageLatency time.Duration `json:"average_latency"`
-	P95Latency     time.Duration `json:"p95_latency"`
-	P99Latency     time.Duration `json:"p99_latency"`
-	Throughput     float64       `json:"throughput"` // requests per second
-	ErrorRate      float64       `json:"error_rate"`
-	LastUpdated    time.Time     `json:"last_updated"`
-}
-
-// HealthStatus represents the health status of a service
-type HealthStatus struct {
-	Status    string                 `json:"status"` // healthy, unhealthy, degraded
-	LastCheck time.Time              `json:"last_check"`
-	Checks    map[string]HealthCheck `json:"checks"`
-	Message   string                 `json:"message"`
-}
-
-// HealthCheck represents a health check result
-type HealthCheck struct {
-	Name      string        `json:"name"`
-	Status    string        `json:"status"` // pass, fail, warn
-	Message   string        `json:"message"`
-	LastCheck time.Time     `json:"last_check"`
-	Duration  time.Duration `json:"duration"`
-}
-
-// LoadBalancingStrategy interface for different load balancing strategies
-type LoadBalancingStrategy interface {
-	SelectInstance(instances []*ServiceInstance) (*ServiceInstance, error)
-	UpdateInstanceHealth(instance *ServiceInstance, healthy bool)
-}
-
-// CircuitBreaker represents a circuit breaker for service protection
-type CircuitBreaker struct {
-	config CircuitBreakerConfig
-	state  string // closed, open, half_open
+// FeatureFlagManager manages feature flags for the API gateway
+type FeatureFlagManager struct {
+	flags  map[string]bool
+	config FeatureFlagConfig
+	logger *log.Logger
 	mu     sync.RWMutex
 }
 
-// CircuitBreakerConfig holds configuration for the circuit breaker
-type CircuitBreakerConfig struct {
-	FailureThreshold int           `json:"failure_threshold"`
-	Timeout          time.Duration `json:"timeout"`
-	MaxRequests      int           `json:"max_requests"`
+// FeatureFlagConfig holds configuration for feature flags
+type FeatureFlagConfig struct {
+	UpdateInterval time.Duration `json:"update_interval"`
+	Enabled        bool          `json:"enabled"`
+}
+
+// HealthMonitor monitors health of services
+type HealthMonitor struct {
+	config HealthMonitorConfig
+	checks map[string]*HealthCheck
+	logger *log.Logger
+	mu     sync.RWMutex
+}
+
+// HealthMonitorConfig holds configuration for health monitoring
+type HealthMonitorConfig struct {
+	CheckInterval time.Duration `json:"check_interval"`
+	CheckTimeout  time.Duration `json:"check_timeout"`
+	Enabled       bool          `json:"enabled"`
 }
 
 // NewMLMicroservicesArchitecture creates a new ML microservices architecture
@@ -549,7 +509,15 @@ func (arch *MLMicroservicesArchitecture) Initialize(ctx context.Context) error {
 	// Initialize Service Discovery
 	if arch.config.ServiceDiscoveryEnabled {
 		arch.logger.Printf("🔍 Initializing Service Discovery")
-		arch.serviceDiscovery = NewServiceDiscovery(arch.logger)
+		arch.serviceDiscovery = NewServiceDiscovery(ServiceDiscoveryConfig{
+			RegistryType:        "custom",
+			RegistryEndpoint:    arch.config.ServiceRegistryEndpoint,
+			ServiceTTL:          30 * time.Second,
+			HealthCheckEnabled:  true,
+			HealthCheckInterval: arch.config.HealthCheckInterval,
+			HealthCheckTimeout:  arch.config.HealthCheckTimeout,
+			MetricsEnabled:      arch.config.MetricsEnabled,
+		}, arch.logger)
 		if err := arch.serviceDiscovery.Initialize(ctx); err != nil {
 			return fmt.Errorf("failed to initialize Service Discovery: %w", err)
 		}
@@ -558,7 +526,15 @@ func (arch *MLMicroservicesArchitecture) Initialize(ctx context.Context) error {
 	// Initialize Load Balancer
 	if arch.config.LoadBalancingEnabled {
 		arch.logger.Printf("⚖️ Initializing Load Balancer")
-		arch.loadBalancer = NewLoadBalancer(arch.logger)
+		arch.loadBalancer = NewLoadBalancer(LoadBalancerConfig{
+			Strategy:              arch.config.LoadBalancingStrategy,
+			HealthCheckEnabled:    true,
+			HealthCheckInterval:   arch.config.HealthCheckInterval,
+			HealthCheckTimeout:    arch.config.HealthCheckTimeout,
+			MaxConcurrentRequests: arch.config.MaxConcurrentRequests,
+			RequestTimeout:        arch.config.RequestTimeout,
+			MetricsEnabled:        arch.config.MetricsEnabled,
+		}, arch.logger)
 		if err := arch.loadBalancer.Initialize(ctx); err != nil {
 			return fmt.Errorf("failed to initialize Load Balancer: %w", err)
 		}
@@ -567,7 +543,20 @@ func (arch *MLMicroservicesArchitecture) Initialize(ctx context.Context) error {
 	// Initialize API Gateway
 	if arch.config.APIGatewayEnabled {
 		arch.logger.Printf("🌐 Initializing API Gateway")
-		arch.apiGateway = NewAPIGateway(arch.config.APIGatewayEndpoint, arch.logger)
+		arch.apiGateway = NewAPIGateway(APIGatewayConfig{
+			Host:                      "localhost",
+			Port:                      8080,
+			IntelligentRoutingEnabled: true,
+			DefaultRoutingStrategy:    "hybrid",
+			FeatureFlagsEnabled:       true,
+			LoadBalancingEnabled:      arch.config.LoadBalancingEnabled,
+			LoadBalancingStrategy:     arch.config.LoadBalancingStrategy,
+			CircuitBreakerEnabled:     arch.config.CircuitBreakerEnabled,
+			MaxConcurrentRequests:     arch.config.MaxConcurrentRequests,
+			RequestTimeout:            arch.config.RequestTimeout,
+			MetricsEnabled:            arch.config.MetricsEnabled,
+			TracingEnabled:            arch.config.TracingEnabled,
+		}, arch.logger)
 		if err := arch.apiGateway.Initialize(ctx); err != nil {
 			return fmt.Errorf("failed to initialize API Gateway: %w", err)
 		}
@@ -632,17 +621,17 @@ func (arch *MLMicroservicesArchitecture) Stop() {
 
 	// Stop API Gateway
 	if arch.apiGateway != nil {
-		arch.apiGateway.Stop()
+		arch.apiGateway.Stop(arch.ctx)
 	}
 
 	// Stop Load Balancer
 	if arch.loadBalancer != nil {
-		arch.loadBalancer.Stop()
+		arch.loadBalancer.Stop(arch.ctx)
 	}
 
 	// Stop Service Discovery
 	if arch.serviceDiscovery != nil {
-		arch.serviceDiscovery.Stop()
+		arch.serviceDiscovery.Stop(arch.ctx)
 	}
 
 	// Stop Go Rule Engine
@@ -706,7 +695,7 @@ func (arch *MLMicroservicesArchitecture) HealthCheck(ctx context.Context) (*Heal
 
 	// Check API Gateway
 	if arch.apiGateway != nil {
-		check, err := arch.apiGateway.HealthCheck(ctx)
+		status, err := arch.apiGateway.HealthCheck(ctx)
 		if err != nil {
 			healthStatus.Checks["api_gateway"] = HealthCheck{
 				Name:      "api_gateway",
@@ -715,8 +704,14 @@ func (arch *MLMicroservicesArchitecture) HealthCheck(ctx context.Context) (*Heal
 				LastCheck: time.Now(),
 			}
 			healthStatus.Status = "unhealthy"
-		} else {
-			healthStatus.Checks["api_gateway"] = *check
+		} else if status != nil {
+			// Extract individual health checks from HealthStatus
+			for name, check := range status.Checks {
+				healthStatus.Checks["api_gateway_"+name] = check
+			}
+			if status.Status != "healthy" {
+				healthStatus.Status = "unhealthy"
+			}
 		}
 	}
 

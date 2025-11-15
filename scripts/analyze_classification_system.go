@@ -13,8 +13,8 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// IndustryCoverageAnalysis represents the analysis of current industry coverage
-type IndustryCoverageAnalysis struct {
+// ClassificationSystemAnalysis represents the analysis of current industry coverage
+type ClassificationSystemAnalysis struct {
 	TotalIndustries      int                        `json:"total_industries"`
 	ActiveIndustries     int                        `json:"active_industries"`
 	IndustriesByCategory map[string]int             `json:"industries_by_category"`
@@ -171,8 +171,8 @@ func main() {
 	printSummary(coverageAnalysis, accuracyAnalysis)
 }
 
-func analyzeIndustryCoverage(ctx context.Context, db *sql.DB) (*IndustryCoverageAnalysis, error) {
-	analysis := &IndustryCoverageAnalysis{
+func analyzeIndustryCoverage(ctx context.Context, db *sql.DB) (*ClassificationSystemAnalysis, error) {
+	analysis := &ClassificationSystemAnalysis{
 		IndustriesByCategory: make(map[string]int),
 		IndustryDetails:      []IndustryDetail{},
 		CoverageGaps:         []CoverageGap{},
@@ -414,7 +414,7 @@ func analyzeClassificationCodes(ctx context.Context, db *sql.DB) (*Classificatio
 	return analysis, nil
 }
 
-func identifyCoverageGaps(analysis *IndustryCoverageAnalysis) []CoverageGap {
+func identifyCoverageGaps(analysis *ClassificationSystemAnalysis) []CoverageGap {
 	gaps := []CoverageGap{}
 
 	// Check for industries with low keyword coverage
@@ -489,7 +489,7 @@ func identifyCoverageGaps(analysis *IndustryCoverageAnalysis) []CoverageGap {
 	return gaps
 }
 
-func generateRecommendations(analysis *IndustryCoverageAnalysis) []string {
+func generateRecommendations(analysis *ClassificationSystemAnalysis) []string {
 	recommendations := []string{}
 
 	// Based on total industries
@@ -646,7 +646,7 @@ func maskDatabaseURL(url string) string {
 	return "***"
 }
 
-func printSummary(coverage *IndustryCoverageAnalysis, accuracy *ClassificationAccuracyAnalysis) {
+func printSummary(coverage *ClassificationSystemAnalysis, accuracy *ClassificationAccuracyAnalysis) {
 	fmt.Println("\n" + strings.Repeat("=", 80))
 	fmt.Println("📊 CLASSIFICATION SYSTEM ANALYSIS SUMMARY")
 	fmt.Println(strings.Repeat("=", 80))

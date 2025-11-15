@@ -363,7 +363,7 @@ func (sm *SecurityMonitor) handleAlert(ctx context.Context, alert *SecurityAlert
 
 // shouldCreateIncident determines if an alert should create an incident
 func (sm *SecurityMonitor) shouldCreateIncident(alert *SecurityAlert) bool {
-	threshold, exists := sm.config.AlertThresholds[alert.Type]
+	_, exists := sm.config.AlertThresholds[alert.Type]
 	if !exists {
 		return true // Default to creating incident if no threshold set
 	}
