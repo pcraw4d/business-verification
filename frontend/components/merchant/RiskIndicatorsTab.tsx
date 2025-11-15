@@ -5,18 +5,33 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
+import { getRiskIndicators } from '@/lib/api';
+import { deferNonCriticalDataLoad } from '@/lib/lazy-loader';
+import type { RiskIndicatorsData } from '@/types/merchant';
 
 interface RiskIndicatorsTabProps {
   merchantId: string;
 }
 
 export function RiskIndicatorsTab({ merchantId }: RiskIndicatorsTabProps) {
+  const [indicators, setIndicators] = useState<RiskIndicatorsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // TODO: Implement risk indicators API call
-    setLoading(false);
+    // Defer loading risk indicators as non-critical data
+    deferNonCriticalDataLoad(async () => {
+      try {
+        setLoading(true);
+        const data = await getRiskIndicators(merchantId);
+        setIndicators(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load risk indicators');
+      } finally {
+        setLoading(false);
+      }
+    });
   }, [merchantId]);
 
   if (loading) {
@@ -27,11 +42,32 @@ export function RiskIndicatorsTab({ merchantId }: RiskIndicatorsTabProps) {
     );
   }
 
-  if (error) {
+  if (error && !indicators) {
     return (
-      <Alert variant="destructive">
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
+      <EmptyState
+        type="error"
+        title="Error Loading Indicators"
+        message={error}
+        actionLabel="Retry"
+        onAction={() => {
+          setError(null);
+          setLoading(true);
+          getRiskIndicators(merchantId)
+            .then(setIndicators)
+            .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load'))
+            .finally(() => setLoading(false));
+        }}
+      />
+    );
+  }
+
+  if (!loading && !indicators) {
+    return (
+      <EmptyState
+        type="noData"
+        title="No Risk Indicators"
+        message="No active risk indicators found for this merchant."
+      />
     );
   }
 
@@ -43,9 +79,33 @@ export function RiskIndicatorsTab({ merchantId }: RiskIndicatorsTabProps) {
           <CardDescription>Active risk indicators for this merchant</CardDescription>
         </CardHeader>
         <CardContent>
-          <Alert>
-            <AlertDescription>Risk indicators feature coming soon</AlertDescription>
-          </Alert>
+          {loading ? (
+            <Skeleton className="h-32 w-full" />
+          ) : indicators && indicators.indicators.length > 0 ? (
+            <div className="space-y-4">
+              {indicators.indicators.map((indicator) => (
+                <Alert key={indicator.id} variant={indicator.severity === 'critical' ? 'destructive' : 'default'}>
+                  <AlertDescription>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">{indicator.title}</p>
+                        <p className="text-sm text-muted-foreground">{indicator.description}</p>
+                      </div>
+                      <Badge variant={indicator.severity === 'critical' ? 'destructive' : 'outline'}>
+                        {indicator.severity}
+                      </Badge>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              type="noData"
+              title="No Active Indicators"
+              message="No active risk indicators at this time."
+            />
+          )}
         </CardContent>
       </Card>
     </div>

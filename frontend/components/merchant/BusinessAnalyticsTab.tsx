@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
 import { getMerchantAnalytics, getWebsiteAnalysis } from '@/lib/api';
+import { deferNonCriticalDataLoad } from '@/lib/lazy-loader';
 import type { AnalyticsData, WebsiteAnalysisData } from '@/types/merchant';
 
 interface BusinessAnalyticsTabProps {
@@ -17,21 +19,25 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
   const [websiteAnalysis, setWebsiteAnalysis] = useState<WebsiteAnalysisData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const tabRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function loadAnalytics() {
       try {
         setLoading(true);
         setError(null);
-        const [analyticsData, websiteData] = await Promise.all([
-          getMerchantAnalytics(merchantId).catch(() => null),
-          getWebsiteAnalysis(merchantId).catch(() => null),
-        ]);
+        // Load critical analytics data immediately
+        const analyticsData = await getMerchantAnalytics(merchantId).catch(() => null);
         setAnalytics(analyticsData);
-        setWebsiteAnalysis(websiteData);
+        setLoading(false);
+        
+        // Defer non-critical website analysis
+        deferNonCriticalDataLoad(async () => {
+          const websiteData = await getWebsiteAnalysis(merchantId).catch(() => null);
+          setWebsiteAnalysis(websiteData);
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load analytics');
-      } finally {
         setLoading(false);
       }
     }
@@ -151,10 +157,12 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
         </Card>
       )}
 
-      {!analytics && !websiteAnalysis && (
-        <Alert>
-          <AlertDescription>No analytics data available</AlertDescription>
-        </Alert>
+      {!analytics && !websiteAnalysis && !loading && (
+        <EmptyState
+          type="noData"
+          title="No Analytics Data"
+          message="Analytics data is not available for this merchant at this time."
+        />
       )}
     </div>
   );

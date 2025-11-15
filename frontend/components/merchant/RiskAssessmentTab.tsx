@@ -6,7 +6,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ProgressIndicator } from '@/components/ui/progress-indicator';
 import { getRiskAssessment, startRiskAssessment, getAssessmentStatus } from '@/lib/api';
+import { ErrorHandler } from '@/lib/error-handler';
+import { toast } from 'sonner';
 import type { RiskAssessment, RiskAssessmentRequest } from '@/types/merchant';
 
 interface RiskAssessmentTabProps {
@@ -40,6 +44,7 @@ export function RiskAssessmentTab({ merchantId }: RiskAssessmentTabProps) {
     try {
       setProcessing(true);
       setError(null);
+      toast.info('Starting risk assessment...');
       const request: RiskAssessmentRequest = {
         merchantId,
         options: {
@@ -48,24 +53,33 @@ export function RiskAssessmentTab({ merchantId }: RiskAssessmentTabProps) {
         },
       };
       const response = await startRiskAssessment(request);
+      toast.success('Risk assessment started successfully');
       
       // Poll for status
       const pollInterval = setInterval(async () => {
         try {
           const status = await getAssessmentStatus(response.assessmentId);
-          if (status.status === 'completed' || status.status === 'failed') {
+          if (status.status === 'completed') {
             clearInterval(pollInterval);
             await loadAssessment();
             setProcessing(false);
+            toast.success('Risk assessment completed');
+          } else if (status.status === 'failed') {
+            clearInterval(pollInterval);
+            setProcessing(false);
+            toast.error('Risk assessment failed');
           }
         } catch (err) {
           clearInterval(pollInterval);
           setProcessing(false);
+          await ErrorHandler.handleAPIError(err);
         }
       }, 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to start assessment');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to start assessment';
+      setError(errorMessage);
       setProcessing(false);
+      await ErrorHandler.handleAPIError(err);
     }
   }
 
@@ -77,24 +91,40 @@ export function RiskAssessmentTab({ merchantId }: RiskAssessmentTabProps) {
     );
   }
 
+  if (error && !assessment) {
+    return (
+      <EmptyState
+        type="error"
+        title="Error Loading Assessment"
+        message={error}
+        actionLabel="Retry"
+        onAction={loadAssessment}
+      />
+    );
+  }
+
+  if (!assessment && !processing) {
+    return (
+      <EmptyState
+        type="noData"
+        title="No Risk Assessment"
+        message="No risk assessment has been performed for this merchant yet."
+        actionLabel="Start Assessment"
+        onAction={handleStartAssessment}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {!assessment && (
+      {processing && (
         <Card>
           <CardHeader>
-            <CardTitle>Risk Assessment</CardTitle>
-            <CardDescription>No assessment available</CardDescription>
+            <CardTitle>Processing Assessment</CardTitle>
+            <CardDescription>Risk assessment is being processed...</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={handleStartAssessment} disabled={processing}>
-              {processing ? 'Processing...' : 'Start Risk Assessment'}
-            </Button>
+            <ProgressIndicator progress={50} label="Assessment Progress" />
           </CardContent>
         </Card>
       )}
