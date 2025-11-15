@@ -81,7 +81,7 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-4 [@supports(display:grid)]:grid [@supports(display:-webkit-grid)]:grid">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="analytics">Business Analytics</TabsTrigger>
           <TabsTrigger value="risk">Risk Assessment</TabsTrigger>
