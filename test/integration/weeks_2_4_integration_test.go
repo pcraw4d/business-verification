@@ -3,22 +3,22 @@
 package integration
 
 import (
-	"context"
 	"database/sql"
-	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
-	"time"
 
 	"kyb-platform/internal/api/handlers"
 	"kyb-platform/internal/api/routes"
 	"kyb-platform/internal/database"
+	"kyb-platform/internal/observability"
 	"kyb-platform/internal/services"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 // TestWeeks24Integration tests the new features added in Weeks 2-4
@@ -34,25 +34,29 @@ func TestWeeks24Integration(t *testing.T) {
 	}
 	defer cleanupTestDB(t, db)
 
-	logger := log.New(os.Stdout, "", log.LstdFlags)
+	stdLogger := log.New(os.Stdout, "", log.LstdFlags)
+	
+	// Create observability logger for routes
+	zapLogger, _ := zap.NewDevelopment()
+	obsLogger := observability.NewLogger(zapLogger)
 
 	// Setup repositories
-	merchantRepo := database.NewMerchantPortfolioRepository(db, logger)
-	analyticsRepo := database.NewMerchantAnalyticsRepository(db, logger)
-	riskAssessmentRepo := database.NewRiskAssessmentRepository(db, logger)
-	riskIndicatorsRepo := database.NewRiskIndicatorsRepository(db, logger)
+	merchantRepo := database.NewMerchantPortfolioRepository(db, stdLogger)
+	analyticsRepo := database.NewMerchantAnalyticsRepository(db, stdLogger)
+	riskAssessmentRepo := database.NewRiskAssessmentRepository(db, stdLogger)
+	riskIndicatorsRepo := database.NewRiskIndicatorsRepository(db, stdLogger)
 
 	// Setup services
-	analyticsService := services.NewMerchantAnalyticsService(analyticsRepo, merchantRepo, nil, logger)
-	riskAssessmentService := services.NewRiskAssessmentService(riskAssessmentRepo, nil, logger)
-	riskIndicatorsService := services.NewRiskIndicatorsService(riskIndicatorsRepo, logger)
-	dataEnrichmentService := services.NewDataEnrichmentService(logger)
+	analyticsService := services.NewMerchantAnalyticsService(analyticsRepo, merchantRepo, nil, stdLogger)
+	riskAssessmentService := services.NewRiskAssessmentService(riskAssessmentRepo, nil, stdLogger)
+	riskIndicatorsService := services.NewRiskIndicatorsService(riskIndicatorsRepo, stdLogger)
+	dataEnrichmentService := services.NewDataEnrichmentService(stdLogger)
 
 	// Setup handlers
-	analyticsHandler := handlers.NewMerchantAnalyticsHandler(analyticsService, logger)
-	asyncRiskHandler := handlers.NewAsyncRiskAssessmentHandler(riskAssessmentService, logger)
-	riskIndicatorsHandler := handlers.NewRiskIndicatorsHandler(riskIndicatorsService, logger)
-	dataEnrichmentHandler := handlers.NewDataEnrichmentHandler(dataEnrichmentService, logger)
+	analyticsHandler := handlers.NewMerchantAnalyticsHandler(analyticsService, stdLogger)
+	asyncRiskHandler := handlers.NewAsyncRiskAssessmentHandler(riskAssessmentService, stdLogger)
+	riskIndicatorsHandler := handlers.NewRiskIndicatorsHandler(riskIndicatorsService, stdLogger)
+	dataEnrichmentHandler := handlers.NewDataEnrichmentHandler(dataEnrichmentService, stdLogger)
 
 	// Setup routes
 	mux := http.NewServeMux()
@@ -63,7 +67,7 @@ func TestWeeks24Integration(t *testing.T) {
 		DataEnrichmentHandler:     dataEnrichmentHandler,
 		AuthMiddleware:            nil,
 		RateLimiter:               nil,
-		Logger:                    nil,
+		Logger:                    obsLogger,
 	}
 	routes.RegisterMerchantRoutes(mux, merchantConfig)
 
@@ -142,30 +146,21 @@ func TestWeeks24Integration(t *testing.T) {
 	})
 }
 
-// setupTestDB sets up a test database connection
+// setupTestDB sets up a test database connection using the database_setup helper
 func setupTestDB(t *testing.T) (*sql.DB, error) {
-	// Try to connect to test database
-	// In CI/CD, this would use a test database URL
-	testDBURL := getTestDatabaseURL()
-	if testDBURL == "" {
-		return nil, errors.New("test database URL not configured")
-	}
-
-	db, err := sql.Open("postgres", testDBURL)
+	testDB, err := SetupTestDatabase()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to setup test database: %w", err)
 	}
 
-	// Test connection
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	// Store the TestDatabase instance for cleanup
+	t.Cleanup(func() {
+		if err := testDB.CleanupTestDatabase(); err != nil {
+			t.Logf("Error cleaning up test database: %v", err)
+		}
+	})
 
-	if err := db.PingContext(ctx); err != nil {
-		db.Close()
-		return nil, err
-	}
-
-	return db, nil
+	return testDB.GetDB(), nil
 }
 
 // cleanupTestDB cleans up test database
@@ -173,12 +168,5 @@ func cleanupTestDB(t *testing.T, db *sql.DB) {
 	if db != nil {
 		db.Close()
 	}
-}
-
-// getTestDatabaseURL returns test database URL from environment
-func getTestDatabaseURL() string {
-	// In real tests, this would read from environment variable
-	// For now, return empty to skip if not configured
-	return ""
 }
 

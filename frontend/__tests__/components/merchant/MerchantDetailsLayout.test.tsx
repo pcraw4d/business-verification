@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MerchantDetailsLayout } from '@/components/merchant/MerchantDetailsLayout';
-import * as api from '@/lib/api';
 
 // Mock API
+const mockGetMerchant = jest.fn();
 jest.mock('@/lib/api', () => ({
-  getMerchant: jest.fn(),
+  getMerchant: (...args: any[]) => mockGetMerchant(...args),
 }));
 
 describe('MerchantDetailsLayout', () => {
@@ -28,10 +28,11 @@ describe('MerchantDetailsLayout', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGetMerchant.mockClear();
   });
 
   it('should render loading state initially', () => {
-    (api.getMerchant as jest.Mock).mockImplementation(
+    mockGetMerchant.mockImplementation(
       () => new Promise(() => {}) // Never resolves
     );
 
@@ -41,7 +42,7 @@ describe('MerchantDetailsLayout', () => {
   });
 
   it('should render merchant details when loaded', async () => {
-    (api.getMerchant as jest.Mock).mockResolvedValue(mockMerchant);
+    mockGetMerchant.mockResolvedValue(mockMerchant);
 
     render(<MerchantDetailsLayout merchantId="merchant-123" />);
 
@@ -54,7 +55,7 @@ describe('MerchantDetailsLayout', () => {
   });
 
   it('should render error state on API error', async () => {
-    (api.getMerchant as jest.Mock).mockRejectedValue(new Error('Failed to load'));
+    mockGetMerchant.mockRejectedValue(new Error('Failed to load'));
 
     render(<MerchantDetailsLayout merchantId="merchant-123" />);
 
@@ -64,7 +65,7 @@ describe('MerchantDetailsLayout', () => {
   });
 
   it('should render tabs correctly', async () => {
-    (api.getMerchant as jest.Mock).mockResolvedValue(mockMerchant);
+    mockGetMerchant.mockResolvedValue(mockMerchant);
 
     render(<MerchantDetailsLayout merchantId="merchant-123" />);
 
@@ -77,12 +78,12 @@ describe('MerchantDetailsLayout', () => {
   });
 
   it('should call getMerchant with correct merchantId', async () => {
-    (api.getMerchant as jest.Mock).mockResolvedValue(mockMerchant);
+    mockGetMerchant.mockResolvedValue(mockMerchant);
 
     render(<MerchantDetailsLayout merchantId="merchant-123" />);
 
     await waitFor(() => {
-      expect(api.getMerchant).toHaveBeenCalledWith('merchant-123');
+      expect(mockGetMerchant).toHaveBeenCalledWith('merchant-123');
     });
   });
 });

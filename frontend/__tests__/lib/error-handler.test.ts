@@ -1,19 +1,25 @@
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { ErrorHandler } from '@/lib/error-handler';
-import { toast } from 'sonner';
 
 // Mock sonner
+const mockToastError = jest.fn();
+const mockToastSuccess = jest.fn();
+const mockToastInfo = jest.fn();
+
 jest.mock('sonner', () => ({
   toast: {
-    error: jest.fn(),
-    success: jest.fn(),
-    info: jest.fn(),
+    error: mockToastError,
+    success: mockToastSuccess,
+    info: mockToastInfo,
   },
 }));
 
 describe('ErrorHandler', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockToastError.mockClear();
+    mockToastSuccess.mockClear();
+    mockToastInfo.mockClear();
     jest.spyOn(console, 'error').mockImplementation();
   });
 
@@ -27,7 +33,7 @@ describe('ErrorHandler', () => {
       await ErrorHandler.handleAPIError(error);
 
       expect(console.error).toHaveBeenCalled();
-      expect(toast.error).toHaveBeenCalledWith('Test error', expect.any(Object));
+      expect(mockToastError).toHaveBeenCalledWith('Test error', expect.any(Object));
     });
 
     it('should handle APIErrorResponse objects', async () => {
@@ -38,21 +44,21 @@ describe('ErrorHandler', () => {
       };
       await ErrorHandler.handleAPIError(error);
 
-      expect(toast.error).toHaveBeenCalledWith('API error message', expect.any(Object));
+      expect(mockToastError).toHaveBeenCalledWith('API error message', expect.any(Object));
     });
 
     it('should handle unknown error types', async () => {
       const error = 'String error';
       await ErrorHandler.handleAPIError(error);
 
-      expect(toast.error).toHaveBeenCalledWith('An unexpected error occurred', expect.any(Object));
+      expect(mockToastError).toHaveBeenCalledWith('An unexpected error occurred', expect.any(Object));
     });
   });
 
   describe('showErrorNotification', () => {
     it('should show error toast', () => {
       ErrorHandler.showErrorNotification('Error message', 'ERROR_CODE');
-      expect(toast.error).toHaveBeenCalledWith('Error message', {
+      expect(mockToastError).toHaveBeenCalledWith('Error message', {
         description: 'Error Code: ERROR_CODE',
         duration: 5000,
       });
@@ -60,7 +66,7 @@ describe('ErrorHandler', () => {
 
     it('should show error toast without code', () => {
       ErrorHandler.showErrorNotification('Error message');
-      expect(toast.error).toHaveBeenCalledWith('Error message', {
+      expect(mockToastError).toHaveBeenCalledWith('Error message', {
         description: undefined,
         duration: 5000,
       });
@@ -70,7 +76,7 @@ describe('ErrorHandler', () => {
   describe('showSuccessNotification', () => {
     it('should show success toast', () => {
       ErrorHandler.showSuccessNotification('Success message');
-      expect(toast.success).toHaveBeenCalledWith('Success message', {
+      expect(mockToastSuccess).toHaveBeenCalledWith('Success message', {
         duration: 3000,
       });
     });
@@ -79,7 +85,7 @@ describe('ErrorHandler', () => {
   describe('showInfoNotification', () => {
     it('should show info toast', () => {
       ErrorHandler.showInfoNotification('Info message');
-      expect(toast.info).toHaveBeenCalledWith('Info message', {
+      expect(mockToastInfo).toHaveBeenCalledWith('Info message', {
         duration: 3000,
       });
     });

@@ -3,9 +3,16 @@ import { render, screen } from '@testing-library/react';
 import { ProgressIndicator } from '@/components/ui/progress-indicator';
 
 describe('ProgressIndicator', () => {
-  it('should render progress with percentage', () => {
-    render(<ProgressIndicator progress={50} />);
+  it('should render progress with percentage when label provided', () => {
+    render(<ProgressIndicator progress={50} label="Loading" />);
     expect(screen.getByText(/50%/)).toBeInTheDocument();
+  });
+
+  it('should render progress without percentage when no label', () => {
+    const { container } = render(<ProgressIndicator progress={50} />);
+    // Progress bar should exist but percentage text should not
+    expect(container.querySelector('[role="progressbar"]')).toBeInTheDocument();
+    expect(screen.queryByText(/50%/)).not.toBeInTheDocument();
   });
 
   it('should render with label', () => {

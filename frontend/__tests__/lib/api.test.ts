@@ -17,10 +17,13 @@ import {
 import { ErrorHandler } from '@/lib/error-handler';
 
 // Mock ErrorHandler
+const mockHandleAPIError = jest.fn().mockResolvedValue(undefined);
+const mockParseErrorResponse = jest.fn().mockResolvedValue({ code: 'TEST_ERROR', message: 'Test error' });
+
 jest.mock('@/lib/error-handler', () => ({
   ErrorHandler: {
-    handleAPIError: jest.fn(),
-    parseErrorResponse: jest.fn().mockResolvedValue({ code: 'TEST_ERROR', message: 'Test error' }),
+    handleAPIError: mockHandleAPIError,
+    parseErrorResponse: mockParseErrorResponse,
   },
 }));
 
@@ -42,6 +45,8 @@ describe('API Client', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (global.fetch as jest.Mock).mockClear();
+    mockHandleAPIError.mockClear();
+    mockParseErrorResponse.mockResolvedValue({ code: 'TEST_ERROR', message: 'Test error' });
     // Reset sessionStorage mock
     Object.defineProperty(window, 'sessionStorage', {
       value: {
@@ -85,7 +90,7 @@ describe('API Client', () => {
       });
 
       await expect(getMerchant('invalid-id')).rejects.toThrow();
-      expect(ErrorHandler.handleAPIError).toHaveBeenCalled();
+      expect(mockHandleAPIError).toHaveBeenCalled();
     });
   });
 

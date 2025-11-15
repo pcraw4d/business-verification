@@ -1,182 +1,344 @@
-# Testing Guide - Risk API Endpoints
+# Testing Guide
 
-**Date**: January 2025  
-**Status**: Ready for Testing
+This guide provides comprehensive information about testing in the KYB Platform, including how to run tests, test structure, writing new tests, best practices, and debugging.
 
----
+## Table of Contents
 
-## Testing Options
+1. [Running Tests](#running-tests)
+2. [Test Structure](#test-structure)
+3. [Writing New Tests](#writing-new-tests)
+4. [Test Best Practices](#test-best-practices)
+5. [Debugging Test Failures](#debugging-test-failures)
+6. [CI/CD Test Execution](#cicd-test-execution)
 
-### Option 1: Test Against Running Services (Recommended)
+## Running Tests
 
-#### Prerequisites
-1. API Gateway running on port 8080
-2. Risk Assessment Service running and accessible through gateway
+### Frontend Tests
 
-#### Start Services
-
-**API Gateway**:
+#### Run All Tests
 ```bash
-cd services/api-gateway
-go run cmd/main.go
+cd frontend
+npm test
 ```
 
-**Risk Assessment Service**:
+#### Run Tests in Watch Mode
 ```bash
-cd services/risk-assessment-service
-go run cmd/main.go
+npm test -- --watch
 ```
 
-#### Run Tests
+#### Run Tests with Coverage
 ```bash
-./scripts/test-risk-endpoints.sh
+npm test -- --coverage
 ```
 
----
-
-### Option 2: Code Verification Tests (No Services Required)
-
-These tests verify the code structure and implementation without requiring running services.
-
-#### Test 1: Verify Handler Implementation
-
+#### Run Specific Test File
 ```bash
-# Check if handlers are implemented
-grep -r "HandleRiskBenchmarks\|GetRiskBenchmarksHandler" services/risk-assessment-service/internal/handlers/ internal/api/handlers/
-
-# Expected: Should find both implementations
+npm test -- --testPathPatterns="api.test"
 ```
 
-#### Test 2: Verify Route Registration
-
+#### Run Tests Matching Pattern
 ```bash
-# Check if routes are registered
-grep -r "risk/benchmarks\|risk/predictions" services/risk-assessment-service/cmd/main.go
-
-# Expected: Should find route registrations
+npm test -- --testNamePattern="should fetch"
 ```
 
-#### Test 3: Verify Frontend Integration
+### Backend Tests
 
+#### Run All Tests
 ```bash
-# Check if frontend uses endpoints
-grep -r "riskBenchmarks\|riskPredictions" web/shared/data-services/risk-data-service.js
-
-# Expected: Should find endpoint usage
+go test ./...
 ```
 
----
-
-### Option 3: Unit Tests (If Available)
-
+#### Run Tests with Verbose Output
 ```bash
-# Run Go tests for handlers
-cd services/risk-assessment-service
-go test ./internal/handlers/... -v
-
-# Run tests for main platform handlers
-cd internal/api/handlers
-go test -v
+go test ./... -v
 ```
 
----
-
-## Manual Testing Checklist
-
-### ✅ Code Structure Verification
-
-- [x] Handlers implemented in both locations
-- [x] Routes registered in service
-- [x] Frontend integration complete
-- [x] API config updated
-
-### ⏳ Service Testing (Requires Running Services)
-
-- [ ] API Gateway health check
-- [ ] Benchmarks endpoint (200 response)
-- [ ] Predictions endpoint (200 response)
-- [ ] Error handling (400/404 responses)
-- [ ] Frontend integration (browser testing)
-
----
-
-## Quick Verification Commands
-
-### Verify Code Implementation
-
+#### Run Tests with Coverage
 ```bash
-# 1. Check handlers exist
-echo "=== Checking Handlers ==="
-grep -l "HandleRiskBenchmarks" services/risk-assessment-service/internal/handlers/risk_assessment.go internal/api/handlers/risk.go
-echo ""
-
-# 2. Check routes registered
-echo "=== Checking Routes ==="
-grep -A2 "risk/benchmarks\|risk/predictions" services/risk-assessment-service/cmd/main.go
-echo ""
-
-# 3. Check frontend integration
-echo "=== Checking Frontend ==="
-grep -l "riskBenchmarks\|loadIndustryBenchmarks" web/shared/data-services/risk-data-service.js
-echo ""
-
-# 4. Check API config
-echo "=== Checking API Config ==="
-grep "riskBenchmarks\|riskPredictions" web/js/api-config.js
+go test ./... -coverprofile=coverage.out
+go tool cover -html=coverage.out
 ```
 
----
+#### Run Specific Package Tests
+```bash
+go test ./internal/api/handlers -v
+```
 
-## Expected Test Results
+#### Run Integration Tests
+```bash
+go test ./test/integration -v
+```
 
-### Code Verification (Should Pass)
+#### Skip Integration Tests
+```bash
+go test ./... -short
+```
 
-✅ **Handlers**: Both implementations found  
-✅ **Routes**: Routes registered in service  
-✅ **Frontend**: Endpoints configured and used  
-✅ **API Config**: Endpoints defined  
+### E2E Tests
 
-### Service Testing (Requires Running Services)
+#### Run All E2E Tests
+```bash
+cd frontend
+npx playwright test
+```
 
-When services are running:
-- ✅ Benchmarks: `200 OK` with JSON response
-- ✅ Predictions: `200 OK` with JSON response
-- ✅ Error handling: `400 Bad Request` for invalid requests
+#### Run E2E Tests in UI Mode
+```bash
+npx playwright test --ui
+```
 
----
+#### Run Specific E2E Test
+```bash
+npx playwright test merchant-details
+```
 
-## Next Steps
+#### Run E2E Tests in Debug Mode
+```bash
+npx playwright test --debug
+```
 
-1. **Start Services**: Follow service startup instructions
-2. **Run Tests**: Execute test script
-3. **Verify Responses**: Check JSON structure
-4. **Frontend Testing**: Test in browser
+### Performance Tests
 
----
+#### Run Frontend Performance Tests
+```bash
+cd frontend
+npm test -- --testPathPatterns="performance"
+```
 
-## Troubleshooting
+#### Run Backend Performance Tests
+```bash
+go test ./test/performance -v
+```
 
-### Services Not Starting
+## Test Structure
 
-**Check**:
-- Go version (1.22+)
-- Dependencies installed (`go mod download`)
-- Port availability
-- Environment variables
+### Frontend Test Structure
 
-### Tests Failing
+```
+frontend/
+├── __tests__/
+│   ├── lib/
+│   │   ├── api.test.ts
+│   │   ├── api-cache.test.ts
+│   │   ├── error-handler.test.ts
+│   │   ├── lazy-loader.test.ts
+│   │   └── request-deduplicator.test.ts
+│   ├── components/
+│   │   ├── merchant/
+│   │   │   ├── BusinessAnalyticsTab.test.tsx
+│   │   │   ├── MerchantDetailsLayout.test.tsx
+│   │   │   ├── MerchantOverviewTab.test.tsx
+│   │   │   ├── RiskAssessmentTab.test.tsx
+│   │   │   └── RiskIndicatorsTab.test.tsx
+│   │   └── ui/
+│   │       ├── empty-state.test.tsx
+│   │       └── progress-indicator.test.tsx
+│   └── performance/
+│       ├── cache.test.ts
+│       ├── deduplication.test.ts
+│       └── lazy-loading.test.ts
+├── tests/
+│   └── e2e/
+│       ├── analytics.spec.ts
+│       ├── merchant-details.spec.ts
+│       └── risk-assessment.spec.ts
+├── jest.config.js
+├── jest.setup.js
+└── playwright.config.ts
+```
 
-**Check**:
-- Service logs
-- Network connectivity
-- Endpoint URLs
-- CORS configuration
+### Backend Test Structure
 
----
+```
+.
+├── internal/
+│   ├── api/
+│   │   └── handlers/
+│   │       └── *_test.go
+│   ├── services/
+│   │   └── *_test.go
+│   └── database/
+│       └── *_test.go
+├── test/
+│   ├── integration/
+│   │   ├── database_setup.go
+│   │   ├── weeks_2_4_integration_test.go
+│   │   └── merchant_portfolio_integration_test.go
+│   └── performance/
+│       ├── api_load_test.go
+│       ├── cache_performance_test.go
+│       └── parallel_fetch_test.go
+```
 
-## Status
+## Writing New Tests
 
-✅ **Code Implementation**: Complete  
-⏳ **Service Testing**: Requires running services  
-✅ **Code Verification**: Ready to run
+### Frontend Unit Test Example
 
+```typescript
+import { describe, it, expect, beforeEach } from '@jest/globals';
+import { render, screen } from '@testing-library/react';
+import { MyComponent } from '@/components/MyComponent';
+
+describe('MyComponent', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should render correctly', () => {
+    render(<MyComponent prop="value" />);
+    expect(screen.getByText('Expected Text')).toBeInTheDocument();
+  });
+
+  it('should handle user interaction', async () => {
+    render(<MyComponent prop="value" />);
+    const button = screen.getByRole('button');
+    button.click();
+    await waitFor(() => {
+      expect(screen.getByText('Updated Text')).toBeInTheDocument();
+    });
+  });
+});
+```
+
+### Backend Unit Test Example
+
+```go
+package handlers
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+)
+
+func TestMyHandler(t *testing.T) {
+	tests := []struct {
+		name           string
+		request        *http.Request
+		expectedStatus int
+		expectedBody   string
+	}{
+		{
+			name:           "successful request",
+			request:        httptest.NewRequest("GET", "/api/v1/test", nil),
+			expectedStatus: http.StatusOK,
+			expectedBody:   `{"status":"ok"}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			handler := NewMyHandler()
+			handler.ServeHTTP(w, tt.request)
+
+			if w.Code != tt.expectedStatus {
+				t.Errorf("Expected status %d, got %d", tt.expectedStatus, w.Code)
+			}
+		})
+	}
+}
+```
+
+### E2E Test Example
+
+```typescript
+import { test, expect } from '@playwright/test';
+
+test.describe('My Feature', () => {
+  test('should work end-to-end', async ({ page }) => {
+    await page.goto('/my-page');
+    await expect(page.getByText('Welcome')).toBeVisible();
+    
+    await page.getByRole('button', { name: 'Click Me' }).click();
+    await expect(page.getByText('Success')).toBeVisible();
+  });
+});
+```
+
+## Test Best Practices
+
+### Frontend Testing
+
+1. **Use React Testing Library**: Prefer user-centric queries over implementation details
+2. **Mock External Dependencies**: Mock API calls, browser APIs, and third-party libraries
+3. **Test User Interactions**: Test what users see and do, not implementation details
+4. **Use Descriptive Test Names**: Test names should describe what is being tested
+5. **Keep Tests Isolated**: Each test should be independent and not rely on other tests
+6. **Clean Up**: Use `beforeEach` and `afterEach` to set up and clean up test state
+
+### Backend Testing
+
+1. **Table-Driven Tests**: Use table-driven tests for multiple test cases
+2. **Test Edge Cases**: Test error conditions, boundary values, and edge cases
+3. **Mock External Services**: Mock external APIs and databases when appropriate
+4. **Use Test Helpers**: Create helper functions for common test setup
+5. **Test Error Handling**: Ensure error handling is properly tested
+6. **Integration Tests**: Use integration tests for testing with real databases
+
+### E2E Testing
+
+1. **Test Critical Paths**: Focus on user journeys that matter most
+2. **Use Page Objects**: Create page object models for maintainable tests
+3. **Wait for Elements**: Always wait for elements to be visible before interacting
+4. **Test Across Browsers**: Test in multiple browsers for compatibility
+5. **Keep Tests Fast**: Optimize tests to run quickly
+6. **Use Fixtures**: Use test fixtures for consistent test data
+
+## Debugging Test Failures
+
+### Frontend Test Debugging
+
+1. **Check Console Output**: Look for error messages in test output
+2. **Use `screen.debug()`**: Print the rendered component to see what's available
+3. **Check Mock Setup**: Verify mocks are set up correctly
+4. **Verify Async Operations**: Ensure async operations are properly awaited
+5. **Check Test Isolation**: Ensure tests aren't affecting each other
+
+### Backend Test Debugging
+
+1. **Use Verbose Output**: Run tests with `-v` flag for detailed output
+2. **Check Error Messages**: Read error messages carefully for clues
+3. **Use Debugger**: Use `delve` or IDE debugger for complex issues
+4. **Check Test Data**: Verify test data is set up correctly
+5. **Review Test Logs**: Check test logs for additional context
+
+### E2E Test Debugging
+
+1. **Use Playwright Inspector**: Run tests with `--debug` flag
+2. **Take Screenshots**: Use `page.screenshot()` to see what's happening
+3. **Check Network Requests**: Use `page.route()` to inspect API calls
+4. **Slow Down Tests**: Use `page.setDefaultTimeout()` to see what's happening
+5. **Check Browser Console**: Look for JavaScript errors in browser console
+
+## CI/CD Test Execution
+
+### GitHub Actions
+
+Tests run automatically on:
+- Push to `main` or `develop` branches
+- Pull requests to `main` or `develop` branches
+
+### Test Workflow
+
+1. **Frontend Tests**: Run Jest tests with coverage
+2. **Backend Tests**: Run Go tests with race detection
+3. **E2E Tests**: Run Playwright tests in CI environment
+4. **Coverage Upload**: Upload coverage reports to Codecov
+
+### Local CI Simulation
+
+```bash
+# Run all tests as CI would
+cd frontend && npm ci && npm test -- --ci
+cd .. && go test ./... -race -coverprofile=coverage.out
+cd frontend && npx playwright test
+```
+
+## Additional Resources
+
+- [Jest Documentation](https://jestjs.io/docs/getting-started)
+- [React Testing Library](https://testing-library.com/react)
+- [Playwright Documentation](https://playwright.dev)
+- [Go Testing Package](https://pkg.go.dev/testing)
+- [Test Database Setup Guide](./test-database-setup.md)

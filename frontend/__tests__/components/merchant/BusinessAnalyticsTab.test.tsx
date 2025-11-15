@@ -1,17 +1,19 @@
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { render, screen, waitFor } from '@testing-library/react';
 import { BusinessAnalyticsTab } from '@/components/merchant/BusinessAnalyticsTab';
-import * as api from '@/lib/api';
-import * as lazyLoader from '@/lib/lazy-loader';
 
 // Mock API
+const mockGetMerchantAnalytics = jest.fn();
+const mockGetWebsiteAnalysis = jest.fn();
 jest.mock('@/lib/api', () => ({
-  getMerchantAnalytics: jest.fn(),
-  getWebsiteAnalysis: jest.fn(),
+  getMerchantAnalytics: (...args: any[]) => mockGetMerchantAnalytics(...args),
+  getWebsiteAnalysis: (...args: any[]) => mockGetWebsiteAnalysis(...args),
 }));
 
+// Mock lazy loader
+const mockDeferNonCriticalDataLoad = jest.fn((fn) => fn());
 jest.mock('@/lib/lazy-loader', () => ({
-  deferNonCriticalDataLoad: jest.fn((fn) => fn()),
+  deferNonCriticalDataLoad: (...args: any[]) => mockDeferNonCriticalDataLoad(...args),
 }));
 
 describe('BusinessAnalyticsTab', () => {
@@ -43,10 +45,13 @@ describe('BusinessAnalyticsTab', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGetMerchantAnalytics.mockClear();
+    mockGetWebsiteAnalysis.mockClear();
+    mockDeferNonCriticalDataLoad.mockClear();
   });
 
   it('should render loading state initially', () => {
-    (api.getMerchantAnalytics as jest.Mock).mockImplementation(
+    mockGetMerchantAnalytics.mockImplementation(
       () => new Promise(() => {})
     );
 
@@ -56,8 +61,8 @@ describe('BusinessAnalyticsTab', () => {
   });
 
   it('should render analytics data when loaded', async () => {
-    (api.getMerchantAnalytics as jest.Mock).mockResolvedValue(mockAnalytics);
-    (api.getWebsiteAnalysis as jest.Mock).mockResolvedValue(mockWebsiteAnalysis);
+    mockGetMerchantAnalytics.mockResolvedValue(mockAnalytics);
+    mockGetWebsiteAnalysis.mockResolvedValue(mockWebsiteAnalysis);
 
     render(<BusinessAnalyticsTab merchantId="merchant-123" />);
 
@@ -70,8 +75,8 @@ describe('BusinessAnalyticsTab', () => {
   });
 
   it('should render empty state when no data', async () => {
-    (api.getMerchantAnalytics as jest.Mock).mockResolvedValue(null);
-    (api.getWebsiteAnalysis as jest.Mock).mockResolvedValue(null);
+    mockGetMerchantAnalytics.mockResolvedValue(null);
+    mockGetWebsiteAnalysis.mockResolvedValue(null);
 
     render(<BusinessAnalyticsTab merchantId="merchant-123" />);
 
@@ -81,13 +86,13 @@ describe('BusinessAnalyticsTab', () => {
   });
 
   it('should use lazy loading for website analysis', async () => {
-    (api.getMerchantAnalytics as jest.Mock).mockResolvedValue(mockAnalytics);
-    (api.getWebsiteAnalysis as jest.Mock).mockResolvedValue(mockWebsiteAnalysis);
+    mockGetMerchantAnalytics.mockResolvedValue(mockAnalytics);
+    mockGetWebsiteAnalysis.mockResolvedValue(mockWebsiteAnalysis);
 
     render(<BusinessAnalyticsTab merchantId="merchant-123" />);
 
     await waitFor(() => {
-      expect(lazyLoader.deferNonCriticalDataLoad).toHaveBeenCalled();
+      expect(mockDeferNonCriticalDataLoad).toHaveBeenCalled();
     });
   });
 });
