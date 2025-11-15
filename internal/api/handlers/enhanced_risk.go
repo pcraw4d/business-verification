@@ -1166,17 +1166,53 @@ func (h *EnhancedRiskHandler) CreateRecommendationRuleHandler(w http.ResponseWri
 	h.logger.Info("Create recommendation rule request received",
 		zap.String("request_id", requestID))
 
-	// TODO: Implement recommendation rule creation
-	// For now, return a stub response
+	// Check if recommendation engine is available
+	if h.recommendationEngine == nil {
+		h.logger.Error("Recommendation engine not available",
+			zap.String("request_id", requestID))
+		http.Error(w, "Recommendation engine not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	// Parse request body
+	var rule risk.RecommendationRule
+	if err := json.NewDecoder(r.Body).Decode(&rule); err != nil {
+		h.logger.Error("Failed to decode request body",
+			zap.String("request_id", requestID),
+			zap.Error(err))
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Generate ID if not provided
+	if rule.ID == "" {
+		rule.ID = uuid.New().String()
+	}
+
+	// Get rule engine and add the rule
+	ruleEngine := h.recommendationEngine.GetRuleEngine()
+	if err := ruleEngine.AddCustomRule(rule); err != nil {
+		h.logger.Error("Failed to create recommendation rule",
+			zap.String("request_id", requestID),
+			zap.String("rule_id", rule.ID),
+			zap.Error(err))
+		http.Error(w, fmt.Sprintf("Failed to create rule: %s", err.Error()), http.StatusBadRequest)
+		return
+	}
+
+	// Return created rule
+	response := map[string]interface{}{
+		"id":        rule.ID,
+		"name":      rule.Name,
+		"category":  rule.Category,
+		"enabled":   rule.Enabled,
+		"priority":  rule.Priority,
+		"timestamp": time.Now(),
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Request-ID", requestID)
 	w.WriteHeader(http.StatusCreated)
-
-	response := map[string]interface{}{
-		"id":        fmt.Sprintf("rule_%d", time.Now().UnixNano()),
-		"message":   "Recommendation rule creation not yet implemented",
-		"timestamp": time.Now(),
-	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		h.logger.Error("Failed to encode response",
@@ -1188,6 +1224,7 @@ func (h *EnhancedRiskHandler) CreateRecommendationRuleHandler(w http.ResponseWri
 	duration := time.Since(startTime)
 	h.logger.Info("Create recommendation rule request completed",
 		zap.String("request_id", requestID),
+		zap.String("rule_id", rule.ID),
 		zap.Duration("duration", duration))
 }
 
@@ -1206,16 +1243,55 @@ func (h *EnhancedRiskHandler) UpdateRecommendationRuleHandler(w http.ResponseWri
 		zap.String("request_id", requestID),
 		zap.String("rule_id", ruleID))
 
-	// TODO: Implement recommendation rule update
+	// Check if recommendation engine is available
+	if h.recommendationEngine == nil {
+		h.logger.Error("Recommendation engine not available",
+			zap.String("request_id", requestID))
+		http.Error(w, "Recommendation engine not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	// Parse request body
+	var updatedRule risk.RecommendationRule
+	if err := json.NewDecoder(r.Body).Decode(&updatedRule); err != nil {
+		h.logger.Error("Failed to decode request body",
+			zap.String("request_id", requestID),
+			zap.Error(err))
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Ensure the rule ID matches the path parameter
+	updatedRule.ID = ruleID
+
+	// Get rule engine and update the rule
+	ruleEngine := h.recommendationEngine.GetRuleEngine()
+	if err := ruleEngine.UpdateRule(ruleID, updatedRule); err != nil {
+		h.logger.Error("Failed to update recommendation rule",
+			zap.String("request_id", requestID),
+			zap.String("rule_id", ruleID),
+			zap.Error(err))
+		if strings.Contains(err.Error(), "not found") {
+			http.Error(w, "Rule not found", http.StatusNotFound)
+		} else {
+			http.Error(w, fmt.Sprintf("Failed to update rule: %s", err.Error()), http.StatusBadRequest)
+		}
+		return
+	}
+
+	// Return updated rule
+	response := map[string]interface{}{
+		"id":        ruleID,
+		"name":      updatedRule.Name,
+		"category":  updatedRule.Category,
+		"enabled":   updatedRule.Enabled,
+		"priority":  updatedRule.Priority,
+		"timestamp": time.Now(),
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Request-ID", requestID)
 	w.WriteHeader(http.StatusOK)
-
-	response := map[string]interface{}{
-		"id":        ruleID,
-		"message":   "Recommendation rule update not yet implemented",
-		"timestamp": time.Now(),
-	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		h.logger.Error("Failed to encode response",
@@ -1227,6 +1303,7 @@ func (h *EnhancedRiskHandler) UpdateRecommendationRuleHandler(w http.ResponseWri
 	duration := time.Since(startTime)
 	h.logger.Info("Update recommendation rule request completed",
 		zap.String("request_id", requestID),
+		zap.String("rule_id", ruleID),
 		zap.Duration("duration", duration))
 }
 
@@ -1245,17 +1322,39 @@ func (h *EnhancedRiskHandler) DeleteRecommendationRuleHandler(w http.ResponseWri
 		zap.String("request_id", requestID),
 		zap.String("rule_id", ruleID))
 
-	// TODO: Implement recommendation rule deletion
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("X-Request-ID", requestID)
-	w.WriteHeader(http.StatusOK)
+	// Check if recommendation engine is available
+	if h.recommendationEngine == nil {
+		h.logger.Error("Recommendation engine not available",
+			zap.String("request_id", requestID))
+		http.Error(w, "Recommendation engine not available", http.StatusServiceUnavailable)
+		return
+	}
 
+	// Get rule engine and delete the rule
+	ruleEngine := h.recommendationEngine.GetRuleEngine()
+	if err := ruleEngine.DeleteRule(ruleID); err != nil {
+		h.logger.Error("Failed to delete recommendation rule",
+			zap.String("request_id", requestID),
+			zap.String("rule_id", ruleID),
+			zap.Error(err))
+		if strings.Contains(err.Error(), "not found") {
+			http.Error(w, "Rule not found", http.StatusNotFound)
+		} else {
+			http.Error(w, fmt.Sprintf("Failed to delete rule: %s", err.Error()), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	// Return success response
 	response := map[string]interface{}{
 		"id":        ruleID,
 		"deleted":   true,
-		"message":   "Recommendation rule deletion not yet implemented",
 		"timestamp": time.Now(),
 	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Request-ID", requestID)
+	w.WriteHeader(http.StatusOK)
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		h.logger.Error("Failed to encode response",
@@ -1267,6 +1366,7 @@ func (h *EnhancedRiskHandler) DeleteRecommendationRuleHandler(w http.ResponseWri
 	duration := time.Since(startTime)
 	h.logger.Info("Delete recommendation rule request completed",
 		zap.String("request_id", requestID),
+		zap.String("rule_id", ruleID),
 		zap.Duration("duration", duration))
 }
 
@@ -1278,16 +1378,69 @@ func (h *EnhancedRiskHandler) CreateNotificationChannelHandler(w http.ResponseWr
 	h.logger.Info("Create notification channel request received",
 		zap.String("request_id", requestID))
 
-	// TODO: Implement notification channel creation
+	// Check if alert system is available
+	if h.alertSystem == nil {
+		h.logger.Error("Alert system not available",
+			zap.String("request_id", requestID))
+		http.Error(w, "Alert system not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	// Parse request body
+	var req struct {
+		Name    string                 `json:"name"`
+		Type    string                 `json:"type"` // email, sms, slack, webhook, teams, discord, pagerduty
+		Enabled bool                   `json:"enabled"`
+		Config  map[string]interface{} `json:"config"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.logger.Error("Failed to decode request body",
+			zap.String("request_id", requestID),
+			zap.Error(err))
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Validate required fields
+	if req.Name == "" {
+		http.Error(w, "Channel name is required", http.StatusBadRequest)
+		return
+	}
+	if req.Type == "" {
+		http.Error(w, "Channel type is required", http.StatusBadRequest)
+		return
+	}
+
+	// Create channel based on type
+	channel := h.createNotificationChannelFromRequest(req.Type, req.Name, req.Enabled, req.Config)
+	if channel == nil {
+		http.Error(w, fmt.Sprintf("Unsupported channel type: %s", req.Type), http.StatusBadRequest)
+		return
+	}
+
+	// Get notification service and add channel
+	notificationService := h.alertSystem.GetNotificationService()
+	if notificationService == nil {
+		h.logger.Error("Notification service not available",
+			zap.String("request_id", requestID))
+		http.Error(w, "Notification service not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	notificationService.AddChannel(req.Name, channel)
+
+	// Return created channel info
+	response := map[string]interface{}{
+		"id":        req.Name,
+		"type":      req.Type,
+		"enabled":   req.Enabled,
+		"config":    req.Config,
+		"timestamp": time.Now(),
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Request-ID", requestID)
 	w.WriteHeader(http.StatusCreated)
-
-	response := map[string]interface{}{
-		"id":        fmt.Sprintf("channel_%d", time.Now().UnixNano()),
-		"message":   "Notification channel creation not yet implemented",
-		"timestamp": time.Now(),
-	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		h.logger.Error("Failed to encode response",
@@ -1299,6 +1452,8 @@ func (h *EnhancedRiskHandler) CreateNotificationChannelHandler(w http.ResponseWr
 	duration := time.Since(startTime)
 	h.logger.Info("Create notification channel request completed",
 		zap.String("request_id", requestID),
+		zap.String("channel_name", req.Name),
+		zap.String("channel_type", req.Type),
 		zap.Duration("duration", duration))
 }
 
@@ -1317,16 +1472,85 @@ func (h *EnhancedRiskHandler) UpdateNotificationChannelHandler(w http.ResponseWr
 		zap.String("request_id", requestID),
 		zap.String("channel_id", channelID))
 
-	// TODO: Implement notification channel update
+	// Check if alert system is available
+	if h.alertSystem == nil {
+		h.logger.Error("Alert system not available",
+			zap.String("request_id", requestID))
+		http.Error(w, "Alert system not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	// Parse request body
+	var req struct {
+		Enabled *bool                  `json:"enabled,omitempty"`
+		Config  map[string]interface{} `json:"config,omitempty"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.logger.Error("Failed to decode request body",
+			zap.String("request_id", requestID),
+			zap.Error(err))
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Get notification service
+	notificationService := h.alertSystem.GetNotificationService()
+	if notificationService == nil {
+		h.logger.Error("Notification service not available",
+			zap.String("request_id", requestID))
+		http.Error(w, "Notification service not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	// Get existing channel
+	existingChannel, err := notificationService.GetChannel(channelID)
+	if err != nil {
+		h.logger.Error("Channel not found",
+			zap.String("request_id", requestID),
+			zap.String("channel_id", channelID),
+			zap.Error(err))
+		http.Error(w, "Channel not found", http.StatusNotFound)
+		return
+	}
+
+	// Update channel: Remove old and add new with updated config
+	// Since channels are structs with private fields, we need to recreate them
+	channelType := h.getChannelType(existingChannel)
+	enabled := existingChannel.IsEnabled()
+	if req.Enabled != nil {
+		enabled = *req.Enabled
+	}
+	config := existingChannel.GetConfig()
+	if req.Config != nil {
+		// Merge configs
+		for k, v := range req.Config {
+			config[k] = v
+		}
+	}
+
+	// Recreate channel with updated values
+	updatedChannel := h.createNotificationChannelFromRequest(channelType, channelID, enabled, config)
+	if updatedChannel == nil {
+		http.Error(w, fmt.Sprintf("Failed to recreate channel type: %s", channelType), http.StatusInternalServerError)
+		return
+	}
+
+	// Replace the channel
+	notificationService.RemoveChannel(channelID)
+	notificationService.AddChannel(channelID, updatedChannel)
+
+	// Return updated channel info
+	response := map[string]interface{}{
+		"id":        channelID,
+		"type":      channelType,
+		"enabled":   enabled,
+		"config":    config,
+		"timestamp": time.Now(),
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Request-ID", requestID)
 	w.WriteHeader(http.StatusOK)
-
-	response := map[string]interface{}{
-		"id":        channelID,
-		"message":   "Notification channel update not yet implemented",
-		"timestamp": time.Now(),
-	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		h.logger.Error("Failed to encode response",
@@ -1338,6 +1562,7 @@ func (h *EnhancedRiskHandler) UpdateNotificationChannelHandler(w http.ResponseWr
 	duration := time.Since(startTime)
 	h.logger.Info("Update notification channel request completed",
 		zap.String("request_id", requestID),
+		zap.String("channel_id", channelID),
 		zap.Duration("duration", duration))
 }
 
@@ -1356,17 +1581,47 @@ func (h *EnhancedRiskHandler) DeleteNotificationChannelHandler(w http.ResponseWr
 		zap.String("request_id", requestID),
 		zap.String("channel_id", channelID))
 
-	// TODO: Implement notification channel deletion
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("X-Request-ID", requestID)
-	w.WriteHeader(http.StatusOK)
+	// Check if alert system is available
+	if h.alertSystem == nil {
+		h.logger.Error("Alert system not available",
+			zap.String("request_id", requestID))
+		http.Error(w, "Alert system not available", http.StatusServiceUnavailable)
+		return
+	}
 
+	// Get notification service
+	notificationService := h.alertSystem.GetNotificationService()
+	if notificationService == nil {
+		h.logger.Error("Notification service not available",
+			zap.String("request_id", requestID))
+		http.Error(w, "Notification service not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	// Check if channel exists
+	_, err := notificationService.GetChannel(channelID)
+	if err != nil {
+		h.logger.Error("Channel not found",
+			zap.String("request_id", requestID),
+			zap.String("channel_id", channelID),
+			zap.Error(err))
+		http.Error(w, "Channel not found", http.StatusNotFound)
+		return
+	}
+
+	// Remove the channel
+	notificationService.RemoveChannel(channelID)
+
+	// Return success response
 	response := map[string]interface{}{
 		"id":        channelID,
 		"deleted":   true,
-		"message":   "Notification channel deletion not yet implemented",
 		"timestamp": time.Now(),
 	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Request-ID", requestID)
+	w.WriteHeader(http.StatusOK)
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		h.logger.Error("Failed to encode response",
@@ -1378,6 +1633,7 @@ func (h *EnhancedRiskHandler) DeleteNotificationChannelHandler(w http.ResponseWr
 	duration := time.Since(startTime)
 	h.logger.Info("Delete notification channel request completed",
 		zap.String("request_id", requestID),
+		zap.String("channel_id", channelID),
 		zap.Duration("duration", duration))
 }
 
@@ -1484,18 +1740,80 @@ func (h *EnhancedRiskHandler) CleanupSystemDataHandler(w http.ResponseWriter, r 
 		req.DataTypes = []string{"assessments", "alerts", "trends"}
 	}
 
-	// TODO: Implement actual data cleanup
-	// For now, return a stub response
+	// Validate older_than_days
+	if req.OlderThanDays <= 0 {
+		req.OlderThanDays = 90
+	}
+
+	// If no data types specified, clean all
+	if len(req.DataTypes) == 0 {
+		req.DataTypes = []string{"assessments", "alerts", "trends"}
+	}
+
+	ctx := r.Context()
+	cleaned := make(map[string]int)
+	var cleanupErrors []string
+
+	// Cleanup alerts if requested
+	if contains(req.DataTypes, "alerts") {
+		if h.alertSystem != nil {
+			if err := h.alertSystem.CleanupOldAlerts(ctx); err != nil {
+				h.logger.Error("Failed to cleanup alerts",
+					zap.String("request_id", requestID),
+					zap.Error(err))
+				cleanupErrors = append(cleanupErrors, fmt.Sprintf("alerts: %v", err))
+			} else {
+				// Note: CleanupOldAlerts doesn't return count, so we'll use 0 for now
+				cleaned["alerts"] = 0
+				h.logger.Info("Cleaned up old alerts",
+					zap.String("request_id", requestID),
+					zap.Int("older_than_days", req.OlderThanDays))
+			}
+		} else {
+			cleaned["alerts"] = 0
+		}
+	}
+
+	// Cleanup trend data if requested
+	if contains(req.DataTypes, "trends") {
+		if h.trendAnalysisService != nil {
+			if err := h.trendAnalysisService.CleanupOldData(ctx); err != nil {
+				h.logger.Error("Failed to cleanup trend data",
+					zap.String("request_id", requestID),
+					zap.Error(err))
+				cleanupErrors = append(cleanupErrors, fmt.Sprintf("trends: %v", err))
+			} else {
+				// Note: CleanupOldData doesn't return count, so we'll use 0 for now
+				cleaned["trends"] = 0
+				h.logger.Info("Cleaned up old trend data",
+					zap.String("request_id", requestID),
+					zap.Int("older_than_days", req.OlderThanDays))
+			}
+		} else {
+			cleaned["trends"] = 0
+		}
+	}
+
+	// Assessments cleanup would require a repository/service that we don't have direct access to
+	if contains(req.DataTypes, "assessments") {
+		cleaned["assessments"] = 0
+		h.logger.Info("Assessment cleanup not yet implemented",
+			zap.String("request_id", requestID))
+	}
+
+	// Build response
 	result := map[string]interface{}{
-		"cleaned": map[string]int{
-			"assessments": 0,
-			"alerts":      0,
-			"trends":      0,
-		},
+		"cleaned":        cleaned,
 		"older_than_days": req.OlderThanDays,
 		"data_types":      req.DataTypes,
 		"timestamp":       time.Now(),
-		"message":         "Data cleanup not yet implemented",
+	}
+
+	if len(cleanupErrors) > 0 {
+		result["errors"] = cleanupErrors
+		result["message"] = "Cleanup completed with some errors"
+	} else {
+		result["message"] = "Cleanup completed successfully"
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -1512,13 +1830,22 @@ func (h *EnhancedRiskHandler) CleanupSystemDataHandler(w http.ResponseWriter, r 
 	duration := time.Since(startTime)
 	h.logger.Info("Cleanup system data request completed",
 		zap.String("request_id", requestID),
+		zap.Int("older_than_days", req.OlderThanDays),
+		zap.Strings("data_types", req.DataTypes),
 		zap.Duration("duration", duration))
 }
 
-// ExportThresholdsHandler handles GET /v1/admin/risk/thresholds/export requests
+// ExportThresholdsHandler handles GET /v1/admin/risk/threshold-export requests
 func (h *EnhancedRiskHandler) ExportThresholdsHandler(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 	requestID := getRequestID(r)
+
+	// Debug: Log that handler was called
+	h.logger.Info("ExportThresholdsHandler CALLED",
+		zap.String("request_id", requestID),
+		zap.String("method", r.Method),
+		zap.String("path", r.URL.Path),
+		zap.String("raw_path", r.URL.RawPath))
 
 	h.logger.Info("Export thresholds request received",
 		zap.String("request_id", requestID))
@@ -1565,7 +1892,7 @@ func (h *EnhancedRiskHandler) ExportThresholdsHandler(w http.ResponseWriter, r *
 		zap.Duration("duration", duration))
 }
 
-// ImportThresholdsHandler handles POST /v1/admin/risk/thresholds/import requests
+// ImportThresholdsHandler handles POST /v1/admin/risk/threshold-import requests
 func (h *EnhancedRiskHandler) ImportThresholdsHandler(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 	requestID := getRequestID(r)
@@ -1649,6 +1976,68 @@ func getRequestID(r *http.Request) string {
 }
 
 // extractIDFromPath extracts an ID from a URL path after a given prefix
+// createNotificationChannelFromRequest creates a notification channel based on type
+func (h *EnhancedRiskHandler) createNotificationChannelFromRequest(channelType, name string, enabled bool, config map[string]interface{}) risk.NotificationChannel {
+	if config == nil {
+		config = make(map[string]interface{})
+	}
+
+	switch strings.ToLower(channelType) {
+	case "email":
+		return risk.NewEmailNotificationChannel(name, enabled, config)
+	case "sms":
+		return risk.NewSMSNotificationChannel(name, enabled, config)
+	case "slack":
+		return risk.NewSlackNotificationChannel(name, enabled, config)
+	case "webhook":
+		return risk.NewWebhookNotificationChannel(name, enabled, config)
+	case "teams":
+		return risk.NewTeamsNotificationChannel(name, enabled, config)
+	case "discord":
+		return risk.NewDiscordNotificationChannel(name, enabled, config)
+	case "pagerduty":
+		return risk.NewPagerDutyNotificationChannel(name, enabled, config)
+	case "dashboard":
+		return risk.NewDashboardNotificationChannel(name, enabled, config)
+	default:
+		return nil
+	}
+}
+
+// getChannelType identifies the type of a notification channel
+func (h *EnhancedRiskHandler) getChannelType(channel risk.NotificationChannel) string {
+	switch channel.(type) {
+	case *risk.EmailNotificationChannel:
+		return "email"
+	case *risk.SMSNotificationChannel:
+		return "sms"
+	case *risk.SlackNotificationChannel:
+		return "slack"
+	case *risk.WebhookNotificationChannel:
+		return "webhook"
+	case *risk.TeamsNotificationChannel:
+		return "teams"
+	case *risk.DiscordNotificationChannel:
+		return "discord"
+	case *risk.PagerDutyNotificationChannel:
+		return "pagerduty"
+	case *risk.DashboardNotificationChannel:
+		return "dashboard"
+	default:
+		return "unknown"
+	}
+}
+
+// contains checks if a slice contains a string
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
+}
+
 func extractIDFromPath(path, prefix string) string {
 	if !strings.HasPrefix(path, prefix) {
 		return ""

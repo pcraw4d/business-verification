@@ -589,3 +589,8 @@ func (rre *RiskRecommendationEngine) adjustForBudget(recommendation RiskRecommen
 	_ = budget // Suppress unused variable warning
 	return recommendation
 }
+
+// GetRuleEngine returns the underlying recommendation rule engine
+func (rre *RiskRecommendationEngine) GetRuleEngine() *RecommendationRuleEngine {
+	return rre.ruleEngine
+}

@@ -13,6 +13,7 @@ import (
 	postgrest "github.com/supabase-community/postgrest-go"
 	"go.uber.org/zap"
 
+	errorspkg "kyb-platform/pkg/errors"
 	"kyb-platform/services/risk-assessment-service/internal/config"
 	"kyb-platform/services/risk-assessment-service/internal/engine"
 	"kyb-platform/services/risk-assessment-service/internal/external"
@@ -32,7 +33,6 @@ type RiskAssessmentHandler struct {
 	logger              *zap.Logger
 	config              *config.Config
 	validator           *validation.Validator
-	errorHandler        *middleware.ErrorHandler
 }
 
 // NewRiskAssessmentHandler creates a new risk assessment handler
@@ -52,7 +52,6 @@ func NewRiskAssessmentHandler(
 		logger:              logger,
 		config:              config,
 		validator:           validation.NewValidator(),
-		errorHandler:        middleware.NewErrorHandler(logger),
 	}
 }
 
@@ -63,7 +62,7 @@ func (h *RiskAssessmentHandler) HandleRiskAssessment(w http.ResponseWriter, r *h
 	// Parse request
 	var req models.RiskAssessmentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.errorHandler.HandleError(w, r, fmt.Errorf("invalid request body: %w", err))
+		errorspkg.WriteBadRequest(w, r, fmt.Sprintf("Invalid request body: %v", err))
 		return
 	}
 
@@ -124,7 +123,7 @@ func (h *RiskAssessmentHandler) HandleRiskAssessment(w http.ResponseWriter, r *h
 	assessment, err := h.riskEngine.AssessRisk(r.Context(), &req)
 	if err != nil {
 		h.logger.Error("Risk assessment failed", zap.Error(err))
-		h.errorHandler.HandleError(w, r, fmt.Errorf("risk assessment failed: %w", err))
+		errorspkg.WriteInternalError(w, r, fmt.Sprintf("Risk assessment failed: %v", err))
 		return
 	}
 
@@ -176,7 +175,7 @@ func (h *RiskAssessmentHandler) HandleGetRiskAssessment(w http.ResponseWriter, r
 	assessmentID := vars["id"]
 
 	if assessmentID == "" {
-		h.errorHandler.HandleError(w, r, fmt.Errorf("assessment ID is required"))
+		errorspkg.WriteBadRequest(w, r, "Assessment ID is required")
 		return
 	}
 
@@ -195,14 +194,14 @@ func (h *RiskAssessmentHandler) HandleGetRiskAssessment(w http.ResponseWriter, r
 		h.logger.Error("Failed to retrieve risk assessment",
 			zap.String("assessment_id", assessmentID),
 			zap.Error(err))
-		h.errorHandler.HandleError(w, r, fmt.Errorf("failed to retrieve risk assessment: %w", err))
+		errorspkg.WriteInternalError(w, r, fmt.Sprintf("Failed to retrieve risk assessment: %v", err))
 		return
 	}
 
 	if len(result) == 0 {
 		h.logger.Warn("Risk assessment not found",
 			zap.String("assessment_id", assessmentID))
-		h.errorHandler.HandleError(w, r, fmt.Errorf("risk assessment not found"))
+		errorspkg.WriteNotFound(w, r, "Risk assessment not found")
 		return
 	}
 
@@ -304,7 +303,7 @@ func (h *RiskAssessmentHandler) HandleRiskPrediction(w http.ResponseWriter, r *h
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&predictionReq); err != nil {
-		h.errorHandler.HandleError(w, r, fmt.Errorf("invalid request body: %w", err))
+		errorspkg.WriteBadRequest(w, r, fmt.Sprintf("Invalid request body: %v", err))
 		return
 	}
 
@@ -417,7 +416,7 @@ func (h *RiskAssessmentHandler) HandleRiskPrediction(w http.ResponseWriter, r *h
 
 	if err != nil {
 		h.logger.Error("Risk prediction failed", zap.Error(err))
-		h.errorHandler.HandleError(w, r, fmt.Errorf("risk prediction failed: %w", err))
+		errorspkg.WriteInternalError(w, r, fmt.Sprintf("Risk prediction failed: %v", err))
 		return
 	}
 
@@ -436,7 +435,7 @@ func (h *RiskAssessmentHandler) HandleRiskPrediction(w http.ResponseWriter, r *h
 // HandleRiskHistory handles GET /api/v1/assess/{id}/history
 func (h *RiskAssessmentHandler) HandleRiskHistory(w http.ResponseWriter, r *http.Request) {
 	// TODO: Implement risk history
-	h.errorHandler.HandleError(w, r, fmt.Errorf("risk history endpoint is not yet implemented"))
+	errorspkg.WriteInternalError(w, r, "Risk history endpoint is not yet implemented")
 }
 
 // HandleRiskBenchmarks handles GET /api/v1/risk/benchmarks
@@ -451,7 +450,7 @@ func (h *RiskAssessmentHandler) HandleRiskBenchmarks(w http.ResponseWriter, r *h
 
 	// At least one industry code is required
 	if mcc == "" && naics == "" && sic == "" {
-		h.errorHandler.HandleError(w, r, fmt.Errorf("at least one industry code (mcc, naics, or sic) is required"))
+		errorspkg.WriteBadRequest(w, r, "At least one industry code (mcc, naics, or sic) is required")
 		return
 	}
 
@@ -483,7 +482,7 @@ func (h *RiskAssessmentHandler) HandleRiskBenchmarks(w http.ResponseWriter, r *h
 			if enableIncomplete != "true" {
 				h.logger.Warn("Incomplete feature disabled in production",
 					zap.String("feature", "risk_benchmarks"))
-				h.errorHandler.HandleError(w, r, fmt.Errorf("feature not available in production"))
+				errorspkg.WriteInternalError(w, r, "Feature not available in production")
 				return
 			}
 		}
@@ -614,7 +613,7 @@ func (h *RiskAssessmentHandler) HandleRiskPredictions(w http.ResponseWriter, r *
 	vars := mux.Vars(r)
 	merchantID := vars["merchant_id"]
 	if merchantID == "" {
-		h.errorHandler.HandleError(w, r, fmt.Errorf("merchant_id is required"))
+		errorspkg.WriteBadRequest(w, r, "Merchant ID is required")
 		return
 	}
 
@@ -795,31 +794,31 @@ func (h *RiskAssessmentHandler) HandleRiskPredictions(w http.ResponseWriter, r *
 // HandleComplianceCheck handles POST /api/v1/compliance/check
 func (h *RiskAssessmentHandler) HandleComplianceCheck(w http.ResponseWriter, r *http.Request) {
 	// TODO: Implement compliance check
-	h.errorHandler.HandleError(w, r, fmt.Errorf("compliance check endpoint is not yet implemented"))
+	errorspkg.WriteInternalError(w, r, "Compliance check endpoint is not yet implemented")
 }
 
 // HandleSanctionsScreening handles POST /api/v1/sanctions/screen
 func (h *RiskAssessmentHandler) HandleSanctionsScreening(w http.ResponseWriter, r *http.Request) {
 	// TODO: Implement sanctions screening
-	h.errorHandler.HandleError(w, r, fmt.Errorf("sanctions screening endpoint is not yet implemented"))
+	errorspkg.WriteInternalError(w, r, "Sanctions screening endpoint is not yet implemented")
 }
 
 // HandleAdverseMediaMonitoring handles POST /api/v1/media/monitor
 func (h *RiskAssessmentHandler) HandleAdverseMediaMonitoring(w http.ResponseWriter, r *http.Request) {
 	// TODO: Implement adverse media monitoring
-	h.errorHandler.HandleError(w, r, fmt.Errorf("adverse media monitoring endpoint is not yet implemented"))
+	errorspkg.WriteInternalError(w, r, "Adverse media monitoring endpoint is not yet implemented")
 }
 
 // HandleRiskTrends handles GET /api/v1/analytics/trends
 func (h *RiskAssessmentHandler) HandleRiskTrends(w http.ResponseWriter, r *http.Request) {
 	// TODO: Implement risk trends analytics
-	h.errorHandler.HandleError(w, r, fmt.Errorf("risk trends analytics endpoint is not yet implemented"))
+	errorspkg.WriteInternalError(w, r, "Risk trends analytics endpoint is not yet implemented")
 }
 
 // HandleRiskInsights handles GET /api/v1/analytics/insights
 func (h *RiskAssessmentHandler) HandleRiskInsights(w http.ResponseWriter, r *http.Request) {
 	// TODO: Implement risk insights analytics
-	h.errorHandler.HandleError(w, r, fmt.Errorf("risk insights analytics endpoint is not yet implemented"))
+	errorspkg.WriteInternalError(w, r, "Risk insights analytics endpoint is not yet implemented")
 }
 
 // HandleBatchRiskAssessment handles POST /api/v1/assess/batch
@@ -831,13 +830,13 @@ func (h *RiskAssessmentHandler) HandleBatchRiskAssessment(w http.ResponseWriter,
 		Requests []models.RiskAssessmentRequest `json:"requests"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.errorHandler.HandleError(w, r, fmt.Errorf("invalid request body: %w", err))
+		errorspkg.WriteBadRequest(w, r, fmt.Sprintf("Invalid request body: %v", err))
 		return
 	}
 
 	// Validate batch size
 	if len(req.Requests) == 0 {
-		h.errorHandler.HandleError(w, r, fmt.Errorf("no requests provided"))
+		errorspkg.WriteBadRequest(w, r, "No requests provided")
 		return
 	}
 
@@ -957,7 +956,7 @@ func (h *RiskAssessmentHandler) HandleBatchRiskAssessment(w http.ResponseWriter,
 	assessments, err := h.riskEngine.AssessRiskBatch(r.Context(), requestPointers)
 	if err != nil {
 		h.logger.Error("Batch risk assessment failed", zap.Error(err))
-		h.errorHandler.HandleError(w, r, fmt.Errorf("batch risk assessment failed: %w", err))
+		errorspkg.WriteInternalError(w, r, fmt.Sprintf("Batch risk assessment failed: %v", err))
 		return
 	}
 
@@ -1010,13 +1009,13 @@ func (h *RiskAssessmentHandler) HandleExternalAdverseMediaMonitoring(w http.Resp
 		BusinessName string `json:"business_name"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.errorHandler.HandleError(w, r, fmt.Errorf("invalid request body: %w", err))
+		errorspkg.WriteBadRequest(w, r, fmt.Sprintf("Invalid request body: %v", err))
 		return
 	}
 
 	// Validate request
 	if req.BusinessName == "" {
-		h.errorHandler.HandleError(w, r, fmt.Errorf("business_name is required"))
+		errorspkg.WriteBadRequest(w, r, "Business name is required")
 		return
 	}
 
@@ -1027,7 +1026,7 @@ func (h *RiskAssessmentHandler) HandleExternalAdverseMediaMonitoring(w http.Resp
 	adverseMedia, err := h.externalDataService.GetAdverseMedia(r.Context(), req.BusinessName)
 	if err != nil {
 		h.logger.Error("Failed to get adverse media data", zap.Error(err))
-		h.errorHandler.HandleError(w, r, fmt.Errorf("adverse media monitoring failed: %w", err))
+		errorspkg.WriteInternalError(w, r, fmt.Sprintf("Adverse media monitoring failed: %v", err))
 		return
 	}
 
@@ -1052,13 +1051,13 @@ func (h *RiskAssessmentHandler) HandleCompanyDataLookup(w http.ResponseWriter, r
 		Country      string `json:"country"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.errorHandler.HandleError(w, r, fmt.Errorf("invalid request body: %w", err))
+		errorspkg.WriteBadRequest(w, r, fmt.Sprintf("Invalid request body: %v", err))
 		return
 	}
 
 	// Validate request
 	if req.BusinessName == "" {
-		h.errorHandler.HandleError(w, r, fmt.Errorf("business_name is required"))
+		errorspkg.WriteBadRequest(w, r, "Business name is required")
 		return
 	}
 
@@ -1070,7 +1069,7 @@ func (h *RiskAssessmentHandler) HandleCompanyDataLookup(w http.ResponseWriter, r
 	companyData, err := h.externalDataService.GetCompanyData(r.Context(), req.BusinessName, req.Country)
 	if err != nil {
 		h.logger.Error("Failed to get company data", zap.Error(err))
-		h.errorHandler.HandleError(w, r, fmt.Errorf("company data lookup failed: %w", err))
+		errorspkg.WriteInternalError(w, r, fmt.Sprintf("Company data lookup failed: %v", err))
 		return
 	}
 
@@ -1096,13 +1095,13 @@ func (h *RiskAssessmentHandler) HandleExternalComplianceCheck(w http.ResponseWri
 		Country      string `json:"country"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.errorHandler.HandleError(w, r, fmt.Errorf("invalid request body: %w", err))
+		errorspkg.WriteBadRequest(w, r, fmt.Sprintf("Invalid request body: %v", err))
 		return
 	}
 
 	// Validate request
 	if req.BusinessName == "" {
-		h.errorHandler.HandleError(w, r, fmt.Errorf("business_name is required"))
+		errorspkg.WriteBadRequest(w, r, "Business name is required")
 		return
 	}
 
@@ -1114,7 +1113,7 @@ func (h *RiskAssessmentHandler) HandleExternalComplianceCheck(w http.ResponseWri
 	complianceData, err := h.externalDataService.GetComplianceData(r.Context(), req.BusinessName, req.Country)
 	if err != nil {
 		h.logger.Error("Failed to get compliance data", zap.Error(err))
-		h.errorHandler.HandleError(w, r, fmt.Errorf("compliance check failed: %w", err))
+		errorspkg.WriteInternalError(w, r, fmt.Sprintf("Compliance check failed: %v", err))
 		return
 	}
 

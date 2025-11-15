@@ -13,6 +13,7 @@ require (
 	github.com/supabase-community/supabase-go v0.0.4
 	github.com/yalue/onnxruntime_go v1.21.0
 	go.uber.org/zap v1.27.0
+	kyb-platform v0.0.0
 )
 
 require (
@@ -40,3 +41,5 @@ require (
 	google.golang.org/protobuf v1.36.8 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace kyb-platform => ../..

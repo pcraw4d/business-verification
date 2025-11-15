@@ -197,11 +197,33 @@ func NewErrorHandlingMiddleware(config *ErrorHandlingConfig, logger *zap.Logger)
 	}
 }
 
+// errorResponseWriter wraps http.ResponseWriter to capture status codes and track if response was written
+type errorResponseWriter struct {
+	http.ResponseWriter
+	statusCode int
+	written    bool
+}
+
+func (rw *errorResponseWriter) WriteHeader(code int) {
+	if !rw.written {
+		rw.statusCode = code
+		rw.ResponseWriter.WriteHeader(code)
+		rw.written = true
+	}
+}
+
+func (rw *errorResponseWriter) Write(b []byte) (int, error) {
+	if !rw.written {
+		rw.WriteHeader(http.StatusOK)
+	}
+	return rw.ResponseWriter.Write(b)
+}
+
 // Middleware applies error handling to HTTP requests
 func (m *ErrorHandlingMiddleware) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Create a custom response writer to capture status codes
-		rw := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+		rw := &errorResponseWriter{ResponseWriter: w, statusCode: http.StatusOK, written: false}
 
 		// Handle panics if enabled
 		if m.config.RecoverPanics {
@@ -215,8 +237,10 @@ func (m *ErrorHandlingMiddleware) Middleware(next http.Handler) http.Handler {
 		// Process request
 		next.ServeHTTP(rw, r)
 
-		// Handle errors based on status code
-		if rw.statusCode >= 400 {
+		// Handle errors based on status code, but only if response hasn't been written yet
+		// Check both rw.written flag and Content-Type header to ensure we don't overwrite existing responses
+		contentType := w.Header().Get("Content-Type")
+		if rw.statusCode >= 400 && !rw.written && contentType == "" {
 			m.handleErrorResponse(rw, r, rw.statusCode, nil)
 		}
 	})

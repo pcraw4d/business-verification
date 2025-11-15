@@ -12,7 +12,7 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
-	"github.com/supabase/postgrest-go"
+	"github.com/supabase-community/postgrest-go"
 	"go.uber.org/zap"
 
 	"kyb-platform/internal/api/handlers"
@@ -1148,6 +1148,8 @@ func (s *RailwayServer) setupNewAPIRoutes() {
 	log.Println("   - GET /v1/risk/categories")
 	log.Println("   - GET /v1/risk/thresholds")
 	log.Println("   - POST /v1/admin/risk/thresholds")
+	log.Println("   - GET /v1/admin/risk/threshold-export")
+	log.Println("   - POST /v1/admin/risk/threshold-import")
 	log.Println("   - GET /v1/admin/risk/system/health")
 	log.Println("   - GET /v1/admin/risk/system/metrics")
 	if s.redisOptimizer != nil {

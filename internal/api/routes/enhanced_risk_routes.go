@@ -93,6 +93,21 @@ func RegisterEnhancedRiskAdminRoutes(mux *http.ServeMux, enhancedRiskHandler *ha
 
 	// Admin endpoints for managing risk configuration
 	// TODO: Add AdminAuthMiddleware when available
+	
+	// Threshold export/import endpoints
+	// Using different base paths (/threshold-export, /threshold-import) to avoid wildcard conflicts
+	// This completely avoids the /thresholds/{id} wildcard pattern matching issue
+	mux.Handle("GET /v1/admin/risk/threshold-export",
+		corsMiddleware.Middleware(
+			loggingMiddleware.Middleware(
+				http.HandlerFunc(enhancedRiskHandler.ExportThresholdsHandler))))
+
+	mux.Handle("POST /v1/admin/risk/threshold-import",
+		corsMiddleware.Middleware(
+			loggingMiddleware.Middleware(
+				http.HandlerFunc(enhancedRiskHandler.ImportThresholdsHandler))))
+
+	// Threshold CRUD endpoints (wildcard patterns - register after specific paths)
 	mux.Handle("POST /v1/admin/risk/thresholds",
 		corsMiddleware.Middleware(
 			loggingMiddleware.Middleware(
@@ -153,15 +168,4 @@ func RegisterEnhancedRiskAdminRoutes(mux *http.ServeMux, enhancedRiskHandler *ha
 		corsMiddleware.Middleware(
 			loggingMiddleware.Middleware(
 				http.HandlerFunc(enhancedRiskHandler.CleanupSystemDataHandler))))
-
-	// Threshold export/import endpoints
-	mux.Handle("GET /v1/admin/risk/thresholds/export",
-		corsMiddleware.Middleware(
-			loggingMiddleware.Middleware(
-				http.HandlerFunc(enhancedRiskHandler.ExportThresholdsHandler))))
-
-	mux.Handle("POST /v1/admin/risk/thresholds/import",
-		corsMiddleware.Middleware(
-			loggingMiddleware.Middleware(
-				http.HandlerFunc(enhancedRiskHandler.ImportThresholdsHandler))))
 }

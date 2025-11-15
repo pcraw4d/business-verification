@@ -305,3 +305,75 @@ func (gwc *GenericWebhookChannel) IsEnabled() bool {
 func (gwc *GenericWebhookChannel) GetConfig() map[string]interface{} {
 	return gwc.config
 }
+
+// NewEmailNotificationChannel creates a new email notification channel
+func NewEmailNotificationChannel(name string, enabled bool, config map[string]interface{}) *EmailNotificationChannel {
+	return &EmailNotificationChannel{
+		name:    name,
+		enabled: enabled,
+		config:  config,
+	}
+}
+
+// NewSMSNotificationChannel creates a new SMS notification channel
+func NewSMSNotificationChannel(name string, enabled bool, config map[string]interface{}) *SMSNotificationChannel {
+	return &SMSNotificationChannel{
+		name:    name,
+		enabled: enabled,
+		config:  config,
+	}
+}
+
+// NewSlackNotificationChannel creates a new Slack notification channel
+func NewSlackNotificationChannel(name string, enabled bool, config map[string]interface{}) *SlackNotificationChannel {
+	return &SlackNotificationChannel{
+		name:    name,
+		enabled: enabled,
+		config:  config,
+	}
+}
+
+// NewWebhookNotificationChannel creates a new webhook notification channel
+func NewWebhookNotificationChannel(name string, enabled bool, config map[string]interface{}) *WebhookNotificationChannel {
+	return &WebhookNotificationChannel{
+		name:    name,
+		enabled: enabled,
+		config:  config,
+	}
+}
+
+// NewTeamsNotificationChannel creates a new Teams notification channel
+func NewTeamsNotificationChannel(name string, enabled bool, config map[string]interface{}) *TeamsNotificationChannel {
+	return &TeamsNotificationChannel{
+		name:    name,
+		enabled: enabled,
+		config:  config,
+	}
+}
+
+// NewDiscordNotificationChannel creates a new Discord notification channel
+func NewDiscordNotificationChannel(name string, enabled bool, config map[string]interface{}) *DiscordNotificationChannel {
+	return &DiscordNotificationChannel{
+		name:    name,
+		enabled: enabled,
+		config:  config,
+	}
+}
+
+// NewPagerDutyNotificationChannel creates a new PagerDuty notification channel
+func NewPagerDutyNotificationChannel(name string, enabled bool, config map[string]interface{}) *PagerDutyNotificationChannel {
+	return &PagerDutyNotificationChannel{
+		name:    name,
+		enabled: enabled,
+		config:  config,
+	}
+}
+
+// NewDashboardNotificationChannel creates a new dashboard notification channel
+func NewDashboardNotificationChannel(name string, enabled bool, config map[string]interface{}) *DashboardNotificationChannel {
+	return &DashboardNotificationChannel{
+		name:    name,
+		enabled: enabled,
+		config:  config,
+	}
+}

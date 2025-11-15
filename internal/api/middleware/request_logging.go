@@ -163,7 +163,10 @@ func (m *RequestLoggingMiddleware) Middleware(next http.Handler) http.Handler {
 			defer func() {
 				if err := recover(); err != nil {
 					m.logPanic(r, requestID, err, start)
-					http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+					// Only write error if response hasn't been written yet
+					if !rw.written {
+						http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+					}
 				}
 			}()
 		}

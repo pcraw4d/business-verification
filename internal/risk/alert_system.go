@@ -653,3 +653,8 @@ func (ras *RiskAlertSystem) CleanupOldAlerts(ctx context.Context) error {
 	cutoffDate := time.Now().AddDate(0, 0, -ras.config.AlertRetentionDays)
 	return ras.alertStore.DeleteOldAlerts(ctx, cutoffDate)
 }
+
+// GetNotificationService returns the notification service
+func (ras *RiskAlertSystem) GetNotificationService() *NotificationService {
+	return ras.notifications
+}
