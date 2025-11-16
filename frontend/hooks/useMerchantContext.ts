@@ -11,7 +11,7 @@ interface MerchantContextType {
   refresh: () => Promise<void>;
 }
 
-const MerchantContext = createContext<MerchantContextType | undefined>(undefined);
+const MerchantContext = createContext<MerchantContextType | undefined>(undefined) as React.Context<MerchantContextType | undefined>;
 
 export function MerchantProvider({
   children,
