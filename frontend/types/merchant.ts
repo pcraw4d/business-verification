@@ -150,3 +150,19 @@ export interface AssessmentStatusResponse {
   completedAt?: string;
 }
 
+export interface RiskIndicatorsData {
+  merchantId: string;
+  indicators: RiskIndicator[];
+  timestamp?: string;
+}
+
+export interface RiskIndicator {
+  id: string;
+  title: string;
+  description: string;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
