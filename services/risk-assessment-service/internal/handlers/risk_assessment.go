@@ -13,7 +13,7 @@ import (
 	postgrest "github.com/supabase-community/postgrest-go"
 	"go.uber.org/zap"
 
-	errorspkg "kyb-platform/pkg/errors"
+	errorspkg "kyb-platform/services/risk-assessment-service/internal/errors"
 	"kyb-platform/services/risk-assessment-service/internal/config"
 	"kyb-platform/services/risk-assessment-service/internal/engine"
 	"kyb-platform/services/risk-assessment-service/internal/external"

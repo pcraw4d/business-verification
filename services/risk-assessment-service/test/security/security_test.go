@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/company/kyb-platform/services/risk-assessment-service/internal/models"
+	"kyb-platform/services/risk-assessment-service/internal/models"
 )
 
 // TestSecurityHeaders tests security headers implementation

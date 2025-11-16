@@ -13,9 +13,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
-	"github.com/company/kyb-platform/services/risk-assessment-service/internal/config"
-	"github.com/company/kyb-platform/services/risk-assessment-service/internal/ml"
-	"github.com/company/kyb-platform/services/risk-assessment-service/internal/models"
+	"kyb-platform/services/risk-assessment-service/internal/config"
+	"kyb-platform/services/risk-assessment-service/internal/ml"
+	"kyb-platform/services/risk-assessment-service/internal/models"
 )
 
 // TestMLModelValidation tests ML model validation with cross-validation

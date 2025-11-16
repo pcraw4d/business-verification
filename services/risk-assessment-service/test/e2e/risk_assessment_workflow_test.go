@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
-	"github.com/company/kyb-platform/services/risk-assessment-service/internal/models"
+	"kyb-platform/services/risk-assessment-service/internal/models"
 )
 
 // TestCompleteRiskAssessmentWorkflow tests the complete risk assessment workflow

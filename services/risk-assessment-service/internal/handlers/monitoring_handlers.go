@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	errorspkg "kyb-platform/pkg/errors"
+	errorspkg "kyb-platform/services/risk-assessment-service/internal/errors"
 	"kyb-platform/services/risk-assessment-service/internal/monitoring"
 
 	"go.uber.org/zap"
