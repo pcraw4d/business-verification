@@ -16,7 +16,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # Go build stage
-FROM golang:1.22-alpine AS go-builder
+FROM golang:1.24-alpine AS go-builder
 
 WORKDIR /app
 
