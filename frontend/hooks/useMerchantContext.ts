@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import React, { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { getMerchant } from '@/lib/api';
 import type { Merchant } from '@/types/merchant';
 
@@ -11,7 +11,7 @@ interface MerchantContextType {
   refresh: () => Promise<void>;
 }
 
-const MerchantContext = createContext<MerchantContextType | undefined>(undefined) as React.Context<MerchantContextType | undefined>;
+const MerchantContext = createContext<MerchantContextType | undefined>(undefined);
 
 export function MerchantProvider({
   children,
