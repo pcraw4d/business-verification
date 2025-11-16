@@ -40,7 +40,7 @@ COPY --from=frontend-builder /app/frontend/.next ./frontend/.next
 COPY --from=frontend-builder /app/frontend/public ./frontend/public
 
 # Verify static directory exists before build
-RUN test -d static || (echo "ERROR: static directory not found" && exit 1)
+RUN test -d cmd/frontend-service/static || (echo "ERROR: static directory not found at cmd/frontend-service/static" && exit 1)
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o frontend-service cmd/frontend-service/main.go
