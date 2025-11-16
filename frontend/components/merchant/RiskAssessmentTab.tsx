@@ -31,12 +31,27 @@ export function RiskAssessmentTab({ merchantId }: RiskAssessmentTabProps) {
     try {
       setLoading(true);
       setError(null);
+      if (process.env.NODE_ENV === 'test') {
+        console.log('[RiskAssessmentTab] Starting to load assessment:', merchantId);
+      }
       const data = await getRiskAssessment(merchantId);
+      if (process.env.NODE_ENV === 'test') {
+        console.log('[RiskAssessmentTab] Assessment data received:', data);
+      }
       setAssessment(data);
+      if (process.env.NODE_ENV === 'test') {
+        console.log('[RiskAssessmentTab] State updated with assessment data');
+      }
     } catch (err) {
+      if (process.env.NODE_ENV === 'test') {
+        console.error('[RiskAssessmentTab] Error loading assessment:', err);
+      }
       setError(err instanceof Error ? err.message : 'Failed to load risk assessment');
     } finally {
       setLoading(false);
+      if (process.env.NODE_ENV === 'test') {
+        console.log('[RiskAssessmentTab] Loading complete');
+      }
     }
   }
 

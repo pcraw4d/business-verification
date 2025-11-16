@@ -17,8 +17,8 @@ test.describe('Risk Assessment Flow', () => {
   });
 
   test('should start risk assessment', async ({ page }) => {
-    // Mock no existing assessment
-    await page.route('**/api/v1/risk/assessments/*', async (route) => {
+    // Mock no existing assessment - API uses /api/v1/merchants/:merchantId/risk-score
+    await page.route('**/api/v1/merchants/*/risk-score', async (route) => {
       await route.fulfill({
         status: 404,
         contentType: 'application/json',
@@ -26,19 +26,26 @@ test.describe('Risk Assessment Flow', () => {
       });
     });
 
-    // Mock start assessment
+    // Mock start assessment - API uses POST /api/v1/risk/assess
     await page.route('**/api/v1/risk/assess', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          assessmentId: 'assessment-123',
-          status: 'pending',
-        }),
-      });
+      if (route.request().method() === 'POST') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            assessmentId: 'assessment-123',
+            status: 'pending',
+          }),
+        });
+      } else {
+        await route.continue();
+      }
     });
 
-    await page.goto('/merchants/merchant-123');
+    await page.goto('/merchant-details/merchant-123');
+    
+    // Wait for page to load first
+    await expect(page.getByRole('heading', { name: 'Test Business' })).toBeVisible({ timeout: 10000 });
     
     // Navigate to Risk Assessment tab
     await page.getByRole('tab', { name: 'Risk Assessment' }).click();
@@ -51,8 +58,8 @@ test.describe('Risk Assessment Flow', () => {
   });
 
   test('should display completed risk assessment', async ({ page }) => {
-    // Mock completed assessment
-    await page.route('**/api/v1/risk/assessments/*', async (route) => {
+    // Mock completed assessment - API uses /api/v1/merchants/:merchantId/risk-score
+    await page.route('**/api/v1/merchants/*/risk-score', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -70,7 +77,11 @@ test.describe('Risk Assessment Flow', () => {
       });
     });
 
-    await page.goto('/merchants/merchant-123');
+    await page.goto('/merchant-details/merchant-123');
+    
+    // Wait for page to load first
+    await expect(page.getByRole('heading', { name: 'Test Business' })).toBeVisible({ timeout: 10000 });
+    
     await page.getByRole('tab', { name: 'Risk Assessment' }).click();
     
     // Should show completed assessment
@@ -81,35 +92,73 @@ test.describe('Risk Assessment Flow', () => {
   test('should poll for assessment status', async ({ page }) => {
     let pollCount = 0;
     
-    // Mock status polling
-    await page.route('**/api/v1/risk/assessments/*/status', async (route) => {
-      pollCount++;
-      if (pollCount === 1) {
+    // Mock no existing assessment first
+    await page.route('**/api/v1/merchants/*/risk-score', async (route) => {
+      await route.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        body: JSON.stringify({}),
+      });
+    });
+    
+    // Mock start assessment
+    await page.route('**/api/v1/risk/assess', async (route) => {
+      if (route.request().method() === 'POST') {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
-            status: 'processing',
-            progress: 50,
+            assessmentId: 'assessment-123',
+            status: 'pending',
           }),
         });
       } else {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            status: 'completed',
-            progress: 100,
-          }),
-        });
+        await route.continue();
+      }
+    });
+    
+    // Mock status polling - API uses GET /api/v1/risk/assess/:assessmentId
+    await page.route('**/api/v1/risk/assess/assessment-123', async (route) => {
+      if (route.request().method() === 'GET') {
+        pollCount++;
+        if (pollCount === 1) {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              assessmentId: 'assessment-123',
+              status: 'processing',
+              progress: 50,
+            }),
+          });
+        } else {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              assessmentId: 'assessment-123',
+              status: 'completed',
+              progress: 100,
+            }),
+          });
+        }
+      } else {
+        await route.continue();
       }
     });
 
-    await page.goto('/merchants/merchant-123');
+    await page.goto('/merchant-details/merchant-123');
+    
+    // Wait for page to load first
+    await expect(page.getByRole('heading', { name: 'Test Business' })).toBeVisible({ timeout: 10000 });
+    
     await page.getByRole('tab', { name: 'Risk Assessment' }).click();
     
-    // Wait for polling to complete
-    await expect(page.getByText(/completed/i)).toBeVisible({ timeout: 10000 });
+    // Click start assessment button to trigger polling
+    await page.getByRole('button', { name: /start.*assessment/i }).click();
+    
+    // Wait for polling to complete - component will reload assessment after status becomes 'completed'
+    await expect(page.getByText(/completed/i)).toBeVisible({ timeout: 15000 });
   });
 });
 

@@ -1,30 +1,28 @@
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+
+
+// Mock sonner using manual mock
+vi.mock('sonner');
+
+// Import after mock setup
 import { ErrorHandler } from '@/lib/error-handler';
+import { toast } from 'sonner';
 
-// Mock sonner
-const mockToastError = jest.fn();
-const mockToastSuccess = jest.fn();
-const mockToastInfo = jest.fn();
-
-jest.mock('sonner', () => ({
-  toast: {
-    error: mockToastError,
-    success: mockToastSuccess,
-    info: mockToastInfo,
-  },
-}));
+// Get the mocked functions
+const mockToastError = toast.error as vi.Mock;
+const mockToastSuccess = toast.success as vi.Mock;
+const mockToastInfo = toast.info as vi.Mock;
 
 describe('ErrorHandler', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockToastError.mockClear();
     mockToastSuccess.mockClear();
     mockToastInfo.mockClear();
-    jest.spyOn(console, 'error').mockImplementation();
+    vi.spyOn(console, 'error').mockImplementation();
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('handleAPIError', () => {
@@ -93,26 +91,33 @@ describe('ErrorHandler', () => {
 
   describe('parseErrorResponse', () => {
     it('should parse JSON error response', async () => {
-      const response = new Response(JSON.stringify({
+      // Create a mock Response object
+      const mockJson = vi.fn().mockResolvedValue({
         code: 'ERROR_CODE',
         message: 'Error message',
-      }), {
+      });
+      const response = {
+        json: mockJson,
         status: 400,
         statusText: 'Bad Request',
-      });
+      } as unknown as Response;
 
       const result = await ErrorHandler.parseErrorResponse(response);
       expect(result).toEqual({
         code: 'ERROR_CODE',
         message: 'Error message',
       });
+      expect(mockJson).toHaveBeenCalled();
     });
 
     it('should handle parse errors', async () => {
-      const response = new Response('Invalid JSON', {
+      // Create a mock Response that throws on json()
+      const mockJson = vi.fn().mockRejectedValue(new Error('Invalid JSON'));
+      const response = {
+        json: mockJson,
         status: 500,
         statusText: 'Internal Server Error',
-      });
+      } as unknown as Response;
 
       const result = await ErrorHandler.parseErrorResponse(response);
       expect(result).toEqual({

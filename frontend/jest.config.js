@@ -7,14 +7,26 @@ const createJestConfig = nextJest({
 
 // Add any custom config to be passed to Jest
 const customJestConfig = {
+  setupFiles: ['<rootDir>/__tests__/mocks/polyfills.js'], // Load polyfills first
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-  testEnvironment: 'jest-environment-jsdom',
+  // Use jest-fixed-jsdom to restore Node.js globals that jsdom overrides
+  // This is needed for MSW to work properly with Node's native fetch
+  testEnvironment: 'jest-fixed-jsdom',
+  // MSW v2 requires customExportConditions for proper Node.js module resolution
+  testEnvironmentOptions: {
+    customExportConditions: [''],
+  },
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
+    // Mock until-async to avoid ES module issues
+    '^until-async$': '<rootDir>/__tests__/mocks/until-async.js',
   },
   testMatch: [
     '**/__tests__/**/*.[jt]s?(x)',
     '**/?(*.)+(spec|test).[jt]s?(x)',
+  ],
+  transformIgnorePatterns: [
+    'node_modules/(?!(msw|@mswjs|@mswjs/interceptors|@mswjs/core)/)',
   ],
   collectCoverageFrom: [
     'components/**/*.{js,jsx,ts,tsx}',

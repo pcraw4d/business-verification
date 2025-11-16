@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+
 import { RequestDeduplicator } from '@/lib/request-deduplicator';
 
 describe('RequestDeduplicator', () => {
@@ -9,7 +9,7 @@ describe('RequestDeduplicator', () => {
   });
 
   it('should execute request function', async () => {
-    const mockFn = jest.fn().mockResolvedValue('result');
+    const mockFn = vi.fn().mockResolvedValue('result');
     const result = await deduplicator.deduplicate('key1', mockFn);
 
     expect(result).toBe('result');
@@ -17,7 +17,7 @@ describe('RequestDeduplicator', () => {
   });
 
   it('should deduplicate concurrent requests with same key', async () => {
-    const mockFn = jest.fn().mockImplementation(
+    const mockFn = vi.fn().mockImplementation(
       () => new Promise((resolve) => setTimeout(() => resolve('result'), 100))
     );
 
@@ -34,7 +34,7 @@ describe('RequestDeduplicator', () => {
   });
 
   it('should not deduplicate requests with different keys', async () => {
-    const mockFn = jest.fn().mockResolvedValue('result');
+    const mockFn = vi.fn().mockResolvedValue('result');
 
     await Promise.all([
       deduplicator.deduplicate('key1', mockFn),
@@ -46,7 +46,7 @@ describe('RequestDeduplicator', () => {
   });
 
   it('should handle errors and remove from pending', async () => {
-    const mockFn = jest.fn().mockRejectedValue(new Error('Test error'));
+    const mockFn = vi.fn().mockRejectedValue(new Error('Test error'));
 
     await expect(deduplicator.deduplicate('key1', mockFn)).rejects.toThrow('Test error');
 
@@ -57,7 +57,7 @@ describe('RequestDeduplicator', () => {
   });
 
   it('should clear all pending requests', async () => {
-    const mockFn = jest.fn().mockImplementation(
+    const mockFn = vi.fn().mockImplementation(
       () => new Promise((resolve) => setTimeout(() => resolve('result'), 100))
     );
 

@@ -26,12 +26,27 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
       try {
         setLoading(true);
         setError(null);
+        if (process.env.NODE_ENV === 'test') {
+          console.log('[MerchantDetailsLayout] Starting to load merchant:', merchantId);
+        }
         const data = await getMerchant(merchantId);
+        if (process.env.NODE_ENV === 'test') {
+          console.log('[MerchantDetailsLayout] Merchant data received:', data);
+        }
         setMerchant(data);
+        if (process.env.NODE_ENV === 'test') {
+          console.log('[MerchantDetailsLayout] State updated with merchant data');
+        }
       } catch (err) {
+        if (process.env.NODE_ENV === 'test') {
+          console.error('[MerchantDetailsLayout] Error loading merchant:', err);
+        }
         setError(err instanceof Error ? err.message : 'Failed to load merchant data');
       } finally {
         setLoading(false);
+        if (process.env.NODE_ENV === 'test') {
+          console.log('[MerchantDetailsLayout] Loading complete');
+        }
       }
     }
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, jest } from '@jest/globals';
+
 import { APICache } from '@/lib/api-cache';
 
 describe('Cache Performance', () => {

@@ -1,24 +1,28 @@
 // API client for Merchant Details
+import { APICache } from '@/lib/api-cache';
+import { ErrorHandler } from '@/lib/error-handler';
+import { RequestDeduplicator } from '@/lib/request-deduplicator';
 import type {
-  Merchant,
   AnalyticsData,
-  WebsiteAnalysisData,
+  AssessmentStatusResponse,
+  EnrichmentSource,
+  Merchant,
   RiskAssessment,
   RiskAssessmentRequest,
   RiskAssessmentResponse,
-  AssessmentStatusResponse,
   RiskIndicatorsData,
-  EnrichmentSource,
+  WebsiteAnalysisData,
 } from '@/types/merchant';
-import { ErrorHandler } from '@/lib/error-handler';
-import { APICache } from '@/lib/api-cache';
-import { RequestDeduplicator } from '@/lib/request-deduplicator';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 
 // Initialize optimization utilities
 const apiCache = new APICache(5 * 60 * 1000); // 5 minutes default TTL
 const requestDeduplicator = new RequestDeduplicator();
+
+// Export for test cleanup - allows clearing cache/deduplicator between tests
+export const getAPICache = () => apiCache;
+export const getRequestDeduplicator = () => requestDeduplicator;
 
 // Helper function to get auth token
 function getAuthToken(): string | null {
@@ -28,11 +32,37 @@ function getAuthToken(): string | null {
 
 // Helper function to handle API errors
 async function handleResponse<T>(response: Response): Promise<T> {
-  if (!response.ok) {
-    const errorData = await ErrorHandler.parseErrorResponse(response);
-    throw new Error(errorData.message || `API Error ${response.status}`);
+  // Check response status - MSW responses should have status and ok set correctly
+  const status = response.status;
+  const isOk = response.ok === true || (status >= 200 && status < 300);
+  
+  // Debug logging in test environment
+  if (process.env.NODE_ENV === 'test' && !isOk) {
+    console.log('[API Debug] Error response - status:', status, 'ok:', response.ok, 'statusText:', response.statusText);
   }
-  return response.json();
+  
+  if (!isOk) {
+    try {
+      const errorData = await ErrorHandler.parseErrorResponse(response);
+      const errorMessage = errorData && typeof errorData === 'object' && 'message' in errorData 
+        ? String(errorData.message) 
+        : `API Error ${status}`;
+      throw new Error(errorMessage);
+    } catch (parseError) {
+      // If parsing error response fails, just throw with status
+      throw new Error(`API Error ${status}`);
+    }
+  }
+  
+  // Safely parse JSON response
+  try {
+    const json = await response.json();
+    return json as T;
+  } catch (error) {
+    // If JSON parsing fails, throw a more helpful error
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to parse JSON response: ${errorMessage}`);
+  }
 }
 
 // Retry logic with exponential backoff
@@ -66,6 +96,9 @@ export async function getMerchant(merchantId: string): Promise<Merchant> {
   // Check cache first
   const cached = apiCache.get<Merchant>(cacheKey);
   if (cached) {
+    if (process.env.NODE_ENV === 'test') {
+      console.log('[API] getMerchant: Returning cached data for', merchantId);
+    }
     return cached;
   }
 
@@ -78,17 +111,33 @@ export async function getMerchant(merchantId: string): Promise<Merchant> {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
+  if (process.env.NODE_ENV === 'test') {
+    console.log('[API] getMerchant: Making request for', merchantId);
+  }
+
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
+      if (process.env.NODE_ENV === 'test') {
+        console.log('[API] getMerchant: Fetching', `${API_BASE_URL}/api/v1/merchants/${merchantId}`);
+      }
       const response = await fetch(`${API_BASE_URL}/api/v1/merchants/${merchantId}`, {
         method: 'GET',
         headers,
       });
+      if (process.env.NODE_ENV === 'test') {
+        console.log('[API] getMerchant: Response received', response.status, response.ok);
+      }
       const data = await handleResponse<Merchant>(response);
+      if (process.env.NODE_ENV === 'test') {
+        console.log('[API] getMerchant: Data parsed successfully', data);
+      }
       // Cache the result
       apiCache.set(cacheKey, data);
       return data;
     } catch (error) {
+      if (process.env.NODE_ENV === 'test') {
+        console.error('[API] getMerchant: Error occurred', error);
+      }
       await ErrorHandler.handleAPIError(error);
       throw error;
     }

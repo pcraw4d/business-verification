@@ -1,4 +1,5 @@
-import { describe, it, expect } from '@jest/globals';
+// Vitest globals are available via globals: true in vitest.config.ts
+import { vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { EmptyState } from '@/components/ui/empty-state';
 
@@ -20,7 +21,7 @@ describe('EmptyState', () => {
   });
 
   it('should render action button when provided', () => {
-    const onAction = jest.fn();
+    const onAction = vi.fn();
     render(
       <EmptyState
         type="error"

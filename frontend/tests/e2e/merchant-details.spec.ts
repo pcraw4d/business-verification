@@ -21,10 +21,10 @@ test.describe('Merchant Details Page', () => {
   });
 
   test('should load merchant details page', async ({ page }) => {
-    await page.goto('/merchants/merchant-123');
+    await page.goto('/merchant-details/merchant-123');
     
-    // Wait for merchant name to appear
-    await expect(page.getByText('Test Business')).toBeVisible();
+    // Wait for merchant name to appear - use getByRole for heading to avoid strict mode violation
+    await expect(page.getByRole('heading', { name: 'Test Business' })).toBeVisible({ timeout: 10000 });
     
     // Verify tabs are present
     await expect(page.getByRole('tab', { name: 'Overview' })).toBeVisible();
@@ -34,7 +34,10 @@ test.describe('Merchant Details Page', () => {
   });
 
   test('should navigate between tabs', async ({ page }) => {
-    await page.goto('/merchants/merchant-123');
+    await page.goto('/merchant-details/merchant-123');
+    
+    // Wait for page to load - use getByRole for heading to avoid strict mode violation
+    await expect(page.getByRole('heading', { name: 'Test Business' })).toBeVisible({ timeout: 10000 });
     
     // Click Business Analytics tab
     await page.getByRole('tab', { name: 'Business Analytics' }).click();
@@ -46,16 +49,21 @@ test.describe('Merchant Details Page', () => {
   });
 
   test('should display merchant information in Overview tab', async ({ page }) => {
-    await page.goto('/merchants/merchant-123');
+    await page.goto('/merchant-details/merchant-123');
+    
+    // Wait for page to load - use getByRole for heading to avoid strict mode violation
+    await expect(page.getByRole('heading', { name: 'Test Business' })).toBeVisible({ timeout: 10000 });
     
     // Overview tab should be active by default
-    await expect(page.getByText('Test Business')).toBeVisible();
-    await expect(page.getByText('Technology')).toBeVisible();
-    await expect(page.getByText('active')).toBeVisible();
+    // Use getByRole('tabpanel') to scope the search to the Overview tab content
+    const overviewTab = page.getByRole('tabpanel', { name: 'Overview' });
+    await expect(overviewTab.getByText('Test Business')).toBeVisible();
+    await expect(overviewTab.getByText('Technology')).toBeVisible();
+    await expect(overviewTab.getByText(/active/i)).toBeVisible();
   });
 
   test('should handle API errors gracefully', async ({ page }) => {
-    // Mock API error
+    // Mock API error - override the beforeEach mock
     await page.route('**/api/v1/merchants/*', async (route) => {
       await route.fulfill({
         status: 404,
@@ -67,10 +75,12 @@ test.describe('Merchant Details Page', () => {
       });
     });
 
-    await page.goto('/merchants/merchant-123');
+    await page.goto('/merchant-details/merchant-123');
     
-    // Should show error message
-    await expect(page.getByText(/error|failed/i)).toBeVisible();
+    // Should show error message in Alert component - scope to alert role to avoid strict mode violation
+    // The component renders error in an Alert with role="alert"
+    const alert = page.getByRole('alert');
+    await expect(alert.getByText(/API Error|Merchant not found|error|failed/i)).toBeVisible({ timeout: 10000 });
   });
 });
 

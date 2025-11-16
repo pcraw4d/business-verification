@@ -40,14 +40,19 @@ test.describe('Analytics Data Loading', () => {
       });
     });
 
-    await page.goto('/merchants/merchant-123');
+    await page.goto('/merchant-details/merchant-123');
+    
+    // Wait for page to load first
+    await expect(page.getByRole('heading', { name: 'Test Business' })).toBeVisible({ timeout: 10000 });
     
     // Navigate to Business Analytics tab
     await page.getByRole('tab', { name: 'Business Analytics' }).click();
     
     // Should display analytics data
     await expect(page.getByText('Technology')).toBeVisible();
-    await expect(page.getByText(/95%/)).toBeVisible();
+    // Confidence score is displayed as "95.0%" (with decimal)
+    // Match "95" optionally followed by ".0" or other decimal digits, then "%"
+    await expect(page.getByText(/95(\.\d+)?%/)).toBeVisible();
   });
 
   test('should lazy load website analysis', async ({ page }) => {
@@ -79,7 +84,11 @@ test.describe('Analytics Data Loading', () => {
       });
     });
 
-    await page.goto('/merchants/merchant-123');
+    await page.goto('/merchant-details/merchant-123');
+    
+    // Wait for page to load first
+    await expect(page.getByRole('heading', { name: 'Test Business' })).toBeVisible({ timeout: 10000 });
+    
     await page.getByRole('tab', { name: 'Business Analytics' }).click();
     
     // Scroll to trigger lazy loading
@@ -102,7 +111,11 @@ test.describe('Analytics Data Loading', () => {
       });
     });
 
-    await page.goto('/merchants/merchant-123');
+    await page.goto('/merchant-details/merchant-123');
+    
+    // Wait for page to load first
+    await expect(page.getByRole('heading', { name: 'Test Business' })).toBeVisible({ timeout: 10000 });
+    
     await page.getByRole('tab', { name: 'Business Analytics' }).click();
     
     // Should show empty state

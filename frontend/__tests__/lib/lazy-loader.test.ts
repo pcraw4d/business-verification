@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+
 import { LazyLoader, deferNonCriticalDataLoad } from '@/lib/lazy-loader';
 
 describe('LazyLoader', () => {
@@ -17,7 +17,7 @@ describe('LazyLoader', () => {
   });
 
   it('should observe element and load when visible', async () => {
-    const loadFn = jest.fn().mockResolvedValue(undefined);
+    const loadFn = vi.fn().mockResolvedValue(undefined);
 
     loader.observe(mockElement, loadFn);
 
@@ -32,7 +32,7 @@ describe('LazyLoader', () => {
   });
 
   it('should not load same element twice', async () => {
-    const loadFn = jest.fn().mockResolvedValue(undefined);
+    const loadFn = vi.fn().mockResolvedValue(undefined);
 
     loader.observe(mockElement, loadFn);
     (loader as any).handleIntersection(mockElement);
@@ -46,7 +46,7 @@ describe('LazyLoader', () => {
   });
 
   it('should disconnect observer', () => {
-    const loadFn = jest.fn();
+    const loadFn = vi.fn();
     loader.observe(mockElement, loadFn);
     
     // Disconnect before intersection
@@ -60,7 +60,7 @@ describe('LazyLoader', () => {
   });
 
   it('should handle load errors gracefully', async () => {
-    const loadFn = jest.fn().mockRejectedValue(new Error('Load error'));
+    const loadFn = vi.fn().mockRejectedValue(new Error('Load error'));
 
     loader.observe(mockElement, loadFn);
     (loader as any).handleIntersection(mockElement);
@@ -74,25 +74,25 @@ describe('LazyLoader', () => {
 
 describe('deferNonCriticalDataLoad', () => {
   beforeEach(() => {
-    jest.clearAllTimers();
-    jest.useFakeTimers();
+    vi.clearAllTimers();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('should use requestIdleCallback when available', () => {
-    const mockIdleCallback = jest.fn((cb) => {
+    const mockIdleCallback = vi.fn((cb) => {
       setTimeout(cb, 0);
       return 1;
     });
     (window as any).requestIdleCallback = mockIdleCallback;
 
-    const loadFn = jest.fn();
+    const loadFn = vi.fn();
     deferNonCriticalDataLoad(loadFn);
 
-    jest.advanceTimersByTime(10);
+    vi.advanceTimersByTime(10);
 
     expect(mockIdleCallback).toHaveBeenCalled();
   });
@@ -100,31 +100,31 @@ describe('deferNonCriticalDataLoad', () => {
   it('should fallback to setTimeout when requestIdleCallback not available', () => {
     delete (window as any).requestIdleCallback;
 
-    const loadFn = jest.fn();
+    const loadFn = vi.fn();
     deferNonCriticalDataLoad(loadFn);
 
-    jest.advanceTimersByTime(2000);
+    vi.advanceTimersByTime(2000);
 
     expect(loadFn).toHaveBeenCalled();
   });
 
   it('should handle async load functions', async () => {
-    const loadFn = jest.fn().mockResolvedValue(undefined);
+    const loadFn = vi.fn().mockResolvedValue(undefined);
     deferNonCriticalDataLoad(loadFn);
 
-    jest.advanceTimersByTime(2000);
+    vi.advanceTimersByTime(2000);
     await Promise.resolve();
 
     expect(loadFn).toHaveBeenCalled();
   });
 
   it('should handle load errors', async () => {
-    const loadFn = jest.fn().mockRejectedValue(new Error('Load error'));
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+    const loadFn = vi.fn().mockRejectedValue(new Error('Load error'));
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
 
     deferNonCriticalDataLoad(loadFn);
 
-    jest.advanceTimersByTime(2000);
+    vi.advanceTimersByTime(2000);
     await Promise.resolve();
 
     expect(loadFn).toHaveBeenCalled();

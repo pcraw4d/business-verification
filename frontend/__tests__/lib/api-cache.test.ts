@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from '@jest/globals';
+// Vitest globals are available via globals: true in vitest.config.ts
 import { APICache, cachedFetch } from '@/lib/api-cache';
 
 describe('APICache', () => {
@@ -104,17 +104,23 @@ describe('APICache', () => {
 
 describe('cachedFetch', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
+    // Mock fetch globally for these tests
+    global.fetch = vi.fn();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('should cache GET requests', async () => {
     const cache = new APICache();
     const mockData = { id: '123' };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,
       json: async () => mockData,
-    });
+    } as Response);
 
     // First call - should fetch
     const result1 = await cachedFetch('/api/test', { method: 'GET' }, cache);
@@ -131,10 +137,10 @@ describe('cachedFetch', () => {
     const cache = new APICache();
     const mockData = { id: '123' };
 
-    (global.fetch as jest.Mock).mockResolvedValue({
+    vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
       json: async () => mockData,
-    });
+    } as Response);
 
     await cachedFetch('/api/test', { method: 'POST' }, cache);
     await cachedFetch('/api/test', { method: 'POST' }, cache);
@@ -145,11 +151,11 @@ describe('cachedFetch', () => {
   it('should handle errors', async () => {
     const cache = new APICache();
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: false,
       status: 500,
       statusText: 'Internal Server Error',
-    });
+    } as Response);
 
     await expect(
       cachedFetch('/api/test', { method: 'GET' }, cache)

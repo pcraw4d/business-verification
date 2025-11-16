@@ -1,4 +1,4 @@
-import { describe, it, expect } from '@jest/globals';
+// Vitest globals are available via globals: true in vitest.config.ts
 import { render, screen } from '@testing-library/react';
 import { ProgressIndicator } from '@/components/ui/progress-indicator';
 
