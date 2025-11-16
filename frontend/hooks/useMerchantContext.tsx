@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { useState, useEffect, createContext, useContext, type ReactNode } from 'react';
 import { getMerchant } from '@/lib/api';
 import type { Merchant } from '@/types/merchant';
 
@@ -12,6 +12,9 @@ interface MerchantContextType {
 }
 
 const MerchantContext = createContext<MerchantContextType | undefined>(undefined);
+
+// Export context for use in JSX
+export { MerchantContext };
 
 export function MerchantProvider({
   children,

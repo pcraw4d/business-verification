@@ -166,3 +166,10 @@ export interface RiskIndicator {
   updatedAt?: string;
 }
 
+export interface EnrichmentSource {
+  id: string;
+  name: string;
+  description?: string;
+  enabled?: boolean;
+}
+
