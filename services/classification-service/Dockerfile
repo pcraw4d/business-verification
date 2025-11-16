@@ -26,8 +26,10 @@ COPY internal/ ./internal/
 # Copy pkg/ directory (create empty directory first as fallback)
 # Note: COPY will fail if pkg/ doesn't exist, so we ensure it exists first
 RUN mkdir -p ./pkg
-# Use COPY with a pattern that won't fail if directory is empty
+# Copy pkg directory but exclude the conflicting errors/api_errors.go file
+# This avoids the WriteError function conflict between api_errors.go and response.go
 COPY pkg ./pkg
+RUN rm -f ./pkg/errors/api_errors.go || true
 
 # Copy service-specific source code
 COPY services/classification-service/cmd/ ./services/classification-service/cmd/

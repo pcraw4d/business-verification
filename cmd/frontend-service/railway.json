@@ -1,7 +1,8 @@
 {
   "build": {
     "builder": "DOCKERFILE",
-    "dockerfilePath": "Dockerfile"
+    "dockerfilePath": "cmd/frontend-service/Dockerfile",
+    "dockerContext": "."
   },
   "deploy": {
     "startCommand": "./frontend-service",

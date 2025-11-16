@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap"
 	postgrest "github.com/supabase-community/postgrest-go"
 
-	"kyb-platform/pkg/errors"
+	"kyb-platform/services/merchant-service/internal/errors"
 	"kyb-platform/services/merchant-service/internal/cache"
 	"kyb-platform/services/merchant-service/internal/metrics"
 	"kyb-platform/services/merchant-service/internal/queue"

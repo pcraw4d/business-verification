@@ -10,10 +10,7 @@ require (
 	github.com/supabase-community/postgrest-go v0.0.11
 	github.com/supabase-community/supabase-go v0.0.4
 	go.uber.org/zap v1.27.0
-	kyb-platform v0.0.0
 )
-
-replace kyb-platform => ../..
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect

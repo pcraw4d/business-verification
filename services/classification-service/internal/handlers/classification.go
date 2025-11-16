@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap"
 
 	"kyb-platform/internal/classification"
-	"kyb-platform/pkg/errors"
+	"kyb-platform/services/classification-service/internal/errors"
 	"kyb-platform/services/classification-service/internal/config"
 	"kyb-platform/services/classification-service/internal/supabase"
 )

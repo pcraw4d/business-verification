@@ -15,7 +15,7 @@ import (
 
 	"kyb-platform/internal/classification"
 	"kyb-platform/internal/classification/repository"
-	"kyb-platform/pkg/errors"
+	"kyb-platform/services/classification-service/internal/errors"
 	"kyb-platform/services/classification-service/internal/adapters"
 	"kyb-platform/services/classification-service/internal/config"
 	"kyb-platform/services/classification-service/internal/handlers"

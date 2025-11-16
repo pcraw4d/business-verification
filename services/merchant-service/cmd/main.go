@@ -13,7 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 
-	"kyb-platform/pkg/errors"
+	"kyb-platform/services/merchant-service/internal/errors"
 	"kyb-platform/services/merchant-service/internal/config"
 	"kyb-platform/services/merchant-service/internal/handlers"
 	"kyb-platform/services/merchant-service/internal/supabase"
