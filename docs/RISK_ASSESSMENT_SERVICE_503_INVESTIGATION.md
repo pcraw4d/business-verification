@@ -96,14 +96,45 @@ Investigate why `/api/v1/metrics` is returning 502 and fix the underlying issue.
 3. **Verify**: Test the metrics endpoint after route fix
 4. **Monitor**: Ensure metrics endpoint is stable
 
+## Fix Applied ✅
+
+**Commit**: `e2da5e034`
+
+**Change**: Updated `ProxyToRiskAssessment` in `services/api-gateway/internal/handlers/gateway.go` to map `/api/v1/risk/metrics` → `/api/v1/metrics`:
+
+```go
+} else if path == "/api/v1/risk/metrics" {
+    // Map /api/v1/risk/metrics to /api/v1/metrics (risk service uses /metrics, not /risk/metrics)
+    path = "/api/v1/metrics"
+}
+```
+
+## Remaining Issues ⚠️
+
+### Issue: Risk Assessment Service `/api/v1/metrics` Returns 502
+
+Even with the route mapping fix, the Risk Assessment Service's `/api/v1/metrics` endpoint is returning 502 "Application failed to respond". This suggests:
+
+1. **Service Endpoint Issue**: The `/api/v1/metrics` handler may be crashing or timing out
+2. **Dependency Issue**: The endpoint may require database/Redis connections that are failing
+3. **Implementation Issue**: The endpoint may not be properly implemented
+
+**Action Required**: 
+- Check Risk Assessment Service logs in Railway dashboard
+- Investigate why `/api/v1/metrics` handler is failing
+- Verify database and Redis connections for the metrics endpoint
+
 ## Next Steps
 
-1. Update API Gateway route mapping
-2. Test the fix
-3. Investigate 502 error on `/api/v1/metrics` endpoint
-4. Document the fix
+1. ✅ **COMPLETE**: Update API Gateway route mapping
+2. ⏳ **PENDING**: Wait for Railway to deploy API Gateway fix
+3. ⏳ **PENDING**: Test the fix after deployment
+4. ⏳ **PENDING**: Investigate 502 error on `/api/v1/metrics` endpoint in Risk Assessment Service
+5. ⏳ **PENDING**: Fix Risk Assessment Service metrics endpoint if needed
 
 ---
 
-**Status**: ⚠️ **INVESTIGATION COMPLETE** - Route mapping issue identified, fix required
+**Status**: ✅ **ROUTE MAPPING FIXED** - API Gateway now correctly routes `/api/v1/risk/metrics` → `/api/v1/metrics`
+
+**Remaining**: ⚠️ Risk Assessment Service `/api/v1/metrics` endpoint needs investigation (returns 502)
 
