@@ -19,8 +19,9 @@ ENV NODE_ENV=${NODE_ENV:-production}
 # Copy frontend package files
 COPY frontend/package*.json ./
 
-# Install frontend dependencies
-RUN npm ci
+# Install frontend dependencies (including devDependencies for build)
+# TypeScript is needed to transpile next.config.ts
+RUN npm ci --include=dev
 
 # Copy frontend source
 COPY frontend/ ./
