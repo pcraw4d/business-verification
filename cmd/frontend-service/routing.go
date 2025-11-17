@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -157,6 +158,15 @@ func (rc *RouteConfig) serveRoute(w http.ResponseWriter, r *http.Request, route 
 	
 	// Try Next.js page
 	nextJSPath := rc.getNextJSPath(route)
+	
+	// Debug: Log the path we're looking for (only in development)
+	if os.Getenv("DEBUG_ROUTING") == "true" {
+		log.Printf("DEBUG: Route '%s' -> Looking for: %s", route, nextJSPath)
+		if _, err := os.Stat(rc.nextJSBuildPath); err != nil {
+			log.Printf("DEBUG: Next.js build path does not exist: %s", rc.nextJSBuildPath)
+		}
+	}
+	
 	if _, err := os.Stat(nextJSPath); err == nil {
 		// Next.js page exists, serve it
 		http.ServeFile(w, r, nextJSPath)

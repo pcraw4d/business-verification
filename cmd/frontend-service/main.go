@@ -326,15 +326,12 @@ func (s *FrontendService) setupRoutes() {
 	// Next.js routes - catch-all for client-side routing
 	http.HandleFunc("/merchant-details/", s.handleMerchantDetailsRoute)
 	
-	// Default route - serve main index page (root)
+	// Default route - catch-all for Next.js routing
+	// This must be last so other specific routes are checked first
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// Only handle root path, not sub-paths
-		if r.URL.Path == "/" {
-			s.routeConfig.serveRoute(w, r, "")
-		} else {
-			// For other paths, let other handlers take over
-			http.NotFound(w, r)
-		}
+		// Remove leading slash and route to Next.js
+		route := strings.TrimPrefix(r.URL.Path, "/")
+		s.routeConfig.serveRoute(w, r, route)
 	})
 }
 
