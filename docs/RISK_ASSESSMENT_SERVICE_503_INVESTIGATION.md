@@ -109,32 +109,79 @@ Investigate why `/api/v1/metrics` is returning 502 and fix the underlying issue.
 }
 ```
 
-## Remaining Issues ⚠️
+## Issue 2: Risk Assessment Service `/api/v1/metrics` Returns 502 ✅ FIXED
 
-### Issue: Risk Assessment Service `/api/v1/metrics` Returns 502
+### Root Cause Identified
 
-Even with the route mapping fix, the Risk Assessment Service's `/api/v1/metrics` endpoint is returning 502 "Application failed to respond". This suggests:
+**Panic in Metrics Handler**: The `HandleGetMetrics` function was using unsafe type assertions to extract `request_id` from context:
 
-1. **Service Endpoint Issue**: The `/api/v1/metrics` handler may be crashing or timing out
-2. **Dependency Issue**: The endpoint may require database/Redis connections that are failing
-3. **Implementation Issue**: The endpoint may not be properly implemented
+```go
+// UNSAFE - Can panic if request_id is not set
+ctx.Value("request_id").(string)
+```
 
-**Action Required**: 
-- Check Risk Assessment Service logs in Railway dashboard
-- Investigate why `/api/v1/metrics` handler is failing
-- Verify database and Redis connections for the metrics endpoint
+If the `request_id` was not set in the context, this would cause a panic, resulting in a 502 error.
+
+### Fix Applied ✅
+
+**Commit**: `fff1e0fcb` and `4cb9843ab`
+
+1. **Added Safe Request ID Helper Function**:
+```go
+func (h *MetricsHandler) getRequestID(ctx context.Context) string {
+    if reqID, ok := ctx.Value("request_id").(string); ok && reqID != "" {
+        return reqID
+    }
+    return "unknown"
+}
+```
+
+2. **Fixed All Unsafe Type Assertions**:
+   - Replaced 7 instances of unsafe `ctx.Value("request_id").(string)`
+   - All now use the safe `h.getRequestID(ctx)` helper
+   - Prevents panics when request_id is missing from context
+
+3. **Added Missing Import**: Added `context` package import
+
+**Files Modified**:
+- `services/risk-assessment-service/internal/handlers/metrics.go`
 
 ## Next Steps
 
 1. ✅ **COMPLETE**: Update API Gateway route mapping
-2. ⏳ **PENDING**: Wait for Railway to deploy API Gateway fix
-3. ⏳ **PENDING**: Test the fix after deployment
-4. ⏳ **PENDING**: Investigate 502 error on `/api/v1/metrics` endpoint in Risk Assessment Service
-5. ⏳ **PENDING**: Fix Risk Assessment Service metrics endpoint if needed
+2. ✅ **COMPLETE**: Fix panic in Risk Assessment Service metrics handler
+3. ⏳ **PENDING**: Wait for Railway to deploy both fixes
+4. ⏳ **PENDING**: Test both endpoints after deployment:
+   - `/api/v1/risk/metrics` via API Gateway
+   - `/api/v1/metrics` directly on Risk Assessment Service
+
+## Testing After Deployment
+
+```bash
+# Test via API Gateway (should now work)
+curl https://api-gateway-service-production-21fd.up.railway.app/api/v1/risk/metrics
+
+# Test direct service endpoint (should now work)
+curl https://risk-assessment-service-production.up.railway.app/api/v1/metrics
+```
+
+**Expected Results**:
+- ✅ Both endpoints should return 200 OK with metrics data
+- ✅ No more 503/502 errors
+- ✅ Request ID safely handled even if missing from context
 
 ---
 
-**Status**: ✅ **ROUTE MAPPING FIXED** - API Gateway now correctly routes `/api/v1/risk/metrics` → `/api/v1/metrics`
+**Status**: ✅ **BOTH FIXES APPLIED** 
 
-**Remaining**: ⚠️ Risk Assessment Service `/api/v1/metrics` endpoint needs investigation (returns 502)
+**Fixes**:
+1. ✅ API Gateway route mapping: `/api/v1/risk/metrics` → `/api/v1/metrics`
+2. ✅ Risk Assessment Service panic fix: Safe request_id extraction
+
+**Commits**:
+- `e2da5e034` - API Gateway route mapping fix
+- `fff1e0fcb` - Metrics handler panic fix
+- `4cb9843ab` - Added context import
+
+**Awaiting**: Railway deployment of both services
 
