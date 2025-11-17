@@ -477,6 +477,7 @@ func (h *GatewayHandler) ProxyToRiskAssessment(w http.ResponseWriter, r *http.Re
 
 	// Extract the path and map API Gateway routes to Risk Assessment service routes
 	// API Gateway: /api/v1/risk/assess -> Risk Service: /api/v1/assess
+	// API Gateway: /api/v1/risk/metrics -> Risk Service: /api/v1/metrics
 	// API Gateway: /api/v1/risk/benchmarks -> Risk Service: /api/v1/risk/benchmarks
 	// API Gateway: /api/v1/risk/predictions/{id} -> Risk Service: /api/v1/risk/predictions/{id}
 	path := r.URL.Path
@@ -484,6 +485,9 @@ func (h *GatewayHandler) ProxyToRiskAssessment(w http.ResponseWriter, r *http.Re
 	// Map /api/v1/risk/assess to /api/v1/assess (risk service uses /assess, not /risk/assess)
 	if path == "/api/v1/risk/assess" {
 		path = "/api/v1/assess"
+	} else if path == "/api/v1/risk/metrics" {
+		// Map /api/v1/risk/metrics to /api/v1/metrics (risk service uses /metrics, not /risk/metrics)
+		path = "/api/v1/metrics"
 	} else if strings.HasPrefix(path, "/api/v1/risk/") {
 		// For other /risk/* paths, keep them as-is (e.g., /risk/benchmarks, /risk/predictions)
 		// The risk service has routes like /api/v1/risk/benchmarks
