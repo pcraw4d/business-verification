@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { ExportButton } from '@/components/export/ExportButton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
 import { getRiskIndicators } from '@/lib/api';
 import { deferNonCriticalDataLoad } from '@/lib/lazy-loader';
 import type { RiskIndicatorsData } from '@/types/merchant';
+import { useEffect, useState } from 'react';
 
 interface RiskIndicatorsTabProps {
   merchantId: string;
@@ -71,12 +72,32 @@ export function RiskIndicatorsTab({ merchantId }: RiskIndicatorsTabProps) {
     );
   }
 
+  const getExportData = async () => {
+    return {
+      indicators,
+      merchantId,
+      exportedAt: new Date().toISOString(),
+    };
+  };
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Risk Indicators</CardTitle>
-          <CardDescription>Active risk indicators for this merchant</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Risk Indicators</CardTitle>
+              <CardDescription>Active risk indicators for this merchant</CardDescription>
+            </div>
+            {indicators && (
+              <ExportButton
+                data={getExportData}
+                exportType="risk"
+                merchantId={merchantId}
+                formats={['csv', 'json', 'excel', 'pdf']}
+              />
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (

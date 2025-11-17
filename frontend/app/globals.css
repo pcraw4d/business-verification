@@ -119,6 +119,16 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Enhanced focus styles for keyboard navigation (WCAG 2.4.7) */
+  *:focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+  
+  /* Skip link for keyboard navigation (WCAG 2.4.1) */
+  .skip-link {
+    @apply sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md;
+  }
 }
 
 /* Safari-specific fixes */

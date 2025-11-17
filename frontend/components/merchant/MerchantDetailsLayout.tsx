@@ -1,15 +1,33 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MerchantOverviewTab } from './MerchantOverviewTab';
-import { BusinessAnalyticsTab } from './BusinessAnalyticsTab';
-import { RiskAssessmentTab } from './RiskAssessmentTab';
-import { RiskIndicatorsTab } from './RiskIndicatorsTab';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getMerchant } from '@/lib/api';
 import type { Merchant } from '@/types/merchant';
+import dynamic from 'next/dynamic';
+import { useEffect, useState } from 'react';
+
+// Lazy load tabs - only load when needed
+const MerchantOverviewTab = dynamic(
+  () => import('./MerchantOverviewTab').then((mod) => ({ default: mod.MerchantOverviewTab })),
+  { loading: () => <Skeleton className="h-64 w-full" />, ssr: false }
+);
+
+const BusinessAnalyticsTab = dynamic(
+  () => import('./BusinessAnalyticsTab').then((mod) => ({ default: mod.BusinessAnalyticsTab })),
+  { loading: () => <Skeleton className="h-64 w-full" />, ssr: false }
+);
+
+const RiskAssessmentTab = dynamic(
+  () => import('./RiskAssessmentTab').then((mod) => ({ default: mod.RiskAssessmentTab })),
+  { loading: () => <Skeleton className="h-64 w-full" />, ssr: false }
+);
+
+const RiskIndicatorsTab = dynamic(
+  () => import('./RiskIndicatorsTab').then((mod) => ({ default: mod.RiskIndicatorsTab })),
+  { loading: () => <Skeleton className="h-64 w-full" />, ssr: false }
+);
 
 interface MerchantDetailsLayoutProps {
   merchantId: string;

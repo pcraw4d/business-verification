@@ -173,3 +173,39 @@ export interface EnrichmentSource {
   enabled?: boolean;
 }
 
+// Merchant List Types
+export interface MerchantListParams {
+  page?: number;
+  pageSize?: number;
+  portfolioType?: string;
+  riskLevel?: string;
+  status?: string;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface MerchantListItem {
+  id: string;
+  name: string;
+  legal_name?: string;
+  registration_number?: string;
+  industry?: string;
+  portfolio_type?: string;
+  risk_level?: string;
+  compliance_status?: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MerchantListResponse {
+  merchants: MerchantListItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+  has_next: boolean;
+  has_previous: boolean;
+}
+

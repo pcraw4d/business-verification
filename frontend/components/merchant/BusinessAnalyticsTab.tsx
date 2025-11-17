@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { ExportButton } from '@/components/export/ExportButton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
 import { getMerchantAnalytics, getWebsiteAnalysis } from '@/lib/api';
 import { deferNonCriticalDataLoad } from '@/lib/lazy-loader';
 import type { AnalyticsData, WebsiteAnalysisData } from '@/types/merchant';
+import { useEffect, useState } from 'react';
 
 interface BusinessAnalyticsTabProps {
   merchantId: string;
@@ -19,7 +20,6 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
   const [websiteAnalysis, setWebsiteAnalysis] = useState<WebsiteAnalysisData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const tabRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function loadAnalytics() {
@@ -64,14 +64,33 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
     );
   }
 
+  const getExportData = async () => {
+    return {
+      analytics,
+      websiteAnalysis,
+      merchantId,
+      exportedAt: new Date().toISOString(),
+    };
+  };
+
   return (
     <div className="space-y-6">
       {analytics && (
         <>
           <Card>
             <CardHeader>
-              <CardTitle>Classification</CardTitle>
-              <CardDescription>Industry classification data</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Classification</CardTitle>
+                  <CardDescription>Industry classification data</CardDescription>
+                </div>
+                <ExportButton
+                  data={getExportData}
+                  exportType="analytics"
+                  merchantId={merchantId}
+                  formats={['csv', 'json', 'excel', 'pdf']}
+                />
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>

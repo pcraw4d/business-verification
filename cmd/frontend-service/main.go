@@ -12,6 +12,7 @@ type FrontendService struct {
 	serviceName string
 	version     string
 	port        string
+	routeConfig *RouteConfig
 }
 
 func NewFrontendService() *FrontendService {
@@ -31,6 +32,7 @@ func NewFrontendService() *FrontendService {
 		serviceName: serviceName,
 		version:     version,
 		port:        port,
+		routeConfig: NewRouteConfig(),
 	}
 }
 
@@ -45,15 +47,7 @@ func (s *FrontendService) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *FrontendService) handleDashboard(w http.ResponseWriter, r *http.Request) {
-	// Try to serve Next.js app first
-	nextJSFile := "./static/.next/server/app/index.html"
-	if _, err := os.Stat(nextJSFile); err == nil {
-		// Next.js build exists - serve it
-		http.ServeFile(w, r, nextJSFile)
-		return
-	}
-	// Fall back to legacy UI
-	http.ServeFile(w, r, "./static/index.html")
+	s.routeConfig.serveRoute(w, r, "dashboard")
 }
 
 func (s *FrontendService) handleAssets(w http.ResponseWriter, r *http.Request) {
@@ -103,27 +97,27 @@ func (s *FrontendService) handleAssets(w http.ResponseWriter, r *http.Request) {
 
 // Legacy page handlers
 func (s *FrontendService) handleMerchantHub(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/merchant-hub.html")
+	s.routeConfig.serveRoute(w, r, "merchant-hub")
 }
 
 func (s *FrontendService) handleMerchantPortfolio(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/merchant-portfolio.html")
+	s.routeConfig.serveRoute(w, r, "merchant-portfolio")
 }
 
 func (s *FrontendService) handleBusinessIntelligence(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/business-intelligence.html")
+	s.routeConfig.serveRoute(w, r, "business-intelligence")
 }
 
 func (s *FrontendService) handleComplianceDashboard(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/compliance-dashboard.html")
+	s.routeConfig.serveRoute(w, r, "compliance")
 }
 
 func (s *FrontendService) handleRiskDashboard(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/risk-dashboard.html")
+	s.routeConfig.serveRoute(w, r, "risk-dashboard")
 }
 
 func (s *FrontendService) handleAddMerchant(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/add-merchant.html")
+	s.routeConfig.serveRoute(w, r, "add-merchant")
 }
 
 func (s *FrontendService) handleMerchantDetails(w http.ResponseWriter, r *http.Request) {
@@ -140,47 +134,47 @@ func (s *FrontendService) handleMerchantDetails(w http.ResponseWriter, r *http.R
 }
 
 func (s *FrontendService) handleMerchantComparison(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/merchant-comparison.html")
+	s.routeConfig.serveRoute(w, r, "merchant/comparison")
 }
 
 func (s *FrontendService) handleMerchantBulkOperations(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/merchant-bulk-operations.html")
+	s.routeConfig.serveRoute(w, r, "merchant/bulk-operations")
 }
 
 func (s *FrontendService) handleMonitoringDashboard(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/monitoring-dashboard.html")
+	s.routeConfig.serveRoute(w, r, "monitoring")
 }
 
 func (s *FrontendService) handleApiTest(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/api-test.html")
+	s.routeConfig.serveRoute(w, r, "api-test")
 }
 
 func (s *FrontendService) handleEnhancedRiskIndicators(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/enhanced-risk-indicators.html")
+	s.routeConfig.serveRoute(w, r, "risk-indicators")
 }
 
 func (s *FrontendService) handleComplianceGapAnalysis(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/compliance-gap-analysis.html")
+	s.routeConfig.serveRoute(w, r, "compliance/gap-analysis")
 }
 
 func (s *FrontendService) handleComplianceProgressTracking(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/compliance-progress-tracking.html")
+	s.routeConfig.serveRoute(w, r, "compliance/progress-tracking")
 }
 
 func (s *FrontendService) handleMarketAnalysisDashboard(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/market-analysis-dashboard.html")
+	s.routeConfig.serveRoute(w, r, "market-analysis")
 }
 
 func (s *FrontendService) handleCompetitiveAnalysisDashboard(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/competitive-analysis-dashboard.html")
+	s.routeConfig.serveRoute(w, r, "competitive-analysis")
 }
 
 func (s *FrontendService) handleBusinessGrowthAnalytics(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/business-growth-analytics.html")
+	s.routeConfig.serveRoute(w, r, "business-growth")
 }
 
 func (s *FrontendService) handleMerchantHubIntegration(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/merchant-hub-integration.html")
+	s.routeConfig.serveRoute(w, r, "merchant-hub/integration")
 }
 
 func (s *FrontendService) handleMerchantDetail(w http.ResponseWriter, r *http.Request) {
@@ -214,35 +208,35 @@ func (s *FrontendService) handleMerchantDetailsOld(w http.ResponseWriter, r *htt
 }
 
 func (s *FrontendService) handleAdminDashboard(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/admin-dashboard.html")
+	s.routeConfig.serveRoute(w, r, "admin")
 }
 
 func (s *FrontendService) handleRegister(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/register.html")
+	s.routeConfig.serveRoute(w, r, "register")
 }
 
 func (s *FrontendService) handleSessions(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/sessions.html")
+	s.routeConfig.serveRoute(w, r, "sessions")
 }
 
 func (s *FrontendService) handleAdminModels(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/admin-models.html")
+	s.routeConfig.serveRoute(w, r, "admin/models")
 }
 
 func (s *FrontendService) handleAnalyticsInsights(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/analytics-insights.html")
+	s.routeConfig.serveRoute(w, r, "analytics-insights")
 }
 
 func (s *FrontendService) handleAdminQueue(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/admin-queue.html")
+	s.routeConfig.serveRoute(w, r, "admin/queue")
 }
 
 func (s *FrontendService) handleDashboardHub(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/dashboard-hub.html")
+	s.routeConfig.serveRoute(w, r, "dashboard-hub")
 }
 
 func (s *FrontendService) handleRiskAssessmentPortfolio(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/risk-assessment-portfolio.html")
+	s.routeConfig.serveRoute(w, r, "risk-assessment/portfolio")
 }
 
 func (s *FrontendService) setupRoutes() {
@@ -331,8 +325,16 @@ func (s *FrontendService) setupRoutes() {
 	// Next.js routes - catch-all for client-side routing
 	http.HandleFunc("/merchant-details/", s.handleMerchantDetailsRoute)
 	
-	// Default route - serve main index page
-	http.HandleFunc("/", s.handleDashboard)
+	// Default route - serve main index page (root)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Only handle root path, not sub-paths
+		if r.URL.Path == "/" {
+			s.routeConfig.serveRoute(w, r, "")
+		} else {
+			// For other paths, let other handlers take over
+			http.NotFound(w, r)
+		}
+	})
 }
 
 // handleMerchantDetailsRoute handles Next.js merchant details routes

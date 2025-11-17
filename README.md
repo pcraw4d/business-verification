@@ -24,10 +24,11 @@ kyb-platform/
 - **Database**: Supabase integration
 - **Deployment**: Railway (shimmering-comfort service)
 
-### Frontend Service (`services/frontend/`)
-- **Purpose**: Web interface for business classification
-- **Technology**: HTML/CSS/JS with Go static file server
+### Frontend Service (`frontend/` and `cmd/frontend-service/`)
+- **Purpose**: Web interface for business classification, risk assessment, and compliance
+- **Technology**: Next.js with shadcn UI (new) / HTML/CSS/JS with Go static file server (legacy)
 - **Deployment**: Railway (frontend-UI service)
+- **Status**: New shadcn UI fully migrated, legacy UI deprecated
 
 ## Quick Start
 
@@ -84,5 +85,17 @@ make deploy-frontend # Deploy frontend to Railway
 
 ## Documentation
 - [API Service](services/api/README.md)
-- [Frontend Service](services/frontend/README.md)
+- [Frontend Service](frontend/README.md)
+- [UI Migration Complete](docs/UI_MIGRATION_COMPLETE.md)
+- [Legacy UI Deprecation](docs/LEGACY_UI_DEPRECATION.md)
+- [Frontend UI Audit](docs/FRONTEND_UI_AUDIT_REPORT.md)
 - [Development Guidelines](docs/development-guidelines.md)
+
+## Frontend UI Migration
+
+The frontend has been fully migrated from legacy HTML/CSS/JS to Next.js with shadcn UI. All pages have been migrated and the new UI is production-ready.
+
+- **New UI**: Next.js with shadcn UI components
+- **Location**: `frontend/` directory
+- **Enable**: Set `USE_NEW_UI=true` environment variable
+- **Status**: ✅ All pages migrated
