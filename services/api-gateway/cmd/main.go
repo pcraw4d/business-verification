@@ -125,6 +125,20 @@ func main() {
 	api.HandleFunc("/merchant/health", gatewayHandler.ProxyToMerchantHealth).Methods("GET")
 	api.HandleFunc("/risk/health", gatewayHandler.ProxyToRiskAssessmentHealth).Methods("GET")
 
+	// Dashboard routes - CORS handled by middleware (register before PathPrefix routes)
+	api.HandleFunc("/dashboard/metrics", gatewayHandler.ProxyToDashboardMetricsV1).Methods("GET", "OPTIONS")
+
+	// Compliance routes - CORS handled by middleware (register before PathPrefix routes)
+	api.HandleFunc("/compliance/status", gatewayHandler.ProxyToComplianceStatus).Methods("GET", "OPTIONS")
+
+	// Session routes - CORS handled by middleware (register before PathPrefix routes)
+	api.HandleFunc("/sessions", gatewayHandler.ProxyToSessions).Methods("GET", "POST", "DELETE", "OPTIONS")
+	api.HandleFunc("/sessions/current", gatewayHandler.ProxyToSessions).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sessions/metrics", gatewayHandler.ProxyToSessions).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sessions/activity", gatewayHandler.ProxyToSessions).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sessions/status", gatewayHandler.ProxyToSessions).Methods("GET", "OPTIONS")
+	api.PathPrefix("/sessions").HandlerFunc(gatewayHandler.ProxyToSessions)
+
 	// Risk Assessment routes - CORS handled by middleware
 	api.HandleFunc("/risk/assess", gatewayHandler.ProxyToRiskAssessment).Methods("POST", "OPTIONS")
 	api.HandleFunc("/risk/benchmarks", gatewayHandler.ProxyToRiskAssessment).Methods("GET", "OPTIONS")
@@ -134,20 +148,6 @@ func main() {
 	// Business Intelligence routes - CORS handled by middleware
 	api.HandleFunc("/bi/analyze", gatewayHandler.ProxyToBI).Methods("POST", "OPTIONS")
 	api.PathPrefix("/bi").HandlerFunc(gatewayHandler.ProxyToBI)
-
-	// Dashboard routes - CORS handled by middleware
-	api.HandleFunc("/dashboard/metrics", gatewayHandler.ProxyToDashboardMetricsV1).Methods("GET", "OPTIONS")
-
-	// Compliance routes - CORS handled by middleware
-	api.HandleFunc("/compliance/status", gatewayHandler.ProxyToComplianceStatus).Methods("GET", "OPTIONS")
-
-	// Session routes - CORS handled by middleware
-	api.HandleFunc("/sessions", gatewayHandler.ProxyToSessions).Methods("GET", "POST", "DELETE", "OPTIONS")
-	api.HandleFunc("/sessions/current", gatewayHandler.ProxyToSessions).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sessions/metrics", gatewayHandler.ProxyToSessions).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sessions/activity", gatewayHandler.ProxyToSessions).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sessions/status", gatewayHandler.ProxyToSessions).Methods("GET", "OPTIONS")
-	api.PathPrefix("/sessions").HandlerFunc(gatewayHandler.ProxyToSessions)
 
 	// Authentication routes - CORS handled by middleware
 	api.HandleFunc("/auth/register", gatewayHandler.HandleAuthRegister).Methods("POST", "OPTIONS")
