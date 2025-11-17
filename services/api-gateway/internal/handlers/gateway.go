@@ -372,6 +372,23 @@ func (h *GatewayHandler) ProxyToMerchantHealth(w http.ResponseWriter, r *http.Re
 func (h *GatewayHandler) proxyRequest(w http.ResponseWriter, r *http.Request, targetURL, targetPath string) {
 	ctx := r.Context()
 
+	// Validate targetURL is not empty
+	if targetURL == "" {
+		h.logger.Error("Target URL is empty",
+			zap.String("path", r.URL.Path),
+			zap.String("targetPath", targetPath))
+		gatewayerrors.WriteServiceUnavailable(w, r, "Backend service URL not configured")
+		return
+	}
+
+	// Ensure targetURL has a scheme (https://)
+	if !strings.HasPrefix(targetURL, "http://") && !strings.HasPrefix(targetURL, "https://") {
+		targetURL = "https://" + targetURL
+		h.logger.Warn("Added https:// prefix to target URL",
+			zap.String("original", targetURL),
+			zap.String("corrected", targetURL))
+	}
+
 	// Log the proxy request
 	h.logger.Info("Proxying request",
 		zap.String("method", r.Method),

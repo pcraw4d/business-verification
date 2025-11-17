@@ -44,6 +44,7 @@ func main() {
 		zap.String("classification_url", cfg.Services.ClassificationURL),
 		zap.String("merchant_url", cfg.Services.MerchantURL),
 		zap.String("frontend_url", cfg.Services.FrontendURL),
+		zap.String("bi_service_url", cfg.Services.BIServiceURL),
 		zap.String("risk_assessment_url", cfg.Services.RiskAssessmentURL))
 
 	// Initialize Supabase client
@@ -101,6 +102,12 @@ func main() {
 	
 	// API v3 routes for enhanced endpoints
 	apiV3 := router.PathPrefix("/api/v3").Subrouter()
+	// Apply middleware to v3 routes
+	apiV3.Use(middleware.CORS(cfg.CORS))
+	apiV3.Use(middleware.SecurityHeaders)
+	apiV3.Use(middleware.Logging(logger))
+	apiV3.Use(middleware.RateLimit(cfg.RateLimit))
+	apiV3.Use(middleware.Authentication(supabaseClient, logger))
 	apiV3.HandleFunc("/dashboard/metrics", gatewayHandler.ProxyToDashboardMetricsV3).Methods("GET", "OPTIONS")
 	api.HandleFunc("/classify", gatewayHandler.ProxyToClassification).Methods("POST")
 	// OPTIONS handled by CORS middleware
