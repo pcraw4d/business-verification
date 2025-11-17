@@ -330,8 +330,6 @@ func (s *FrontendService) setupRoutes() {
 
 // handleMerchantDetailsRoute handles Next.js merchant details routes
 func (s *FrontendService) handleMerchantDetailsRoute(w http.ResponseWriter, r *http.Request) {
-	// Extract merchant ID from path
-	path := r.URL.Path
 	// Path format: /merchant-details/{id}
 	// For Next.js, we need to serve the appropriate page
 	
