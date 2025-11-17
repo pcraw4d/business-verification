@@ -3,8 +3,23 @@
 ## Overview
 This document outlines a systematic approach to identify and fix all build, Docker, and codebase issues preventing successful Railway deployment.
 
-## Current Error
+## Current Error (FIXED)
 **Type Error**: `response.json<T>()` - Fetch API's `json()` method doesn't accept type arguments in TypeScript.
+**Status**: ✅ FIXED - Changed to `await response.json() as T`
+
+## Issues Found and Fixed
+
+### ✅ Fixed Issues
+1. **response.json<T>()** - Changed to type assertion: `await response.json() as T`
+2. **typeof result** - Replaced with explicit types in `getRiskHistory` and `getEnrichmentSources`
+3. **useMerchantContext.ts** - Renamed to `.tsx` (JSX requires .tsx extension)
+4. **Missing EnrichmentSource type** - Added to `frontend/types/merchant.ts`
+5. **Missing RiskIndicatorsData type** - Added to `frontend/types/merchant.ts`
+6. **Missing dialog component** - Created `frontend/components/ui/dialog.tsx`
+7. **package-lock.json out of sync** - Updated with `npm install`
+8. **Go version mismatch** - Updated Dockerfile to Go 1.24
+9. **Static directory path** - Fixed path check in Dockerfile
+10. **vitest.setup.ts mock** - Added type assertion for sessionStorage mock
 
 ---
 
