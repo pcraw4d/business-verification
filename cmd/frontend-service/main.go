@@ -45,7 +45,14 @@ func (s *FrontendService) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *FrontendService) handleDashboard(w http.ResponseWriter, r *http.Request) {
-	// Serve the main index page (legacy UI)
+	// Try to serve Next.js app first
+	nextJSFile := "./static/.next/server/app/page.html"
+	if _, err := os.Stat(nextJSFile); err == nil {
+		// Next.js build exists - serve it
+		http.ServeFile(w, r, nextJSFile)
+		return
+	}
+	// Fall back to legacy UI
 	http.ServeFile(w, r, "./static/index.html")
 }
 
@@ -239,8 +246,8 @@ func (s *FrontendService) handleRiskAssessmentPortfolio(w http.ResponseWriter, r
 }
 
 func (s *FrontendService) setupRoutes() {
-	// Serve Next.js static files
-	http.Handle("/_next/", http.StripPrefix("/_next/", http.FileServer(http.Dir("./static/.next/static/"))))
+	// Serve Next.js static files (CSS, JS, images, etc.)
+	http.Handle("/_next/static/", http.StripPrefix("/_next/static/", http.FileServer(http.Dir("./static/.next/static/"))))
 	
 	// Serve static files (legacy support)
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static/"))))
