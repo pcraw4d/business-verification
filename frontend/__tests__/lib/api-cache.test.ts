@@ -1,5 +1,6 @@
 // Vitest globals are available via globals: true in vitest.config.ts
 import { APICache, cachedFetch } from '@/lib/api-cache';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('APICache', () => {
   let cache: APICache;
@@ -160,6 +161,109 @@ describe('cachedFetch', () => {
     await expect(
       cachedFetch('/api/test', { method: 'GET' }, cache)
     ).rejects.toThrow();
+  });
+
+  it('should handle cache hit scenario', async () => {
+    const cache = new APICache();
+    const mockData = { id: '123' };
+
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockData,
+    } as Response);
+
+    // First call - cache miss
+    const result1 = await cachedFetch('/api/test', { method: 'GET' }, cache);
+    expect(result1).toEqual(mockData);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+
+    // Second call - cache hit
+    const result2 = await cachedFetch('/api/test', { method: 'GET' }, cache);
+    expect(result2).toEqual(mockData);
+    expect(global.fetch).toHaveBeenCalledTimes(1); // Still 1, cache hit
+  });
+
+  it('should handle cache miss scenario', async () => {
+    const cache = new APICache();
+    const mockData1 = { id: '123' };
+    const mockData2 = { id: '456' };
+
+    vi.mocked(global.fetch)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockData1,
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockData2,
+      } as Response);
+
+    // First call - cache miss
+    const result1 = await cachedFetch('/api/test1', { method: 'GET' }, cache);
+    expect(result1).toEqual(mockData1);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+
+    // Second call with different URL - cache miss
+    const result2 = await cachedFetch('/api/test2', { method: 'GET' }, cache);
+    expect(result2).toEqual(mockData2);
+    expect(global.fetch).toHaveBeenCalledTimes(2); // Cache miss, new fetch
+  });
+
+  it('should invalidate cache entry', async () => {
+    const cache = new APICache();
+    const mockData = { id: '123' };
+
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: true,
+      json: async () => mockData,
+    } as Response);
+
+    // First call - cache miss
+    await cachedFetch('/api/test', { method: 'GET' }, cache);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+
+    // Second call - cache hit
+    await cachedFetch('/api/test', { method: 'GET' }, cache);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+
+    // Invalidate cache
+    cache.delete(APICache.generateKey('/api/test', { method: 'GET' }));
+
+    // Third call - cache miss after invalidation
+    await cachedFetch('/api/test', { method: 'GET' }, cache);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('should handle multiple cache entries', () => {
+    const cache = new APICache(1000);
+    const data1 = { id: '1' };
+    const data2 = { id: '2' };
+    const data3 = { id: '3' };
+
+    cache.set('key1', data1);
+    cache.set('key2', data2);
+    cache.set('key3', data3);
+    
+    expect(cache.get('key1')).toEqual(data1);
+    expect(cache.get('key2')).toEqual(data2);
+    expect(cache.get('key3')).toEqual(data3);
+  });
+
+  it('should handle cache expiration cleanup', () => {
+    const cache = new APICache(50); // 50ms TTL
+    const data = { id: '1' };
+
+    cache.set('key1', data);
+    expect(cache.get('key1')).toEqual(data);
+
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        // After expiration, entry should be cleaned up
+        const result = cache.get('key1');
+        expect(result).toBeNull();
+        resolve();
+      }, 100);
+    });
   });
 });
 

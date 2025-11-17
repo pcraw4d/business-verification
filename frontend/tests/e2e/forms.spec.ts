@@ -13,7 +13,10 @@ test.describe('Form Tests', () => {
     const countrySelect = page.locator('button:has-text("Select country"), [role="combobox"]:near(label:has-text("Country"))').first();
     if (await countrySelect.isVisible({ timeout: 2000 })) {
       await countrySelect.click();
-      await page.getByRole('option', { name: /united states|us/i }).click();
+      // Wait for dropdown to open
+      await page.waitForTimeout(300);
+      // Use first() to handle multiple matches (strict mode violation)
+      await page.getByRole('option', { name: /united states|us/i }).first().click();
     } else {
       // Fallback: try to find select by name
       await page.selectOption('select[name="country"]', 'US');
