@@ -48,7 +48,9 @@ func (rc *RouteConfig) shouldUseNewUI(route string) bool {
 }
 
 // getNextJSPath converts a route to Next.js file path
-// Next.js generates HTML files directly in the app directory (e.g., dashboard.html, merchant-hub.html)
+// Next.js App Router generates HTML files in nested directory structure
+// For nested routes: compliance/gap-analysis -> compliance/gap-analysis.html
+// For simple routes: dashboard -> dashboard.html
 func (rc *RouteConfig) getNextJSPath(route string) string {
 	// Remove leading slash
 	route = strings.TrimPrefix(route, "/")
@@ -58,17 +60,12 @@ func (rc *RouteConfig) getNextJSPath(route string) string {
 		return filepath.Join(rc.nextJSBuildPath, "index.html")
 	}
 	
-	// Next.js generates HTML files directly: route -> route.html
-	// For routes with slashes, try multiple patterns:
-	// 1. Replace slashes with dashes: compliance/gap-analysis -> compliance-gap-analysis.html
-	// 2. Keep nested structure: compliance/gap-analysis -> compliance/gap-analysis/page.html
-	// 3. Simple: route -> route.html
-	
-	// First try: replace slashes with dashes (common Next.js pattern)
+	// For routes with slashes, Next.js generates files in nested directories
+	// e.g., compliance/gap-analysis -> compliance/gap-analysis.html
 	if strings.Contains(route, "/") {
-		dashRoute := strings.ReplaceAll(route, "/", "-")
-		dashPath := filepath.Join(rc.nextJSBuildPath, dashRoute+".html")
-		return dashPath
+		// Try nested structure first (correct for App Router)
+		nestedPath := filepath.Join(rc.nextJSBuildPath, route+".html")
+		return nestedPath
 	}
 	
 	// Simple route: just add .html

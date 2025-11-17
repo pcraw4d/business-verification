@@ -308,6 +308,26 @@ func (s *FrontendService) setupRoutes() {
 	http.HandleFunc("/admin/queue", s.handleAdminQueue)
 	http.HandleFunc("/admin/queue.html", s.handleAdminQueue)
 
+	// Next.js nested routes - explicit handlers for slash-based routes
+	http.HandleFunc("/compliance/gap-analysis", s.handleComplianceGapAnalysis)
+	http.HandleFunc("/compliance/progress-tracking", s.handleComplianceProgressTracking)
+	http.HandleFunc("/compliance/alerts", func(w http.ResponseWriter, r *http.Request) {
+		s.routeConfig.serveRoute(w, r, "compliance/alerts")
+	})
+	http.HandleFunc("/compliance/framework-indicators", func(w http.ResponseWriter, r *http.Request) {
+		s.routeConfig.serveRoute(w, r, "compliance/framework-indicators")
+	})
+	http.HandleFunc("/compliance/summary-reports", func(w http.ResponseWriter, r *http.Request) {
+		s.routeConfig.serveRoute(w, r, "compliance/summary-reports")
+	})
+	http.HandleFunc("/merchant-hub/integration", s.handleMerchantHubIntegration)
+	http.HandleFunc("/merchant/bulk-operations", s.handleMerchantBulkOperations)
+	http.HandleFunc("/merchant/comparison", s.handleMerchantComparison)
+	http.HandleFunc("/risk-assessment/portfolio", s.handleRiskAssessmentPortfolio)
+	http.HandleFunc("/gap-analysis/reports", func(w http.ResponseWriter, r *http.Request) {
+		s.routeConfig.serveRoute(w, r, "gap-analysis/reports")
+	})
+
 	// Backward compatibility routes with .html extensions
 	http.HandleFunc("/add-merchant.html", s.handleAddMerchant)
 	http.HandleFunc("/dashboard.html", s.handleDashboard)
