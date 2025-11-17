@@ -42,8 +42,12 @@ COPY --from=frontend-builder /app/frontend/public ./frontend/public
 # Verify static directory exists before build
 RUN test -d cmd/frontend-service/static || (echo "ERROR: static directory not found at cmd/frontend-service/static" && exit 1)
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o frontend-service cmd/frontend-service/main.go
+# Remove conflicting go.mod in cmd/frontend-service if it exists (use root module)
+RUN rm -f cmd/frontend-service/go.mod cmd/frontend-service/go.sum
+
+# Build the application - build all .go files in the package together
+# Use the root go.mod and build from the cmd/frontend-service directory
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o frontend-service ./cmd/frontend-service
 
 # Verify binary was created
 RUN test -f frontend-service || (echo "ERROR: frontend-service binary not created" && exit 1)
