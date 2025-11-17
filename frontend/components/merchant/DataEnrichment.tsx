@@ -39,7 +39,8 @@ export function DataEnrichment({ merchantId }: DataEnrichmentProps) {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`/api/v1/merchants/${merchantId}/enrichment/sources`, {
+      const { ApiEndpoints } = await import('@/lib/api-config');
+      const response = await fetch(ApiEndpoints.merchants.enrichmentSources(merchantId), {
         headers,
       });
 
@@ -65,7 +66,8 @@ export function DataEnrichment({ merchantId }: DataEnrichmentProps) {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`/api/v1/merchants/${merchantId}/enrichment/trigger`, {
+      const { ApiEndpoints } = await import('@/lib/api-config');
+      const response = await fetch(ApiEndpoints.merchants.triggerEnrichment(merchantId), {
         method: 'POST',
         headers,
         body: JSON.stringify({ source }),

@@ -201,7 +201,8 @@ export function BulkOperationsManager() {
   const performBulkPortfolioUpdate = async (merchantIds: string[]) => {
     try {
       const token = typeof window !== 'undefined' ? sessionStorage.getItem('authToken') : null;
-      const response = await fetch('/api/v1/merchants/bulk/update', {
+      const { ApiEndpoints } = await import('@/lib/api-config');
+      const response = await fetch(ApiEndpoints.merchants.bulkUpdate(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -238,7 +239,8 @@ export function BulkOperationsManager() {
   const performBulkRiskUpdate = async (merchantIds: string[]) => {
     try {
       const token = typeof window !== 'undefined' ? sessionStorage.getItem('authToken') : null;
-      const response = await fetch('/api/v1/merchants/bulk/update', {
+      const { ApiEndpoints } = await import('@/lib/api-config');
+      const response = await fetch(ApiEndpoints.merchants.bulkUpdate(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -2,6 +2,8 @@
  * WebSocket client for real-time updates
  */
 
+import { buildWebSocketUrl } from './api-config';
+
 export type WebSocketStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 
 export interface WebSocketMessage {
@@ -210,11 +212,7 @@ export function createRiskWebSocketClient(
     onStatusChange?: (status: WebSocketStatus) => void;
   }
 ): WebSocketClient {
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
-  const wsUrl = apiBaseUrl
-    .replace('http://', 'ws://')
-    .replace('https://', 'wss://')
-    .replace(/\/$/, '') + '/api/v1/risk/ws';
+  const wsUrl = buildWebSocketUrl('/api/v1/risk/ws');
 
   const client = new WebSocketClient({
     url: wsUrl,

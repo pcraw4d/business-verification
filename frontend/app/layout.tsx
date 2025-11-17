@@ -1,5 +1,6 @@
 import { PerformanceOptimizer } from "@/components/performance/PerformanceOptimizer";
 import { Toaster } from "@/components/ui/sonner";
+import { getApiBaseUrl } from "@/lib/api-config";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -34,8 +35,8 @@ export default function RootLayout({
     <html lang="en">
       <head>
         {/* Preconnect to API for faster requests */}
-        <link rel="preconnect" href={process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'} crossOrigin="anonymous" />
-        <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'} />
+        <link rel="preconnect" href={getApiBaseUrl()} crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href={getApiBaseUrl()} />
         {/* Preconnect to Google Fonts */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

@@ -2,6 +2,12 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Search } from 'lucide-react';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Gap Analysis | Compliance',
+  description: 'Identify compliance gaps and requirements',
+};
 
 export default function ComplianceGapAnalysisPage() {
   return (

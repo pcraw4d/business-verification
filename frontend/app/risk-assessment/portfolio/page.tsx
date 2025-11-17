@@ -2,6 +2,12 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/dashboards/DataTable';
 import { Shield } from 'lucide-react';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Risk Assessment Portfolio | Risk Dashboard',
+  description: 'Portfolio-wide risk assessment overview',
+};
 
 interface RiskAssessment {
   id: string;

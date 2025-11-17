@@ -49,7 +49,8 @@ export function ExportButton({
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`/api/v1/merchants/${merchantId}/export?format=${format}`, {
+      const { ApiEndpoints } = await import('@/lib/api-config');
+      const response = await fetch(ApiEndpoints.merchants.export(merchantId, format), {
         method: 'GET',
         headers,
       });

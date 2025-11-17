@@ -2,6 +2,8 @@
  * Resource preloading utilities for performance optimization
  */
 
+import { getApiBaseUrl } from './api-config';
+
 /**
  * Preload a resource (script, style, font, etc.)
  */
@@ -68,7 +70,7 @@ export function dnsPrefetch(origin: string) {
 export function initPerformanceOptimizations() {
   if (typeof window === 'undefined') return;
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+  const apiBaseUrl = getApiBaseUrl();
   const apiOrigin = new URL(apiBaseUrl).origin;
 
   // Preconnect to API origin

@@ -1,5 +1,6 @@
 // API client for Merchant Details
 import { APICache } from '@/lib/api-cache';
+import { ApiEndpoints } from '@/lib/api-config';
 import { ErrorHandler } from '@/lib/error-handler';
 import { RequestDeduplicator } from '@/lib/request-deduplicator';
 import type {
@@ -23,7 +24,8 @@ import type {
   WebsiteAnalysisData,
 } from '@/types/merchant';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+// API_BASE_URL is now accessed via ApiEndpoints - keeping for backward compatibility if needed
+// const API_BASE_URL = getApiBaseUrl();
 
 // Initialize optimization utilities
 const apiCache = new APICache(5 * 60 * 1000); // 5 minutes default TTL
@@ -127,9 +129,9 @@ export async function getMerchant(merchantId: string): Promise<Merchant> {
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
       if (process.env.NODE_ENV === 'test') {
-        console.log('[API] getMerchant: Fetching', `${API_BASE_URL}/api/v1/merchants/${merchantId}`);
+        console.log('[API] getMerchant: Fetching', ApiEndpoints.merchants.get(merchantId));
       }
-      const response = await fetch(`${API_BASE_URL}/api/v1/merchants/${merchantId}`, {
+      const response = await fetch(ApiEndpoints.merchants.get(merchantId), {
         method: 'GET',
         headers,
       });
@@ -173,7 +175,7 @@ export async function getMerchantAnalytics(merchantId: string): Promise<Analytic
 
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/merchants/${merchantId}/analytics`, {
+      const response = await fetch(ApiEndpoints.merchants.analytics(merchantId), {
         method: 'GET',
         headers,
       });
@@ -199,7 +201,7 @@ export async function getWebsiteAnalysis(merchantId: string): Promise<WebsiteAna
   }
 
   return retryWithBackoff(async () => {
-    const response = await fetch(`${API_BASE_URL}/api/v1/merchants/${merchantId}/website-analysis`, {
+    const response = await fetch(ApiEndpoints.merchants.websiteAnalysis(merchantId), {
       method: 'GET',
       headers,
     });
@@ -219,7 +221,7 @@ export async function getRiskAssessment(merchantId: string): Promise<RiskAssessm
 
   try {
     return await retryWithBackoff(async () => {
-      const response = await fetch(`${API_BASE_URL}/api/v1/merchants/${merchantId}/risk-score`, {
+      const response = await fetch(ApiEndpoints.merchants.riskScore(merchantId), {
         method: 'GET',
         headers,
       });
@@ -247,7 +249,7 @@ export async function startRiskAssessment(
   }
 
   return retryWithBackoff(async () => {
-    const response = await fetch(`${API_BASE_URL}/api/v1/risk/assess`, {
+    const response = await fetch(ApiEndpoints.risk.assess(), {
       method: 'POST',
       headers,
       body: JSON.stringify(request),
@@ -269,7 +271,7 @@ export async function getAssessmentStatus(
   }
 
   return retryWithBackoff(async () => {
-    const response = await fetch(`${API_BASE_URL}/api/v1/risk/assess/${assessmentId}`, {
+    const response = await fetch(ApiEndpoints.risk.getAssessment(assessmentId), {
       method: 'GET',
       headers,
     });
@@ -304,7 +306,7 @@ export async function getRiskHistory(
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/v1/risk/history/${merchantId}?limit=${limit}&offset=${offset}`,
+        ApiEndpoints.risk.history(merchantId, limit, offset),
         {
           method: 'GET',
           headers,
@@ -360,14 +362,19 @@ export async function getRiskPredictions(
 
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
-      const params = new URLSearchParams({
-        horizons: horizons.join(','),
-        includeScenarios: String(includeScenarios),
-        includeConfidence: String(includeConfidence),
-      });
-      const response = await fetch(
-        `${API_BASE_URL}/api/v1/risk/predictions/${merchantId}?${params}`,
-        {
+      // Use first horizon for endpoint, but we'll pass all params via query string if needed
+      const horizon = horizons.length > 0 ? String(horizons[0]) : undefined;
+      let url = ApiEndpoints.risk.predictions(merchantId, horizon);
+      
+      // Add additional params if needed (horizons array, includeScenarios, includeConfidence)
+      const params = new URLSearchParams();
+      if (horizons.length > 1) params.append('horizons', horizons.join(','));
+      if (includeScenarios) params.append('includeScenarios', String(includeScenarios));
+      if (includeConfidence) params.append('includeConfidence', String(includeConfidence));
+      const queryString = params.toString();
+      if (queryString) url = `${url}${url.includes('?') ? '&' : '?'}${queryString}`;
+      
+      const response = await fetch(url, {
           method: 'GET',
           headers,
         }
@@ -410,7 +417,7 @@ export async function explainRiskAssessment(assessmentId: string): Promise<RiskE
 
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/risk/explain/${assessmentId}`, {
+      const response = await fetch(ApiEndpoints.risk.explain(assessmentId), {
         method: 'GET',
         headers,
       });
@@ -458,7 +465,7 @@ export async function getRiskRecommendations(merchantId: string): Promise<RiskRe
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/v1/merchants/${merchantId}/risk-recommendations`,
+        ApiEndpoints.merchants.riskRecommendations(merchantId),
         {
           method: 'GET',
           headers,
@@ -498,12 +505,12 @@ export async function getRiskIndicators(
 
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
-      const params = new URLSearchParams();
-      if (severity) params.append('severity', severity);
-      if (status) params.append('status', status);
+      const filters: Record<string, string> = {};
+      if (severity) filters.severity = severity;
+      if (status) filters.status = status;
       
       const response = await fetch(
-        `${API_BASE_URL}/api/v1/risk/indicators/${merchantId}?${params}`,
+        ApiEndpoints.risk.indicators(merchantId, filters),
         {
           method: 'GET',
           headers,
@@ -546,7 +553,7 @@ export async function getEnrichmentSources(merchantId: string): Promise<{
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/v1/merchants/${merchantId}/enrichment/sources`,
+        ApiEndpoints.merchants.enrichmentSources(merchantId),
         {
           method: 'GET',
           headers,
@@ -589,7 +596,7 @@ export async function triggerEnrichment(
 
   return retryWithBackoff(async () => {
     const response = await fetch(
-      `${API_BASE_URL}/api/v1/merchants/${merchantId}/enrichment/trigger`,
+      ApiEndpoints.merchants.triggerEnrichment(merchantId),
       {
         method: 'POST',
         headers,
@@ -632,7 +639,7 @@ export async function getMerchantsList(params?: MerchantListParams): Promise<Mer
       if (params?.sortOrder) queryParams.append('sort_order', params.sortOrder);
 
       const queryString = queryParams.toString();
-      const url = `${API_BASE_URL}/api/v1/merchants${queryString ? `?${queryString}` : ''}`;
+      const url = `${ApiEndpoints.merchants.list()}${queryString ? `?${queryString}` : ''}`;
       
       const response = await fetch(url, {
         method: 'GET',
@@ -673,14 +680,14 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
       // Try v3 endpoint first, fallback to v1
-      let response = await fetch(`${API_BASE_URL}/api/v3/dashboard/metrics`, {
+      let response = await fetch(ApiEndpoints.dashboard.metrics('v3'), {
         method: 'GET',
         headers,
       });
 
       if (!response.ok && response.status === 404) {
         // Fallback to v1 endpoint if v3 doesn't exist
-        response = await fetch(`${API_BASE_URL}/api/v1/dashboard/metrics`, {
+        response = await fetch(ApiEndpoints.dashboard.metrics('v1'), {
           method: 'GET',
           headers,
         });
@@ -696,19 +703,19 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
         };
       }
 
-      const data = await handleResponse<{ data?: DashboardMetrics; business?: any }>(response);
+      const data = await handleResponse<{ data?: DashboardMetrics; business?: Record<string, unknown> }>(response);
       
       // Handle different response formats
       const metrics: DashboardMetrics = data.data || {
-        totalMerchants: data.business?.total_verifications || 0,
-        revenue: data.business?.revenue || 0,
-        growthRate: data.business?.growth_rate || 0,
-        analyticsScore: data.business?.analytics_score || 0,
+        totalMerchants: (data.business?.total_verifications as number) || 0,
+        revenue: (data.business?.revenue as number) || 0,
+        growthRate: (data.business?.growth_rate as number) || 0,
+        analyticsScore: (data.business?.analytics_score as number) || 0,
       };
 
       apiCache.set(cacheKey, metrics, 60 * 1000); // 1 minute cache
       return metrics;
-    } catch (error) {
+    } catch {
       // Return default values on error
       return {
         totalMerchants: 0,
@@ -740,7 +747,7 @@ export async function getRiskMetrics(): Promise<RiskMetrics> {
 
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/risk/metrics`, {
+      const response = await fetch(ApiEndpoints.risk.metrics(), {
         method: 'GET',
         headers,
       });
@@ -758,7 +765,7 @@ export async function getRiskMetrics(): Promise<RiskMetrics> {
       const data = await handleResponse<RiskMetrics>(response);
       apiCache.set(cacheKey, data, 60 * 1000); // 1 minute cache
       return data;
-    } catch (error) {
+    } catch {
       // Return default values on error
       return {
         overallRiskScore: 0,
@@ -791,20 +798,20 @@ export async function getSystemMetrics(): Promise<SystemMetrics> {
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
       // Try multiple possible endpoints
-      let response = await fetch(`${API_BASE_URL}/api/v1/monitoring/metrics`, {
+      let response = await fetch(ApiEndpoints.monitoring.metrics(), {
         method: 'GET',
         headers,
       });
 
       if (!response.ok && response.status === 404) {
-        response = await fetch(`${API_BASE_URL}/api/v1/system/metrics`, {
+        response = await fetch(ApiEndpoints.monitoring.systemMetrics(), {
           method: 'GET',
           headers,
         });
       }
 
       if (!response.ok && response.status === 404) {
-        response = await fetch(`${API_BASE_URL}/api/v1/metrics`, {
+        response = await fetch(ApiEndpoints.monitoring.generalMetrics(), {
           method: 'GET',
           headers,
         });
@@ -823,11 +830,11 @@ export async function getSystemMetrics(): Promise<SystemMetrics> {
       const data = await handleResponse<SystemMetrics | { data?: SystemMetrics }>(response);
       
       // Handle different response formats
-      const metrics: SystemMetrics = (data as any).data || data as SystemMetrics;
+      const metrics: SystemMetrics = ('data' in data && data.data) ? data.data as SystemMetrics : data as SystemMetrics;
       
       apiCache.set(cacheKey, metrics, 30 * 1000); // 30 second cache for system metrics
       return metrics;
-    } catch (error) {
+    } catch {
       // Return default healthy values on error
       return {
         systemHealth: 100,
@@ -859,7 +866,7 @@ export async function getComplianceStatus(): Promise<ComplianceStatus> {
 
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/compliance/status`, {
+      const response = await fetch(ApiEndpoints.compliance.status(), {
         method: 'GET',
         headers,
       });
@@ -877,7 +884,7 @@ export async function getComplianceStatus(): Promise<ComplianceStatus> {
       const data = await handleResponse<ComplianceStatus>(response);
       apiCache.set(cacheKey, data, 60 * 1000); // 1 minute cache
       return data;
-    } catch (error) {
+    } catch {
       // Return default values on error
       return {
         overallScore: 0,
@@ -932,7 +939,7 @@ export async function createMerchant(data: CreateMerchantRequest): Promise<Creat
 
   return retryWithBackoff(async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/merchants`, {
+      const response = await fetch(ApiEndpoints.merchants.create(), {
         method: 'POST',
         headers,
         body: JSON.stringify(data),
@@ -979,7 +986,7 @@ export async function getBusinessIntelligenceMetrics(): Promise<BusinessIntellig
 
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/business-intelligence/metrics`, {
+      const response = await fetch(ApiEndpoints.businessIntelligence.metrics(), {
         method: 'GET',
         headers,
       });
@@ -997,7 +1004,7 @@ export async function getBusinessIntelligenceMetrics(): Promise<BusinessIntellig
       const data = await handleResponse<BusinessIntelligenceMetrics>(response);
       apiCache.set(cacheKey, data, 60 * 1000); // 1 minute cache
       return data;
-    } catch (error) {
+    } catch {
       // Return default values on error
       return {
         revenueGrowth: 0,

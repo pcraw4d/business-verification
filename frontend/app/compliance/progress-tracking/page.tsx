@@ -2,6 +2,12 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { CheckSquare } from 'lucide-react';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Progress Tracking | Compliance',
+  description: 'Track compliance progress and milestones',
+};
 
 export default function ComplianceProgressTrackingPage() {
   return (

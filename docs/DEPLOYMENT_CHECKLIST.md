@@ -1,272 +1,265 @@
-# Production Deployment Checklist
+# Frontend Deployment Checklist
+
+**Service**: Frontend (Next.js)  
+**Platform**: Railway  
+**Last Updated**: 2025-01-XX
 
 ## Pre-Deployment Checklist
 
-### 1. Code & Testing ✅
-- [ ] All code changes committed and pushed
-- [ ] All tests passing locally
-- [ ] Integration tests completed
-- [ ] No known critical bugs
-- [ ] Code review completed (if applicable)
+### Code Quality ✅
+- [ ] All TypeScript compilation passes (`npm run build`)
+- [ ] All linting passes (`npm run lint`)
+- [ ] All unit tests pass (`npm test`)
+- [ ] All E2E tests pass (`npm run test:e2e`)
+- [ ] No console errors in development mode
+- [ ] Build verification script passes (`npm run verify-env`)
 
-### 2. Database Setup ✅
-- [ ] Database connection string configured (`DATABASE_URL`)
-- [ ] Database schema verified (`risk_thresholds` table exists)
-- [ ] Migration script tested
-- [ ] Database connection tested (`./scripts/test_database_connection.sh`)
-- [ ] Schema verification passed (`./scripts/verify_database_schema.sh`)
+### Environment Variables ✅
+- [ ] `NEXT_PUBLIC_API_BASE_URL` is set
+  - **Value**: `https://api-gateway-service-production-21fd.up.railway.app`
+  - **Critical**: Must be set BEFORE building
+- [ ] `NODE_ENV` is set to `production`
+- [ ] `USE_NEW_UI` is set (if applicable)
+- [ ] `NEXT_PUBLIC_USE_NEW_UI` is set (if applicable)
 
-### 3. Environment Configuration ✅
-- [ ] All required environment variables set
-- [ ] Configuration validated (`./scripts/validate_config.sh`)
-- [ ] Supabase credentials configured
-- [ ] Optional services configured (Redis, if needed)
-- [ ] Port configuration verified
+### Testing ✅
+- [ ] Critical paths tested manually
+- [ ] All pages load without errors
+- [ ] API calls verified (not localhost)
+- [ ] Form submissions work
+- [ ] Navigation works correctly
+- [ ] No 404 errors on RSC requests
 
-### 4. Security Review ✅
-- [ ] No secrets in code or committed files
-- [ ] Environment variables stored securely
-- [ ] API keys rotated (if needed)
-- [ ] Authentication/authorization reviewed
-- [ ] Rate limiting configured (if applicable)
+## Railway Deployment Steps
 
-### 5. Monitoring & Logging ✅
-- [ ] Health check endpoint accessible (`/health/detailed`)
-- [ ] Logging configured and tested
-- [ ] Request ID tracking verified
-- [ ] Error tracking configured (if applicable)
-- [ ] Monitoring alerts set up (if applicable)
+### Step 1: Configure Environment Variables
 
-### 6. Documentation ✅
-- [ ] API documentation updated
-- [ ] Deployment procedures documented
-- [ ] Environment setup guide reviewed
-- [ ] Troubleshooting guide available
+1. Go to Railway Dashboard
+2. Select the **frontend service**
+3. Navigate to **Variables** tab
+4. Add/Update the following variables:
 
----
-
-## Deployment Steps
-
-### Step 1: Pre-Deployment Verification
-
-Run the pre-deployment verification script:
-
-```bash
-./scripts/pre_deployment_check.sh
+```
+NEXT_PUBLIC_API_BASE_URL=https://api-gateway-service-production-21fd.up.railway.app
+NODE_ENV=production
+USE_NEW_UI=true
+NEXT_PUBLIC_USE_NEW_UI=true
 ```
 
-This will verify:
-- ✅ Configuration is valid
-- ✅ Database is accessible
-- ✅ Schema is correct
-- ✅ All required services are available
+**⚠️ CRITICAL**: Set these variables BEFORE triggering a rebuild!
 
-### Step 2: Backup Current State
+### Step 2: Trigger Rebuild
 
-**If deploying to existing production:**
+**Option A: Automatic Rebuild**
+- Railway automatically rebuilds when environment variables change
+- Monitor the build logs
 
-```bash
-# Create backup branch
-git branch backup-$(date +%Y%m%d-%H%M%S)
+**Option B: Manual Rebuild**
+1. Go to Railway Dashboard
+2. Select the frontend service
+3. Click **Deploy** or **Redeploy**
+4. Monitor build logs
 
-# Create tag
-git tag production-$(date +%Y%m%d-%H%M%S)
+### Step 3: Verify Build
 
-# Push backup
-git push origin backup-$(date +%Y%m%d-%H%M%S)
-git push origin production-$(date +%Y%m%d-%H%M%S)
+**Check Build Logs For**:
+- ✅ Build verification script output
+- ✅ Environment variable detection
+- ✅ Next.js build completion
+- ✅ No build errors
+
+**Expected Build Log Output**:
+```
+> frontend@0.1.0 verify-env
+> node scripts/verify-build-env.js
+
+🔍 Checking required environment variables...
+
+✅ NEXT_PUBLIC_API_BASE_URL is set: https://api-gateway-service-production-21fd.up.railway.app
+
+✅ All required checks passed!
 ```
 
-### Step 3: Deploy to Staging (Recommended)
+### Step 4: Post-Deployment Verification
 
-**Always deploy to staging first:**
+#### Immediate Checks (Within 5 minutes)
 
-1. Deploy code to staging environment
-2. Configure staging environment variables
-3. Run smoke tests:
-   ```bash
-   ./test/restoration_tests.sh
-   ```
-4. Monitor logs for errors
-5. Verify all endpoints work
-6. Test database persistence
+- [ ] Frontend service is accessible
+  - URL: `https://frontend-service-production-b225.up.railway.app`
+- [ ] Home page loads
+- [ ] No console errors in browser
+- [ ] API calls go to Railway (check Network tab)
+- [ ] No CORS errors
 
-### Step 4: Deploy to Production
+#### Automated Testing (Within 15 minutes)
 
-**After staging verification:**
+```bash
+npm run test:pages -- \
+  --base-url https://frontend-service-production-b225.up.railway.app \
+  --api-url https://api-gateway-service-production-21fd.up.railway.app
+```
 
-1. Deploy code to production
-2. Verify environment variables are set
-3. Run post-deployment verification:
-   ```bash
-   ./scripts/post_deployment_verify.sh
-   ```
-4. Monitor health endpoint:
-   ```bash
-   curl https://your-api.com/health/detailed
-   ```
-5. Run smoke tests on production:
-   ```bash
-   # Update API_URL in test scripts
-   export API_URL="https://your-api.com"
-   ./test/restoration_tests.sh
-   ```
+**Expected**: All pages return 200 status
 
----
+#### Manual Testing (Within 30 minutes)
 
-## Post-Deployment Verification
+**Critical Paths**:
+- [ ] Add Merchant flow works
+- [ ] Merchant Portfolio loads
+- [ ] Merchant Details page loads
+- [ ] Risk Dashboard loads
+- [ ] Compliance pages load (no 404s)
 
-### Immediate Checks (First 5 minutes)
+**Browser Console Checks**:
+- [ ] No errors
+- [ ] No warnings about localhost
+- [ ] All API calls show Railway URLs
+- [ ] No CORS errors
 
-- [ ] Server starts without errors
-- [ ] Health endpoint returns 200 OK
-- [ ] Database connection successful
-- [ ] All endpoints accessible
-- [ ] No error spikes in logs
+#### Network Tab Verification
 
-### Functional Checks (First 15 minutes)
+1. Open browser DevTools
+2. Go to Network tab
+3. Navigate through the application
+4. Verify:
+   - ✅ All API calls go to `api-gateway-service-production-21fd.up.railway.app`
+   - ✅ No calls to `localhost:8080`
+   - ✅ All requests return appropriate status codes
+   - ✅ No CORS errors
 
-- [ ] Create threshold endpoint works
-- [ ] Get thresholds endpoint works
-- [ ] Update threshold endpoint works
-- [ ] Delete threshold endpoint works
-- [ ] Export/import endpoints work
-- [ ] Database persistence verified
+## Post-Deployment Monitoring
 
-### Monitoring (First 24 hours)
+### First Hour
+- [ ] Monitor error logs
+- [ ] Check API error rates
+- [ ] Verify no localhost API calls (check logs)
+- [ ] Monitor user reports
 
-- [ ] Monitor error rates
-- [ ] Monitor response times
-- [ ] Monitor database connection pool
-- [ ] Check for memory leaks
-- [ ] Verify request IDs in logs
-- [ ] Monitor threshold operations
+### First 24 Hours
+- [ ] Daily automated test run
+- [ ] Check error logs daily
+- [ ] Monitor API error rates
+- [ ] Verify performance metrics
+- [ ] Check for any user-reported issues
 
----
+### Ongoing
+- [ ] Weekly full testing cycle
+- [ ] Monthly performance review
+- [ ] Quarterly security audit
 
 ## Rollback Procedure
 
-If issues are detected:
+If deployment fails or issues are discovered:
 
-### Immediate Rollback
+1. **Immediate Rollback**:
+   - Go to Railway Dashboard
+   - Select frontend service
+   - Go to **Deployments** tab
+   - Click **Redeploy** on previous working deployment
 
-1. **Revert to previous deployment:**
-   ```bash
-   # If using git tags
-   git checkout production-YYYYMMDD-HHMMSS
-   git push origin main --force
-   ```
+2. **Investigate Issues**:
+   - Check build logs
+   - Check error logs
+   - Review environment variables
+   - Test locally with production env vars
 
-2. **Or restore from backup:**
-   ```bash
-   git checkout backup-YYYYMMDD-HHMMSS
-   git push origin main --force
-   ```
+3. **Fix and Redeploy**:
+   - Fix identified issues
+   - Re-run pre-deployment checklist
+   - Redeploy following deployment steps
 
-### Partial Rollback (Feature Flags)
+## Troubleshooting
 
-If using feature flags:
-1. Disable problematic feature
-2. Monitor system recovery
-3. Investigate issue
-4. Fix and redeploy
+### Build Fails
 
-### Database Rollback
+**Check**:
+- Environment variables are set
+- Build verification script output
+- TypeScript compilation errors
+- Next.js build errors
 
-If database issues:
-1. Restore from database backup
-2. Verify data integrity
-3. Re-run migrations if needed
+**Common Issues**:
+- Missing `NEXT_PUBLIC_API_BASE_URL`
+- Invalid URL format
+- TypeScript errors
+- Missing dependencies
 
----
+### Pages Return 404
 
-## Common Issues & Solutions
+**Check**:
+- Next.js routing configuration
+- Page file structure
+- Metadata exports on server components
+- Build output includes pages
 
-### Issue: "Database connection failed"
+### API Calls Go to Localhost
 
-**Symptoms**: Server starts but shows database warning  
-**Solutions**:
-1. Verify `DATABASE_URL` is set correctly
-2. Check database is accessible
-3. Verify credentials
-4. Check firewall rules
+**Check**:
+- `NEXT_PUBLIC_API_BASE_URL` is set correctly
+- Service was rebuilt AFTER setting env var
+- Build logs show env var was detected
+- Browser cache cleared
 
-### Issue: "Table does not exist"
+**Solution**:
+1. Verify env var in Railway
+2. Trigger rebuild
+3. Clear browser cache
+4. Test in incognito mode
 
-**Symptoms**: Endpoints return 500 errors  
-**Solutions**:
-1. Run migration: `psql $DATABASE_URL -f internal/database/migrations/012_create_risk_thresholds_table.sql`
-2. Verify schema: `./scripts/verify_database_schema.sh`
+### CORS Errors
 
-### Issue: "Health check fails"
+**Check**:
+- API Gateway CORS configuration
+- Frontend origin matches allowed origins
+- CORS headers in API responses
 
-**Symptoms**: `/health/detailed` returns errors  
-**Solutions**:
-1. Check all required services are running
-2. Verify environment variables
-3. Check logs for specific errors
-4. Verify database connection
-
-### Issue: "Endpoints not accessible"
-
-**Symptoms**: 404 or connection refused  
-**Solutions**:
-1. Verify server is running
-2. Check port configuration
-3. Verify routing is correct
-4. Check firewall/security groups
-
----
+**Solution**:
+1. Verify `CORS_ALLOWED_ORIGINS` in API Gateway
+2. Check API Gateway logs
+3. Verify frontend URL is in allowed list
 
 ## Success Criteria
 
-Deployment is successful when:
+### Critical (Must Pass)
+- ✅ Zero 404 errors on page loads
+- ✅ Zero localhost API calls in production
+- ✅ Zero CORS errors
+- ✅ All forms submit successfully
+- ✅ All critical pages load
 
-- ✅ All pre-deployment checks pass
-- ✅ Server starts without errors
-- ✅ Health endpoint returns healthy status
-- ✅ All endpoints are accessible
-- ✅ Database persistence works
-- ✅ No error spikes in logs
-- ✅ Response times are acceptable
-- ✅ Monitoring shows healthy metrics
+### High Priority (Should Pass)
+- ✅ All pages return 200 status
+- ✅ API endpoints respond in <500ms
+- ✅ No console errors
+- ✅ All data loads correctly
+- ✅ Enhanced features work (caching, deduplication)
 
----
+### Quality Metrics
+- ✅ Lighthouse scores maintain or improve
+- ✅ Error rate <0.1%
+- ✅ Bundle size not increased >5%
+- ✅ Build completes successfully
 
-## Emergency Contacts
+## Deployment Sign-Off
 
-- **On-Call Engineer**: [Contact Info]
-- **Database Admin**: [Contact Info]
-- **DevOps Team**: [Contact Info]
+**Deployed By**: _______________  
+**Date**: _______________  
+**Time**: _______________  
+**Version**: _______________  
 
----
+**Verification**:
+- [ ] All pre-deployment checks passed
+- [ ] Environment variables configured
+- [ ] Build completed successfully
+- [ ] Post-deployment verification passed
+- [ ] No critical issues found
 
-## Post-Deployment Tasks
-
-After successful deployment:
-
-1. **Document deployment**:
-   - Record deployment time
-   - Note any issues encountered
-   - Document configuration changes
-
-2. **Monitor closely**:
-   - Watch logs for first 24 hours
-   - Monitor error rates
-   - Check performance metrics
-
-3. **Gather feedback**:
-   - Collect user feedback
-   - Monitor API usage
-   - Track error patterns
-
-4. **Plan next steps**:
-   - Address any issues found
-   - Plan optimizations
-   - Schedule next deployment
+**Notes**:
+_______________________________________________
+_______________________________________________
+_______________________________________________
 
 ---
 
-**Last Updated**: November 15, 2025  
-**Version**: 1.0
-
+**Next Deployment**: _______________  
+**Last Reviewed**: _______________

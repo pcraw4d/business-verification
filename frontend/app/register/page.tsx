@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/forms/FormField';
 import { FormValidation } from '@/lib/form-validation';
+import { ApiEndpoints } from '@/lib/api-config';
 import { toast } from 'sonner';
 import { UserPlus, Mail, Lock, User } from 'lucide-react';
 import Link from 'next/link';
@@ -80,8 +81,7 @@ export default function RegisterPage() {
     setIsSubmitting(true);
 
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
-      const response = await fetch(`${API_BASE_URL}/v1/auth/register`, {
+      const response = await fetch(ApiEndpoints.auth.register(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

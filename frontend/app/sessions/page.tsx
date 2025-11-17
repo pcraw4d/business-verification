@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Users } from 'lucide-react';
+import { ApiEndpoints } from '@/lib/api-config';
 import { toast } from 'sonner';
 
 interface Session {
@@ -24,7 +25,6 @@ export default function SessionsPage() {
   useEffect(() => {
     async function fetchSessions() {
       try {
-        const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
         const token = typeof window !== 'undefined' ? sessionStorage.getItem('authToken') : null;
         
         const headers: HeadersInit = {
@@ -35,7 +35,7 @@ export default function SessionsPage() {
           headers['Authorization'] = `Bearer ${token}`;
         }
 
-        const response = await fetch(`${API_BASE_URL}/api/v1/sessions`, {
+        const response = await fetch(ApiEndpoints.sessions.list(), {
           method: 'GET',
           headers,
         });

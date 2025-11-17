@@ -59,10 +59,15 @@ Or use the build script:
 
 ### 2. Configure Railway Service
 
+**⚠️ CRITICAL: Set environment variables BEFORE building!**
+
+Next.js embeds `NEXT_PUBLIC_*` variables at build time. If you set them after building, you must rebuild.
+
 1. Go to Railway Dashboard
 2. Select the frontend service
 3. Go to "Variables" tab
 4. Add all required environment variables listed above
+5. **Save the variables** - Railway will automatically trigger a rebuild
 
 ### 3. Build Configuration
 
@@ -123,7 +128,11 @@ After deployment, verify:
 
 ### Issue: API calls fail
 
-**Solution**: Verify `NEXT_PUBLIC_API_BASE_URL` is set correctly and points to the API gateway.
+**Solution**: 
+1. Verify `NEXT_PUBLIC_API_BASE_URL` is set correctly in Railway
+2. **IMPORTANT**: If you just set the variable, you must rebuild the service
+3. Check Railway build logs to ensure the variable was available during build
+4. See `docs/RAILWAY_FRONTEND_REBUILD_REQUIRED.md` for detailed instructions
 
 ### Issue: Legacy UI still showing
 

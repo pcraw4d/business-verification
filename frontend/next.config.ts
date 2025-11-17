@@ -1,14 +1,18 @@
 import type { NextConfig } from "next";
 
+// Get API base URL for rewrites (server-side only, so we can use process.env directly)
+const getApiBaseUrlForRewrites = () => {
+  return process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+};
+
 const nextConfig: NextConfig = {
   // API proxy for development
   async rewrites() {
+    const apiBaseUrl = getApiBaseUrlForRewrites();
     return [
       {
         source: '/api/:path*',
-        destination: process.env.NEXT_PUBLIC_API_BASE_URL 
-          ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/:path*`
-          : 'http://localhost:8080/api/:path*',
+        destination: `${apiBaseUrl}/api/:path*`,
       },
     ];
   },

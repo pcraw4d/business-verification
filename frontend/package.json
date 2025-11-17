@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/verify-build-env.js && next build",
+    "verify-env": "node scripts/verify-build-env.js",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
@@ -21,7 +22,9 @@
     "lighthouse:ci": "npx @lhci/cli autorun",
     "audit:all": "npm run analyze-bundle && npm run performance-audit && npm run accessibility-audit",
     "test:visual": "playwright test tests/visual",
-    "test:visual:update": "playwright test tests/visual --update-snapshots"
+    "test:visual:update": "playwright test tests/visual --update-snapshots",
+    "test:pages": "node scripts/test-all-pages.js",
+    "test:pages:verbose": "node scripts/test-all-pages.js --verbose"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
