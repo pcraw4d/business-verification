@@ -20,16 +20,26 @@ const http = require('http');
 const https = require('https');
 const { URL } = require('url');
 
+// Parse command line arguments
+function getArgValue(argName) {
+  const argIndex = process.argv.findIndex(arg => arg.startsWith(`--${argName}=`));
+  if (argIndex !== -1) {
+    return process.argv[argIndex].split('=')[1];
+  }
+  const argIndex2 = process.argv.findIndex(arg => arg === `--${argName}`);
+  if (argIndex2 !== -1 && process.argv[argIndex2 + 1]) {
+    return process.argv[argIndex2 + 1];
+  }
+  return null;
+}
+
 // Configuration
 const config = {
-  baseUrl: process.env.BASE_URL || process.argv.includes('--base-url') 
-    ? process.argv[process.argv.indexOf('--base-url') + 1] 
-    : 'http://localhost:3000',
-  apiUrl: process.env.API_URL || process.argv.includes('--api-url')
-    ? process.argv[process.argv.indexOf('--api-url') + 1]
-    : 'https://api-gateway-service-production-21fd.up.railway.app',
-  timeout: 10000,
+  baseUrl: process.env.BASE_URL || getArgValue('base-url') || 'http://localhost:3000',
+  apiUrl: process.env.API_URL || getArgValue('api-url') || 'https://api-gateway-service-production-21fd.up.railway.app',
+  timeout: 30000, // Increased timeout for Railway
   verbose: process.argv.includes('--verbose') || process.argv.includes('-v'),
+  followRedirects: true, // Follow redirects (302 is expected for auth)
 };
 
 // All pages to test (from Sidebar.tsx and file system scan)
@@ -90,10 +100,15 @@ const results = {
 };
 
 /**
- * Make HTTP request
+ * Make HTTP request with redirect support
  */
-function makeRequest(url) {
+function makeRequest(url, followRedirects = true, maxRedirects = 5) {
   return new Promise((resolve, reject) => {
+    if (maxRedirects <= 0) {
+      reject(new Error('Too many redirects'));
+      return;
+    }
+
     const parsedUrl = new URL(url);
     const client = parsedUrl.protocol === 'https:' ? https : http;
     const options = {
@@ -104,6 +119,7 @@ function makeRequest(url) {
       timeout: config.timeout,
       headers: {
         'User-Agent': 'KYB-Platform-Test-Script/1.0',
+        'Accept': 'text/html,application/json',
       },
     };
 
@@ -113,6 +129,23 @@ function makeRequest(url) {
         data += chunk;
       });
       res.on('end', () => {
+        // Handle redirects
+        if (followRedirects && (res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 307 || res.statusCode === 308)) {
+          const location = res.headers.location;
+          if (location) {
+            // Handle relative redirects
+            const redirectUrl = location.startsWith('http') 
+              ? location 
+              : `${parsedUrl.protocol}//${parsedUrl.host}${location.startsWith('/') ? location : '/' + location}`;
+            
+            // Recursively follow redirect
+            makeRequest(redirectUrl, followRedirects, maxRedirects - 1)
+              .then(resolve)
+              .catch(reject);
+            return;
+          }
+        }
+
         resolve({
           statusCode: res.statusCode,
           headers: res.headers,
@@ -154,7 +187,7 @@ async function testPage(page) {
       console.log(`\n🔍 Testing: ${page.name} (${page.path})`);
     }
 
-    const response = await makeRequest(url);
+    const response = await makeRequest(url, config.followRedirects);
     result.statusCode = response.statusCode;
 
     // Check status code
@@ -180,6 +213,16 @@ async function testPage(page) {
         }
       }
 
+      results.passed.push(result);
+    } else if (response.statusCode === 302 || response.statusCode === 301 || response.statusCode === 307 || response.statusCode === 308) {
+      // Redirects are expected for auth-protected pages
+      result.status = 'passed';
+      result.warnings.push(`Redirect (${response.statusCode}) - likely authentication required`);
+      results.passed.push(result);
+    } else if (response.statusCode === 401 || response.statusCode === 403) {
+      // Auth required is expected for protected pages
+      result.status = 'passed';
+      result.warnings.push(`Authentication required (${response.statusCode}) - expected for protected pages`);
       results.passed.push(result);
     } else if (response.statusCode === 404) {
       result.status = 'failed';
