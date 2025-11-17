@@ -29,7 +29,7 @@ func main() {
 	}
 	defer logger.Sync()
 
-	logger.Info("🚀 Starting KYB API Gateway Service v1.0.19 - Fixed risk benchmarks/predictions routing")
+	logger.Info("🚀 Starting KYB API Gateway Service v1.0.20 - Added dashboard, compliance, and sessions routes")
 
 	// Load configuration
 	cfg, err := config.Load()
@@ -81,7 +81,7 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"service": "api-gateway",
-			"version": "1.0.8",
+			"version": "1.0.20",
 			"status":  "running",
 			"message": "KYB API Gateway is running",
 			"endpoints": map[string]string{
@@ -98,6 +98,10 @@ func main() {
 
 	// API Gateway routes
 	api := router.PathPrefix("/api/v1").Subrouter()
+	
+	// API v3 routes for enhanced endpoints
+	apiV3 := router.PathPrefix("/api/v3").Subrouter()
+	apiV3.HandleFunc("/dashboard/metrics", gatewayHandler.ProxyToDashboardMetricsV3).Methods("GET", "OPTIONS")
 	api.HandleFunc("/classify", gatewayHandler.ProxyToClassification).Methods("POST")
 	// OPTIONS handled by CORS middleware
 	// Merchant routes - CORS handled by middleware
@@ -123,6 +127,20 @@ func main() {
 	// Business Intelligence routes - CORS handled by middleware
 	api.HandleFunc("/bi/analyze", gatewayHandler.ProxyToBI).Methods("POST", "OPTIONS")
 	api.PathPrefix("/bi").HandlerFunc(gatewayHandler.ProxyToBI)
+
+	// Dashboard routes - CORS handled by middleware
+	api.HandleFunc("/dashboard/metrics", gatewayHandler.ProxyToDashboardMetricsV1).Methods("GET", "OPTIONS")
+
+	// Compliance routes - CORS handled by middleware
+	api.HandleFunc("/compliance/status", gatewayHandler.ProxyToComplianceStatus).Methods("GET", "OPTIONS")
+
+	// Session routes - CORS handled by middleware
+	api.HandleFunc("/sessions", gatewayHandler.ProxyToSessions).Methods("GET", "POST", "DELETE", "OPTIONS")
+	api.HandleFunc("/sessions/current", gatewayHandler.ProxyToSessions).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sessions/metrics", gatewayHandler.ProxyToSessions).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sessions/activity", gatewayHandler.ProxyToSessions).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sessions/status", gatewayHandler.ProxyToSessions).Methods("GET", "OPTIONS")
+	api.PathPrefix("/sessions").HandlerFunc(gatewayHandler.ProxyToSessions)
 
 	// Authentication routes - CORS handled by middleware
 	api.HandleFunc("/auth/register", gatewayHandler.HandleAuthRegister).Methods("POST", "OPTIONS")

@@ -703,15 +703,56 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
         };
       }
 
-      const data = await handleResponse<{ data?: DashboardMetrics; business?: Record<string, unknown> }>(response);
+      const data = await handleResponse<{ 
+        data?: DashboardMetrics; 
+        business?: Record<string, unknown> | {
+          active_users?: number;
+          total_verifications?: number;
+          revenue?: number;
+          growth_rate?: number;
+        };
+        overview?: {
+          total_requests?: number;
+          active_users?: number;
+          success_rate?: number;
+          average_response_time?: number;
+        };
+        performance?: {
+          response_time?: number;
+          throughput?: number;
+          error_rate?: number;
+        };
+      }>(response);
       
       // Handle different response formats
-      const metrics: DashboardMetrics = data.data || {
-        totalMerchants: (data.business?.total_verifications as number) || 0,
-        revenue: (data.business?.revenue as number) || 0,
-        growthRate: (data.business?.growth_rate as number) || 0,
-        analyticsScore: (data.business?.analytics_score as number) || 0,
-      };
+      // v3 comprehensive format: { overview: {...}, performance: {...}, business: {...} }
+      // v1 basic format: { data: {...} } or { business: {...} }
+      let metrics: DashboardMetrics;
+      
+      if (data.data) {
+        // Direct data format
+        metrics = data.data;
+      } else if (data.overview || data.performance || data.business) {
+        // v3 comprehensive format - map to DashboardMetrics
+        const businessData = data.business as { total_verifications?: number; revenue?: number; growth_rate?: number; analytics_score?: number } | undefined;
+        metrics = {
+          totalMerchants: (businessData?.total_verifications) || 
+                        (data.overview?.total_requests) || 0,
+          revenue: (businessData?.revenue) || 0,
+          growthRate: (businessData?.growth_rate) || 0,
+          analyticsScore: (data.performance?.response_time) || 
+                         (data.overview?.average_response_time) || 0,
+        };
+      } else {
+        // Fallback to business object
+        const businessData = data.business as { total_verifications?: number; revenue?: number; growth_rate?: number; analytics_score?: number } | undefined;
+        metrics = {
+          totalMerchants: (businessData?.total_verifications) || 0,
+          revenue: (businessData?.revenue) || 0,
+          growthRate: (businessData?.growth_rate) || 0,
+          analyticsScore: (businessData?.analytics_score) || 0,
+        };
+      }
 
       apiCache.set(cacheKey, metrics, 60 * 1000); // 1 minute cache
       return metrics;
@@ -881,9 +922,77 @@ export async function getComplianceStatus(): Promise<ComplianceStatus> {
         };
       }
 
-      const data = await handleResponse<ComplianceStatus>(response);
-      apiCache.set(cacheKey, data, 60 * 1000); // 1 minute cache
-      return data;
+      const data = await handleResponse<ComplianceStatus | {
+        overall_status?: string;
+        compliance_score?: number;
+        overall_score?: number;
+        frameworks?: Array<{
+          framework_id: string;
+          framework_name: string;
+          status: string;
+          score: number;
+        }>;
+        requirements?: Array<{
+          requirement_id: string;
+          status: string;
+        }>;
+        alerts?: Array<{
+          id: string;
+          severity: string;
+          status: string;
+        }>;
+      }>(response);
+      
+      // Handle different response formats
+      let status: ComplianceStatus;
+      
+      if ('overallScore' in data || 'compliance_score' in data || 'overall_score' in data) {
+        // Enhanced format with comprehensive data
+        type EnhancedComplianceData = {
+          compliance_score?: number;
+          overall_score?: number;
+          frameworks?: Array<{ framework_id: string; framework_name: string; status: string; score: number }>;
+          requirements?: Array<{ requirement_id: string; status: string }>;
+          alerts?: Array<{ id: string; severity: string; status: string }>;
+        };
+        const enhancedData = data as EnhancedComplianceData;
+        
+        const frameworks = Array.isArray(enhancedData.frameworks) ? enhancedData.frameworks : [];
+        const requirements = Array.isArray(enhancedData.requirements) ? enhancedData.requirements : [];
+        const alerts = Array.isArray(enhancedData.alerts) ? enhancedData.alerts : [];
+        
+        // Calculate pending reviews from requirements with pending status
+        const pendingReviews = requirements.filter((req: { status: string }) => 
+          req.status === 'pending' || req.status === 'in_progress'
+        ).length;
+        
+        // Determine compliance trend from framework scores
+        let complianceTrend: 'Improving' | 'Stable' | 'Declining' = 'Stable';
+        if (frameworks.length > 0) {
+          const avgScore = frameworks.reduce((sum: number, f: { score: number }) => sum + f.score, 0) / frameworks.length;
+          if (avgScore >= 0.9) {
+            complianceTrend = 'Improving';
+          } else if (avgScore < 0.7) {
+            complianceTrend = 'Declining';
+          }
+        }
+        
+        status = {
+          overallScore: (enhancedData.compliance_score) || 
+                      (enhancedData.overall_score) || 
+                      ((data as ComplianceStatus).overallScore) || 0,
+          pendingReviews: pendingReviews || ((data as ComplianceStatus).pendingReviews) || 0,
+          complianceTrend: complianceTrend || ((data as ComplianceStatus).complianceTrend) || 'Stable',
+          regulatoryFrameworks: frameworks.length || ((data as ComplianceStatus).regulatoryFrameworks) || 0,
+          violations: alerts.filter((a: { severity: string }) => a.severity === 'high' || a.severity === 'critical').length,
+        };
+      } else {
+        // Direct ComplianceStatus format
+        status = data as ComplianceStatus;
+      }
+      
+      apiCache.set(cacheKey, status, 5 * 60 * 1000); // 5 minute cache
+      return status;
     } catch {
       // Return default values on error
       return {

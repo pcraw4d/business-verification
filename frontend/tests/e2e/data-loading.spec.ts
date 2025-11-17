@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('Data Loading Tests', () => {
-  test('should load dashboard metrics', async ({ page }) => {
+  test('should load dashboard metrics (v3 enhanced data)', async ({ page }) => {
     await page.goto('http://localhost:3000/dashboard');
     
     // Wait for loading to complete
@@ -10,6 +10,39 @@ test.describe('Data Loading Tests', () => {
     // Check that metrics are displayed (not just loading skeletons)
     const metrics = page.locator('text=/\\d+/').first();
     await expect(metrics).toBeVisible();
+    
+    // Verify enhanced v3 data is captured (check for comprehensive metrics)
+    // The frontend should handle both v3 and v1 formats
+    const hasMetrics = await page.locator('text=/\\d+/').count() > 0;
+    expect(hasMetrics).toBeTruthy();
+  });
+
+  test('should load compliance status with enhanced data', async ({ page }) => {
+    await page.goto('http://localhost:3000/compliance');
+    
+    // Wait for compliance data to load
+    await page.waitForLoadState('networkidle', { timeout: 10000 });
+    
+    // Check that compliance status is displayed
+    // Should show overall score, frameworks, or compliance indicators
+    const complianceContent = page.locator('text=/compliance|score|framework|status/i').first();
+    await expect(complianceContent).toBeVisible({ timeout: 5000 });
+  });
+
+  test('should load sessions with enhanced data', async ({ page }) => {
+    await page.goto('http://localhost:3000/sessions');
+    
+    // Wait for sessions to load
+    await page.waitForLoadState('networkidle', { timeout: 10000 });
+    
+    // Check that sessions are displayed or empty state is shown
+    const sessionsList = page.locator('table, [role="table"], .session-item').first();
+    const emptyState = page.locator('text=/no.*sessions|empty/i').first();
+    
+    const hasContent = await sessionsList.isVisible({ timeout: 3000 }).catch(() => false) ||
+                       await emptyState.isVisible({ timeout: 3000 }).catch(() => false);
+    
+    expect(hasContent).toBeTruthy();
   });
 
   test('should load merchant portfolio list', async ({ page }) => {

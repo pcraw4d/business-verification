@@ -519,6 +519,80 @@ func (h *GatewayHandler) ProxyToRiskAssessmentHealth(w http.ResponseWriter, r *h
 	h.proxyRequest(w, r, h.config.Services.RiskAssessmentURL, "/health")
 }
 
+// ProxyToDashboardMetricsV3 proxies requests to the Business Intelligence service for enhanced v3 dashboard metrics
+func (h *GatewayHandler) ProxyToDashboardMetricsV3(w http.ResponseWriter, r *http.Request) {
+	// Route to BI Service /dashboard/kpis for comprehensive metrics
+	// BI Service provides enhanced dashboard data
+	path := "/dashboard/kpis"
+	if r.URL.RawQuery != "" {
+		path += "?" + r.URL.RawQuery
+	}
+	h.proxyRequest(w, r, h.config.Services.BIServiceURL, path)
+}
+
+// ProxyToDashboardMetricsV1 proxies requests to the Risk Assessment service for basic v1 dashboard metrics
+func (h *GatewayHandler) ProxyToDashboardMetricsV1(w http.ResponseWriter, r *http.Request) {
+	// Route to Risk Assessment Service /api/v1/reporting/dashboards/metrics
+	path := "/api/v1/reporting/dashboards/metrics"
+	if r.URL.RawQuery != "" {
+		path += "?" + r.URL.RawQuery
+	}
+	h.proxyRequest(w, r, h.config.Services.RiskAssessmentURL, path)
+}
+
+// ProxyToComplianceStatus proxies requests to compliance status endpoint
+// Handles path mismatch: frontend calls /api/v1/compliance/status without business_id
+// Backend expects /v1/compliance/status/{business_id}
+func (h *GatewayHandler) ProxyToComplianceStatus(w http.ResponseWriter, r *http.Request) {
+	// For now, route to Risk Assessment Service which has compliance handlers
+	// If no business_id provided, use aggregate endpoint or default
+	// Extract business_id from query params if provided
+	businessID := r.URL.Query().Get("business_id")
+	
+	var path string
+	if businessID != "" {
+		// Route to specific business compliance status
+		path = fmt.Sprintf("/api/v1/compliance/status/%s", businessID)
+	} else {
+		// Route to aggregate compliance status (all businesses)
+		// Use query parameter to indicate aggregate request
+		path = "/api/v1/compliance/status/aggregate"
+	}
+	
+	if r.URL.RawQuery != "" {
+		// Preserve other query parameters
+		params := r.URL.Query()
+		params.Del("business_id") // Remove business_id from query as it's in path
+		if len(params) > 0 {
+			path += "?" + params.Encode()
+		}
+	}
+	
+	// Route to Risk Assessment Service (has compliance handlers)
+	h.proxyRequest(w, r, h.config.Services.RiskAssessmentURL, path)
+}
+
+// ProxyToSessions proxies requests to session management endpoints
+// Maps /api/v1/sessions/* to /v1/sessions/* (removes /api prefix)
+func (h *GatewayHandler) ProxyToSessions(w http.ResponseWriter, r *http.Request) {
+	// Extract path after /api/v1/sessions
+	path := strings.TrimPrefix(r.URL.Path, "/api/v1/sessions")
+	if path == "" {
+		path = "/v1/sessions"
+	} else {
+		path = "/v1/sessions" + path
+	}
+	
+	// Add query parameters if any
+	if r.URL.RawQuery != "" {
+		path += "?" + r.URL.RawQuery
+	}
+	
+	// Route to Frontend Service which has session management
+	// Sessions are managed in the frontend service
+	h.proxyRequest(w, r, h.config.Services.FrontendURL, path)
+}
+
 // HandleAuthRegister handles user registration requests
 func (h *GatewayHandler) HandleAuthRegister(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {

@@ -12,10 +12,28 @@ import { toast } from 'sonner';
 
 interface Session {
   id: string;
-  userId: string;
-  startTime: string;
-  lastActivity: string;
-  status: string;
+  user_id?: string;
+  userId?: string;
+  ip_address?: string;
+  ipAddress?: string;
+  user_agent?: string;
+  userAgent?: string;
+  created_at?: string;
+  createdAt?: string;
+  startTime?: string;
+  last_access_time?: string;
+  lastAccessTime?: string;
+  last_activity_time?: string;
+  lastActivity?: string;
+  lastActivityTime?: string;
+  request_count?: number;
+  requestCount?: number;
+  is_active?: boolean;
+  isActive?: boolean;
+  status?: string;
+  session_duration?: string;
+  sessionDuration?: string;
+  metadata?: Record<string, unknown>;
 }
 
 export default function SessionsPage() {
@@ -42,7 +60,31 @@ export default function SessionsPage() {
 
         if (response.ok) {
           const data = await response.json();
-          setSessions(Array.isArray(data) ? data : data.sessions || []);
+          // Handle different response formats
+          let sessionsList: Session[] = [];
+          
+          if (Array.isArray(data)) {
+            sessionsList = data;
+          } else if (data.sessions && Array.isArray(data.sessions)) {
+            sessionsList = data.sessions;
+          } else if (data.success && Array.isArray(data.sessions)) {
+            sessionsList = data.sessions;
+          }
+          
+          // Normalize session data structure
+          const normalizedSessions = sessionsList.map((session: Session) => ({
+            id: session.id,
+            userId: session.user_id || session.userId || '',
+            startTime: session.created_at || session.createdAt || session.startTime || '',
+            lastActivity: session.last_activity_time || session.lastActivityTime || 
+                         session.last_access_time || session.lastAccessTime || 
+                         session.lastActivity || '',
+            status: session.is_active !== undefined ? (session.is_active ? 'active' : 'inactive') :
+                   session.isActive !== undefined ? (session.isActive ? 'active' : 'inactive') :
+                   session.status || 'unknown',
+          }));
+          
+          setSessions(normalizedSessions);
         } else if (response.status === 404) {
           // Endpoint doesn't exist yet, use empty array
           setSessions([]);
@@ -67,7 +109,8 @@ export default function SessionsPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return 'N/A';
     try {
       return new Date(dateString).toLocaleString('en-US', {
         year: 'numeric',
