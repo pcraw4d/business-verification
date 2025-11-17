@@ -301,7 +301,7 @@ export async function getRiskHistory(
           headers,
         }
       );
-      const data = await handleResponse<typeof result>(response);
+      const data = await handleResponse<RiskHistoryResponse>(response);
       apiCache.set(cacheKey, data);
       return data;
     } catch (error) {
@@ -517,7 +517,10 @@ export async function getEnrichmentSources(merchantId: string): Promise<{
 }> {
   const cacheKey = `enrichment-sources:${merchantId}`;
   
-  const cached = apiCache.get<typeof result>(cacheKey);
+  const cached = apiCache.get<{
+    merchantId: string;
+    sources: EnrichmentSource[];
+  }>(cacheKey);
   if (cached) {
     return cached;
   }
@@ -540,7 +543,10 @@ export async function getEnrichmentSources(merchantId: string): Promise<{
           headers,
         }
       );
-      const data = await handleResponse<EnrichmentSourcesResponse>(response);
+      const data = await handleResponse<{
+        merchantId: string;
+        sources: EnrichmentSource[];
+      }>(response);
       apiCache.set(cacheKey, data);
       return data;
     } catch (error) {

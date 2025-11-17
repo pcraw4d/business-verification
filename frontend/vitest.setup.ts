@@ -107,5 +107,5 @@ Object.defineProperty(window, 'sessionStorage', {
   value: sessionStorageMock,
   writable: true,
 });
-global.sessionStorage = sessionStorageMock;
+global.sessionStorage = sessionStorageMock as unknown as Storage;
 
