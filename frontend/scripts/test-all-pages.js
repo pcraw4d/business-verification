@@ -275,7 +275,6 @@ async function testApiEndpoints() {
   const endpoints = [
     '/api/v1/merchants',
     '/api/v3/dashboard/metrics',
-    '/api/v1/dashboard/metrics',
     '/api/v1/risk/metrics',
     '/api/v1/compliance/status',
     '/api/v1/sessions',

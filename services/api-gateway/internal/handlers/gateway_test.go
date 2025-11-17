@@ -62,43 +62,7 @@ func TestProxyToDashboardMetricsV3(t *testing.T) {
 	}
 }
 
-func TestProxyToDashboardMetricsV1(t *testing.T) {
-	// Create a mock Risk Assessment service
-	mockRiskService := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/v1/reporting/dashboards/metrics" {
-			t.Errorf("Expected path /api/v1/reporting/dashboards/metrics, got %s", r.URL.Path)
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"data": map[string]interface{}{
-				"totalMerchants": 100,
-				"revenue":        50000,
-			},
-		})
-	}))
-	defer mockRiskService.Close()
-
-	// Create handler with mock config
-	cfg := &config.Config{
-		Services: config.ServicesConfig{
-			RiskAssessmentURL: mockRiskService.URL,
-		},
-	}
-	logger := zap.NewNop()
-	handler := NewGatewayHandler(nil, logger, cfg)
-
-	// Create request
-	req := httptest.NewRequest("GET", "/api/v1/dashboard/metrics", nil)
-	w := httptest.NewRecorder()
-
-	// Call handler
-	handler.ProxyToDashboardMetricsV1(w, req)
-
-	// Check response
-	if w.Code != http.StatusOK {
-		t.Errorf("Expected status 200, got %d", w.Code)
-	}
-}
+// TestProxyToDashboardMetricsV1 removed - v1 endpoint deprecated in favor of v3
 
 func TestProxyToComplianceStatus(t *testing.T) {
 	// Create a mock Risk Assessment service

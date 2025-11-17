@@ -65,7 +65,7 @@ func main() {
 	router := mux.NewRouter()
 
 	// Apply middleware - CORS must be first to handle preflight requests
-	router.Use(middleware.CORS(cfg.CORS)) // Enable CORS middleware (FIRST)
+	router.Use(middleware.CORS(cfg.CORS))  // Enable CORS middleware (FIRST)
 	router.Use(middleware.SecurityHeaders) // Add security headers
 	router.Use(middleware.Logging(logger))
 	router.Use(middleware.RateLimit(cfg.RateLimit))
@@ -99,7 +99,7 @@ func main() {
 
 	// API Gateway routes
 	api := router.PathPrefix("/api/v1").Subrouter()
-	
+
 	// API v3 routes for enhanced endpoints
 	apiV3 := router.PathPrefix("/api/v3").Subrouter()
 	// Apply middleware to v3 routes
@@ -125,8 +125,8 @@ func main() {
 	api.HandleFunc("/merchant/health", gatewayHandler.ProxyToMerchantHealth).Methods("GET")
 	api.HandleFunc("/risk/health", gatewayHandler.ProxyToRiskAssessmentHealth).Methods("GET")
 
-	// Dashboard routes - CORS handled by middleware (register before PathPrefix routes)
-	api.HandleFunc("/dashboard/metrics", gatewayHandler.ProxyToDashboardMetricsV1).Methods("GET", "OPTIONS")
+	// Dashboard routes - v1 deprecated, use v3 instead
+	// api.HandleFunc("/dashboard/metrics", gatewayHandler.ProxyToDashboardMetricsV1).Methods("GET", "OPTIONS")
 
 	// Compliance routes - CORS handled by middleware (register before PathPrefix routes)
 	api.HandleFunc("/compliance/status", gatewayHandler.ProxyToComplianceStatus).Methods("GET", "OPTIONS")

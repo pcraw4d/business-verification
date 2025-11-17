@@ -679,19 +679,11 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
 
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
-      // Try v3 endpoint first, fallback to v1
-      let response = await fetch(ApiEndpoints.dashboard.metrics('v3'), {
+      // Use v3 endpoint (v1 deprecated and removed)
+      const response = await fetch(ApiEndpoints.dashboard.metrics('v3'), {
         method: 'GET',
         headers,
       });
-
-      if (!response.ok && response.status === 404) {
-        // Fallback to v1 endpoint if v3 doesn't exist
-        response = await fetch(ApiEndpoints.dashboard.metrics('v1'), {
-          method: 'GET',
-          headers,
-        });
-      }
 
       if (!response.ok) {
         // Return default values if endpoint doesn't exist

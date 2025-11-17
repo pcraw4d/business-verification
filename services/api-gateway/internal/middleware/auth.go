@@ -104,8 +104,7 @@ func isPublicEndpoint(path string) bool {
 		"/api/v1/risk",                  // Risk assessment endpoints
 		"/api/v1/risk/",                 // Risk assessment endpoints with path
 		"/api/v1/auth/register",         // Registration endpoint is public
-		"/api/v1/dashboard/metrics",     // Dashboard metrics endpoint
-		"/api/v3/dashboard/metrics",     // Dashboard metrics v3 endpoint
+		"/api/v3/dashboard/metrics",     // Dashboard metrics v3 endpoint (v1 deprecated)
 		"/api/v1/compliance/status",     // Compliance status endpoint
 		"/api/v1/sessions",              // Session management endpoints
 		"/api/v1/sessions/",             // Session management endpoints with path
