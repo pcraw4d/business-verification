@@ -422,8 +422,12 @@ func (h *GatewayHandler) proxyRequest(w http.ResponseWriter, r *http.Request, ta
 	// Make the request
 	resp, err := h.httpClient.Do(proxyReq)
 	if err != nil {
-		h.logger.Error("Proxy request failed", zap.Error(err))
-		gatewayerrors.WriteServiceUnavailable(w, r, "Backend service unavailable")
+		h.logger.Error("Proxy request failed",
+			zap.String("target", target),
+			zap.String("targetURL", targetURL),
+			zap.String("targetPath", targetPath),
+			zap.Error(err))
+		gatewayerrors.WriteServiceUnavailable(w, r, fmt.Sprintf("Backend service unavailable: %v", err))
 		return
 	}
 	defer resp.Body.Close()
