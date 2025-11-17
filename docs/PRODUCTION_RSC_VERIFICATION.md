@@ -86,24 +86,20 @@ The layout files should be included in the Next.js build output automatically.
 
 ### Immediate Actions
 
-1. **Check Railway Build Status**
-   - Go to Railway dashboard
-   - Check if frontend service has rebuilt after the commit
-   - Review build logs for any errors
+1. **Wait for Railway Rebuild**
+   - Railway should automatically rebuild after commit `cc53cb06e`
+   - Check Railway dashboard for build status
+   - Verify build completes successfully
 
-2. **Trigger Manual Rebuild**
-   - In Railway dashboard, manually trigger a rebuild
-   - Ensure build includes the latest commit (9a30d66ff)
+2. **Verify Routing Fix**
+   - After rebuild, test the previously 404 routes
+   - All nested routes should now return 200 OK
+   - Go service will correctly find Next.js HTML files in nested directories
 
-3. **Verify Build Includes Layout Files**
-   - Check Railway build logs
-   - Verify layout files are being copied into Docker image
-   - Check if `.dockerignore` is excluding layout files
-
-4. **Check Deployment Logs**
-   - Review Railway deployment logs
-   - Look for any errors related to route generation
-   - Check Next.js build output in logs
+3. **Test All Routes**
+   - Run automated test script to verify all 32 pages work
+   - Check browser console for RSC errors (should be none)
+   - Verify pages load correctly with proper content
 
 ### Verification Commands
 
@@ -156,7 +152,11 @@ This confirms the code changes are correct and the issue is with Railway deploym
 
 ---
 
-**Status**: ⚠️ **DEPLOYMENT PENDING** - Code changes are correct, but Railway needs to rebuild to include layout files
+**Status**: ✅ **FIXES DEPLOYED** - Both layout files and routing fixes committed
 
-**Action Required**: Trigger manual rebuild in Railway dashboard or verify automatic rebuild completed successfully
+**Commits**:
+- `9a30d66ff` - Added parent layout files for RSC routing
+- `cc53cb06e` - Fixed Go routing to handle nested Next.js routes correctly
+
+**Action Required**: Wait for Railway to rebuild, then verify all routes return 200 OK
 
