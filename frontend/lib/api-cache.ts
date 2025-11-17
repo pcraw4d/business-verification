@@ -151,7 +151,7 @@ export async function cachedFetch<T>(
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }
 
-  const data = await response.json<T>();
+  const data = await response.json() as T;
 
   // Cache response
   cache.set(cacheKey, data, ttl);
