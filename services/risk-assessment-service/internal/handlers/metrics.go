@@ -20,6 +20,14 @@ type MetricsHandler struct {
 	errorHandler     *middleware.ErrorHandler
 }
 
+// getRequestID safely extracts request ID from context
+func (h *MetricsHandler) getRequestID(ctx context.Context) string {
+	if reqID, ok := ctx.Value("request_id").(string); ok && reqID != "" {
+		return reqID
+	}
+	return "unknown"
+}
+
 // NewMetricsHandler creates a new metrics handler
 func NewMetricsHandler(
 	metricsCollector *monitoring.MetricsCollector,
@@ -61,7 +69,7 @@ func (h *MetricsHandler) HandleGetMetrics(w http.ResponseWriter, r *http.Request
 	}
 
 	h.logger.Info("Metrics requested",
-		zap.String("request_id", ctx.Value("request_id").(string)),
+		zap.String("request_id", h.getRequestID(ctx)),
 		zap.String("health_status", snapshot.HealthStatus),
 	)
 }
@@ -103,7 +111,7 @@ func (h *MetricsHandler) HandleGetModelMetrics(w http.ResponseWriter, r *http.Re
 	}
 
 	h.logger.Info("Model metrics requested",
-		zap.String("request_id", ctx.Value("request_id").(string)),
+		zap.String("request_id", h.getRequestID(ctx)),
 		zap.String("model_type", modelType),
 	)
 }
@@ -125,7 +133,7 @@ func (h *MetricsHandler) HandleGetPerformanceSnapshot(w http.ResponseWriter, r *
 	}
 
 	h.logger.Info("Performance snapshot requested",
-		zap.String("request_id", ctx.Value("request_id").(string)),
+		zap.String("request_id", h.getRequestID(ctx)),
 		zap.String("health_status", snapshot.HealthStatus),
 		zap.Int("alerts_count", len(snapshot.Alerts)),
 	)
@@ -161,7 +169,7 @@ func (h *MetricsHandler) HandleResetMetrics(w http.ResponseWriter, r *http.Reque
 	}
 
 	h.logger.Info("Metrics reset requested",
-		zap.String("request_id", ctx.Value("request_id").(string)),
+		zap.String("request_id", h.getRequestID(ctx)),
 	)
 }
 
@@ -205,7 +213,7 @@ func (h *MetricsHandler) HandleGetHealth(w http.ResponseWriter, r *http.Request)
 	}
 
 	h.logger.Info("Health check requested",
-		zap.String("request_id", ctx.Value("request_id").(string)),
+		zap.String("request_id", h.getRequestID(ctx)),
 		zap.String("health_status", snapshot.HealthStatus),
 		zap.Int("status_code", statusCode),
 	)
@@ -236,7 +244,7 @@ func (h *MetricsHandler) HandleGetModelPerformance(w http.ResponseWriter, r *htt
 	}
 
 	h.logger.Info("Model performance requested",
-		zap.String("request_id", ctx.Value("request_id").(string)),
+		zap.String("request_id", h.getRequestID(ctx)),
 		zap.Int("models_count", len(snapshot.ModelMetrics)),
 	)
 }
@@ -277,7 +285,7 @@ func (h *MetricsHandler) HandleGetMetricsHistory(w http.ResponseWriter, r *http.
 	}
 
 	h.logger.Info("Metrics history requested",
-		zap.String("request_id", ctx.Value("request_id").(string)),
+		zap.String("request_id", h.getRequestID(ctx)),
 		zap.Int("requested_hours", hours),
 	)
 }
