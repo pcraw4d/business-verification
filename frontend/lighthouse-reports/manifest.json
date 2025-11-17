@@ -1,0 +1,38 @@
+[
+  {
+    "url": "http://localhost:3000/",
+    "isRepresentativeRun": false,
+    "htmlPath": "/Users/petercrawford/New tool/frontend/lighthouse-reports/localhost--2025_11_17_04_14_36.report.html",
+    "jsonPath": "/Users/petercrawford/New tool/frontend/lighthouse-reports/localhost--2025_11_17_04_14_36.report.json",
+    "summary": {
+      "performance": 0.8,
+      "accessibility": 0.87,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  },
+  {
+    "url": "http://localhost:3000/",
+    "isRepresentativeRun": false,
+    "htmlPath": "/Users/petercrawford/New tool/frontend/lighthouse-reports/localhost--2025_11_17_04_15_12.report.html",
+    "jsonPath": "/Users/petercrawford/New tool/frontend/lighthouse-reports/localhost--2025_11_17_04_15_12.report.json",
+    "summary": {
+      "performance": 0.89,
+      "accessibility": 0.87,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  },
+  {
+    "url": "http://localhost:3000/",
+    "isRepresentativeRun": true,
+    "htmlPath": "/Users/petercrawford/New tool/frontend/lighthouse-reports/localhost--2025_11_17_04_14_55.report.html",
+    "jsonPath": "/Users/petercrawford/New tool/frontend/lighthouse-reports/localhost--2025_11_17_04_14_55.report.json",
+    "summary": {
+      "performance": 0.9,
+      "accessibility": 0.87,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  }
+]

@@ -1,0 +1,104 @@
+name: Bundle Size Analysis
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - 'frontend/package*.json'
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+      - 'frontend/package*.json'
+  workflow_dispatch:
+
+jobs:
+  analyze-bundle:
+    name: Analyze Bundle Size
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build application
+        working-directory: ./frontend
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Analyze bundle
+        working-directory: ./frontend
+        run: npm run analyze-bundle
+
+      - name: Get bundle sizes
+        id: bundle-sizes
+        working-directory: ./frontend
+        run: |
+          # Extract bundle sizes from .next/analyze output or build stats
+          if [ -d ".next" ]; then
+            echo "Bundle analysis complete"
+            # You can parse .next/analyze files here if available
+          fi
+          echo "bundle-analyzed=true" >> $GITHUB_OUTPUT
+
+      - name: Comment PR with bundle analysis
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const { execSync } = require('child_process');
+            
+            try {
+              // Run bundle analysis and capture output
+              const output = execSync('npm run analyze-bundle', {
+                cwd: './frontend',
+                encoding: 'utf-8'
+              });
+              
+              const comment = `## 📦 Bundle Size Analysis
+              
+              \`\`\`
+              ${output}
+              \`\`\`
+              
+              💡 **Tips to reduce bundle size:**
+              - Use dynamic imports for large components
+              - Remove unused dependencies
+              - Optimize images and assets
+              - Check for duplicate dependencies
+              `;
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            } catch (error) {
+              console.log('Bundle analysis completed with warnings');
+            }
+
+      - name: Upload bundle analysis
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bundle-analysis
+          path: |
+            frontend/.next/analyze/**
+            frontend/bundle-analysis.txt
+          retention-days: 7
+

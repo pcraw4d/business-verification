@@ -17,7 +17,8 @@
     "analyze-bundle": "node scripts/analyze-bundle.js",
     "performance-audit": "node scripts/performance-audit.js",
     "accessibility-audit": "node scripts/accessibility-audit.js",
-    "lighthouse": "lighthouse http://localhost:3000 --output html --output-path ./lighthouse-report.html --view",
+    "lighthouse": "node scripts/run-lighthouse.js",
+    "lighthouse:ci": "npx @lhci/cli autorun",
     "audit:all": "npm run analyze-bundle && npm run performance-audit && npm run accessibility-audit",
     "test:visual": "playwright test tests/visual",
     "test:visual:update": "playwright test tests/visual --update-snapshots"
