@@ -46,7 +46,7 @@ func (s *FrontendService) handleHealth(w http.ResponseWriter, r *http.Request) {
 
 func (s *FrontendService) handleDashboard(w http.ResponseWriter, r *http.Request) {
 	// Try to serve Next.js app first
-	nextJSFile := "./static/.next/server/app/page.html"
+	nextJSFile := "./static/.next/server/app/index.html"
 	if _, err := os.Stat(nextJSFile); err == nil {
 		// Next.js build exists - serve it
 		http.ServeFile(w, r, nextJSFile)
