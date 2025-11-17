@@ -179,7 +179,7 @@ export default function RegisterPage() {
                 icon={<Lock className="h-4 w-4" />}
               />
 
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
+              <Button type="submit" className="w-full" disabled={isSubmitting} aria-label={isSubmitting ? 'Creating account' : 'Create new account'}>
                 {isSubmitting ? 'Creating Account...' : 'Create Account'}
               </Button>
 

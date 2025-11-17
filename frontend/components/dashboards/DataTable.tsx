@@ -103,7 +103,7 @@ export function DataTable<T extends Record<string, any>>({
               setSearchTerm(e.target.value);
               setCurrentPage(1);
             }}
-            aria-label={searchPlaceholder || "Search"}
+            aria-label={searchPlaceholder || "Search table data"}
             className="max-w-sm"
           />
         </div>

@@ -26,9 +26,9 @@ kyb-platform/
 
 ### Frontend Service (`frontend/` and `cmd/frontend-service/`)
 - **Purpose**: Web interface for business classification, risk assessment, and compliance
-- **Technology**: Next.js with shadcn UI (new) / HTML/CSS/JS with Go static file server (legacy)
+- **Technology**: Next.js with shadcn UI
 - **Deployment**: Railway (frontend-UI service)
-- **Status**: New shadcn UI fully migrated, legacy UI deprecated
+- **Status**: ✅ New UI is default, legacy UI removed (Phase 4 complete)
 
 ## Quick Start
 
@@ -91,11 +91,12 @@ make deploy-frontend # Deploy frontend to Railway
 - [Frontend UI Audit](docs/FRONTEND_UI_AUDIT_REPORT.md)
 - [Development Guidelines](docs/development-guidelines.md)
 
-## Frontend UI Migration
+## Frontend UI
 
-The frontend has been fully migrated from legacy HTML/CSS/JS to Next.js with shadcn UI. All pages have been migrated and the new UI is production-ready.
+The frontend uses Next.js with shadcn UI components. The legacy HTML/CSS/JS UI has been completely removed (Phase 4 complete).
 
-- **New UI**: Next.js with shadcn UI components
+- **UI**: Next.js with shadcn UI components
 - **Location**: `frontend/` directory
-- **Enable**: Set `USE_NEW_UI=true` environment variable
+- **Default**: New UI is the default (no environment variables needed)
+- **Legacy UI**: Removed and archived to `archive/legacy-ui/`
 - **Status**: ✅ All pages migrated

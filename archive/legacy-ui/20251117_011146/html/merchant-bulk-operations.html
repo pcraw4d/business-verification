@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KYB Platform - Bulk Operations</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="components/navigation.js"></script>
+    <script src="components/session-manager.js"></script>
+    <script src="components/merchant-search.js"></script>
+    <script src="components/portfolio-type-filter.js"></script>
+    <script src="components/risk-level-indicator.js"></script>
+    <script src="components/coming-soon-banner.js"></script>
+    <script src="components/mock-data-warning.js"></script>
+    <script src="components/bulk-progress-tracker.js"></script>
+    <script src="components/real-data-integration.js"></script>
+    <script src="merchant-bulk-operations-real-data.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header Section */
+        .bulk-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-title h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-title .icon {
+            font-size: 2.5rem;
+            color: #667eea;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.9);
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #51cf66, #40c057);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(81, 207, 102, 0.3);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffd43b, #fab005);
+            color: #333;
+        }
+
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 212, 59, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Main Content */
+        .bulk-content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .bulk-main {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+
+        .bulk-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Operation Selection */
+        .operation-selector {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+
+        .operation-selector h3 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .operation-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .operation-card {
+            background: rgba(102, 126, 234, 0.1);
+            border: 2px solid transparent;
+            border-radius: 15px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .operation-card:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+        }
+
+        .operation-card.selected {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.2);
+        }
+
+        .operation-card .icon {
+            font-size: 2rem;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .operation-card h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .operation-card p {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        /* Merchant Selection */
+        .merchant-selection {
+            margin-bottom: 30px;
+        }
+
+        .selection-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .selection-header h3 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .selection-stats {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .selection-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+        }
+
+        /* Merchant List */
+        .merchant-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            background: white;
+        }
+
+        .merchant-item {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s ease;
+        }
+
+        .merchant-item:hover {
+            background-color: #f8f9ff;
+        }
+
+        .merchant-item:last-child {
+            border-bottom: none;
+        }
+
+        .merchant-checkbox {
+            margin-right: 15px;
+        }
+
+        .merchant-info {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .merchant-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .merchant-details h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .merchant-details p {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .merchant-badges {
+            display: flex;
+            gap: 8px;
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-onboarded {
+            background: rgba(81, 207, 102, 0.2);
+            color: #40c057;
+        }
+
+        .badge-pending {
+            background: rgba(255, 212, 59, 0.2);
+            color: #fab005;
+        }
+
+        .badge-deactivated {
+            background: rgba(255, 107, 107, 0.2);
+            color: #ee5a52;
+        }
+
+        .badge-prospective {
+            background: rgba(102, 126, 234, 0.2);
+            color: #667eea;
+        }
+
+        .badge-high-risk {
+            background: rgba(255, 107, 107, 0.2);
+            color: #ee5a52;
+        }
+
+        .badge-medium-risk {
+            background: rgba(255, 212, 59, 0.2);
+            color: #fab005;
+        }
+
+        .badge-low-risk {
+            background: rgba(81, 207, 102, 0.2);
+            color: #40c057;
+        }
+
+        /* Progress Tracking */
+        .progress-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+
+        .progress-section h3 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .progress-overview {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .progress-stat {
+            text-align: center;
+            padding: 15px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 12px;
+        }
+
+        .progress-stat .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .progress-stat .label {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .progress-bar-container {
+            margin-bottom: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 12px;
+            background: #e0e0e0;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 6px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .progress-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .progress-text {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .progress-percentage {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .progress-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        /* Operation Log */
+        .operation-log {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+
+        .operation-log h3 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .log-entries {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            background: white;
+        }
+
+        .log-entry {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            color: white;
+        }
+
+        .log-icon.success {
+            background: #51cf66;
+        }
+
+        .log-icon.error {
+            background: #ff6b6b;
+        }
+
+        .log-icon.warning {
+            background: #ffd43b;
+            color: #333;
+        }
+
+        .log-icon.info {
+            background: #667eea;
+        }
+
+        .log-content {
+            flex: 1;
+        }
+
+        .log-message {
+            font-size: 0.9rem;
+            margin-bottom: 2px;
+        }
+
+        .log-timestamp {
+            font-size: 0.75rem;
+            color: #666;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .bulk-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .bulk-sidebar {
+                order: -1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .header-title h1 {
+                font-size: 2rem;
+            }
+            
+            .operation-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .progress-overview {
+                grid-template-columns: 1fr;
+            }
+            
+            .selection-stats {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+
+        /* Loading States */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Status Indicators */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-running {
+            background: rgba(102, 126, 234, 0.2);
+            color: #667eea;
+        }
+
+        .status-paused {
+            background: rgba(255, 212, 59, 0.2);
+            color: #fab005;
+        }
+
+        .status-completed {
+            background: rgba(81, 207, 102, 0.2);
+            color: #40c057;
+        }
+
+        .status-failed {
+            background: rgba(255, 107, 107, 0.2);
+            color: #ee5a52;
+        }
+    </style>
+</head>
+<body>
+<!-- DEPRECATION NOTICE -->
+<div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 16px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 24px;">⚠️</span>
+        <div style="flex: 1;">
+            <strong style="font-size: 18px; display: block; margin-bottom: 4px;">This page is deprecated</strong>
+            <p style="margin: 0; font-size: 14px; opacity: 0.95;">
+                This legacy UI page has been replaced with a new shadcn UI implementation. 
+                Please use the new UI for the best experience. 
+                <a href="/" style="color: white; text-decoration: underline; font-weight: bold;">Go to new UI →</a>
+            </p>
+        </div>
+    </div>
+</div>
+    <!-- Navigation -->
+    <nav id="navigation"></nav>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="bulk-header">
+            <div class="header-content">
+                <div class="header-title">
+                    <i class="fas fa-tasks icon"></i>
+                    <h1>Bulk Operations</h1>
+                </div>
+                <div class="header-actions">
+                    <a href="merchant-portfolio.html" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i>
+                        Back to Portfolio
+                    </a>
+                    <button id="exportResults" class="btn btn-primary" disabled>
+                        <i class="fas fa-download"></i>
+                        Export Results
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="bulk-content">
+            <!-- Main Operations Area -->
+            <div class="bulk-main">
+                <!-- Operation Selection -->
+                <div class="operation-selector">
+                    <h3>Select Operation</h3>
+                    <div class="operation-grid">
+                        <div class="operation-card" data-operation="update-portfolio">
+                            <i class="fas fa-edit icon"></i>
+                            <h4>Update Portfolio</h4>
+                            <p>Change portfolio type for selected merchants</p>
+                        </div>
+                        <div class="operation-card" data-operation="update-risk">
+                            <i class="fas fa-shield-alt icon"></i>
+                            <h4>Update Risk Level</h4>
+                            <p>Modify risk assessment for selected merchants</p>
+                        </div>
+                        <div class="operation-card" data-operation="export-data">
+                            <i class="fas fa-file-export icon"></i>
+                            <h4>Export Data</h4>
+                            <p>Export merchant data in various formats</p>
+                        </div>
+                        <div class="operation-card" data-operation="send-notifications">
+                            <i class="fas fa-bell icon"></i>
+                            <h4>Send Notifications</h4>
+                            <p>Send notifications to selected merchants</p>
+                        </div>
+                        <div class="operation-card" data-operation="schedule-review">
+                            <i class="fas fa-calendar-check icon"></i>
+                            <h4>Schedule Review</h4>
+                            <p>Schedule compliance reviews for merchants</p>
+                        </div>
+                        <div class="operation-card" data-operation="bulk-deactivate">
+                            <i class="fas fa-ban icon"></i>
+                            <h4>Bulk Deactivate</h4>
+                            <p>Deactivate selected merchants</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Merchant Selection -->
+                <div class="merchant-selection">
+                    <div class="selection-header">
+                        <h3>Select Merchants</h3>
+                        <div class="selection-stats">
+                            <div class="stat-item">
+                                <div class="stat-value" id="totalMerchants">0</div>
+                                <div class="stat-label">Total</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="selectedMerchants">0</div>
+                                <div class="stat-label">Selected</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="selection-actions">
+                        <button id="selectAll" class="btn btn-sm btn-secondary">
+                            <i class="fas fa-check-square"></i>
+                            Select All
+                        </button>
+                        <button id="selectNone" class="btn btn-sm btn-secondary">
+                            <i class="fas fa-square"></i>
+                            Select None
+                        </button>
+                        <button id="selectByFilter" class="btn btn-sm btn-secondary">
+                            <i class="fas fa-filter"></i>
+                            Select by Filter
+                        </button>
+                        <button id="loadMore" class="btn btn-sm btn-primary">
+                            <i class="fas fa-plus"></i>
+                            Load More
+                        </button>
+                    </div>
+
+                    <!-- Merchant List -->
+                    <div class="merchant-list" id="merchantList">
+                        <!-- Merchants will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="bulk-sidebar">
+                <!-- Progress Tracking -->
+                <div class="progress-section">
+                    <h3>Operation Progress</h3>
+                    
+                    <div class="progress-overview">
+                        <div class="progress-stat">
+                            <div class="stat-value" id="progressCompleted">0</div>
+                            <div class="stat-label">Completed</div>
+                        </div>
+                        <div class="progress-stat">
+                            <div class="stat-value" id="progressFailed">0</div>
+                            <div class="stat-label">Failed</div>
+                        </div>
+                    </div>
+
+                    <div class="progress-bar-container">
+                        <div class="progress-details">
+                            <span class="progress-text" id="progressText">Ready to start</span>
+                            <span class="progress-percentage" id="progressPercentage">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-bar-fill" id="progressBarFill"></div>
+                        </div>
+                    </div>
+
+                    <div class="progress-controls">
+                        <button id="startOperation" class="btn btn-success" disabled>
+                            <i class="fas fa-play"></i>
+                            Start Operation
+                        </button>
+                        <button id="pauseOperation" class="btn btn-warning" disabled>
+                            <i class="fas fa-pause"></i>
+                            Pause
+                        </button>
+                        <button id="resumeOperation" class="btn btn-success" disabled>
+                            <i class="fas fa-play"></i>
+                            Resume
+                        </button>
+                        <button id="stopOperation" class="btn btn-danger" disabled>
+                            <i class="fas fa-stop"></i>
+                            Stop
+                        </button>
+                    </div>
+
+                    <div class="status-indicator" id="operationStatus">
+                        <i class="fas fa-circle"></i>
+                        Ready
+                    </div>
+                </div>
+
+                <!-- Operation Configuration -->
+                <div class="operation-selector" id="operationConfig" style="display: none;">
+                    <h3>Operation Configuration</h3>
+                    <div id="configContent">
+                        <!-- Configuration options will be loaded here based on selected operation -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Operation Log -->
+        <div class="operation-log">
+            <h3>Operation Log</h3>
+            <div class="log-entries" id="operationLog">
+                <div class="log-entry">
+                    <div class="log-icon info">
+                        <i class="fas fa-info"></i>
+                    </div>
+                    <div class="log-content">
+                        <div class="log-message">Bulk operations interface initialized</div>
+                        <div class="log-timestamp" id="currentTime"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mock Data Warning -->
+    <div id="mockDataWarning"></div>
+
+    <!-- Coming Soon Banner -->
+    <div id="comingSoonBanner"></div>
+
+    <script>
+        // Initialize the bulk operations interface
+        document.addEventListener('DOMContentLoaded', function() {
+            // Update current time
+            document.getElementById('currentTime').textContent = new Date().toLocaleString();
+            
+            // Initialize components
+            if (typeof MockDataWarning !== 'undefined') {
+                new MockDataWarning();
+            }
+            
+            if (typeof ComingSoonBanner !== 'undefined') {
+                new ComingSoonBanner();
+            }
+            
+            if (typeof Navigation !== 'undefined') {
+                new Navigation();
+            }
+            
+            if (typeof SessionManager !== 'undefined') {
+                new SessionManager();
+            }
+        });
+    </script>
+</body>
+</html>

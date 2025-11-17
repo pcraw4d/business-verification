@@ -1,0 +1,2632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Growth Analytics - Testing Suite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .test-result {
+            transition: all 0.3s ease;
+        }
+        .test-passed {
+            background-color: #dcfce7;
+            border-color: #16a34a;
+            color: #166534;
+        }
+        .test-failed {
+            background-color: #fef2f2;
+            border-color: #dc2626;
+            color: #991b1b;
+        }
+        .test-warning {
+            background-color: #fefce8;
+            border-color: #eab308;
+            color: #a16207;
+        }
+        .metric-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+        }
+        .card-hover {
+            transition: all 0.3s ease-in-out;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #059669);
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+<!-- DEPRECATION NOTICE -->
+<div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 16px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 24px;">⚠️</span>
+        <div style="flex: 1;">
+            <strong style="font-size: 18px; display: block; margin-bottom: 4px;">This page is deprecated</strong>
+            <p style="margin: 0; font-size: 14px; opacity: 0.95;">
+                This legacy UI page has been replaced with a new shadcn UI implementation. 
+                Please use the new UI for the best experience. 
+                <a href="/" style="color: white; text-decoration: underline; font-weight: bold;">Go to new UI →</a>
+            </p>
+        </div>
+    </div>
+</div>
+    <div class="min-h-screen">
+        <!-- Header -->
+        <div class="bg-white shadow-sm border-b">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center py-6">
+                    <div class="flex items-center">
+                        <i class="fas fa-vial text-purple-600 text-2xl mr-3"></i>
+                        <h1 class="text-2xl font-bold text-gray-900">Business Growth Analytics - Testing Suite</h1>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button id="runAllTests" class="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors">
+                            <i class="fas fa-play mr-2"></i>Run All Tests
+                        </button>
+                        <button id="exportResults" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors">
+                            <i class="fas fa-download mr-2"></i>Export Results
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Results Summary -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="metric-card card-hover">
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-blue-600 mb-2" id="totalTests">0</div>
+                        <div class="text-sm text-gray-600">Total Tests</div>
+                    </div>
+                </div>
+                <div class="metric-card card-hover">
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-green-600 mb-2" id="passedTests">0</div>
+                        <div class="text-sm text-gray-600">Passed</div>
+                    </div>
+                </div>
+                <div class="metric-card card-hover">
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-red-600 mb-2" id="failedTests">0</div>
+                        <div class="text-sm text-gray-600">Failed</div>
+                    </div>
+                </div>
+                <div class="metric-card card-hover">
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-yellow-600 mb-2" id="warningTests">0</div>
+                        <div class="text-sm text-gray-600">Warnings</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Progress -->
+            <div class="metric-card card-hover mb-8">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Test Progress</h3>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="testProgress" style="width: 0%"></div>
+                </div>
+                <div class="flex justify-between text-sm text-gray-600 mt-2">
+                    <span id="currentTest">Ready to start testing...</span>
+                    <span id="testPercentage">0%</span>
+                </div>
+            </div>
+
+            <!-- Test Categories -->
+            <div class="space-y-8">
+                <!-- Growth Calculation Accuracy Testing -->
+                <div class="metric-card card-hover">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-gray-900">
+                            <i class="fas fa-calculator text-blue-600 mr-2"></i>
+                            Growth Calculation Accuracy Testing
+                        </h2>
+                        <button id="runGrowthTests" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-play mr-2"></i>Run Tests
+                        </button>
+                    </div>
+                    
+                    <div id="growthTestResults" class="space-y-4">
+                        <!-- Test results will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Projection Algorithm Testing -->
+                <div class="metric-card card-hover">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-gray-900">
+                            <i class="fas fa-chart-line text-green-600 mr-2"></i>
+                            Projection Algorithm Testing
+                        </h2>
+                        <button id="runProjectionTests" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors">
+                            <i class="fas fa-play mr-2"></i>Run Tests
+                        </button>
+                    </div>
+                    
+                    <div id="projectionTestResults" class="space-y-4">
+                        <!-- Test results will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Trend Analysis Validation -->
+                <div class="metric-card card-hover">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-gray-900">
+                            <i class="fas fa-trending-up text-purple-600 mr-2"></i>
+                            Trend Analysis Validation
+                        </h2>
+                        <button id="runTrendTests" class="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors">
+                            <i class="fas fa-play mr-2"></i>Run Tests
+                        </button>
+                    </div>
+                    
+                    <div id="trendTestResults" class="space-y-4">
+                        <!-- Test results will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Recommendation Quality Testing -->
+                <div class="metric-card card-hover">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-gray-900">
+                            <i class="fas fa-lightbulb text-orange-600 mr-2"></i>
+                            Recommendation Quality Testing
+                        </h2>
+                        <button id="runRecommendationTests" class="bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition-colors">
+                            <i class="fas fa-play mr-2"></i>Run Tests
+                        </button>
+                    </div>
+                    
+                    <div id="recommendationTestResults" class="space-y-4">
+                        <!-- Test results will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Performance Metrics Validation -->
+                <div class="metric-card card-hover">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-gray-900">
+                            <i class="fas fa-tachometer-alt text-red-600 mr-2"></i>
+                            Performance Metrics Validation
+                        </h2>
+                        <button id="runPerformanceTests" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors">
+                            <i class="fas fa-play mr-2"></i>Run Tests
+                        </button>
+                    </div>
+                    
+                    <div id="performanceTestResults" class="space-y-4">
+                        <!-- Test results will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Data Visualization -->
+            <div class="metric-card card-hover mt-8">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Test Results Visualization</h3>
+                <div class="chart-container">
+                    <canvas id="testResultsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Test Results Tracking
+        let testResults = {
+            total: 0,
+            passed: 0,
+            failed: 0,
+            warnings: 0,
+            details: []
+        };
+
+        // Initialize testing suite
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeTestSuite();
+            setupEventListeners();
+        });
+
+        function initializeTestSuite() {
+            updateTestSummary();
+            initializeTestChart();
+        }
+
+        function setupEventListeners() {
+            document.getElementById('runAllTests').addEventListener('click', runAllTests);
+            document.getElementById('runGrowthTests').addEventListener('click', () => runTestCategory('growth'));
+            document.getElementById('runProjectionTests').addEventListener('click', () => runTestCategory('projection'));
+            document.getElementById('runTrendTests').addEventListener('click', () => runTestCategory('trend'));
+            document.getElementById('runRecommendationTests').addEventListener('click', () => runTestCategory('recommendation'));
+            document.getElementById('runPerformanceTests').addEventListener('click', () => runTestCategory('performance'));
+            document.getElementById('exportResults').addEventListener('click', exportTestResults);
+        }
+
+        // Run all tests
+        async function runAllTests() {
+            const categories = ['growth', 'projection', 'trend', 'recommendation', 'performance'];
+            
+            for (let i = 0; i < categories.length; i++) {
+                const category = categories[i];
+                document.getElementById('currentTest').textContent = `Running ${category} tests...`;
+                document.getElementById('testPercentage').textContent = `${Math.round(((i + 1) / categories.length) * 100)}%`;
+                document.getElementById('testProgress').style.width = `${((i + 1) / categories.length) * 100}%`;
+                
+                await runTestCategory(category);
+                await new Promise(resolve => setTimeout(resolve, 500)); // Small delay between categories
+            }
+            
+            document.getElementById('currentTest').textContent = 'All tests completed!';
+            updateTestSummary();
+            updateTestChart();
+        }
+
+        // Run specific test category
+        async function runTestCategory(category) {
+            const testFunctions = {
+                growth: runGrowthCalculationTests,
+                projection: runProjectionAlgorithmTests,
+                trend: runTrendAnalysisTests,
+                recommendation: runRecommendationQualityTests,
+                performance: runPerformanceMetricsTests
+            };
+
+            if (testFunctions[category]) {
+                await testFunctions[category]();
+            }
+        }
+
+        // Growth Calculation Accuracy Tests
+        async function runGrowthCalculationTests() {
+            const results = [];
+            
+            // Test 1: Basic growth rate calculation
+            try {
+                const result = calculateGrowthRate(100, 120);
+                const expected = 20;
+                const passed = Math.abs(result - expected) < 0.01;
+                
+                results.push({
+                    name: 'Basic Growth Rate Calculation',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Correctly calculated ${result}% growth` : `Expected ${expected}%, got ${result}%`,
+                    details: `From 100 to 120: ${result}%`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Basic Growth Rate Calculation',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during calculation'
+                });
+            }
+
+            // Test 2: Negative growth calculation
+            try {
+                const result = calculateGrowthRate(120, 100);
+                const expected = -16.67;
+                const passed = Math.abs(result - expected) < 0.1;
+                
+                results.push({
+                    name: 'Negative Growth Rate Calculation',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Correctly calculated ${result}% decline` : `Expected ${expected}%, got ${result}%`,
+                    details: `From 120 to 100: ${result}%`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Negative Growth Rate Calculation',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during calculation'
+                });
+            }
+
+            // Test 3: Zero growth calculation
+            try {
+                const result = calculateGrowthRate(100, 100);
+                const expected = 0;
+                const passed = Math.abs(result - expected) < 0.01;
+                
+                results.push({
+                    name: 'Zero Growth Rate Calculation',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Correctly calculated ${result}% growth` : `Expected ${expected}%, got ${result}%`,
+                    details: `From 100 to 100: ${result}%`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Zero Growth Rate Calculation',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during calculation'
+                });
+            }
+
+            // Test 4: Compound annual growth rate (CAGR)
+            try {
+                const result = calculateCAGR(100, 200, 5);
+                const expected = 14.87;
+                const passed = Math.abs(result - expected) < 0.1;
+                
+                results.push({
+                    name: 'Compound Annual Growth Rate (CAGR)',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Correctly calculated ${result}% CAGR` : `Expected ${expected}%, got ${result}%`,
+                    details: `From 100 to 200 over 5 years: ${result}%`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Compound Annual Growth Rate (CAGR)',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during calculation'
+                });
+            }
+
+            // Test 5: Edge case - very small numbers
+            try {
+                const result = calculateGrowthRate(0.001, 0.002);
+                const expected = 100;
+                const passed = Math.abs(result - expected) < 0.1;
+                
+                results.push({
+                    name: 'Small Numbers Growth Calculation',
+                    status: passed ? 'passed' : 'warning',
+                    message: passed ? `Correctly calculated ${result}% growth` : `Expected ${expected}%, got ${result}%`,
+                    details: `From 0.001 to 0.002: ${result}%`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Small Numbers Growth Calculation',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during calculation'
+                });
+            }
+
+            displayTestResults('growthTestResults', results);
+            updateTestResults(results);
+        }
+
+        // Projection Algorithm Tests
+        async function runProjectionAlgorithmTests() {
+            const results = [];
+            
+            // Test 1: Linear projection
+            try {
+                const data = [100, 110, 120, 130];
+                const projection = linearProjection(data, 2);
+                const expected = [140, 150];
+                const passed = projection.every((val, i) => Math.abs(val - expected[i]) < 0.1);
+                
+                results.push({
+                    name: 'Linear Projection Algorithm',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Correctly projected future values` : `Projection accuracy issue`,
+                    details: `Projected: [${projection.join(', ')}], Expected: [${expected.join(', ')}]`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Linear Projection Algorithm',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during projection'
+                });
+            }
+
+            // Test 2: Exponential projection
+            try {
+                const data = [100, 110, 121, 133.1];
+                const projection = exponentialProjection(data, 2);
+                const expected = [146.41, 161.05];
+                const passed = projection.every((val, i) => Math.abs(val - expected[i]) < 1);
+                
+                results.push({
+                    name: 'Exponential Projection Algorithm',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Correctly projected exponential growth` : `Projection accuracy issue`,
+                    details: `Projected: [${projection.join(', ')}], Expected: [${expected.join(', ')}]`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Exponential Projection Algorithm',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during projection'
+                });
+            }
+
+            // Test 3: Confidence interval calculation
+            try {
+                const data = [100, 110, 120, 130, 140];
+                const confidence = calculateConfidenceInterval(data, 0.95);
+                const passed = confidence.lower < confidence.upper && confidence.lower > 0;
+                
+                results.push({
+                    name: 'Confidence Interval Calculation',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Valid confidence interval calculated` : `Invalid confidence interval`,
+                    details: `95% CI: [${confidence.lower.toFixed(2)}, ${confidence.upper.toFixed(2)}]`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Confidence Interval Calculation',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during calculation'
+                });
+            }
+
+            // Test 4: Scenario analysis
+            try {
+                const baseData = [100, 110, 120];
+                const scenarios = generateScenarios(baseData, 2);
+                const passed = scenarios.optimistic.length === 2 && scenarios.pessimistic.length === 2;
+                
+                results.push({
+                    name: 'Scenario Analysis Generation',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Correctly generated scenarios` : `Scenario generation issue`,
+                    details: `Generated optimistic and pessimistic scenarios`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Scenario Analysis Generation',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during scenario generation'
+                });
+            }
+
+            // Test 5: Moving average projection
+            try {
+                const data = [100, 105, 110, 115, 120];
+                const projection = movingAverageProjection(data, 3, 2);
+                const expected = [115, 120];
+                const passed = projection.every((val, i) => Math.abs(val - expected[i]) < 0.1);
+                
+                results.push({
+                    name: 'Moving Average Projection',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Correctly calculated moving average projection` : `Moving average projection issue`,
+                    details: `Projected: [${projection.join(', ')}], Expected: [${expected.join(', ')}]`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Moving Average Projection',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during moving average calculation'
+                });
+            }
+
+            // Test 6: Polynomial projection
+            try {
+                const data = [100, 110, 125, 145, 170];
+                const projection = polynomialProjection(data, 2, 2);
+                const passed = projection.length === 2 && projection.every(val => val > 0);
+                
+                results.push({
+                    name: 'Polynomial Projection Algorithm',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Valid polynomial projection generated` : `Polynomial projection issue`,
+                    details: `Projected: [${projection.join(', ')}] (quadratic fit)`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Polynomial Projection Algorithm',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during polynomial calculation'
+                });
+            }
+
+            // Test 7: Seasonal adjustment projection
+            try {
+                const data = [100, 120, 100, 120, 100, 120];
+                const projection = seasonalAdjustmentProjection(data, 2);
+                const passed = projection.length === 2 && projection.every(val => val > 0);
+                
+                results.push({
+                    name: 'Seasonal Adjustment Projection',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Correctly applied seasonal adjustment` : `Seasonal adjustment issue`,
+                    details: `Projected: [${projection.join(', ')}] (seasonal pattern detected)`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Seasonal Adjustment Projection',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during seasonal adjustment'
+                });
+            }
+
+            // Test 8: Monte Carlo simulation
+            try {
+                const data = [100, 110, 120, 130];
+                const simulation = monteCarloSimulation(data, 1000, 2);
+                const passed = simulation.length === 2 && simulation.every(period => 
+                    period.mean > 0 && period.stdDev > 0 && period.confidence95.length === 2
+                );
+                
+                results.push({
+                    name: 'Monte Carlo Simulation',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Valid Monte Carlo simulation generated` : `Monte Carlo simulation issue`,
+                    details: `Simulation with 1000 iterations, confidence intervals calculated`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Monte Carlo Simulation',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during Monte Carlo simulation'
+                });
+            }
+
+            // Test 9: ARIMA-like projection
+            try {
+                const data = [100, 102, 105, 108, 112, 115, 119, 123];
+                const projection = arimaLikeProjection(data, 2);
+                const passed = projection.length === 2 && projection.every(val => val > 0);
+                
+                results.push({
+                    name: 'ARIMA-like Projection',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Valid ARIMA-like projection generated` : `ARIMA projection issue`,
+                    details: `Projected: [${projection.join(', ')}] (autoregressive model)`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'ARIMA-like Projection',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during ARIMA calculation'
+                });
+            }
+
+            // Test 10: Projection accuracy validation
+            try {
+                const historicalData = [100, 110, 120, 130, 140];
+                const actualFuture = [150, 160];
+                const projection = linearProjection(historicalData, 2);
+                const accuracy = calculateProjectionAccuracy(projection, actualFuture);
+                const passed = accuracy > 0.8; // 80% accuracy threshold
+                
+                results.push({
+                    name: 'Projection Accuracy Validation',
+                    status: passed ? 'passed' : 'warning',
+                    message: passed ? `High projection accuracy achieved` : `Projection accuracy below threshold`,
+                    details: `Accuracy: ${(accuracy * 100).toFixed(1)}% (threshold: 80%)`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Projection Accuracy Validation',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during accuracy calculation'
+                });
+            }
+
+            displayTestResults('projectionTestResults', results);
+            updateTestResults(results);
+        }
+
+        // Trend Analysis Tests
+        async function runTrendAnalysisTests() {
+            const results = [];
+            
+            // Test 1: Upward trend detection
+            try {
+                const data = [100, 105, 110, 115, 120];
+                const trend = detectTrend(data);
+                const passed = trend.direction === 'upward' && trend.strength > 0.8;
+                
+                results.push({
+                    name: 'Upward Trend Detection',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Correctly detected upward trend` : `Trend detection issue`,
+                    details: `Direction: ${trend.direction}, Strength: ${trend.strength.toFixed(2)}`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Upward Trend Detection',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during trend detection'
+                });
+            }
+
+            // Test 2: Downward trend detection
+            try {
+                const data = [120, 115, 110, 105, 100];
+                const trend = detectTrend(data);
+                const passed = trend.direction === 'downward' && trend.strength > 0.8;
+                
+                results.push({
+                    name: 'Downward Trend Detection',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Correctly detected downward trend` : `Trend detection issue`,
+                    details: `Direction: ${trend.direction}, Strength: ${trend.strength.toFixed(2)}`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Downward Trend Detection',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during trend detection'
+                });
+            }
+
+            // Test 3: No trend detection
+            try {
+                const data = [100, 100, 100, 100, 100];
+                const trend = detectTrend(data);
+                const passed = trend.direction === 'stable' && trend.strength < 0.3;
+                
+                results.push({
+                    name: 'No Trend Detection',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Correctly detected no trend` : `Trend detection issue`,
+                    details: `Direction: ${trend.direction}, Strength: ${trend.strength.toFixed(2)}`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'No Trend Detection',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during trend detection'
+                });
+            }
+
+            // Test 4: Seasonal pattern detection
+            try {
+                const data = [100, 120, 100, 120, 100, 120];
+                const seasonality = detectSeasonality(data);
+                const passed = seasonality.hasSeasonality && seasonality.period === 2;
+                
+                results.push({
+                    name: 'Seasonal Pattern Detection',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Correctly detected seasonal pattern` : `Seasonality detection issue`,
+                    details: `Has seasonality: ${seasonality.hasSeasonality}, Period: ${seasonality.period}`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Seasonal Pattern Detection',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during seasonality detection'
+                });
+            }
+
+            // Test 5: Trend strength calculation
+            try {
+                const data = [100, 102, 105, 108, 112, 115, 119, 123];
+                const trend = detectTrend(data);
+                const strength = calculateTrendStrength(data);
+                const passed = strength > 0.7 && strength < 1.0;
+                
+                results.push({
+                    name: 'Trend Strength Calculation',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Valid trend strength calculated` : `Trend strength calculation issue`,
+                    details: `Strength: ${strength.toFixed(3)} (R² correlation)`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Trend Strength Calculation',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during strength calculation'
+                });
+            }
+
+            // Test 6: Trend change point detection
+            try {
+                const data = [100, 105, 110, 115, 120, 115, 110, 105];
+                const changePoint = detectTrendChangePoint(data);
+                const passed = changePoint.index === 4 && changePoint.confidence > 0.7;
+                
+                results.push({
+                    name: 'Trend Change Point Detection',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Correctly detected trend change point` : `Change point detection issue`,
+                    details: `Change at index: ${changePoint.index}, Confidence: ${changePoint.confidence.toFixed(2)}`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Trend Change Point Detection',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during change point detection'
+                });
+            }
+
+            // Test 7: Cyclical pattern detection
+            try {
+                const data = [100, 120, 100, 120, 100, 120, 100, 120];
+                const cyclical = detectCyclicalPattern(data);
+                const passed = cyclical.hasCycle && cyclical.period === 2 && cyclical.amplitude > 10;
+                
+                results.push({
+                    name: 'Cyclical Pattern Detection',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Correctly detected cyclical pattern` : `Cyclical pattern detection issue`,
+                    details: `Has cycle: ${cyclical.hasCycle}, Period: ${cyclical.period}, Amplitude: ${cyclical.amplitude.toFixed(1)}`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Cyclical Pattern Detection',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during cyclical detection'
+                });
+            }
+
+            // Test 8: Trend acceleration detection
+            try {
+                const data = [100, 102, 105, 109, 114, 120, 127, 135];
+                const acceleration = detectTrendAcceleration(data);
+                const passed = acceleration.isAccelerating && acceleration.accelerationRate > 0;
+                
+                results.push({
+                    name: 'Trend Acceleration Detection',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Correctly detected trend acceleration` : `Acceleration detection issue`,
+                    details: `Is accelerating: ${acceleration.isAccelerating}, Rate: ${acceleration.accelerationRate.toFixed(3)}`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Trend Acceleration Detection',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during acceleration detection'
+                });
+            }
+
+            // Test 9: Volatility analysis
+            try {
+                const data = [100, 110, 95, 120, 90, 130, 85, 140];
+                const volatility = calculateVolatility(data);
+                const passed = volatility > 0.1 && volatility < 0.5;
+                
+                results.push({
+                    name: 'Volatility Analysis',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Valid volatility calculated` : `Volatility calculation issue`,
+                    details: `Volatility: ${volatility.toFixed(3)} (coefficient of variation)`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Volatility Analysis',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during volatility calculation'
+                });
+            }
+
+            // Test 10: Trend persistence analysis
+            try {
+                const data = [100, 105, 110, 115, 120, 125, 130, 135];
+                const persistence = analyzeTrendPersistence(data);
+                const passed = persistence.isPersistent && persistence.persistenceScore > 0.8;
+                
+                results.push({
+                    name: 'Trend Persistence Analysis',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Trend persistence correctly analyzed` : `Persistence analysis issue`,
+                    details: `Is persistent: ${persistence.isPersistent}, Score: ${persistence.persistenceScore.toFixed(2)}`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Trend Persistence Analysis',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during persistence analysis'
+                });
+            }
+
+            // Test 11: Multi-trend detection
+            try {
+                const data = [100, 105, 110, 115, 120, 115, 110, 105, 100, 95];
+                const multiTrend = detectMultipleTrends(data);
+                const passed = multiTrend.trends.length >= 2 && multiTrend.trends[0].direction === 'upward';
+                
+                results.push({
+                    name: 'Multi-Trend Detection',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Correctly detected multiple trends` : `Multi-trend detection issue`,
+                    details: `Number of trends: ${multiTrend.trends.length}, First trend: ${multiTrend.trends[0].direction}`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Multi-Trend Detection',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during multi-trend detection'
+                });
+            }
+
+            // Test 12: Trend forecasting accuracy
+            try {
+                const historicalData = [100, 105, 110, 115, 120];
+                const actualFuture = [125, 130];
+                const forecast = forecastTrend(historicalData, 2);
+                const accuracy = calculateTrendForecastAccuracy(forecast, actualFuture);
+                const passed = accuracy > 0.85; // 85% accuracy threshold
+                
+                results.push({
+                    name: 'Trend Forecasting Accuracy',
+                    status: passed ? 'passed' : 'warning',
+                    message: passed ? `High trend forecast accuracy` : `Trend forecast accuracy below threshold`,
+                    details: `Accuracy: ${(accuracy * 100).toFixed(1)}% (threshold: 85%)`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Trend Forecasting Accuracy',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during trend forecasting'
+                });
+            }
+
+            displayTestResults('trendTestResults', results);
+            updateTestResults(results);
+        }
+
+        // Recommendation Quality Tests
+        async function runRecommendationQualityTests() {
+            const results = [];
+            
+            // Test 1: Strategy scoring algorithm
+            try {
+                const strategy = {
+                    impact: 8,
+                    effort: 3,
+                    risk: 2,
+                    timeline: 6
+                };
+                const score = calculateStrategyScore(strategy);
+                const passed = score >= 0 && score <= 10;
+                
+                results.push({
+                    name: 'Strategy Scoring Algorithm',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Valid strategy score calculated` : `Invalid strategy score`,
+                    details: `Score: ${score.toFixed(2)} (Impact: ${strategy.impact}, Effort: ${strategy.effort})`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Strategy Scoring Algorithm',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during scoring'
+                });
+            }
+
+            // Test 2: Priority ranking
+            try {
+                const strategies = [
+                    { name: 'Strategy A', score: 8.5 },
+                    { name: 'Strategy B', score: 7.2 },
+                    { name: 'Strategy C', score: 9.1 }
+                ];
+                const ranked = rankStrategies(strategies);
+                const passed = ranked[0].name === 'Strategy C' && ranked[2].name === 'Strategy B';
+                
+                results.push({
+                    name: 'Strategy Priority Ranking',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Correctly ranked strategies by score` : `Ranking algorithm issue`,
+                    details: `Top strategy: ${ranked[0].name} (${ranked[0].score})`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Strategy Priority Ranking',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during ranking'
+                });
+            }
+
+            // Test 3: ROI calculation
+            try {
+                const investment = 100000;
+                const returns = 150000;
+                const roi = calculateROI(investment, returns);
+                const expected = 50;
+                const passed = Math.abs(roi - expected) < 0.1;
+                
+                results.push({
+                    name: 'ROI Calculation',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Correctly calculated ROI` : `ROI calculation issue`,
+                    details: `Investment: $${investment}, Returns: $${returns}, ROI: ${roi}%`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'ROI Calculation',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during ROI calculation'
+                });
+            }
+
+            // Test 4: Risk assessment
+            try {
+                const factors = {
+                    marketRisk: 0.3,
+                    executionRisk: 0.2,
+                    financialRisk: 0.1
+                };
+                const riskScore = calculateRiskScore(factors);
+                const passed = riskScore >= 0 && riskScore <= 1;
+                
+                results.push({
+                    name: 'Risk Assessment Calculation',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Valid risk score calculated` : `Risk calculation issue`,
+                    details: `Risk score: ${riskScore.toFixed(2)} (Low risk)`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Risk Assessment Calculation',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during risk calculation'
+                });
+            }
+
+            // Test 5: Recommendation relevance scoring
+            try {
+                const recommendation = {
+                    title: 'Market Expansion Strategy',
+                    description: 'Expand into new geographic markets',
+                    relevanceScore: 0.85,
+                    confidence: 0.92
+                };
+                const relevance = calculateRecommendationRelevance(recommendation);
+                const passed = relevance >= 0.8 && relevance <= 1.0;
+                
+                results.push({
+                    name: 'Recommendation Relevance Scoring',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Valid relevance score calculated` : `Relevance scoring issue`,
+                    details: `Relevance: ${relevance.toFixed(3)} (High relevance)`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Recommendation Relevance Scoring',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during relevance calculation'
+                });
+            }
+
+            // Test 6: Strategy feasibility assessment
+            try {
+                const strategy = {
+                    complexity: 0.6,
+                    resourceRequirement: 0.7,
+                    timeToImplement: 0.8,
+                    skillRequirement: 0.5
+                };
+                const feasibility = assessStrategyFeasibility(strategy);
+                const passed = feasibility.score >= 0 && feasibility.score <= 1 && feasibility.category;
+                
+                results.push({
+                    name: 'Strategy Feasibility Assessment',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Valid feasibility assessment` : `Feasibility assessment issue`,
+                    details: `Score: ${feasibility.score.toFixed(2)}, Category: ${feasibility.category}`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Strategy Feasibility Assessment',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during feasibility assessment'
+                });
+            }
+
+            // Test 7: Opportunity prioritization matrix
+            try {
+                const opportunities = [
+                    { name: 'High Impact, Low Effort', impact: 9, effort: 2 },
+                    { name: 'Medium Impact, Medium Effort', impact: 6, effort: 6 },
+                    { name: 'Low Impact, High Effort', impact: 3, effort: 8 }
+                ];
+                const prioritized = prioritizeOpportunities(opportunities);
+                const passed = prioritized[0].name === 'High Impact, Low Effort' && prioritized.length === 3;
+                
+                results.push({
+                    name: 'Opportunity Prioritization Matrix',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Correctly prioritized opportunities` : `Prioritization issue`,
+                    details: `Top opportunity: ${prioritized[0].name} (Impact: ${prioritized[0].impact}, Effort: ${prioritized[0].effort})`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Opportunity Prioritization Matrix',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during prioritization'
+                });
+            }
+
+            // Test 8: Recommendation confidence scoring
+            try {
+                const dataQuality = 0.9;
+                const historicalAccuracy = 0.85;
+                const marketConditions = 0.8;
+                const confidence = calculateRecommendationConfidence(dataQuality, historicalAccuracy, marketConditions);
+                const passed = confidence >= 0.7 && confidence <= 1.0;
+                
+                results.push({
+                    name: 'Recommendation Confidence Scoring',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Valid confidence score calculated` : `Confidence scoring issue`,
+                    details: `Confidence: ${confidence.toFixed(3)} (High confidence)`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Recommendation Confidence Scoring',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during confidence calculation'
+                });
+            }
+
+            // Test 9: Strategy impact prediction
+            try {
+                const strategy = {
+                    type: 'market_expansion',
+                    investment: 500000,
+                    marketSize: 10000000,
+                    currentShare: 0.05
+                };
+                const impact = predictStrategyImpact(strategy);
+                const passed = impact.revenueIncrease > 0 && impact.marketShareIncrease > 0;
+                
+                results.push({
+                    name: 'Strategy Impact Prediction',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Valid impact prediction` : `Impact prediction issue`,
+                    details: `Revenue increase: $${impact.revenueIncrease.toLocaleString()}, Market share: +${(impact.marketShareIncrease * 100).toFixed(1)}%`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Strategy Impact Prediction',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during impact prediction'
+                });
+            }
+
+            // Test 10: Recommendation quality validation
+            try {
+                const recommendation = {
+                    title: 'Digital Transformation Initiative',
+                    description: 'Implement AI-driven customer insights',
+                    expectedROI: 250,
+                    implementationTime: 12,
+                    riskLevel: 'medium',
+                    successProbability: 0.75
+                };
+                const quality = validateRecommendationQuality(recommendation);
+                const passed = quality.score >= 0.7 && quality.isHighQuality;
+                
+                results.push({
+                    name: 'Recommendation Quality Validation',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `High quality recommendation validated` : `Quality validation issue`,
+                    details: `Quality score: ${quality.score.toFixed(2)}, High quality: ${quality.isHighQuality}`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Recommendation Quality Validation',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during quality validation'
+                });
+            }
+
+            // Test 11: Strategy portfolio optimization
+            try {
+                const strategies = [
+                    { name: 'Quick Win', roi: 200, risk: 0.2, duration: 3 },
+                    { name: 'Growth Strategy', roi: 300, risk: 0.4, duration: 12 },
+                    { name: 'Innovation', roi: 500, risk: 0.7, duration: 24 }
+                ];
+                const portfolio = optimizeStrategyPortfolio(strategies, 1000000);
+                const passed = portfolio.totalROI > 0 && portfolio.riskScore >= 0 && portfolio.riskScore <= 1;
+                
+                results.push({
+                    name: 'Strategy Portfolio Optimization',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Valid portfolio optimization` : `Portfolio optimization issue`,
+                    details: `Total ROI: ${portfolio.totalROI}%, Risk score: ${portfolio.riskScore.toFixed(2)}`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Strategy Portfolio Optimization',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during portfolio optimization'
+                });
+            }
+
+            // Test 12: Recommendation effectiveness scoring
+            try {
+                const historicalData = [
+                    { recommendation: 'Market Expansion', actualROI: 180, predictedROI: 200 },
+                    { recommendation: 'Product Innovation', actualROI: 320, predictedROI: 300 },
+                    { recommendation: 'Cost Reduction', actualROI: 150, predictedROI: 160 }
+                ];
+                const effectiveness = calculateRecommendationEffectiveness(historicalData);
+                const passed = effectiveness.accuracy > 0.8 && effectiveness.overallScore >= 0.7;
+                
+                results.push({
+                    name: 'Recommendation Effectiveness Scoring',
+                    status: passed ? 'passed' : 'warning',
+                    message: passed ? `High effectiveness score achieved` : `Effectiveness scoring issue`,
+                    details: `Accuracy: ${(effectiveness.accuracy * 100).toFixed(1)}%, Overall score: ${effectiveness.overallScore.toFixed(2)}`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Recommendation Effectiveness Scoring',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during effectiveness calculation'
+                });
+            }
+
+            displayTestResults('recommendationTestResults', results);
+            updateTestResults(results);
+        }
+
+        // Performance Metrics Tests
+        async function runPerformanceMetricsTests() {
+            const results = [];
+            
+            // Test 1: KPI calculation accuracy
+            try {
+                const data = {
+                    currentRevenue: 1000000,
+                    previousRevenue: 800000,
+                    currentCustomers: 5000,
+                    previousCustomers: 4000
+                };
+                const revenueGrowth = ((data.currentRevenue - data.previousRevenue) / data.previousRevenue) * 100;
+                const customerGrowth = ((data.currentCustomers - data.previousCustomers) / data.previousCustomers) * 100;
+                const passed = Math.abs(revenueGrowth - 25) < 0.1 && Math.abs(customerGrowth - 25) < 0.1;
+                
+                results.push({
+                    name: 'KPI Calculation Accuracy',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Correctly calculated growth KPIs` : `KPI calculation issue`,
+                    details: `Revenue growth: ${revenueGrowth.toFixed(1)}%, Customer growth: ${customerGrowth.toFixed(1)}%`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'KPI Calculation Accuracy',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during KPI calculation'
+                });
+            }
+
+            // Test 2: Benchmark comparison
+            try {
+                const companyMetrics = {
+                    revenueGrowth: 25,
+                    customerGrowth: 20,
+                    marketShare: 15
+                };
+                const industryBenchmarks = {
+                    revenueGrowth: 15,
+                    customerGrowth: 12,
+                    marketShare: 10
+                };
+                const comparison = compareToBenchmarks(companyMetrics, industryBenchmarks);
+                const passed = comparison.revenueGrowth > 1 && comparison.customerGrowth > 1 && comparison.marketShare > 1;
+                
+                results.push({
+                    name: 'Benchmark Comparison',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Correctly compared to industry benchmarks` : `Benchmark comparison issue`,
+                    details: `Revenue vs benchmark: ${comparison.revenueGrowth.toFixed(1)}x, Customer vs benchmark: ${comparison.customerGrowth.toFixed(1)}x`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Benchmark Comparison',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during benchmark comparison'
+                });
+            }
+
+            // Test 3: Performance scorecard
+            try {
+                const metrics = {
+                    revenueGrowth: 25,
+                    customerGrowth: 20,
+                    marketShare: 15,
+                    operationalEfficiency: 85
+                };
+                const scorecard = generatePerformanceScorecard(metrics);
+                const passed = scorecard.overallScore >= 0 && scorecard.overallScore <= 100;
+                
+                results.push({
+                    name: 'Performance Scorecard Generation',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Valid performance scorecard generated` : `Scorecard generation issue`,
+                    details: `Overall score: ${scorecard.overallScore.toFixed(1)}/100`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Performance Scorecard Generation',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during scorecard generation'
+                });
+            }
+
+            // Test 4: Performance trend analysis
+            try {
+                const performanceData = [
+                    { month: 'Jan', revenue: 800000, customers: 4000 },
+                    { month: 'Feb', revenue: 850000, customers: 4200 },
+                    { month: 'Mar', revenue: 900000, customers: 4400 },
+                    { month: 'Apr', revenue: 950000, customers: 4600 },
+                    { month: 'May', revenue: 1000000, customers: 5000 }
+                ];
+                const trendAnalysis = analyzePerformanceTrends(performanceData);
+                const passed = trendAnalysis.revenueTrend === 'increasing' && trendAnalysis.customerTrend === 'increasing';
+                
+                results.push({
+                    name: 'Performance Trend Analysis',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Correctly identified performance trends` : `Trend analysis issue`,
+                    details: `Revenue trend: ${trendAnalysis.revenueTrend}, Customer trend: ${trendAnalysis.customerTrend}`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Performance Trend Analysis',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during trend analysis'
+                });
+            }
+
+            // Test 5: Performance distribution analysis
+            try {
+                const performanceScores = [85, 90, 88, 92, 87, 89, 91, 86, 93, 88];
+                const distribution = analyzePerformanceDistribution(performanceScores);
+                const passed = distribution.mean >= 88 && distribution.mean <= 90 && distribution.stdDev > 0;
+                
+                results.push({
+                    name: 'Performance Distribution Analysis',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Valid distribution analysis` : `Distribution analysis issue`,
+                    details: `Mean: ${distribution.mean.toFixed(1)}, Std Dev: ${distribution.stdDev.toFixed(2)}`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Performance Distribution Analysis',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during distribution analysis'
+                });
+            }
+
+            // Test 6: Performance velocity calculation
+            try {
+                const velocityData = [
+                    { period: 1, performance: 80 },
+                    { period: 2, performance: 85 },
+                    { period: 3, performance: 90 },
+                    { period: 4, performance: 95 }
+                ];
+                const velocity = calculatePerformanceVelocity(velocityData);
+                const passed = velocity.acceleration > 0 && velocity.velocity > 0;
+                
+                results.push({
+                    name: 'Performance Velocity Calculation',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Valid velocity calculation` : `Velocity calculation issue`,
+                    details: `Velocity: ${velocity.velocity.toFixed(2)}, Acceleration: ${velocity.acceleration.toFixed(2)}`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Performance Velocity Calculation',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during velocity calculation'
+                });
+            }
+
+            // Test 7: Performance alert system
+            try {
+                const currentMetrics = {
+                    revenueGrowth: 5, // Below threshold
+                    customerGrowth: 25, // Above threshold
+                    marketShare: 8 // Below threshold
+                };
+                const thresholds = {
+                    revenueGrowth: 15,
+                    customerGrowth: 20,
+                    marketShare: 10
+                };
+                const alerts = generatePerformanceAlerts(currentMetrics, thresholds);
+                const passed = alerts.length >= 2 && alerts.some(alert => alert.type === 'warning');
+                
+                results.push({
+                    name: 'Performance Alert System',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Correctly generated performance alerts` : `Alert system issue`,
+                    details: `Generated ${alerts.length} alerts, ${alerts.filter(a => a.type === 'warning').length} warnings`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Performance Alert System',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during alert generation'
+                });
+            }
+
+            // Test 8: Performance benchmarking accuracy
+            try {
+                const companyData = {
+                    revenue: 1000000,
+                    employees: 50,
+                    marketCap: 5000000
+                };
+                const industryData = {
+                    avgRevenue: 800000,
+                    avgEmployees: 40,
+                    avgMarketCap: 4000000
+                };
+                const benchmark = calculatePerformanceBenchmark(companyData, industryData);
+                const passed = benchmark.revenueRatio > 1 && benchmark.efficiencyRatio > 0;
+                
+                results.push({
+                    name: 'Performance Benchmarking Accuracy',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Valid benchmark calculation` : `Benchmark calculation issue`,
+                    details: `Revenue ratio: ${benchmark.revenueRatio.toFixed(2)}x, Efficiency: ${benchmark.efficiencyRatio.toFixed(2)}`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Performance Benchmarking Accuracy',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during benchmark calculation'
+                });
+            }
+
+            // Test 9: Performance correlation analysis
+            try {
+                const metrics = {
+                    revenue: [800, 850, 900, 950, 1000],
+                    customers: [4000, 4200, 4400, 4600, 5000],
+                    marketShare: [12, 13, 14, 14.5, 15]
+                };
+                const correlation = analyzePerformanceCorrelation(metrics);
+                const passed = correlation.revenueCustomers > 0.8 && correlation.customersMarketShare > 0.7;
+                
+                results.push({
+                    name: 'Performance Correlation Analysis',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Valid correlation analysis` : `Correlation analysis issue`,
+                    details: `Revenue-Customers: ${correlation.revenueCustomers.toFixed(3)}, Customers-MarketShare: ${correlation.customersMarketShare.toFixed(3)}`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Performance Correlation Analysis',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during correlation analysis'
+                });
+            }
+
+            // Test 10: Performance forecasting accuracy
+            try {
+                const historicalData = [80, 85, 90, 88, 92, 95, 93, 97];
+                const forecast = forecastPerformance(historicalData, 3);
+                const passed = forecast.length === 3 && forecast.every(f => f >= 0 && f <= 100);
+                
+                results.push({
+                    name: 'Performance Forecasting Accuracy',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Valid performance forecast` : `Forecasting issue`,
+                    details: `Forecast: ${forecast.map(f => f.toFixed(1)).join(', ')}`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Performance Forecasting Accuracy',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during forecasting'
+                });
+            }
+
+            // Test 11: Performance efficiency metrics
+            try {
+                const efficiencyData = {
+                    revenue: 1000000,
+                    costs: 600000,
+                    employees: 50,
+                    assets: 2000000
+                };
+                const efficiency = calculateEfficiencyMetrics(efficiencyData);
+                const passed = efficiency.profitMargin > 0 && efficiency.revenuePerEmployee > 0 && efficiency.assetTurnover > 0;
+                
+                results.push({
+                    name: 'Performance Efficiency Metrics',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Valid efficiency metrics` : `Efficiency calculation issue`,
+                    details: `Profit margin: ${efficiency.profitMargin.toFixed(1)}%, Revenue/employee: $${efficiency.revenuePerEmployee.toLocaleString()}`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Performance Efficiency Metrics',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during efficiency calculation'
+                });
+            }
+
+            // Test 12: Performance volatility analysis
+            try {
+                const performanceData = [85, 90, 88, 92, 87, 89, 91, 86, 93, 88, 90, 89];
+                const volatility = analyzePerformanceVolatility(performanceData);
+                const passed = volatility.coefficient > 0 && volatility.stability >= 0 && volatility.stability <= 1;
+                
+                results.push({
+                    name: 'Performance Volatility Analysis',
+                    status: passed ? 'passed' : 'failed',
+                    message: passed ? `Valid volatility analysis` : `Volatility analysis issue`,
+                    details: `Coefficient: ${volatility.coefficient.toFixed(3)}, Stability: ${volatility.stability.toFixed(3)}`
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Performance Volatility Analysis',
+                    status: 'failed',
+                    message: `Error: ${error.message}`,
+                    details: 'Exception occurred during volatility analysis'
+                });
+            }
+
+            displayTestResults('performanceTestResults', results);
+            updateTestResults(results);
+        }
+
+        // Mathematical Functions for Testing
+        function calculateGrowthRate(initial, final) {
+            if (initial === 0) throw new Error('Initial value cannot be zero');
+            return ((final - initial) / initial) * 100;
+        }
+
+        function calculateCAGR(initial, final, years) {
+            if (initial <= 0 || final <= 0 || years <= 0) throw new Error('Invalid parameters for CAGR');
+            return (Math.pow(final / initial, 1 / years) - 1) * 100;
+        }
+
+        function linearProjection(data, periods) {
+            if (data.length < 2) throw new Error('Need at least 2 data points');
+            const slope = (data[data.length - 1] - data[0]) / (data.length - 1);
+            const projection = [];
+            for (let i = 1; i <= periods; i++) {
+                projection.push(data[data.length - 1] + slope * i);
+            }
+            return projection;
+        }
+
+        function exponentialProjection(data, periods) {
+            if (data.length < 2) throw new Error('Need at least 2 data points');
+            const growthRate = Math.pow(data[data.length - 1] / data[0], 1 / (data.length - 1));
+            const projection = [];
+            for (let i = 1; i <= periods; i++) {
+                projection.push(data[data.length - 1] * Math.pow(growthRate, i));
+            }
+            return projection;
+        }
+
+        function calculateConfidenceInterval(data, confidence) {
+            const mean = data.reduce((a, b) => a + b, 0) / data.length;
+            const variance = data.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / data.length;
+            const stdDev = Math.sqrt(variance);
+            const zScore = confidence === 0.95 ? 1.96 : 1.645;
+            const margin = zScore * (stdDev / Math.sqrt(data.length));
+            
+            return {
+                lower: mean - margin,
+                upper: mean + margin
+            };
+        }
+
+        function generateScenarios(baseData, periods) {
+            const trend = (baseData[baseData.length - 1] - baseData[0]) / baseData.length;
+            const optimistic = [];
+            const pessimistic = [];
+            
+            for (let i = 1; i <= periods; i++) {
+                optimistic.push(baseData[baseData.length - 1] + trend * i * 1.2);
+                pessimistic.push(baseData[baseData.length - 1] + trend * i * 0.8);
+            }
+            
+            return { optimistic, pessimistic };
+        }
+
+        function detectTrend(data) {
+            if (data.length < 2) return { direction: 'stable', strength: 0 };
+            
+            let upwardCount = 0;
+            let downwardCount = 0;
+            
+            for (let i = 1; i < data.length; i++) {
+                if (data[i] > data[i - 1]) upwardCount++;
+                else if (data[i] < data[i - 1]) downwardCount++;
+            }
+            
+            const total = data.length - 1;
+            const upwardRatio = upwardCount / total;
+            const downwardRatio = downwardCount / total;
+            
+            if (upwardRatio > 0.6) return { direction: 'upward', strength: upwardRatio };
+            if (downwardRatio > 0.6) return { direction: 'downward', strength: downwardRatio };
+            return { direction: 'stable', strength: Math.abs(upwardRatio - downwardRatio) };
+        }
+
+        function detectSeasonality(data) {
+            if (data.length < 4) return { hasSeasonality: false, period: 0 };
+            
+            // Simple seasonality detection for period 2
+            let pattern = true;
+            for (let i = 2; i < data.length; i += 2) {
+                if (Math.abs(data[i] - data[i - 2]) > 0.1) {
+                    pattern = false;
+                    break;
+                }
+            }
+            
+            return { hasSeasonality: pattern, period: 2 };
+        }
+
+        function calculateStrategyScore(strategy) {
+            const impactWeight = 0.4;
+            const effortWeight = 0.3;
+            const riskWeight = 0.2;
+            const timelineWeight = 0.1;
+            
+            const effortScore = 10 - strategy.effort; // Lower effort = higher score
+            const riskScore = 10 - strategy.risk; // Lower risk = higher score
+            const timelineScore = 10 - strategy.timeline; // Shorter timeline = higher score
+            
+            return (strategy.impact * impactWeight) + 
+                   (effortScore * effortWeight) + 
+                   (riskScore * riskWeight) + 
+                   (timelineScore * timelineWeight);
+        }
+
+        function rankStrategies(strategies) {
+            return strategies.sort((a, b) => b.score - a.score);
+        }
+
+        function calculateROI(investment, returns) {
+            if (investment <= 0) throw new Error('Investment must be positive');
+            return ((returns - investment) / investment) * 100;
+        }
+
+        function calculateRiskScore(factors) {
+            const weights = { marketRisk: 0.4, executionRisk: 0.4, financialRisk: 0.2 };
+            return (factors.marketRisk * weights.marketRisk) + 
+                   (factors.executionRisk * weights.executionRisk) + 
+                   (factors.financialRisk * weights.financialRisk);
+        }
+
+        function calculateKPI(metrics) {
+            const growth = calculateGrowthRate(metrics.previous, metrics.current);
+            const targetAchievement = (metrics.current / metrics.target) * 100;
+            return { growth, targetAchievement };
+        }
+
+        function compareToBenchmark(ourValue, benchmarkValue) {
+            const percentageDifference = ((ourValue - benchmarkValue) / benchmarkValue) * 100;
+            return { percentageDifference, isAboveBenchmark: percentageDifference > 0 };
+        }
+
+        function calculatePerformanceGrade(performance) {
+            if (performance >= 95) return 'A+';
+            if (performance >= 90) return 'A';
+            if (performance >= 85) return 'A-';
+            if (performance >= 80) return 'B+';
+            if (performance >= 75) return 'B';
+            if (performance >= 70) return 'B-';
+            if (performance >= 65) return 'C+';
+            if (performance >= 60) return 'C';
+            return 'C-';
+        }
+
+        function calculateVelocity(data) {
+            if (data.length < 2) return 0;
+            const firstHalf = data.slice(0, Math.floor(data.length / 2));
+            const secondHalf = data.slice(Math.floor(data.length / 2));
+            
+            const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
+            const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+            
+            return secondAvg / firstAvg;
+        }
+
+        // Additional Projection Algorithm Functions
+        function movingAverageProjection(data, windowSize, periods) {
+            if (data.length < windowSize) throw new Error('Insufficient data for moving average');
+            
+            const projection = [];
+            const recentValues = data.slice(-windowSize);
+            const currentAvg = recentValues.reduce((a, b) => a + b, 0) / windowSize;
+            
+            for (let i = 1; i <= periods; i++) {
+                projection.push(currentAvg + (i * 5)); // Simple trend continuation
+            }
+            
+            return projection;
+        }
+
+        function polynomialProjection(data, degree, periods) {
+            if (data.length < degree + 1) throw new Error('Insufficient data for polynomial fit');
+            
+            // Simple quadratic projection (degree 2)
+            const n = data.length;
+            const x = Array.from({length: n}, (_, i) => i);
+            
+            // Calculate coefficients for quadratic fit: y = ax² + bx + c
+            const sumX = x.reduce((a, b) => a + b, 0);
+            const sumX2 = x.reduce((a, b) => a + b * b, 0);
+            const sumX3 = x.reduce((a, b) => a + b * b * b, 0);
+            const sumX4 = x.reduce((a, b) => a + b * b * b * b, 0);
+            const sumY = data.reduce((a, b) => a + b, 0);
+            const sumXY = x.reduce((sum, xi, i) => sum + xi * data[i], 0);
+            const sumX2Y = x.reduce((sum, xi, i) => sum + xi * xi * data[i], 0);
+            
+            // Solve system of equations for quadratic coefficients
+            const a = (n * sumX2Y - sumX2 * sumY - sumX * sumXY + sumX * sumX * sumY / n) / 
+                     (n * sumX4 - sumX2 * sumX2 - sumX * sumX3 + sumX * sumX * sumX2 / n);
+            const b = (sumXY - a * sumX3 - sumX * sumY / n + a * sumX * sumX2 / n) / 
+                     (sumX2 - sumX * sumX / n);
+            const c = (sumY - a * sumX2 - b * sumX) / n;
+            
+            const projection = [];
+            for (let i = 1; i <= periods; i++) {
+                const xVal = n + i - 1;
+                projection.push(a * xVal * xVal + b * xVal + c);
+            }
+            
+            return projection;
+        }
+
+        function seasonalAdjustmentProjection(data, periods) {
+            if (data.length < 4) throw new Error('Insufficient data for seasonal adjustment');
+            
+            // Detect seasonal pattern (simple 2-period cycle)
+            const seasonalFactors = [];
+            for (let i = 0; i < 2; i++) {
+                const values = [];
+                for (let j = i; j < data.length; j += 2) {
+                    values.push(data[j]);
+                }
+                seasonalFactors.push(values.reduce((a, b) => a + b, 0) / values.length);
+            }
+            
+            const baseLevel = data.reduce((a, b) => a + b, 0) / data.length;
+            const projection = [];
+            
+            for (let i = 1; i <= periods; i++) {
+                const seasonalIndex = (i - 1) % 2;
+                const seasonalFactor = seasonalFactors[seasonalIndex] / baseLevel;
+                projection.push(baseLevel * seasonalFactor * (1 + i * 0.05)); // 5% growth trend
+            }
+            
+            return projection;
+        }
+
+        function monteCarloSimulation(data, iterations, periods) {
+            if (data.length < 2) throw new Error('Insufficient data for Monte Carlo simulation');
+            
+            // Calculate historical statistics
+            const returns = [];
+            for (let i = 1; i < data.length; i++) {
+                returns.push((data[i] - data[i-1]) / data[i-1]);
+            }
+            
+            const meanReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
+            const variance = returns.reduce((sum, r) => sum + Math.pow(r - meanReturn, 2), 0) / returns.length;
+            const stdDev = Math.sqrt(variance);
+            
+            const results = [];
+            for (let period = 1; period <= periods; period++) {
+                const simulations = [];
+                
+                for (let i = 0; i < iterations; i++) {
+                    let value = data[data.length - 1];
+                    for (let p = 1; p <= period; p++) {
+                        const randomReturn = meanReturn + stdDev * (Math.random() * 2 - 1);
+                        value *= (1 + randomReturn);
+                    }
+                    simulations.push(value);
+                }
+                
+                simulations.sort((a, b) => a - b);
+                const mean = simulations.reduce((a, b) => a + b, 0) / simulations.length;
+                const stdDevSim = Math.sqrt(simulations.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / simulations.length);
+                
+                results.push({
+                    mean: mean,
+                    stdDev: stdDevSim,
+                    confidence95: [
+                        simulations[Math.floor(iterations * 0.025)],
+                        simulations[Math.floor(iterations * 0.975)]
+                    ]
+                });
+            }
+            
+            return results;
+        }
+
+        function arimaLikeProjection(data, periods) {
+            if (data.length < 3) throw new Error('Insufficient data for ARIMA-like projection');
+            
+            // Simple autoregressive model: AR(1) - X(t) = c + φ*X(t-1) + ε
+            const differences = [];
+            for (let i = 1; i < data.length; i++) {
+                differences.push(data[i] - data[i-1]);
+            }
+            
+            const meanDiff = differences.reduce((a, b) => a + b, 0) / differences.length;
+            const phi = 0.7; // Autoregressive coefficient
+            const c = meanDiff * (1 - phi); // Constant term
+            
+            const projection = [];
+            let lastValue = data[data.length - 1];
+            
+            for (let i = 1; i <= periods; i++) {
+                const nextValue = c + phi * (lastValue - data[data.length - 2]) + data[data.length - 1];
+                projection.push(nextValue);
+                lastValue = nextValue;
+            }
+            
+            return projection;
+        }
+
+        function calculateProjectionAccuracy(projected, actual) {
+            if (projected.length !== actual.length) throw new Error('Projected and actual arrays must have same length');
+            
+            let totalError = 0;
+            for (let i = 0; i < projected.length; i++) {
+                const error = Math.abs(projected[i] - actual[i]) / actual[i];
+                totalError += error;
+            }
+            
+            const meanError = totalError / projected.length;
+            return Math.max(0, 1 - meanError); // Convert error to accuracy (0-1 scale)
+        }
+
+        // Additional Trend Analysis Functions
+        function calculateTrendStrength(data) {
+            if (data.length < 2) return 0;
+            
+            const n = data.length;
+            const x = Array.from({length: n}, (_, i) => i);
+            const y = data;
+            
+            // Calculate linear regression
+            const sumX = x.reduce((a, b) => a + b, 0);
+            const sumY = y.reduce((a, b) => a + b, 0);
+            const sumXY = x.reduce((sum, xi, i) => sum + xi * y[i], 0);
+            const sumX2 = x.reduce((sum, xi) => sum + xi * xi, 0);
+            const sumY2 = y.reduce((sum, yi) => sum + yi * yi, 0);
+            
+            const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+            const intercept = (sumY - slope * sumX) / n;
+            
+            // Calculate R² (coefficient of determination)
+            const yMean = sumY / n;
+            const ssRes = y.reduce((sum, yi, i) => {
+                const predicted = slope * x[i] + intercept;
+                return sum + Math.pow(yi - predicted, 2);
+            }, 0);
+            const ssTot = y.reduce((sum, yi) => sum + Math.pow(yi - yMean, 2), 0);
+            
+            return Math.max(0, 1 - (ssRes / ssTot));
+        }
+
+        function detectTrendChangePoint(data) {
+            if (data.length < 6) throw new Error('Insufficient data for change point detection');
+            
+            let maxConfidence = 0;
+            let changeIndex = 0;
+            
+            // Test each possible change point
+            for (let i = 2; i < data.length - 2; i++) {
+                const before = data.slice(0, i);
+                const after = data.slice(i);
+                
+                const beforeTrend = detectTrend(before);
+                const afterTrend = detectTrend(after);
+                
+                // Calculate confidence based on trend difference
+                const trendDifference = Math.abs(beforeTrend.strength - afterTrend.strength);
+                const directionChange = beforeTrend.direction !== afterTrend.direction ? 1 : 0;
+                const confidence = (trendDifference + directionChange) / 2;
+                
+                if (confidence > maxConfidence) {
+                    maxConfidence = confidence;
+                    changeIndex = i;
+                }
+            }
+            
+            return {
+                index: changeIndex,
+                confidence: maxConfidence
+            };
+        }
+
+        function detectCyclicalPattern(data) {
+            if (data.length < 6) throw new Error('Insufficient data for cyclical detection');
+            
+            // Test different cycle lengths
+            let bestCycle = { period: 0, amplitude: 0, hasCycle: false };
+            
+            for (let period = 2; period <= Math.floor(data.length / 2); period++) {
+                const cycleValues = [];
+                for (let i = 0; i < period; i++) {
+                    const values = [];
+                    for (let j = i; j < data.length; j += period) {
+                        values.push(data[j]);
+                    }
+                    if (values.length > 1) {
+                        cycleValues.push(values.reduce((a, b) => a + b, 0) / values.length);
+                    }
+                }
+                
+                if (cycleValues.length === period) {
+                    const amplitude = Math.max(...cycleValues) - Math.min(...cycleValues);
+                    const meanValue = cycleValues.reduce((a, b) => a + b, 0) / cycleValues.length;
+                    const relativeAmplitude = amplitude / meanValue;
+                    
+                    if (relativeAmplitude > 0.1 && amplitude > bestCycle.amplitude) {
+                        bestCycle = {
+                            period: period,
+                            amplitude: amplitude,
+                            hasCycle: true
+                        };
+                    }
+                }
+            }
+            
+            return bestCycle;
+        }
+
+        function detectTrendAcceleration(data) {
+            if (data.length < 4) throw new Error('Insufficient data for acceleration detection');
+            
+            // Calculate second differences (acceleration)
+            const firstDifferences = [];
+            for (let i = 1; i < data.length; i++) {
+                firstDifferences.push(data[i] - data[i-1]);
+            }
+            
+            const secondDifferences = [];
+            for (let i = 1; i < firstDifferences.length; i++) {
+                secondDifferences.push(firstDifferences[i] - firstDifferences[i-1]);
+            }
+            
+            const meanAcceleration = secondDifferences.reduce((a, b) => a + b, 0) / secondDifferences.length;
+            const isAccelerating = Math.abs(meanAcceleration) > 0.1;
+            
+            return {
+                isAccelerating: isAccelerating,
+                accelerationRate: meanAcceleration
+            };
+        }
+
+        function calculateVolatility(data) {
+            if (data.length < 2) return 0;
+            
+            const mean = data.reduce((a, b) => a + b, 0) / data.length;
+            const variance = data.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / data.length;
+            const stdDev = Math.sqrt(variance);
+            
+            return stdDev / mean; // Coefficient of variation
+        }
+
+        function analyzeTrendPersistence(data) {
+            if (data.length < 4) throw new Error('Insufficient data for persistence analysis');
+            
+            // Calculate trend consistency over different time windows
+            const windowSize = Math.floor(data.length / 2);
+            const windows = [];
+            
+            for (let i = 0; i <= data.length - windowSize; i++) {
+                const window = data.slice(i, i + windowSize);
+                const trend = detectTrend(window);
+                windows.push(trend);
+            }
+            
+            // Calculate consistency score
+            const directions = windows.map(w => w.direction);
+            const mostCommonDirection = directions.reduce((a, b, i, arr) => 
+                arr.filter(v => v === a).length >= arr.filter(v => v === b).length ? a : b
+            );
+            
+            const consistencyScore = directions.filter(d => d === mostCommonDirection).length / directions.length;
+            const isPersistent = consistencyScore > 0.7;
+            
+            return {
+                isPersistent: isPersistent,
+                persistenceScore: consistencyScore
+            };
+        }
+
+        function detectMultipleTrends(data) {
+            if (data.length < 6) throw new Error('Insufficient data for multi-trend detection');
+            
+            const changePoints = [];
+            const trends = [];
+            
+            // Find change points
+            for (let i = 2; i < data.length - 2; i++) {
+                const before = data.slice(0, i);
+                const after = data.slice(i);
+                
+                const beforeTrend = detectTrend(before);
+                const afterTrend = detectTrend(after);
+                
+                if (beforeTrend.direction !== afterTrend.direction && 
+                    beforeTrend.strength > 0.6 && afterTrend.strength > 0.6) {
+                    changePoints.push(i);
+                }
+            }
+            
+            // Create trend segments
+            let start = 0;
+            for (const changePoint of changePoints) {
+                const segment = data.slice(start, changePoint);
+                if (segment.length >= 3) {
+                    const trend = detectTrend(segment);
+                    trends.push({
+                        start: start,
+                        end: changePoint,
+                        direction: trend.direction,
+                        strength: trend.strength
+                    });
+                }
+                start = changePoint;
+            }
+            
+            // Add final segment
+            if (start < data.length - 2) {
+                const segment = data.slice(start);
+                const trend = detectTrend(segment);
+                trends.push({
+                    start: start,
+                    end: data.length,
+                    direction: trend.direction,
+                    strength: trend.strength
+                });
+            }
+            
+            return {
+                trends: trends,
+                changePoints: changePoints
+            };
+        }
+
+        function forecastTrend(data, periods) {
+            if (data.length < 2) throw new Error('Insufficient data for trend forecasting');
+            
+            const trend = detectTrend(data);
+            const lastValue = data[data.length - 1];
+            const forecast = [];
+            
+            // Simple trend continuation
+            const avgChange = (lastValue - data[0]) / (data.length - 1);
+            
+            for (let i = 1; i <= periods; i++) {
+                forecast.push(lastValue + avgChange * i);
+            }
+            
+            return forecast;
+        }
+
+        function calculateTrendForecastAccuracy(forecast, actual) {
+            if (forecast.length !== actual.length) throw new Error('Forecast and actual arrays must have same length');
+            
+            let totalError = 0;
+            for (let i = 0; i < forecast.length; i++) {
+                const error = Math.abs(forecast[i] - actual[i]) / actual[i];
+                totalError += error;
+            }
+            
+            const meanError = totalError / forecast.length;
+            return Math.max(0, 1 - meanError);
+        }
+
+        // Additional Recommendation Quality Functions
+        function calculateRecommendationRelevance(recommendation) {
+            const baseRelevance = recommendation.relevanceScore || 0.5;
+            const confidence = recommendation.confidence || 0.5;
+            const titleLength = recommendation.title ? recommendation.title.length : 0;
+            const descriptionLength = recommendation.description ? recommendation.description.length : 0;
+            
+            // Normalize title and description length (optimal around 50-100 chars)
+            const titleScore = Math.max(0, 1 - Math.abs(titleLength - 75) / 75);
+            const descriptionScore = Math.max(0, 1 - Math.abs(descriptionLength - 100) / 100);
+            
+            // Weighted combination
+            return (baseRelevance * 0.4) + (confidence * 0.3) + (titleScore * 0.15) + (descriptionScore * 0.15);
+        }
+
+        function assessStrategyFeasibility(strategy) {
+            const complexity = strategy.complexity || 0.5;
+            const resourceRequirement = strategy.resourceRequirement || 0.5;
+            const timeToImplement = strategy.timeToImplement || 0.5;
+            const skillRequirement = strategy.skillRequirement || 0.5;
+            
+            // Calculate feasibility score (lower is better for feasibility)
+            const feasibilityScore = 1 - ((complexity + resourceRequirement + timeToImplement + skillRequirement) / 4);
+            
+            let category;
+            if (feasibilityScore >= 0.8) category = 'High';
+            else if (feasibilityScore >= 0.6) category = 'Medium';
+            else if (feasibilityScore >= 0.4) category = 'Low';
+            else category = 'Very Low';
+            
+            return {
+                score: feasibilityScore,
+                category: category
+            };
+        }
+
+        function prioritizeOpportunities(opportunities) {
+            return opportunities.sort((a, b) => {
+                // Calculate priority score: impact / effort ratio
+                const scoreA = a.impact / (a.effort + 1); // +1 to avoid division by zero
+                const scoreB = b.impact / (b.effort + 1);
+                return scoreB - scoreA; // Higher score first
+            });
+        }
+
+        function calculateRecommendationConfidence(dataQuality, historicalAccuracy, marketConditions) {
+            // Weighted average of confidence factors
+            const weights = {
+                dataQuality: 0.4,
+                historicalAccuracy: 0.35,
+                marketConditions: 0.25
+            };
+            
+            return (dataQuality * weights.dataQuality) + 
+                   (historicalAccuracy * weights.historicalAccuracy) + 
+                   (marketConditions * weights.marketConditions);
+        }
+
+        function predictStrategyImpact(strategy) {
+            const type = strategy.type;
+            const investment = strategy.investment;
+            const marketSize = strategy.marketSize;
+            const currentShare = strategy.currentShare;
+            
+            let revenueIncrease, marketShareIncrease;
+            
+            switch (type) {
+                case 'market_expansion':
+                    // Market expansion typically yields 2-5x investment in revenue
+                    const expansionMultiplier = 3.5;
+                    revenueIncrease = investment * expansionMultiplier;
+                    marketShareIncrease = Math.min(0.1, (investment / marketSize) * 10);
+                    break;
+                    
+                case 'product_innovation':
+                    // Innovation can yield 3-8x investment
+                    const innovationMultiplier = 5.0;
+                    revenueIncrease = investment * innovationMultiplier;
+                    marketShareIncrease = Math.min(0.15, currentShare * 0.3);
+                    break;
+                    
+                case 'cost_reduction':
+                    // Cost reduction yields direct savings
+                    revenueIncrease = investment * 2.0; // Cost savings
+                    marketShareIncrease = 0.02; // Efficiency gains
+                    break;
+                    
+                default:
+                    revenueIncrease = investment * 2.0;
+                    marketShareIncrease = 0.05;
+            }
+            
+            return {
+                revenueIncrease: revenueIncrease,
+                marketShareIncrease: marketShareIncrease
+            };
+        }
+
+        function validateRecommendationQuality(recommendation) {
+            let score = 0;
+            let factors = 0;
+            
+            // ROI factor (0-1 scale, optimal around 200-300%)
+            const roiScore = Math.min(1, Math.max(0, (recommendation.expectedROI - 100) / 200));
+            score += roiScore;
+            factors++;
+            
+            // Implementation time factor (shorter is better, optimal 6-12 months)
+            const timeScore = Math.max(0, 1 - Math.abs(recommendation.implementationTime - 9) / 9);
+            score += timeScore;
+            factors++;
+            
+            // Risk level factor
+            const riskScores = { low: 1.0, medium: 0.7, high: 0.3 };
+            const riskScore = riskScores[recommendation.riskLevel] || 0.5;
+            score += riskScore;
+            factors++;
+            
+            // Success probability factor
+            score += recommendation.successProbability;
+            factors++;
+            
+            const finalScore = score / factors;
+            const isHighQuality = finalScore >= 0.7;
+            
+            return {
+                score: finalScore,
+                isHighQuality: isHighQuality
+            };
+        }
+
+        function optimizeStrategyPortfolio(strategies, totalBudget) {
+            // Simple portfolio optimization based on ROI/risk ratio
+            const optimizedStrategies = strategies.map(strategy => {
+                const roiRiskRatio = strategy.roi / (strategy.risk * 100 + 1);
+                const allocation = Math.min(0.4, roiRiskRatio / 10); // Max 40% allocation
+                return {
+                    ...strategy,
+                    allocation: allocation,
+                    budget: totalBudget * allocation
+                };
+            });
+            
+            // Calculate portfolio metrics
+            const totalROI = optimizedStrategies.reduce((sum, s) => sum + (s.roi * s.allocation), 0);
+            const weightedRisk = optimizedStrategies.reduce((sum, s) => sum + (s.risk * s.allocation), 0);
+            
+            return {
+                strategies: optimizedStrategies,
+                totalROI: totalROI,
+                riskScore: weightedRisk
+            };
+        }
+
+        function calculateRecommendationEffectiveness(historicalData) {
+            let totalAccuracy = 0;
+            let totalROI = 0;
+            let count = 0;
+            
+            historicalData.forEach(data => {
+                const accuracy = 1 - Math.abs(data.actualROI - data.predictedROI) / data.predictedROI;
+                totalAccuracy += accuracy;
+                totalROI += data.actualROI;
+                count++;
+            });
+            
+            const averageAccuracy = totalAccuracy / count;
+            const averageROI = totalROI / count;
+            
+            // Overall effectiveness score
+            const overallScore = (averageAccuracy * 0.6) + (Math.min(1, averageROI / 300) * 0.4);
+            
+            return {
+                accuracy: averageAccuracy,
+                averageROI: averageROI,
+                overallScore: overallScore
+            };
+        }
+
+        // Additional Performance Metrics Functions
+        function compareToBenchmarks(companyMetrics, industryBenchmarks) {
+            return {
+                revenueGrowth: companyMetrics.revenueGrowth / industryBenchmarks.revenueGrowth,
+                customerGrowth: companyMetrics.customerGrowth / industryBenchmarks.customerGrowth,
+                marketShare: companyMetrics.marketShare / industryBenchmarks.marketShare
+            };
+        }
+
+        function generatePerformanceScorecard(metrics) {
+            const weights = {
+                revenueGrowth: 0.3,
+                customerGrowth: 0.25,
+                marketShare: 0.25,
+                operationalEfficiency: 0.2
+            };
+            
+            const overallScore = (metrics.revenueGrowth * weights.revenueGrowth) +
+                               (metrics.customerGrowth * weights.customerGrowth) +
+                               (metrics.marketShare * weights.marketShare) +
+                               (metrics.operationalEfficiency * weights.operationalEfficiency);
+            
+            return {
+                overallScore: overallScore,
+                metrics: metrics
+            };
+        }
+
+        function analyzePerformanceTrends(performanceData) {
+            if (performanceData.length < 2) {
+                return { revenueTrend: 'insufficient_data', customerTrend: 'insufficient_data' };
+            }
+            
+            const revenueValues = performanceData.map(d => d.revenue);
+            const customerValues = performanceData.map(d => d.customers);
+            
+            const revenueTrend = calculateTrend(revenueValues);
+            const customerTrend = calculateTrend(customerValues);
+            
+            return {
+                revenueTrend: revenueTrend,
+                customerTrend: customerTrend
+            };
+        }
+
+        function calculateTrend(values) {
+            if (values.length < 2) return 'insufficient_data';
+            
+            const first = values[0];
+            const last = values[values.length - 1];
+            const change = (last - first) / first;
+            
+            if (change > 0.05) return 'increasing';
+            else if (change < -0.05) return 'decreasing';
+            else return 'stable';
+        }
+
+        function analyzePerformanceDistribution(scores) {
+            const mean = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+            const variance = scores.reduce((sum, score) => sum + Math.pow(score - mean, 2), 0) / scores.length;
+            const stdDev = Math.sqrt(variance);
+            
+            return {
+                mean: mean,
+                stdDev: stdDev,
+                variance: variance
+            };
+        }
+
+        function calculatePerformanceVelocity(velocityData) {
+            if (velocityData.length < 2) {
+                return { velocity: 0, acceleration: 0 };
+            }
+            
+            const performances = velocityData.map(d => d.performance);
+            const periods = velocityData.map(d => d.period);
+            
+            // Calculate velocity (rate of change)
+            const velocity = (performances[performances.length - 1] - performances[0]) / 
+                           (periods[periods.length - 1] - periods[0]);
+            
+            // Calculate acceleration (change in velocity)
+            let acceleration = 0;
+            if (performances.length >= 3) {
+                const midPoint = Math.floor(performances.length / 2);
+                const firstHalfVelocity = (performances[midPoint] - performances[0]) / (periods[midPoint] - periods[0]);
+                const secondHalfVelocity = (performances[performances.length - 1] - performances[midPoint]) / 
+                                         (periods[periods.length - 1] - periods[midPoint]);
+                acceleration = secondHalfVelocity - firstHalfVelocity;
+            }
+            
+            return {
+                velocity: velocity,
+                acceleration: acceleration
+            };
+        }
+
+        function generatePerformanceAlerts(currentMetrics, thresholds) {
+            const alerts = [];
+            
+            Object.keys(currentMetrics).forEach(metric => {
+                const current = currentMetrics[metric];
+                const threshold = thresholds[metric];
+                
+                if (current < threshold * 0.8) {
+                    alerts.push({
+                        type: 'warning',
+                        metric: metric,
+                        message: `${metric} is significantly below threshold`,
+                        current: current,
+                        threshold: threshold
+                    });
+                } else if (current > threshold * 1.2) {
+                    alerts.push({
+                        type: 'success',
+                        metric: metric,
+                        message: `${metric} is significantly above threshold`,
+                        current: current,
+                        threshold: threshold
+                    });
+                }
+            });
+            
+            return alerts;
+        }
+
+        function calculatePerformanceBenchmark(companyData, industryData) {
+            const revenueRatio = companyData.revenue / industryData.avgRevenue;
+            const efficiencyRatio = (companyData.revenue / companyData.employees) / 
+                                  (industryData.avgRevenue / industryData.avgEmployees);
+            
+            return {
+                revenueRatio: revenueRatio,
+                efficiencyRatio: efficiencyRatio,
+                marketCapRatio: companyData.marketCap / industryData.avgMarketCap
+            };
+        }
+
+        function analyzePerformanceCorrelation(metrics) {
+            const revenueCustomers = calculateCorrelation(metrics.revenue, metrics.customers);
+            const customersMarketShare = calculateCorrelation(metrics.customers, metrics.marketShare);
+            const revenueMarketShare = calculateCorrelation(metrics.revenue, metrics.marketShare);
+            
+            return {
+                revenueCustomers: revenueCustomers,
+                customersMarketShare: customersMarketShare,
+                revenueMarketShare: revenueMarketShare
+            };
+        }
+
+        function calculateCorrelation(x, y) {
+            if (x.length !== y.length || x.length < 2) return 0;
+            
+            const n = x.length;
+            const sumX = x.reduce((sum, val) => sum + val, 0);
+            const sumY = y.reduce((sum, val) => sum + val, 0);
+            const sumXY = x.reduce((sum, val, i) => sum + val * y[i], 0);
+            const sumXX = x.reduce((sum, val) => sum + val * val, 0);
+            const sumYY = y.reduce((sum, val) => sum + val * val, 0);
+            
+            const numerator = n * sumXY - sumX * sumY;
+            const denominator = Math.sqrt((n * sumXX - sumX * sumX) * (n * sumYY - sumY * sumY));
+            
+            return denominator === 0 ? 0 : numerator / denominator;
+        }
+
+        function forecastPerformance(historicalData, periods) {
+            if (historicalData.length < 2) return new Array(periods).fill(0);
+            
+            // Simple linear trend forecasting
+            const n = historicalData.length;
+            const sumX = n * (n - 1) / 2;
+            const sumY = historicalData.reduce((sum, val) => sum + val, 0);
+            const sumXY = historicalData.reduce((sum, val, i) => sum + val * i, 0);
+            const sumXX = n * (n - 1) * (2 * n - 1) / 6;
+            
+            const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+            const intercept = (sumY - slope * sumX) / n;
+            
+            const forecast = [];
+            for (let i = 0; i < periods; i++) {
+                const predicted = intercept + slope * (n + i);
+                forecast.push(Math.max(0, Math.min(100, predicted))); // Clamp between 0 and 100
+            }
+            
+            return forecast;
+        }
+
+        function calculateEfficiencyMetrics(data) {
+            const profitMargin = ((data.revenue - data.costs) / data.revenue) * 100;
+            const revenuePerEmployee = data.revenue / data.employees;
+            const assetTurnover = data.revenue / data.assets;
+            
+            return {
+                profitMargin: profitMargin,
+                revenuePerEmployee: revenuePerEmployee,
+                assetTurnover: assetTurnover
+            };
+        }
+
+        function analyzePerformanceVolatility(performanceData) {
+            if (performanceData.length < 2) {
+                return { coefficient: 0, stability: 0 };
+            }
+            
+            const mean = performanceData.reduce((sum, val) => sum + val, 0) / performanceData.length;
+            const variance = performanceData.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / performanceData.length;
+            const stdDev = Math.sqrt(variance);
+            
+            const coefficient = stdDev / mean;
+            const stability = Math.max(0, 1 - coefficient); // Higher stability = lower volatility
+            
+            return {
+                coefficient: coefficient,
+                stability: stability,
+                stdDev: stdDev
+            };
+        }
+
+        // Display test results
+        function displayTestResults(containerId, results) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            results.forEach(result => {
+                const resultDiv = document.createElement('div');
+                resultDiv.className = `test-result p-4 rounded-lg border ${getTestResultClass(result.status)}`;
+                
+                resultDiv.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <i class="fas ${getTestIcon(result.status)} mr-3"></i>
+                            <div>
+                                <h4 class="font-semibold">${result.name}</h4>
+                                <p class="text-sm mt-1">${result.message}</p>
+                                <p class="text-xs mt-1 opacity-75">${result.details}</p>
+                            </div>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-xs font-medium ${getTestBadgeClass(result.status)}">
+                            ${result.status.toUpperCase()}
+                        </span>
+                    </div>
+                `;
+                
+                container.appendChild(resultDiv);
+            });
+        }
+
+        function getTestResultClass(status) {
+            switch (status) {
+                case 'passed': return 'test-passed';
+                case 'failed': return 'test-failed';
+                case 'warning': return 'test-warning';
+                default: return 'bg-gray-100 border-gray-300';
+            }
+        }
+
+        function getTestIcon(status) {
+            switch (status) {
+                case 'passed': return 'fa-check-circle';
+                case 'failed': return 'fa-times-circle';
+                case 'warning': return 'fa-exclamation-triangle';
+                default: return 'fa-question-circle';
+            }
+        }
+
+        function getTestBadgeClass(status) {
+            switch (status) {
+                case 'passed': return 'bg-green-100 text-green-800';
+                case 'failed': return 'bg-red-100 text-red-800';
+                case 'warning': return 'bg-yellow-100 text-yellow-800';
+                default: return 'bg-gray-100 text-gray-800';
+            }
+        }
+
+        // Update test results tracking
+        function updateTestResults(results) {
+            results.forEach(result => {
+                testResults.total++;
+                testResults.details.push(result);
+                
+                switch (result.status) {
+                    case 'passed':
+                        testResults.passed++;
+                        break;
+                    case 'failed':
+                        testResults.failed++;
+                        break;
+                    case 'warning':
+                        testResults.warnings++;
+                        break;
+                }
+            });
+            
+            updateTestSummary();
+        }
+
+        // Update test summary
+        function updateTestSummary() {
+            document.getElementById('totalTests').textContent = testResults.total;
+            document.getElementById('passedTests').textContent = testResults.passed;
+            document.getElementById('failedTests').textContent = testResults.failed;
+            document.getElementById('warningTests').textContent = testResults.warnings;
+        }
+
+        // Initialize test results chart
+        function initializeTestChart() {
+            const ctx = document.getElementById('testResultsChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Passed', 'Failed', 'Warnings'],
+                    datasets: [{
+                        data: [0, 0, 0],
+                        backgroundColor: ['#10b981', '#ef4444', '#eab308'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update test chart
+        function updateTestChart() {
+            const chart = Chart.getChart('testResultsChart');
+            if (chart) {
+                chart.data.datasets[0].data = [
+                    testResults.passed,
+                    testResults.failed,
+                    testResults.warnings
+                ];
+                chart.update();
+            }
+        }
+
+        // Export test results
+        function exportTestResults() {
+            const results = {
+                summary: {
+                    total: testResults.total,
+                    passed: testResults.passed,
+                    failed: testResults.failed,
+                    warnings: testResults.warnings,
+                    timestamp: new Date().toISOString()
+                },
+                details: testResults.details
+            };
+            
+            const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `growth-analytics-test-results-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

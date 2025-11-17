@@ -29,42 +29,53 @@ test.describe('Navigation Tests', () => {
     // Use getByRole for better reliability
     await page.getByRole('link', { name: /dashboard hub/i }).click();
     await expect(page).toHaveURL(/.*dashboard-hub/);
-    await expect(page.locator('h1')).toContainText(/dashboard|hub/i);
+    // Use main content h1, not header h1
+    await expect(page.locator('main h1')).toContainText(/dashboard|hub/i);
   });
 
   test('should navigate to merchant portfolio', async ({ page }) => {
     await openMobileMenuIfNeeded(page);
-    await page.getByRole('link', { name: /merchant portfolio/i }).click();
+    // Use first() to select the sidebar link, not the button on the page
+    await page.getByRole('link', { name: /merchant portfolio/i }).first().click();
     await expect(page).toHaveURL(/.*merchant-portfolio/);
-    await expect(page.locator('h1')).toContainText(/merchant|portfolio/i);
+    // Use main content h1, not header h1
+    await expect(page.locator('main h1')).toContainText(/merchant|portfolio/i);
   });
 
   test('should navigate to add merchant page', async ({ page }) => {
     await openMobileMenuIfNeeded(page);
     await page.getByRole('link', { name: /add merchant/i }).click();
     await expect(page).toHaveURL(/.*add-merchant/);
-    await expect(page.locator('h1, h2')).toContainText(/add|merchant/i);
+    // Use main content h1, exclude sr-only h2
+    await expect(page.locator('main h1')).toContainText(/add|merchant/i);
   });
 
   test('should navigate to risk dashboard', async ({ page }) => {
     await openMobileMenuIfNeeded(page);
-    await page.getByRole('link', { name: /risk assessment/i }).click();
+    // Be more specific - use exact match for "Risk Assessment" (not "Risk Assessment Portfolio")
+    await page.getByRole('link', { name: 'Risk Assessment', exact: true }).click();
     await expect(page).toHaveURL(/.*risk-dashboard/);
-    await expect(page.locator('h1')).toContainText(/risk/i);
+    // Use main content h1, not header h1
+    await expect(page.locator('main h1')).toContainText(/risk/i);
   });
 
   test('should navigate to compliance page', async ({ page }) => {
     await openMobileMenuIfNeeded(page);
     await page.getByRole('link', { name: /compliance status/i }).click();
     await expect(page).toHaveURL(/.*compliance/);
-    await expect(page.locator('h1')).toContainText(/compliance/i);
+    // Use main content h1, not header h1
+    await expect(page.locator('main h1')).toContainText(/compliance/i);
   });
 
   test('should navigate to admin page', async ({ page }) => {
     await openMobileMenuIfNeeded(page);
-    await page.getByRole('link', { name: /admin dashboard/i }).click();
+    // Scroll to ensure element is in viewport
+    const adminLink = page.getByRole('link', { name: /admin dashboard/i });
+    await adminLink.scrollIntoViewIfNeeded();
+    await adminLink.click();
     await expect(page).toHaveURL(/.*admin/);
-    await expect(page.locator('h1')).toContainText(/admin/i);
+    // Use main content h1, not header h1
+    await expect(page.locator('main h1')).toContainText(/admin/i);
   });
 
   test('should navigate using breadcrumbs', async ({ page }) => {

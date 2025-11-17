@@ -144,7 +144,7 @@ export default function MerchantPortfolioPage() {
         { label: 'Merchant Portfolio' },
       ]}
       headerActions={
-        <Button asChild>
+        <Button asChild aria-label="Add new merchant">
           <Link href="/add-merchant">
             <PlusCircle className="h-4 w-4 mr-2" />
             Add Merchant
@@ -333,11 +333,12 @@ export default function MerchantPortfolioPage() {
                               setStatusFilter('all');
                               setRiskLevelFilter('all');
                             }}
+                            aria-label="Clear all filters"
                           >
                             Clear Filters
                           </Button>
                         ) : (
-                          <Button asChild className="mt-4" variant="outline">
+                          <Button asChild className="mt-4" variant="outline" aria-label="Add your first merchant">
                             <Link href="/add-merchant">Add Your First Merchant</Link>
                           </Button>
                         )}
@@ -359,7 +360,7 @@ export default function MerchantPortfolioPage() {
                         </TableCell>
                         <TableCell>{formatDate(merchant.updated_at)}</TableCell>
                         <TableCell className="text-right">
-                          <Button asChild variant="ghost" size="sm">
+                          <Button asChild variant="ghost" size="sm" aria-label={`View details for ${merchant.name}`}>
                             <Link href={`/merchant-details/${merchant.id}`}>View</Link>
                           </Button>
                         </TableCell>
@@ -382,6 +383,7 @@ export default function MerchantPortfolioPage() {
                     size="sm"
                     onClick={() => setPage(p => Math.max(1, p - 1))}
                     disabled={!hasPrevious}
+                    aria-label="Go to previous page"
                   >
                     <ChevronLeft className="h-4 w-4" />
                     Previous
@@ -396,6 +398,7 @@ export default function MerchantPortfolioPage() {
                     size="sm"
                     onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                     disabled={!hasNext}
+                    aria-label="Go to next page"
                   >
                     Next
                     <ChevronRight className="h-4 w-4" />

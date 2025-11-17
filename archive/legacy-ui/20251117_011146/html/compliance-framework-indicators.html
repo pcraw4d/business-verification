@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compliance Framework Indicators - KYB Platform</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .header h1 i {
+            color: #3498db;
+            font-size: 2.2rem;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .framework-indicators {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .framework-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .framework-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+        }
+
+        .framework-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .soc2-card::before { background: linear-gradient(90deg, #3498db, #2980b9); }
+        .pci-card::before { background: linear-gradient(90deg, #e74c3c, #c0392b); }
+        .gdpr-card::before { background: linear-gradient(90deg, #2ecc71, #27ae60); }
+
+        .framework-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .framework-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+            font-weight: bold;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .framework-icon::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(255, 255, 255, 0.1), transparent);
+            border-radius: 20px;
+        }
+
+        .soc2-icon { 
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            box-shadow: 0 10px 30px rgba(52, 152, 219, 0.3);
+        }
+        .pci-icon { 
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            box-shadow: 0 10px 30px rgba(231, 76, 60, 0.3);
+        }
+        .gdpr-icon { 
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            box-shadow: 0 10px 30px rgba(46, 204, 113, 0.3);
+        }
+
+        .framework-info {
+            flex: 1;
+        }
+
+        .framework-name {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .framework-description {
+            color: #7f8c8d;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .compliance-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 20px;
+        }
+
+        .status-compliant {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            color: white;
+            box-shadow: 0 5px 15px rgba(46, 204, 113, 0.3);
+        }
+
+        .status-partial {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            color: white;
+            box-shadow: 0 5px 15px rgba(243, 156, 18, 0.3);
+        }
+
+        .status-non-compliant {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+        }
+
+        .status-pending {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+            color: white;
+            box-shadow: 0 5px 15px rgba(149, 165, 166, 0.3);
+        }
+
+        .progress-section {
+            margin-bottom: 25px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .progress-label {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1rem;
+        }
+
+        .progress-percentage {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .soc2-progress { color: #3498db; }
+        .pci-progress { color: #e74c3c; }
+        .gdpr-progress { color: #2ecc71; }
+
+        .progress-bar {
+            height: 12px;
+            background: #ecf0f1;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 15px;
+            transition: width 1s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .soc2-fill { background: linear-gradient(90deg, #3498db, #2980b9); }
+        .pci-fill { background: linear-gradient(90deg, #e74c3c, #c0392b); }
+        .gdpr-fill { background: linear-gradient(90deg, #2ecc71, #27ae60); }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .metric-item {
+            text-align: center;
+            padding: 15px;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 12px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .metric-item:hover {
+            border-color: #3498db;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .metric-number {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            color: #7f8c8d;
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .requirements-section {
+            margin-bottom: 25px;
+        }
+
+        .requirements-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .requirements-title {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1.1rem;
+        }
+
+        .requirements-count {
+            background: #3498db;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .requirement-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            border-left: 4px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .requirement-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .requirement-completed { border-left-color: #2ecc71; }
+        .requirement-in-progress { border-left-color: #f39c12; }
+        .requirement-pending { border-left-color: #95a5a6; }
+
+        .requirement-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: white;
+        }
+
+        .icon-completed { background: #2ecc71; }
+        .icon-in-progress { background: #f39c12; }
+        .icon-pending { background: #95a5a6; }
+
+        .requirement-content {
+            flex: 1;
+        }
+
+        .requirement-name {
+            font-weight: 500;
+            color: #2c3e50;
+            font-size: 0.9rem;
+            margin-bottom: 2px;
+        }
+
+        .requirement-status {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(149, 165, 166, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(46, 204, 113, 0.3);
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .indicator-compliant { background: #2ecc71; }
+        .indicator-partial { background: #f39c12; }
+        .indicator-non-compliant { background: #e74c3c; }
+        .indicator-pending { background: #95a5a6; }
+
+        .fade-in {
+            animation: fadeIn 0.6s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        @media (max-width: 768px) {
+            .framework-indicators {
+                grid-template-columns: 1fr;
+            }
+
+            .framework-header {
+                flex-direction: column;
+                text-align: center;
+                gap: 15px;
+            }
+
+            .framework-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
+
+            .framework-name {
+                font-size: 1.5rem;
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+<!-- DEPRECATION NOTICE -->
+<div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 16px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 24px;">⚠️</span>
+        <div style="flex: 1;">
+            <strong style="font-size: 18px; display: block; margin-bottom: 4px;">This page is deprecated</strong>
+            <p style="margin: 0; font-size: 14px; opacity: 0.95;">
+                This legacy UI page has been replaced with a new shadcn UI implementation. 
+                Please use the new UI for the best experience. 
+                <a href="/" style="color: white; text-decoration: underline; font-weight: bold;">Go to new UI →</a>
+            </p>
+        </div>
+    </div>
+</div>
+    <div class="container">
+        <!-- Header Section -->
+        <div class="header fade-in">
+            <h1>
+                <i class="fas fa-certificate"></i>
+                Compliance Framework Indicators
+            </h1>
+            <p>Detailed compliance status indicators for SOC 2, PCI DSS, and GDPR frameworks. Monitor progress, track requirements, and ensure regulatory adherence.</p>
+        </div>
+
+        <!-- Framework Indicators Grid -->
+        <div class="framework-indicators">
+            <!-- SOC 2 Framework Card -->
+            <div class="framework-card soc2-card fade-in">
+                <div class="status-indicator indicator-compliant"></div>
+                
+                <div class="framework-header">
+                    <div class="framework-icon soc2-icon">S2</div>
+                    <div class="framework-info">
+                        <h2 class="framework-name">SOC 2 Type II</h2>
+                        <p class="framework-description">Service Organization Control 2 - Security, Availability, Processing Integrity, Confidentiality, and Privacy</p>
+                    </div>
+                </div>
+
+                <div class="compliance-status status-compliant">
+                    <i class="fas fa-check-circle"></i>
+                    Compliant
+                </div>
+
+                <div class="progress-section">
+                    <div class="progress-header">
+                        <span class="progress-label">Overall Progress</span>
+                        <span class="progress-percentage soc2-progress">85%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill soc2-fill" style="width: 85%"></div>
+                    </div>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <div class="metric-number">17</div>
+                        <div class="metric-label">Controls</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-number">20</div>
+                        <div class="metric-label">Total</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-number">2</div>
+                        <div class="metric-label">Months</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-number">A+</div>
+                        <div class="metric-label">Grade</div>
+                    </div>
+                </div>
+
+                <div class="requirements-section">
+                    <div class="requirements-header">
+                        <span class="requirements-title">Key Requirements</span>
+                        <span class="requirements-count">20</span>
+                    </div>
+                    
+                    <div class="requirement-item requirement-completed">
+                        <div class="requirement-icon icon-completed">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <div class="requirement-content">
+                            <div class="requirement-name">Access Controls</div>
+                            <div class="requirement-status">Implemented and tested</div>
+                        </div>
+                    </div>
+
+                    <div class="requirement-item requirement-completed">
+                        <div class="requirement-icon icon-completed">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <div class="requirement-content">
+                            <div class="requirement-name">System Monitoring</div>
+                            <div class="requirement-status">24/7 monitoring active</div>
+                        </div>
+                    </div>
+
+                    <div class="requirement-item requirement-in-progress">
+                        <div class="requirement-icon icon-in-progress">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="requirement-content">
+                            <div class="requirement-name">Data Encryption</div>
+                            <div class="requirement-status">In progress - 80% complete</div>
+                        </div>
+                    </div>
+
+                    <div class="requirement-item requirement-pending">
+                        <div class="requirement-icon icon-pending">
+                            <i class="fas fa-hourglass-half"></i>
+                        </div>
+                        <div class="requirement-content">
+                            <div class="requirement-name">Incident Response</div>
+                            <div class="requirement-status">Scheduled for next month</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <a href="#" class="btn btn-primary">
+                        <i class="fas fa-eye"></i>
+                        View Details
+                    </a>
+                    <a href="#" class="btn btn-secondary">
+                        <i class="fas fa-download"></i>
+                        Export Report
+                    </a>
+                </div>
+            </div>
+
+            <!-- PCI DSS Framework Card -->
+            <div class="framework-card pci-card fade-in">
+                <div class="status-indicator indicator-partial"></div>
+                
+                <div class="framework-header">
+                    <div class="framework-icon pci-icon">PCI</div>
+                    <div class="framework-info">
+                        <h2 class="framework-name">PCI DSS v4.0</h2>
+                        <p class="framework-description">Payment Card Industry Data Security Standard - Protecting cardholder data and payment systems</p>
+                    </div>
+                </div>
+
+                <div class="compliance-status status-partial">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Partial Compliance
+                </div>
+
+                <div class="progress-section">
+                    <div class="progress-header">
+                        <span class="progress-label">Overall Progress</span>
+                        <span class="progress-percentage pci-progress">72%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill pci-fill" style="width: 72%"></div>
+                    </div>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <div class="metric-number">9</div>
+                        <div class="metric-label">Requirements</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-number">12</div>
+                        <div class="metric-label">Total</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-number">1</div>
+                        <div class="metric-label">Month</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-number">B</div>
+                        <div class="metric-label">Grade</div>
+                    </div>
+                </div>
+
+                <div class="requirements-section">
+                    <div class="requirements-header">
+                        <span class="requirements-title">Key Requirements</span>
+                        <span class="requirements-count">12</span>
+                    </div>
+                    
+                    <div class="requirement-item requirement-completed">
+                        <div class="requirement-icon icon-completed">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <div class="requirement-content">
+                            <div class="requirement-name">Firewall Configuration</div>
+                            <div class="requirement-status">Implemented and documented</div>
+                        </div>
+                    </div>
+
+                    <div class="requirement-item requirement-completed">
+                        <div class="requirement-icon icon-completed">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <div class="requirement-content">
+                            <div class="requirement-name">Secure Networks</div>
+                            <div class="requirement-status">Network segmentation active</div>
+                        </div>
+                    </div>
+
+                    <div class="requirement-item requirement-in-progress">
+                        <div class="requirement-icon icon-in-progress">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="requirement-content">
+                            <div class="requirement-name">Data Encryption</div>
+                            <div class="requirement-status">Key rotation in progress</div>
+                        </div>
+                    </div>
+
+                    <div class="requirement-item requirement-pending">
+                        <div class="requirement-icon icon-pending">
+                            <i class="fas fa-hourglass-half"></i>
+                        </div>
+                        <div class="requirement-content">
+                            <div class="requirement-name">Regular Testing</div>
+                            <div class="requirement-status">Scheduled for next quarter</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <a href="#" class="btn btn-primary">
+                        <i class="fas fa-eye"></i>
+                        View Details
+                    </a>
+                    <a href="#" class="btn btn-secondary">
+                        <i class="fas fa-download"></i>
+                        Export Report
+                    </a>
+                </div>
+            </div>
+
+            <!-- GDPR Framework Card -->
+            <div class="framework-card gdpr-card fade-in">
+                <div class="status-indicator indicator-partial"></div>
+                
+                <div class="framework-header">
+                    <div class="framework-icon gdpr-icon">GDPR</div>
+                    <div class="framework-info">
+                        <h2 class="framework-name">GDPR Compliance</h2>
+                        <p class="framework-description">General Data Protection Regulation - Protecting personal data and privacy rights of EU citizens</p>
+                    </div>
+                </div>
+
+                <div class="compliance-status status-partial">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Partial Compliance
+                </div>
+
+                <div class="progress-section">
+                    <div class="progress-header">
+                        <span class="progress-label">Overall Progress</span>
+                        <span class="progress-percentage gdpr-progress">78%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill gdpr-fill" style="width: 78%"></div>
+                    </div>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <div class="metric-number">14</div>
+                        <div class="metric-label">Articles</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-number">18</div>
+                        <div class="metric-label">Total</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-number">3</div>
+                        <div class="metric-label">Weeks</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-number">B+</div>
+                        <div class="metric-label">Grade</div>
+                    </div>
+                </div>
+
+                <div class="requirements-section">
+                    <div class="requirements-header">
+                        <span class="requirements-title">Key Requirements</span>
+                        <span class="requirements-count">18</span>
+                    </div>
+                    
+                    <div class="requirement-item requirement-completed">
+                        <div class="requirement-icon icon-completed">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <div class="requirement-content">
+                            <div class="requirement-name">Data Processing Lawfulness</div>
+                            <div class="requirement-status">Legal basis documented</div>
+                        </div>
+                    </div>
+
+                    <div class="requirement-item requirement-completed">
+                        <div class="requirement-icon icon-completed">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <div class="requirement-content">
+                            <div class="requirement-name">Data Subject Rights</div>
+                            <div class="requirement-status">Rights portal implemented</div>
+                        </div>
+                    </div>
+
+                    <div class="requirement-item requirement-in-progress">
+                        <div class="requirement-icon icon-in-progress">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="requirement-content">
+                            <div class="requirement-name">Data Protection by Design</div>
+                            <div class="requirement-status">Review in progress</div>
+                        </div>
+                    </div>
+
+                    <div class="requirement-item requirement-pending">
+                        <div class="requirement-icon icon-pending">
+                            <i class="fas fa-hourglass-half"></i>
+                        </div>
+                        <div class="requirement-content">
+                            <div class="requirement-name">Data Breach Procedures</div>
+                            <div class="requirement-status">Update scheduled</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <a href="#" class="btn btn-primary">
+                        <i class="fas fa-eye"></i>
+                        View Details
+                    </a>
+                    <a href="#" class="btn btn-secondary">
+                        <i class="fas fa-download"></i>
+                        Export Report
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Animate progress bars on load
+            const progressBars = document.querySelectorAll('.progress-fill');
+            progressBars.forEach((bar, index) => {
+                const width = bar.style.width;
+                bar.style.width = '0%';
+                setTimeout(() => {
+                    bar.style.width = width;
+                }, 500 + (index * 200));
+            });
+
+            // Add click handlers for framework cards
+            const frameworkCards = document.querySelectorAll('.framework-card');
+            frameworkCards.forEach(card => {
+                card.addEventListener('click', function() {
+                    // Add visual feedback
+                    this.style.transform = 'scale(0.98)';
+                    setTimeout(() => {
+                        this.style.transform = '';
+                    }, 150);
+                });
+            });
+
+            // Add hover effects for requirement items
+            const requirementItems = document.querySelectorAll('.requirement-item');
+            requirementItems.forEach(item => {
+                item.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateX(8px)';
+                });
+                item.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateX(0)';
+                });
+            });
+
+            // Add pulse animation to status indicators
+            const statusIndicators = document.querySelectorAll('.status-indicator');
+            statusIndicators.forEach(indicator => {
+                if (indicator.classList.contains('indicator-partial') || 
+                    indicator.classList.contains('indicator-non-compliant')) {
+                    indicator.classList.add('pulse');
+                }
+            });
+
+            // Add loading states for buttons
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const originalText = this.innerHTML;
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+                    this.disabled = true;
+                    
+                    setTimeout(() => {
+                        this.innerHTML = originalText;
+                        this.disabled = false;
+                    }, 2000);
+                });
+            });
+
+            // Simulate real-time status updates
+            setInterval(() => {
+                const statusElements = document.querySelectorAll('.compliance-status');
+                statusElements.forEach(element => {
+                    element.style.opacity = '0.7';
+                    setTimeout(() => {
+                        element.style.opacity = '1';
+                    }, 200);
+                });
+            }, 30000); // Update every 30 seconds
+
+            // Add metric hover effects
+            const metricItems = document.querySelectorAll('.metric-item');
+            metricItems.forEach(item => {
+                item.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-3px) scale(1.02)';
+                });
+                item.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0) scale(1)';
+                });
+            });
+        });
+    </script>
+</body>
+</html>

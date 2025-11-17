@@ -29,8 +29,8 @@ export default function HomePage() {
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-8">
         <div className="text-center space-y-4">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <Shield className="h-12 w-12 text-primary" />
-            <h1 className="text-5xl font-bold">KYB Platform</h1>
+            <Shield className="h-12 w-12 text-primary" aria-hidden="true" />
+            <h1 className="text-4xl md:text-5xl font-bold">KYB Platform</h1>
           </div>
           <p className="text-xl text-muted-foreground max-w-2xl">
             Comprehensive Know Your Business (KYB) platform for merchant verification,
@@ -100,7 +100,7 @@ export default function HomePage() {
         </div>
 
         <div className="mt-8">
-          <Button asChild size="lg">
+          <Button asChild size="lg" aria-label="Enter merchant portfolio">
             <Link href="/merchant-portfolio">
               Enter Merchant Portfolio
             </Link>

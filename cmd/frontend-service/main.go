@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -340,16 +341,15 @@ func (s *FrontendService) setupRoutes() {
 // handleMerchantDetailsRoute handles Next.js merchant details routes
 func (s *FrontendService) handleMerchantDetailsRoute(w http.ResponseWriter, r *http.Request) {
 	// Path format: /merchant-details/{id}
-	// For Next.js, we need to serve the appropriate page
-	
-	// Check if Next.js build exists
-	nextJSFile := "./static/.next/server/app/merchant-details/[id]/page.html"
-	if _, err := os.Stat(nextJSFile); err == nil {
-		// Serve Next.js page
-		http.ServeFile(w, r, nextJSFile)
+	// Phase 4: Legacy UI removed - only serve Next.js
+	path := strings.TrimPrefix(r.URL.Path, "/merchant-details/")
+	if path != "" && path != "/" {
+		// Use routing config which serves Next.js only
+		s.routeConfig.serveRoute(w, r, "merchant-details/"+path)
 	} else {
-		// Fall back to legacy HTML with query parameter
-		http.Redirect(w, r, "/merchant-details?"+r.URL.RawQuery, http.StatusTemporaryRedirect)
+		// No ID provided, return 404
+		// Legacy UI fallback removed in Phase 4
+		http.NotFound(w, r)
 	}
 }
 

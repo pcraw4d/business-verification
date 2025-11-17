@@ -339,15 +339,15 @@ export function BulkOperationsManager() {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={selectAll}>
+              <Button variant="outline" size="sm" onClick={selectAll} aria-label="Select all merchants">
                 <CheckSquare className="h-4 w-4 mr-2" />
                 Select All
               </Button>
-              <Button variant="outline" size="sm" onClick={deselectAll}>
+              <Button variant="outline" size="sm" onClick={deselectAll} aria-label="Deselect all merchants">
                 <SquareIcon className="h-4 w-4 mr-2" />
                 Deselect All
               </Button>
-              <Button variant="outline" size="sm" onClick={selectByFilter}>
+              <Button variant="outline" size="sm" onClick={selectByFilter} aria-label="Select merchants by current filter">
                 <Filter className="h-4 w-4 mr-2" />
                 Select by Filter
               </Button>
@@ -449,6 +449,8 @@ export function BulkOperationsManager() {
                 variant={currentOperation === type ? 'default' : 'outline'}
                 className="h-auto flex-col gap-2 p-4"
                 onClick={() => handleOperationSelect(type as OperationType)}
+                aria-label={`Select ${label} operation`}
+                aria-pressed={currentOperation === type}
               >
                 <Icon className="h-6 w-6" />
                 <span className="text-sm">{label}</span>
@@ -548,18 +550,18 @@ export function BulkOperationsManager() {
           {currentOperation && selectedMerchants.size > 0 && currentOperation !== 'export-data' && (
             <div className="mt-6 flex gap-2">
               {operationState.status === 'ready' && (
-                <Button onClick={handleStartOperation}>
+                <Button onClick={handleStartOperation} aria-label="Start bulk operation">
                   <Play className="h-4 w-4 mr-2" />
                   Start Operation
                 </Button>
               )}
               {operationState.status === 'running' && (
                 <>
-                  <Button variant="outline" onClick={handlePause}>
+                  <Button variant="outline" onClick={handlePause} aria-label="Pause bulk operation">
                     <Pause className="h-4 w-4 mr-2" />
                     Pause
                   </Button>
-                  <Button variant="destructive" onClick={handleCancel}>
+                  <Button variant="destructive" onClick={handleCancel} aria-label="Cancel bulk operation">
                     <Square className="h-4 w-4 mr-2" />
                     Cancel
                   </Button>
@@ -567,11 +569,11 @@ export function BulkOperationsManager() {
               )}
               {operationState.status === 'paused' && (
                 <>
-                  <Button onClick={handleResume}>
+                  <Button onClick={handleResume} aria-label="Resume bulk operation">
                     <Play className="h-4 w-4 mr-2" />
                     Resume
                   </Button>
-                  <Button variant="destructive" onClick={handleCancel}>
+                  <Button variant="destructive" onClick={handleCancel} aria-label="Cancel bulk operation">
                     <Square className="h-4 w-4 mr-2" />
                     Cancel
                   </Button>

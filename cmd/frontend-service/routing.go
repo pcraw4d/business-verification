@@ -16,7 +16,13 @@ type RouteConfig struct {
 
 // NewRouteConfig creates a new route configuration
 func NewRouteConfig() *RouteConfig {
-	useNewUI := os.Getenv("NEXT_PUBLIC_USE_NEW_UI") == "true" || os.Getenv("USE_NEW_UI") == "true"
+	// Default to new UI unless explicitly disabled
+	// Check for explicit legacy UI flag first
+	useLegacyUI := os.Getenv("USE_LEGACY_UI") == "true"
+	
+	// If legacy UI is explicitly requested, use it
+	// Otherwise, default to new UI (check if explicitly enabled OR default to true)
+	useNewUI := !useLegacyUI && (os.Getenv("NEXT_PUBLIC_USE_NEW_UI") != "false" && os.Getenv("USE_NEW_UI") != "false")
 	
 	return &RouteConfig{
 		useNewUI:        useNewUI,
@@ -140,25 +146,25 @@ func (rc *RouteConfig) getLegacyPath(route string) string {
 	return filepath.Join(rc.legacyPath, route+".html")
 }
 
-// serveRoute serves either Next.js or legacy UI based on configuration
+// serveRoute serves Next.js UI (legacy UI has been removed in Phase 4)
 func (rc *RouteConfig) serveRoute(w http.ResponseWriter, r *http.Request, route string) {
-	// Try Next.js first if enabled
-	if rc.shouldUseNewUI(route) {
-		nextJSPath := rc.getNextJSPath(route)
-		if _, err := os.Stat(nextJSPath); err == nil {
-			http.ServeFile(w, r, nextJSPath)
-			return
-		}
-	}
-	
-	// Fall back to legacy UI
-	legacyPath := rc.getLegacyPath(route)
-	if _, err := os.Stat(legacyPath); err == nil {
-		http.ServeFile(w, r, legacyPath)
+	// Phase 4: Legacy UI removed - only serve Next.js
+	// If legacy UI is explicitly requested, return 404 (no longer available)
+	if !rc.useNewUI {
+		http.NotFound(w, r)
 		return
 	}
 	
-	// If neither exists, serve 404
+	// Try Next.js page
+	nextJSPath := rc.getNextJSPath(route)
+	if _, err := os.Stat(nextJSPath); err == nil {
+		// Next.js page exists, serve it
+		http.ServeFile(w, r, nextJSPath)
+		return
+	}
+	
+	// Next.js page doesn't exist, serve 404
+	// Legacy UI fallback removed in Phase 4
 	http.NotFound(w, r)
 }
 

@@ -165,6 +165,7 @@ export function ExportButton({
           variant="outline"
           disabled={isExporting}
           className="gap-2"
+          aria-label={isExporting ? 'Exporting data' : 'Export data'}
         >
           <Download className={`h-4 w-4 ${isExporting ? 'animate-spin' : ''}`} />
           {isExporting && exportingFormat

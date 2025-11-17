@@ -82,7 +82,7 @@ export function DashboardCard({
               </li>
             ))}
           </ul>
-          <Button asChild className="w-full">
+          <Button asChild className="w-full" aria-label={`Open ${title} dashboard`}>
             <Link href={href}>Open Dashboard</Link>
           </Button>
         </CardContent>

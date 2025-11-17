@@ -36,7 +36,7 @@ export function RiskScorePanel({ assessment, collapsed = true }: RiskScorePanelP
               <CardTitle>Why This Score?</CardTitle>
             </div>
             <CollapsibleTrigger asChild>
-              <button className="p-2 hover:bg-accent rounded-md">
+              <button className="p-2 hover:bg-accent rounded-md" aria-label="Toggle risk score breakdown">
                 <ChevronDown className="h-4 w-4" />
               </button>
             </CollapsibleTrigger>

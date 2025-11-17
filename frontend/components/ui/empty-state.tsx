@@ -47,11 +47,11 @@ export function EmptyState({
   return (
     <Card className={cn('border-dashed', className)}>
       <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-        <Icon className="h-12 w-12 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-semibold mb-2">{displayTitle}</h3>
+        <Icon className="h-12 w-12 text-muted-foreground mb-4" aria-hidden="true" />
+        <h2 className="text-lg font-semibold mb-2">{displayTitle}</h2>
         <CardDescription className="mb-4">{displayMessage}</CardDescription>
         {onAction && actionLabel && (
-          <Button variant="outline" onClick={onAction}>
+          <Button variant="outline" onClick={onAction} aria-label={actionLabel}>
             {actionLabel}
           </Button>
         )}

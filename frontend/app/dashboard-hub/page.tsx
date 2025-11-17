@@ -102,7 +102,7 @@ export default function DashboardHubPage() {
             <div className="flex items-center gap-3 mb-2">
               <Shield className="h-8 w-8 text-primary" />
               <div>
-                <CardTitle className="text-3xl">KYB Platform Dashboard Hub</CardTitle>
+                <h1 className="text-3xl font-semibold">KYB Platform Dashboard Hub</h1>
                 <CardDescription className="mt-2">
                   Comprehensive business intelligence, risk assessment, and compliance management tools for modern enterprises.
                 </CardDescription>
@@ -155,7 +155,7 @@ export default function DashboardHubPage() {
         {/* Dashboard Grid */}
         {dashboards.map((section, sectionIndex) => (
           <div key={sectionIndex} className="space-y-4">
-            <h2 className="text-2xl font-semibold">{section.category}</h2>
+            <h2 className="text-2xl font-semibold" id={`section-${sectionIndex}`}>{section.category}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {section.items.map((dashboard, itemIndex) => {
                 const Icon = dashboard.icon;
@@ -186,7 +186,7 @@ export default function DashboardHubPage() {
                           </li>
                         ))}
                       </ul>
-                      <Button asChild className="w-full">
+                      <Button asChild className="w-full" aria-label={`Open ${dashboard.title} dashboard`}>
                         <Link href={dashboard.href}>Open Dashboard</Link>
                       </Button>
                     </CardContent>

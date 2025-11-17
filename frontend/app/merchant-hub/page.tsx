@@ -15,7 +15,7 @@ export default function MerchantHubPage() {
         { label: 'Merchant Hub' },
       ]}
       headerActions={
-        <Button asChild>
+        <Button asChild aria-label="Add new merchant">
           <Link href="/add-merchant">
             <PlusCircle className="h-4 w-4 mr-2" />
             Add Merchant

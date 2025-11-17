@@ -89,7 +89,7 @@ export function DataEnrichment({ merchantId }: DataEnrichmentProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">Enrich Data</Button>
+        <Button variant="outline" aria-label="Open data enrichment dialog">Enrich Data</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -112,6 +112,7 @@ export function DataEnrichment({ merchantId }: DataEnrichmentProps) {
                 key={source.id}
                 variant="outline"
                 className="w-full justify-start"
+                aria-label={`Enrich data from ${source.name}`}
                 onClick={() => triggerEnrichment(source.id)}
                 disabled={enriching}
               >

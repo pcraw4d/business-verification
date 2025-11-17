@@ -107,10 +107,11 @@ export function Sidebar({ className, mobileOpen, onMobileClose }: SidebarProps) 
       </div>
       
       <ScrollArea className="flex-1">
-        <nav className="p-4 space-y-6">
+        <nav className="p-4 space-y-6" aria-label="Main navigation">
+          <h2 className="sr-only">Navigation Menu</h2>
           {navigation.map((section, sectionIndex) => (
             <div key={sectionIndex}>
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2" id={`nav-section-${sectionIndex}`}>
                 {section.title}
               </h3>
               <ul className="space-y-1">

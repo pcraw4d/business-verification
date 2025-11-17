@@ -1,7 +1,7 @@
+import { PerformanceOptimizer } from "@/components/performance/PerformanceOptimizer";
+import { Toaster } from "@/components/ui/sonner";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Toaster } from "@/components/ui/sonner";
-import { PerformanceOptimizer } from "@/components/performance/PerformanceOptimizer";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -32,6 +32,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        {/* Preconnect to API for faster requests */}
+        <link rel="preconnect" href={process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'} crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'} />
+        {/* Preconnect to Google Fonts */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

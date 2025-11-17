@@ -428,10 +428,11 @@ export function MerchantForm() {
               variant="outline"
               onClick={handleClear}
               disabled={isSubmitting}
+              aria-label="Clear all form fields"
             >
               Clear Form
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting} aria-label={isSubmitting ? 'Processing merchant verification' : 'Submit merchant verification'}>
               {isSubmitting ? 'Processing...' : 'Verify Merchant'}
             </Button>
           </div>

@@ -77,7 +77,7 @@ export function ExportButton({
   }
 
   return (
-    <Button variant="outline" onClick={handleExport} disabled={exporting}>
+    <Button variant="outline" onClick={handleExport} disabled={exporting} aria-label={exporting ? `Exporting ${format.toUpperCase()}` : `Export data as ${format.toUpperCase()}`}>
       <Download className="h-4 w-4 mr-2" />
       {exporting ? 'Exporting...' : `Export ${format.toUpperCase()}`}
     </Button>

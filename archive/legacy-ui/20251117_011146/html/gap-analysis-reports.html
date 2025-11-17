@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gap Analysis Reports - KYB Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="components/navigation.js"></script>
+    <style>
+        /* Custom styles for gap analysis reports */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s ease;
+        }
+
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .report-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.95));
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .report-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            border-color: #3498db;
+        }
+
+        .report-type-card {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .report-type-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3498db, #2980b9);
+        }
+
+        .report-type-card:hover {
+            transform: translateY(-3px);
+            border-color: #3498db;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .report-type-card.selected {
+            border-color: #3498db;
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+        }
+
+        .report-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .report-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+
+        .report-description {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .filter-section {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 0.9rem;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 10px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            background: white;
+            color: #2c3e50;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .filter-group select:focus,
+        .filter-group input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .btn-report {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2980b9, #1f4e79);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #7f8c8d, #6c7b7d);
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60, #229954);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(135deg, #229954, #1e8449);
+            transform: translateY(-2px);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: linear-gradient(135deg, #e67e22, #d35400);
+            transform: translateY(-2px);
+        }
+
+        .report-preview {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e9ecef;
+        }
+
+        .report-header {
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 20px;
+            margin-bottom: 25px;
+        }
+
+        .report-content {
+            line-height: 1.6;
+            color: #2c3e50;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+
+        .metric-item {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .metric-item:hover {
+            border-color: #3498db;
+            transform: translateY(-2px);
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-critical { background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; }
+        .status-high { background: linear-gradient(135deg, #f39c12, #e67e22); color: white; }
+        .status-medium { background: linear-gradient(135deg, #3498db, #2980b9); color: white; }
+        .status-low { background: linear-gradient(135deg, #95a5a6, #7f8c8d); color: white; }
+
+        .progress-bar {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 8px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.8s ease;
+            background: linear-gradient(90deg, #3498db, #2980b9);
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            margin: 20px 0;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .metric-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .report-card {
+                padding: 20px;
+            }
+            
+            .filter-section {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+<!-- DEPRECATION NOTICE -->
+<div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 16px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 24px;">⚠️</span>
+        <div style="flex: 1;">
+            <strong style="font-size: 18px; display: block; margin-bottom: 4px;">This page is deprecated</strong>
+            <p style="margin: 0; font-size: 14px; opacity: 0.95;">
+                This legacy UI page has been replaced with a new shadcn UI implementation. 
+                Please use the new UI for the best experience. 
+                <a href="/" style="color: white; text-decoration: underline; font-weight: bold;">Go to new UI →</a>
+            </p>
+        </div>
+    </div>
+</div>
+    <div class="container">
+        <!-- Header Section -->
+        <div class="report-card fade-in">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                        <i class="fas fa-chart-line text-blue-600 mr-3"></i>
+                        Gap Analysis Reports
+                    </h1>
+                    <p class="text-gray-600">Generate comprehensive compliance gap analysis reports</p>
+                </div>
+                <div class="flex gap-3">
+                    <button class="btn-report btn-secondary" onclick="scheduleReport()">
+                        <i class="fas fa-clock"></i> Schedule Report
+                    </button>
+                    <button class="btn-report btn-success" onclick="generateQuickReport()">
+                        <i class="fas fa-bolt"></i> Quick Report
+                    </button>
+                </div>
+            </div>
+
+            <!-- Report Type Selection -->
+            <div class="mb-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Select Report Type</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="report-type-card" data-type="executive" onclick="selectReportType('executive')">
+                        <div class="report-icon">
+                            <i class="fas fa-chart-pie"></i>
+                        </div>
+                        <div class="report-title">Executive Summary</div>
+                        <div class="report-description">High-level overview for executives and stakeholders</div>
+                    </div>
+                    <div class="report-type-card" data-type="detailed" onclick="selectReportType('detailed')">
+                        <div class="report-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="report-title">Detailed Analysis</div>
+                        <div class="report-description">Comprehensive gap analysis with recommendations</div>
+                    </div>
+                    <div class="report-type-card" data-type="progress" onclick="selectReportType('progress')">
+                        <div class="report-icon">
+                            <i class="fas fa-tasks"></i>
+                        </div>
+                        <div class="report-title">Progress Report</div>
+                        <div class="report-description">Current status and progress tracking</div>
+                    </div>
+                    <div class="report-type-card" data-type="compliance" onclick="selectReportType('compliance')">
+                        <div class="report-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div class="report-title">Compliance Status</div>
+                        <div class="report-description">Framework-specific compliance assessment</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="filter-section fade-in">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">Report Filters</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="filter-group">
+                    <label for="frameworkFilter">Compliance Framework:</label>
+                    <select id="frameworkFilter">
+                        <option value="all">All Frameworks</option>
+                        <option value="SOC 2">SOC 2</option>
+                        <option value="GDPR">GDPR</option>
+                        <option value="PCI DSS">PCI DSS</option>
+                        <option value="HIPAA">HIPAA</option>
+                        <option value="ISO 27001">ISO 27001</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="priorityFilter">Priority Level:</label>
+                    <select id="priorityFilter">
+                        <option value="all">All Priorities</option>
+                        <option value="critical">Critical</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="statusFilter">Status:</label>
+                    <select id="statusFilter">
+                        <option value="all">All Statuses</option>
+                        <option value="open">Open</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="review">Review</option>
+                        <option value="completed">Completed</option>
+                        <option value="overdue">Overdue</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="dateRangeFilter">Date Range:</label>
+                    <select id="dateRangeFilter">
+                        <option value="all">All Time</option>
+                        <option value="last-7-days">Last 7 Days</option>
+                        <option value="last-30-days">Last 30 Days</option>
+                        <option value="last-90-days">Last 90 Days</option>
+                        <option value="last-year">Last Year</option>
+                        <option value="custom">Custom Range</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mt-4 flex gap-3">
+                <button class="btn-report btn-primary" onclick="generateReport()">
+                    <i class="fas fa-file-pdf"></i> Generate Report
+                </button>
+                <button class="btn-report btn-secondary" onclick="previewReport()">
+                    <i class="fas fa-eye"></i> Preview
+                </button>
+                <button class="btn-report btn-warning" onclick="exportToExcel()">
+                    <i class="fas fa-file-excel"></i> Export Excel
+                </button>
+            </div>
+        </div>
+
+        <!-- Report Preview Section -->
+        <div id="reportPreview" class="report-card fade-in" style="display: none;">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-eye text-green-600 mr-2"></i>
+                Report Preview
+            </h3>
+            <div id="previewContent">
+                <!-- Preview content will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Report Generation Status -->
+        <div id="generationStatus" class="report-card fade-in" style="display: none;">
+            <div class="text-center">
+                <div class="loading mb-4"></div>
+                <h3 class="text-lg font-bold text-gray-800 mb-2">Generating Report...</h3>
+                <p class="text-gray-600">Please wait while we generate your report</p>
+            </div>
+        </div>
+
+        <!-- Recent Reports Section -->
+        <div class="report-card fade-in">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-history text-purple-600 mr-2"></i>
+                Recent Reports
+            </h3>
+            <div id="recentReports">
+                <!-- Recent reports will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Report Templates Section -->
+        <div class="report-card fade-in">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-template text-orange-600 mr-2"></i>
+                Report Templates
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="bg-white rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow">
+                    <div class="flex items-center mb-3">
+                        <i class="fas fa-file-pdf text-red-500 text-xl mr-3"></i>
+                        <div>
+                            <h4 class="font-semibold text-gray-800">Executive Summary Template</h4>
+                            <p class="text-sm text-gray-600">PDF format</p>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-3">High-level overview with key metrics and recommendations</p>
+                    <button class="btn-report btn-primary text-sm" onclick="useTemplate('executive-pdf')">
+                        <i class="fas fa-download"></i> Use Template
+                    </button>
+                </div>
+                <div class="bg-white rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow">
+                    <div class="flex items-center mb-3">
+                        <i class="fas fa-file-excel text-green-500 text-xl mr-3"></i>
+                        <div>
+                            <h4 class="font-semibold text-gray-800">Detailed Analysis Template</h4>
+                            <p class="text-sm text-gray-600">Excel format</p>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-3">Comprehensive analysis with data tables and charts</p>
+                    <button class="btn-report btn-primary text-sm" onclick="useTemplate('detailed-excel')">
+                        <i class="fas fa-download"></i> Use Template
+                    </button>
+                </div>
+                <div class="bg-white rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow">
+                    <div class="flex items-center mb-3">
+                        <i class="fas fa-file-alt text-blue-500 text-xl mr-3"></i>
+                        <div>
+                            <h4 class="font-semibold text-gray-800">Progress Report Template</h4>
+                            <p class="text-sm text-gray-600">HTML format</p>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-3">Interactive progress tracking with visualizations</p>
+                    <button class="btn-report btn-primary text-sm" onclick="useTemplate('progress-html')">
+                        <i class="fas fa-download"></i> Use Template
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedReportType = null;
+        let reportData = null;
+
+        // Initialize the reports system
+        document.addEventListener('DOMContentLoaded', function() {
+            loadRecentReports();
+            initializeAnimations();
+        });
+
+        // Select report type
+        function selectReportType(type) {
+            // Remove previous selection
+            document.querySelectorAll('.report-type-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+
+            // Add selection to clicked card
+            document.querySelector(`[data-type="${type}"]`).classList.add('selected');
+            selectedReportType = type;
+
+            // Update preview if filters are applied
+            if (hasFiltersApplied()) {
+                previewReport();
+            }
+        }
+
+        // Check if filters are applied
+        function hasFiltersApplied() {
+            const framework = document.getElementById('frameworkFilter').value;
+            const priority = document.getElementById('priorityFilter').value;
+            const status = document.getElementById('statusFilter').value;
+            const dateRange = document.getElementById('dateRangeFilter').value;
+
+            return framework !== 'all' || priority !== 'all' || status !== 'all' || dateRange !== 'all';
+        }
+
+        // Generate report
+        function generateReport() {
+            if (!selectedReportType) {
+                alert('Please select a report type first');
+                return;
+            }
+
+            showGenerationStatus();
+            
+            // Simulate report generation
+            setTimeout(() => {
+                hideGenerationStatus();
+                generateReportContent();
+                showReportPreview();
+            }, 2000);
+        }
+
+        // Preview report
+        function previewReport() {
+            if (!selectedReportType) {
+                alert('Please select a report type first');
+                return;
+            }
+
+            generateReportContent();
+            showReportPreview();
+        }
+
+        // Generate report content based on type
+        function generateReportContent() {
+            const filters = getCurrentFilters();
+            const data = getReportData(filters);
+
+            let content = '';
+            switch (selectedReportType) {
+                case 'executive':
+                    content = generateExecutiveSummary(data);
+                    break;
+                case 'detailed':
+                    content = generateDetailedAnalysis(data);
+                    break;
+                case 'progress':
+                    content = generateProgressReport(data);
+                    break;
+                case 'compliance':
+                    content = generateComplianceStatus(data);
+                    break;
+            }
+
+            document.getElementById('previewContent').innerHTML = content;
+        }
+
+        // Generate executive summary
+        function generateExecutiveSummary(data) {
+            return `
+                <div class="report-preview">
+                    <div class="report-header">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-2">Executive Summary</h2>
+                        <p class="text-gray-600">Compliance Gap Analysis Report</p>
+                        <p class="text-sm text-gray-500">Generated on ${new Date().toLocaleDateString()}</p>
+                    </div>
+                    
+                    <div class="report-content">
+                        <div class="metric-grid">
+                            <div class="metric-item">
+                                <div class="metric-value text-red-600">${data.totalGaps}</div>
+                                <div class="metric-label">Total Gaps</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-value text-orange-600">${data.criticalGaps}</div>
+                                <div class="metric-label">Critical Gaps</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-value text-green-600">${data.completedGaps}</div>
+                                <div class="metric-label">Completed</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-value text-blue-600">${data.averageProgress}%</div>
+                                <div class="metric-label">Avg Progress</div>
+                            </div>
+                        </div>
+
+                        <h3 class="text-lg font-bold text-gray-800 mb-3">Key Findings</h3>
+                        <ul class="list-disc list-inside space-y-2 mb-6">
+                            <li>${data.criticalGaps} critical gaps require immediate attention</li>
+                            <li>${data.overdueGaps} gaps are currently overdue</li>
+                            <li>Overall compliance progress is at ${data.averageProgress}%</li>
+                            <li>${data.completedGaps} gaps have been successfully resolved</li>
+                        </ul>
+
+                        <h3 class="text-lg font-bold text-gray-800 mb-3">Recommendations</h3>
+                        <ul class="list-disc list-inside space-y-2">
+                            <li>Prioritize resolution of critical gaps</li>
+                            <li>Implement automated monitoring for overdue items</li>
+                            <li>Increase resource allocation for high-priority gaps</li>
+                            <li>Establish regular progress review meetings</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Generate detailed analysis
+        function generateDetailedAnalysis(data) {
+            return `
+                <div class="report-preview">
+                    <div class="report-header">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-2">Detailed Gap Analysis</h2>
+                        <p class="text-gray-600">Comprehensive Compliance Assessment</p>
+                        <p class="text-sm text-gray-500">Generated on ${new Date().toLocaleDateString()}</p>
+                    </div>
+                    
+                    <div class="report-content">
+                        <div class="chart-container">
+                            <canvas id="detailedChart" width="400" height="200"></canvas>
+                        </div>
+
+                        <h3 class="text-lg font-bold text-gray-800 mb-3">Gap Breakdown by Framework</h3>
+                        <div class="space-y-3 mb-6">
+                            ${data.frameworks.map(framework => `
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div>
+                                        <span class="font-semibold">${framework.name}</span>
+                                        <span class="text-sm text-gray-600 ml-2">${framework.gaps} gaps</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <div class="progress-bar w-32 mr-3">
+                                            <div class="progress-fill" style="width: ${framework.compliance}%;"></div>
+                                        </div>
+                                        <span class="text-sm font-semibold">${framework.compliance}%</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <h3 class="text-lg font-bold text-gray-800 mb-3">Priority Distribution</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                            <div class="text-center p-3 bg-red-50 rounded-lg">
+                                <div class="text-2xl font-bold text-red-600">${data.priorityBreakdown.critical}</div>
+                                <div class="text-sm text-red-600">Critical</div>
+                            </div>
+                            <div class="text-center p-3 bg-orange-50 rounded-lg">
+                                <div class="text-2xl font-bold text-orange-600">${data.priorityBreakdown.high}</div>
+                                <div class="text-sm text-orange-600">High</div>
+                            </div>
+                            <div class="text-center p-3 bg-blue-50 rounded-lg">
+                                <div class="text-2xl font-bold text-blue-600">${data.priorityBreakdown.medium}</div>
+                                <div class="text-sm text-blue-600">Medium</div>
+                            </div>
+                            <div class="text-center p-3 bg-gray-50 rounded-lg">
+                                <div class="text-2xl font-bold text-gray-600">${data.priorityBreakdown.low}</div>
+                                <div class="text-sm text-gray-600">Low</div>
+                            </div>
+                        </div>
+
+                        <h3 class="text-lg font-bold text-gray-800 mb-3">Top Priority Gaps</h3>
+                        <div class="space-y-3">
+                            ${data.topGaps.map(gap => `
+                                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                                    <div class="flex-1">
+                                        <div class="flex items-center mb-1">
+                                            <span class="font-semibold">${gap.title}</span>
+                                            <span class="status-badge status-${gap.priority} ml-2">${gap.priority}</span>
+                                        </div>
+                                        <p class="text-sm text-gray-600">${gap.description}</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-sm font-semibold">${gap.progress}%</div>
+                                        <div class="progress-bar w-20 mt-1">
+                                            <div class="progress-fill" style="width: ${gap.progress}%;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Generate progress report
+        function generateProgressReport(data) {
+            return `
+                <div class="report-preview">
+                    <div class="report-header">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-2">Progress Report</h2>
+                        <p class="text-gray-600">Compliance Gap Progress Tracking</p>
+                        <p class="text-sm text-gray-500">Generated on ${new Date().toLocaleDateString()}</p>
+                    </div>
+                    
+                    <div class="report-content">
+                        <div class="chart-container">
+                            <canvas id="progressChart" width="400" height="200"></canvas>
+                        </div>
+
+                        <h3 class="text-lg font-bold text-gray-800 mb-3">Progress Overview</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <div class="text-center p-4 bg-green-50 rounded-lg">
+                                <div class="text-3xl font-bold text-green-600">${data.completedGaps}</div>
+                                <div class="text-sm text-green-600">Completed</div>
+                            </div>
+                            <div class="text-center p-4 bg-orange-50 rounded-lg">
+                                <div class="text-3xl font-bold text-orange-600">${data.inProgressGaps}</div>
+                                <div class="text-sm text-orange-600">In Progress</div>
+                            </div>
+                            <div class="text-center p-4 bg-red-50 rounded-lg">
+                                <div class="text-3xl font-bold text-red-600">${data.overdueGaps}</div>
+                                <div class="text-sm text-red-600">Overdue</div>
+                            </div>
+                        </div>
+
+                        <h3 class="text-lg font-bold text-gray-800 mb-3">Team Performance</h3>
+                        <div class="space-y-3">
+                            ${data.teamPerformance.map(team => `
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div>
+                                        <span class="font-semibold">${team.name}</span>
+                                        <span class="text-sm text-gray-600 ml-2">${team.gaps} gaps</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <div class="progress-bar w-32 mr-3">
+                                            <div class="progress-fill" style="width: ${team.completionRate}%;"></div>
+                                        </div>
+                                        <span class="text-sm font-semibold">${team.completionRate}%</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Generate compliance status
+        function generateComplianceStatus(data) {
+            return `
+                <div class="report-preview">
+                    <div class="report-header">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-2">Compliance Status Report</h2>
+                        <p class="text-gray-600">Framework-Specific Compliance Assessment</p>
+                        <p class="text-sm text-gray-500">Generated on ${new Date().toLocaleDateString()}</p>
+                    </div>
+                    
+                    <div class="report-content">
+                        <div class="chart-container">
+                            <canvas id="complianceChart" width="400" height="200"></canvas>
+                        </div>
+
+                        <h3 class="text-lg font-bold text-gray-800 mb-3">Framework Compliance</h3>
+                        <div class="space-y-4">
+                            ${data.frameworks.map(framework => `
+                                <div class="border border-gray-200 rounded-lg p-4">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <h4 class="font-semibold text-lg">${framework.name}</h4>
+                                        <span class="text-2xl font-bold ${framework.compliance >= 80 ? 'text-green-600' : framework.compliance >= 60 ? 'text-orange-600' : 'text-red-600'}">${framework.compliance}%</span>
+                                    </div>
+                                    <div class="progress-bar mb-3">
+                                        <div class="progress-fill" style="width: ${framework.compliance}%;"></div>
+                                    </div>
+                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                        <div>
+                                            <span class="text-gray-600">Total Gaps:</span>
+                                            <span class="font-semibold ml-1">${framework.gaps}</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-gray-600">Completed:</span>
+                                            <span class="font-semibold ml-1">${framework.completed}</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-gray-600">In Progress:</span>
+                                            <span class="font-semibold ml-1">${framework.inProgress}</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-gray-600">Overdue:</span>
+                                            <span class="font-semibold ml-1">${framework.overdue}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Get current filters
+        function getCurrentFilters() {
+            return {
+                framework: document.getElementById('frameworkFilter').value,
+                priority: document.getElementById('priorityFilter').value,
+                status: document.getElementById('statusFilter').value,
+                dateRange: document.getElementById('dateRangeFilter').value
+            };
+        }
+
+        // Get report data based on filters
+        function getReportData(filters) {
+            // Simulate data based on filters
+            return {
+                totalGaps: 24,
+                criticalGaps: 3,
+                highGaps: 8,
+                mediumGaps: 10,
+                lowGaps: 3,
+                completedGaps: 12,
+                inProgressGaps: 8,
+                overdueGaps: 4,
+                averageProgress: 68,
+                priorityBreakdown: {
+                    critical: 3,
+                    high: 8,
+                    medium: 10,
+                    low: 3
+                },
+                frameworks: [
+                    { name: 'SOC 2', gaps: 8, compliance: 75, completed: 6, inProgress: 2, overdue: 0 },
+                    { name: 'GDPR', gaps: 6, compliance: 83, completed: 5, inProgress: 1, overdue: 0 },
+                    { name: 'PCI DSS', gaps: 5, compliance: 60, completed: 3, inProgress: 2, overdue: 0 },
+                    { name: 'HIPAA', gaps: 3, compliance: 67, completed: 2, inProgress: 1, overdue: 0 },
+                    { name: 'ISO 27001', gaps: 2, compliance: 50, completed: 1, inProgress: 1, overdue: 0 }
+                ],
+                topGaps: [
+                    { title: 'Multi-Factor Authentication', description: 'Implement MFA across all systems', priority: 'critical', progress: 65 },
+                    { title: 'Data Encryption Standards', description: 'Establish comprehensive encryption', priority: 'high', progress: 40 },
+                    { title: 'Access Control Monitoring', description: 'Deploy access logging system', priority: 'high', progress: 85 }
+                ],
+                teamPerformance: [
+                    { name: 'Security Team', gaps: 8, completionRate: 75 },
+                    { name: 'DevOps Team', gaps: 6, completionRate: 67 },
+                    { name: 'HR Team', gaps: 4, completionRate: 50 },
+                    { name: 'IT Operations', gaps: 6, completionRate: 83 }
+                ]
+            };
+        }
+
+        // Show report preview
+        function showReportPreview() {
+            document.getElementById('reportPreview').style.display = 'block';
+            document.getElementById('reportPreview').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Show generation status
+        function showGenerationStatus() {
+            document.getElementById('generationStatus').style.display = 'block';
+        }
+
+        // Hide generation status
+        function hideGenerationStatus() {
+            document.getElementById('generationStatus').style.display = 'none';
+        }
+
+        // Load recent reports
+        function loadRecentReports() {
+            const recentReports = [
+                { name: 'Executive Summary - Q4 2024', type: 'PDF', date: '2024-12-15', size: '2.3 MB' },
+                { name: 'Detailed Analysis - SOC 2', type: 'Excel', date: '2024-12-10', size: '1.8 MB' },
+                { name: 'Progress Report - December', type: 'HTML', date: '2024-12-05', size: '856 KB' },
+                { name: 'Compliance Status - GDPR', type: 'PDF', date: '2024-11-28', size: '1.2 MB' }
+            ];
+
+            const container = document.getElementById('recentReports');
+            container.innerHTML = recentReports.map(report => `
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg mb-3">
+                    <div class="flex items-center">
+                        <i class="fas fa-${report.type === 'PDF' ? 'file-pdf text-red-500' : report.type === 'Excel' ? 'file-excel text-green-500' : 'file-alt text-blue-500'} text-xl mr-3"></i>
+                        <div>
+                            <div class="font-semibold text-gray-800">${report.name}</div>
+                            <div class="text-sm text-gray-600">${report.type} • ${report.date} • ${report.size}</div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="btn-report btn-secondary text-sm" onclick="downloadReport('${report.name}')">
+                            <i class="fas fa-download"></i> Download
+                        </button>
+                        <button class="btn-report btn-primary text-sm" onclick="viewReport('${report.name}')">
+                            <i class="fas fa-eye"></i> View
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Export to Excel
+        function exportToExcel() {
+            if (!selectedReportType) {
+                alert('Please select a report type first');
+                return;
+            }
+
+            alert('Exporting to Excel...\n\nThis would generate an Excel file with:\n- Data tables\n- Charts and graphs\n- Summary statistics\n- Detailed gap information');
+        }
+
+        // Schedule report
+        function scheduleReport() {
+            alert('Scheduling automated report...\n\nThis would open a scheduler to:\n- Set report frequency (daily, weekly, monthly)\n- Configure recipients\n- Customize report content\n- Set delivery preferences');
+        }
+
+        // Generate quick report
+        function generateQuickReport() {
+            alert('Generating quick report...\n\nThis would create a standard executive summary with:\n- Current gap statistics\n- Priority breakdown\n- Recent progress\n- Key recommendations');
+        }
+
+        // Use template
+        function useTemplate(templateType) {
+            alert(`Using ${templateType} template...\n\nThis would:\n- Load the template structure\n- Apply current filter settings\n- Generate report with template format\n- Allow customization before export`);
+        }
+
+        // Download report
+        function downloadReport(reportName) {
+            alert(`Downloading ${reportName}...\n\nThis would download the report file to your device.`);
+        }
+
+        // View report
+        function viewReport(reportName) {
+            alert(`Viewing ${reportName}...\n\nThis would open the report in a new tab for viewing.`);
+        }
+
+        // Initialize animations
+        function initializeAnimations() {
+            setTimeout(() => {
+                document.querySelectorAll('.fade-in').forEach((element, index) => {
+                    setTimeout(() => {
+                        element.classList.add('visible');
+                    }, index * 100);
+                });
+            }, 100);
+        }
+    </script>
+</body>
+</html>
