@@ -761,6 +761,25 @@ func main() {
 	api.HandleFunc("/compliance/check", riskAssessmentHandler.HandleComplianceCheck).Methods("POST")
 	api.HandleFunc("/sanctions/screen", riskAssessmentHandler.HandleSanctionsScreening).Methods("POST")
 	api.HandleFunc("/media/monitor", riskAssessmentHandler.HandleAdverseMediaMonitoring).Methods("POST")
+	
+	// Compliance status endpoints
+	regulatoryHandlers := handlers.NewRegulatoryHandlers(logger)
+	// Aggregate compliance status (no business_id)
+	api.HandleFunc("/compliance/status/aggregate", func(w http.ResponseWriter, r *http.Request) {
+		regulatoryHandlers.GetComplianceStatus(w, r)
+	}).Methods("GET")
+	// Specific business compliance status
+	api.HandleFunc("/compliance/status/{business_id}", func(w http.ResponseWriter, r *http.Request) {
+		// Extract business_id from path and add as query param for handler
+		vars := mux.Vars(r)
+		businessID := vars["business_id"]
+		if businessID != "" {
+			q := r.URL.Query()
+			q.Set("tenant_id", businessID)
+			r.URL.RawQuery = q.Encode()
+		}
+		regulatoryHandlers.GetComplianceStatus(w, r)
+	}).Methods("GET")
 
 	// Analytics endpoints
 	api.HandleFunc("/analytics/trends", riskAssessmentHandler.HandleRiskTrends).Methods("GET")

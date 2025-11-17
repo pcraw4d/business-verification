@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"kyb-platform/internal/api/middleware"
 )
 
 type FrontendService struct {
@@ -14,6 +16,8 @@ type FrontendService struct {
 	version     string
 	port        string
 	routeConfig *RouteConfig
+	sessionAPI  *middleware.SessionAPI
+	sessionMux  *http.ServeMux
 }
 
 func NewFrontendService() *FrontendService {
@@ -29,11 +33,23 @@ func NewFrontendService() *FrontendService {
 		port = "8086"
 	}
 
+	// Initialize session management
+	sessionConfig := middleware.DefaultSessionConfig()
+	sessionManager := middleware.NewSessionManager(sessionConfig)
+	sessionAPI := middleware.NewSessionAPI(sessionManager)
+	sessionMux := http.NewServeMux()
+	
+	// Register session routes
+	sessionAPI.RegisterSessionRoutes(sessionMux)
+	log.Println("✅ Session management routes registered")
+
 	return &FrontendService{
 		serviceName: serviceName,
 		version:     version,
 		port:        port,
 		routeConfig: NewRouteConfig(),
+		sessionAPI:  sessionAPI,
+		sessionMux:  sessionMux,
 	}
 }
 
@@ -254,6 +270,11 @@ func (s *FrontendService) setupRoutes() {
 	// API endpoints
 	http.HandleFunc("/health", s.handleHealth)
 	http.HandleFunc("/assets", s.handleAssets)
+	
+	// Session management API routes (v1/sessions/*)
+	// These routes are handled by the session API mux
+	http.Handle("/v1/sessions", s.sessionMux)
+	http.Handle("/v1/sessions/", s.sessionMux)
 
 	// Legacy page routes
 	http.HandleFunc("/dashboard", s.handleDashboard)
