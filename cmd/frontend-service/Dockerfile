@@ -3,6 +3,19 @@ FROM node:20-alpine AS frontend-builder
 
 WORKDIR /app/frontend
 
+# Accept build arguments for Next.js build-time variables
+# Railway automatically passes environment variables as build args
+ARG NEXT_PUBLIC_API_BASE_URL
+ARG NEXT_PUBLIC_USE_NEW_UI
+ARG USE_NEW_UI
+ARG NODE_ENV
+
+# Set as environment variables for Next.js build
+ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+ENV NEXT_PUBLIC_USE_NEW_UI=${NEXT_PUBLIC_USE_NEW_UI}
+ENV USE_NEW_UI=${USE_NEW_UI}
+ENV NODE_ENV=${NODE_ENV:-production}
+
 # Copy frontend package files
 COPY frontend/package*.json ./
 
@@ -12,7 +25,7 @@ RUN npm ci
 # Copy frontend source
 COPY frontend/ ./
 
-# Build Next.js app
+# Build Next.js app (build-time variables are now available)
 RUN npm run build
 
 # Go build stage
