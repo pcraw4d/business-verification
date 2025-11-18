@@ -84,11 +84,14 @@ test.describe('Navigation Tests', () => {
       await page.waitForTimeout(500); // Wait for scroll and ensure element is stable
     }
     // Try multiple strategies if element is still outside viewport
-    try {
-      await portfolioLink.click({ force: true, timeout: 5000 });
-    } catch {
-      // If still fails, try clicking via JavaScript
-      await portfolioLink.evaluate((el: HTMLElement) => el.click());
+    const linkToClick = hasLink ? portfolioLink : (await page.getByRole('link', { name: /merchant portfolio/i }).isVisible({ timeout: 2000 }).catch(() => false) ? page.getByRole('link', { name: /merchant portfolio/i }) : null);
+    if (linkToClick) {
+      try {
+        await linkToClick.click({ force: true, timeout: 5000 });
+      } catch {
+        // If still fails, try clicking via JavaScript
+        await linkToClick.evaluate((el: HTMLElement) => el.click());
+      }
     }
     await expect(page).toHaveURL(/.*merchant-portfolio/, { timeout: 10000 });
     // Use main content h1, or fallback to h1 or h2 if main h1 doesn't exist
@@ -196,11 +199,14 @@ test.describe('Navigation Tests', () => {
       await page.waitForTimeout(500); // Wait for scroll to complete
     }
     // Try multiple strategies if element is still outside viewport
-    try {
-      await adminLink.click({ force: true, timeout: 5000 });
-    } catch {
-      // If still fails, try clicking via JavaScript
-      await adminLink.evaluate((el: HTMLElement) => el.click());
+    const linkToClick = hasLink ? adminLink : (await page.getByRole('link', { name: /admin dashboard/i }).isVisible({ timeout: 2000 }).catch(() => false) ? page.getByRole('link', { name: /admin dashboard/i }) : null);
+    if (linkToClick) {
+      try {
+        await linkToClick.click({ force: true, timeout: 5000 });
+      } catch {
+        // If still fails, try clicking via JavaScript
+        await linkToClick.evaluate((el: HTMLElement) => el.click());
+      }
     }
     await expect(page).toHaveURL(/.*admin/, { timeout: 10000 });
     // Use main content h1, or fallback to h1 if main h1 doesn't exist
