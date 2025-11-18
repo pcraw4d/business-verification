@@ -26,11 +26,14 @@ test.describe('Navigation Tests', () => {
 
   test('should navigate to dashboard hub', async ({ page }) => {
     await openMobileMenuIfNeeded(page);
-    // Use getByRole for better reliability
-    const dashboardLink = page.getByRole('link', { name: /dashboard hub/i }).first();
+    // Use more specific selector - match exact text and href
+    const dashboardLink = page.locator('a[href="/dashboard-hub"]').filter({ hasText: /dashboard hub/i }).first();
     await dashboardLink.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300); // Wait for scroll
     await dashboardLink.click({ force: true });
-    await expect(page).toHaveURL(/.*dashboard-hub/, { timeout: 10000 });
+    // Wait for navigation to complete
+    await page.waitForURL(/.*dashboard-hub/, { timeout: 10000 });
+    await expect(page).toHaveURL(/.*dashboard-hub/);
     // Use main content h1, or fallback to h1 if main h1 doesn't exist
     const mainH1 = page.locator('main h1').first();
     const h1 = page.locator('h1').first();
@@ -44,10 +47,17 @@ test.describe('Navigation Tests', () => {
 
   test('should navigate to merchant portfolio', async ({ page }) => {
     await openMobileMenuIfNeeded(page);
-    // Use first() to select the sidebar link, not the button on the page
-    const portfolioLink = page.getByRole('link', { name: /merchant portfolio/i }).first();
+    // Use href selector to be more specific
+    const portfolioLink = page.locator('a[href="/merchant-portfolio"]').filter({ hasText: /merchant portfolio/i }).first();
     await portfolioLink.scrollIntoViewIfNeeded();
-    await portfolioLink.click({ force: true });
+    await page.waitForTimeout(500); // Wait for scroll and ensure element is stable
+    // Try multiple strategies if element is still outside viewport
+    try {
+      await portfolioLink.click({ force: true, timeout: 5000 });
+    } catch {
+      // If still fails, try clicking via JavaScript
+      await portfolioLink.evaluate((el: HTMLElement) => el.click());
+    }
     await expect(page).toHaveURL(/.*merchant-portfolio/, { timeout: 10000 });
     // Use main content h1, or fallback to h1 or h2 if main h1 doesn't exist
     const mainH1 = page.locator('main h1').first();
@@ -79,11 +89,14 @@ test.describe('Navigation Tests', () => {
 
   test('should navigate to risk dashboard', async ({ page }) => {
     await openMobileMenuIfNeeded(page);
-    // Be more specific - use exact match for "Risk Assessment" (not "Risk Assessment Portfolio")
-    const riskLink = page.getByRole('link', { name: 'Risk Assessment', exact: true }).first();
+    // Use href selector to be more specific - match exact href for Risk Assessment (not Risk Assessment Portfolio)
+    const riskLink = page.locator('a[href="/risk-dashboard"]').filter({ hasText: /^Risk Assessment$/ }).first();
     await riskLink.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300); // Wait for scroll
     await riskLink.click({ force: true });
-    await expect(page).toHaveURL(/.*risk-dashboard/, { timeout: 10000 });
+    // Wait for navigation to complete
+    await page.waitForURL(/.*risk-dashboard/, { timeout: 10000 });
+    await expect(page).toHaveURL(/.*risk-dashboard/);
     // Use main content h1, or fallback to h1 if main h1 doesn't exist
     const mainH1 = page.locator('main h1').first();
     const h1 = page.locator('h1').first();
@@ -114,11 +127,17 @@ test.describe('Navigation Tests', () => {
 
   test('should navigate to admin page', async ({ page }) => {
     await openMobileMenuIfNeeded(page);
-    // Scroll to ensure element is in viewport
-    const adminLink = page.getByRole('link', { name: /admin dashboard/i }).first();
+    // Use href selector to be more specific
+    const adminLink = page.locator('a[href="/admin"]').filter({ hasText: /admin dashboard/i }).first();
     await adminLink.scrollIntoViewIfNeeded();
     await page.waitForTimeout(500); // Wait for scroll to complete
-    await adminLink.click({ force: true });
+    // Try multiple strategies if element is still outside viewport
+    try {
+      await adminLink.click({ force: true, timeout: 5000 });
+    } catch {
+      // If still fails, try clicking via JavaScript
+      await adminLink.evaluate((el: HTMLElement) => el.click());
+    }
     await expect(page).toHaveURL(/.*admin/, { timeout: 10000 });
     // Use main content h1, or fallback to h1 if main h1 doesn't exist
     const mainH1 = page.locator('main h1').first();

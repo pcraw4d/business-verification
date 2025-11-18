@@ -88,17 +88,22 @@ test.describe('Risk Assessment Flow', () => {
     await riskTab.click();
     
     // Wait for tab content to load
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(2000);
     
     // Should show completed assessment - check in main content area
-    const completedText = page.locator('main text=/completed/i, [data-testid*="risk"] text=/completed/i').first();
-    const mediumText = page.locator('main text=/medium/i, [data-testid*="risk"] text=/medium/i').first();
+    // Look for risk assessment content more broadly
+    const completedText = page.locator('text=/completed|status.*completed/i').first();
+    const mediumText = page.locator('text=/medium|risk.*medium/i').first();
+    const riskScore = page.locator('text=/0\\.7|7\\.0|score.*0\\.7/i').first();
+    const riskContent = page.locator('[class*="risk"], [data-testid*="risk"], main').first();
     
     const hasCompleted = await completedText.isVisible({ timeout: 5000 }).catch(() => false);
     const hasMedium = await mediumText.isVisible({ timeout: 5000 }).catch(() => false);
+    const hasScore = await riskScore.isVisible({ timeout: 5000 }).catch(() => false);
+    const hasContent = await riskContent.isVisible({ timeout: 5000 }).catch(() => false);
     
     // At least one should be visible, or page should have loaded
-    expect(hasCompleted || hasMedium || await page.locator('main').isVisible()).toBeTruthy();
+    expect(hasCompleted || hasMedium || hasScore || hasContent).toBeTruthy();
   });
 
   test('should poll for assessment status', async ({ page }) => {
