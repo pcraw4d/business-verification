@@ -126,32 +126,11 @@ func (h *GatewayHandler) ProxyToMerchants(w http.ResponseWriter, r *http.Request
 	// So r.URL.Path will be /api/v1/merchants or /api/v1/merchants/{id}
 	path := r.URL.Path
 	
-	// Check if this is a merchant-specific analytics/analysis endpoint
-	// Route these to BI service (which handles analytics) or merchant service (if it has handlers)
-	if strings.Contains(path, "/merchants/") {
-		if strings.HasSuffix(path, "/analytics") || strings.HasSuffix(path, "/website-analysis") {
-			// Route merchant-specific analytics to BI service
-			// Transform: /api/v1/merchants/{id}/analytics -> /api/v1/bi/merchants/{id}/analytics
-			biPath := strings.Replace(path, "/api/v1/merchants/", "/api/v1/bi/merchants/", 1)
-			h.proxyRequest(w, r, h.config.Services.BIServiceURL, biPath)
-			return
-		}
-		
-		if strings.HasSuffix(path, "/risk-score") {
-			// Route merchant risk-score to risk assessment service
-			// Transform: /api/v1/merchants/{id}/risk-score -> /api/v1/risk/predictions/{id}
-			// Extract merchant ID from path
-			parts := strings.Split(path, "/")
-			if len(parts) >= 4 {
-				merchantID := parts[3] // /api/v1/merchants/{id}/risk-score
-				riskPath := fmt.Sprintf("/api/v1/risk/predictions/%s", merchantID)
-				h.proxyRequest(w, r, h.config.Services.RiskAssessmentURL, riskPath)
-				return
-			}
-		}
-	}
-	
-	// For all other merchant routes, proxy to merchant service
+	// The merchant service now handles all merchant endpoints including:
+	// - /api/v1/merchants/{id}/analytics
+	// - /api/v1/merchants/{id}/website-analysis
+	// - /api/v1/merchants/{id}/risk-score
+	// Proxy all merchant routes directly to the merchant service
 	h.proxyRequest(w, r, h.config.Services.MerchantURL, path)
 }
 
