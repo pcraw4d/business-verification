@@ -185,7 +185,7 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="border-b pb-4">
-        <h1 className="text-3xl font-bold">{merchant.businessName || merchant.name || 'Unknown Merchant'}</h1>
+        <h1 className="text-3xl font-bold">{merchant.businessName || 'Unknown Merchant'}</h1>
         <p className="text-muted-foreground mt-2">
           {merchant.industry && `${merchant.industry} • `}
           Status: {merchant.status || 'Unknown'}
