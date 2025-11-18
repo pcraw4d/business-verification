@@ -136,6 +136,72 @@ jobs:
           path: frontend/playwright-report/
           retention-days: 30
 
+      - name: Generate test summary
+        if: always()
+        run: |
+          if [ -f frontend/playwright-report/results.json ]; then
+            echo "## E2E Test Results (Local)" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Test results are available in the Playwright report artifact." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Test Summary" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            cat frontend/playwright-report/results.json | jq -r '.stats | "Total: \(.total) | Passed: \(.passed) | Failed: \(.failed) | Skipped: \(.skipped)"' 2>/dev/null || echo "Unable to parse test results" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  e2e-tests-railway:
+    name: E2E Tests (Railway)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run E2E tests against Railway
+        run: npm run test:e2e:railway || npx playwright test --config playwright.config.ts
+        env:
+          NODE_ENV: test
+          PLAYWRIGHT_TEST_BASE_URL: https://frontend-service-production-b225.up.railway.app
+          NEXT_PUBLIC_API_BASE_URL: https://api-gateway-service-production-21fd.up.railway.app
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-railway
+          path: frontend/playwright-report/
+          retention-days: 30
+
+      - name: Generate test summary
+        if: always()
+        run: |
+          if [ -f frontend/playwright-report/results.json ]; then
+            echo "## E2E Test Results (Railway)" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Test results are available in the Playwright report artifact." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Test Summary" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            cat frontend/playwright-report/results.json | jq -r '.stats | "Total: \(.total) | Passed: \(.passed) | Failed: \(.failed) | Skipped: \(.skipped)"' 2>/dev/null || echo "Unable to parse test results" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
+
   build:
     name: Build Verification
     runs-on: ubuntu-latest
@@ -186,22 +252,39 @@ jobs:
   all-tests:
     name: All Tests Status
     runs-on: ubuntu-latest
-    needs: [lint, type-check, unit-tests, e2e-tests, build]
+    needs: [lint, type-check, unit-tests, e2e-tests, e2e-tests-railway, build]
     if: always()
     steps:
       - name: Check test results
         run: |
+          echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Type Check | ${{ needs.type-check.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit Tests | ${{ needs.unit-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| E2E Tests (Local) | ${{ needs.e2e-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| E2E Tests (Railway) | ${{ needs.e2e-tests-railway.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
           echo "Lint: ${{ needs.lint.result }}"
           echo "Type Check: ${{ needs.type-check.result }}"
           echo "Unit Tests: ${{ needs.unit-tests.result }}"
-          echo "E2E Tests: ${{ needs.e2e-tests.result }}"
+          echo "E2E Tests (Local): ${{ needs.e2e-tests.result }}"
+          echo "E2E Tests (Railway): ${{ needs.e2e-tests-railway.result }}"
           echo "Build: ${{ needs.build.result }}"
 
           if [ "${{ needs.lint.result }}" != "success" ] || \
              [ "${{ needs.type-check.result }}" != "success" ] || \
              [ "${{ needs.unit-tests.result }}" != "success" ] || \
              [ "${{ needs.e2e-tests.result }}" != "success" ] || \
+             [ "${{ needs.e2e-tests-railway.result }}" != "success" ] || \
              [ "${{ needs.build.result }}" != "success" ]; then
+            echo "❌ Some tests failed" >> $GITHUB_STEP_SUMMARY
             echo "Some tests failed"
             exit 1
+          else
+            echo "✅ All tests passed" >> $GITHUB_STEP_SUMMARY
           fi
