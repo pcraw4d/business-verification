@@ -71,19 +71,21 @@ func (rc *RouteConfig) getNextJSPath(route string) string {
 		if len(parts) >= 2 {
 			// This is a dynamic route: merchant-details/[id]
 			// Next.js App Router generates the route handler at: merchant-details/[id]/page.html
-			// Check if the dynamic route template exists
+			// ALWAYS try to serve the dynamic route template first
 			dynamicPath := filepath.Join(rc.nextJSBuildPath, "merchant-details", "[id]", "page.html")
 			if _, err := os.Stat(dynamicPath); err == nil {
 				return dynamicPath
 			}
-			// Also try the actual ID path (in case Next.js pre-rendered it)
-			idPath := filepath.Join(rc.nextJSBuildPath, route+".html")
-			if _, err := os.Stat(idPath); err == nil {
-				return idPath
+			// If dynamic route template doesn't exist, we need to serve a page that can handle it
+			// Try serving the merchant-details layout page if it exists
+			merchantDetailsPath := filepath.Join(rc.nextJSBuildPath, "merchant-details", "page.html")
+			if _, err := os.Stat(merchantDetailsPath); err == nil {
+				return merchantDetailsPath
 			}
-			// If neither exists, serve root index.html for client-side routing
-			// Next.js will handle the routing client-side
-			return filepath.Join(rc.nextJSBuildPath, "index.html")
+			// Last resort: serve root index.html but this should be handled by Next.js router
+			// The issue is that index.html is the home page which auto-redirects
+			// So we need to ensure the dynamic route template exists
+			return dynamicPath // Return the expected path even if it doesn't exist - serveRoute will handle fallback
 		}
 	}
 	
@@ -174,11 +176,29 @@ func (rc *RouteConfig) serveRoute(w http.ResponseWriter, r *http.Request, route 
 		return
 	}
 	
-	// For dynamic routes or routes that don't have static HTML files,
-	// serve the root index.html and let Next.js handle client-side routing
+	// For dynamic routes (merchant-details/[id]), if template doesn't exist,
+	// we need to serve a page that Next.js can use for client-side routing
+	// Don't serve index.html (home page) as it auto-redirects
+	if strings.HasPrefix(route, "merchant-details/") {
+		// Try to find any merchant-details related page
+		merchantDetailsBase := filepath.Join(rc.nextJSBuildPath, "merchant-details")
+		if _, err := os.Stat(merchantDetailsBase); err == nil {
+			// Directory exists, try to serve the [id] template
+			dynamicTemplate := filepath.Join(merchantDetailsBase, "[id]", "page.html")
+			if _, err := os.Stat(dynamicTemplate); err == nil {
+				http.ServeFile(w, r, dynamicTemplate)
+				return
+			}
+		}
+		// If we can't find the template, log an error but still try to serve something
+		log.Printf("WARNING: Dynamic route template not found for: %s", route)
+	}
+	
+	// For other routes, try serving root index.html for client-side routing
+	// But this won't work well for dynamic routes
 	indexPath := filepath.Join(rc.nextJSBuildPath, "index.html")
-	if _, err := os.Stat(indexPath); err == nil {
-		// Serve index.html for client-side routing
+	if _, err := os.Stat(indexPath); err == nil && !strings.HasPrefix(route, "merchant-details/") {
+		// Serve index.html for client-side routing (but not for merchant-details)
 		http.ServeFile(w, r, indexPath)
 		return
 	}

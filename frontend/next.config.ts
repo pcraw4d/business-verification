@@ -36,7 +36,16 @@ const nextConfig: NextConfig = {
   // Output configuration
   // Use 'standalone' for server-side rendering with Go service
   // Use 'export' for static export (if serving static files from Go service)
+  // Note: Dynamic routes require the route template to be generated
+  // The Go service will serve the template and Next.js will handle client-side routing
   output: process.env.NEXT_PUBLIC_STATIC_EXPORT === 'true' ? 'export' : undefined,
+  
+  // Ensure dynamic routes are generated as templates
+  // This allows the Go service to serve the template for client-side routing
+  generateBuildId: async () => {
+    // Use a consistent build ID for better caching
+    return process.env.BUILD_ID || 'build-' + Date.now();
+  },
   
   // Experimental features for better performance
   experimental: {

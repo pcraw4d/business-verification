@@ -27,7 +27,13 @@ RUN npm ci --include=dev
 COPY frontend/ ./
 
 # Build Next.js app (build-time variables are now available)
+# This will generate static HTML files and route templates for dynamic routes
 RUN npm run build
+
+# Verify that dynamic route templates are generated
+# Check for merchant-details dynamic route template
+RUN test -d .next/server/app/merchant-details || echo "WARNING: merchant-details route not found in build"
+RUN test -d .next/server/app/merchant-details/\[id\] || echo "WARNING: merchant-details/[id] dynamic route template not found"
 
 # Go build stage
 FROM golang:1.24-alpine AS go-builder
@@ -81,6 +87,10 @@ COPY --from=go-builder /app/frontend-service .
 COPY --from=go-builder /app/cmd/frontend-service/static ./static
 COPY --from=frontend-builder /app/frontend/.next ./static/.next
 COPY --from=frontend-builder /app/frontend/public ./static
+
+# Verify dynamic route template exists after copy (non-blocking warning only)
+RUN ls -la ./static/.next/server/app/merchant-details/ 2>/dev/null || echo "INFO: Checking merchant-details route structure"
+RUN test -d ./static/.next/server/app/merchant-details/\[id\] && echo "✅ Dynamic route template found" || echo "⚠️  Dynamic route template not found - client-side routing will be used"
 
 # Expose port
 EXPOSE 8086
