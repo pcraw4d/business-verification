@@ -1021,11 +1021,17 @@ func (h *MerchantHandler) generateMerchantID() string {
 }
 
 // extractMerchantIDFromPath extracts merchant ID from URL path
+// Handles paths like /api/v1/merchants/{id} and /api/v1/merchants/{id}/analytics
 func (h *MerchantHandler) extractMerchantIDFromPath(path string) string {
 	parts := strings.Split(path, "/")
 	for i, part := range parts {
 		if part == "merchants" && i+1 < len(parts) {
-			return parts[i+1]
+			merchantID := parts[i+1]
+			// Skip empty parts and route segments
+			if merchantID != "" && merchantID != "analytics" && merchantID != "website-analysis" && 
+			   merchantID != "risk-score" && merchantID != "statistics" && merchantID != "search" {
+				return merchantID
+			}
 		}
 	}
 	return ""
@@ -1343,6 +1349,170 @@ func (h *MerchantHandler) HandleMerchantRiskLevels(w http.ResponseWriter, r *htt
 	response := map[string]interface{}{
 		"risk_levels":     riskLevels,
 		"timestamp":       time.Now(),
+		"processing_time": time.Since(startTime).String(),
+	}
+
+	json.NewEncoder(w).Encode(response)
+}
+
+// HandleMerchantSpecificAnalytics handles GET /api/v1/merchants/{id}/analytics
+func (h *MerchantHandler) HandleMerchantSpecificAnalytics(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	ctx := r.Context()
+
+	w.Header().Set("Content-Type", "application/json")
+
+	// Extract merchant ID from path
+	merchantID := h.extractMerchantIDFromPath(r.URL.Path)
+	if merchantID == "" {
+		errors.WriteBadRequest(w, r, "Merchant ID is required")
+		return
+	}
+
+	// Get merchant first to ensure it exists
+	merchant, err := h.getMerchant(ctx, merchantID, startTime)
+	if err != nil {
+		h.logger.Error("Failed to get merchant for analytics",
+			zap.String("merchant_id", merchantID),
+			zap.Error(err))
+		if strings.Contains(err.Error(), "not found") {
+			errors.WriteNotFound(w, r, "Merchant not found")
+			return
+		}
+		errors.WriteInternalError(w, r, "Failed to get merchant")
+		return
+	}
+
+	// Generate merchant-specific analytics based on merchant data
+	analytics := map[string]interface{}{
+		"merchant_id": merchantID,
+		"merchant_name": merchant.Name,
+		"total_transactions": 0, // TODO: Get from transactions table if exists
+		"revenue": map[string]interface{}{
+			"total": 0.0,
+			"average_per_transaction": 0.0,
+			"growth_rate": 0.0,
+		},
+		"performance": map[string]interface{}{
+			"risk_score": merchant.RiskLevel,
+			"compliance_status": merchant.ComplianceStatus,
+			"portfolio_type": merchant.PortfolioType,
+		},
+		"timestamp": time.Now(),
+	}
+
+	response := map[string]interface{}{
+		"analytics":       analytics,
+		"timestamp":       time.Now(),
+		"processing_time": time.Since(startTime).String(),
+	}
+
+	json.NewEncoder(w).Encode(response)
+}
+
+// HandleMerchantWebsiteAnalysis handles GET /api/v1/merchants/{id}/website-analysis
+func (h *MerchantHandler) HandleMerchantWebsiteAnalysis(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	ctx := r.Context()
+
+	w.Header().Set("Content-Type", "application/json")
+
+	// Extract merchant ID from path
+	merchantID := h.extractMerchantIDFromPath(r.URL.Path)
+	if merchantID == "" {
+		errors.WriteBadRequest(w, r, "Merchant ID is required")
+		return
+	}
+
+	// Get merchant first to ensure it exists
+	merchant, err := h.getMerchant(ctx, merchantID, startTime)
+	if err != nil {
+		h.logger.Error("Failed to get merchant for website analysis",
+			zap.String("merchant_id", merchantID),
+			zap.Error(err))
+		if strings.Contains(err.Error(), "not found") {
+			errors.WriteNotFound(w, r, "Merchant not found")
+			return
+		}
+		errors.WriteInternalError(w, r, "Failed to get merchant")
+		return
+	}
+
+	// Extract website URL from merchant data if available
+	websiteURL := ""
+	if merchant.ContactInfo != nil {
+		if url, ok := merchant.ContactInfo["website"].(string); ok {
+			websiteURL = url
+		}
+	}
+
+	// Generate website analysis data
+	websiteAnalysis := map[string]interface{}{
+		"merchant_id": merchantID,
+		"domain": websiteURL,
+		"ssl_valid": true, // TODO: Implement actual SSL validation
+		"trust_score": 0.8, // TODO: Calculate based on actual analysis
+		"pages_analyzed": 0, // TODO: Get from actual analysis
+		"last_analyzed": time.Now(),
+		"status": "pending", // TODO: Implement actual analysis status
+	}
+
+	response := map[string]interface{}{
+		"website_analysis": websiteAnalysis,
+		"timestamp":        time.Now(),
+		"processing_time":  time.Since(startTime).String(),
+	}
+
+	json.NewEncoder(w).Encode(response)
+}
+
+// HandleMerchantRiskScore handles GET /api/v1/merchants/{id}/risk-score
+func (h *MerchantHandler) HandleMerchantRiskScore(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	ctx := r.Context()
+
+	w.Header().Set("Content-Type", "application/json")
+
+	// Extract merchant ID from path
+	merchantID := h.extractMerchantIDFromPath(r.URL.Path)
+	if merchantID == "" {
+		errors.WriteBadRequest(w, r, "Merchant ID is required")
+		return
+	}
+
+	// Get merchant first to ensure it exists
+	merchant, err := h.getMerchant(ctx, merchantID, startTime)
+	if err != nil {
+		h.logger.Error("Failed to get merchant for risk score",
+			zap.String("merchant_id", merchantID),
+			zap.Error(err))
+		if strings.Contains(err.Error(), "not found") {
+			errors.WriteNotFound(w, r, "Merchant not found")
+			return
+		}
+		errors.WriteInternalError(w, r, "Failed to get merchant")
+		return
+	}
+
+	// Map risk level to numeric score
+	riskScoreMap := map[string]float64{
+		"low":    0.2,
+		"medium": 0.5,
+		"high":   0.8,
+	}
+
+	riskScore := riskScoreMap[strings.ToLower(merchant.RiskLevel)]
+	if riskScore == 0 {
+		riskScore = 0.5 // Default to medium
+	}
+
+	// Generate risk score response
+	response := map[string]interface{}{
+		"merchant_id": merchantID,
+		"risk_score":  riskScore,
+		"risk_level":  merchant.RiskLevel,
+		"factors":     []string{}, // TODO: Get actual risk factors
+		"timestamp":   time.Now(),
 		"processing_time": time.Since(startTime).String(),
 	}
 

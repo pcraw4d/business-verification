@@ -80,6 +80,11 @@ func main() {
 	router.HandleFunc("/api/v1/merchants/portfolio-types", merchantHandler.HandleMerchantPortfolioTypes).Methods("GET")
 	router.HandleFunc("/api/v1/merchants/risk-levels", merchantHandler.HandleMerchantRiskLevels).Methods("GET")
 
+	// Merchant-specific sub-routes (must be registered before PathPrefix if used)
+	router.HandleFunc("/api/v1/merchants/{id}/analytics", merchantHandler.HandleMerchantSpecificAnalytics).Methods("GET")
+	router.HandleFunc("/api/v1/merchants/{id}/website-analysis", merchantHandler.HandleMerchantWebsiteAnalysis).Methods("GET")
+	router.HandleFunc("/api/v1/merchants/{id}/risk-score", merchantHandler.HandleMerchantRiskScore).Methods("GET")
+
 	// Alias routes for backward compatibility
 	router.HandleFunc("/merchants", merchantHandler.HandleCreateMerchant).Methods("POST")
 	router.HandleFunc("/merchants", merchantHandler.HandleListMerchants).Methods("GET")
