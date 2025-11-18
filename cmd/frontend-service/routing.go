@@ -32,6 +32,25 @@ func NewRouteConfig() *RouteConfig {
 	}
 }
 
+// getClientAppPath returns the path to the Next.js client app entry point
+// For dynamic routes, we need to serve the client-side app which handles routing
+func (rc *RouteConfig) getClientAppPath() string {
+	// Next.js generates the client app in .next/static
+	// But for routing, we need the HTML shell that loads the client bundle
+	// Try the root index.html first
+	indexPath := filepath.Join(rc.nextJSBuildPath, "index.html")
+	if _, err := os.Stat(indexPath); err == nil {
+		return indexPath
+	}
+	// Fallback: try to find any HTML file that can serve as the app shell
+	// Next.js App Router might generate app.html or similar
+	appPath := filepath.Join(rc.nextJSBuildPath, "app.html")
+	if _, err := os.Stat(appPath); err == nil {
+		return appPath
+	}
+	return indexPath
+}
+
 // shouldUseNewUI checks if we should use the new UI for a given route
 func (rc *RouteConfig) shouldUseNewUI(route string) bool {
 	if !rc.useNewUI {
@@ -176,11 +195,10 @@ func (rc *RouteConfig) serveRoute(w http.ResponseWriter, r *http.Request, route 
 		return
 	}
 	
-	// For dynamic routes (merchant-details/[id]), if template doesn't exist,
-	// we need to serve a page that Next.js can use for client-side routing
-	// Don't serve index.html (home page) as it auto-redirects
+	// For dynamic routes (merchant-details/[id]), Next.js App Router doesn't generate static HTML
+	// We need to serve a client-side app shell that Next.js can use for client-side routing
 	if strings.HasPrefix(route, "merchant-details/") {
-		// Try to find any merchant-details related page
+		// Try to find the dynamic route template first
 		merchantDetailsBase := filepath.Join(rc.nextJSBuildPath, "merchant-details")
 		if _, err := os.Stat(merchantDetailsBase); err == nil {
 			// Directory exists, try to serve the [id] template
@@ -190,15 +208,43 @@ func (rc *RouteConfig) serveRoute(w http.ResponseWriter, r *http.Request, route 
 				return
 			}
 		}
-		// If we can't find the template, log an error but still try to serve something
-		log.Printf("WARNING: Dynamic route template not found for: %s", route)
+		
+		// Template doesn't exist - Next.js App Router doesn't generate static HTML for dynamic routes
+		// We need to serve a page that loads the Next.js client bundle for client-side routing
+		// Try serving merchant-portfolio page (it has Next.js client bundle and won't redirect)
+		merchantPortfolioPath := filepath.Join(rc.nextJSBuildPath, "merchant-portfolio", "page.html")
+		if _, err := os.Stat(merchantPortfolioPath); err == nil {
+			// Serve merchant-portfolio page which loads Next.js client bundle
+			// Next.js router will detect the URL (/merchant-details/{id}) and route client-side
+			log.Printf("INFO: Serving merchant-portfolio page for dynamic route: %s (Next.js will route client-side)", route)
+			http.ServeFile(w, r, merchantPortfolioPath)
+			return
+		}
+		
+		// Try add-merchant page as fallback (also has Next.js client bundle)
+		addMerchantPath := filepath.Join(rc.nextJSBuildPath, "add-merchant", "page.html")
+		if _, err := os.Stat(addMerchantPath); err == nil {
+			log.Printf("INFO: Serving add-merchant page for dynamic route: %s (Next.js will route client-side)", route)
+			http.ServeFile(w, r, addMerchantPath)
+			return
+		}
+		
+		// Last resort: serve any available page that has Next.js client bundle
+		// The client-side router will handle the actual route based on the URL
+		clientAppPath := rc.getClientAppPath()
+		if _, err := os.Stat(clientAppPath); err == nil {
+			log.Printf("INFO: Serving client app for dynamic route: %s (template not found, Next.js will route client-side)", route)
+			http.ServeFile(w, r, clientAppPath)
+			return
+		}
+		
+		log.Printf("WARNING: Dynamic route template not found for: %s, and no client app available", route)
 	}
 	
 	// For other routes, try serving root index.html for client-side routing
-	// But this won't work well for dynamic routes
 	indexPath := filepath.Join(rc.nextJSBuildPath, "index.html")
 	if _, err := os.Stat(indexPath); err == nil && !strings.HasPrefix(route, "merchant-details/") {
-		// Serve index.html for client-side routing (but not for merchant-details)
+		// Serve index.html for client-side routing (but not for merchant-details to avoid redirect)
 		http.ServeFile(w, r, indexPath)
 		return
 	}
