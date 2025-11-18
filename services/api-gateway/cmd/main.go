@@ -151,6 +151,7 @@ func main() {
 	api.HandleFunc("/risk/assess", gatewayHandler.ProxyToRiskAssessment).Methods("POST", "OPTIONS")
 	api.HandleFunc("/risk/benchmarks", gatewayHandler.ProxyToRiskAssessment).Methods("GET", "OPTIONS")
 	api.HandleFunc("/risk/predictions/{merchant_id}", gatewayHandler.ProxyToRiskAssessment).Methods("GET", "OPTIONS")
+	api.HandleFunc("/risk/indicators/{id}", gatewayHandler.ProxyToRiskAssessment).Methods("GET", "OPTIONS")
 	api.PathPrefix("/risk").HandlerFunc(gatewayHandler.ProxyToRiskAssessment)
 
 	// Business Intelligence routes - CORS handled by middleware
