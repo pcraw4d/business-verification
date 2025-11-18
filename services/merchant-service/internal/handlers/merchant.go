@@ -399,27 +399,69 @@ func (h *MerchantHandler) createMerchant(ctx context.Context, req *CreateMerchan
 	}
 
 	// Save to Supabase
+	// Build merchantData map, only including non-empty values
 	merchantData := map[string]interface{}{
-		"id":                  merchant.ID,
-		"name":                merchant.Name,
-		"legal_name":          merchant.LegalName,
-		"registration_number": merchant.RegistrationNumber,
-		"tax_id":              merchant.TaxID,
-		"industry":            merchant.Industry,
-		"industry_code":       merchant.IndustryCode,
-		"business_type":      merchant.BusinessType,
-		"founded_date":        merchant.FoundedDate,
-		"employee_count":      merchant.EmployeeCount,
-		"annual_revenue":      merchant.AnnualRevenue,
-		"address":             merchant.Address,
-		"contact_info":       merchant.ContactInfo,
-		"portfolio_type":     merchant.PortfolioType,
-		"risk_level":          merchant.RiskLevel,
-		"compliance_status":   merchant.ComplianceStatus,
-		"status":              merchant.Status,
-		"created_by":          merchant.CreatedBy,
-		"created_at":          merchant.CreatedAt.Format(time.RFC3339),
-		"updated_at":          merchant.UpdatedAt.Format(time.RFC3339),
+		"id":                merchant.ID,
+		"name":              merchant.Name,
+		"created_at":        merchant.CreatedAt.Format(time.RFC3339),
+		"updated_at":        merchant.UpdatedAt.Format(time.RFC3339),
+	}
+	
+	// Add optional fields only if they have values
+	if merchant.LegalName != "" {
+		merchantData["legal_name"] = merchant.LegalName
+	}
+	if merchant.RegistrationNumber != "" {
+		merchantData["registration_number"] = merchant.RegistrationNumber
+	}
+	if merchant.TaxID != "" {
+		merchantData["tax_id"] = merchant.TaxID
+	}
+	if merchant.Industry != "" {
+		merchantData["industry"] = merchant.Industry
+	}
+	if merchant.IndustryCode != "" {
+		merchantData["industry_code"] = merchant.IndustryCode
+	}
+	if merchant.BusinessType != "" {
+		merchantData["business_type"] = merchant.BusinessType
+	}
+	if merchant.FoundedDate != nil {
+		merchantData["founded_date"] = merchant.FoundedDate.Format("2006-01-02")
+	}
+	if merchant.EmployeeCount != nil {
+		merchantData["employee_count"] = *merchant.EmployeeCount
+	}
+	if merchant.AnnualRevenue != nil {
+		merchantData["annual_revenue"] = *merchant.AnnualRevenue
+	}
+	// Address and ContactInfo as JSONB - include even if empty map (will be stored as empty JSON object)
+	if merchant.Address != nil && len(merchant.Address) > 0 {
+		merchantData["address"] = merchant.Address
+	} else {
+		// Set to empty JSON object if nil
+		merchantData["address"] = map[string]interface{}{}
+	}
+	if merchant.ContactInfo != nil && len(merchant.ContactInfo) > 0 {
+		merchantData["contact_info"] = merchant.ContactInfo
+	} else {
+		// Set to empty JSON object if nil
+		merchantData["contact_info"] = map[string]interface{}{}
+	}
+	if merchant.PortfolioType != "" {
+		merchantData["portfolio_type"] = merchant.PortfolioType
+	}
+	if merchant.RiskLevel != "" {
+		merchantData["risk_level"] = merchant.RiskLevel
+	}
+	if merchant.ComplianceStatus != "" {
+		merchantData["compliance_status"] = merchant.ComplianceStatus
+	}
+	if merchant.Status != "" {
+		merchantData["status"] = merchant.Status
+	}
+	if merchant.CreatedBy != "" {
+		merchantData["created_by"] = merchant.CreatedBy
 	}
 
 	// Save to Supabase with retry logic and circuit breaker

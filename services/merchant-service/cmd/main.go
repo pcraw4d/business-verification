@@ -147,9 +147,28 @@ func loggingMiddleware(logger *zap.Logger) func(http.Handler) http.Handler {
 func corsMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Access-Control-Allow-Origin", "*")
+			// CRITICAL: Check if Railway or another middleware has already set CORS headers
+			// Remove any existing Access-Control-Allow-Origin header to avoid duplicates
+			if existingOrigin := w.Header().Get("Access-Control-Allow-Origin"); existingOrigin != "" {
+				w.Header().Del("Access-Control-Allow-Origin")
+			}
+			
+			// Get the origin from the request
+			origin := r.Header.Get("Origin")
+			
+			// Set CORS headers - use specific origin if provided, otherwise use wildcard
+			// Note: When using credentials, we must use a specific origin, not "*"
+			if origin != "" {
+				// Use the requesting origin (Railway may have already validated it)
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+			} else {
+				// No origin header, use wildcard (for same-origin requests)
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+			}
+			
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
 
 			if r.Method == "OPTIONS" {
 				w.WriteHeader(http.StatusOK)
