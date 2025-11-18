@@ -99,6 +99,9 @@ func main() {
 
 	// API Gateway routes
 	api := router.PathPrefix("/api/v1").Subrouter()
+	// Ensure CORS middleware is applied to api subrouter as well
+	// (Parent router middleware should apply, but being explicit)
+	api.Use(middleware.CORS(cfg.CORS))
 
 	// API v3 routes for enhanced endpoints
 	apiV3 := router.PathPrefix("/api/v3").Subrouter()
