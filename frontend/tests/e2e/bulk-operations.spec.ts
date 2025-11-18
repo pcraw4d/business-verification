@@ -1,8 +1,8 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Bulk Operations Tests', () => {
   test('should load bulk operations page', async ({ page }) => {
-    await page.goto('http://localhost:3000/merchant/bulk-operations');
+    await page.goto('/merchant/bulk-operations');
     
     await expect(page.locator('h1')).toContainText(/bulk.*operation/i);
     
@@ -12,7 +12,7 @@ test.describe('Bulk Operations Tests', () => {
   });
 
   test('should select and deselect merchants', async ({ page }) => {
-    await page.goto('http://localhost:3000/merchant/bulk-operations');
+    await page.goto('/merchant/bulk-operations');
     await page.waitForLoadState('networkidle', { timeout: 10000 });
     
     // Find checkboxes
@@ -40,7 +40,7 @@ test.describe('Bulk Operations Tests', () => {
   });
 
   test('should select operation type', async ({ page }) => {
-    await page.goto('http://localhost:3000/merchant/bulk-operations');
+    await page.goto('/merchant/bulk-operations');
     await page.waitForLoadState('networkidle', { timeout: 10000 });
     
     // Find operation type buttons
@@ -56,7 +56,7 @@ test.describe('Bulk Operations Tests', () => {
   });
 
   test('should show operation progress', async ({ page }) => {
-    await page.goto('http://localhost:3000/merchant/bulk-operations');
+    await page.goto('/merchant/bulk-operations');
     await page.waitForLoadState('networkidle', { timeout: 10000 });
     
     // Select merchants and operation

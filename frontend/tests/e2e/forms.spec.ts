@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test.describe('Form Tests', () => {
   test('should submit merchant form', async ({ page }) => {
-    await page.goto('http://localhost:3000/add-merchant');
+    await page.goto('/add-merchant');
     await page.waitForLoadState('networkidle');
     
     // Fill in form fields using proper selectors
@@ -55,7 +55,7 @@ test.describe('Form Tests', () => {
   });
 
   test('should validate required fields', async ({ page }) => {
-    await page.goto('http://localhost:3000/add-merchant');
+    await page.goto('/add-merchant');
     await page.waitForLoadState('networkidle');
     
     // Try to submit without filling required fields
@@ -77,7 +77,7 @@ test.describe('Form Tests', () => {
   });
 
   test('should handle form errors gracefully', async ({ page }) => {
-    await page.goto('http://localhost:3000/add-merchant');
+    await page.goto('/add-merchant');
     await page.waitForLoadState('networkidle');
     
     // Fill form with invalid data

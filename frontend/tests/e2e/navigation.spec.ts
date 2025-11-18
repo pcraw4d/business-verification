@@ -3,7 +3,7 @@ import { expect, Page, test } from '@playwright/test';
 test.describe('Navigation Tests', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to the app (adjust URL as needed)
-    await page.goto('http://localhost:3000');
+    await page.goto('/');
     // Wait for page to load
     await page.waitForLoadState('networkidle');
   });
@@ -152,7 +152,7 @@ test.describe('Navigation Tests', () => {
 
   test('should navigate using breadcrumbs', async ({ page }) => {
     // Navigate to a nested page
-    await page.goto('http://localhost:3000/merchant-portfolio');
+    await page.goto('/merchant-portfolio');
     
     // Click breadcrumb to go back
     const breadcrumb = page.locator('text=Home').first();
