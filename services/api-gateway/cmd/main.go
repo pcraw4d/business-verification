@@ -120,6 +120,14 @@ func main() {
 
 	api.HandleFunc("/merchants/analytics", gatewayHandler.ProxyToMerchants).Methods("GET", "OPTIONS")
 
+	// Merchant sub-routes - must be registered before PathPrefix to match correctly
+	api.HandleFunc("/merchants/{id}/analytics", gatewayHandler.ProxyToMerchants).Methods("GET", "OPTIONS")
+	api.HandleFunc("/merchants/{id}/website-analysis", gatewayHandler.ProxyToMerchants).Methods("GET", "OPTIONS")
+	api.HandleFunc("/merchants/{id}/risk-score", gatewayHandler.ProxyToMerchants).Methods("GET", "OPTIONS")
+
+	// Add PathPrefix handler for any other merchant sub-routes
+	api.PathPrefix("/merchants").HandlerFunc(gatewayHandler.ProxyToMerchants)
+
 	// Health check routes for backend services
 	api.HandleFunc("/classification/health", gatewayHandler.ProxyToClassificationHealth).Methods("GET")
 	api.HandleFunc("/merchant/health", gatewayHandler.ProxyToMerchantHealth).Methods("GET")
