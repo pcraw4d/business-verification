@@ -95,15 +95,17 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
             <CardContent className="space-y-4">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Primary Industry</p>
-                <p className="text-lg">{analytics.classification.primaryIndustry || 'N/A'}</p>
+                <p className="text-lg">{analytics.classification?.primaryIndustry || 'N/A'}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Confidence Score</p>
-                <p>{(analytics.classification.confidenceScore * 100).toFixed(1)}%</p>
+                <p>{analytics.classification?.confidenceScore != null 
+                  ? `${(analytics.classification.confidenceScore * 100).toFixed(1)}%`
+                  : 'N/A'}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Risk Level</p>
-                <Badge variant="outline">{analytics.classification.riskLevel}</Badge>
+                <Badge variant="outline">{analytics.classification?.riskLevel || 'N/A'}</Badge>
               </div>
             </CardContent>
           </Card>
@@ -116,12 +118,14 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
             <CardContent className="space-y-4">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Trust Score</p>
-                <p>{(analytics.security.trustScore * 100).toFixed(1)}%</p>
+                <p>{analytics.security?.trustScore != null
+                  ? `${(analytics.security.trustScore * 100).toFixed(1)}%`
+                  : 'N/A'}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">SSL Valid</p>
-                <Badge variant={analytics.security.sslValid ? 'default' : 'destructive'}>
-                  {analytics.security.sslValid ? 'Valid' : 'Invalid'}
+                <Badge variant={analytics.security?.sslValid ? 'default' : 'destructive'}>
+                  {analytics.security?.sslValid ? 'Valid' : 'Invalid'}
                 </Badge>
               </div>
             </CardContent>
@@ -135,11 +139,13 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
             <CardContent className="space-y-4">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Completeness Score</p>
-                <p>{(analytics.quality.completenessScore * 100).toFixed(1)}%</p>
+                <p>{analytics.quality?.completenessScore != null
+                  ? `${(analytics.quality.completenessScore * 100).toFixed(1)}%`
+                  : 'N/A'}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Data Points</p>
-                <p>{analytics.quality.dataPoints}</p>
+                <p>{analytics.quality?.dataPoints ?? 'N/A'}</p>
               </div>
             </CardContent>
           </Card>
