@@ -540,6 +540,14 @@ func (h *GatewayHandler) ProxyToRiskAssessment(w http.ResponseWriter, r *http.Re
 	} else if path == "/api/v1/risk/metrics" {
 		// Map /api/v1/risk/metrics to /api/v1/metrics (risk service uses /metrics, not /risk/metrics)
 		path = "/api/v1/metrics"
+	} else if strings.HasPrefix(path, "/api/v1/risk/indicators/") {
+		// Map /api/v1/risk/indicators/{id} to /api/v1/risk/predictions/{id}
+		// Extract merchant ID and route to predictions endpoint (which provides risk data)
+		parts := strings.Split(path, "/")
+		if len(parts) >= 5 {
+			merchantID := parts[4] // /api/v1/risk/indicators/{id}
+			path = fmt.Sprintf("/api/v1/risk/predictions/%s", merchantID)
+		}
 	} else if strings.HasPrefix(path, "/api/v1/risk/") {
 		// For other /risk/* paths, keep them as-is (e.g., /risk/benchmarks, /risk/predictions)
 		// The risk service has routes like /api/v1/risk/benchmarks
