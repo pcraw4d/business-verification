@@ -41,10 +41,7 @@ func Authentication(supabaseClient *supabase.Client, logger *zap.Logger) func(ht
 				logger.Warn("Invalid authorization header format",
 					zap.String("path", r.URL.Path),
 					zap.String("header", authHeader))
-				// Set CORS headers before returning error
-				w.Header().Set("Access-Control-Allow-Origin", "*")
-				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+				// CORS headers are already set by CORS middleware - don't set them again
 				http.Error(w, "Invalid authorization header", http.StatusUnauthorized)
 				return
 			}
@@ -58,10 +55,7 @@ func Authentication(supabaseClient *supabase.Client, logger *zap.Logger) func(ht
 				logger.Warn("Token validation failed",
 					zap.String("path", r.URL.Path),
 					zap.Error(err))
-				// Set CORS headers before returning error
-				w.Header().Set("Access-Control-Allow-Origin", "*")
-				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+				// CORS headers are already set by CORS middleware - don't set them again
 				http.Error(w, "Invalid token", http.StatusUnauthorized)
 				return
 			}
@@ -132,7 +126,7 @@ func RequireAdmin(logger *zap.Logger) func(http.Handler) http.Handler {
 			if role == nil {
 				logger.Warn("Admin access denied: no role in context",
 					zap.String("path", r.URL.Path))
-				w.Header().Set("Access-Control-Allow-Origin", "*")
+				// CORS headers are already set by CORS middleware - don't set them again
 				http.Error(w, "Admin access required", http.StatusForbidden)
 				return
 			}
@@ -149,7 +143,7 @@ func RequireAdmin(logger *zap.Logger) func(http.Handler) http.Handler {
 				logger.Warn("Admin access denied: insufficient privileges",
 					zap.String("path", r.URL.Path),
 					zap.String("role", roleStr))
-				w.Header().Set("Access-Control-Allow-Origin", "*")
+				// CORS headers are already set by CORS middleware - don't set them again
 				http.Error(w, "Admin access required", http.StatusForbidden)
 				return
 			}

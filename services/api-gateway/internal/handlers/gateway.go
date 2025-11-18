@@ -449,10 +449,14 @@ func (h *GatewayHandler) proxyRequest(w http.ResponseWriter, r *http.Request, ta
 	}
 	defer resp.Body.Close()
 
-	// Copy response headers
+	// Copy response headers (but exclude CORS headers - they're set by our middleware)
 	for key, values := range resp.Header {
 		// Skip headers that shouldn't be forwarded
 		if key == "Connection" || key == "Transfer-Encoding" {
+			continue
+		}
+		// Skip CORS headers - they're set by the CORS middleware to avoid duplicates
+		if strings.HasPrefix(key, "Access-Control-") {
 			continue
 		}
 		for _, value := range values {
