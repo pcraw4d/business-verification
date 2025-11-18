@@ -1383,28 +1383,43 @@ func (h *MerchantHandler) HandleMerchantSpecificAnalytics(w http.ResponseWriter,
 		return
 	}
 
-	// Generate merchant-specific analytics based on merchant data
-	analytics := map[string]interface{}{
-		"merchant_id": merchantID,
-		"merchant_name": merchant.Name,
-		"total_transactions": 0, // TODO: Get from transactions table if exists
-		"revenue": map[string]interface{}{
-			"total": 0.0,
-			"average_per_transaction": 0.0,
-			"growth_rate": 0.0,
-		},
-		"performance": map[string]interface{}{
-			"risk_score": merchant.RiskLevel,
-			"compliance_status": merchant.ComplianceStatus,
-			"portfolio_type": merchant.PortfolioType,
-		},
-		"timestamp": time.Now(),
+	// Generate merchant-specific analytics in the format expected by the frontend
+	// Frontend expects: { merchantId, classification, security, quality, timestamp }
+	
+	// Map risk level to confidence score (default to medium)
+	confidenceScore := 0.5
+	if strings.ToLower(merchant.RiskLevel) == "low" {
+		confidenceScore = 0.8
+	} else if strings.ToLower(merchant.RiskLevel) == "high" {
+		confidenceScore = 0.3
 	}
-
+	
+	// Build classification data
+	classification := map[string]interface{}{
+		"primaryIndustry": merchant.Industry,
+		"confidenceScore": confidenceScore,
+		"riskLevel":       merchant.RiskLevel,
+	}
+	
+	// Build security data
+	security := map[string]interface{}{
+		"trustScore": 0.7, // Default trust score
+		"sslValid":   true, // TODO: Implement actual SSL validation
+	}
+	
+	// Build quality data
+	quality := map[string]interface{}{
+		"completenessScore": 0.6, // Default completeness
+		"dataPoints":        10,  // Default data points
+	}
+	
+	// Build response in the format expected by frontend
 	response := map[string]interface{}{
-		"analytics":       analytics,
-		"timestamp":       time.Now(),
-		"processing_time": time.Since(startTime).String(),
+		"merchantId":    merchantID,
+		"classification": classification,
+		"security":      security,
+		"quality":       quality,
+		"timestamp":     time.Now().Format(time.RFC3339),
 	}
 
 	json.NewEncoder(w).Encode(response)
@@ -1446,21 +1461,35 @@ func (h *MerchantHandler) HandleMerchantWebsiteAnalysis(w http.ResponseWriter, r
 		}
 	}
 
-	// Generate website analysis data
-	websiteAnalysis := map[string]interface{}{
-		"merchant_id": merchantID,
-		"domain": websiteURL,
-		"ssl_valid": true, // TODO: Implement actual SSL validation
-		"trust_score": 0.8, // TODO: Calculate based on actual analysis
-		"pages_analyzed": 0, // TODO: Get from actual analysis
-		"last_analyzed": time.Now(),
-		"status": "pending", // TODO: Implement actual analysis status
+	// Generate website analysis data in the format expected by the frontend
+	// Frontend expects: { merchantId, websiteUrl, ssl, securityHeaders, performance, accessibility, lastAnalyzed }
+	
+	ssl := map[string]interface{}{
+		"valid": true, // TODO: Implement actual SSL validation
 	}
-
+	
+	securityHeaders := []map[string]interface{}{}
+	
+	performance := map[string]interface{}{
+		"loadTime": 0,    // TODO: Get from actual analysis
+		"pageSize": 0,    // TODO: Get from actual analysis
+		"requests": 0,   // TODO: Get from actual analysis
+		"score":    75,  // Default score
+	}
+	
+	accessibility := map[string]interface{}{
+		"score": 0.8, // Default accessibility score
+	}
+	
+	// Build response in the format expected by frontend
 	response := map[string]interface{}{
-		"website_analysis": websiteAnalysis,
-		"timestamp":        time.Now(),
-		"processing_time":  time.Since(startTime).String(),
+		"merchantId":      merchantID,
+		"websiteUrl":     websiteURL,
+		"ssl":            ssl,
+		"securityHeaders": securityHeaders,
+		"performance":    performance,
+		"accessibility":  accessibility,
+		"lastAnalyzed":   time.Now().Format(time.RFC3339),
 	}
 
 	json.NewEncoder(w).Encode(response)
