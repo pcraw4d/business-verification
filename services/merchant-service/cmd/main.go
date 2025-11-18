@@ -69,21 +69,25 @@ func main() {
 	router.Handle("/metrics", promhttp.Handler()).Methods("GET")
 
 	// Merchant management routes
-	router.HandleFunc("/api/v1/merchants", merchantHandler.HandleCreateMerchant).Methods("POST")
-	router.HandleFunc("/api/v1/merchants", merchantHandler.HandleListMerchants).Methods("GET")
-	router.HandleFunc("/api/v1/merchants/{id}", merchantHandler.HandleGetMerchant).Methods("GET")
-
-	// New merchant endpoints
-	router.HandleFunc("/api/v1/merchants/analytics", merchantHandler.HandleMerchantAnalytics).Methods("GET")
-	router.HandleFunc("/api/v1/merchants/statistics", merchantHandler.HandleMerchantStatistics).Methods("GET")
-	router.HandleFunc("/api/v1/merchants/search", merchantHandler.HandleMerchantSearch).Methods("POST")
-	router.HandleFunc("/api/v1/merchants/portfolio-types", merchantHandler.HandleMerchantPortfolioTypes).Methods("GET")
-	router.HandleFunc("/api/v1/merchants/risk-levels", merchantHandler.HandleMerchantRiskLevels).Methods("GET")
-
-	// Merchant-specific sub-routes (must be registered before PathPrefix if used)
-	router.HandleFunc("/api/v1/merchants/{id}/analytics", merchantHandler.HandleMerchantSpecificAnalytics).Methods("GET")
-	router.HandleFunc("/api/v1/merchants/{id}/website-analysis", merchantHandler.HandleMerchantWebsiteAnalysis).Methods("GET")
-	router.HandleFunc("/api/v1/merchants/{id}/risk-score", merchantHandler.HandleMerchantRiskScore).Methods("GET")
+	// IMPORTANT: Register more specific routes BEFORE less specific ones
+	// This ensures /api/v1/merchants/{id}/analytics matches before /api/v1/merchants/{id}
+	
+	// Merchant-specific sub-routes (must be registered BEFORE /merchants/{id})
+	router.HandleFunc("/api/v1/merchants/{id}/analytics", merchantHandler.HandleMerchantSpecificAnalytics).Methods("GET", "OPTIONS")
+	router.HandleFunc("/api/v1/merchants/{id}/website-analysis", merchantHandler.HandleMerchantWebsiteAnalysis).Methods("GET", "OPTIONS")
+	router.HandleFunc("/api/v1/merchants/{id}/risk-score", merchantHandler.HandleMerchantRiskScore).Methods("GET", "OPTIONS")
+	
+	// General merchant endpoints (must be registered BEFORE /merchants/{id} to avoid conflicts)
+	router.HandleFunc("/api/v1/merchants/analytics", merchantHandler.HandleMerchantAnalytics).Methods("GET", "OPTIONS")
+	router.HandleFunc("/api/v1/merchants/statistics", merchantHandler.HandleMerchantStatistics).Methods("GET", "OPTIONS")
+	router.HandleFunc("/api/v1/merchants/search", merchantHandler.HandleMerchantSearch).Methods("POST", "OPTIONS")
+	router.HandleFunc("/api/v1/merchants/portfolio-types", merchantHandler.HandleMerchantPortfolioTypes).Methods("GET", "OPTIONS")
+	router.HandleFunc("/api/v1/merchants/risk-levels", merchantHandler.HandleMerchantRiskLevels).Methods("GET", "OPTIONS")
+	
+	// Base merchant routes
+	router.HandleFunc("/api/v1/merchants", merchantHandler.HandleCreateMerchant).Methods("POST", "OPTIONS")
+	router.HandleFunc("/api/v1/merchants", merchantHandler.HandleListMerchants).Methods("GET", "OPTIONS")
+	router.HandleFunc("/api/v1/merchants/{id}", merchantHandler.HandleGetMerchant).Methods("GET", "OPTIONS")
 
 	// Alias routes for backward compatibility
 	router.HandleFunc("/merchants", merchantHandler.HandleCreateMerchant).Methods("POST")
