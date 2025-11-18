@@ -161,22 +161,30 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
           <CardContent className="space-y-4">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Website URL</p>
-              <a
-                href={websiteAnalysis.websiteUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                {websiteAnalysis.websiteUrl}
-              </a>
+              {websiteAnalysis.websiteUrl ? (
+                <a
+                  href={websiteAnalysis.websiteUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  {websiteAnalysis.websiteUrl}
+                </a>
+              ) : (
+                <p>N/A</p>
+              )}
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Performance Score</p>
-              <p>{websiteAnalysis.performance.score}/100</p>
+              <p>{websiteAnalysis.performance?.score != null 
+                ? `${websiteAnalysis.performance.score}/100`
+                : 'N/A'}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Accessibility Score</p>
-              <p>{(websiteAnalysis.accessibility.score * 100).toFixed(1)}%</p>
+              <p>{websiteAnalysis.accessibility?.score != null
+                ? `${(websiteAnalysis.accessibility.score * 100).toFixed(1)}%`
+                : 'N/A'}</p>
             </div>
           </CardContent>
         </Card>
