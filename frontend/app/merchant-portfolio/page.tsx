@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PlusCircle, Search, Store, Filter, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { getMerchantsList, getMerchant } from '@/lib/api';
 import dynamic from 'next/dynamic';
 import type { MerchantListItem, MerchantListResponse } from '@/types/merchant';
@@ -29,6 +29,7 @@ import { toast } from 'sonner';
 
 export default function MerchantPortfolioPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const [merchants, setMerchants] = useState<MerchantListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +44,53 @@ export default function MerchantPortfolioPage() {
   const [hasNext, setHasNext] = useState(false);
   const [hasPrevious, setHasPrevious] = useState(false);
   const [prefetchingMerchantId, setPrefetchingMerchantId] = useState<string | null>(null);
+
+  // Client-side route detection: If this page is being served for a merchant-details route,
+  // automatically route to the merchant-details page
+  // This happens when the Go service serves merchant-portfolio page for merchant-details routes
+  const [isRoutingToDetails, setIsRoutingToDetails] = useState(false);
+  
+  useEffect(() => {
+    // Check if current pathname is a merchant-details route
+    // Also check window.location as fallback (in case pathname isn't set yet)
+    const currentPath = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
+    
+    if (currentPath && currentPath.startsWith('/merchant-details/')) {
+      // Extract merchant ID from pathname
+      const merchantId = currentPath.replace('/merchant-details/', '').split('/')[0].split('?')[0];
+      if (merchantId && !isRoutingToDetails) {
+        setIsRoutingToDetails(true);
+        // Route to the merchant-details page - Next.js will handle client-side routing
+        // Use replace to avoid adding to history and prevent back button issues
+        // Small delay to ensure Next.js router is ready
+        const timer = setTimeout(() => {
+          router.replace(`/merchant-details/${merchantId}`);
+        }, 0);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [pathname, router, isRoutingToDetails]);
+
+  // If we're routing to merchant-details, show loading state immediately
+  // This prevents merchant-portfolio content from flashing
+  if (isRoutingToDetails || (pathname && pathname.startsWith('/merchant-details/'))) {
+    return (
+      <AppLayout
+        title="Merchant Portfolio"
+        description="Manage and view all merchants in your portfolio"
+      >
+        <div className="container mx-auto p-6">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center space-y-4">
+              <Skeleton className="h-8 w-64 mx-auto" />
+              <Skeleton className="h-4 w-48 mx-auto" />
+              <p className="text-sm text-muted-foreground">Loading merchant details...</p>
+            </div>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   // Stats
   const [stats, setStats] = useState({
