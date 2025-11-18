@@ -51,6 +51,7 @@ func (rc *RouteConfig) shouldUseNewUI(route string) bool {
 // Next.js App Router generates HTML files in nested directory structure
 // For nested routes: compliance/gap-analysis -> compliance/gap-analysis.html
 // For simple routes: dashboard -> dashboard.html
+// For dynamic routes: merchant-details/[id] -> merchant-details/[id]/page.html
 func (rc *RouteConfig) getNextJSPath(route string) string {
 	// Remove leading slash
 	route = strings.TrimPrefix(route, "/")
@@ -58,6 +59,32 @@ func (rc *RouteConfig) getNextJSPath(route string) string {
 	// Handle root route - Next.js generates index.html
 	if route == "" || route == "index" {
 		return filepath.Join(rc.nextJSBuildPath, "index.html")
+	}
+	
+	// Check if this is a dynamic route (merchant-details with ID)
+	// Dynamic routes in Next.js App Router don't generate static HTML per ID
+	// Instead, they generate a route handler at: merchant-details/[id]/page.html
+	// For static serving, we need to serve the route template or fall back to root
+	if strings.HasPrefix(route, "merchant-details/") {
+		// Extract the ID part
+		parts := strings.Split(route, "/")
+		if len(parts) >= 2 {
+			// This is a dynamic route: merchant-details/[id]
+			// Next.js App Router generates the route handler at: merchant-details/[id]/page.html
+			// Check if the dynamic route template exists
+			dynamicPath := filepath.Join(rc.nextJSBuildPath, "merchant-details", "[id]", "page.html")
+			if _, err := os.Stat(dynamicPath); err == nil {
+				return dynamicPath
+			}
+			// Also try the actual ID path (in case Next.js pre-rendered it)
+			idPath := filepath.Join(rc.nextJSBuildPath, route+".html")
+			if _, err := os.Stat(idPath); err == nil {
+				return idPath
+			}
+			// If neither exists, serve root index.html for client-side routing
+			// Next.js will handle the routing client-side
+			return filepath.Join(rc.nextJSBuildPath, "index.html")
+		}
 	}
 	
 	// For routes with slashes, Next.js generates files in nested directories
@@ -140,9 +167,19 @@ func (rc *RouteConfig) serveRoute(w http.ResponseWriter, r *http.Request, route 
 		}
 	}
 	
+	// Check if the file exists
 	if _, err := os.Stat(nextJSPath); err == nil {
 		// Next.js page exists, serve it
 		http.ServeFile(w, r, nextJSPath)
+		return
+	}
+	
+	// For dynamic routes or routes that don't have static HTML files,
+	// serve the root index.html and let Next.js handle client-side routing
+	indexPath := filepath.Join(rc.nextJSBuildPath, "index.html")
+	if _, err := os.Stat(indexPath); err == nil {
+		// Serve index.html for client-side routing
+		http.ServeFile(w, r, indexPath)
 		return
 	}
 	
