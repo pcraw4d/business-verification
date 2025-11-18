@@ -35,6 +35,20 @@ RUN npm run build
 RUN test -d .next/server/app/merchant-details || echo "WARNING: merchant-details route not found in build"
 RUN test -d .next/server/app/merchant-details/\[id\] || echo "WARNING: merchant-details/[id] dynamic route template not found"
 
+# Investigate actual Next.js build structure for debugging
+RUN echo "=== Next.js Build Structure Investigation ===" && \
+    echo "Checking .next/server/app directory structure:" && \
+    (ls -la .next/server/app/ 2>/dev/null || echo "Directory does not exist") && \
+    echo "" && \
+    echo "Checking for merchant-portfolio:" && \
+    (find .next/server/app -name "*merchant-portfolio*" -type f 2>/dev/null | head -10 || echo "No merchant-portfolio files found") && \
+    echo "" && \
+    echo "Checking for add-merchant:" && \
+    (find .next/server/app -name "*add-merchant*" -type f 2>/dev/null | head -10 || echo "No add-merchant files found") && \
+    echo "" && \
+    echo "Top-level directories in .next/server/app:" && \
+    (ls -d .next/server/app/*/ 2>/dev/null | head -20 || echo "No subdirectories found") || true
+
 # Go build stage
 FROM golang:1.24-alpine AS go-builder
 

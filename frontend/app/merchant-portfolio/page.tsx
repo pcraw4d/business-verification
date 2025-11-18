@@ -12,7 +12,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PlusCircle, Search, Store, Filter, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
-import { getMerchantsList } from '@/lib/api';
+import { useRouter } from 'next/navigation';
+import { getMerchantsList, getMerchant } from '@/lib/api';
 import dynamic from 'next/dynamic';
 import type { MerchantListItem, MerchantListResponse } from '@/types/merchant';
 
@@ -27,6 +28,7 @@ const ExportButton = dynamic(
 import { toast } from 'sonner';
 
 export default function MerchantPortfolioPage() {
+  const router = useRouter();
   const [merchants, setMerchants] = useState<MerchantListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +42,7 @@ export default function MerchantPortfolioPage() {
   const [totalPages, setTotalPages] = useState(0);
   const [hasNext, setHasNext] = useState(false);
   const [hasPrevious, setHasPrevious] = useState(false);
+  const [prefetchingMerchantId, setPrefetchingMerchantId] = useState<string | null>(null);
 
   // Stats
   const [stats, setStats] = useState({
@@ -108,6 +111,31 @@ export default function MerchantPortfolioPage() {
   useEffect(() => {
     fetchMerchants();
   }, [fetchMerchants]);
+
+  // Prefetch merchant data on hover
+  const handleMerchantHover = useCallback(async (merchantId: string) => {
+    // Only prefetch if not already prefetching this merchant
+    if (prefetchingMerchantId === merchantId) {
+      return;
+    }
+
+    setPrefetchingMerchantId(merchantId);
+    
+    try {
+      // Prefetch merchant data - this will cache it for when user clicks
+      await getMerchant(merchantId);
+      
+      // Prefetch the route - Next.js will prefetch the page
+      router.prefetch(`/merchant-details/${merchantId}`);
+    } catch (error) {
+      // Silently fail - prefetching is optional
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('Prefetch failed for merchant:', merchantId, error);
+      }
+    } finally {
+      setPrefetchingMerchantId(null);
+    }
+  }, [router, prefetchingMerchantId]);
 
   const formatDate = (dateString: string) => {
     try {
@@ -346,7 +374,11 @@ export default function MerchantPortfolioPage() {
                     </TableRow>
                   ) : (
                     merchants.map((merchant) => (
-                      <TableRow key={merchant.id}>
+                      <TableRow 
+                        key={merchant.id}
+                        onMouseEnter={() => handleMerchantHover(merchant.id)}
+                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      >
                         <TableCell className="font-medium">{merchant.name}</TableCell>
                         <TableCell>
                           <Badge variant={getStatusBadgeVariant(merchant.status)}>

@@ -100,9 +100,16 @@ async function retryWithBackoff<T>(
   throw lastError!;
 }
 
-// API client functions
-export async function getMerchant(merchantId: string): Promise<Merchant> {
+// API client functions with enhanced retry and cancellation support
+export async function getMerchant(
+  merchantId: string,
+  options?: {
+    signal?: AbortSignal;
+    retries?: number;
+  }
+): Promise<Merchant> {
   const cacheKey = `merchant:${merchantId}`;
+  const maxRetries = options?.retries ?? 3;
   
   // Check cache first
   const cached = apiCache.get<Merchant>(cacheKey);
@@ -127,31 +134,66 @@ export async function getMerchant(merchantId: string): Promise<Merchant> {
   }
 
   return requestDeduplicator.deduplicate(cacheKey, async () => {
-    try {
-      if (process.env.NODE_ENV === 'test') {
-        console.log('[API] getMerchant: Fetching', ApiEndpoints.merchants.get(merchantId));
-      }
-      const response = await fetch(ApiEndpoints.merchants.get(merchantId), {
-        method: 'GET',
-        headers,
-      });
-      if (process.env.NODE_ENV === 'test') {
-        console.log('[API] getMerchant: Response received', response.status, response.ok);
-      }
-      const data = await handleResponse<Merchant>(response);
-      if (process.env.NODE_ENV === 'test') {
-        console.log('[API] getMerchant: Data parsed successfully', data);
-      }
-      // Cache the result
-      apiCache.set(cacheKey, data);
-      return data;
-    } catch (error) {
-      if (process.env.NODE_ENV === 'test') {
-        console.error('[API] getMerchant: Error occurred', error);
-      }
+    // Use retryWithBackoff for automatic retries with exponential backoff
+    return retryWithBackoff(
+      async () => {
+        try {
+          if (process.env.NODE_ENV === 'test') {
+            console.log('[API] getMerchant: Fetching', ApiEndpoints.merchants.get(merchantId));
+          }
+          
+          // Create AbortController if signal provided, or use provided signal
+          const controller = options?.signal ? undefined : new AbortController();
+          const signal = options?.signal || controller?.signal;
+          
+          const response = await fetch(ApiEndpoints.merchants.get(merchantId), {
+            method: 'GET',
+            headers,
+            signal, // Support request cancellation
+          });
+          
+          if (process.env.NODE_ENV === 'test') {
+            console.log('[API] getMerchant: Response received', response.status, response.ok);
+          }
+          
+          const data = await handleResponse<Merchant>(response);
+          
+          if (process.env.NODE_ENV === 'test') {
+            console.log('[API] getMerchant: Data parsed successfully', data);
+          }
+          
+          // Cache the result
+          apiCache.set(cacheKey, data);
+          return data;
+        } catch (error) {
+          // Don't retry on abort (user cancellation)
+          if (error instanceof Error && error.name === 'AbortError') {
+            throw error;
+          }
+          
+          // Don't retry on 4xx errors (client errors)
+          if (error instanceof Error && 'status' in error) {
+            const status = (error as any).status;
+            if (status >= 400 && status < 500) {
+              throw error;
+            }
+          }
+          
+          if (process.env.NODE_ENV === 'test') {
+            console.error('[API] getMerchant: Error occurred', error);
+          }
+          
+          // Re-throw to let retryWithBackoff handle it
+          throw error;
+        }
+      },
+      maxRetries,
+      1000 // Initial delay of 1 second
+    ).catch(async (error) => {
+      // Final error handling after all retries exhausted
       await ErrorHandler.handleAPIError(error);
       throw error;
-    }
+    });
   });
 }
 

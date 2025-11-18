@@ -120,6 +120,28 @@ func (rc *RouteConfig) getNextJSPath(route string) string {
 	return filepath.Join(rc.nextJSBuildPath, route+".html")
 }
 
+// findAvailablePage attempts to find an available Next.js page by checking multiple path structures
+// This handles variations in how Next.js App Router might generate pages
+func (rc *RouteConfig) findAvailablePage(routeName string) string {
+	// Try multiple path structures that Next.js App Router might use
+	possiblePaths := []string{
+		// App Router nested structure: route/page.html
+		filepath.Join(rc.nextJSBuildPath, routeName, "page.html"),
+		// Flat structure: route.html
+		filepath.Join(rc.nextJSBuildPath, routeName+".html"),
+		// Alternative nested: route/index.html
+		filepath.Join(rc.nextJSBuildPath, routeName, "index.html"),
+	}
+	
+	for _, path := range possiblePaths {
+		if _, err := os.Stat(path); err == nil {
+			return path
+		}
+	}
+	
+	return ""
+}
+
 // getLegacyPath gets the legacy HTML file path for a route
 func (rc *RouteConfig) getLegacyPath(route string) string {
 	route = strings.TrimPrefix(route, "/")
@@ -212,21 +234,41 @@ func (rc *RouteConfig) serveRoute(w http.ResponseWriter, r *http.Request, route 
 		// Template doesn't exist - Next.js App Router doesn't generate static HTML for dynamic routes
 		// We need to serve a page that loads the Next.js client bundle for client-side routing
 		// Try serving merchant-portfolio page (it has Next.js client bundle and won't redirect)
-		merchantPortfolioPath := filepath.Join(rc.nextJSBuildPath, "merchant-portfolio", "page.html")
-		if _, err := os.Stat(merchantPortfolioPath); err == nil {
+		// Check multiple possible path structures
+		merchantPortfolioPath := rc.findAvailablePage("merchant-portfolio")
+		if merchantPortfolioPath != "" {
 			// Serve merchant-portfolio page which loads Next.js client bundle
 			// Next.js router will detect the URL (/merchant-details/{id}) and route client-side
+			if os.Getenv("DEBUG_ROUTING") == "true" {
+				log.Printf("DEBUG: Found merchant-portfolio at: %s", merchantPortfolioPath)
+			}
 			log.Printf("INFO: Serving merchant-portfolio page for dynamic route: %s (Next.js will route client-side)", route)
 			http.ServeFile(w, r, merchantPortfolioPath)
 			return
 		}
 		
 		// Try add-merchant page as fallback (also has Next.js client bundle)
-		addMerchantPath := filepath.Join(rc.nextJSBuildPath, "add-merchant", "page.html")
-		if _, err := os.Stat(addMerchantPath); err == nil {
+		addMerchantPath := rc.findAvailablePage("add-merchant")
+		if addMerchantPath != "" {
+			if os.Getenv("DEBUG_ROUTING") == "true" {
+				log.Printf("DEBUG: Found add-merchant at: %s", addMerchantPath)
+			}
 			log.Printf("INFO: Serving add-merchant page for dynamic route: %s (Next.js will route client-side)", route)
 			http.ServeFile(w, r, addMerchantPath)
 			return
+		}
+		
+		// Debug: Log what we're checking if DEBUG_ROUTING is enabled
+		if os.Getenv("DEBUG_ROUTING") == "true" {
+			log.Printf("DEBUG: Checking for fallback pages for route: %s", route)
+			log.Printf("DEBUG: Next.js build path: %s", rc.nextJSBuildPath)
+			// List what files actually exist
+			if entries, err := os.ReadDir(rc.nextJSBuildPath); err == nil {
+				log.Printf("DEBUG: Files in build path:")
+				for _, entry := range entries {
+					log.Printf("DEBUG:   - %s (dir: %v)", entry.Name(), entry.IsDir())
+				}
+			}
 		}
 		
 		// Last resort: serve any available page that has Next.js client bundle
