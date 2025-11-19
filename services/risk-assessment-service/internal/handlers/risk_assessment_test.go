@@ -83,7 +83,6 @@ func createTestHandler() *RiskAssessmentHandler {
 		logger:              logger,
 		config:              config,
 		validator:           validation.NewValidator(),
-		errorHandler:        middleware.NewErrorHandler(logger),
 	}
 
 	return handler

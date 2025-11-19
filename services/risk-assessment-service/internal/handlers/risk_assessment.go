@@ -871,7 +871,7 @@ func (h *RiskAssessmentHandler) HandleRiskTrends(w http.ResponseWriter, r *http.
 
 	// Limit results
 	if limit > 0 {
-		query = query.Limit(uint64(limit), "")
+		query = query.Limit(limit, "")
 	}
 
 	_, err := query.ExecuteTo(&assessments)
