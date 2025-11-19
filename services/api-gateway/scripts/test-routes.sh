@@ -3,7 +3,8 @@
 # Route Testing Script for API Gateway
 # Tests all routes through the API Gateway to verify routing, path transformations, and error handling
 
-set -e
+# Don't exit on error - we want to test all routes even if some fail
+set +e
 
 # Colors for output
 RED='\033[0;31m'
@@ -60,17 +61,20 @@ test_route() {
     
     # Make request
     local response
+    local curl_exit_code=0
     if [ -n "$body" ]; then
         response=$(curl -s -w "\n%{http_code}" -X "$method" \
             -H "Content-Type: application/json" \
             -d "$body" \
             --max-time $TIMEOUT \
-            "$url" 2>&1) || true
+            "$url" 2>&1)
+        curl_exit_code=$?
     else
         response=$(curl -s -w "\n%{http_code}" -X "$method" \
             -H "Content-Type: application/json" \
             --max-time $TIMEOUT \
-            "$url" 2>&1) || true
+            "$url" 2>&1)
+        curl_exit_code=$?
     fi
     
     # Check if curl failed (service not running)
