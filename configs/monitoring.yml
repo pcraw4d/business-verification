@@ -242,7 +242,7 @@ dashboards:
   # Grafana settings
   grafana:
     enabled: true
-    url: "http://localhost:3000"
+    url: "http://localhost:3001"
     username: "admin"
     password: "admin123"
     dashboard_id: "kyb-platform"
@@ -379,7 +379,7 @@ integrations:
   # Grafana
   grafana:
     enabled: true
-    url: "http://localhost:3000"
+    url: "http://localhost:3001"
     api_key: "YOUR_GRAFANA_API_KEY"
   
   # AlertManager

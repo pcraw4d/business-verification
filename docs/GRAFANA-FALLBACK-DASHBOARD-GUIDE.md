@@ -30,7 +30,7 @@ docker ps | grep -E "prometheus|grafana"
 
 1. **Open Grafana** in your browser:
    ```
-   http://localhost:3000
+   http://localhost:3001
    ```
 
 2. **Login** with default credentials:

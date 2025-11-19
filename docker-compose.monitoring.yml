@@ -27,7 +27,7 @@ services:
     image: grafana/grafana:latest
     container_name: kyb-grafana
     ports:
-      - "3000:3000"
+      - "3001:3000"
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana-dashboard.json:/etc/grafana/provisioning/dashboards/kyb-dashboard.json

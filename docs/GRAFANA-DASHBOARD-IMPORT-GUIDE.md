@@ -2,7 +2,7 @@
 
 ## Quick Import Steps
 
-1. **Open Grafana**: Navigate to `http://localhost:3000`
+1. **Open Grafana**: Navigate to `http://localhost:3001`
 2. **Go to Dashboards** → **Import** (plus icon → Import)
 3. **Upload JSON**: Click "Upload JSON file" and select `monitoring/grafana-fallback-dashboard.json`
 4. **Select Data Source**: When prompted, select your Prometheus data source
