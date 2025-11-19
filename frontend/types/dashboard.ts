@@ -13,6 +13,12 @@ export interface RiskMetrics {
   highRiskMerchants: number;
   riskAssessments: number;
   riskTrend: number;
+  riskDistribution?: {
+    low: number;
+    medium: number;
+    high: number;
+    critical: number;
+  };
   timestamp?: string;
 }
 
