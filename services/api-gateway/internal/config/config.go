@@ -78,7 +78,9 @@ func Load() (*Config, error) {
 			JWTSecret:      getEnvAsString("SUPABASE_JWT_SECRET", ""),
 		},
 		CORS: CORSConfig{
-			AllowedOrigins:   getEnvAsStringSlice("CORS_ALLOWED_ORIGINS", []string{"*"}),
+			// Default to specific frontend origin instead of wildcard to avoid browser rejection with credentials
+			// Wildcard (*) cannot be used with AllowCredentials=true in browsers
+			AllowedOrigins:   getEnvAsStringSlice("CORS_ALLOWED_ORIGINS", []string{"https://frontend-service-production-b225.up.railway.app"}),
 			AllowedMethods:   getEnvAsStringSlice("CORS_ALLOWED_METHODS", []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
 			AllowedHeaders:   getEnvAsStringSlice("CORS_ALLOWED_HEADERS", []string{"Content-Type", "Authorization"}),
 			AllowCredentials: getEnvAsBool("CORS_ALLOW_CREDENTIALS", true),

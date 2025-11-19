@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -16,6 +17,17 @@ import (
 	gatewayerrors "kyb-platform/services/api-gateway/internal/errors"
 	"kyb-platform/services/api-gateway/internal/supabase"
 )
+
+// uuidPattern matches standard UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+var uuidPattern = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
+
+// isValidUUID validates if a string is a valid UUID format
+func isValidUUID(uuid string) bool {
+	if uuid == "" {
+		return false
+	}
+	return uuidPattern.MatchString(strings.ToLower(uuid))
+}
 
 // GatewayHandler handles API Gateway requests
 type GatewayHandler struct {
@@ -44,7 +56,7 @@ func (h *GatewayHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 
 	// Check if detailed health check is requested
 	detailed := r.URL.Query().Get("detailed") == "true"
-	
+
 	// Basic response (always fast)
 	response := map[string]interface{}{
 		"status":      "healthy",
@@ -59,19 +71,19 @@ func (h *GatewayHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 			"cors_enabled":         true,
 		},
 	}
-	
+
 	// Only perform expensive checks if detailed=true
 	if detailed {
 		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second) // Shorter timeout
 		defer cancel()
-		
+
 		// Quick Supabase connection check (non-blocking with timeout)
 		supabaseStatus := "connected"
 		supabaseChan := make(chan error, 1)
 		go func() {
 			supabaseChan <- h.supabaseClient.HealthCheck(ctx)
 		}()
-		
+
 		select {
 		case err := <-supabaseChan:
 			if err != nil {
@@ -82,21 +94,21 @@ func (h *GatewayHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 			supabaseStatus = "timeout"
 			h.logger.Warn("Supabase health check timed out")
 		}
-		
+
 		response["supabase_status"] = map[string]interface{}{
 			"connected": supabaseStatus == "connected",
 			"url":       h.config.Supabase.URL,
 		}
-		
+
 		// Get table counts only if requested and we have time
 		if r.URL.Query().Get("counts") == "true" {
 			tableCounts := make(map[string]int)
 			tables := []string{"classifications", "merchants", "risk_keywords", "business_risk_assessments"}
-			
+
 			// Use a separate context with shorter timeout for table counts
 			countsCtx, countsCancel := context.WithTimeout(ctx, 1*time.Second)
 			defer countsCancel()
-			
+
 			for _, table := range tables {
 				if count, err := h.supabaseClient.GetTableCount(countsCtx, table); err == nil {
 					tableCounts[table] = count
@@ -105,7 +117,7 @@ func (h *GatewayHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 			response["table_counts"] = tableCounts
 		}
 	}
-	
+
 	// Add response time
 	response["response_time_ms"] = time.Since(startTime).Milliseconds()
 
@@ -125,7 +137,7 @@ func (h *GatewayHandler) ProxyToMerchants(w http.ResponseWriter, r *http.Request
 	// The route is registered as /merchants in the /api/v1 subrouter
 	// So r.URL.Path will be /api/v1/merchants or /api/v1/merchants/{id}
 	path := r.URL.Path
-	
+
 	// The merchant service now handles all merchant endpoints including:
 	// - /api/v1/merchants/{id}/analytics
 	// - /api/v1/merchants/{id}/website-analysis
@@ -512,21 +524,41 @@ func (h *GatewayHandler) ProxyToRiskAssessment(w http.ResponseWriter, r *http.Re
 	// API Gateway: /api/v1/risk/benchmarks -> Risk Service: /api/v1/risk/benchmarks
 	// API Gateway: /api/v1/risk/predictions/{id} -> Risk Service: /api/v1/risk/predictions/{id}
 	path := r.URL.Path
-	
-	// Map /api/v1/risk/assess to /api/v1/assess (risk service uses /assess, not /risk/assess)
-	if path == "/api/v1/risk/assess" {
+
+	// CRITICAL: Validate UUID for indicators endpoint FIRST, before any path transformation
+	// This ensures validation happens even if route is matched via PathPrefix
+	if strings.HasPrefix(path, "/api/v1/risk/indicators/") {
+		// Map /api/v1/risk/indicators/{id} to /api/v1/risk/predictions/{id}
+		// Extract merchant ID and route to predictions endpoint (which provides risk data)
+		parts := strings.Split(path, "/")
+		if len(parts) >= 6 {
+			merchantID := parts[5] // /api/v1/risk/indicators/{id} - index 5 is the ID
+			// Validate UUID format before transformation - THIS MUST HAPPEN FIRST
+			if !isValidUUID(merchantID) {
+				// Return 400 Bad Request for invalid UUID format
+				h.logger.Warn("Invalid merchant ID format in risk indicators endpoint",
+					zap.String("path", path),
+					zap.String("merchant_id", merchantID),
+					zap.Strings("path_parts", parts))
+				http.Error(w, "Invalid merchant ID format: expected UUID", http.StatusBadRequest)
+				return
+			}
+			// UUID is valid, proceed with path transformation
+			path = fmt.Sprintf("/api/v1/risk/predictions/%s", merchantID)
+		} else {
+			// Path doesn't have enough parts - missing merchant ID
+			h.logger.Warn("Missing merchant ID in risk indicators endpoint",
+				zap.String("path", path),
+				zap.Strings("path_parts", parts))
+			http.Error(w, "Missing merchant ID in path", http.StatusBadRequest)
+			return
+		}
+	} else if path == "/api/v1/risk/assess" {
+		// Map /api/v1/risk/assess to /api/v1/assess (risk service uses /assess, not /risk/assess)
 		path = "/api/v1/assess"
 	} else if path == "/api/v1/risk/metrics" {
 		// Map /api/v1/risk/metrics to /api/v1/metrics (risk service uses /metrics, not /risk/metrics)
 		path = "/api/v1/metrics"
-	} else if strings.HasPrefix(path, "/api/v1/risk/indicators/") {
-		// Map /api/v1/risk/indicators/{id} to /api/v1/risk/predictions/{id}
-		// Extract merchant ID and route to predictions endpoint (which provides risk data)
-		parts := strings.Split(path, "/")
-		if len(parts) >= 5 {
-			merchantID := parts[4] // /api/v1/risk/indicators/{id}
-			path = fmt.Sprintf("/api/v1/risk/predictions/%s", merchantID)
-		}
 	} else if strings.HasPrefix(path, "/api/v1/risk/") {
 		// For other /risk/* paths, keep them as-is (e.g., /risk/benchmarks, /risk/predictions)
 		// The risk service has routes like /api/v1/risk/benchmarks
@@ -583,7 +615,7 @@ func (h *GatewayHandler) ProxyToComplianceStatus(w http.ResponseWriter, r *http.
 	// If no business_id provided, use aggregate endpoint or default
 	// Extract business_id from query params if provided
 	businessID := r.URL.Query().Get("business_id")
-	
+
 	var path string
 	if businessID != "" {
 		// Route to specific business compliance status
@@ -593,7 +625,7 @@ func (h *GatewayHandler) ProxyToComplianceStatus(w http.ResponseWriter, r *http.
 		// Use query parameter to indicate aggregate request
 		path = "/api/v1/compliance/status/aggregate"
 	}
-	
+
 	if r.URL.RawQuery != "" {
 		// Preserve other query parameters
 		params := r.URL.Query()
@@ -602,7 +634,7 @@ func (h *GatewayHandler) ProxyToComplianceStatus(w http.ResponseWriter, r *http.
 			path += "?" + params.Encode()
 		}
 	}
-	
+
 	// Route to Risk Assessment Service (has compliance handlers)
 	h.proxyRequest(w, r, h.config.Services.RiskAssessmentURL, path)
 }
@@ -617,12 +649,12 @@ func (h *GatewayHandler) ProxyToSessions(w http.ResponseWriter, r *http.Request)
 	} else {
 		path = "/v1/sessions" + path
 	}
-	
+
 	// Add query parameters if any
 	if r.URL.RawQuery != "" {
 		path += "?" + r.URL.RawQuery
 	}
-	
+
 	// Route to Frontend Service which has session management
 	// Sessions are managed in the frontend service
 	h.proxyRequest(w, r, h.config.Services.FrontendURL, path)
@@ -700,7 +732,7 @@ func (h *GatewayHandler) HandleAuthRegister(w http.ResponseWriter, r *http.Reque
 	userInfo := map[string]interface{}{
 		"email": req.Email,
 	}
-	
+
 	if user, ok := authResult["user"].(map[string]interface{}); ok {
 		if id, ok := user["id"].(string); ok {
 			userInfo["id"] = id
@@ -727,4 +759,158 @@ func (h *GatewayHandler) HandleAuthRegister(w http.ResponseWriter, r *http.Reque
 		"message": "Registration successful. Please check your email for verification instructions.",
 		"user":    userInfo,
 	})
+}
+
+// HandleAuthLogin handles user login requests
+func (h *GatewayHandler) HandleAuthLogin(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		gatewayerrors.WriteMethodNotAllowed(w, r, "Method not allowed")
+		return
+	}
+
+	// Parse request body
+	var req struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.logger.Error("Failed to decode login request", zap.Error(err))
+		gatewayerrors.WriteBadRequest(w, r, "Invalid request body: Please provide email and password")
+		return
+	}
+
+	// Validate required fields
+	if req.Email == "" || req.Password == "" {
+		gatewayerrors.WriteBadRequest(w, r, "Missing required fields: Email and password are required")
+		return
+	}
+
+	// Validate email format
+	if !strings.Contains(req.Email, "@") || !strings.Contains(req.Email, ".") {
+		gatewayerrors.WriteBadRequest(w, r, "Invalid email format: Please provide a valid email address")
+		return
+	}
+
+	// Sign in user with Supabase Auth
+	ctx := r.Context()
+	authResult, err := h.supabaseClient.SignInWithPassword(ctx, req.Email, req.Password)
+	if err != nil {
+		h.logger.Warn("User login failed",
+			zap.String("email", req.Email),
+			zap.Error(err))
+
+		// Check if it's an invalid credentials error
+		if strings.Contains(err.Error(), "Invalid login credentials") ||
+			strings.Contains(err.Error(), "invalid") ||
+			strings.Contains(err.Error(), "not found") {
+			gatewayerrors.WriteUnauthorized(w, r, "Invalid email or password")
+			return
+		}
+
+		gatewayerrors.WriteInternalError(w, r, "Unable to complete login. Please try again later.")
+		return
+	}
+
+	// Extract user information and token from auth result
+	userInfo := map[string]interface{}{
+		"email": req.Email,
+	}
+
+	var token string
+
+	if user, ok := authResult["user"].(map[string]interface{}); ok {
+		if id, ok := user["id"].(string); ok {
+			userInfo["id"] = id
+		}
+		if email, ok := user["email"].(string); ok {
+			userInfo["email"] = email
+		}
+		// Add metadata if available
+		if userMetadata, ok := user["user_metadata"].(map[string]interface{}); ok {
+			userInfo["username"] = userMetadata["username"]
+			userInfo["first_name"] = userMetadata["first_name"]
+			userInfo["last_name"] = userMetadata["last_name"]
+			userInfo["company"] = userMetadata["company"]
+		}
+	}
+
+	// Extract access token
+	if accessToken, ok := authResult["access_token"].(string); ok {
+		token = accessToken
+	} else if session, ok := authResult["session"].(map[string]interface{}); ok {
+		if accessToken, ok := session["access_token"].(string); ok {
+			token = accessToken
+		}
+	}
+
+	h.logger.Info("User logged in successfully",
+		zap.String("email", req.Email))
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "Login successful",
+		"token":   token,
+		"user":    userInfo,
+	})
+}
+
+// HandleNotFound handles requests to routes that don't exist
+func (h *GatewayHandler) HandleNotFound(w http.ResponseWriter, r *http.Request) {
+	// Log the unmatched route for debugging
+	h.logger.Warn("Route not found",
+		zap.String("method", r.Method),
+		zap.String("path", r.URL.Path),
+		zap.String("query", r.URL.RawQuery),
+		zap.String("remote_addr", r.RemoteAddr),
+		zap.String("user_agent", r.UserAgent()))
+
+	// Provide helpful error message with suggestions
+	errorMessage := fmt.Sprintf("Route not found: %s %s", r.Method, r.URL.Path)
+
+	// Add helpful suggestions based on the path
+	suggestions := []string{}
+	if strings.HasPrefix(r.URL.Path, "/api/v1/") {
+		suggestions = append(suggestions, "Check that the route path is correct")
+		suggestions = append(suggestions, "Verify the HTTP method (GET, POST, etc.) matches the endpoint")
+		suggestions = append(suggestions, "See / endpoint for available API endpoints")
+	} else if r.URL.Path != "/" && r.URL.Path != "/health" {
+		suggestions = append(suggestions, "API routes should start with /api/v1/")
+		suggestions = append(suggestions, "Check the API documentation for available endpoints")
+	}
+
+	// Build error response
+	errorResponse := map[string]interface{}{
+		"error": map[string]interface{}{
+			"code":    "NOT_FOUND",
+			"message": errorMessage,
+			"details": "The requested route does not exist or is not available",
+		},
+		"path":       r.URL.Path,
+		"method":     r.Method,
+		"timestamp":  time.Now().UTC().Format(time.RFC3339),
+		"request_id": r.Header.Get("X-Request-ID"),
+	}
+
+	if len(suggestions) > 0 {
+		errorResponse["suggestions"] = suggestions
+	}
+
+	// Add available endpoints for root-level requests
+	if r.URL.Path == "/" || strings.HasPrefix(r.URL.Path, "/api") {
+		errorResponse["available_endpoints"] = map[string]string{
+			"health":                "/health",
+			"classify":              "/api/v1/classify",
+			"merchants":             "/api/v1/merchants",
+			"risk_assessment":       "/api/v1/risk/assess",
+			"classification_health": "/api/v1/classification/health",
+			"merchant_health":       "/api/v1/merchant/health",
+			"risk_health":           "/api/v1/risk/health",
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusNotFound)
+	json.NewEncoder(w).Encode(errorResponse)
 }

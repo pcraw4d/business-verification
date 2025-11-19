@@ -1,0 +1,578 @@
+{
+	"info": {
+		"_postman_id": "kyb-route-testing-2025",
+		"name": "KYB Route Testing Collection",
+		"description": "Comprehensive API route testing for KYB Platform fixes",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Phase 3.1: Authentication Routes",
+			"item": [
+				{
+					"name": "Register - Valid",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 or 201\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"pm.test(\"Response has user info\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('user');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"testuser_{{$timestamp}}@example.com\",\n    \"password\": \"TestPassword123!\",\n    \"username\": \"testuser\",\n    \"first_name\": \"Test\",\n    \"last_name\": \"User\"\n}"
+						},
+						"url": {
+							"raw": "https://api-gateway-service-production-21fd.up.railway.app/api/v1/auth/register",
+							"protocol": "https",
+							"host": [
+								"api-gateway-service-production-21fd",
+								"up",
+								"railway",
+								"app"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"register"
+							]
+						}
+					}
+				},
+				{
+					"name": "Register - Missing Fields",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"pm.test(\"Error message indicates missing field\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error || jsonData.message).to.include('password');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"test@example.com\"\n}"
+						},
+						"url": {
+							"raw": "https://api-gateway-service-production-21fd.up.railway.app/api/v1/auth/register",
+							"protocol": "https",
+							"host": [
+								"api-gateway-service-production-21fd",
+								"up",
+								"railway",
+								"app"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"register"
+							]
+						}
+					}
+				},
+				{
+					"name": "Register - Invalid Email",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"pm.test(\"Error message indicates invalid email\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    var errorText = JSON.stringify(jsonData).toLowerCase();",
+									"    pm.expect(errorText).to.include('email');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"not-an-email\",\n    \"password\": \"TestPassword123!\"\n}"
+						},
+						"url": {
+							"raw": "https://api-gateway-service-production-21fd.up.railway.app/api/v1/auth/register",
+							"protocol": "https",
+							"host": [
+								"api-gateway-service-production-21fd",
+								"up",
+								"railway",
+								"app"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"register"
+							]
+						}
+					}
+				},
+				{
+					"name": "Login - Valid",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Response has token\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('token');",
+									"});",
+									"pm.test(\"Response has user info\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('user');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"testuser@example.com\",\n    \"password\": \"TestPassword123!\"\n}"
+						},
+						"url": {
+							"raw": "https://api-gateway-service-production-21fd.up.railway.app/api/v1/auth/login",
+							"protocol": "https",
+							"host": [
+								"api-gateway-service-production-21fd",
+								"up",
+								"railway",
+								"app"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"login"
+							]
+						}
+					}
+				},
+				{
+					"name": "Login - Invalid Credentials",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 401\", function () {",
+									"    pm.response.to.have.status(401);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"nonexistent@example.com\",\n    \"password\": \"WrongPassword123!\"\n}"
+						},
+						"url": {
+							"raw": "https://api-gateway-service-production-21fd.up.railway.app/api/v1/auth/login",
+							"protocol": "https",
+							"host": [
+								"api-gateway-service-production-21fd",
+								"up",
+								"railway",
+								"app"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"login"
+							]
+						}
+					}
+				},
+				{
+					"name": "Login - Missing Fields",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"test@example.com\"\n}"
+						},
+						"url": {
+							"raw": "https://api-gateway-service-production-21fd.up.railway.app/api/v1/auth/login",
+							"protocol": "https",
+							"host": [
+								"api-gateway-service-production-21fd",
+								"up",
+								"railway",
+								"app"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"login"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Phase 3.2: UUID Validation",
+			"item": [
+				{
+					"name": "Risk Indicators - Invalid UUID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"pm.test(\"Error message mentions UUID\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    var responseText = JSON.stringify(jsonData).toLowerCase();",
+									"    pm.expect(responseText).to.include('uuid');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://api-gateway-service-production-21fd.up.railway.app/api/v1/risk/indicators/invalid-id",
+							"protocol": "https",
+							"host": [
+								"api-gateway-service-production-21fd",
+								"up",
+								"railway",
+								"app"
+							],
+							"path": [
+								"api",
+								"v1",
+								"risk",
+								"indicators",
+								"invalid-id"
+							]
+						}
+					}
+				},
+				{
+					"name": "Risk Indicators - Edge Case (indicators)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://api-gateway-service-production-21fd.up.railway.app/api/v1/risk/indicators/indicators",
+							"protocol": "https",
+							"host": [
+								"api-gateway-service-production-21fd",
+								"up",
+								"railway",
+								"app"
+							],
+							"path": [
+								"api",
+								"v1",
+								"risk",
+								"indicators",
+								"indicators"
+							]
+						}
+					}
+				},
+				{
+					"name": "Risk Indicators - Valid UUID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 or appropriate\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 400, 404, 500]);",
+									"});",
+									"pm.test(\"No UUID validation error\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    var responseText = JSON.stringify(jsonData).toLowerCase();",
+									"    pm.expect(responseText).to.not.include('invalid merchant id format');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://api-gateway-service-production-21fd.up.railway.app/api/v1/risk/indicators/550e8400-e29b-41d4-a716-446655440000",
+							"protocol": "https",
+							"host": [
+								"api-gateway-service-production-21fd",
+								"up",
+								"railway",
+								"app"
+							],
+							"path": [
+								"api",
+								"v1",
+								"risk",
+								"indicators",
+								"550e8400-e29b-41d4-a716-446655440000"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Phase 3.3: CORS Configuration",
+			"item": [
+				{
+					"name": "CORS Preflight - Auth Register",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"CORS headers present\", function () {",
+									"    pm.expect(pm.response.headers.get('Access-Control-Allow-Origin')).to.exist;",
+									"});",
+									"pm.test(\"Specific origin (not wildcard)\", function () {",
+									"    var allowOrigin = pm.response.headers.get('Access-Control-Allow-Origin');",
+									"    pm.expect(allowOrigin).to.not.equal('*');",
+									"});",
+									"pm.test(\"Credentials allowed\", function () {",
+									"    var allowCredentials = pm.response.headers.get('Access-Control-Allow-Credentials');",
+									"    pm.expect(allowCredentials).to.equal('true');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "OPTIONS",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "https://frontend-service-production-b225.up.railway.app"
+							},
+							{
+								"key": "Access-Control-Request-Method",
+								"value": "POST"
+							},
+							{
+								"key": "Access-Control-Request-Headers",
+								"value": "Content-Type"
+							}
+						],
+						"url": {
+							"raw": "https://api-gateway-service-production-21fd.up.railway.app/api/v1/auth/register",
+							"protocol": "https",
+							"host": [
+								"api-gateway-service-production-21fd",
+								"up",
+								"railway",
+								"app"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"register"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Phase 6: Error Handling",
+			"item": [
+				{
+					"name": "404 Handler - Invalid Route",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});",
+									"pm.test(\"Response has error structure\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"});",
+									"pm.test(\"Error code is NOT_FOUND\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error.code).to.equal('NOT_FOUND');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://api-gateway-service-production-21fd.up.railway.app/api/v1/nonexistent-route",
+							"protocol": "https",
+							"host": [
+								"api-gateway-service-production-21fd",
+								"up",
+								"railway",
+								"app"
+							],
+							"path": [
+								"api",
+								"v1",
+								"nonexistent-route"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Health Checks",
+			"item": [
+				{
+					"name": "API Gateway Health",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://api-gateway-service-production-21fd.up.railway.app/health",
+							"protocol": "https",
+							"host": [
+								"api-gateway-service-production-21fd",
+								"up",
+								"railway",
+								"app"
+							],
+							"path": [
+								"health"
+							]
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "https://api-gateway-service-production-21fd.up.railway.app",
+			"type": "string"
+		}
+	]
+}
+

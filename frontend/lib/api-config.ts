@@ -161,8 +161,8 @@ export const ApiEndpoints = {
   
   // Auth endpoints
   auth: {
-    register: () => buildApiUrl('/v1/auth/register'),
-    login: () => buildApiUrl('/v1/auth/login'),
+    register: () => buildApiUrl('/api/v1/auth/register'),
+    login: () => buildApiUrl('/api/v1/auth/login'),
   },
   
   // Business Intelligence endpoints

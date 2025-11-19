@@ -260,7 +260,7 @@ type ServiceDiscoveryServer struct {
 func NewServiceDiscoveryServer() *ServiceDiscoveryServer {
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8086"
+		port = "8080"
 	}
 
 	registry := NewServiceRegistry()

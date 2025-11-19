@@ -133,50 +133,50 @@ func (c *Client) RegisterUser(ctx context.Context, email, password string, userM
 	// Use Supabase Auth API to register user
 	// The supabase-go library v0.0.1 may not have direct Auth methods,
 	// so we'll use HTTP calls to the Auth API directly
-	
+
 	authURL := fmt.Sprintf("%s/auth/v1/signup", c.config.URL)
-	
+
 	// Prepare request payload
 	payload := map[string]interface{}{
 		"email":    email,
 		"password": password,
 	}
-	
+
 	// Add user metadata if provided
 	if userMetadata != nil {
 		payload["data"] = userMetadata
 	}
-	
+
 	// Make HTTP request to Supabase Auth API
 	payloadJSON, err := json.Marshal(payload)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal registration payload: %w", err)
 	}
-	
+
 	req, err := http.NewRequestWithContext(ctx, "POST", authURL, bytes.NewBuffer(payloadJSON))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create registration request: %w", err)
 	}
-	
+
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("apikey", c.config.APIKey)
 	req.Header.Set("Authorization", "Bearer "+c.config.APIKey)
-	
+
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 	}
-	
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to call Supabase Auth API: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
-	
+
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		var errorResp map[string]interface{}
 		if err := json.Unmarshal(body, &errorResp); err == nil {
@@ -186,15 +186,81 @@ func (c *Client) RegisterUser(ctx context.Context, email, password string, userM
 		}
 		return nil, fmt.Errorf("registration failed with status %d: %s", resp.StatusCode, string(body))
 	}
-	
+
 	var result map[string]interface{}
 	if err := json.Unmarshal(body, &result); err != nil {
 		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
-	
+
 	c.logger.Info("User registered successfully",
 		zap.String("email", email),
 		zap.Int("status_code", resp.StatusCode))
-	
+
+	return result, nil
+}
+
+// SignInWithPassword signs in a user with email and password
+func (c *Client) SignInWithPassword(ctx context.Context, email, password string) (map[string]interface{}, error) {
+	// Use Supabase Auth API to sign in user
+	authURL := fmt.Sprintf("%s/auth/v1/token?grant_type=password", c.config.URL)
+
+	// Prepare request payload
+	payload := map[string]interface{}{
+		"email":    email,
+		"password": password,
+	}
+
+	// Make HTTP request to Supabase Auth API
+	payloadJSON, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal login payload: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", authURL, bytes.NewBuffer(payloadJSON))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create login request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("apikey", c.config.APIKey)
+	req.Header.Set("Authorization", "Bearer "+c.config.APIKey)
+
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call Supabase Auth API: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		var errorResp map[string]interface{}
+		if err := json.Unmarshal(body, &errorResp); err == nil {
+			if msg, ok := errorResp["message"].(string); ok {
+				return nil, fmt.Errorf("login failed: %s", msg)
+			}
+			if errorDescription, ok := errorResp["error_description"].(string); ok {
+				return nil, fmt.Errorf("login failed: %s", errorDescription)
+			}
+		}
+		return nil, fmt.Errorf("login failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	c.logger.Info("User signed in successfully",
+		zap.String("email", email),
+		zap.Int("status_code", resp.StatusCode))
+
 	return result, nil
 }

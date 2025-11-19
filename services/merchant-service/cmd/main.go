@@ -13,8 +13,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 
-	"kyb-platform/services/merchant-service/internal/errors"
 	"kyb-platform/services/merchant-service/internal/config"
+	"kyb-platform/services/merchant-service/internal/errors"
 	"kyb-platform/services/merchant-service/internal/handlers"
 	"kyb-platform/services/merchant-service/internal/supabase"
 )
@@ -64,27 +64,36 @@ func main() {
 
 	// Register routes
 	router.HandleFunc("/health", merchantHandler.HandleHealth).Methods("GET")
-	
+
 	// Prometheus metrics endpoint
 	router.Handle("/metrics", promhttp.Handler()).Methods("GET")
 
 	// Merchant management routes
 	// IMPORTANT: Register more specific routes BEFORE less specific ones
 	// This ensures /api/v1/merchants/{id}/analytics matches before /api/v1/merchants/{id}
-	
+
 	// Merchant-specific sub-routes (must be registered BEFORE /merchants/{id})
+	// Merchant routes - CRITICAL: Route registration order matters!
+	// Specific routes MUST be registered before less specific routes.
+	// Routes are registered in order from most specific to least specific.
+	//
+	// ORDER MATTERS:
+	// 1. Most specific sub-routes first (merchants/{id}/analytics, etc.)
+	//    These must come before /merchants/{id} to avoid route conflicts
 	router.HandleFunc("/api/v1/merchants/{id}/analytics", merchantHandler.HandleMerchantSpecificAnalytics).Methods("GET", "OPTIONS")
 	router.HandleFunc("/api/v1/merchants/{id}/website-analysis", merchantHandler.HandleMerchantWebsiteAnalysis).Methods("GET", "OPTIONS")
 	router.HandleFunc("/api/v1/merchants/{id}/risk-score", merchantHandler.HandleMerchantRiskScore).Methods("GET", "OPTIONS")
-	
-	// General merchant endpoints (must be registered BEFORE /merchants/{id} to avoid conflicts)
+
+	// 2. General merchant endpoints (must be registered BEFORE /merchants/{id} to avoid conflicts)
+	//    Routes like /merchants/analytics must come before /merchants/{id} because
+	//    the router might interpret "analytics" as an {id} parameter
 	router.HandleFunc("/api/v1/merchants/analytics", merchantHandler.HandleMerchantAnalytics).Methods("GET", "OPTIONS")
 	router.HandleFunc("/api/v1/merchants/statistics", merchantHandler.HandleMerchantStatistics).Methods("GET", "OPTIONS")
 	router.HandleFunc("/api/v1/merchants/search", merchantHandler.HandleMerchantSearch).Methods("POST", "OPTIONS")
 	router.HandleFunc("/api/v1/merchants/portfolio-types", merchantHandler.HandleMerchantPortfolioTypes).Methods("GET", "OPTIONS")
 	router.HandleFunc("/api/v1/merchants/risk-levels", merchantHandler.HandleMerchantRiskLevels).Methods("GET", "OPTIONS")
-	
-	// Base merchant routes
+
+	// 3. Base merchant routes (registered last among /api/v1/merchants routes)
 	router.HandleFunc("/api/v1/merchants", merchantHandler.HandleCreateMerchant).Methods("POST", "OPTIONS")
 	router.HandleFunc("/api/v1/merchants", merchantHandler.HandleListMerchants).Methods("GET", "OPTIONS")
 	router.HandleFunc("/api/v1/merchants/{id}", merchantHandler.HandleGetMerchant).Methods("GET", "OPTIONS")
@@ -161,10 +170,10 @@ func corsMiddleware() func(http.Handler) http.Handler {
 			if existingOrigin := w.Header().Get("Access-Control-Allow-Origin"); existingOrigin != "" {
 				w.Header().Del("Access-Control-Allow-Origin")
 			}
-			
+
 			// Get the origin from the request
 			origin := r.Header.Get("Origin")
-			
+
 			// Set CORS headers - use specific origin if provided, otherwise use wildcard
 			// Note: When using credentials, we must use a specific origin, not "*"
 			if origin != "" {
@@ -174,7 +183,7 @@ func corsMiddleware() func(http.Handler) http.Handler {
 				// No origin header, use wildcard (for same-origin requests)
 				w.Header().Set("Access-Control-Allow-Origin", "*")
 			}
-			
+
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
