@@ -167,12 +167,12 @@ curl -X GET /api/v1/merchants
 - ✅ Merchant List: 0.497s (target: < 2s)
 
 **Security Summary**:
-- ⚠️ SQL Injection: Returns 500 (should return 400) - Minor issue
+- ✅ SQL Injection: **FIXED** - Now returns 400 Bad Request (verified after deployment)
 - ✅ XSS Protection: PASS (rejected properly)
 - ✅ Path Traversal: PASS (blocked properly)
-- ⚠️ Auth Required: `/api/v1/merchants` is intentionally public - Review needed
+- ⚠️ Auth Required: `/api/v1/merchants` is intentionally public - Design decision (documented)
 
-**Issues Found**: 2 (1 minor, 1 design decision to review)
+**Issues Found**: 1 (design decision, no action needed)
 
 ---
 
