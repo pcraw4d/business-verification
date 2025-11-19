@@ -16,7 +16,6 @@ import (
 
 	"kyb-platform/services/risk-assessment-service/internal/config"
 	"kyb-platform/services/risk-assessment-service/internal/engine"
-	"kyb-platform/services/risk-assessment-service/internal/middleware"
 	"kyb-platform/services/risk-assessment-service/internal/models"
 	"kyb-platform/services/risk-assessment-service/internal/validation"
 )
