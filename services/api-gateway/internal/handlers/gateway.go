@@ -21,12 +21,23 @@ import (
 // uuidPattern matches standard UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 var uuidPattern = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
+// sqlInjectionPattern matches common SQL injection patterns
+var sqlInjectionPattern = regexp.MustCompile(`(?i)(union|select|insert|update|delete|drop|create|alter|exec|execute|script|javascript|vbscript|onload|onerror|onclick|['";]|--|\*|/\*|\*/)`)
+
 // isValidUUID validates if a string is a valid UUID format
 func isValidUUID(uuid string) bool {
 	if uuid == "" {
 		return false
 	}
 	return uuidPattern.MatchString(strings.ToLower(uuid))
+}
+
+// containsSQLInjection checks if input contains SQL injection patterns
+func containsSQLInjection(input string) bool {
+	if input == "" {
+		return false
+	}
+	return sqlInjectionPattern.MatchString(input)
 }
 
 // GatewayHandler handles API Gateway requests
@@ -689,6 +700,15 @@ func (h *GatewayHandler) HandleAuthRegister(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	// Check for SQL injection attempts in all input fields
+	if containsSQLInjection(req.Email) || containsSQLInjection(req.Username) || containsSQLInjection(req.Password) {
+		h.logger.Warn("SQL injection attempt detected in registration",
+			zap.String("path", r.URL.Path),
+			zap.String("email", req.Email))
+		gatewayerrors.WriteBadRequest(w, r, "Invalid input: Potentially harmful content detected")
+		return
+	}
+
 	// Validate email format
 	if !strings.Contains(req.Email, "@") || !strings.Contains(req.Email, ".") {
 		gatewayerrors.WriteBadRequest(w, r, "Invalid email format: Please provide a valid email address")
@@ -783,6 +803,15 @@ func (h *GatewayHandler) HandleAuthLogin(w http.ResponseWriter, r *http.Request)
 	// Validate required fields
 	if req.Email == "" || req.Password == "" {
 		gatewayerrors.WriteBadRequest(w, r, "Missing required fields: Email and password are required")
+		return
+	}
+
+	// Check for SQL injection attempts in email and password
+	if containsSQLInjection(req.Email) || containsSQLInjection(req.Password) {
+		h.logger.Warn("SQL injection attempt detected",
+			zap.String("path", r.URL.Path),
+			zap.String("email", req.Email))
+		gatewayerrors.WriteBadRequest(w, r, "Invalid input: Potentially harmful content detected")
 		return
 	}
 
