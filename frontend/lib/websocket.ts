@@ -72,17 +72,31 @@ export class WebSocketClient {
       };
 
       this.ws.onerror = (error) => {
+        console.warn('WebSocket error:', error);
         this.setStatus('error');
-        this.options.onError(new Error('WebSocket error'));
+        this.options.onError(new Error('WebSocket connection error'));
+        // Don't attempt to reconnect on error - let onclose handle it
       };
 
       this.ws.onclose = (event) => {
         this.setStatus('disconnected');
         this.ws = null;
 
-        // Attempt to reconnect if not a normal closure
+        // Log close reason for debugging
+        if (event.code !== 1000) {
+          console.warn('WebSocket closed unexpectedly:', {
+            code: event.code,
+            reason: event.reason || 'Unknown',
+            wasClean: event.wasClean,
+          });
+        }
+
+        // Attempt to reconnect if not a normal closure and we haven't exceeded max attempts
         if (event.code !== 1000 && this.reconnectAttempts < this.options.maxReconnectAttempts) {
           this.scheduleReconnect();
+        } else if (this.reconnectAttempts >= this.options.maxReconnectAttempts) {
+          console.error('WebSocket: Max reconnection attempts reached. WebSocket will remain disconnected.');
+          this.setStatus('error');
         }
       };
     } catch (error) {

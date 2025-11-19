@@ -574,6 +574,15 @@ export async function getRiskIndicators(
   });
 }
 
+// Risk Alerts (active risk indicators)
+export async function getRiskAlerts(
+  merchantId: string,
+  severity?: string
+): Promise<RiskIndicatorsData> {
+  // Alerts are active indicators, so use getRiskIndicators with status="active"
+  return getRiskIndicators(merchantId, severity, 'active');
+}
+
 // Enrichment Sources
 export async function getEnrichmentSources(merchantId: string): Promise<{
   merchantId: string;

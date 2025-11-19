@@ -30,39 +30,50 @@ export function RiskWebSocketProvider({ children, merchantId }: RiskWebSocketPro
       return;
     }
 
-    const client = createRiskWebSocketClient(merchantId, {
-      onStatusChange: (newStatus) => {
-        setStatus(newStatus);
-      },
-      onRiskUpdate: (data) => {
-        // Handle risk update - could dispatch event or update context
-        window.dispatchEvent(
-          new CustomEvent('riskUpdate', {
-            detail: data,
-          })
-        );
-      },
-      onRiskPrediction: (data) => {
-        window.dispatchEvent(
-          new CustomEvent('riskPrediction', {
-            detail: data,
-          })
-        );
-      },
-      onRiskAlert: (data) => {
-        window.dispatchEvent(
-          new CustomEvent('riskAlert', {
-            detail: data,
-          })
-        );
-      },
-    });
+    // Add a small delay to ensure component is fully mounted
+    const connectTimeout = setTimeout(() => {
+      try {
+        const client = createRiskWebSocketClient(merchantId, {
+          onStatusChange: (newStatus) => {
+            setStatus(newStatus);
+          },
+          onRiskUpdate: (data) => {
+            // Handle risk update - could dispatch event or update context
+            window.dispatchEvent(
+              new CustomEvent('riskUpdate', {
+                detail: data,
+              })
+            );
+          },
+          onRiskPrediction: (data) => {
+            window.dispatchEvent(
+              new CustomEvent('riskPrediction', {
+                detail: data,
+              })
+            );
+          },
+          onRiskAlert: (data) => {
+            window.dispatchEvent(
+              new CustomEvent('riskAlert', {
+                detail: data,
+              })
+            );
+          },
+        });
 
-    wsClientRef.current = client;
-    client.connect();
+        wsClientRef.current = client;
+        client.connect();
+      } catch (error) {
+        console.error('Failed to create WebSocket client:', error);
+        setStatus('error');
+      }
+    }, 100);
 
     return () => {
-      client.disconnect();
+      clearTimeout(connectTimeout);
+      if (wsClientRef.current) {
+        wsClientRef.current.disconnect();
+      }
     };
   }, [merchantId]);
 

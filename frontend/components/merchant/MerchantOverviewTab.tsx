@@ -7,6 +7,8 @@ import type { Merchant } from '@/types/merchant';
 import { useEffect, useState } from 'react';
 import { PortfolioComparisonCard } from './PortfolioComparisonCard';
 import { RiskScoreCard } from './RiskScoreCard';
+import { PortfolioContextBadge } from './PortfolioContextBadge';
+import { EnrichmentButton } from './EnrichmentButton';
 
 interface MerchantOverviewTabProps {
   merchant: Merchant;
@@ -32,6 +34,12 @@ export function MerchantOverviewTab({ merchant }: MerchantOverviewTabProps) {
 
   return (
     <div className="space-y-6">
+      {/* Portfolio Context Badge and Enrichment Button */}
+      <div className="flex justify-between items-center">
+        <EnrichmentButton merchantId={merchant.id} variant="outline" size="sm" />
+        <PortfolioContextBadge merchantId={merchant.id} variant="detailed" />
+      </div>
+
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>

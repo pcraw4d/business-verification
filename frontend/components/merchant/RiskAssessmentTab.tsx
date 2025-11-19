@@ -16,6 +16,8 @@ import type { RiskAssessment, RiskAssessmentRequest, RiskFactor } from '@/types/
 import { useEffect, useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import { RiskBenchmarkComparison } from './RiskBenchmarkComparison';
+import { RiskExplainabilitySection } from './RiskExplainabilitySection';
+import { RiskRecommendationsSection } from './RiskRecommendationsSection';
 
 interface RiskAssessmentTabProps {
   merchantId: string;
@@ -324,6 +326,12 @@ function RiskAssessmentTabContent({ merchantId }: RiskAssessmentTabProps) {
 
           {/* Industry Benchmark Comparison */}
           <RiskBenchmarkComparison merchantId={merchantId} />
+
+          {/* Risk Assessment Explainability */}
+          <RiskExplainabilitySection merchantId={merchantId} />
+
+          {/* Risk Recommendations */}
+          <RiskRecommendationsSection merchantId={merchantId} />
 
           {/* Risk Factors Table */}
           {assessment.result?.factors && assessment.result.factors.length > 0 && (

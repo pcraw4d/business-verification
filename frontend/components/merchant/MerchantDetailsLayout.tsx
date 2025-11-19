@@ -9,6 +9,8 @@ import type { Merchant } from '@/types/merchant';
 import dynamic from 'next/dynamic';
 import { useEffect, useState, useCallback } from 'react';
 import { RefreshCw } from 'lucide-react';
+import { PortfolioContextBadge } from './PortfolioContextBadge';
+import { EnrichmentButton } from './EnrichmentButton';
 
 // Lazy load tabs - only load when needed
 const MerchantOverviewTab = dynamic(
@@ -185,11 +187,21 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="border-b pb-4">
-        <h1 className="text-3xl font-bold">{merchant.businessName || 'Unknown Merchant'}</h1>
-        <p className="text-muted-foreground mt-2">
-          {merchant.industry && `${merchant.industry} • `}
-          Status: {merchant.status || 'Unknown'}
-        </p>
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold">{merchant.businessName || 'Unknown Merchant'}</h1>
+              <PortfolioContextBadge merchantId={merchantId} variant="default" />
+            </div>
+            <p className="text-muted-foreground mt-2">
+              {merchant.industry && `${merchant.industry} • `}
+              Status: {merchant.status || 'Unknown'}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <EnrichmentButton merchantId={merchantId} variant="outline" size="sm" />
+          </div>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

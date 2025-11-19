@@ -142,6 +142,13 @@ export const ApiEndpoints = {
       const query = params.toString();
       return buildApiUrl(`/api/v1/risk/indicators/${merchantId}${query ? `?${query}` : ''}`);
     },
+    alerts: (merchantId: string, params?: { severity?: string; status?: string }) => {
+      const urlParams = new URLSearchParams();
+      if (params?.severity) urlParams.append('severity', params.severity);
+      if (params?.status) urlParams.append('status', params.status);
+      const query = urlParams.toString();
+      return buildApiUrl(`/api/v1/risk/indicators/${merchantId}${query ? `?${query}` : ''}`);
+    },
     metrics: () => buildApiUrl('/api/v1/risk/metrics'),
     ws: () => buildWebSocketUrl('/api/v1/risk/ws'),
     benchmarks: (params?: { mcc?: string; naics?: string; sic?: string }) => {
