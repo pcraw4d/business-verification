@@ -16,7 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 interface RiskTrendDataPoint {
   name: string;
-  historical: number;
+  historical?: number;
   prediction?: number;
   confidenceUpper?: number;
   confidenceLower?: number;
