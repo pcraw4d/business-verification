@@ -3,12 +3,22 @@
 export interface Merchant {
   id: string;
   businessName: string;
+  name?: string; // Alternative field name from backend
+  legalName?: string;
+  registrationNumber?: string;
+  taxId?: string;
   industry?: string;
+  industryCode?: string;
+  businessType?: string;
+  description?: string;
   status: string;
   website?: string;
   email?: string;
   phone?: string;
   address?: Address;
+  portfolioType?: string;
+  riskLevel?: string;
+  complianceStatus?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -207,5 +217,164 @@ export interface MerchantListResponse {
   total_pages: number;
   has_next: boolean;
   has_previous: boolean;
+}
+
+// Portfolio-level analytics types
+export interface PortfolioAnalytics {
+  totalMerchants: number;
+  averageRiskScore: number;
+  averageClassificationConfidence: number;
+  averageSecurityTrustScore: number;
+  averageDataQuality: number;
+  riskDistribution: {
+    low: number;
+    medium: number;
+    high: number;
+  };
+  industryDistribution: Record<string, number>;
+  countryDistribution: Record<string, number>;
+  timestamp: string;
+}
+
+export interface PortfolioStatistics {
+  totalMerchants: number;
+  totalAssessments: number;
+  averageRiskScore: number;
+  riskDistribution: {
+    low: number;
+    medium: number;
+    high: number;
+  };
+  industryBreakdown: Array<{
+    industry: string;
+    count: number;
+    averageRiskScore: number;
+  }>;
+  countryBreakdown: Array<{
+    country: string;
+    count: number;
+    averageRiskScore: number;
+  }>;
+  timestamp: string;
+}
+
+// Risk trends types
+export interface RiskTrends {
+  trends: RiskTrend[];
+  summary: TrendSummary;
+}
+
+export interface RiskTrend {
+  industry: string;
+  country: string;
+  average_risk_score: number;
+  trend_direction: 'improving' | 'worsening' | 'stable';
+  change_percentage: number;
+  sample_size: number;
+}
+
+export interface TrendSummary {
+  total_assessments: number;
+  average_risk_score: number;
+  high_risk_percentage: number;
+}
+
+// Risk insights types
+export interface RiskInsights {
+  insights: RiskInsight[];
+  recommendations: Recommendation[];
+}
+
+export interface RiskInsight {
+  type: string;
+  title: string;
+  description: string;
+  impact: 'low' | 'medium' | 'high';
+  recommendation: string;
+}
+
+export interface Recommendation {
+  category: string;
+  action: string;
+  priority: 'low' | 'medium' | 'high';
+}
+
+// Risk benchmarks types
+export interface RiskBenchmarks {
+  industry_code: string;
+  industry_type: 'mcc' | 'naics' | 'sic';
+  average_risk_score: number;
+  median_risk_score: number;
+  percentile_25: number;
+  percentile_75: number;
+  percentile_90: number;
+  sample_size: number;
+  benchmarks: {
+    average: number;
+    median: number;
+    p25: number;
+    p75: number;
+    p90: number;
+  };
+}
+
+// Merchant risk score type
+export interface MerchantRiskScore {
+  merchant_id: string;
+  risk_score: number;
+  risk_level: 'low' | 'medium' | 'high';
+  confidence_score: number;
+  assessment_date: string;
+  factors: Array<{
+    category: string;
+    score: number;
+    weight: number;
+  }>;
+}
+
+// Comparison result types
+export interface PortfolioComparison {
+  merchantScore: number;
+  portfolioAverage: number;
+  portfolioMedian: number;
+  percentile: number;
+  position: 'above_average' | 'below_average' | 'average';
+  difference: number;
+  differencePercentage: number;
+}
+
+export interface BenchmarkComparison {
+  merchantScore: number;
+  industryAverage: number;
+  industryMedian: number;
+  industryPercentile75: number;
+  industryPercentile90: number;
+  percentile: number;
+  position: 'top_10' | 'top_25' | 'average' | 'bottom_25' | 'bottom_10';
+  difference: number;
+  differencePercentage: number;
+}
+
+export interface AnalyticsComparison {
+  merchant: {
+    classificationConfidence: number;
+    securityTrustScore: number;
+    dataQuality: number;
+  };
+  portfolio: {
+    averageClassificationConfidence: number;
+    averageSecurityTrustScore: number;
+    averageDataQuality: number;
+  };
+  differences: {
+    classificationConfidence: number;
+    securityTrustScore: number;
+    dataQuality: number;
+  };
+  percentages: {
+    classificationConfidence: number;
+    securityTrustScore: number;
+    dataQuality: number;
+  };
 }
 

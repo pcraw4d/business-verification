@@ -536,26 +536,31 @@ func (h *GatewayHandler) ProxyToRiskAssessment(w http.ResponseWriter, r *http.Re
 	// API Gateway: /api/v1/risk/predictions/{id} -> Risk Service: /api/v1/risk/predictions/{id}
 	path := r.URL.Path
 
-	// CRITICAL: Validate UUID for indicators endpoint FIRST, before any path transformation
-	// This ensures validation happens even if route is matched via PathPrefix
+	// Handle risk indicators endpoint - route directly without path transformation
+	// Accept both UUID and custom merchant ID formats (e.g., merchant_*)
 	if strings.HasPrefix(path, "/api/v1/risk/indicators/") {
-		// Map /api/v1/risk/indicators/{id} to /api/v1/risk/predictions/{id}
-		// Extract merchant ID and route to predictions endpoint (which provides risk data)
+		// Extract merchant ID for validation (check for SQL injection, not UUID format)
 		parts := strings.Split(path, "/")
 		if len(parts) >= 6 {
 			merchantID := parts[5] // /api/v1/risk/indicators/{id} - index 5 is the ID
-			// Validate UUID format before transformation - THIS MUST HAPPEN FIRST
-			if !isValidUUID(merchantID) {
-				// Return 400 Bad Request for invalid UUID format
-				h.logger.Warn("Invalid merchant ID format in risk indicators endpoint",
+			// Validate for SQL injection and basic security, but accept any ID format
+			if merchantID == "" {
+				h.logger.Warn("Missing merchant ID in risk indicators endpoint",
 					zap.String("path", path),
-					zap.String("merchant_id", merchantID),
 					zap.Strings("path_parts", parts))
-				http.Error(w, "Invalid merchant ID format: expected UUID", http.StatusBadRequest)
+				http.Error(w, "Missing merchant ID in path", http.StatusBadRequest)
 				return
 			}
-			// UUID is valid, proceed with path transformation
-			path = fmt.Sprintf("/api/v1/risk/predictions/%s", merchantID)
+			// Check for SQL injection patterns
+			if containsSQLInjection(merchantID) {
+				h.logger.Warn("Potential SQL injection detected in risk indicators endpoint",
+					zap.String("path", path),
+					zap.String("merchant_id", merchantID))
+				http.Error(w, "Invalid merchant ID format", http.StatusBadRequest)
+				return
+			}
+			// Keep path as-is - let the risk assessment service handle it directly
+			// No path transformation needed
 		} else {
 			// Path doesn't have enough parts - missing merchant ID
 			h.logger.Warn("Missing merchant ID in risk indicators endpoint",
@@ -570,6 +575,11 @@ func (h *GatewayHandler) ProxyToRiskAssessment(w http.ResponseWriter, r *http.Re
 	} else if path == "/api/v1/risk/metrics" {
 		// Map /api/v1/risk/metrics to /api/v1/metrics (risk service uses /metrics, not /risk/metrics)
 		path = "/api/v1/metrics"
+	} else if strings.HasPrefix(path, "/api/v1/analytics/") {
+		// Analytics routes are handled by risk assessment service
+		// Keep path as-is (e.g., /api/v1/analytics/trends, /api/v1/analytics/insights)
+		// The risk service has routes like /api/v1/analytics/trends
+		// No path transformation needed
 	} else if strings.HasPrefix(path, "/api/v1/risk/") {
 		// For other /risk/* paths, keep them as-is (e.g., /risk/benchmarks, /risk/predictions)
 		// The risk service has routes like /api/v1/risk/benchmarks

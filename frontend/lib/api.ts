@@ -17,10 +17,16 @@ import type {
   Merchant,
   MerchantListParams,
   MerchantListResponse,
+  PortfolioAnalytics,
+  PortfolioStatistics,
   RiskAssessment,
   RiskAssessmentRequest,
   RiskAssessmentResponse,
+  RiskBenchmarks,
   RiskIndicatorsData,
+  RiskInsights,
+  RiskTrends,
+  MerchantRiskScore,
   WebsiteAnalysisData,
 } from '@/types/merchant';
 
@@ -1155,6 +1161,255 @@ export async function getBusinessIntelligenceMetrics(): Promise<BusinessIntellig
         performanceScore: 0,
         analyticsScore: 0,
       };
+    }
+  });
+}
+
+// Portfolio-level analytics functions
+
+/**
+ * Get portfolio-wide analytics (all merchants)
+ * Uses caching with 5-10 minute TTL
+ */
+export async function getPortfolioAnalytics(): Promise<PortfolioAnalytics> {
+  const cacheKey = 'portfolio-analytics';
+  
+  // Check cache first
+  const cached = apiCache.get<PortfolioAnalytics>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const token = getAuthToken();
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  return requestDeduplicator.deduplicate(cacheKey, async () => {
+    try {
+      const response = await fetch(ApiEndpoints.merchants.portfolioAnalytics(), {
+        method: 'GET',
+        headers,
+      });
+      const data = await handleResponse<PortfolioAnalytics>(response);
+      // Cache for 5-10 minutes (using 7 minutes as middle ground)
+      apiCache.set(cacheKey, data, 7 * 60 * 1000);
+      return data;
+    } catch (error) {
+      await ErrorHandler.handleAPIError(error);
+      throw error;
+    }
+  });
+}
+
+/**
+ * Get portfolio-wide statistics
+ * Uses caching with 5-10 minute TTL
+ */
+export async function getPortfolioStatistics(): Promise<PortfolioStatistics> {
+  const cacheKey = 'portfolio-statistics';
+  
+  // Check cache first
+  const cached = apiCache.get<PortfolioStatistics>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const token = getAuthToken();
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  return requestDeduplicator.deduplicate(cacheKey, async () => {
+    try {
+      const response = await fetch(ApiEndpoints.merchants.statistics(), {
+        method: 'GET',
+        headers,
+      });
+      const data = await handleResponse<PortfolioStatistics>(response);
+      // Cache for 5-10 minutes (using 7 minutes as middle ground)
+      apiCache.set(cacheKey, data, 7 * 60 * 1000);
+      return data;
+    } catch (error) {
+      await ErrorHandler.handleAPIError(error);
+      throw error;
+    }
+  });
+}
+
+/**
+ * Get risk trends analytics
+ * Uses caching with deduplication
+ */
+export async function getRiskTrends(params?: {
+  industry?: string;
+  country?: string;
+  timeframe?: string;
+  limit?: number;
+}): Promise<RiskTrends> {
+  const cacheKey = `risk-trends:${JSON.stringify(params || {})}`;
+  
+  // Check cache first
+  const cached = apiCache.get<RiskTrends>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const token = getAuthToken();
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  return requestDeduplicator.deduplicate(cacheKey, async () => {
+    try {
+      const response = await fetch(ApiEndpoints.analytics.trends(params), {
+        method: 'GET',
+        headers,
+      });
+      const data = await handleResponse<RiskTrends>(response);
+      // Cache for 5 minutes
+      apiCache.set(cacheKey, data, 5 * 60 * 1000);
+      return data;
+    } catch (error) {
+      await ErrorHandler.handleAPIError(error);
+      throw error;
+    }
+  });
+}
+
+/**
+ * Get risk insights analytics
+ * Uses caching with deduplication
+ */
+export async function getRiskInsights(params?: {
+  industry?: string;
+  country?: string;
+  risk_level?: string;
+}): Promise<RiskInsights> {
+  const cacheKey = `risk-insights:${JSON.stringify(params || {})}`;
+  
+  // Check cache first
+  const cached = apiCache.get<RiskInsights>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const token = getAuthToken();
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  return requestDeduplicator.deduplicate(cacheKey, async () => {
+    try {
+      const response = await fetch(ApiEndpoints.analytics.insights(params), {
+        method: 'GET',
+        headers,
+      });
+      const data = await handleResponse<RiskInsights>(response);
+      // Cache for 5 minutes
+      apiCache.set(cacheKey, data, 5 * 60 * 1000);
+      return data;
+    } catch (error) {
+      await ErrorHandler.handleAPIError(error);
+      throw error;
+    }
+  });
+}
+
+/**
+ * Get risk benchmarks for an industry
+ * Uses caching with 10-15 minute TTL
+ */
+export async function getRiskBenchmarks(params: {
+  mcc?: string;
+  naics?: string;
+  sic?: string;
+}): Promise<RiskBenchmarks> {
+  const cacheKey = `risk-benchmarks:${params.mcc || params.naics || params.sic}`;
+  
+  // Check cache first
+  const cached = apiCache.get<RiskBenchmarks>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const token = getAuthToken();
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  return requestDeduplicator.deduplicate(cacheKey, async () => {
+    try {
+      const response = await fetch(ApiEndpoints.risk.benchmarks(params), {
+        method: 'GET',
+        headers,
+      });
+      const data = await handleResponse<RiskBenchmarks>(response);
+      // Cache for 10-15 minutes (using 12 minutes as middle ground)
+      apiCache.set(cacheKey, data, 12 * 60 * 1000);
+      return data;
+    } catch (error) {
+      await ErrorHandler.handleAPIError(error);
+      throw error;
+    }
+  });
+}
+
+/**
+ * Get merchant risk score
+ * Uses caching with 2-5 minute TTL
+ */
+export async function getMerchantRiskScore(merchantId: string): Promise<MerchantRiskScore> {
+  const cacheKey = `merchant-risk-score:${merchantId}`;
+  
+  // Check cache first
+  const cached = apiCache.get<MerchantRiskScore>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const token = getAuthToken();
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  return requestDeduplicator.deduplicate(cacheKey, async () => {
+    try {
+      const response = await fetch(ApiEndpoints.merchants.riskScore(merchantId), {
+        method: 'GET',
+        headers,
+      });
+      const data = await handleResponse<MerchantRiskScore>(response);
+      // Cache for 2-5 minutes (using 3 minutes as middle ground)
+      apiCache.set(cacheKey, data, 3 * 60 * 1000);
+      return data;
+    } catch (error) {
+      await ErrorHandler.handleAPIError(error);
+      throw error;
     }
   });
 }

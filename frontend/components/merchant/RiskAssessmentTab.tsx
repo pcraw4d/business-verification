@@ -1,6 +1,6 @@
 'use client';
 
-import { RiskGauge } from '@/components/charts/lazy';
+import { RiskGauge, LineChart, BarChart, AreaChart } from '@/components/charts/lazy';
 import { ChartContainer } from '@/components/dashboards/ChartContainer';
 import { ExportButton } from '@/components/export/ExportButton';
 import { Badge } from '@/components/ui/badge';
@@ -8,12 +8,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { EmptyState } from '@/components/ui/empty-state';
 import { ProgressIndicator } from '@/components/ui/progress-indicator';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { RiskWebSocketProvider, useRiskWebSocket, WebSocketStatusIndicator } from '@/components/websocket/RiskWebSocketProvider';
-import { getAssessmentStatus, getRiskAssessment, startRiskAssessment } from '@/lib/api';
+import { getAssessmentStatus, getRiskAssessment, getRiskHistory, getRiskPredictions, startRiskAssessment } from '@/lib/api';
 import { ErrorHandler } from '@/lib/error-handler';
-import type { RiskAssessment, RiskAssessmentRequest } from '@/types/merchant';
-import { useEffect, useState } from 'react';
+import type { RiskAssessment, RiskAssessmentRequest, RiskFactor } from '@/types/merchant';
+import { useEffect, useState, useMemo } from 'react';
 import { toast } from 'sonner';
+import { RiskBenchmarkComparison } from './RiskBenchmarkComparison';
 
 interface RiskAssessmentTabProps {
   merchantId: string;
@@ -22,9 +24,17 @@ interface RiskAssessmentTabProps {
 function RiskAssessmentTabContent({ merchantId }: RiskAssessmentTabProps) {
   useRiskWebSocket(); // Initialize WebSocket connection
   const [assessment, setAssessment] = useState<RiskAssessment | null>(null);
+  const [riskHistory, setRiskHistory] = useState<RiskAssessment[]>([]);
+  const [riskPredictions, setRiskPredictions] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     loadAssessment();
@@ -75,6 +85,29 @@ function RiskAssessmentTabContent({ merchantId }: RiskAssessmentTabProps) {
       setAssessment(data);
       if (process.env.NODE_ENV === 'test') {
         console.log('[RiskAssessmentTab] State updated with assessment data');
+      }
+
+      // Load risk history if assessment exists
+      if (data) {
+        try {
+          setHistoryLoading(true);
+          const history = await getRiskHistory(merchantId, 10, 0);
+          setRiskHistory(history.history || []);
+        } catch (historyErr) {
+          console.error('Failed to load risk history:', historyErr);
+          // Don't fail the whole component if history fails
+        } finally {
+          setHistoryLoading(false);
+        }
+
+        // Load risk predictions
+        try {
+          const predictions = await getRiskPredictions(merchantId, [3, 6, 12], false, true);
+          setRiskPredictions(predictions);
+        } catch (predictionsErr) {
+          console.error('Failed to load risk predictions:', predictionsErr);
+          // Don't fail the whole component if predictions fail
+        }
       }
     } catch (err) {
       if (process.env.NODE_ENV === 'test') {
@@ -287,6 +320,179 @@ function RiskAssessmentTabContent({ merchantId }: RiskAssessmentTabProps) {
                 )}
               </CardContent>
             </Card>
+          )}
+
+          {/* Industry Benchmark Comparison */}
+          <RiskBenchmarkComparison merchantId={merchantId} />
+
+          {/* Risk Factors Table */}
+          {assessment.result?.factors && assessment.result.factors.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Risk Factors</CardTitle>
+                <CardDescription>Detailed risk factor analysis</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Factor</TableHead>
+                      <TableHead>Score</TableHead>
+                      <TableHead>Weight</TableHead>
+                      <TableHead className="text-right">Impact</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {assessment.result.factors
+                      .sort((a, b) => b.score - a.score)
+                      .map((factor, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium">{factor.name}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div className="w-32 h-2 bg-muted rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-primary"
+                                  style={{ width: `${(factor.score / 10) * 100}%` }}
+                                />
+                              </div>
+                              <span className="text-sm font-medium w-12">
+                                {factor.score.toFixed(1)}/10
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{(factor.weight * 100).toFixed(1)}%</TableCell>
+                          <TableCell className="text-right">
+                            {(factor.score * factor.weight).toFixed(2)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Risk History Table and Charts */}
+          {(riskHistory.length > 0 || riskPredictions) && (
+            <div className="space-y-6">
+              {riskHistory.length > 0 && (
+                <>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Risk History</CardTitle>
+                      <CardDescription>Historical risk assessment scores</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {historyLoading ? (
+                        <Skeleton className="h-64 w-full" />
+                      ) : (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Date</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Score</TableHead>
+                              <TableHead>Risk Level</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {riskHistory.map((historyItem) => (
+                              <TableRow key={historyItem.id}>
+                                <TableCell>
+                                  {mounted ? new Date(historyItem.createdAt).toLocaleDateString() : 'Loading...'}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="outline">{historyItem.status}</Badge>
+                                </TableCell>
+                                <TableCell>
+                                  {historyItem.result?.overallScore.toFixed(1) || 'N/A'}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    variant={
+                                      historyItem.result?.riskLevel === 'low'
+                                        ? 'default'
+                                        : historyItem.result?.riskLevel === 'medium'
+                                        ? 'secondary'
+                                        : 'destructive'
+                                    }
+                                  >
+                                    {historyItem.result?.riskLevel || 'N/A'}
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Risk Score History Chart */}
+                  <ChartContainer
+                    title="Risk Score History"
+                    description="Risk assessment scores over time"
+                    isLoading={historyLoading}
+                  >
+                    <LineChart
+                      data={mounted ? riskHistory
+                        .filter((h) => h.result?.overallScore != null)
+                        .map((h) => ({
+                          name: new Date(h.createdAt).toLocaleDateString(),
+                          value: h.result!.overallScore,
+                        })) : []}
+                      dataKey="value"
+                      lines={[{ key: 'value', name: 'Risk Score', color: '#8884d8' }]}
+                      height={300}
+                      isLoading={historyLoading}
+                    />
+                  </ChartContainer>
+                </>
+              )}
+
+              {/* Risk Factors Comparison Chart */}
+              {assessment.result?.factors && assessment.result.factors.length > 0 && (
+                <ChartContainer
+                  title="Risk Factors Comparison"
+                  description="Comparison of risk factor scores"
+                  isLoading={false}
+                >
+                  <BarChart
+                    data={assessment.result.factors
+                      .sort((a, b) => b.score - a.score)
+                      .map((factor) => ({
+                        name: factor.name,
+                        value: factor.score,
+                      }))}
+                    dataKey="value"
+                    bars={[{ key: 'value', name: 'Score', color: '#8884d8' }]}
+                    height={300}
+                    isLoading={false}
+                  />
+                </ChartContainer>
+              )}
+
+              {/* Risk Predictions Chart */}
+              {riskPredictions && riskPredictions.predictions && riskPredictions.predictions.length > 0 && (
+                <ChartContainer
+                  title="Risk Predictions"
+                  description="Predicted risk scores over time"
+                  isLoading={false}
+                >
+                  <AreaChart
+                    data={riskPredictions.predictions.map((pred: any) => ({
+                      name: `${pred.months} months`,
+                      value: pred.predictedScore || 0,
+                    }))}
+                    dataKey="name"
+                    areas={[{ key: 'value', name: 'Predicted Score', color: '#8884d8', fillOpacity: 0.6 }]}
+                    height={300}
+                    isLoading={false}
+                  />
+                </ChartContainer>
+              )}
+            </div>
           )}
         </>
       )}

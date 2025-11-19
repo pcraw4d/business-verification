@@ -115,6 +115,8 @@ export const ApiEndpoints = {
     statistics: () => buildApiUrl('/api/v1/merchants/statistics'),
     portfolioTypes: () => buildApiUrl('/api/v1/merchants/portfolio-types'),
     riskLevels: () => buildApiUrl('/api/v1/merchants/risk-levels'),
+    // Portfolio-level analytics (no merchant ID)
+    portfolioAnalytics: () => buildApiUrl('/api/v1/merchants/analytics'),
   },
   
   // Risk endpoints
@@ -142,6 +144,35 @@ export const ApiEndpoints = {
     },
     metrics: () => buildApiUrl('/api/v1/risk/metrics'),
     ws: () => buildWebSocketUrl('/api/v1/risk/ws'),
+    benchmarks: (params?: { mcc?: string; naics?: string; sic?: string }) => {
+      const urlParams = new URLSearchParams();
+      if (params?.mcc) urlParams.append('mcc', params.mcc);
+      if (params?.naics) urlParams.append('naics', params.naics);
+      if (params?.sic) urlParams.append('sic', params.sic);
+      const query = urlParams.toString();
+      return buildApiUrl(`/api/v1/risk/benchmarks${query ? `?${query}` : ''}`);
+    },
+  },
+  
+  // Analytics endpoints (portfolio-level risk analytics)
+  analytics: {
+    trends: (params?: { industry?: string; country?: string; timeframe?: string; limit?: number }) => {
+      const urlParams = new URLSearchParams();
+      if (params?.industry) urlParams.append('industry', params.industry);
+      if (params?.country) urlParams.append('country', params.country);
+      if (params?.timeframe) urlParams.append('timeframe', params.timeframe);
+      if (params?.limit) urlParams.append('limit', params.limit.toString());
+      const query = urlParams.toString();
+      return buildApiUrl(`/api/v1/analytics/trends${query ? `?${query}` : ''}`);
+    },
+    insights: (params?: { industry?: string; country?: string; risk_level?: string }) => {
+      const urlParams = new URLSearchParams();
+      if (params?.industry) urlParams.append('industry', params.industry);
+      if (params?.country) urlParams.append('country', params.country);
+      if (params?.risk_level) urlParams.append('risk_level', params.risk_level);
+      const query = urlParams.toString();
+      return buildApiUrl(`/api/v1/analytics/insights${query ? `?${query}` : ''}`);
+    },
   },
   
   // Dashboard endpoints

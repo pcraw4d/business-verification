@@ -6,10 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ChartContainer } from '@/components/dashboards/ChartContainer';
+import { BarChart, PieChart } from '@/components/charts/lazy';
 import { getMerchantAnalytics, getWebsiteAnalysis } from '@/lib/api';
 import { deferNonCriticalDataLoad } from '@/lib/lazy-loader';
-import type { AnalyticsData, WebsiteAnalysisData } from '@/types/merchant';
-import { useEffect, useState } from 'react';
+import type { AnalyticsData, WebsiteAnalysisData, IndustryCode } from '@/types/merchant';
+import { useEffect, useState, useMemo } from 'react';
+import { AnalyticsComparison } from './AnalyticsComparison';
 
 interface BusinessAnalyticsTabProps {
   merchantId: string;
@@ -73,10 +77,64 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
     };
   };
 
+  // Get top 3 industry codes per type
+  const getTopCodes = (codes: IndustryCode[] | undefined, limit = 3): IndustryCode[] => {
+    if (!codes || codes.length === 0) return [];
+    return [...codes]
+      .sort((a, b) => b.confidence - a.confidence)
+      .slice(0, limit);
+  };
+
+  const topMccCodes = useMemo(() => getTopCodes(analytics?.classification?.mccCodes), [analytics]);
+  const topSicCodes = useMemo(() => getTopCodes(analytics?.classification?.sicCodes), [analytics]);
+  const topNaicsCodes = useMemo(() => getTopCodes(analytics?.classification?.naicsCodes), [analytics]);
+
+  // Prepare chart data
+  const classificationChartData = useMemo(() => {
+    if (!analytics?.classification) return [];
+    return [
+      { name: 'Confidence', value: (analytics.classification.confidenceScore * 100) },
+      { name: 'Remaining', value: 100 - (analytics.classification.confidenceScore * 100) },
+    ];
+  }, [analytics]);
+
+  const dataQualityChartData = useMemo(() => {
+    if (!analytics?.quality) return [];
+    return [
+      { name: 'Complete', value: (analytics.quality.completenessScore * 100) },
+      { name: 'Missing', value: 100 - (analytics.quality.completenessScore * 100) },
+    ];
+  }, [analytics]);
+
+  const securityChartData = useMemo(() => {
+    if (!analytics?.security) return [];
+    return [
+      { name: 'Trust Score', value: (analytics.security.trustScore * 100) },
+      { name: 'Remaining', value: 100 - (analytics.security.trustScore * 100) },
+    ];
+  }, [analytics]);
+
+  const industryCodeDistributionData = useMemo(() => {
+    const data = [];
+    if (topMccCodes.length > 0) {
+      data.push({ name: 'MCC', value: topMccCodes.length });
+    }
+    if (topSicCodes.length > 0) {
+      data.push({ name: 'SIC', value: topSicCodes.length });
+    }
+    if (topNaicsCodes.length > 0) {
+      data.push({ name: 'NAICS', value: topNaicsCodes.length });
+    }
+    return data;
+  }, [topMccCodes, topSicCodes, topNaicsCodes]);
+
   return (
     <div className="space-y-6">
       {analytics && (
         <>
+          {/* Portfolio Analytics Comparison */}
+          <AnalyticsComparison merchantId={merchantId} merchantAnalytics={analytics} />
+
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -110,45 +168,214 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Security</CardTitle>
-              <CardDescription>Security metrics</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Trust Score</p>
-                <p>{analytics.security?.trustScore != null
-                  ? `${(analytics.security.trustScore * 100).toFixed(1)}%`
-                  : 'N/A'}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">SSL Valid</p>
-                <Badge variant={analytics.security?.sslValid ? 'default' : 'destructive'}>
-                  {analytics.security?.sslValid ? 'Valid' : 'Invalid'}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Industry Codes Tables */}
+          {(topMccCodes.length > 0 || topSicCodes.length > 0 || topNaicsCodes.length > 0) && (
+            <div className="grid gap-6 md:grid-cols-3">
+              {topMccCodes.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>MCC Codes</CardTitle>
+                    <CardDescription>Top {topMccCodes.length} Merchant Category Codes</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Code</TableHead>
+                          <TableHead>Description</TableHead>
+                          <TableHead className="text-right">Confidence</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {topMccCodes.map((code, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-mono text-sm">{code.code}</TableCell>
+                            <TableCell className="max-w-[200px] truncate" title={code.description}>
+                              {code.description}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {(code.confidence * 100).toFixed(1)}%
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Data Quality</CardTitle>
-              <CardDescription>Data completeness metrics</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Completeness Score</p>
-                <p>{analytics.quality?.completenessScore != null
-                  ? `${(analytics.quality.completenessScore * 100).toFixed(1)}%`
-                  : 'N/A'}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Data Points</p>
-                <p>{analytics.quality?.dataPoints ?? 'N/A'}</p>
-              </div>
-            </CardContent>
-          </Card>
+              {topSicCodes.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>SIC Codes</CardTitle>
+                    <CardDescription>Top {topSicCodes.length} Standard Industrial Classification Codes</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Code</TableHead>
+                          <TableHead>Description</TableHead>
+                          <TableHead className="text-right">Confidence</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {topSicCodes.map((code, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-mono text-sm">{code.code}</TableCell>
+                            <TableCell className="max-w-[200px] truncate" title={code.description}>
+                              {code.description}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {(code.confidence * 100).toFixed(1)}%
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              )}
+
+              {topNaicsCodes.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>NAICS Codes</CardTitle>
+                    <CardDescription>Top {topNaicsCodes.length} North American Industry Classification Codes</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Code</TableHead>
+                          <TableHead>Description</TableHead>
+                          <TableHead className="text-right">Confidence</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {topNaicsCodes.map((code, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-mono text-sm">{code.code}</TableCell>
+                            <TableCell className="max-w-[200px] truncate" title={code.description}>
+                              {code.description}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {(code.confidence * 100).toFixed(1)}%
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {/* Charts Section */}
+          <div className="grid gap-6 md:grid-cols-2">
+            {classificationChartData.length > 0 && (
+              <ChartContainer
+                title="Classification Confidence"
+                description="Confidence score distribution"
+                isLoading={false}
+              >
+                <PieChart
+                  data={classificationChartData}
+                  height={250}
+                  isLoading={false}
+                />
+              </ChartContainer>
+            )}
+
+            {industryCodeDistributionData.length > 0 && (
+              <ChartContainer
+                title="Industry Code Distribution"
+                description="Number of codes per classification type"
+                isLoading={false}
+              >
+                <BarChart
+                  data={industryCodeDistributionData}
+                  dataKey="value"
+                  bars={[{ key: 'value', name: 'Codes', color: '#8884d8' }]}
+                  height={250}
+                  isLoading={false}
+                />
+              </ChartContainer>
+            )}
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Security</CardTitle>
+                <CardDescription>Security metrics</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Trust Score</p>
+                  <p>{analytics.security?.trustScore != null
+                    ? `${(analytics.security.trustScore * 100).toFixed(1)}%`
+                    : 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">SSL Valid</p>
+                  <Badge variant={analytics.security?.sslValid ? 'default' : 'destructive'}>
+                    {analytics.security?.sslValid ? 'Valid' : 'Invalid'}
+                  </Badge>
+                </div>
+                {securityChartData.length > 0 && (
+                  <div className="mt-4">
+                    <ChartContainer
+                      title="Security Trust Score"
+                      description="Trust score visualization"
+                      isLoading={false}
+                    >
+                      <PieChart
+                        data={securityChartData}
+                        height={200}
+                        isLoading={false}
+                      />
+                    </ChartContainer>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Data Quality</CardTitle>
+                <CardDescription>Data completeness metrics</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Completeness Score</p>
+                  <p>{analytics.quality?.completenessScore != null
+                    ? `${(analytics.quality.completenessScore * 100).toFixed(1)}%`
+                    : 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Data Points</p>
+                  <p>{analytics.quality?.dataPoints ?? 'N/A'}</p>
+                </div>
+                {dataQualityChartData.length > 0 && (
+                  <div className="mt-4">
+                    <ChartContainer
+                      title="Data Quality"
+                      description="Completeness score visualization"
+                      isLoading={false}
+                    >
+                      <PieChart
+                        data={dataQualityChartData}
+                        height={200}
+                        isLoading={false}
+                      />
+                    </ChartContainer>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </>
       )}
 

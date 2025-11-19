@@ -126,9 +126,10 @@ func main() {
 	api.HandleFunc("/merchants/{id}/website-analysis", gatewayHandler.ProxyToMerchants).Methods("GET", "OPTIONS")
 	api.HandleFunc("/merchants/{id}/risk-score", gatewayHandler.ProxyToMerchants).Methods("GET", "OPTIONS")
 
-	// 2. General merchant endpoints (search, analytics) before /merchants/{id}
+	// 2. General merchant endpoints (search, analytics, statistics) before /merchants/{id}
 	api.HandleFunc("/merchants/search", gatewayHandler.ProxyToMerchants).Methods("POST", "OPTIONS")
 	api.HandleFunc("/merchants/analytics", gatewayHandler.ProxyToMerchants).Methods("GET", "OPTIONS")
+	api.HandleFunc("/merchants/statistics", gatewayHandler.ProxyToMerchants).Methods("GET", "OPTIONS")
 
 	// 3. Base merchant routes
 	api.HandleFunc("/merchants/{id}", gatewayHandler.ProxyToMerchants).Methods("GET", "PUT", "DELETE", "OPTIONS")
@@ -160,6 +161,12 @@ func main() {
 	api.HandleFunc("/sessions", gatewayHandler.ProxyToSessions).Methods("GET", "POST", "DELETE", "OPTIONS")
 	// 3. PathPrefix catch-all LAST
 	api.PathPrefix("/sessions").HandlerFunc(gatewayHandler.ProxyToSessions)
+
+	// Analytics routes - CORS handled by middleware
+	// ORDER MATTERS: Analytics routes must be registered before /risk PathPrefix
+	// Analytics routes are handled by Risk Assessment service
+	api.HandleFunc("/analytics/trends", gatewayHandler.ProxyToRiskAssessment).Methods("GET", "OPTIONS")
+	api.HandleFunc("/analytics/insights", gatewayHandler.ProxyToRiskAssessment).Methods("GET", "OPTIONS")
 
 	// Risk Assessment routes - CORS handled by middleware
 	// ORDER MATTERS: Specific routes with path transformation must be registered before PathPrefix

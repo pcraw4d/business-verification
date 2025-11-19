@@ -7,7 +7,7 @@ import { ChartContainer } from '@/components/dashboards/ChartContainer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ChartLine, TrendingUp, Users, DollarSign } from 'lucide-react';
-import { getDashboardMetrics } from '@/lib/api';
+import { getDashboardMetrics, getPortfolioAnalytics, getPortfolioStatistics } from '@/lib/api';
 import { toast } from 'sonner';
 import { LineChart } from '@/components/charts/lazy';
 import { PieChart } from '@/components/charts/lazy';
@@ -21,36 +21,110 @@ export default function DashboardPage() {
   });
   const [loading, setLoading] = useState(true);
   const [chartLoading, setChartLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock chart data - will be replaced with real API data
+  // Portfolio data
   const [trendData, setTrendData] = useState<Array<{ name: string; value: number }>>([]);
   const [distributionData, setDistributionData] = useState<Array<{ name: string; value: number }>>([]);
 
   useEffect(() => {
     async function fetchMetrics() {
       try {
-        const data = await getDashboardMetrics();
-        setMetrics(data);
-        
-        // Generate mock trend data (last 12 months)
+        setError(null);
+        setLoading(true);
+        setChartLoading(true);
+
+        // Fetch portfolio data in parallel
+        const [portfolioAnalytics, portfolioStatistics, dashboardMetrics] = await Promise.allSettled([
+          getPortfolioAnalytics(),
+          getPortfolioStatistics(),
+          getDashboardMetrics(), // Keep v3 endpoint as fallback/supplement
+        ]);
+
+        // Use portfolio statistics for primary metrics
+        if (portfolioStatistics.status === 'fulfilled') {
+          const stats = portfolioStatistics.value;
+          setMetrics({
+            totalMerchants: stats.totalMerchants || 0,
+            revenue: 0, // Revenue not in portfolio statistics
+            growthRate: 0, // Growth rate not in portfolio statistics
+            analyticsScore: stats.averageRiskScore ? (1 - stats.averageRiskScore) * 100 : 0, // Convert risk score to analytics score
+          });
+
+          // Use industry breakdown for distribution chart
+          if (stats.industryBreakdown && stats.industryBreakdown.length > 0) {
+            const distribution = stats.industryBreakdown.map((item) => ({
+              name: item.industry || 'Unknown',
+              value: item.count || 0,
+            }));
+            setDistributionData(distribution);
+          }
+        }
+
+        // Use portfolio analytics for additional metrics
+        let hasDistributionData = false;
+        if (portfolioAnalytics.status === 'fulfilled') {
+          const analytics = portfolioAnalytics.value;
+          // Update analytics score if available
+          if (analytics.averageClassificationConfidence) {
+            setMetrics((prev) => ({
+              ...prev,
+              analyticsScore: analytics.averageClassificationConfidence * 100,
+            }));
+          }
+
+          // Use industry distribution for chart if statistics didn't provide it
+          if (analytics.industryDistribution) {
+            const distribution = Object.entries(analytics.industryDistribution).map(([name, value]) => ({
+              name,
+              value: typeof value === 'number' ? value : 0,
+            }));
+            setDistributionData(distribution);
+            hasDistributionData = true;
+          }
+        }
+
+        // Check if we got distribution data from statistics
+        if (portfolioStatistics.status === 'fulfilled') {
+          const stats = portfolioStatistics.value;
+          if (stats.industryBreakdown && stats.industryBreakdown.length > 0) {
+            hasDistributionData = true;
+          }
+        }
+
+        // Fallback to v3 dashboard metrics if portfolio endpoints fail
+        if (dashboardMetrics.status === 'fulfilled') {
+          const v3Data = dashboardMetrics.value;
+          setMetrics((prev) => ({
+            totalMerchants: prev.totalMerchants || v3Data.totalMerchants || 0,
+            revenue: v3Data.revenue || 0,
+            growthRate: v3Data.growthRate || 0,
+            analyticsScore: prev.analyticsScore || v3Data.analyticsScore || 0,
+          }));
+        }
+
+        // Generate trend data (placeholder - can be enhanced with time series data)
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const trend = months.map((month, index) => ({
+        const trend = months.map((month) => ({
           name: month,
-          value: Math.floor(Math.random() * 10000) + 5000, // Mock revenue data
+          value: Math.floor(Math.random() * 10000) + 5000, // Placeholder - should use real time series data
         }));
         setTrendData(trend);
-        
-        // Generate mock distribution data
-        const distribution = [
-          { name: 'Technology', value: 35 },
-          { name: 'Retail', value: 25 },
-          { name: 'Finance', value: 20 },
-          { name: 'Healthcare', value: 15 },
-          { name: 'Other', value: 5 },
-        ];
-        setDistributionData(distribution);
+
+        // If no distribution data from portfolio endpoints, use placeholder
+        if (!hasDistributionData) {
+          const distribution = [
+            { name: 'Technology', value: 35 },
+            { name: 'Retail', value: 25 },
+            { name: 'Finance', value: 20 },
+            { name: 'Healthcare', value: 15 },
+            { name: 'Other', value: 5 },
+          ];
+          setDistributionData(distribution);
+        }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to load dashboard metrics';
+        setError(errorMessage);
         toast.error('Failed to load metrics', {
           description: errorMessage,
         });

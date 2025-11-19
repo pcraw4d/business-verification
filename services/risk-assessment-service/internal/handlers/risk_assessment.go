@@ -22,6 +22,7 @@ import (
 	"kyb-platform/services/risk-assessment-service/internal/models"
 	"kyb-platform/services/risk-assessment-service/internal/supabase"
 	"kyb-platform/services/risk-assessment-service/internal/validation"
+	"kyb-platform/services/risk-assessment-service/pkg/client"
 )
 
 // RiskAssessmentHandler handles risk assessment requests
@@ -811,14 +812,446 @@ func (h *RiskAssessmentHandler) HandleAdverseMediaMonitoring(w http.ResponseWrit
 
 // HandleRiskTrends handles GET /api/v1/analytics/trends
 func (h *RiskAssessmentHandler) HandleRiskTrends(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement risk trends analytics
-	errorspkg.WriteInternalError(w, r, "Risk trends analytics endpoint is not yet implemented")
+	h.logger.Info("Processing risk trends analytics request")
+
+	// Parse query parameters
+	industry := r.URL.Query().Get("industry")
+	country := r.URL.Query().Get("country")
+	timeframe := r.URL.Query().Get("timeframe")
+	if timeframe == "" {
+		timeframe = "6m" // Default to 6 months
+	}
+	limitStr := r.URL.Query().Get("limit")
+	limit := 100 // Default limit
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+		}
+	}
+
+	// Calculate date range based on timeframe
+	now := time.Now()
+	var startDate time.Time
+	switch timeframe {
+	case "7d":
+		startDate = now.AddDate(0, 0, -7)
+	case "30d":
+		startDate = now.AddDate(0, 0, -30)
+	case "90d":
+		startDate = now.AddDate(0, 0, -90)
+	case "1y":
+		startDate = now.AddDate(-1, 0, 0)
+	case "6m":
+		fallthrough
+	default:
+		startDate = now.AddDate(0, -6, 0) // Default to 6 months
+	}
+
+	h.logger.Info("Getting risk trends",
+		zap.String("industry", industry),
+		zap.String("country", country),
+		zap.String("timeframe", timeframe),
+		zap.Time("start_date", startDate),
+		zap.Int("limit", limit))
+
+	// Query risk assessments from database
+	var assessments []map[string]interface{}
+	query := h.supabaseClient.GetClient().From("risk_assessments").
+		Select("id,business_id,risk_score,risk_level,industry,country,created_at", "", false).
+		Gte("created_at", startDate.Format(time.RFC3339)).
+		Order("created_at", &postgrest.OrderOpts{Ascending: false})
+
+	// Apply filters
+	if industry != "" {
+		query = query.Eq("industry", industry)
+	}
+	if country != "" {
+		query = query.Eq("country", country)
+	}
+
+	// Limit results
+	if limit > 0 {
+		query = query.Limit(uint64(limit), "")
+	}
+
+	_, err := query.ExecuteTo(&assessments)
+	if err != nil {
+		h.logger.Error("Failed to query risk assessments for trends",
+			zap.Error(err))
+		errorspkg.WriteInternalError(w, r, fmt.Sprintf("Failed to retrieve risk trends: %v", err))
+		return
+	}
+
+	// Calculate trends by grouping data
+	trendsMap := make(map[string]*struct {
+		Industry         string
+		Country          string
+		TotalScore       float64
+		Count            int
+		HighRiskCount    int
+		PreviousScore    float64
+		PreviousCount    int
+	})
+
+	// Split data into two periods for trend calculation
+	midDate := startDate.Add(time.Since(startDate) / 2)
+	var currentPeriod, previousPeriod []map[string]interface{}
+
+	for _, assessment := range assessments {
+		createdAtStr := getString(assessment, "created_at")
+		createdAt, err := time.Parse(time.RFC3339, createdAtStr)
+		if err != nil {
+			// Try alternative format
+			createdAt, _ = time.Parse("2006-01-02T15:04:05Z07:00", createdAtStr)
+		}
+
+		assessIndustry := getString(assessment, "industry")
+		assessCountry := getString(assessment, "country")
+		key := fmt.Sprintf("%s|%s", assessIndustry, assessCountry)
+
+		if createdAt.After(midDate) {
+			currentPeriod = append(currentPeriod, assessment)
+		} else {
+			previousPeriod = append(previousPeriod, assessment)
+		}
+
+		if _, exists := trendsMap[key]; !exists {
+			trendsMap[key] = &struct {
+				Industry         string
+				Country          string
+				TotalScore       float64
+				Count            int
+				HighRiskCount    int
+				PreviousScore    float64
+				PreviousCount    int
+			}{
+				Industry: assessIndustry,
+				Country:  assessCountry,
+			}
+		}
+
+		riskScore := getFloat64(assessment, "risk_score")
+		riskLevel := getString(assessment, "risk_level")
+
+		trendsMap[key].TotalScore += riskScore
+		trendsMap[key].Count++
+
+		if riskLevel == "high" {
+			trendsMap[key].HighRiskCount++
+		}
+	}
+
+	// Calculate previous period averages
+	for _, assessment := range previousPeriod {
+		assessIndustry := getString(assessment, "industry")
+		assessCountry := getString(assessment, "country")
+		key := fmt.Sprintf("%s|%s", assessIndustry, assessCountry)
+
+		if trend, exists := trendsMap[key]; exists {
+			riskScore := getFloat64(assessment, "risk_score")
+			trend.PreviousScore += riskScore
+			trend.PreviousCount++
+		}
+	}
+
+	// Build trends response
+	trends := make([]client.RiskTrend, 0, len(trendsMap))
+	var totalScore, totalPreviousScore float64
+	var totalCount, totalPreviousCount, totalHighRisk int
+
+	for _, trend := range trendsMap {
+		if trend.Count == 0 {
+			continue
+		}
+
+		avgScore := trend.TotalScore / float64(trend.Count)
+		var previousAvg float64
+		if trend.PreviousCount > 0 {
+			previousAvg = trend.PreviousScore / float64(trend.PreviousCount)
+		} else {
+			previousAvg = avgScore // No change if no previous data
+		}
+
+		var changePercentage float64
+		var trendDirection string
+		if previousAvg > 0 {
+			changePercentage = ((avgScore - previousAvg) / previousAvg) * 100
+			if changePercentage > 1 {
+				trendDirection = "worsening"
+			} else if changePercentage < -1 {
+				trendDirection = "improving"
+			} else {
+				trendDirection = "stable"
+			}
+		} else {
+			trendDirection = "stable"
+		}
+
+		trends = append(trends, client.RiskTrend{
+			Industry:         trend.Industry,
+			Country:          trend.Country,
+			AverageRiskScore: avgScore,
+			TrendDirection:   trendDirection,
+			ChangePercentage: changePercentage,
+			SampleSize:       trend.Count,
+		})
+
+		totalScore += trend.TotalScore
+		totalCount += trend.Count
+		totalHighRisk += trend.HighRiskCount
+		totalPreviousScore += trend.PreviousScore
+		totalPreviousCount += trend.PreviousCount
+	}
+
+	// Calculate summary
+	var avgRiskScore, highRiskPercentage float64
+	if totalCount > 0 {
+		avgRiskScore = totalScore / float64(totalCount)
+		highRiskPercentage = (float64(totalHighRisk) / float64(totalCount)) * 100
+	}
+
+	summary := client.TrendSummary{
+		TotalAssessments:   totalCount,
+		AverageRiskScore:   avgRiskScore,
+		HighRiskPercentage: highRiskPercentage,
+	}
+
+	response := client.RiskTrendsResponse{
+		Trends:  trends,
+		Summary: summary,
+	}
+
+	// Return response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		h.logger.Error("Failed to encode trends response", zap.Error(err))
+		return
+	}
+
+	h.logger.Info("Risk trends analytics completed",
+		zap.Int("trends_count", len(trends)),
+		zap.Int("total_assessments", totalCount),
+		zap.Float64("average_risk_score", avgRiskScore))
 }
 
 // HandleRiskInsights handles GET /api/v1/analytics/insights
 func (h *RiskAssessmentHandler) HandleRiskInsights(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement risk insights analytics
-	errorspkg.WriteInternalError(w, r, "Risk insights analytics endpoint is not yet implemented")
+	h.logger.Info("Processing risk insights analytics request")
+
+	// Parse query parameters
+	industry := r.URL.Query().Get("industry")
+	country := r.URL.Query().Get("country")
+	riskLevel := r.URL.Query().Get("risk_level")
+
+	h.logger.Info("Getting risk insights",
+		zap.String("industry", industry),
+		zap.String("country", country),
+		zap.String("risk_level", riskLevel))
+
+	// Query risk assessments from database (last 6 months for insights)
+	startDate := time.Now().AddDate(0, -6, 0)
+	var assessments []map[string]interface{}
+	query := h.supabaseClient.GetClient().From("risk_assessments").
+		Select("id,business_id,risk_score,risk_level,industry,country,created_at,status", "", false).
+		Gte("created_at", startDate.Format(time.RFC3339))
+
+	// Apply filters
+	if industry != "" {
+		query = query.Eq("industry", industry)
+	}
+	if country != "" {
+		query = query.Eq("country", country)
+	}
+	if riskLevel != "" {
+		query = query.Eq("risk_level", riskLevel)
+	}
+
+	_, err := query.ExecuteTo(&assessments)
+	if err != nil {
+		h.logger.Error("Failed to query risk assessments for insights",
+			zap.Error(err))
+		errorspkg.WriteInternalError(w, r, fmt.Sprintf("Failed to retrieve risk insights: %v", err))
+		return
+	}
+
+	// Analyze data to generate insights
+	insights := make([]client.RiskInsight, 0)
+	recommendations := make([]client.Recommendation, 0)
+
+	// Calculate statistics
+	var totalScore float64
+	var highRiskCount, mediumRiskCount, lowRiskCount int
+	industryMap := make(map[string]int)
+	countryMap := make(map[string]int)
+	riskLevelMap := make(map[string]int)
+
+	for _, assessment := range assessments {
+		riskScore := getFloat64(assessment, "risk_score")
+		riskLevelStr := getString(assessment, "risk_level")
+		assessIndustry := getString(assessment, "industry")
+		assessCountry := getString(assessment, "country")
+
+		totalScore += riskScore
+		riskLevelMap[riskLevelStr]++
+		industryMap[assessIndustry]++
+		countryMap[assessCountry]++
+
+		switch riskLevelStr {
+		case "high":
+			highRiskCount++
+		case "medium":
+			mediumRiskCount++
+		case "low":
+			lowRiskCount++
+		}
+	}
+
+	totalCount := len(assessments)
+	var avgRiskScore float64
+	if totalCount > 0 {
+		avgRiskScore = totalScore / float64(totalCount)
+	}
+
+	// Generate insights based on analysis
+	var highRiskPercentage float64
+	if totalCount > 0 {
+		highRiskPercentage = (float64(highRiskCount) / float64(totalCount)) * 100
+	}
+	if totalCount > 0 && highRiskPercentage > 20 {
+		insights = append(insights, client.RiskInsight{
+			Type:           "risk_factor",
+			Title:          "High Risk Concentration",
+			Description:    fmt.Sprintf("%.1f%% of assessments are high risk, exceeding the 20%% threshold", highRiskPercentage),
+			Impact:         "high",
+			Recommendation: "Review high-risk assessments and consider additional due diligence measures",
+		})
+		recommendations = append(recommendations, client.Recommendation{
+			Category: "monitoring",
+			Action:   "Increase monitoring frequency for high-risk merchants",
+			Priority: "high",
+		})
+	}
+
+	// Industry-specific insights
+	if len(industryMap) > 0 {
+		maxIndustry := ""
+		maxCount := 0
+		for ind, count := range industryMap {
+			if count > maxCount {
+				maxCount = count
+				maxIndustry = ind
+			}
+		}
+		if maxIndustry != "" && maxCount > totalCount/3 {
+			insights = append(insights, client.RiskInsight{
+				Type:           "industry",
+				Title:          fmt.Sprintf("Industry Concentration: %s", maxIndustry),
+				Description:    fmt.Sprintf("%s represents %.1f%% of all assessments", maxIndustry, (float64(maxCount)/float64(totalCount))*100),
+				Impact:         "medium",
+				Recommendation: "Consider diversifying portfolio across multiple industries",
+			})
+		}
+	}
+
+	// Average risk score insights
+	if avgRiskScore > 0.7 {
+		insights = append(insights, client.RiskInsight{
+			Type:           "portfolio",
+			Title:          "Elevated Portfolio Risk",
+			Description:    fmt.Sprintf("Average risk score of %.2f indicates elevated portfolio risk", avgRiskScore),
+			Impact:         "high",
+			Recommendation: "Review risk assessment criteria and consider tightening acceptance standards",
+		})
+		recommendations = append(recommendations, client.Recommendation{
+			Category: "assessment",
+			Action:   "Review and update risk assessment criteria",
+			Priority: "medium",
+		})
+	} else if avgRiskScore < 0.3 {
+		insights = append(insights, client.RiskInsight{
+			Type:           "portfolio",
+			Title:          "Low Portfolio Risk",
+			Description:    fmt.Sprintf("Average risk score of %.2f indicates healthy portfolio risk levels", avgRiskScore),
+			Impact:         "low",
+			Recommendation: "Current risk levels are acceptable, maintain monitoring",
+		})
+	}
+
+	// Risk level distribution insights
+	if mediumRiskCount > highRiskCount*2 {
+		insights = append(insights, client.RiskInsight{
+			Type:           "distribution",
+			Title:          "Medium Risk Dominance",
+			Description:    "Medium risk assessments significantly outnumber high risk assessments",
+			Impact:         "medium",
+			Recommendation: "Monitor medium risk merchants closely as they may transition to high risk",
+		})
+		recommendations = append(recommendations, client.Recommendation{
+			Category: "monitoring",
+			Action:   "Implement proactive monitoring for medium risk merchants",
+			Priority: "medium",
+		})
+	}
+
+	// Country-specific insights
+	if len(countryMap) > 0 {
+		maxCountry := ""
+		maxCount := 0
+		for cntry, count := range countryMap {
+			if count > maxCount {
+				maxCount = count
+				maxCountry = cntry
+			}
+		}
+		if maxCountry != "" {
+			insights = append(insights, client.RiskInsight{
+				Type:           "geographic",
+				Title:          fmt.Sprintf("Geographic Concentration: %s", maxCountry),
+				Description:    fmt.Sprintf("%s represents %.1f%% of all assessments", maxCountry, (float64(maxCount)/float64(totalCount))*100),
+				Impact:         "low",
+				Recommendation: "Consider geographic diversification to reduce regional risk",
+			})
+		}
+	}
+
+	// If no insights generated, add a default insight
+	if len(insights) == 0 {
+		insights = append(insights, client.RiskInsight{
+			Type:           "general",
+			Title:          "Portfolio Overview",
+			Description:    fmt.Sprintf("Portfolio contains %d assessments with an average risk score of %.2f", totalCount, avgRiskScore),
+			Impact:         "low",
+			Recommendation: "Continue monitoring portfolio health",
+		})
+	}
+
+	// Add general recommendations if none exist
+	if len(recommendations) == 0 {
+		recommendations = append(recommendations, client.Recommendation{
+			Category: "monitoring",
+			Action:   "Maintain regular portfolio reviews",
+			Priority: "low",
+		})
+	}
+
+	response := client.RiskInsightsResponse{
+		Insights:        insights,
+		Recommendations: recommendations,
+	}
+
+	// Return response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		h.logger.Error("Failed to encode insights response", zap.Error(err))
+		return
+	}
+
+	h.logger.Info("Risk insights analytics completed",
+		zap.Int("insights_count", len(insights)),
+		zap.Int("recommendations_count", len(recommendations)),
+		zap.Int("total_assessments", totalCount))
 }
 
 // HandleBatchRiskAssessment handles POST /api/v1/assess/batch
