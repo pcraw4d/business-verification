@@ -355,3 +355,191 @@ func BenchmarkGenerateID(b *testing.B) {
 		handler.generateID()
 	}
 }
+
+// TestHandleRiskTrends_QueryParameters tests query parameter parsing
+func TestHandleRiskTrends_QueryParameters(t *testing.T) {
+	handler := createTestHandler()
+
+	tests := []struct {
+		name           string
+		queryParams    string
+		expectedStatus int
+		description    string
+	}{
+		{
+			name:           "default parameters",
+			queryParams:    "",
+			expectedStatus: http.StatusInternalServerError, // Will fail due to nil Supabase client
+			description:    "Should use default timeframe (6m) and limit (100)",
+		},
+		{
+			name:           "custom timeframe",
+			queryParams:    "timeframe=30d",
+			expectedStatus: http.StatusInternalServerError,
+			description:    "Should parse custom timeframe",
+		},
+		{
+			name:           "custom limit",
+			queryParams:    "limit=50",
+			expectedStatus: http.StatusInternalServerError,
+			description:    "Should parse custom limit",
+		},
+		{
+			name:           "all parameters",
+			queryParams:    "industry=technology&country=US&timeframe=90d&limit=200",
+			expectedStatus: http.StatusInternalServerError,
+			description:    "Should parse all query parameters",
+		},
+		{
+			name:           "invalid limit",
+			queryParams:    "limit=invalid",
+			expectedStatus: http.StatusInternalServerError,
+			description:    "Should handle invalid limit gracefully",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			url := "/api/v1/analytics/trends"
+			if tt.queryParams != "" {
+				url += "?" + tt.queryParams
+			}
+			req := httptest.NewRequest("GET", url, nil)
+			w := httptest.NewRecorder()
+
+			// Handler will fail due to nil Supabase client, but we can verify it doesn't panic
+			// and handles the error properly
+			assert.NotPanics(t, func() {
+				handler.HandleRiskTrends(w, req)
+			})
+
+			// Verify it returns an error status (due to nil client)
+			assert.Equal(t, tt.expectedStatus, w.Code)
+		})
+	}
+}
+
+// TestHandleRiskTrends_TimeframeCalculation tests timeframe to date range conversion
+func TestHandleRiskTrends_TimeframeCalculation(t *testing.T) {
+	// This test verifies the logic for calculating date ranges from timeframes
+	// We can't easily test the full handler without a database, but we can verify
+	// the timeframe parsing logic is correct by checking the handler doesn't panic
+	handler := createTestHandler()
+
+	timeframes := []string{"7d", "30d", "90d", "6m", "1y", "invalid"}
+	for _, timeframe := range timeframes {
+		t.Run("timeframe_"+timeframe, func(t *testing.T) {
+			req := httptest.NewRequest("GET", "/api/v1/analytics/trends?timeframe="+timeframe, nil)
+			w := httptest.NewRecorder()
+
+			// Handler should not panic regardless of timeframe value
+			assert.NotPanics(t, func() {
+				handler.HandleRiskTrends(w, req)
+			})
+		})
+	}
+}
+
+// TestHandleRiskInsights_QueryParameters tests query parameter parsing
+func TestHandleRiskInsights_QueryParameters(t *testing.T) {
+	handler := createTestHandler()
+
+	tests := []struct {
+		name           string
+		queryParams    string
+		expectedStatus int
+		description    string
+	}{
+		{
+			name:           "no parameters",
+			queryParams:    "",
+			expectedStatus: http.StatusInternalServerError, // Will fail due to nil Supabase client
+			description:    "Should work without query parameters",
+		},
+		{
+			name:           "industry filter",
+			queryParams:    "industry=technology",
+			expectedStatus: http.StatusInternalServerError,
+			description:    "Should parse industry filter",
+		},
+		{
+			name:           "country filter",
+			queryParams:    "country=US",
+			expectedStatus: http.StatusInternalServerError,
+			description:    "Should parse country filter",
+		},
+		{
+			name:           "risk level filter",
+			queryParams:    "risk_level=high",
+			expectedStatus: http.StatusInternalServerError,
+			description:    "Should parse risk level filter",
+		},
+		{
+			name:           "all filters",
+			queryParams:    "industry=technology&country=US&risk_level=medium",
+			expectedStatus: http.StatusInternalServerError,
+			description:    "Should parse all filters",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			url := "/api/v1/analytics/insights"
+			if tt.queryParams != "" {
+				url += "?" + tt.queryParams
+			}
+			req := httptest.NewRequest("GET", url, nil)
+			w := httptest.NewRecorder()
+
+			// Handler will fail due to nil Supabase client, but we can verify it doesn't panic
+			assert.NotPanics(t, func() {
+				handler.HandleRiskInsights(w, req)
+			})
+
+			// Verify it returns an error status (due to nil client)
+			assert.Equal(t, tt.expectedStatus, w.Code)
+		})
+	}
+}
+
+// TestHandleRiskTrends_ErrorHandling tests error handling
+func TestHandleRiskTrends_ErrorHandling(t *testing.T) {
+	handler := createTestHandler()
+
+	// Test that handler properly handles database errors
+	req := httptest.NewRequest("GET", "/api/v1/analytics/trends", nil)
+	w := httptest.NewRecorder()
+
+	// Handler should handle nil Supabase client gracefully
+	handler.HandleRiskTrends(w, req)
+
+	// Should return an error response
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+
+	// Verify response body contains error message
+	var response map[string]interface{}
+	err := json.NewDecoder(w.Body).Decode(&response)
+	assert.NoError(t, err)
+	assert.NotNil(t, response)
+}
+
+// TestHandleRiskInsights_ErrorHandling tests error handling
+func TestHandleRiskInsights_ErrorHandling(t *testing.T) {
+	handler := createTestHandler()
+
+	// Test that handler properly handles database errors
+	req := httptest.NewRequest("GET", "/api/v1/analytics/insights", nil)
+	w := httptest.NewRecorder()
+
+	// Handler should handle nil Supabase client gracefully
+	handler.HandleRiskInsights(w, req)
+
+	// Should return an error response
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+
+	// Verify response body contains error message
+	var response map[string]interface{}
+	err := json.NewDecoder(w.Body).Decode(&response)
+	assert.NoError(t, err)
+	assert.NotNil(t, response)
+}

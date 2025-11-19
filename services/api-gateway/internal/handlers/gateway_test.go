@@ -236,3 +236,200 @@ func TestProxyToSessionsSubRoutes(t *testing.T) {
 	}
 }
 
+func TestProxyToRiskAssessment_AnalyticsTrends(t *testing.T) {
+	// Create a mock Risk Assessment service
+	mockRiskService := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Analytics routes should be kept as-is (no path transformation)
+		if r.URL.Path != "/api/v1/analytics/trends" {
+			t.Errorf("Expected path /api/v1/analytics/trends, got %s", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"trends": []map[string]interface{}{},
+			"summary": map[string]interface{}{
+				"average_risk_score": 0.6,
+				"trend_direction":    "stable",
+			},
+		})
+	}))
+	defer mockRiskService.Close()
+
+	// Create handler with mock config
+	cfg := &config.Config{
+		Services: config.ServicesConfig{
+			RiskAssessmentURL: mockRiskService.URL,
+		},
+	}
+	logger := zap.NewNop()
+	handler := NewGatewayHandler(nil, logger, cfg)
+
+	// Create request for analytics trends
+	req := httptest.NewRequest("GET", "/api/v1/analytics/trends?timeframe=6m&limit=100", nil)
+	w := httptest.NewRecorder()
+
+	// Call handler
+	handler.ProxyToRiskAssessment(w, req)
+
+	// Check response
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+}
+
+func TestProxyToRiskAssessment_AnalyticsInsights(t *testing.T) {
+	// Create a mock Risk Assessment service
+	mockRiskService := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Analytics routes should be kept as-is (no path transformation)
+		if r.URL.Path != "/api/v1/analytics/insights" {
+			t.Errorf("Expected path /api/v1/analytics/insights, got %s", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"insights":       []map[string]interface{}{},
+			"recommendations": []map[string]interface{}{},
+		})
+	}))
+	defer mockRiskService.Close()
+
+	// Create handler with mock config
+	cfg := &config.Config{
+		Services: config.ServicesConfig{
+			RiskAssessmentURL: mockRiskService.URL,
+		},
+	}
+	logger := zap.NewNop()
+	handler := NewGatewayHandler(nil, logger, cfg)
+
+	// Create request for analytics insights
+	req := httptest.NewRequest("GET", "/api/v1/analytics/insights?industry=technology&risk_level=high", nil)
+	w := httptest.NewRecorder()
+
+	// Call handler
+	handler.ProxyToRiskAssessment(w, req)
+
+	// Check response
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+}
+
+func TestProxyToRiskAssessment_PathTransformations(t *testing.T) {
+	tests := []struct {
+		name           string
+		requestPath    string
+		expectedPath   string
+		description    string
+	}{
+		{
+			name:         "risk assess path transformation",
+			requestPath:  "/api/v1/risk/assess",
+			expectedPath: "/api/v1/assess",
+			description:  "Should transform /api/v1/risk/assess to /api/v1/assess",
+		},
+		{
+			name:         "risk metrics path transformation",
+			requestPath:  "/api/v1/risk/metrics",
+			expectedPath: "/api/v1/metrics",
+			description:  "Should transform /api/v1/risk/metrics to /api/v1/metrics",
+		},
+		{
+			name:         "analytics trends no transformation",
+			requestPath:  "/api/v1/analytics/trends",
+			expectedPath: "/api/v1/analytics/trends",
+			description:  "Should keep /api/v1/analytics/trends as-is",
+		},
+		{
+			name:         "analytics insights no transformation",
+			requestPath:  "/api/v1/analytics/insights",
+			expectedPath: "/api/v1/analytics/insights",
+			description:  "Should keep /api/v1/analytics/insights as-is",
+		},
+		{
+			name:         "risk benchmarks no transformation",
+			requestPath:  "/api/v1/risk/benchmarks",
+			expectedPath: "/api/v1/risk/benchmarks",
+			description:  "Should keep /api/v1/risk/benchmarks as-is",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a mock Risk Assessment service
+			mockRiskService := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != tt.expectedPath {
+					t.Errorf("%s: Expected path %s, got %s", tt.description, tt.expectedPath, r.URL.Path)
+				}
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"success": true,
+				})
+			}))
+			defer mockRiskService.Close()
+
+			// Create handler with mock config
+			cfg := &config.Config{
+				Services: config.ServicesConfig{
+					RiskAssessmentURL: mockRiskService.URL,
+				},
+			}
+			logger := zap.NewNop()
+			handler := NewGatewayHandler(nil, logger, cfg)
+
+			// Create request
+			req := httptest.NewRequest("GET", tt.requestPath, nil)
+			w := httptest.NewRecorder()
+
+			// Call handler
+			handler.ProxyToRiskAssessment(w, req)
+
+			// Check response
+			if w.Code != http.StatusOK {
+				t.Errorf("Expected status 200, got %d", w.Code)
+			}
+		})
+	}
+}
+
+func TestProxyToRiskAssessment_QueryParametersPreserved(t *testing.T) {
+	// Create a mock Risk Assessment service
+	mockRiskService := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Verify path is correct
+		if r.URL.Path != "/api/v1/analytics/trends" {
+			t.Errorf("Expected path /api/v1/analytics/trends, got %s", r.URL.Path)
+		}
+		// Verify query parameters are preserved
+		if r.URL.Query().Get("timeframe") != "6m" {
+			t.Errorf("Expected timeframe=6m, got %s", r.URL.Query().Get("timeframe"))
+		}
+		if r.URL.Query().Get("limit") != "100" {
+			t.Errorf("Expected limit=100, got %s", r.URL.Query().Get("limit"))
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+		})
+	}))
+	defer mockRiskService.Close()
+
+	// Create handler with mock config
+	cfg := &config.Config{
+		Services: config.ServicesConfig{
+			RiskAssessmentURL: mockRiskService.URL,
+		},
+	}
+	logger := zap.NewNop()
+	handler := NewGatewayHandler(nil, logger, cfg)
+
+	// Create request with query parameters
+	req := httptest.NewRequest("GET", "/api/v1/analytics/trends?timeframe=6m&limit=100", nil)
+	w := httptest.NewRecorder()
+
+	// Call handler
+	handler.ProxyToRiskAssessment(w, req)
+
+	// Check response
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+}
+
