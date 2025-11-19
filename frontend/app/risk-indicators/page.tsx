@@ -24,7 +24,7 @@ export default function RiskIndicatorsPage() {
   const [overallRisk, setOverallRisk] = useState(0);
   const [trendData, setTrendData] = useState<Array<{
     name: string;
-    historical: number;
+    historical?: number;
     prediction?: number;
     confidenceUpper?: number;
     confidenceLower?: number;
