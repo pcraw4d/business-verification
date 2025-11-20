@@ -17,6 +17,8 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report",
+    "test:performance": "playwright test tests/e2e/performance.spec.ts",
+    "test:performance:measure": "node scripts/measure-page-performance.js",
     "analyze-bundle": "node scripts/analyze-bundle.js",
     "performance-audit": "node scripts/performance-audit.js",
     "accessibility-audit": "node scripts/accessibility-audit.js",
