@@ -1,878 +1,858 @@
-# KYB Platform API Documentation
+# API Documentation
 
-**Version**: 1.0  
-**Base URL**: `https://api-gateway-production.up.railway.app`  
-**API Version**: v1  
-**Last Updated**: 2025-01-27
+**Date:** 2025-01-27  
+**Version:** 1.0.0  
+**Purpose:** Comprehensive documentation of all API endpoints, including portfolio-level endpoints, comparison endpoints, request/response schemas, error responses, route mappings, and path transformations.
 
 ---
 
 ## Table of Contents
 
-1. [Authentication](#authentication)
-2. [Error Handling](#error-handling)
-3. [API Endpoints](#api-endpoints)
-   - [Health Checks](#health-checks)
-   - [Classification](#classification)
-   - [Merchants](#merchants)
-   - [Risk Assessment](#risk-assessment)
-   - [Business Intelligence](#business-intelligence)
-   - [Authentication](#authentication-endpoints)
-4. [Rate Limiting](#rate-limiting)
-5. [CORS](#cors)
+1. [Overview](#overview)
+2. [Base URLs](#base-urls)
+3. [Authentication](#authentication)
+4. [Portfolio-Level Endpoints](#portfolio-level-endpoints)
+5. [Comparison Endpoints](#comparison-endpoints)
+6. [Merchant Endpoints](#merchant-endpoints)
+7. [Risk Assessment Endpoints](#risk-assessment-endpoints)
+8. [Analytics Endpoints](#analytics-endpoints)
+9. [Error Responses](#error-responses)
+10. [Route Mappings](#route-mappings)
+11. [Path Transformations](#path-transformations)
+
+---
+
+## Overview
+
+This API provides comprehensive business verification, risk assessment, and portfolio analytics capabilities. The API is organized into several categories:
+
+- **Portfolio-Level Endpoints:** Aggregate data across all merchants
+- **Comparison Endpoints:** Compare merchant data against portfolio or industry benchmarks
+- **Merchant Endpoints:** Individual merchant operations
+- **Risk Assessment Endpoints:** Risk scoring and assessment
+- **Analytics Endpoints:** Portfolio-level analytics and insights
+
+---
+
+## Base URLs
+
+### Production
+```
+https://api-gateway-production.up.railway.app
+```
+
+### Development
+```
+http://localhost:8080
+```
+
+### API Versions
+- **v1:** Current stable version (recommended)
+- **v3:** Enhanced endpoints (dashboard metrics)
 
 ---
 
 ## Authentication
 
-### JWT Token Authentication
+### API Key Authentication
 
-Most endpoints require authentication via JWT token in the Authorization header:
+All endpoints require authentication via Bearer token in the Authorization header:
 
 ```
-Authorization: Bearer <your-jwt-token>
+Authorization: Bearer YOUR_API_KEY
 ```
 
 ### Public Endpoints
 
 The following endpoints do not require authentication:
-- `GET /health`
-- `GET /`
-- `POST /api/v1/classify` (public classification endpoint)
+- `/health`
+- `/api/v1/classify`
+- `/api/v1/classification/health`
+- `/api/v1/merchant/health`
+- `/api/v1/risk/health`
 
 ---
 
-## Error Handling
+## Portfolio-Level Endpoints
 
-### Standard Error Response Format
+### Get Portfolio Analytics
 
-All errors follow a consistent format:
+**Endpoint:** `GET /api/v1/merchants/analytics`
 
-```json
-{
-  "error": {
-    "code": "ERROR_CODE",
-    "message": "Human-readable error message",
-    "details": "Additional error details (optional)",
-    "field": "field_name (optional, for validation errors)",
-    "validation": [
-      {
-        "field": "field_name",
-        "message": "Validation error message",
-        "code": "VALIDATION_ERROR"
-      }
-    ]
-  },
-  "request_id": "request-id-if-available",
-  "timestamp": "2025-01-27T12:00:00Z",
-  "path": "/api/v1/endpoint",
-  "method": "POST"
+**Description:** Returns portfolio-wide analytics aggregated across all merchants.
+
+**Query Parameters:** None
+
+**Request Example:**
+```bash
+curl -X GET "https://api-gateway-production.up.railway.app/api/v1/merchants/analytics" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+**Response Schema:**
+```typescript
+interface PortfolioAnalytics {
+  totalMerchants: number;
+  averageClassificationConfidence: number; // 0-1
+  averageSecurityTrustScore: number; // 0-1
+  averageDataQuality: number; // 0-1
+  industryDistribution: Record<string, number>; // Industry name -> count
+  countryDistribution: Record<string, number>; // Country code -> count
+  timestamp: string; // ISO 8601
 }
 ```
 
-### Error Codes
-
-| Code | HTTP Status | Description |
-|------|-------------|-------------|
-| `BAD_REQUEST` | 400 | Invalid request format or parameters |
-| `VALIDATION_ERROR` | 400 | Request validation failed |
-| `UNAUTHORIZED` | 401 | Authentication required or invalid token |
-| `FORBIDDEN` | 403 | Insufficient permissions |
-| `NOT_FOUND` | 404 | Resource not found |
-| `CONFLICT` | 409 | Resource conflict (e.g., duplicate) |
-| `RATE_LIMIT_EXCEEDED` | 429 | Rate limit exceeded |
-| `INTERNAL_ERROR` | 500 | Internal server error |
-| `SERVICE_UNAVAILABLE` | 503 | Service temporarily unavailable |
-| `NOT_IMPLEMENTED` | 501 | Feature not yet implemented |
-
-### Example Error Response
-
+**Response Example:**
 ```json
 {
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Request validation failed",
-    "validation": [
-      {
-        "field": "business_name",
-        "message": "business_name is required",
-        "code": "VALIDATION_ERROR"
-      }
-    ]
+  "totalMerchants": 1250,
+  "averageClassificationConfidence": 0.92,
+  "averageSecurityTrustScore": 0.85,
+  "averageDataQuality": 0.88,
+  "industryDistribution": {
+    "Technology": 450,
+    "Retail": 320,
+    "Finance": 280,
+    "Healthcare": 200
   },
-  "request_id": "req_1234567890",
-  "timestamp": "2025-01-27T12:00:00Z",
-  "path": "/api/v1/classify",
-  "method": "POST"
+  "countryDistribution": {
+    "US": 800,
+    "GB": 250,
+    "CA": 200
+  },
+  "timestamp": "2025-01-27T10:30:00Z"
 }
 ```
+
+**Status Codes:**
+- `200 OK` - Success
+- `401 Unauthorized` - Missing or invalid authentication
+- `500 Internal Server Error` - Server error
 
 ---
 
-## API Endpoints
+### Get Portfolio Statistics
 
-### Health Checks
+**Endpoint:** `GET /api/v1/merchants/statistics`
 
-#### GET /health
+**Description:** Returns portfolio-wide statistics including risk distribution and industry breakdown.
 
-Check API Gateway health status.
+**Query Parameters:** None
 
-**Authentication**: Not required
+**Request Example:**
+```bash
+curl -X GET "https://api-gateway-production.up.railway.app/api/v1/merchants/statistics" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
 
-**Query Parameters**:
-- `detailed` (boolean, optional): Include detailed health information
-- `counts` (boolean, optional): Include table counts (requires `detailed=true`)
-
-**Response**: `200 OK`
-
-```json
-{
-  "status": "healthy",
-  "service": "api-gateway",
-  "version": "1.0.0",
-  "timestamp": "2025-01-27T12:00:00Z",
-  "environment": "production",
-  "features": {
-    "supabase_integration": true,
-    "authentication": true,
-    "rate_limiting": true,
-    "cors_enabled": true
-  },
-  "response_time_ms": 45
+**Response Schema:**
+```typescript
+interface PortfolioStatistics {
+  totalMerchants: number;
+  averageRiskScore: number; // 0-1
+  riskDistribution: {
+    low: number;
+    medium: number;
+    high: number;
+    critical: number;
+  };
+  industryBreakdown: Array<{
+    industry: string;
+    count: number;
+    averageRiskScore: number;
+  }>;
+  countryBreakdown: Array<{
+    country: string;
+    count: number;
+    averageRiskScore: number;
+  }>;
+  timestamp: string; // ISO 8601
 }
 ```
 
-**Detailed Response** (with `?detailed=true`):
+**Response Example:**
 ```json
 {
-  "status": "healthy",
-  "service": "api-gateway",
-  "version": "1.0.0",
-  "timestamp": "2025-01-27T12:00:00Z",
-  "environment": "production",
-  "supabase_status": {
-    "connected": true,
-    "url": "https://your-project.supabase.co"
+  "totalMerchants": 1250,
+  "averageRiskScore": 0.45,
+  "riskDistribution": {
+    "low": 500,
+    "medium": 400,
+    "high": 300,
+    "critical": 50
   },
-  "table_counts": {
-    "classifications": 1234,
-    "merchants": 567,
-    "risk_keywords": 890,
-    "business_risk_assessments": 234
-  },
-  "response_time_ms": 120
-}
-```
-
-#### GET /api/v1/classification/health
-
-Check Classification Service health.
-
-**Authentication**: Not required
-
-**Response**: `200 OK`
-
-#### GET /api/v1/merchant/health
-
-Check Merchant Service health.
-
-**Authentication**: Not required
-
-**Response**: `200 OK`
-
-#### GET /api/v1/risk/health
-
-Check Risk Assessment Service health.
-
-**Authentication**: Not required
-
-**Response**: `200 OK`
-
----
-
-### Classification
-
-#### POST /api/v1/classify
-
-Classify a business and determine industry codes.
-
-**Authentication**: Not required (public endpoint)
-
-**Request Body**:
-```json
-{
-  "business_name": "Acme Corporation",
-  "description": "Technology solutions provider",
-  "website_url": "https://acme.com",
-  "request_id": "req_1234567890"
-}
-```
-
-**Request Fields**:
-- `business_name` (string, required): Business name
-- `description` (string, optional): Business description
-- `website_url` (string, optional): Business website URL
-- `request_id` (string, optional): Custom request ID
-
-**Response**: `200 OK`
-
-```json
-{
-  "request_id": "req_1234567890",
-  "business_name": "Acme Corporation",
-  "description": "Technology solutions provider",
-  "classification": {
-    "industry": "Technology",
-    "mcc_codes": ["5734", "7372"],
-    "sic_codes": ["7372", "7379"],
-    "naics_codes": ["541511", "541512"],
-    "website_content": {
-      "scraped": true,
-      "content_length": 50000,
-      "keywords_found": 25
-    }
-  },
-  "risk_assessment": {
-    "risk_level": "low",
-    "risk_score": 0.15,
-    "risk_factors": []
-  },
-  "verification_status": {
-    "status": "verified",
-    "processing_time": "2.5s"
-  },
-  "confidence_score": 0.95,
-  "data_source": "smart_crawling_classification_service",
-  "status": "success",
-  "success": true,
-  "timestamp": "2025-01-27T12:00:00Z",
-  "processing_time": "2.5s"
-}
-```
-
-**Error Responses**:
-- `400 Bad Request`: Invalid request body or missing required fields
-- `500 Internal Server Error`: Classification service error
-
-**Caching**: Responses are cached for 5 minutes. Subsequent requests with same parameters return cached results.
-
-**Headers**:
-- `X-Cache`: `HIT` or `MISS`
-- `Cache-Control`: `public, max-age=300`
-
----
-
-### Merchants
-
-#### GET /api/v1/merchants
-
-List merchants with pagination, filtering, and sorting.
-
-**Authentication**: Required
-
-**Query Parameters**:
-- `page` (integer, optional, default: 1): Page number
-- `page_size` (integer, optional, default: 20, max: 100): Items per page
-- `portfolio_type` (string, optional): Filter by portfolio type
-- `risk_level` (string, optional): Filter by risk level
-- `status` (string, optional): Filter by status
-- `search` (string, optional): Search in name and legal_name
-- `sort_by` (string, optional, default: "created_at"): Sort field (name, legal_name, created_at, updated_at, portfolio_type, risk_level, status)
-- `sort_order` (string, optional, default: "desc"): Sort order (asc, desc)
-
-**Response**: `200 OK`
-
-```json
-{
-  "merchants": [
+  "industryBreakdown": [
     {
-      "id": "merchant_1234567890",
-      "name": "Acme Corporation",
-      "legal_name": "Acme Corporation Inc.",
-      "registration_number": "REG123456",
-      "tax_id": "TAX123456",
       "industry": "Technology",
-      "industry_code": "7372",
-      "business_type": "Corporation",
-      "founded_date": "2020-01-15T00:00:00Z",
-      "employee_count": 150,
-      "annual_revenue": 5000000.00,
-      "address": {
-        "street": "123 Main St",
-        "city": "San Francisco",
-        "state": "CA",
-        "zip": "94105",
-        "country": "USA"
-      },
-      "contact_info": {
-        "email": "contact@acme.com",
-        "phone": "+1-555-123-4567",
-        "website": "https://acme.com"
-      },
-      "portfolio_type": "enterprise",
-      "risk_level": "low",
-      "compliance_status": "compliant",
-      "status": "active",
-      "created_at": "2025-01-15T10:00:00Z",
-      "updated_at": "2025-01-20T14:30:00Z",
-      "created_by": "user_123"
-    }
-  ],
-  "total": 150,
-  "page": 1,
-  "page_size": 20,
-  "total_pages": 8,
-  "has_next": true,
-  "has_previous": false
-}
-```
-
-**Error Responses**:
-- `401 Unauthorized`: Missing or invalid authentication token
-- `400 Bad Request`: Invalid query parameters
-
-#### POST /api/v1/merchants
-
-Create a new merchant.
-
-**Authentication**: Required
-
-**Request Body**:
-```json
-{
-  "name": "Acme Corporation",
-  "legal_name": "Acme Corporation Inc.",
-  "registration_number": "REG123456",
-  "tax_id": "TAX123456",
-  "industry": "Technology",
-  "industry_code": "7372",
-  "business_type": "Corporation",
-  "founded_date": "2020-01-15T00:00:00Z",
-  "employee_count": 150,
-  "annual_revenue": 5000000.00,
-  "address": {
-    "street": "123 Main St",
-    "city": "San Francisco",
-    "state": "CA",
-    "zip": "94105",
-    "country": "USA"
-  },
-  "contact_info": {
-    "email": "contact@acme.com",
-    "phone": "+1-555-123-4567",
-    "website": "https://acme.com"
-  },
-  "portfolio_type": "enterprise",
-  "risk_level": "low",
-  "compliance_status": "compliant",
-  "status": "active"
-}
-```
-
-**Request Fields**:
-- `name` (string, required): Merchant name
-- `legal_name` (string, required): Legal business name
-- `registration_number` (string, optional): Business registration number
-- `tax_id` (string, optional): Tax identification number
-- `industry` (string, optional): Industry
-- `industry_code` (string, optional): Industry code
-- `business_type` (string, optional): Business type
-- `founded_date` (string, optional): ISO 8601 date
-- `employee_count` (integer, optional): Number of employees
-- `annual_revenue` (number, optional): Annual revenue
-- `address` (object, optional): Address object
-- `contact_info` (object, optional): Contact information
-- `portfolio_type` (string, optional): Portfolio type
-- `risk_level` (string, optional): Risk level
-- `compliance_status` (string, optional): Compliance status
-- `status` (string, optional): Status
-
-**Response**: `201 Created`
-
-```json
-{
-  "id": "merchant_1234567890",
-  "name": "Acme Corporation",
-  "legal_name": "Acme Corporation Inc.",
-  "created_at": "2025-01-27T12:00:00Z",
-  "updated_at": "2025-01-27T12:00:00Z",
-  "created_by": "user_123"
-}
-```
-
-**Error Responses**:
-- `400 Bad Request`: Missing required fields or validation error
-- `401 Unauthorized`: Missing or invalid authentication token
-- `500 Internal Server Error`: Server error
-
-#### GET /api/v1/merchants/{id}
-
-Get a specific merchant by ID.
-
-**Authentication**: Required
-
-**Path Parameters**:
-- `id` (string, required): Merchant ID
-
-**Response**: `200 OK`
-
-```json
-{
-  "id": "merchant_1234567890",
-  "name": "Acme Corporation",
-  "legal_name": "Acme Corporation Inc.",
-  "registration_number": "REG123456",
-  "tax_id": "TAX123456",
-  "industry": "Technology",
-  "industry_code": "7372",
-  "business_type": "Corporation",
-  "founded_date": "2020-01-15T00:00:00Z",
-  "employee_count": 150,
-  "annual_revenue": 5000000.00,
-  "address": {
-    "street": "123 Main St",
-    "city": "San Francisco",
-    "state": "CA",
-    "zip": "94105",
-    "country": "USA"
-  },
-  "contact_info": {
-    "email": "contact@acme.com",
-    "phone": "+1-555-123-4567",
-    "website": "https://acme.com"
-  },
-  "portfolio_type": "enterprise",
-  "risk_level": "low",
-  "compliance_status": "compliant",
-  "status": "active",
-  "created_at": "2025-01-15T10:00:00Z",
-  "updated_at": "2025-01-20T14:30:00Z",
-  "created_by": "user_123"
-}
-```
-
-**Error Responses**:
-- `400 Bad Request`: Invalid merchant ID
-- `401 Unauthorized`: Missing or invalid authentication token
-- `404 Not Found`: Merchant not found
-- `503 Service Unavailable`: Database unavailable
-
-#### POST /api/v1/merchants/search
-
-Search merchants with advanced criteria.
-
-**Authentication**: Required
-
-**Request Body**:
-```json
-{
-  "query": "Acme",
-  "filters": {
-    "portfolio_type": "enterprise",
-    "risk_level": "low",
-    "status": "active"
-  },
-  "page": 1,
-  "page_size": 20
-}
-```
-
-**Response**: `200 OK` (same format as GET /api/v1/merchants)
-
-#### GET /api/v1/merchants/analytics
-
-Get merchant analytics and statistics.
-
-**Authentication**: Required
-
-**Response**: `200 OK`
-
-```json
-{
-  "total_merchants": 150,
-  "by_portfolio_type": {
-    "enterprise": 50,
-    "small_business": 75,
-    "startup": 25
-  },
-  "by_risk_level": {
-    "low": 100,
-    "medium": 40,
-    "high": 10
-  },
-  "by_status": {
-    "active": 120,
-    "inactive": 30
-  }
-}
-```
-
----
-
-### Risk Assessment
-
-#### POST /api/v1/risk/assess
-
-Perform a risk assessment for a business.
-
-**Authentication**: Required
-
-**Request Body**:
-```json
-{
-  "business_name": "Acme Corporation",
-  "business_address": "123 Main St, San Francisco, CA 94105",
-  "industry": "Technology",
-  "country": "USA",
-  "phone": "+1-555-123-4567",
-  "email": "contact@acme.com",
-  "website": "https://acme.com"
-}
-```
-
-**Request Fields**:
-- `business_name` (string, required): Business name
-- `business_address` (string, required): Business address
-- `industry` (string, required): Industry
-- `country` (string, required): Country code
-- `phone` (string, optional): Phone number
-- `email` (string, optional): Email address
-- `website` (string, optional): Website URL
-
-**Response**: `200 OK`
-
-```json
-{
-  "id": "assess_1234567890",
-  "business_name": "Acme Corporation",
-  "risk_score": 0.15,
-  "risk_level": "low",
-  "risk_factors": [],
-  "recommendations": [
-    "Continue monitoring",
-    "Standard due diligence"
-  ],
-  "confidence": 0.95,
-  "created_at": "2025-01-27T12:00:00Z",
-  "processing_time": "3.5s"
-}
-```
-
-**Error Responses**:
-- `400 Bad Request`: Validation error
-- `401 Unauthorized`: Missing or invalid authentication token
-- `500 Internal Server Error`: Assessment processing error
-
-#### GET /api/v1/risk/assess/{id}
-
-Get a specific risk assessment by ID.
-
-**Authentication**: Required
-
-**Path Parameters**:
-- `id` (string, required): Assessment ID
-
-**Response**: `200 OK` (same format as POST response)
-
-#### POST /api/v1/risk/assess/batch
-
-Perform batch risk assessments.
-
-**Authentication**: Required
-
-**Request Body**:
-```json
-{
-  "assessments": [
-    {
-      "business_name": "Acme Corporation",
-      "business_address": "123 Main St, San Francisco, CA 94105",
-      "industry": "Technology",
-      "country": "USA"
+      "count": 450,
+      "averageRiskScore": 0.35
     },
     {
-      "business_name": "Beta Inc",
-      "business_address": "456 Oak Ave, New York, NY 10001",
       "industry": "Retail",
-      "country": "USA"
+      "count": 320,
+      "averageRiskScore": 0.55
+    }
+  ],
+  "countryBreakdown": [
+    {
+      "country": "US",
+      "count": 800,
+      "averageRiskScore": 0.42
+    }
+  ],
+  "timestamp": "2025-01-27T10:30:00Z"
+}
+```
+
+**Status Codes:**
+- `200 OK` - Success
+- `401 Unauthorized` - Missing or invalid authentication
+- `500 Internal Server Error` - Server error
+
+---
+
+## Comparison Endpoints
+
+### Get Merchant Risk Score
+
+**Endpoint:** `GET /api/v1/merchants/{id}/risk-score`
+
+**Description:** Returns the risk score for a specific merchant, including confidence and assessment date.
+
+**Path Parameters:**
+- `id` (string, required) - Merchant ID
+
+**Request Example:**
+```bash
+curl -X GET "https://api-gateway-production.up.railway.app/api/v1/merchants/merchant-123/risk-score" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+**Response Schema:**
+```typescript
+interface MerchantRiskScore {
+  merchantId: string;
+  score: number; // 0-1
+  level: 'low' | 'medium' | 'high' | 'critical';
+  confidence: number; // 0-1
+  assessmentDate: string; // ISO 8601
+  factors: Array<{
+    name: string;
+    score: number;
+    weight: number;
+  }>;
+}
+```
+
+**Response Example:**
+```json
+{
+  "merchantId": "merchant-123",
+  "score": 0.65,
+  "level": "medium",
+  "confidence": 0.85,
+  "assessmentDate": "2025-01-27T10:00:00Z",
+  "factors": [
+    {
+      "name": "transaction_volume",
+      "score": 0.8,
+      "weight": 0.3
+    },
+    {
+      "name": "business_age",
+      "score": 0.5,
+      "weight": 0.2
     }
   ]
 }
 ```
 
-**Response**: `200 OK`
+**Status Codes:**
+- `200 OK` - Success
+- `404 Not Found` - Merchant not found
+- `401 Unauthorized` - Missing or invalid authentication
+- `500 Internal Server Error` - Server error
 
-```json
-{
-  "results": [
-    {
-      "id": "assess_1234567890",
-      "business_name": "Acme Corporation",
-      "risk_score": 0.15,
-      "risk_level": "low",
-      "status": "completed"
-    },
-    {
-      "id": "assess_1234567891",
-      "business_name": "Beta Inc",
-      "risk_score": 0.45,
-      "risk_level": "medium",
-      "status": "completed"
-    }
-  ],
-  "total": 2,
-  "completed": 2,
-  "failed": 0
+---
+
+### Get Risk Benchmarks
+
+**Endpoint:** `GET /api/v1/risk/benchmarks`
+
+**Description:** Returns industry risk benchmarks for comparison against merchant risk scores.
+
+**Query Parameters:**
+- `mcc` (string, optional) - Merchant Category Code
+- `naics` (string, optional) - NAICS code
+- `sic` (string, optional) - SIC code
+
+**Request Example:**
+```bash
+curl -X GET "https://api-gateway-production.up.railway.app/api/v1/risk/benchmarks?mcc=5734" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+**Response Schema:**
+```typescript
+interface RiskBenchmarks {
+  industry: string;
+  average_risk_score: number; // 0-1
+  percentile_25: number; // 0-1
+  percentile_50: number; // 0-1 (median)
+  percentile_75: number; // 0-1
+  sample_size: number;
+  timestamp: string; // ISO 8601
 }
 ```
 
-#### GET /api/v1/risk/benchmarks
-
-Get risk benchmarks for an industry.
-
-**Authentication**: Required
-
-**Query Parameters**:
-- `mcc` (string, optional): MCC code
-- `naics` (string, optional): NAICS code
-- `sic` (string, optional): SIC code
-
-**Note**: At least one of `mcc`, `naics`, or `sic` is required.
-
-**Response**: `200 OK`
-
+**Response Example:**
 ```json
 {
   "industry": "Technology",
-  "mcc": "7372",
-  "benchmarks": {
-    "average_risk_score": 0.25,
-    "median_risk_score": 0.20,
-    "p25_risk_score": 0.15,
-    "p75_risk_score": 0.35,
-    "sample_size": 1000
-  },
-  "updated_at": "2025-01-27T12:00:00Z"
+  "average_risk_score": 0.45,
+  "percentile_25": 0.30,
+  "percentile_50": 0.45,
+  "percentile_75": 0.60,
+  "sample_size": 450,
+  "timestamp": "2025-01-27T10:30:00Z"
 }
 ```
 
-**Error Responses**:
-- `400 Bad Request`: Missing required parameters
-- `503 Service Unavailable`: Feature not available in production (unless enabled)
+**Status Codes:**
+- `200 OK` - Success
+- `400 Bad Request` - Invalid query parameters
+- `401 Unauthorized` - Missing or invalid authentication
+- `500 Internal Server Error` - Server error
 
-#### GET /api/v1/risk/predictions/{merchant_id}
+---
 
-Get risk predictions for a merchant.
+## Analytics Endpoints
 
-**Authentication**: Required
+### Get Risk Trends
 
-**Path Parameters**:
-- `merchant_id` (string, required): Merchant ID
+**Endpoint:** `GET /api/v1/analytics/trends`
 
-**Response**: `200 OK`
+**Description:** Returns portfolio risk trends over time with predictions and confidence bands.
 
+**Query Parameters:**
+- `timeframe` (string, optional) - Time range: `7d`, `30d`, `90d`, `6m`, `1y` (default: `30d`)
+- `industry` (string, optional) - Filter by industry
+- `country` (string, optional) - Filter by country code
+- `limit` (number, optional) - Maximum number of data points (default: 100)
+
+**Request Example:**
+```bash
+curl -X GET "https://api-gateway-production.up.railway.app/api/v1/analytics/trends?timeframe=6m&industry=Technology" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+**Response Schema:**
+```typescript
+interface RiskTrends {
+  trends: Array<{
+    date: string; // ISO 8601
+    industry?: string;
+    country?: string;
+    average_risk_score: number; // 0-1
+    trend_direction: 'increasing' | 'decreasing' | 'stable';
+    change_percentage: number; // Percentage change
+  }>;
+  summary: {
+    average_risk_score: number; // 0-1
+    overall_trend: 'increasing' | 'decreasing' | 'stable';
+    total_change_percentage: number;
+  };
+  timestamp: string; // ISO 8601
+}
+```
+
+**Response Example:**
 ```json
 {
-  "merchant_id": "merchant_1234567890",
-  "predictions": [
+  "trends": [
     {
-      "scenario": "baseline",
-      "predicted_risk_score": 0.15,
-      "confidence": 0.90,
-      "time_horizon": "30_days"
+      "date": "2025-01-01T00:00:00Z",
+      "industry": "Technology",
+      "average_risk_score": 0.40,
+      "trend_direction": "decreasing",
+      "change_percentage": -5.0
     },
     {
-      "scenario": "optimistic",
-      "predicted_risk_score": 0.10,
-      "confidence": 0.85,
-      "time_horizon": "30_days"
-    },
-    {
-      "scenario": "pessimistic",
-      "predicted_risk_score": 0.25,
-      "confidence": 0.88,
-      "time_horizon": "30_days"
+      "date": "2025-01-15T00:00:00Z",
+      "industry": "Technology",
+      "average_risk_score": 0.38,
+      "trend_direction": "decreasing",
+      "change_percentage": -2.0
     }
   ],
-  "generated_at": "2025-01-27T12:00:00Z"
+  "summary": {
+    "average_risk_score": 0.39,
+    "overall_trend": "decreasing",
+    "total_change_percentage": -7.0
+  },
+  "timestamp": "2025-01-27T10:30:00Z"
 }
 ```
+
+**Status Codes:**
+- `200 OK` - Success
+- `400 Bad Request` - Invalid query parameters
+- `401 Unauthorized` - Missing or invalid authentication
+- `500 Internal Server Error` - Server error
 
 ---
 
-### Business Intelligence
+### Get Risk Insights
 
-#### POST /api/v1/bi/analyze
+**Endpoint:** `GET /api/v1/analytics/insights`
 
-Analyze business intelligence data.
+**Description:** Returns portfolio risk insights with key findings and recommendations.
 
-**Authentication**: Required
+**Query Parameters:**
+- `industry` (string, optional) - Filter by industry
+- `country` (string, optional) - Filter by country code
+- `risk_level` (string, optional) - Filter by risk level: `low`, `medium`, `high`, `critical`
 
-**Request Body**:
-```json
-{
-  "business_name": "Acme Corporation",
-  "website": "https://acme.com"
+**Request Example:**
+```bash
+curl -X GET "https://api-gateway-production.up.railway.app/api/v1/analytics/insights?risk_level=high" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+**Response Schema:**
+```typescript
+interface RiskInsights {
+  insights: Array<{
+    title: string;
+    description: string;
+    impact: 'low' | 'medium' | 'high';
+    category: string;
+  }>;
+  recommendations: Array<{
+    title: string;
+    description: string;
+    priority: 'low' | 'medium' | 'high';
+    actions: string[];
+  }>;
+  timestamp: string; // ISO 8601
 }
 ```
 
-**Response**: `200 OK`
-
+**Response Example:**
 ```json
 {
-  "business_name": "Acme Corporation",
-  "analysis": {
-    "industry": "Technology",
-    "competitors": [],
-    "market_share": 0.05,
-    "growth_rate": 0.15
-  },
-  "generated_at": "2025-01-27T12:00:00Z"
+  "insights": [
+    {
+      "title": "High Risk Merchant Concentration",
+      "description": "15% of merchants are classified as high risk, concentrated in Retail industry",
+      "impact": "high",
+      "category": "risk_distribution"
+    }
+  ],
+  "recommendations": [
+    {
+      "title": "Increase Monitoring Frequency",
+      "description": "Consider increasing monitoring frequency for high-risk merchants",
+      "priority": "high",
+      "actions": [
+        "Configure daily risk assessments",
+        "Set up automated alerts"
+      ]
+    }
+  ],
+  "timestamp": "2025-01-27T10:30:00Z"
 }
 ```
+
+**Status Codes:**
+- `200 OK` - Success
+- `400 Bad Request` - Invalid query parameters
+- `401 Unauthorized` - Missing or invalid authentication
+- `500 Internal Server Error` - Server error
 
 ---
 
-### Authentication Endpoints
+## Merchant Endpoints
 
-#### POST /api/v1/auth/register
+### Get Merchant by ID
 
-Register a new user.
+**Endpoint:** `GET /api/v1/merchants/{id}`
 
-**Authentication**: Not required
+**Description:** Returns detailed information for a specific merchant.
 
-**Request Body**:
-```json
-{
-  "email": "user@example.com",
-  "password": "SecurePassword123!",
-  "user_metadata": {
-    "name": "John Doe"
-  }
+**Path Parameters:**
+- `id` (string, required) - Merchant ID
+
+**Request Example:**
+```bash
+curl -X GET "https://api-gateway-production.up.railway.app/api/v1/merchants/merchant-123" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+**Response Schema:**
+```typescript
+interface Merchant {
+  id: string;
+  businessName: string;
+  industry: string;
+  status: 'active' | 'inactive' | 'pending';
+  riskLevel: 'low' | 'medium' | 'high' | 'critical';
+  // ... other merchant fields
 }
 ```
 
-**Response**: `201 Created`
+**Status Codes:**
+- `200 OK` - Success
+- `404 Not Found` - Merchant not found
+- `401 Unauthorized` - Missing or invalid authentication
+- `500 Internal Server Error` - Server error
 
-```json
-{
-  "user": {
-    "id": "user_1234567890",
-    "email": "user@example.com"
-  },
-  "access_token": "jwt-token-here",
-  "refresh_token": "refresh-token-here"
+---
+
+### Get Merchant Analytics
+
+**Endpoint:** `GET /api/v1/merchants/{id}/analytics`
+
+**Description:** Returns analytics data for a specific merchant.
+
+**Path Parameters:**
+- `id` (string, required) - Merchant ID
+
+**Request Example:**
+```bash
+curl -X GET "https://api-gateway-production.up.railway.app/api/v1/merchants/merchant-123/analytics" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+**Response Schema:**
+```typescript
+interface AnalyticsData {
+  merchantId: string;
+  classificationConfidence: number; // 0-1
+  securityTrustScore: number; // 0-1
+  dataQualityScore: number; // 0-1
+  // ... other analytics fields
 }
 ```
 
-**Error Responses**:
-- `400 Bad Request`: Invalid email or password
-- `409 Conflict`: Email already registered
+**Status Codes:**
+- `200 OK` - Success
+- `404 Not Found` - Merchant not found
+- `401 Unauthorized` - Missing or invalid authentication
+- `500 Internal Server Error` - Server error
+
+---
+
+## Risk Assessment Endpoints
+
+### Get Risk Indicators
+
+**Endpoint:** `GET /api/v1/risk/indicators/{id}`
+
+**Description:** Returns active risk indicators (alerts) for a merchant.
+
+**Path Parameters:**
+- `id` (string, required) - Merchant ID
+
+**Query Parameters:**
+- `status` (string, optional) - Filter by status: `active`, `resolved` (default: `active`)
+- `severity` (string, optional) - Filter by severity: `low`, `medium`, `high`, `critical`
+
+**Request Example:**
+```bash
+curl -X GET "https://api-gateway-production.up.railway.app/api/v1/risk/indicators/merchant-123?status=active&severity=high" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+**Response Schema:**
+```typescript
+interface RiskIndicatorsData {
+  alerts: Array<{
+    id: string;
+    type: string;
+    severity: 'low' | 'medium' | 'high' | 'critical';
+    description: string;
+    createdAt: string; // ISO 8601
+    status: 'active' | 'resolved';
+  }>;
+  timestamp: string; // ISO 8601
+}
+```
+
+**Status Codes:**
+- `200 OK` - Success
+- `404 Not Found` - Merchant not found
+- `400 Bad Request` - Invalid query parameters
+- `401 Unauthorized` - Missing or invalid authentication
+- `500 Internal Server Error` - Server error
+
+---
+
+### Explain Risk Assessment
+
+**Endpoint:** `GET /api/v1/risk/explain/{assessmentId}`
+
+**Description:** Returns SHAP values and feature importance for a risk assessment.
+
+**Path Parameters:**
+- `assessmentId` (string, required) - Risk assessment ID
+
+**Request Example:**
+```bash
+curl -X GET "https://api-gateway-production.up.railway.app/api/v1/risk/explain/assessment-123" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+**Response Schema:**
+```typescript
+interface RiskExplanationResponse {
+  assessmentId: string;
+  shapValues: Array<{
+    feature: string;
+    value: number; // SHAP value
+  }>;
+  featureImportance: Array<{
+    feature: string;
+    importance: number; // 0-1
+  }>;
+  riskFactors: Array<{
+    name: string;
+    score: number; // 0-1
+    weight: number; // 0-1
+    impact: number; // Calculated: score * weight
+  }>;
+  timestamp: string; // ISO 8601
+}
+```
+
+**Status Codes:**
+- `200 OK` - Success
+- `404 Not Found` - Assessment not found
+- `401 Unauthorized` - Missing or invalid authentication
+- `500 Internal Server Error` - Server error
+
+---
+
+### Get Risk Recommendations
+
+**Endpoint:** `GET /api/v1/merchants/{id}/risk-recommendations`
+
+**Description:** Returns actionable risk recommendations for a merchant.
+
+**Path Parameters:**
+- `id` (string, required) - Merchant ID
+
+**Request Example:**
+```bash
+curl -X GET "https://api-gateway-production.up.railway.app/api/v1/merchants/merchant-123/risk-recommendations" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+**Response Schema:**
+```typescript
+interface RiskRecommendationsResponse {
+  recommendations: Array<{
+    id: string;
+    title: string;
+    description: string;
+    priority: 'low' | 'medium' | 'high';
+    actions: string[];
+  }>;
+  timestamp: string; // ISO 8601
+}
+```
+
+**Status Codes:**
+- `200 OK` - Success
+- `404 Not Found` - Merchant not found
+- `401 Unauthorized` - Missing or invalid authentication
+- `500 Internal Server Error` - Server error
+
+---
+
+## Error Responses
+
+### Standard Error Format
+
+All error responses follow this format:
+
+```typescript
+interface ErrorResponse {
+  error: string;
+  message: string;
+  statusCode: number;
+  timestamp: string; // ISO 8601
+  path?: string; // Request path
+}
+```
+
+### Error Response Example
+
+```json
+{
+  "error": "Not Found",
+  "message": "Merchant not found: merchant-123",
+  "statusCode": 404,
+  "timestamp": "2025-01-27T10:30:00Z",
+  "path": "/api/v1/merchants/merchant-123"
+}
+```
+
+### HTTP Status Codes
+
+- `200 OK` - Request successful
+- `201 Created` - Resource created successfully
+- `400 Bad Request` - Invalid request parameters
+- `401 Unauthorized` - Missing or invalid authentication
+- `403 Forbidden` - Insufficient permissions
+- `404 Not Found` - Resource not found
+- `429 Too Many Requests` - Rate limit exceeded
+- `500 Internal Server Error` - Server error
+- `502 Bad Gateway` - Backend service unavailable
+- `503 Service Unavailable` - Service temporarily unavailable
+
+---
+
+## Route Mappings
+
+### API Gateway to Backend Service Mappings
+
+| API Gateway Route | Backend Service | Backend Route |
+|-------------------|----------------|---------------|
+| `/api/v1/merchants/*` | Merchant Service | `/api/v1/merchants/*` |
+| `/api/v1/merchants/analytics` | Merchant Service | `/api/v1/merchants/analytics` |
+| `/api/v1/merchants/statistics` | Merchant Service | `/api/v1/merchants/statistics` |
+| `/api/v1/analytics/trends` | Risk Assessment Service | `/api/v1/analytics/trends` |
+| `/api/v1/analytics/insights` | Risk Assessment Service | `/api/v1/analytics/insights` |
+| `/api/v1/risk/assess` | Risk Assessment Service | `/api/v1/assessments` |
+| `/api/v1/risk/benchmarks` | Risk Assessment Service | `/api/v1/benchmarks` |
+| `/api/v1/risk/indicators/{id}` | Risk Assessment Service | `/api/v1/indicators/{id}` |
+| `/api/v1/risk/explain/{id}` | Risk Assessment Service | `/api/v1/explain/{id}` |
+| `/api/v3/dashboard/metrics` | BI Service | `/dashboard/metrics` |
+
+---
+
+## Path Transformations
+
+### Risk Assessment Service Transformations
+
+The following routes require path transformation when proxying to the Risk Assessment Service:
+
+| API Gateway Route | Transformed Backend Route |
+|-------------------|--------------------------|
+| `/api/v1/risk/assess` | `/api/v1/assessments` |
+| `/api/v1/risk/benchmarks` | `/api/v1/benchmarks` |
+| `/api/v1/risk/predictions/{merchant_id}` | `/api/v1/predictions/{merchant_id}` |
+| `/api/v1/risk/indicators/{id}` | `/api/v1/indicators/{id}` |
+
+### No Transformation Routes
+
+The following routes are passed as-is to backend services:
+
+- `/api/v1/merchants/*` → Merchant Service (no transformation)
+- `/api/v1/analytics/*` → Risk Assessment Service (no transformation)
+- `/api/v3/dashboard/metrics` → BI Service (no transformation)
 
 ---
 
 ## Rate Limiting
 
-### Limits
+### Default Limits
 
-- **Default**: 1000 requests per hour per IP
-- **Burst**: 2000 requests
-- **Window**: 3600 seconds (1 hour)
+- **Rate Limit:** 100 requests per 60 seconds per IP
+- **Burst Size:** 200 requests
+- **Window Size:** 60 seconds
 
 ### Rate Limit Headers
 
-When rate limit is approached or exceeded, the following headers are included:
+When rate limit is exceeded, the following headers are included:
 
-- `X-RateLimit-Limit`: Maximum requests allowed
-- `X-RateLimit-Remaining`: Remaining requests in current window
-- `X-RateLimit-Reset`: Unix timestamp when limit resets
+```
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1643299200
+```
 
-### Rate Limit Exceeded Response
-
-**Status**: `429 Too Many Requests`
+### Rate Limit Response
 
 ```json
 {
-  "error": {
-    "code": "RATE_LIMIT_EXCEEDED",
-    "message": "Rate limit exceeded. Please try again later."
-  },
-  "request_id": "req_1234567890",
-  "timestamp": "2025-01-27T12:00:00Z",
-  "path": "/api/v1/merchants",
-  "method": "GET"
+  "error": "Rate limit exceeded",
+  "message": "Too many requests",
+  "statusCode": 429,
+  "timestamp": "2025-01-27T10:30:00Z"
 }
 ```
 
 ---
 
-## CORS
+## Caching
 
-### Configuration
+### Cache Headers
 
-- **Allowed Origins**: Configurable (default: `*` for development)
-- **Allowed Methods**: `GET, POST, PUT, DELETE, OPTIONS`
-- **Allowed Headers**: `Content-Type, Authorization`
-- **Allow Credentials**: `true`
+Responses may include cache headers:
 
-### Preflight Requests
+```
+Cache-Control: public, max-age=300
+ETag: "abc123"
+Last-Modified: Mon, 27 Jan 2025 10:30:00 GMT
+```
 
-All endpoints support OPTIONS preflight requests for CORS.
+### Cache TTL
 
----
-
-## Response Times
-
-### Expected Response Times
-
-- Health check: < 100ms
-- Classification (first request): < 5 seconds
-- Classification (cached): < 100ms
-- Merchant list: < 2 seconds
-- Risk assessment: < 10 seconds
-- Business intelligence: < 5 seconds
+- **Portfolio Analytics:** 7 minutes (420 seconds)
+- **Portfolio Statistics:** 5 minutes (300 seconds)
+- **Risk Trends:** 5 minutes (300 seconds)
+- **Risk Insights:** 5 minutes (300 seconds)
+- **Risk Benchmarks:** 10 minutes (600 seconds)
+- **Merchant Risk Score:** 2 minutes (120 seconds)
 
 ---
 
-## Best Practices
+## Pagination
 
-### Request Headers
+### Paginated Endpoints
 
-Always include:
-- `Content-Type: application/json` for POST/PUT requests
-- `Authorization: Bearer <token>` for protected endpoints
-- `X-Request-ID: <unique-id>` (optional, for request tracking)
+Some endpoints support pagination:
 
-### Error Handling
+**Query Parameters:**
+- `limit` (number, optional) - Number of results per page (default: 20, max: 100)
+- `offset` (number, optional) - Number of results to skip (default: 0)
 
-- Always check HTTP status codes
-- Parse error response for detailed error information
-- Use `request_id` for support requests
-- Implement retry logic for 5xx errors with exponential backoff
-
-### Pagination
-
-- Use appropriate `page_size` (default: 20, max: 100)
-- Check `has_next` and `has_previous` for navigation
-- Use `total` and `total_pages` for UI display
-
-### Caching
-
-- Classification results are cached for 5 minutes
-- Check `X-Cache` header to see if response was cached
-- Don't cache sensitive merchant data
+**Response Headers:**
+```
+X-Total-Count: 1250
+X-Page-Size: 20
+X-Page-Number: 1
+```
 
 ---
 
-## Support
+## Versioning
 
-For API support:
-- **Documentation**: This document
-- **Issue Tracker**: [Link to issue tracker]
-- **Email**: api-support@kyb-platform.com
+### API Versioning Strategy
+
+- **v1:** Current stable version (recommended)
+- **v3:** Enhanced endpoints (dashboard metrics)
+
+### Version in URL
+
+All endpoints include version in the URL path:
+- `/api/v1/merchants/*`
+- `/api/v3/dashboard/metrics`
+
+### Deprecation Policy
+
+- Deprecated endpoints will be marked with `X-API-Deprecated` header
+- Minimum 6 months notice before removal
+- Migration guides provided for deprecated endpoints
 
 ---
 
-**Last Updated**: 2025-01-27  
-**API Version**: 1.0
+## Conclusion
 
+This documentation covers all portfolio-level endpoints, comparison endpoints, request/response schemas, error responses, route mappings, and path transformations.
+
+**Last Updated:** 2025-01-27  
+**Version:** 1.0.0  
+**Status:** ✅ Complete
