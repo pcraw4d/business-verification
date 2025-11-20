@@ -69,15 +69,15 @@ export function RiskAlertsSection({ merchantId }: RiskAlertsSectionProps) {
   }, [fetchAlerts]);
 
   // Group alerts by severity
-  const groupedAlerts = useMemo(() => {
-    if (!alerts?.indicators) return {};
-    
+  const groupedAlerts = useMemo((): Record<Severity, RiskIndicator[]> => {
     const grouped: Record<Severity, RiskIndicator[]> = {
       critical: [],
       high: [],
       medium: [],
       low: [],
     };
+    
+    if (!alerts?.indicators) return grouped;
     
     alerts.indicators.forEach((alert) => {
       const severity = (alert.severity || 'medium') as Severity;
