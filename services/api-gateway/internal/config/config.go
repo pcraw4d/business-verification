@@ -105,7 +105,6 @@ func Load() (*Config, error) {
 		BIServiceURL:      getServiceURL("BI_SERVICE_URL", "bi-service", cfg.Environment),
 		RiskAssessmentURL: getServiceURL("RISK_ASSESSMENT_SERVICE_URL", "risk-assessment-service", cfg.Environment),
 	}
-	}
 
 	// Validate required configuration
 	if cfg.Supabase.URL == "" {
