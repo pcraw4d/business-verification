@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -116,8 +117,9 @@ func TestSecuritySQLInjectionPrevention(t *testing.T) {
 
 	for _, payload := range sqlInjectionPayloads {
 		t.Run("SQL_Injection_"+strings.ReplaceAll(payload, "'", "_"), func(t *testing.T) {
-			// Test in URL path parameter
-			req := httptest.NewRequest("GET", "/api/v1/merchants/"+payload, nil)
+			// Test in URL path parameter (URL encode to avoid parsing issues)
+			encodedPayload := url.QueryEscape(payload)
+			req := httptest.NewRequest("GET", "/api/v1/merchants/"+encodedPayload, nil)
 			rr := httptest.NewRecorder()
 			suite.router.ServeHTTP(rr, req)
 
@@ -132,8 +134,8 @@ func TestSecuritySQLInjectionPrevention(t *testing.T) {
 				}
 			}
 
-			// Test in query parameter
-			req2 := httptest.NewRequest("GET", "/api/v1/merchants/statistics?id="+payload, nil)
+			// Test in query parameter (URL encode)
+			req2 := httptest.NewRequest("GET", "/api/v1/merchants/statistics?id="+url.QueryEscape(payload), nil)
 			rr2 := httptest.NewRecorder()
 			suite.router.ServeHTTP(rr2, req2)
 
@@ -170,8 +172,9 @@ func TestSecurityXSSPrevention(t *testing.T) {
 
 	for _, payload := range xssPayloads {
 		t.Run("XSS_"+strings.ReplaceAll(strings.ReplaceAll(payload, "<", "_"), ">", "_"), func(t *testing.T) {
-			// Test in URL path
-			req := httptest.NewRequest("GET", "/api/v1/merchants/"+payload, nil)
+			// Test in URL path (URL encode to avoid parsing issues)
+			encodedPayload := url.QueryEscape(payload)
+			req := httptest.NewRequest("GET", "/api/v1/merchants/"+encodedPayload, nil)
 			rr := httptest.NewRecorder()
 			suite.router.ServeHTTP(rr, req)
 
@@ -202,7 +205,9 @@ func TestSecurityInputSanitization(t *testing.T) {
 
 	for _, input := range maliciousInputs {
 		t.Run("Input_Sanitization_"+input[:min(20, len(input))], func(t *testing.T) {
-			req := httptest.NewRequest("GET", "/api/v1/merchants/"+input, nil)
+			// URL encode to avoid parsing issues
+			encodedInput := url.QueryEscape(input)
+			req := httptest.NewRequest("GET", "/api/v1/merchants/"+encodedInput, nil)
 			rr := httptest.NewRecorder()
 			suite.router.ServeHTTP(rr, req)
 
@@ -527,7 +532,9 @@ func TestSecurityPathTraversal(t *testing.T) {
 
 	for _, payload := range pathTraversalPayloads {
 		t.Run("Path_Traversal_"+strings.ReplaceAll(payload, "/", "_"), func(t *testing.T) {
-			req := httptest.NewRequest("GET", "/api/v1/merchants/"+payload, nil)
+			// URL encode to avoid parsing issues
+			encodedPayload := url.QueryEscape(payload)
+			req := httptest.NewRequest("GET", "/api/v1/merchants/"+encodedPayload, nil)
 			rr := httptest.NewRecorder()
 
 			suite.router.ServeHTTP(rr, req)
@@ -557,7 +564,9 @@ func TestSecurityCommandInjection(t *testing.T) {
 
 	for _, payload := range commandInjectionPayloads {
 		t.Run("Command_Injection_"+strings.ReplaceAll(payload, " ", "_"), func(t *testing.T) {
-			req := httptest.NewRequest("GET", "/api/v1/merchants/"+payload, nil)
+			// URL encode to avoid parsing issues
+			encodedPayload := url.QueryEscape(payload)
+			req := httptest.NewRequest("GET", "/api/v1/merchants/"+encodedPayload, nil)
 			rr := httptest.NewRecorder()
 
 			suite.router.ServeHTTP(rr, req)
