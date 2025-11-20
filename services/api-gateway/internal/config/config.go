@@ -173,11 +173,11 @@ func getServiceURL(envVar, serviceName, environment string) string {
 	if environment == "development" {
 		// Default ports for local services (can be overridden via env vars)
 		portMap := map[string]string{
-			"classification-service": getEnvAsString("CLASSIFICATION_SERVICE_PORT", "8081"),
-			"merchant-service":       getEnvAsString("MERCHANT_SERVICE_PORT", "8082"),
-			"frontend-service":       getEnvAsString("FRONTEND_SERVICE_PORT", "3000"),
-			"bi-service":             getEnvAsString("BI_SERVICE_PORT", "8083"),
-			"risk-assessment-service": getEnvAsString("RISK_ASSESSMENT_SERVICE_PORT", "8084"),
+			"classification-service":  getEnvAsString("CLASSIFICATION_SERVICE_PORT", "8081"),
+			"merchant-service":        getEnvAsString("MERCHANT_SERVICE_PORT", "8083"),
+			"frontend-service":        getEnvAsString("FRONTEND_SERVICE_PORT", "3000"),
+			"bi-service":              getEnvAsString("BI_SERVICE_PORT", "8083"),
+			"risk-assessment-service": getEnvAsString("RISK_ASSESSMENT_SERVICE_PORT", "8082"),
 		}
 		port := portMap[serviceName]
 		if port == "" {
