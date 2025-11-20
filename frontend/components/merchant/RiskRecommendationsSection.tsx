@@ -35,6 +35,7 @@ export function RiskRecommendationsSection({ merchantId }: RiskRecommendationsSe
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedPriority, setExpandedPriority] = useState<'high' | 'medium' | 'low' | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   const fetchRecommendations = useCallback(async () => {
     try {
@@ -293,7 +294,7 @@ export function RiskRecommendationsSection({ merchantId }: RiskRecommendationsSe
         {recommendations?.timestamp && (
           <div className="pt-4 border-t">
             <p className="text-xs text-muted-foreground text-center">
-              Last updated: {new Date(recommendations.timestamp).toLocaleString()}
+              Last updated: {mounted ? new Date(recommendations.timestamp).toLocaleString() : 'Loading...'}
             </p>
           </div>
         )}

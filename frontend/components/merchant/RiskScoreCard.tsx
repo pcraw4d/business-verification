@@ -19,6 +19,8 @@ export function RiskScoreCard({ merchantId }: RiskScoreCardProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [riskScore, setRiskScore] = useState<MerchantRiskScore | null>(null);
+  // Use client-side state for dates to avoid hydration issues
+  const [formattedDate, setFormattedDate] = useState<string>('');
 
   const fetchRiskScore = async () => {
     try {
@@ -41,6 +43,15 @@ export function RiskScoreCard({ merchantId }: RiskScoreCardProps) {
   useEffect(() => {
     fetchRiskScore();
   }, [merchantId]);
+
+  // Format date on client side only to avoid hydration issues
+  useEffect(() => {
+    if (riskScore?.assessment_date) {
+      setFormattedDate(new Date(riskScore.assessment_date).toLocaleDateString());
+    } else {
+      setFormattedDate('');
+    }
+  }, [riskScore?.assessment_date]);
 
   if (loading) {
     return (
@@ -139,11 +150,11 @@ export function RiskScoreCard({ merchantId }: RiskScoreCardProps) {
               {formatPercent(riskScore.confidence_score)}
             </span>
           </div>
-          {riskScore.assessment_date && (
+          {riskScore.assessment_date && formattedDate && (
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Assessment Date</span>
               <span className="text-sm font-medium">
-                {new Date(riskScore.assessment_date).toLocaleDateString()}
+                {formattedDate}
               </span>
             </div>
           )}

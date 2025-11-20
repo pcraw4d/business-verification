@@ -449,7 +449,7 @@ function RiskAssessmentTabContent({ merchantId }: RiskAssessmentTabProps) {
                     isLoading={historyLoading}
                   >
                     <LineChart
-                      data={mounted ? riskHistory
+                      data={mounted && riskHistory.length > 0 ? riskHistory
                         .filter((h) => h.result?.overallScore != null)
                         .map((h) => ({
                           name: new Date(h.createdAt).toLocaleDateString(),

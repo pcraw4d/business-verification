@@ -23,6 +23,7 @@ export function RiskAlertsSection({ merchantId }: RiskAlertsSectionProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedSeverity, setExpandedSeverity] = useState<Severity | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   const fetchAlerts = useCallback(async () => {
     try {
@@ -267,7 +268,7 @@ export function RiskAlertsSection({ merchantId }: RiskAlertsSectionProps) {
                           )}
                           {alert.createdAt && (
                             <p className="text-xs text-muted-foreground mt-2">
-                              Triggered: {new Date(alert.createdAt).toLocaleString()}
+                              Triggered: {mounted ? new Date(alert.createdAt).toLocaleString() : 'Loading...'}
                             </p>
                           )}
                         </div>
