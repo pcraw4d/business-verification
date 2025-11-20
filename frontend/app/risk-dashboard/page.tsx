@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertTriangle, TrendingUp, Shield, Activity } from 'lucide-react';
 import { getRiskMetrics, getRiskTrends, getRiskInsights } from '@/lib/api';
+import { formatPercentWithSign, formatNumber } from '@/lib/number-format';
 import { toast } from 'sonner';
 import { LineChart } from '@/components/charts/lazy';
 import { BarChart } from '@/components/charts/lazy';
@@ -159,9 +160,6 @@ export default function RiskDashboardPage() {
     fetchMetrics();
   }, []);
 
-  const formatPercentage = (value: number) => {
-    return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
-  };
 
   return (
     <AppLayout
@@ -187,7 +185,7 @@ export default function RiskDashboardPage() {
             <>
               <MetricCard
                 label="Overall Risk Score"
-                value={metrics.overallRiskScore.toFixed(1)}
+                value={formatNumber(metrics.overallRiskScore, 1)}
                 icon={AlertTriangle}
                 variant="warning"
               />
@@ -205,7 +203,7 @@ export default function RiskDashboardPage() {
               />
               <MetricCard
                 label="Risk Trend"
-                value={formatPercentage(metrics.riskTrend)}
+                value={formatPercentWithSign(metrics.riskTrend)}
                 icon={TrendingUp}
                 variant="warning"
                 trend={{ value: metrics.riskTrend, isPositive: metrics.riskTrend < 0 }}

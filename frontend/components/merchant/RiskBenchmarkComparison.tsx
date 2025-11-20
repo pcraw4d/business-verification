@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { ChartContainer } from '@/components/dashboards/ChartContainer';
 import { BarChart } from '@/components/charts/lazy';
+import { formatPercent, formatPercentile, formatPercentWithSign } from '@/lib/number-format';
 
 interface RiskBenchmarkComparisonProps {
   merchantId: string;
@@ -109,6 +110,14 @@ export function RiskBenchmarkComparison({ merchantId }: RiskBenchmarkComparisonP
         const industryP25 = benchmarks.percentile_25;
         const industryP75 = benchmarks.percentile_75;
         const industryP90 = benchmarks.percentile_90;
+
+        // Skip if required values are missing
+        if (merchantScore == null || industryAverage == null || industryMedian == null || 
+            industryP25 == null || industryP75 == null || industryP90 == null) {
+          setError('Incomplete benchmark data. Cannot perform comparison.');
+          setLoading(false);
+          return;
+        }
 
         const difference = merchantScore - industryAverage;
         const differencePercentage = industryAverage !== 0 ? (difference / industryAverage) * 100 : 0;
@@ -313,11 +322,11 @@ export function RiskBenchmarkComparison({ merchantId }: RiskBenchmarkComparisonP
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
             <p className="text-sm font-medium text-muted-foreground">Merchant Risk Score</p>
-            <p className="text-2xl font-bold">{(comparison.merchantScore * 100).toFixed(1)}%</p>
+            <p className="text-2xl font-bold">{formatPercent(comparison.merchantScore)}</p>
           </div>
           <div>
             <p className="text-sm font-medium text-muted-foreground">Industry Average</p>
-            <p className="text-2xl font-bold">{(comparison.industryAverage * 100).toFixed(1)}%</p>
+            <p className="text-2xl font-bold">{formatPercent(comparison.industryAverage)}</p>
           </div>
           <div>
             <p className="text-sm font-medium text-muted-foreground">Difference</p>
@@ -332,14 +341,13 @@ export function RiskBenchmarkComparison({ merchantId }: RiskBenchmarkComparisonP
                     : 'text-gray-500'
                 }`}
               >
-                {comparison.difference > 0 ? '+' : ''}
-                {(comparison.difference * 100).toFixed(1)}%
+                {formatPercentWithSign(comparison.difference)}
               </span>
             </div>
           </div>
           <div>
             <p className="text-sm font-medium text-muted-foreground">Percentile</p>
-            <p className="text-2xl font-bold">{comparison.percentile.toFixed(0)}th</p>
+            <p className="text-2xl font-bold">{formatPercentile(comparison.percentile)}</p>
           </div>
         </div>
 
@@ -390,19 +398,19 @@ export function RiskBenchmarkComparison({ merchantId }: RiskBenchmarkComparisonP
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="p-3 border rounded-lg">
                 <p className="text-xs text-muted-foreground">25th Percentile</p>
-                <p className="text-lg font-semibold">{(benchmarks.percentile_25 * 100).toFixed(1)}%</p>
+                <p className="text-lg font-semibold">{formatPercent(benchmarks.percentile_25)}</p>
               </div>
               <div className="p-3 border rounded-lg">
                 <p className="text-xs text-muted-foreground">Median</p>
-                <p className="text-lg font-semibold">{(benchmarks.median_risk_score * 100).toFixed(1)}%</p>
+                <p className="text-lg font-semibold">{formatPercent(benchmarks.median_risk_score)}</p>
               </div>
               <div className="p-3 border rounded-lg">
                 <p className="text-xs text-muted-foreground">75th Percentile</p>
-                <p className="text-lg font-semibold">{(benchmarks.percentile_75 * 100).toFixed(1)}%</p>
+                <p className="text-lg font-semibold">{formatPercent(benchmarks.percentile_75)}</p>
               </div>
               <div className="p-3 border rounded-lg">
                 <p className="text-xs text-muted-foreground">90th Percentile</p>
-                <p className="text-lg font-semibold">{(benchmarks.percentile_90 * 100).toFixed(1)}%</p>
+                <p className="text-lg font-semibold">{formatPercent(benchmarks.percentile_90)}</p>
               </div>
             </div>
           </div>

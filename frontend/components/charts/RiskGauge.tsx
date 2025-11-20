@@ -171,9 +171,13 @@ export function RiskGauge({
       .duration(1000)
       .tween('text', function () {
         const current = parseFloat(this.textContent || '0') || 0;
-        const interpolate = d3.interpolate(current, value);
+        const targetValue = value != null && !isNaN(value) ? value : 0;
+        const interpolate = d3.interpolate(current, targetValue);
         return function (t) {
-          this.textContent = interpolate(t).toFixed(1);
+          const interpolatedValue = interpolate(t);
+          this.textContent = (interpolatedValue != null && !isNaN(interpolatedValue)) 
+            ? interpolatedValue.toFixed(1) 
+            : '0.0';
         };
       });
 

@@ -9,6 +9,7 @@ import type { PortfolioStatistics, MerchantRiskScore, PortfolioComparison } from
 import { useEffect, useState } from 'react';
 import { TrendingUp, TrendingDown, Minus, RefreshCw, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatNumber, formatPercentile, formatPercentWithSign } from '@/lib/number-format';
 
 interface PortfolioComparisonCardProps {
   merchantId: string;
@@ -48,6 +49,13 @@ export function PortfolioComparisonCard({ merchantId, merchantRiskLevel }: Portf
 
         const merchantScore = riskScore.risk_score;
         const portfolioAvg = stats.averageRiskScore;
+        
+        // Skip if required values are missing
+        if (merchantScore == null || portfolioAvg == null) {
+          setError('Missing required data for comparison.');
+          setLoading(false);
+          return;
+        }
         
         // Calculate percentile (simplified - assumes normal distribution)
         // In a real implementation, you'd calculate this from the actual distribution
@@ -203,11 +211,11 @@ export function PortfolioComparisonCard({ merchantId, merchantRiskLevel }: Portf
         <div className="grid grid-cols-2 gap-4">
           <div>
             <p className="text-sm font-medium text-muted-foreground">Merchant Risk Score</p>
-            <p className="text-2xl font-bold">{comparison.merchantScore.toFixed(2)}</p>
+            <p className="text-2xl font-bold">{formatNumber(comparison.merchantScore, 2)}</p>
           </div>
           <div>
             <p className="text-sm font-medium text-muted-foreground">Portfolio Average</p>
-            <p className="text-2xl font-bold">{comparison.portfolioAverage.toFixed(2)}</p>
+            <p className="text-2xl font-bold">{formatNumber(comparison.portfolioAverage, 2)}</p>
           </div>
         </div>
 
@@ -216,7 +224,7 @@ export function PortfolioComparisonCard({ merchantId, merchantRiskLevel }: Portf
             <p className="text-sm font-medium">Position in Portfolio</p>
             <p className="text-lg font-semibold">{getPercentileLabel()}</p>
             <p className="text-xs text-muted-foreground">
-              {comparison.percentile.toFixed(1)}th percentile
+              {formatPercentile(comparison.percentile, 1)} percentile
             </p>
           </div>
           <div>{getPositionBadge()}</div>
@@ -230,10 +238,7 @@ export function PortfolioComparisonCard({ merchantId, merchantRiskLevel }: Portf
                 comparison.difference > 0 ? 'text-destructive' : 'text-green-600'
               }`}
             >
-              {comparison.difference > 0 ? '+' : ''}
-              {comparison.difference.toFixed(2)} (
-              {comparison.differencePercentage > 0 ? '+' : ''}
-              {comparison.differencePercentage.toFixed(1)}%)
+              {formatNumber(comparison.difference, 2)} ({formatPercentWithSign(comparison.differencePercentage)})
             </span>
           </div>
           {portfolioStats.totalMerchants > 0 && (

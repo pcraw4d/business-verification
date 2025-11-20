@@ -128,7 +128,7 @@ export interface AssessmentOptions {
 }
 
 export interface RiskAssessmentResult {
-  overallScore: number;
+  overallScore?: number;
   riskLevel: string;
   factors: RiskFactor[];
 }
@@ -303,31 +303,31 @@ export interface Recommendation {
 export interface RiskBenchmarks {
   industry_code: string;
   industry_type: 'mcc' | 'naics' | 'sic';
-  average_risk_score: number;
-  median_risk_score: number;
-  percentile_25: number;
-  percentile_75: number;
-  percentile_90: number;
+  average_risk_score?: number;
+  median_risk_score?: number;
+  percentile_25?: number;
+  percentile_75?: number;
+  percentile_90?: number;
   sample_size: number;
   benchmarks: {
-    average: number;
-    median: number;
-    p25: number;
-    p75: number;
-    p90: number;
+    average?: number;
+    median?: number;
+    p25?: number;
+    p75?: number;
+    p90?: number;
   };
 }
 
 // Merchant risk score type
 export interface MerchantRiskScore {
   merchant_id: string;
-  risk_score: number;
+  risk_score?: number;
   risk_level: 'low' | 'medium' | 'high';
-  confidence_score: number;
+  confidence_score?: number;
   assessment_date: string;
   factors: Array<{
     category: string;
-    score: number;
+    score?: number;
     weight: number;
   }>;
 }

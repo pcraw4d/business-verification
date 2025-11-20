@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatPercent } from '@/lib/number-format';
 
 interface PieChartData {
   name: string;
@@ -70,7 +71,7 @@ export function PieChart({
           cx="50%"
           cy="50%"
           labelLine={false}
-          label={({ name, percent }) => `${name}: ${percent ? (percent * 100).toFixed(0) : 0}%`}
+          label={({ name, percent }) => `${name}: ${formatPercent(percent, 0)}`}
           outerRadius={outerRadius}
           innerRadius={innerRadius}
           fill="#8884d8"

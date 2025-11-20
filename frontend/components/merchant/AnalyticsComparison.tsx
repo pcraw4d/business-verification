@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { ChartContainer } from '@/components/dashboards/ChartContainer';
 import { BarChart } from '@/components/charts/lazy';
+import { formatPercent } from '@/lib/number-format';
 
 interface AnalyticsComparisonProps {
   merchantId: string;
@@ -243,11 +244,11 @@ export function AnalyticsComparison({ merchantId, merchantAnalytics: providedAna
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 border rounded-lg">
               <p className="text-sm text-muted-foreground">Merchant</p>
-              <p className="text-2xl font-bold">{(comparison.merchant.classificationConfidence * 100).toFixed(1)}%</p>
+              <p className="text-2xl font-bold">{formatPercent(comparison.merchant.classificationConfidence)}</p>
             </div>
             <div className="p-4 border rounded-lg">
               <p className="text-sm text-muted-foreground">Portfolio Average</p>
-              <p className="text-2xl font-bold">{(comparison.portfolio.averageClassificationConfidence * 100).toFixed(1)}%</p>
+              <p className="text-2xl font-bold">{formatPercent(comparison.portfolio.averageClassificationConfidence)}</p>
             </div>
           </div>
           <ChartContainer
@@ -288,11 +289,11 @@ export function AnalyticsComparison({ merchantId, merchantAnalytics: providedAna
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 border rounded-lg">
               <p className="text-sm text-muted-foreground">Merchant</p>
-              <p className="text-2xl font-bold">{(comparison.merchant.securityTrustScore * 100).toFixed(1)}%</p>
+              <p className="text-2xl font-bold">{formatPercent(comparison.merchant.securityTrustScore)}</p>
             </div>
             <div className="p-4 border rounded-lg">
               <p className="text-sm text-muted-foreground">Portfolio Average</p>
-              <p className="text-2xl font-bold">{(comparison.portfolio.averageSecurityTrustScore * 100).toFixed(1)}%</p>
+              <p className="text-2xl font-bold">{formatPercent(comparison.portfolio.averageSecurityTrustScore)}</p>
             </div>
           </div>
           <ChartContainer
@@ -333,11 +334,11 @@ export function AnalyticsComparison({ merchantId, merchantAnalytics: providedAna
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 border rounded-lg">
               <p className="text-sm text-muted-foreground">Merchant</p>
-              <p className="text-2xl font-bold">{(comparison.merchant.dataQuality * 100).toFixed(1)}%</p>
+              <p className="text-2xl font-bold">{formatPercent(comparison.merchant.dataQuality)}</p>
             </div>
             <div className="p-4 border rounded-lg">
               <p className="text-sm text-muted-foreground">Portfolio Average</p>
-              <p className="text-2xl font-bold">{(comparison.portfolio.averageDataQuality * 100).toFixed(1)}%</p>
+              <p className="text-2xl font-bold">{formatPercent(comparison.portfolio.averageDataQuality)}</p>
             </div>
           </div>
           <ChartContainer

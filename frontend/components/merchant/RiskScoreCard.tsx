@@ -9,6 +9,7 @@ import type { MerchantRiskScore } from '@/types/merchant';
 import { useEffect, useState } from 'react';
 import { AlertCircle, RefreshCw, Shield, TrendingUp, TrendingDown } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatPercent } from '@/lib/number-format';
 
 interface RiskScoreCardProps {
   merchantId: string;
@@ -108,6 +109,7 @@ export function RiskScoreCard({ merchantId }: RiskScoreCardProps) {
 
   const getScoreColor = () => {
     const score = riskScore.risk_score;
+    if (score == null) return 'text-gray-600';
     if (score < 0.3) return 'text-green-600';
     if (score < 0.7) return 'text-yellow-600';
     return 'text-red-600';
@@ -124,7 +126,7 @@ export function RiskScoreCard({ merchantId }: RiskScoreCardProps) {
           <div>
             <p className="text-sm font-medium text-muted-foreground">Risk Score</p>
             <p className={`text-3xl font-bold ${getScoreColor()}`}>
-              {(riskScore.risk_score * 100).toFixed(1)}
+              {formatPercent(riskScore.risk_score)}
             </p>
           </div>
           <div>{getRiskLevelBadge()}</div>
@@ -134,7 +136,7 @@ export function RiskScoreCard({ merchantId }: RiskScoreCardProps) {
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">Confidence</span>
             <span className="text-sm font-medium">
-              {(riskScore.confidence_score * 100).toFixed(1)}%
+              {formatPercent(riskScore.confidence_score)}
             </span>
           </div>
           {riskScore.assessment_date && (
@@ -154,7 +156,7 @@ export function RiskScoreCard({ merchantId }: RiskScoreCardProps) {
               {riskScore.factors.slice(0, 3).map((factor, index) => (
                 <div key={index} className="flex justify-between items-center text-sm">
                   <span className="text-muted-foreground">{factor.category}</span>
-                  <span className="font-medium">{(factor.score * 100).toFixed(1)}</span>
+                  <span className="font-medium">{formatPercent(factor.score)}</span>
                 </div>
               ))}
             </div>

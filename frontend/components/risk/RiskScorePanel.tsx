@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, ChevronUp, Info } from 'lucide-react';
+import { formatNumber, formatPercent } from '@/lib/number-format';
 import type { RiskAssessment } from '@/types/merchant';
 
 interface RiskScorePanelProps {
@@ -48,7 +49,7 @@ export function RiskScorePanel({ assessment, collapsed = true }: RiskScorePanelP
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-2">Overall Score</p>
               <div className="flex items-center gap-4">
-                <p className="text-3xl font-bold">{assessment.result.overallScore.toFixed(1)}</p>
+                <p className="text-3xl font-bold">{formatNumber(assessment.result?.overallScore, 1)}</p>
                 <Badge variant={badgeVariant}>{assessment.result.riskLevel}</Badge>
               </div>
             </div>
@@ -61,9 +62,9 @@ export function RiskScorePanel({ assessment, collapsed = true }: RiskScorePanelP
                     <div key={index} className="flex justify-between items-center p-2 bg-muted rounded-md">
                       <span className="text-sm">{factor.name}</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{factor.score.toFixed(1)}</span>
+                        <span className="text-sm font-medium">{formatNumber(factor.score, 1)}</span>
                         <span className="text-xs text-muted-foreground">
-                          (weight: {factor.weight.toFixed(2)})
+                          (weight: {formatNumber(factor.weight, 2)})
                         </span>
                       </div>
                     </div>

@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { RiskWebSocketProvider, useRiskWebSocket, WebSocketStatusIndicator } from '@/components/websocket/RiskWebSocketProvider';
 import { getAssessmentStatus, getRiskAssessment, getRiskHistory, getRiskPredictions, startRiskAssessment } from '@/lib/api';
 import { ErrorHandler } from '@/lib/error-handler';
+import { formatNumber, formatPercent } from '@/lib/number-format';
 import type { RiskAssessment, RiskAssessmentRequest, RiskFactor } from '@/types/merchant';
 import { useEffect, useState, useMemo } from 'react';
 import { toast } from 'sonner';
@@ -223,7 +224,7 @@ function RiskAssessmentTabContent({ merchantId }: RiskAssessmentTabProps) {
                 isLoading={false}
               >
                 <RiskGauge
-                  value={assessment.result.overallScore}
+                  value={assessment.result?.overallScore ?? 0}
                   max={10}
                   height={300}
                   width={300}
@@ -259,7 +260,7 @@ function RiskAssessmentTabContent({ merchantId }: RiskAssessmentTabProps) {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Overall Score</p>
-                    <p className="text-2xl font-bold">{assessment.result.overallScore.toFixed(1)}</p>
+                    <p className="text-2xl font-bold">{formatNumber(assessment.result?.overallScore, 1)}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Risk Level</p>
@@ -290,7 +291,7 @@ function RiskAssessmentTabContent({ merchantId }: RiskAssessmentTabProps) {
                                 />
                               </div>
                               <span className="text-sm font-medium w-12 text-right">
-                                {factor.score.toFixed(1)}
+                                {formatNumber(factor.score, 1)}
                               </span>
                             </div>
                           </div>
@@ -365,13 +366,13 @@ function RiskAssessmentTabContent({ merchantId }: RiskAssessmentTabProps) {
                                 />
                               </div>
                               <span className="text-sm font-medium w-12">
-                                {factor.score.toFixed(1)}/10
+                                {formatNumber(factor.score, 1)}/10
                               </span>
                             </div>
                           </TableCell>
-                          <TableCell>{(factor.weight * 100).toFixed(1)}%</TableCell>
+                          <TableCell>{formatPercent(factor.weight)}</TableCell>
                           <TableCell className="text-right">
-                            {(factor.score * factor.weight).toFixed(2)}
+                            {formatNumber(factor.score * factor.weight, 2)}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -414,7 +415,7 @@ function RiskAssessmentTabContent({ merchantId }: RiskAssessmentTabProps) {
                                   <Badge variant="outline">{historyItem.status}</Badge>
                                 </TableCell>
                                 <TableCell>
-                                  {historyItem.result?.overallScore.toFixed(1) || 'N/A'}
+                                  {formatNumber(historyItem.result?.overallScore, 1)}
                                 </TableCell>
                                 <TableCell>
                                   <Badge
@@ -448,7 +449,7 @@ function RiskAssessmentTabContent({ merchantId }: RiskAssessmentTabProps) {
                         .filter((h) => h.result?.overallScore != null)
                         .map((h) => ({
                           name: new Date(h.createdAt).toLocaleDateString(),
-                          value: h.result!.overallScore,
+                          value: h.result?.overallScore ?? 0,
                         })) : []}
                       dataKey="value"
                       lines={[{ key: 'value', name: 'Risk Score', color: '#8884d8' }]}

@@ -11,6 +11,7 @@ import { ChartContainer } from '@/components/dashboards/ChartContainer';
 import { BarChart, PieChart } from '@/components/charts/lazy';
 import { getMerchantAnalytics, getWebsiteAnalysis } from '@/lib/api';
 import { deferNonCriticalDataLoad } from '@/lib/lazy-loader';
+import { formatPercent } from '@/lib/number-format';
 import type { AnalyticsData, WebsiteAnalysisData, IndustryCode } from '@/types/merchant';
 import { useEffect, useState, useMemo } from 'react';
 import { AnalyticsComparison } from './AnalyticsComparison';
@@ -157,9 +158,7 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Confidence Score</p>
-                <p>{analytics.classification?.confidenceScore != null 
-                  ? `${(analytics.classification.confidenceScore * 100).toFixed(1)}%`
-                  : 'N/A'}</p>
+                <p>{formatPercent(analytics.classification?.confidenceScore)}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Risk Level</p>
@@ -194,7 +193,7 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
                               {code.description}
                             </TableCell>
                             <TableCell className="text-right">
-                              {(code.confidence * 100).toFixed(1)}%
+                              {formatPercent(code.confidence)}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -227,7 +226,7 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
                               {code.description}
                             </TableCell>
                             <TableCell className="text-right">
-                              {(code.confidence * 100).toFixed(1)}%
+                              {formatPercent(code.confidence)}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -260,7 +259,7 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
                               {code.description}
                             </TableCell>
                             <TableCell className="text-right">
-                              {(code.confidence * 100).toFixed(1)}%
+                              {formatPercent(code.confidence)}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -314,9 +313,7 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
               <CardContent className="space-y-4">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Trust Score</p>
-                  <p>{analytics.security?.trustScore != null
-                    ? `${(analytics.security.trustScore * 100).toFixed(1)}%`
-                    : 'N/A'}</p>
+                  <p>{formatPercent(analytics.security?.trustScore)}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">SSL Valid</p>
@@ -350,9 +347,7 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
               <CardContent className="space-y-4">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Completeness Score</p>
-                  <p>{analytics.quality?.completenessScore != null
-                    ? `${(analytics.quality.completenessScore * 100).toFixed(1)}%`
-                    : 'N/A'}</p>
+                  <p>{formatPercent(analytics.quality?.completenessScore)}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Data Points</p>
@@ -409,9 +404,7 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Accessibility Score</p>
-              <p>{websiteAnalysis.accessibility?.score != null
-                ? `${(websiteAnalysis.accessibility.score * 100).toFixed(1)}%`
-                : 'N/A'}</p>
+              <p>{formatPercent(websiteAnalysis.accessibility?.score)}</p>
             </div>
           </CardContent>
         </Card>

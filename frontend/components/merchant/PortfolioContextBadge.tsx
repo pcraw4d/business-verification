@@ -5,6 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { TrendingUp, TrendingDown, Award, AlertCircle, BarChart3 } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 import { getPortfolioStatistics, getMerchantRiskScore } from '@/lib/api';
+import { formatPercentile, formatPercent } from '@/lib/number-format';
 import type { PortfolioStatistics, MerchantRiskScore } from '@/types/merchant';
 import { useMemo } from 'react';
 
@@ -51,6 +52,13 @@ export function PortfolioContextBadge({ merchantId, variant = 'default', classNa
       }
 
       if (portfolioStats && merchantRiskScore) {
+        // Skip if required values are missing
+        if (merchantRiskScore.risk_score == null || portfolioStats.averageRiskScore == null) {
+          setError('Missing required risk score data.');
+          setLoading(false);
+          return;
+        }
+        
         const score = merchantRiskScore.risk_score * 100; // Convert to percentage
         const avg = portfolioStats.averageRiskScore * 100; // Convert to percentage
 
@@ -197,12 +205,12 @@ export function PortfolioContextBadge({ merchantId, variant = 'default', classNa
         </Badge>
         {percentile !== null && (
           <span className="text-sm text-muted-foreground">
-            {percentile.toFixed(0)}th percentile
+            {formatPercentile(percentile)} percentile
           </span>
         )}
         {merchantScore !== null && portfolioAverage !== null && (
           <span className="text-sm text-muted-foreground">
-            ({merchantScore.toFixed(1)}% vs {portfolioAverage.toFixed(1)}% avg)
+            ({formatPercent(merchantScore / 100)} vs {formatPercent(portfolioAverage / 100)} avg)
           </span>
         )}
       </div>
@@ -215,7 +223,7 @@ export function PortfolioContextBadge({ merchantId, variant = 'default', classNa
       {getPositionConfig.icon}
       <span>{getPositionConfig.label}</span>
       {percentile !== null && (
-        <span className="text-xs opacity-75">({percentile.toFixed(0)}th)</span>
+        <span className="text-xs opacity-75">({formatPercentile(percentile)})</span>
       )}
     </Badge>
   );

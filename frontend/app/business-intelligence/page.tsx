@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { BarChart3, TrendingUp, Target, PieChart as PieChartIcon } from 'lucide-react';
 import { getBusinessIntelligenceMetrics } from '@/lib/api';
+import { formatPercent, formatNumber } from '@/lib/number-format';
 import { toast } from 'sonner';
 import { AreaChart } from '@/components/charts/lazy';
 import { BarChart } from '@/components/charts/lazy';
@@ -62,9 +63,6 @@ export default function BusinessIntelligencePage() {
     fetchMetrics();
   }, []);
 
-  const formatPercentage = (value: number) => {
-    return `${value.toFixed(1)}%`;
-  };
 
   return (
     <AppLayout
@@ -90,25 +88,25 @@ export default function BusinessIntelligencePage() {
             <>
               <MetricCard
                 label="Revenue Growth"
-                value={formatPercentage(metrics.revenueGrowth)}
+                value={formatPercent(metrics.revenueGrowth)}
                 icon={TrendingUp}
                 variant="success"
               />
               <MetricCard
                 label="Market Share"
-                value={formatPercentage(metrics.marketShare)}
+                value={formatPercent(metrics.marketShare)}
                 icon={PieChartIcon}
                 variant="info"
               />
               <MetricCard
                 label="Performance Score"
-                value={metrics.performanceScore.toFixed(1)}
+                value={formatNumber(metrics.performanceScore, 1)}
                 icon={Target}
                 variant="info"
               />
               <MetricCard
                 label="Analytics Score"
-                value={metrics.analyticsScore.toFixed(1)}
+                value={formatNumber(metrics.analyticsScore, 1)}
                 icon={BarChart3}
                 variant="info"
               />

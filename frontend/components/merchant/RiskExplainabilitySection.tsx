@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { ChartContainer } from '@/components/dashboards/ChartContainer';
 import { BarChart } from '@/components/charts/lazy';
+import { formatNumber, formatPercent } from '@/lib/number-format';
 
 interface RiskExplainabilitySectionProps {
   merchantId: string;
@@ -179,12 +180,12 @@ export function RiskExplainabilitySection({ merchantId }: RiskExplainabilitySect
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="p-4 border rounded-lg">
             <p className="text-xs text-muted-foreground">Base Value</p>
-            <p className="text-2xl font-bold">{explanation.baseValue.toFixed(3)}</p>
+            <p className="text-2xl font-bold">{formatNumber(explanation.baseValue, 3)}</p>
           </div>
           {explanation.prediction !== undefined && (
             <div className="p-4 border rounded-lg">
               <p className="text-xs text-muted-foreground">Prediction</p>
-              <p className="text-2xl font-bold">{(explanation.prediction * 100).toFixed(1)}%</p>
+              <p className="text-2xl font-bold">{formatPercent(explanation.prediction)}</p>
             </div>
           )}
           <div className="p-4 border rounded-lg">
@@ -268,7 +269,7 @@ export function RiskExplainabilitySection({ merchantId }: RiskExplainabilitySect
                           </div>
                           <Badge variant={value > 0 ? 'destructive' : 'default'}>
                             {value > 0 ? '+' : ''}
-                            {value.toFixed(3)}
+                            {formatNumber(value, 3)}
                           </Badge>
                         </div>
                       </div>
@@ -294,17 +295,17 @@ export function RiskExplainabilitySection({ merchantId }: RiskExplainabilitySect
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-medium">{factor.name}</span>
                       <Badge variant="outline">
-                        Impact: {(factor.score * factor.weight).toFixed(3)}
+                        Impact: {formatNumber(factor.score * factor.weight, 3)}
                       </Badge>
                     </div>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <span className="text-muted-foreground">Score: </span>
-                        <span className="font-medium">{factor.score.toFixed(3)}</span>
+                        <span className="font-medium">{formatNumber(factor.score, 3)}</span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">Weight: </span>
-                        <span className="font-medium">{(factor.weight * 100).toFixed(1)}%</span>
+                        <span className="font-medium">{formatPercent(factor.weight)}</span>
                       </div>
                     </div>
                   </div>

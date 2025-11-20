@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { ChartLine, TrendingUp, Users, DollarSign } from 'lucide-react';
 import { getDashboardMetrics, getPortfolioAnalytics, getPortfolioStatistics } from '@/lib/api';
+import { formatPercentWithSign, formatNumber } from '@/lib/number-format';
 import { toast } from 'sonner';
 import { LineChart } from '@/components/charts/lazy';
 import { PieChart } from '@/components/charts/lazy';
@@ -146,9 +147,6 @@ export default function DashboardPage() {
     }).format(value);
   };
 
-  const formatPercentage = (value: number) => {
-    return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
-  };
 
   return (
     <AppLayout
@@ -186,14 +184,14 @@ export default function DashboardPage() {
               />
               <MetricCard
                 label="Growth Rate"
-                value={formatPercentage(metrics.growthRate)}
+                value={formatPercentWithSign(metrics.growthRate)}
                 icon={TrendingUp}
                 variant="success"
                 trend={{ value: metrics.growthRate, isPositive: metrics.growthRate >= 0 }}
               />
               <MetricCard
                 label="Analytics Score"
-                value={metrics.analyticsScore.toFixed(1)}
+                value={formatNumber(metrics.analyticsScore, 1)}
                 icon={ChartLine}
                 variant="info"
               />
