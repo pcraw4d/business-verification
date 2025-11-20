@@ -618,24 +618,10 @@ func (h *MerchantHandler) getMerchant(ctx context.Context, merchantID string, st
 			zap.String("merchant_id", merchantID),
 			zap.String("environment", h.config.Environment))
 		
-		// In production, return proper 404 response instead of mock data
-		if h.config.Environment == "production" && !h.config.Merchant.AllowMockData {
-			return nil, fmt.Errorf("merchant not found: %s", merchantID)
-		}
-		
-		// FALLBACK: Return mock data when merchant not found (development only)
-		fallbackStart := time.Now()
-		mockMerchant, mockErr := h.getMockMerchant(merchantID)
-		if mockErr != nil {
-			return nil, mockErr
-		}
-		
-		// Record fallback usage metrics
-		if h.fallbackMetrics != nil {
-			h.fallbackMetrics.RecordFallbackUsage(ctx, "merchant-service", "missing_record", "supabase", time.Since(fallbackStart))
-		}
-		
-		return mockMerchant, nil
+		// Always return "not found" error for non-existent merchants
+		// This ensures proper 404 responses instead of returning mock data
+		// Mock data should only be used for database connection failures, not missing records
+		return nil, fmt.Errorf("merchant not found: %s", merchantID)
 	}
 
 	// Convert Supabase result to Merchant struct
