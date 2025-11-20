@@ -1,10 +1,9 @@
 package test
 
 import (
-	"fmt"
-	"net/http"
 	"net/http/httptest"
 	"os"
+	"sort"
 	"sync"
 	"sync/atomic"
 	"testing"
