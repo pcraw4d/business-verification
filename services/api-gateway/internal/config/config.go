@@ -94,7 +94,7 @@ func Load() (*Config, error) {
 		},
 		Environment: getEnvAsString("ENVIRONMENT", "production"),
 	}
-	
+
 	// Set service URLs based on environment (after Environment is set)
 	cfg.Services = ServicesConfig{
 		// Use localhost URLs for local development, Railway URLs for production
