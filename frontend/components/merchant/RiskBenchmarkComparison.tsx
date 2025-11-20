@@ -111,10 +111,16 @@ export function RiskBenchmarkComparison({ merchantId }: RiskBenchmarkComparisonP
         const industryP75 = benchmarks.percentile_75;
         const industryP90 = benchmarks.percentile_90;
 
-        // Skip if required values are missing
-        if (merchantScore == null || industryAverage == null || industryMedian == null || 
+        // Skip if required values are missing - provide specific error message
+        if (merchantScore == null) {
+          setError('No industry code available for this merchant. Cannot perform benchmark comparison.');
+        } else if (industryAverage == null || industryMedian == null || 
             industryP25 == null || industryP75 == null || industryP90 == null) {
           setError('Incomplete benchmark data. Cannot perform comparison.');
+        }
+        
+        if (merchantScore == null || industryAverage == null || industryMedian == null || 
+            industryP25 == null || industryP75 == null || industryP90 == null) {
           setLoading(false);
           return;
         }

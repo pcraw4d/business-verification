@@ -50,9 +50,16 @@ export function PortfolioComparisonCard({ merchantId, merchantRiskLevel }: Portf
         const merchantScore = riskScore.risk_score;
         const portfolioAvg = stats.averageRiskScore;
         
-        // Skip if required values are missing
+        // Skip if required values are missing - provide specific error message
+        if (merchantScore == null && portfolioAvg == null) {
+          setError('Missing merchant risk score and portfolio average. Cannot perform comparison.');
+        } else if (merchantScore == null) {
+          setError('Missing merchant risk score. Please run a risk assessment first.');
+        } else if (portfolioAvg == null) {
+          setError('Missing portfolio statistics. Cannot perform comparison.');
+        }
+        
         if (merchantScore == null || portfolioAvg == null) {
-          setError('Missing required data for comparison.');
           setLoading(false);
           return;
         }
