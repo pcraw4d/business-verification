@@ -90,14 +90,18 @@ function RiskAssessmentTabContent({ merchantId }: RiskAssessmentTabProps) {
         console.log('[RiskAssessmentTab] State updated with assessment data');
       }
 
-      // Load risk history if assessment exists
+      // Load risk history if assessment exists (optional - endpoint may not be implemented)
       if (data) {
         try {
           setHistoryLoading(true);
           const history = await getRiskHistory(merchantId, 10, 0);
           setRiskHistory(history.history || []);
         } catch (historyErr) {
-          console.error('Failed to load risk history:', historyErr);
+          // Silently handle 404s for optional endpoints - don't log to console
+          const is404 = historyErr instanceof Error && historyErr.message.includes('404');
+          if (!is404) {
+            console.error('Failed to load risk history:', historyErr);
+          }
           // Don't fail the whole component if history fails
         } finally {
           setHistoryLoading(false);

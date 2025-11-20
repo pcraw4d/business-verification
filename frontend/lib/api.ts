@@ -360,11 +360,28 @@ export async function getRiskHistory(
           headers,
         }
       );
+      
+      // Handle 404 gracefully - endpoint may not be implemented yet
+      if (response.status === 404) {
+        // Return empty history instead of throwing
+        return {
+          merchantId,
+          history: [],
+          limit,
+          offset,
+          total: 0,
+        };
+      }
+      
       const data = await handleResponse<RiskHistoryResponse>(response);
       apiCache.set(cacheKey, data);
       return data;
     } catch (error) {
-      await ErrorHandler.handleAPIError(error);
+      // Don't show error notifications for 404s on optional endpoints
+      const is404 = error instanceof Error && error.message.includes('404');
+      if (!is404) {
+        await ErrorHandler.handleAPIError(error);
+      }
       throw error;
     }
   });
@@ -564,11 +581,25 @@ export async function getRiskIndicators(
           headers,
         }
       );
+      
+      // Handle 404 gracefully - endpoint may not be implemented yet
+      if (response.status === 404) {
+        // Return empty indicators instead of throwing
+        return {
+          merchantId,
+          indicators: [],
+        };
+      }
+      
       const data = await handleResponse<RiskIndicatorsData>(response);
       apiCache.set(cacheKey, data);
       return data;
     } catch (error) {
-      await ErrorHandler.handleAPIError(error);
+      // Don't show error notifications for 404s on optional endpoints
+      const is404 = error instanceof Error && error.message.includes('404');
+      if (!is404) {
+        await ErrorHandler.handleAPIError(error);
+      }
       throw error;
     }
   });
@@ -616,6 +647,16 @@ export async function getEnrichmentSources(merchantId: string): Promise<{
           headers,
         }
       );
+      
+      // Handle 404 gracefully - endpoint may not be implemented yet
+      if (response.status === 404) {
+        // Return empty sources instead of throwing
+        return {
+          merchantId,
+          sources: [],
+        };
+      }
+      
       const data = await handleResponse<{
         merchantId: string;
         sources: EnrichmentSource[];
@@ -623,7 +664,11 @@ export async function getEnrichmentSources(merchantId: string): Promise<{
       apiCache.set(cacheKey, data);
       return data;
     } catch (error) {
-      await ErrorHandler.handleAPIError(error);
+      // Don't show error notifications for 404s on optional endpoints
+      const is404 = error instanceof Error && error.message.includes('404');
+      if (!is404) {
+        await ErrorHandler.handleAPIError(error);
+      }
       throw error;
     }
   });

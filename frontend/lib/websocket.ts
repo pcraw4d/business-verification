@@ -72,7 +72,11 @@ export class WebSocketClient {
       };
 
       this.ws.onerror = (error) => {
-        console.warn('WebSocket error:', error);
+        // Suppress WebSocket errors in console - endpoint may not be implemented
+        // Only log in development mode for debugging
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('WebSocket error:', error);
+        }
         this.setStatus('error');
         this.options.onError(new Error('WebSocket connection error'));
         // Don't attempt to reconnect on error - let onclose handle it
@@ -82,8 +86,9 @@ export class WebSocketClient {
         this.setStatus('disconnected');
         this.ws = null;
 
-        // Log close reason for debugging
-        if (event.code !== 1000) {
+        // Suppress WebSocket close warnings - endpoint may not be implemented
+        // Only log in development mode for debugging
+        if (process.env.NODE_ENV === 'development' && event.code !== 1000) {
           console.warn('WebSocket closed unexpectedly:', {
             code: event.code,
             reason: event.reason || 'Unknown',
@@ -95,7 +100,10 @@ export class WebSocketClient {
         if (event.code !== 1000 && this.reconnectAttempts < this.options.maxReconnectAttempts) {
           this.scheduleReconnect();
         } else if (this.reconnectAttempts >= this.options.maxReconnectAttempts) {
-          console.error('WebSocket: Max reconnection attempts reached. WebSocket will remain disconnected.');
+          // Suppress max reconnection error - only log in development
+          if (process.env.NODE_ENV === 'development') {
+            console.error('WebSocket: Max reconnection attempts reached. WebSocket will remain disconnected.');
+          }
           this.setStatus('error');
         }
       };

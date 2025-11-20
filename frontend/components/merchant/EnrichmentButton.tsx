@@ -35,9 +35,17 @@ export function EnrichmentButton({ merchantId, variant = 'outline', size = 'defa
       const data = await getEnrichmentSources(merchantId);
       setSources(data.sources || []);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load enrichment sources';
-      setError(errorMessage);
-      console.error('Error loading enrichment sources:', err);
+      // Silently handle 404s for optional endpoints - don't log to console or show error
+      const is404 = err instanceof Error && err.message.includes('404');
+      if (!is404) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load enrichment sources';
+        setError(errorMessage);
+        console.error('Error loading enrichment sources:', err);
+      }
+      // If 404, just set empty sources - endpoint may not be implemented yet
+      if (is404) {
+        setSources([]);
+      }
     } finally {
       setLoading(false);
     }

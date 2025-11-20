@@ -34,10 +34,14 @@ export class ErrorHandler {
    * Shows an error notification to the user
    */
   static showErrorNotification(message: string, code?: string): void {
-    toast.error(message, {
-      description: code ? `Error Code: ${code}` : undefined,
-      duration: 5000,
-    });
+    // Don't show notifications for 404s on optional endpoints
+    const is404 = message.includes('404') || code === 'NOT_FOUND';
+    if (!is404) {
+      toast.error(message, {
+        description: code ? `Error Code: ${code}` : undefined,
+        duration: 5000,
+      });
+    }
   }
 
   /**
@@ -70,7 +74,11 @@ export class ErrorHandler {
       url: typeof window !== 'undefined' ? window.location.href : '',
     };
 
-    console.error('API Error:', errorDetails);
+    // Suppress 404 errors for optional endpoints - they're expected if endpoints aren't implemented
+    const is404 = message?.includes('404') || (error instanceof Error && error.message.includes('404'));
+    if (!is404) {
+      console.error('API Error:', errorDetails);
+    }
 
     // TODO: Send to logging service (e.g., Sentry, LogRocket)
     // if (typeof window !== 'undefined' && window.Sentry) {

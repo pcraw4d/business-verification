@@ -204,27 +204,27 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 [@supports(display:grid)]:grid [@supports(display:-webkit-grid)]:grid">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" suppressHydrationWarning>
+        <TabsList className="grid w-full grid-cols-4 [@supports(display:grid)]:grid [@supports(display:-webkit-grid)]:grid" suppressHydrationWarning>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="analytics">Business Analytics</TabsTrigger>
           <TabsTrigger value="risk">Risk Assessment</TabsTrigger>
           <TabsTrigger value="indicators">Risk Indicators</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="mt-6">
+        <TabsContent value="overview" className="mt-6" suppressHydrationWarning>
           <MerchantOverviewTab merchant={merchant} />
         </TabsContent>
 
-        <TabsContent value="analytics" className="mt-6">
+        <TabsContent value="analytics" className="mt-6" suppressHydrationWarning>
           <BusinessAnalyticsTab merchantId={merchantId} />
         </TabsContent>
 
-        <TabsContent value="risk" className="mt-6">
+        <TabsContent value="risk" className="mt-6" suppressHydrationWarning>
           <RiskAssessmentTab merchantId={merchantId} />
         </TabsContent>
 
-        <TabsContent value="indicators" className="mt-6">
+        <TabsContent value="indicators" className="mt-6" suppressHydrationWarning>
           <RiskIndicatorsTab merchantId={merchantId} />
         </TabsContent>
       </Tabs>
