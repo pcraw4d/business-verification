@@ -17,16 +17,23 @@ echo -e "${BLUE}Setting Up Environment to Test Fixes${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo ""
 
-# Check if railway.env exists
-if [ ! -f "railway.env" ]; then
-    echo -e "${RED}Error: railway.env file not found${NC}"
-    echo "Please create railway.env with required environment variables"
+# Check for environment file (prefer .env, fallback to railway.env)
+if [ -f ".env" ]; then
+    echo -e "${YELLOW}Loading environment variables from .env...${NC}"
+    source .env
+    # Map SUPABASE_API_KEY to SUPABASE_ANON_KEY if needed
+    if [ -n "$SUPABASE_API_KEY" ] && [ -z "$SUPABASE_ANON_KEY" ]; then
+        export SUPABASE_ANON_KEY="$SUPABASE_API_KEY"
+        echo -e "${YELLOW}Mapped SUPABASE_API_KEY to SUPABASE_ANON_KEY${NC}"
+    fi
+elif [ -f "railway.env" ]; then
+    echo -e "${YELLOW}Loading environment variables from railway.env...${NC}"
+    source railway.env
+else
+    echo -e "${RED}Error: No environment file found (.env or railway.env)${NC}"
+    echo "Please create .env or railway.env with required environment variables"
     exit 1
 fi
-
-# Source environment variables
-echo -e "${YELLOW}Loading environment variables from railway.env...${NC}"
-source railway.env
 
 # Set development environment
 export ENVIRONMENT=development
@@ -93,8 +100,23 @@ start_service() {
     
     cd "${service_path}"
     
+    # Build environment variable string
+    local env_vars="ENVIRONMENT=${ENVIRONMENT} PORT=${port}"
+    if [ -n "$SUPABASE_URL" ]; then
+        env_vars="${env_vars} SUPABASE_URL=${SUPABASE_URL}"
+    fi
+    if [ -n "$SUPABASE_ANON_KEY" ]; then
+        env_vars="${env_vars} SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}"
+    fi
+    if [ -n "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+        env_vars="${env_vars} SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}"
+    fi
+    if [ -n "$SUPABASE_JWT_SECRET" ]; then
+        env_vars="${env_vars} SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}"
+    fi
+    
     # Start service in background with environment variables
-    go run cmd/main.go > "../../${log_file}" 2>&1 &
+    eval "${env_vars} go run cmd/main.go > ../../${log_file} 2>&1 &"
     local pid=$!
     echo $pid > "../../logs/${service_name}.pid"
     
