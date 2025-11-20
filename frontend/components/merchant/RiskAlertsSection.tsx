@@ -90,7 +90,7 @@ export function RiskAlertsSection({ merchantId }: RiskAlertsSectionProps) {
   }, [alerts]);
 
   const totalAlerts = useMemo(() => {
-    return Object.values(groupedAlerts).reduce((sum: number, alerts: RiskIndicator[]) => sum + alerts.length, 0);
+    return (Object.values(groupedAlerts) as RiskIndicator[][]).reduce((sum: number, alerts: RiskIndicator[]) => sum + alerts.length, 0);
   }, [groupedAlerts]);
 
   const getSeverityConfig = (severity: Severity) => {
