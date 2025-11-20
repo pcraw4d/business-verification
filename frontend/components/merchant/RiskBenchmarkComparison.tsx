@@ -268,27 +268,27 @@ export function RiskBenchmarkComparison({ merchantId }: RiskBenchmarkComparisonP
     {
       name: 'Merchant',
       value: comparison.merchantScore,
-      isMerchant: true,
+      isMerchant: 1, // Use number instead of boolean for chart compatibility
     },
     {
       name: 'Industry Average',
       value: comparison.industryAverage,
-      isMerchant: false,
+      isMerchant: 0, // Use number instead of boolean for chart compatibility
     },
     {
       name: 'Industry Median',
       value: comparison.industryMedian,
-      isMerchant: false,
+      isMerchant: 0, // Use number instead of boolean for chart compatibility
     },
     {
       name: '75th Percentile',
       value: comparison.industryPercentile75,
-      isMerchant: false,
+      isMerchant: 0, // Use number instead of boolean for chart compatibility
     },
     {
       name: '90th Percentile',
       value: comparison.industryPercentile90,
-      isMerchant: false,
+      isMerchant: 0, // Use number instead of boolean for chart compatibility
     },
   ];
   

@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "node scripts/verify-build-env.js && next build",
     "verify-env": "node scripts/verify-build-env.js",
+    "type-check": "tsc --noEmit",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",

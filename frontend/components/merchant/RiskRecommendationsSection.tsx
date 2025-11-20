@@ -42,7 +42,17 @@ export function RiskRecommendationsSection({ merchantId }: RiskRecommendationsSe
       setError(null);
 
       const data = await getRiskRecommendations(merchantId);
-      setRecommendations(data);
+      // Map API response to component type, ensuring priority is correctly typed
+      const mappedData: RiskRecommendationsResponse = {
+        ...data,
+        recommendations: data.recommendations.map((rec) => ({
+          ...rec,
+          priority: (rec.priority === 'high' || rec.priority === 'medium' || rec.priority === 'low' 
+            ? rec.priority 
+            : 'medium') as 'high' | 'medium' | 'low',
+        })),
+      };
+      setRecommendations(mappedData);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load risk recommendations';
       setError(errorMessage);
@@ -59,14 +69,14 @@ export function RiskRecommendationsSection({ merchantId }: RiskRecommendationsSe
   }, [fetchRecommendations]);
 
   // Group recommendations by priority
-  const groupedRecommendations = useMemo(() => {
-    if (!recommendations?.recommendations) return {};
-    
+  const groupedRecommendations = useMemo((): Record<'high' | 'medium' | 'low', Recommendation[]> => {
     const grouped: Record<'high' | 'medium' | 'low', Recommendation[]> = {
       high: [],
       medium: [],
       low: [],
     };
+    
+    if (!recommendations?.recommendations) return grouped;
     
     recommendations.recommendations.forEach((rec) => {
       const priority = rec.priority || 'medium';
@@ -79,7 +89,7 @@ export function RiskRecommendationsSection({ merchantId }: RiskRecommendationsSe
   }, [recommendations]);
 
   const totalRecommendations = useMemo(() => {
-    return Object.values(groupedRecommendations).reduce((sum, recs) => sum + recs.length, 0);
+    return (Object.values(groupedRecommendations) as Recommendation[][]).reduce((sum: number, recs: Recommendation[]) => sum + recs.length, 0);
   }, [groupedRecommendations]);
 
   const getPriorityConfig = (priority: 'high' | 'medium' | 'low') => {

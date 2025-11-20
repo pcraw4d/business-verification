@@ -18,7 +18,8 @@ if (process.env.NODE_ENV === 'test') {
     console.warn('[MSW] Unhandled request:', request.method, request.url);
   });
 
-  server.events.on('request:exception', ({ request, error }) => {
+  // @ts-expect-error - MSW types don't include 'request:exception' event
+  server.events.on('request:exception', ({ request, error }: { request: Request; error: Error }) => {
     console.error('[MSW] Request exception:', request.method, request.url);
     console.error('[MSW] Exception error:', error);
     console.error('[MSW] Exception stack:', error?.stack);
