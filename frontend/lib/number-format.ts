@@ -15,7 +15,7 @@ export function formatNumber(
   decimals: number = 1,
   fallback: string = 'N/A'
 ): string {
-  if (value == null || isNaN(value)) {
+  if (value == null || isNaN(value) || !isFinite(value)) {
     return fallback;
   }
   return value.toFixed(decimals);
@@ -33,7 +33,7 @@ export function formatPercent(
   decimals: number = 1,
   fallback: string = 'N/A'
 ): string {
-  if (value == null || isNaN(value)) {
+  if (value == null || isNaN(value) || !isFinite(value)) {
     return fallback;
   }
   return `${(value * 100).toFixed(decimals)}%`;
@@ -51,10 +51,10 @@ export function formatPercentWithSign(
   decimals: number = 1,
   fallback: string = 'N/A'
 ): string {
-  if (value == null || isNaN(value)) {
+  if (value == null || isNaN(value) || !isFinite(value)) {
     return fallback;
   }
-  const sign = value >= 0 ? '+' : '';
+  const sign = value > 0 ? '+' : (value < 0 ? '' : ''); // No sign for zero
   return `${sign}${(value * 100).toFixed(decimals)}%`;
 }
 
@@ -70,7 +70,7 @@ export function formatPercentile(
   decimals: number = 0,
   fallback: string = 'N/A'
 ): string {
-  if (value == null || isNaN(value)) {
+  if (value == null || isNaN(value) || !isFinite(value)) {
     return fallback;
   }
   return `${value.toFixed(decimals)}th`;
@@ -88,7 +88,7 @@ export function formatNumberWithSeparators(
   decimals: number = 0,
   fallback: string = 'N/A'
 ): string {
-  if (value == null || isNaN(value)) {
+  if (value == null || isNaN(value) || !isFinite(value)) {
     return fallback;
   }
   return value.toLocaleString('en-US', {
@@ -111,7 +111,7 @@ export function formatMultiplied(
   decimals: number = 1,
   fallback: string = 'N/A'
 ): string {
-  if (value == null || isNaN(value)) {
+  if (value == null || isNaN(value) || !isFinite(value)) {
     return fallback;
   }
   return (value * multiplier).toFixed(decimals);

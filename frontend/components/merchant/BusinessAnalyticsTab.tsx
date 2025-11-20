@@ -52,32 +52,6 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
     }
   }, [merchantId]);
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-64 w-full" />
-        <Skeleton className="h-64 w-full" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    );
-  }
-
-  const getExportData = async () => {
-    return {
-      analytics,
-      websiteAnalysis,
-      merchantId,
-      exportedAt: new Date().toISOString(),
-    };
-  };
-
   // Get top 3 industry codes per type
   const getTopCodes = (codes: IndustryCode[] | undefined, limit = 3): IndustryCode[] => {
     if (!codes || codes.length === 0) return [];
@@ -86,6 +60,8 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
       .slice(0, limit);
   };
 
+  // ALL HOOKS MUST BE CALLED BEFORE ANY EARLY RETURNS
+  // This fixes React Error #310: "Rendered more hooks than during the previous render"
   const topMccCodes = useMemo(() => getTopCodes(analytics?.classification?.mccCodes), [analytics]);
   const topSicCodes = useMemo(() => getTopCodes(analytics?.classification?.sicCodes), [analytics]);
   const topNaicsCodes = useMemo(() => getTopCodes(analytics?.classification?.naicsCodes), [analytics]);
@@ -94,24 +70,24 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
   const classificationChartData = useMemo(() => {
     if (!analytics?.classification) return [];
     return [
-      { name: 'Confidence', value: (analytics.classification.confidenceScore * 100) },
-      { name: 'Remaining', value: 100 - (analytics.classification.confidenceScore * 100) },
+      { name: 'Confidence', value: (analytics.classification.confidenceScore ?? 0) * 100 },
+      { name: 'Remaining', value: 100 - ((analytics.classification.confidenceScore ?? 0) * 100) },
     ];
   }, [analytics]);
 
   const dataQualityChartData = useMemo(() => {
     if (!analytics?.quality) return [];
     return [
-      { name: 'Complete', value: (analytics.quality.completenessScore * 100) },
-      { name: 'Missing', value: 100 - (analytics.quality.completenessScore * 100) },
+      { name: 'Complete', value: (analytics.quality.completenessScore ?? 0) * 100 },
+      { name: 'Missing', value: 100 - ((analytics.quality.completenessScore ?? 0) * 100) },
     ];
   }, [analytics]);
 
   const securityChartData = useMemo(() => {
     if (!analytics?.security) return [];
     return [
-      { name: 'Trust Score', value: (analytics.security.trustScore * 100) },
-      { name: 'Remaining', value: 100 - (analytics.security.trustScore * 100) },
+      { name: 'Trust Score', value: (analytics.security.trustScore ?? 0) * 100 },
+      { name: 'Remaining', value: 100 - ((analytics.security.trustScore ?? 0) * 100) },
     ];
   }, [analytics]);
 
@@ -128,6 +104,33 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
     }
     return data;
   }, [topMccCodes, topSicCodes, topNaicsCodes]);
+
+  const getExportData = async () => {
+    return {
+      analytics,
+      websiteAnalysis,
+      merchantId,
+      exportedAt: new Date().toISOString(),
+    };
+  };
+
+  // Early returns AFTER all hooks
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
     <div className="space-y-6">

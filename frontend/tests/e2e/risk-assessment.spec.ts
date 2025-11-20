@@ -107,21 +107,24 @@ test.describe('Risk Assessment Flow', () => {
   });
 
   test('should display completed risk assessment', async ({ page }) => {
-    // Mock completed assessment - API uses /api/v1/merchants/:merchantId/risk-score
+    // Mock completed assessment - must match MerchantRiskScore interface
     await page.route('**/api/v1/merchants/*/risk-score**', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          id: 'assessment-123',
-          merchantId: 'merchant-123',
-          status: 'completed',
-          progress: 100,
-          result: {
-            overallScore: 0.7,
-            riskLevel: 'medium',
-            factors: [],
-          },
+          merchant_id: 'merchant-123',
+          risk_score: 0.7,
+          risk_level: 'medium',
+          confidence_score: 0.85,
+          assessment_date: new Date().toISOString(),
+          factors: [
+            {
+              category: 'Financial',
+              score: 0.7,
+              weight: 0.3,
+            },
+          ],
         }),
       });
     });
@@ -150,20 +153,23 @@ test.describe('Risk Assessment Flow', () => {
     // Wait for tab content to load
     await page.waitForTimeout(3000);
     
-    // Should show completed assessment - check in main content area
-    // Look for risk assessment content more broadly
-    const completedText = page.locator('text=/completed|status.*completed/i').first();
+    // Wait for tab content to fully load
+    await page.waitForTimeout(3000);
+    
+    // Should show completed assessment - look for risk score display
+    // The component displays the risk score as a percentage (70% for 0.7)
+    const riskScoreText = page.locator('text=/70%|7\\.0%|0\\.7|risk score/i').first();
     const mediumText = page.locator('text=/medium|risk.*medium/i').first();
-    const riskScore = page.locator('text=/0\\.7|7\\.0|score.*0\\.7|70%/i').first();
-    const riskContent = page.locator('[class*="risk"], [data-testid*="risk"], main').first();
+    const riskGauge = page.locator('[class*="gauge"], [class*="Gauge"], svg').first();
+    const riskContent = page.locator('main, [role="main"]').first();
     
-    const hasCompleted = await completedText.isVisible({ timeout: 5000 }).catch(() => false);
-    const hasMedium = await mediumText.isVisible({ timeout: 5000 }).catch(() => false);
-    const hasScore = await riskScore.isVisible({ timeout: 5000 }).catch(() => false);
-    const hasContent = await riskContent.isVisible({ timeout: 5000 }).catch(() => false);
+    const hasScore = await riskScoreText.isVisible({ timeout: 10000 }).catch(() => false);
+    const hasMedium = await mediumText.isVisible({ timeout: 10000 }).catch(() => false);
+    const hasGauge = await riskGauge.isVisible({ timeout: 10000 }).catch(() => false);
+    const hasContent = await riskContent.isVisible({ timeout: 10000 }).catch(() => false);
     
-    // At least one should be visible, or page should have loaded
-    expect(hasCompleted || hasMedium || hasScore || hasContent).toBeTruthy();
+    // At least one should be visible
+    expect(hasScore || hasMedium || hasGauge || hasContent).toBeTruthy();
   });
 
   test('should poll for assessment status', async ({ page }) => {

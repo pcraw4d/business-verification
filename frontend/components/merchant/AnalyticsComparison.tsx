@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { ChartContainer } from '@/components/dashboards/ChartContainer';
 import { BarChart } from '@/components/charts/lazy';
-import { formatPercent } from '@/lib/number-format';
+import { formatPercent, formatNumber } from '@/lib/number-format';
 
 interface AnalyticsComparisonProps {
   merchantId: string;
@@ -142,8 +142,11 @@ export function AnalyticsComparison({ merchantId, merchantAnalytics: providedAna
     if (Math.abs(difference) < 0.01) {
       return 'Similar';
     }
+    // percentage is already a percentage value (0-100), not a decimal (0-1)
+    // Use formatNumber for safe formatting, then add sign and % symbol
     const sign = difference > 0 ? '+' : '';
-    return `${sign}${(percentage).toFixed(1)}%`;
+    const formatted = formatNumber(percentage, 1, '0.0');
+    return `${sign}${formatted}%`;
   };
 
   if (loading) {
