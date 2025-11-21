@@ -478,19 +478,77 @@ func (h *GatewayHandler) proxyRequest(w http.ResponseWriter, r *http.Request, ta
 	}
 	defer resp.Body.Close()
 
-	// Copy response headers (but exclude CORS headers - they're set by our middleware)
+	// CRITICAL: Delete any CORS headers that might have been set by upstream service
+	// BEFORE copying any headers from the upstream response
+	// This ensures our CORS middleware is the only source of CORS headers
+	corsHeaderPrefixes := []string{
+		"Access-Control-Allow-Origin",
+		"Access-Control-Allow-Methods",
+		"Access-Control-Allow-Headers",
+		"Access-Control-Allow-Credentials",
+		"Access-Control-Max-Age",
+		"Access-Control-Expose-Headers",
+	}
+	for _, corsHeader := range corsHeaderPrefixes {
+		w.Header().Del(corsHeader)
+	}
+
+	// Copy response headers (but exclude CORS headers and security headers - they're set by our middleware)
 	for key, values := range resp.Header {
 		// Skip headers that shouldn't be forwarded
 		if key == "Connection" || key == "Transfer-Encoding" {
 			continue
 		}
 		// Skip CORS headers - they're set by the CORS middleware to avoid duplicates
-		if strings.HasPrefix(key, "Access-Control-") {
+		// Use case-insensitive comparison to catch all variations
+		keyLower := strings.ToLower(key)
+		if strings.HasPrefix(keyLower, "access-control-") {
 			continue
 		}
-		for _, value := range values {
-			w.Header().Add(key, value)
+		// Skip security headers - they're set by the SecurityHeaders middleware to avoid duplicates
+		securityHeaders := []string{
+			"X-Frame-Options",
+			"X-Content-Type-Options",
+			"X-XSS-Protection",
+			"Referrer-Policy",
+			"Permissions-Policy",
+			"Strict-Transport-Security",
+			"X-Permitted-Cross-Domain-Policies",
+			"X-Download-Options",
+			"X-Dns-Prefetch-Control",
+			"Server",
 		}
+		skipHeader := false
+		for _, securityHeader := range securityHeaders {
+			if strings.EqualFold(key, securityHeader) {
+				skipHeader = true
+				break
+			}
+		}
+		if skipHeader {
+			continue
+		}
+		// Use Set() instead of Add() to prevent duplicates if header already exists
+		// Only set if header doesn't already exist (middleware may have set it)
+		if len(values) > 0 && w.Header().Get(key) == "" {
+			w.Header().Set(key, values[0])
+			// Add additional values if any
+			for i := 1; i < len(values); i++ {
+				w.Header().Add(key, values[i])
+			}
+		}
+	}
+
+	// CRITICAL: CORS headers should already be set by the CORS middleware
+	// However, if they're missing (e.g., middleware didn't run), set them here
+	// This is a safety net to ensure CORS headers are always present
+	origin := r.Header.Get("Origin")
+	if origin != "" && w.Header().Get("Access-Control-Allow-Origin") == "" {
+		// CORS middleware didn't set headers, set them here as fallback
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
 	}
 
 	// Set the status code

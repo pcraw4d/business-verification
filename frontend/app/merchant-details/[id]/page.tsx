@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { EnrichmentProvider } from '@/contexts/EnrichmentContext';
 
 // Configure route for client-side routing
 // Use 'use client' to enable client-side rendering for static file serving
@@ -56,17 +57,19 @@ function MerchantDetailsContent() {
 
 export default function MerchantDetailsPage() {
   return (
-    <ErrorBoundary
-      fallback={<MerchantDetailsError />}
-      onError={(error, errorInfo) => {
-        // Log error for monitoring/debugging
-        console.error('MerchantDetailsPage error:', error, errorInfo);
-      }}
-    >
-      <Suspense fallback={<MerchantDetailsLoading />}>
-        <MerchantDetailsContent />
-      </Suspense>
-    </ErrorBoundary>
+    <EnrichmentProvider>
+      <ErrorBoundary
+        fallback={<MerchantDetailsError />}
+        onError={(error, errorInfo) => {
+          // Log error for monitoring/debugging
+          console.error('MerchantDetailsPage error:', error, errorInfo);
+        }}
+      >
+        <Suspense fallback={<MerchantDetailsLoading />}>
+          <MerchantDetailsContent />
+        </Suspense>
+      </ErrorBoundary>
+    </EnrichmentProvider>
   );
 }
 

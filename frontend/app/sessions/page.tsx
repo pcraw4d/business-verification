@@ -39,6 +39,10 @@ interface Session {
 export default function SessionsPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+
+  // Client-side formatted dates to prevent hydration errors
+  const [formattedDates, setFormattedDates] = useState<Record<string, { startTime: string; lastActivity: string }>>({});
 
   useEffect(() => {
     async function fetchSessions() {
@@ -109,20 +113,53 @@ export default function SessionsPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const formatDate = (dateString: string | undefined) => {
-    if (!dateString) return 'N/A';
-    try {
-      return new Date(dateString).toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    } catch {
-      return dateString;
-    }
-  };
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Format dates on client side only to prevent hydration errors
+  useEffect(() => {
+    if (!mounted || sessions.length === 0) return;
+
+    const formatted: Record<string, { startTime: string; lastActivity: string }> = {};
+    sessions.forEach((session) => {
+      const formattedSession: { startTime: string; lastActivity: string } = {
+        startTime: 'N/A',
+        lastActivity: 'N/A',
+      };
+
+      if (session.startTime) {
+        try {
+          formattedSession.startTime = new Date(session.startTime).toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+        } catch {
+          formattedSession.startTime = session.startTime;
+        }
+      }
+
+      if (session.lastActivity) {
+        try {
+          formattedSession.lastActivity = new Date(session.lastActivity).toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+        } catch {
+          formattedSession.lastActivity = session.lastActivity;
+        }
+      }
+
+      formatted[session.id] = formattedSession;
+    });
+    setFormattedDates(formatted);
+  }, [mounted, sessions]);
 
   return (
     <AppLayout
@@ -172,8 +209,12 @@ export default function SessionsPage() {
                     {sessions.map((session) => (
                       <TableRow key={session.id}>
                         <TableCell className="font-medium">{session.userId}</TableCell>
-                        <TableCell>{formatDate(session.startTime)}</TableCell>
-                        <TableCell>{formatDate(session.lastActivity)}</TableCell>
+                        <TableCell suppressHydrationWarning>
+                          {mounted && formattedDates[session.id] ? formattedDates[session.id].startTime : session.startTime || 'N/A'}
+                        </TableCell>
+                        <TableCell suppressHydrationWarning>
+                          {mounted && formattedDates[session.id] ? formattedDates[session.id].lastActivity : session.lastActivity || 'N/A'}
+                        </TableCell>
                         <TableCell>
                           <Badge variant={session.status === 'active' ? 'default' : 'secondary'}>
                             {session.status}

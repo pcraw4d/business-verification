@@ -75,7 +75,7 @@ export class WebSocketClient {
         // Suppress WebSocket errors in console - endpoint may not be implemented
         // Only log in development mode for debugging
         if (process.env.NODE_ENV === 'development') {
-          console.warn('WebSocket error:', error);
+        console.warn('WebSocket error:', error);
         }
         this.setStatus('error');
         this.options.onError(new Error('WebSocket connection error'));
@@ -102,7 +102,7 @@ export class WebSocketClient {
         } else if (this.reconnectAttempts >= this.options.maxReconnectAttempts) {
           // Suppress max reconnection error - only log in development
           if (process.env.NODE_ENV === 'development') {
-            console.error('WebSocket: Max reconnection attempts reached. WebSocket will remain disconnected.');
+          console.error('WebSocket: Max reconnection attempts reached. WebSocket will remain disconnected.');
           }
           this.setStatus('error');
         }

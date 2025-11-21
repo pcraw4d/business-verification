@@ -260,10 +260,10 @@ test.describe('Merchant Details Integration Tests', () => {
         if (!url.includes(`/merchants/${TEST_MERCHANT_ID}/analytics`)) {
           apiCalls.push(`GET ${url}`);
           console.log(`[Route] Intercepted portfolio analytics: ${url}`);
-          await route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify({
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
               totalMerchants: 100,
               averageRiskScore: 0.70,
               averageClassificationConfidence: 0.75,
@@ -277,8 +277,8 @@ test.describe('Merchant Details Integration Tests', () => {
               industryDistribution: {},
               countryDistribution: {},
               timestamp: new Date().toISOString(),
-            }),
-          });
+          }),
+        });
         } else {
           await route.continue();
         }
@@ -336,7 +336,7 @@ test.describe('Merchant Details Integration Tests', () => {
       console.log(`Business Analytics tab visible: ${tabVisible}`);
       
       if (tabVisible) {
-        await analyticsTab.click({ timeout: 10000 });
+      await analyticsTab.click({ timeout: 10000 });
         console.log('Clicked Business Analytics tab');
         
         // Wait for lazy-loaded component to load (tabs are dynamically imported)
@@ -404,7 +404,7 @@ test.describe('Merchant Details Integration Tests', () => {
       
       // Give component time to mount and make API calls
       await page.waitForTimeout(3000);
-      
+
       // Check if AnalyticsComparison component is actually on the page
       // It should be rendered if BusinessAnalyticsTab has analytics data
       const businessAnalyticsTab = page.locator('[role="tabpanel"]').filter({ hasText: /Business Analytics/i }).first();
@@ -634,10 +634,10 @@ test.describe('Merchant Details Integration Tests', () => {
             result: {
               overallScore: 0.72,
               riskLevel: 'medium',
-              factors: [
-                { name: 'Factor 1', score: 0.8, weight: 0.3 },
-                { name: 'Factor 2', score: 0.6, weight: 0.2 },
-              ],
+            factors: [
+              { name: 'Factor 1', score: 0.8, weight: 0.3 },
+              { name: 'Factor 2', score: 0.6, weight: 0.2 },
+            ],
             },
           }),
         });
@@ -788,7 +788,7 @@ test.describe('Merchant Details Integration Tests', () => {
       const emptyCard = page.locator('[class*="Card"]').filter({ hasText: /No Recommendations/i }).first();
       const isEmpty = await emptyCard.isVisible({ timeout: 2000 }).catch(() => false);
       console.log(`Component empty state: ${isEmpty}`);
-      
+
       // 4. Check for success state (recommendations content)
       const recCard = page.locator('[class*="Card"]').filter({ 
         hasText: /Risk Recommendations/i 

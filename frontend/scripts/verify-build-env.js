@@ -27,7 +27,7 @@ requiredEnvVars.forEach((varName) => {
   const value = process.env[varName];
   if (!value) {
     errors.push(`❌ ${varName} is not set (REQUIRED)`);
-  } else if (value.includes('localhost') && process.env.NODE_ENV === 'production') {
+  } else if (value.includes('localhost') && process.env.NODE_ENV === 'production' && !process.env.ALLOW_LOCALHOST_FOR_TESTING) {
     errors.push(`❌ ${varName} is set to localhost in production: ${value}`);
   } else {
     console.log(`✅ ${varName} is set: ${value}`);

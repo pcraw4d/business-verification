@@ -247,5 +247,254 @@ describe('RiskAlertsSection', () => {
       }
     });
   });
+
+  describe('Phase 4 Enhancements', () => {
+    describe('Dismiss Functionality', () => {
+      it('should display dismiss button for each alert', async () => {
+        server.use(
+          http.get('*/api/v1/risk/indicators/:id', () => {
+            return HttpResponse.json(mockRiskIndicators);
+          })
+        );
+
+        render(<RiskAlertsSection merchantId={merchantId} />);
+
+        await waitFor(() => {
+          const dismissButtons = screen.getAllByRole('button', { name: /dismiss/i });
+          expect(dismissButtons.length).toBeGreaterThan(0);
+        });
+      });
+
+      it('should dismiss alert when dismiss button is clicked', async () => {
+        server.use(
+          http.get('*/api/v1/risk/indicators/:id', () => {
+            return HttpResponse.json(mockRiskIndicators);
+          })
+        );
+
+        const user = userEvent.setup();
+        render(<RiskAlertsSection merchantId={merchantId} />);
+
+        await waitFor(() => {
+          expect(screen.getByText('High Financial Risk')).toBeInTheDocument();
+        });
+
+        const dismissButtons = screen.getAllByRole('button', { name: /dismiss/i });
+        await user.click(dismissButtons[0]);
+
+        await waitFor(() => {
+          // Alert should be dismissed (removed from view)
+          expect(screen.queryByText('High Financial Risk')).not.toBeInTheDocument();
+        });
+      });
+
+      it('should track dismissed alerts count', async () => {
+        server.use(
+          http.get('*/api/v1/risk/indicators/:id', () => {
+            return HttpResponse.json(mockRiskIndicators);
+          })
+        );
+
+        const user = userEvent.setup();
+        render(<RiskAlertsSection merchantId={merchantId} />);
+
+        await waitFor(() => {
+          expect(screen.getByText('High Financial Risk')).toBeInTheDocument();
+        });
+
+        const dismissButtons = screen.getAllByRole('button', { name: /dismiss/i });
+        await user.click(dismissButtons[0]);
+
+        await waitFor(() => {
+          // Should show count of dismissed alerts
+          expect(screen.getByText(/1.*dismissed/i)).toBeInTheDocument();
+        });
+      });
+    });
+
+    describe('Filtering by Severity', () => {
+      it('should display severity filter dropdown', async () => {
+        server.use(
+          http.get('*/api/v1/risk/indicators/:id', () => {
+            return HttpResponse.json(mockRiskIndicators);
+          })
+        );
+
+        render(<RiskAlertsSection merchantId={merchantId} />);
+
+        await waitFor(() => {
+          const filterSelect = screen.getByRole('combobox', { name: /filter/i });
+          expect(filterSelect).toBeInTheDocument();
+        });
+      });
+
+      it('should filter alerts by severity when filter is selected', async () => {
+        server.use(
+          http.get('*/api/v1/risk/indicators/:id', () => {
+            return HttpResponse.json(mockRiskIndicators);
+          })
+        );
+
+        const user = userEvent.setup();
+        render(<RiskAlertsSection merchantId={merchantId} />);
+
+        await waitFor(() => {
+          expect(screen.getByText('High Financial Risk')).toBeInTheDocument();
+        });
+
+        const filterSelect = screen.getByRole('combobox', { name: /filter/i });
+        await user.click(filterSelect);
+
+        await waitFor(() => {
+          const criticalOption = screen.getByRole('option', { name: /critical/i });
+          await user.click(criticalOption);
+        });
+
+        await waitFor(() => {
+          // Should only show critical severity alerts
+          expect(screen.getByText('High Financial Risk')).toBeInTheDocument();
+          expect(screen.queryByText('Compliance Issue')).not.toBeInTheDocument();
+        });
+      });
+    });
+
+    describe('View All Alerts Link', () => {
+      it('should display "View All Alerts" link', async () => {
+        server.use(
+          http.get('*/api/v1/risk/indicators/:id', () => {
+            return HttpResponse.json(mockRiskIndicators);
+          })
+        );
+
+        render(<RiskAlertsSection merchantId={merchantId} />);
+
+        await waitFor(() => {
+          const viewAllLink = screen.getByRole('link', { name: /view all alerts/i });
+          expect(viewAllLink).toBeInTheDocument();
+        });
+      });
+    });
+
+    describe('WebSocket Real-time Updates', () => {
+      it('should listen for WebSocket riskAlert events', async () => {
+        server.use(
+          http.get('*/api/v1/risk/indicators/:id', () => {
+            return HttpResponse.json(mockRiskIndicators);
+          })
+        );
+
+        render(<RiskAlertsSection merchantId={merchantId} />);
+
+        await waitFor(() => {
+          expect(screen.getByText('High Financial Risk')).toBeInTheDocument();
+        });
+
+        // Simulate WebSocket event
+        const newAlert = {
+          merchantId,
+          alert: {
+            id: 'indicator-5',
+            type: 'security',
+            severity: 'high',
+            title: 'New Security Alert',
+            description: 'New security issue detected',
+            status: 'active',
+            createdAt: new Date().toISOString(),
+          },
+        };
+
+        window.dispatchEvent(
+          new CustomEvent('riskAlert', {
+            detail: newAlert,
+          })
+        );
+
+        await waitFor(() => {
+          // New alert should appear
+          expect(screen.getByText('New Security Alert')).toBeInTheDocument();
+        });
+      });
+
+      it('should show toast notification for new critical alerts', async () => {
+        server.use(
+          http.get('*/api/v1/risk/indicators/:id', () => {
+            return HttpResponse.json(mockRiskIndicators);
+          })
+        );
+
+        render(<RiskAlertsSection merchantId={merchantId} />);
+
+        await waitFor(() => {
+          expect(screen.getByText('High Financial Risk')).toBeInTheDocument();
+        });
+
+        // Simulate WebSocket event with critical alert
+        const criticalAlert = {
+          merchantId,
+          alert: {
+            id: 'indicator-6',
+            type: 'financial',
+            severity: 'critical',
+            title: 'Critical Financial Alert',
+            description: 'Critical financial issue',
+            status: 'active',
+            createdAt: new Date().toISOString(),
+          },
+        };
+
+        window.dispatchEvent(
+          new CustomEvent('riskAlert', {
+            detail: criticalAlert,
+          })
+        );
+
+        await waitFor(() => {
+          // Should show error toast for critical alerts
+          expect(mockToast.error).toHaveBeenCalled();
+        });
+      });
+
+      it('should update alerts state when WebSocket event is received', async () => {
+        server.use(
+          http.get('*/api/v1/risk/indicators/:id', () => {
+            return HttpResponse.json(mockRiskIndicators);
+          })
+        );
+
+        render(<RiskAlertsSection merchantId={merchantId} />);
+
+        await waitFor(() => {
+          expect(screen.getByText('High Financial Risk')).toBeInTheDocument();
+        });
+
+        const initialAlertCount = screen.getAllByText(/risk|alert/i).length;
+
+        // Simulate WebSocket event
+        const newAlert = {
+          merchantId,
+          alert: {
+            id: 'indicator-7',
+            type: 'operational',
+            severity: 'medium',
+            title: 'New Operational Alert',
+            description: 'New operational issue',
+            status: 'active',
+            createdAt: new Date().toISOString(),
+          },
+        };
+
+        window.dispatchEvent(
+          new CustomEvent('riskAlert', {
+            detail: newAlert,
+          })
+        );
+
+        await waitFor(() => {
+          // Should have more alerts now
+          expect(screen.getByText('New Operational Alert')).toBeInTheDocument();
+        });
+      });
+    });
+  });
 });
 

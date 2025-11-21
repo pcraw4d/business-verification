@@ -3,6 +3,24 @@ import { APICache } from '@/lib/api-cache';
 import { ApiEndpoints } from '@/lib/api-config';
 import { ErrorHandler } from '@/lib/error-handler';
 import { RequestDeduplicator } from '@/lib/request-deduplicator';
+import {
+  validateAPIResponse,
+  MerchantSchema,
+  AnalyticsDataSchema,
+  RiskAssessmentSchema,
+  MerchantRiskScoreSchema,
+  PortfolioStatisticsSchema,
+  RiskBenchmarksSchema,
+  AssessmentStatusResponseSchema,
+  RiskHistoryResponseSchema,
+  RiskRecommendationsResponseSchema,
+  RiskIndicatorsDataSchema,
+  MerchantListResponseSchema,
+  DashboardMetricsSchema,
+  RiskMetricsSchema,
+  SystemMetricsSchema,
+  ComplianceStatusSchema,
+} from '@/lib/api-validation';
 import type {
   BusinessIntelligenceMetrics,
   ComplianceStatus,
@@ -47,6 +65,30 @@ function getAuthToken(): string | null {
   return sessionStorage.getItem('authToken');
 }
 
+// Helper function to wrap fetch and handle CORS/network errors
+async function safeFetch(url: string, options?: RequestInit): Promise<Response> {
+  try {
+    const response = await fetch(url, options);
+    return response;
+  } catch (error) {
+    // Handle CORS and network errors
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      // Check if it's a CORS error
+      const corsError = new Error('CORS policy blocked the request. Please check server configuration.');
+      (corsError as any).code = 'CORS_ERROR';
+      (corsError as any).isCORS = true;
+      throw corsError;
+    }
+    // Handle other network errors
+    if (error instanceof TypeError) {
+      const networkError = new Error('Network request failed. Please check your connection.');
+      (networkError as any).code = 'NETWORK_ERROR';
+      throw networkError;
+    }
+    throw error;
+  }
+}
+
 // Helper function to handle API errors
 async function handleResponse<T>(response: Response): Promise<T> {
   // Check response status - MSW responses should have status and ok set correctly
@@ -63,11 +105,24 @@ async function handleResponse<T>(response: Response): Promise<T> {
       const errorData = await ErrorHandler.parseErrorResponse(response);
       const errorMessage = errorData && typeof errorData === 'object' && 'message' in errorData 
         ? String(errorData.message) 
-        : `API Error ${status}`;
-      throw new Error(errorMessage);
-    } catch {
-      // If parsing error response fails, just throw with status
-      throw new Error(`API Error ${status}`);
+        : `API Error ${status}: ${response.statusText}`;
+      
+      // Create error with status code for better error handling
+      const error = new Error(errorMessage);
+      (error as any).status = status;
+      (error as any).code = errorData && typeof errorData === 'object' && 'code' in errorData
+        ? String(errorData.code)
+        : `HTTP_${status}`;
+      throw error;
+    } catch (err) {
+      // If parsing error response fails, create error with status
+      if (err instanceof Error) {
+        throw err;
+      }
+      const error = new Error(`API Error ${status}: ${response.statusText}`);
+      (error as any).status = status;
+      (error as any).code = `HTTP_${status}`;
+      throw error;
     }
   }
   
@@ -78,8 +133,55 @@ async function handleResponse<T>(response: Response): Promise<T> {
   } catch (error) {
     // If JSON parsing fails, throw a more helpful error
     const errorMessage = error instanceof Error ? error.message : String(error);
-    throw new Error(`Failed to parse JSON response: ${errorMessage}`);
+    const parseError = new Error(`Failed to parse JSON response: ${errorMessage}`);
+    (parseError as any).code = 'JSON_PARSE_ERROR';
+    throw parseError;
   }
+}
+
+// Helper function to map address from backend (handles both nested map and flat fields)
+function mapAddress(
+  addressData: unknown,
+  rawData: Record<string, unknown>
+): Merchant['address'] | undefined {
+  const getString = (obj: unknown, key: string): string | undefined => {
+    if (obj && typeof obj === 'object' && key in obj) {
+      const value = (obj as Record<string, unknown>)[key];
+      return typeof value === 'string' ? value : undefined;
+    }
+    return undefined;
+  };
+  
+  // If address is a map/object, extract fields from it
+  if (addressData && typeof addressData === 'object' && addressData !== null) {
+    const addr = addressData as Record<string, unknown>;
+    return {
+      street: getString(addr, 'street') || getString(addr, 'street1'),
+      street1: getString(addr, 'street1'),
+      street2: getString(addr, 'street2'),
+      city: getString(addr, 'city'),
+      state: getString(addr, 'state'),
+      postalCode: getString(addr, 'postal_code') || getString(addr, 'postalCode'),
+      country: getString(addr, 'country'),
+      countryCode: getString(addr, 'country_code') || getString(addr, 'countryCode'),
+    };
+  }
+  
+  // If address fields are flat in rawData, extract them
+  if (rawData.address_street1 || rawData.address_city) {
+    return {
+      street: typeof rawData.address_street1 === 'string' ? rawData.address_street1 : undefined,
+      street1: typeof rawData.address_street1 === 'string' ? rawData.address_street1 : undefined,
+      street2: typeof rawData.address_street2 === 'string' ? rawData.address_street2 : undefined,
+      city: typeof rawData.address_city === 'string' ? rawData.address_city : undefined,
+      state: typeof rawData.address_state === 'string' ? rawData.address_state : undefined,
+      postalCode: typeof rawData.address_postal_code === 'string' ? rawData.address_postal_code : undefined,
+      country: typeof rawData.address_country === 'string' ? rawData.address_country : undefined,
+      countryCode: typeof rawData.address_country_code === 'string' ? rawData.address_country_code : undefined,
+    };
+  }
+  
+  return undefined;
 }
 
 // Retry logic with exponential backoff
@@ -152,7 +254,7 @@ export async function getMerchant(
           const controller = options?.signal ? undefined : new AbortController();
           const signal = options?.signal || controller?.signal;
           
-          const response = await fetch(ApiEndpoints.merchants.get(merchantId), {
+          const response = await safeFetch(ApiEndpoints.merchants.get(merchantId), {
             method: 'GET',
             headers,
             signal, // Support request cancellation
@@ -162,15 +264,90 @@ export async function getMerchant(
             console.log('[API] getMerchant: Response received', response.status, response.ok);
           }
           
-          const data = await handleResponse<Merchant>(response);
+          // Get raw response data (may have snake_case fields)
+          const rawData = await handleResponse<Record<string, unknown>>(response);
           
           if (process.env.NODE_ENV === 'test') {
-            console.log('[API] getMerchant: Data parsed successfully', data);
+            console.log('[API] getMerchant: Data parsed successfully', rawData);
+          }
+          
+          // Map backend fields to frontend types
+          const getString = (key: string): string | undefined => {
+            const value = rawData[key];
+            return typeof value === 'string' ? value : undefined;
+          };
+          
+          const contactInfo = rawData.contact_info && typeof rawData.contact_info === 'object' && rawData.contact_info !== null 
+            ? rawData.contact_info as Record<string, unknown>
+            : undefined;
+          
+          const data: Merchant = {
+            id: getString('id') || '',
+            businessName: getString('business_name') || getString('name') || getString('businessName') || '',
+            name: getString('name'),
+            legalName: getString('legal_name'),
+            registrationNumber: getString('registration_number'),
+            taxId: getString('tax_id'),
+            industry: getString('industry'),
+            industryCode: getString('industry_code'),
+            businessType: getString('business_type'),
+            description: getString('description'),
+            status: getString('status') || '',
+            website: getString('website') || (contactInfo && typeof contactInfo.website === 'string' ? contactInfo.website : undefined),
+            email: getString('email') || (contactInfo && typeof contactInfo.email === 'string' ? contactInfo.email : undefined),
+            phone: getString('phone') || (contactInfo && typeof contactInfo.phone === 'string' ? contactInfo.phone : undefined),
+            // Map address - handle both nested map and flat fields
+            address: mapAddress(rawData.address, rawData),
+            portfolioType: getString('portfolio_type'),
+            riskLevel: getString('risk_level'),
+            complianceStatus: getString('compliance_status'),
+            // Map financial information
+            foundedDate: rawData.founded_date && typeof rawData.founded_date === 'string' ? new Date(rawData.founded_date).toISOString() : undefined,
+            employeeCount: typeof rawData.employee_count === 'number' ? rawData.employee_count : undefined,
+            annualRevenue: typeof rawData.annual_revenue === 'number' ? rawData.annual_revenue : undefined,
+            // Map system information
+            createdBy: getString('created_by'),
+            metadata: rawData.metadata && typeof rawData.metadata === 'object' && rawData.metadata !== null && !Array.isArray(rawData.metadata) 
+              ? rawData.metadata as Record<string, unknown> 
+              : undefined,
+            createdAt: getString('created_at') || getString('createdAt') || '',
+            updatedAt: getString('updated_at') || getString('updatedAt') || '',
+          };
+          
+          // Validate with Zod schema
+          const validatedData = validateAPIResponse(
+            MerchantSchema,
+            data,
+            `getMerchant(${merchantId})`
+          );
+          
+          // Development logging
+          if (process.env.NODE_ENV === 'development') {
+            const hasFinancialData = !!(
+              validatedData.foundedDate ||
+              validatedData.employeeCount ||
+              validatedData.annualRevenue
+            );
+            console.log('[API] Mapped merchant fields:', {
+              id: validatedData.id,
+              hasFinancialData,
+              hasAddress: !!validatedData.address,
+              hasMetadata: !!validatedData.metadata,
+              hasCreatedBy: !!validatedData.createdBy,
+            });
+            
+            if (
+              !validatedData.foundedDate &&
+              !validatedData.employeeCount &&
+              !validatedData.annualRevenue
+            ) {
+              console.warn('[API] Merchant missing financial data:', validatedData.id);
+            }
           }
           
           // Cache the result
-          apiCache.set(cacheKey, data);
-          return data;
+          apiCache.set(cacheKey, validatedData);
+          return validatedData;
         } catch (error) {
           // Don't retry on abort (user cancellation)
           if (error instanceof Error && error.name === 'AbortError') {
@@ -179,8 +356,8 @@ export async function getMerchant(
           
           // Don't retry on 4xx errors (client errors)
           if (error instanceof Error && 'status' in error) {
-            const status = (error as any).status;
-            if (status >= 400 && status < 500) {
+            const status = (error as Error & { status?: number }).status;
+            if (status !== undefined && status >= 400 && status < 500) {
               throw error;
             }
           }
@@ -223,11 +400,17 @@ export async function getMerchantAnalytics(merchantId: string): Promise<Analytic
 
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
-      const response = await fetch(ApiEndpoints.merchants.analytics(merchantId), {
+      const response = await safeFetch(ApiEndpoints.merchants.analytics(merchantId), {
         method: 'GET',
         headers,
       });
-      const data = await handleResponse<AnalyticsData>(response);
+      const rawData = await handleResponse<unknown>(response);
+      // Validate with Zod schema
+      const data = validateAPIResponse(
+        AnalyticsDataSchema,
+        rawData,
+        `getMerchantAnalytics(${merchantId})`
+      );
       // Cache the result
       apiCache.set(cacheKey, data);
       return data;
@@ -249,7 +432,7 @@ export async function getWebsiteAnalysis(merchantId: string): Promise<WebsiteAna
   }
 
   return retryWithBackoff(async () => {
-    const response = await fetch(ApiEndpoints.merchants.websiteAnalysis(merchantId), {
+    const response = await safeFetch(ApiEndpoints.merchants.websiteAnalysis(merchantId), {
       method: 'GET',
       headers,
     });
@@ -269,14 +452,20 @@ export async function getRiskAssessment(merchantId: string): Promise<RiskAssessm
 
   try {
     return await retryWithBackoff(async () => {
-      const response = await fetch(ApiEndpoints.merchants.riskScore(merchantId), {
+      const response = await safeFetch(ApiEndpoints.merchants.riskScore(merchantId), {
         method: 'GET',
         headers,
       });
       if (response.status === 404) {
         return null;
       }
-      return handleResponse<RiskAssessment>(response);
+      const rawData = await handleResponse<unknown>(response);
+      // Validate with Zod schema
+      return validateAPIResponse(
+        RiskAssessmentSchema,
+        rawData,
+        `getRiskAssessment(${merchantId})`
+      );
     });
   } catch (error) {
     console.error('Error fetching risk assessment:', error);
@@ -297,7 +486,7 @@ export async function startRiskAssessment(
   }
 
   return retryWithBackoff(async () => {
-    const response = await fetch(ApiEndpoints.risk.assess(), {
+      const response = await safeFetch(ApiEndpoints.risk.assess(), {
       method: 'POST',
       headers,
       body: JSON.stringify(request),
@@ -319,11 +508,17 @@ export async function getAssessmentStatus(
   }
 
   return retryWithBackoff(async () => {
-    const response = await fetch(ApiEndpoints.risk.getAssessment(assessmentId), {
+      const response = await safeFetch(ApiEndpoints.risk.getAssessment(assessmentId), {
       method: 'GET',
       headers,
     });
-    return handleResponse<AssessmentStatusResponse>(response);
+    const rawData = await handleResponse<unknown>(response);
+    // Validate with Zod schema
+    return validateAPIResponse(
+      AssessmentStatusResponseSchema,
+      rawData,
+      `getAssessmentStatus(${assessmentId})`
+    );
   });
 }
 
@@ -353,7 +548,7 @@ export async function getRiskHistory(
 
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
-      const response = await fetch(
+      const response = await safeFetch(
         ApiEndpoints.risk.history(merchantId, limit, offset),
         {
           method: 'GET',
@@ -373,14 +568,20 @@ export async function getRiskHistory(
         };
       }
       
-      const data = await handleResponse<RiskHistoryResponse>(response);
+      const rawData = await handleResponse<unknown>(response);
+      // Validate with Zod schema
+      const data = validateAPIResponse(
+        RiskHistoryResponseSchema,
+        rawData,
+        `getRiskHistory(${merchantId}, ${limit}, ${offset})`
+      );
       apiCache.set(cacheKey, data);
       return data;
     } catch (error) {
       // Don't show error notifications for 404s on optional endpoints
       const is404 = error instanceof Error && error.message.includes('404');
       if (!is404) {
-        await ErrorHandler.handleAPIError(error);
+      await ErrorHandler.handleAPIError(error);
       }
       throw error;
     }
@@ -439,7 +640,7 @@ export async function getRiskPredictions(
       const queryString = params.toString();
       if (queryString) url = `${url}${url.includes('?') ? '&' : '?'}${queryString}`;
       
-      const response = await fetch(url, {
+      const response = await safeFetch(url, {
           method: 'GET',
           headers,
         }
@@ -482,7 +683,7 @@ export async function explainRiskAssessment(assessmentId: string): Promise<RiskE
 
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
-      const response = await fetch(ApiEndpoints.risk.explain(assessmentId), {
+      const response = await safeFetch(ApiEndpoints.risk.explain(assessmentId), {
         method: 'GET',
         headers,
       });
@@ -529,14 +730,20 @@ export async function getRiskRecommendations(merchantId: string): Promise<RiskRe
 
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
-      const response = await fetch(
+      const response = await safeFetch(
         ApiEndpoints.merchants.riskRecommendations(merchantId),
         {
           method: 'GET',
           headers,
         }
       );
-      const data = await handleResponse<RiskRecommendationsResponse>(response);
+      const rawData = await handleResponse<unknown>(response);
+      // Validate with Zod schema
+      const data = validateAPIResponse(
+        RiskRecommendationsResponseSchema,
+        rawData,
+        `getRiskRecommendations(${merchantId})`
+      );
       apiCache.set(cacheKey, data);
       return data;
     } catch (error) {
@@ -574,7 +781,7 @@ export async function getRiskIndicators(
       if (severity) filters.severity = severity;
       if (status) filters.status = status;
       
-      const response = await fetch(
+      const response = await safeFetch(
         ApiEndpoints.risk.indicators(merchantId, filters),
         {
           method: 'GET',
@@ -591,14 +798,20 @@ export async function getRiskIndicators(
         };
       }
       
-      const data = await handleResponse<RiskIndicatorsData>(response);
+      const rawData = await handleResponse<unknown>(response);
+      // Validate with Zod schema
+      const data = validateAPIResponse(
+        RiskIndicatorsDataSchema,
+        rawData,
+        `getRiskIndicators(${merchantId}, ${severity || ''}, ${status || ''})`
+      );
       apiCache.set(cacheKey, data);
       return data;
     } catch (error) {
       // Don't show error notifications for 404s on optional endpoints
       const is404 = error instanceof Error && error.message.includes('404');
       if (!is404) {
-        await ErrorHandler.handleAPIError(error);
+      await ErrorHandler.handleAPIError(error);
       }
       throw error;
     }
@@ -640,7 +853,7 @@ export async function getEnrichmentSources(merchantId: string): Promise<{
 
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
-      const response = await fetch(
+      const response = await safeFetch(
         ApiEndpoints.merchants.enrichmentSources(merchantId),
         {
           method: 'GET',
@@ -667,7 +880,7 @@ export async function getEnrichmentSources(merchantId: string): Promise<{
       // Don't show error notifications for 404s on optional endpoints
       const is404 = error instanceof Error && error.message.includes('404');
       if (!is404) {
-        await ErrorHandler.handleAPIError(error);
+      await ErrorHandler.handleAPIError(error);
       }
       throw error;
     }
@@ -697,7 +910,7 @@ export async function triggerEnrichment(
   }
 
   return retryWithBackoff(async () => {
-    const response = await fetch(
+      const response = await safeFetch(
       ApiEndpoints.merchants.triggerEnrichment(merchantId),
       {
         method: 'POST',
@@ -743,12 +956,22 @@ export async function getMerchantsList(params?: MerchantListParams): Promise<Mer
       const queryString = queryParams.toString();
       const url = `${ApiEndpoints.merchants.list()}${queryString ? `?${queryString}` : ''}`;
       
-      const response = await fetch(url, {
+      const response = await safeFetch(url, {
         method: 'GET',
         headers,
       });
       
-      const data = await handleResponse<MerchantListResponse>(response);
+      const rawData = await handleResponse<unknown>(response);
+      // Validate with Zod schema (validates snake_case from backend)
+      // Note: MerchantListItem interface uses snake_case (legal_name, created_at, updated_at, etc.)
+      // which matches the backend response. This is different from getMerchant() which maps to camelCase.
+      // For full consistency, we could map these fields to camelCase here, but that would require
+      // updating the MerchantListItem interface and all usages. Current implementation is validated and working.
+      const data = validateAPIResponse(
+        MerchantListResponseSchema,
+        rawData,
+        `getMerchantsList(${JSON.stringify(params || {})})`
+      );
       
       // Cache with shorter TTL for list data (1 minute)
       apiCache.set(cacheKey, data, 60 * 1000);
@@ -782,7 +1005,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
       // Use v3 endpoint (v1 deprecated and removed)
-      const response = await fetch(ApiEndpoints.dashboard.metrics('v3'), {
+      const response = await safeFetch(ApiEndpoints.dashboard.metrics('v3'), {
         method: 'GET',
         headers,
       });
@@ -848,8 +1071,15 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
         };
       }
 
-      apiCache.set(cacheKey, metrics, 60 * 1000); // 1 minute cache
-      return metrics;
+      // Validate with Zod schema
+      const validatedMetrics = validateAPIResponse(
+        DashboardMetricsSchema,
+        metrics,
+        'getDashboardMetrics()'
+      );
+      
+      apiCache.set(cacheKey, validatedMetrics, 60 * 1000); // 1 minute cache
+      return validatedMetrics;
     } catch {
       // Return default values on error
       return {
@@ -882,7 +1112,7 @@ export async function getRiskMetrics(): Promise<RiskMetrics> {
 
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
-      const response = await fetch(ApiEndpoints.risk.metrics(), {
+      const response = await safeFetch(ApiEndpoints.risk.metrics(), {
         method: 'GET',
         headers,
       });
@@ -897,7 +1127,13 @@ export async function getRiskMetrics(): Promise<RiskMetrics> {
         };
       }
 
-      const data = await handleResponse<RiskMetrics>(response);
+      const rawData = await handleResponse<unknown>(response);
+      // Validate with Zod schema
+      const data = validateAPIResponse(
+        RiskMetricsSchema,
+        rawData,
+        'getRiskMetrics()'
+      );
       apiCache.set(cacheKey, data, 60 * 1000); // 1 minute cache
       return data;
     } catch {
@@ -933,20 +1169,20 @@ export async function getSystemMetrics(): Promise<SystemMetrics> {
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
       // Try multiple possible endpoints
-      let response = await fetch(ApiEndpoints.monitoring.metrics(), {
+      let response = await safeFetch(ApiEndpoints.monitoring.metrics(), {
         method: 'GET',
         headers,
       });
 
       if (!response.ok && response.status === 404) {
-        response = await fetch(ApiEndpoints.monitoring.systemMetrics(), {
+        response = await safeFetch(ApiEndpoints.monitoring.systemMetrics(), {
           method: 'GET',
           headers,
         });
       }
 
       if (!response.ok && response.status === 404) {
-        response = await fetch(ApiEndpoints.monitoring.generalMetrics(), {
+        response = await safeFetch(ApiEndpoints.monitoring.generalMetrics(), {
           method: 'GET',
           headers,
         });
@@ -962,10 +1198,19 @@ export async function getSystemMetrics(): Promise<SystemMetrics> {
         };
       }
 
-      const data = await handleResponse<SystemMetrics | { data?: SystemMetrics }>(response);
+      const rawData = await handleResponse<unknown>(response);
       
       // Handle different response formats
-      const metrics: SystemMetrics = ('data' in data && data.data) ? data.data as SystemMetrics : data as SystemMetrics;
+      const data = (typeof rawData === 'object' && rawData !== null && 'data' in rawData && rawData.data) 
+        ? rawData.data 
+        : rawData;
+      
+      // Validate with Zod schema
+      const metrics = validateAPIResponse(
+        SystemMetricsSchema,
+        data,
+        'getSystemMetrics()'
+      );
       
       apiCache.set(cacheKey, metrics, 30 * 1000); // 30 second cache for system metrics
       return metrics;
@@ -1001,7 +1246,7 @@ export async function getComplianceStatus(): Promise<ComplianceStatus> {
 
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
-      const response = await fetch(ApiEndpoints.compliance.status(), {
+      const response = await safeFetch(ApiEndpoints.compliance.status(), {
         method: 'GET',
         headers,
       });
@@ -1085,8 +1330,15 @@ export async function getComplianceStatus(): Promise<ComplianceStatus> {
         status = data as ComplianceStatus;
       }
       
-      apiCache.set(cacheKey, status, 5 * 60 * 1000); // 5 minute cache
-      return status;
+      // Validate with Zod schema
+      const validatedStatus = validateAPIResponse(
+        ComplianceStatusSchema,
+        status,
+        'getComplianceStatus()'
+      );
+      
+      apiCache.set(cacheKey, validatedStatus, 5 * 60 * 1000); // 5 minute cache
+      return validatedStatus;
     } catch {
       // Return default values on error
       return {
@@ -1142,7 +1394,7 @@ export async function createMerchant(data: CreateMerchantRequest): Promise<Creat
 
   return retryWithBackoff(async () => {
     try {
-      const response = await fetch(ApiEndpoints.merchants.create(), {
+      const response = await safeFetch(ApiEndpoints.merchants.create(), {
         method: 'POST',
         headers,
         body: JSON.stringify(data),
@@ -1189,7 +1441,7 @@ export async function getBusinessIntelligenceMetrics(): Promise<BusinessIntellig
 
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
-      const response = await fetch(ApiEndpoints.businessIntelligence.metrics(), {
+      const response = await safeFetch(ApiEndpoints.businessIntelligence.metrics(), {
         method: 'GET',
         headers,
       });
@@ -1245,7 +1497,7 @@ export async function getPortfolioAnalytics(): Promise<PortfolioAnalytics> {
 
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
-      const response = await fetch(ApiEndpoints.merchants.portfolioAnalytics(), {
+      const response = await safeFetch(ApiEndpoints.merchants.portfolioAnalytics(), {
         method: 'GET',
         headers,
       });
@@ -1284,11 +1536,17 @@ export async function getPortfolioStatistics(): Promise<PortfolioStatistics> {
 
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
-      const response = await fetch(ApiEndpoints.merchants.statistics(), {
+      const response = await safeFetch(ApiEndpoints.merchants.statistics(), {
         method: 'GET',
         headers,
       });
-      const data = await handleResponse<PortfolioStatistics>(response);
+      const rawData = await handleResponse<unknown>(response);
+      // Validate with Zod schema
+      const data = validateAPIResponse(
+        PortfolioStatisticsSchema,
+        rawData,
+        'getPortfolioStatistics()'
+      );
       // Cache for 5-10 minutes (using 7 minutes as middle ground)
       apiCache.set(cacheKey, data, 7 * 60 * 1000);
       return data;
@@ -1328,7 +1586,7 @@ export async function getRiskTrends(params?: {
 
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
-      const response = await fetch(ApiEndpoints.analytics.trends(params), {
+      const response = await safeFetch(ApiEndpoints.analytics.trends(params), {
         method: 'GET',
         headers,
       });
@@ -1371,7 +1629,7 @@ export async function getRiskInsights(params?: {
 
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
-      const response = await fetch(ApiEndpoints.analytics.insights(params), {
+      const response = await safeFetch(ApiEndpoints.analytics.insights(params), {
         method: 'GET',
         headers,
       });
@@ -1414,11 +1672,17 @@ export async function getRiskBenchmarks(params: {
 
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
-      const response = await fetch(ApiEndpoints.risk.benchmarks(params), {
+      const response = await safeFetch(ApiEndpoints.risk.benchmarks(params), {
         method: 'GET',
         headers,
       });
-      const data = await handleResponse<RiskBenchmarks>(response);
+      const rawData = await handleResponse<unknown>(response);
+      // Validate with Zod schema
+      const data = validateAPIResponse(
+        RiskBenchmarksSchema,
+        rawData,
+        `getRiskBenchmarks(${JSON.stringify(params)})`
+      );
       // Cache for 10-15 minutes (using 12 minutes as middle ground)
       apiCache.set(cacheKey, data, 12 * 60 * 1000);
       return data;
@@ -1453,11 +1717,17 @@ export async function getMerchantRiskScore(merchantId: string): Promise<Merchant
 
   return requestDeduplicator.deduplicate(cacheKey, async () => {
     try {
-      const response = await fetch(ApiEndpoints.merchants.riskScore(merchantId), {
+      const response = await safeFetch(ApiEndpoints.merchants.riskScore(merchantId), {
         method: 'GET',
         headers,
       });
-      const data = await handleResponse<MerchantRiskScore>(response);
+      const rawData = await handleResponse<unknown>(response);
+      // Validate with Zod schema
+      const data = validateAPIResponse(
+        MerchantRiskScoreSchema,
+        rawData,
+        `getMerchantRiskScore(${merchantId})`
+      );
       // Cache for 2-5 minutes (using 3 minutes as middle ground)
       apiCache.set(cacheKey, data, 3 * 60 * 1000);
       return data;

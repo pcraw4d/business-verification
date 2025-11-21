@@ -67,7 +67,7 @@ export function RiskWebSocketProvider({ children, merchantId }: RiskWebSocketPro
         // Suppress WebSocket errors - endpoint may not be implemented
         // Only log in development mode
         if (process.env.NODE_ENV === 'development') {
-          console.error('Failed to create WebSocket client:', error);
+        console.error('Failed to create WebSocket client:', error);
         }
         setStatus('error');
       }

@@ -1,4 +1,5 @@
 import { PerformanceOptimizer } from "@/components/performance/PerformanceOptimizer";
+import { MSWProvider } from "@/components/MSWProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { getApiBaseUrl } from "@/lib/api-config";
 import type { Metadata } from "next";
@@ -44,6 +45,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <MSWProvider />
         {children}
         <Toaster />
         <PerformanceOptimizer />

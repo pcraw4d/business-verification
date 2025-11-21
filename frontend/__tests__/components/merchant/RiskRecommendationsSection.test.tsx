@@ -210,5 +210,133 @@ describe('RiskRecommendationsSection', () => {
       });
     });
   });
+
+  describe('Phase 4 Enhancements', () => {
+    describe('Mark as Complete', () => {
+      it('should display "Mark as Complete" button for each recommendation', async () => {
+        render(<RiskRecommendationsSection merchantId={merchantId} />);
+
+        await waitFor(() => {
+          const completeButtons = screen.getAllByRole('button', { name: /mark as complete/i });
+          expect(completeButtons.length).toBeGreaterThan(0);
+        });
+      });
+
+      it('should mark recommendation as complete when button is clicked', async () => {
+        const user = userEvent.setup();
+        render(<RiskRecommendationsSection merchantId={merchantId} />);
+
+        await waitFor(() => {
+          expect(screen.getByText('Improve Financial Stability')).toBeInTheDocument();
+        });
+
+        const completeButtons = screen.getAllByRole('button', { name: /mark as complete/i });
+        await user.click(completeButtons[0]);
+
+        await waitFor(() => {
+          // Recommendation should be marked as complete (check for visual indicator)
+          const completedIndicator = screen.queryByText(/completed/i);
+          expect(completedIndicator).toBeInTheDocument();
+        });
+      });
+
+      it('should track completed recommendations count', async () => {
+        const user = userEvent.setup();
+        render(<RiskRecommendationsSection merchantId={merchantId} />);
+
+        await waitFor(() => {
+          expect(screen.getByText('Improve Financial Stability')).toBeInTheDocument();
+        });
+
+        const completeButtons = screen.getAllByRole('button', { name: /mark as complete/i });
+        await user.click(completeButtons[0]);
+
+        await waitFor(() => {
+          // Should show count of completed recommendations
+          expect(screen.getByText(/1.*completed/i)).toBeInTheDocument();
+        });
+      });
+    });
+
+    describe('Filtering by Priority', () => {
+      it('should display priority filter dropdown', async () => {
+        render(<RiskRecommendationsSection merchantId={merchantId} />);
+
+        await waitFor(() => {
+          const filterSelect = screen.getByRole('combobox', { name: /filter/i });
+          expect(filterSelect).toBeInTheDocument();
+        });
+      });
+
+      it('should filter recommendations by priority when filter is selected', async () => {
+        const user = userEvent.setup();
+        render(<RiskRecommendationsSection merchantId={merchantId} />);
+
+        await waitFor(() => {
+          expect(screen.getByText('Improve Financial Stability')).toBeInTheDocument();
+        });
+
+        const filterSelect = screen.getByRole('combobox', { name: /filter/i });
+        await user.click(filterSelect);
+
+        await waitFor(() => {
+          const highOption = screen.getByRole('option', { name: /high/i });
+          await user.click(highOption);
+        });
+
+        await waitFor(() => {
+          // Should only show high priority recommendations
+          expect(screen.getByText('Improve Financial Stability')).toBeInTheDocument();
+          expect(screen.queryByText('Optimize Operations')).not.toBeInTheDocument();
+        });
+      });
+    });
+
+    describe('Search Functionality', () => {
+      it('should display search input', async () => {
+        render(<RiskRecommendationsSection merchantId={merchantId} />);
+
+        await waitFor(() => {
+          const searchInput = screen.getByPlaceholderText(/search/i);
+          expect(searchInput).toBeInTheDocument();
+        });
+      });
+
+      it('should filter recommendations by search text', async () => {
+        const user = userEvent.setup();
+        render(<RiskRecommendationsSection merchantId={merchantId} />);
+
+        await waitFor(() => {
+          expect(screen.getByText('Improve Financial Stability')).toBeInTheDocument();
+        });
+
+        const searchInput = screen.getByPlaceholderText(/search/i);
+        await user.type(searchInput, 'Financial');
+
+        await waitFor(() => {
+          // Should only show recommendations matching "Financial"
+          expect(screen.getByText('Improve Financial Stability')).toBeInTheDocument();
+          expect(screen.queryByText('Enhance Compliance Framework')).not.toBeInTheDocument();
+        });
+      });
+
+      it('should search across title, description, type, and action items', async () => {
+        const user = userEvent.setup();
+        render(<RiskRecommendationsSection merchantId={merchantId} />);
+
+        await waitFor(() => {
+          expect(screen.getByText('Improve Financial Stability')).toBeInTheDocument();
+        });
+
+        const searchInput = screen.getByPlaceholderText(/search/i);
+        await user.type(searchInput, 'cash flow');
+
+        await waitFor(() => {
+          // Should find recommendation with "cash flow" in action items
+          expect(screen.getByText('Improve Financial Stability')).toBeInTheDocument();
+        });
+      });
+    });
+  });
 });
 

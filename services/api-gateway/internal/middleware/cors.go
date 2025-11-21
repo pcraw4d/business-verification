@@ -19,39 +19,44 @@ func CORS(cfg config.CORSConfig) func(http.Handler) http.Handler {
 			fmt.Printf("CORS: Request from origin: %s, Method: %s, Path: %s\n", origin, r.Method, r.URL.Path)
 			fmt.Printf("CORS: Allowed origins: %v\n", cfg.AllowedOrigins)
 
-			// Always set CORS headers (override any Railway settings)
-			// CRITICAL: Only set the header ONCE to avoid duplicates
-			// Check if header is already set (by Railway) and remove it first
-			if existingOrigin := w.Header().Get("Access-Control-Allow-Origin"); existingOrigin != "" {
-				w.Header().Del("Access-Control-Allow-Origin")
-				fmt.Printf("CORS: Removed existing Access-Control-Allow-Origin header: %s\n", existingOrigin)
-			}
+			// CRITICAL: Remove any existing CORS headers to prevent duplicates
+			// This handles cases where Railway or other proxies may have set headers
+			// Use Del() to remove all values, then Set() to set exactly one value
+			w.Header().Del("Access-Control-Allow-Origin")
+			w.Header().Del("Access-Control-Allow-Methods")
+			w.Header().Del("Access-Control-Allow-Headers")
+			w.Header().Del("Access-Control-Allow-Credentials")
+			w.Header().Del("Access-Control-Max-Age")
 			
 			// Set the header exactly once based on configuration
 			var originToSet string
-			if cfg.AllowCredentials && origin != "" {
-				// With credentials, must use specific origin, not "*"
-				if isOriginAllowed(origin, cfg.AllowedOrigins) || len(cfg.AllowedOrigins) == 1 && cfg.AllowedOrigins[0] == "*" {
+			
+			// CRITICAL: With AllowCredentials=true, we CANNOT use "*" - must use specific origin
+			// Browsers reject "*" when credentials are allowed
+			if cfg.AllowCredentials {
+				// With credentials, always use the requesting origin (if present)
+				// or the first allowed origin if no origin header
+				if origin != "" {
+					// Use the requesting origin (browsers require this with credentials)
 					originToSet = origin
-				} else {
-					originToSet = origin // Default to requesting origin
+				} else if len(cfg.AllowedOrigins) > 0 && cfg.AllowedOrigins[0] != "*" {
+					// No origin header, use first non-wildcard allowed origin
+					originToSet = cfg.AllowedOrigins[0]
 				}
-			} else if len(cfg.AllowedOrigins) == 1 && cfg.AllowedOrigins[0] == "*" {
-				// Without credentials, can use "*"
-				originToSet = "*"
-			} else if isOriginAllowed(origin, cfg.AllowedOrigins) {
-				originToSet = origin
-			} else if origin != "" {
-				// Default to allowing the requesting origin
-				originToSet = origin
+				// If origin is empty and only "*" is allowed, we can't set it (browser will reject)
 			} else {
-				// No origin header, use wildcard if allowed
+				// Without credentials, can use "*" if configured
 				if len(cfg.AllowedOrigins) == 1 && cfg.AllowedOrigins[0] == "*" {
 					originToSet = "*"
+				} else if isOriginAllowed(origin, cfg.AllowedOrigins) {
+					originToSet = origin
+				} else if origin != "" {
+					// Default to allowing the requesting origin
+					originToSet = origin
 				}
 			}
 			
-			// Set the header exactly once
+			// Set the header exactly once using Set() which overwrites any existing value
 			if originToSet != "" {
 				w.Header().Set("Access-Control-Allow-Origin", originToSet)
 				fmt.Printf("CORS: Set Access-Control-Allow-Origin to: %s\n", originToSet)

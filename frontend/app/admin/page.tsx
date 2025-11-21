@@ -20,6 +20,10 @@ export default function AdminPage() {
     memoryUsage: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+
+  // Client-side formatted values to prevent hydration errors
+  const [formattedCpuUsage, setFormattedCpuUsage] = useState<string>('N/A');
 
   useEffect(() => {
     async function fetchMetrics() {
@@ -46,6 +50,21 @@ export default function AdminPage() {
     const interval = setInterval(fetchMetrics, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Format CPU usage on client side only to prevent hydration errors
+  useEffect(() => {
+    if (!mounted) return;
+
+    if (metrics.cpuUsage !== undefined && metrics.cpuUsage !== null) {
+      setFormattedCpuUsage(`${metrics.cpuUsage.toFixed(1)}%`);
+    } else {
+      setFormattedCpuUsage('N/A');
+    }
+  }, [mounted, metrics.cpuUsage]);
 
   return (
     <AppLayout
@@ -83,7 +102,7 @@ export default function AdminPage() {
               />
               <MetricCard
                 label="System Load"
-                value={metrics.cpuUsage ? `${metrics.cpuUsage.toFixed(1)}%` : 'N/A'}
+                value={mounted ? formattedCpuUsage : 'N/A'}
                 icon={Activity}
                 variant={metrics.cpuUsage && metrics.cpuUsage < 70 ? 'success' : metrics.cpuUsage && metrics.cpuUsage < 90 ? 'warning' : 'danger'}
               />

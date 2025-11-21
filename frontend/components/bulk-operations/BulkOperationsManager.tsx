@@ -71,16 +71,41 @@ export function BulkOperationsManager() {
     operationId: null,
   });
   const [operationLogs, setOperationLogs] = useState<OperationLog[]>([]);
+  const [mounted, setMounted] = useState(false);
   const [filters, setFilters] = useState({
     search: '',
     status: 'all',
     riskLevel: 'all',
   });
 
+  // Client-side formatted timestamps to prevent hydration errors
+  const [formattedLogTimestamps, setFormattedLogTimestamps] = useState<Record<number, string>>({});
+
   // Operation configuration
   const [operationConfig, setOperationConfig] = useState<Record<string, any>>({});
 
   // Load merchants
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Format log timestamps on client side only to prevent hydration errors
+  useEffect(() => {
+    if (!mounted || operationLogs.length === 0) return;
+
+    const formatted: Record<number, string> = {};
+    operationLogs.forEach((log, index) => {
+      if (log.timestamp) {
+        try {
+          formatted[index] = new Date(log.timestamp).toLocaleTimeString();
+        } catch {
+          formatted[index] = log.timestamp;
+        }
+      }
+    });
+    setFormattedLogTimestamps(formatted);
+  }, [mounted, operationLogs]);
+
   useEffect(() => {
     loadMerchants();
   }, [filters]);
@@ -633,8 +658,8 @@ export function BulkOperationsManager() {
                   <div key={index} className="flex items-start gap-2 text-sm">
                     {getLogIcon(log.level)}
                     <div className="flex-1">
-                      <div className="text-muted-foreground">
-                        {new Date(log.timestamp).toLocaleTimeString()}
+                      <div className="text-muted-foreground" suppressHydrationWarning>
+                        {mounted && formattedLogTimestamps[index] ? formattedLogTimestamps[index] : log.timestamp || 'N/A'}
                       </div>
                       <div>{log.message}</div>
                     </div>

@@ -15,6 +15,9 @@ import { ErrorHandler } from '@/lib/error-handler';
 import { formatNumber, formatPercent } from '@/lib/number-format';
 import type { RiskAssessment, RiskAssessmentRequest, RiskFactor } from '@/types/merchant';
 import { useEffect, useState, useMemo } from 'react';
+import { RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { toast } from 'sonner';
 import { RiskBenchmarkComparison } from './RiskBenchmarkComparison';
 import { RiskExplainabilitySection } from './RiskExplainabilitySection';
@@ -34,6 +37,8 @@ function RiskAssessmentTabContent({ merchantId }: RiskAssessmentTabProps) {
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -43,6 +48,15 @@ function RiskAssessmentTabContent({ merchantId }: RiskAssessmentTabProps) {
     loadAssessment();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [merchantId]);
+
+  // Keyboard shortcut: R to refresh
+  useKeyboardShortcuts([
+    {
+      key: 'r',
+      handler: handleRefresh,
+      description: 'Refresh risk assessment data',
+    },
+  ]);
 
   // Listen for WebSocket risk updates
   useEffect(() => {
@@ -74,9 +88,13 @@ function RiskAssessmentTabContent({ merchantId }: RiskAssessmentTabProps) {
     };
   }, [merchantId]);
 
-  async function loadAssessment() {
+  async function loadAssessment(bypassCache = false) {
     try {
-      setLoading(true);
+      if (!bypassCache) {
+        setLoading(true);
+      } else {
+        setIsRefreshing(true);
+      }
       setError(null);
       if (process.env.NODE_ENV === 'test') {
         console.log('[RiskAssessmentTab] Starting to load assessment:', merchantId);
@@ -100,7 +118,7 @@ function RiskAssessmentTabContent({ merchantId }: RiskAssessmentTabProps) {
           // Silently handle 404s for optional endpoints - don't log to console
           const is404 = historyErr instanceof Error && historyErr.message.includes('404');
           if (!is404) {
-            console.error('Failed to load risk history:', historyErr);
+          console.error('Failed to load risk history:', historyErr);
           }
           // Don't fail the whole component if history fails
         } finally {
@@ -123,11 +141,33 @@ function RiskAssessmentTabContent({ merchantId }: RiskAssessmentTabProps) {
       setError(err instanceof Error ? err.message : 'Failed to load risk assessment');
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
+      setLastRefreshTime(new Date());
       if (process.env.NODE_ENV === 'test') {
         console.log('[RiskAssessmentTab] Loading complete');
       }
     }
   }
+
+  const handleRefresh = () => {
+    loadAssessment(true);
+  };
+
+  // Format relative time for last refresh
+  const formatRelativeTime = (date: Date): string => {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSecs = Math.floor(diffMs / 1000);
+    const diffMins = Math.floor(diffSecs / 60);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffSecs < 60) return 'just now';
+    if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+    return date.toLocaleDateString();
+  };
 
   async function handleStartAssessment() {
     try {
@@ -205,7 +245,30 @@ function RiskAssessmentTabContent({ merchantId }: RiskAssessmentTabProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <section className="space-y-6" aria-labelledby="risk-assessment-heading">
+      {/* Header with refresh button */}
+      <header className="flex items-center justify-between">
+        <div>
+          <h2 id="risk-assessment-heading" className="text-2xl font-bold">Risk Assessment</h2>
+          {lastRefreshTime && (
+            <p className="text-sm text-muted-foreground mt-1" aria-live="polite">
+              Updated {formatRelativeTime(lastRefreshTime)}
+            </p>
+          )}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRefresh}
+          disabled={isRefreshing || loading || processing}
+          aria-label="Refresh risk assessment data"
+          title="Refresh data (R)"
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+      </header>
+
       {processing && (
         <Card>
           <CardHeader>
@@ -412,7 +475,7 @@ function RiskAssessmentTabContent({ merchantId }: RiskAssessmentTabProps) {
                           <TableBody>
                             {riskHistory.map((historyItem) => (
                               <TableRow key={historyItem.id}>
-                                <TableCell>
+                                <TableCell suppressHydrationWarning>
                                   {mounted ? new Date(historyItem.createdAt).toLocaleDateString() : 'Loading...'}
                                 </TableCell>
                                 <TableCell>
@@ -451,10 +514,16 @@ function RiskAssessmentTabContent({ merchantId }: RiskAssessmentTabProps) {
                     <LineChart
                       data={mounted && riskHistory.length > 0 ? riskHistory
                         .filter((h) => h.result?.overallScore != null)
-                        .map((h) => ({
-                          name: new Date(h.createdAt).toLocaleDateString(),
-                          value: h.result?.overallScore ?? 0,
-                        })) : []}
+                        .map((h) => {
+                          // Format date on client side only
+                          const dateStr = mounted 
+                            ? new Date(h.createdAt).toLocaleDateString()
+                            : 'Loading...';
+                          return {
+                            name: dateStr,
+                            value: h.result?.overallScore ?? 0,
+                          };
+                        }) : []}
                       dataKey="value"
                       lines={[{ key: 'value', name: 'Risk Score', color: '#8884d8' }]}
                       height={300}
@@ -509,7 +578,7 @@ function RiskAssessmentTabContent({ merchantId }: RiskAssessmentTabProps) {
           )}
         </>
       )}
-    </div>
+    </section>
   );
 }
 

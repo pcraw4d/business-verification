@@ -24,9 +24,20 @@ import {
   ChevronUp,
   Info,
   RefreshCw,
+  Search,
+  Filter,
+  X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface RiskRecommendationsSectionProps {
   merchantId: string;
@@ -58,6 +69,9 @@ export function RiskRecommendationsSection({
     "high" | "medium" | "low" | null
   >(null);
   const [mounted, setMounted] = useState(false);
+  const [completedRecommendations, setCompletedRecommendations] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState<"all" | "high" | "medium" | "low">("all");
 
   const fetchRecommendations = useCallback(async () => {
     try {
@@ -100,7 +114,18 @@ export function RiskRecommendationsSection({
     fetchRecommendations();
   }, [fetchRecommendations]);
 
-  // Group recommendations by priority
+  const handleMarkComplete = useCallback((recommendationId: string) => {
+    setCompletedRecommendations((prev) => {
+      const newSet = new Set(prev);
+      newSet.add(recommendationId);
+      return newSet;
+    });
+    toast.success("Recommendation marked as complete", {
+      description: "This recommendation has been marked as completed.",
+    });
+  }, []);
+
+  // Filter and group recommendations by priority
   const groupedRecommendations = useMemo((): Record<
     "high" | "medium" | "low",
     Recommendation[]
@@ -113,7 +138,29 @@ export function RiskRecommendationsSection({
 
     if (!recommendations?.recommendations) return grouped;
 
-    recommendations.recommendations.forEach((rec) => {
+    // Filter recommendations based on search query and priority filter
+    const filtered = recommendations.recommendations.filter((rec) => {
+      // Filter out completed recommendations
+      if (completedRecommendations.has(rec.id)) return false;
+
+      // Filter by priority
+      if (priorityFilter !== "all" && rec.priority !== priorityFilter) return false;
+
+      // Filter by search query
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        return (
+          rec.title.toLowerCase().includes(query) ||
+          rec.description.toLowerCase().includes(query) ||
+          rec.type.toLowerCase().includes(query) ||
+          rec.actionItems.some((item) => item.toLowerCase().includes(query))
+        );
+      }
+
+      return true;
+    });
+
+    filtered.forEach((rec) => {
       const priority = rec.priority || "medium";
       if (grouped[priority]) {
         grouped[priority].push(rec);
@@ -121,7 +168,7 @@ export function RiskRecommendationsSection({
     });
 
     return grouped;
-  }, [recommendations]);
+  }, [recommendations, completedRecommendations, priorityFilter, searchQuery]);
 
   const totalRecommendations = useMemo(() => {
     return (Object.values(groupedRecommendations) as Recommendation[][]).reduce(
@@ -129,6 +176,9 @@ export function RiskRecommendationsSection({
       0
     );
   }, [groupedRecommendations]);
+
+  const totalCompleted = completedRecommendations.size;
+  const totalAvailable = recommendations?.recommendations.length || 0;
 
   const getPriorityConfig = (priority: "high" | "medium" | "low") => {
     switch (priority) {
@@ -241,6 +291,11 @@ export function RiskRecommendationsSection({
             <CardDescription>
               {totalRecommendations} actionable recommendation
               {totalRecommendations !== 1 ? "s" : ""} to improve risk profile
+              {totalCompleted > 0 && (
+                <span className="ml-2 text-green-600">
+                  ({totalCompleted} completed)
+                </span>
+              )}
             </CardDescription>
           </div>
           <Button onClick={fetchRecommendations} variant="outline" size="sm">
@@ -250,6 +305,57 @@ export function RiskRecommendationsSection({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Search and Filter Controls */}
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search recommendations..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                onClick={() => setSearchQuery("")}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            )}
+          </div>
+          <Select value={priorityFilter} onValueChange={(value) => setPriorityFilter(value as typeof priorityFilter)}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Filter by priority" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Priorities</SelectItem>
+              <SelectItem value="high">High Priority</SelectItem>
+              <SelectItem value="medium">Medium Priority</SelectItem>
+              <SelectItem value="low">Low Priority</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {totalRecommendations === 0 && (searchQuery || priorityFilter !== "all") && (
+          <div className="text-center py-8 text-sm text-muted-foreground">
+            No recommendations match your filters.{" "}
+            <Button
+              variant="link"
+              className="p-0 h-auto"
+              onClick={() => {
+                setSearchQuery("");
+                setPriorityFilter("all");
+              }}
+            >
+              Clear filters
+            </Button>
+          </div>
+        )}
+
         {(["high", "medium", "low"] as const).map((priority) => {
           const priorityRecs = groupedRecommendations[priority];
           if (priorityRecs.length === 0) return null;
@@ -341,6 +447,18 @@ export function RiskRecommendationsSection({
                             </ul>
                           </div>
                         )}
+
+                        <div className="mt-3 pt-3 border-t border-current/20">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full"
+                            onClick={() => handleMarkComplete(rec.id)}
+                          >
+                            <CheckCircle2 className="h-4 w-4 mr-2" />
+                            Mark as Complete
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))}

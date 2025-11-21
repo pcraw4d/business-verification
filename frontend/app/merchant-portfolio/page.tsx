@@ -17,6 +17,8 @@ import { getMerchantsList, getMerchant } from '@/lib/api';
 import dynamic from 'next/dynamic';
 import type { MerchantListItem, MerchantListResponse } from '@/types/merchant';
 import { MerchantDetailsLayout } from '@/components/merchant/MerchantDetailsLayout';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { MerchantPortfolioErrorFallback } from '@/components/dashboards/MerchantPortfolioErrorFallback';
 
 // Lazy load ExportButton (includes heavy libraries like xlsx, jspdf)
 const ExportButton = dynamic(
@@ -45,6 +47,10 @@ export default function MerchantPortfolioPage() {
   const [hasNext, setHasNext] = useState(false);
   const [hasPrevious, setHasPrevious] = useState(false);
   const [prefetchingMerchantId, setPrefetchingMerchantId] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // Client-side formatted dates to prevent hydration errors
+  const [formattedDates, setFormattedDates] = useState<Record<string, string>>({});
 
   // Client-side route detection: If this page is being served for a merchant-details route,
   // automatically route to the merchant-details page
@@ -166,6 +172,31 @@ export default function MerchantPortfolioPage() {
   }, [page, pageSize, debouncedSearch, statusFilter, riskLevelFilter]);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Format dates on client side only to prevent hydration errors
+  useEffect(() => {
+    if (!mounted || merchants.length === 0) return;
+
+    const formatted: Record<string, string> = {};
+    merchants.forEach((merchant) => {
+      if (merchant.updated_at) {
+        try {
+          formatted[merchant.id] = new Date(merchant.updated_at).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+          });
+        } catch {
+          formatted[merchant.id] = merchant.updated_at;
+        }
+      }
+    });
+    setFormattedDates(formatted);
+  }, [mounted, merchants]);
+
+  useEffect(() => {
     fetchMerchants();
   }, [fetchMerchants]);
 
@@ -194,17 +225,7 @@ export default function MerchantPortfolioPage() {
     }
   }, [router, prefetchingMerchantId]);
 
-  const formatDate = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      });
-    } catch {
-      return dateString;
-    }
-  };
+  // formatDate is now handled via formattedDates state to prevent hydration errors
 
   const getRiskBadgeVariant = (riskLevel?: string) => {
     if (!riskLevel) return 'default';
@@ -237,7 +258,18 @@ export default function MerchantPortfolioPage() {
         </Button>
       }
     >
-      <div className="space-y-6">
+      <ErrorBoundary
+        fallback={
+          <MerchantPortfolioErrorFallback
+            error={error ? new Error(error) : null}
+            resetError={() => {
+              setError(null);
+              window.location.reload();
+            }}
+          />
+        }
+      >
+        <div className="space-y-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
@@ -447,7 +479,9 @@ export default function MerchantPortfolioPage() {
                             {merchant.risk_level || 'N/A'}
                           </Badge>
                         </TableCell>
-                        <TableCell>{formatDate(merchant.updated_at)}</TableCell>
+                        <TableCell suppressHydrationWarning>
+                          {mounted && formattedDates[merchant.id] ? formattedDates[merchant.id] : merchant.updated_at || 'N/A'}
+                        </TableCell>
                         <TableCell className="text-right">
                           <Button asChild variant="ghost" size="sm" aria-label={`View details for ${merchant.name}`}>
                             <Link href={`/merchant-details/${merchant.id}`}>View</Link>
@@ -497,7 +531,8 @@ export default function MerchantPortfolioPage() {
             )}
           </CardContent>
         </Card>
-      </div>
+        </div>
+      </ErrorBoundary>
     </AppLayout>
   );
 }

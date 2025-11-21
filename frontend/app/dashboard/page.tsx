@@ -12,6 +12,8 @@ import { formatPercentWithSign, formatNumber } from '@/lib/number-format';
 import { toast } from 'sonner';
 import { LineChart } from '@/components/charts/lazy';
 import { PieChart } from '@/components/charts/lazy';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { DashboardErrorFallback } from '@/components/dashboards/DashboardErrorFallback';
 
 export default function DashboardPage() {
   const [metrics, setMetrics] = useState({
@@ -23,10 +25,29 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [chartLoading, setChartLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // Client-side formatted values to prevent hydration errors
+  const [formattedTotalMerchants, setFormattedTotalMerchants] = useState<string>('');
 
   // Portfolio data
   const [trendData, setTrendData] = useState<Array<{ name: string; value: number }>>([]);
   const [distributionData, setDistributionData] = useState<Array<{ name: string; value: number }>>([]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Format numbers on client side only to prevent hydration errors
+  useEffect(() => {
+    if (!mounted) return;
+
+    if (metrics.totalMerchants !== undefined && metrics.totalMerchants !== null) {
+      setFormattedTotalMerchants(metrics.totalMerchants.toLocaleString());
+    } else {
+      setFormattedTotalMerchants('0');
+    }
+  }, [mounted, metrics.totalMerchants]);
 
   useEffect(() => {
     async function fetchMetrics() {
@@ -158,7 +179,18 @@ export default function DashboardPage() {
         { label: 'Business Intelligence' },
       ]}
     >
-      <div className="space-y-6">
+      <ErrorBoundary
+        fallback={
+          <DashboardErrorFallback
+            error={error ? new Error(error) : null}
+            resetError={() => {
+              setError(null);
+              window.location.reload();
+            }}
+          />
+        }
+      >
+        <div className="space-y-6">
         {/* Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {loading ? (
@@ -172,7 +204,7 @@ export default function DashboardPage() {
             <>
               <MetricCard
                 label="Total Merchants"
-                value={metrics.totalMerchants.toLocaleString()}
+                value={mounted ? formattedTotalMerchants : '0'}
                 icon={Users}
                 variant="info"
               />
@@ -242,7 +274,8 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+        </div>
+      </ErrorBoundary>
     </AppLayout>
   );
 }

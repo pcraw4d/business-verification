@@ -151,5 +151,53 @@ export const handlers = [
       status: 'pending',
     });
   }),
+
+  // Get portfolio statistics
+  http.get(`${API_BASE_URL}${API_PATH}/merchants/statistics`, () => {
+    return HttpResponse.json({
+      totalMerchants: 100,
+      averageRiskScore: 0.45,
+      totalRevenue: 10000000,
+      riskDistribution: {
+        low: 40,
+        medium: 45,
+        high: 15,
+      },
+    });
+  }),
+
+  // Get portfolio analytics
+  http.get(`${API_BASE_URL}${API_PATH}/merchants/analytics`, () => {
+    return HttpResponse.json({
+      portfolioAnalytics: {
+        averageRiskScore: 0.45,
+        totalMerchants: 100,
+        industryDistribution: {
+          Technology: 30,
+          Finance: 25,
+          Retail: 20,
+          Other: 25,
+        },
+      },
+    });
+  }),
+
+  // Get risk benchmarks
+  http.get(`${API_BASE_URL}${API_PATH}/risk/benchmarks`, ({ request }) => {
+    const url = new URL(request.url);
+    const mcc = url.searchParams.get('mcc');
+    const naics = url.searchParams.get('naics');
+    const sic = url.searchParams.get('sic');
+    
+    return HttpResponse.json({
+      industry_code: mcc || naics || sic || '541511',
+      average_risk_score: 0.42,
+      median_risk_score: 0.40,
+      p25_risk_score: 0.30,
+      p75_risk_score: 0.55,
+      p90_risk_score: 0.65,
+      sample_size: 150,
+    });
+  }),
 ];
 

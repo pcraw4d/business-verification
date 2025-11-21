@@ -29,7 +29,9 @@
     "test:visual": "playwright test tests/visual",
     "test:visual:update": "playwright test tests/visual --update-snapshots",
     "test:pages": "node scripts/test-all-pages.js",
-    "test:pages:verbose": "node scripts/test-all-pages.js --verbose"
+    "test:pages:verbose": "node scripts/test-all-pages.js --verbose",
+    "test:hydration": "node scripts/test-hydration-production.js",
+    "test:hydration:manual": "playwright test tests/e2e/hydration.spec.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -46,6 +48,7 @@
     "@radix-ui/react-separator": "^1.1.8",
     "@radix-ui/react-slot": "^1.2.4",
     "@radix-ui/react-tabs": "^1.1.13",
+    "@radix-ui/react-tooltip": "^1.2.8",
     "@types/d3": "^7.4.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -94,5 +97,10 @@
     "undici": "^7.16.0",
     "vitest": "^4.0.9",
     "whatwg-fetch": "^3.6.20"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
   }
 }

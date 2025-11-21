@@ -123,7 +123,7 @@ test.describe('Risk Assessment Flow', () => {
               category: 'Financial',
               score: 0.7,
               weight: 0.3,
-            },
+          },
           ],
         }),
       });

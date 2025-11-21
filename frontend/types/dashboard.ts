@@ -17,7 +17,7 @@ export interface RiskMetrics {
     low: number;
     medium: number;
     high: number;
-    critical: number;
+    critical?: number;
   };
   timestamp?: string;
 }

@@ -25,9 +25,20 @@ import {
   ChevronUp,
   Info,
   RefreshCw,
+  X,
+  Filter,
+  ExternalLink,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 
 interface RiskAlertsSectionProps {
   merchantId: string;
@@ -43,6 +54,8 @@ export function RiskAlertsSection({ merchantId }: RiskAlertsSectionProps) {
     null
   );
   const [mounted, setMounted] = useState(false);
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
+  const [severityFilter, setSeverityFilter] = useState<"all" | Severity>("all");
 
   const fetchAlerts = useCallback(async () => {
     try {
@@ -105,7 +118,87 @@ export function RiskAlertsSection({ merchantId }: RiskAlertsSectionProps) {
     return () => clearInterval(interval);
   }, [fetchAlerts]);
 
-  // Group alerts by severity
+  // Listen for WebSocket real-time risk alert updates
+  useEffect(() => {
+    const handleRiskAlert = (event: CustomEvent) => {
+      const data = event.detail;
+      // Only process alerts for this merchant
+      if (data.merchantId && data.merchantId !== merchantId) {
+        return;
+      }
+
+      // If we have alert data, update the alerts state
+      if (data.alert || data.alerts) {
+        const newAlert = data.alert || data.alerts;
+        
+        // Update alerts state with new alert
+        setAlerts((prev) => {
+          if (!prev) {
+            return {
+              merchantId,
+              indicators: Array.isArray(newAlert) ? newAlert : [newAlert],
+            };
+          }
+
+          // Check if alert already exists
+          const existingIds = new Set(prev.indicators?.map((a) => a.id) || []);
+          const alertsToAdd = Array.isArray(newAlert)
+            ? newAlert.filter((a) => !existingIds.has(a.id))
+            : existingIds.has(newAlert.id)
+            ? []
+            : [newAlert];
+
+          if (alertsToAdd.length === 0) {
+            return prev;
+          }
+
+          return {
+            ...prev,
+            indicators: [...(prev.indicators || []), ...alertsToAdd],
+          };
+        });
+
+        // Show toast notification for new alerts
+        const alert = Array.isArray(newAlert) ? newAlert[0] : newAlert;
+        if (alert.severity === 'critical') {
+          toast.error('New Critical Alert', {
+            description: alert.title || 'A critical risk alert has been triggered',
+            duration: 10000,
+          });
+        } else if (alert.severity === 'high') {
+          toast.warning('New High Priority Alert', {
+            description: alert.title || 'A high priority risk alert has been triggered',
+            duration: 8000,
+          });
+        } else {
+          toast.info('New Risk Alert', {
+            description: alert.title || 'A new risk alert has been triggered',
+            duration: 5000,
+          });
+        }
+      }
+    };
+
+    // Listen for riskAlert events from WebSocket
+    window.addEventListener('riskAlert', handleRiskAlert as EventListener);
+
+    return () => {
+      window.removeEventListener('riskAlert', handleRiskAlert as EventListener);
+    };
+  }, [merchantId]);
+
+  const handleDismissAlert = useCallback((alertId: string) => {
+    setDismissedAlerts((prev) => {
+      const newSet = new Set(prev);
+      newSet.add(alertId);
+      return newSet;
+    });
+    toast.success("Alert dismissed", {
+      description: "This alert has been dismissed and will no longer appear.",
+    });
+  }, []);
+
+  // Group alerts by severity, filtering out dismissed alerts and applying severity filter
   const groupedAlerts = useMemo((): Record<Severity, RiskIndicator[]> => {
     const grouped: Record<Severity, RiskIndicator[]> = {
       critical: [],
@@ -116,15 +209,21 @@ export function RiskAlertsSection({ merchantId }: RiskAlertsSectionProps) {
 
     if (!alerts?.indicators) return grouped;
 
-    alerts.indicators.forEach((alert) => {
-      const severity = (alert.severity || "medium") as Severity;
-      if (grouped[severity]) {
-        grouped[severity].push(alert);
-      }
-    });
+    alerts.indicators
+      .filter((alert) => !dismissedAlerts.has(alert.id))
+      .filter((alert) => {
+        if (severityFilter === "all") return true;
+        return (alert.severity || "medium") === severityFilter;
+      })
+      .forEach((alert) => {
+        const severity = (alert.severity || "medium") as Severity;
+        if (grouped[severity]) {
+          grouped[severity].push(alert);
+        }
+      });
 
     return grouped;
-  }, [alerts]);
+  }, [alerts, dismissedAlerts, severityFilter]);
 
   const totalAlerts = useMemo(() => {
     return (Object.values(groupedAlerts) as RiskIndicator[][]).reduce(
@@ -258,15 +357,66 @@ export function RiskAlertsSection({ merchantId }: RiskAlertsSectionProps) {
             <CardDescription>
               {totalAlerts} active alert{totalAlerts !== 1 ? "s" : ""} requiring
               attention
+              {dismissedAlerts.size > 0 && (
+                <span className="ml-2 text-muted-foreground">
+                  ({dismissedAlerts.size} dismissed)
+                </span>
+              )}
             </CardDescription>
           </div>
-          <Button onClick={fetchAlerts} variant="outline" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                // Navigate to full alerts page or open modal
+                window.location.href = `/merchant-details/${merchantId}?tab=risk-indicators#alerts`;
+              }}
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              View All
+            </Button>
+            <Button onClick={fetchAlerts} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Severity Filter */}
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <Select
+            value={severityFilter}
+            onValueChange={(value) => setSeverityFilter(value as typeof severityFilter)}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by severity" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Severities</SelectItem>
+              <SelectItem value="critical">Critical</SelectItem>
+              <SelectItem value="high">High</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="low">Low</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {totalAlerts === 0 && severityFilter !== "all" && (
+          <div className="text-center py-8 text-sm text-muted-foreground">
+            No alerts match the selected severity filter.{" "}
+            <Button
+              variant="link"
+              className="p-0 h-auto"
+              onClick={() => setSeverityFilter("all")}
+            >
+              Clear filter
+            </Button>
+          </div>
+        )}
+
         {(["critical", "high", "medium", "low"] as Severity[]).map(
           (severity) => {
             const severityAlerts = groupedAlerts[severity];
@@ -334,9 +484,20 @@ export function RiskAlertsSection({ merchantId }: RiskAlertsSectionProps) {
                               </p>
                             )}
                           </div>
-                          <Badge variant={config.variant} className="shrink-0">
-                            {config.label}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={config.variant} className="shrink-0">
+                              {config.label}
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              onClick={() => handleDismissAlert(alert.id)}
+                              aria-label={`Dismiss ${alert.title}`}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     ))}

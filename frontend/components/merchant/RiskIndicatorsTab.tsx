@@ -14,6 +14,7 @@ import { deferNonCriticalDataLoad } from '@/lib/lazy-loader';
 import type { RiskIndicatorsData, RiskIndicator } from '@/types/merchant';
 import { useEffect, useState, useMemo } from 'react';
 import { RiskAlertsSection } from './RiskAlertsSection';
+import { RiskWebSocketProvider, WebSocketStatusIndicator } from '@/components/websocket/RiskWebSocketProvider';
 
 interface RiskIndicatorsTabProps {
   merchantId: string;
@@ -23,6 +24,12 @@ export function RiskIndicatorsTab({ merchantId }: RiskIndicatorsTabProps) {
   const [indicators, setIndicators] = useState<RiskIndicatorsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const [formattedDates, setFormattedDates] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     // Defer loading risk indicators as non-critical data
@@ -39,6 +46,58 @@ export function RiskIndicatorsTab({ merchantId }: RiskIndicatorsTabProps) {
     });
   }, [merchantId]);
 
+  // Format dates on client side only to prevent hydration errors
+  useEffect(() => {
+    if (!mounted || !indicators?.indicators) return;
+    
+    const formatted: Record<string, string> = {};
+    indicators.indicators.forEach((indicator) => {
+      if (indicator.createdAt) {
+        formatted[indicator.id] = new Date(indicator.createdAt).toLocaleDateString();
+      }
+    });
+    setFormattedDates(formatted);
+  }, [mounted, indicators]);
+
+  // CRITICAL: Hooks must be called before any early returns
+  // Group indicators by severity
+  const groupedIndicators = useMemo(() => {
+    if (!indicators?.indicators) return {};
+    const grouped: Record<string, RiskIndicator[]> = {
+      critical: [],
+      high: [],
+      medium: [],
+      low: [],
+    };
+    indicators.indicators.forEach((indicator) => {
+      const severity = indicator.severity || 'medium';
+      if (grouped[severity]) {
+        grouped[severity].push(indicator);
+      }
+    });
+    return grouped;
+  }, [indicators]);
+
+  // Prepare chart data
+  const severityDistributionData = useMemo(() => {
+    if (!indicators?.indicators) return [];
+    const counts: Record<string, number> = {};
+    indicators.indicators.forEach((indicator) => {
+      const severity = indicator.severity || 'medium';
+      counts[severity] = (counts[severity] || 0) + 1;
+    });
+    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+  }, [indicators]);
+
+  const getExportData = async () => {
+    return {
+      indicators,
+      merchantId,
+      exportedAt: new Date().toISOString(),
+    };
+  };
+
+  // Early returns AFTER all hooks are called
   if (loading) {
     return (
       <div className="space-y-6">
@@ -76,43 +135,6 @@ export function RiskIndicatorsTab({ merchantId }: RiskIndicatorsTabProps) {
     );
   }
 
-  const getExportData = async () => {
-    return {
-      indicators,
-      merchantId,
-      exportedAt: new Date().toISOString(),
-    };
-  };
-
-  // Group indicators by severity
-  const groupedIndicators = useMemo(() => {
-    if (!indicators?.indicators) return {};
-    const grouped: Record<string, RiskIndicator[]> = {
-      critical: [],
-      high: [],
-      medium: [],
-      low: [],
-    };
-    indicators.indicators.forEach((indicator) => {
-      const severity = indicator.severity || 'medium';
-      if (grouped[severity]) {
-        grouped[severity].push(indicator);
-      }
-    });
-    return grouped;
-  }, [indicators]);
-
-  // Prepare chart data
-  const severityDistributionData = useMemo(() => {
-    if (!indicators?.indicators) return [];
-    const counts: Record<string, number> = {};
-    indicators.indicators.forEach((indicator) => {
-      const severity = indicator.severity || 'medium';
-      counts[severity] = (counts[severity] || 0) + 1;
-    });
-    return Object.entries(counts).map(([name, value]) => ({ name, value }));
-  }, [indicators]);
-
   const getSeverityBadgeVariant = (severity: string) => {
     switch (severity) {
       case 'critical':
@@ -129,9 +151,15 @@ export function RiskIndicatorsTab({ merchantId }: RiskIndicatorsTabProps) {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Risk Alerts Section */}
-      <RiskAlertsSection merchantId={merchantId} />
+    <RiskWebSocketProvider merchantId={merchantId}>
+      <div className="space-y-6">
+        {/* WebSocket Status Indicator */}
+        <div className="flex items-center justify-end">
+          <WebSocketStatusIndicator />
+        </div>
+        
+        {/* Risk Alerts Section */}
+        <RiskAlertsSection merchantId={merchantId} />
 
       <Card>
         <CardHeader>
@@ -208,9 +236,11 @@ export function RiskIndicatorsTab({ merchantId }: RiskIndicatorsTabProps) {
                         <TableCell>
                           <Badge variant="outline">{indicator.status || 'active'}</Badge>
                         </TableCell>
-                        <TableCell className="text-right text-sm text-muted-foreground">
-                          {indicator.createdAt
-                            ? new Date(indicator.createdAt).toLocaleDateString()
+                        <TableCell className="text-right text-sm text-muted-foreground" suppressHydrationWarning>
+                          {mounted && indicator.createdAt
+                            ? formattedDates[indicator.id] || 'Loading...'
+                            : indicator.createdAt
+                            ? 'Loading...'
                             : 'N/A'}
                         </TableCell>
                       </TableRow>
@@ -264,7 +294,8 @@ export function RiskIndicatorsTab({ merchantId }: RiskIndicatorsTabProps) {
           )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </RiskWebSocketProvider>
   );
 }
 

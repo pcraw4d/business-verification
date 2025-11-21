@@ -19,16 +19,27 @@ export interface Merchant {
   portfolioType?: string;
   riskLevel?: string;
   complianceStatus?: string;
+  // Financial information fields
+  foundedDate?: string; // ISO date string from backend founded_date
+  employeeCount?: number; // From backend employee_count
+  annualRevenue?: number; // From backend annual_revenue
+  // System information fields
+  createdBy?: string; // From backend created_by
+  metadata?: Record<string, unknown>; // JSONB metadata if available
   createdAt: string;
   updatedAt: string;
 }
 
 export interface Address {
-  street?: string;
+  // Primary address fields
+  street?: string; // Legacy field, may be street1
+  street1?: string; // From backend address.street1 or address_street1
+  street2?: string; // From backend address.street2 or address_street2
   city?: string;
   state?: string;
-  postalCode?: string;
+  postalCode?: string; // From backend address.postal_code or address_postal_code
   country?: string;
+  countryCode?: string; // From backend address.country_code or address_country_code
 }
 
 export interface AnalyticsData {

@@ -3,15 +3,19 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
-import { useEffect, useState, useCallback } from 'react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle, TrendingUp, TrendingDown, BarChart3, RefreshCw, Sparkles } from 'lucide-react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { getMerchantAnalytics, getRiskBenchmarks, getMerchantRiskScore } from '@/lib/api';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import type { BenchmarkComparison, RiskBenchmarks, MerchantRiskScore, AnalyticsData } from '@/types/merchant';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { ChartContainer } from '@/components/dashboards/ChartContainer';
 import { BarChart } from '@/components/charts/lazy';
 import { formatPercent, formatPercentile, formatPercentWithSign } from '@/lib/number-format';
+import { EnrichmentButton } from './EnrichmentButton';
+import { ErrorCodes, formatErrorWithCode } from '@/lib/error-codes';
 
 interface RiskBenchmarkComparisonProps {
   merchantId: string;
@@ -23,9 +27,21 @@ export function RiskBenchmarkComparison({ merchantId }: RiskBenchmarkComparisonP
   const [benchmarks, setBenchmarks] = useState<RiskBenchmarks | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
+  const fetchingRef = useRef(false); // Track if fetch is in progress to prevent infinite loops
 
-  const fetchComparisonData = useCallback(async () => {
-    setLoading(true);
+  const fetchComparisonData = useCallback(async (bypassCache = false) => {
+    // Prevent concurrent fetches
+    if (fetchingRef.current) {
+      return;
+    }
+    fetchingRef.current = true;
+    if (!bypassCache) {
+      setLoading(true);
+    } else {
+      setIsRefreshing(true);
+    }
     setError(null);
     try {
       // Step 1: Fetch merchant analytics to get industry codes
@@ -36,8 +52,20 @@ export function RiskBenchmarkComparison({ merchantId }: RiskBenchmarkComparisonP
       let analytics: AnalyticsData | null = null;
       if (analyticsResult[0].status === 'fulfilled') {
         analytics = analyticsResult[0].value;
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[RiskBenchmarkComparison] Merchant analytics loaded:', {
+            hasClassification: !!analytics.classification,
+            mccCodes: analytics.classification?.mccCodes?.length || 0,
+            naicsCodes: analytics.classification?.naicsCodes?.length || 0,
+            sicCodes: analytics.classification?.sicCodes?.length || 0,
+          });
+        }
       } else {
-        console.error('Failed to fetch merchant analytics:', analyticsResult[0].reason);
+        const reason = analyticsResult[0].reason;
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[RiskBenchmarkComparison] Failed to fetch merchant analytics:', reason);
+        }
       }
 
       // Step 2: Extract industry code (prefer MCC, then NAICS, then SIC)
@@ -74,7 +102,10 @@ export function RiskBenchmarkComparison({ merchantId }: RiskBenchmarkComparisonP
       }
 
       if (!extractedCode) {
-        setError('No industry code available for this merchant. Cannot perform benchmark comparison.');
+        setError(formatErrorWithCode(
+          'Industry code is required for benchmark comparison. Use the Enrich Data button to add industry information.',
+          ErrorCodes.RISK_BENCHMARK.MISSING_INDUSTRY_CODE
+        ));
         setLoading(false);
         return;
       }
@@ -90,17 +121,53 @@ export function RiskBenchmarkComparison({ merchantId }: RiskBenchmarkComparisonP
       let benchmarks: RiskBenchmarks | null = null;
       if (benchmarksResult.status === 'fulfilled') {
         benchmarks = benchmarksResult.value;
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[RiskBenchmarkComparison] Benchmarks loaded:', {
+            average_risk_score: benchmarks.average_risk_score,
+            median_risk_score: benchmarks.median_risk_score,
+            percentile_25: benchmarks.percentile_25,
+            percentile_75: benchmarks.percentile_75,
+            percentile_90: benchmarks.percentile_90,
+          });
+        }
       } else {
-        console.error('Failed to fetch risk benchmarks:', benchmarksResult.reason);
-        setError('Failed to load industry benchmarks.');
+        const reason = benchmarksResult.reason;
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[RiskBenchmarkComparison] Failed to fetch risk benchmarks:', reason);
+        }
+        setError(formatErrorWithCode(
+          'Benchmark data for this industry is currently unavailable. Please try again later.',
+          ErrorCodes.RISK_BENCHMARK.BENCHMARKS_UNAVAILABLE
+        ));
       }
 
       let merchantRiskScore: MerchantRiskScore | null = null;
       if (merchantRiskScoreResult.status === 'fulfilled') {
         merchantRiskScore = merchantRiskScoreResult.value;
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[RiskBenchmarkComparison] Merchant risk score loaded:', {
+            risk_score: merchantRiskScore.risk_score,
+            risk_level: merchantRiskScore.risk_level,
+          });
+        }
       } else {
-        console.error('Failed to fetch merchant risk score:', merchantRiskScoreResult.reason);
-        setError((prev) => (prev ? prev + ' ' : '') + 'Failed to load merchant risk score.');
+        const reason = merchantRiskScoreResult.reason;
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[RiskBenchmarkComparison] Failed to fetch merchant risk score:', reason);
+        }
+        // Use functional update to avoid needing error in dependency array
+        setError((prev) => {
+          // Only set error if we don't already have a more specific error
+          if (prev && prev.includes('Error RB-')) {
+            return prev; // Keep existing error
+          }
+          return formatErrorWithCode(
+            'Unable to fetch merchant risk score. Please ensure a risk assessment has been completed.',
+            ErrorCodes.RISK_BENCHMARK.MISSING_RISK_SCORE
+          );
+        });
       }
 
       if (benchmarks && merchantRiskScore) {
@@ -111,16 +178,22 @@ export function RiskBenchmarkComparison({ merchantId }: RiskBenchmarkComparisonP
         const industryP75 = benchmarks.percentile_75;
         const industryP90 = benchmarks.percentile_90;
 
-        // Skip if required values are missing - provide specific error message
+        // Validate required values and provide specific error messages with codes
         if (merchantScore == null) {
-          setError('No industry code available for this merchant. Cannot perform benchmark comparison.');
-        } else if (industryAverage == null || industryMedian == null || 
-            industryP25 == null || industryP75 == null || industryP90 == null) {
-          setError('Incomplete benchmark data. Cannot perform comparison.');
+          setError(formatErrorWithCode(
+            'Merchant risk score is required for benchmark comparison. Please ensure a risk assessment has been completed.',
+            ErrorCodes.RISK_BENCHMARK.MISSING_RISK_SCORE
+          ));
+          setLoading(false);
+          return;
         }
         
-        if (merchantScore == null || industryAverage == null || industryMedian == null || 
+        if (industryAverage == null || industryMedian == null || 
             industryP25 == null || industryP75 == null || industryP90 == null) {
+          setError(formatErrorWithCode(
+            'Incomplete benchmark data. Cannot perform comparison. Please try again later.',
+            ErrorCodes.RISK_BENCHMARK.INVALID_DATA
+          ));
           setLoading(false);
           return;
         }
@@ -176,8 +249,24 @@ export function RiskBenchmarkComparison({ merchantId }: RiskBenchmarkComparisonP
         
         // Store benchmarks for later use in chart
         setBenchmarks(benchmarks);
-      } else if (!error) {
-        setError('Not enough data to perform benchmark comparison.');
+        
+        // Update last refresh time
+        setLastRefreshTime(new Date());
+      } else {
+        // If we don't have both benchmarks and merchantRiskScore, but no specific error was set,
+        // set a generic error. We check if error is already set by checking if we've set it earlier.
+        // Since we can't read error state here (would cause dependency issues), we rely on the
+        // fact that specific errors are set above, so this is a fallback.
+        setError((prev) => {
+          // Only set generic error if no specific error was already set
+          if (prev && prev.includes('Error RB-')) {
+            return prev; // Keep existing specific error
+          }
+          return formatErrorWithCode(
+            'Not enough data to perform benchmark comparison.',
+            ErrorCodes.RISK_BENCHMARK.INVALID_DATA
+          );
+        });
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred.';
@@ -185,12 +274,43 @@ export function RiskBenchmarkComparison({ merchantId }: RiskBenchmarkComparisonP
       toast.error('Error loading benchmark comparison', { description: errorMessage });
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
+      fetchingRef.current = false; // Reset fetch flag
     }
-  }, [merchantId, error]);
+  }, [merchantId]); // Removed 'error' from dependencies to prevent infinite loop
+
+  // Format relative time for last refresh
+  const formatRelativeTime = (date: Date): string => {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSecs = Math.floor(diffMs / 1000);
+    const diffMins = Math.floor(diffSecs / 60);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffSecs < 60) return 'just now';
+    if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+    return date.toLocaleDateString();
+  };
+
+  const handleRefresh = () => {
+    fetchComparisonData(true);
+  };
 
   useEffect(() => {
     fetchComparisonData();
   }, [fetchComparisonData]);
+
+  // Keyboard shortcut: R to refresh
+  useKeyboardShortcuts([
+    {
+      key: 'r',
+      handler: handleRefresh,
+      description: 'Refresh benchmark comparison data',
+    },
+  ]);
 
   const getPositionBadgeVariant = (position: BenchmarkComparison['position']) => {
     switch (position) {
@@ -239,10 +359,22 @@ export function RiskBenchmarkComparison({ merchantId }: RiskBenchmarkComparisonP
   };
 
   if (loading) {
-    return <Skeleton className="h-96 w-full" />;
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Industry Benchmark Comparison</CardTitle>
+          <CardDescription>Fetching industry benchmarks...</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-96 w-full" />
+        </CardContent>
+      </Card>
+    );
   }
 
   if (error) {
+    const isMissingIndustryCode = error.includes('Industry code is required');
+    
     return (
       <Card className="border-destructive">
         <CardHeader>
@@ -250,10 +382,27 @@ export function RiskBenchmarkComparison({ merchantId }: RiskBenchmarkComparisonP
           <CardDescription>Could not load industry benchmark comparison data.</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-destructive-foreground">{error}</p>
-          <Button onClick={fetchComparisonData} className="mt-4" variant="outline">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription className="mt-2">
+              {error.includes('Error ') ? error : formatErrorWithCode(error, ErrorCodes.RISK_BENCHMARK.FETCH_ERROR)}
+              <div className="mt-3 space-y-2">
+                {isMissingIndustryCode ? (
+                  <EnrichmentButton merchantId={merchantId} variant="default" size="sm" />
+                ) : (
+                  <Button 
+                    onClick={fetchComparisonData} 
+                    className="w-full sm:w-auto"
+                    variant="outline"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
             Retry
           </Button>
+                )}
+              </div>
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
     );
@@ -267,12 +416,23 @@ export function RiskBenchmarkComparison({ merchantId }: RiskBenchmarkComparisonP
           <CardDescription>No benchmark comparison data available.</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Insufficient Data</AlertTitle>
+            <AlertDescription className="mt-2">
             We could not retrieve sufficient data to compare this merchant against industry benchmarks.
-          </p>
-          <Button onClick={fetchComparisonData} className="mt-4" variant="outline">
+              <div className="mt-3 space-y-2">
+                <Button 
+                  onClick={fetchComparisonData} 
+                  className="w-full sm:w-auto"
+                  variant="outline"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
             Reload
           </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
     );
@@ -316,12 +476,31 @@ export function RiskBenchmarkComparison({ merchantId }: RiskBenchmarkComparisonP
       : '#3b82f6'; // Blue for average
 
   return (
-    <Card>
+    <Card role="region" aria-labelledby="benchmark-heading" aria-describedby="benchmark-description">
       <CardHeader>
-        <CardTitle>Industry Benchmark Comparison</CardTitle>
-        <CardDescription>
-          How this merchant compares to industry benchmarks ({industryCode.type.toUpperCase()}: {industryCode.code} - {industryCode.description})
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle id="benchmark-heading">Industry Benchmark Comparison</CardTitle>
+            <CardDescription id="benchmark-description">
+              How this merchant compares to industry benchmarks ({industryCode.type.toUpperCase()}: {industryCode.code} - {industryCode.description})
+            </CardDescription>
+            {lastRefreshTime && (
+              <p className="text-xs text-muted-foreground mt-1" aria-live="polite">
+                Updated {formatRelativeTime(lastRefreshTime)}
+              </p>
+            )}
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleRefresh}
+            disabled={isRefreshing || loading}
+            aria-label="Refresh benchmark comparison data"
+            title="Refresh data (R)"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Key Metrics */}
@@ -372,19 +551,21 @@ export function RiskBenchmarkComparison({ merchantId }: RiskBenchmarkComparisonP
           description="Merchant risk score compared to industry benchmarks"
           isLoading={false}
         >
-          <BarChart
-            data={chartData}
-            dataKey="name"
-            bars={[
-              {
-                key: 'value',
-                name: 'Risk Score',
-                color: '#8884d8', // Default color - merchant will be highlighted by label
-              },
-            ]}
-            height={300}
-            isLoading={false}
-          />
+          <div role="img" aria-label="Bar chart showing merchant risk score compared to industry benchmarks">
+            <BarChart
+              data={chartData}
+              dataKey="name"
+              bars={[
+                {
+                  key: 'value',
+                  name: 'Risk Score',
+                  color: '#8884d8', // Default color - merchant will be highlighted by label
+                },
+              ]}
+              height={300}
+              isLoading={false}
+            />
+          </div>
           <div className="mt-4 flex items-center justify-center gap-4 text-sm">
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded" style={{ backgroundColor: merchantBarColor }} />

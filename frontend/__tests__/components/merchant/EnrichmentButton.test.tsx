@@ -373,5 +373,269 @@ describe('EnrichmentButton', () => {
       expect(screen.getByRole('button', { name: /enrich data/i })).toBeInTheDocument();
     });
   });
+
+  describe('Phase 4 Enhancements', () => {
+    describe('Multiple Vendor Selection', () => {
+      it('should allow selecting multiple vendors with checkboxes', async () => {
+        server.use(
+          http.get('*/api/v1/merchants/:id/enrichment/sources', () => {
+            return HttpResponse.json({ merchantId, sources: mockSources });
+          })
+        );
+
+        const user = userEvent.setup();
+        render(<EnrichmentButton merchantId={merchantId} />);
+
+        const button = screen.getByRole('button', { name: /enrich data/i });
+        await user.click(button);
+
+        await waitFor(() => {
+          expect(screen.getByText('Government Database')).toBeInTheDocument();
+        });
+
+        // Should have checkboxes for vendor selection
+        const checkboxes = screen.getAllByRole('checkbox');
+        expect(checkboxes.length).toBeGreaterThan(0);
+
+        // Select multiple vendors
+        await user.click(checkboxes[0]);
+        await user.click(checkboxes[1]);
+
+        await waitFor(() => {
+          // Both should be selected
+          expect(checkboxes[0]).toBeChecked();
+          expect(checkboxes[1]).toBeChecked();
+        });
+      });
+
+      it('should trigger enrichment for all selected vendors', async () => {
+        let enrichmentCalls = 0;
+        server.use(
+          http.get('*/api/v1/merchants/:id/enrichment/sources', () => {
+            return HttpResponse.json({ merchantId, sources: mockSources });
+          }),
+          http.post('*/api/v1/merchants/:id/enrichment/trigger', () => {
+            enrichmentCalls++;
+            return HttpResponse.json({ 
+              jobId: `job-${enrichmentCalls}`, 
+              merchantId, 
+              source: `source-${enrichmentCalls}`, 
+              status: 'pending', 
+              createdAt: new Date().toISOString() 
+            });
+          })
+        );
+
+        const user = userEvent.setup();
+        render(<EnrichmentButton merchantId={merchantId} />);
+
+        const button = screen.getByRole('button', { name: /enrich data/i });
+        await user.click(button);
+
+        await waitFor(() => {
+          expect(screen.getByText('Government Database')).toBeInTheDocument();
+        });
+
+        // Select multiple vendors
+        const checkboxes = screen.getAllByRole('checkbox');
+        await user.click(checkboxes[0]);
+        await user.click(checkboxes[1]);
+
+        // Trigger enrichment
+        const enrichButton = screen.getByRole('button', { name: /enrich|start/i });
+        await user.click(enrichButton);
+
+        await waitFor(() => {
+          // Should have triggered enrichment for both selected vendors
+          expect(enrichmentCalls).toBeGreaterThanOrEqual(2);
+        }, { timeout: 5000 });
+      });
+    });
+
+    describe('Job Tracking', () => {
+      it('should display job status and progress', async () => {
+        server.use(
+          http.get('*/api/v1/merchants/:id/enrichment/sources', () => {
+            return HttpResponse.json({ merchantId, sources: mockSources });
+          }),
+          http.post('*/api/v1/merchants/:id/enrichment/trigger', () => {
+            return HttpResponse.json({ 
+              jobId: 'job-123', 
+              merchantId, 
+              source: 'source-1', 
+              status: 'pending', 
+              createdAt: new Date().toISOString() 
+            });
+          })
+        );
+
+        const user = userEvent.setup();
+        render(<EnrichmentButton merchantId={merchantId} />);
+
+        const button = screen.getByRole('button', { name: /enrich data/i });
+        await user.click(button);
+
+        await waitFor(() => {
+          expect(screen.getByText('Government Database')).toBeInTheDocument();
+        });
+
+        const enrichButton = screen.getByRole('button', { name: /enrich/i });
+        await user.click(enrichButton);
+
+        await waitFor(() => {
+          // Should show job status
+          expect(screen.getByText(/pending|processing|completed/i)).toBeInTheDocument();
+        });
+      });
+
+      it('should show progress indicator during enrichment', async () => {
+        server.use(
+          http.get('*/api/v1/merchants/:id/enrichment/sources', () => {
+            return HttpResponse.json({ merchantId, sources: mockSources });
+          }),
+          http.post('*/api/v1/merchants/:id/enrichment/trigger', () => {
+            return HttpResponse.json({ 
+              jobId: 'job-123', 
+              merchantId, 
+              source: 'source-1', 
+              status: 'processing', 
+              createdAt: new Date().toISOString() 
+            });
+          })
+        );
+
+        const user = userEvent.setup();
+        render(<EnrichmentButton merchantId={merchantId} />);
+
+        const button = screen.getByRole('button', { name: /enrich data/i });
+        await user.click(button);
+
+        await waitFor(() => {
+          expect(screen.getByText('Government Database')).toBeInTheDocument();
+        });
+
+        const enrichButton = screen.getByRole('button', { name: /enrich/i });
+        await user.click(enrichButton);
+
+        await waitFor(() => {
+          // Should show progress bar or percentage
+          const progress = screen.queryByRole('progressbar') || screen.queryByText(/\d+%/);
+          expect(progress).toBeInTheDocument();
+        }, { timeout: 3000 });
+      });
+    });
+
+    describe('Enrichment History', () => {
+      it('should display enrichment history tab', async () => {
+        server.use(
+          http.get('*/api/v1/merchants/:id/enrichment/sources', () => {
+            return HttpResponse.json({ merchantId, sources: mockSources });
+          })
+        );
+
+        const user = userEvent.setup();
+        render(<EnrichmentButton merchantId={merchantId} />);
+
+        const button = screen.getByRole('button', { name: /enrich data/i });
+        await user.click(button);
+
+        await waitFor(() => {
+          // Should have History tab
+          const historyTab = screen.getByRole('tab', { name: /history/i });
+          expect(historyTab).toBeInTheDocument();
+        });
+      });
+
+      it('should show past enrichment jobs in history', async () => {
+        server.use(
+          http.get('*/api/v1/merchants/:id/enrichment/sources', () => {
+            return HttpResponse.json({ merchantId, sources: mockSources });
+          }),
+          http.post('*/api/v1/merchants/:id/enrichment/trigger', () => {
+            return HttpResponse.json({ 
+              jobId: 'job-123', 
+              merchantId, 
+              source: 'source-1', 
+              status: 'completed', 
+              createdAt: new Date().toISOString(),
+              completedAt: new Date().toISOString(),
+            });
+          })
+        );
+
+        const user = userEvent.setup();
+        render(<EnrichmentButton merchantId={merchantId} />);
+
+        const button = screen.getByRole('button', { name: /enrich data/i });
+        await user.click(button);
+
+        await waitFor(() => {
+          expect(screen.getByText('Government Database')).toBeInTheDocument();
+        });
+
+        // Trigger enrichment
+        const enrichButton = screen.getByRole('button', { name: /enrich/i });
+        await user.click(enrichButton);
+
+        // Wait for completion
+        await waitFor(() => {
+          expect(screen.getByText(/completed|done/i)).toBeInTheDocument();
+        }, { timeout: 3000 });
+
+        // Open history tab
+        const historyTab = screen.getByRole('tab', { name: /history/i });
+        await user.click(historyTab);
+
+        await waitFor(() => {
+          // Should show completed job in history
+          expect(screen.getByText(/job-123|Government Database/i)).toBeInTheDocument();
+        });
+      });
+    });
+
+    describe('Results Display', () => {
+      it('should display enrichment results (added/updated/unchanged fields)', async () => {
+        server.use(
+          http.get('*/api/v1/merchants/:id/enrichment/sources', () => {
+            return HttpResponse.json({ merchantId, sources: mockSources });
+          }),
+          http.post('*/api/v1/merchants/:id/enrichment/trigger', () => {
+            return HttpResponse.json({ 
+              jobId: 'job-123', 
+              merchantId, 
+              source: 'source-1', 
+              status: 'completed', 
+              createdAt: new Date().toISOString(),
+              results: {
+                added: ['Founded Date', 'Employee Count'],
+                updated: ['Annual Revenue'],
+                unchanged: ['Business Name'],
+              },
+            });
+          })
+        );
+
+        const user = userEvent.setup();
+        render(<EnrichmentButton merchantId={merchantId} />);
+
+        const button = screen.getByRole('button', { name: /enrich data/i });
+        await user.click(button);
+
+        await waitFor(() => {
+          expect(screen.getByText('Government Database')).toBeInTheDocument();
+        });
+
+        const enrichButton = screen.getByRole('button', { name: /enrich/i });
+        await user.click(enrichButton);
+
+        // Wait for completion
+        await waitFor(() => {
+          // Should show results
+          expect(screen.getByText(/founded date|employee count/i)).toBeInTheDocument();
+          expect(screen.getByText(/annual revenue/i)).toBeInTheDocument();
+        }, { timeout: 3000 });
+      });
+    });
+  });
 });
 

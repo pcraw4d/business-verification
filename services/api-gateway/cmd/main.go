@@ -102,14 +102,13 @@ func main() {
 	// Specific routes MUST be registered before PathPrefix catch-all routes.
 	// PathPrefix routes will shadow specific routes if registered first.
 	api := router.PathPrefix("/api/v1").Subrouter()
-	// Ensure CORS middleware is applied to api subrouter as well
-	// (Parent router middleware should apply, but being explicit)
-	api.Use(middleware.CORS(cfg.CORS))
+	// NOTE: CORS middleware is already applied to parent router (line 68)
+	// Do NOT apply CORS again here to avoid duplicate headers
 
 	// API v3 routes for enhanced endpoints
 	apiV3 := router.PathPrefix("/api/v3").Subrouter()
-	// Apply middleware to v3 routes
-	apiV3.Use(middleware.CORS(cfg.CORS))
+	// NOTE: CORS middleware is already applied to parent router (line 68)
+	// Do NOT apply CORS again here to avoid duplicate headers
 	apiV3.Use(middleware.SecurityHeaders)
 	apiV3.Use(middleware.Logging(logger))
 	apiV3.Use(middleware.RateLimit(cfg.RateLimit))

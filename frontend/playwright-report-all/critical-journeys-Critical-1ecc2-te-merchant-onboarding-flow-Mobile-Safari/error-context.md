@@ -1,0 +1,134 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - link "Skip to main content" [ref=e3]:
+      - /url: "#main-content"
+    - generic [ref=e4]:
+      - banner [ref=e5]:
+        - generic [ref=e6]:
+          - button "Toggle sidebar" [ref=e7]:
+            - img
+            - generic [ref=e8]: Toggle sidebar
+          - generic [ref=e10]:
+            - heading "Add New Merchant" [level=1] [ref=e11]
+            - paragraph [ref=e12]: Enter merchant information to perform comprehensive business verification, risk assessment, and analytics analysis.
+      - main [ref=e13]:
+        - navigation "breadcrumb" [ref=e15]:
+          - list [ref=e16]:
+            - listitem [ref=e18]:
+              - link "Home" [ref=e19]:
+                - /url: /
+            - generic [ref=e20]:
+              - listitem [ref=e21]:
+                - img [ref=e22]
+              - listitem [ref=e24]:
+                - link "Merchant Portfolio" [ref=e25]:
+                  - /url: /merchant-portfolio
+            - generic [ref=e26]:
+              - listitem [ref=e27]:
+                - img [ref=e28]
+              - listitem [ref=e30]:
+                - link "Add Merchant" [disabled] [ref=e31]
+        - generic [ref=e33]:
+          - generic [ref=e36]:
+            - generic [ref=e37]:
+              - img [ref=e38]
+              - generic [ref=e40]:
+                - generic [ref=e41]: Add New Merchant
+                - generic [ref=e42]: Enter merchant information to perform comprehensive business verification
+            - generic [ref=e43]:
+              - generic [ref=e44]: Live
+              - generic [ref=e45]: Beta
+          - generic [ref=e46]:
+            - generic [ref=e47]:
+              - generic [ref=e48]:
+                - img [ref=e49]
+                - text: Merchant Information
+              - generic [ref=e52]: Enter merchant information to perform comprehensive business verification, risk assessment, and analytics analysis.
+            - generic [ref=e54]:
+              - generic [ref=e55]:
+                - generic [ref=e56]:
+                  - generic [ref=e57]:
+                    - img [ref=e58]
+                    - text: Business Name *
+                  - textbox "Business Name *" [ref=e61]:
+                    - /placeholder: Enter business name...
+                    - text: E2E Test Business
+                - generic [ref=e62]:
+                  - generic [ref=e63]:
+                    - img [ref=e64]
+                    - text: Website URL
+                  - textbox "Website URL" [ref=e67]:
+                    - /placeholder: https://example.com
+              - generic [ref=e68]:
+                - generic [ref=e69]:
+                  - generic [ref=e70]:
+                    - img [ref=e71]
+                    - text: Business Address *
+                  - textbox "Business Address *" [active] [ref=e74]
+                - generic [ref=e75]:
+                  - generic [ref=e76]:
+                    - generic [ref=e77]: Street Address
+                    - textbox "Street Address" [ref=e78]:
+                      - /placeholder: 123 Main Street
+                  - generic [ref=e79]:
+                    - generic [ref=e80]: City
+                    - textbox "City" [ref=e81]:
+                      - /placeholder: New York
+                  - generic [ref=e82]:
+                    - generic [ref=e83]: State/Province
+                    - textbox "State/Province" [ref=e84]:
+                      - /placeholder: NY
+                  - generic [ref=e85]:
+                    - generic [ref=e86]: Postal Code
+                    - textbox "Postal Code" [ref=e87]:
+                      - /placeholder: "10001"
+                  - generic [ref=e88]:
+                    - generic [ref=e89]: Country *
+                    - combobox "Country *" [ref=e90]:
+                      - img
+                    - combobox [ref=e91]
+              - generic [ref=e92]:
+                - generic [ref=e93]:
+                  - generic [ref=e94]:
+                    - img [ref=e95]
+                    - text: Phone Number
+                  - textbox "Phone Number" [ref=e97]:
+                    - /placeholder: +1 (555) 123-4567
+                - generic [ref=e98]:
+                  - generic [ref=e99]:
+                    - img [ref=e100]
+                    - text: Email Address
+                  - textbox "Email Address" [ref=e103]:
+                    - /placeholder: contact@business.com
+              - generic [ref=e104]:
+                - generic [ref=e105]:
+                  - img [ref=e106]
+                  - text: Business Registration Number
+                - textbox "Business Registration Number" [ref=e109]:
+                  - /placeholder: Enter business registration number (EIN, VAT, etc.)
+              - generic [ref=e110]:
+                - generic [ref=e111]:
+                  - generic [ref=e112]:
+                    - img [ref=e113]
+                    - text: Analysis Type
+                  - combobox "Analysis Type" [ref=e116]:
+                    - generic: Comprehensive Analysis
+                    - img
+                  - combobox [ref=e117]
+                - generic [ref=e118]:
+                  - generic [ref=e119]:
+                    - img [ref=e120]
+                    - text: Risk Assessment Type
+                  - combobox "Risk Assessment Type" [ref=e122]:
+                    - generic: Comprehensive Assessment
+                    - img
+                  - combobox [ref=e123]
+              - generic [ref=e124]:
+                - button "Clear all form fields" [ref=e125]: Clear Form
+                - button "Submit merchant verification" [ref=e126]: Verify Merchant
+  - region "Notifications alt+T"
+  - alert [ref=e127]
+```

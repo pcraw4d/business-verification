@@ -17,6 +17,10 @@ export default function CompliancePage() {
     regulatoryFrameworks: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+
+  // Client-side formatted values to prevent hydration errors
+  const [formattedPendingReviews, setFormattedPendingReviews] = useState<string>('0');
 
   useEffect(() => {
     async function fetchStatus() {
@@ -35,6 +39,21 @@ export default function CompliancePage() {
 
     fetchStatus();
   }, []);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Format numbers on client side only to prevent hydration errors
+  useEffect(() => {
+    if (!mounted) return;
+
+    if (status.pendingReviews !== undefined && status.pendingReviews !== null) {
+      setFormattedPendingReviews(status.pendingReviews.toLocaleString());
+    } else {
+      setFormattedPendingReviews('0');
+    }
+  }, [mounted, status.pendingReviews]);
 
   // Calculate derived metrics
   const compliantCount = Math.round((status.overallScore / 100) * 100); // Simplified calculation
@@ -70,7 +89,7 @@ export default function CompliancePage() {
               />
               <MetricCard
                 label="Pending Review"
-                value={status.pendingReviews.toLocaleString()}
+                value={mounted ? formattedPendingReviews : '0'}
                 icon={AlertCircle}
                 variant={status.pendingReviews === 0 ? 'success' : status.pendingReviews < 10 ? 'warning' : 'danger'}
               />

@@ -12,6 +12,8 @@ import { formatPercentWithSign, formatNumber } from '@/lib/number-format';
 import { toast } from 'sonner';
 import { LineChart } from '@/components/charts/lazy';
 import { BarChart } from '@/components/charts/lazy';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { RiskDashboardErrorFallback } from '@/components/dashboards/RiskDashboardErrorFallback';
 
 export default function RiskDashboardPage() {
   const [metrics, setMetrics] = useState({
@@ -23,11 +25,37 @@ export default function RiskDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [chartLoading, setChartLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   const [insights, setInsights] = useState<Array<{ title: string; description: string; impact: string }>>([]);
+
+  // Client-side formatted values to prevent hydration errors
+  const [formattedHighRiskMerchants, setFormattedHighRiskMerchants] = useState<string>('');
+  const [formattedRiskAssessments, setFormattedRiskAssessments] = useState<string>('');
 
   // Chart data from API
   const [trendData, setTrendData] = useState<Array<{ name: string; value: number }>>([]);
   const [distributionData, setDistributionData] = useState<Array<{ name: string; value: number }>>([]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Format numbers on client side only to prevent hydration errors
+  useEffect(() => {
+    if (!mounted) return;
+
+    if (metrics.highRiskMerchants !== undefined && metrics.highRiskMerchants !== null) {
+      setFormattedHighRiskMerchants(metrics.highRiskMerchants.toLocaleString());
+    } else {
+      setFormattedHighRiskMerchants('0');
+    }
+
+    if (metrics.riskAssessments !== undefined && metrics.riskAssessments !== null) {
+      setFormattedRiskAssessments(metrics.riskAssessments.toLocaleString());
+    } else {
+      setFormattedRiskAssessments('0');
+    }
+  }, [mounted, metrics.highRiskMerchants, metrics.riskAssessments]);
 
   useEffect(() => {
     async function fetchMetrics() {
@@ -171,7 +199,18 @@ export default function RiskDashboardPage() {
         { label: 'Risk Assessment' },
       ]}
     >
-      <div className="space-y-6">
+      <ErrorBoundary
+        fallback={
+          <RiskDashboardErrorFallback
+            error={error ? new Error(error) : null}
+            resetError={() => {
+              setError(null);
+              window.location.reload();
+            }}
+          />
+        }
+      >
+        <div className="space-y-6">
         {/* Risk Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {loading ? (
@@ -191,13 +230,13 @@ export default function RiskDashboardPage() {
               />
               <MetricCard
                 label="High Risk Merchants"
-                value={metrics.highRiskMerchants.toLocaleString()}
+                value={mounted ? formattedHighRiskMerchants : '0'}
                 icon={Shield}
                 variant="danger"
               />
               <MetricCard
                 label="Risk Assessments"
-                value={metrics.riskAssessments.toLocaleString()}
+                value={mounted ? formattedRiskAssessments : '0'}
                 icon={Activity}
                 variant="info"
               />
@@ -292,7 +331,8 @@ export default function RiskDashboardPage() {
             )}
           </CardContent>
         </Card>
-      </div>
+        </div>
+      </ErrorBoundary>
     </AppLayout>
   );
 }

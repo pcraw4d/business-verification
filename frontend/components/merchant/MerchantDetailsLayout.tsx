@@ -11,6 +11,10 @@ import { useEffect, useState, useCallback } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { PortfolioContextBadge } from './PortfolioContextBadge';
 import { EnrichmentButton } from './EnrichmentButton';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { TabErrorFallback } from './TabErrorFallback';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useRef } from 'react';
 
 // Lazy load tabs - only load when needed
 const MerchantOverviewTab = dynamic(
@@ -53,6 +57,7 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
   const [activeTab, setActiveTab] = useState('overview');
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
+  const enrichmentButtonRef = useRef<HTMLButtonElement>(null);
 
   // Load merchant with retry logic
   const loadMerchant = useCallback(async (attempt: number = 0): Promise<void> => {
@@ -135,6 +140,21 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
     loadMerchant();
   }, [loadMerchant]);
 
+  // Keyboard shortcut: E to open enrichment dialog
+  const handleEnrichmentShortcut = useCallback(() => {
+    if (enrichmentButtonRef.current) {
+      enrichmentButtonRef.current.click();
+    }
+  }, []);
+
+  useKeyboardShortcuts([
+    {
+      key: 'e',
+      handler: handleEnrichmentShortcut,
+      description: 'Open enrichment dialog',
+    },
+  ]);
+
   if (loading) {
     return (
       <div className="container mx-auto p-6 space-y-6">
@@ -185,8 +205,17 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="border-b pb-4">
+    <main className="container mx-auto p-6 space-y-6">
+      {/* Skip link for keyboard navigation */}
+      <a
+        href="#merchant-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:shadow-lg"
+        aria-label="Skip to main content"
+      >
+        Skip to main content
+      </a>
+
+      <header className="border-b pb-4">
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-3">
@@ -199,36 +228,103 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <EnrichmentButton merchantId={merchantId} variant="outline" size="sm" />
+            <EnrichmentButton 
+              merchantId={merchantId} 
+              variant="outline" 
+              size="sm"
+              ref={enrichmentButtonRef}
+              aria-label="Enrich merchant data (Press E)"
+              title="Enrich data (E)"
+            />
           </div>
         </div>
-      </div>
+      </header>
+
+      <section id="merchant-content" aria-label="Merchant details">
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" suppressHydrationWarning>
         <TabsList className="grid w-full grid-cols-4 [@supports(display:grid)]:grid [@supports(display:-webkit-grid)]:grid" suppressHydrationWarning>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="analytics">Business Analytics</TabsTrigger>
-          <TabsTrigger value="risk">Risk Assessment</TabsTrigger>
-          <TabsTrigger value="indicators">Risk Indicators</TabsTrigger>
+          <TabsTrigger value="overview" aria-label="Overview tab">Overview</TabsTrigger>
+          <TabsTrigger value="analytics" aria-label="Business Analytics tab">Business Analytics</TabsTrigger>
+          <TabsTrigger value="risk" aria-label="Risk Assessment tab">Risk Assessment</TabsTrigger>
+          <TabsTrigger value="indicators" aria-label="Risk Indicators tab">Risk Indicators</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-6" suppressHydrationWarning>
-          <MerchantOverviewTab merchant={merchant} />
+          <ErrorBoundary
+            fallback={
+              <TabErrorFallback
+                tabName="Overview"
+                onRetry={() => {
+                  // Force re-render by changing key
+                  setActiveTab('overview');
+                }}
+              />
+            }
+            onError={(error, errorInfo) => {
+              console.error('Overview tab error:', error, errorInfo);
+            }}
+          >
+            <MerchantOverviewTab merchant={merchant} />
+          </ErrorBoundary>
         </TabsContent>
 
         <TabsContent value="analytics" className="mt-6" suppressHydrationWarning>
-          <BusinessAnalyticsTab merchantId={merchantId} />
+          <ErrorBoundary
+            fallback={
+              <TabErrorFallback
+                tabName="Business Analytics"
+                onRetry={() => {
+                  setActiveTab('analytics');
+                }}
+              />
+            }
+            onError={(error, errorInfo) => {
+              console.error('Business Analytics tab error:', error, errorInfo);
+            }}
+          >
+            <BusinessAnalyticsTab merchantId={merchantId} />
+          </ErrorBoundary>
         </TabsContent>
 
         <TabsContent value="risk" className="mt-6" suppressHydrationWarning>
-          <RiskAssessmentTab merchantId={merchantId} />
+          <ErrorBoundary
+            fallback={
+              <TabErrorFallback
+                tabName="Risk Assessment"
+                onRetry={() => {
+                  setActiveTab('risk');
+                }}
+              />
+            }
+            onError={(error, errorInfo) => {
+              console.error('Risk Assessment tab error:', error, errorInfo);
+            }}
+          >
+            <RiskAssessmentTab merchantId={merchantId} />
+          </ErrorBoundary>
         </TabsContent>
 
         <TabsContent value="indicators" className="mt-6" suppressHydrationWarning>
-          <RiskIndicatorsTab merchantId={merchantId} />
+          <ErrorBoundary
+            fallback={
+              <TabErrorFallback
+                tabName="Risk Indicators"
+                onRetry={() => {
+                  setActiveTab('indicators');
+                }}
+              />
+            }
+            onError={(error, errorInfo) => {
+              console.error('Risk Indicators tab error:', error, errorInfo);
+            }}
+          >
+            <RiskIndicatorsTab merchantId={merchantId} />
+          </ErrorBoundary>
         </TabsContent>
       </Tabs>
-    </div>
+      </section>
+    </main>
   );
 }
 

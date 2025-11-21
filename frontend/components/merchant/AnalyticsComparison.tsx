@@ -3,7 +3,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, TrendingDown, BarChart3, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { TrendingUp, TrendingDown, BarChart3, AlertCircle, RefreshCw } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 import { getMerchantAnalytics, getPortfolioAnalytics } from '@/lib/api';
 import type { AnalyticsComparison, AnalyticsData, PortfolioAnalytics } from '@/types/merchant';
@@ -12,6 +13,7 @@ import { toast } from 'sonner';
 import { ChartContainer } from '@/components/dashboards/ChartContainer';
 import { BarChart } from '@/components/charts/lazy';
 import { formatPercent, formatNumber } from '@/lib/number-format';
+import { ErrorCodes, formatErrorWithCode } from '@/lib/error-codes';
 
 interface AnalyticsComparisonProps {
   merchantId: string;
@@ -38,9 +40,26 @@ export function AnalyticsComparison({ merchantId, merchantAnalytics: providedAna
         if (analyticsResult[0].status === 'fulfilled') {
           analytics = analyticsResult[0].value;
           setMerchantAnalytics(analytics);
+          
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[AnalyticsComparison] Merchant analytics loaded:', {
+              hasClassification: !!analytics.classification,
+              hasSecurity: !!analytics.security,
+              hasQuality: !!analytics.quality,
+              classificationConfidence: analytics.classification?.confidenceScore,
+              securityTrustScore: analytics.security?.trustScore,
+              dataQuality: analytics.quality?.completenessScore,
+            });
+          }
         } else {
-          console.error('Failed to fetch merchant analytics:', analyticsResult[0].reason);
-          setError('Failed to load merchant analytics.');
+          const reason = analyticsResult[0].reason;
+          if (process.env.NODE_ENV === 'development') {
+            console.error('[AnalyticsComparison] Failed to fetch merchant analytics:', reason);
+          }
+          setError(formatErrorWithCode(
+            'Unable to fetch merchant analytics. The analytics service may be temporarily unavailable.',
+            ErrorCodes.ANALYTICS_COMPARISON.MISSING_MERCHANT_ANALYTICS
+          ));
         }
       }
 
@@ -52,19 +71,66 @@ export function AnalyticsComparison({ merchantId, merchantAnalytics: providedAna
       let portfolioAnalytics: PortfolioAnalytics | null = null;
       if (portfolioResult[0].status === 'fulfilled') {
         portfolioAnalytics = portfolioResult[0].value;
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[AnalyticsComparison] Portfolio analytics loaded:', {
+            averageClassificationConfidence: portfolioAnalytics.averageClassificationConfidence,
+            averageSecurityTrustScore: portfolioAnalytics.averageSecurityTrustScore,
+            averageDataQuality: portfolioAnalytics.averageDataQuality,
+            totalMerchants: portfolioAnalytics.totalMerchants,
+          });
+        }
       } else {
-        console.error('Failed to fetch portfolio analytics:', portfolioResult[0].reason);
-        setError((prev) => (prev ? prev + ' ' : '') + 'Failed to load portfolio analytics.');
+        const reason = portfolioResult[0].reason;
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[AnalyticsComparison] Failed to fetch portfolio analytics:', reason);
+        }
+        setError((prev) => {
+          const baseMsg = prev || 'Unable to fetch portfolio analytics.';
+          return formatErrorWithCode(
+            `${baseMsg} The statistics service may be temporarily unavailable.`,
+            ErrorCodes.ANALYTICS_COMPARISON.MISSING_PORTFOLIO_ANALYTICS
+          );
+        });
       }
 
+      // Handle partial data scenarios
       if (analytics && portfolioAnalytics) {
-        const merchantClassificationConfidence = analytics.classification?.confidenceScore || 0;
-        const merchantSecurityTrustScore = analytics.security?.trustScore || 0;
-        const merchantDataQuality = analytics.quality?.completenessScore || 0;
+        // Validate and extract values with type checking
+        const merchantClassificationConfidence = typeof analytics.classification?.confidenceScore === 'number' 
+          ? analytics.classification.confidenceScore 
+          : 0;
+        const merchantSecurityTrustScore = typeof analytics.security?.trustScore === 'number'
+          ? analytics.security.trustScore
+          : 0;
+        const merchantDataQuality = typeof analytics.quality?.completenessScore === 'number'
+          ? analytics.quality.completenessScore
+          : 0;
 
-        const portfolioClassificationConfidence = portfolioAnalytics.averageClassificationConfidence || 0;
-        const portfolioSecurityTrustScore = portfolioAnalytics.averageSecurityTrustScore || 0;
-        const portfolioDataQuality = portfolioAnalytics.averageDataQuality || 0;
+        const portfolioClassificationConfidence = typeof portfolioAnalytics.averageClassificationConfidence === 'number'
+          ? portfolioAnalytics.averageClassificationConfidence
+          : 0;
+        const portfolioSecurityTrustScore = typeof portfolioAnalytics.averageSecurityTrustScore === 'number'
+          ? portfolioAnalytics.averageSecurityTrustScore
+          : 0;
+        const portfolioDataQuality = typeof portfolioAnalytics.averageDataQuality === 'number'
+          ? portfolioAnalytics.averageDataQuality
+          : 0;
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[AnalyticsComparison] Comparison values:', {
+            merchant: {
+              classificationConfidence: merchantClassificationConfidence,
+              securityTrustScore: merchantSecurityTrustScore,
+              dataQuality: merchantDataQuality,
+            },
+            portfolio: {
+              classificationConfidence: portfolioClassificationConfidence,
+              securityTrustScore: portfolioSecurityTrustScore,
+              dataQuality: portfolioDataQuality,
+            },
+          });
+        }
 
         const classificationDiff = merchantClassificationConfidence - portfolioClassificationConfidence;
         const securityDiff = merchantSecurityTrustScore - portfolioSecurityTrustScore;
@@ -103,7 +169,28 @@ export function AnalyticsComparison({ merchantId, merchantAnalytics: providedAna
           },
         });
       } else if (!error) {
-        setError('Not enough data to perform analytics comparison.');
+        // Provide specific error message based on what's missing
+        if (!analytics && !portfolioAnalytics) {
+          setError(formatErrorWithCode(
+            'Unable to fetch merchant analytics and portfolio analytics. Please try again later.',
+            ErrorCodes.ANALYTICS_COMPARISON.MISSING_BOTH
+          ));
+        } else if (!analytics) {
+          setError(formatErrorWithCode(
+            'Merchant analytics data is not available. Analytics may still be processing for this merchant.',
+            ErrorCodes.ANALYTICS_COMPARISON.MISSING_MERCHANT_ANALYTICS
+          ));
+        } else if (!portfolioAnalytics) {
+          setError(formatErrorWithCode(
+            'Portfolio analytics are being calculated. Please try again in a few moments.',
+            ErrorCodes.ANALYTICS_COMPARISON.MISSING_PORTFOLIO_ANALYTICS
+          ));
+        } else {
+          setError(formatErrorWithCode(
+            'Not enough data to perform analytics comparison.',
+            ErrorCodes.ANALYTICS_COMPARISON.INVALID_DATA
+          ));
+        }
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred.';
@@ -150,7 +237,17 @@ export function AnalyticsComparison({ merchantId, merchantAnalytics: providedAna
   };
 
   if (loading) {
-    return <Skeleton className="h-96 w-full" />;
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Portfolio Analytics Comparison</CardTitle>
+          <CardDescription>Loading portfolio comparison...</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-96 w-full" />
+        </CardContent>
+      </Card>
+    );
   }
 
   if (error) {
@@ -161,10 +258,21 @@ export function AnalyticsComparison({ merchantId, merchantAnalytics: providedAna
           <CardDescription>Could not load analytics comparison data.</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-destructive-foreground">{error}</p>
-          <Button onClick={fetchComparisonData} className="mt-4" variant="outline">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription className="mt-2">
+              {error.includes('Error ') ? error : formatErrorWithCode(error, ErrorCodes.ANALYTICS_COMPARISON.FETCH_ERROR)}
+              <Button 
+                onClick={fetchComparisonData} 
+                className="mt-3 w-full sm:w-auto"
+                variant="outline"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
             Retry
           </Button>
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
     );
@@ -178,12 +286,21 @@ export function AnalyticsComparison({ merchantId, merchantAnalytics: providedAna
           <CardDescription>No comparison data available.</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Insufficient Data</AlertTitle>
+            <AlertDescription className="mt-2">
             We could not retrieve sufficient data to compare this merchant against portfolio analytics.
-          </p>
-          <Button onClick={fetchComparisonData} className="mt-4" variant="outline">
+              <Button 
+                onClick={fetchComparisonData} 
+                className="mt-3 w-full sm:w-auto"
+                variant="outline"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
             Reload
           </Button>
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
     );

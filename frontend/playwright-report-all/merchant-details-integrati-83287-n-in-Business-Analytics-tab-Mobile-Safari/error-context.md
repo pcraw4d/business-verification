@@ -1,0 +1,214 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - heading "Test Business Inc" [level=1] [ref=e7]
+        - paragraph [ref=e8]: "Technology • Status: active"
+      - button "Enrich Data" [ref=e10]:
+        - img
+        - text: Enrich Data
+    - generic [ref=e11]:
+      - tablist [ref=e12]:
+        - tab "Overview" [ref=e13]
+        - tab "Business Analytics" [active] [selected] [ref=e14]
+        - tab "Risk Assessment" [ref=e15]
+        - tab "Risk Indicators" [ref=e16]
+      - tabpanel "Business Analytics" [ref=e17]:
+        - generic [ref=e18]:
+          - generic [ref=e19]:
+            - generic [ref=e20]:
+              - generic [ref=e21]: Portfolio Analytics Comparison
+              - generic [ref=e22]: How this merchant compares to portfolio averages
+            - generic [ref=e23]:
+              - generic [ref=e24]:
+                - generic [ref=e25]:
+                  - heading "Classification Confidence" [level=3] [ref=e26]
+                  - generic [ref=e27]:
+                    - img [ref=e28]
+                    - generic [ref=e31]: +13.3%
+                - generic [ref=e32]:
+                  - generic [ref=e33]:
+                    - paragraph [ref=e34]: Merchant
+                    - paragraph [ref=e35]: 85.0%
+                  - generic [ref=e36]:
+                    - paragraph [ref=e37]: Portfolio Average
+                    - paragraph [ref=e38]: 75.0%
+                - generic [ref=e39]:
+                  - generic [ref=e42]:
+                    - generic [ref=e43]: Classification Confidence Comparison
+                    - generic [ref=e44]: Merchant vs portfolio average
+                  - generic [ref=e48]:
+                    - list [ref=e50]:
+                      - listitem [ref=e51]:
+                        - img "Confidence legend icon" [ref=e52]
+                        - text: Confidence
+                    - application [ref=e54]:
+                      - generic [ref=e73]:
+                        - generic [ref=e76]: Portfolio Average
+                        - generic [ref=e77]:
+                          - generic [ref=e79]: "0"
+                          - generic [ref=e81]: "25"
+                          - generic [ref=e83]: "50"
+                          - generic [ref=e85]: "100"
+              - generic [ref=e86]:
+                - generic [ref=e87]:
+                  - heading "Security Trust Score" [level=3] [ref=e88]
+                  - generic [ref=e89]:
+                    - img [ref=e90]
+                    - generic [ref=e93]: +11.4%
+                - generic [ref=e94]:
+                  - generic [ref=e95]:
+                    - paragraph [ref=e96]: Merchant
+                    - paragraph [ref=e97]: 78.0%
+                  - generic [ref=e98]:
+                    - paragraph [ref=e99]: Portfolio Average
+                    - paragraph [ref=e100]: 70.0%
+                - generic [ref=e101]:
+                  - generic [ref=e104]:
+                    - generic [ref=e105]: Security Trust Score Comparison
+                    - generic [ref=e106]: Merchant vs portfolio average
+                  - generic [ref=e110]:
+                    - list [ref=e112]:
+                      - listitem [ref=e113]:
+                        - img "Trust Score legend icon" [ref=e114]
+                        - text: Trust Score
+                    - application [ref=e116]:
+                      - generic [ref=e135]:
+                        - generic [ref=e138]: Portfolio Average
+                        - generic [ref=e139]:
+                          - generic [ref=e141]: "0"
+                          - generic [ref=e143]: "20"
+                          - generic [ref=e145]: "40"
+                          - generic [ref=e147]: "80"
+              - generic [ref=e148]:
+                - generic [ref=e149]:
+                  - heading "Data Quality" [level=3] [ref=e150]
+                  - generic [ref=e151]:
+                    - img [ref=e152]
+                    - generic [ref=e155]: +9.3%
+                - generic [ref=e156]:
+                  - generic [ref=e157]:
+                    - paragraph [ref=e158]: Merchant
+                    - paragraph [ref=e159]: 82.0%
+                  - generic [ref=e160]:
+                    - paragraph [ref=e161]: Portfolio Average
+                    - paragraph [ref=e162]: 75.0%
+                - generic [ref=e163]:
+                  - generic [ref=e166]:
+                    - generic [ref=e167]: Data Quality Comparison
+                    - generic [ref=e168]: Merchant vs portfolio average
+                  - generic [ref=e172]:
+                    - list [ref=e174]:
+                      - listitem [ref=e175]:
+                        - img "Data Quality legend icon" [ref=e176]
+                        - text: Data Quality
+                    - application [ref=e178]:
+                      - generic [ref=e197]:
+                        - generic [ref=e200]: Portfolio Average
+                        - generic [ref=e201]:
+                          - generic [ref=e203]: "0"
+                          - generic [ref=e205]: "25"
+                          - generic [ref=e207]: "50"
+                          - generic [ref=e209]: "100"
+          - generic [ref=e210]:
+            - generic [ref=e212]:
+              - generic [ref=e213]:
+                - generic [ref=e214]: Classification
+                - generic [ref=e215]: Industry classification data
+              - generic [ref=e216]:
+                - generic [ref=e217]: From Analytics API
+                - button "Export data" [ref=e218]:
+                  - img
+                  - text: Export
+            - generic [ref=e219]:
+              - generic [ref=e220]:
+                - paragraph [ref=e221]: Primary Industry
+                - paragraph [ref=e222]: Technology
+              - generic [ref=e223]:
+                - paragraph [ref=e224]: Confidence Score
+                - paragraph [ref=e225]: 85.0%
+              - generic [ref=e226]:
+                - paragraph [ref=e227]: Risk Level
+                - generic [ref=e228]: medium
+          - generic [ref=e230]:
+            - generic [ref=e233]:
+              - generic [ref=e234]: Classification Confidence
+              - generic [ref=e235]: Confidence score distribution
+            - generic [ref=e239]:
+              - list [ref=e241]:
+                - listitem [ref=e242]:
+                  - img "Confidence legend icon" [ref=e243]
+                  - text: Confidence
+                - listitem [ref=e245]:
+                  - img "Remaining legend icon" [ref=e246]
+                  - text: Remaining
+              - application [ref=e248]:
+                - generic [ref=e257]:
+                  - generic [ref=e259]: "Confidence: 85%"
+                  - generic [ref=e261]: "Remaining: 15%"
+          - generic [ref=e262]:
+            - generic [ref=e263]:
+              - generic [ref=e265]:
+                - generic [ref=e266]:
+                  - generic [ref=e267]: Security
+                  - generic [ref=e268]: Security metrics
+                - generic [ref=e269]: From Analytics API
+              - generic [ref=e270]:
+                - generic [ref=e271]:
+                  - paragraph [ref=e272]: Trust Score
+                  - paragraph [ref=e273]: 78.0%
+                - generic [ref=e274]:
+                  - paragraph [ref=e275]: SSL Valid
+                  - generic [ref=e276]: Valid
+                - generic [ref=e278]:
+                  - generic [ref=e281]:
+                    - generic [ref=e282]: Security Trust Score
+                    - generic [ref=e283]: Trust score visualization
+                  - generic [ref=e287]:
+                    - list [ref=e289]:
+                      - listitem [ref=e290]:
+                        - img "Remaining legend icon" [ref=e291]
+                        - text: Remaining
+                      - listitem [ref=e293]:
+                        - img "Trust Score legend icon" [ref=e294]
+                        - text: Trust Score
+                    - application [ref=e296]:
+                      - generic [ref=e305]:
+                        - generic [ref=e307]: "Trust Score: 78%"
+                        - generic [ref=e309]: "Remaining: 22%"
+            - generic [ref=e310]:
+              - generic [ref=e312]:
+                - generic [ref=e313]:
+                  - generic [ref=e314]: Data Quality
+                  - generic [ref=e315]: Data completeness metrics
+                - generic [ref=e316]: From Analytics API
+              - generic [ref=e317]:
+                - generic [ref=e318]:
+                  - paragraph [ref=e319]: Completeness Score
+                  - paragraph [ref=e320]: 82.0%
+                - generic [ref=e321]:
+                  - paragraph [ref=e322]: Data Points
+                  - paragraph [ref=e323]: "10"
+                - generic [ref=e325]:
+                  - generic [ref=e328]:
+                    - generic [ref=e329]: Data Quality
+                    - generic [ref=e330]: Completeness score visualization
+                  - generic [ref=e334]:
+                    - list [ref=e336]:
+                      - listitem [ref=e337]:
+                        - img "Complete legend icon" [ref=e338]
+                        - text: Complete
+                      - listitem [ref=e340]:
+                        - img "Missing legend icon" [ref=e341]
+                        - text: Missing
+                    - application [ref=e343]:
+                      - generic [ref=e352]:
+                        - generic [ref=e354]: "Complete: 82%"
+                        - generic [ref=e356]: "Missing: 18%"
+  - region "Notifications alt+T"
+  - alert [ref=e357]
+  - generic [ref=e358]: "20"
+```

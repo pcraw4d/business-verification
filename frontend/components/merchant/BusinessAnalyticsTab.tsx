@@ -9,11 +9,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ChartContainer } from '@/components/dashboards/ChartContainer';
 import { BarChart, PieChart } from '@/components/charts/lazy';
-import { getMerchantAnalytics, getWebsiteAnalysis } from '@/lib/api';
+import { getMerchant, getMerchantAnalytics, getWebsiteAnalysis } from '@/lib/api';
 import { deferNonCriticalDataLoad } from '@/lib/lazy-loader';
 import { formatPercent } from '@/lib/number-format';
-import type { AnalyticsData, WebsiteAnalysisData, IndustryCode } from '@/types/merchant';
+import type { AnalyticsData, WebsiteAnalysisData, IndustryCode, Merchant } from '@/types/merchant';
 import { useEffect, useState, useMemo } from 'react';
+import { RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { AnalyticsComparison } from './AnalyticsComparison';
 
 interface BusinessAnalyticsTabProps {
@@ -23,34 +26,130 @@ interface BusinessAnalyticsTabProps {
 export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [websiteAnalysis, setWebsiteAnalysis] = useState<WebsiteAnalysisData | null>(null);
+  const [merchant, setMerchant] = useState<Merchant | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
+  const [formattedEmployeeCount, setFormattedEmployeeCount] = useState<string>('');
+  const [formattedMerchantEmployeeCount, setFormattedMerchantEmployeeCount] = useState<string>('');
+  const [formattedAnnualRevenue, setFormattedAnnualRevenue] = useState<string>('');
+  const [formattedMerchantRevenue, setFormattedMerchantRevenue] = useState<string>('');
 
   useEffect(() => {
-    async function loadAnalytics() {
-      try {
-        setLoading(true);
-        setError(null);
-        // Load critical analytics data immediately
-        const analyticsData = await getMerchantAnalytics(merchantId).catch(() => null);
-        setAnalytics(analyticsData);
-        setLoading(false);
-        
-        // Defer non-critical website analysis
-        deferNonCriticalDataLoad(async () => {
-          const websiteData = await getWebsiteAnalysis(merchantId).catch(() => null);
-          setWebsiteAnalysis(websiteData);
-        });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load analytics');
-        setLoading(false);
-      }
-    }
+    setMounted(true);
+  }, []);
 
+  const loadAnalytics = async (bypassCache = false) => {
+    try {
+      if (!bypassCache) {
+        setLoading(true);
+      } else {
+        setIsRefreshing(true);
+      }
+      setError(null);
+      // Load critical analytics data immediately
+      const analyticsData = await getMerchantAnalytics(merchantId).catch(() => null);
+      setAnalytics(analyticsData);
+      
+      // Load merchant data for comparison with intelligence data
+      const merchantData = await getMerchant(merchantId).catch(() => null);
+      setMerchant(merchantData);
+      
+      setLoading(false);
+      setIsRefreshing(false);
+      setLastRefreshTime(new Date());
+      
+      // Defer non-critical website analysis
+      deferNonCriticalDataLoad(async () => {
+        const websiteData = await getWebsiteAnalysis(merchantId).catch(() => null);
+        setWebsiteAnalysis(websiteData);
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load analytics');
+      setLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
     if (merchantId) {
       loadAnalytics();
     }
   }, [merchantId]);
+
+  const handleRefresh = () => {
+    loadAnalytics(true);
+  };
+
+  // Format relative time for last refresh
+  const formatRelativeTime = (date: Date): string => {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSecs = Math.floor(diffMs / 1000);
+    const diffMins = Math.floor(diffSecs / 60);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffSecs < 60) return 'just now';
+    if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+    return date.toLocaleDateString();
+  };
+
+  // Keyboard shortcut: R to refresh
+  useKeyboardShortcuts([
+    {
+      key: 'r',
+      handler: handleRefresh,
+      description: 'Refresh business analytics data',
+    },
+  ]);
+
+  // Format numbers on client side only to prevent hydration errors
+  useEffect(() => {
+    if (!mounted) return;
+
+    if (analytics?.intelligence?.employeeCount !== undefined && analytics.intelligence.employeeCount !== null) {
+      setFormattedEmployeeCount(analytics.intelligence.employeeCount.toLocaleString());
+    } else {
+      setFormattedEmployeeCount('');
+    }
+
+    if (merchant?.employeeCount !== undefined && merchant.employeeCount !== null) {
+      setFormattedMerchantEmployeeCount(merchant.employeeCount.toLocaleString());
+    } else {
+      setFormattedMerchantEmployeeCount('');
+    }
+
+    if (analytics?.intelligence?.annualRevenue !== undefined && analytics.intelligence.annualRevenue !== null) {
+      setFormattedAnnualRevenue(
+        new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        }).format(analytics.intelligence.annualRevenue)
+      );
+    } else {
+      setFormattedAnnualRevenue('');
+    }
+
+    if (merchant?.annualRevenue !== undefined && merchant.annualRevenue !== null) {
+      setFormattedMerchantRevenue(
+        new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        }).format(merchant.annualRevenue)
+      );
+    } else {
+      setFormattedMerchantRevenue('');
+    }
+  }, [mounted, analytics?.intelligence?.employeeCount, analytics?.intelligence?.annualRevenue, merchant?.employeeCount, merchant?.annualRevenue]);
 
   // Get top 3 industry codes per type
   const getTopCodes = (codes: IndustryCode[] | undefined, limit = 3): IndustryCode[] => {
@@ -133,7 +232,30 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
   }
 
   return (
-    <div className="space-y-6">
+    <section className="space-y-6" aria-labelledby="analytics-heading">
+      {/* Header with refresh button */}
+      <header className="flex items-center justify-between">
+        <div>
+          <h2 id="analytics-heading" className="text-2xl font-bold">Business Analytics</h2>
+          {lastRefreshTime && (
+            <p className="text-sm text-muted-foreground mt-1" aria-live="polite">
+              Updated {formatRelativeTime(lastRefreshTime)}
+            </p>
+          )}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRefresh}
+          disabled={isRefreshing || loading}
+          aria-label="Refresh business analytics data"
+          title="Refresh data (R)"
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+      </header>
+
       {analytics && (
         <>
           {/* Portfolio Analytics Comparison */}
@@ -146,12 +268,15 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
                   <CardTitle>Classification</CardTitle>
                   <CardDescription>Industry classification data</CardDescription>
                 </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">From Analytics API</Badge>
                 <ExportButton
                   data={getExportData}
                   exportType="analytics"
                   merchantId={merchantId}
                   formats={['csv', 'json', 'excel', 'pdf']}
                 />
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -310,8 +435,13 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
                 <CardTitle>Security</CardTitle>
                 <CardDescription>Security metrics</CardDescription>
+                  </div>
+                  <Badge variant="outline">From Analytics API</Badge>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -344,8 +474,13 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
 
             <Card>
               <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
                 <CardTitle>Data Quality</CardTitle>
                 <CardDescription>Data completeness metrics</CardDescription>
+                  </div>
+                  <Badge variant="outline">From Analytics API</Badge>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -374,14 +509,82 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
               </CardContent>
             </Card>
           </div>
+
+          {/* Business Intelligence Card */}
+          {analytics.intelligence && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Business Intelligence</CardTitle>
+                    <CardDescription>Intelligence data from analytics API</CardDescription>
+                  </div>
+                  <Badge variant="outline">From Analytics API</Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {analytics.intelligence.businessAge !== undefined && analytics.intelligence.businessAge !== null && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Business Age</p>
+                    <p>
+                      {analytics.intelligence.businessAge >= 12
+                        ? `${Math.floor(analytics.intelligence.businessAge / 12)} years`
+                        : `${analytics.intelligence.businessAge} months`}
+                    </p>
+                  </div>
+                )}
+                
+                {analytics.intelligence.employeeCount !== undefined && analytics.intelligence.employeeCount !== null && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Employee Count</p>
+                    <div className="space-y-1">
+                      <p suppressHydrationWarning>{mounted ? formattedEmployeeCount || 'Loading...' : 'Loading...'}</p>
+                      {merchant?.employeeCount !== undefined && merchant.employeeCount !== null && 
+                       merchant.employeeCount !== analytics.intelligence.employeeCount && (
+                        <p className="text-xs text-muted-foreground" suppressHydrationWarning>
+                          Note: Merchant data shows {mounted ? formattedMerchantEmployeeCount || 'Loading...' : 'Loading...'} employees
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {analytics.intelligence.annualRevenue !== undefined && analytics.intelligence.annualRevenue !== null && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Annual Revenue</p>
+                    <div className="space-y-1">
+                      <p suppressHydrationWarning>{mounted ? formattedAnnualRevenue || 'Loading...' : 'Loading...'}</p>
+                      {merchant?.annualRevenue !== undefined && merchant.annualRevenue !== null && 
+                       Math.abs(merchant.annualRevenue - analytics.intelligence.annualRevenue) > 1000 && (
+                        <p className="text-xs text-muted-foreground" suppressHydrationWarning>
+                          Note: Merchant data shows {mounted ? formattedMerchantRevenue || 'Loading...' : 'Loading...'}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {(!analytics.intelligence.businessAge && 
+                  !analytics.intelligence.employeeCount && 
+                  !analytics.intelligence.annualRevenue) && (
+                  <p className="text-sm text-muted-foreground">No intelligence data available</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </>
       )}
 
       {websiteAnalysis && (
         <Card>
           <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
             <CardTitle>Website Analysis</CardTitle>
             <CardDescription>Website performance and security</CardDescription>
+              </div>
+              <Badge variant="outline">From Website Analysis API</Badge>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -420,7 +623,7 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
           message="Analytics data is not available for this merchant at this time."
         />
       )}
-    </div>
+    </section>
   );
 }
 

@@ -3,14 +3,22 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, BarChart3, Info, RefreshCw } from 'lucide-react';
+import { AlertCircle, BarChart3, Info, RefreshCw, HelpCircle, Download } from 'lucide-react';
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { explainRiskAssessment, getRiskAssessment } from '@/lib/api';
+import { explainRiskAssessment, getRiskAssessment, startRiskAssessment } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { ChartContainer } from '@/components/dashboards/ChartContainer';
 import { BarChart } from '@/components/charts/lazy';
 import { formatNumber, formatPercent } from '@/lib/number-format';
+import { ErrorCodes, formatErrorWithCode } from '@/lib/error-codes';
+import { ExportButton } from '@/components/export/ExportButton';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface RiskExplainabilitySectionProps {
   merchantId: string;
@@ -43,14 +51,20 @@ export function RiskExplainabilitySection({ merchantId }: RiskExplainabilitySect
           currentAssessmentId = assessment.id;
           setAssessmentId(currentAssessmentId);
         } else {
-          setError('No risk assessment found. Please run a risk assessment first.');
+          setError(formatErrorWithCode(
+            'No risk assessment found. Please run a risk assessment first.',
+            ErrorCodes.RISK_ASSESSMENT.NOT_FOUND
+          ));
           setLoading(false);
           return;
         }
       }
 
       if (!currentAssessmentId) {
-        setError('Assessment ID not available');
+        setError(formatErrorWithCode(
+          'Assessment ID not available',
+          ErrorCodes.RISK_ASSESSMENT.NOT_FOUND
+        ));
         setLoading(false);
         return;
       }
@@ -60,9 +74,13 @@ export function RiskExplainabilitySection({ merchantId }: RiskExplainabilitySect
       setExplanation(data);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load risk explanation';
-      setError(errorMessage);
+      const formattedError = formatErrorWithCode(
+        errorMessage,
+        ErrorCodes.RISK_ASSESSMENT.FETCH_ERROR
+      );
+      setError(formattedError);
       toast.error('Failed to load explanation', {
-        description: errorMessage,
+        description: formattedError,
       });
     } finally {
       setLoading(false);
@@ -72,6 +90,20 @@ export function RiskExplainabilitySection({ merchantId }: RiskExplainabilitySect
   useEffect(() => {
     fetchExplanation();
   }, [fetchExplanation]);
+
+  // Export data function
+  const getExportData = useCallback(() => {
+    if (!explanation) return null;
+    
+    return {
+      assessmentId: explanation.assessmentId,
+      baseValue: explanation.baseValue,
+      prediction: explanation.prediction,
+      factors: explanation.factors,
+      shapValues: explanation.shapValues,
+      exportedAt: new Date().toISOString(),
+    };
+  }, [explanation]);
 
   // Prepare SHAP values chart data
   const shapChartData = useMemo(() => {
@@ -101,21 +133,47 @@ export function RiskExplainabilitySection({ merchantId }: RiskExplainabilitySect
       .sort((a, b) => b.value - a.value);
   }, [explanation]);
 
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Risk Assessment Explainability</CardTitle>
-          <CardDescription>SHAP values and feature importance analysis</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-64 w-full" />
-        </CardContent>
-      </Card>
-    );
-  }
+  const handleStartAssessment = useCallback(async () => {
+    try {
+      toast.info('Starting risk assessment...');
+      const response = await startRiskAssessment({
+        merchantId,
+        options: {
+          includeHistory: true,
+          includePredictions: true,
+        },
+      });
+      toast.success('Risk assessment started successfully');
+      
+      // Poll for completion
+      const pollInterval = setInterval(async () => {
+        try {
+          const assessment = await getRiskAssessment(merchantId);
+          if (assessment && assessment.status === 'completed') {
+            clearInterval(pollInterval);
+            await fetchExplanation();
+            toast.success('Risk assessment completed');
+          } else if (assessment && assessment.status === 'failed') {
+            clearInterval(pollInterval);
+            toast.error('Risk assessment failed');
+          }
+        } catch (err) {
+          clearInterval(pollInterval);
+          console.error('Error polling assessment status:', err);
+        }
+      }, 2000);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to start assessment';
+      toast.error('Failed to start assessment', {
+        description: errorMessage,
+      });
+    }
+  }, [merchantId, fetchExplanation]);
 
   if (error) {
+    const isNoAssessmentError = error.includes('No risk assessment found') || 
+                                error.includes('Assessment ID not available');
+    
     return (
       <Card className="border-destructive">
         <CardHeader>
@@ -125,11 +183,26 @@ export function RiskExplainabilitySection({ merchantId }: RiskExplainabilitySect
         <CardContent>
           <div className="flex flex-col items-center justify-center p-6 space-y-4">
             <AlertCircle className="h-8 w-8 text-destructive" />
-            <p className="text-sm text-destructive-foreground">{error}</p>
-            <Button onClick={fetchExplanation} variant="outline" size="sm">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Retry
-            </Button>
+            <div className="text-center space-y-2">
+              <p className="text-sm font-medium text-destructive-foreground">{error}</p>
+              {isNoAssessmentError && (
+                <p className="text-xs text-muted-foreground">
+                  A risk assessment must be completed before explainability data can be displayed.
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              {isNoAssessmentError ? (
+                <Button onClick={handleStartAssessment} variant="default" size="sm">
+                  Run Risk Assessment
+                </Button>
+              ) : (
+                <Button onClick={fetchExplanation} variant="outline" size="sm">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Retry
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -160,21 +233,44 @@ export function RiskExplainabilitySection({ merchantId }: RiskExplainabilitySect
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Risk Assessment Explainability</CardTitle>
-            <CardDescription>
-              SHAP (SHapley Additive exPlanations) values and feature importance
-            </CardDescription>
+    <TooltipProvider>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <CardTitle>Risk Assessment Explainability</CardTitle>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="font-medium mb-1">SHAP Values Explained</p>
+                    <p className="text-xs">
+                      SHAP (SHapley Additive exPlanations) values show how each feature contributes to the risk score prediction. 
+                      Positive values increase risk, negative values decrease risk. The magnitude indicates the feature's importance.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <CardDescription>
+                SHAP (SHapley Additive exPlanations) values and feature importance
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <ExportButton
+                data={getExportData}
+                exportType="risk"
+                merchantId={merchantId}
+                formats={['csv', 'json', 'excel', 'pdf']}
+              />
+              <Button onClick={fetchExplanation} variant="outline" size="sm">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
           </div>
-          <Button onClick={fetchExplanation} variant="outline" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-        </div>
-      </CardHeader>
+        </CardHeader>
       <CardContent className="space-y-6">
         {/* Summary Metrics */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -203,7 +299,24 @@ export function RiskExplainabilitySection({ merchantId }: RiskExplainabilitySect
         {/* SHAP Values Chart */}
         {shapChartData.length > 0 && (
           <ChartContainer
-            title="SHAP Values (Top 10 Features)"
+            title={
+              <div className="flex items-center gap-2">
+                <span>SHAP Values (Top 10 Features)</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="font-medium mb-1">Understanding SHAP Values</p>
+                    <p className="text-xs">
+                      This chart shows the top 10 features that most influence the risk score. 
+                      Features are sorted by absolute SHAP value (importance). 
+                      Positive values (red) increase risk, negative values (green) decrease risk.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            }
             description="Feature contributions to the risk score prediction"
             isLoading={false}
           >
@@ -226,7 +339,23 @@ export function RiskExplainabilitySection({ merchantId }: RiskExplainabilitySect
         {/* Feature Importance Chart */}
         {featureImportanceData.length > 0 && (
           <ChartContainer
-            title="Feature Importance"
+            title={
+              <div className="flex items-center gap-2">
+                <span>Feature Importance</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="font-medium mb-1">Feature Importance</p>
+                    <p className="text-xs">
+                      This chart shows the impact of each risk factor, calculated as score × weight. 
+                      Higher values indicate factors that have a greater influence on the overall risk assessment.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            }
             description="Impact of each risk factor (score × weight)"
             isLoading={false}
           >
@@ -277,9 +406,23 @@ export function RiskExplainabilitySection({ merchantId }: RiskExplainabilitySect
                 </div>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Positive values increase risk, negative values decrease risk
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-muted-foreground">
+                Positive values increase risk, negative values decrease risk
+              </p>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="font-medium mb-1">SHAP Value Interpretation</p>
+                  <p className="text-xs">
+                    Each SHAP value represents how much a feature pushes the prediction away from the base value. 
+                    Positive values (red) push toward higher risk, negative values (green) push toward lower risk.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
           </div>
         )}
 
@@ -315,6 +458,7 @@ export function RiskExplainabilitySection({ merchantId }: RiskExplainabilitySect
         )}
       </CardContent>
     </Card>
+    </TooltipProvider>
   );
 }
 
