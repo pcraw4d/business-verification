@@ -14,7 +14,7 @@ import { getAssessmentStatus, getRiskAssessment, getRiskHistory, getRiskPredicti
 import { ErrorHandler } from '@/lib/error-handler';
 import { formatNumber, formatPercent } from '@/lib/number-format';
 import type { RiskAssessment, RiskAssessmentRequest, RiskFactor } from '@/types/merchant';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
@@ -47,6 +47,10 @@ function RiskAssessmentTabContent({ merchantId }: RiskAssessmentTabProps) {
   useEffect(() => {
     loadAssessment();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [merchantId]);
+
+  const handleRefresh = useCallback(() => {
+    loadAssessment(true);
   }, [merchantId]);
 
   // Keyboard shortcut: R to refresh
@@ -91,7 +95,7 @@ function RiskAssessmentTabContent({ merchantId }: RiskAssessmentTabProps) {
   async function loadAssessment(bypassCache = false) {
     try {
       if (!bypassCache) {
-        setLoading(true);
+      setLoading(true);
       } else {
         setIsRefreshing(true);
       }
@@ -148,10 +152,6 @@ function RiskAssessmentTabContent({ merchantId }: RiskAssessmentTabProps) {
       }
     }
   }
-
-  const handleRefresh = () => {
-    loadAssessment(true);
-  };
 
   // Format relative time for last refresh
   const formatRelativeTime = (date: Date): string => {

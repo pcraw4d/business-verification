@@ -42,33 +42,33 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
   }, []);
 
   const loadAnalytics = async (bypassCache = false) => {
-    try {
+      try {
       if (!bypassCache) {
         setLoading(true);
       } else {
         setIsRefreshing(true);
       }
-      setError(null);
-      // Load critical analytics data immediately
-      const analyticsData = await getMerchantAnalytics(merchantId).catch(() => null);
-      setAnalytics(analyticsData);
-      
-      // Load merchant data for comparison with intelligence data
-      const merchantData = await getMerchant(merchantId).catch(() => null);
-      setMerchant(merchantData);
-      
-      setLoading(false);
+        setError(null);
+        // Load critical analytics data immediately
+        const analyticsData = await getMerchantAnalytics(merchantId).catch(() => null);
+        setAnalytics(analyticsData);
+        
+        // Load merchant data for comparison with intelligence data
+        const merchantData = await getMerchant(merchantId).catch(() => null);
+        setMerchant(merchantData);
+        
+        setLoading(false);
       setIsRefreshing(false);
       setLastRefreshTime(new Date());
-      
-      // Defer non-critical website analysis
-      deferNonCriticalDataLoad(async () => {
-        const websiteData = await getWebsiteAnalysis(merchantId).catch(() => null);
-        setWebsiteAnalysis(websiteData);
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load analytics');
-      setLoading(false);
+        
+        // Defer non-critical website analysis
+        deferNonCriticalDataLoad(async () => {
+          const websiteData = await getWebsiteAnalysis(merchantId).catch(() => null);
+          setWebsiteAnalysis(websiteData);
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load analytics');
+        setLoading(false);
       setIsRefreshing(false);
     }
   };

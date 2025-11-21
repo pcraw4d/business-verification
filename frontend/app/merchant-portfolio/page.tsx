@@ -267,9 +267,9 @@ export default function MerchantPortfolioPage() {
               window.location.reload();
             }}
           />
-        }
-      >
-        <div className="space-y-6">
+      }
+    >
+      <div className="space-y-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
@@ -531,7 +531,7 @@ export default function MerchantPortfolioPage() {
             )}
           </CardContent>
         </Card>
-        </div>
+      </div>
       </ErrorBoundary>
     </AppLayout>
   );

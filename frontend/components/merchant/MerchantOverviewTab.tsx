@@ -179,8 +179,8 @@ export function MerchantOverviewTab({ merchant }: MerchantOverviewTabProps) {
           <CardHeader>
             <div className="flex items-start justify-between">
               <div>
-                <CardTitle>Business Information</CardTitle>
-                <CardDescription>Basic merchant details</CardDescription>
+            <CardTitle>Business Information</CardTitle>
+            <CardDescription>Basic merchant details</CardDescription>
               </div>
               {merchant.updatedAt && mounted && (
                 <p 
@@ -263,8 +263,8 @@ export function MerchantOverviewTab({ merchant }: MerchantOverviewTabProps) {
           <CardHeader>
             <div className="flex items-start justify-between">
               <div>
-                <CardTitle>Contact Information</CardTitle>
-                <CardDescription>Contact details</CardDescription>
+            <CardTitle>Contact Information</CardTitle>
+            <CardDescription>Contact details</CardDescription>
               </div>
               {merchant.updatedAt && mounted && (
                 <p 
@@ -312,8 +312,8 @@ export function MerchantOverviewTab({ merchant }: MerchantOverviewTabProps) {
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div>
-                  <CardTitle>Financial Information</CardTitle>
-                  <CardDescription>Business financial details</CardDescription>
+              <CardTitle>Financial Information</CardTitle>
+              <CardDescription>Business financial details</CardDescription>
                 </div>
                 {merchant.updatedAt && mounted && (
                   <p 
@@ -362,8 +362,8 @@ export function MerchantOverviewTab({ merchant }: MerchantOverviewTabProps) {
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div>
-                  <CardTitle>Registration & Compliance</CardTitle>
-                  <CardDescription>Business registration and compliance details</CardDescription>
+              <CardTitle>Registration & Compliance</CardTitle>
+              <CardDescription>Business registration and compliance details</CardDescription>
                 </div>
                 {merchant.updatedAt && mounted && (
                   <p 
@@ -414,8 +414,8 @@ export function MerchantOverviewTab({ merchant }: MerchantOverviewTabProps) {
           <CardHeader>
             <div className="flex items-start justify-between">
               <div>
-                <CardTitle>Address</CardTitle>
-                <CardDescription>Business location</CardDescription>
+            <CardTitle>Address</CardTitle>
+            <CardDescription>Business location</CardDescription>
               </div>
               {merchant.updatedAt && mounted && (
                 <p 
@@ -473,8 +473,8 @@ export function MerchantOverviewTab({ merchant }: MerchantOverviewTabProps) {
         <CardHeader>
           <div className="flex items-start justify-between">
             <div>
-              <CardTitle>Metadata</CardTitle>
-              <CardDescription>System information</CardDescription>
+          <CardTitle>Metadata</CardTitle>
+          <CardDescription>System information</CardDescription>
             </div>
             {merchant.updatedAt && mounted && (
               <p 

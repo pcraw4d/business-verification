@@ -145,15 +145,15 @@ export default function SessionsPage() {
       if (session.lastActivity) {
         try {
           formattedSession.lastActivity = new Date(session.lastActivity).toLocaleString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          });
-        } catch {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
           formattedSession.lastActivity = session.lastActivity;
-        }
+    }
       }
 
       formatted[session.id] = formattedSession;

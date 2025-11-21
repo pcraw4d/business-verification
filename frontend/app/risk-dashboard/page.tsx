@@ -209,8 +209,8 @@ export default function RiskDashboardPage() {
             }}
           />
         }
-      >
-        <div className="space-y-6">
+    >
+      <div className="space-y-6">
         {/* Risk Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {loading ? (
@@ -331,7 +331,7 @@ export default function RiskDashboardPage() {
             )}
           </CardContent>
         </Card>
-        </div>
+      </div>
       </ErrorBoundary>
     </AppLayout>
   );

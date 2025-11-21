@@ -265,7 +265,7 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
               console.error('Overview tab error:', error, errorInfo);
             }}
           >
-            <MerchantOverviewTab merchant={merchant} />
+          <MerchantOverviewTab merchant={merchant} />
           </ErrorBoundary>
         </TabsContent>
 
@@ -283,7 +283,7 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
               console.error('Business Analytics tab error:', error, errorInfo);
             }}
           >
-            <BusinessAnalyticsTab merchantId={merchantId} />
+          <BusinessAnalyticsTab merchantId={merchantId} />
           </ErrorBoundary>
         </TabsContent>
 
@@ -301,7 +301,7 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
               console.error('Risk Assessment tab error:', error, errorInfo);
             }}
           >
-            <RiskAssessmentTab merchantId={merchantId} />
+          <RiskAssessmentTab merchantId={merchantId} />
           </ErrorBoundary>
         </TabsContent>
 
@@ -319,7 +319,7 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
               console.error('Risk Indicators tab error:', error, errorInfo);
             }}
           >
-            <RiskIndicatorsTab merchantId={merchantId} />
+          <RiskIndicatorsTab merchantId={merchantId} />
           </ErrorBoundary>
         </TabsContent>
       </Tabs>

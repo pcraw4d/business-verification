@@ -20,6 +20,8 @@ interface EnrichmentButtonProps {
   variant?: 'default' | 'outline' | 'ghost';
   size?: 'default' | 'sm' | 'lg' | 'icon';
   className?: string;
+  'aria-label'?: string;
+  title?: string;
 }
 
 type EnrichmentJobStatus = 'idle' | 'pending' | 'processing' | 'completed' | 'failed';
@@ -371,15 +373,6 @@ export const EnrichmentButton = forwardRef<HTMLButtonElement, EnrichmentButtonPr
                           {source.description && (
                             <p className="text-sm text-muted-foreground">{source.description}</p>
                           )}
-                          {source.dataProvided && (
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {source.dataProvided.map((data, idx) => (
-                                <Badge key={idx} variant="outline" className="text-xs">
-                                  {data}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
                         </div>
                         {isProcessing && (
                           <div className="ml-4 w-32">
@@ -517,7 +510,7 @@ export const EnrichmentButton = forwardRef<HTMLButtonElement, EnrichmentButtonPr
       </DialogContent>
     </Dialog>
   );
-  }
+}
 );
 
 EnrichmentButton.displayName = 'EnrichmentButton';

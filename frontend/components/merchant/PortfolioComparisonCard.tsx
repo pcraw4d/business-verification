@@ -74,7 +74,7 @@ export function PortfolioComparisonCard({ merchantId, merchantRiskLevel }: Portf
   const fetchComparisonData = useCallback(async (bypassCache = false) => {
     try {
       if (!bypassCache) {
-        setLoading(true);
+      setLoading(true);
       } else {
         setIsRefreshing(true);
       }
@@ -382,7 +382,7 @@ export function PortfolioComparisonCard({ merchantId, merchantRiskLevel }: Portf
               )}
               <div className="mt-3 space-y-2">
                 <Button 
-                  onClick={fetchComparisonData} 
+                  onClick={() => fetchComparisonData()} 
                   className="w-full sm:w-auto"
                   variant="outline"
                 >
@@ -414,7 +414,7 @@ export function PortfolioComparisonCard({ merchantId, merchantRiskLevel }: Portf
             <AlertDescription className="mt-2">
               {formatErrorWithCode(error, ErrorCodes.PORTFOLIO_COMPARISON.FETCH_ERROR)}
               <Button 
-                onClick={fetchComparisonData} 
+                onClick={() => fetchComparisonData()} 
                 className="mt-3 w-full sm:w-auto"
                 variant="outline"
               >
@@ -471,7 +471,7 @@ export function PortfolioComparisonCard({ merchantId, merchantRiskLevel }: Portf
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <CardTitle>Portfolio Comparison</CardTitle>
+        <CardTitle>Portfolio Comparison</CardTitle>
             <CardDescription>
               Comparing merchant performance to portfolio average
               {formattedLastRefresh && (

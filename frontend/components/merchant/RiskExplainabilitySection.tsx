@@ -299,26 +299,24 @@ export function RiskExplainabilitySection({ merchantId }: RiskExplainabilitySect
         {/* SHAP Values Chart */}
         {shapChartData.length > 0 && (
           <ChartContainer
-            title={
-              <div className="flex items-center gap-2">
-                <span>SHAP Values (Top 10 Features)</span>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p className="font-medium mb-1">Understanding SHAP Values</p>
-                    <p className="text-xs">
-                      This chart shows the top 10 features that most influence the risk score. 
-                      Features are sorted by absolute SHAP value (importance). 
-                      Positive values (red) increase risk, negative values (green) decrease risk.
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-            }
+            title="SHAP Values (Top 10 Features)"
             description="Feature contributions to the risk score prediction"
             isLoading={false}
+            action={
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="font-medium mb-1">Understanding SHAP Values</p>
+                  <p className="text-xs">
+                    This chart shows the top 10 features that most influence the risk score. 
+                    Features are sorted by absolute SHAP value (importance). 
+                    Positive values (red) increase risk, negative values (green) decrease risk.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            }
           >
             <BarChart
               data={shapChartData}
@@ -339,25 +337,23 @@ export function RiskExplainabilitySection({ merchantId }: RiskExplainabilitySect
         {/* Feature Importance Chart */}
         {featureImportanceData.length > 0 && (
           <ChartContainer
-            title={
-              <div className="flex items-center gap-2">
-                <span>Feature Importance</span>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p className="font-medium mb-1">Feature Importance</p>
-                    <p className="text-xs">
-                      This chart shows the impact of each risk factor, calculated as score × weight. 
-                      Higher values indicate factors that have a greater influence on the overall risk assessment.
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-            }
+            title="Feature Importance"
             description="Impact of each risk factor (score × weight)"
             isLoading={false}
+            action={
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="font-medium mb-1">Feature Importance</p>
+                  <p className="text-xs">
+                    This chart shows the impact of each risk factor, calculated as score × weight. 
+                    Higher values indicate factors that have a greater influence on the overall risk assessment.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            }
           >
             <BarChart
               data={featureImportanceData}

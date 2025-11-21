@@ -38,7 +38,7 @@ export function RiskBenchmarkComparison({ merchantId }: RiskBenchmarkComparisonP
     }
     fetchingRef.current = true;
     if (!bypassCache) {
-      setLoading(true);
+    setLoading(true);
     } else {
       setIsRefreshing(true);
     }
@@ -392,7 +392,7 @@ export function RiskBenchmarkComparison({ merchantId }: RiskBenchmarkComparisonP
                   <EnrichmentButton merchantId={merchantId} variant="default" size="sm" />
                 ) : (
                   <Button 
-                    onClick={fetchComparisonData} 
+                    onClick={() => fetchComparisonData()} 
                     className="w-full sm:w-auto"
                     variant="outline"
                   >
@@ -423,7 +423,7 @@ export function RiskBenchmarkComparison({ merchantId }: RiskBenchmarkComparisonP
             We could not retrieve sufficient data to compare this merchant against industry benchmarks.
               <div className="mt-3 space-y-2">
                 <Button 
-                  onClick={fetchComparisonData} 
+                  onClick={() => fetchComparisonData()} 
                   className="w-full sm:w-auto"
                   variant="outline"
                 >
@@ -482,8 +482,8 @@ export function RiskBenchmarkComparison({ merchantId }: RiskBenchmarkComparisonP
           <div>
             <CardTitle id="benchmark-heading">Industry Benchmark Comparison</CardTitle>
             <CardDescription id="benchmark-description">
-              How this merchant compares to industry benchmarks ({industryCode.type.toUpperCase()}: {industryCode.code} - {industryCode.description})
-            </CardDescription>
+          How this merchant compares to industry benchmarks ({industryCode.type.toUpperCase()}: {industryCode.code} - {industryCode.description})
+        </CardDescription>
             {lastRefreshTime && (
               <p className="text-xs text-muted-foreground mt-1" aria-live="polite">
                 Updated {formatRelativeTime(lastRefreshTime)}
@@ -552,19 +552,19 @@ export function RiskBenchmarkComparison({ merchantId }: RiskBenchmarkComparisonP
           isLoading={false}
         >
           <div role="img" aria-label="Bar chart showing merchant risk score compared to industry benchmarks">
-            <BarChart
-              data={chartData}
-              dataKey="name"
-              bars={[
-                {
-                  key: 'value',
-                  name: 'Risk Score',
-                  color: '#8884d8', // Default color - merchant will be highlighted by label
-                },
-              ]}
-              height={300}
-              isLoading={false}
-            />
+          <BarChart
+            data={chartData}
+            dataKey="name"
+            bars={[
+              {
+                key: 'value',
+                name: 'Risk Score',
+                color: '#8884d8', // Default color - merchant will be highlighted by label
+              },
+            ]}
+            height={300}
+            isLoading={false}
+          />
           </div>
           <div className="mt-4 flex items-center justify-center gap-4 text-sm">
             <div className="flex items-center gap-2">
