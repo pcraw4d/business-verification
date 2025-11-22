@@ -5,9 +5,11 @@ import { BusinessAnalyticsTab } from '@/components/merchant/BusinessAnalyticsTab
 // Mock API
 const mockGetMerchantAnalytics = vi.fn();
 const mockGetWebsiteAnalysis = vi.fn();
+const mockGetMerchant = vi.fn();
 vi.mock('@/lib/api', () => ({
   getMerchantAnalytics: (...args: any[]) => mockGetMerchantAnalytics(...args),
   getWebsiteAnalysis: (...args: any[]) => mockGetWebsiteAnalysis(...args),
+  getMerchant: (...args: any[]) => mockGetMerchant(...args),
 }));
 
 // Mock lazy loader
@@ -43,11 +45,21 @@ describe('BusinessAnalyticsTab', () => {
     accessibility: { score: 0.9 },
   };
 
+  const mockMerchant = {
+    id: 'merchant-123',
+    businessName: 'Test Business',
+    industry: 'Technology',
+    status: 'active',
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetMerchantAnalytics.mockClear();
     mockGetWebsiteAnalysis.mockClear();
+    mockGetMerchant.mockClear();
     mockDeferNonCriticalDataLoad.mockClear();
+    // Default mock for getMerchant
+    mockGetMerchant.mockResolvedValue(mockMerchant);
   });
 
   it('should render loading state initially', () => {
@@ -68,12 +80,14 @@ describe('BusinessAnalyticsTab', () => {
   it('should render analytics data when loaded', async () => {
     mockGetMerchantAnalytics.mockResolvedValue(mockAnalytics);
     mockGetWebsiteAnalysis.mockResolvedValue(mockWebsiteAnalysis);
+    mockGetMerchant.mockResolvedValue(mockMerchant);
 
     render(<BusinessAnalyticsTab merchantId="merchant-123" />);
 
     await waitFor(() => {
+      // The component displays the primaryIndustry from classification
       expect(screen.getByText('Technology')).toBeInTheDocument();
-    });
+    }, { timeout: 3000 });
 
     expect(screen.getByText(/95.0%/)).toBeInTheDocument();
     expect(screen.getByText(/80.0%/)).toBeInTheDocument();
@@ -82,23 +96,32 @@ describe('BusinessAnalyticsTab', () => {
   it('should render empty state when no data', async () => {
     mockGetMerchantAnalytics.mockResolvedValue(null);
     mockGetWebsiteAnalysis.mockResolvedValue(null);
+    mockGetMerchant.mockResolvedValue(mockMerchant);
 
     render(<BusinessAnalyticsTab merchantId="merchant-123" />);
 
     await waitFor(() => {
+      // Component shows empty state when analytics is null
       expect(screen.getByText(/No Analytics Data/i)).toBeInTheDocument();
-    });
+    }, { timeout: 3000 });
   });
 
   it('should use lazy loading for website analysis', async () => {
     mockGetMerchantAnalytics.mockResolvedValue(mockAnalytics);
     mockGetWebsiteAnalysis.mockResolvedValue(mockWebsiteAnalysis);
+    mockGetMerchant.mockResolvedValue(mockMerchant);
 
     render(<BusinessAnalyticsTab merchantId="merchant-123" />);
 
+    // Wait for initial load to complete
+    await waitFor(() => {
+      expect(mockGetMerchantAnalytics).toHaveBeenCalled();
+    }, { timeout: 3000 });
+
+    // deferNonCriticalDataLoad should be called for website analysis
     await waitFor(() => {
       expect(mockDeferNonCriticalDataLoad).toHaveBeenCalled();
-    });
+    }, { timeout: 1000 });
   });
 });
 

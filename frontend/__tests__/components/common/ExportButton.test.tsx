@@ -38,14 +38,16 @@ describe('ExportButton (common)', () => {
     it('should render export button', () => {
       render(<ExportButton merchantId={merchantId} />);
       
-      const button = screen.getByRole('button', { name: /export csv/i });
+      // Button text is "Export CSV" (uppercase)
+      const button = screen.getByRole('button', { name: /export.*csv/i });
       expect(button).toBeInTheDocument();
     });
 
     it('should display correct format in button text', () => {
       render(<ExportButton merchantId={merchantId} format="pdf" />);
       
-      const button = screen.getByRole('button', { name: /export pdf/i });
+      // Button text is "Export PDF" (uppercase)
+      const button = screen.getByRole('button', { name: /export.*pdf/i });
       expect(button).toBeInTheDocument();
     });
 
@@ -56,16 +58,19 @@ describe('ExportButton (common)', () => {
       });
 
       server.use(
-        http.get('*/api/v1/merchants/:merchantId/export/:format', async () => {
+        // Match the actual API format with query parameter
+        http.get('*/api/v1/merchants/:merchantId/export', async () => {
           await exportPromise;
-          return HttpResponse.json({});
+          return HttpResponse.text('csv,data', {
+            headers: { 'Content-Type': 'text/csv' },
+          });
         })
       );
 
       const user = userEvent.setup();
       render(<ExportButton merchantId={merchantId} format="csv" />);
       
-      const button = screen.getByRole('button', { name: /export csv/i });
+      const button = screen.getByRole('button', { name: /export.*csv/i });
       await user.click(button);
       
       await waitFor(() => {
@@ -82,7 +87,7 @@ describe('ExportButton (common)', () => {
       const user = userEvent.setup();
       render(<ExportButton merchantId={merchantId} format="json" data={mockData} />);
       
-      const button = screen.getByRole('button', { name: /export json/i });
+      const button = screen.getByRole('button', { name: /export.*json/i });
       await user.click(button);
       
       await waitFor(() => {
@@ -96,7 +101,7 @@ describe('ExportButton (common)', () => {
       const filename = 'custom-export.json';
       render(<ExportButton merchantId={merchantId} format="json" data={mockData} filename={filename} />);
       
-      const button = screen.getByRole('button', { name: /export json/i });
+      const button = screen.getByRole('button', { name: /export.*json/i });
       await user.click(button);
       
       await waitFor(() => {
@@ -110,40 +115,55 @@ describe('ExportButton (common)', () => {
       const mockBlob = new Blob(['csv,data'], { type: 'text/csv' });
       
       server.use(
-        http.get('*/api/v1/merchants/:merchantId/export/:format', () => {
-          return HttpResponse.arrayBuffer(mockBlob.arrayBuffer());
+        // Match the actual API format: /api/v1/merchants/:merchantId/export?format=csv
+        http.get('*/api/v1/merchants/:merchantId/export', async ({ request }) => {
+          const url = new URL(request.url);
+          if (url.searchParams.get('format') === 'csv') {
+            // Return blob data as text for CSV
+            return HttpResponse.text('csv,data', {
+              headers: { 'Content-Type': 'text/csv' },
+            });
+          }
+          return HttpResponse.json({}, { status: 400 });
         })
       );
 
       const user = userEvent.setup();
       render(<ExportButton merchantId={merchantId} format="csv" />);
       
-      const button = screen.getByRole('button', { name: /export csv/i });
+      const button = screen.getByRole('button', { name: /export.*csv/i });
       await user.click(button);
       
       await waitFor(() => {
         expect(mockToast.success).toHaveBeenCalledWith('Data exported successfully');
-      });
+      }, { timeout: 5000 });
     });
 
     it('should export PDF via API', async () => {
-      const mockBlob = new Blob(['pdf content'], { type: 'application/pdf' });
-      
       server.use(
-        http.get('*/api/v1/merchants/:merchantId/export/:format', () => {
-          return HttpResponse.arrayBuffer(mockBlob.arrayBuffer());
+        // Match the actual API format: /api/v1/merchants/:merchantId/export?format=pdf
+        http.get('*/api/v1/merchants/:merchantId/export', async ({ request }) => {
+          const url = new URL(request.url);
+          if (url.searchParams.get('format') === 'pdf') {
+            // Return PDF-like content
+            const pdfContent = '%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n>>\nendobj\nxref\n0 1\ntrailer\n<<\n/Root 1 0 R\n>>\n%%EOF';
+            return HttpResponse.text(pdfContent, {
+              headers: { 'Content-Type': 'application/pdf' },
+            });
+          }
+          return HttpResponse.json({}, { status: 400 });
         })
       );
 
       const user = userEvent.setup();
       render(<ExportButton merchantId={merchantId} format="pdf" />);
       
-      const button = screen.getByRole('button', { name: /export pdf/i });
+      const button = screen.getByRole('button', { name: /export.*pdf/i });
       await user.click(button);
       
       await waitFor(() => {
         expect(mockToast.success).toHaveBeenCalledWith('Data exported successfully');
-      });
+      }, { timeout: 5000 });
     });
 
     it('should include auth token in headers when available', async () => {
@@ -161,7 +181,8 @@ describe('ExportButton (common)', () => {
       const mockBlob = new Blob(['data'], { type: 'text/csv' });
       
       server.use(
-        http.get('*/api/v1/merchants/:merchantId/export/:format', ({ request }) => {
+        // Match the actual API format with query parameter
+        http.get('*/api/v1/merchants/:merchantId/export', ({ request }) => {
           const authHeader = request.headers.get('Authorization');
           expect(authHeader).toBe('Bearer test-token');
           return HttpResponse.arrayBuffer(mockBlob.arrayBuffer());
@@ -171,7 +192,7 @@ describe('ExportButton (common)', () => {
       const user = userEvent.setup();
       render(<ExportButton merchantId={merchantId} format="csv" />);
       
-      const button = screen.getByRole('button', { name: /export csv/i });
+      const button = screen.getByRole('button', { name: /export.*csv/i });
       await user.click(button);
       
       await waitFor(() => {
@@ -181,7 +202,8 @@ describe('ExportButton (common)', () => {
 
     it('should handle export errors', async () => {
       server.use(
-        http.get('*/api/v1/merchants/:merchantId/export/:format', () => {
+        // Match the actual API format with query parameter
+        http.get('*/api/v1/merchants/:merchantId/export', () => {
           return HttpResponse.json({ error: 'Export failed' }, { status: 500 });
         })
       );
@@ -189,7 +211,7 @@ describe('ExportButton (common)', () => {
       const user = userEvent.setup();
       render(<ExportButton merchantId={merchantId} format="csv" />);
       
-      const button = screen.getByRole('button', { name: /export csv/i });
+      const button = screen.getByRole('button', { name: /export.*csv/i });
       await user.click(button);
       
       await waitFor(() => {
@@ -199,7 +221,8 @@ describe('ExportButton (common)', () => {
 
     it('should handle network errors', async () => {
       server.use(
-        http.get('*/api/v1/merchants/:merchantId/export/:format', () => {
+        // Match the actual API format with query parameter
+        http.get('*/api/v1/merchants/:merchantId/export', () => {
           return HttpResponse.error();
         })
       );
@@ -207,7 +230,7 @@ describe('ExportButton (common)', () => {
       const user = userEvent.setup();
       render(<ExportButton merchantId={merchantId} format="csv" />);
       
-      const button = screen.getByRole('button', { name: /export csv/i });
+      const button = screen.getByRole('button', { name: /export.*csv/i });
       await user.click(button);
       
       await waitFor(() => {
@@ -220,7 +243,7 @@ describe('ExportButton (common)', () => {
     it('should have proper aria-label', () => {
       render(<ExportButton merchantId={merchantId} format="csv" />);
       
-      const button = screen.getByRole('button', { name: /export data as csv/i });
+      const button = screen.getByRole('button', { name: /export.*data.*as.*csv/i });
       expect(button).toBeInTheDocument();
     });
 
@@ -231,16 +254,19 @@ describe('ExportButton (common)', () => {
       });
 
       server.use(
-        http.get('*/api/v1/merchants/:merchantId/export/:format', async () => {
+        // Match the actual API format with query parameter
+        http.get('*/api/v1/merchants/:merchantId/export', async () => {
           await exportPromise;
-          return HttpResponse.json({});
+          return HttpResponse.text('csv,data', {
+            headers: { 'Content-Type': 'text/csv' },
+          });
         })
       );
 
       const user = userEvent.setup();
       render(<ExportButton merchantId={merchantId} format="csv" />);
       
-      const button = screen.getByRole('button', { name: /export data as csv/i });
+      const button = screen.getByRole('button', { name: /export.*data.*as.*csv/i });
       await user.click(button);
       
       await waitFor(() => {

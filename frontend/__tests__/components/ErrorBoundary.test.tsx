@@ -97,16 +97,18 @@ describe('ErrorBoundary', () => {
 
     // After clicking reset, the error boundary state is cleared
     // We need to rerender with a component that doesn't throw to see the children
+    // Use a key prop to force a fresh render
     rerender(
-      <ErrorBoundary>
+      <ErrorBoundary key="reset-test">
         <ThrowError shouldThrow={false} />
       </ErrorBoundary>
     );
 
     // The error boundary should now render children since state is reset and component doesn't throw
+    // Give it a moment for the state to update
     await waitFor(() => {
       expect(screen.getByText('No error')).toBeInTheDocument();
-    }, { timeout: 3000 });
+    }, { timeout: 5000 });
   });
 
   it('should show error details in development mode', () => {

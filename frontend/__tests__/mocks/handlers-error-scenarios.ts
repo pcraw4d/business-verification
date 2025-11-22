@@ -28,8 +28,8 @@ export const errorHandlers = [
       );
     }
     
-    // Return null to let other handlers process
-    return null;
+    // Use passthrough to let other handlers process
+    return;
   }),
 
   // Error: Server error (500)
@@ -51,7 +51,7 @@ export const errorHandlers = [
       );
     }
     
-    return null;
+    return;
   }),
 
   // Error: Missing portfolio statistics (404)
@@ -65,7 +65,7 @@ export const errorHandlers = [
       );
     }
     
-    return null;
+    return;
   }),
 
   // Error: Missing merchant analytics (404)
@@ -79,7 +79,7 @@ export const errorHandlers = [
       );
     }
     
-    return null;
+    return;
   }),
 
   // Error: Missing portfolio analytics (404)
@@ -92,7 +92,7 @@ export const errorHandlers = [
       );
     }
     
-    return null;
+    return;
   }),
 
   // Error: Missing industry code for benchmarks
@@ -110,7 +110,7 @@ export const errorHandlers = [
       );
     }
     
-    return null;
+    return;
   }),
 
   // Error: Network timeout simulation
@@ -123,7 +123,7 @@ export const errorHandlers = [
       return HttpResponse.json({}, { status: 200 });
     }
     
-    return null;
+    return;
   }),
 
   // Error: CORS error simulation (can't be fully simulated, but can return CORS-like error)
@@ -143,7 +143,7 @@ export const errorHandlers = [
       );
     }
     
-    return null;
+    return;
   }),
 ];
 
@@ -166,7 +166,7 @@ export const testMerchantHandlers = [
         { status: 404 }
       );
     }
-    return null;
+    return;
   }),
 
   // Merchant with no analytics

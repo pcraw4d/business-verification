@@ -8,11 +8,11 @@ describe('ProgressIndicator', () => {
     expect(screen.getByText(/50%/)).toBeInTheDocument();
   });
 
-  it('should render progress without percentage when no label', () => {
+  it('should render progress with percentage when no label (default showPercentage=true)', () => {
     const { container } = render(<ProgressIndicator progress={50} />);
-    // Progress bar should exist but percentage text should not
+    // Progress bar should exist and percentage text should be shown (default behavior)
     expect(container.querySelector('[role="progressbar"]')).toBeInTheDocument();
-    expect(screen.queryByText(/50%/)).not.toBeInTheDocument();
+    expect(screen.getByText(/50%/)).toBeInTheDocument();
   });
 
   it('should render with label', () => {

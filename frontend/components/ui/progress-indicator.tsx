@@ -20,9 +20,9 @@ export function ProgressIndicator({
 
   return (
     <div className={cn('space-y-2', className)}>
-      {label && (
+      {(label || showPercentage) && (
         <div className="flex justify-between text-sm">
-          <span>{label}</span>
+          {label && <span>{label}</span>}
           {showPercentage && <span>{Math.round(clampedProgress)}%</span>}
         </div>
       )}

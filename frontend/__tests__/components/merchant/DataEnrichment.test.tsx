@@ -33,7 +33,7 @@ describe('DataEnrichment', () => {
     it('should render enrichment button', () => {
       render(<DataEnrichment merchantId={merchantId} />);
       
-      const button = screen.getByRole('button', { name: /enrich data/i });
+      const button = screen.getByRole('button', { name: /open data enrichment dialog|enrich data/i });
       expect(button).toBeInTheDocument();
     });
 
@@ -41,7 +41,7 @@ describe('DataEnrichment', () => {
       const user = userEvent.setup();
       render(<DataEnrichment merchantId={merchantId} />);
       
-      const button = screen.getByRole('button', { name: /enrich data/i });
+      const button = screen.getByRole('button', { name: /open data enrichment dialog|enrich data/i });
       await user.click(button);
       
       await waitFor(() => {
@@ -66,7 +66,7 @@ describe('DataEnrichment', () => {
       const user = userEvent.setup();
       render(<DataEnrichment merchantId={merchantId} />);
       
-      const button = screen.getByRole('button', { name: /enrich data/i });
+      const button = screen.getByRole('button', { name: /open data enrichment dialog|enrich data/i });
       await user.click(button);
       
       await waitFor(() => {
@@ -91,17 +91,28 @@ describe('DataEnrichment', () => {
       const user = userEvent.setup();
       render(<DataEnrichment merchantId={merchantId} />);
       
-      const button = screen.getByRole('button', { name: /enrich data/i });
+      const button = screen.getByRole('button', { name: /open data enrichment dialog|enrich data/i });
       await user.click(button);
       
-      // Should show skeleton while loading
+      // Wait for dialog to open
       await waitFor(() => {
-        const skeletons = document.querySelectorAll('[class*="skeleton"]');
-        expect(skeletons.length).toBeGreaterThan(0);
+        expect(screen.getByText('Data Enrichment')).toBeInTheDocument();
       });
       
-      // Resolve the promise
+      // Should show skeleton while loading (sources are being fetched)
+      await waitFor(() => {
+        const skeletons = document.querySelectorAll('[class*="skeleton"], [data-slot="skeleton"]');
+        expect(skeletons.length).toBeGreaterThan(0);
+      }, { timeout: 2000 });
+      
+      // Resolve the promise to complete the test
       resolveSources!({ sources: [] });
+      
+      // Wait for loading to complete
+      await waitFor(() => {
+        const skeletons = document.querySelectorAll('[class*="skeleton"]');
+        expect(skeletons.length).toBe(0);
+      }, { timeout: 3000 });
     });
 
     it('should show empty state when no sources available', async () => {
@@ -114,7 +125,7 @@ describe('DataEnrichment', () => {
       const user = userEvent.setup();
       render(<DataEnrichment merchantId={merchantId} />);
       
-      const button = screen.getByRole('button', { name: /enrich data/i });
+      const button = screen.getByRole('button', { name: /open data enrichment dialog|enrich data/i });
       await user.click(button);
       
       await waitFor(() => {
@@ -132,7 +143,7 @@ describe('DataEnrichment', () => {
       const user = userEvent.setup();
       render(<DataEnrichment merchantId={merchantId} />);
       
-      const button = screen.getByRole('button', { name: /enrich data/i });
+      const button = screen.getByRole('button', { name: /open data enrichment dialog|enrich data/i });
       await user.click(button);
       
       // Should show empty state or handle error gracefully
@@ -161,7 +172,7 @@ describe('DataEnrichment', () => {
       const user = userEvent.setup();
       render(<DataEnrichment merchantId={merchantId} />);
       
-      const button = screen.getByRole('button', { name: /enrich data/i });
+      const button = screen.getByRole('button', { name: /open data enrichment dialog|enrich data/i });
       await user.click(button);
       
       await waitFor(() => {
@@ -193,7 +204,7 @@ describe('DataEnrichment', () => {
       const user = userEvent.setup();
       render(<DataEnrichment merchantId={merchantId} />);
       
-      const button = screen.getByRole('button', { name: /enrich data/i });
+      const button = screen.getByRole('button', { name: /open data enrichment dialog|enrich data/i });
       await user.click(button);
       
       await waitFor(() => {
@@ -231,7 +242,7 @@ describe('DataEnrichment', () => {
       const user = userEvent.setup();
       render(<DataEnrichment merchantId={merchantId} />);
       
-      const button = screen.getByRole('button', { name: /enrich data/i });
+      const button = screen.getByRole('button', { name: /open data enrichment dialog|enrich data/i });
       await user.click(button);
       
       await waitFor(() => {
@@ -267,7 +278,7 @@ describe('DataEnrichment', () => {
       const user = userEvent.setup();
       render(<DataEnrichment merchantId={merchantId} />);
       
-      const button = screen.getByRole('button', { name: /enrich data/i });
+      const button = screen.getByRole('button', { name: /open data enrichment dialog|enrich data/i });
       await user.click(button);
       
       await waitFor(() => {
@@ -299,7 +310,7 @@ describe('DataEnrichment', () => {
       const user = userEvent.setup();
       render(<DataEnrichment merchantId={merchantId} />);
       
-      const button = screen.getByRole('button', { name: /enrich data/i });
+      const button = screen.getByRole('button', { name: /open data enrichment dialog|enrich data/i });
       await user.click(button);
       
       await waitFor(() => {
@@ -343,7 +354,7 @@ describe('DataEnrichment', () => {
       const user = userEvent.setup();
       render(<DataEnrichment merchantId={merchantId} />);
       
-      const button = screen.getByRole('button', { name: /enrich data/i });
+      const button = screen.getByRole('button', { name: /open data enrichment dialog|enrich data/i });
       await user.click(button);
       
       await waitFor(() => {
@@ -357,7 +368,7 @@ describe('DataEnrichment', () => {
       const user = userEvent.setup();
       render(<DataEnrichment merchantId={merchantId} />);
       
-      const button = screen.getByRole('button', { name: /enrich data/i });
+      const button = screen.getByRole('button', { name: /open data enrichment dialog|enrich data/i });
       await user.click(button);
       
       await waitFor(() => {

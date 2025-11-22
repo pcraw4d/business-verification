@@ -265,5 +265,216 @@ describe('cachedFetch', () => {
       }, 100);
     });
   });
+
+  describe('persist and restore', () => {
+    beforeEach(() => {
+      // Mock sessionStorage
+      const sessionStorageMock = {
+        getItem: vi.fn(),
+        setItem: vi.fn(),
+        removeItem: vi.fn(),
+        clear: vi.fn(),
+      };
+      Object.defineProperty(window, 'sessionStorage', {
+        value: sessionStorageMock,
+        writable: true,
+      });
+    });
+
+    it('should persist cache entry to sessionStorage', () => {
+      const cache = new APICache();
+      const data = { id: '123' };
+      cache.set('test-key', data);
+      
+      cache.persist('test-key');
+      
+      expect(window.sessionStorage.setItem).toHaveBeenCalledWith(
+        'cache:test-key',
+        expect.stringContaining('"data":{"id":"123"}')
+      );
+    });
+
+    it('should not persist if entry does not exist', () => {
+      const cache = new APICache();
+      
+      cache.persist('non-existent');
+      
+      expect(window.sessionStorage.setItem).not.toHaveBeenCalled();
+    });
+
+    it('should not persist if window is undefined (SSR)', () => {
+      const originalWindow = global.window;
+      // @ts-ignore
+      delete global.window;
+      
+      const cache = new APICache();
+      const data = { id: '123' };
+      cache.set('test-key', data);
+      
+      // Should not throw
+      expect(() => cache.persist('test-key')).not.toThrow();
+      
+      global.window = originalWindow;
+    });
+
+    it('should handle persist errors gracefully', () => {
+      const cache = new APICache();
+      const data = { id: '123' };
+      cache.set('test-key', data);
+      
+      // Mock setItem to throw
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      vi.mocked(window.sessionStorage.setItem).mockImplementation(() => {
+        throw new Error('Storage quota exceeded');
+      });
+      
+      expect(() => cache.persist('test-key')).not.toThrow();
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        'Failed to persist cache entry:',
+        expect.any(Error)
+      );
+      
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('should restore cache entry from sessionStorage', () => {
+      const cache = new APICache();
+      const data = { id: '123' };
+      const entry = {
+        data,
+        expiresAt: Date.now() + 5000, // 5 seconds from now
+      };
+      
+      vi.mocked(window.sessionStorage.getItem).mockReturnValue(
+        JSON.stringify(entry)
+      );
+      
+      const result = cache.restore<typeof data>('test-key');
+      
+      expect(result).toEqual(data);
+      expect(cache.get('test-key')).toEqual(data);
+    });
+
+    it('should return null if entry not in sessionStorage', () => {
+      const cache = new APICache();
+      
+      vi.mocked(window.sessionStorage.getItem).mockReturnValue(null);
+      
+      const result = cache.restore('test-key');
+      
+      expect(result).toBeNull();
+    });
+
+    it('should return null if entry is expired', () => {
+      const cache = new APICache();
+      const data = { id: '123' };
+      const entry = {
+        data,
+        expiresAt: Date.now() - 1000, // Expired 1 second ago
+      };
+      
+      vi.mocked(window.sessionStorage.getItem).mockReturnValue(
+        JSON.stringify(entry)
+      );
+      
+      const result = cache.restore<typeof data>('test-key');
+      
+      expect(result).toBeNull();
+      expect(window.sessionStorage.removeItem).toHaveBeenCalledWith('cache:test-key');
+    });
+
+    it('should return null if window is undefined (SSR)', () => {
+      const originalWindow = global.window;
+      // @ts-ignore
+      delete global.window;
+      
+      const cache = new APICache();
+      
+      const result = cache.restore('test-key');
+      
+      expect(result).toBeNull();
+      
+      global.window = originalWindow;
+    });
+
+    it('should handle restore errors gracefully', () => {
+      const cache = new APICache();
+      
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      vi.mocked(window.sessionStorage.getItem).mockReturnValue('invalid json');
+      
+      const result = cache.restore('test-key');
+      
+      expect(result).toBeNull();
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        'Failed to restore cache entry:',
+        expect.any(Error)
+      );
+      
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('should handle restore when JSON.parse throws', () => {
+      const cache = new APICache();
+      
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      vi.mocked(window.sessionStorage.getItem).mockReturnValue('{invalid json}');
+      
+      const result = cache.restore('test-key');
+      
+      expect(result).toBeNull();
+      expect(consoleWarnSpy).toHaveBeenCalled();
+      
+      consoleWarnSpy.mockRestore();
+    });
+  });
+
+  describe('cachedFetch edge cases', () => {
+    it('should handle fetch without cache', async () => {
+      const mockData = { id: '123' };
+
+      vi.mocked(global.fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockData,
+      } as Response);
+
+      const result = await cachedFetch('/api/test', { method: 'GET' });
+
+      expect(result).toEqual(mockData);
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle non-GET requests without cache', async () => {
+      const mockData = { id: '123' };
+
+      vi.mocked(global.fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockData,
+      } as Response);
+
+      const result = await cachedFetch('/api/test', { method: 'PUT' });
+
+      expect(result).toEqual(mockData);
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle cache miss with null return', async () => {
+      const cache = new APICache();
+      const mockData = { id: '123' };
+
+      // Mock cache.get to return null (cache miss)
+      vi.spyOn(cache, 'get').mockReturnValue(null);
+
+      vi.mocked(global.fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockData,
+      } as Response);
+
+      const result = await cachedFetch('/api/test', { method: 'GET' }, cache);
+
+      expect(result).toEqual(mockData);
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+  });
 });
 

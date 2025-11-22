@@ -80,9 +80,17 @@ describe('AppLayout', () => {
       </AppLayout>
     );
     
-    expect(screen.getByText('Home')).toBeInTheDocument();
+    // "Home" appears in both breadcrumbs and sidebar - use getAllByText
+    const homeElements = screen.getAllByText('Home');
+    expect(homeElements.length).toBeGreaterThan(0);
+    
+    // Check for breadcrumb-specific elements
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Current Page')).toBeInTheDocument();
+    
+    // Verify breadcrumb navigation is present
+    const breadcrumbNav = screen.getByRole('navigation', { name: /breadcrumb/i });
+    expect(breadcrumbNav).toBeInTheDocument();
   });
 
   it('should not render breadcrumbs when not provided', () => {
@@ -115,14 +123,24 @@ describe('AppLayout', () => {
     const user = userEvent.setup();
     render(<AppLayout>Content</AppLayout>);
     
-    // Find menu button (mobile sidebar trigger)
-    const menuButton = screen.getByLabelText(/toggle sidebar/i);
+    // Find menu button (mobile sidebar trigger) - SidebarTrigger has aria-label
+    const menuButton = screen.getByLabelText(/toggle sidebar/i) ||
+                      screen.getByRole('button', { name: /menu/i });
     await user.click(menuButton);
     
-    // Mobile sidebar should open (check for navigation items)
+    // Mobile sidebar should open (check for navigation items in Sheet/Dialog)
     await waitFor(() => {
-      expect(screen.getByText('Home')).toBeInTheDocument();
-    });
+      // Sidebar content should be visible in mobile Sheet
+      // "Home" appears in sidebar - use getAllByText since it might also appear elsewhere
+      const homeElements = screen.getAllByText('Home');
+      expect(homeElements.length).toBeGreaterThan(0);
+      // KYB Platform appears in both desktop and mobile sidebar - use getAllByText
+      const platformElements = screen.getAllByText('KYB Platform');
+      expect(platformElements.length).toBeGreaterThan(0);
+      // Verify mobile sidebar (Sheet/Dialog) is open
+      const dialog = screen.getByRole('dialog');
+      expect(dialog).toBeInTheDocument();
+    }, { timeout: 3000 });
   });
 });
 

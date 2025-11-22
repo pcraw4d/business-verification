@@ -34,6 +34,7 @@ describe('AnalyticsComparison', () => {
     classification: {
       primaryIndustry: 'Technology',
       confidenceScore: 0.95,
+      riskLevel: 'low',
       mccCodes: [],
       naicsCodes: [],
       sicCodes: [],

@@ -4,9 +4,13 @@ import { RiskIndicatorsTab } from '@/components/merchant/RiskIndicatorsTab';
 
 // Mock API
 const mockGetRiskIndicators = vi.fn();
-vi.mock('@/lib/api', () => ({
-  getRiskIndicators: (...args: any[]) => mockGetRiskIndicators(...args),
-}));
+vi.mock('@/lib/api', async () => {
+  const actual = await vi.importActual('@/lib/api');
+  return {
+    ...actual,
+    getRiskIndicators: (...args: any[]) => mockGetRiskIndicators(...args),
+  };
+});
 
 // Mock lazy loader
 const mockDeferNonCriticalDataLoad = vi.fn((fn) => fn());
@@ -68,14 +72,26 @@ describe('RiskIndicatorsTab', () => {
 
   it('should render indicators when loaded', async () => {
     mockGetRiskIndicators.mockResolvedValue(mockIndicators);
+    // deferNonCriticalDataLoad should call the function immediately in tests
+    mockDeferNonCriticalDataLoad.mockImplementation((fn) => fn());
 
     render(<RiskIndicatorsTab merchantId="merchant-123" />);
 
+    // Wait for the API call to complete and indicators to render
+    // The component uses deferNonCriticalDataLoad which may delay rendering
+    // Indicators are rendered in both a table and grouped sections
     await waitFor(() => {
-      expect(screen.getByText('High Risk Factor')).toBeInTheDocument();
-    });
+      // Verify API was called
+      expect(mockGetRiskIndicators).toHaveBeenCalledWith('merchant-123');
+      // Indicators should be rendered - component may show them in multiple places
+      // Use getAllByText since the component may render indicators in both table and grouped views
+      const highRiskElements = screen.getAllByText('High Risk Factor');
+      expect(highRiskElements.length).toBeGreaterThan(0);
+    }, { timeout: 5000 });
 
-    expect(screen.getByText('Critical Risk Factor')).toBeInTheDocument();
+    // Verify both indicators are rendered
+    const criticalRiskElements = screen.getAllByText('Critical Risk Factor');
+    expect(criticalRiskElements.length).toBeGreaterThan(0);
   });
 
   it('should render empty state when no indicators', async () => {

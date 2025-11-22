@@ -15,6 +15,12 @@ const mockWebSocketClient = {
 
 vi.mock('@/lib/websocket', () => ({
   createRiskWebSocketClient: vi.fn(() => mockWebSocketClient),
+  WebSocketStatus: {
+    disconnected: 'disconnected',
+    connecting: 'connecting',
+    connected: 'connected',
+    error: 'error',
+  },
 }));
 
 // Test component that uses the hook
@@ -53,8 +59,8 @@ describe('RiskWebSocketProvider', () => {
     expect(screen.getByTestId('is-connected')).toBeInTheDocument();
   });
 
-  it('should not create WebSocket when merchantId is not provided', () => {
-    const { createRiskWebSocketClient } = require('@/lib/websocket');
+  it('should not create WebSocket when merchantId is not provided', async () => {
+    const { createRiskWebSocketClient } = await import('@/lib/websocket');
     
     render(
       <RiskWebSocketProvider>
@@ -62,11 +68,14 @@ describe('RiskWebSocketProvider', () => {
       </RiskWebSocketProvider>
     );
     
-    expect(createRiskWebSocketClient).not.toHaveBeenCalled();
+    // Wait a bit to ensure useEffect has run
+    await waitFor(() => {
+      expect(createRiskWebSocketClient).not.toHaveBeenCalled();
+    }, { timeout: 200 });
   });
 
-  it('should create and connect WebSocket when merchantId is provided', () => {
-    const { createRiskWebSocketClient } = require('@/lib/websocket');
+  it('should create and connect WebSocket when merchantId is provided', async () => {
+    const { createRiskWebSocketClient } = await import('@/lib/websocket');
     
     render(
       <RiskWebSocketProvider merchantId="merchant-1">
@@ -74,23 +83,31 @@ describe('RiskWebSocketProvider', () => {
       </RiskWebSocketProvider>
     );
     
-    expect(createRiskWebSocketClient).toHaveBeenCalledWith('merchant-1', expect.any(Object));
-    expect(mockWebSocketClient.connect).toHaveBeenCalled();
+    // Wait for the setTimeout in useEffect to complete (100ms delay)
+    await waitFor(() => {
+      expect(createRiskWebSocketClient).toHaveBeenCalledWith('merchant-1', expect.any(Object));
+      expect(mockWebSocketClient.connect).toHaveBeenCalled();
+    }, { timeout: 200 });
   });
 
-  it('should disconnect WebSocket on unmount', () => {
+  it('should disconnect WebSocket on unmount', async () => {
     const { unmount } = render(
       <RiskWebSocketProvider merchantId="merchant-1">
         <TestComponent />
       </RiskWebSocketProvider>
     );
     
+    // Wait for connection to be established
+    await waitFor(() => {
+      expect(mockWebSocketClient.connect).toHaveBeenCalled();
+    }, { timeout: 200 });
+    
     unmount();
     
     expect(mockWebSocketClient.disconnect).toHaveBeenCalled();
   });
 
-  it('should handle subscribe when connected', () => {
+  it('should handle subscribe when connected', async () => {
     mockWebSocketClient.isConnected.mockReturnValue(true);
     
     render(
@@ -98,14 +115,20 @@ describe('RiskWebSocketProvider', () => {
         <TestComponent />
       </RiskWebSocketProvider>
     );
+    
+    // Wait for connection
+    await waitFor(() => {
+      expect(mockWebSocketClient.connect).toHaveBeenCalled();
+    }, { timeout: 200 });
     
     const subscribeButton = screen.getByText('Subscribe');
     subscribeButton.click();
     
+    // Component's subscribe function calls: client.subscribe('risk', { merchantId: id })
     expect(mockWebSocketClient.subscribe).toHaveBeenCalledWith('risk', { merchantId: 'merchant-1' });
   });
 
-  it('should handle unsubscribe when connected', () => {
+  it('should handle unsubscribe when connected', async () => {
     mockWebSocketClient.isConnected.mockReturnValue(true);
     
     render(
@@ -113,14 +136,20 @@ describe('RiskWebSocketProvider', () => {
         <TestComponent />
       </RiskWebSocketProvider>
     );
+    
+    // Wait for connection
+    await waitFor(() => {
+      expect(mockWebSocketClient.connect).toHaveBeenCalled();
+    }, { timeout: 200 });
     
     const unsubscribeButton = screen.getByText('Unsubscribe');
     unsubscribeButton.click();
     
+    // Component's unsubscribe function calls: client.unsubscribe('risk')
     expect(mockWebSocketClient.unsubscribe).toHaveBeenCalledWith('risk');
   });
 
-  it('should handle sendMessage when connected', () => {
+  it('should handle sendMessage when connected', async () => {
     mockWebSocketClient.isConnected.mockReturnValue(true);
     
     render(
@@ -129,9 +158,15 @@ describe('RiskWebSocketProvider', () => {
       </RiskWebSocketProvider>
     );
     
+    // Wait for connection
+    await waitFor(() => {
+      expect(mockWebSocketClient.connect).toHaveBeenCalled();
+    }, { timeout: 200 });
+    
     const sendButton = screen.getByText('Send');
     sendButton.click();
     
+    // Component's sendMessage function wraps: client.send({ type, data })
     expect(mockWebSocketClient.send).toHaveBeenCalledWith({ type: 'test', data: { data: 'test' } });
   });
 
@@ -148,69 +183,100 @@ describe('RiskWebSocketProvider', () => {
 });
 
 describe('WebSocketStatusIndicator', () => {
-  it('should display connected status', () => {
-    const mockContext = {
-      status: 'connected' as const,
-      isConnected: true,
-      subscribe: vi.fn(),
-      unsubscribe: vi.fn(),
-      sendMessage: vi.fn(),
-    };
+  it('should display connected status', async () => {
+    // Mock the client to return connected status
+    mockWebSocketClient.isConnected.mockReturnValue(true);
     
-    // Mock the context
-    vi.spyOn(require('react'), 'useContext').mockReturnValue(mockContext);
+    // Mock onStatusChange callback to set status to connected
+    const { createRiskWebSocketClient } = await import('@/lib/websocket');
+    const mockCreate = vi.mocked(createRiskWebSocketClient);
     
-    render(<WebSocketStatusIndicator />);
+    let statusCallback: ((status: string) => void) | undefined;
+    mockCreate.mockImplementation((merchantId, callbacks) => {
+      statusCallback = callbacks?.onStatusChange;
+      // Immediately call onStatusChange with 'connected'
+      setTimeout(() => {
+        statusCallback?.('connected');
+      }, 0);
+      return mockWebSocketClient;
+    });
     
-    expect(screen.getByText('Connected')).toBeInTheDocument();
+    render(
+      <RiskWebSocketProvider merchantId="merchant-1">
+        <WebSocketStatusIndicator />
+      </RiskWebSocketProvider>
+    );
+    
+    await waitFor(() => {
+      expect(screen.getByText('Connected')).toBeInTheDocument();
+    }, { timeout: 500 });
   });
 
-  it('should display connecting status', () => {
-    const mockContext = {
-      status: 'connecting' as const,
-      isConnected: false,
-      subscribe: vi.fn(),
-      unsubscribe: vi.fn(),
-      sendMessage: vi.fn(),
-    };
+  it('should display connecting status', async () => {
+    // Mock the client to return connecting status
+    mockWebSocketClient.isConnected.mockReturnValue(false);
     
-    vi.spyOn(require('react'), 'useContext').mockReturnValue(mockContext);
+    const { createRiskWebSocketClient } = await import('@/lib/websocket');
+    const mockCreate = vi.mocked(createRiskWebSocketClient);
     
-    render(<WebSocketStatusIndicator />);
+    let statusCallback: ((status: string) => void) | undefined;
+    mockCreate.mockImplementation((merchantId, callbacks) => {
+      statusCallback = callbacks?.onStatusChange;
+      // Immediately call onStatusChange with 'connecting'
+      setTimeout(() => {
+        statusCallback?.('connecting');
+      }, 0);
+      return mockWebSocketClient;
+    });
     
-    expect(screen.getByText('Connecting')).toBeInTheDocument();
+    render(
+      <RiskWebSocketProvider merchantId="merchant-1">
+        <WebSocketStatusIndicator />
+      </RiskWebSocketProvider>
+    );
+    
+    await waitFor(() => {
+      expect(screen.getByText('Connecting')).toBeInTheDocument();
+    }, { timeout: 500 });
   });
 
-  it('should display error status', () => {
-    const mockContext = {
-      status: 'error' as const,
-      isConnected: false,
-      subscribe: vi.fn(),
-      unsubscribe: vi.fn(),
-      sendMessage: vi.fn(),
-    };
+  it('should display error status', async () => {
+    const { createRiskWebSocketClient } = await import('@/lib/websocket');
+    const mockCreate = vi.mocked(createRiskWebSocketClient);
     
-    vi.spyOn(require('react'), 'useContext').mockReturnValue(mockContext);
+    let statusCallback: ((status: string) => void) | undefined;
+    mockCreate.mockImplementation((merchantId, callbacks) => {
+      statusCallback = callbacks?.onStatusChange;
+      // Immediately call onStatusChange with 'error'
+      setTimeout(() => {
+        statusCallback?.('error');
+      }, 0);
+      return mockWebSocketClient;
+    });
     
-    render(<WebSocketStatusIndicator />);
+    render(
+      <RiskWebSocketProvider merchantId="merchant-1">
+        <WebSocketStatusIndicator />
+      </RiskWebSocketProvider>
+    );
     
-    expect(screen.getByText('Error')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Error')).toBeInTheDocument();
+    }, { timeout: 500 });
   });
 
-  it('should display disconnected status', () => {
-    const mockContext = {
-      status: 'disconnected' as const,
-      isConnected: false,
-      subscribe: vi.fn(),
-      unsubscribe: vi.fn(),
-      sendMessage: vi.fn(),
-    };
+  it('should display disconnected status', async () => {
+    // Default status is 'disconnected', so we don't need to set it
+    render(
+      <RiskWebSocketProvider merchantId="merchant-1">
+        <WebSocketStatusIndicator />
+      </RiskWebSocketProvider>
+    );
     
-    vi.spyOn(require('react'), 'useContext').mockReturnValue(mockContext);
-    
-    render(<WebSocketStatusIndicator />);
-    
-    expect(screen.getByText('Disconnected')).toBeInTheDocument();
+    // Wait a bit for the component to render
+    await waitFor(() => {
+      expect(screen.getByText('Disconnected')).toBeInTheDocument();
+    }, { timeout: 500 });
   });
 });
 

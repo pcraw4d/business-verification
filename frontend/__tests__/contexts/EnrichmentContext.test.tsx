@@ -20,10 +20,10 @@ function TestComponent({ merchantId }: { merchantId: string }) {
         Add Fields
       </button>
       <button onClick={() => clearEnrichedFields(merchantId)}>Clear Fields</button>
-      <div data-testid="founded-date-enriched">{isFieldEnriched(merchantId, 'foundedDate') ? 'Yes' : 'No'}</div>
-      <div data-testid="revenue-enriched">{isFieldEnriched(merchantId, 'annualRevenue') ? 'Yes' : 'No'}</div>
+      <div data-testid="founded-date-enriched">{isFieldEnriched(merchantId, 'Founded Date') ? 'Yes' : 'No'}</div>
+      <div data-testid="revenue-enriched">{isFieldEnriched(merchantId, 'Annual Revenue') ? 'Yes' : 'No'}</div>
       <div data-testid="field-info">
-        {getEnrichedFieldInfo(merchantId, 'foundedDate')?.source || 'None'}
+        {getEnrichedFieldInfo(merchantId, 'Founded Date')?.source || 'None'}
       </div>
     </div>
   );
@@ -35,6 +35,13 @@ describe('EnrichmentContext', () => {
   beforeEach(() => {
     // Clear localStorage before each test
     localStorage.clear();
+    // Clear any timers
+    vi.clearAllTimers();
+  });
+
+  afterEach(() => {
+    // Clean up timers after each test
+    vi.useRealTimers();
   });
 
   describe('EnrichmentProvider', () => {
@@ -151,7 +158,7 @@ describe('EnrichmentContext', () => {
     });
 
     it('should return false for expired enriched fields', async () => {
-      vi.useFakeTimers();
+      vi.useFakeTimers({ shouldAdvanceTime: true });
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
       
       render(
@@ -163,17 +170,26 @@ describe('EnrichmentContext', () => {
       const addButton = screen.getByText('Add Fields');
       await user.click(addButton);
 
+      // Wait for initial state
       await waitFor(() => {
         expect(screen.getByTestId('founded-date-enriched')).toHaveTextContent('Yes');
-      });
+      }, { timeout: 2000 });
 
-      // Fast-forward time beyond highlight duration (5 minutes)
-      vi.advanceTimersByTime(6 * 60 * 1000);
+      // Fast-forward time beyond highlight duration (5 minutes = 300000ms)
+      // Advance in smaller increments to trigger the interval cleanup
+      vi.advanceTimersByTime(60 * 1000); // 1 minute
+      await vi.runOnlyPendingTimersAsync();
+      vi.advanceTimersByTime(60 * 1000); // Another minute
+      await vi.runOnlyPendingTimersAsync();
+      vi.advanceTimersByTime(4 * 60 * 1000); // 4 more minutes (total 6 minutes)
+
+      // The interval runs every 60 seconds, so we need to let it process
+      await vi.runOnlyPendingTimersAsync();
 
       await waitFor(() => {
-        // Field should no longer be enriched (expired)
+        // Field should no longer be enriched (expired after 5 minutes)
         expect(screen.getByTestId('founded-date-enriched')).toHaveTextContent('No');
-      });
+      }, { timeout: 3000 });
 
       vi.useRealTimers();
     });
@@ -239,7 +255,7 @@ describe('EnrichmentContext', () => {
       const enrichedData = {
         [merchantId]: [
           {
-            fieldName: 'foundedDate',
+            fieldName: 'Founded Date', // Note: fieldName should match what's used in the component
             enrichedAt: new Date().toISOString(),
             source: 'Test Source',
             type: 'added',
@@ -254,9 +270,10 @@ describe('EnrichmentContext', () => {
         </EnrichmentProvider>
       );
 
+      // Wait for the context to load from localStorage
       await waitFor(() => {
         expect(screen.getByTestId('founded-date-enriched')).toHaveTextContent('Yes');
-      });
+      }, { timeout: 3000 });
     });
   });
 });

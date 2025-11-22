@@ -94,6 +94,52 @@ export const handlers = [
     });
   }),
 
+  // Export merchant data - match with query parameter (format is in query string, not path)
+  http.get(`${API_BASE_URL}${API_PATH}/merchants/:merchantId/export`, ({ request, params }) => {
+    const url = new URL(request.url);
+    const format = url.searchParams.get('format') || 'csv';
+    const merchantId = params.merchantId as string;
+    
+    // Return appropriate blob based on format
+    if (format === 'csv') {
+      return HttpResponse.text(`id,name,status\n${merchantId},Test Business,active`, {
+        headers: { 'Content-Type': 'text/csv' },
+      });
+    } else if (format === 'pdf') {
+      // Return a minimal PDF-like blob
+      const pdfContent = '%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n>>\nendobj\nxref\n0 1\ntrailer\n<<\n/Root 1 0 R\n>>\n%%EOF';
+      return HttpResponse.text(pdfContent, {
+        headers: { 'Content-Type': 'application/pdf' },
+      });
+    } else if (format === 'excel') {
+      // Return text instead of ArrayBuffer to match type
+      return HttpResponse.text('', {
+        headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+      });
+    }
+    
+    return HttpResponse.text('', { status: 400 });
+  }),
+  
+  // Also match the pattern used in tests (with format as path param - for backward compatibility)
+  http.get(`${API_BASE_URL}${API_PATH}/merchants/:merchantId/export/:format`, ({ params }) => {
+    const format = params.format as string;
+    const merchantId = params.merchantId as string;
+    
+    if (format === 'csv') {
+      return HttpResponse.text(`id,name,status\n${merchantId},Test Business,active`, {
+        headers: { 'Content-Type': 'text/csv' },
+      });
+    } else if (format === 'pdf') {
+      const pdfContent = '%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n>>\nendobj\nxref\n0 1\ntrailer\n<<\n/Root 1 0 R\n>>\n%%EOF';
+      return HttpResponse.text(pdfContent, {
+        headers: { 'Content-Type': 'application/pdf' },
+      });
+    }
+    
+    return HttpResponse.text('', { status: 400 });
+  }),
+
   // Get risk history
   http.get(`${API_BASE_URL}/api/v1/risk/history/:merchantId`, () => {
     return HttpResponse.json({
@@ -149,6 +195,16 @@ export const handlers = [
     return HttpResponse.json({
       jobId: 'job-123',
       status: 'pending',
+    });
+  }),
+
+  // Create merchant
+  http.post(`${API_BASE_URL}${API_PATH}/merchants`, () => {
+    return HttpResponse.json({
+      id: 'merchant-123',
+      name: 'Test Business',
+      status: 'active',
+      createdAt: new Date().toISOString(),
     });
   }),
 

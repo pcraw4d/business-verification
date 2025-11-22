@@ -45,7 +45,10 @@ describe('Sidebar', () => {
   it('should render badges for new items', () => {
     render(<Sidebar />);
     
-    expect(screen.getByText('NEW')).toBeInTheDocument();
+    // Badges are rendered for items with badge property
+    // Check for "NEW" text which appears in badges for "Add Merchant", "Gap Analysis", and "Merchant Hub"
+    const newBadges = screen.queryAllByText('NEW');
+    expect(newBadges.length).toBeGreaterThan(0);
   });
 
   it('should close mobile sidebar when link is clicked', async () => {
