@@ -243,7 +243,7 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
       <section id="merchant-content" aria-label="Merchant details">
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" suppressHydrationWarning>
-        <TabsList className="grid w-full grid-cols-4 [@supports(display:grid)]:grid [@supports(display:-webkit-grid)]:grid" suppressHydrationWarning>
+        <TabsList className="grid w-full grid-cols-4" suppressHydrationWarning>
           <TabsTrigger value="overview" aria-label="Overview tab">Overview</TabsTrigger>
           <TabsTrigger value="analytics" aria-label="Business Analytics tab">Business Analytics</TabsTrigger>
           <TabsTrigger value="risk" aria-label="Risk Assessment tab">Risk Assessment</TabsTrigger>
