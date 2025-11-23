@@ -190,27 +190,43 @@ export function RiskGauge({
     // Add center text
     const centerText = g.append('g').attr('class', 'center-text');
 
-    centerText
+    const textElement = centerText
       .append('text')
       .attr('text-anchor', 'middle')
       .attr('dy', '-0.5em')
       .attr('font-size', '2em')
       .attr('font-weight', 'bold')
       .attr('fill', 'hsl(var(--foreground))')
-      .text('0.0')
-      .transition()
-      .duration(1000)
-      .tween('text', function () {
-        const current = parseFloat(this.textContent || '0') || 0;
+      .text('0.0');
+
+    // Animate text if transition is available
+    try {
+      if (textElement && typeof textElement.transition === 'function') {
+        textElement
+          .transition()
+          .duration(1000)
+          .tween('text', function () {
+            const current = parseFloat(this.textContent || '0') || 0;
+            const targetValue = value != null && !isNaN(value) ? value : 0;
+            const interpolate = d3.interpolate(current, targetValue);
+            return function (t) {
+              const interpolatedValue = interpolate(t);
+              this.textContent = (interpolatedValue != null && !isNaN(interpolatedValue)) 
+                ? interpolatedValue.toFixed(1) 
+                : '0.0';
+            };
+          });
+      } else {
+        // Fallback: set text directly without animation
         const targetValue = value != null && !isNaN(value) ? value : 0;
-        const interpolate = d3.interpolate(current, targetValue);
-        return function (t) {
-          const interpolatedValue = interpolate(t);
-          this.textContent = (interpolatedValue != null && !isNaN(interpolatedValue)) 
-            ? interpolatedValue.toFixed(1) 
-            : '0.0';
-        };
-      });
+        textElement.text(targetValue.toFixed(1));
+      }
+    } catch (error) {
+      // Fallback: set text directly if transition fails
+      console.warn('RiskGauge: Text transition failed, using direct update', error);
+      const targetValue = value != null && !isNaN(value) ? value : 0;
+      textElement.text(targetValue.toFixed(1));
+    }
 
     centerText
       .append('text')
