@@ -24,6 +24,22 @@ const TEST_MERCHANT_ID = 'merchant-123';
 
 test.describe('Merchant Details Integration Tests', () => {
   test.beforeEach(async ({ page }) => {
+    // Handle CORS preflight requests
+    await page.route('**/api/**', async (route) => {
+      if (route.request().method() === 'OPTIONS') {
+        await route.fulfill({
+          status: 200,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          },
+        });
+        return;
+      }
+      await route.continue();
+    });
+
     // Mock merchant data
     await page.route('**/api/v1/merchants/' + TEST_MERCHANT_ID + '**', async (route) => {
       const url = route.request().url();
@@ -31,6 +47,9 @@ test.describe('Merchant Details Integration Tests', () => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+          },
           body: JSON.stringify({
             id: TEST_MERCHANT_ID,
             businessName: 'Test Business Inc',
@@ -343,7 +362,8 @@ test.describe('Merchant Details Integration Tests', () => {
         await page.waitForTimeout(3000);
         
         // Wait for tab panel to appear (lazy loading might take time)
-        const tabPanel = page.locator('[role="tabpanel"]').first();
+        // Radix UI uses data-state="active" for active tabs
+        const tabPanel = page.locator('[role="tabpanel"][data-state="active"]').first();
         const panelVisible = await tabPanel.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {
           console.log('Tab panel did not become visible');
           return false;
@@ -407,7 +427,8 @@ test.describe('Merchant Details Integration Tests', () => {
 
       // Check if AnalyticsComparison component is actually on the page
       // It should be rendered if BusinessAnalyticsTab has analytics data
-      const businessAnalyticsTab = page.locator('[role="tabpanel"]').filter({ hasText: /Business Analytics/i }).first();
+      // Radix UI uses data-state="active" for active tabs
+      const businessAnalyticsTab = page.locator('[role="tabpanel"][data-state="active"]').first();
       const tabExists = await businessAnalyticsTab.isVisible({ timeout: 2000 }).catch(() => false);
       console.log(`Business Analytics tab panel exists: ${tabExists}`);
       

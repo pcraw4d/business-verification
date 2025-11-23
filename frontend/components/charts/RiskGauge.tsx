@@ -117,24 +117,41 @@ export function RiskGauge({
       .attr('stroke-linecap', 'round')
       .attr('opacity', 0);
 
-    // Animate value arc
-    valuePath
-      .transition()
-      .duration(1000)
-      .attrTween('d', function (d) {
-        const interpolate = d3.interpolate(d.endAngle, angle);
-        return function (t) {
-          d.endAngle = interpolate(t);
-          return valueArc(d) || '';
-        };
-      })
-      .attr('opacity', 1);
+    // Animate value arc - check if transition is available
+    try {
+      if (valuePath && typeof valuePath.transition === 'function') {
+        valuePath
+          .transition()
+          .duration(1000)
+          .attrTween('d', function (d) {
+            const interpolate = d3.interpolate(d.endAngle, angle);
+            return function (t) {
+              d.endAngle = interpolate(t);
+              return valueArc(d) || '';
+            };
+          })
+          .attr('opacity', 1);
+      } else {
+        // Fallback: set directly without animation
+        valuePath
+          .datum({ endAngle: angle })
+          .attr('d', valueArc)
+          .attr('opacity', 1);
+      }
+    } catch (error) {
+      // Fallback: set directly without animation if transition fails
+      console.warn('RiskGauge: Transition failed, using direct update', error);
+      valuePath
+        .datum({ endAngle: angle })
+        .attr('d', valueArc)
+        .attr('opacity', 1);
+    }
 
     // Create needle if enabled
     if (showNeedle) {
       const needle = g.append('g').attr('class', 'needle');
 
-      needle
+      const needleLine = needle
         .append('line')
         .attr('x1', 0)
         .attr('y1', 0)
@@ -143,10 +160,24 @@ export function RiskGauge({
         .attr('stroke', '#2c3e50')
         .attr('stroke-width', 3)
         .attr('stroke-linecap', 'round')
-        .attr('transform', `rotate(${-90})`)
-        .transition()
-        .duration(1000)
-        .attr('transform', `rotate(${(angle * 180) / Math.PI})`);
+        .attr('transform', `rotate(${-90})`);
+      
+      // Animate needle if transition is available
+      try {
+        if (needleLine && typeof needleLine.transition === 'function') {
+          needleLine
+            .transition()
+            .duration(1000)
+            .attr('transform', `rotate(${(angle * 180) / Math.PI})`);
+        } else {
+          // Fallback: set directly without animation
+          needleLine.attr('transform', `rotate(${(angle * 180) / Math.PI})`);
+        }
+      } catch (error) {
+        // Fallback: set directly without animation if transition fails
+        console.warn('RiskGauge: Needle transition failed, using direct update', error);
+        needleLine.attr('transform', `rotate(${(angle * 180) / Math.PI})`);
+      }
 
       needle
         .append('circle')

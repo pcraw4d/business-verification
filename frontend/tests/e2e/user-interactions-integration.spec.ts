@@ -292,7 +292,8 @@ test.describe('User Interactions Integration Tests', () => {
   test.describe('Tab Switching', () => {
     test('should switch between tabs without losing data', async ({ page }) => {
       await page.reload();
-      await page.waitForLoadState('networkidle', { timeout: 10000 });
+      await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+      await page.waitForTimeout(2000); // Wait for initial load
 
       // Get all tabs
       const overviewTab = page.getByRole('tab', { name: /Overview/i });

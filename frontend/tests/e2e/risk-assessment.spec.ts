@@ -101,8 +101,9 @@ test.describe('Risk Assessment Flow', () => {
       await expect(processingText.first()).toBeVisible({ timeout: 5000 });
     } else {
       // If button not found, check if assessment already exists or page loaded
-      const tabContent = page.locator('[role="tabpanel"]');
-      await expect(tabContent.first()).toBeVisible({ timeout: 5000 });
+      // Wait for the active tab panel (Radix UI uses data-state="active")
+      const tabContent = page.locator('[role="tabpanel"][data-state="active"]').first();
+      await expect(tabContent).toBeVisible({ timeout: 5000 });
     }
   });
 
@@ -265,7 +266,8 @@ test.describe('Risk Assessment Flow', () => {
       await expect(completedText.first()).toBeVisible({ timeout: 15000 });
     } else {
       // If button not found, check if assessment already exists
-      const tabContent = page.locator('[role="tabpanel"]');
+      // Radix UI uses data-state="active" for active tabs
+      const tabContent = page.locator('[role="tabpanel"][data-state="active"]').first();
       await expect(tabContent.first()).toBeVisible({ timeout: 5000 });
     }
   });

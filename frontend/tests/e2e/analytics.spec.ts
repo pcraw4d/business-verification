@@ -111,7 +111,8 @@ test.describe('Analytics Data Loading', () => {
       await expect(page.getByText(/95(\.\d+)?%/)).toBeVisible({ timeout: 5000 });
     } else {
       // If analytics data not found, check if tab content loaded
-      const tabContent = page.locator('[role="tabpanel"]');
+      // Radix UI uses data-state="active" for active tabs
+      const tabContent = page.locator('[role="tabpanel"][data-state="active"]').first();
       await expect(tabContent.first()).toBeVisible({ timeout: 5000 });
     }
   });

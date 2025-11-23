@@ -141,7 +141,8 @@ test.describe('Critical User Journeys', () => {
           await page.waitForTimeout(2000);
           
           // Verify analytics content loaded
-          const analyticsContent = page.locator('[role="tabpanel"]').first();
+          // Radix UI uses data-state="active" for active tabs
+          const analyticsContent = page.locator('[role="tabpanel"][data-state="active"]').first();
           await expect(analyticsContent).toBeVisible({ timeout: 5000 });
         }
         
@@ -155,7 +156,8 @@ test.describe('Critical User Journeys', () => {
           await page.waitForTimeout(2000);
           
           // Verify risk assessment content loaded
-          const riskContent = page.locator('[role="tabpanel"]').first();
+          // Radix UI uses data-state="active" for active tabs
+          const riskContent = page.locator('[role="tabpanel"][data-state="active"]').first();
           await expect(riskContent).toBeVisible({ timeout: 5000 });
         }
       }
