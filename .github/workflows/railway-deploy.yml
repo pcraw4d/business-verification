@@ -83,11 +83,12 @@ jobs:
         run: |
           mkdir -p ~/.railway
           echo "${{ secrets.RAILWAY_TOKEN }}" > ~/.railway/token
+          chmod 600 ~/.railway/token
 
       - name: Deploy API Gateway Service
         run: |
           cd services/api-gateway
-          railway link --service api-gateway-service
+          railway link --service api-gateway-service --non-interactive || true
           railway up --detach
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
@@ -114,11 +115,12 @@ jobs:
         run: |
           mkdir -p ~/.railway
           echo "${{ secrets.RAILWAY_TOKEN }}" > ~/.railway/token
+          chmod 600 ~/.railway/token
 
       - name: Deploy Merchant Service
         run: |
           cd services/merchant-service
-          railway link --service merchant-service
+          railway link --service merchant-service --non-interactive || true
           railway up --detach
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
@@ -145,11 +147,12 @@ jobs:
         run: |
           mkdir -p ~/.railway
           echo "${{ secrets.RAILWAY_TOKEN }}" > ~/.railway/token
+          chmod 600 ~/.railway/token
 
       - name: Deploy Risk Assessment Service
         run: |
           cd services/risk-assessment-service
-          railway link --service risk-assessment-service
+          railway link --service risk-assessment-service --non-interactive || true
           railway up --detach
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
@@ -176,11 +179,12 @@ jobs:
         run: |
           mkdir -p ~/.railway
           echo "${{ secrets.RAILWAY_TOKEN }}" > ~/.railway/token
+          chmod 600 ~/.railway/token
 
       - name: Deploy Frontend Service
         run: |
           cd services/frontend-service
-          railway link --service frontend-service
+          railway link --service frontend-service --non-interactive || true
           railway up --detach
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
