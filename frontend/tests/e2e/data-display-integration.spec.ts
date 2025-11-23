@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { handleCorsOptions, getCorsHeaders } from './helpers/cors-helpers';
 
 /**
  * Integration tests for Data Display (Phase 6 - Task 6.2.1)
@@ -23,11 +24,13 @@ test.describe('Data Display Integration Tests', () => {
     test('should display all financial information fields when available', async ({ page }) => {
       // Mock merchant with all financial data
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}**`, async (route) => {
+        if (await handleCorsOptions(route)) return;
         const url = route.request().url();
         if (!url.includes('/analytics') && !url.includes('/risk') && !url.includes('/website')) {
           await route.fulfill({
             status: 200,
             contentType: 'application/json',
+            headers: getCorsHeaders(),
             body: JSON.stringify({
               id: TEST_MERCHANT_ID,
               business_name: 'Test Business Inc',
@@ -68,11 +71,13 @@ test.describe('Data Display Integration Tests', () => {
     test('should display all address fields including street1, street2, countryCode', async ({ page }) => {
       // Mock merchant with complete address
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}**`, async (route) => {
+        if (await handleCorsOptions(route)) return;
         const url = route.request().url();
         if (!url.includes('/analytics') && !url.includes('/risk') && !url.includes('/website')) {
           await route.fulfill({
             status: 200,
             contentType: 'application/json',
+            headers: getCorsHeaders(),
             body: JSON.stringify({
               id: TEST_MERCHANT_ID,
               business_name: 'Test Business Inc',
@@ -123,11 +128,13 @@ test.describe('Data Display Integration Tests', () => {
     test('should display system information fields (createdBy, metadata)', async ({ page }) => {
       // Mock merchant with system data
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}**`, async (route) => {
+        if (await handleCorsOptions(route)) return;
         const url = route.request().url();
         if (!url.includes('/analytics') && !url.includes('/risk') && !url.includes('/website')) {
           await route.fulfill({
             status: 200,
             contentType: 'application/json',
+            headers: getCorsHeaders(),
             body: JSON.stringify({
               id: TEST_MERCHANT_ID,
               business_name: 'Test Business Inc',
@@ -163,11 +170,13 @@ test.describe('Data Display Integration Tests', () => {
     test('should display N/A for missing optional fields', async ({ page }) => {
       // Mock merchant with minimal data
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}**`, async (route) => {
+        if (await handleCorsOptions(route)) return;
         const url = route.request().url();
         if (!url.includes('/analytics') && !url.includes('/risk') && !url.includes('/website')) {
           await route.fulfill({
             status: 200,
             contentType: 'application/json',
+            headers: getCorsHeaders(),
             body: JSON.stringify({
               id: TEST_MERCHANT_ID,
               business_name: 'Test Business Inc',
@@ -199,11 +208,13 @@ test.describe('Data Display Integration Tests', () => {
   test.describe('Financial Information Card', () => {
     test('should format employee count with commas', async ({ page }) => {
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}**`, async (route) => {
+        if (await handleCorsOptions(route)) return;
         const url = route.request().url();
         if (!url.includes('/analytics') && !url.includes('/risk') && !url.includes('/website')) {
           await route.fulfill({
             status: 200,
             contentType: 'application/json',
+            headers: getCorsHeaders(),
             body: JSON.stringify({
               id: TEST_MERCHANT_ID,
               business_name: 'Test Business Inc',
@@ -229,11 +240,13 @@ test.describe('Data Display Integration Tests', () => {
 
     test('should format annual revenue as currency', async ({ page }) => {
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}**`, async (route) => {
+        if (await handleCorsOptions(route)) return;
         const url = route.request().url();
         if (!url.includes('/analytics') && !url.includes('/risk') && !url.includes('/website')) {
           await route.fulfill({
             status: 200,
             contentType: 'application/json',
+            headers: getCorsHeaders(),
             body: JSON.stringify({
               id: TEST_MERCHANT_ID,
               business_name: 'Test Business Inc',
@@ -261,11 +274,13 @@ test.describe('Data Display Integration Tests', () => {
   test.describe('Metadata JSON Viewer', () => {
     test('should display metadata JSON in expandable section', async ({ page }) => {
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}**`, async (route) => {
+        if (await handleCorsOptions(route)) return;
         const url = route.request().url();
         if (!url.includes('/analytics') && !url.includes('/risk') && !url.includes('/website')) {
           await route.fulfill({
             status: 200,
             contentType: 'application/json',
+            headers: getCorsHeaders(),
             body: JSON.stringify({
               id: TEST_MERCHANT_ID,
               business_name: 'Test Business Inc',
@@ -305,11 +320,13 @@ test.describe('Data Display Integration Tests', () => {
   test.describe('Data Completeness Indicator', () => {
     test('should display data completeness percentage', async ({ page }) => {
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}**`, async (route) => {
+        if (await handleCorsOptions(route)) return;
         const url = route.request().url();
         if (!url.includes('/analytics') && !url.includes('/risk') && !url.includes('/website')) {
           await route.fulfill({
             status: 200,
             contentType: 'application/json',
+            headers: getCorsHeaders(),
             body: JSON.stringify({
               id: TEST_MERCHANT_ID,
               business_name: 'Test Business Inc',

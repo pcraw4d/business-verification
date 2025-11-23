@@ -1,14 +1,17 @@
 import { expect, test } from '@playwright/test';
+import { handleCorsOptions, getCorsHeaders } from './helpers/cors-helpers';
 
 test.describe('Merchant Details Page', () => {
   test.beforeEach(async ({ page }) => {
     // Mock API responses - match both Railway and localhost URLs
     await page.route('**/api/v1/merchants/merchant-123**', async (route) => {
+      if (await handleCorsOptions(route)) return;
       const url = route.request().url();
       if (!url.includes('/analytics') && !url.includes('/risk') && !url.includes('/website')) {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             id: 'merchant-123',
             businessName: 'Test Business',

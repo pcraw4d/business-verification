@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { handleCorsOptions, getCorsHeaders } from './helpers/cors-helpers';
 
 test.describe('Critical User Journeys', () => {
   test('complete merchant onboarding flow', async ({ page }) => {
@@ -56,9 +57,11 @@ test.describe('Critical User Journeys', () => {
       if (hasSubmit) {
         // Mock successful submission
         await page.route('**/api/v1/merchants**', async (route) => {
+          if (await handleCorsOptions(route)) return;
           if (route.request().method() === 'POST') {
             await route.fulfill({
               status: 200,
+              headers: getCorsHeaders(),
               contentType: 'application/json',
               body: JSON.stringify({
                 id: 'e2e-test-merchant-123',
@@ -236,7 +239,8 @@ test.describe('Critical User Journeys', () => {
 test.describe('Error Scenarios', () => {
   test('handles network failure gracefully', async ({ page }) => {
     // Simulate network failure
-    await page.route('**/api/v1/**', route => {
+    await page.route('**/api/v1/**', async (route) => {
+      if (await handleCorsOptions(route)) return;
       route.abort('failed');
     });
     
@@ -259,12 +263,14 @@ test.describe('Error Scenarios', () => {
 
   test('handles API timeout gracefully', async ({ page }) => {
     // Simulate slow API response
-    await page.route('**/api/v1/**', route => {
+    await page.route('**/api/v1/**', async (route) => {
+      if (await handleCorsOptions(route)) return;
       // Delay response to simulate timeout
       setTimeout(() => {
         route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({}),
         });
       }, 10000); // 10 second delay
@@ -294,13 +300,15 @@ test.describe('Error Scenarios', () => {
     // Some APIs succeed, some fail
     let requestCount = 0;
     
-    await page.route('**/api/v1/**', route => {
+    await page.route('**/api/v1/**', async (route) => {
+      if (await handleCorsOptions(route)) return;
       requestCount++;
       if (requestCount % 2 === 0) {
         // Every other request fails
         route.fulfill({
           status: 500,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({ error: 'Internal Server Error' }),
         });
       } else {
@@ -323,10 +331,12 @@ test.describe('Error Scenarios', () => {
 
   test('handles invalid API response format', async ({ page }) => {
     // API returns unexpected format
-    await page.route('**/api/v1/merchants**', route => {
+    await page.route('**/api/v1/merchants**', async (route) => {
+      if (await handleCorsOptions(route)) return;
       route.fulfill({
         status: 200,
         contentType: 'application/json',
+        headers: getCorsHeaders(),
         body: JSON.stringify({ invalid: 'format', unexpected: 'data' }),
       });
     });

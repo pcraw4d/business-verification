@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { handleCorsOptions, getCorsHeaders } from './helpers/cors-helpers';
 
 test.describe('Data Loading Tests', () => {
   test('should load dashboard metrics (v3 enhanced data)', async ({ page }) => {
@@ -139,10 +140,12 @@ test.describe('Data Loading Tests', () => {
 
   test('should handle API errors gracefully', async ({ page }) => {
     // Intercept API calls and return error
-    await page.route('**/api/v1/**', route => {
+    await page.route('**/api/v1/**', async (route) => {
+      if (await handleCorsOptions(route)) return;
       route.fulfill({
         status: 500,
         contentType: 'application/json',
+        headers: getCorsHeaders(),
         body: JSON.stringify({ error: 'Internal Server Error' }),
       });
     });

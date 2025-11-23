@@ -1,12 +1,15 @@
 import { expect, test } from '@playwright/test';
+import { handleCorsOptions, getCorsHeaders } from './helpers/cors-helpers';
 
 test.describe('Analytics Data Loading', () => {
   test.beforeEach(async ({ page }) => {
     // Mock merchant API - match both Railway and localhost URLs
     await page.route('**/api/v1/merchants/merchant-123', async (route) => {
+      if (await handleCorsOptions(route)) return;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
+        headers: getCorsHeaders(),
         body: JSON.stringify({
           id: 'merchant-123',
           businessName: 'Test Business',
@@ -17,11 +20,13 @@ test.describe('Analytics Data Loading', () => {
     
     // Also mock the list endpoint in case it's called
     await page.route('**/api/v1/merchants**', async (route) => {
+      if (await handleCorsOptions(route)) return;
       const url = route.request().url();
       if (url.includes('/merchant-123') && !url.includes('/analytics')) {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             id: 'merchant-123',
             businessName: 'Test Business',
@@ -37,9 +42,11 @@ test.describe('Analytics Data Loading', () => {
   test('should load analytics data', async ({ page }) => {
     // Mock analytics API - match both Railway and localhost URLs
     await page.route('**/api/v1/merchants/*/analytics**', async (route) => {
+      if (await handleCorsOptions(route)) return;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
+        headers: getCorsHeaders(),
         body: JSON.stringify({
           merchantId: 'merchant-123',
           classification: {
@@ -123,9 +130,11 @@ test.describe('Analytics Data Loading', () => {
     
     // Mock analytics API
     await page.route('**/api/v1/merchants/*/analytics**', async (route) => {
+      if (await handleCorsOptions(route)) return;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
+        headers: getCorsHeaders(),
         body: JSON.stringify({
           merchantId: 'merchant-123',
           classification: { primaryIndustry: 'Technology' },
@@ -135,9 +144,11 @@ test.describe('Analytics Data Loading', () => {
 
     // Mock website analysis API
     await page.route('**/api/v1/merchants/*/website-analysis**', async (route) => {
+      if (await handleCorsOptions(route)) return;
       websiteAnalysisCalled = true;
       await route.fulfill({
         status: 200,
+        headers: getCorsHeaders(),
         contentType: 'application/json',
         body: JSON.stringify({
           merchantId: 'merchant-123',
@@ -205,9 +216,11 @@ test.describe('Analytics Data Loading', () => {
   test('should show empty state when no analytics data', async ({ page }) => {
     // Mock empty analytics
     await page.route('**/api/v1/merchants/*/analytics**', async (route) => {
+      if (await handleCorsOptions(route)) return;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
+        headers: getCorsHeaders(),
         body: JSON.stringify(null),
       });
     });

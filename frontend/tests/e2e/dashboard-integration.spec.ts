@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { handleCorsOptions, getCorsHeaders } from './helpers/cors-helpers';
 
 /**
  * Integration tests for Dashboard Pages
@@ -25,9 +26,11 @@ test.describe('Dashboard Integration Tests', () => {
     test('should load portfolio analytics and statistics', async ({ page }) => {
       // Mock API responses
       await page.route('**/api/v1/merchants/analytics', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             totalMerchants: 150,
             averageRiskScore: 0.6,
@@ -48,9 +51,11 @@ test.describe('Dashboard Integration Tests', () => {
       });
 
       await page.route('**/api/v1/merchants/statistics', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             totalMerchants: 150,
             averageRiskScore: 0.6,
@@ -68,9 +73,11 @@ test.describe('Dashboard Integration Tests', () => {
       });
 
       await page.route('**/api/v3/dashboard/metrics', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             overview: { total_requests: 125000, active_users: 45 },
             business: { total_verifications: 150, revenue: 1000000 },
@@ -108,10 +115,12 @@ test.describe('Dashboard Integration Tests', () => {
     test('should show loading state initially', async ({ page }) => {
       // Delay API response to see loading state
       await page.route('**/api/v1/merchants/analytics', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await new Promise(resolve => setTimeout(resolve, 2000));
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             totalMerchants: 150,
             averageRiskScore: 0.6,
@@ -139,17 +148,21 @@ test.describe('Dashboard Integration Tests', () => {
     test('should handle API errors gracefully', async ({ page }) => {
       // Mock API errors
       await page.route('**/api/v1/merchants/analytics', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 500,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({ error: 'Internal Server Error' }),
         });
       });
 
       await page.route('**/api/v1/merchants/statistics', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 500,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({ error: 'Internal Server Error' }),
         });
       });
@@ -180,26 +193,32 @@ test.describe('Dashboard Integration Tests', () => {
     test('should fallback to v3 endpoint when portfolio endpoints fail', async ({ page }) => {
       // Mock portfolio endpoints to fail
       await page.route('**/api/v1/merchants/analytics', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 500,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({ error: 'Service Unavailable' }),
         });
       });
 
       await page.route('**/api/v1/merchants/statistics', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 500,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({ error: 'Service Unavailable' }),
         });
       });
 
       // Mock v3 endpoint to succeed
       await page.route('**/api/v3/dashboard/metrics', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             overview: { total_requests: 125000, active_users: 45 },
             business: { total_verifications: 150, revenue: 1000000, growth_rate: 5.2 },
@@ -225,9 +244,11 @@ test.describe('Dashboard Integration Tests', () => {
     test('should load risk trends and insights', async ({ page }) => {
       // Mock API responses
       await page.route('**/api/v1/risk/metrics', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             overallRiskScore: 0.65,
             highRiskMerchants: 15,
@@ -239,9 +260,11 @@ test.describe('Dashboard Integration Tests', () => {
       });
 
       await page.route('**/api/v1/analytics/trends**', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             trends: [
               {
@@ -271,9 +294,11 @@ test.describe('Dashboard Integration Tests', () => {
       });
 
       await page.route('**/api/v1/analytics/insights**', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             insights: [
               {
@@ -325,9 +350,11 @@ test.describe('Dashboard Integration Tests', () => {
     test('should handle API errors gracefully', async ({ page }) => {
       // Mock API errors
       await page.route('**/api/v1/risk/metrics', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 500,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({ error: 'Internal Server Error' }),
         });
       });
@@ -357,10 +384,12 @@ test.describe('Dashboard Integration Tests', () => {
     test('should display loading state', async ({ page }) => {
       // Delay API response
       await page.route('**/api/v1/risk/metrics', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await new Promise(resolve => setTimeout(resolve, 2000));
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             overallRiskScore: 0.65,
             highRiskMerchants: 15,
@@ -385,9 +414,11 @@ test.describe('Dashboard Integration Tests', () => {
     test('should load portfolio statistics and risk trends', async ({ page }) => {
       // Mock API responses
       await page.route('**/api/v1/risk/metrics', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             overallRiskScore: 0.65,
             highRiskMerchants: 15,
@@ -399,9 +430,11 @@ test.describe('Dashboard Integration Tests', () => {
       });
 
       await page.route('**/api/v1/merchants/statistics', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             totalMerchants: 150,
             averageRiskScore: 0.65,
@@ -414,9 +447,11 @@ test.describe('Dashboard Integration Tests', () => {
       });
 
       await page.route('**/api/v1/analytics/trends**', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             trends: [],
             summary: {
@@ -447,17 +482,21 @@ test.describe('Dashboard Integration Tests', () => {
     test('should handle API errors gracefully', async ({ page }) => {
       // Mock API errors
       await page.route('**/api/v1/risk/metrics', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 500,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({ error: 'Internal Server Error' }),
         });
       });
 
       await page.route('**/api/v1/merchants/statistics', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 500,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({ error: 'Internal Server Error' }),
         });
       });
@@ -479,10 +518,12 @@ test.describe('Dashboard Integration Tests', () => {
     test('should display loading state', async ({ page }) => {
       // Delay API response
       await page.route('**/api/v1/risk/metrics', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await new Promise(resolve => setTimeout(resolve, 2000));
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             overallRiskScore: 0.65,
             highRiskMerchants: 15,
@@ -525,9 +566,11 @@ test.describe('Dashboard Integration Tests', () => {
       });
 
       await page.route('**/api/v1/merchants/statistics', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             totalMerchants: 200,
             averageRiskScore: 0.55,
@@ -554,17 +597,21 @@ test.describe('Dashboard Integration Tests', () => {
     test('should handle partial API failures', async ({ page }) => {
       // Mock one endpoint to fail, others to succeed
       await page.route('**/api/v1/merchants/analytics', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 500,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({ error: 'Service Unavailable' }),
         });
       });
 
       await page.route('**/api/v1/merchants/statistics', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             totalMerchants: 150,
             averageRiskScore: 0.6,

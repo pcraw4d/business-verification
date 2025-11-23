@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { handleCorsOptions, getCorsHeaders } from './helpers/cors-helpers';
 
 /**
  * Console Error Detection Tests
@@ -36,11 +37,13 @@ test.describe('Console Error Detection', () => {
 
     // Mock merchant data with partial/missing numeric fields
     await page.route('**/api/v1/merchants/merchant-123**', async (route) => {
+      if (await handleCorsOptions(route)) return;
       const url = route.request().url();
       if (!url.includes('/analytics') && !url.includes('/risk') && !url.includes('/website')) {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             id: TEST_MERCHANT_ID,
             businessName: 'Test Business',
@@ -55,9 +58,11 @@ test.describe('Console Error Detection', () => {
 
     // Mock risk score with missing fields
     await page.route('**/api/v1/merchants/*/risk-score**', async (route) => {
+      if (await handleCorsOptions(route)) return;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
+        headers: getCorsHeaders(),
         body: JSON.stringify({
           risk_score: undefined, // Missing risk_score
           confidence_score: null, // Null confidence_score
@@ -73,9 +78,11 @@ test.describe('Console Error Detection', () => {
 
     // Mock risk benchmarks with partial data
     await page.route('**/api/v1/risk/benchmarks**', async (route) => {
+      if (await handleCorsOptions(route)) return;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
+        headers: getCorsHeaders(),
         body: JSON.stringify({
           average_risk_score: undefined, // Missing average
           median_risk_score: null, // Null median
@@ -88,9 +95,11 @@ test.describe('Console Error Detection', () => {
 
     // Mock portfolio statistics with missing fields
     await page.route('**/api/v1/merchants/statistics**', async (route) => {
+      if (await handleCorsOptions(route)) return;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
+        headers: getCorsHeaders(),
         body: JSON.stringify({
           averageRiskScore: undefined, // Missing average
           totalMerchants: 100,
@@ -168,9 +177,11 @@ test.describe('Console Error Detection', () => {
 
     // Mock dashboard APIs with partial data
     await page.route('**/api/v1/merchants/statistics**', async (route) => {
+      if (await handleCorsOptions(route)) return;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
+        headers: getCorsHeaders(),
         body: JSON.stringify({
           totalMerchants: 100,
           averageRiskScore: undefined, // Missing
@@ -180,9 +191,11 @@ test.describe('Console Error Detection', () => {
     });
 
     await page.route('**/api/v1/risk/metrics**', async (route) => {
+      if (await handleCorsOptions(route)) return;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
+        headers: getCorsHeaders(),
         body: JSON.stringify({
           overallRiskScore: undefined, // Missing
           riskTrend: null, // Null
