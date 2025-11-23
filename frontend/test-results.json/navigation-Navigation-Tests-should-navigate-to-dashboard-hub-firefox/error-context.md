@@ -1,0 +1,201 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#main-content"
+    - complementary [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - img [ref=e7]
+          - generic [ref=e9]: KYB Platform
+        - navigation "Main navigation" [ref=e13]:
+          - heading "Navigation Menu" [level=2] [ref=e14]
+          - generic [ref=e15]:
+            - heading "Platform" [level=3] [ref=e16]
+            - list [ref=e17]:
+              - listitem [ref=e18]:
+                - link "Home" [ref=e19] [cursor=pointer]:
+                  - /url: /
+                  - img [ref=e20]
+                  - generic [ref=e23]: Home
+              - listitem [ref=e24]:
+                - link "Dashboard Hub" [ref=e25] [cursor=pointer]:
+                  - /url: /dashboard-hub
+                  - img [ref=e26]
+                  - generic [ref=e31]: Dashboard Hub
+          - generic [ref=e32]:
+            - heading "Merchant Verification & Risk" [level=3] [ref=e33]
+            - list [ref=e34]:
+              - listitem [ref=e35]:
+                - link "Add Merchant NEW" [ref=e36] [cursor=pointer]:
+                  - /url: /add-merchant
+                  - img [ref=e37]
+                  - generic [ref=e41]: Add Merchant
+                  - generic [ref=e42]: NEW
+              - listitem [ref=e43]:
+                - link "Business Intelligence" [ref=e44] [cursor=pointer]:
+                  - /url: /dashboard
+                  - img [ref=e45]
+                  - generic [ref=e48]: Business Intelligence
+              - listitem [ref=e49]:
+                - link "Risk Assessment" [ref=e50] [cursor=pointer]:
+                  - /url: /risk-dashboard
+                  - img [ref=e51]
+                  - generic [ref=e55]: Risk Assessment
+              - listitem [ref=e56]:
+                - link "Risk Indicators" [ref=e57] [cursor=pointer]:
+                  - /url: /risk-indicators
+                  - img [ref=e58]
+                  - generic [ref=e61]: Risk Indicators
+          - generic [ref=e62]:
+            - heading "Compliance" [level=3] [ref=e63]
+            - list [ref=e64]:
+              - listitem [ref=e65]:
+                - link "Compliance Status" [ref=e66] [cursor=pointer]:
+                  - /url: /compliance
+                  - img [ref=e67]
+                  - generic [ref=e71]: Compliance Status
+              - listitem [ref=e72]:
+                - link "Gap Analysis NEW" [ref=e73] [cursor=pointer]:
+                  - /url: /compliance/gap-analysis
+                  - img [ref=e74]
+                  - generic [ref=e77]: Gap Analysis
+                  - generic [ref=e78]: NEW
+              - listitem [ref=e79]:
+                - link "Progress Tracking" [ref=e80] [cursor=pointer]:
+                  - /url: /compliance/progress-tracking
+                  - img [ref=e81]
+                  - generic [ref=e84]: Progress Tracking
+          - generic [ref=e85]:
+            - heading "Merchant Management" [level=3] [ref=e86]
+            - list [ref=e87]:
+              - listitem [ref=e88]:
+                - link "Merchant Hub NEW" [ref=e89] [cursor=pointer]:
+                  - /url: /merchant-hub
+                  - img [ref=e90]
+                  - generic [ref=e96]: Merchant Hub
+                  - generic [ref=e97]: NEW
+              - listitem [ref=e98]:
+                - link "Merchant Portfolio" [ref=e99] [cursor=pointer]:
+                  - /url: /merchant-portfolio
+                  - img [ref=e100]
+                  - generic [ref=e104]: Merchant Portfolio
+              - listitem [ref=e105]:
+                - link "Risk Assessment Portfolio" [ref=e106] [cursor=pointer]:
+                  - /url: /risk-assessment/portfolio
+                  - img [ref=e107]
+                  - generic [ref=e109]: Risk Assessment Portfolio
+          - generic [ref=e110]:
+            - heading "Market Intelligence" [level=3] [ref=e111]
+            - list [ref=e112]:
+              - listitem [ref=e113]:
+                - link "Market Analysis" [ref=e114] [cursor=pointer]:
+                  - /url: /market-analysis
+                  - img [ref=e115]
+                  - generic [ref=e118]: Market Analysis
+              - listitem [ref=e119]:
+                - link "Competitive Analysis" [ref=e120] [cursor=pointer]:
+                  - /url: /competitive-analysis
+                  - img [ref=e121]
+                  - generic [ref=e126]: Competitive Analysis
+          - generic [ref=e127]:
+            - heading "Administration" [level=3] [ref=e128]
+            - list [ref=e129]:
+              - listitem [ref=e130]:
+                - link "Admin Dashboard" [ref=e131] [cursor=pointer]:
+                  - /url: /admin
+                  - img [ref=e132]
+                  - generic [ref=e135]: Admin Dashboard
+              - listitem [ref=e136]:
+                - link "Sessions" [ref=e137] [cursor=pointer]:
+                  - /url: /sessions
+                  - img [ref=e138]
+                  - generic [ref=e143]: Sessions
+    - generic [ref=e144]:
+      - banner [ref=e145]:
+        - generic [ref=e147]:
+          - generic [ref=e148]:
+            - heading "Merchant Portfolio" [level=1] [ref=e149]
+            - paragraph [ref=e150]: Manage and view all merchants in your portfolio
+          - link "Add new merchant" [ref=e152] [cursor=pointer]:
+            - /url: /add-merchant
+            - img
+            - text: Add Merchant
+      - main [ref=e153]:
+        - navigation "breadcrumb" [ref=e155]:
+          - list [ref=e156]:
+            - listitem [ref=e158]:
+              - link "Home" [ref=e159] [cursor=pointer]:
+                - /url: /
+            - generic [ref=e160]:
+              - listitem [ref=e161]:
+                - img [ref=e162]
+              - listitem [ref=e164]:
+                - link "Merchant Portfolio" [disabled] [ref=e165]
+        - generic [ref=e167]:
+          - generic [ref=e168]:
+            - generic [ref=e169]:
+              - generic [ref=e171]: Total Merchants
+              - generic [ref=e173]: "0"
+            - generic [ref=e174]:
+              - generic [ref=e176]: Verified
+              - generic [ref=e178]: "0"
+            - generic [ref=e179]:
+              - generic [ref=e181]: Pending
+              - generic [ref=e183]: "0"
+            - generic [ref=e184]:
+              - generic [ref=e186]: High Risk
+              - generic [ref=e188]: "0"
+          - generic [ref=e189]:
+            - generic [ref=e192]:
+              - generic [ref=e193]: Merchants
+              - generic [ref=e194]: Search and filter your merchant portfolio
+            - generic [ref=e195]:
+              - generic [ref=e196]:
+                - generic [ref=e197]:
+                  - img [ref=e198]
+                  - textbox "Search merchants" [ref=e201]:
+                    - /placeholder: Search merchants...
+                - combobox [ref=e202]:
+                  - generic: All Status
+                  - img
+                - combobox [ref=e203]:
+                  - generic: All Risk Levels
+                  - img
+              - alert [ref=e204]:
+                - img [ref=e205]
+                - generic [ref=e209]: Network request failed. Please check your connection.
+              - table [ref=e212]:
+                - rowgroup [ref=e213]:
+                  - row "Business Name Status Risk Level Last Updated Actions" [ref=e214]:
+                    - cell "Business Name" [ref=e215]
+                    - cell "Status" [ref=e216]
+                    - cell "Risk Level" [ref=e217]
+                    - cell "Last Updated" [ref=e218]
+                    - cell "Actions" [ref=e219]
+                - rowgroup [ref=e220]:
+                  - row "No merchants found Add your first merchant" [ref=e221]:
+                    - cell "No merchants found Add your first merchant" [ref=e222]:
+                      - img [ref=e223]
+                      - paragraph [ref=e227]: No merchants found
+                      - link "Add your first merchant" [ref=e228] [cursor=pointer]:
+                        - /url: /add-merchant
+                        - text: Add Your First Merchant
+  - region "Notifications alt+T"
+  - generic [ref=e233] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e234]:
+      - img [ref=e235]
+    - generic [ref=e239]:
+      - button "Open issues overlay" [ref=e240]:
+        - generic [ref=e241]:
+          - generic [ref=e242]: "1"
+          - generic [ref=e243]: "2"
+        - generic [ref=e244]:
+          - text: Issue
+          - generic [ref=e245]: s
+      - button "Collapse issues badge" [ref=e246]:
+        - img [ref=e247]
+  - alert [ref=e249]
+```

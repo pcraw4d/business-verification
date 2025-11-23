@@ -1,0 +1,47 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - main [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#merchant-content"
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Test Business Inc" [level=1] [ref=e8]
+        - paragraph [ref=e9]: "Technology • Status: active"
+      - button "Enrich merchant data from third-party vendors (Press E)" [ref=e11]:
+        - img
+        - text: Enrich Data
+    - region "Merchant details" [ref=e12]:
+      - generic [ref=e13]:
+        - tablist [ref=e14]:
+          - tab "Overview tab" [ref=e15]: Overview
+          - tab "Business Analytics tab" [ref=e16]: Business Analytics
+          - tab "Risk Assessment tab" [active] [selected] [ref=e17]: Risk Assessment
+          - tab "Risk Indicators tab" [ref=e18]: Risk Indicators
+        - tabpanel "Risk Assessment tab" [ref=e19]:
+          - generic [ref=e23]:
+            - img
+            - text: Disconnected
+  - region "Notifications alt+T":
+    - list:
+      - listitem [ref=e26]:
+        - img [ref=e28]
+        - generic [ref=e32]:
+          - generic [ref=e33]: Network request failed. Please check your connection.
+          - generic [ref=e34]: "Error Code: UNKNOWN_ERROR"
+  - generic [ref=e39] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e40]:
+      - img [ref=e41]
+    - generic [ref=e45]:
+      - button "Open issues overlay" [ref=e46]:
+        - generic [ref=e47]:
+          - generic [ref=e48]: "5"
+          - generic [ref=e49]: "6"
+        - generic [ref=e50]:
+          - text: Issue
+          - generic [ref=e51]: s
+      - button "Collapse issues badge" [ref=e52]:
+        - img [ref=e53]
+  - alert [ref=e55]
+```

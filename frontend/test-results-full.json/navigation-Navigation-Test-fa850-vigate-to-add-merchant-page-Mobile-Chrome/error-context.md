@@ -1,0 +1,97 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#main-content"
+    - generic [ref=e4]:
+      - banner [ref=e5]:
+        - generic [ref=e6]:
+          - button "Toggle sidebar" [ref=e7]:
+            - img
+            - generic [ref=e8]: Toggle sidebar
+          - generic [ref=e9]:
+            - generic [ref=e10]:
+              - heading "Merchant Portfolio" [level=1] [ref=e11]
+              - paragraph [ref=e12]: Manage and view all merchants in your portfolio
+            - link "Add new merchant" [ref=e14] [cursor=pointer]:
+              - /url: /add-merchant
+              - img
+              - text: Add Merchant
+      - main [ref=e15]:
+        - navigation "breadcrumb" [ref=e17]:
+          - list [ref=e18]:
+            - listitem [ref=e20]:
+              - link "Home" [ref=e21] [cursor=pointer]:
+                - /url: /
+            - generic [ref=e22]:
+              - listitem [ref=e23]:
+                - img [ref=e24]
+              - listitem [ref=e26]:
+                - link "Merchant Portfolio" [disabled] [ref=e27]
+        - generic [ref=e29]:
+          - generic [ref=e30]:
+            - generic [ref=e31]:
+              - generic [ref=e33]: Total Merchants
+              - generic [ref=e35]: "0"
+            - generic [ref=e36]:
+              - generic [ref=e38]: Verified
+              - generic [ref=e40]: "0"
+            - generic [ref=e41]:
+              - generic [ref=e43]: Pending
+              - generic [ref=e45]: "0"
+            - generic [ref=e46]:
+              - generic [ref=e48]: High Risk
+              - generic [ref=e50]: "0"
+          - generic [ref=e51]:
+            - generic [ref=e54]:
+              - generic [ref=e55]: Merchants
+              - generic [ref=e56]: Search and filter your merchant portfolio
+            - generic [ref=e57]:
+              - generic [ref=e58]:
+                - generic [ref=e59]:
+                  - img [ref=e60]
+                  - textbox "Search merchants" [ref=e63]:
+                    - /placeholder: Search merchants...
+                - combobox [ref=e64]:
+                  - generic: All Status
+                  - img
+                - combobox [ref=e65]:
+                  - generic: All Risk Levels
+                  - img
+              - alert [ref=e66]:
+                - img [ref=e67]
+                - generic [ref=e69]: CORS policy blocked the request. Please check server configuration.
+              - table [ref=e72]:
+                - rowgroup [ref=e73]:
+                  - row "Business Name Status Risk Level Last Updated Actions" [ref=e74]:
+                    - cell "Business Name" [ref=e75]
+                    - cell "Status" [ref=e76]
+                    - cell "Risk Level" [ref=e77]
+                    - cell "Last Updated" [ref=e78]
+                    - cell "Actions" [ref=e79]
+                - rowgroup [ref=e80]:
+                  - row "No merchants found Add your first merchant" [ref=e81]:
+                    - cell "No merchants found Add your first merchant" [ref=e82]:
+                      - img [ref=e83]
+                      - paragraph [ref=e87]: No merchants found
+                      - link "Add your first merchant" [ref=e88] [cursor=pointer]:
+                        - /url: /add-merchant
+                        - text: Add Your First Merchant
+  - region "Notifications alt+T"
+  - generic [ref=e93] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e94]:
+      - img [ref=e95]
+    - generic [ref=e98]:
+      - button "Open issues overlay" [ref=e99]:
+        - generic [ref=e100]:
+          - generic [ref=e101]: "2"
+          - generic [ref=e102]: "3"
+        - generic [ref=e103]:
+          - text: Issue
+          - generic [ref=e104]: s
+      - button "Collapse issues badge" [ref=e105]:
+        - img [ref=e106]
+  - alert [ref=e108]
+```

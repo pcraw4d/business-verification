@@ -1,0 +1,164 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#merchant-content"
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Test Business" [level=1] [ref=e8]
+        - paragraph [ref=e9]: "Technology • Status: active"
+      - button "Enrich merchant data from third-party vendors (Press E)" [ref=e11]:
+        - img
+        - text: Enrich Data
+    - region "Merchant details" [ref=e12]:
+      - generic [ref=e13]:
+        - tablist [ref=e14]:
+          - tab "Overview tab" [selected] [ref=e15]: Overview
+          - tab "Business Analytics tab" [ref=e16]: Business Analytics
+          - tab "Risk Assessment tab" [ref=e17]: Risk Assessment
+          - tab "Risk Indicators tab" [ref=e18]: Risk Indicators
+        - tabpanel "Overview tab" [ref=e19]:
+          - generic [ref=e20]:
+            - generic [ref=e21]:
+              - button "Enrich merchant data from third-party vendors (Press E)" [ref=e22]:
+                - img
+                - text: Enrich Data
+              - generic [ref=e24]: "Data Completeness: 50%"
+            - generic [ref=e25]:
+              - generic [ref=e26]:
+                - generic [ref=e28]:
+                  - generic [ref=e29]:
+                    - generic [ref=e30]: Business Information
+                    - generic [ref=e31]: Basic merchant details
+                  - paragraph [ref=e32]: Updated just now
+                - generic [ref=e33]:
+                  - generic [ref=e34]:
+                    - paragraph [ref=e35]: Business Name
+                    - paragraph [ref=e36]: Test Business
+                  - generic [ref=e37]:
+                    - paragraph [ref=e38]: Industry
+                    - paragraph [ref=e39]: Technology
+                  - generic [ref=e40]:
+                    - paragraph [ref=e41]: Status
+                    - generic [ref=e42]: active
+              - generic [ref=e43]:
+                - generic [ref=e45]:
+                  - generic [ref=e46]:
+                    - generic [ref=e47]: Contact Information
+                    - generic [ref=e48]: Contact details
+                  - paragraph [ref=e49]: Updated just now
+                - generic [ref=e50]:
+                  - generic [ref=e51]:
+                    - paragraph [ref=e52]: Email
+                    - paragraph [ref=e53]: test@example.com
+                  - generic [ref=e54]:
+                    - paragraph [ref=e55]: Phone
+                    - paragraph [ref=e56]: +1-555-123-4567
+                  - generic [ref=e57]:
+                    - paragraph [ref=e58]: Website
+                    - link "https://test.com" [ref=e59] [cursor=pointer]:
+                      - /url: https://test.com
+            - generic [ref=e60]:
+              - generic [ref=e62]:
+                - generic [ref=e63]:
+                  - generic [ref=e64]: Address
+                  - generic [ref=e65]: Business location
+                - paragraph [ref=e66]: Updated just now
+              - generic [ref=e67]:
+                - paragraph [ref=e68]: 123 Main St
+                - paragraph [ref=e69]: San Francisco, CA, 94102
+                - paragraph [ref=e70]: USA
+            - generic [ref=e71]:
+              - generic [ref=e72]:
+                - generic [ref=e73]:
+                  - generic [ref=e74]: Risk Score
+                  - generic [ref=e75]: Current merchant risk assessment
+                - alert [ref=e77]:
+                  - img [ref=e78]
+                  - generic [ref=e82]: Error Loading Risk Score
+                  - generic [ref=e83]:
+                    - text: "Error RS-003: API response validation failed for getMerchantRiskScore(merchant-123): Invalid input: expected string, received undefined; Invalid option: expected one of \"low\"|\"medium\"|\"high\"; Invalid input: expected string, received undefined"
+                    - button "Retry" [ref=e84]:
+                      - img
+                      - text: Retry
+              - generic [ref=e85]:
+                - generic [ref=e86]:
+                  - generic [ref=e87]: Portfolio Comparison
+                  - generic [ref=e88]: Comparing merchant performance to portfolio
+                - alert [ref=e90]:
+                  - img [ref=e91]
+                  - generic [ref=e95]: Risk Score Required
+                  - generic [ref=e96]:
+                    - text: "Error PC-003: A risk assessment must be completed before portfolio comparison can be displayed."
+                    - button "Run Risk Assessment" [ref=e97]:
+                      - img
+                      - text: Run Risk Assessment
+            - generic [ref=e98]:
+              - generic [ref=e100]:
+                - generic [ref=e101]:
+                  - generic [ref=e102]: Metadata
+                  - generic [ref=e103]: System information
+                - paragraph [ref=e104]: Updated just now
+              - table [ref=e107]:
+                - rowgroup [ref=e108]:
+                  - row "Merchant ID merchant-123" [ref=e109]:
+                    - cell "Merchant ID" [ref=e110]
+                    - cell "merchant-123" [ref=e111]
+                  - row "Created 11/22/2025" [ref=e112]:
+                    - cell "Created" [ref=e113]
+                    - cell "11/22/2025" [ref=e114]
+                  - row "Last Updated 11/22/2025" [ref=e115]:
+                    - cell "Last Updated" [ref=e116]
+                    - cell "11/22/2025" [ref=e117]
+  - region "Notifications alt+T":
+    - list:
+      - listitem [ref=e118]:
+        - img [ref=e120]
+        - generic [ref=e124]:
+          - generic [ref=e125]: Failed to load risk score
+          - generic [ref=e126]: "API response validation failed for getMerchantRiskScore(merchant-123): Invalid input: expected string, received undefined; Invalid option: expected one of \"low\"|\"medium\"|\"high\"; Invalid input: expected string, received undefined"
+      - listitem [ref=e127]:
+        - img [ref=e129]
+        - generic [ref=e133]:
+          - generic [ref=e134]: Failed to load risk score
+          - generic [ref=e135]: "API response validation failed for getMerchantRiskScore(merchant-123): Invalid input: expected string, received undefined; Invalid option: expected one of \"low\"|\"medium\"|\"high\"; Invalid input: expected string, received undefined"
+      - listitem [ref=e136]:
+        - img [ref=e138]
+        - generic [ref=e142]:
+          - generic [ref=e143]: "API response validation failed for getMerchantRiskScore(merchant-123): Invalid input: expected string, received undefined; Invalid option: expected one of \"low\"|\"medium\"|\"high\"; Invalid input: expected string, received undefined"
+          - generic [ref=e144]: "Error Code: UNKNOWN_ERROR"
+      - listitem:
+        - generic:
+          - img
+        - generic:
+          - generic: "API response validation failed for getPortfolioStatistics(): Invalid input: expected number, received undefined; Invalid input: expected number, received undefined; Invalid input: expected number, received undefined; Invalid input: expected object, received undefined; Invalid input: expected array, received undefined; Invalid input: expected array, received undefined; Invalid input: expected string, received undefined"
+          - generic: "Error Code: UNKNOWN_ERROR"
+      - listitem:
+        - generic:
+          - img
+        - generic:
+          - generic: "API response validation failed for getMerchantRiskScore(merchant-123): Invalid input: expected string, received undefined; Invalid option: expected one of \"low\"|\"medium\"|\"high\"; Invalid input: expected string, received undefined"
+          - generic: "Error Code: UNKNOWN_ERROR"
+      - listitem:
+        - generic:
+          - img
+        - generic:
+          - generic: "API response validation failed for getPortfolioStatistics(): Invalid input: expected number, received undefined; Invalid input: expected number, received undefined; Invalid input: expected number, received undefined; Invalid input: expected object, received undefined; Invalid input: expected array, received undefined; Invalid input: expected array, received undefined; Invalid input: expected string, received undefined"
+          - generic: "Error Code: UNKNOWN_ERROR"
+  - generic [ref=e149] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e150]:
+      - img [ref=e151]
+    - generic [ref=e155]:
+      - button "Open issues overlay" [ref=e156]:
+        - generic [ref=e157]:
+          - generic [ref=e158]: "13"
+          - generic [ref=e159]: "14"
+        - generic [ref=e160]:
+          - text: Issue
+          - generic [ref=e161]: s
+      - button "Collapse issues badge" [ref=e162]:
+        - img [ref=e163]
+  - alert [ref=e165]
+```

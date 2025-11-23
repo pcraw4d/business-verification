@@ -1,0 +1,74 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - main [ref=e2]:
+    - link "Skip to main content" [ref=e3]:
+      - /url: "#merchant-content"
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Test Business" [level=1] [ref=e8]
+        - paragraph [ref=e9]: "Technology • Status: active"
+      - button "Enrich merchant data from third-party vendors (Press E)" [ref=e11]:
+        - img
+        - text: Enrich Data
+    - region "Merchant details" [ref=e12]:
+      - generic [ref=e13]:
+        - tablist [ref=e14]:
+          - tab "Overview tab" [ref=e15]: Overview
+          - tab "Business Analytics tab" [ref=e16]: Business Analytics
+          - tab "Risk Assessment tab" [active] [selected] [ref=e17]: Risk Assessment
+          - tab "Risk Indicators tab" [ref=e18]: Risk Indicators
+        - tabpanel "Risk Assessment tab" [ref=e19]:
+          - generic [ref=e20]:
+            - alert [ref=e21]:
+              - img [ref=e22]
+              - generic [ref=e24]: Error loading Risk Assessment
+              - paragraph [ref=e26]: An error occurred while loading the Risk Assessment tab. This tab may be temporarily unavailable.
+            - button "Retry loading Risk Assessment tab" [ref=e28]:
+              - img
+              - text: Retry
+  - region "Notifications alt+T":
+    - list:
+      - listitem [ref=e29]:
+        - img [ref=e31]
+        - generic [ref=e35]:
+          - generic [ref=e36]: Failed to load recommendations
+          - generic [ref=e37]: "API response validation failed for getRiskRecommendations(merchant-123): Invalid input: expected string, received undefined"
+      - listitem [ref=e38]:
+        - img [ref=e40]
+        - generic [ref=e44]:
+          - generic [ref=e45]: Failed to load recommendations
+          - generic [ref=e46]: "API response validation failed for getRiskRecommendations(merchant-123): Invalid input: expected string, received undefined"
+      - listitem [ref=e47]:
+        - img [ref=e49]
+        - generic [ref=e53]:
+          - generic [ref=e54]: "API response validation failed for getRiskRecommendations(merchant-123): Invalid input: expected string, received undefined"
+          - generic [ref=e55]: "Error Code: UNKNOWN_ERROR"
+      - listitem:
+        - generic:
+          - img
+        - generic:
+          - generic: "API response validation failed for getPortfolioStatistics(): Invalid input: expected number, received undefined; Invalid input: expected number, received undefined; Invalid input: expected number, received undefined; Invalid input: expected object, received undefined; Invalid input: expected array, received undefined; Invalid input: expected array, received undefined; Invalid input: expected string, received undefined"
+          - generic: "Error Code: UNKNOWN_ERROR"
+      - listitem:
+        - generic:
+          - img
+        - generic:
+          - generic: "API response validation failed for getPortfolioStatistics(): Invalid input: expected number, received undefined; Invalid input: expected number, received undefined; Invalid input: expected number, received undefined; Invalid input: expected object, received undefined; Invalid input: expected array, received undefined; Invalid input: expected array, received undefined; Invalid input: expected string, received undefined"
+          - generic: "Error Code: UNKNOWN_ERROR"
+  - generic [ref=e60] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e61]:
+      - img [ref=e62]
+    - generic [ref=e67]:
+      - button "Open issues overlay" [ref=e68]:
+        - generic [ref=e69]:
+          - generic [ref=e70]: "10"
+          - generic [ref=e71]: "11"
+        - generic [ref=e72]:
+          - text: Issue
+          - generic [ref=e73]: s
+      - button "Collapse issues badge" [ref=e74]:
+        - img [ref=e75]
+  - alert [ref=e77]
+```

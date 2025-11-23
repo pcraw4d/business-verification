@@ -251,7 +251,11 @@ test.describe('Navigation Tests', () => {
     const breadcrumb = page.locator('text=Home').first();
     if (await breadcrumb.isVisible()) {
       await breadcrumb.click();
-      await expect(page).toHaveURL(/\/$/);
+      // Home page auto-redirects to /merchant-portfolio after 3 seconds
+      // So we should expect either the home page URL or the redirect destination
+      await page.waitForTimeout(3500); // Wait for redirect
+      const currentUrl = page.url();
+      expect(currentUrl).toMatch(/\/(merchant-portfolio)?$/);
     }
   });
 });

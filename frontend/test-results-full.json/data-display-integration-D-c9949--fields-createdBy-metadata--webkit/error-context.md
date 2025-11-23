@@ -1,0 +1,112 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - link "Skip to main content" [ref=e3]:
+      - /url: "#merchant-content"
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Test Business Inc" [level=1] [ref=e8]
+        - paragraph [ref=e9]: "Status: active"
+      - button "Enrich merchant data from third-party vendors (Press E)" [ref=e11]:
+        - img
+        - text: Enrich Data
+    - region "Merchant details" [ref=e12]:
+      - generic [ref=e13]:
+        - tablist [ref=e14]:
+          - tab "Overview tab" [selected] [ref=e15]: Overview
+          - tab "Business Analytics tab" [ref=e16]: Business Analytics
+          - tab "Risk Assessment tab" [ref=e17]: Risk Assessment
+          - tab "Risk Indicators tab" [ref=e18]: Risk Indicators
+        - tabpanel "Overview tab" [ref=e19]:
+          - generic [ref=e20]:
+            - generic [ref=e21]:
+              - button "Enrich merchant data from third-party vendors (Press E)" [ref=e22]:
+                - img
+                - text: Enrich Data
+              - generic [ref=e24]: "Data Completeness: 0%"
+            - generic [ref=e25]:
+              - generic [ref=e26]:
+                - generic [ref=e28]:
+                  - generic [ref=e29]:
+                    - generic [ref=e30]: Business Information
+                    - generic [ref=e31]: Basic merchant details
+                  - paragraph [ref=e32]: Updated 12/31/2023
+                - generic [ref=e33]:
+                  - generic [ref=e34]:
+                    - paragraph [ref=e35]: Business Name
+                    - paragraph [ref=e36]: Test Business Inc
+                  - generic [ref=e37]:
+                    - paragraph [ref=e38]: Status
+                    - generic [ref=e39]: active
+              - generic [ref=e42]:
+                - generic [ref=e43]:
+                  - generic [ref=e44]: Contact Information
+                  - generic [ref=e45]: Contact details
+                - paragraph [ref=e46]: Updated 12/31/2023
+            - generic [ref=e47]:
+              - generic [ref=e48]:
+                - generic [ref=e49]:
+                  - generic [ref=e50]: Risk Score
+                  - generic [ref=e51]: Current merchant risk assessment
+                - alert [ref=e53]:
+                  - img [ref=e54]
+                  - generic [ref=e56]: Error Loading Risk Score
+                  - generic [ref=e57]:
+                    - text: "Error RS-003: Network request failed. Please check your connection."
+                    - button "Retry" [ref=e58]:
+                      - img
+                      - text: Retry
+              - generic [ref=e59]:
+                - generic [ref=e60]:
+                  - generic [ref=e61]: Portfolio Comparison
+                  - generic [ref=e62]: Comparing merchant performance to portfolio
+                - alert [ref=e64]:
+                  - img [ref=e65]
+                  - generic [ref=e67]: Risk Score Required
+                  - generic [ref=e68]:
+                    - text: "Error PC-003: A risk assessment must be completed before portfolio comparison can be displayed."
+                    - button "Run Risk Assessment" [ref=e69]:
+                      - img
+                      - text: Run Risk Assessment
+            - generic [ref=e70]:
+              - generic [ref=e72]:
+                - generic [ref=e73]:
+                  - generic [ref=e74]: Metadata
+                  - generic [ref=e75]: System information
+                - paragraph [ref=e76]: Updated 12/31/2023
+              - generic [ref=e77]:
+                - table [ref=e79]:
+                  - rowgroup [ref=e80]:
+                    - row "Merchant ID merchant-123" [ref=e81]:
+                      - cell "Merchant ID" [ref=e82]
+                      - cell "merchant-123" [ref=e83]
+                    - row "Created By user-123" [ref=e84]:
+                      - cell "Created By" [ref=e85]
+                      - cell "user-123" [ref=e86]
+                    - row "Created 12/31/2023" [ref=e87]:
+                      - cell "Created" [ref=e88]
+                      - cell "12/31/2023" [ref=e89]
+                    - row "Last Updated 12/31/2023" [ref=e90]:
+                      - cell "Last Updated" [ref=e91]
+                      - cell "12/31/2023" [ref=e92]
+                - button "View Metadata JSON" [ref=e95]:
+                  - generic [ref=e96]: View Metadata JSON
+                  - img
+  - region "Notifications alt+T"
+  - generic [ref=e101] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e102]:
+      - img [ref=e103]
+    - generic [ref=e108]:
+      - button "Open issues overlay" [ref=e109]:
+        - generic [ref=e110]:
+          - generic [ref=e111]: "4"
+          - generic [ref=e112]: "5"
+        - generic [ref=e113]:
+          - text: Issue
+          - generic [ref=e114]: s
+      - button "Collapse issues badge" [ref=e115]:
+        - img [ref=e116]
+  - alert [ref=e118]
+```

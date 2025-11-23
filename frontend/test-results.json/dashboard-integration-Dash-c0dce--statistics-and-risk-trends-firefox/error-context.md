@@ -1,0 +1,830 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [active]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - navigation [ref=e7]:
+            - button "previous" [disabled] [ref=e8]:
+              - img "previous" [ref=e9]
+            - generic [ref=e11]:
+              - generic [ref=e12]: 1/
+              - text: "6"
+            - button "next" [ref=e13] [cursor=pointer]:
+              - img "next" [ref=e14]
+          - img
+        - generic [ref=e16]:
+          - generic [ref=e17]:
+            - img [ref=e18]
+            - generic "Latest available version is detected (16.0.3)." [ref=e20]: Next.js 16.0.3
+            - generic [ref=e21]: Turbopack
+          - img
+      - generic [ref=e22]:
+        - dialog "Console Error" [ref=e23]:
+          - generic [ref=e26]:
+            - generic [ref=e27]:
+              - generic [ref=e28]:
+                - generic [ref=e30]: Console Error
+                - generic [ref=e31]:
+                  - button "Copy Error Info" [ref=e32] [cursor=pointer]:
+                    - img [ref=e33]
+                  - button "No related documentation found" [disabled] [ref=e35]:
+                    - img [ref=e36]
+                  - link "Learn more about enabling Node.js inspector for server code with Chrome DevTools" [ref=e38] [cursor=pointer]:
+                    - /url: https://nextjs.org/docs/app/building-your-application/configuring/debugging#server-side-code
+                    - img [ref=e39]
+              - generic [ref=e48]: "[API Validation] Validation failed: {}"
+            - generic [ref=e50]:
+              - paragraph [ref=e52]:
+                - text: Call Stack
+                - generic [ref=e53]: "127"
+              - generic [ref=e54]:
+                - generic [ref=e55]:
+                  - text: createConsoleError
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e56] [cursor=pointer]:
+                    - img [ref=e57]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_4c1928ef._.js (2189:71)
+              - generic [ref=e59]:
+                - generic [ref=e60]:
+                  - text: handleConsoleError
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e61] [cursor=pointer]:
+                    - img [ref=e62]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_4c1928ef._.js (2970:54)
+              - generic [ref=e64]:
+                - generic [ref=e65]:
+                  - text: error
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e66] [cursor=pointer]:
+                    - img [ref=e67]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_4c1928ef._.js (3114:57)
+              - generic [ref=e69]:
+                - generic [ref=e70]:
+                  - text: validateAPIResponse
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e71] [cursor=pointer]:
+                    - img [ref=e72]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/frontend_d6251a17._.js (2153:25)
+              - generic [ref=e74]:
+                - generic [ref=e75]:
+                  - text: getPortfolioStatistics/<
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e76] [cursor=pointer]:
+                    - img [ref=e77]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/frontend_d6251a17._.js (3448:189)
+              - generic [ref=e79]:
+                - generic [ref=e80]:
+                  - text: async*deduplicate
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e81] [cursor=pointer]:
+                    - img [ref=e82]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/frontend_d6251a17._.js (2319:25)
+              - generic [ref=e84]:
+                - generic [ref=e85]:
+                  - text: getPortfolioStatistics
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e86] [cursor=pointer]:
+                    - img [ref=e87]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/frontend_d6251a17._.js (3440:32)
+              - generic [ref=e89]:
+                - generic [ref=e90]:
+                  - text: fetchData
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e91] [cursor=pointer]:
+                    - img [ref=e92]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/frontend_d6251a17._.js (3640:177)
+              - generic [ref=e94]:
+                - generic [ref=e95]:
+                  - text: RiskIndicatorsPage.useEffect
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e96] [cursor=pointer]:
+                    - img [ref=e97]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/frontend_d6251a17._.js (3784:13)
+              - generic [ref=e99]:
+                - generic [ref=e100]:
+                  - text: react_stack_bottom_frame
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e101] [cursor=pointer]:
+                    - img [ref=e102]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (14866:22)
+              - generic [ref=e104]:
+                - generic [ref=e105]:
+                  - text: runWithFiberInDEV
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e106] [cursor=pointer]:
+                    - img [ref=e107]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (959:131)
+              - generic [ref=e109]:
+                - generic [ref=e110]:
+                  - text: commitHookEffectListMount
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e111] [cursor=pointer]:
+                    - img [ref=e112]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (7260:167)
+              - generic [ref=e114]:
+                - generic [ref=e115]:
+                  - text: commitHookPassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e116] [cursor=pointer]:
+                    - img [ref=e117]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (7295:60)
+              - generic [ref=e119]:
+                - generic [ref=e120]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e121] [cursor=pointer]:
+                    - img [ref=e122]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8690:33)
+              - generic [ref=e124]:
+                - generic [ref=e125]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e126] [cursor=pointer]:
+                    - img [ref=e127]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e129]:
+                - generic [ref=e130]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e131] [cursor=pointer]:
+                    - img [ref=e132]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8689:55)
+              - generic [ref=e134]:
+                - generic [ref=e135]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e136] [cursor=pointer]:
+                    - img [ref=e137]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e139]:
+                - generic [ref=e140]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e141] [cursor=pointer]:
+                    - img [ref=e142]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8689:55)
+              - generic [ref=e144]:
+                - generic [ref=e145]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e146] [cursor=pointer]:
+                    - img [ref=e147]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e149]:
+                - generic [ref=e150]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e151] [cursor=pointer]:
+                    - img [ref=e152]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8751:55)
+              - generic [ref=e154]:
+                - generic [ref=e155]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e156] [cursor=pointer]:
+                    - img [ref=e157]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e159]:
+                - generic [ref=e160]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e161] [cursor=pointer]:
+                    - img [ref=e162]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8751:55)
+              - generic [ref=e164]:
+                - generic [ref=e165]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e166] [cursor=pointer]:
+                    - img [ref=e167]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e169]:
+                - generic [ref=e170]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e171] [cursor=pointer]:
+                    - img [ref=e172]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8689:55)
+              - generic [ref=e174]:
+                - generic [ref=e175]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e176] [cursor=pointer]:
+                    - img [ref=e177]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e179]:
+                - generic [ref=e180]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e181] [cursor=pointer]:
+                    - img [ref=e182]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8694:55)
+              - generic [ref=e184]:
+                - generic [ref=e185]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e186] [cursor=pointer]:
+                    - img [ref=e187]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e189]:
+                - generic [ref=e190]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e191] [cursor=pointer]:
+                    - img [ref=e192]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8689:55)
+              - generic [ref=e194]:
+                - generic [ref=e195]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e196] [cursor=pointer]:
+                    - img [ref=e197]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e199]:
+                - generic [ref=e200]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e201] [cursor=pointer]:
+                    - img [ref=e202]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8689:55)
+              - generic [ref=e204]:
+                - generic [ref=e205]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e206] [cursor=pointer]:
+                    - img [ref=e207]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e209]:
+                - generic [ref=e210]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e211] [cursor=pointer]:
+                    - img [ref=e212]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8689:55)
+              - generic [ref=e214]:
+                - generic [ref=e215]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e216] [cursor=pointer]:
+                    - img [ref=e217]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e219]:
+                - generic [ref=e220]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e221] [cursor=pointer]:
+                    - img [ref=e222]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8689:55)
+              - generic [ref=e224]:
+                - generic [ref=e225]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e226] [cursor=pointer]:
+                    - img [ref=e227]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e229]:
+                - generic [ref=e230]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e231] [cursor=pointer]:
+                    - img [ref=e232]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8694:55)
+              - generic [ref=e234]:
+                - generic [ref=e235]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e236] [cursor=pointer]:
+                    - img [ref=e237]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e239]:
+                - generic [ref=e240]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e241] [cursor=pointer]:
+                    - img [ref=e242]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8689:55)
+              - generic [ref=e244]:
+                - generic [ref=e245]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e246] [cursor=pointer]:
+                    - img [ref=e247]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e249]:
+                - generic [ref=e250]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e251] [cursor=pointer]:
+                    - img [ref=e252]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8689:55)
+              - generic [ref=e254]:
+                - generic [ref=e255]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e256] [cursor=pointer]:
+                    - img [ref=e257]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e259]:
+                - generic [ref=e260]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e261] [cursor=pointer]:
+                    - img [ref=e262]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8751:55)
+              - generic [ref=e264]:
+                - generic [ref=e265]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e266] [cursor=pointer]:
+                    - img [ref=e267]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e269]:
+                - generic [ref=e270]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e271] [cursor=pointer]:
+                    - img [ref=e272]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8751:55)
+              - generic [ref=e274]:
+                - generic [ref=e275]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e276] [cursor=pointer]:
+                    - img [ref=e277]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e279]:
+                - generic [ref=e280]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e281] [cursor=pointer]:
+                    - img [ref=e282]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8689:55)
+              - generic [ref=e284]:
+                - generic [ref=e285]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e286] [cursor=pointer]:
+                    - img [ref=e287]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e289]:
+                - generic [ref=e290]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e291] [cursor=pointer]:
+                    - img [ref=e292]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8689:55)
+              - generic [ref=e294]:
+                - generic [ref=e295]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e296] [cursor=pointer]:
+                    - img [ref=e297]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e299]:
+                - generic [ref=e300]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e301] [cursor=pointer]:
+                    - img [ref=e302]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8751:55)
+              - generic [ref=e304]:
+                - generic [ref=e305]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e306] [cursor=pointer]:
+                    - img [ref=e307]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e309]:
+                - generic [ref=e310]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e311] [cursor=pointer]:
+                    - img [ref=e312]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8751:55)
+              - generic [ref=e314]:
+                - generic [ref=e315]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e316] [cursor=pointer]:
+                    - img [ref=e317]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e319]:
+                - generic [ref=e320]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e321] [cursor=pointer]:
+                    - img [ref=e322]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8751:55)
+              - generic [ref=e324]:
+                - generic [ref=e325]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e326] [cursor=pointer]:
+                    - img [ref=e327]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e329]:
+                - generic [ref=e330]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e331] [cursor=pointer]:
+                    - img [ref=e332]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8689:55)
+              - generic [ref=e334]:
+                - generic [ref=e335]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e336] [cursor=pointer]:
+                    - img [ref=e337]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e339]:
+                - generic [ref=e340]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e341] [cursor=pointer]:
+                    - img [ref=e342]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8694:55)
+              - generic [ref=e344]:
+                - generic [ref=e345]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e346] [cursor=pointer]:
+                    - img [ref=e347]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e349]:
+                - generic [ref=e350]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e351] [cursor=pointer]:
+                    - img [ref=e352]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8689:55)
+              - generic [ref=e354]:
+                - generic [ref=e355]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e356] [cursor=pointer]:
+                    - img [ref=e357]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e359]:
+                - generic [ref=e360]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e361] [cursor=pointer]:
+                    - img [ref=e362]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8694:55)
+              - generic [ref=e364]:
+                - generic [ref=e365]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e366] [cursor=pointer]:
+                    - img [ref=e367]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e369]:
+                - generic [ref=e370]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e371] [cursor=pointer]:
+                    - img [ref=e372]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8689:55)
+              - generic [ref=e374]:
+                - generic [ref=e375]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e376] [cursor=pointer]:
+                    - img [ref=e377]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e379]:
+                - generic [ref=e380]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e381] [cursor=pointer]:
+                    - img [ref=e382]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8689:55)
+              - generic [ref=e384]:
+                - generic [ref=e385]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e386] [cursor=pointer]:
+                    - img [ref=e387]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e389]:
+                - generic [ref=e390]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e391] [cursor=pointer]:
+                    - img [ref=e392]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8689:55)
+              - generic [ref=e394]:
+                - generic [ref=e395]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e396] [cursor=pointer]:
+                    - img [ref=e397]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e399]:
+                - generic [ref=e400]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e401] [cursor=pointer]:
+                    - img [ref=e402]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8694:55)
+              - generic [ref=e404]:
+                - generic [ref=e405]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e406] [cursor=pointer]:
+                    - img [ref=e407]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e409]:
+                - generic [ref=e410]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e411] [cursor=pointer]:
+                    - img [ref=e412]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8689:55)
+              - generic [ref=e414]:
+                - generic [ref=e415]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e416] [cursor=pointer]:
+                    - img [ref=e417]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e419]:
+                - generic [ref=e420]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e421] [cursor=pointer]:
+                    - img [ref=e422]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8689:55)
+              - generic [ref=e424]:
+                - generic [ref=e425]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e426] [cursor=pointer]:
+                    - img [ref=e427]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e429]:
+                - generic [ref=e430]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e431] [cursor=pointer]:
+                    - img [ref=e432]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8751:55)
+              - generic [ref=e434]:
+                - generic [ref=e435]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e436] [cursor=pointer]:
+                    - img [ref=e437]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e439]:
+                - generic [ref=e440]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e441] [cursor=pointer]:
+                    - img [ref=e442]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8751:55)
+              - generic [ref=e444]:
+                - generic [ref=e445]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e446] [cursor=pointer]:
+                    - img [ref=e447]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e449]:
+                - generic [ref=e450]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e451] [cursor=pointer]:
+                    - img [ref=e452]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8689:55)
+              - generic [ref=e454]:
+                - generic [ref=e455]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e456] [cursor=pointer]:
+                    - img [ref=e457]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e459]:
+                - generic [ref=e460]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e461] [cursor=pointer]:
+                    - img [ref=e462]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8689:55)
+              - generic [ref=e464]:
+                - generic [ref=e465]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e466] [cursor=pointer]:
+                    - img [ref=e467]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e469]:
+                - generic [ref=e470]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e471] [cursor=pointer]:
+                    - img [ref=e472]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8751:55)
+              - generic [ref=e474]:
+                - generic [ref=e475]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e476] [cursor=pointer]:
+                    - img [ref=e477]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e479]:
+                - generic [ref=e480]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e481] [cursor=pointer]:
+                    - img [ref=e482]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8751:55)
+              - generic [ref=e484]:
+                - generic [ref=e485]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e486] [cursor=pointer]:
+                    - img [ref=e487]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e489]:
+                - generic [ref=e490]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e491] [cursor=pointer]:
+                    - img [ref=e492]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8751:55)
+              - generic [ref=e494]:
+                - generic [ref=e495]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e496] [cursor=pointer]:
+                    - img [ref=e497]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e499]:
+                - generic [ref=e500]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e501] [cursor=pointer]:
+                    - img [ref=e502]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8689:55)
+              - generic [ref=e504]:
+                - generic [ref=e505]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e506] [cursor=pointer]:
+                    - img [ref=e507]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e509]:
+                - generic [ref=e510]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e511] [cursor=pointer]:
+                    - img [ref=e512]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8689:55)
+              - generic [ref=e514]:
+                - generic [ref=e515]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e516] [cursor=pointer]:
+                    - img [ref=e517]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e519]:
+                - generic [ref=e520]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e521] [cursor=pointer]:
+                    - img [ref=e522]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8694:55)
+              - generic [ref=e524]:
+                - generic [ref=e525]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e526] [cursor=pointer]:
+                    - img [ref=e527]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e529]:
+                - generic [ref=e530]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e531] [cursor=pointer]:
+                    - img [ref=e532]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8689:55)
+              - generic [ref=e534]:
+                - generic [ref=e535]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e536] [cursor=pointer]:
+                    - img [ref=e537]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e539]:
+                - generic [ref=e540]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e541] [cursor=pointer]:
+                    - img [ref=e542]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8694:55)
+              - generic [ref=e544]:
+                - generic [ref=e545]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e546] [cursor=pointer]:
+                    - img [ref=e547]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e549]:
+                - generic [ref=e550]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e551] [cursor=pointer]:
+                    - img [ref=e552]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8689:55)
+              - generic [ref=e554]:
+                - generic [ref=e555]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e556] [cursor=pointer]:
+                    - img [ref=e557]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e559]:
+                - generic [ref=e560]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e561] [cursor=pointer]:
+                    - img [ref=e562]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8689:55)
+              - generic [ref=e564]:
+                - generic [ref=e565]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e566] [cursor=pointer]:
+                    - img [ref=e567]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e569]:
+                - generic [ref=e570]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e571] [cursor=pointer]:
+                    - img [ref=e572]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8694:55)
+              - generic [ref=e574]:
+                - generic [ref=e575]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e576] [cursor=pointer]:
+                    - img [ref=e577]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e579]:
+                - generic [ref=e580]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e581] [cursor=pointer]:
+                    - img [ref=e582]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8689:55)
+              - generic [ref=e584]:
+                - generic [ref=e585]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e586] [cursor=pointer]:
+                    - img [ref=e587]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e589]:
+                - generic [ref=e590]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e591] [cursor=pointer]:
+                    - img [ref=e592]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8751:55)
+              - generic [ref=e594]:
+                - generic [ref=e595]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e596] [cursor=pointer]:
+                    - img [ref=e597]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e599]:
+                - generic [ref=e600]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e601] [cursor=pointer]:
+                    - img [ref=e602]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8751:55)
+              - generic [ref=e604]:
+                - generic [ref=e605]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e606] [cursor=pointer]:
+                    - img [ref=e607]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e609]:
+                - generic [ref=e610]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e611] [cursor=pointer]:
+                    - img [ref=e612]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8751:55)
+              - generic [ref=e614]:
+                - generic [ref=e615]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e616] [cursor=pointer]:
+                    - img [ref=e617]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e619]:
+                - generic [ref=e620]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e621] [cursor=pointer]:
+                    - img [ref=e622]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8751:55)
+              - generic [ref=e624]:
+                - generic [ref=e625]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e626] [cursor=pointer]:
+                    - img [ref=e627]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e629]:
+                - generic [ref=e630]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e631] [cursor=pointer]:
+                    - img [ref=e632]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8751:55)
+              - generic [ref=e634]:
+                - generic [ref=e635]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e636] [cursor=pointer]:
+                    - img [ref=e637]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e639]:
+                - generic [ref=e640]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e641] [cursor=pointer]:
+                    - img [ref=e642]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8751:55)
+              - generic [ref=e644]:
+                - generic [ref=e645]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e646] [cursor=pointer]:
+                    - img [ref=e647]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e649]:
+                - generic [ref=e650]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e651] [cursor=pointer]:
+                    - img [ref=e652]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8751:55)
+              - generic [ref=e654]:
+                - generic [ref=e655]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e656] [cursor=pointer]:
+                    - img [ref=e657]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e659]:
+                - generic [ref=e660]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e661] [cursor=pointer]:
+                    - img [ref=e662]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8689:55)
+              - generic [ref=e664]:
+                - generic [ref=e665]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e666] [cursor=pointer]:
+                    - img [ref=e667]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e669]:
+                - generic [ref=e670]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e671] [cursor=pointer]:
+                    - img [ref=e672]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8694:55)
+              - generic [ref=e674]:
+                - generic [ref=e675]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e676] [cursor=pointer]:
+                    - img [ref=e677]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+              - generic [ref=e679]:
+                - generic [ref=e680]:
+                  - text: commitPassiveMountOnFiber
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e681] [cursor=pointer]:
+                    - img [ref=e682]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8689:55)
+              - generic [ref=e684]:
+                - generic [ref=e685]:
+                  - text: recursivelyTraversePassiveMountEffects
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e686] [cursor=pointer]:
+                    - img [ref=e687]
+                - text: file:/Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_compiled_react-dom_33d456f8._.js (8677:316)
+          - generic [ref=e689]: "1"
+          - generic [ref=e690]: "2"
+        - contentinfo [ref=e691]:
+          - region "Error feedback" [ref=e692]:
+            - paragraph [ref=e693]:
+              - link "Was this helpful?" [ref=e694] [cursor=pointer]:
+                - /url: https://nextjs.org/telemetry#error-feedback
+            - button "Mark as helpful" [ref=e695] [cursor=pointer]:
+              - img [ref=e696]
+            - button "Mark as not helpful" [ref=e699] [cursor=pointer]:
+              - img [ref=e700]
+    - generic [ref=e706] [cursor=pointer]:
+      - button "Open Next.js Dev Tools" [ref=e707]:
+        - img [ref=e708]
+      - generic [ref=e712]:
+        - button "Open issues overlay" [ref=e713]:
+          - generic [ref=e714]:
+            - generic [ref=e715]: "5"
+            - generic [ref=e716]: "6"
+          - generic [ref=e717]:
+            - text: Issue
+            - generic [ref=e718]: s
+        - button "Collapse issues badge" [ref=e719]:
+          - img [ref=e720]
+  - 'heading "Application error: a client-side exception has occurred while loading localhost (see the browser console for more information)." [level=2] [ref=e724]'
+```

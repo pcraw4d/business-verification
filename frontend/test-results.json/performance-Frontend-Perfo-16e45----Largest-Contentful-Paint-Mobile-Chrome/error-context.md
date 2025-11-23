@@ -1,0 +1,113 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#merchant-content"
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Test Business" [level=1] [ref=e8]
+        - paragraph [ref=e9]: "Technology • Status: active"
+      - button "Enrich merchant data from third-party vendors (Press E)" [ref=e11]:
+        - img
+        - text: Enrich Data
+    - region "Merchant details" [ref=e12]:
+      - generic [ref=e13]:
+        - tablist [ref=e14]:
+          - tab "Overview tab" [selected] [ref=e15]: Overview
+          - tab "Business Analytics tab" [ref=e16]: Business Analytics
+          - tab "Risk Assessment tab" [ref=e17]: Risk Assessment
+          - tab "Risk Indicators tab" [ref=e18]: Risk Indicators
+        - tabpanel "Overview tab" [ref=e19]:
+          - generic [ref=e20]:
+            - generic [ref=e21]:
+              - button "Enrich merchant data from third-party vendors (Press E)" [ref=e22]:
+                - img
+                - text: Enrich Data
+              - generic [ref=e24]: "Data Completeness: 7%"
+            - generic [ref=e25]:
+              - generic [ref=e26]:
+                - generic [ref=e29]:
+                  - generic [ref=e30]: Business Information
+                  - generic [ref=e31]: Basic merchant details
+                - generic [ref=e32]:
+                  - generic [ref=e33]:
+                    - paragraph [ref=e34]: Business Name
+                    - paragraph [ref=e35]: Test Business
+                  - generic [ref=e36]:
+                    - paragraph [ref=e37]: Industry
+                    - paragraph [ref=e38]: Technology
+                  - generic [ref=e39]:
+                    - paragraph [ref=e40]: Status
+                    - generic [ref=e41]: active
+              - generic [ref=e45]:
+                - generic [ref=e46]: Contact Information
+                - generic [ref=e47]: Contact details
+            - generic [ref=e48]:
+              - generic [ref=e49]:
+                - generic [ref=e50]:
+                  - generic [ref=e51]: Risk Score
+                  - generic [ref=e52]: Current merchant risk assessment
+                - alert [ref=e54]:
+                  - img [ref=e55]
+                  - generic [ref=e57]: Error Loading Risk Score
+                  - generic [ref=e58]:
+                    - text: "Error RS-003: API response validation failed for getMerchantRiskScore(merchant-123): Invalid input: expected string, received undefined; Invalid option: expected one of \"low\"|\"medium\"|\"high\"; Invalid input: expected string, received undefined; Invalid input: expected array, received undefined"
+                    - button "Retry" [ref=e59]:
+                      - img
+                      - text: Retry
+              - generic [ref=e60]:
+                - generic [ref=e61]:
+                  - generic [ref=e62]: Portfolio Comparison
+                  - generic [ref=e63]: Comparing merchant performance to portfolio
+                - alert [ref=e65]:
+                  - img [ref=e66]
+                  - generic [ref=e68]: Risk Score Required
+                  - generic [ref=e69]:
+                    - text: "Error PC-003: A risk assessment must be completed before portfolio comparison can be displayed."
+                    - button "Run Risk Assessment" [ref=e70]:
+                      - img
+                      - text: Run Risk Assessment
+            - generic [ref=e71]:
+              - generic [ref=e74]:
+                - generic [ref=e75]: Metadata
+                - generic [ref=e76]: System information
+              - table [ref=e79]:
+                - rowgroup [ref=e80]:
+                  - row "Merchant ID merchant-123" [ref=e81]:
+                    - cell "Merchant ID" [ref=e82]
+                    - cell "merchant-123" [ref=e83]
+                  - row "Created N/A" [ref=e84]:
+                    - cell "Created" [ref=e85]
+                    - cell "N/A" [ref=e86]
+                  - row "Last Updated N/A" [ref=e87]:
+                    - cell "Last Updated" [ref=e88]
+                    - cell "N/A" [ref=e89]
+  - region "Notifications alt+T":
+    - list:
+      - listitem [ref=e90]:
+        - img [ref=e92]
+        - generic [ref=e96]:
+          - generic [ref=e97]: "API response validation failed for getMerchantRiskScore(merchant-123): Invalid input: expected string, received undefined; Invalid option: expected one of \"low\"|\"medium\"|\"high\"; Invalid input: expected string, received undefined; Invalid input: expected array, received undefined"
+          - generic [ref=e98]: "Error Code: UNKNOWN_ERROR"
+      - listitem [ref=e99]:
+        - img [ref=e101]
+        - generic [ref=e105]:
+          - generic [ref=e106]: "API response validation failed for getPortfolioStatistics(): Invalid input: expected number, received undefined; Invalid input: expected array, received undefined; Invalid input: expected array, received undefined; Invalid input: expected string, received undefined"
+          - generic [ref=e107]: "Error Code: UNKNOWN_ERROR"
+  - generic [ref=e112] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e113]:
+      - img [ref=e114]
+    - generic [ref=e117]:
+      - button "Open issues overlay" [ref=e118]:
+        - generic [ref=e119]:
+          - generic [ref=e120]: "11"
+          - generic [ref=e121]: "12"
+        - generic [ref=e122]:
+          - text: Issue
+          - generic [ref=e123]: s
+      - button "Collapse issues badge" [ref=e124]:
+        - img [ref=e125]
+  - alert [ref=e127]
+```

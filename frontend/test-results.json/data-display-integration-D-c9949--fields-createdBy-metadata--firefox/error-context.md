@@ -1,0 +1,146 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#merchant-content"
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Test Business Inc" [level=1] [ref=e8]
+        - paragraph [ref=e9]: "Status: active"
+      - button "Enrich merchant data from third-party vendors (Press E)" [ref=e11]:
+        - img
+        - text: Enrich Data
+    - region "Merchant details" [ref=e12]:
+      - generic [ref=e13]:
+        - tablist [ref=e14]:
+          - tab "Overview tab" [selected] [ref=e15]: Overview
+          - tab "Business Analytics tab" [ref=e16]: Business Analytics
+          - tab "Risk Assessment tab" [ref=e17]: Risk Assessment
+          - tab "Risk Indicators tab" [ref=e18]: Risk Indicators
+        - tabpanel "Overview tab" [ref=e19]:
+          - generic [ref=e20]:
+            - generic [ref=e21]:
+              - button "Enrich merchant data from third-party vendors (Press E)" [ref=e22]:
+                - img
+                - text: Enrich Data
+              - generic [ref=e24]: "Data Completeness: 0%"
+            - generic [ref=e25]:
+              - generic [ref=e26]:
+                - generic [ref=e28]:
+                  - generic [ref=e29]:
+                    - generic [ref=e30]: Business Information
+                    - generic [ref=e31]: Basic merchant details
+                  - paragraph [ref=e32]: Updated 12/31/2023
+                - generic [ref=e33]:
+                  - generic [ref=e34]:
+                    - paragraph [ref=e35]: Business Name
+                    - paragraph [ref=e36]: Test Business Inc
+                  - generic [ref=e37]:
+                    - paragraph [ref=e38]: Status
+                    - generic [ref=e39]: active
+              - generic [ref=e42]:
+                - generic [ref=e43]:
+                  - generic [ref=e44]: Contact Information
+                  - generic [ref=e45]: Contact details
+                - paragraph [ref=e46]: Updated 12/31/2023
+            - generic [ref=e47]:
+              - generic [ref=e48]:
+                - generic [ref=e49]:
+                  - generic [ref=e50]: Risk Score
+                  - generic [ref=e51]: Current merchant risk assessment
+                - alert [ref=e53]:
+                  - img [ref=e54]
+                  - generic [ref=e58]: Error Loading Risk Score
+                  - generic [ref=e59]:
+                    - text: "Error RS-003: Network request failed. Please check your connection."
+                    - button "Retry" [ref=e60]:
+                      - img
+                      - text: Retry
+              - generic [ref=e61]:
+                - generic [ref=e62]:
+                  - generic [ref=e63]: Portfolio Comparison
+                  - generic [ref=e64]: Comparing merchant performance to portfolio
+                - alert [ref=e66]:
+                  - img [ref=e67]
+                  - generic [ref=e71]: Risk Score Required
+                  - generic [ref=e72]:
+                    - text: "Error PC-003: A risk assessment must be completed before portfolio comparison can be displayed."
+                    - button "Run Risk Assessment" [ref=e73]:
+                      - img
+                      - text: Run Risk Assessment
+            - generic [ref=e74]:
+              - generic [ref=e76]:
+                - generic [ref=e77]:
+                  - generic [ref=e78]: Metadata
+                  - generic [ref=e79]: System information
+                - paragraph [ref=e80]: Updated 12/31/2023
+              - generic [ref=e81]:
+                - table [ref=e83]:
+                  - rowgroup [ref=e84]:
+                    - row "Merchant ID merchant-123" [ref=e85]:
+                      - cell "Merchant ID" [ref=e86]
+                      - cell "merchant-123" [ref=e87]
+                    - row "Created By user-123" [ref=e88]:
+                      - cell "Created By" [ref=e89]
+                      - cell "user-123" [ref=e90]
+                    - row "Created 12/31/2023" [ref=e91]:
+                      - cell "Created" [ref=e92]
+                      - cell "12/31/2023" [ref=e93]
+                    - row "Last Updated 12/31/2023" [ref=e94]:
+                      - cell "Last Updated" [ref=e95]
+                      - cell "12/31/2023" [ref=e96]
+                - button "View Metadata JSON" [ref=e99]:
+                  - generic [ref=e100]: View Metadata JSON
+                  - img
+  - region "Notifications alt+T":
+    - list:
+      - listitem [ref=e101]:
+        - img [ref=e103]
+        - generic [ref=e107]:
+          - generic [ref=e108]: Failed to load risk score
+          - generic [ref=e109]: Network request failed. Please check your connection.
+      - listitem [ref=e110]:
+        - img [ref=e112]
+        - generic [ref=e116]:
+          - generic [ref=e117]: Failed to load risk score
+          - generic [ref=e118]: Network request failed. Please check your connection.
+      - listitem [ref=e119]:
+        - img [ref=e121]
+        - generic [ref=e125]:
+          - generic [ref=e126]: Network request failed. Please check your connection.
+          - generic [ref=e127]: "Error Code: UNKNOWN_ERROR"
+      - listitem:
+        - generic:
+          - img
+        - generic:
+          - generic: Network request failed. Please check your connection.
+          - generic: "Error Code: UNKNOWN_ERROR"
+      - listitem:
+        - generic:
+          - img
+        - generic:
+          - generic: Network request failed. Please check your connection.
+          - generic: "Error Code: UNKNOWN_ERROR"
+      - listitem:
+        - generic:
+          - img
+        - generic:
+          - generic: Network request failed. Please check your connection.
+          - generic: "Error Code: UNKNOWN_ERROR"
+  - generic [ref=e132] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e133]:
+      - img [ref=e134]
+    - generic [ref=e138]:
+      - button "Open issues overlay" [ref=e139]:
+        - generic [ref=e140]:
+          - generic [ref=e141]: "7"
+          - generic [ref=e142]: "8"
+        - generic [ref=e143]:
+          - text: Issue
+          - generic [ref=e144]: s
+      - button "Collapse issues badge" [ref=e145]:
+        - img [ref=e146]
+  - alert [ref=e148]
+```

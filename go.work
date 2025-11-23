@@ -24,4 +24,5 @@ use (
 	.
 	./cmd/railway-server
 	./services/risk-assessment-service
+	./test
 )

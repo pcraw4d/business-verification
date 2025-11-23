@@ -1,0 +1,150 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#merchant-content"
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Test Business Inc" [level=1] [ref=e8]
+        - paragraph [ref=e9]: "Status: active"
+      - button "Enrich merchant data from third-party vendors (Press E)" [ref=e11]:
+        - img
+        - text: Enrich Data
+    - region "Merchant details" [ref=e12]:
+      - generic [ref=e13]:
+        - tablist [ref=e14]:
+          - tab "Overview tab" [selected] [ref=e15]: Overview
+          - tab "Business Analytics tab" [ref=e16]: Business Analytics
+          - tab "Risk Assessment tab" [ref=e17]: Risk Assessment
+          - tab "Risk Indicators tab" [ref=e18]: Risk Indicators
+        - tabpanel "Overview tab" [ref=e19]:
+          - generic [ref=e20]:
+            - generic [ref=e21]:
+              - button "Enrich merchant data from third-party vendors (Press E)" [ref=e22]:
+                - img
+                - text: Enrich Data
+              - generic [ref=e24]: "Data Completeness: 21%"
+            - generic [ref=e25]:
+              - generic [ref=e26]:
+                - generic [ref=e28]:
+                  - generic [ref=e29]:
+                    - generic [ref=e30]: Business Information
+                    - generic [ref=e31]: Basic merchant details
+                  - paragraph [ref=e32]: Updated 12/31/2023
+                - generic [ref=e33]:
+                  - generic [ref=e34]:
+                    - paragraph [ref=e35]: Business Name
+                    - paragraph [ref=e36]: Test Business Inc
+                  - generic [ref=e37]:
+                    - paragraph [ref=e38]: Status
+                    - generic [ref=e39]: active
+              - generic [ref=e42]:
+                - generic [ref=e43]:
+                  - generic [ref=e44]: Contact Information
+                  - generic [ref=e45]: Contact details
+                - paragraph [ref=e46]: Updated 12/31/2023
+            - generic [ref=e47]:
+              - generic [ref=e49]:
+                - generic [ref=e50]:
+                  - generic [ref=e51]: Address
+                  - generic [ref=e52]: Business location
+                - paragraph [ref=e53]: Updated 12/31/2023
+              - generic [ref=e54]:
+                - paragraph [ref=e55]: 123 Main Street
+                - paragraph [ref=e56]: Suite 100
+                - paragraph [ref=e57]: San Francisco, CA, 94102
+                - paragraph [ref=e58]: United States (US)
+            - generic [ref=e59]:
+              - generic [ref=e60]:
+                - generic [ref=e61]:
+                  - generic [ref=e62]: Risk Score
+                  - generic [ref=e63]: Current merchant risk assessment
+                - alert [ref=e65]:
+                  - img [ref=e66]
+                  - generic [ref=e70]: Error Loading Risk Score
+                  - generic [ref=e71]:
+                    - text: "Error RS-003: Network request failed. Please check your connection."
+                    - button "Retry" [ref=e72]:
+                      - img
+                      - text: Retry
+              - generic [ref=e73]:
+                - generic [ref=e74]:
+                  - generic [ref=e75]: Portfolio Comparison
+                  - generic [ref=e76]: Comparing merchant performance to portfolio
+                - alert [ref=e78]:
+                  - img [ref=e79]
+                  - generic [ref=e83]: Risk Score Required
+                  - generic [ref=e84]:
+                    - text: "Error PC-003: A risk assessment must be completed before portfolio comparison can be displayed."
+                    - button "Run Risk Assessment" [ref=e85]:
+                      - img
+                      - text: Run Risk Assessment
+            - generic [ref=e86]:
+              - generic [ref=e88]:
+                - generic [ref=e89]:
+                  - generic [ref=e90]: Metadata
+                  - generic [ref=e91]: System information
+                - paragraph [ref=e92]: Updated 12/31/2023
+              - table [ref=e95]:
+                - rowgroup [ref=e96]:
+                  - row "Merchant ID merchant-123" [ref=e97]:
+                    - cell "Merchant ID" [ref=e98]
+                    - cell "merchant-123" [ref=e99]
+                  - row "Created 12/31/2023" [ref=e100]:
+                    - cell "Created" [ref=e101]
+                    - cell "12/31/2023" [ref=e102]
+                  - row "Last Updated 12/31/2023" [ref=e103]:
+                    - cell "Last Updated" [ref=e104]
+                    - cell "12/31/2023" [ref=e105]
+  - region "Notifications alt+T":
+    - list:
+      - listitem [ref=e106]:
+        - img [ref=e108]
+        - generic [ref=e112]:
+          - generic [ref=e113]: Failed to load risk score
+          - generic [ref=e114]: Network request failed. Please check your connection.
+      - listitem [ref=e115]:
+        - img [ref=e117]
+        - generic [ref=e121]:
+          - generic [ref=e122]: Failed to load risk score
+          - generic [ref=e123]: Network request failed. Please check your connection.
+      - listitem [ref=e124]:
+        - img [ref=e126]
+        - generic [ref=e130]:
+          - generic [ref=e131]: Network request failed. Please check your connection.
+          - generic [ref=e132]: "Error Code: UNKNOWN_ERROR"
+      - listitem:
+        - generic:
+          - img
+        - generic:
+          - generic: Network request failed. Please check your connection.
+          - generic: "Error Code: UNKNOWN_ERROR"
+      - listitem:
+        - generic:
+          - img
+        - generic:
+          - generic: Network request failed. Please check your connection.
+          - generic: "Error Code: UNKNOWN_ERROR"
+      - listitem:
+        - generic:
+          - img
+        - generic:
+          - generic: Network request failed. Please check your connection.
+          - generic: "Error Code: UNKNOWN_ERROR"
+  - generic [ref=e137] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e138]:
+      - img [ref=e139]
+    - generic [ref=e143]:
+      - button "Open issues overlay" [ref=e144]:
+        - generic [ref=e145]:
+          - generic [ref=e146]: "7"
+          - generic [ref=e147]: "8"
+        - generic [ref=e148]:
+          - text: Issue
+          - generic [ref=e149]: s
+      - button "Collapse issues badge" [ref=e150]:
+        - img [ref=e151]
+  - alert [ref=e153]
+```

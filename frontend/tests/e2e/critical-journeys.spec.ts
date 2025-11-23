@@ -72,11 +72,20 @@ test.describe('Critical User Journeys', () => {
         });
         
         await submitButton.click({ force: true });
-        await page.waitForTimeout(2000);
+        // Wait for navigation to complete (form submission may take time)
+        await page.waitForTimeout(5000);
+        
+        // Wait for URL to change to merchant details or portfolio
+        await page.waitForURL(/.*(merchant-details|merchant-portfolio).*/, { timeout: 10000 }).catch(() => {
+          // If navigation didn't happen, check current URL
+          const currentUrl = page.url();
+          console.log(`Current URL after form submission: ${currentUrl}`);
+        });
         
         // Should navigate to merchant details or portfolio
-        const isOnDetails = page.url().includes('merchant-details');
-        const isOnPortfolio = page.url().includes('merchant-portfolio');
+        const currentUrl = page.url();
+        const isOnDetails = currentUrl.includes('merchant-details');
+        const isOnPortfolio = currentUrl.includes('merchant-portfolio');
         expect(isOnDetails || isOnPortfolio).toBeTruthy();
       }
     }

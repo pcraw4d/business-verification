@@ -1,0 +1,136 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#merchant-content"
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Test Business" [level=1] [ref=e8]
+        - paragraph [ref=e9]: "Technology • Status: active"
+      - button "Enrich merchant data from third-party vendors (Press E)" [ref=e11]:
+        - img
+        - text: Enrich Data
+    - region "Merchant details" [ref=e12]:
+      - generic [ref=e13]:
+        - tablist [ref=e14]:
+          - tab "Overview tab" [selected] [ref=e15]: Overview
+          - tab "Business Analytics tab" [ref=e16]: Business Analytics
+          - tab "Risk Assessment tab" [ref=e17]: Risk Assessment
+          - tab "Risk Indicators tab" [ref=e18]: Risk Indicators
+        - tabpanel "Overview tab" [ref=e19]:
+          - generic [ref=e20]:
+            - generic [ref=e21]:
+              - button "Enrich merchant data from third-party vendors (Press E)" [ref=e22]:
+                - img
+                - text: Enrich Data
+              - generic [ref=e24]: "Data Completeness: 7%"
+            - generic [ref=e25]:
+              - generic [ref=e26]:
+                - generic [ref=e29]:
+                  - generic [ref=e30]: Business Information
+                  - generic [ref=e31]: Basic merchant details
+                - generic [ref=e32]:
+                  - generic [ref=e33]:
+                    - paragraph [ref=e34]: Business Name
+                    - paragraph [ref=e35]: Test Business
+                  - generic [ref=e36]:
+                    - paragraph [ref=e37]: Industry
+                    - paragraph [ref=e38]: Technology
+                  - generic [ref=e39]:
+                    - paragraph [ref=e40]: Status
+                    - generic [ref=e41]: active
+              - generic [ref=e45]:
+                - generic [ref=e46]: Contact Information
+                - generic [ref=e47]: Contact details
+            - generic [ref=e48]:
+              - generic [ref=e49]:
+                - generic [ref=e50]:
+                  - generic [ref=e51]: Risk Score
+                  - generic [ref=e52]: Current merchant risk assessment
+                - alert [ref=e54]:
+                  - img [ref=e55]
+                  - generic [ref=e59]: Error Loading Risk Score
+                  - generic [ref=e60]:
+                    - text: "Error RS-003: API response validation failed for getMerchantRiskScore(merchant-123): Invalid input: expected string, received undefined; Invalid option: expected one of \"low\"|\"medium\"|\"high\"; Invalid input: expected string, received undefined; Invalid input: expected array, received undefined"
+                    - button "Retry" [ref=e61]:
+                      - img
+                      - text: Retry
+              - generic [ref=e62]:
+                - generic [ref=e63]:
+                  - generic [ref=e64]: Portfolio Comparison
+                  - generic [ref=e65]: Comparing merchant performance to portfolio
+                - alert [ref=e67]:
+                  - img [ref=e68]
+                  - generic [ref=e72]: Risk Score Required
+                  - generic [ref=e73]:
+                    - text: "Error PC-003: A risk assessment must be completed before portfolio comparison can be displayed."
+                    - button "Run Risk Assessment" [ref=e74]:
+                      - img
+                      - text: Run Risk Assessment
+            - generic [ref=e75]:
+              - generic [ref=e78]:
+                - generic [ref=e79]: Metadata
+                - generic [ref=e80]: System information
+              - table [ref=e83]:
+                - rowgroup [ref=e84]:
+                  - row "Merchant ID merchant-123" [ref=e85]:
+                    - cell "Merchant ID" [ref=e86]
+                    - cell "merchant-123" [ref=e87]
+                  - row "Created N/A" [ref=e88]:
+                    - cell "Created" [ref=e89]
+                    - cell "N/A" [ref=e90]
+                  - row "Last Updated N/A" [ref=e91]:
+                    - cell "Last Updated" [ref=e92]
+                    - cell "N/A" [ref=e93]
+  - region "Notifications alt+T":
+    - list:
+      - listitem [ref=e94]:
+        - img [ref=e96]
+        - generic [ref=e100]:
+          - generic [ref=e101]: Failed to load risk score
+          - generic [ref=e102]: "API response validation failed for getMerchantRiskScore(merchant-123): Invalid input: expected string, received undefined; Invalid option: expected one of \"low\"|\"medium\"|\"high\"; Invalid input: expected string, received undefined; Invalid input: expected array, received undefined"
+      - listitem [ref=e103]:
+        - img [ref=e105]
+        - generic [ref=e109]:
+          - generic [ref=e110]: Failed to load risk score
+          - generic [ref=e111]: "API response validation failed for getMerchantRiskScore(merchant-123): Invalid input: expected string, received undefined; Invalid option: expected one of \"low\"|\"medium\"|\"high\"; Invalid input: expected string, received undefined; Invalid input: expected array, received undefined"
+      - listitem [ref=e112]:
+        - img [ref=e114]
+        - generic [ref=e118]:
+          - generic [ref=e119]: "API response validation failed for getMerchantRiskScore(merchant-123): Invalid input: expected string, received undefined; Invalid option: expected one of \"low\"|\"medium\"|\"high\"; Invalid input: expected string, received undefined; Invalid input: expected array, received undefined"
+          - generic [ref=e120]: "Error Code: UNKNOWN_ERROR"
+      - listitem:
+        - generic:
+          - img
+        - generic:
+          - generic: "API response validation failed for getPortfolioStatistics(): Invalid input: expected number, received undefined; Invalid input: expected array, received undefined; Invalid input: expected array, received undefined; Invalid input: expected string, received undefined"
+          - generic: "Error Code: UNKNOWN_ERROR"
+      - listitem:
+        - generic:
+          - img
+        - generic:
+          - generic: "API response validation failed for getMerchantRiskScore(merchant-123): Invalid input: expected string, received undefined; Invalid option: expected one of \"low\"|\"medium\"|\"high\"; Invalid input: expected string, received undefined; Invalid input: expected array, received undefined"
+          - generic: "Error Code: UNKNOWN_ERROR"
+      - listitem:
+        - generic:
+          - img
+        - generic:
+          - generic: "API response validation failed for getPortfolioStatistics(): Invalid input: expected number, received undefined; Invalid input: expected array, received undefined; Invalid input: expected array, received undefined; Invalid input: expected string, received undefined"
+          - generic: "Error Code: UNKNOWN_ERROR"
+  - generic [ref=e125] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e126]:
+      - img [ref=e127]
+    - generic [ref=e131]:
+      - button "Open issues overlay" [ref=e132]:
+        - generic [ref=e133]:
+          - generic [ref=e134]: "13"
+          - generic [ref=e135]: "14"
+        - generic [ref=e136]:
+          - text: Issue
+          - generic [ref=e137]: s
+      - button "Collapse issues badge" [ref=e138]:
+        - img [ref=e139]
+  - alert [ref=e141]
+```

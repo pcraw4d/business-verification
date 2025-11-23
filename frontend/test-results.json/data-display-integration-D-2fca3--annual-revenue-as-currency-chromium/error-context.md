@@ -1,0 +1,114 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#merchant-content"
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Test Business Inc" [level=1] [ref=e8]
+        - paragraph [ref=e9]: "Status: active"
+      - button "Enrich merchant data from third-party vendors (Press E)" [ref=e11]:
+        - img
+        - text: Enrich Data
+    - region "Merchant details" [ref=e12]:
+      - generic [ref=e13]:
+        - tablist [ref=e14]:
+          - tab "Overview tab" [selected] [ref=e15]: Overview
+          - tab "Business Analytics tab" [ref=e16]: Business Analytics
+          - tab "Risk Assessment tab" [ref=e17]: Risk Assessment
+          - tab "Risk Indicators tab" [ref=e18]: Risk Indicators
+        - tabpanel "Overview tab" [ref=e19]:
+          - generic [ref=e20]:
+            - generic [ref=e21]:
+              - button "Enrich merchant data from third-party vendors (Press E)" [ref=e22]:
+                - img
+                - text: Enrich Data
+              - generic [ref=e24]: "Data Completeness: 7%"
+            - generic [ref=e25]:
+              - generic [ref=e26]:
+                - generic [ref=e28]:
+                  - generic [ref=e29]:
+                    - generic [ref=e30]: Business Information
+                    - generic [ref=e31]: Basic merchant details
+                  - paragraph [ref=e32]: Updated 12/31/2023
+                - generic [ref=e33]:
+                  - generic [ref=e34]:
+                    - paragraph [ref=e35]: Business Name
+                    - paragraph [ref=e36]: Test Business Inc
+                  - generic [ref=e37]:
+                    - paragraph [ref=e38]: Status
+                    - generic [ref=e39]: active
+              - generic [ref=e42]:
+                - generic [ref=e43]:
+                  - generic [ref=e44]: Contact Information
+                  - generic [ref=e45]: Contact details
+                - paragraph [ref=e46]: Updated 12/31/2023
+              - generic [ref=e47]:
+                - generic [ref=e49]:
+                  - generic [ref=e50]:
+                    - generic [ref=e51]: Financial Information
+                    - generic [ref=e52]: Business financial details
+                  - paragraph [ref=e53]: Updated 12/31/2023
+                - generic [ref=e55]:
+                  - paragraph [ref=e56]: Annual Revenue
+                  - paragraph [ref=e57]: $5,000,001
+            - generic [ref=e58]:
+              - generic [ref=e59]:
+                - generic [ref=e60]:
+                  - generic [ref=e61]: Risk Score
+                  - generic [ref=e62]: Current merchant risk assessment
+                - alert [ref=e64]:
+                  - img [ref=e65]
+                  - generic [ref=e67]: Error Loading Risk Score
+                  - generic [ref=e68]:
+                    - text: "Error RS-003: CORS policy blocked the request. Please check server configuration."
+                    - button "Retry" [ref=e69]:
+                      - img
+                      - text: Retry
+              - generic [ref=e70]:
+                - generic [ref=e71]:
+                  - generic [ref=e72]: Portfolio Comparison
+                  - generic [ref=e73]: Comparing merchant performance to portfolio
+                - alert [ref=e75]:
+                  - img [ref=e76]
+                  - generic [ref=e78]: Risk Score Required
+                  - generic [ref=e79]:
+                    - text: "Error PC-003: A risk assessment must be completed before portfolio comparison can be displayed."
+                    - button "Run Risk Assessment" [ref=e80]:
+                      - img
+                      - text: Run Risk Assessment
+            - generic [ref=e81]:
+              - generic [ref=e83]:
+                - generic [ref=e84]:
+                  - generic [ref=e85]: Metadata
+                  - generic [ref=e86]: System information
+                - paragraph [ref=e87]: Updated 12/31/2023
+              - table [ref=e90]:
+                - rowgroup [ref=e91]:
+                  - row "Merchant ID merchant-123" [ref=e92]:
+                    - cell "Merchant ID" [ref=e93]
+                    - cell "merchant-123" [ref=e94]
+                  - row "Created 12/31/2023" [ref=e95]:
+                    - cell "Created" [ref=e96]
+                    - cell "12/31/2023" [ref=e97]
+                  - row "Last Updated 12/31/2023" [ref=e98]:
+                    - cell "Last Updated" [ref=e99]
+                    - cell "12/31/2023" [ref=e100]
+  - region "Notifications alt+T"
+  - generic [ref=e105] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e106]:
+      - img [ref=e107]
+    - generic [ref=e110]:
+      - button "Open issues overlay" [ref=e111]:
+        - generic [ref=e112]:
+          - generic [ref=e113]: "5"
+          - generic [ref=e114]: "6"
+        - generic [ref=e115]:
+          - text: Issue
+          - generic [ref=e116]: s
+      - button "Collapse issues badge" [ref=e117]:
+        - img [ref=e118]
+  - alert [ref=e120]
+```

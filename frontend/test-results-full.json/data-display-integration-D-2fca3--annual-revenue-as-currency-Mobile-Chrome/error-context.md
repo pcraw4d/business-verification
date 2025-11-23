@@ -1,0 +1,159 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#merchant-content"
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Test Business" [level=1] [ref=e8]
+        - paragraph [ref=e9]: "Technology • Status: active"
+      - button "Enrich merchant data from third-party vendors (Press E)" [ref=e11]:
+        - img
+        - text: Enrich Data
+    - region "Merchant details" [ref=e12]:
+      - generic [ref=e13]:
+        - tablist [ref=e14]:
+          - tab "Overview tab" [selected] [ref=e15]: Overview
+          - tab "Business Analytics tab" [ref=e16]: Business Analytics
+          - tab "Risk Assessment tab" [ref=e17]: Risk Assessment
+          - tab "Risk Indicators tab" [ref=e18]: Risk Indicators
+        - tabpanel "Overview tab" [ref=e19]:
+          - generic [ref=e20]:
+            - generic [ref=e21]:
+              - button "Enrich merchant data from third-party vendors (Press E)" [ref=e22]:
+                - img
+                - text: Enrich Data
+              - generic [ref=e24]: "Data Completeness: 50%"
+            - generic [ref=e25]:
+              - generic [ref=e26]:
+                - generic [ref=e28]:
+                  - generic [ref=e29]:
+                    - generic [ref=e30]: Business Information
+                    - generic [ref=e31]: Basic merchant details
+                  - paragraph [ref=e32]: Updated just now
+                - generic [ref=e33]:
+                  - generic [ref=e34]:
+                    - paragraph [ref=e35]: Business Name
+                    - paragraph [ref=e36]: Test Business
+                  - generic [ref=e37]:
+                    - paragraph [ref=e38]: Industry
+                    - paragraph [ref=e39]: Technology
+                  - generic [ref=e40]:
+                    - paragraph [ref=e41]: Status
+                    - generic [ref=e42]: active
+              - generic [ref=e43]:
+                - generic [ref=e45]:
+                  - generic [ref=e46]:
+                    - generic [ref=e47]: Contact Information
+                    - generic [ref=e48]: Contact details
+                  - paragraph [ref=e49]: Updated just now
+                - generic [ref=e50]:
+                  - generic [ref=e51]:
+                    - paragraph [ref=e52]: Email
+                    - paragraph [ref=e53]: test@example.com
+                  - generic [ref=e54]:
+                    - paragraph [ref=e55]: Phone
+                    - paragraph [ref=e56]: +1-555-123-4567
+                  - generic [ref=e57]:
+                    - paragraph [ref=e58]: Website
+                    - link "https://test.com" [ref=e59] [cursor=pointer]:
+                      - /url: https://test.com
+            - generic [ref=e60]:
+              - generic [ref=e62]:
+                - generic [ref=e63]:
+                  - generic [ref=e64]: Address
+                  - generic [ref=e65]: Business location
+                - paragraph [ref=e66]: Updated just now
+              - generic [ref=e67]:
+                - paragraph [ref=e68]: 123 Main St
+                - paragraph [ref=e69]: San Francisco, CA, 94102
+                - paragraph [ref=e70]: USA
+            - generic [ref=e71]:
+              - generic [ref=e72]:
+                - generic [ref=e73]:
+                  - generic [ref=e74]: Risk Score
+                  - generic [ref=e75]: Current merchant risk assessment
+                - generic [ref=e76]:
+                  - generic [ref=e77]:
+                    - generic [ref=e78]:
+                      - paragraph [ref=e79]: Risk Score
+                      - paragraph [ref=e80]: 30.0%
+                    - generic [ref=e82]:
+                      - img
+                      - text: Low Risk
+                  - generic [ref=e83]:
+                    - generic [ref=e84]:
+                      - generic [ref=e85]: Confidence
+                      - generic [ref=e86]: 85.0%
+                    - generic [ref=e87]:
+                      - generic [ref=e88]: Assessment Date
+                      - generic [ref=e89]: 11/22/2025
+                  - generic [ref=e90]:
+                    - paragraph [ref=e91]: Key Risk Factors
+                    - generic [ref=e92]:
+                      - generic [ref=e93]:
+                        - generic [ref=e94]: Business Age
+                        - generic [ref=e95]: 20.0%
+                      - generic [ref=e96]:
+                        - generic [ref=e97]: Financial Stability
+                        - generic [ref=e98]: 40.0%
+              - generic [ref=e99]:
+                - generic [ref=e100]:
+                  - generic [ref=e101]: Portfolio Comparison
+                  - generic [ref=e102]: Comparing merchant performance to portfolio
+                - alert [ref=e104]:
+                  - img [ref=e105]
+                  - generic [ref=e107]: Portfolio Statistics Unavailable
+                  - generic [ref=e108]:
+                    - text: "Error PC-002: Portfolio statistics are being calculated. Please try again in a few moments."
+                    - generic [ref=e109]:
+                      - button "Refresh Data" [ref=e110]:
+                        - img
+                        - text: Refresh Data
+                      - generic [ref=e111]: "Merchant risk score: 0.30"
+            - generic [ref=e112]:
+              - generic [ref=e114]:
+                - generic [ref=e115]:
+                  - generic [ref=e116]: Metadata
+                  - generic [ref=e117]: System information
+                - paragraph [ref=e118]: Updated just now
+              - table [ref=e121]:
+                - rowgroup [ref=e122]:
+                  - row "Merchant ID merchant-123" [ref=e123]:
+                    - cell "Merchant ID" [ref=e124]
+                    - cell "merchant-123" [ref=e125]
+                  - row "Created 11/22/2025" [ref=e126]:
+                    - cell "Created" [ref=e127]
+                    - cell "11/22/2025" [ref=e128]
+                  - row "Last Updated 11/22/2025" [ref=e129]:
+                    - cell "Last Updated" [ref=e130]
+                    - cell "11/22/2025" [ref=e131]
+  - region "Notifications alt+T":
+    - list:
+      - listitem [ref=e132]:
+        - img [ref=e134]
+        - generic [ref=e138]:
+          - generic [ref=e139]: "API response validation failed for getPortfolioStatistics(): Invalid input: expected number, received undefined; Invalid input: expected number, received undefined; Invalid input: expected number, received undefined; Invalid input: expected object, received undefined; Invalid input: expected array, received undefined; Invalid input: expected array, received undefined; Invalid input: expected string, received undefined"
+          - generic [ref=e140]: "Error Code: UNKNOWN_ERROR"
+      - listitem [ref=e141]:
+        - img [ref=e143]
+        - generic [ref=e147]:
+          - generic [ref=e148]: "API response validation failed for getPortfolioStatistics(): Invalid input: expected number, received undefined; Invalid input: expected number, received undefined; Invalid input: expected number, received undefined; Invalid input: expected object, received undefined; Invalid input: expected array, received undefined; Invalid input: expected array, received undefined; Invalid input: expected string, received undefined"
+          - generic [ref=e149]: "Error Code: UNKNOWN_ERROR"
+  - generic [ref=e154] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e155]:
+      - img [ref=e156]
+    - generic [ref=e159]:
+      - button "Open issues overlay" [ref=e160]:
+        - generic [ref=e161]:
+          - generic [ref=e162]: "5"
+          - generic [ref=e163]: "6"
+        - generic [ref=e164]:
+          - text: Issue
+          - generic [ref=e165]: s
+      - button "Collapse issues badge" [ref=e166]:
+        - img [ref=e167]
+  - alert [ref=e169]
+```

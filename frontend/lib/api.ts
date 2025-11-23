@@ -560,8 +560,10 @@ export async function getRiskAssessment(
 
   try {
     return await retryWithBackoff(async () => {
+      // Add format=assessment query parameter to distinguish from getMerchantRiskScore
+      const url = `${ApiEndpoints.merchants.riskScore(merchantId)}?format=assessment`;
       const response = await safeFetch(
-        ApiEndpoints.merchants.riskScore(merchantId),
+        url,
         {
           method: "GET",
           headers,

@@ -1,8 +1,12 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const { setupAPIMocks } = require('./utils/api-mock-helpers');
 
 test.describe('Merchant Portfolio', () => {
   test.beforeEach(async ({ page }) => {
+    // Setup API mocks before navigation
+    await setupAPIMocks(page);
+    
     // Navigate to merchant portfolio page
     await page.goto('/merchant-portfolio.html');
     

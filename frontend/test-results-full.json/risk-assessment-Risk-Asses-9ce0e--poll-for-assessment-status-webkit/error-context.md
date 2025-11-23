@@ -1,0 +1,46 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - main [ref=e2]:
+    - link "Skip to main content" [ref=e3]:
+      - /url: "#merchant-content"
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Test Business" [level=1] [ref=e8]
+        - paragraph [ref=e9]: "Status: active"
+      - button "Enrich merchant data from third-party vendors (Press E)" [ref=e11]:
+        - img
+        - text: Enrich Data
+    - region "Merchant details" [ref=e12]:
+      - generic [ref=e13]:
+        - tablist [ref=e14]:
+          - tab "Overview tab" [ref=e15]: Overview
+          - tab "Business Analytics tab" [ref=e16]: Business Analytics
+          - tab "Risk Assessment tab" [active] [selected] [ref=e17]: Risk Assessment
+          - tab "Risk Indicators tab" [ref=e18]: Risk Indicators
+        - tabpanel "Risk Assessment tab" [ref=e19]:
+          - generic [ref=e20]:
+            - alert [ref=e21]:
+              - img [ref=e22]
+              - generic [ref=e24]: Error loading Risk Assessment
+              - paragraph [ref=e26]: An error occurred while loading the Risk Assessment tab. This tab may be temporarily unavailable.
+            - button "Retry loading Risk Assessment tab" [ref=e28]:
+              - img
+              - text: Retry
+  - region "Notifications alt+T"
+  - generic [ref=e33] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e34]:
+      - img [ref=e35]
+    - generic [ref=e40]:
+      - button "Open issues overlay" [ref=e41]:
+        - generic [ref=e42]:
+          - generic [ref=e43]: "9"
+          - generic [ref=e44]: "10"
+        - generic [ref=e45]:
+          - text: Issue
+          - generic [ref=e46]: s
+      - button "Collapse issues badge" [ref=e47]:
+        - img [ref=e48]
+  - alert [ref=e50]
+```

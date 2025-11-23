@@ -1,0 +1,49 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#merchant-content"
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Test Business" [level=1] [ref=e8]
+        - paragraph [ref=e9]: "Technology • Status: active"
+      - button "Enrich merchant data from third-party vendors (Press E)" [ref=e11]:
+        - img
+        - text: Enrich Data
+    - region "Merchant details" [ref=e12]:
+      - generic [ref=e13]:
+        - tablist [ref=e14]:
+          - tab "Overview tab" [selected] [ref=e15]: Overview
+          - tab "Business Analytics tab" [ref=e16]: Business Analytics
+          - tab "Risk Assessment tab" [ref=e17]: Risk Assessment
+          - tab "Risk Indicators tab" [ref=e18]: Risk Indicators
+        - tabpanel "Overview tab" [ref=e19]
+  - region "Notifications alt+T":
+    - list:
+      - listitem [ref=e21]:
+        - img [ref=e23]
+        - generic [ref=e27]:
+          - generic [ref=e28]: "API response validation failed for getMerchantRiskScore(merchant-123): Invalid input: expected string, received undefined; Invalid option: expected one of \"low\"|\"medium\"|\"high\"; Invalid input: expected string, received undefined"
+          - generic [ref=e29]: "Error Code: UNKNOWN_ERROR"
+      - listitem [ref=e30]:
+        - img [ref=e32]
+        - generic [ref=e36]:
+          - generic [ref=e37]: "API response validation failed for getPortfolioStatistics(): Invalid input: expected number, received undefined; Invalid input: expected number, received undefined; Invalid input: expected number, received undefined; Invalid input: expected object, received undefined; Invalid input: expected array, received undefined; Invalid input: expected array, received undefined; Invalid input: expected string, received undefined"
+          - generic [ref=e38]: "Error Code: UNKNOWN_ERROR"
+  - generic [ref=e43] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e44]:
+      - img [ref=e45]
+    - generic [ref=e49]:
+      - button "Open issues overlay" [ref=e50]:
+        - generic [ref=e51]:
+          - generic [ref=e52]: "10"
+          - generic [ref=e53]: "11"
+        - generic [ref=e54]:
+          - text: Issue
+          - generic [ref=e55]: s
+      - button "Collapse issues badge" [ref=e56]:
+        - img [ref=e57]
+  - alert [ref=e59]
+```

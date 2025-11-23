@@ -1,0 +1,62 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - main [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#merchant-content"
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Test Business" [level=1] [ref=e8]
+        - paragraph [ref=e9]: "Status: active"
+      - button "Enrich merchant data from third-party vendors (Press E)" [ref=e11]:
+        - img
+        - text: Enrich Data
+    - region "Merchant details" [ref=e12]:
+      - generic [ref=e13]:
+        - tablist [ref=e14]:
+          - tab "Overview tab" [ref=e15]: Overview
+          - tab "Business Analytics tab" [active] [selected] [ref=e16]: Business Analytics
+          - tab "Risk Assessment tab" [ref=e17]: Risk Assessment
+          - tab "Risk Indicators tab" [ref=e18]: Risk Indicators
+        - tabpanel "Business Analytics tab" [ref=e19]:
+          - region "Business Analytics" [ref=e20]:
+            - generic [ref=e21]:
+              - generic [ref=e22]:
+                - heading "Business Analytics" [level=2] [ref=e23]
+                - paragraph [ref=e24]: Updated just now
+              - button "Refresh business analytics data" [ref=e25]:
+                - img
+                - text: Refresh
+            - generic [ref=e26]:
+              - generic [ref=e28]:
+                - generic [ref=e29]:
+                  - generic [ref=e30]: Website Analysis
+                  - generic [ref=e31]: Website performance and security
+                - generic [ref=e32]: From Website Analysis API
+              - generic [ref=e33]:
+                - generic [ref=e34]:
+                  - paragraph [ref=e35]: Website URL
+                  - paragraph [ref=e36]: N/A
+                - generic [ref=e37]:
+                  - paragraph [ref=e38]: Performance Score
+                  - paragraph [ref=e39]: N/A
+                - generic [ref=e40]:
+                  - paragraph [ref=e41]: Accessibility Score
+                  - paragraph [ref=e42]: N/A
+  - region "Notifications alt+T"
+  - generic [ref=e47] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e48]:
+      - img [ref=e49]
+    - generic [ref=e52]:
+      - button "Open issues overlay" [ref=e53]:
+        - generic [ref=e54]:
+          - generic [ref=e55]: "13"
+          - generic [ref=e56]: "14"
+        - generic [ref=e57]:
+          - text: Issue
+          - generic [ref=e58]: s
+      - button "Collapse issues badge" [ref=e59]:
+        - img [ref=e60]
+  - alert [ref=e62]
+```

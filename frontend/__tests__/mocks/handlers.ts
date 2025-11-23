@@ -42,18 +42,35 @@ export const handlers = [
 
 
   // Get merchant analytics
-  http.get(`${API_BASE_URL}/api/v1/merchants/:merchantId/analytics`, () => {
+  http.get(`${API_BASE_URL}/api/v1/merchants/:merchantId/analytics`, ({ params }) => {
+    const merchantId = params.merchantId as string;
     return HttpResponse.json({
-      merchantId: 'merchant-123',
+      merchantId: merchantId,
       classification: {
         primaryIndustry: 'Technology',
         confidenceScore: 0.95,
         riskLevel: 'low',
+        mccCodes: [],
+        sicCodes: [],
+        naicsCodes: [],
       },
       security: {
         trustScore: 0.8,
         sslValid: true,
+        sslExpiryDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+        securityHeaders: [],
       },
+      quality: {
+        completenessScore: 0.85,
+        dataPoints: 12,
+        missingFields: [],
+      },
+      intelligence: {
+        businessAge: 5,
+        employeeCount: 50,
+        annualRevenue: 1000000,
+      },
+      timestamp: new Date().toISOString(),
     });
   }),
 
@@ -67,13 +84,67 @@ export const handlers = [
     });
   }),
 
-  // Get risk assessment
-  http.get(`${API_BASE_URL}/api/v1/merchants/:merchantId/risk-score`, () => {
+  // Get merchant risk score / risk assessment
+  // Note: This endpoint is used by both getRiskAssessment and getMerchantRiskScore
+  // We check for a query parameter to determine which format to return
+  http.get(`${API_BASE_URL}/api/v1/merchants/:merchantId/risk-score`, ({ params, request }) => {
+    const merchantId = params.merchantId as string;
+    const url = new URL(request.url);
+    const format = url.searchParams.get('format');
+    
+    // If format=assessment, return RiskAssessmentSchema format
+    if (format === 'assessment') {
+      return HttpResponse.json({
+        id: `assessment-${merchantId}`,
+        merchantId: merchantId,
+        status: 'completed',
+        options: {
+          includeHistory: false,
+          includePredictions: false,
+        },
+        result: {
+          overallScore: 0.3,
+          riskLevel: 'low',
+          factors: [
+            {
+              name: 'Business Age',
+              score: 0.2,
+              weight: 0.3,
+            },
+            {
+              name: 'Financial Stability',
+              score: 0.4,
+              weight: 0.4,
+            },
+          ],
+        },
+        progress: 100,
+        estimatedCompletion: new Date().toISOString(),
+        createdAt: new Date(Date.now() - 86400000).toISOString(),
+        updatedAt: new Date().toISOString(),
+        completedAt: new Date().toISOString(),
+      });
+    }
+    
+    // Default: return MerchantRiskScoreSchema format
     return HttpResponse.json({
-      merchantId: 'merchant-123',
-      riskScore: 0.3,
-      riskLevel: 'low',
-      factors: [],
+      merchant_id: merchantId,
+      risk_score: 0.3,
+      risk_level: 'low',
+      confidence_score: 0.85,
+      assessment_date: new Date().toISOString(),
+      factors: [
+        {
+          category: 'Business Age',
+          score: 0.2,
+          weight: 0.3,
+        },
+        {
+          category: 'Financial Stability',
+          score: 0.4,
+          weight: 0.4,
+        },
+      ],
     });
   }),
 
@@ -86,11 +157,26 @@ export const handlers = [
   }),
 
   // Get assessment status
-  http.get(`${API_BASE_URL}/api/v1/risk/assess/:assessmentId`, () => {
+  http.get(`${API_BASE_URL}/api/v1/risk/assess/:assessmentId`, ({ params }) => {
+    const assessmentId = params.assessmentId as string;
     return HttpResponse.json({
-      assessmentId: 'assessment-123',
+      assessmentId: assessmentId,
+      merchantId: 'merchant-123',
       status: 'completed',
       progress: 100,
+      estimatedCompletion: new Date().toISOString(),
+      result: {
+        overallScore: 0.3,
+        riskLevel: 'low',
+        factors: [
+          {
+            name: 'Business Age',
+            score: 0.2,
+            weight: 0.3,
+          },
+        ],
+      },
+      completedAt: new Date().toISOString(),
     });
   }),
 
@@ -212,13 +298,53 @@ export const handlers = [
   http.get(`${API_BASE_URL}${API_PATH}/merchants/statistics`, () => {
     return HttpResponse.json({
       totalMerchants: 100,
+      totalAssessments: 95,
       averageRiskScore: 0.45,
-      totalRevenue: 10000000,
       riskDistribution: {
         low: 40,
         medium: 45,
         high: 15,
       },
+      industryBreakdown: [
+        {
+          industry: 'Technology',
+          count: 30,
+          averageRiskScore: 0.35,
+        },
+        {
+          industry: 'Finance',
+          count: 25,
+          averageRiskScore: 0.50,
+        },
+        {
+          industry: 'Retail',
+          count: 20,
+          averageRiskScore: 0.55,
+        },
+        {
+          industry: 'Other',
+          count: 25,
+          averageRiskScore: 0.45,
+        },
+      ],
+      countryBreakdown: [
+        {
+          country: 'USA',
+          count: 60,
+          averageRiskScore: 0.40,
+        },
+        {
+          country: 'Canada',
+          count: 20,
+          averageRiskScore: 0.50,
+        },
+        {
+          country: 'UK',
+          count: 20,
+          averageRiskScore: 0.55,
+        },
+      ],
+      timestamp: new Date().toISOString(),
     });
   }),
 

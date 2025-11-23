@@ -1,0 +1,90 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - main [ref=e2]:
+    - link "Skip to main content" [ref=e3]:
+      - /url: "#merchant-content"
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Test Business" [level=1] [ref=e8]
+        - paragraph [ref=e9]: "Technology • Status: active"
+      - button "Enrich merchant data from third-party vendors (Press E)" [ref=e11]:
+        - img
+        - text: Enrich Data
+    - region "Merchant details" [ref=e12]:
+      - generic [ref=e13]:
+        - tablist [ref=e14]:
+          - tab "Overview tab" [ref=e15]: Overview
+          - tab "Business Analytics tab" [active] [selected] [ref=e16]: Business Analytics
+          - tab "Risk Assessment tab" [ref=e17]: Risk Assessment
+          - tab "Risk Indicators tab" [ref=e18]: Risk Indicators
+        - tabpanel "Business Analytics tab" [ref=e19]:
+          - region "Business Analytics" [ref=e20]:
+            - generic [ref=e21]:
+              - generic [ref=e22]:
+                - heading "Business Analytics" [level=2] [ref=e23]
+                - paragraph [ref=e24]: Updated just now
+              - button "Refresh business analytics data" [ref=e25]:
+                - img
+                - text: Refresh
+            - generic [ref=e26]:
+              - generic [ref=e28]:
+                - generic [ref=e29]:
+                  - generic [ref=e30]: Website Analysis
+                  - generic [ref=e31]: Website performance and security
+                - generic [ref=e32]: From Website Analysis API
+              - generic [ref=e33]:
+                - generic [ref=e34]:
+                  - paragraph [ref=e35]: Website URL
+                  - paragraph [ref=e36]: N/A
+                - generic [ref=e37]:
+                  - paragraph [ref=e38]: Performance Score
+                  - paragraph [ref=e39]: N/A
+                - generic [ref=e40]:
+                  - paragraph [ref=e41]: Accessibility Score
+                  - paragraph [ref=e42]: N/A
+  - region "Notifications alt+T":
+    - list:
+      - listitem [ref=e43]:
+        - img [ref=e45]
+        - generic [ref=e49]:
+          - generic [ref=e50]: "API response validation failed for getMerchantAnalytics(merchant-123): Invalid input: expected object, received undefined; Invalid input: expected string, received undefined"
+          - generic [ref=e51]: "Error Code: UNKNOWN_ERROR"
+      - listitem [ref=e52]:
+        - img [ref=e54]
+        - generic [ref=e58]:
+          - generic [ref=e59]: "API response validation failed for getMerchantRiskScore(merchant-123): Invalid input: expected string, received undefined; Invalid option: expected one of \"low\"|\"medium\"|\"high\"; Invalid input: expected string, received undefined; Invalid input: expected array, received undefined"
+          - generic [ref=e60]: "Error Code: UNKNOWN_ERROR"
+      - listitem [ref=e61]:
+        - img [ref=e63]
+        - generic [ref=e67]:
+          - generic [ref=e68]: "API response validation failed for getPortfolioStatistics(): Invalid input: expected number, received undefined; Invalid input: expected array, received undefined; Invalid input: expected array, received undefined; Invalid input: expected string, received undefined"
+          - generic [ref=e69]: "Error Code: UNKNOWN_ERROR"
+      - listitem:
+        - generic:
+          - img
+        - generic:
+          - generic: "API response validation failed for getMerchantRiskScore(merchant-123): Invalid input: expected string, received undefined; Invalid option: expected one of \"low\"|\"medium\"|\"high\"; Invalid input: expected string, received undefined; Invalid input: expected array, received undefined"
+          - generic: "Error Code: UNKNOWN_ERROR"
+      - listitem:
+        - generic:
+          - img
+        - generic:
+          - generic: "API response validation failed for getPortfolioStatistics(): Invalid input: expected number, received undefined; Invalid input: expected array, received undefined; Invalid input: expected array, received undefined; Invalid input: expected string, received undefined"
+          - generic: "Error Code: UNKNOWN_ERROR"
+  - generic [ref=e74] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e75]:
+      - img [ref=e76]
+    - generic [ref=e81]:
+      - button "Open issues overlay" [ref=e82]:
+        - generic [ref=e83]:
+          - generic [ref=e84]: "16"
+          - generic [ref=e85]: "17"
+        - generic [ref=e86]:
+          - text: Issue
+          - generic [ref=e87]: s
+      - button "Collapse issues badge" [ref=e88]:
+        - img [ref=e89]
+  - alert [ref=e91]
+```

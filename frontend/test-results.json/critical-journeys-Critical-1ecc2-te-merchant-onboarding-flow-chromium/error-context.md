@@ -1,0 +1,252 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#main-content"
+    - complementary [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - img [ref=e7]
+          - generic [ref=e9]: KYB Platform
+        - navigation "Main navigation" [ref=e13]:
+          - heading "Navigation Menu" [level=2] [ref=e14]
+          - generic [ref=e15]:
+            - heading "Platform" [level=3] [ref=e16]
+            - list [ref=e17]:
+              - listitem [ref=e18]:
+                - link "Home" [ref=e19] [cursor=pointer]:
+                  - /url: /
+                  - img [ref=e20]
+                  - generic [ref=e23]: Home
+              - listitem [ref=e24]:
+                - link "Dashboard Hub" [ref=e25] [cursor=pointer]:
+                  - /url: /dashboard-hub
+                  - img [ref=e26]
+                  - generic [ref=e31]: Dashboard Hub
+          - generic [ref=e32]:
+            - heading "Merchant Verification & Risk" [level=3] [ref=e33]
+            - list [ref=e34]:
+              - listitem [ref=e35]:
+                - link "Add Merchant NEW" [ref=e36] [cursor=pointer]:
+                  - /url: /add-merchant
+                  - img [ref=e37]
+                  - generic [ref=e39]: Add Merchant
+                  - generic [ref=e40]: NEW
+              - listitem [ref=e41]:
+                - link "Business Intelligence" [ref=e42] [cursor=pointer]:
+                  - /url: /dashboard
+                  - img [ref=e43]
+                  - generic [ref=e46]: Business Intelligence
+              - listitem [ref=e47]:
+                - link "Risk Assessment" [ref=e48] [cursor=pointer]:
+                  - /url: /risk-dashboard
+                  - img [ref=e49]
+                  - generic [ref=e51]: Risk Assessment
+              - listitem [ref=e52]:
+                - link "Risk Indicators" [ref=e53] [cursor=pointer]:
+                  - /url: /risk-indicators
+                  - img [ref=e54]
+                  - generic [ref=e57]: Risk Indicators
+          - generic [ref=e58]:
+            - heading "Compliance" [level=3] [ref=e59]
+            - list [ref=e60]:
+              - listitem [ref=e61]:
+                - link "Compliance Status" [ref=e62] [cursor=pointer]:
+                  - /url: /compliance
+                  - img [ref=e63]
+                  - generic [ref=e67]: Compliance Status
+              - listitem [ref=e68]:
+                - link "Gap Analysis NEW" [ref=e69] [cursor=pointer]:
+                  - /url: /compliance/gap-analysis
+                  - img [ref=e70]
+                  - generic [ref=e73]: Gap Analysis
+                  - generic [ref=e74]: NEW
+              - listitem [ref=e75]:
+                - link "Progress Tracking" [ref=e76] [cursor=pointer]:
+                  - /url: /compliance/progress-tracking
+                  - img [ref=e77]
+                  - generic [ref=e80]: Progress Tracking
+          - generic [ref=e81]:
+            - heading "Merchant Management" [level=3] [ref=e82]
+            - list [ref=e83]:
+              - listitem [ref=e84]:
+                - link "Merchant Hub NEW" [ref=e85] [cursor=pointer]:
+                  - /url: /merchant-hub
+                  - img [ref=e86]
+                  - generic [ref=e91]: Merchant Hub
+                  - generic [ref=e92]: NEW
+              - listitem [ref=e93]:
+                - link "Merchant Portfolio" [ref=e94] [cursor=pointer]:
+                  - /url: /merchant-portfolio
+                  - img [ref=e95]
+                  - generic [ref=e99]: Merchant Portfolio
+              - listitem [ref=e100]:
+                - link "Risk Assessment Portfolio" [ref=e101] [cursor=pointer]:
+                  - /url: /risk-assessment/portfolio
+                  - img [ref=e102]
+                  - generic [ref=e104]: Risk Assessment Portfolio
+          - generic [ref=e105]:
+            - heading "Market Intelligence" [level=3] [ref=e106]
+            - list [ref=e107]:
+              - listitem [ref=e108]:
+                - link "Market Analysis" [ref=e109] [cursor=pointer]:
+                  - /url: /market-analysis
+                  - img [ref=e110]
+                  - generic [ref=e113]: Market Analysis
+              - listitem [ref=e114]:
+                - link "Competitive Analysis" [ref=e115] [cursor=pointer]:
+                  - /url: /competitive-analysis
+                  - img [ref=e116]
+                  - generic [ref=e118]: Competitive Analysis
+          - generic [ref=e119]:
+            - heading "Administration" [level=3] [ref=e120]
+            - list [ref=e121]:
+              - listitem [ref=e122]:
+                - link "Admin Dashboard" [ref=e123] [cursor=pointer]:
+                  - /url: /admin
+                  - img [ref=e124]
+                  - generic [ref=e127]: Admin Dashboard
+              - listitem [ref=e128]:
+                - link "Sessions" [ref=e129] [cursor=pointer]:
+                  - /url: /sessions
+                  - img [ref=e130]
+                  - generic [ref=e135]: Sessions
+    - generic [ref=e136]:
+      - banner [ref=e137]:
+        - generic [ref=e140]:
+          - heading "Add New Merchant" [level=1] [ref=e141]
+          - paragraph [ref=e142]: Enter merchant information to perform comprehensive business verification, risk assessment, and analytics analysis.
+      - main [ref=e143]:
+        - navigation "breadcrumb" [ref=e145]:
+          - list [ref=e146]:
+            - listitem [ref=e148]:
+              - link "Home" [ref=e149] [cursor=pointer]:
+                - /url: /
+            - generic [ref=e150]:
+              - listitem [ref=e151]:
+                - img [ref=e152]
+              - listitem [ref=e154]:
+                - link "Merchant Portfolio" [ref=e155] [cursor=pointer]:
+                  - /url: /merchant-portfolio
+            - generic [ref=e156]:
+              - listitem [ref=e157]:
+                - img [ref=e158]
+              - listitem [ref=e160]:
+                - link "Add Merchant" [disabled] [ref=e161]
+        - generic [ref=e163]:
+          - generic [ref=e166]:
+            - generic [ref=e167]:
+              - img [ref=e168]
+              - generic [ref=e170]:
+                - generic [ref=e171]: Add New Merchant
+                - generic [ref=e172]: Enter merchant information to perform comprehensive business verification
+            - generic [ref=e173]:
+              - generic [ref=e174]: Live
+              - generic [ref=e175]: Beta
+          - generic [ref=e176]:
+            - generic [ref=e177]:
+              - generic [ref=e178]:
+                - img [ref=e179]
+                - text: Merchant Information
+              - generic [ref=e182]: Enter merchant information to perform comprehensive business verification, risk assessment, and analytics analysis.
+            - generic [ref=e184]:
+              - generic [ref=e185]:
+                - generic [ref=e186]:
+                  - generic [ref=e187]:
+                    - img [ref=e188]
+                    - text: Business Name *
+                  - textbox "Business Name *" [ref=e191]:
+                    - /placeholder: Enter business name...
+                    - text: E2E Test Business
+                - generic [ref=e192]:
+                  - generic [ref=e193]:
+                    - img [ref=e194]
+                    - text: Website URL
+                  - textbox "Website URL" [ref=e197]:
+                    - /placeholder: https://example.com
+              - generic [ref=e198]:
+                - generic [ref=e199]:
+                  - generic [ref=e200]:
+                    - img [ref=e201]
+                    - text: Business Address *
+                  - textbox "Business Address *" [active] [ref=e204]
+                - generic [ref=e205]:
+                  - generic [ref=e206]:
+                    - generic [ref=e207]: Street Address
+                    - textbox "Street Address" [ref=e208]:
+                      - /placeholder: 123 Main Street
+                  - generic [ref=e209]:
+                    - generic [ref=e210]: City
+                    - textbox "City" [ref=e211]:
+                      - /placeholder: New York
+                  - generic [ref=e212]:
+                    - generic [ref=e213]: State/Province
+                    - textbox "State/Province" [ref=e214]:
+                      - /placeholder: NY
+                  - generic [ref=e215]:
+                    - generic [ref=e216]: Postal Code
+                    - textbox "Postal Code" [ref=e217]:
+                      - /placeholder: "10001"
+                  - generic [ref=e218]:
+                    - generic [ref=e219]: Country *
+                    - combobox "Country *" [ref=e220]:
+                      - img
+                    - combobox [ref=e221]
+              - generic [ref=e222]:
+                - generic [ref=e223]:
+                  - generic [ref=e224]:
+                    - img [ref=e225]
+                    - text: Phone Number
+                  - textbox "Phone Number" [ref=e227]:
+                    - /placeholder: +1 (555) 123-4567
+                - generic [ref=e228]:
+                  - generic [ref=e229]:
+                    - img [ref=e230]
+                    - text: Email Address
+                  - textbox "Email Address" [ref=e233]:
+                    - /placeholder: contact@business.com
+              - generic [ref=e234]:
+                - generic [ref=e235]:
+                  - img [ref=e236]
+                  - text: Business Registration Number
+                - textbox "Business Registration Number" [ref=e239]:
+                  - /placeholder: Enter business registration number (EIN, VAT, etc.)
+              - generic [ref=e240]:
+                - generic [ref=e241]:
+                  - generic [ref=e242]:
+                    - img [ref=e243]
+                    - text: Analysis Type
+                  - combobox "Analysis Type" [ref=e246]:
+                    - generic: Comprehensive Analysis
+                    - img
+                  - combobox [ref=e247]
+                - generic [ref=e248]:
+                  - generic [ref=e249]:
+                    - img [ref=e250]
+                    - text: Risk Assessment Type
+                  - combobox "Risk Assessment Type" [ref=e252]:
+                    - generic: Comprehensive Assessment
+                    - img
+                  - combobox [ref=e253]
+              - generic [ref=e254]:
+                - button "Clear all form fields" [ref=e255]: Clear Form
+                - button "Submit merchant verification" [ref=e256]: Verify Merchant
+  - region "Notifications alt+T"
+  - generic [ref=e261] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e262]:
+      - img [ref=e263]
+    - generic [ref=e266]:
+      - button "Open issues overlay" [ref=e267]:
+        - generic [ref=e268]:
+          - generic [ref=e269]: "3"
+          - generic [ref=e270]: "4"
+        - generic [ref=e271]:
+          - text: Issue
+          - generic [ref=e272]: s
+      - button "Collapse issues badge" [ref=e273]:
+        - img [ref=e274]
+  - alert [ref=e276]
+  - generic [ref=e277]: "0"
+```

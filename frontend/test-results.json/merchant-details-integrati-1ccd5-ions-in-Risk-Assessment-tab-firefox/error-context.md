@@ -1,0 +1,47 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - main [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#merchant-content"
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Test Business Inc" [level=1] [ref=e8]
+        - paragraph [ref=e9]: "Technology • Status: active"
+      - button "Enrich merchant data from third-party vendors (Press E)" [ref=e11]:
+        - img
+        - text: Enrich Data
+    - region "Merchant details" [ref=e12]:
+      - generic [ref=e13]:
+        - tablist [ref=e14]:
+          - tab "Overview tab" [ref=e15]: Overview
+          - tab "Business Analytics tab" [ref=e16]: Business Analytics
+          - tab "Risk Assessment tab" [active] [selected] [ref=e17]: Risk Assessment
+          - tab "Risk Indicators tab" [ref=e18]: Risk Indicators
+        - tabpanel "Risk Assessment tab" [ref=e19]:
+          - generic [ref=e20]:
+            - generic [ref=e23]:
+              - img
+              - text: Connected
+            - generic [ref=e25]:
+              - img [ref=e26]
+              - heading "No Risk Assessment" [level=2] [ref=e31]
+              - generic [ref=e32]: No risk assessment has been performed for this merchant yet.
+              - button "Start Assessment" [ref=e33]
+  - region "Notifications alt+T"
+  - generic [ref=e38] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e39]:
+      - img [ref=e40]
+    - generic [ref=e44]:
+      - button "Open issues overlay" [ref=e45]:
+        - generic [ref=e46]:
+          - generic [ref=e47]: "14"
+          - generic [ref=e48]: "15"
+        - generic [ref=e49]:
+          - text: Issue
+          - generic [ref=e50]: s
+      - button "Collapse issues badge" [ref=e51]:
+        - img [ref=e52]
+  - alert [ref=e54]
+```

@@ -1,0 +1,72 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - main [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#merchant-content"
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Test Business" [level=1] [ref=e8]
+        - paragraph [ref=e9]: "Technology • Status: active"
+      - button "Enrich merchant data from third-party vendors (Press E)" [ref=e11]:
+        - img
+        - text: Enrich Data
+    - region "Merchant details" [ref=e12]:
+      - generic [ref=e13]:
+        - tablist [ref=e14]:
+          - tab "Overview tab" [ref=e15]: Overview
+          - tab "Business Analytics tab" [active] [selected] [ref=e16]: Business Analytics
+          - tab "Risk Assessment tab" [ref=e17]: Risk Assessment
+          - tab "Risk Indicators tab" [ref=e18]: Risk Indicators
+        - tabpanel "Business Analytics tab" [ref=e19]
+  - region "Notifications alt+T":
+    - list:
+      - listitem [ref=e21]:
+        - img [ref=e23]
+        - generic [ref=e27]:
+          - generic [ref=e28]: Failed to load risk score
+          - generic [ref=e29]: "API response validation failed for getMerchantRiskScore(merchant-123): Invalid input: expected string, received undefined; Invalid option: expected one of \"low\"|\"medium\"|\"high\"; Invalid input: expected string, received undefined"
+      - listitem [ref=e30]:
+        - img [ref=e32]
+        - generic [ref=e36]:
+          - generic [ref=e37]: Failed to load risk score
+          - generic [ref=e38]: "API response validation failed for getMerchantRiskScore(merchant-123): Invalid input: expected string, received undefined; Invalid option: expected one of \"low\"|\"medium\"|\"high\"; Invalid input: expected string, received undefined"
+      - listitem [ref=e39]:
+        - img [ref=e41]
+        - generic [ref=e45]:
+          - generic [ref=e46]: "API response validation failed for getMerchantRiskScore(merchant-123): Invalid input: expected string, received undefined; Invalid option: expected one of \"low\"|\"medium\"|\"high\"; Invalid input: expected string, received undefined"
+          - generic [ref=e47]: "Error Code: UNKNOWN_ERROR"
+      - listitem:
+        - generic:
+          - img
+        - generic:
+          - generic: "API response validation failed for getPortfolioStatistics(): Invalid input: expected number, received undefined; Invalid input: expected number, received undefined; Invalid input: expected number, received undefined; Invalid input: expected object, received undefined; Invalid input: expected array, received undefined; Invalid input: expected array, received undefined; Invalid input: expected string, received undefined"
+          - generic: "Error Code: UNKNOWN_ERROR"
+      - listitem:
+        - generic:
+          - img
+        - generic:
+          - generic: "API response validation failed for getMerchantRiskScore(merchant-123): Invalid input: expected string, received undefined; Invalid option: expected one of \"low\"|\"medium\"|\"high\"; Invalid input: expected string, received undefined"
+          - generic: "Error Code: UNKNOWN_ERROR"
+      - listitem:
+        - generic:
+          - img
+        - generic:
+          - generic: "API response validation failed for getPortfolioStatistics(): Invalid input: expected number, received undefined; Invalid input: expected number, received undefined; Invalid input: expected number, received undefined; Invalid input: expected object, received undefined; Invalid input: expected array, received undefined; Invalid input: expected array, received undefined; Invalid input: expected string, received undefined"
+          - generic: "Error Code: UNKNOWN_ERROR"
+  - generic [ref=e52] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e53]:
+      - img [ref=e54]
+    - generic [ref=e58]:
+      - button "Open issues overlay" [ref=e59]:
+        - generic [ref=e60]:
+          - generic [ref=e61]: "13"
+          - generic [ref=e62]: "14"
+        - generic [ref=e63]:
+          - text: Issue
+          - generic [ref=e64]: s
+      - button "Collapse issues badge" [ref=e65]:
+        - img [ref=e66]
+  - alert [ref=e68]
+```

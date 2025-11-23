@@ -1,0 +1,123 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#merchant-content"
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Test Business" [level=1] [ref=e8]
+        - paragraph [ref=e9]: "Technology • Status: active"
+      - button "Enrich merchant data from third-party vendors (Press E)" [ref=e11]:
+        - img
+        - text: Enrich Data
+    - region "Merchant details" [ref=e12]:
+      - generic [ref=e13]:
+        - tablist [ref=e14]:
+          - tab "Overview tab" [selected] [ref=e15]: Overview
+          - tab "Business Analytics tab" [ref=e16]: Business Analytics
+          - tab "Risk Assessment tab" [ref=e17]: Risk Assessment
+          - tab "Risk Indicators tab" [ref=e18]: Risk Indicators
+        - tabpanel "Overview tab" [ref=e19]:
+          - generic [ref=e20]:
+            - generic [ref=e21]:
+              - button "Enrich merchant data from third-party vendors (Press E)" [ref=e22]:
+                - img
+                - text: Enrich Data
+              - generic [ref=e24]: "Data Completeness: 50%"
+            - generic [ref=e26]:
+              - generic [ref=e27]:
+                - generic [ref=e29]:
+                  - generic [ref=e30]:
+                    - generic [ref=e31]: Business Information
+                    - generic [ref=e32]: Basic merchant details
+                  - paragraph [ref=e33]: Updated just now
+                - generic [ref=e34]:
+                  - generic [ref=e35]:
+                    - paragraph [ref=e36]: Business Name
+                    - paragraph [ref=e37]: Test Business
+                  - generic [ref=e38]:
+                    - paragraph [ref=e39]: Industry
+                    - paragraph [ref=e40]: Technology
+                  - generic [ref=e41]:
+                    - paragraph [ref=e42]: Status
+                    - generic [ref=e43]: active
+              - generic [ref=e44]:
+                - generic [ref=e46]:
+                  - generic [ref=e47]:
+                    - generic [ref=e48]: Contact Information
+                    - generic [ref=e49]: Contact details
+                  - paragraph [ref=e50]: Updated just now
+                - generic [ref=e51]:
+                  - generic [ref=e52]:
+                    - paragraph [ref=e53]: Email
+                    - paragraph [ref=e54]: test@example.com
+                  - generic [ref=e55]:
+                    - paragraph [ref=e56]: Phone
+                    - paragraph [ref=e57]: +1-555-123-4567
+                  - generic [ref=e58]:
+                    - paragraph [ref=e59]: Website
+                    - link "https://test.com" [ref=e60] [cursor=pointer]:
+                      - /url: https://test.com
+            - generic [ref=e61]:
+              - generic [ref=e63]:
+                - generic [ref=e64]:
+                  - generic [ref=e65]: Address
+                  - generic [ref=e66]: Business location
+                - paragraph [ref=e67]: Updated just now
+              - generic [ref=e68]:
+                - paragraph [ref=e69]: 123 Main St
+                - paragraph [ref=e70]: San Francisco, CA, 94102
+                - paragraph [ref=e71]: USA
+            - generic [ref=e72]:
+              - generic [ref=e74]:
+                - generic [ref=e75]: Risk Score
+                - generic [ref=e76]: Loading risk assessment...
+              - generic [ref=e80]:
+                - generic [ref=e81]: Portfolio Comparison
+                - generic [ref=e82]: Loading portfolio comparison...
+            - generic [ref=e85]:
+              - generic [ref=e87]:
+                - generic [ref=e88]:
+                  - generic [ref=e89]: Metadata
+                  - generic [ref=e90]: System information
+                - paragraph [ref=e91]: Updated just now
+              - table [ref=e94]:
+                - rowgroup [ref=e95]:
+                  - row "Merchant ID merchant-123" [ref=e96]:
+                    - cell "Merchant ID" [ref=e97]
+                    - cell "merchant-123" [ref=e98]
+                  - row "Created 11/22/2025" [ref=e99]:
+                    - cell "Created" [ref=e100]
+                    - cell "11/22/2025" [ref=e101]
+                  - row "Last Updated 11/22/2025" [ref=e102]:
+                    - cell "Last Updated" [ref=e103]
+                    - cell "11/22/2025" [ref=e104]
+  - region "Notifications alt+T":
+    - list:
+      - listitem [ref=e105]:
+        - img [ref=e107]
+        - generic [ref=e111]:
+          - generic [ref=e112]: "API response validation failed for getMerchantRiskScore(merchant-123): Invalid input: expected string, received undefined; Invalid option: expected one of \"low\"|\"medium\"|\"high\"; Invalid input: expected string, received undefined"
+          - generic [ref=e113]: "Error Code: UNKNOWN_ERROR"
+      - listitem [ref=e114]:
+        - img [ref=e116]
+        - generic [ref=e120]:
+          - generic [ref=e121]: "API response validation failed for getPortfolioStatistics(): Invalid input: expected number, received undefined; Invalid input: expected number, received undefined; Invalid input: expected number, received undefined; Invalid input: expected object, received undefined; Invalid input: expected array, received undefined; Invalid input: expected array, received undefined; Invalid input: expected string, received undefined"
+          - generic [ref=e122]: "Error Code: UNKNOWN_ERROR"
+  - generic [ref=e127] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e128]:
+      - img [ref=e129]
+    - generic [ref=e132]:
+      - button "Open issues overlay" [ref=e133]:
+        - generic [ref=e134]:
+          - generic [ref=e135]: "10"
+          - generic [ref=e136]: "11"
+        - generic [ref=e137]:
+          - text: Issue
+          - generic [ref=e138]: s
+      - button "Collapse issues badge" [ref=e139]:
+        - img [ref=e140]
+  - alert [ref=e142]
+```

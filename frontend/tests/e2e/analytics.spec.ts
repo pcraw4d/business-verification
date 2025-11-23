@@ -108,7 +108,8 @@ test.describe('Analytics Data Loading', () => {
       await expect(technologyText).toBeVisible();
       // Confidence score is displayed as "95.0%" (with decimal)
       // Match "95" optionally followed by ".0" or other decimal digits, then "%"
-      await expect(page.getByText(/95(\.\d+)?%/)).toBeVisible({ timeout: 5000 });
+      // Use .first() to avoid strict mode violation when multiple elements match
+      await expect(page.getByText(/95(\.\d+)?%/).first()).toBeVisible({ timeout: 5000 });
     } else {
       // If analytics data not found, check if tab content loaded
       // Radix UI uses data-state="active" for active tabs

@@ -1,0 +1,81 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - main [ref=e2]:
+    - link "Skip to main content" [ref=e3]:
+      - /url: "#merchant-content"
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Test Business" [level=1] [ref=e8]
+        - paragraph [ref=e9]: "Technology • Status: active"
+      - button "Enrich merchant data from third-party vendors (Press E)" [ref=e11]:
+        - img
+        - text: Enrich Data
+    - region "Merchant details" [ref=e12]:
+      - generic [ref=e13]:
+        - tablist [ref=e14]:
+          - tab "Overview tab" [ref=e15]: Overview
+          - tab "Business Analytics tab" [ref=e16]: Business Analytics
+          - tab "Risk Assessment tab" [active] [selected] [ref=e17]: Risk Assessment
+          - tab "Risk Indicators tab" [ref=e18]: Risk Indicators
+        - tabpanel "Risk Assessment tab" [ref=e19]:
+          - generic [ref=e23]:
+            - img
+            - text: Disconnected
+  - region "Notifications alt+T":
+    - list:
+      - listitem [ref=e26]:
+        - img [ref=e28]
+        - generic [ref=e32]:
+          - generic [ref=e33]: "API response validation failed for getPortfolioStatistics(): Invalid input: expected number, received undefined; Invalid input: expected number, received undefined; Invalid input: expected number, received undefined; Invalid input: expected object, received undefined; Invalid input: expected array, received undefined; Invalid input: expected array, received undefined; Invalid input: expected string, received undefined"
+          - generic [ref=e34]: "Error Code: UNKNOWN_ERROR"
+      - listitem [ref=e35]:
+        - img [ref=e37]
+        - generic [ref=e41]:
+          - generic [ref=e42]: Failed to load risk score
+          - generic [ref=e43]: "API response validation failed for getMerchantRiskScore(merchant-123): Invalid input: expected string, received undefined; Invalid option: expected one of \"low\"|\"medium\"|\"high\"; Invalid input: expected string, received undefined"
+      - listitem [ref=e44]:
+        - img [ref=e46]
+        - generic [ref=e50]:
+          - generic [ref=e51]: Failed to load risk score
+          - generic [ref=e52]: "API response validation failed for getMerchantRiskScore(merchant-123): Invalid input: expected string, received undefined; Invalid option: expected one of \"low\"|\"medium\"|\"high\"; Invalid input: expected string, received undefined"
+      - listitem:
+        - generic:
+          - img
+        - generic:
+          - generic: "API response validation failed for getMerchantRiskScore(merchant-123): Invalid input: expected string, received undefined; Invalid option: expected one of \"low\"|\"medium\"|\"high\"; Invalid input: expected string, received undefined"
+          - generic: "Error Code: UNKNOWN_ERROR"
+      - listitem:
+        - generic:
+          - img
+        - generic:
+          - generic: "API response validation failed for getMerchantRiskScore(merchant-123): Invalid input: expected string, received undefined; Invalid option: expected one of \"low\"|\"medium\"|\"high\"; Invalid input: expected string, received undefined"
+          - generic: "Error Code: UNKNOWN_ERROR"
+      - listitem:
+        - generic:
+          - img
+        - generic:
+          - generic: "API response validation failed for getPortfolioStatistics(): Invalid input: expected number, received undefined; Invalid input: expected number, received undefined; Invalid input: expected number, received undefined; Invalid input: expected object, received undefined; Invalid input: expected array, received undefined; Invalid input: expected array, received undefined; Invalid input: expected string, received undefined"
+          - generic: "Error Code: UNKNOWN_ERROR"
+      - listitem:
+        - generic:
+          - img
+        - generic:
+          - generic: Network request failed. Please check your connection.
+          - generic: "Error Code: UNKNOWN_ERROR"
+  - generic [ref=e57] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e58]:
+      - img [ref=e59]
+    - generic [ref=e64]:
+      - button "Open issues overlay" [ref=e65]:
+        - generic [ref=e66]:
+          - generic [ref=e67]: "16"
+          - generic [ref=e68]: "17"
+        - generic [ref=e69]:
+          - text: Issue
+          - generic [ref=e70]: s
+      - button "Collapse issues badge" [ref=e71]:
+        - img [ref=e72]
+  - alert [ref=e74]
+```

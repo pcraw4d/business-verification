@@ -1,0 +1,94 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [active]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - navigation [ref=e7]:
+          - button "previous" [disabled] [ref=e8]:
+            - img "previous" [ref=e9]
+          - generic [ref=e11]:
+            - generic [ref=e12]: 1/
+            - text: "6"
+          - button "next" [ref=e13] [cursor=pointer]:
+            - img "next" [ref=e14]
+        - generic [ref=e17]:
+          - img [ref=e18]
+          - generic "Latest available version is detected (16.0.3)." [ref=e20]: Next.js 16.0.3
+          - generic [ref=e21]: Turbopack
+      - generic [ref=e22]:
+        - dialog "Console Error" [ref=e23]:
+          - generic [ref=e26]:
+            - generic [ref=e27]:
+              - generic [ref=e28]:
+                - generic [ref=e30]: Console Error
+                - generic [ref=e31]:
+                  - button "Copy Error Info" [ref=e32] [cursor=pointer]:
+                    - img [ref=e33]
+                  - button "No related documentation found" [disabled] [ref=e35]:
+                    - img [ref=e36]
+                  - link "Learn more about enabling Node.js inspector for server code with Chrome DevTools" [ref=e38]:
+                    - /url: https://nextjs.org/docs/app/building-your-application/configuring/debugging#server-side-code
+                    - img [ref=e39]
+              - generic [ref=e51]: "[API Validation] Validation failed: {}"
+            - generic [ref=e53]:
+              - paragraph [ref=e55]:
+                - text: Call Stack
+                - generic [ref=e56]: "5"
+              - generic [ref=e57]:
+                - generic [ref=e58]:
+                  - text: createConsoleError
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e59] [cursor=pointer]:
+                    - img [ref=e60]
+                - text: file:///Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_4c1928ef._.js (2189:80)
+              - generic [ref=e62]:
+                - generic [ref=e63]:
+                  - text: handleConsoleError
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e64] [cursor=pointer]:
+                    - img [ref=e65]
+                - text: file:///Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_4c1928ef._.js (2970:54)
+              - generic [ref=e67]:
+                - generic [ref=e68]:
+                  - text: error
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e69] [cursor=pointer]:
+                    - img [ref=e70]
+                - text: file:///Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/9e883_next_dist_4c1928ef._.js (3114:57)
+              - generic [ref=e72]:
+                - generic [ref=e73]:
+                  - text: validateAPIResponse
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e74] [cursor=pointer]:
+                    - img [ref=e75]
+                - text: file:///Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/frontend_d6251a17._.js (2153:30)
+              - generic [ref=e77]:
+                - generic [ref=e78]:
+                  - text: <unknown>
+                  - button "Sourcemapping failed. Click to log cause of error." [ref=e79] [cursor=pointer]:
+                    - img [ref=e80]
+                - text: file:///Users/petercrawford/New%20tool/frontend/.next/dev/static/chunks/frontend_d6251a17._.js (3448:189)
+          - generic [ref=e82]: "1"
+          - generic [ref=e83]: "2"
+        - contentinfo [ref=e84]:
+          - region "Error feedback" [ref=e85]:
+            - paragraph [ref=e86]:
+              - link "Was this helpful?" [ref=e87]:
+                - /url: https://nextjs.org/telemetry#error-feedback
+            - button "Mark as helpful" [ref=e88] [cursor=pointer]:
+              - img [ref=e89]
+            - button "Mark as not helpful" [ref=e92] [cursor=pointer]:
+              - img [ref=e93]
+    - generic [ref=e99] [cursor=pointer]:
+      - button "Open Next.js Dev Tools" [ref=e100]:
+        - img [ref=e101]
+      - generic [ref=e106]:
+        - button "Open issues overlay" [ref=e107]:
+          - generic [ref=e108]:
+            - generic [ref=e109]: "5"
+            - generic [ref=e110]: "6"
+          - generic [ref=e111]:
+            - text: Issue
+            - generic [ref=e112]: s
+        - button "Collapse issues badge" [ref=e113]:
+          - img [ref=e114]
+  - 'heading "Application error: a client-side exception has occurred while loading localhost (see the browser console for more information)." [level=2] [ref=e118]'
+```

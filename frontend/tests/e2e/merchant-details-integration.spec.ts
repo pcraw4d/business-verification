@@ -760,10 +760,26 @@ test.describe('Merchant Details Integration Tests', () => {
       );
       
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}/risk-recommendations**`, async (route) => {
+        // Handle OPTIONS preflight requests
+        if (route.request().method() === 'OPTIONS') {
+          await route.fulfill({
+            status: 200,
+            headers: {
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+              'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            },
+          });
+          return;
+        }
+        
         apiCalls.push(`GET ${route.request().url()}`);
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+          },
           body: JSON.stringify({
             merchantId: TEST_MERCHANT_ID,
             recommendations: [

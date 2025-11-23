@@ -1,8 +1,12 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const { setupAPIMocks } = require('./utils/api-mock-helpers');
 
 test.describe('Merchant Hub Integration', () => {
   test.beforeEach(async ({ page }) => {
+    // Setup API mocks before navigation
+    await setupAPIMocks(page);
+    
     // Navigate to merchant hub integration page
     await page.goto('/merchant-hub-integration.html');
     await page.waitForLoadState('networkidle');
