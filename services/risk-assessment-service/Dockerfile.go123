@@ -72,11 +72,12 @@ RUN echo "Files in /app after COPY . .:" && \
 
 # Build the application with ONNX Runtime support from the service directory
 # This ensures Go can find the go.mod file and resolve imports correctly
+# Build the cmd package (build tags will exclude test files)
 RUN GOOS=linux GOARCH=amd64 GOWORK=off go build \
     -a -installsuffix cgo \
     -ldflags='-w -s' \
     -o risk-assessment-service \
-    ./cmd/main.go ./cmd/cache_logger_wrapper.go
+    ./cmd
 
 # Final stage
 FROM alpine:latest

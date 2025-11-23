@@ -341,47 +341,21 @@ func (rh *RegulatoryHandlers) GetValidationRules(w http.ResponseWriter, r *http.
 }
 
 // GetComplianceStatus returns the overall compliance status
+// Frontend expects: overallScore, pendingReviews, complianceTrend, regulatoryFrameworks, violations (optional), timestamp (optional)
 func (rh *RegulatoryHandlers) GetComplianceStatus(w http.ResponseWriter, r *http.Request) {
 	// Get query parameters
 	tenantID := r.URL.Query().Get("tenant_id")
 	regulation := r.URL.Query().Get("regulation")
 
-	// Mock compliance status
-	complianceStatus := map[string]interface{}{
-		"tenant_id":                 tenantID,
-		"regulation":                regulation,
-		"overall_status":            "compliant",
-		"compliance_percentage":     95.0,
-		"total_regulations":         12,
-		"compliant_regulations":     11,
-		"non_compliant_regulations": 1,
-		"last_updated":              time.Now(),
-		"next_review":               time.Now().AddDate(0, 1, 0),
-		"regulations": []map[string]interface{}{
-			{
-				"regulation":            "BSA",
-				"status":                "compliant",
-				"compliance_percentage": 98.0,
-				"last_validated":        time.Now().AddDate(0, 0, -7),
-			},
-			{
-				"regulation":            "GDPR",
-				"status":                "compliant",
-				"compliance_percentage": 95.0,
-				"last_validated":        time.Now().AddDate(0, 0, -14),
-			},
-			{
-				"regulation":            "HIPAA",
-				"status":                "partial",
-				"compliance_percentage": 85.0,
-				"last_validated":        time.Now().AddDate(0, 0, -21),
-			},
-		},
-	}
-
+	// TODO: Query actual compliance data from database
+	// For now, return properly formatted response matching ComplianceStatusSchema
 	response := map[string]interface{}{
-		"success": true,
-		"data":    complianceStatus,
+		"overallScore":        95.0,  // Overall compliance score (0-100)
+		"pendingReviews":      3,     // Number of pending compliance reviews
+		"complianceTrend":     "Improving", // Trend: "Improving", "Stable", or "Declining"
+		"regulatoryFrameworks": 12,     // Total number of regulatory frameworks being tracked
+		"violations":          1,      // Number of compliance violations (optional)
+		"timestamp":           time.Now().Format(time.RFC3339),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -390,7 +364,7 @@ func (rh *RegulatoryHandlers) GetComplianceStatus(w http.ResponseWriter, r *http
 	rh.logger.Info("Compliance status retrieved",
 		zap.String("tenant_id", tenantID),
 		zap.String("regulation", regulation),
-		zap.Float64("compliance_percentage", 95.0))
+		zap.Float64("overall_score", 95.0))
 }
 
 // GetComplianceMetrics returns compliance metrics and statistics

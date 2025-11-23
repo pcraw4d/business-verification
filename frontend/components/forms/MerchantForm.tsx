@@ -297,14 +297,6 @@ export function MerchantForm() {
 
           {/* Address Information */}
           <div className="space-y-4">
-            <FormField
-              label="Business Address"
-              name="address"
-              type="text"
-              required
-              icon={<MapPin className="h-4 w-4" />}
-            />
-            
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormField
                 label="Street Address"

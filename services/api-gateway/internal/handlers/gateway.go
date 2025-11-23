@@ -692,6 +692,11 @@ func (h *GatewayHandler) ProxyToRiskAssessment(w http.ResponseWriter, r *http.Re
 		// Keep path as-is (e.g., /api/v1/analytics/trends, /api/v1/analytics/insights)
 		// The risk service has routes like /api/v1/analytics/trends
 		// No path transformation needed
+	} else if strings.HasPrefix(path, "/api/v1/monitoring/") {
+		// Monitoring routes are handled by risk assessment service
+		// Keep path as-is (e.g., /api/v1/monitoring/metrics, /api/v1/monitoring/health)
+		// The risk service has routes like /api/v1/monitoring/metrics
+		// No path transformation needed
 	} else if strings.HasPrefix(path, "/api/v1/risk/") {
 		// For other /risk/* paths, keep them as-is (e.g., /risk/benchmarks, /risk/predictions)
 		// The risk service has routes like /api/v1/risk/benchmarks

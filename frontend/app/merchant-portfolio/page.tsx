@@ -466,7 +466,7 @@ export default function MerchantPortfolioPage() {
                       <TableRow 
                         key={merchant.id}
                         onMouseEnter={() => handleMerchantHover(merchant.id)}
-                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                        className="hover:bg-muted/50 transition-colors"
                       >
                         <TableCell className="font-medium">{merchant.name}</TableCell>
                         <TableCell>
@@ -484,7 +484,15 @@ export default function MerchantPortfolioPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <Button asChild variant="ghost" size="sm" aria-label={`View details for ${merchant.name}`}>
-                            <Link href={`/merchant-details/${merchant.id}`}>View</Link>
+                            <Link 
+                              href={`/merchant-details/${merchant.id}`}
+                              onClick={(e) => {
+                                // Ensure the link click is handled properly
+                                e.stopPropagation();
+                              }}
+                            >
+                              View
+                            </Link>
                           </Button>
                         </TableCell>
                       </TableRow>

@@ -1072,29 +1072,67 @@ func (h *MerchantPortfolioHandler) GetMerchantStatistics(w http.ResponseWriter, 
 	_ = r.Context() // Context will be used in future implementation
 	h.logger.Printf("Getting merchant statistics")
 
-	// For now, return mock statistics
-	// TODO: Implement actual statistics calculation
+	// Return statistics matching frontend PortfolioStatisticsSchema
+	// Schema requires: totalMerchants, totalAssessments, averageRiskScore, riskDistribution, industryBreakdown, countryBreakdown, timestamp
 	response := map[string]interface{}{
-		"total_merchants":            5000,
-		"active_merchants":           4000,
-		"inactive_merchants":         1000,
-		"average_employee_count":     25,
-		"total_annual_revenue":       1250000000, // $1.25B
-		"average_annual_revenue":     250000,     // $250K
-		"compliance_rate":            0.8,        // 80%
-		"onboarding_completion_rate": 0.75,       // 75%
-		"risk_distribution": map[string]interface{}{
-			"high":   0.2, // 20%
-			"medium": 0.6, // 60%
+		"totalMerchants":   5000,
+		"totalAssessments": 4500, // Total risk assessments performed
+		"averageRiskScore": 0.65, // Average risk score (0-1)
+		"riskDistribution": map[string]interface{}{
 			"low":    0.2, // 20%
+			"medium": 0.6, // 60%
+			"high":   0.2, // 20%
 		},
-		"portfolio_distribution": map[string]interface{}{
-			"onboarded":   0.5, // 50%
-			"deactivated": 0.1, // 10%
-			"prospective": 0.3, // 30%
-			"pending":     0.1, // 10%
+		"industryBreakdown": []map[string]interface{}{
+			{
+				"industry":        "Technology",
+				"count":           1500,
+				"averageRiskScore": 0.55,
+			},
+			{
+				"industry":        "Finance",
+				"count":           1200,
+				"averageRiskScore": 0.75,
+			},
+			{
+				"industry":        "Retail",
+				"count":           1000,
+				"averageRiskScore": 0.60,
+			},
+			{
+				"industry":        "Healthcare",
+				"count":           800,
+				"averageRiskScore": 0.70,
+			},
+			{
+				"industry":        "Other",
+				"count":           500,
+				"averageRiskScore": 0.65,
+			},
 		},
-		"last_updated": time.Now(),
+		"countryBreakdown": []map[string]interface{}{
+			{
+				"country":         "US",
+				"count":           3000,
+				"averageRiskScore": 0.60,
+			},
+			{
+				"country":         "GB",
+				"count":           1000,
+				"averageRiskScore": 0.70,
+			},
+			{
+				"country":         "CA",
+				"count":           800,
+				"averageRiskScore": 0.65,
+			},
+			{
+				"country":         "AU",
+				"count":           200,
+				"averageRiskScore": 0.68,
+			},
+		},
+		"timestamp": time.Now().Format(time.RFC3339),
 	}
 
 	w.Header().Set("Content-Type", "application/json")

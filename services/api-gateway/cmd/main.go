@@ -167,6 +167,13 @@ func main() {
 	api.HandleFunc("/analytics/trends", gatewayHandler.ProxyToRiskAssessment).Methods("GET", "OPTIONS")
 	api.HandleFunc("/analytics/insights", gatewayHandler.ProxyToRiskAssessment).Methods("GET", "OPTIONS")
 
+	// Monitoring routes - CORS handled by middleware
+	// ORDER MATTERS: Monitoring routes must be registered before /risk PathPrefix
+	// Monitoring routes are handled by Risk Assessment service
+	api.HandleFunc("/monitoring/metrics", gatewayHandler.ProxyToRiskAssessment).Methods("GET", "OPTIONS")
+	api.HandleFunc("/monitoring/health", gatewayHandler.ProxyToRiskAssessment).Methods("GET", "OPTIONS")
+	api.HandleFunc("/monitoring/alerts", gatewayHandler.ProxyToRiskAssessment).Methods("GET", "OPTIONS")
+
 	// Risk Assessment routes - CORS handled by middleware
 	// ORDER MATTERS: Specific routes with path transformation must be registered before PathPrefix
 	// 1. Routes requiring path transformation (registered first)
