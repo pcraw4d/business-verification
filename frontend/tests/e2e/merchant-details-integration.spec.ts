@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { handleCorsOptions, getCorsHeaders } from './helpers/cors-helpers';
 
 /**
  * Integration tests for Merchant Details Page Features
@@ -21,34 +22,6 @@ import { expect, test } from '@playwright/test';
  */
 
 const TEST_MERCHANT_ID = 'merchant-123';
-
-/**
- * Helper function to handle CORS OPTIONS preflight requests
- * Returns true if OPTIONS was handled, false otherwise
- */
-async function handleCorsOptions(route: any): Promise<boolean> {
-  if (route.request().method() === 'OPTIONS') {
-    await route.fulfill({
-      status: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      },
-    });
-    return true;
-  }
-  return false;
-}
-
-/**
- * Helper function to add CORS headers to a response
- */
-function getCorsHeaders(): Record<string, string> {
-  return {
-    'Access-Control-Allow-Origin': '*',
-  };
-}
 
 test.describe('Merchant Details Integration Tests', () => {
   test.beforeEach(async ({ page }) => {
@@ -804,32 +777,41 @@ test.describe('Merchant Details Integration Tests', () => {
         if (await handleCorsOptions(route)) return;
         
         apiCalls.push(`GET ${route.request().url()}`);
+        
+        // Ensure all required fields are present and properly formatted
+        const responseData = {
+          merchantId: TEST_MERCHANT_ID,
+          recommendations: [
+            {
+              id: 'rec-1',
+              type: 'monitoring',
+              priority: 'high',
+              title: 'Increase Monitoring Frequency',
+              description: 'Monitor this merchant more closely',
+              actionItems: ['Action 1', 'Action 2'],
+            },
+            {
+              id: 'rec-2',
+              type: 'verification',
+              priority: 'medium',
+              title: 'Additional Verification Required',
+              description: 'Perform additional verification checks',
+              actionItems: ['Action 3'],
+            },
+          ],
+          timestamp: new Date().toISOString(),
+        };
+        
+        // Validate that all required fields are present before sending
+        if (!responseData.merchantId || !responseData.timestamp || !Array.isArray(responseData.recommendations)) {
+          console.error('[Route] Invalid risk recommendations response data:', responseData);
+        }
+        
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
           headers: getCorsHeaders(),
-          body: JSON.stringify({
-            merchantId: TEST_MERCHANT_ID,
-            recommendations: [
-              {
-                id: 'rec-1',
-                type: 'monitoring',
-                priority: 'high',
-                title: 'Increase Monitoring Frequency',
-                description: 'Monitor this merchant more closely',
-                actionItems: ['Action 1', 'Action 2'],
-              },
-              {
-                id: 'rec-2',
-                type: 'verification',
-                priority: 'medium',
-                title: 'Additional Verification Required',
-                description: 'Perform additional verification checks',
-                actionItems: ['Action 3'],
-              },
-            ],
-            timestamp: new Date().toISOString(),
-          }),
+          body: JSON.stringify(responseData),
         });
       });
 
