@@ -86,6 +86,20 @@ export function MerchantOverviewTab({ merchant }: MerchantOverviewTabProps) {
     const fieldKey = getFieldKey(fieldName);
     const isEnriched = isFieldEnriched(merchant.id, fieldKey);
     const fieldInfo = getEnrichedFieldInfo(merchant.id, fieldKey);
+    const [enrichedAtFormatted, setEnrichedAtFormatted] = useState<string>('');
+
+    // Format enrichedAt time on client side only to prevent hydration errors
+    useEffect(() => {
+      if (mounted && fieldInfo?.enrichedAt) {
+        try {
+          setEnrichedAtFormatted(fieldInfo.enrichedAt.toLocaleTimeString());
+        } catch {
+          setEnrichedAtFormatted('');
+        }
+      } else {
+        setEnrichedAtFormatted('');
+      }
+    }, [mounted, fieldInfo?.enrichedAt]);
 
     if (!isEnriched) {
       return <>{children}</>;
@@ -98,7 +112,10 @@ export function MerchantOverviewTab({ merchant }: MerchantOverviewTabProps) {
           <Badge
             variant={fieldInfo?.type === 'added' ? 'default' : 'secondary'}
             className="text-xs animate-pulse"
-            title={`${fieldInfo?.type === 'added' ? 'Added' : 'Updated'} from ${fieldInfo?.source} at ${fieldInfo?.enrichedAt.toLocaleTimeString()}`}
+            title={fieldInfo?.enrichedAt && mounted 
+              ? `${fieldInfo?.type === 'added' ? 'Added' : 'Updated'} from ${fieldInfo?.source} at ${enrichedAtFormatted || 'Loading...'}`
+              : `${fieldInfo?.type === 'added' ? 'Added' : 'Updated'} from ${fieldInfo?.source}`
+            }
           >
             <Sparkles className="h-3 w-3 mr-1" />
             {fieldInfo?.type === 'added' ? 'New' : 'Updated'}
