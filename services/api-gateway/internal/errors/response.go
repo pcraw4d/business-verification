@@ -78,6 +78,11 @@ func WriteMethodNotAllowed(w http.ResponseWriter, r *http.Request, message strin
 	WriteError(w, r, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", message, "")
 }
 
+// WriteNotImplemented writes a not implemented error response
+func WriteNotImplemented(w http.ResponseWriter, r *http.Request, message string) {
+	WriteError(w, r, http.StatusNotImplemented, "NOT_IMPLEMENTED", message, "")
+}
+
 // ErrorResponse represents a standardized error response format
 type ErrorResponse struct {
 	Error     ErrorDetail `json:"error"`

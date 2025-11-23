@@ -3,9 +3,11 @@ package handlers
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"regexp"
 	"strings"
@@ -50,12 +52,31 @@ type GatewayHandler struct {
 
 // NewGatewayHandler creates a new gateway handler
 func NewGatewayHandler(supabaseClient *supabase.Client, logger *zap.Logger, cfg *config.Config) *GatewayHandler {
+	// Create HTTP/1.1 transport for WebSocket support
+	// HTTP/2 doesn't support WebSocket upgrades, so we force HTTP/1.1
+	transport := &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: false,
+		},
+		// Force HTTP/1.1 - HTTP/2 doesn't support WebSocket upgrades
+		ForceAttemptHTTP2: false,
+	}
+
 	return &GatewayHandler{
 		supabaseClient: supabaseClient,
 		logger:         logger,
 		config:         cfg,
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout:   30 * time.Second,
+			Transport: transport,
 		},
 	}
 }
@@ -397,6 +418,20 @@ func (h *GatewayHandler) ProxyToMerchantHealth(w http.ResponseWriter, r *http.Re
 	h.proxyRequest(w, r, h.config.Services.MerchantURL, "/health")
 }
 
+// isWebSocketRequest checks if the request is a WebSocket upgrade request
+func isWebSocketRequest(r *http.Request) bool {
+	// Check for WebSocket upgrade header
+	upgrade := strings.ToLower(r.Header.Get("Upgrade"))
+	if upgrade == "websocket" {
+		return true
+	}
+	// Check if path ends with /ws (common WebSocket endpoint pattern)
+	if strings.HasSuffix(strings.ToLower(r.URL.Path), "/ws") {
+		return true
+	}
+	return false
+}
+
 // proxyRequest proxies a request to a backend service
 func (h *GatewayHandler) proxyRequest(w http.ResponseWriter, r *http.Request, targetURL, targetPath string) {
 	ctx := r.Context()
@@ -418,12 +453,25 @@ func (h *GatewayHandler) proxyRequest(w http.ResponseWriter, r *http.Request, ta
 			zap.String("corrected", targetURL))
 	}
 
+	// Check if this is a WebSocket request
+	isWebSocket := isWebSocketRequest(r)
+
 	// Log the proxy request
 	h.logger.Info("Proxying request",
 		zap.String("method", r.Method),
 		zap.String("path", r.URL.Path),
 		zap.String("target", targetURL+targetPath),
-		zap.String("user_agent", r.Header.Get("User-Agent")))
+		zap.String("user_agent", r.Header.Get("User-Agent")),
+		zap.Bool("websocket", isWebSocket))
+
+	// For WebSocket requests, return an error as full WebSocket proxying requires special handling
+	if isWebSocket {
+		h.logger.Warn("WebSocket proxying not fully supported",
+			zap.String("path", r.URL.Path),
+			zap.String("target", targetURL+targetPath))
+		gatewayerrors.WriteNotImplemented(w, r, "WebSocket proxying is not yet fully supported. Please connect directly to the backend service.")
+		return
+	}
 
 	// Create the target URL
 	target := targetURL + targetPath
@@ -454,7 +502,13 @@ func (h *GatewayHandler) proxyRequest(w http.ResponseWriter, r *http.Request, ta
 	// Copy headers from the original request
 	for key, values := range r.Header {
 		// Skip headers that shouldn't be forwarded
-		if key == "Host" || key == "Connection" {
+		// For WebSocket requests, we need to preserve Connection and Upgrade headers,
+		// but since we're not supporting WebSocket proxying yet, we skip them
+		if key == "Host" {
+			continue
+		}
+		// Skip Connection header for non-WebSocket requests to avoid issues
+		if key == "Connection" && !isWebSocket {
 			continue
 		}
 		for _, value := range values {
