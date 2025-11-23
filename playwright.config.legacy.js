@@ -4,11 +4,14 @@ const { defineConfig, devices } = require('@playwright/test');
 /**
  * @see https://playwright.dev/docs/test-configuration
  * 
- * This configuration tests the new Next.js frontend with shadcn UI.
- * The legacy web directory tests are deprecated - use npm run test:legacy for those.
+ * DEPRECATED: This configuration tests the legacy web directory UI.
+ * The legacy UI has been archived and removed from production.
+ * Use the root playwright.config.js to test the new Next.js frontend.
+ * 
+ * This config is kept for reference only.
  */
 module.exports = defineConfig({
-  testDir: './frontend/tests/e2e',
+  testDir: './web/tests',
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -18,18 +21,15 @@ module.exports = defineConfig({
   /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: process.env.CI 
-    ? [
-        ['html', { outputFolder: 'playwright-report' }],
-        ['json', { outputFile: 'playwright-report/results.json' }],
-        ['junit', { outputFile: 'playwright-report/junit.xml' }],
-        ['list'],
-      ]
-    : 'html',
+  reporter: [
+    ['html'],
+    ['json', { outputFile: 'test-results/results.json' }],
+    ['junit', { outputFile: 'test-results/results.xml' }]
+  ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3000',
+    baseURL: 'http://localhost:8080',
     
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -86,13 +86,11 @@ module.exports = defineConfig({
   ],
 
   /* Run your local dev server before starting the tests */
-  /* Only start local server if PLAYWRIGHT_TEST_BASE_URL is not set */
-  webServer: process.env.PLAYWRIGHT_TEST_BASE_URL ? undefined : {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
+  webServer: {
+    command: 'python3 -m http.server 8080 --directory web',
+    url: 'http://localhost:8080',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
-    cwd: './frontend',
   },
 
   /* Global test timeout */
@@ -105,4 +103,9 @@ module.exports = defineConfig({
 
   /* Output directory for test artifacts */
   outputDir: 'test-results/artifacts',
+
+  /* Global setup and teardown */
+  globalSetup: require.resolve('./web/tests/global-setup.js'),
+  globalTeardown: require.resolve('./web/tests/global-teardown.js'),
 });
+
