@@ -24,8 +24,12 @@ const TEST_MERCHANT_ID = 'merchant-123';
 
 test.describe('Merchant Details Integration Tests', () => {
   test.beforeEach(async ({ page }) => {
-    // Handle CORS preflight requests
-    await page.route('**/api/**', async (route) => {
+    // Note: CORS OPTIONS handling is done per-route to avoid conflicts
+    // Each route handler should check for OPTIONS and handle it appropriately
+
+    // Mock merchant data
+    await page.route('**/api/v1/merchants/' + TEST_MERCHANT_ID + '**', async (route) => {
+      // Handle OPTIONS preflight - return early to avoid duplicate headers
       if (route.request().method() === 'OPTIONS') {
         await route.fulfill({
           status: 200,
@@ -37,11 +41,7 @@ test.describe('Merchant Details Integration Tests', () => {
         });
         return;
       }
-      await route.continue();
-    });
-
-    // Mock merchant data
-    await page.route('**/api/v1/merchants/' + TEST_MERCHANT_ID + '**', async (route) => {
+      
       const url = route.request().url();
       if (!url.includes('/analytics') && !url.includes('/risk') && !url.includes('/website')) {
         await route.fulfill({
@@ -84,9 +84,23 @@ test.describe('Merchant Details Integration Tests', () => {
 
       // Mock merchant risk score
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}/risk-score**`, async (route) => {
+        if (route.request().method() === 'OPTIONS') {
+          await route.fulfill({
+            status: 200,
+            headers: {
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+              'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            },
+          });
+          return;
+        }
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+          },
           body: JSON.stringify({
             risk_score: 0.72,
             risk_level: 'medium',
@@ -126,9 +140,23 @@ test.describe('Merchant Details Integration Tests', () => {
 
       // Mock merchant risk score
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}/risk-score**`, async (route) => {
+        if (route.request().method() === 'OPTIONS') {
+          await route.fulfill({
+            status: 200,
+            headers: {
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+              'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            },
+          });
+          return;
+        }
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+          },
           body: JSON.stringify({
             risk_score: 0.72,
             risk_level: 'medium',
@@ -205,9 +233,23 @@ test.describe('Merchant Details Integration Tests', () => {
 
       // Mock merchant risk score - must match MerchantRiskScore interface
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}/risk-score**`, async (route) => {
+        if (route.request().method() === 'OPTIONS') {
+          await route.fulfill({
+            status: 200,
+            headers: {
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+              'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            },
+          });
+          return;
+        }
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+          },
           body: JSON.stringify({
             merchant_id: TEST_MERCHANT_ID,
             risk_score: 0.72,
@@ -638,9 +680,23 @@ test.describe('Merchant Details Integration Tests', () => {
     test('should display risk explainability in Risk Assessment tab', async ({ page }) => {
       // Mock risk assessment - getRiskAssessment uses merchants/{id}/risk-score endpoint
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}/risk-score**`, async (route) => {
+        if (route.request().method() === 'OPTIONS') {
+          await route.fulfill({
+            status: 200,
+            headers: {
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+              'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            },
+          });
+          return;
+        }
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+          },
           body: JSON.stringify({
             id: 'assessment-123',
             merchantId: TEST_MERCHANT_ID,

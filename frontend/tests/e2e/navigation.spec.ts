@@ -113,7 +113,9 @@ test.describe('Navigation Tests', () => {
   test('should navigate to add merchant page', async ({ page }) => {
     await openMobileMenuIfNeeded(page);
     const addMerchantLink = page.getByRole('link', { name: /add merchant/i }).first();
-    await addMerchantLink.scrollIntoViewIfNeeded();
+    // Ensure element is visible and attached to DOM before scrolling
+    await addMerchantLink.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+    await addMerchantLink.scrollIntoViewIfNeeded({ timeout: 5000 }).catch(() => {});
     await addMerchantLink.click({ force: true });
     // Wait for navigation - handle potential redirects
     await page.waitForURL(/.*add-merchant/, { timeout: 15000 }).catch(async () => {
@@ -175,7 +177,9 @@ test.describe('Navigation Tests', () => {
   test('should navigate to compliance page', async ({ page }) => {
     await openMobileMenuIfNeeded(page);
     const complianceLink = page.getByRole('link', { name: /compliance status/i }).first();
-    await complianceLink.scrollIntoViewIfNeeded();
+    // Ensure element is visible and attached to DOM before scrolling
+    await complianceLink.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+    await complianceLink.scrollIntoViewIfNeeded({ timeout: 5000 }).catch(() => {});
     await complianceLink.click({ force: true });
     // Wait for navigation - handle potential redirects
     await page.waitForURL(/.*compliance/, { timeout: 15000 }).catch(async () => {

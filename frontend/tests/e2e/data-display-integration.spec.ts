@@ -112,8 +112,8 @@ test.describe('Data Display Integration Tests', () => {
       // Check for city
       await expect(page.getByText('San Francisco')).toBeVisible();
 
-      // Check for state
-      await expect(page.getByText('CA')).toBeVisible();
+      // Check for state - use .first() to avoid strict mode violation
+      await expect(page.getByText('CA').first()).toBeVisible();
 
       // Check for country with country code
       await expect(page.getByText(/United States/i)).toBeVisible();
@@ -152,8 +152,8 @@ test.describe('Data Display Integration Tests', () => {
       await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
       await page.waitForTimeout(2000); // Wait for component to mount and render
 
-      // Check for Metadata card
-      await expect(page.getByText(/Metadata/i)).toBeVisible({ timeout: 5000 });
+      // Check for Metadata card - use .first() to avoid strict mode violation
+      await expect(page.getByText(/Metadata/i).first()).toBeVisible({ timeout: 5000 });
 
       // Check for Created By field
       await expect(page.getByText(/Created By/i)).toBeVisible();
@@ -290,7 +290,7 @@ test.describe('Data Display Integration Tests', () => {
       await page.waitForTimeout(2000); // Wait for component to mount and render
 
       // Check for Metadata section
-      await expect(page.getByText(/Metadata/i)).toBeVisible({ timeout: 5000 });
+      await expect(page.getByText(/Metadata/i).first()).toBeVisible({ timeout: 5000 });
 
       // Metadata should be expandable (check for collapsible trigger)
       const metadataTrigger = page.getByRole('button', { name: /Metadata/i });
