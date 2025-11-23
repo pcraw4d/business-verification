@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { handleCorsOptions, getCorsHeaders } from './helpers/cors-helpers';
 
 /**
  * Integration tests for User Interactions (Phase 6 - Task 6.2.3)
@@ -25,9 +26,11 @@ test.describe('User Interactions Integration Tests', () => {
 
       // Mock API to track requests
       await page.route('**/api/v1/merchants/statistics**', async (route) => {
+        if (await handleCorsOptions(route)) return;
         requestCount++;
         await route.fulfill({
           status: 200,
+          headers: getCorsHeaders(),
           contentType: 'application/json',
           body: JSON.stringify({
             totalMerchants: 100,
@@ -61,9 +64,11 @@ test.describe('User Interactions Integration Tests', () => {
 
       // Mock API to track requests
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}/analytics**`, async (route) => {
+        if (await handleCorsOptions(route)) return;
         requestCount++;
         await route.fulfill({
           status: 200,
+          headers: getCorsHeaders(),
           contentType: 'application/json',
           body: JSON.stringify({
             merchantId: TEST_MERCHANT_ID,
@@ -115,9 +120,11 @@ test.describe('User Interactions Integration Tests', () => {
     test('should show loading state during refresh', async ({ page }) => {
       // Mock API with delay
       await page.route('**/api/v1/merchants/statistics**', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await new Promise((resolve) => setTimeout(resolve, 500));
         await route.fulfill({
           status: 200,
+          headers: getCorsHeaders(),
           contentType: 'application/json',
           body: JSON.stringify({
             totalMerchants: 100,
@@ -197,9 +204,11 @@ test.describe('User Interactions Integration Tests', () => {
 
       // Mock enrichment API
       await page.route('**/api/v1/enrichment/trigger**', async (route) => {
+        if (await handleCorsOptions(route)) return;
         enrichmentRequested = true;
         await route.fulfill({
           status: 200,
+          headers: getCorsHeaders(),
           contentType: 'application/json',
           body: JSON.stringify({
             jobId: 'job-123',
@@ -246,9 +255,11 @@ test.describe('User Interactions Integration Tests', () => {
 
       // Mock start assessment API
       await page.route('**/api/v1/risk/assess**', async (route) => {
+        if (await handleCorsOptions(route)) return;
         assessmentStarted = true;
         await route.fulfill({
           status: 200,
+          headers: getCorsHeaders(),
           contentType: 'application/json',
           body: JSON.stringify({
             assessmentId: 'assessment-123',
@@ -285,9 +296,11 @@ test.describe('User Interactions Integration Tests', () => {
     test('should show assessment progress when assessment is in progress', async ({ page }) => {
       // Mock assessment status API
       await page.route('**/api/v1/risk/assessments/**', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             id: 'assessment-123',
             merchantId: TEST_MERCHANT_ID,
@@ -454,9 +467,11 @@ test.describe('User Interactions Integration Tests', () => {
 
       // Mock API to track requests
       await page.route('**/api/v1/merchants/statistics**', async (route) => {
+        if (await handleCorsOptions(route)) return;
         requestCount++;
         await route.fulfill({
           status: 200,
+          headers: getCorsHeaders(),
           contentType: 'application/json',
           body: JSON.stringify({
             totalMerchants: 100,

@@ -259,9 +259,11 @@ test.describe('Error Handling Integration Tests', () => {
     test('should show retry button in error boundary fallback', async ({ page }) => {
       // Mock API to return error
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}/analytics**`, async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 500,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             code: 'INTERNAL_ERROR',
             message: 'Internal server error',
@@ -297,6 +299,7 @@ test.describe('Error Handling Integration Tests', () => {
           await route.fulfill({
             status: 500,
             contentType: 'application/json',
+            headers: getCorsHeaders(),
             body: JSON.stringify({
               code: 'INTERNAL_ERROR',
               message: 'Internal server error',
@@ -373,6 +376,7 @@ test.describe('Error Handling Integration Tests', () => {
           await route.fulfill({
             status: 403,
             contentType: 'application/json',
+            headers: getCorsHeaders(),
             body: JSON.stringify({
               code: 'FORBIDDEN',
               message: 'Access denied',

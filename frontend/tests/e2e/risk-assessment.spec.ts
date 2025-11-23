@@ -1,14 +1,17 @@
 import { expect, test } from '@playwright/test';
+import { handleCorsOptions, getCorsHeaders } from './helpers/cors-helpers';
 
 test.describe('Risk Assessment Flow', () => {
   test.beforeEach(async ({ page }) => {
     // Mock merchant API - match both Railway and localhost URLs
     await page.route('**/api/v1/merchants/merchant-123**', async (route) => {
+      if (await handleCorsOptions(route)) return;
       const url = route.request().url();
       if (!url.includes('/risk') && !url.includes('/analytics') && !url.includes('/website')) {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             id: 'merchant-123',
             businessName: 'Test Business',
@@ -24,18 +27,22 @@ test.describe('Risk Assessment Flow', () => {
   test('should start risk assessment', async ({ page }) => {
     // Mock no existing assessment - API uses /api/v1/merchants/:merchantId/risk-score
     await page.route('**/api/v1/merchants/*/risk-score**', async (route) => {
+      if (await handleCorsOptions(route)) return;
       await route.fulfill({
         status: 404,
         contentType: 'application/json',
+        headers: getCorsHeaders(),
         body: JSON.stringify({}),
       });
     });
 
     // Mock start assessment - API uses POST /api/v1/risk/assess
     await page.route('**/api/v1/risk/assess**', async (route) => {
+      if (await handleCorsOptions(route)) return;
       if (route.request().method() === 'POST') {
         await route.fulfill({
           status: 200,
+          headers: getCorsHeaders(),
           contentType: 'application/json',
           body: JSON.stringify({
             assessmentId: 'assessment-123',
@@ -110,9 +117,11 @@ test.describe('Risk Assessment Flow', () => {
   test('should display completed risk assessment', async ({ page }) => {
     // Mock completed assessment - must match MerchantRiskScore interface
     await page.route('**/api/v1/merchants/*/risk-score**', async (route) => {
+      if (await handleCorsOptions(route)) return;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
+        headers: getCorsHeaders(),
         body: JSON.stringify({
           merchant_id: 'merchant-123',
           risk_score: 0.7,
@@ -178,18 +187,22 @@ test.describe('Risk Assessment Flow', () => {
     
     // Mock no existing assessment first
     await page.route('**/api/v1/merchants/*/risk-score**', async (route) => {
+      if (await handleCorsOptions(route)) return;
       await route.fulfill({
         status: 404,
         contentType: 'application/json',
+        headers: getCorsHeaders(),
         body: JSON.stringify({}),
       });
     });
     
     // Mock start assessment
     await page.route('**/api/v1/risk/assess**', async (route) => {
+      if (await handleCorsOptions(route)) return;
       if (route.request().method() === 'POST') {
         await route.fulfill({
           status: 200,
+          headers: getCorsHeaders(),
           contentType: 'application/json',
           body: JSON.stringify({
             assessmentId: 'assessment-123',
@@ -203,12 +216,14 @@ test.describe('Risk Assessment Flow', () => {
     
     // Mock status polling - API uses GET /api/v1/risk/assess/:assessmentId
     await page.route('**/api/v1/risk/assess/assessment-123**', async (route) => {
+      if (await handleCorsOptions(route)) return;
       if (route.request().method() === 'GET') {
         pollCount++;
         if (pollCount === 1) {
           await route.fulfill({
             status: 200,
             contentType: 'application/json',
+            headers: getCorsHeaders(),
             body: JSON.stringify({
               assessmentId: 'assessment-123',
               status: 'processing',
@@ -219,6 +234,7 @@ test.describe('Risk Assessment Flow', () => {
           await route.fulfill({
             status: 200,
             contentType: 'application/json',
+            headers: getCorsHeaders(),
             body: JSON.stringify({
               assessmentId: 'assessment-123',
               status: 'completed',
