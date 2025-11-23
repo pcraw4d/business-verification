@@ -1215,7 +1215,6 @@ func (h *MerchantHandler) HandleMerchantAnalytics(w http.ResponseWriter, r *http
 // HandleMerchantStatistics handles merchant statistics requests
 func (h *MerchantHandler) HandleMerchantStatistics(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
-	ctx := r.Context()
 
 	w.Header().Set("Content-Type", "application/json")
 
