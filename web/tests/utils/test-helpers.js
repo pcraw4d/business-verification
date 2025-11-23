@@ -46,7 +46,7 @@ async function setViewportSize(page, device) {
  * @param {Object} params - Query parameters to add to URL
  */
 async function navigateToDashboard(page, pageName, params = {}) {
-  const baseUrl = process.env.BASE_URL || 'https://shimmering-comfort-production.up.railway.app';
+  const baseUrl = process.env.BASE_URL || 'https://creative-determination-production.up.railway.app';
   let url = `${baseUrl}/${pageName}.html`;
   
   // Add query parameters if provided

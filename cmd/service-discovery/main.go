@@ -697,9 +697,9 @@ func (s *ServiceDiscoveryServer) registerDefaultServices() {
 		{
 			ID:        "legacy-api-service",
 			Name:      "Legacy API Service",
-			URL:       "https://shimmering-comfort-production.up.railway.app",
-			Version:   "4.0.0-CACHE-BUST-REBUILD",
-			HealthURL: "https://shimmering-comfort-production.up.railway.app/health",
+		URL:       "https://creative-determination-production.up.railway.app",
+		Version:   "4.0.0-CACHE-BUST-REBUILD",
+		HealthURL: "https://creative-determination-production.up.railway.app/health",
 			Tags:      []string{"legacy", "api", "monolithic"},
 			Metadata: map[string]string{
 				"description": "Legacy monolithic API service",

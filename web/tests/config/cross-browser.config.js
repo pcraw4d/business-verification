@@ -31,7 +31,7 @@ module.exports = defineConfig({
   
   /* Shared settings for all browser projects */
   use: {
-    baseURL: 'https://shimmering-comfort-production.up.railway.app',
+    baseURL: 'https://creative-determination-production.up.railway.app',
     
     /* Enhanced tracing for cross-browser debugging */
     trace: 'on-first-retry',

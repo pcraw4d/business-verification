@@ -31,7 +31,7 @@ module.exports = defineConfig({
   
   /* Shared settings for all interactive element tests */
   use: {
-    baseURL: 'https://shimmering-comfort-production.up.railway.app',
+    baseURL: 'https://creative-determination-production.up.railway.app',
     
     /* Enhanced tracing for interaction debugging */
     trace: 'on-first-retry',

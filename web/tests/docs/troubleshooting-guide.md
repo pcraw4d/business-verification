@@ -58,7 +58,7 @@ test('my test', async ({ page }) => {
 **4. Check Railway Deployment**
 ```bash
 # Test Railway connectivity
-curl -I https://shimmering-comfort-production.up.railway.app/risk-dashboard.html
+curl -I https://creative-determination-production.up.railway.app/risk-dashboard.html
 ```
 
 ### Element Not Found
@@ -204,7 +204,7 @@ test('my test', async ({ page }) => {
 #### Problem
 Tests fail to connect to Railway deployment:
 ```
-Error: net::ERR_CONNECTION_REFUSED at https://shimmering-comfort-production.up.railway.app
+Error: net::ERR_CONNECTION_REFUSED at https://creative-determination-production.up.railway.app
 ```
 
 #### Causes
@@ -218,16 +218,16 @@ Error: net::ERR_CONNECTION_REFUSED at https://shimmering-comfort-production.up.r
 **1. Check Railway Deployment Status**
 ```bash
 # Test basic connectivity
-curl -I https://shimmering-comfort-production.up.railway.app
+curl -I https://creative-determination-production.up.railway.app
 
 # Test specific page
-curl -I https://shimmering-comfort-production.up.railway.app/risk-dashboard.html
+curl -I https://creative-determination-production.up.railway.app/risk-dashboard.html
 ```
 
 **2. Verify URL Configuration**
 ```javascript
 // In test files, ensure correct baseURL
-const baseUrl = process.env.BASE_URL || 'https://shimmering-comfort-production.up.railway.app';
+const baseUrl = process.env.BASE_URL || 'https://creative-determination-production.up.railway.app';
 ```
 
 **3. Add Retry Logic**

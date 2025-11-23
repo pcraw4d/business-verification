@@ -33,7 +33,7 @@ make deploy-frontend
 
 ## Configuration
 The frontend is configured to call the API service at:
-- Production: `https://shimmering-comfort-production.up.railway.app/v1`
+- Production: `https://creative-determination-production.up.railway.app/v1`
 - Local: `http://localhost:8080/v1`
 
 ## File Structure
