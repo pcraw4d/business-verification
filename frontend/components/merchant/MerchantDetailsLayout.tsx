@@ -57,6 +57,7 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
   const [activeTab, setActiveTab] = useState('overview');
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const enrichmentButtonRef = useRef<HTMLButtonElement>(null);
 
   // Load merchant with retry logic
@@ -242,6 +243,12 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
 
       <section id="merchant-content" aria-label="Merchant details">
 
+      {!mounted ? (
+        <div className="space-y-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+      ) : (
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" suppressHydrationWarning>
         <TabsList className="grid w-full grid-cols-4" suppressHydrationWarning>
           <TabsTrigger value="overview" aria-label="Overview tab">Overview</TabsTrigger>
@@ -323,6 +330,7 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
           </ErrorBoundary>
         </TabsContent>
       </Tabs>
+      )}
       </section>
     </main>
   );
