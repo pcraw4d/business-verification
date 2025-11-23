@@ -53,7 +53,7 @@ railway variables --service api-gateway-service set BI_SERVICE_URL="https://bi-s
 ```
 
 **Verification:**
-```bash
+   ```bash
 curl "https://api-gateway-service-production-21fd.up.railway.app/api/v3/dashboard/metrics"
 # Should return 200 OK, not 500 error
 ```
@@ -91,7 +91,7 @@ railway up
 - Trigger manual deployment
 
 **Verification After Deployment:**
-```bash
+   ```bash
 # Test all fixed endpoints
 curl "https://api-gateway-service-production-21fd.up.railway.app/api/v1/merchants/statistics"
 curl "https://api-gateway-service-production-21fd.up.railway.app/api/v1/risk/metrics"
@@ -109,7 +109,7 @@ curl "https://api-gateway-service-production-21fd.up.railway.app/api/v1/merchant
 2. Fixed element not found error (merchant portfolio navigation)
 
 **Deployment:**
-```bash
+   ```bash
 # Navigate to frontend directory
 cd frontend
 
