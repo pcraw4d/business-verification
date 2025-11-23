@@ -214,8 +214,20 @@ test.describe('Analytics Data Loading', () => {
   });
 
   test('should show empty state when no analytics data', async ({ page }) => {
-    // Mock empty analytics
+    // Mock empty analytics - return null for analytics endpoint
     await page.route('**/api/v1/merchants/*/analytics**', async (route) => {
+      if (await handleCorsOptions(route)) return;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        headers: getCorsHeaders(),
+        body: JSON.stringify(null),
+      });
+    });
+    
+    // Also mock website analysis to return null to ensure empty state shows
+    // (Empty state only shows when !analytics && !websiteAnalysis && !loading)
+    await page.route('**/api/v1/merchants/*/website-analysis**', async (route) => {
       if (await handleCorsOptions(route)) return;
       await route.fulfill({
         status: 200,
@@ -261,11 +273,35 @@ test.describe('Analytics Data Loading', () => {
     const analyticsTab = hasTabByRole ? analyticsTabByRole : (hasTabByValue ? analyticsTabByValue : analyticsTabByText.first());
     await analyticsTab.scrollIntoViewIfNeeded({ timeout: 5000 }).catch(() => {});
     await analyticsTab.click({ force: true, timeout: 5000 });
-    await page.waitForTimeout(2000);
     
-    // Should show empty state - use more flexible selector
-    const emptyState = page.getByText(/no analytics data|no data available|empty/i);
-    await expect(emptyState.first()).toBeVisible({ timeout: 5000 });
+    // Wait for tab panel to be active
+    await page.waitForSelector('[role="tabpanel"][data-state="active"]', { timeout: 5000 }).catch(() => {});
+    
+    // Wait for loading to complete - component shows empty state when !analytics && !websiteAnalysis && !loading
+    // Wait for skeleton/loading indicators to disappear
+    const skeleton = page.locator('[class*="Skeleton"]').first();
+    await skeleton.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
+    await page.waitForTimeout(2000); // Additional wait for component to finish loading and render empty state
+    
+    // Should show empty state - match actual component text
+    // The EmptyState component shows "No Analytics Data" as title and "Analytics data is not available for this merchant at this time." as message
+    // The component only shows empty state when !analytics && !websiteAnalysis && !loading
+    const emptyStateTitle = page.getByRole('heading', { name: /No Analytics Data/i });
+    const emptyStateMessage = page.getByText(/Analytics data is not available/i);
+    
+    // Also check for the EmptyState card structure - it's a Card with border-dashed
+    const emptyStateCard = page.locator('[class*="Card"][class*="border-dashed"]').filter({ hasText: /No Analytics Data/i });
+    
+    // Try to find any text related to empty state
+    const emptyStateAny = page.getByText(/No Analytics Data|no.*analytics|not available/i);
+    
+    // Either the title, message, card, or any empty state text should be visible
+    const hasTitle = await emptyStateTitle.isVisible({ timeout: 5000 }).catch(() => false);
+    const hasMessage = await emptyStateMessage.isVisible({ timeout: 5000 }).catch(() => false);
+    const hasCard = await emptyStateCard.isVisible({ timeout: 5000 }).catch(() => false);
+    const hasAny = await emptyStateAny.first().isVisible({ timeout: 5000 }).catch(() => false);
+    
+    expect(hasTitle || hasMessage || hasCard || hasAny).toBeTruthy();
   });
 });
 

@@ -4,12 +4,12 @@
   "description": "E2E testing for KYB Platform - tests the new Next.js frontend with shadcn UI. ⚠️ DEPRECATED: All scripts prefixed with 'test:legacy:' test the archived legacy web directory UI and should not be used. Use 'npm test' for the new frontend tests.",
   "main": "index.js",
   "scripts": {
-    "test": "playwright test",
-    "test:ui": "playwright test --ui",
-    "test:headed": "playwright test --headed",
-    "test:debug": "playwright test --debug",
-    "test:update-snapshots": "playwright test --update-snapshots",
-    "test:report": "playwright show-report",
+    "test": "cd frontend && npx playwright test",
+    "test:ui": "cd frontend && npx playwright test --ui",
+    "test:headed": "cd frontend && npx playwright test --headed",
+    "test:debug": "cd frontend && npx playwright test --debug",
+    "test:update-snapshots": "cd frontend && npx playwright test --update-snapshots",
+    "test:report": "cd frontend && npx playwright show-report",
     "test:legacy": "playwright test --config playwright.config.legacy.js",
     "test:legacy:ui": "playwright test --config playwright.config.legacy.js --ui",
     "test:legacy:cross-browser": "node web/tests/scripts/run-cross-browser-tests.js all",
@@ -43,8 +43,8 @@
     "test:legacy:interactive:debug": "node web/tests/scripts/run-interactive-element-tests.js all --debug",
     "test:legacy:interactive:ui": "node web/tests/scripts/run-interactive-element-tests.js all --ui",
     "test:legacy:interactive:clean": "node web/tests/scripts/run-interactive-element-tests.js clean",
-    "install-browsers": "playwright install",
-    "install-deps": "playwright install --with-deps"
+    "install-browsers": "cd frontend && npx playwright install",
+    "install-deps": "cd frontend && npx playwright install --with-deps"
   },
   "keywords": [
     "visual-regression",
@@ -55,9 +55,6 @@
   ],
   "author": "KYB Platform Team",
   "license": "MIT",
-  "devDependencies": {
-    "@playwright/test": "^1.40.0"
-  },
   "engines": {
     "node": ">=18.0.0"
   }

@@ -1,5 +1,7 @@
 // @ts-check
-const { defineConfig, devices } = require('@playwright/test');
+// Use Playwright from frontend/node_modules to avoid module resolution conflicts
+const path = require('path');
+const { defineConfig, devices } = require(path.join(__dirname, 'frontend/node_modules/@playwright/test'));
 
 /**
  * @see https://playwright.dev/docs/test-configuration
