@@ -33,8 +33,10 @@ test.describe('Error Handling Integration Tests', () => {
         });
       });
 
-      await page.reload();
-      await page.waitForLoadState('networkidle', { timeout: 10000 });
+      // Navigate directly to ensure fresh load
+      await page.goto(`/merchant-details/${TEST_MERCHANT_ID}`, { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+      await page.waitForTimeout(2000); // Wait for component to mount
 
       // Should show error message with CTA
       const errorMessage = page.getByText(/risk score|assessment/i);
@@ -60,8 +62,10 @@ test.describe('Error Handling Integration Tests', () => {
         });
       });
 
-      await page.reload();
-      await page.waitForLoadState('networkidle', { timeout: 10000 });
+      // Navigate directly to ensure fresh load
+      await page.goto(`/merchant-details/${TEST_MERCHANT_ID}`, { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+      await page.waitForTimeout(2000); // Wait for component to mount
 
       // Should show error message or fallback
       const errorMessage = page.getByText(/portfolio|statistics|unavailable/i);
@@ -91,8 +95,10 @@ test.describe('Error Handling Integration Tests', () => {
         }
       });
 
-      await page.reload();
-      await page.waitForLoadState('networkidle', { timeout: 10000 });
+      // Navigate directly to ensure fresh load
+      await page.goto(`/merchant-details/${TEST_MERCHANT_ID}`, { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+      await page.waitForTimeout(2000); // Wait for component to mount
 
       // Navigate to Risk Assessment tab
       const riskTab = page.getByRole('tab', { name: /Risk Assessment/i });
@@ -122,8 +128,10 @@ test.describe('Error Handling Integration Tests', () => {
         });
       });
 
-      await page.reload();
-      await page.waitForLoadState('networkidle', { timeout: 10000 });
+      // Navigate directly to ensure fresh load
+      await page.goto(`/merchant-details/${TEST_MERCHANT_ID}`, { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+      await page.waitForTimeout(2000); // Wait for component to mount
 
       // Navigate to Risk Assessment tab
       const riskTab = page.getByRole('tab', { name: /Risk Assessment/i });
@@ -160,8 +168,10 @@ test.describe('Error Handling Integration Tests', () => {
         }
       });
 
-      await page.reload();
-      await page.waitForLoadState('networkidle', { timeout: 10000 });
+      // Navigate directly to ensure fresh load
+      await page.goto(`/merchant-details/${TEST_MERCHANT_ID}`, { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+      await page.waitForTimeout(2000); // Wait for component to mount
 
       // Should show "Enrich Data" button in header or overview
       const enrichButton = page.getByRole('button', { name: /enrich|data/i });
@@ -182,8 +192,10 @@ test.describe('Error Handling Integration Tests', () => {
         });
       });
 
-      await page.reload();
-      await page.waitForLoadState('networkidle', { timeout: 10000 });
+      // Navigate directly to ensure fresh load
+      await page.goto(`/merchant-details/${TEST_MERCHANT_ID}`, { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+      await page.waitForTimeout(2000); // Wait for component to mount
 
       // Should show refresh button or retry CTA
       const refreshButton = page.getByRole('button', { name: /refresh|retry|reload/i });
@@ -206,8 +218,10 @@ test.describe('Error Handling Integration Tests', () => {
         });
       });
 
-      await page.reload();
-      await page.waitForLoadState('networkidle', { timeout: 10000 });
+      // Navigate directly to ensure fresh load
+      await page.goto(`/merchant-details/${TEST_MERCHANT_ID}`, { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+      await page.waitForTimeout(2000); // Wait for component to mount
 
       // Navigate to Analytics tab
       const analyticsTab = page.getByRole('tab', { name: /Analytics/i });
@@ -240,8 +254,10 @@ test.describe('Error Handling Integration Tests', () => {
         });
       });
 
-      await page.reload();
-      await page.waitForLoadState('networkidle', { timeout: 10000 });
+      // Navigate directly to ensure fresh load
+      await page.goto(`/merchant-details/${TEST_MERCHANT_ID}`, { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+      await page.waitForTimeout(2000); // Wait for component to mount
 
       // Navigate to Analytics tab
       const analyticsTab = page.getByRole('tab', { name: /Analytics/i });
@@ -276,8 +292,10 @@ test.describe('Error Handling Integration Tests', () => {
         }
       });
 
-      await page.reload();
-      await page.waitForLoadState('networkidle', { timeout: 10000 });
+      // Navigate directly to ensure fresh load
+      await page.goto(`/merchant-details/${TEST_MERCHANT_ID}`, { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+      await page.waitForTimeout(2000); // Wait for component to mount
 
       // Should show error message
       const errorMessage = page.getByText(/error|unavailable|try again/i);
@@ -318,8 +336,10 @@ test.describe('Error Handling Integration Tests', () => {
         }
       });
 
-      await page.reload();
-      await page.waitForLoadState('networkidle', { timeout: 10000 });
+      // Navigate directly to ensure fresh load
+      await page.goto(`/merchant-details/${TEST_MERCHANT_ID}`, { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+      await page.waitForTimeout(2000); // Wait for component to mount
 
       // Should show authentication error
       const errorMessage = page.getByText(/unauthorized|authentication|login/i);
@@ -345,8 +365,10 @@ test.describe('Error Handling Integration Tests', () => {
         }
       });
 
-      await page.reload();
-      await page.waitForLoadState('networkidle', { timeout: 10000 });
+      // Navigate directly to ensure fresh load
+      await page.goto(`/merchant-details/${TEST_MERCHANT_ID}`, { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+      await page.waitForTimeout(2000); // Wait for component to mount
 
       // Should show access denied error
       const errorMessage = page.getByText(/forbidden|access denied|permission/i);
@@ -369,8 +391,10 @@ test.describe('Error Handling Integration Tests', () => {
         });
       });
 
-      await page.reload();
-      await page.waitForLoadState('networkidle', { timeout: 10000 });
+      // Navigate directly to ensure fresh load
+      await page.goto(`/merchant-details/${TEST_MERCHANT_ID}`, { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+      await page.waitForTimeout(2000); // Wait for component to mount
 
       // Should show error code in message
       const errorCode = page.getByText(/PC-001|error code/i);

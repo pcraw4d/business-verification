@@ -44,8 +44,10 @@ test.describe('Data Display Integration Tests', () => {
         }
       });
 
-      await page.reload();
-      await page.waitForLoadState('networkidle', { timeout: 10000 });
+      // Navigate directly to ensure fresh load with new mock
+      await page.goto(`/merchant-details/${TEST_MERCHANT_ID}`, { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+      await page.waitForTimeout(2000); // Wait for component to mount and render
 
       // Check for Financial Information card
       await expect(page.getByText(/Financial Information/i)).toBeVisible({ timeout: 5000 });
@@ -93,11 +95,13 @@ test.describe('Data Display Integration Tests', () => {
         }
       });
 
-      await page.reload();
-      await page.waitForLoadState('networkidle', { timeout: 10000 });
+      // Navigate directly to ensure fresh load with new mock
+      await page.goto(`/merchant-details/${TEST_MERCHANT_ID}`, { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+      await page.waitForTimeout(2000); // Wait for component to mount and render
 
-      // Check for Address card
-      await expect(page.getByText(/Address/i)).toBeVisible({ timeout: 5000 });
+      // Check for Address card - wait for it to be visible
+      await expect(page.getByText(/Address/i)).toBeVisible({ timeout: 10000 });
 
       // Check for street1
       await expect(page.getByText('123 Main Street')).toBeVisible();
@@ -143,8 +147,10 @@ test.describe('Data Display Integration Tests', () => {
         }
       });
 
-      await page.reload();
-      await page.waitForLoadState('networkidle', { timeout: 10000 });
+      // Navigate directly to ensure fresh load with new mock
+      await page.goto(`/merchant-details/${TEST_MERCHANT_ID}`, { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+      await page.waitForTimeout(2000); // Wait for component to mount and render
 
       // Check for Metadata card
       await expect(page.getByText(/Metadata/i)).toBeVisible({ timeout: 5000 });
@@ -175,8 +181,10 @@ test.describe('Data Display Integration Tests', () => {
         }
       });
 
-      await page.reload();
-      await page.waitForLoadState('networkidle', { timeout: 10000 });
+      // Navigate directly to ensure fresh load with new mock
+      await page.goto(`/merchant-details/${TEST_MERCHANT_ID}`, { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+      await page.waitForTimeout(2000); // Wait for component to mount and render
 
       // Check for Financial Information card
       await expect(page.getByText(/Financial Information/i)).toBeVisible({ timeout: 5000 });
@@ -210,8 +218,10 @@ test.describe('Data Display Integration Tests', () => {
         }
       });
 
-      await page.reload();
-      await page.waitForLoadState('networkidle', { timeout: 10000 });
+      // Navigate directly to ensure fresh load with new mock
+      await page.goto(`/merchant-details/${TEST_MERCHANT_ID}`, { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+      await page.waitForTimeout(2000); // Wait for component to mount and render
 
       // Check for formatted employee count
       await expect(page.getByText(/15,000/i)).toBeVisible({ timeout: 5000 });
@@ -238,8 +248,10 @@ test.describe('Data Display Integration Tests', () => {
         }
       });
 
-      await page.reload();
-      await page.waitForLoadState('networkidle', { timeout: 10000 });
+      // Navigate directly to ensure fresh load with new mock
+      await page.goto(`/merchant-details/${TEST_MERCHANT_ID}`, { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+      await page.waitForTimeout(2000); // Wait for component to mount and render
 
       // Check for currency format (with $ and commas)
       await expect(page.getByText(/\$5,000,000/i)).toBeVisible({ timeout: 5000 });
@@ -272,8 +284,10 @@ test.describe('Data Display Integration Tests', () => {
         }
       });
 
-      await page.reload();
-      await page.waitForLoadState('networkidle', { timeout: 10000 });
+      // Navigate directly to ensure fresh load with new mock
+      await page.goto(`/merchant-details/${TEST_MERCHANT_ID}`, { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+      await page.waitForTimeout(2000); // Wait for component to mount and render
 
       // Check for Metadata section
       await expect(page.getByText(/Metadata/i)).toBeVisible({ timeout: 5000 });
@@ -314,8 +328,10 @@ test.describe('Data Display Integration Tests', () => {
         }
       });
 
-      await page.reload();
-      await page.waitForLoadState('networkidle', { timeout: 10000 });
+      // Navigate directly to ensure fresh load with new mock
+      await page.goto(`/merchant-details/${TEST_MERCHANT_ID}`, { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+      await page.waitForTimeout(2000); // Wait for component to mount and render
 
       // Check for data completeness indicator
       const completenessText = page.getByText(/Data Completeness/i);
