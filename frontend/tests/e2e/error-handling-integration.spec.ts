@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { handleCorsOptions, getCorsHeaders } from './helpers/cors-helpers';
 
 /**
  * Integration tests for Error Handling (Phase 6 - Task 6.2.2)
@@ -23,9 +24,11 @@ test.describe('Error Handling Integration Tests', () => {
     test('should handle missing risk score gracefully with CTA', async ({ page }) => {
       // Mock API to return 404 for risk score
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}/risk-score**`, async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 404,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             code: 'NOT_FOUND',
             message: 'Risk score not found',
@@ -52,9 +55,11 @@ test.describe('Error Handling Integration Tests', () => {
     test('should handle missing portfolio statistics gracefully', async ({ page }) => {
       // Mock API to return 404 for portfolio statistics
       await page.route('**/api/v1/merchants/statistics**', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 404,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             code: 'NOT_FOUND',
             message: 'Portfolio statistics not found',
@@ -76,11 +81,13 @@ test.describe('Error Handling Integration Tests', () => {
     test('should handle missing industry code for benchmark comparison', async ({ page }) => {
       // Mock merchant without industry code
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}**`, async (route) => {
+        if (await handleCorsOptions(route)) return;
         const url = route.request().url();
         if (!url.includes('/analytics') && !url.includes('/risk') && !url.includes('/website')) {
           await route.fulfill({
             status: 200,
             contentType: 'application/json',
+            headers: getCorsHeaders(),
             body: JSON.stringify({
               id: TEST_MERCHANT_ID,
               business_name: 'Test Business Inc',
@@ -118,9 +125,11 @@ test.describe('Error Handling Integration Tests', () => {
     test('should show "Run Risk Assessment" button when assessment is missing', async ({ page }) => {
       // Mock API to return 404 for risk assessment
       await page.route(`**/api/v1/risk/assessments/${TEST_MERCHANT_ID}**`, async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 404,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             code: 'NOT_FOUND',
             message: 'Assessment not found',
@@ -149,11 +158,13 @@ test.describe('Error Handling Integration Tests', () => {
     test('should show "Enrich Data" button when data is missing', async ({ page }) => {
       // Mock merchant with minimal data
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}**`, async (route) => {
+        if (await handleCorsOptions(route)) return;
         const url = route.request().url();
         if (!url.includes('/analytics') && !url.includes('/risk') && !url.includes('/website')) {
           await route.fulfill({
             status: 200,
             contentType: 'application/json',
+            headers: getCorsHeaders(),
             body: JSON.stringify({
               id: TEST_MERCHANT_ID,
               business_name: 'Test Business Inc',
@@ -182,9 +193,11 @@ test.describe('Error Handling Integration Tests', () => {
     test('should show "Refresh Data" button when portfolio stats are missing', async ({ page }) => {
       // Mock API to return 500 for portfolio statistics
       await page.route('**/api/v1/merchants/statistics**', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 500,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             code: 'INTERNAL_ERROR',
             message: 'Statistics service temporarily unavailable',
@@ -208,9 +221,11 @@ test.describe('Error Handling Integration Tests', () => {
     test('should catch errors in individual tabs without crashing entire page', async ({ page }) => {
       // Mock API to return invalid data that might cause component errors
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}/analytics**`, async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             // Invalid data structure
             invalid: 'data',
@@ -306,6 +321,7 @@ test.describe('Error Handling Integration Tests', () => {
     test('should handle network timeout gracefully', async ({ page }) => {
       // Mock API to timeout
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}**`, async (route) => {
+        if (await handleCorsOptions(route)) return;
         await new Promise((resolve) => setTimeout(resolve, 10000)); // 10 second delay
         await route.continue();
       });
@@ -321,11 +337,13 @@ test.describe('Error Handling Integration Tests', () => {
     test('should handle 401 Unauthorized with appropriate message', async ({ page }) => {
       // Mock API to return 401
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}**`, async (route) => {
+        if (await handleCorsOptions(route)) return;
         const url = route.request().url();
         if (!url.includes('/analytics') && !url.includes('/risk') && !url.includes('/website')) {
           await route.fulfill({
             status: 401,
             contentType: 'application/json',
+            headers: getCorsHeaders(),
             body: JSON.stringify({
               code: 'UNAUTHORIZED',
               message: 'Authentication required',
@@ -381,9 +399,11 @@ test.describe('Error Handling Integration Tests', () => {
     test('should show specific error messages with error codes', async ({ page }) => {
       // Mock API to return error with code
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}/risk-score**`, async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 404,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             code: 'PC-001',
             message: 'Risk score not found for merchant',
