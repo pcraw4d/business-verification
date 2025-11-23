@@ -22,34 +22,49 @@ import { expect, test } from '@playwright/test';
 
 const TEST_MERCHANT_ID = 'merchant-123';
 
+/**
+ * Helper function to handle CORS OPTIONS preflight requests
+ * Returns true if OPTIONS was handled, false otherwise
+ */
+async function handleCorsOptions(route: any): Promise<boolean> {
+  if (route.request().method() === 'OPTIONS') {
+    await route.fulfill({
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    });
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Helper function to add CORS headers to a response
+ */
+function getCorsHeaders(): Record<string, string> {
+  return {
+    'Access-Control-Allow-Origin': '*',
+  };
+}
+
 test.describe('Merchant Details Integration Tests', () => {
   test.beforeEach(async ({ page }) => {
-    // Note: CORS OPTIONS handling is done per-route to avoid conflicts
-    // Each route handler should check for OPTIONS and handle it appropriately
+    // Note: CORS OPTIONS handling is done per-route using the handleCorsOptions helper
+    // Each route handler should call handleCorsOptions first
 
     // Mock merchant data
     await page.route('**/api/v1/merchants/' + TEST_MERCHANT_ID + '**', async (route) => {
-      // Handle OPTIONS preflight - return early to avoid duplicate headers
-      if (route.request().method() === 'OPTIONS') {
-        await route.fulfill({
-          status: 200,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-          },
-        });
-        return;
-      }
+      if (await handleCorsOptions(route)) return;
       
       const url = route.request().url();
       if (!url.includes('/analytics') && !url.includes('/risk') && !url.includes('/website')) {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-          },
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             id: TEST_MERCHANT_ID,
             businessName: 'Test Business Inc',
@@ -71,9 +86,11 @@ test.describe('Merchant Details Integration Tests', () => {
     test('should display portfolio comparison card in Overview tab', async ({ page }) => {
       // Mock portfolio statistics
       await page.route('**/api/v1/merchants/statistics**', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             total_merchants: 150,
             average_risk_score: 0.65,
@@ -84,23 +101,11 @@ test.describe('Merchant Details Integration Tests', () => {
 
       // Mock merchant risk score
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}/risk-score**`, async (route) => {
-        if (route.request().method() === 'OPTIONS') {
-          await route.fulfill({
-            status: 200,
-            headers: {
-              'Access-Control-Allow-Origin': '*',
-              'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-              'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-            },
-          });
-          return;
-        }
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-          },
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             risk_score: 0.72,
             risk_level: 'medium',
@@ -128,9 +133,11 @@ test.describe('Merchant Details Integration Tests', () => {
     test('should display portfolio context badge in header', async ({ page }) => {
       // Mock portfolio statistics
       await page.route('**/api/v1/merchants/statistics**', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             total_merchants: 150,
             average_risk_score: 0.65,
@@ -140,23 +147,11 @@ test.describe('Merchant Details Integration Tests', () => {
 
       // Mock merchant risk score
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}/risk-score**`, async (route) => {
-        if (route.request().method() === 'OPTIONS') {
-          await route.fulfill({
-            status: 200,
-            headers: {
-              'Access-Control-Allow-Origin': '*',
-              'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-              'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-            },
-          });
-          return;
-        }
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-          },
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             risk_score: 0.72,
             risk_level: 'medium',
@@ -182,9 +177,11 @@ test.describe('Merchant Details Integration Tests', () => {
     test('should display risk benchmark comparison in Risk Assessment tab', async ({ page }) => {
       // Mock merchant analytics - must match AnalyticsData interface
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}/analytics**`, async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             merchantId: TEST_MERCHANT_ID,
             classification: {
@@ -208,9 +205,11 @@ test.describe('Merchant Details Integration Tests', () => {
 
       // Mock risk benchmarks - must match RiskBenchmarks interface
       await page.route('**/api/v1/risk/benchmarks**', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             industry_code: '5734',
             industry_type: 'mcc',
@@ -233,23 +232,11 @@ test.describe('Merchant Details Integration Tests', () => {
 
       // Mock merchant risk score - must match MerchantRiskScore interface
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}/risk-score**`, async (route) => {
-        if (route.request().method() === 'OPTIONS') {
-          await route.fulfill({
-            status: 200,
-            headers: {
-              'Access-Control-Allow-Origin': '*',
-              'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-              'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-            },
-          });
-          return;
-        }
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-          },
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             merchant_id: TEST_MERCHANT_ID,
             risk_score: 0.72,
@@ -338,6 +325,7 @@ test.describe('Merchant Details Integration Tests', () => {
       // Mock portfolio analytics FIRST (before merchant analytics) to ensure it's set up
       // Match the full URL pattern including API gateway domain
       await page.route('**/api/v1/merchants/analytics', async (route) => {
+        if (await handleCorsOptions(route)) return;
         const url = route.request().url();
         // Only intercept if it's NOT a merchant-specific analytics endpoint
         if (!url.includes(`/merchants/${TEST_MERCHANT_ID}/analytics`)) {
@@ -346,6 +334,7 @@ test.describe('Merchant Details Integration Tests', () => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
               totalMerchants: 100,
               averageRiskScore: 0.70,
@@ -373,12 +362,14 @@ test.describe('Merchant Details Integration Tests', () => {
       );
       
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}/analytics**`, async (route) => {
+        if (await handleCorsOptions(route)) return;
         const url = route.request().url();
         apiCalls.push(`GET ${url}`);
         console.log(`[Route] Intercepted merchant analytics: ${url}`);
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             merchantId: TEST_MERCHANT_ID,
             classification: {
@@ -622,6 +613,7 @@ test.describe('Merchant Details Integration Tests', () => {
     test('should display risk alerts in Risk Indicators tab', async ({ page }) => {
       // Mock risk alerts
       await page.route(`**/api/v1/risk/indicators/${TEST_MERCHANT_ID}**`, async (route) => {
+        if (await handleCorsOptions(route)) return;
         const url = new URL(route.request().url());
         const status = url.searchParams.get('status') || 'active';
         
@@ -629,6 +621,7 @@ test.describe('Merchant Details Integration Tests', () => {
           await route.fulfill({
             status: 200,
             contentType: 'application/json',
+            headers: getCorsHeaders(),
             body: JSON.stringify({
               indicators: [
                 {
@@ -680,23 +673,11 @@ test.describe('Merchant Details Integration Tests', () => {
     test('should display risk explainability in Risk Assessment tab', async ({ page }) => {
       // Mock risk assessment - getRiskAssessment uses merchants/{id}/risk-score endpoint
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}/risk-score**`, async (route) => {
-        if (route.request().method() === 'OPTIONS') {
-          await route.fulfill({
-            status: 200,
-            headers: {
-              'Access-Control-Allow-Origin': '*',
-              'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-              'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-            },
-          });
-          return;
-        }
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-          },
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             id: 'assessment-123',
             merchantId: TEST_MERCHANT_ID,
@@ -723,9 +704,11 @@ test.describe('Merchant Details Integration Tests', () => {
 
       // Mock risk assessment first (needed to get assessment ID)
       await page.route(`**/api/v1/risk/assessments/${TEST_MERCHANT_ID}**`, async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             id: 'assessment-123',
             merchantId: TEST_MERCHANT_ID,
@@ -744,9 +727,11 @@ test.describe('Merchant Details Integration Tests', () => {
 
       // Mock risk explanation - must match RiskExplanationResponse
       await page.route('**/api/v1/risk/explain/assessment-123**', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             assessmentId: 'assessment-123',
             factors: [
@@ -816,26 +801,13 @@ test.describe('Merchant Details Integration Tests', () => {
       );
       
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}/risk-recommendations**`, async (route) => {
-        // Handle OPTIONS preflight requests
-        if (route.request().method() === 'OPTIONS') {
-          await route.fulfill({
-            status: 200,
-            headers: {
-              'Access-Control-Allow-Origin': '*',
-              'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-              'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-            },
-          });
-          return;
-        }
+        if (await handleCorsOptions(route)) return;
         
         apiCalls.push(`GET ${route.request().url()}`);
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-          },
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             merchantId: TEST_MERCHANT_ID,
             recommendations: [
@@ -934,9 +906,11 @@ test.describe('Merchant Details Integration Tests', () => {
     test('should display enrichment button and allow triggering enrichment', async ({ page }) => {
       // Mock enrichment sources
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}/enrichment/sources**`, async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             sources: [
               { id: 'source-1', name: 'Source 1', enabled: true },
@@ -948,9 +922,11 @@ test.describe('Merchant Details Integration Tests', () => {
 
       // Mock enrichment trigger
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}/enrichment/trigger**`, async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             job_id: 'job-123',
             status: 'pending',
@@ -976,9 +952,11 @@ test.describe('Merchant Details Integration Tests', () => {
     test('should handle concurrent tab switching without breaking features', async ({ page }) => {
       // Mock all necessary endpoints
       await page.route('**/api/v1/merchants/statistics**', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             total_merchants: 150,
             average_risk_score: 0.65,
@@ -987,9 +965,11 @@ test.describe('Merchant Details Integration Tests', () => {
       });
 
       await page.route(`**/api/v1/merchants/${TEST_MERCHANT_ID}/analytics**`, async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({
             classification_confidence: 0.85,
           }),
@@ -1023,9 +1003,11 @@ test.describe('Merchant Details Integration Tests', () => {
     test('should handle API errors gracefully for portfolio comparison', async ({ page }) => {
       // Mock portfolio statistics to fail
       await page.route('**/api/v1/merchants/statistics**', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 500,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({ error: 'Internal Server Error' }),
         });
       });
@@ -1047,9 +1029,11 @@ test.describe('Merchant Details Integration Tests', () => {
     test('should handle API errors gracefully for risk benchmarks', async ({ page }) => {
       // Mock risk benchmarks to fail
       await page.route('**/api/v1/risk/benchmarks**', async (route) => {
+        if (await handleCorsOptions(route)) return;
         await route.fulfill({
           status: 500,
           contentType: 'application/json',
+          headers: getCorsHeaders(),
           body: JSON.stringify({ error: 'Internal Server Error' }),
         });
       });
