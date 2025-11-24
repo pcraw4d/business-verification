@@ -26,8 +26,14 @@ func NewBusinessIntelligenceGatewayServer() *BusinessIntelligenceGatewayServer {
 		port = "8087"
 	}
 
+	// Get service name from environment or use default
+	serviceName := os.Getenv("SERVICE_NAME")
+	if serviceName == "" {
+		serviceName = "bi-service" // Default to Railway service name
+	}
+
 	return &BusinessIntelligenceGatewayServer{
-		serviceName: "kyb-business-intelligence-gateway",
+		serviceName: serviceName,
 		version:     "4.0.4-BI-SYNTAX-FIX-FINAL",
 		port:        port,
 		router:      nil, // Will be initialized in setupRoutes()
@@ -643,8 +649,7 @@ func (s *BusinessIntelligenceGatewayServer) setupRoutes() {
 	router.HandleFunc("/insights", s.handleBusinessInsights).Methods("GET")
 	router.HandleFunc("/analyze", s.handleBusinessAnalysis).Methods("POST")
 
-	log.Printf("🚀 Starting %s v%s on :%s", s.serviceName, s.version, s.port)
-	log.Printf("✅ %s v%s is ready and listening on :%s", s.serviceName, s.version, s.port)
+	// Log messages removed from setupRoutes - will be logged in main() with correct address
 	log.Printf("🔗 Health: http://localhost:%s/health", s.port)
 	log.Printf("📊 Executive Dashboard: http://localhost:%s/dashboard/executive", s.port)
 	log.Printf("📈 KPIs: http://localhost:%s/dashboard/kpis", s.port)
