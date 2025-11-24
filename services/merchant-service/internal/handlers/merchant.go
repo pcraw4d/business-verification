@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"go.uber.org/zap"
+	
 	postgrest "github.com/supabase-community/postgrest-go"
+	"go.uber.org/zap"
 
 	"kyb-platform/services/merchant-service/internal/errors"
 	"kyb-platform/services/merchant-service/internal/cache"
@@ -21,6 +21,7 @@ import (
 	"kyb-platform/services/merchant-service/internal/resilience"
 	"kyb-platform/services/merchant-service/internal/config"
 	"kyb-platform/services/merchant-service/internal/supabase"
+	"kyb-platform/services/merchant-service/internal/jobs"
 )
 
 // MerchantHandler handles merchant management requests
@@ -32,10 +33,11 @@ type MerchantHandler struct {
 	redisCache      *cache.RedisCacheImpl // Redis cache for merchant data
 	fallbackMetrics *metrics.FallbackMetrics // Metrics for tracking fallback usage
 	requestQueue    *queue.RequestQueue // Queue for failed requests
+	jobProcessor    *jobs.JobProcessor // Job processor for async analysis jobs
 }
 
 // NewMerchantHandler creates a new merchant handler
-func NewMerchantHandler(supabaseClient *supabase.Client, logger *zap.Logger, config *config.Config) *MerchantHandler {
+func NewMerchantHandler(supabaseClient *supabase.Client, logger *zap.Logger, config *config.Config, jobProcessor *jobs.JobProcessor) *MerchantHandler {
 	// Create circuit breaker for Supabase connection
 	cbConfig := resilience.DefaultCircuitBreakerConfig()
 	cbConfig.FailureThreshold = 5
@@ -74,6 +76,7 @@ func NewMerchantHandler(supabaseClient *supabase.Client, logger *zap.Logger, con
 		redisCache:      redisCache,
 		fallbackMetrics: fallbackMetrics,
 		requestQueue:    requestQueue,
+		jobProcessor:    jobProcessor,
 	}
 }
 
@@ -502,7 +505,146 @@ func (h *MerchantHandler) createMerchant(ctx context.Context, req *CreateMerchan
 		zap.String("merchant_id", merchant.ID),
 		zap.String("name", merchant.Name))
 
+	// Trigger async classification job (non-blocking)
+	go h.triggerClassificationJob(ctx, merchant)
+
+	// Trigger website analysis job if website URL is provided (non-blocking)
+	if merchant.ContactInfo != nil {
+		if websiteURL, ok := merchant.ContactInfo["website"].(string); ok && websiteURL != "" {
+			go h.triggerWebsiteAnalysisJob(ctx, merchant.ID, websiteURL, merchant.Name)
+		} else {
+			// Mark website analysis as skipped
+			go h.markWebsiteAnalysisSkipped(ctx, merchant.ID)
+		}
+	} else {
+		// Mark website analysis as skipped
+		go h.markWebsiteAnalysisSkipped(ctx, merchant.ID)
+	}
+
 	return merchant, nil
+}
+
+// triggerClassificationJob triggers an async classification job for a merchant
+func (h *MerchantHandler) triggerClassificationJob(ctx context.Context, merchant *Merchant) {
+	if h.jobProcessor == nil {
+		h.logger.Warn("Job processor not initialized, skipping classification job")
+		return
+	}
+
+	// Extract website URL from contact info
+	websiteURL := ""
+	if merchant.ContactInfo != nil {
+		if url, ok := merchant.ContactInfo["website"].(string); ok {
+			websiteURL = url
+		}
+	}
+
+	// Extract description from industry or business type
+	description := merchant.Industry
+	if description == "" {
+		description = merchant.BusinessType
+	}
+
+	// Create classification job
+	job := jobs.NewClassificationJob(
+		merchant.ID,
+		merchant.Name,
+		description,
+		websiteURL,
+		h.supabaseClient,
+		h.config,
+		h.logger,
+	)
+
+	// Enqueue job (non-blocking)
+	if err := h.jobProcessor.Enqueue(job); err != nil {
+		h.logger.Error("Failed to enqueue classification job",
+			zap.String("merchant_id", merchant.ID),
+			zap.Error(err))
+	} else {
+		h.logger.Info("Classification job enqueued",
+			zap.String("merchant_id", merchant.ID),
+			zap.String("job_id", job.GetID()))
+	}
+}
+
+// triggerWebsiteAnalysisJob triggers an async website analysis job for a merchant
+func (h *MerchantHandler) triggerWebsiteAnalysisJob(ctx context.Context, merchantID, websiteURL, businessName string) {
+	if h.jobProcessor == nil {
+		h.logger.Warn("Job processor not initialized, skipping website analysis job")
+		return
+	}
+
+	// Create website analysis job
+	job := jobs.NewWebsiteAnalysisJob(
+		merchantID,
+		websiteURL,
+		businessName,
+		h.supabaseClient,
+		h.config,
+		h.logger,
+	)
+
+	// Enqueue job (non-blocking)
+	if err := h.jobProcessor.Enqueue(job); err != nil {
+		h.logger.Error("Failed to enqueue website analysis job",
+			zap.String("merchant_id", merchantID),
+			zap.Error(err))
+	} else {
+		h.logger.Info("Website analysis job enqueued",
+			zap.String("merchant_id", merchantID),
+			zap.String("job_id", job.GetID()),
+			zap.String("website_url", websiteURL))
+	}
+}
+
+// markWebsiteAnalysisSkipped marks website analysis as skipped in the database
+func (h *MerchantHandler) markWebsiteAnalysisSkipped(ctx context.Context, merchantID string) {
+	updateData := map[string]interface{}{
+		"website_analysis_status":      "skipped",
+		"website_analysis_updated_at": time.Now().Format(time.RFC3339),
+	}
+
+	// Check if merchant_analytics record exists
+	var existing []map[string]interface{}
+	_, err := h.supabaseClient.GetClient().From("merchant_analytics").
+		Select("id", "", false).
+		Eq("merchant_id", merchantID).
+		Limit(1, "").
+		ExecuteTo(&existing)
+
+	if err != nil || len(existing) == 0 {
+		// Create new record
+		insertData := map[string]interface{}{
+			"merchant_id":                merchantID,
+			"website_analysis_status":    "skipped",
+			"website_analysis_updated_at": time.Now().Format(time.RFC3339),
+			"website_analysis_data":      map[string]interface{}{},
+		}
+
+		_, _, err := h.supabaseClient.GetClient().From("merchant_analytics").
+			Insert(insertData, false, "", "", "").
+			Execute()
+
+		if err != nil {
+			h.logger.Warn("Failed to mark website analysis as skipped",
+				zap.String("merchant_id", merchantID),
+				zap.Error(err))
+		}
+		return
+	}
+
+	// Update existing record
+	_, _, err = h.supabaseClient.GetClient().From("merchant_analytics").
+		Update(updateData, "", "").
+		Eq("merchant_id", merchantID).
+		Execute()
+
+	if err != nil {
+		h.logger.Warn("Failed to mark website analysis as skipped",
+			zap.String("merchant_id", merchantID),
+			zap.Error(err))
+	}
 }
 
 // getMerchant retrieves a merchant by ID from Supabase.
@@ -1218,58 +1360,203 @@ func (h *MerchantHandler) HandleMerchantStatistics(w http.ResponseWriter, r *htt
 
 	w.Header().Set("Content-Type", "application/json")
 
-	// Return statistics matching frontend PortfolioStatisticsSchema
-	// Schema requires: totalMerchants, totalAssessments, averageRiskScore, riskDistribution, industryBreakdown, countryBreakdown, timestamp
-	// Note: This is a mock response. In production, this should query the database.
+	// Query total merchants
+	var merchantCount []map[string]interface{}
+	_, err := h.supabaseClient.GetClient().From("merchants").
+		Select("count", "", false).
+		ExecuteTo(&merchantCount)
+	
+	totalMerchants := 0
+	if err == nil && len(merchantCount) > 0 {
+		if count, ok := merchantCount[0]["count"].(float64); ok {
+			totalMerchants = int(count)
+		}
+	}
+
+	// Query total risk assessments
+	var assessmentCount []map[string]interface{}
+	_, err = h.supabaseClient.GetClient().From("risk_assessments").
+		Select("count", "", false).
+		ExecuteTo(&assessmentCount)
+	
+	totalAssessments := 0
+	if err == nil && len(assessmentCount) > 0 {
+		if count, ok := assessmentCount[0]["count"].(float64); ok {
+			totalAssessments = int(count)
+		}
+	}
+
+	// Query average risk score
+	var avgScoreResult []map[string]interface{}
+	_, err = h.supabaseClient.GetClient().From("risk_assessments").
+		Select("risk_score", "", false).
+		ExecuteTo(&avgScoreResult)
+	
+	averageRiskScore := 0.45 // Default
+	if err == nil && len(avgScoreResult) > 0 {
+		totalScore := 0.0
+		count := 0
+		for _, record := range avgScoreResult {
+			if score, ok := record["risk_score"].(float64); ok {
+				totalScore += score
+				count++
+			}
+		}
+		if count > 0 {
+			averageRiskScore = totalScore / float64(count)
+		}
+	}
+
+	// Query risk distribution
+	var riskDistributionRecords []map[string]interface{}
+	_, err = h.supabaseClient.GetClient().From("risk_assessments").
+		Select("risk_level", "", false).
+		ExecuteTo(&riskDistributionRecords)
+	
+	riskDistribution := map[string]interface{}{
+		"low":    0.0,
+		"medium": 0.0,
+		"high":   0.0,
+	}
+	
+	if err == nil && len(riskDistributionRecords) > 0 {
+		lowCount := 0
+		mediumCount := 0
+		highCount := 0
+		total := len(riskDistributionRecords)
+		
+		for _, record := range riskDistributionRecords {
+			if level, ok := record["risk_level"].(string); ok {
+				switch strings.ToLower(level) {
+				case "low":
+					lowCount++
+				case "medium":
+					mediumCount++
+				case "high", "critical":
+					highCount++
+				}
+			}
+		}
+		
+		if total > 0 {
+			riskDistribution["low"] = float64(lowCount) / float64(total)
+			riskDistribution["medium"] = float64(mediumCount) / float64(total)
+			riskDistribution["high"] = float64(highCount) / float64(total)
+		}
+	}
+
+	// Query industry breakdown (from merchants table)
+	var industryRecords []map[string]interface{}
+	_, err = h.supabaseClient.GetClient().From("merchants").
+		Select("industry", "", false).
+		ExecuteTo(&industryRecords)
+	
+	industryBreakdown := []map[string]interface{}{}
+	if err == nil {
+		industryMap := make(map[string]struct {
+			count int
+			totalRisk float64
+			riskCount int
+		})
+		
+		// Count by industry
+		for _, record := range industryRecords {
+			if industry, ok := record["industry"].(string); ok && industry != "" {
+				stats := industryMap[industry]
+				stats.count++
+				industryMap[industry] = stats
+			}
+		}
+		
+		// Get average risk scores per industry from risk_assessments
+		var industryRiskRecords []map[string]interface{}
+		_, err = h.supabaseClient.GetClient().From("risk_assessments").
+			Select("industry,risk_score", "", false).
+			ExecuteTo(&industryRiskRecords)
+		
+		if err == nil {
+			for _, record := range industryRiskRecords {
+				if industry, ok := record["industry"].(string); ok && industry != "" {
+					if score, ok := record["risk_score"].(float64); ok {
+						stats := industryMap[industry]
+						stats.totalRisk += score
+						stats.riskCount++
+						industryMap[industry] = stats
+					}
+				}
+			}
+		}
+		
+		// Build industry breakdown
+		for industry, stats := range industryMap {
+			avgRisk := 0.45 // Default
+			if stats.riskCount > 0 {
+				avgRisk = stats.totalRisk / float64(stats.riskCount)
+			}
+			industryBreakdown = append(industryBreakdown, map[string]interface{}{
+				"industry":        industry,
+				"count":           stats.count,
+				"averageRiskScore": avgRisk,
+			})
+		}
+	}
+
+	// Query country breakdown (from risk_assessments table)
+	var countryRecords []map[string]interface{}
+	_, err = h.supabaseClient.GetClient().From("risk_assessments").
+		Select("country,risk_score", "", false).
+		ExecuteTo(&countryRecords)
+	
+	countryBreakdown := []map[string]interface{}{}
+	if err == nil {
+		countryMap := make(map[string]struct {
+			count int
+			totalRisk float64
+			riskCount int
+		})
+		
+		for _, record := range countryRecords {
+			if country, ok := record["country"].(string); ok && country != "" {
+				stats := countryMap[country]
+				stats.count++
+				if score, ok := record["risk_score"].(float64); ok {
+					stats.totalRisk += score
+					stats.riskCount++
+				}
+				countryMap[country] = stats
+			}
+		}
+		
+		// Build country breakdown
+		for country, stats := range countryMap {
+			avgRisk := 0.45 // Default
+			if stats.riskCount > 0 {
+				avgRisk = stats.totalRisk / float64(stats.riskCount)
+			}
+			countryBreakdown = append(countryBreakdown, map[string]interface{}{
+				"country":         country,
+				"count":           stats.count,
+				"averageRiskScore": avgRisk,
+			})
+		}
+	}
+
+	// Build response
 	response := map[string]interface{}{
-		"totalMerchants":   5000,
-		"totalAssessments": 7500, // Total risk assessments performed
-		"averageRiskScore": 0.45, // Average risk score (0-1)
-		"riskDistribution": map[string]interface{}{
-			"low":    0.2, // 20%
-			"medium": 0.6, // 60%
-			"high":   0.2, // 20%
-		},
-		"industryBreakdown": []map[string]interface{}{
-			{
-				"industry":        "Technology",
-				"count":           2000,
-				"averageRiskScore": 0.3,
-			},
-			{
-				"industry":        "Finance",
-				"count":           1500,
-				"averageRiskScore": 0.5,
-			},
-			{
-				"industry":        "Retail",
-				"count":           1000,
-				"averageRiskScore": 0.4,
-			},
-		},
-		"countryBreakdown": []map[string]interface{}{
-			{
-				"country":         "US",
-				"count":           3000,
-				"averageRiskScore": 0.4,
-			},
-			{
-				"country":         "GB",
-				"count":           1000,
-				"averageRiskScore": 0.5,
-			},
-			{
-				"country":         "CA",
-				"count":           500,
-				"averageRiskScore": 0.35,
-			},
-		},
-		"timestamp": time.Now().Format(time.RFC3339),
+		"totalMerchants":    totalMerchants,
+		"totalAssessments": totalAssessments,
+		"averageRiskScore": averageRiskScore,
+		"riskDistribution": riskDistribution,
+		"industryBreakdown": industryBreakdown,
+		"countryBreakdown":  countryBreakdown,
+		"timestamp":         time.Now().Format(time.RFC3339),
 	}
 
 	// Log processing time for monitoring
 	h.logger.Info("Merchant statistics retrieved",
 		zap.Duration("processing_time", time.Since(startTime)),
+		zap.Int("total_merchants", totalMerchants),
+		zap.Int("total_assessments", totalAssessments),
 	)
 
 	json.NewEncoder(w).Encode(response)
@@ -1408,34 +1695,91 @@ func (h *MerchantHandler) HandleMerchantSpecificAnalytics(w http.ResponseWriter,
 		return
 	}
 
-	// Generate merchant-specific analytics in the format expected by the frontend
-	// Frontend expects: { merchantId, classification, security, quality, timestamp }
-	
-	// Map risk level to confidence score (default to medium)
-	confidenceScore := 0.5
-	if strings.ToLower(merchant.RiskLevel) == "low" {
-		confidenceScore = 0.8
-	} else if strings.ToLower(merchant.RiskLevel) == "high" {
-		confidenceScore = 0.3
-	}
-	
-	// Build classification data
+	// Query merchant_analytics table for real data
+	var analyticsRecords []map[string]interface{}
+	_, err = h.supabaseClient.GetClient().From("merchant_analytics").
+		Select("*", "", false).
+		Eq("merchant_id", merchantID).
+		Limit(1, "").
+		ExecuteTo(&analyticsRecords)
+
+	// Initialize default values
 	classification := map[string]interface{}{
 		"primaryIndustry": merchant.Industry,
-		"confidenceScore": confidenceScore,
+		"confidenceScore": 0.5,
 		"riskLevel":       merchant.RiskLevel,
+		"status":          "pending",
 	}
-	
-	// Build security data
 	security := map[string]interface{}{
-		"trustScore": 0.7, // Default trust score
-		"sslValid":   true, // TODO: Implement actual SSL validation
+		"trustScore": 0.7,
+		"sslValid":   false,
 	}
-	
-	// Build quality data
 	quality := map[string]interface{}{
-		"completenessScore": 0.6, // Default completeness
-		"dataPoints":        10,  // Default data points
+		"completenessScore": 0.6,
+		"dataPoints":        10,
+	}
+
+	// If analytics record exists, use real data
+	if err == nil && len(analyticsRecords) > 0 {
+		record := analyticsRecords[0]
+		
+		// Extract classification data
+		if classificationData, ok := record["classification_data"].(map[string]interface{}); ok {
+			if primaryIndustry, ok := classificationData["primaryIndustry"].(string); ok && primaryIndustry != "" {
+				classification["primaryIndustry"] = primaryIndustry
+			}
+			if confidenceScore, ok := classificationData["confidenceScore"].(float64); ok {
+				classification["confidenceScore"] = confidenceScore
+			}
+			if riskLevel, ok := classificationData["riskLevel"].(string); ok && riskLevel != "" {
+				classification["riskLevel"] = riskLevel
+			}
+			if mccCodes, ok := classificationData["mccCodes"].([]interface{}); ok {
+				classification["mccCodes"] = mccCodes
+			}
+			if sicCodes, ok := classificationData["sicCodes"].([]interface{}); ok {
+				classification["sicCodes"] = sicCodes
+			}
+			if naicsCodes, ok := classificationData["naicsCodes"].([]interface{}); ok {
+				classification["naicsCodes"] = naicsCodes
+			}
+		}
+		
+		// Get classification status
+		if status, ok := record["classification_status"].(string); ok {
+			classification["status"] = status
+		}
+		
+		// Extract security data
+		if securityData, ok := record["security_data"].(map[string]interface{}); ok {
+			if trustScore, ok := securityData["trustScore"].(float64); ok {
+				security["trustScore"] = trustScore
+			}
+			if sslValid, ok := securityData["sslValid"].(bool); ok {
+				security["sslValid"] = sslValid
+			}
+		}
+		
+		// Extract quality data
+		if qualityData, ok := record["quality_data"].(map[string]interface{}); ok {
+			if completenessScore, ok := qualityData["completenessScore"].(float64); ok {
+				quality["completenessScore"] = completenessScore
+			}
+			if dataPoints, ok := qualityData["dataPoints"].(float64); ok {
+				quality["dataPoints"] = int(dataPoints)
+			}
+		}
+	} else {
+		// No analytics record found - check if job is processing
+		if err == nil {
+			// Record doesn't exist yet, status is pending
+			classification["status"] = "pending"
+		} else {
+			h.logger.Warn("Failed to query merchant_analytics",
+				zap.String("merchant_id", merchantID),
+				zap.Error(err))
+			classification["status"] = "pending"
+		}
 	}
 	
 	// Build response in the format expected by frontend
@@ -1445,6 +1789,66 @@ func (h *MerchantHandler) HandleMerchantSpecificAnalytics(w http.ResponseWriter,
 		"security":      security,
 		"quality":       quality,
 		"timestamp":     time.Now().Format(time.RFC3339),
+	}
+
+	json.NewEncoder(w).Encode(response)
+}
+
+// HandleMerchantAnalyticsStatus handles GET /api/v1/merchants/{id}/analytics/status
+func (h *MerchantHandler) HandleMerchantAnalyticsStatus(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	// Extract merchant ID from path
+	merchantID := h.extractMerchantIDFromPath(r.URL.Path)
+	if merchantID == "" {
+		errors.WriteBadRequest(w, r, "Merchant ID is required")
+		return
+	}
+
+	// Query merchant_analytics table for status
+	var analyticsRecords []map[string]interface{}
+	_, err := h.supabaseClient.GetClient().From("merchant_analytics").
+		Select("classification_status,website_analysis_status,classification_updated_at,website_analysis_updated_at", "", false).
+		Eq("merchant_id", merchantID).
+		Limit(1, "").
+		ExecuteTo(&analyticsRecords)
+
+	// Default statuses
+	status := map[string]interface{}{
+		"classification": "pending",
+		"websiteAnalysis": "pending",
+	}
+
+	// If analytics record exists, use real statuses
+	if err == nil && len(analyticsRecords) > 0 {
+		record := analyticsRecords[0]
+		
+		if classificationStatus, ok := record["classification_status"].(string); ok {
+			status["classification"] = classificationStatus
+		}
+		
+		if websiteAnalysisStatus, ok := record["website_analysis_status"].(string); ok {
+			status["websiteAnalysis"] = websiteAnalysisStatus
+		}
+		
+		// Add timestamps if available
+		if classificationUpdatedAt, ok := record["classification_updated_at"].(string); ok {
+			status["classificationUpdatedAt"] = classificationUpdatedAt
+		}
+		
+		if websiteAnalysisUpdatedAt, ok := record["website_analysis_updated_at"].(string); ok {
+			status["websiteAnalysisUpdatedAt"] = websiteAnalysisUpdatedAt
+		}
+	} else if err != nil {
+		h.logger.Warn("Failed to query merchant_analytics for status",
+			zap.String("merchant_id", merchantID),
+			zap.Error(err))
+	}
+
+	response := map[string]interface{}{
+		"merchantId": merchantID,
+		"status":     status,
+		"timestamp":  time.Now().Format(time.RFC3339),
 	}
 
 	json.NewEncoder(w).Encode(response)
@@ -1486,26 +1890,144 @@ func (h *MerchantHandler) HandleMerchantWebsiteAnalysis(w http.ResponseWriter, r
 		}
 	}
 
-	// Generate website analysis data in the format expected by the frontend
-	// Frontend expects: { merchantId, websiteUrl, ssl, securityHeaders, performance, accessibility, lastAnalyzed }
-	
+	// Query merchant_analytics table for website analysis data
+	var analyticsRecords []map[string]interface{}
+	_, err = h.supabaseClient.GetClient().From("merchant_analytics").
+		Select("*", "", false).
+		Eq("merchant_id", merchantID).
+		Limit(1, "").
+		ExecuteTo(&analyticsRecords)
+
+	// Initialize default values
 	ssl := map[string]interface{}{
-		"valid": true, // TODO: Implement actual SSL validation
+		"valid": false,
 	}
-	
-	securityHeaders := []map[string]interface{}{}
-	
+	securityHeaders := map[string]interface{}{
+		"hasHttps":         false,
+		"hasHsts":          false,
+		"hasCsp":           false,
+		"hasXFrameOptions": false,
+		"hasXContentType":  false,
+		"securityScore":    0.0,
+	}
 	performance := map[string]interface{}{
-		"loadTime": 0,    // TODO: Get from actual analysis
-		"pageSize": 0,    // TODO: Get from actual analysis
-		"requests": 0,   // TODO: Get from actual analysis
-		"score":    75,  // Default score
+		"loadTime":        0.0,
+		"pageSize":        0,
+		"requestCount":    0,
+		"performanceScore": 0.0,
 	}
-	
 	accessibility := map[string]interface{}{
-		"score": 0.8, // Default accessibility score
+		"score": 0.0,
 	}
-	
+	status := "pending"
+	lastAnalyzed := ""
+
+	// If analytics record exists, use real data
+	if err == nil && len(analyticsRecords) > 0 {
+		record := analyticsRecords[0]
+
+		// Get website analysis status
+		if analysisStatus, ok := record["website_analysis_status"].(string); ok {
+			status = analysisStatus
+		}
+
+		// Extract website analysis data
+		if analysisData, ok := record["website_analysis_data"].(map[string]interface{}); ok {
+			// Extract SSL data
+			if sslData, ok := analysisData["ssl"].(map[string]interface{}); ok {
+				if valid, ok := sslData["valid"].(bool); ok {
+					ssl["valid"] = valid
+				}
+				if expiresAt, ok := sslData["expiresAt"].(string); ok {
+					ssl["expiresAt"] = expiresAt
+				}
+				if issuer, ok := sslData["issuer"].(string); ok {
+					ssl["issuer"] = issuer
+				}
+			}
+
+			// Extract security headers
+			if headersData, ok := analysisData["securityHeaders"].(map[string]interface{}); ok {
+				if hasHttps, ok := headersData["hasHttps"].(bool); ok {
+					securityHeaders["hasHttps"] = hasHttps
+				}
+				if hasHsts, ok := headersData["hasHsts"].(bool); ok {
+					securityHeaders["hasHsts"] = hasHsts
+				}
+				if hasCsp, ok := headersData["hasCsp"].(bool); ok {
+					securityHeaders["hasCsp"] = hasCsp
+				}
+				if hasXFrameOptions, ok := headersData["hasXFrameOptions"].(bool); ok {
+					securityHeaders["hasXFrameOptions"] = hasXFrameOptions
+				}
+				if hasXContentType, ok := headersData["hasXContentType"].(bool); ok {
+					securityHeaders["hasXContentType"] = hasXContentType
+				}
+				if securityScore, ok := headersData["securityScore"].(float64); ok {
+					securityHeaders["securityScore"] = securityScore
+				}
+				if missingHeaders, ok := headersData["missingHeaders"].([]interface{}); ok {
+					securityHeaders["missingHeaders"] = missingHeaders
+				}
+			}
+
+			// Extract performance data
+			if perfData, ok := analysisData["performance"].(map[string]interface{}); ok {
+				if loadTime, ok := perfData["loadTime"].(float64); ok {
+					performance["loadTime"] = loadTime
+				}
+				if pageSize, ok := perfData["pageSize"].(float64); ok {
+					performance["pageSize"] = int(pageSize)
+				}
+				if requestCount, ok := perfData["requestCount"].(float64); ok {
+					performance["requestCount"] = int(requestCount)
+				}
+				if performanceScore, ok := perfData["performanceScore"].(float64); ok {
+					performance["performanceScore"] = performanceScore
+				}
+			}
+
+			// Extract accessibility data
+			if accData, ok := analysisData["accessibility"].(map[string]interface{}); ok {
+				if score, ok := accData["score"].(float64); ok {
+					accessibility["score"] = score
+				}
+				if issues, ok := accData["issues"].([]interface{}); ok {
+					accessibility["issues"] = issues
+				}
+				if wcagCompliance, ok := accData["wcagCompliance"].(string); ok {
+					accessibility["wcagCompliance"] = wcagCompliance
+				}
+			}
+
+			// Extract last analyzed timestamp
+			if lastAnalyzedStr, ok := analysisData["lastAnalyzed"].(string); ok {
+				lastAnalyzed = lastAnalyzedStr
+			}
+		}
+	} else {
+		// No analytics record found
+		if err != nil {
+			h.logger.Warn("Failed to query merchant_analytics for website analysis",
+				zap.String("merchant_id", merchantID),
+				zap.Error(err))
+		}
+		// Status remains "pending"
+	}
+
+	// If status is "skipped", return appropriate message
+	if status == "skipped" {
+		response := map[string]interface{}{
+			"merchantId":   merchantID,
+			"websiteUrl":   websiteURL,
+			"status":       "skipped",
+			"message":      "Website analysis skipped - no website URL provided",
+			"lastAnalyzed": "",
+		}
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
 	// Build response in the format expected by frontend
 	response := map[string]interface{}{
 		"merchantId":      merchantID,
@@ -1514,7 +2036,8 @@ func (h *MerchantHandler) HandleMerchantWebsiteAnalysis(w http.ResponseWriter, r
 		"securityHeaders": securityHeaders,
 		"performance":    performance,
 		"accessibility":  accessibility,
-		"lastAnalyzed":   time.Now().Format(time.RFC3339),
+		"status":         status,
+		"lastAnalyzed":   lastAnalyzed,
 	}
 
 	json.NewEncoder(w).Encode(response)
@@ -1548,50 +2071,135 @@ func (h *MerchantHandler) HandleMerchantRiskScore(w http.ResponseWriter, r *http
 		return
 	}
 
-	// Map risk level to numeric score
-	riskScoreMap := map[string]float64{
-		"low":    0.2,
-		"medium": 0.5,
-		"high":   0.8,
+	// Query risk_assessments table for real risk assessment data
+	var riskAssessments []map[string]interface{}
+	_, err = h.supabaseClient.GetClient().From("risk_assessments").
+		Select("*", "", false).
+		Eq("business_id", merchantID).
+		Order("created_at", &postgrest.OrderOpts{Ascending: false}).
+		Limit(1, "").
+		ExecuteTo(&riskAssessments)
+
+	// Initialize default values
+	riskScore := 0.5
+	riskLevel := "medium"
+	confidenceScore := 0.85
+	assessmentDate := time.Now().Format(time.RFC3339)
+	factors := []map[string]interface{}{}
+
+	// If risk assessment exists, use real data
+	if err == nil && len(riskAssessments) > 0 {
+		assessment := riskAssessments[0]
+
+		// Extract risk score
+		if score, ok := assessment["risk_score"].(float64); ok {
+			riskScore = score
+		} else if score, ok := assessment["risk_score"].(string); ok {
+			// Handle string conversion if needed
+			if parsed, parseErr := strconv.ParseFloat(score, 64); parseErr == nil {
+				riskScore = parsed
+			}
+		}
+
+		// Extract risk level
+		if level, ok := assessment["risk_level"].(string); ok {
+			riskLevel = strings.ToLower(level)
+		}
+
+		// Extract confidence score
+		if conf, ok := assessment["confidence_score"].(float64); ok {
+			confidenceScore = conf
+		}
+
+		// Extract assessment date
+		if date, ok := assessment["created_at"].(string); ok {
+			assessmentDate = date
+		} else if date, ok := assessment["completed_at"].(string); ok {
+			assessmentDate = date
+		}
+
+		// Extract risk factors
+		if riskFactorsData, ok := assessment["risk_factors"].([]interface{}); ok {
+			for _, factorData := range riskFactorsData {
+				if factorMap, ok := factorData.(map[string]interface{}); ok {
+					factor := map[string]interface{}{}
+					if category, ok := factorMap["category"].(string); ok {
+						factor["category"] = category
+					} else if category, ok := factorMap["factor_category"].(string); ok {
+						factor["category"] = category
+					}
+					if score, ok := factorMap["score"].(float64); ok {
+						factor["score"] = score
+					} else if score, ok := factorMap["impact_score"].(float64); ok {
+						factor["score"] = score
+					}
+					if weight, ok := factorMap["weight"].(float64); ok {
+						factor["weight"] = weight
+					} else if weight, ok := factorMap["factor_weight"].(float64); ok {
+						factor["weight"] = weight
+					}
+					if len(factor) > 0 {
+						factors = append(factors, factor)
+					}
+				}
+			}
+		}
+	} else {
+		// No risk assessment found - use merchant's risk level as fallback
+		if err != nil {
+			h.logger.Warn("Failed to query risk_assessments",
+				zap.String("merchant_id", merchantID),
+				zap.Error(err))
+		}
+
+		// Map merchant risk level to score
+		riskScoreMap := map[string]float64{
+			"low":    0.2,
+			"medium": 0.5,
+			"high":   0.8,
+		}
+
+		if score, ok := riskScoreMap[strings.ToLower(merchant.RiskLevel)]; ok {
+			riskScore = score
+		}
+
+		riskLevel = strings.ToLower(merchant.RiskLevel)
+		if riskLevel != "low" && riskLevel != "medium" && riskLevel != "high" {
+			riskLevel = "medium"
+		}
+
+		// Use default factors if no assessment exists
+		factors = []map[string]interface{}{
+			{
+				"category": "Business Profile",
+				"score":    riskScore,
+				"weight":   1.0,
+			},
+		}
+
+		// Add status to indicate no assessment
+		response := map[string]interface{}{
+			"merchant_id":     merchantID,
+			"risk_score":      riskScore,
+			"risk_level":      riskLevel,
+			"confidence_score": confidenceScore,
+			"assessment_date":  assessmentDate,
+			"factors":          factors,
+			"status":           "no_assessment",
+			"message":          "No risk assessment found. Using merchant risk level as fallback.",
+		}
+		json.NewEncoder(w).Encode(response)
+		return
 	}
 
-	riskScore := riskScoreMap[strings.ToLower(merchant.RiskLevel)]
-	if riskScore == 0 {
-		riskScore = 0.5 // Default to medium
-	}
-
-	// Ensure risk_level is one of the valid enum values
-	riskLevel := strings.ToLower(merchant.RiskLevel)
-	if riskLevel != "low" && riskLevel != "medium" && riskLevel != "high" {
-		riskLevel = "medium" // Default to medium if invalid
-	}
-
-	// Generate risk score response matching MerchantRiskScoreSchema
-	// Schema requires: merchant_id, risk_level, assessment_date, factors (array of objects)
-	// Optional: risk_score, confidence_score
+	// Build response in the format expected by frontend
 	response := map[string]interface{}{
-		"merchant_id":    merchantID,
-		"risk_score":     riskScore,
-		"risk_level":     riskLevel,
-		"confidence_score": 0.85, // Default confidence score
-		"assessment_date": time.Now().Format(time.RFC3339),
-		"factors": []map[string]interface{}{
-			{
-				"category": "Business Age",
-				"score":    0.2,
-				"weight":   0.3,
-			},
-			{
-				"category": "Financial Stability",
-				"score":    0.4,
-				"weight":   0.4,
-			},
-			{
-				"category": "Compliance History",
-				"score":    0.3,
-				"weight":   0.3,
-			},
-		},
+		"merchant_id":     merchantID,
+		"risk_score":      riskScore,
+		"risk_level":      riskLevel,
+		"confidence_score": confidenceScore,
+		"assessment_date":  assessmentDate,
+		"factors":          factors,
 	}
 
 	json.NewEncoder(w).Encode(response)

@@ -16,6 +16,7 @@ import (
 	"kyb-platform/services/merchant-service/internal/config"
 	"kyb-platform/services/merchant-service/internal/errors"
 	"kyb-platform/services/merchant-service/internal/handlers"
+	"kyb-platform/services/merchant-service/internal/jobs"
 	"kyb-platform/services/merchant-service/internal/supabase"
 )
 
@@ -50,8 +51,13 @@ func main() {
 	}
 	logger.Info("✅ Supabase client initialized")
 
+	// Initialize job processor for async analysis jobs
+	jobProcessor := jobs.NewJobProcessor(5, 100, logger) // 5 workers, queue size 100
+	jobProcessor.Start()
+	logger.Info("✅ Job processor initialized and started")
+
 	// Initialize handlers
-	merchantHandler := handlers.NewMerchantHandler(supabaseClient, logger, cfg)
+	merchantHandler := handlers.NewMerchantHandler(supabaseClient, logger, cfg, jobProcessor)
 
 	// Setup router
 	router := mux.NewRouter()
@@ -80,6 +86,7 @@ func main() {
 	// ORDER MATTERS:
 	// 1. Most specific sub-routes first (merchants/{id}/analytics, etc.)
 	//    These must come before /merchants/{id} to avoid route conflicts
+	router.HandleFunc("/api/v1/merchants/{id}/analytics/status", merchantHandler.HandleMerchantAnalyticsStatus).Methods("GET", "OPTIONS")
 	router.HandleFunc("/api/v1/merchants/{id}/analytics", merchantHandler.HandleMerchantSpecificAnalytics).Methods("GET", "OPTIONS")
 	router.HandleFunc("/api/v1/merchants/{id}/website-analysis", merchantHandler.HandleMerchantWebsiteAnalysis).Methods("GET", "OPTIONS")
 	router.HandleFunc("/api/v1/merchants/{id}/risk-score", merchantHandler.HandleMerchantRiskScore).Methods("GET", "OPTIONS")
@@ -131,6 +138,10 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+
+	// Stop job processor gracefully
+	jobProcessor.Stop()
+	logger.Info("✅ Job processor stopped")
 
 	if err := httpServer.Shutdown(ctx); err != nil {
 		logger.Fatal("Merchant Service forced to shutdown", zap.Error(err))

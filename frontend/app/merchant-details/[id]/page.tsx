@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { Suspense } from 'react';
-import { MerchantDetailsLayout } from '@/components/merchant/MerchantDetailsLayout';
-import { useParams } from 'next/navigation';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { EnrichmentProvider } from '@/contexts/EnrichmentContext';
-import { AppLayout } from '@/components/layout/AppLayout';
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { MerchantDetailsLayout } from "@/components/merchant/MerchantDetailsLayout";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EnrichmentProvider } from "@/contexts/EnrichmentContext";
+import { useParams } from "next/navigation";
+import { Suspense } from "react";
 
 // Configure route for client-side routing
 // Use 'use client' to enable client-side rendering for static file serving
@@ -42,7 +42,7 @@ function MerchantDetailsError() {
 function MerchantDetailsContent() {
   const params = useParams();
   const id = params?.id as string;
-  
+
   if (!id) {
     return (
       <div className="container mx-auto p-6">
@@ -52,7 +52,7 @@ function MerchantDetailsContent() {
       </div>
     );
   }
-  
+
   return <MerchantDetailsLayout merchantId={id} />;
 }
 
@@ -61,9 +61,9 @@ export default function MerchantDetailsPage() {
     <AppLayout
       title="Merchant Details"
       breadcrumbs={[
-        { label: 'Home', href: '/' },
-        { label: 'Merchant Portfolio', href: '/merchant-portfolio' },
-        { label: 'Merchant Details' },
+        { label: "Home", href: "/" },
+        { label: "Merchant Portfolio", href: "/merchant-portfolio" },
+        { label: "Merchant Details" },
       ]}
     >
       <EnrichmentProvider>
@@ -71,7 +71,7 @@ export default function MerchantDetailsPage() {
           fallback={<MerchantDetailsError />}
           onError={(error, errorInfo) => {
             // Log error for monitoring/debugging
-            console.error('MerchantDetailsPage error:', error, errorInfo);
+            console.error("MerchantDetailsPage error:", error, errorInfo);
           }}
         >
           <Suspense fallback={<MerchantDetailsLoading />}>
@@ -82,4 +82,3 @@ export default function MerchantDetailsPage() {
     </AppLayout>
   );
 }
-

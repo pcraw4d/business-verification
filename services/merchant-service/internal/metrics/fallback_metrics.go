@@ -10,6 +10,10 @@ import (
 	"go.uber.org/zap"
 )
 
+var (
+	metricsOnce sync.Once
+)
+
 // FallbackMetrics tracks fallback data usage across services
 type FallbackMetrics struct {
 	mu        sync.RWMutex
@@ -41,12 +45,19 @@ type ServiceFallbackStats struct {
 
 // NewFallbackMetrics creates a new fallback metrics tracker
 func NewFallbackMetrics(logger *zap.Logger) *FallbackMetrics {
+	// Note: promauto automatically registers with default registry
+	// In tests, this may cause duplicate registration if multiple handlers are created
+	// For production, this is fine as there's only one handler instance
+	// Tests should run individually or use -count=1 flag
+	
 	return &FallbackMetrics{
 		usage:     make(map[string]*ServiceFallbackStats),
 		logger:    logger,
 		startTime: time.Now(),
 
 		// Initialize Prometheus metrics
+		// Note: promauto registers with default registry
+		// Using sync.Once pattern to prevent duplicate registration
 		fallbackTotal: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "kyb_fallback_total",

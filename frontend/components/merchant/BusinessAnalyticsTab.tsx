@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ChartContainer } from '@/components/dashboards/ChartContainer';
 import { BarChart, PieChart } from '@/components/charts/lazy';
 import { getMerchant, getMerchantAnalytics, getWebsiteAnalysis } from '@/lib/api';
+import { AnalyticsStatusIndicator } from './AnalyticsStatusIndicator';
 import { deferNonCriticalDataLoad } from '@/lib/lazy-loader';
 import { formatPercent } from '@/lib/number-format';
 import type { AnalyticsData, WebsiteAnalysisData, IndustryCode, Merchant } from '@/types/merchant';
@@ -269,7 +270,7 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
                   <CardDescription>Industry classification data</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline">From Analytics API</Badge>
+                  <AnalyticsStatusIndicator merchantId={merchantId} type="classification" />
                 <ExportButton
                   data={getExportData}
                   exportType="analytics"
@@ -583,7 +584,7 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
             <CardTitle>Website Analysis</CardTitle>
             <CardDescription>Website performance and security</CardDescription>
               </div>
-              <Badge variant="outline">From Website Analysis API</Badge>
+              <AnalyticsStatusIndicator merchantId={merchantId} type="websiteAnalysis" />
             </div>
           </CardHeader>
           <CardContent className="space-y-4">

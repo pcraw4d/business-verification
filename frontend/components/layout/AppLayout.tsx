@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Sidebar } from './Sidebar';
-import { Header } from './Header';
-import { Breadcrumbs, BreadcrumbItemType } from './Breadcrumbs';
+import { useState } from "react";
+import { BreadcrumbItemType, Breadcrumbs } from "./Breadcrumbs";
+import { Header } from "./Header";
+import { Sidebar } from "./Sidebar";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -30,12 +30,12 @@ export function AppLayout({
       <a href="#main-content" className="skip-link">
         Skip to main content
       </a>
-      
+
       <Sidebar
         mobileOpen={mobileSidebarOpen}
         onMobileClose={() => setMobileSidebarOpen(false)}
       />
-      
+
       <div className="md:pl-64" suppressHydrationWarning>
         <Header
           title={title}
@@ -43,18 +43,22 @@ export function AppLayout({
           actions={headerActions}
           onMenuClick={() => setMobileSidebarOpen(true)}
         />
-        
-        <main id="main-content" className={className} tabIndex={-1} suppressHydrationWarning>
+
+        <main
+          id="main-content"
+          className={className}
+          tabIndex={-1}
+          suppressHydrationWarning
+        >
           {breadcrumbs && breadcrumbs.length > 0 && (
             <div className="container px-4 py-4">
               <Breadcrumbs items={breadcrumbs} />
             </div>
           )}
-          
+
           {children}
         </main>
       </div>
     </div>
   );
 }
-

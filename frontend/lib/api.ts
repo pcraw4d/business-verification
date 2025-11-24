@@ -546,6 +546,41 @@ export async function getWebsiteAnalysis(
   });
 }
 
+export interface MerchantAnalyticsStatus {
+  merchantId: string;
+  status: {
+    classification: "pending" | "processing" | "completed" | "failed";
+    websiteAnalysis: "pending" | "processing" | "completed" | "failed" | "skipped";
+    classificationUpdatedAt?: string;
+    websiteAnalysisUpdatedAt?: string;
+  };
+  timestamp: string;
+}
+
+export async function getMerchantAnalyticsStatus(
+  merchantId: string
+): Promise<MerchantAnalyticsStatus> {
+  const token = getAuthToken();
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+  };
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  return retryWithBackoff(async () => {
+    const response = await safeFetch(
+      ApiEndpoints.merchants.analyticsStatus(merchantId),
+      {
+        method: "GET",
+        headers,
+      }
+    );
+    return handleResponse<MerchantAnalyticsStatus>(response);
+  });
+}
+
 export async function getRiskAssessment(
   merchantId: string
 ): Promise<RiskAssessment | null> {

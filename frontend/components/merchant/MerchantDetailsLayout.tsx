@@ -1,40 +1,51 @@
-'use client';
+"use client";
 
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Skeleton } from '@/components/ui/skeleton';
-import { TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ClientOnlyTabs } from './ClientOnlyTabs';
-import { Button } from '@/components/ui/button';
-import { getMerchant } from '@/lib/api';
-import type { Merchant } from '@/types/merchant';
-import dynamic from 'next/dynamic';
-import { useEffect, useState, useCallback } from 'react';
-import { RefreshCw } from 'lucide-react';
-import { PortfolioContextBadge } from './PortfolioContextBadge';
-import { EnrichmentButton } from './EnrichmentButton';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { TabErrorFallback } from './TabErrorFallback';
-import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
-import { useRef } from 'react';
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { getMerchant } from "@/lib/api";
+import type { Merchant } from "@/types/merchant";
+import { RefreshCw } from "lucide-react";
+import dynamic from "next/dynamic";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ClientOnlyTabs } from "./ClientOnlyTabs";
+import { EnrichmentButton } from "./EnrichmentButton";
+import { PortfolioContextBadge } from "./PortfolioContextBadge";
+import { TabErrorFallback } from "./TabErrorFallback";
 
 // Lazy load tabs - only load when needed
 const MerchantOverviewTab = dynamic(
-  () => import('./MerchantOverviewTab').then((mod) => ({ default: mod.MerchantOverviewTab })),
+  () =>
+    import("./MerchantOverviewTab").then((mod) => ({
+      default: mod.MerchantOverviewTab,
+    })),
   { loading: () => <Skeleton className="h-64 w-full" />, ssr: false }
 );
 
 const BusinessAnalyticsTab = dynamic(
-  () => import('./BusinessAnalyticsTab').then((mod) => ({ default: mod.BusinessAnalyticsTab })),
+  () =>
+    import("./BusinessAnalyticsTab").then((mod) => ({
+      default: mod.BusinessAnalyticsTab,
+    })),
   { loading: () => <Skeleton className="h-64 w-full" />, ssr: false }
 );
 
 const RiskAssessmentTab = dynamic(
-  () => import('./RiskAssessmentTab').then((mod) => ({ default: mod.RiskAssessmentTab })),
+  () =>
+    import("./RiskAssessmentTab").then((mod) => ({
+      default: mod.RiskAssessmentTab,
+    })),
   { loading: () => <Skeleton className="h-64 w-full" />, ssr: false }
 );
 
 const RiskIndicatorsTab = dynamic(
-  () => import('./RiskIndicatorsTab').then((mod) => ({ default: mod.RiskIndicatorsTab })),
+  () =>
+    import("./RiskIndicatorsTab").then((mod) => ({
+      default: mod.RiskIndicatorsTab,
+    })),
   { loading: () => <Skeleton className="h-64 w-full" />, ssr: false }
 );
 
@@ -51,79 +62,97 @@ function getRetryDelay(attempt: number): number {
   return INITIAL_RETRY_DELAY * Math.pow(2, attempt);
 }
 
-export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps) {
+export function MerchantDetailsLayout({
+  merchantId,
+}: MerchantDetailsLayoutProps) {
   const [merchant, setMerchant] = useState<Merchant | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState("overview");
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
   const [mounted, setMounted] = useState(false);
   const enrichmentButtonRef = useRef<HTMLButtonElement>(null);
 
   // Load merchant with retry logic
-  const loadMerchant = useCallback(async (attempt: number = 0): Promise<void> => {
-    try {
-      if (attempt === 0) {
-        setLoading(true);
-      } else {
-        setIsRetrying(true);
-      }
-      setError(null);
-      
-      if (process.env.NODE_ENV === 'test') {
-        console.log(`[MerchantDetailsLayout] Loading merchant (attempt ${attempt + 1}):`, merchantId);
-      }
-      
-      const data = await getMerchant(merchantId);
-      
-      if (process.env.NODE_ENV === 'test') {
-        console.log('[MerchantDetailsLayout] Merchant data received:', data);
-      }
-      
-      // Optimistic update: set merchant data immediately
-      setMerchant(data);
-      setRetryCount(0);
-      setIsRetrying(false);
-      
-      if (process.env.NODE_ENV === 'test') {
-        console.log('[MerchantDetailsLayout] State updated with merchant data');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load merchant data';
-      
-      if (process.env.NODE_ENV === 'test') {
-        console.error(`[MerchantDetailsLayout] Error loading merchant (attempt ${attempt + 1}):`, err);
-      }
-      
-      // Retry logic with exponential backoff
-      if (attempt < MAX_RETRIES - 1) {
-        const delay = getRetryDelay(attempt);
-        setRetryCount(attempt + 1);
-        
-        if (process.env.NODE_ENV === 'test') {
-          console.log(`[MerchantDetailsLayout] Retrying in ${delay}ms...`);
+  const loadMerchant = useCallback(
+    async (attempt: number = 0): Promise<void> => {
+      try {
+        if (attempt === 0) {
+          setLoading(true);
+        } else {
+          setIsRetrying(true);
         }
-        
-        // Retry after delay
-        setTimeout(() => {
-          loadMerchant(attempt + 1);
-        }, delay);
-      } else {
-        // Max retries reached
-        setError(errorMessage);
+        setError(null);
+
+        if (process.env.NODE_ENV === "test") {
+          console.log(
+            `[MerchantDetailsLayout] Loading merchant (attempt ${
+              attempt + 1
+            }):`,
+            merchantId
+          );
+        }
+
+        const data = await getMerchant(merchantId);
+
+        if (process.env.NODE_ENV === "test") {
+          console.log("[MerchantDetailsLayout] Merchant data received:", data);
+        }
+
+        // Optimistic update: set merchant data immediately
+        setMerchant(data);
         setRetryCount(0);
         setIsRetrying(false);
+
+        if (process.env.NODE_ENV === "test") {
+          console.log(
+            "[MerchantDetailsLayout] State updated with merchant data"
+          );
+        }
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to load merchant data";
+
+        if (process.env.NODE_ENV === "test") {
+          console.error(
+            `[MerchantDetailsLayout] Error loading merchant (attempt ${
+              attempt + 1
+            }):`,
+            err
+          );
+        }
+
+        // Retry logic with exponential backoff
+        if (attempt < MAX_RETRIES - 1) {
+          const delay = getRetryDelay(attempt);
+          setRetryCount(attempt + 1);
+
+          if (process.env.NODE_ENV === "test") {
+            console.log(`[MerchantDetailsLayout] Retrying in ${delay}ms...`);
+          }
+
+          // Retry after delay
+          setTimeout(() => {
+            loadMerchant(attempt + 1);
+          }, delay);
+        } else {
+          // Max retries reached
+          setError(errorMessage);
+          setRetryCount(0);
+          setIsRetrying(false);
+        }
+      } finally {
+        if (attempt === 0) {
+          setLoading(false);
+        }
+        if (process.env.NODE_ENV === "test") {
+          console.log("[MerchantDetailsLayout] Loading complete");
+        }
       }
-    } finally {
-      if (attempt === 0) {
-        setLoading(false);
-      }
-      if (process.env.NODE_ENV === 'test') {
-        console.log('[MerchantDetailsLayout] Loading complete');
-      }
-    }
-  }, [merchantId]);
+    },
+    [merchantId]
+  );
 
   useEffect(() => {
     if (merchantId) {
@@ -156,9 +185,9 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
 
   useKeyboardShortcuts([
     {
-      key: 'e',
+      key: "e",
       handler: handleEnrichmentShortcut,
-      description: 'Open enrichment dialog',
+      description: "Open enrichment dialog",
     },
   ]);
 
@@ -191,8 +220,10 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
                 disabled={isRetrying}
                 className="ml-4"
               >
-                <RefreshCw className={`mr-2 h-4 w-4 ${isRetrying ? 'animate-spin' : ''}`} />
-                {isRetrying ? 'Retrying...' : 'Try Again'}
+                <RefreshCw
+                  className={`mr-2 h-4 w-4 ${isRetrying ? "animate-spin" : ""}`}
+                />
+                {isRetrying ? "Retrying..." : "Try Again"}
               </Button>
             </div>
           </AlertDescription>
@@ -217,18 +248,23 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold" suppressHydrationWarning>{merchant.businessName || 'Unknown Merchant'}</h1>
-              <PortfolioContextBadge merchantId={merchantId} variant="default" />
+              <h1 className="text-3xl font-bold" suppressHydrationWarning>
+                {merchant.businessName || "Unknown Merchant"}
+              </h1>
+              <PortfolioContextBadge
+                merchantId={merchantId}
+                variant="default"
+              />
             </div>
             <p className="text-muted-foreground mt-2" suppressHydrationWarning>
               {merchant.industry && `${merchant.industry} • `}
-              Status: {merchant.status || 'Unknown'}
+              Status: {merchant.status || "Unknown"}
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <EnrichmentButton 
-              merchantId={merchantId} 
-              variant="outline" 
+            <EnrichmentButton
+              merchantId={merchantId}
+              variant="outline"
               size="sm"
               ref={enrichmentButtonRef}
               aria-label="Enrich merchant data (Press E)"
@@ -239,101 +275,142 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
       </div>
 
       <section id="merchant-content" aria-label="Merchant details">
-
-      {!mounted ? (
-        <div className="space-y-4">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-64 w-full" />
-        </div>
-      ) : (
-      <ClientOnlyTabs 
-        value={activeTab} 
-        onValueChange={setActiveTab} 
-        className="w-full"
-      >
-        <TabsList className="grid w-full grid-cols-4" suppressHydrationWarning>
-          <TabsTrigger value="overview" aria-label="Overview tab" suppressHydrationWarning>Overview</TabsTrigger>
-          <TabsTrigger value="analytics" aria-label="Business Analytics tab" suppressHydrationWarning>Business Analytics</TabsTrigger>
-          <TabsTrigger value="risk" aria-label="Risk Assessment tab" suppressHydrationWarning>Risk Assessment</TabsTrigger>
-          <TabsTrigger value="indicators" aria-label="Risk Indicators tab" suppressHydrationWarning>Risk Indicators</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="mt-6" suppressHydrationWarning>
-          <ErrorBoundary
-            fallback={
-              <TabErrorFallback
-                tabName="Overview"
-                onRetry={() => {
-                  // Force re-render by changing key
-                  setActiveTab('overview');
-                }}
-              />
-            }
-            onError={(error, errorInfo) => {
-              console.error('Overview tab error:', error, errorInfo);
-            }}
+        {!mounted ? (
+          <div className="space-y-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-64 w-full" />
+          </div>
+        ) : (
+          <ClientOnlyTabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full"
           >
-          <MerchantOverviewTab merchant={merchant} />
-          </ErrorBoundary>
-        </TabsContent>
+            <TabsList
+              className="grid w-full grid-cols-4"
+              suppressHydrationWarning
+            >
+              <TabsTrigger
+                value="overview"
+                aria-label="Overview tab"
+                suppressHydrationWarning
+              >
+                Overview
+              </TabsTrigger>
+              <TabsTrigger
+                value="analytics"
+                aria-label="Business Analytics tab"
+                suppressHydrationWarning
+              >
+                Business Analytics
+              </TabsTrigger>
+              <TabsTrigger
+                value="risk"
+                aria-label="Risk Assessment tab"
+                suppressHydrationWarning
+              >
+                Risk Assessment
+              </TabsTrigger>
+              <TabsTrigger
+                value="indicators"
+                aria-label="Risk Indicators tab"
+                suppressHydrationWarning
+              >
+                Risk Indicators
+              </TabsTrigger>
+            </TabsList>
 
-        <TabsContent value="analytics" className="mt-6" suppressHydrationWarning>
-          <ErrorBoundary
-            fallback={
-              <TabErrorFallback
-                tabName="Business Analytics"
-                onRetry={() => {
-                  setActiveTab('analytics');
+            <TabsContent
+              value="overview"
+              className="mt-6"
+              suppressHydrationWarning
+            >
+              <ErrorBoundary
+                fallback={
+                  <TabErrorFallback
+                    tabName="Overview"
+                    onRetry={() => {
+                      // Force re-render by changing key
+                      setActiveTab("overview");
+                    }}
+                  />
+                }
+                onError={(error, errorInfo) => {
+                  console.error("Overview tab error:", error, errorInfo);
                 }}
-              />
-            }
-            onError={(error, errorInfo) => {
-              console.error('Business Analytics tab error:', error, errorInfo);
-            }}
-          >
-          <BusinessAnalyticsTab merchantId={merchantId} />
-          </ErrorBoundary>
-        </TabsContent>
+              >
+                <MerchantOverviewTab merchant={merchant} />
+              </ErrorBoundary>
+            </TabsContent>
 
-        <TabsContent value="risk" className="mt-6" suppressHydrationWarning>
-          <ErrorBoundary
-            fallback={
-              <TabErrorFallback
-                tabName="Risk Assessment"
-                onRetry={() => {
-                  setActiveTab('risk');
+            <TabsContent
+              value="analytics"
+              className="mt-6"
+              suppressHydrationWarning
+            >
+              <ErrorBoundary
+                fallback={
+                  <TabErrorFallback
+                    tabName="Business Analytics"
+                    onRetry={() => {
+                      setActiveTab("analytics");
+                    }}
+                  />
+                }
+                onError={(error, errorInfo) => {
+                  console.error(
+                    "Business Analytics tab error:",
+                    error,
+                    errorInfo
+                  );
                 }}
-              />
-            }
-            onError={(error, errorInfo) => {
-              console.error('Risk Assessment tab error:', error, errorInfo);
-            }}
-          >
-          <RiskAssessmentTab merchantId={merchantId} />
-          </ErrorBoundary>
-        </TabsContent>
+              >
+                <BusinessAnalyticsTab merchantId={merchantId} />
+              </ErrorBoundary>
+            </TabsContent>
 
-        <TabsContent value="indicators" className="mt-6" suppressHydrationWarning>
-          <ErrorBoundary
-            fallback={
-              <TabErrorFallback
-                tabName="Risk Indicators"
-                onRetry={() => {
-                  setActiveTab('indicators');
+            <TabsContent value="risk" className="mt-6" suppressHydrationWarning>
+              <ErrorBoundary
+                fallback={
+                  <TabErrorFallback
+                    tabName="Risk Assessment"
+                    onRetry={() => {
+                      setActiveTab("risk");
+                    }}
+                  />
+                }
+                onError={(error, errorInfo) => {
+                  console.error("Risk Assessment tab error:", error, errorInfo);
                 }}
-              />
-            }
-            onError={(error, errorInfo) => {
-              console.error('Risk Indicators tab error:', error, errorInfo);
-            }}
-          >
-          <RiskIndicatorsTab merchantId={merchantId} />
-          </ErrorBoundary>
-        </TabsContent>
-      </ClientOnlyTabs>
-      )}
+              >
+                <RiskAssessmentTab merchantId={merchantId} />
+              </ErrorBoundary>
+            </TabsContent>
+
+            <TabsContent
+              value="indicators"
+              className="mt-6"
+              suppressHydrationWarning
+            >
+              <ErrorBoundary
+                fallback={
+                  <TabErrorFallback
+                    tabName="Risk Indicators"
+                    onRetry={() => {
+                      setActiveTab("indicators");
+                    }}
+                  />
+                }
+                onError={(error, errorInfo) => {
+                  console.error("Risk Indicators tab error:", error, errorInfo);
+                }}
+              >
+                <RiskIndicatorsTab merchantId={merchantId} />
+              </ErrorBoundary>
+            </TabsContent>
+          </ClientOnlyTabs>
+        )}
       </section>
     </div>
   );
 }
-

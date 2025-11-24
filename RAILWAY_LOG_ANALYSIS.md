@@ -49,8 +49,10 @@
 - ❌ Business Intelligence Dashboard missing metrics data
 - ⚠️ Non-blocking (dashboard still functional with other data)
 
+**Service Name in Railway:** `bi-service` (check logs for this service name)
+
 **Recommended Fix:**
-1. Verify Railway's `PORT` environment variable for BI service
+1. Verify Railway's `PORT` environment variable for `bi-service`
 2. Ensure service binds to `0.0.0.0:${PORT}` (not just `:${PORT}`)
 3. Check Railway service configuration and port mapping
 4. Verify service is accessible internally within Railway network

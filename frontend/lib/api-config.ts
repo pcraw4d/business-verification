@@ -102,6 +102,7 @@ export const ApiEndpoints = {
     delete: (id: string) => buildApiUrl(`/api/v1/merchants/${id}`),
     search: () => buildApiUrl('/api/v1/merchants/search'),
     analytics: (id: string) => buildApiUrl(`/api/v1/merchants/${id}/analytics`),
+    analyticsStatus: (id: string) => buildApiUrl(`/api/v1/merchants/${id}/analytics/status`),
     websiteAnalysis: (id: string) => buildApiUrl(`/api/v1/merchants/${id}/website-analysis`),
     riskScore: (id: string) => buildApiUrl(`/api/v1/merchants/${id}/risk-score`),
     riskRecommendations: (id: string) => buildApiUrl(`/api/v1/merchants/${id}/risk-recommendations`),
