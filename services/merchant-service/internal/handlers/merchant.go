@@ -108,6 +108,7 @@ type Merchant struct {
 type CreateMerchantRequest struct {
 	Name               string                 `json:"name"`
 	LegalName          string                 `json:"legal_name"`
+	Website            string                 `json:"website,omitempty"` // Backward compatibility: top-level website field
 	RegistrationNumber string                 `json:"registration_number,omitempty"`
 	TaxID              string                 `json:"tax_id,omitempty"`
 	Industry           string                 `json:"industry,omitempty"`
@@ -377,6 +378,18 @@ func (h *MerchantHandler) createMerchant(ctx context.Context, req *CreateMerchan
 		status = "active"
 	}
 
+	// Backward compatibility: If top-level website is provided but not in contact_info, merge it
+	contactInfo := req.ContactInfo
+	if contactInfo == nil {
+		contactInfo = make(map[string]interface{})
+	}
+	// If website is provided at top level but not in contact_info, add it
+	if req.Website != "" {
+		if existingWebsite, ok := contactInfo["website"].(string); !ok || existingWebsite == "" {
+			contactInfo["website"] = req.Website
+		}
+	}
+
 	// Create merchant
 	merchant := &Merchant{
 		ID:                 merchantID,
@@ -391,7 +404,7 @@ func (h *MerchantHandler) createMerchant(ctx context.Context, req *CreateMerchan
 		EmployeeCount:      req.EmployeeCount,
 		AnnualRevenue:      req.AnnualRevenue,
 		Address:            req.Address,
-		ContactInfo:        req.ContactInfo,
+		ContactInfo:        contactInfo,
 		PortfolioType:      portfolioType,
 		RiskLevel:          riskLevel,
 		ComplianceStatus:   req.ComplianceStatus,
