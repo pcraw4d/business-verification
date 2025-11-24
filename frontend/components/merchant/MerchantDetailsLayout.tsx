@@ -212,7 +212,7 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
   }
 
   return (
-    <div className="w-full px-4 py-6 space-y-6">
+    <div className="container mx-auto px-4 py-6 space-y-6">
       <div className="border-b pb-4">
         <div className="flex items-start justify-between">
           <div className="flex-1">

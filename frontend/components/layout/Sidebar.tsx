@@ -96,10 +96,9 @@ interface SidebarProps {
   onMobileClose?: () => void;
 }
 
-export function Sidebar({ className, mobileOpen, onMobileClose }: SidebarProps) {
-  const pathname = usePathname();
-
-  const SidebarContent = () => (
+// SidebarContent component - moved outside to prevent recreation during render
+function SidebarContent({ pathname, onMobileClose }: { pathname: string | null; onMobileClose?: () => void }) {
+  return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex items-center gap-2 p-4 border-b flex-shrink-0">
         <Shield className="h-6 w-6 text-primary" />
@@ -153,18 +152,22 @@ export function Sidebar({ className, mobileOpen, onMobileClose }: SidebarProps) 
       </ScrollArea>
     </div>
   );
+}
+
+export function Sidebar({ className, mobileOpen, onMobileClose }: SidebarProps) {
+  const pathname = usePathname();
 
   return (
     <>
-      {/* Desktop Sidebar */}
-      <aside className={cn('hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 md:z-40 md:border-r bg-background', className)}>
-        <SidebarContent />
+      {/* Desktop Sidebar - Always visible on desktop (md and above) */}
+      <aside className={cn('hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 md:left-0 md:z-50 md:border-r bg-background', className)} aria-label="Main navigation">
+        <SidebarContent pathname={pathname} onMobileClose={onMobileClose} />
       </aside>
 
       {/* Mobile Sidebar */}
       <Sheet open={mobileOpen} onOpenChange={(open) => !open && onMobileClose?.()}>
         <SheetContent side="left" className="w-64 p-0">
-          <SidebarContent />
+          <SidebarContent pathname={pathname} onMobileClose={onMobileClose} />
         </SheetContent>
       </Sheet>
     </>
