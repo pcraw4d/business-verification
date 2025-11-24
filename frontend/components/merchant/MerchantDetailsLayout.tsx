@@ -2,7 +2,8 @@
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ClientOnlyTabs } from './ClientOnlyTabs';
 import { Button } from '@/components/ui/button';
 import { getMerchant } from '@/lib/api';
 import type { Merchant } from '@/types/merchant';
@@ -245,12 +246,10 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
           <Skeleton className="h-64 w-full" />
         </div>
       ) : (
-      <Tabs 
+      <ClientOnlyTabs 
         value={activeTab} 
         onValueChange={setActiveTab} 
         className="w-full"
-        suppressHydrationWarning
-        key={`tabs-${mounted}`}
       >
         <TabsList className="grid w-full grid-cols-4" suppressHydrationWarning>
           <TabsTrigger value="overview" aria-label="Overview tab" suppressHydrationWarning>Overview</TabsTrigger>
@@ -331,7 +330,7 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
           <RiskIndicatorsTab merchantId={merchantId} />
           </ErrorBoundary>
         </TabsContent>
-      </Tabs>
+      </ClientOnlyTabs>
       )}
       </section>
     </div>

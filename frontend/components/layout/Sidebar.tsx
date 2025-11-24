@@ -176,7 +176,7 @@ export function SidebarTrigger({ onOpen }: { onOpen: () => void }) {
     <Button
       variant="ghost"
       size="icon"
-      className="md:hidden"
+      className="lg:hidden"
       onClick={onOpen}
       aria-label="Toggle sidebar"
     >
