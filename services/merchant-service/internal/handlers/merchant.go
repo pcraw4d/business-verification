@@ -2235,13 +2235,27 @@ func (h *MerchantHandler) HandleMerchantWebsiteAnalysis(w http.ResponseWriter, r
 		return
 	}
 
+	// Build performance object with both field names for compatibility
+	requestCount := 0
+	if rc, ok := performance["requestCount"].(int); ok {
+		requestCount = rc
+	}
+	performanceResponse := map[string]interface{}{
+		"loadTime":        performance["loadTime"],
+		"pageSize":        performance["pageSize"],
+		"requestCount":    performance["requestCount"],
+		"requests":        requestCount, // Add 'requests' field for frontend type compatibility
+		"performanceScore": performance["performanceScore"],
+		"score":           performance["performanceScore"], // Add 'score' field for frontend compatibility
+	}
+
 	// Build response in the format expected by frontend
 	response := map[string]interface{}{
 		"merchantId":      merchantID,
 		"websiteUrl":     websiteURL,
 		"ssl":            ssl,
 		"securityHeaders": securityHeaders,
-		"performance":    performance,
+		"performance":    performanceResponse,
 		"accessibility":  accessibility,
 		"status":         status,
 		"lastAnalyzed":   lastAnalyzed,

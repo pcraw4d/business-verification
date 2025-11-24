@@ -185,7 +185,7 @@ func (j *ClassificationJob) callClassificationService(ctx context.Context) (*Cla
 	}
 
 	// Create HTTP request
-	req, err := http.NewRequestWithContext(ctx, "POST", classificationURL+"/api/v1/classify", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, "POST", classificationURL+"/v1/classify", bytes.NewBuffer(jsonData))
 	if err != nil {
 		j.logger.Warn("Failed to create classification request, using fallback",
 			zap.String("merchant_id", j.MerchantID),
@@ -267,13 +267,16 @@ func (j *ClassificationJob) performFallbackClassification() *ClassificationResul
 		}
 	}
 
+	// Generate industry codes based on business name and description
+	mccCodes, sicCodes, naicsCodes := j.generateFallbackIndustryCodes(lowerName, lowerDesc, primaryIndustry)
+
 	result := &ClassificationResult{
 		PrimaryIndustry: primaryIndustry,
 		ConfidenceScore: confidenceScore,
 		RiskLevel:       riskLevel,
-		MCCCodes:        []IndustryCode{},
-		SICCodes:        []IndustryCode{},
-		NAICSCodes:      []IndustryCode{},
+		MCCCodes:        mccCodes,
+		SICCodes:        sicCodes,
+		NAICSCodes:      naicsCodes,
 		Status:          "completed",
 		Metadata: map[string]interface{}{
 			"method":           "fallback",
@@ -283,6 +286,120 @@ func (j *ClassificationJob) performFallbackClassification() *ClassificationResul
 	}
 
 	return result
+}
+
+// generateFallbackIndustryCodes generates basic industry codes based on business name and description
+func (j *ClassificationJob) generateFallbackIndustryCodes(businessName, description, industry string) ([]IndustryCode, []IndustryCode, []IndustryCode) {
+	var mccCodes []IndustryCode
+	var sicCodes []IndustryCode
+	var naicsCodes []IndustryCode
+
+	// Combine text for analysis
+	combinedText := strings.ToLower(businessName + " " + description + " " + industry)
+
+	// Retail/Store businesses
+	if strings.Contains(combinedText, "retail") || strings.Contains(combinedText, "store") || 
+	   strings.Contains(combinedText, "shop") || strings.Contains(combinedText, "merchant") ||
+	   strings.Contains(combinedText, "outdoor") || strings.Contains(combinedText, "equipment") ||
+	   strings.Contains(combinedText, "sporting") || strings.Contains(combinedText, "goods") {
+		mccCodes = append(mccCodes, IndustryCode{
+			Code:        "5941",
+			Description: "Sporting Goods Stores",
+			Confidence:  0.65,
+		})
+		sicCodes = append(sicCodes, IndustryCode{
+			Code:        "5941",
+			Description: "Sporting Goods Stores",
+			Confidence:  0.65,
+		})
+		naicsCodes = append(naicsCodes, IndustryCode{
+			Code:        "451110",
+			Description: "Sporting Goods Stores",
+			Confidence:  0.65,
+		})
+	}
+
+	// Wine/Spirits businesses
+	if strings.Contains(combinedText, "wine") || strings.Contains(combinedText, "grape") ||
+	   strings.Contains(combinedText, "liquor") || strings.Contains(combinedText, "spirits") ||
+	   strings.Contains(combinedText, "beverage") || strings.Contains(combinedText, "alcohol") {
+		mccCodes = append(mccCodes, IndustryCode{
+			Code:        "5921",
+			Description: "Package Stores - Beer, Wine, and Liquor",
+			Confidence:  0.75,
+		})
+		sicCodes = append(sicCodes, IndustryCode{
+			Code:        "5921",
+			Description: "Liquor Stores",
+			Confidence:  0.75,
+		})
+		naicsCodes = append(naicsCodes, IndustryCode{
+			Code:        "445310",
+			Description: "Beer, Wine, and Liquor Stores",
+			Confidence:  0.75,
+		})
+	}
+
+	// Technology/Software businesses
+	if strings.Contains(combinedText, "tech") || strings.Contains(combinedText, "software") ||
+	   strings.Contains(combinedText, "computer") || strings.Contains(combinedText, "digital") {
+		mccCodes = append(mccCodes, IndustryCode{
+			Code:        "5734",
+			Description: "Computer Software Stores",
+			Confidence:  0.70,
+		})
+		sicCodes = append(sicCodes, IndustryCode{
+			Code:        "7372",
+			Description: "Prepackaged Software",
+			Confidence:  0.70,
+		})
+		naicsCodes = append(naicsCodes, IndustryCode{
+			Code:        "541511",
+			Description: "Custom Computer Programming Services",
+			Confidence:  0.70,
+		})
+	}
+
+	// Food/Restaurant businesses
+	if strings.Contains(combinedText, "restaurant") || strings.Contains(combinedText, "food") ||
+	   strings.Contains(combinedText, "cafe") || strings.Contains(combinedText, "dining") {
+		mccCodes = append(mccCodes, IndustryCode{
+			Code:        "5812",
+			Description: "Eating Places, Restaurants",
+			Confidence:  0.70,
+		})
+		sicCodes = append(sicCodes, IndustryCode{
+			Code:        "5812",
+			Description: "Eating Places",
+			Confidence:  0.70,
+		})
+		naicsCodes = append(naicsCodes, IndustryCode{
+			Code:        "722511",
+			Description: "Full-Service Restaurants",
+			Confidence:  0.70,
+		})
+	}
+
+	// General business fallback (if no specific matches)
+	if len(mccCodes) == 0 {
+		mccCodes = append(mccCodes, IndustryCode{
+			Code:        "5999",
+			Description: "Miscellaneous and Specialty Retail Stores",
+			Confidence:  0.50,
+		})
+		sicCodes = append(sicCodes, IndustryCode{
+			Code:        "5999",
+			Description: "Miscellaneous Retail Stores, Not Elsewhere Classified",
+			Confidence:  0.50,
+		})
+		naicsCodes = append(naicsCodes, IndustryCode{
+			Code:        "453998",
+			Description: "All Other Miscellaneous Store Retailers",
+			Confidence:  0.50,
+		})
+	}
+
+	return mccCodes, sicCodes, naicsCodes
 }
 
 // extractClassificationFromResponse extracts classification data from API response
