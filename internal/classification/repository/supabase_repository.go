@@ -956,6 +956,7 @@ func (r *SupabaseKeywordRepository) GetClassificationCodesByIndustry(ctx context
 	}
 
 	// Optimized query with proper indexing and ordering
+	// First, try with is_active filter
 	response, _, err := postgrestClient.
 		From("classification_codes").
 		Select("id,industry_id,code_type,code,description,is_active", "", false).
@@ -966,7 +967,20 @@ func (r *SupabaseKeywordRepository) GetClassificationCodesByIndustry(ctx context
 		Execute()
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to get classification codes for industry %d: %w", industryID, err)
+		r.logger.Printf("⚠️ [ClassificationCodes] Query with is_active filter failed for industry %d: %v", industryID, err)
+		// Try without is_active filter as fallback (in case column doesn't exist or all are inactive)
+		response, _, err = postgrestClient.
+			From("classification_codes").
+			Select("id,industry_id,code_type,code,description", "", false).
+			Eq("industry_id", fmt.Sprintf("%d", industryID)).
+			Order("code_type", &postgrest.OrderOpts{Ascending: true}).
+			Order("code", &postgrest.OrderOpts{Ascending: true}).
+			Execute()
+		
+		if err != nil {
+			return nil, fmt.Errorf("failed to get classification codes for industry %d: %w", industryID, err)
+		}
+		r.logger.Printf("⚠️ [ClassificationCodes] Query without is_active filter succeeded for industry %d", industryID)
 	}
 
 	// Parse the response
@@ -975,7 +989,21 @@ func (r *SupabaseKeywordRepository) GetClassificationCodesByIndustry(ctx context
 		return nil, fmt.Errorf("failed to parse classification codes response: %w", err)
 	}
 
-	r.logger.Printf("✅ Retrieved %d classification codes for industry %d", len(codes), industryID)
+	if len(codes) == 0 {
+		r.logger.Printf("⚠️ [ClassificationCodes] No classification codes found for industry %d - database may need codes populated", industryID)
+	} else {
+		// Extract unique code types for logging
+		codeTypes := make(map[string]bool)
+		for _, code := range codes {
+			codeTypes[code.CodeType] = true
+		}
+		typeList := make([]string, 0, len(codeTypes))
+		for ct := range codeTypes {
+			typeList = append(typeList, ct)
+		}
+		r.logger.Printf("✅ Retrieved %d classification codes for industry %d (types: %v)", 
+			len(codes), industryID, typeList)
+	}
 	return codes, nil
 }
 
@@ -2041,9 +2069,21 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromMultiPageWebsite(ctx cont
 
 	// Check if we have enough successful pages (at least 3)
 	successfulPages := 0
-	for _, page := range pagesToAnalyze {
-		if page.GetStatusCode() == 200 && page.GetRelevanceScore() > 0 {
+	for i, page := range pagesToAnalyze {
+		statusCode := page.GetStatusCode()
+		relevanceScore := page.GetRelevanceScore()
+		pageURL := page.GetURL()
+		
+		// Debug logging for each page
+		r.logger.Printf("🔍 [MultiPage] Page %d/%d: URL=%s, Status=%d, Relevance=%.2f", 
+			i+1, len(pagesToAnalyze), pageURL, statusCode, relevanceScore)
+		
+		if statusCode == 200 && relevanceScore > 0 {
 			successfulPages++
+			r.logger.Printf("✅ [MultiPage] Page %d is successful: URL=%s", i+1, pageURL)
+		} else {
+			r.logger.Printf("⚠️ [MultiPage] Page %d failed check: Status=%d (need 200), Relevance=%.2f (need >0)", 
+				i+1, statusCode, relevanceScore)
 		}
 	}
 
