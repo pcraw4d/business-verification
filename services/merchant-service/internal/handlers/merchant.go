@@ -647,6 +647,52 @@ func (h *MerchantHandler) markWebsiteAnalysisSkipped(ctx context.Context, mercha
 	}
 }
 
+// migrateWebsiteURLToContactInfo migrates a website URL from legacy columns to contact_info
+func (h *MerchantHandler) migrateWebsiteURLToContactInfo(ctx context.Context, merchantID, websiteURL string) {
+	// Get current contact_info
+	var merchantResult []map[string]interface{}
+	_, err := h.supabaseClient.GetClient().From("merchants").
+		Select("contact_info", "", false).
+		Eq("id", merchantID).
+		Limit(1, "").
+		ExecuteTo(&merchantResult)
+	
+	if err != nil || len(merchantResult) == 0 {
+		h.logger.Warn("Failed to fetch merchant for website URL migration",
+			zap.String("merchant_id", merchantID),
+			zap.Error(err))
+		return
+	}
+	
+	// Build updated contact_info
+	contactInfo := make(map[string]interface{})
+	if existingContactInfo, ok := merchantResult[0]["contact_info"].(map[string]interface{}); ok {
+		contactInfo = existingContactInfo
+	}
+	contactInfo["website"] = websiteURL
+	
+	// Update merchant with migrated website URL
+	updateData := map[string]interface{}{
+		"contact_info": contactInfo,
+	}
+	
+	_, _, err = h.supabaseClient.GetClient().From("merchants").
+		Update(updateData, "", "").
+		Eq("id", merchantID).
+		Execute()
+	
+	if err != nil {
+		h.logger.Warn("Failed to migrate website URL to contact_info",
+			zap.String("merchant_id", merchantID),
+			zap.String("website_url", websiteURL),
+			zap.Error(err))
+	} else {
+		h.logger.Info("Successfully migrated website URL to contact_info",
+			zap.String("merchant_id", merchantID),
+			zap.String("website_url", websiteURL))
+	}
+}
+
 // getMerchant retrieves a merchant by ID from Supabase.
 //
 // FALLBACK BEHAVIOR:
@@ -1860,9 +1906,50 @@ func (h *MerchantHandler) HandleTriggerAnalyticsRefresh(w http.ResponseWriter, r
 
 	// Extract website URL and trigger website analysis if available
 	websiteURL := ""
+
+	// Primary: Check contact_info (new format)
 	if merchant.ContactInfo != nil {
 		if url, ok := merchant.ContactInfo["website"].(string); ok && url != "" {
 			websiteURL = url
+		}
+	}
+
+	// Safety fallback: Check legacy columns (only if not found in contact_info)
+	if websiteURL == "" {
+		// Check contact_website column
+		if contactWebsite, ok := merchantData["contact_website"].(string); ok && contactWebsite != "" {
+			websiteURL = contactWebsite
+			h.logger.Info("Found website URL in legacy contact_website column, migrating to contact_info",
+				zap.String("merchant_id", merchantID),
+				zap.String("website_url", contactWebsite))
+			
+			// Auto-migrate: Update contact_info for future use
+			if merchant.ContactInfo == nil {
+				merchant.ContactInfo = make(map[string]interface{})
+			}
+			merchant.ContactInfo["website"] = contactWebsite
+			
+			// Persist the migration back to database
+			go h.migrateWebsiteURLToContactInfo(ctx, merchantID, contactWebsite)
+		}
+		
+		// Check website_url column
+		if websiteURL == "" {
+			if websiteURLField, ok := merchantData["website_url"].(string); ok && websiteURLField != "" {
+				websiteURL = websiteURLField
+				h.logger.Info("Found website URL in legacy website_url column, migrating to contact_info",
+					zap.String("merchant_id", merchantID),
+					zap.String("website_url", websiteURLField))
+				
+				// Auto-migrate
+				if merchant.ContactInfo == nil {
+					merchant.ContactInfo = make(map[string]interface{})
+				}
+				merchant.ContactInfo["website"] = websiteURLField
+				
+				// Persist the migration back to database
+				go h.migrateWebsiteURLToContactInfo(ctx, merchantID, websiteURLField)
+			}
 		}
 	}
 
