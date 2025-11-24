@@ -16,6 +16,7 @@ type BusinessIntelligenceGatewayServer struct {
 	serviceName string
 	version     string
 	port        string
+	router      *mux.Router
 }
 
 // NewBusinessIntelligenceGatewayServer creates a new BI gateway server
@@ -652,7 +653,13 @@ func (s *BusinessIntelligenceGatewayServer) setupRoutes() {
 	log.Printf("📤 Data Export: http://localhost:%s/export", s.port)
 	log.Printf("💡 Business Insights: http://localhost:%s/insights", s.port)
 
-	http.Handle("/", router)
+	// Store router for use in main()
+	s.router = router
+}
+
+// GetRouter returns the configured router
+func (s *BusinessIntelligenceGatewayServer) GetRouter() *mux.Router {
+	return s.router
 }
 
 // handleBusinessAnalysis handles business analysis requests
@@ -732,5 +739,5 @@ func (s *BusinessIntelligenceGatewayServer) handleBusinessAnalysis(w http.Respon
 func main() {
 	server := NewBusinessIntelligenceGatewayServer()
 	server.setupRoutes()
-	log.Fatal(http.ListenAndServe(":"+server.port, nil))
+	log.Fatal(http.ListenAndServe(":"+server.port, server.GetRouter()))
 }
