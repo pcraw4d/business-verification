@@ -11,6 +11,7 @@ import { ChartContainer } from '@/components/dashboards/ChartContainer';
 import { BarChart, PieChart } from '@/components/charts/lazy';
 import { getMerchant, getMerchantAnalytics, getWebsiteAnalysis, triggerAnalyticsRefresh } from '@/lib/api';
 import { AnalyticsStatusIndicator } from './AnalyticsStatusIndicator';
+import { ClassificationMetadata } from './ClassificationMetadata';
 import { deferNonCriticalDataLoad } from '@/lib/lazy-loader';
 import { formatPercent } from '@/lib/number-format';
 import type { AnalyticsData, WebsiteAnalysisData, IndustryCode, Merchant } from '@/types/merchant';
@@ -308,6 +309,8 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
                 <p className="text-sm font-medium text-muted-foreground">Risk Level</p>
                 <Badge variant="outline">{analytics.classification?.riskLevel || 'N/A'}</Badge>
               </div>
+              {/* Classification Metadata */}
+              <ClassificationMetadata metadata={analytics.classification?.metadata} />
             </CardContent>
           </Card>
 

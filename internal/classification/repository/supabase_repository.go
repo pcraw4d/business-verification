@@ -105,6 +105,7 @@ type IndustryCodeCacheConfig struct {
 // SupabaseKeywordRepository implements KeywordRepository using Supabase
 type SupabaseKeywordRepository struct {
 	client       *database.SupabaseClient
+	clientInterface SupabaseClientInterface // Store interface for methods that need it
 	logger       *log.Logger
 	keywordIndex *KeywordIndex
 	cacheMutex   sync.RWMutex
@@ -114,6 +115,9 @@ type SupabaseKeywordRepository struct {
 	cacheConfig       *IndustryCodeCacheConfig
 	cacheStats        *IndustryCodeCacheStats
 	statsMutex        sync.RWMutex
+
+	// Brand matcher for MCC 3000-3831 (hotels)
+	brandMatcher *BrandMatcher
 }
 
 // IndustryCodeCacheStats holds statistics for industry code caching
@@ -133,6 +137,12 @@ func NewSupabaseKeywordRepository(client *database.SupabaseClient, logger *log.L
 		logger = log.Default()
 	}
 
+	// Initialize adapters if not already initialized (lazy initialization)
+	// This will be called from adapters.Init() in production, but we ensure it's available
+	if NewStructuredDataExtractorAdapter == nil || NewSmartWebsiteCrawlerAdapter == nil {
+		logger.Printf("⚠️ [Repository] Adapters not initialized - some features may not work. Call adapters.Init() before using repository.")
+	}
+
 	// Default cache configuration
 	cacheConfig := &IndustryCodeCacheConfig{
 		Enabled:         true,
@@ -152,8 +162,9 @@ func NewSupabaseKeywordRepository(client *database.SupabaseClient, logger *log.L
 	var intelligentCache *cache.IntelligentCache
 
 	return &SupabaseKeywordRepository{
-		client: client,
-		logger: logger,
+		client:          client,
+		clientInterface: nil, // Not needed for concrete client
+		logger:          logger,
 		keywordIndex: &KeywordIndex{
 			KeywordToIndustries: make(map[string][]IndustryKeywordMatch),
 			IndustryToKeywords:  make(map[int][]*KeywordWeight),
@@ -162,6 +173,7 @@ func NewSupabaseKeywordRepository(client *database.SupabaseClient, logger *log.L
 		industryCodeCache: intelligentCache,
 		cacheConfig:       cacheConfig,
 		cacheStats:        &IndustryCodeCacheStats{},
+		brandMatcher:      NewBrandMatcher(logger),
 	}
 }
 
@@ -171,9 +183,10 @@ func NewSupabaseKeywordRepositoryWithInterface(client SupabaseClientInterface, l
 		logger = log.Default()
 	}
 
-	// For testing purposes, we'll use nil for the client since tests don't need real database connections
-	// In production, this should be refactored to use interfaces properly
+	// Convert interface to concrete client if possible
 	var concreteClient *database.SupabaseClient
+	// For interface clients, we'll store the interface and use it when needed
+	// The concrete client will be nil for interface-based clients
 
 	// Default cache configuration
 	cacheConfig := &IndustryCodeCacheConfig{
@@ -194,8 +207,9 @@ func NewSupabaseKeywordRepositoryWithInterface(client SupabaseClientInterface, l
 	var intelligentCache *cache.IntelligentCache
 
 	return &SupabaseKeywordRepository{
-		client: concreteClient,
-		logger: logger,
+		client:          concreteClient,
+		clientInterface: client, // Store interface for methods that need it
+		logger:          logger,
 		keywordIndex: &KeywordIndex{
 			KeywordToIndustries: make(map[string][]IndustryKeywordMatch),
 			IndustryToKeywords:  make(map[int][]*KeywordWeight),
@@ -204,6 +218,7 @@ func NewSupabaseKeywordRepositoryWithInterface(client SupabaseClientInterface, l
 		industryCodeCache: intelligentCache,
 		cacheConfig:       cacheConfig,
 		cacheStats:        &IndustryCodeCacheStats{},
+		brandMatcher:      NewBrandMatcher(logger),
 	}
 }
 
@@ -215,8 +230,17 @@ func NewSupabaseKeywordRepositoryWithInterface(client SupabaseClientInterface, l
 func (r *SupabaseKeywordRepository) BuildKeywordIndex(ctx context.Context) error {
 	r.logger.Printf("🔍 Building optimized keyword index...")
 
+	// Check if client is available
+	if r.client == nil {
+		return fmt.Errorf("database client not available")
+	}
+	postgrestClient := r.client.GetPostgrestClient()
+	if postgrestClient == nil {
+		return fmt.Errorf("postgrest client not available")
+	}
+
 	// Optimized query with proper indexing and filtering
-	query := r.client.GetPostgrestClient().From("keyword_weights").
+	query := postgrestClient.From("keyword_weights").
 		Select("id,industry_id,keyword,base_weight,context_multiplier,usage_count", "", false).
 		Eq("is_active", "true").
 		Order("base_weight", &postgrest.OrderOpts{Ascending: false}).
@@ -508,6 +532,15 @@ func (r *SupabaseKeywordRepository) GetBatchClassificationCodes(ctx context.Cont
 
 	r.logger.Printf("🔍 Getting batch classification codes for %d industries", len(industryIDs))
 
+	// Check if client is available
+	if r.client == nil {
+		return nil, fmt.Errorf("database client not available")
+	}
+	postgrestClient := r.client.GetPostgrestClient()
+	if postgrestClient == nil {
+		return nil, fmt.Errorf("postgrest client not available")
+	}
+
 	// Convert industry IDs to string slice for IN clause
 	industryIDStrings := make([]string, len(industryIDs))
 	for i, id := range industryIDs {
@@ -521,7 +554,7 @@ func (r *SupabaseKeywordRepository) GetBatchClassificationCodes(ctx context.Cont
 
 	// Use the first industry ID for now (this is a temporary workaround)
 	if len(industryIDStrings) > 0 {
-		response, _, err = r.client.GetPostgrestClient().
+		response, _, err = postgrestClient.
 			From("classification_codes").
 			Select("id,industry_id,code_type,code,description,is_active", "", false).
 			Eq("industry_id", industryIDStrings[0]).
@@ -562,6 +595,15 @@ func (r *SupabaseKeywordRepository) GetBatchIndustries(ctx context.Context, indu
 
 	r.logger.Printf("🔍 Getting batch industries for %d IDs", len(industryIDs))
 
+	// Check if client is available
+	if r.client == nil {
+		return nil, fmt.Errorf("database client not available")
+	}
+	postgrestClient := r.client.GetPostgrestClient()
+	if postgrestClient == nil {
+		return nil, fmt.Errorf("postgrest client not available")
+	}
+
 	// Convert industry IDs to string slice for IN clause
 	industryIDStrings := make([]string, len(industryIDs))
 	for i, id := range industryIDs {
@@ -575,7 +617,7 @@ func (r *SupabaseKeywordRepository) GetBatchIndustries(ctx context.Context, indu
 
 	// Use the first industry ID for now (this is a temporary workaround)
 	if len(industryIDStrings) > 0 {
-		response, _, err = r.client.GetPostgrestClient().
+		response, _, err = postgrestClient.
 			From("industries").
 			Select("id,name,description,category,confidence_threshold,is_active", "", false).
 			Eq("id", industryIDStrings[0]).
@@ -612,6 +654,15 @@ func (r *SupabaseKeywordRepository) GetBatchKeywords(ctx context.Context, indust
 
 	r.logger.Printf("🔍 Getting batch keywords for %d industries", len(industryIDs))
 
+	// Check if client is available
+	if r.client == nil {
+		return nil, fmt.Errorf("database client not available")
+	}
+	postgrestClient := r.client.GetPostgrestClient()
+	if postgrestClient == nil {
+		return nil, fmt.Errorf("postgrest client not available")
+	}
+
 	// Convert industry IDs to string slice for IN clause
 	industryIDStrings := make([]string, len(industryIDs))
 	for i, id := range industryIDs {
@@ -625,7 +676,7 @@ func (r *SupabaseKeywordRepository) GetBatchKeywords(ctx context.Context, indust
 
 	// Use the first industry ID for now (this is a temporary workaround)
 	if len(industryIDStrings) > 0 {
-		response, _, err = r.client.GetPostgrestClient().
+		response, _, err = postgrestClient.
 			From("keyword_weights").
 			Select("id,industry_id,keyword,base_weight,context_multiplier,usage_count", "", false).
 			Eq("industry_id", industryIDStrings[0]).
@@ -829,8 +880,14 @@ func (r *SupabaseKeywordRepository) GetKeywordsByIndustry(ctx context.Context, i
 func (r *SupabaseKeywordRepository) SearchKeywords(ctx context.Context, query string, limit int) ([]*IndustryKeyword, error) {
 	r.logger.Printf("🔍 Searching keywords: %s (limit: %d)", query, limit)
 
-	// Optimized query with proper indexing and text search
+	// Check if client is available
+	if r.client == nil {
+		return nil, fmt.Errorf("database client not available")
+	}
 	postgrestClient := r.client.GetPostgrestClient()
+	if postgrestClient == nil {
+		return nil, fmt.Errorf("postgrest client not available")
+	}
 
 	// Use full-text search if available, otherwise fall back to ILIKE
 	data, _, err := postgrestClient.
@@ -888,8 +945,17 @@ func (r *SupabaseKeywordRepository) RemoveKeywordFromIndustry(ctx context.Contex
 func (r *SupabaseKeywordRepository) GetClassificationCodesByIndustry(ctx context.Context, industryID int) ([]*ClassificationCode, error) {
 	r.logger.Printf("🔍 Getting classification codes for industry ID: %d", industryID)
 
+	// Check if client is available
+	if r.client == nil {
+		return nil, fmt.Errorf("database client not available")
+	}
+	postgrestClient := r.client.GetPostgrestClient()
+	if postgrestClient == nil {
+		return nil, fmt.Errorf("postgrest client not available")
+	}
+
 	// Optimized query with proper indexing and ordering
-	response, _, err := r.client.GetPostgrestClient().
+	response, _, err := postgrestClient.
 		From("classification_codes").
 		Select("id,industry_id,code_type,code,description,is_active", "", false).
 		Eq("industry_id", fmt.Sprintf("%d", industryID)).
@@ -916,8 +982,17 @@ func (r *SupabaseKeywordRepository) GetClassificationCodesByIndustry(ctx context
 func (r *SupabaseKeywordRepository) GetClassificationCodesByType(ctx context.Context, codeType string) ([]*ClassificationCode, error) {
 	r.logger.Printf("🔍 Getting classification codes by type: %s", codeType)
 
+	// Check if client is available
+	if r.client == nil {
+		return nil, fmt.Errorf("database client not available")
+	}
+	postgrestClient := r.client.GetPostgrestClient()
+	if postgrestClient == nil {
+		return nil, fmt.Errorf("postgrest client not available")
+	}
+
 	// Optimized query with proper indexing and ordering
-	response, _, err := r.client.GetPostgrestClient().
+	response, _, err := postgrestClient.
 		From("classification_codes").
 		Select("id,industry_id,code_type,code,description,is_active", "", false).
 		Eq("code_type", codeType).
@@ -1530,6 +1605,13 @@ func (r *SupabaseKeywordRepository) BulkDeleteKeywords(ctx context.Context, keyw
 // Ping checks the database connection
 func (r *SupabaseKeywordRepository) Ping(ctx context.Context) error {
 	r.logger.Printf("🔍 Pinging database")
+	// Use interface client if available, otherwise use concrete client
+	if r.clientInterface != nil {
+		return r.clientInterface.Ping(ctx)
+	}
+	if r.client == nil {
+		return fmt.Errorf("database client not available")
+	}
 	return r.client.Ping(ctx)
 }
 
@@ -1555,31 +1637,21 @@ func (r *SupabaseKeywordRepository) CleanupInactiveData(ctx context.Context) err
 
 // extractKeywords extracts keywords from business information with enhanced phrase matching and context tracking
 // Note: Description removed for security - only uses business name and website content
+// Priority: Website content FIRST (highest priority), business name LAST (only for brand matches in MCC 3000-3831)
 func (r *SupabaseKeywordRepository) extractKeywords(businessName, websiteURL string) []ContextualKeyword {
 	var keywords []ContextualKeyword
 	seen := make(map[string]bool)
 
-	// Extract keywords from business name (highest priority context)
-	if businessName != "" {
-		nameKeywords := r.extractKeywordsFromText(businessName, "business_name")
-		for _, keyword := range nameKeywords {
-			if !seen[keyword.Keyword] {
-				seen[keyword.Keyword] = true
-				keywords = append(keywords, keyword)
-			}
-		}
-	}
-
-	// Note: Description processing removed for security reasons
-	// Business descriptions provided by merchants can be unreliable, misleading, or fraudulent
-
-	// Extract keywords from website URL (lowest priority context)
+	// PRIORITY 1: Extract keywords from website content (HIGHEST PRIORITY)
+	// Fallback chain: multi-page → single-page → URL text extraction
 	if websiteURL != "" {
-		// First, try to scrape actual website content for keywords
-		scrapedKeywords := r.extractKeywordsFromWebsite(context.Background(), websiteURL)
-		if len(scrapedKeywords) > 0 {
-			// Add scraped keywords with website content context
-			for _, keyword := range scrapedKeywords {
+		analysisMethod := "none"
+		
+		// Step 1: Try multi-page analysis first
+		multiPageKeywords := r.extractKeywordsFromMultiPageWebsite(context.Background(), websiteURL)
+		if len(multiPageKeywords) > 0 {
+			// Add multi-page keywords with website content context
+			for _, keyword := range multiPageKeywords {
 				if !seen[keyword] {
 					seen[keyword] = true
 					keywords = append(keywords, ContextualKeyword{
@@ -1588,17 +1660,60 @@ func (r *SupabaseKeywordRepository) extractKeywords(businessName, websiteURL str
 					})
 				}
 			}
-			r.logger.Printf("✅ Extracted %d keywords from website content: %v", len(scrapedKeywords), scrapedKeywords)
+			analysisMethod = "multi_page"
+			r.logger.Printf("✅ Extracted %d keywords from multi-page website analysis (PRIORITY 1): %v", len(multiPageKeywords), multiPageKeywords)
 		} else {
-			// Fallback to URL text extraction if scraping fails
-			urlKeywords := r.extractKeywordsFromText(websiteURL, "website_url")
-			for _, keyword := range urlKeywords {
+			// Step 2: Fallback to single-page analysis
+			singlePageKeywords := r.extractKeywordsFromWebsite(context.Background(), websiteURL)
+			if len(singlePageKeywords) > 0 {
+				// Add single-page keywords with website content context
+				for _, keyword := range singlePageKeywords {
+					if !seen[keyword] {
+						seen[keyword] = true
+						keywords = append(keywords, ContextualKeyword{
+							Keyword: keyword,
+							Context: "website_content",
+						})
+					}
+				}
+				analysisMethod = "single_page"
+				r.logger.Printf("✅ Extracted %d keywords from single-page website analysis (fallback): %v", len(singlePageKeywords), singlePageKeywords)
+			} else {
+				// Step 3: Final fallback to URL text extraction
+				urlKeywords := r.extractKeywordsFromText(websiteURL, "website_url")
+				for _, keyword := range urlKeywords {
+					if !seen[keyword.Keyword] {
+						seen[keyword.Keyword] = true
+						keywords = append(keywords, keyword)
+					}
+				}
+				analysisMethod = "url_only"
+				r.logger.Printf("⚠️ Website scraping failed, using URL text extraction (final fallback)")
+			}
+		}
+		
+		r.logger.Printf("📊 Analysis method used: %s", analysisMethod)
+	}
+
+	// Note: Description processing removed for security reasons
+	// Business descriptions provided by merchants can be unreliable, misleading, or fraudulent
+
+	// PRIORITY 2: Extract keywords from business name (LOWEST PRIORITY - only for brand matches in MCC 3000-3831)
+	if businessName != "" {
+		// Check if business name matches a known hotel brand (MCC 3000-3831)
+		isBrandMatch, brandName, confidence := r.brandMatcher.IsHighConfidenceBrandMatch(businessName)
+		if isBrandMatch {
+			r.logger.Printf("✅ Brand match detected: %s (matched: %s, confidence: %.2f) - extracting business name keywords", businessName, brandName, confidence)
+			nameKeywords := r.extractKeywordsFromText(businessName, "business_name")
+			for _, keyword := range nameKeywords {
 				if !seen[keyword.Keyword] {
 					seen[keyword.Keyword] = true
 					keywords = append(keywords, keyword)
 				}
 			}
-			r.logger.Printf("⚠️ Website scraping failed, using URL text extraction")
+			r.logger.Printf("✅ Extracted %d keywords from business name (brand match in MCC 3000-3831): %v", len(nameKeywords), nameKeywords)
+		} else {
+			r.logger.Printf("⚠️ Business name '%s' does not match known hotel brands (MCC 3000-3831) - skipping business name keywords", businessName)
 		}
 	}
 
@@ -1706,12 +1821,321 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 		r.logger.Printf("📝 [Supabase] Sample extracted text: %s...", sampleText)
 	}
 
-	// Extract business-relevant keywords
-	keywords := r.extractBusinessKeywords(textContent)
+	// Extract business-relevant keywords from text
+	textKeywords := r.extractBusinessKeywords(textContent)
+	r.logger.Printf("📝 [Supabase] Extracted %d keywords from text content", len(textKeywords))
+
+	// Extract structured data and keywords
+	if NewStructuredDataExtractorAdapter == nil {
+		r.logger.Printf("⚠️ [Supabase] StructuredDataExtractor adapter not initialized - skipping structured data extraction")
+		// Fallback to text-only extraction
+		keywords := r.extractBusinessKeywords(textContent)
+		return keywords
+	}
+	structuredDataExtractor := NewStructuredDataExtractorAdapter(r.logger)
+	structuredDataResult := structuredDataExtractor.ExtractStructuredData(string(body))
+	
+	var structuredKeywords []string
+	structuredKeywordMap := make(map[string]float64) // Track keywords with confidence scores
+
+	// Extract keywords from BusinessInfo
+	if structuredDataResult.BusinessInfo.Industry != "" {
+		structuredKeywordMap[strings.ToLower(structuredDataResult.BusinessInfo.Industry)] = 1.5
+	}
+	if structuredDataResult.BusinessInfo.BusinessType != "" {
+		structuredKeywordMap[strings.ToLower(structuredDataResult.BusinessInfo.BusinessType)] = 1.5
+	}
+	for _, service := range structuredDataResult.BusinessInfo.Services {
+		serviceLower := strings.ToLower(service)
+		structuredKeywordMap[serviceLower] = 1.5
+	}
+	for _, product := range structuredDataResult.BusinessInfo.Products {
+		productLower := strings.ToLower(product)
+		structuredKeywordMap[productLower] = 1.5
+	}
+
+	// Extract keywords from ProductInfo
+	for _, product := range structuredDataResult.ProductInfo {
+		if product.Name != "" {
+			structuredKeywordMap[strings.ToLower(product.Name)] = 1.5
+		}
+		if product.Category != "" {
+			structuredKeywordMap[strings.ToLower(product.Category)] = 1.5
+		}
+		if product.Description != "" {
+			// Extract keywords from product description
+			descKeywords := r.extractBusinessKeywords(product.Description)
+			for _, kw := range descKeywords {
+				structuredKeywordMap[strings.ToLower(kw)] = 1.5
+			}
+		}
+	}
+
+	// Extract keywords from ServiceInfo
+	for _, service := range structuredDataResult.ServiceInfo {
+		if service.Name != "" {
+			structuredKeywordMap[strings.ToLower(service.Name)] = 1.5
+		}
+		if service.Category != "" {
+			structuredKeywordMap[strings.ToLower(service.Category)] = 1.5
+		}
+		if service.Description != "" {
+			// Extract keywords from service description
+			descKeywords := r.extractBusinessKeywords(service.Description)
+			for _, kw := range descKeywords {
+				structuredKeywordMap[strings.ToLower(kw)] = 1.5
+			}
+		}
+	}
+
+	// Extract keywords from Schema.org Organization types
+	for _, schemaItem := range structuredDataResult.SchemaOrgData {
+		if schemaItem.Type != "" {
+			typeLower := strings.ToLower(schemaItem.Type)
+			// Focus on business-relevant types
+			if strings.Contains(typeLower, "organization") || 
+			   strings.Contains(typeLower, "business") || 
+			   strings.Contains(typeLower, "localbusiness") ||
+			   strings.Contains(typeLower, "store") ||
+			   strings.Contains(typeLower, "restaurant") ||
+			   strings.Contains(typeLower, "service") {
+				structuredKeywordMap[typeLower] = 1.5
+			}
+		}
+		// Extract from properties
+		if schemaItem.Properties != nil {
+			if industry, exists := schemaItem.Properties["industry"]; exists {
+				structuredKeywordMap[strings.ToLower(fmt.Sprintf("%v", industry))] = 1.5
+			}
+			if businessType, exists := schemaItem.Properties["@type"]; exists {
+				typeStr := strings.ToLower(fmt.Sprintf("%v", businessType))
+				if strings.Contains(typeStr, "organization") || strings.Contains(typeStr, "business") {
+					structuredKeywordMap[typeStr] = 1.5
+				}
+			}
+		}
+	}
+
+	// Convert map to slice (structured keywords weighted 1.5x)
+	for kw := range structuredKeywordMap {
+		structuredKeywords = append(structuredKeywords, kw)
+	}
+
+	r.logger.Printf("📊 [StructuredData] Extracted %d keywords from structured data (weighted 1.5x)", len(structuredKeywords))
+
+	// Combine text keywords and structured keywords
+	allKeywords := make(map[string]float64)
+	
+	// Add text keywords with weight 1.0
+	for _, kw := range textKeywords {
+		kwLower := strings.ToLower(kw)
+		if allKeywords[kwLower] < 1.0 {
+			allKeywords[kwLower] = 1.0
+		}
+	}
+	
+	// Add structured keywords with weight 1.5 (higher priority)
+	for kw, weight := range structuredKeywordMap {
+		if allKeywords[kw] < weight {
+			allKeywords[kw] = weight
+		}
+	}
+
+	// Convert to slice and sort by weight (descending), then limit to top 30
+	type keywordWeight struct {
+		keyword string
+		weight  float64
+	}
+	keywordList := make([]keywordWeight, 0, len(allKeywords))
+	for kw, weight := range allKeywords {
+		keywordList = append(keywordList, keywordWeight{keyword: kw, weight: weight})
+	}
+	
+	// Sort by weight descending
+	sort.Slice(keywordList, func(i, j int) bool {
+		return keywordList[i].weight > keywordList[j].weight
+	})
+	
+	// Limit to top 30 keywords
+	maxKeywords := 30
+	if len(keywordList) > maxKeywords {
+		keywordList = keywordList[:maxKeywords]
+	}
+	
+	keywords := make([]string, len(keywordList))
+	for i, kw := range keywordList {
+		keywords[i] = kw.keyword
+	}
 
 	duration := time.Since(startTime)
-	r.logger.Printf("✅ [Supabase] Website scraping completed for %s in %v - extracted %d keywords: %v",
-		websiteURL, duration, len(keywords), keywords)
+	r.logger.Printf("✅ [Supabase] Website scraping completed for %s in %v - extracted %d keywords (%d from text, %d from structured data): %v",
+		websiteURL, duration, len(keywords), len(textKeywords), len(structuredKeywords), keywords)
+
+	return keywords
+}
+
+// extractKeywordsFromMultiPageWebsite analyzes multiple pages with relevance-based weighting
+// Uses SmartWebsiteCrawler to discover pages, limits to top 15 pages, analyzes concurrently,
+// and returns top 30 keywords weighted by page relevance score
+func (r *SupabaseKeywordRepository) extractKeywordsFromMultiPageWebsite(ctx context.Context, websiteURL string) []string {
+	startTime := time.Now()
+	r.logger.Printf("🌐 [MultiPage] Starting multi-page website analysis for: %s", websiteURL)
+
+	// Create overall timeout context (60 seconds for multi-page analysis)
+	analysisCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+
+	// Create SmartWebsiteCrawler with max 15 pages
+	if NewSmartWebsiteCrawlerAdapter == nil {
+		r.logger.Printf("⚠️ [MultiPage] SmartWebsiteCrawler adapter not initialized - falling back to single page")
+		return []string{} // Return empty to trigger fallback
+	}
+	crawler := NewSmartWebsiteCrawlerAdapter(r.logger)
+	
+	// Use CrawlWebsite which handles discovery, prioritization, and analysis
+	crawlResult, err := crawler.CrawlWebsite(analysisCtx, websiteURL)
+	if err != nil {
+		r.logger.Printf("⚠️ [MultiPage] Website crawl failed: %v - falling back to single page", err)
+		return []string{} // Return empty to trigger fallback
+	}
+
+	if crawlResult == nil {
+		r.logger.Printf("⚠️ [MultiPage] Crawl result is nil - falling back to single page")
+		return []string{} // Return empty to trigger fallback
+	}
+
+	pagesAnalyzed := crawlResult.GetPagesAnalyzed()
+	if len(pagesAnalyzed) == 0 {
+		r.logger.Printf("⚠️ [MultiPage] No pages analyzed - falling back to single page")
+		return []string{} // Return empty to trigger fallback
+	}
+
+	// Limit to top 15 pages by priority (they're already sorted by CrawlWebsite)
+	maxPages := 15
+	pagesToAnalyze := pagesAnalyzed
+	if len(pagesToAnalyze) > maxPages {
+		pagesToAnalyze = pagesToAnalyze[:maxPages]
+		r.logger.Printf("📊 [MultiPage] Limited to top %d pages by priority", maxPages)
+	}
+
+	// Check if we have enough successful pages (at least 3)
+	successfulPages := 0
+	for _, page := range pagesToAnalyze {
+		if page.GetStatusCode() == 200 && page.GetRelevanceScore() > 0 {
+			successfulPages++
+		}
+	}
+
+	if successfulPages < 3 {
+		r.logger.Printf("⚠️ [MultiPage] Only %d pages successfully analyzed (< 3) - falling back to single page", successfulPages)
+		return []string{} // Return empty to trigger fallback
+	}
+
+	// Weight keywords by page relevance score
+	keywordWeights := make(map[string]float64)
+	totalRelevance := 0.0
+
+	// Calculate total relevance for normalization
+	for _, page := range pagesToAnalyze {
+		if page.GetStatusCode() == 200 && page.GetRelevanceScore() > 0 {
+			totalRelevance += page.GetRelevanceScore()
+		}
+	}
+
+	// Extract keywords from each page and weight by relevance
+	for _, page := range pagesToAnalyze {
+		if page.GetStatusCode() == 200 && page.GetRelevanceScore() > 0 && totalRelevance > 0 {
+			weight := page.GetRelevanceScore() / totalRelevance // Normalize by total relevance
+			
+			// Extract keywords from page
+			pageKeywords := r.extractKeywordsFromPageData(page)
+			
+			// Weight keywords by page relevance
+			for _, keyword := range pageKeywords {
+				keywordLower := strings.ToLower(keyword)
+				keywordWeights[keywordLower] += weight
+			}
+			
+			r.logger.Printf("✅ [MultiPage] Analyzed page %s - relevance: %.2f, keywords: %d", page.GetURL(), page.GetRelevanceScore(), len(pageKeywords))
+		} else {
+			r.logger.Printf("⚠️ [MultiPage] Skipped page %s: status=%d, relevance=%.2f", page.GetURL(), page.GetStatusCode(), page.GetRelevanceScore())
+		}
+	}
+
+	// Convert to slice and sort by weighted score
+	type keywordWeight struct {
+		keyword string
+		weight  float64
+	}
+	keywordList := make([]keywordWeight, 0, len(keywordWeights))
+	for kw, weight := range keywordWeights {
+		keywordList = append(keywordList, keywordWeight{keyword: kw, weight: weight})
+	}
+
+	// Sort by weight descending
+	sort.Slice(keywordList, func(i, j int) bool {
+		return keywordList[i].weight > keywordList[j].weight
+	})
+
+	// Limit to top 30 keywords
+	maxKeywords := 30
+	if len(keywordList) > maxKeywords {
+		keywordList = keywordList[:maxKeywords]
+	}
+
+	keywords := make([]string, len(keywordList))
+	for i, kw := range keywordList {
+		keywords[i] = kw.keyword
+	}
+
+	duration := time.Since(startTime)
+	r.logger.Printf("✅ [MultiPage] Multi-page analysis completed for %s in %v - analyzed %d pages, extracted %d keywords",
+		websiteURL, duration, successfulPages, len(keywords))
+
+	return keywords
+}
+
+// extractKeywordsFromPageData extracts keywords from a PageAnalysisData result
+func (r *SupabaseKeywordRepository) extractKeywordsFromPageData(page PageAnalysisData) []string {
+	var keywords []string
+	seen := make(map[string]bool)
+
+	// Extract keywords from page keywords
+	for _, kw := range page.GetKeywords() {
+		kwLower := strings.ToLower(kw)
+		if !seen[kwLower] {
+			seen[kwLower] = true
+			keywords = append(keywords, kwLower)
+		}
+	}
+
+	// Extract keywords from industry indicators
+	for _, indicator := range page.GetIndustryIndicators() {
+		indLower := strings.ToLower(indicator)
+		if !seen[indLower] {
+			seen[indLower] = true
+			keywords = append(keywords, indLower)
+		}
+	}
+
+	// Extract keywords from structured data if present
+	structuredData := page.GetStructuredData()
+	if structuredData != nil {
+		// Extract from the structured data map directly
+		for _, value := range structuredData {
+			if strValue, ok := value.(string); ok && strValue != "" {
+				// Extract keywords from structured data values
+				extracted := r.extractBusinessKeywords(strValue)
+				for _, kw := range extracted {
+					kwLower := strings.ToLower(kw)
+					if !seen[kwLower] {
+						seen[kwLower] = true
+						keywords = append(keywords, kwLower)
+					}
+				}
+			}
+		}
+	}
 
 	return keywords
 }

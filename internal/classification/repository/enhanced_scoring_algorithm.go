@@ -795,12 +795,14 @@ func (esa *EnhancedScoringAlgorithm) calculateConfidenceStability(industryScore 
 // Helper methods
 func (esa *EnhancedScoringAlgorithm) getContextMultiplier(context string) float64 {
 	switch context {
+	case "website_content":
+		return 2.0 // 100% boost - highest priority
 	case "business_name":
-		return 1.2 // 20% boost for business name keywords
+		return 0.5 // 50% reduction - only for brand matches in MCC 3000-3831
+	case "website_url":
+		return 1.0 // Baseline - fallback when scraping fails
 	case "description":
 		return 1.0 // No boost for description keywords
-	case "website_url":
-		return 1.0 // No boost for website URL keywords
 	default:
 		return 1.0
 	}

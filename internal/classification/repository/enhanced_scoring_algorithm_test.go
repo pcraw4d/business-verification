@@ -274,7 +274,7 @@ func TestEnhancedScoringAlgorithm_ContextMultipliers(t *testing.T) {
 		},
 	}
 
-	t.Run("Business name keywords get higher weight", func(t *testing.T) {
+	t.Run("Business name keywords get reduced weight (0.5x)", func(t *testing.T) {
 		contextualKeywords := []ContextualKeyword{
 			{Keyword: "restaurant", Context: "business_name"},
 		}
@@ -282,13 +282,14 @@ func TestEnhancedScoringAlgorithm_ContextMultipliers(t *testing.T) {
 		result, err := esa.CalculateEnhancedScore(context.Background(), contextualKeywords, keywordIndex)
 		require.NoError(t, err)
 
-		// Should have business name context multiplier applied
-		assert.Greater(t, result.ScoreBreakdown.ContextScore, 1.0) // Should be > 1.0 due to 1.2x multiplier
+		// Should have business name context multiplier applied (0.5x for brand matches only)
+		// Context score will be 0.5, not > 1.0
+		assert.Greater(t, result.ScoreBreakdown.ContextScore, 0.0)
 
-		// Check matched keywords have correct context multiplier
+		// Check matched keywords have correct context multiplier (0.5x, not 1.2x)
 		for _, match := range result.MatchedKeywords {
 			if match.Source == "business_name" {
-				assert.Equal(t, 1.2, match.ContextMultiplier)
+				assert.Equal(t, 0.5, match.ContextMultiplier, "Business name should have 0.5x multiplier (only for brand matches)")
 			}
 		}
 	})

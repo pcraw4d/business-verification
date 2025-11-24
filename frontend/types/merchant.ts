@@ -58,6 +58,22 @@ export interface ClassificationData {
   mccCodes?: IndustryCode[];
   sicCodes?: IndustryCode[];
   naicsCodes?: IndustryCode[];
+  metadata?: {
+    pageAnalysis?: {
+      pagesAnalyzed?: number;
+      analysisMethod?: 'multi_page' | 'single_page' | 'url_only';
+      structuredDataFound?: boolean;
+    };
+    brandMatch?: {
+      isBrandMatch?: boolean;
+      brandName?: string;
+      confidence?: number;
+    };
+    dataSourcePriority?: {
+      websiteContent?: 'primary' | 'secondary' | 'none';
+      businessName?: 'primary' | 'secondary' | 'none';
+    };
+  };
 }
 
 export interface IndustryCode {

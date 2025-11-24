@@ -60,6 +60,22 @@ export const ClassificationDataSchema = z.object({
   mccCodes: z.array(IndustryCodeSchema).optional(),
   sicCodes: z.array(IndustryCodeSchema).optional(),
   naicsCodes: z.array(IndustryCodeSchema).optional(),
+  metadata: z.object({
+    pageAnalysis: z.object({
+      pagesAnalyzed: z.number().optional(),
+      analysisMethod: z.enum(['multi_page', 'single_page', 'url_only']).optional(),
+      structuredDataFound: z.boolean().optional(),
+    }).optional(),
+    brandMatch: z.object({
+      isBrandMatch: z.boolean(),
+      brandName: z.string().optional(),
+      confidence: z.number().optional(),
+    }).optional(),
+    dataSourcePriority: z.object({
+      websiteContent: z.enum(['primary', 'secondary', 'none']).optional(),
+      businessName: z.enum(['primary', 'secondary', 'none']).optional(),
+    }).optional(),
+  }).optional(),
 });
 
 export const SecurityHeaderSchema = z.object({

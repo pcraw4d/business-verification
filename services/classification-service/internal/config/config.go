@@ -42,6 +42,16 @@ type ClassificationConfig struct {
 	MLEnabled             bool
 	KeywordMethodEnabled  bool
 	EnsembleEnabled       bool
+	// Multi-page analysis configuration
+	MaxPagesToAnalyze        int
+	PageAnalysisTimeout      time.Duration
+	OverallTimeout           time.Duration
+	ConcurrentPages          int
+	BrandMatchEnabled        bool
+	BrandMatchMCCRange       string
+	// Feature flags
+	MultiPageAnalysisEnabled      bool
+	StructuredDataExtractionEnabled bool
 }
 
 // LoggingConfig holds logging configurations
@@ -74,6 +84,16 @@ func Load() (*Config, error) {
 			MLEnabled:             getEnvAsBool("ML_ENABLED", true),
 			KeywordMethodEnabled:  getEnvAsBool("KEYWORD_METHOD_ENABLED", true),
 			EnsembleEnabled:       getEnvAsBool("ENSEMBLE_ENABLED", true),
+			// Multi-page analysis configuration
+			MaxPagesToAnalyze:        getEnvAsInt("CLASSIFICATION_MAX_PAGES_TO_ANALYZE", 15),
+			PageAnalysisTimeout:      getEnvAsDuration("CLASSIFICATION_PAGE_ANALYSIS_TIMEOUT", 15*time.Second),
+			OverallTimeout:           getEnvAsDuration("CLASSIFICATION_OVERALL_TIMEOUT", 60*time.Second),
+			ConcurrentPages:          getEnvAsInt("CLASSIFICATION_CONCURRENT_PAGES", 5),
+			BrandMatchEnabled:        getEnvAsBool("CLASSIFICATION_BRAND_MATCH_ENABLED", true),
+			BrandMatchMCCRange:       getEnvAsString("CLASSIFICATION_BRAND_MATCH_MCC_RANGE", "3000-3831"),
+			// Feature flags
+			MultiPageAnalysisEnabled:      getEnvAsBool("ENABLE_MULTI_PAGE_ANALYSIS", true),
+			StructuredDataExtractionEnabled: getEnvAsBool("ENABLE_STRUCTURED_DATA_EXTRACTION", true),
 		},
 		Logging: LoggingConfig{
 			Level:  getEnvAsString("LOG_LEVEL", "info"),

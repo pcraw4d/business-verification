@@ -410,46 +410,67 @@ func (c *SmartWebsiteCrawler) prioritizePages(pages []string, baseURL string) []
 // calculatePagePriority calculates priority score for a page
 func (c *SmartWebsiteCrawler) calculatePagePriority(pageURL, baseURL string) int {
 	priority := 0
+	urlLower := strings.ToLower(pageURL)
 
 	// Homepage gets highest priority
 	if pageURL == baseURL || pageURL == baseURL+"/" {
 		return 100
 	}
 
-	// High priority pages
-	highPriorityPatterns := []string{
+	// Highest priority pages (90-100): about, products, services, sale, sales
+	highestPriorityPatterns := []string{
 		"/about", "/about-us", "/aboutus", "/company", "/mission", "/vision",
-		"/services", "/products", "/shop", "/store",
+		"/products", "/product", "/services", "/service",
+		"/sale", "/sales", "/shop", "/store",
 	}
 
-	for _, pattern := range highPriorityPatterns {
-		if strings.Contains(strings.ToLower(pageURL), pattern) {
-			priority += 80
+	for _, pattern := range highestPriorityPatterns {
+		if strings.Contains(urlLower, pattern) {
+			priority += 95 // Highest priority weight
 			break
 		}
 	}
 
-	// Medium priority pages
-	mediumPriorityPatterns := []string{
-		"/contact", "/contact-us", "/contactus", "/team", "/careers", "/jobs",
-	}
+	// High priority pages (70-80): contact, team, careers, locations
+	if priority == 0 {
+		highPriorityPatterns := []string{
+			"/contact", "/contact-us", "/contactus",
+			"/team", "/careers", "/jobs", "/locations", "/location",
+		}
 
-	for _, pattern := range mediumPriorityPatterns {
-		if strings.Contains(strings.ToLower(pageURL), pattern) {
-			priority += 60
-			break
+		for _, pattern := range highPriorityPatterns {
+			if strings.Contains(urlLower, pattern) {
+				priority += 75
+				break
+			}
 		}
 	}
 
-	// Lower priority pages
-	lowPriorityPatterns := []string{
-		"/blog", "/news", "/support", "/help", "/faq", "/privacy", "/terms", "/legal",
+	// Medium priority pages (50-60): blog, news, case-studies, portfolio
+	if priority == 0 {
+		mediumPriorityPatterns := []string{
+			"/blog", "/news", "/case-studies", "/case_studies", "/portfolio",
+		}
+
+		for _, pattern := range mediumPriorityPatterns {
+			if strings.Contains(urlLower, pattern) {
+				priority += 55
+				break
+			}
+		}
 	}
 
-	for _, pattern := range lowPriorityPatterns {
-		if strings.Contains(strings.ToLower(pageURL), pattern) {
-			priority += 40
-			break
+	// Low priority pages (30-40): support, help, faq, privacy, terms
+	if priority == 0 {
+		lowPriorityPatterns := []string{
+			"/support", "/help", "/faq", "/privacy", "/terms", "/legal",
+		}
+
+		for _, pattern := range lowPriorityPatterns {
+			if strings.Contains(urlLower, pattern) {
+				priority += 35
+				break
+			}
 		}
 	}
 
@@ -716,10 +737,10 @@ func (c *SmartWebsiteCrawler) extractIndustryIndicators(content string) []string
 func (c *SmartWebsiteCrawler) calculateRelevanceScore(analysis PageAnalysis) float64 {
 	score := 0.0
 
-	// Base score by page type
+	// Base score by page type - increased for industry-revealing pages
 	switch analysis.PageType {
 	case "about", "services", "products":
-		score = 0.9
+		score = 0.95 // Increased from 0.9 for industry-revealing pages
 	case "contact", "homepage":
 		score = 0.8
 	case "blog", "news":
@@ -728,7 +749,22 @@ func (c *SmartWebsiteCrawler) calculateRelevanceScore(analysis PageAnalysis) flo
 		score = 0.5
 	}
 
-	// Adjust based on content quality
+	// Add 10% boost if structured data is present
+	if analysis.StructuredData != nil && len(analysis.StructuredData) > 0 {
+		score += 0.10
+	}
+
+	// Add 5% boost for high content quality (>0.7)
+	if analysis.ContentQuality > 0.7 {
+		score += 0.05
+	}
+
+	// Reduce score by 20% for low content length (<500 chars)
+	if analysis.ContentLength > 0 && analysis.ContentLength < 500 {
+		score *= 0.8
+	}
+
+	// Adjust based on content quality (multiply after boosts)
 	score *= analysis.ContentQuality
 
 	// Adjust based on keyword density
@@ -741,6 +777,7 @@ func (c *SmartWebsiteCrawler) calculateRelevanceScore(analysis PageAnalysis) flo
 		score += 0.1
 	}
 
+	// Cap at 1.0
 	if score > 1.0 {
 		score = 1.0
 	}

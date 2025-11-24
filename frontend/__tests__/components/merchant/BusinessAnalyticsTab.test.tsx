@@ -123,5 +123,47 @@ describe('BusinessAnalyticsTab', () => {
       expect(mockDeferNonCriticalDataLoad).toHaveBeenCalled();
     }, { timeout: 1000 });
   });
+
+  it('should display classification metadata when available', async () => {
+    const analyticsWithMetadata = {
+      ...mockAnalytics,
+      classification: {
+        ...mockAnalytics.classification,
+        metadata: {
+          pageAnalysis: {
+            pagesAnalyzed: 12,
+            analysisMethod: 'multi_page',
+            structuredDataFound: true,
+          },
+          brandMatch: {
+            isBrandMatch: true,
+            brandName: 'Hilton',
+            confidence: 0.95,
+          },
+        },
+      },
+    };
+
+    mockGetMerchantAnalytics.mockResolvedValue(analyticsWithMetadata);
+    mockGetMerchant.mockResolvedValue(mockMerchant);
+
+    render(<BusinessAnalyticsTab merchantId="merchant-123" />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/12 pages/i)).toBeInTheDocument();
+    }, { timeout: 3000 });
+  });
+
+  it('should handle missing metadata gracefully', async () => {
+    mockGetMerchantAnalytics.mockResolvedValue(mockAnalytics);
+    mockGetMerchant.mockResolvedValue(mockMerchant);
+
+    render(<BusinessAnalyticsTab merchantId="merchant-123" />);
+
+    await waitFor(() => {
+      // Should still render classification without metadata
+      expect(screen.getByText(/Technology/i)).toBeInTheDocument();
+    }, { timeout: 3000 });
+  });
 });
 

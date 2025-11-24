@@ -65,8 +65,10 @@ func TestNewSupabaseKeywordRepository(t *testing.T) {
 		t.Fatal("Expected repository to be created, got nil")
 	}
 
-	if repo.client == nil {
-		t.Error("Expected client to be set")
+	// For interface-based clients, the concrete client will be nil
+	// but the clientInterface will be set
+	if repo.client == nil && repo.clientInterface == nil {
+		t.Error("Expected either client or clientInterface to be set")
 	}
 
 	if repo.logger != logger {
@@ -198,7 +200,7 @@ func TestSupabaseKeywordRepository_extractKeywords(t *testing.T) {
 	repo := NewSupabaseKeywordRepositoryWithInterface(mockClient, log.Default())
 
 	// Test with business name only
-	contextualKeywords := repo.extractKeywords("Acme Software Solutions", "", "")
+	contextualKeywords := repo.extractKeywords("Acme Software Solutions", "")
 	expected := []string{"acme", "software", "solutions"}
 
 	// The new method extracts more keywords including phrases, so we check for at least the expected ones
@@ -222,7 +224,7 @@ func TestSupabaseKeywordRepository_extractKeywords(t *testing.T) {
 	}
 
 	// Test with description
-	contextualKeywords = repo.extractKeywords("", "We provide cloud computing services", "")
+	contextualKeywords = repo.extractKeywords("", "https://example.com")
 	if len(contextualKeywords) < 4 {
 		t.Errorf("Expected at least 4 keywords, got %d", len(contextualKeywords))
 	}
@@ -234,23 +236,23 @@ func TestSupabaseKeywordRepository_extractKeywords(t *testing.T) {
 	}
 
 	// Test with website URL
-	contextualKeywords = repo.extractKeywords("", "", "https://www.tech-company.com")
+	contextualKeywords = repo.extractKeywords("", "https://www.tech-company.com")
 	if len(contextualKeywords) < 1 {
 		t.Errorf("Expected at least 1 keyword, got %d", len(contextualKeywords))
 	}
-	// Verify all are from website_url context
+	// Verify all are from website_url or website_content context
 	for _, ck := range contextualKeywords {
-		if ck.Context != "website_url" {
-			t.Errorf("Expected context 'website_url', got %s", ck.Context)
+		if ck.Context != "website_url" && ck.Context != "website_content" {
+			t.Errorf("Expected context 'website_url' or 'website_content', got %s", ck.Context)
 		}
 	}
 
 	// Test with all inputs
-	contextualKeywords = repo.extractKeywords("Tech Corp", "Software development", "https://www.techcorp.com")
+	contextualKeywords = repo.extractKeywords("Tech Corp", "https://www.techcorp.com")
 	if len(contextualKeywords) < 5 {
 		t.Errorf("Expected at least 5 keywords, got %d", len(contextualKeywords))
 	}
-	// Verify we have keywords from all contexts
+	// Verify we have keywords from available contexts (description removed for security)
 	contexts := make(map[string]int)
 	for _, ck := range contextualKeywords {
 		contexts[ck.Context]++
@@ -293,6 +295,6 @@ func BenchmarkSupabaseKeywordRepository_extractKeywords(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		repo.extractKeywords("Acme Software Solutions Inc", "We provide cloud computing and software development services", "https://www.acme-software-solutions.com")
+		repo.extractKeywords("Acme Software Solutions Inc", "https://www.acme-software-solutions.com")
 	}
 }

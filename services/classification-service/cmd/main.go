@@ -14,9 +14,11 @@ import (
 	"go.uber.org/zap"
 
 	"kyb-platform/internal/classification"
+	"kyb-platform/internal/classification/adapters"
+	classificationAdapters "kyb-platform/internal/classification/adapters"
 	"kyb-platform/internal/classification/repository"
 	"kyb-platform/services/classification-service/internal/errors"
-	"kyb-platform/services/classification-service/internal/adapters"
+	serviceAdapters "kyb-platform/services/classification-service/internal/adapters"
 	"kyb-platform/services/classification-service/internal/config"
 	"kyb-platform/services/classification-service/internal/handlers"
 	"kyb-platform/services/classification-service/internal/supabase"
@@ -65,6 +67,10 @@ func main() {
 	if err := dbClient.Connect(ctx); err != nil {
 		logger.Warn("Failed to connect to database, continuing anyway", zap.Error(err))
 	}
+
+	// Initialize adapters to break import cycle
+	classificationAdapters.Init()
+	logger.Info("✅ Classification adapters initialized")
 
 	// Initialize classification repository
 	keywordRepo := repository.NewSupabaseKeywordRepository(dbClient, stdLogger)

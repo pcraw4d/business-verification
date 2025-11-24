@@ -439,7 +439,32 @@ func (j *ClassificationJob) extractClassificationFromResponse(response map[strin
 		result.RiskLevel = "medium"
 	}
 
-	// Store full response in metadata
+	// Extract metadata from response
+	if metadata, ok := response["metadata"].(map[string]interface{}); ok {
+		// Extract page analysis metadata
+		if pageAnalysis, ok := metadata["pageAnalysis"].(map[string]interface{}); ok {
+			result.Metadata["pageAnalysis"] = pageAnalysis
+		}
+		
+		// Extract brand match metadata
+		if brandMatch, ok := metadata["brandMatch"].(map[string]interface{}); ok {
+			result.Metadata["brandMatch"] = brandMatch
+		}
+		
+		// Extract analysis method
+		if analysisMethod, ok := metadata["analysisMethod"].(string); ok {
+			result.Metadata["analysisMethod"] = analysisMethod
+		}
+	}
+
+	// Add data source priority metadata (based on classification priority)
+	result.Metadata["dataSourcePriority"] = map[string]string{
+		"websiteContent": "primary",
+		"businessName":    "secondary", // Only used for brand matches
+		"websiteURL":     "fallback",
+	}
+
+	// Store full response in metadata for debugging
 	result.Metadata["raw_response"] = response
 
 	return result

@@ -1,0 +1,54 @@
+-- Migration: Add Page Analysis Metadata to Classification Data
+-- This migration documents the metadata structure for page analysis information
+-- stored in the classification_data JSONB column of the merchant_analytics table.
+-- No actual schema change is needed as metadata is stored in existing JSONB column.
+
+-- Metadata Structure Documentation:
+-- The classification_data JSONB column can now include the following metadata structure:
+
+-- {
+--   "metadata": {
+--     "pageAnalysis": {
+--       "pagesAnalyzed": [
+--         {
+--           "url": "https://example.com/about",
+--           "pageType": "about",
+--           "relevanceScore": 0.95,
+--           "keywordsExtracted": 15,
+--           "hasStructuredData": true
+--         }
+--       ],
+--       "totalPagesAnalyzed": 12,
+--       "analysisMethod": "multi_page",
+--       "structuredDataFound": true
+--     },
+--     "brandMatch": {
+--       "isBrandMatch": true,
+--       "brandName": "Hilton",
+--       "confidence": 0.95,
+--       "mccRange": "3000-3831"
+--     },
+--     "dataSourcePriority": {
+--       "websiteContent": "primary",
+--       "businessName": "secondary",
+--       "websiteURL": "fallback"
+--     }
+--   }
+-- }
+
+-- Notes:
+-- 1. All metadata fields are optional for backward compatibility
+-- 2. analysisMethod can be: "multi_page", "single_page", or "url_only"
+-- 3. brandMatch is only present for businesses matching known hotel brands (MCC 3000-3831)
+-- 4. dataSourcePriority indicates which data source was used as primary for classification
+
+-- Example Query to Access Metadata:
+-- SELECT 
+--   id,
+--   merchant_id,
+--   classification_data->'metadata'->'pageAnalysis'->>'analysisMethod' as analysis_method,
+--   classification_data->'metadata'->'pageAnalysis'->>'totalPagesAnalyzed' as pages_analyzed,
+--   classification_data->'metadata'->'brandMatch'->>'brandName' as brand_name
+-- FROM merchant_analytics
+-- WHERE classification_data->'metadata' IS NOT NULL;
+
