@@ -740,5 +740,10 @@ func (s *BusinessIntelligenceGatewayServer) handleBusinessAnalysis(w http.Respon
 func main() {
 	server := NewBusinessIntelligenceGatewayServer()
 	server.setupRoutes()
-	log.Fatal(http.ListenAndServe(":"+server.port, server.GetRouter()))
+	
+	// Explicitly bind to 0.0.0.0 to ensure service is accessible from all network interfaces
+	// This is required for Railway's proxy to route requests correctly
+	addr := fmt.Sprintf("0.0.0.0:%s", server.port)
+	log.Printf("🚀 Starting %s v%s on %s", server.serviceName, server.version, addr)
+	log.Fatal(http.ListenAndServe(addr, server.GetRouter()))
 }
