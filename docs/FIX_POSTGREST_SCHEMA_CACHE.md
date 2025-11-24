@@ -16,15 +16,22 @@ The error `(PGRST204) Could not find the 'website_analysis_data' column of 'merc
 3. Look for **"Reload Schema"** or **"Refresh Schema Cache"** button
 4. Click it to force PostgREST to reload the schema
 
-### Option 2: Supabase CLI
+### Option 2: Supabase CLI / API Script
+
+For hosted Supabase projects, use the provided script:
 
 ```bash
-# If using Supabase CLI locally
-supabase db reset
+# Make script executable (if not already)
+chmod +x scripts/refresh_postgrest_schema_api.sh
 
-# Or reload schema specifically
-supabase db reload
+# Run the script (it will use SUPABASE_SERVICE_ROLE_KEY from railway.env)
+./scripts/refresh_postgrest_schema_api.sh
+
+# Or provide the key directly
+./scripts/refresh_postgrest_schema_api.sh "your-service-role-key"
 ```
+
+The script attempts to call the `reload_schema` RPC function. If that's not available, it will provide instructions for using the dashboard.
 
 ### Option 3: Wait for Automatic Refresh
 
