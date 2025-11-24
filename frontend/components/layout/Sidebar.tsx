@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -202,6 +203,11 @@ export function Sidebar({
   onMobileClose,
 }: SidebarProps) {
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <>
@@ -214,7 +220,9 @@ export function Sidebar({
         aria-label="Main navigation"
         suppressHydrationWarning
       >
-        <SidebarContent pathname={pathname} onMobileClose={onMobileClose} />
+        {mounted && (
+          <SidebarContent pathname={pathname} onMobileClose={onMobileClose} />
+        )}
       </aside>
 
       {/* Mobile Sidebar */}
