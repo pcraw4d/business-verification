@@ -123,17 +123,27 @@ func (g *ClassificationCodeGenerator) generateCodesInParallel(ctx context.Contex
 		defer wg.Done()
 		g.logger.Printf("🔄 Starting MCC code generation...")
 
-		mccCodes, err := g.repo.GetCachedClassificationCodesByType(ctx, "MCC")
+		// Get industry object first (same as NAICS)
+		industryObj, err := g.repo.GetIndustryByName(ctx, detectedIndustry)
+		if err != nil {
+			g.logger.Printf("⚠️ Failed to get industry for MCC: %v", err)
+			errorChan <- fmt.Errorf("MCC industry lookup: %w", err)
+			return
+		}
+
+		// Get codes for the industry
+		allCodes, err := g.repo.GetCachedClassificationCodes(ctx, industryObj.ID)
 		if err != nil {
 			g.logger.Printf("⚠️ Failed to get MCC codes from database: %v", err)
 			errorChan <- fmt.Errorf("MCC codes: %w", err)
 			return
 		}
 
-		// Filter and convert MCC codes based on keyword matches
+		// Filter MCC codes by type and convert
 		var mccResults []MCCCode
-		for _, code := range mccCodes {
-			if g.matchesKeywords(code, keywordsLower) {
+		for _, code := range allCodes {
+			if code.CodeType == "MCC" {
+				// Use industry-based codes directly (no keyword filtering needed)
 				mccResults = append(mccResults, MCCCode{
 					Code:        code.Code,
 					Description: code.Description,
@@ -156,17 +166,27 @@ func (g *ClassificationCodeGenerator) generateCodesInParallel(ctx context.Contex
 		defer wg.Done()
 		g.logger.Printf("🔄 Starting SIC code generation...")
 
-		sicCodes, err := g.repo.GetCachedClassificationCodesByType(ctx, "SIC")
+		// Get industry object first (same as NAICS and MCC)
+		industryObj, err := g.repo.GetIndustryByName(ctx, detectedIndustry)
+		if err != nil {
+			g.logger.Printf("⚠️ Failed to get industry for SIC: %v", err)
+			errorChan <- fmt.Errorf("SIC industry lookup: %w", err)
+			return
+		}
+
+		// Get codes for the industry
+		allCodes, err := g.repo.GetCachedClassificationCodes(ctx, industryObj.ID)
 		if err != nil {
 			g.logger.Printf("⚠️ Failed to get SIC codes from database: %v", err)
 			errorChan <- fmt.Errorf("SIC codes: %w", err)
 			return
 		}
 
-		// Filter and convert SIC codes based on keyword matches
+		// Filter SIC codes by type and convert
 		var sicResults []SICCode
-		for _, code := range sicCodes {
-			if g.matchesKeywords(code, keywordsLower) {
+		for _, code := range allCodes {
+			if code.CodeType == "SIC" {
+				// Use industry-based codes directly (no keyword filtering needed)
 				sicResults = append(sicResults, SICCode{
 					Code:        code.Code,
 					Description: code.Description,
@@ -205,10 +225,11 @@ func (g *ClassificationCodeGenerator) generateCodesInParallel(ctx context.Contex
 			return
 		}
 
-		// Filter NAICS codes by type
+		// Filter NAICS codes by type (no keyword filtering needed - industry match is sufficient)
 		var naicsResults []NAICSCode
 		for _, code := range naicsCodes {
-			if code.CodeType == "NAICS" && g.matchesKeywords(code, keywordsLower) {
+			if code.CodeType == "NAICS" {
+				// Use industry-based codes directly (no keyword filtering needed)
 				naicsResults = append(naicsResults, NAICSCode{
 					Code:        code.Code,
 					Description: code.Description,
