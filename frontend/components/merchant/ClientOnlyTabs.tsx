@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ClientOnlyTabsProps {
   value: string;
@@ -25,18 +26,22 @@ export function ClientOnlyTabs({ value, onValueChange, children, className }: Cl
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Use requestAnimationFrame to ensure this runs after initial render
-    requestAnimationFrame(() => {
+    // Use a small delay to ensure this runs after React hydration completes
+    const timer = setTimeout(() => {
       setMounted(true);
-    });
+    }, 0);
+    
+    return () => clearTimeout(timer);
   }, []);
 
-  // Return a placeholder div during SSR to maintain layout
+  // Return skeleton placeholders during SSR to maintain layout and prevent hydration mismatch
   if (!mounted) {
     return (
       <div className={className} suppressHydrationWarning>
-        <div className="h-10 w-full" /> {/* Placeholder for TabsList */}
-        <div className="mt-6" /> {/* Placeholder for TabsContent */}
+        <div className="space-y-4" suppressHydrationWarning>
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </div>
       </div>
     );
   }

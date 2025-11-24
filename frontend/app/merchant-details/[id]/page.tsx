@@ -58,15 +58,15 @@ function MerchantDetailsContent() {
 
 export default function MerchantDetailsPage() {
   return (
-    <EnrichmentProvider>
-      <AppLayout
-        title="Merchant Details"
-        breadcrumbs={[
-          { label: 'Home', href: '/' },
-          { label: 'Merchant Portfolio', href: '/merchant-portfolio' },
-          { label: 'Merchant Details' },
-        ]}
-      >
+    <AppLayout
+      title="Merchant Details"
+      breadcrumbs={[
+        { label: 'Home', href: '/' },
+        { label: 'Merchant Portfolio', href: '/merchant-portfolio' },
+        { label: 'Merchant Details' },
+      ]}
+    >
+      <EnrichmentProvider>
         <ErrorBoundary
           fallback={<MerchantDetailsError />}
           onError={(error, errorInfo) => {
@@ -78,8 +78,8 @@ export default function MerchantDetailsPage() {
             <MerchantDetailsContent />
           </Suspense>
         </ErrorBoundary>
-      </AppLayout>
-    </EnrichmentProvider>
+      </EnrichmentProvider>
+    </AppLayout>
   );
 }
 
