@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -161,11 +162,14 @@ func (j *ClassificationJob) Process(ctx context.Context) error {
 }
 
 // callClassificationService calls the classification service API
+// Falls back to basic classification if the service is unavailable
 func (j *ClassificationJob) callClassificationService(ctx context.Context) (*ClassificationResult, error) {
 	// Get classification service URL from config or environment
 	classificationURL := j.getClassificationServiceURL()
 	if classificationURL == "" {
-		return nil, fmt.Errorf("classification service URL not configured")
+		j.logger.Warn("Classification service URL not configured, using fallback classification",
+			zap.String("merchant_id", j.MerchantID))
+		return j.performFallbackClassification(), nil
 	}
 
 	// Prepare request
@@ -183,31 +187,102 @@ func (j *ClassificationJob) callClassificationService(ctx context.Context) (*Cla
 	// Create HTTP request
 	req, err := http.NewRequestWithContext(ctx, "POST", classificationURL+"/api/v1/classify", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+		j.logger.Warn("Failed to create classification request, using fallback",
+			zap.String("merchant_id", j.MerchantID),
+			zap.Error(err))
+		return j.performFallbackClassification(), nil
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 
-	// Make request
+	// Make request with timeout
 	resp, err := j.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to call classification service: %w", err)
+		j.logger.Warn("Failed to call classification service, using fallback",
+			zap.String("merchant_id", j.MerchantID),
+			zap.String("url", classificationURL),
+			zap.Error(err))
+		return j.performFallbackClassification(), nil
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("classification service returned status %d", resp.StatusCode)
+		j.logger.Warn("Classification service returned non-OK status, using fallback",
+			zap.String("merchant_id", j.MerchantID),
+			zap.Int("status_code", resp.StatusCode))
+		return j.performFallbackClassification(), nil
 	}
 
 	// Parse response
 	var apiResponse map[string]interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+		j.logger.Warn("Failed to decode classification response, using fallback",
+			zap.String("merchant_id", j.MerchantID),
+			zap.Error(err))
+		return j.performFallbackClassification(), nil
 	}
 
 	// Extract classification data from response
 	result := j.extractClassificationFromResponse(apiResponse)
 	return result, nil
+}
+
+// performFallbackClassification performs basic classification when the service is unavailable
+func (j *ClassificationJob) performFallbackClassification() *ClassificationResult {
+	j.logger.Info("Performing fallback classification",
+		zap.String("merchant_id", j.MerchantID),
+		zap.String("business_name", j.BusinessName))
+
+	// Use industry from merchant data if available
+	primaryIndustry := j.Description
+	if primaryIndustry == "" {
+		primaryIndustry = "General Business"
+	}
+
+	// Basic confidence score for fallback
+	confidenceScore := 0.50
+
+	// Determine risk level based on industry keywords
+	riskLevel := "medium"
+	lowerName := strings.ToLower(j.BusinessName)
+	lowerDesc := strings.ToLower(j.Description)
+	
+	// Low risk indicators
+	lowRiskKeywords := []string{"bank", "insurance", "government", "education", "healthcare", "hospital"}
+	for _, keyword := range lowRiskKeywords {
+		if strings.Contains(lowerName, keyword) || strings.Contains(lowerDesc, keyword) {
+			riskLevel = "low"
+			confidenceScore = 0.60
+			break
+		}
+	}
+
+	// High risk indicators
+	highRiskKeywords := []string{"casino", "gambling", "adult", "cryptocurrency", "crypto"}
+	for _, keyword := range highRiskKeywords {
+		if strings.Contains(lowerName, keyword) || strings.Contains(lowerDesc, keyword) {
+			riskLevel = "high"
+			confidenceScore = 0.60
+			break
+		}
+	}
+
+	result := &ClassificationResult{
+		PrimaryIndustry: primaryIndustry,
+		ConfidenceScore: confidenceScore,
+		RiskLevel:       riskLevel,
+		MCCCodes:        []IndustryCode{},
+		SICCodes:        []IndustryCode{},
+		NAICSCodes:      []IndustryCode{},
+		Status:          "completed",
+		Metadata: map[string]interface{}{
+			"method":           "fallback",
+			"service_unavailable": true,
+			"fallback_reason":   "classification service not available",
+		},
+	}
+
+	return result
 }
 
 // extractClassificationFromResponse extracts classification data from API response
