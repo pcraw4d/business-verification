@@ -212,7 +212,6 @@ export function Sidebar({
           className
         )}
         aria-label="Main navigation"
-        style={{ display: 'none' }}
         suppressHydrationWarning
       >
         <SidebarContent pathname={pathname} onMobileClose={onMobileClose} />
