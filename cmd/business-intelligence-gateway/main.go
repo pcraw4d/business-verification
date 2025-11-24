@@ -30,6 +30,7 @@ func NewBusinessIntelligenceGatewayServer() *BusinessIntelligenceGatewayServer {
 		serviceName: "kyb-business-intelligence-gateway",
 		version:     "4.0.4-BI-SYNTAX-FIX-FINAL",
 		port:        port,
+		router:      nil, // Will be initialized in setupRoutes()
 	}
 }
 
