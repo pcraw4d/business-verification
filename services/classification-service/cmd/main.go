@@ -16,9 +16,9 @@ import (
 	"kyb-platform/internal/classification"
 	classificationAdapters "kyb-platform/internal/classification/adapters"
 	"kyb-platform/internal/classification/repository"
-	"kyb-platform/services/classification-service/internal/errors"
 	serviceAdapters "kyb-platform/services/classification-service/internal/adapters"
 	"kyb-platform/services/classification-service/internal/config"
+	"kyb-platform/services/classification-service/internal/errors"
 	"kyb-platform/services/classification-service/internal/handlers"
 	"kyb-platform/services/classification-service/internal/supabase"
 )

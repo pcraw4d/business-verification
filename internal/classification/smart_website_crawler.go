@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -119,11 +120,32 @@ const (
 
 // NewSmartWebsiteCrawler creates a new smart website crawler
 func NewSmartWebsiteCrawler(logger *log.Logger) *SmartWebsiteCrawler {
+	// Create custom DNS resolver using Google DNS (8.8.8.8) with IPv4
+	// This addresses DNS resolution failures in containerized environments like Railway
+	resolver := &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			d := net.Dialer{
+				Timeout: 5 * time.Second,
+			}
+			// Force IPv4 DNS lookup using Google DNS
+			return d.DialContext(ctx, "udp4", "8.8.8.8:53")
+		},
+	}
+
+	// Create HTTP client with custom DNS resolver and enhanced configuration
+	dialer := &net.Dialer{
+		Resolver:  resolver,
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+
 	return &SmartWebsiteCrawler{
 		logger: logger,
 		client: &http.Client{
 			Timeout: 30 * time.Second,
 			Transport: &http.Transport{
+				DialContext:          dialer.DialContext,
 				MaxIdleConns:        10,
 				IdleConnTimeout:     30 * time.Second,
 				DisableCompression:  false,
