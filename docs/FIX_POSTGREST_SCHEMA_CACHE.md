@@ -53,7 +53,7 @@ curl -X POST \
 After refreshing the schema cache, verify the columns exist:
 
 ```sql
-SELECT column_name, data_type 
+SELECT column_name, data_type
 FROM information_schema.columns
 WHERE table_name = 'merchant_analytics'
   AND column_name IN (
@@ -73,7 +73,7 @@ PostgREST caches the database schema for performance. When you run migrations th
 ## Prevention
 
 For future migrations:
+
 1. Run migrations during low-traffic periods
 2. Immediately refresh the schema cache after running migrations
 3. Consider using Supabase's migration system which handles this automatically
-
