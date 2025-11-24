@@ -157,7 +157,7 @@ export function Sidebar({ className, mobileOpen, onMobileClose }: SidebarProps) 
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className={cn('hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 md:border-r bg-background', className)}>
+      <aside className={cn('hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 md:z-40 md:border-r bg-background', className)}>
         <SidebarContent />
       </aside>
 
@@ -176,7 +176,7 @@ export function SidebarTrigger({ onOpen }: { onOpen: () => void }) {
     <Button
       variant="ghost"
       size="icon"
-      className="lg:hidden"
+      className="md:hidden"
       onClick={onOpen}
       aria-label="Toggle sidebar"
     >
