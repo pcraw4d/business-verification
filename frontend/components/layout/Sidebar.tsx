@@ -203,11 +203,6 @@ export function Sidebar({
   onMobileClose,
 }: SidebarProps) {
   const pathname = usePathname();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   return (
     <>
@@ -220,9 +215,7 @@ export function Sidebar({
         aria-label="Main navigation"
         suppressHydrationWarning
       >
-        {mounted && (
-          <SidebarContent pathname={pathname} onMobileClose={onMobileClose} />
-        )}
+        <SidebarContent pathname={pathname} onMobileClose={onMobileClose} />
       </aside>
 
       {/* Mobile Sidebar */}
