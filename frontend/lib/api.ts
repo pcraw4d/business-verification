@@ -1640,6 +1640,7 @@ export interface CreateMerchantRequest {
   contact_info?: {
     phone?: string;
     email?: string;
+    website?: string;
   };
   registration_number?: string;
   tax_id?: string;

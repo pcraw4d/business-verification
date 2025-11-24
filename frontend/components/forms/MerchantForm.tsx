@@ -266,6 +266,7 @@ export function MerchantForm() {
         contact_info: {
           phone: formData.phoneNumber || undefined,
           email: formData.email || undefined,
+          website: formData.websiteUrl || undefined,
         },
         registration_number: formData.registrationNumber || undefined,
         country: formData.country,
