@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import type { MerchantListItem, MerchantListResponse } from '@/types/merchant';
 import { MerchantDetailsLayout } from '@/components/merchant/MerchantDetailsLayout';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { MerchantPortfolioErrorFallback } from '@/components/dashboards/MerchantPortfolioErrorFallback';
+import { EnrichmentProvider } from '@/contexts/EnrichmentContext';
 
 // Lazy load ExportButton (includes heavy libraries like xlsx, jspdf)
 const ExportButton = dynamic(
@@ -94,16 +95,43 @@ export default function MerchantPortfolioPage() {
     }
   }, [pathname, router, isRoutingToDetails]);
 
-  // If we're on a merchant-details route, render the merchant-details component directly
+  // If we're on a merchant-details route, render the merchant-details component with AppLayout
   // This happens when the Go service serves merchant-portfolio page for merchant-details routes
   const currentPath = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
   if (currentPath && currentPath.startsWith('/merchant-details/')) {
     // Extract merchant ID from pathname
     const merchantId = currentPath.replace('/merchant-details/', '').split('/')[0].split('?')[0];
     if (merchantId) {
-      // Directly render the merchant-details component instead of trying to route
+      // Render the merchant-details component with AppLayout to ensure sidebar and header are visible
       // This ensures the merchant-details page is displayed even when served as merchant-portfolio HTML
-      return <MerchantDetailsLayout merchantId={merchantId} />;
+      return (
+        <AppLayout
+          title="Merchant Details"
+          breadcrumbs={[
+            { label: "Home", href: "/" },
+            { label: "Merchant Portfolio", href: "/merchant-portfolio" },
+            { label: "Merchant Details" },
+          ]}
+        >
+          <EnrichmentProvider>
+            <ErrorBoundary
+              fallback={
+                <div className="container mx-auto p-6">
+                  <Alert variant="destructive">
+                    <AlertDescription>
+                      Failed to load merchant details page. Please try refreshing the page.
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              }
+            >
+              <Suspense fallback={<div className="container mx-auto p-6 space-y-6"><Skeleton className="h-12 w-full" /><Skeleton className="h-64 w-full" /></div>}>
+                <MerchantDetailsLayout merchantId={merchantId} />
+              </Suspense>
+            </ErrorBoundary>
+          </EnrichmentProvider>
+        </AppLayout>
+      );
     }
   }
 
