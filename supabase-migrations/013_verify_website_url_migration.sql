@@ -4,19 +4,51 @@
 
 -- Summary Statistics
 -- Note: This query safely handles cases where legacy columns may not exist
+-- Uses dynamic SQL to avoid column reference errors
+
+-- First, check which columns exist
+DO $$
+DECLARE
+    has_contact_website BOOLEAN;
+    has_website_url BOOLEAN;
+    contact_website_count INTEGER := 0;
+    website_url_count INTEGER := 0;
+BEGIN
+    -- Check if columns exist
+    SELECT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'merchants' AND column_name = 'contact_website'
+    ) INTO has_contact_website;
+    
+    SELECT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'merchants' AND column_name = 'website_url'
+    ) INTO has_website_url;
+    
+    -- Count from legacy columns only if they exist
+    IF has_contact_website THEN
+        EXECUTE 'SELECT COUNT(*) FROM merchants WHERE contact_website IS NOT NULL AND contact_website != '''''
+        INTO contact_website_count;
+    END IF;
+    
+    IF has_website_url THEN
+        EXECUTE 'SELECT COUNT(*) FROM merchants WHERE website_url IS NOT NULL AND website_url != '''''
+        INTO website_url_count;
+    END IF;
+    
+    -- Display results
+    RAISE NOTICE '=== Migration Verification Results ===';
+    RAISE NOTICE 'contact_website column exists: %', has_contact_website;
+    RAISE NOTICE 'website_url column exists: %', has_website_url;
+    RAISE NOTICE 'Merchants with website in contact_website: %', contact_website_count;
+    RAISE NOTICE 'Merchants with website in website_url: %', website_url_count;
+END $$;
+
+-- Summary Statistics (safe query that doesn't reference legacy columns)
 SELECT 
     COUNT(*) as total_merchants,
     COUNT(contact_info->>'website') as merchants_with_website_in_contact_info,
-    CASE 
-        WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'merchants' AND column_name = 'contact_website')
-        THEN (SELECT COUNT(*) FROM merchants WHERE contact_website IS NOT NULL AND contact_website != '')
-        ELSE 0
-    END as merchants_with_legacy_contact_website,
-    CASE 
-        WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'merchants' AND column_name = 'website_url')
-        THEN (SELECT COUNT(*) FROM merchants WHERE website_url IS NOT NULL AND website_url != '')
-        ELSE 0
-    END as merchants_with_legacy_website_url
+    COUNT(CASE WHEN contact_info->>'website' IS NOT NULL AND contact_info->>'website' != '' THEN 1 END) as merchants_with_website_count
 FROM merchants;
 
 -- Find any merchants that still have website in legacy columns but not in contact_info
