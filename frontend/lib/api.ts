@@ -581,6 +581,45 @@ export async function getMerchantAnalyticsStatus(
   });
 }
 
+export interface TriggerAnalyticsRefreshResponse {
+  merchant_id: string;
+  status: string;
+  message: string;
+  jobs: {
+    classification: string;
+    website_analysis: {
+      status: string;
+      reason: string;
+    };
+  };
+  timestamp: string;
+  processing_time: string;
+}
+
+export async function triggerAnalyticsRefresh(
+  merchantId: string
+): Promise<TriggerAnalyticsRefreshResponse> {
+  const token = getAuthToken();
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+  };
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  return retryWithBackoff(async () => {
+    const response = await safeFetch(
+      ApiEndpoints.merchants.triggerAnalyticsRefresh(merchantId),
+      {
+        method: "POST",
+        headers,
+      }
+    );
+    return handleResponse<TriggerAnalyticsRefreshResponse>(response);
+  });
+}
+
 export async function getRiskAssessment(
   merchantId: string
 ): Promise<RiskAssessment | null> {

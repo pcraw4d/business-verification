@@ -1794,6 +1794,113 @@ func (h *MerchantHandler) HandleMerchantSpecificAnalytics(w http.ResponseWriter,
 	json.NewEncoder(w).Encode(response)
 }
 
+// HandleTriggerAnalyticsRefresh handles POST /api/v1/merchants/{id}/analytics/refresh
+// Triggers classification and website analysis jobs for existing merchants
+func (h *MerchantHandler) HandleTriggerAnalyticsRefresh(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	ctx := r.Context()
+
+	w.Header().Set("Content-Type", "application/json")
+
+	// Extract merchant ID from path
+	merchantID := h.extractMerchantIDFromPath(r.URL.Path)
+	if merchantID == "" {
+		errors.WriteBadRequest(w, r, "Merchant ID is required")
+		return
+	}
+
+	// Fetch merchant from database
+	var merchantResult []map[string]interface{}
+	_, err := h.supabaseClient.GetClient().From("merchants").
+		Select("*", "", false).
+		Eq("id", merchantID).
+		Limit(1, "").
+		ExecuteTo(&merchantResult)
+
+	if err != nil {
+		h.logger.Error("Failed to fetch merchant for analytics refresh",
+			zap.String("merchant_id", merchantID),
+			zap.Error(err))
+		errors.WriteInternalError(w, r, "Failed to fetch merchant")
+		return
+	}
+
+	if len(merchantResult) == 0 {
+		errors.WriteNotFound(w, r, "Merchant not found")
+		return
+	}
+
+	merchantData := merchantResult[0]
+
+	// Convert to Merchant struct
+	// Helper to safely extract string values
+	getStringValue := func(data map[string]interface{}, key string) string {
+		if val, ok := data[key]; ok {
+			if str, ok := val.(string); ok {
+				return str
+			}
+		}
+		return ""
+	}
+
+	merchant := &Merchant{
+		ID:          merchantID,
+		Name:        getStringValue(merchantData, "name"),
+		Industry:    getStringValue(merchantData, "industry"),
+		BusinessType: getStringValue(merchantData, "business_type"),
+	}
+
+	// Extract contact info
+	if contactInfo, ok := merchantData["contact_info"].(map[string]interface{}); ok {
+		merchant.ContactInfo = contactInfo
+	}
+
+	// Trigger classification job
+	h.triggerClassificationJob(ctx, merchant)
+
+	// Extract website URL and trigger website analysis if available
+	websiteURL := ""
+	if merchant.ContactInfo != nil {
+		if url, ok := merchant.ContactInfo["website"].(string); ok && url != "" {
+			websiteURL = url
+		}
+	}
+
+	if websiteURL != "" {
+		h.triggerWebsiteAnalysisJob(ctx, merchantID, websiteURL, merchant.Name)
+	} else {
+		// Mark website analysis as skipped
+		h.markWebsiteAnalysisSkipped(ctx, merchantID)
+	}
+
+	// Determine website analysis status
+	websiteAnalysisStatus := "skipped"
+	websiteAnalysisReason := "no website URL"
+	if websiteURL != "" {
+		websiteAnalysisStatus = "triggered"
+		websiteAnalysisReason = "website URL provided"
+	}
+
+	// Return success response
+	response := map[string]interface{}{
+		"merchant_id": merchantID,
+		"status":      "triggered",
+		"message":     "Analytics refresh jobs have been triggered",
+		"jobs": map[string]interface{}{
+			"classification": "triggered",
+			"website_analysis": map[string]interface{}{
+				"status": websiteAnalysisStatus,
+				"reason": websiteAnalysisReason,
+			},
+		},
+		"timestamp":       time.Now(),
+		"processing_time": time.Since(startTime).String(),
+	}
+
+	w.WriteHeader(http.StatusAccepted)
+	json.NewEncoder(w).Encode(response)
+}
+
 // HandleMerchantAnalyticsStatus handles GET /api/v1/merchants/{id}/analytics/status
 func (h *MerchantHandler) HandleMerchantAnalyticsStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")

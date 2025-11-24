@@ -86,6 +86,7 @@ func main() {
 	// ORDER MATTERS:
 	// 1. Most specific sub-routes first (merchants/{id}/analytics, etc.)
 	//    These must come before /merchants/{id} to avoid route conflicts
+	router.HandleFunc("/api/v1/merchants/{id}/analytics/refresh", merchantHandler.HandleTriggerAnalyticsRefresh).Methods("POST", "OPTIONS")
 	router.HandleFunc("/api/v1/merchants/{id}/analytics/status", merchantHandler.HandleMerchantAnalyticsStatus).Methods("GET", "OPTIONS")
 	router.HandleFunc("/api/v1/merchants/{id}/analytics", merchantHandler.HandleMerchantSpecificAnalytics).Methods("GET", "OPTIONS")
 	router.HandleFunc("/api/v1/merchants/{id}/website-analysis", merchantHandler.HandleMerchantWebsiteAnalysis).Methods("GET", "OPTIONS")

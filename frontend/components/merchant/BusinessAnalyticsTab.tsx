@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ChartContainer } from '@/components/dashboards/ChartContainer';
 import { BarChart, PieChart } from '@/components/charts/lazy';
-import { getMerchant, getMerchantAnalytics, getWebsiteAnalysis } from '@/lib/api';
+import { getMerchant, getMerchantAnalytics, getWebsiteAnalysis, triggerAnalyticsRefresh } from '@/lib/api';
 import { AnalyticsStatusIndicator } from './AnalyticsStatusIndicator';
 import { deferNonCriticalDataLoad } from '@/lib/lazy-loader';
 import { formatPercent } from '@/lib/number-format';
@@ -80,8 +80,23 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
     }
   }, [merchantId]);
 
-  const handleRefresh = () => {
-    loadAnalytics(true);
+  const handleRefresh = async () => {
+    try {
+      setIsRefreshing(true);
+      setError(null);
+      
+      // Trigger analytics refresh jobs
+      await triggerAnalyticsRefresh(merchantId);
+      
+      // Wait a moment for jobs to start, then reload data
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Reload analytics data
+      await loadAnalytics(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to trigger analytics refresh');
+      setIsRefreshing(false);
+    }
   };
 
   // Format relative time for last refresh
