@@ -14,7 +14,6 @@ import (
 	"go.uber.org/zap"
 
 	"kyb-platform/internal/classification"
-	"kyb-platform/internal/classification/adapters"
 	classificationAdapters "kyb-platform/internal/classification/adapters"
 	"kyb-platform/internal/classification/repository"
 	"kyb-platform/services/classification-service/internal/errors"
@@ -56,7 +55,7 @@ func main() {
 
 	// Create database client adapter for classification repository
 	stdLogger := log.New(&zapLoggerAdapter{logger: logger}, "", 0)
-	dbClient, err := adapters.CreateDatabaseClient(&cfg.Supabase, stdLogger)
+	dbClient, err := serviceAdapters.CreateDatabaseClient(&cfg.Supabase, stdLogger)
 	if err != nil {
 		logger.Fatal("Failed to create database client adapter", zap.Error(err))
 	}
