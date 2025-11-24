@@ -59,7 +59,14 @@ function MerchantDetailsContent() {
 export default function MerchantDetailsPage() {
   return (
     <EnrichmentProvider>
-      <AppLayout>
+      <AppLayout
+        title="Merchant Details"
+        breadcrumbs={[
+          { label: 'Home', href: '/' },
+          { label: 'Merchant Portfolio', href: '/merchant-portfolio' },
+          { label: 'Merchant Details' },
+        ]}
+      >
         <ErrorBoundary
           fallback={<MerchantDetailsError />}
           onError={(error, errorInfo) => {

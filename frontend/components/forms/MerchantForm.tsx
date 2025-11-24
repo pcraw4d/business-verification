@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -140,6 +140,7 @@ export function MerchantForm() {
   });
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const validationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Persist form data to sessionStorage to prevent data loss
   useEffect(() => {
@@ -161,37 +162,52 @@ export function MerchantForm() {
     }
   }, [formData]);
 
+  // Cleanup validation timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (validationTimeoutRef.current) {
+        clearTimeout(validationTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const updateField = (field: keyof MerchantFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     
-    // Re-validate the field immediately when it's updated
-    const fieldRule = validationRules[field];
-    if (fieldRule) {
-      const formDataRecord: Record<string, string> = {
-        [field]: value,
-      };
-      const fieldErrors = FormValidation.validateForm(formDataRecord, { [field]: fieldRule });
-      
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        if (fieldErrors[field]) {
-          newErrors[field] = fieldErrors[field];
-        } else {
-          // Clear error if field is now valid
-          delete newErrors[field];
-        }
-        return newErrors;
-      });
-    } else {
-      // If no validation rule, just clear any existing error
-      if (errors[field]) {
+    // Clear any existing timeout
+    if (validationTimeoutRef.current) {
+      clearTimeout(validationTimeoutRef.current);
+    }
+    
+    // Debounce validation to avoid validating on every keystroke
+    validationTimeoutRef.current = setTimeout(() => {
+      // Re-validate the field after user stops typing
+      const fieldRule = validationRules[field];
+      if (fieldRule) {
+        const formDataRecord: Record<string, string> = {
+          [field]: value,
+        };
+        const fieldErrors = FormValidation.validateForm(formDataRecord, { [field]: fieldRule });
+        
+        setErrors((prev) => {
+          const newErrors = { ...prev };
+          if (fieldErrors[field]) {
+            newErrors[field] = fieldErrors[field];
+          } else {
+            // Clear error if field is now valid
+            delete newErrors[field];
+          }
+          return newErrors;
+        });
+      } else {
+        // If no validation rule, just clear any existing error
         setErrors((prev) => {
           const newErrors = { ...prev };
           delete newErrors[field];
           return newErrors;
         });
       }
-    }
+    }, 300); // 300ms debounce
   };
 
   const validateForm = (): boolean => {

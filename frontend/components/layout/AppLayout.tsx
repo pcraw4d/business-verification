@@ -51,9 +51,7 @@ export function AppLayout({
             </div>
           )}
           
-          <div className="container px-4 py-6">
-            {children}
-          </div>
+          {children}
         </main>
       </div>
     </div>

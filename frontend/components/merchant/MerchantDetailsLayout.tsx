@@ -211,15 +211,15 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
   }
 
   return (
-    <div className="space-y-6">
-      <header className="border-b pb-4">
+    <div className="container mx-auto px-4 py-6 space-y-6">
+      <div className="border-b pb-4">
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold">{merchant.businessName || 'Unknown Merchant'}</h1>
+              <h1 className="text-3xl font-bold" suppressHydrationWarning>{merchant.businessName || 'Unknown Merchant'}</h1>
               <PortfolioContextBadge merchantId={merchantId} variant="default" />
             </div>
-            <p className="text-muted-foreground mt-2">
+            <p className="text-muted-foreground mt-2" suppressHydrationWarning>
               {merchant.industry && `${merchant.industry} • `}
               Status: {merchant.status || 'Unknown'}
             </p>
@@ -235,7 +235,7 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
             />
           </div>
         </div>
-      </header>
+      </div>
 
       <section id="merchant-content" aria-label="Merchant details">
 
@@ -245,12 +245,18 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
           <Skeleton className="h-64 w-full" />
         </div>
       ) : (
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" suppressHydrationWarning>
+      <Tabs 
+        value={activeTab} 
+        onValueChange={setActiveTab} 
+        className="w-full"
+        suppressHydrationWarning
+        key={`tabs-${mounted}`}
+      >
         <TabsList className="grid w-full grid-cols-4" suppressHydrationWarning>
-          <TabsTrigger value="overview" aria-label="Overview tab">Overview</TabsTrigger>
-          <TabsTrigger value="analytics" aria-label="Business Analytics tab">Business Analytics</TabsTrigger>
-          <TabsTrigger value="risk" aria-label="Risk Assessment tab">Risk Assessment</TabsTrigger>
-          <TabsTrigger value="indicators" aria-label="Risk Indicators tab">Risk Indicators</TabsTrigger>
+          <TabsTrigger value="overview" aria-label="Overview tab" suppressHydrationWarning>Overview</TabsTrigger>
+          <TabsTrigger value="analytics" aria-label="Business Analytics tab" suppressHydrationWarning>Business Analytics</TabsTrigger>
+          <TabsTrigger value="risk" aria-label="Risk Assessment tab" suppressHydrationWarning>Risk Assessment</TabsTrigger>
+          <TabsTrigger value="indicators" aria-label="Risk Indicators tab" suppressHydrationWarning>Risk Indicators</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-6" suppressHydrationWarning>
