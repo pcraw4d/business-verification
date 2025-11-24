@@ -1766,9 +1766,15 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 		r.logger.Printf("🔧 [Supabase] Added HTTPS scheme: %s", websiteURL)
 	}
 
-	// Create custom DNS resolver using Google DNS (8.8.8.8) with IPv4
+	// Create custom dialer that forces IPv4 DNS resolution using Google DNS
 	// This addresses DNS resolution failures in containerized environments like Railway
-	resolver := &net.Resolver{
+	baseDialer := &net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+
+	// Create custom DNS resolver using Google DNS (8.8.8.8) with IPv4
+	dnsResolver := &net.Resolver{
 		PreferGo: true,
 		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
 			d := net.Dialer{
@@ -1779,17 +1785,46 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 		},
 	}
 
-	// Create HTTP client with custom DNS resolver and enhanced configuration
-	dialer := &net.Dialer{
-		Resolver:  resolver,
-		Timeout:   30 * time.Second,
-		KeepAlive: 30 * time.Second,
+	// Custom DialContext that forces IPv4 resolution
+	customDialContext := func(ctx context.Context, network, addr string) (net.Conn, error) {
+		// Force IPv4 by using "tcp4" instead of "tcp"
+		if network == "tcp" {
+			network = "tcp4"
+		}
+
+		// Parse address to get host and port
+		host, port, err := net.SplitHostPort(addr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to split host:port: %w", err)
+		}
+
+		// Resolve host using custom DNS resolver (Google DNS)
+		ips, err := dnsResolver.LookupIPAddr(ctx, host)
+		if err != nil {
+			return nil, fmt.Errorf("DNS lookup failed for %s: %w", host, err)
+		}
+
+		// Use first IPv4 address
+		var ip net.IP
+		for _, ipAddr := range ips {
+			if ipAddr.IP.To4() != nil {
+				ip = ipAddr.IP
+				break
+			}
+		}
+
+		if ip == nil {
+			return nil, fmt.Errorf("no IPv4 address found for %s", host)
+		}
+
+		// Dial using resolved IPv4 address
+		return baseDialer.DialContext(ctx, network, net.JoinHostPort(ip.String(), port))
 	}
 
 	client := &http.Client{
 		Timeout: 15 * time.Second,
 		Transport: &http.Transport{
-			DialContext:         dialer.DialContext,
+			DialContext:         customDialContext,
 			MaxIdleConns:       10,
 			IdleConnTimeout:    30 * time.Second,
 			DisableCompression: false,
