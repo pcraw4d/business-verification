@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -141,15 +141,56 @@ export function MerchantForm() {
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Persist form data to sessionStorage to prevent data loss
+  useEffect(() => {
+    const savedFormData = sessionStorage.getItem('merchantFormData');
+    if (savedFormData) {
+      try {
+        const parsed = JSON.parse(savedFormData);
+        setFormData((prev) => ({ ...prev, ...parsed }));
+      } catch (error) {
+        console.error('Error restoring form data:', error);
+      }
+    }
+  }, []);
+
+  // Save form data to sessionStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined' && Object.keys(formData).length > 0) {
+      sessionStorage.setItem('merchantFormData', JSON.stringify(formData));
+    }
+  }, [formData]);
+
   const updateField = (field: keyof MerchantFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    // Clear error for this field when user types
-    if (errors[field]) {
+    
+    // Re-validate the field immediately when it's updated
+    const fieldRule = validationRules[field];
+    if (fieldRule) {
+      const formDataRecord: Record<string, string> = {
+        [field]: value,
+      };
+      const fieldErrors = FormValidation.validateForm(formDataRecord, { [field]: fieldRule });
+      
       setErrors((prev) => {
         const newErrors = { ...prev };
-        delete newErrors[field];
+        if (fieldErrors[field]) {
+          newErrors[field] = fieldErrors[field];
+        } else {
+          // Clear error if field is now valid
+          delete newErrors[field];
+        }
         return newErrors;
       });
+    } else {
+      // If no validation rule, just clear any existing error
+      if (errors[field]) {
+        setErrors((prev) => {
+          const newErrors = { ...prev };
+          delete newErrors[field];
+          return newErrors;
+        });
+      }
     }
   };
 
@@ -221,6 +262,8 @@ export function MerchantForm() {
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('merchantData', JSON.stringify(merchantData));
         sessionStorage.setItem('merchantId', result.id);
+        // Clear form data after successful submission
+        sessionStorage.removeItem('merchantFormData');
       }
 
       toast.success('Merchant created successfully', {
@@ -253,6 +296,10 @@ export function MerchantForm() {
       assessmentType: 'comprehensive',
     });
     setErrors({});
+    // Clear persisted form data
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('merchantFormData');
+    }
     toast.info('Form cleared');
   };
 

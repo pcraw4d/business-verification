@@ -100,13 +100,13 @@ export function Sidebar({ className, mobileOpen, onMobileClose }: SidebarProps) 
   const pathname = usePathname();
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 p-4 border-b">
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="flex items-center gap-2 p-4 border-b flex-shrink-0">
         <Shield className="h-6 w-6 text-primary" />
         <span className="font-bold text-lg">KYB Platform</span>
       </div>
       
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 overflow-hidden">
         <nav className="p-4 space-y-6" aria-label="Main navigation">
           <h2 className="sr-only">Navigation Menu</h2>
           {navigation.map((section, sectionIndex) => (
@@ -126,13 +126,14 @@ export function Sidebar({ className, mobileOpen, onMobileClose }: SidebarProps) 
                         onClick={onMobileClose}
                         className={cn(
                           'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                          'whitespace-nowrap',
                           isActive
                             ? 'bg-primary text-primary-foreground'
                             : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                         )}
                       >
-                        <Icon className="h-4 w-4" />
-                        <span className="flex-1">{item.label}</span>
+                        <Icon className="h-4 w-4 flex-shrink-0" />
+                        <span className="flex-1 min-w-0 truncate">{item.label}</span>
                         {item.badge && (
                           <span className="px-2 py-0.5 text-xs font-semibold bg-primary/20 text-primary rounded-full">
                             {item.badge}

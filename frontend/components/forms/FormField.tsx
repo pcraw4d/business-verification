@@ -66,13 +66,13 @@ export function FormField({
             <SelectTrigger
               id={fieldId}
               name={name}
-              className={cn(error && 'border-destructive')}
+              className={cn('w-full', error && 'border-destructive')}
               aria-invalid={!!error}
               aria-describedby={error ? errorId : undefined}
             >
               <SelectValue placeholder={placeholder} />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-50" position="popper">
               {selectOptions?.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}

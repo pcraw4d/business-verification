@@ -135,6 +135,11 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
     };
   }, [merchantId, loadMerchant]);
 
+  // Set mounted state after component mounts to prevent hydration errors
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Manual retry function
   const handleRetry = useCallback(() => {
     setError(null);
@@ -206,16 +211,7 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
   }
 
   return (
-    <main className="container mx-auto p-6 space-y-6">
-      {/* Skip link for keyboard navigation */}
-      <a
-        href="#merchant-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:shadow-lg"
-        aria-label="Skip to main content"
-      >
-        Skip to main content
-      </a>
-
+    <div className="space-y-6">
       <header className="border-b pb-4">
         <div className="flex items-start justify-between">
           <div className="flex-1">
@@ -332,7 +328,7 @@ export function MerchantDetailsLayout({ merchantId }: MerchantDetailsLayoutProps
       </Tabs>
       )}
       </section>
-    </main>
+    </div>
   );
 }
 
