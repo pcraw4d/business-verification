@@ -51,6 +51,11 @@ export const IndustryCodeSchema = z.object({
   code: z.string(),
   description: z.string(),
   confidence: z.number(),
+  source: z.array(z.enum(['industry', 'keyword', 'both'])).optional(),
+  matchType: z.enum(['exact', 'partial', 'synonym']).optional(),
+  relevanceScore: z.number().optional(),
+  industries: z.array(z.string()).optional(),
+  isPrimary: z.boolean().optional(),
 });
 
 export const ClassificationDataSchema = z.object({
@@ -74,6 +79,14 @@ export const ClassificationDataSchema = z.object({
     dataSourcePriority: z.object({
       websiteContent: z.enum(['primary', 'secondary', 'none']).optional(),
       businessName: z.enum(['primary', 'secondary', 'none']).optional(),
+    }).optional(),
+    codeGeneration: z.object({
+      method: z.enum(['industry_only', 'keyword_only', 'hybrid']),
+      sources: z.array(z.string()),
+      industriesAnalyzed: z.array(z.string()),
+      keywordMatches: z.number(),
+      industryMatches: z.number(),
+      totalCodesGenerated: z.number(),
     }).optional(),
   }).optional(),
 });

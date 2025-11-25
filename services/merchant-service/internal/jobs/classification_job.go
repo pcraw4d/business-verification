@@ -49,9 +49,14 @@ type ClassificationResult struct {
 
 // IndustryCode represents an industry classification code
 type IndustryCode struct {
-	Code        string  `json:"code"`
-	Description string  `json:"description"`
-	Confidence  float64 `json:"confidence"`
+	Code            string   `json:"code"`
+	Description     string   `json:"description"`
+	Confidence      float64  `json:"confidence"`
+	Source          []string `json:"source,omitempty"`          // ["industry", "keyword", "both"]
+	MatchType       string   `json:"matchType,omitempty"`       // "exact", "partial", "synonym"
+	RelevanceScore  float64  `json:"relevanceScore,omitempty"`  // From code_keywords table
+	Industries      []string `json:"industries,omitempty"`      // Industries that contributed this code
+	IsPrimary       bool     `json:"isPrimary,omitempty"`      // From classification_codes.is_primary
 }
 
 // NewClassificationJob creates a new classification job
@@ -508,6 +513,33 @@ func (j *ClassificationJob) parseIndustryCodesArray(data []interface{}) []Indust
 				code.Confidence = conf
 			} else if conf, ok := codeMap["confidence_score"].(float64); ok {
 				code.Confidence = conf
+			}
+			
+			// Extract new optional fields
+			if source, ok := codeMap["source"].([]interface{}); ok {
+				code.Source = make([]string, 0, len(source))
+				for _, s := range source {
+					if str, ok := s.(string); ok {
+						code.Source = append(code.Source, str)
+					}
+				}
+			}
+			if matchType, ok := codeMap["matchType"].(string); ok {
+				code.MatchType = matchType
+			}
+			if relevanceScore, ok := codeMap["relevanceScore"].(float64); ok {
+				code.RelevanceScore = relevanceScore
+			}
+			if industries, ok := codeMap["industries"].([]interface{}); ok {
+				code.Industries = make([]string, 0, len(industries))
+				for _, ind := range industries {
+					if str, ok := ind.(string); ok {
+						code.Industries = append(code.Industries, str)
+					}
+				}
+			}
+			if isPrimary, ok := codeMap["isPrimary"].(bool); ok {
+				code.IsPrimary = isPrimary
 			}
 			
 			if code.Code != "" {

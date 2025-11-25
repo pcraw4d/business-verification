@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -75,8 +76,21 @@ type NAICSCode struct {
 	Keywords    []string `json:"keywords_matched"`
 }
 
+// IndustryResult represents an industry with its confidence score
+type IndustryResult struct {
+	IndustryName string
+	Confidence   float64
+}
+
 // GenerateClassificationCodes generates MCC, SIC, and NAICS codes based on extracted keywords and industry analysis
-func (g *ClassificationCodeGenerator) GenerateClassificationCodes(ctx context.Context, keywords []string, detectedIndustry string, confidence float64) (*ClassificationCodesInfo, error) {
+// If additionalIndustries is provided, codes will be generated for those industries as well with weighted confidence
+func (g *ClassificationCodeGenerator) GenerateClassificationCodes(
+	ctx context.Context,
+	keywords []string,
+	detectedIndustry string,
+	confidence float64,
+	additionalIndustries ...IndustryResult, // Optional: top N industries from ensemble
+) (*ClassificationCodesInfo, error) {
 	startTime := time.Now()
 	requestID := g.generateRequestID()
 
@@ -95,7 +109,24 @@ func (g *ClassificationCodeGenerator) GenerateClassificationCodes(ctx context.Co
 	}
 
 	// Generate codes using parallel processing for better performance
-	g.generateCodesInParallel(ctx, codes, keywordsLower, detectedIndustry, confidence)
+	// Include additional industries if provided
+	allIndustries := []IndustryResult{
+		{IndustryName: detectedIndustry, Confidence: confidence},
+	}
+	// Add additional industries with weighted confidence (default weight: 0.7)
+	const multiIndustryWeight = 0.7
+	for _, additional := range additionalIndustries {
+		allIndustries = append(allIndustries, IndustryResult{
+			IndustryName: additional.IndustryName,
+			Confidence:   additional.Confidence * multiIndustryWeight,
+		})
+	}
+	
+	if len(allIndustries) > 1 {
+		g.logger.Printf("📊 Multi-industry code generation: %d industries", len(allIndustries))
+	}
+	
+	g.generateCodesInParallel(ctx, codes, keywordsLower, allIndustries)
 
 	// Record performance metrics
 	g.recordCodeGenerationMetrics(ctx, requestID, keywords, detectedIndustry, confidence, codes, time.Since(startTime), nil)
@@ -106,8 +137,211 @@ func (g *ClassificationCodeGenerator) GenerateClassificationCodes(ctx context.Co
 	return codes, nil
 }
 
+// CodeMatch represents a code match with metadata from keyword matching
+type CodeMatch struct {
+	Code           *repository.ClassificationCode
+	RelevanceScore float64
+	MatchType      string // "exact", "partial", "synonym"
+	Source         string // "industry" or "keyword"
+	Confidence     float64
+}
+
+// RankedCode represents a ranked code with combined confidence from multiple sources
+type RankedCode struct {
+	Code              *repository.ClassificationCode
+	CombinedConfidence float64
+	Sources            []string // Which sources contributed
+	MatchDetails       []CodeMatch
+}
+
+// generateCodesFromKeywords generates codes using direct keyword matching
+func (g *ClassificationCodeGenerator) generateCodesFromKeywords(
+	ctx context.Context,
+	keywords []string,
+	codeType string,
+	industryConfidence float64,
+) ([]CodeMatch, error) {
+	if len(keywords) == 0 {
+		return []CodeMatch{}, nil
+	}
+
+	g.logger.Printf("🔍 Generating %s codes from keywords: %d keywords", codeType, len(keywords))
+
+	// Use default minRelevance of 0.5
+	minRelevance := 0.5
+	keywordCodes, err := g.repo.GetClassificationCodesByKeywords(ctx, keywords, codeType, minRelevance)
+	if err != nil {
+		g.logger.Printf("⚠️ Failed to get codes from keywords: %v", err)
+		return []CodeMatch{}, nil // Return empty instead of error to allow fallback
+	}
+
+	// Convert to CodeMatch slice
+	matches := make([]CodeMatch, 0, len(keywordCodes))
+	for _, codeWithMeta := range keywordCodes {
+		// Calculate confidence: relevance_score * industry_confidence * 0.85
+		confidence := codeWithMeta.RelevanceScore * industryConfidence * 0.85
+		
+		matches = append(matches, CodeMatch{
+			Code:           &codeWithMeta.ClassificationCode,
+			RelevanceScore: codeWithMeta.RelevanceScore,
+			MatchType:      codeWithMeta.MatchType,
+			Source:         "keyword",
+			Confidence:     confidence,
+		})
+	}
+
+	g.logger.Printf("✅ Generated %d %s codes from keywords", len(matches), codeType)
+	return matches, nil
+}
+
+// mergeCodeResults combines industry-based and keyword-based code results
+// Applies confidence filtering, ranking, and limits
+func (g *ClassificationCodeGenerator) mergeCodeResults(
+	industryCodes []*repository.ClassificationCode,
+	keywordCodes []CodeMatch,
+	industryConfidence float64,
+	codeType string,
+) []RankedCode {
+	// Configuration constants
+	const (
+		confidenceThreshold = 0.6  // Minimum confidence to include
+		maxCodesPerType     = 10    // Maximum codes to return per type
+		primaryCodeBoost    = 1.2    // Boost multiplier for is_primary codes
+	)
+	// Create a map to track codes by their ID for deduplication
+	codeMap := make(map[int]*RankedCode)
+
+	// Add industry-based codes
+	for _, code := range industryCodes {
+		if code.CodeType != codeType {
+			continue
+		}
+
+		// Industry-based codes: confidence * 0.9
+		confidence := industryConfidence * 0.9
+
+		if existing, exists := codeMap[code.ID]; exists {
+			// Code already exists from keyword match - combine sources
+			existing.Sources = append(existing.Sources, "industry")
+			// Update combined confidence (weighted average)
+			existing.CombinedConfidence = (existing.CombinedConfidence + confidence) / 2.0
+			// Boost for codes matched by both sources
+			existing.CombinedConfidence *= 1.3
+		} else {
+			// New code from industry
+			codeMap[code.ID] = &RankedCode{
+				Code:              code,
+				CombinedConfidence: confidence,
+				Sources:            []string{"industry"},
+				MatchDetails: []CodeMatch{
+					{
+						Code:       code,
+						Source:     "industry",
+						Confidence: confidence,
+					},
+				},
+			}
+		}
+	}
+
+	// Add keyword-based codes
+	for _, keywordMatch := range keywordCodes {
+		if keywordMatch.Code.CodeType != codeType {
+			continue
+		}
+
+		if existing, exists := codeMap[keywordMatch.Code.ID]; exists {
+			// Code already exists from industry match - combine sources
+			existing.Sources = append(existing.Sources, "keyword")
+			// Update combined confidence (weighted average)
+			existing.CombinedConfidence = (existing.CombinedConfidence + keywordMatch.Confidence) / 2.0
+			// Boost for codes matched by both sources
+			existing.CombinedConfidence *= 1.3
+			existing.MatchDetails = append(existing.MatchDetails, keywordMatch)
+		} else {
+			// New code from keyword
+			codeMap[keywordMatch.Code.ID] = &RankedCode{
+				Code:              keywordMatch.Code,
+				CombinedConfidence: keywordMatch.Confidence,
+				Sources:            []string{"keyword"},
+				MatchDetails:       []CodeMatch{keywordMatch},
+			}
+		}
+	}
+
+	// Convert map to slice and apply boosts
+	results := make([]RankedCode, 0, len(codeMap))
+	for _, rankedCode := range codeMap {
+		// Boost is_primary codes (if the field exists - we'll check via description or other means)
+		// Note: ClassificationCode doesn't have is_primary field in the struct, so we'll skip this for now
+		// TODO: Add is_primary field to ClassificationCode struct if needed
+		
+		// Filter by confidence threshold
+		if rankedCode.CombinedConfidence >= confidenceThreshold {
+			results = append(results, *rankedCode)
+		}
+	}
+
+	// Sort by combined confidence (descending), then by code
+	// Boost codes matched by both sources (already applied in merge logic)
+	sort.Slice(results, func(i, j int) bool {
+		// Primary sort: combined confidence
+		if results[i].CombinedConfidence != results[j].CombinedConfidence {
+			return results[i].CombinedConfidence > results[j].CombinedConfidence
+		}
+		// Secondary sort: number of sources (more sources = better)
+		if len(results[i].Sources) != len(results[j].Sources) {
+			return len(results[i].Sources) > len(results[j].Sources)
+		}
+		// Tertiary sort: code value
+		return results[i].Code.Code < results[j].Code.Code
+	})
+
+	// Limit to top N codes
+	if len(results) > maxCodesPerType {
+		results = results[:maxCodesPerType]
+	}
+
+	return results
+}
+
+// generateCodesForMultipleIndustries generates codes for multiple industries and merges them
+func (g *ClassificationCodeGenerator) generateCodesForMultipleIndustries(
+	ctx context.Context,
+	industries []IndustryResult,
+	codeType string,
+) []*repository.ClassificationCode {
+	allCodes := make([]*repository.ClassificationCode, 0)
+	codeMap := make(map[int]bool) // For deduplication by code ID
+
+	for _, industry := range industries {
+		industryObj, err := g.repo.GetIndustryByName(ctx, industry.IndustryName)
+		if err != nil {
+			g.logger.Printf("⚠️ Failed to get industry %s for %s codes: %v", industry.IndustryName, codeType, err)
+			continue
+		}
+
+		codes, err := g.repo.GetCachedClassificationCodes(ctx, industryObj.ID)
+		if err != nil {
+			g.logger.Printf("⚠️ Failed to get %s codes for industry %s: %v", codeType, industry.IndustryName, err)
+			continue
+		}
+
+		// Filter by code type and deduplicate
+		for _, code := range codes {
+			if code.CodeType == codeType && !codeMap[code.ID] {
+				codeMap[code.ID] = true
+				allCodes = append(allCodes, code)
+			}
+		}
+	}
+
+	return allCodes
+}
+
 // generateCodesInParallel generates MCC, SIC, and NAICS codes in parallel for better performance
-func (g *ClassificationCodeGenerator) generateCodesInParallel(ctx context.Context, codes *ClassificationCodesInfo, keywordsLower []string, detectedIndustry string, confidence float64) {
+// Supports multiple industries for enhanced code coverage
+func (g *ClassificationCodeGenerator) generateCodesInParallel(ctx context.Context, codes *ClassificationCodesInfo, keywordsLower []string, industries []IndustryResult) {
 	g.logger.Printf("🚀 Starting parallel code generation for MCC, SIC, and NAICS")
 
 	// Create a WaitGroup to wait for all goroutines to complete
@@ -121,35 +355,44 @@ func (g *ClassificationCodeGenerator) generateCodesInParallel(ctx context.Contex
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		g.logger.Printf("🔄 Starting MCC code generation...")
+		g.logger.Printf("🔄 Starting MCC code generation (hybrid: industry + keywords)...")
 
-		// Get industry object first (same as NAICS)
-		industryObj, err := g.repo.GetIndustryByName(ctx, detectedIndustry)
-		if err != nil {
-			g.logger.Printf("⚠️ Failed to get industry for MCC: %v", err)
-			errorChan <- fmt.Errorf("MCC industry lookup: %w", err)
-			return
+		// Get industry-based codes from all industries
+		industryCodes := g.generateCodesForMultipleIndustries(ctx, industries, "MCC")
+		
+		// Use primary industry confidence for keyword matching
+		primaryConfidence := 0.5
+		if len(industries) > 0 {
+			primaryConfidence = industries[0].Confidence
 		}
 
-		// Get codes for the industry
-		allCodes, err := g.repo.GetCachedClassificationCodes(ctx, industryObj.ID)
+		// Get keyword-based codes
+		keywordMatches, err := g.generateCodesFromKeywords(ctx, keywordsLower, "MCC", primaryConfidence)
 		if err != nil {
-			g.logger.Printf("⚠️ Failed to get MCC codes from database: %v", err)
-			errorChan <- fmt.Errorf("MCC codes: %w", err)
-			return
+			g.logger.Printf("⚠️ Failed to get MCC codes from keywords: %v", err)
 		}
 
-		// Filter MCC codes by type and convert
-		var mccResults []MCCCode
-		for _, code := range allCodes {
-			if code.CodeType == "MCC" {
-				// Use industry-based codes directly (no keyword filtering needed)
-				mccResults = append(mccResults, MCCCode{
-					Code:        code.Code,
-					Description: code.Description,
-					Confidence:  confidence * 0.9,
-				})
+		// Merge results using primary industry confidence
+		rankedCodes := g.mergeCodeResults(industryCodes, keywordMatches, primaryConfidence, "MCC")
+
+		// Convert to MCCCode format
+		mccResults := make([]MCCCode, 0, len(rankedCodes))
+		for _, rankedCode := range rankedCodes {
+			// Extract keywords from match details
+			keywordsMatched := make([]string, 0)
+			for _, match := range rankedCode.MatchDetails {
+				if match.Source == "keyword" {
+					// Try to extract keyword from match (we don't store it in CodeMatch, so we'll use a placeholder)
+					keywordsMatched = append(keywordsMatched, "keyword_match")
+				}
 			}
+
+				mccResults = append(mccResults, MCCCode{
+				Code:        rankedCode.Code.Code,
+				Description: rankedCode.Code.Description,
+				Confidence:  rankedCode.CombinedConfidence,
+				Keywords:    keywordsMatched,
+				})
 		}
 
 		// Thread-safe update of shared codes
@@ -157,42 +400,51 @@ func (g *ClassificationCodeGenerator) generateCodesInParallel(ctx context.Contex
 		codes.MCC = mccResults
 		mu.Unlock()
 
-		g.logger.Printf("✅ MCC code generation completed: %d codes", len(mccResults))
+		g.logger.Printf("✅ MCC code generation completed: %d codes (industries: %d, keyword: %d)",
+			len(mccResults), len(industries), len(keywordMatches))
 	}()
 
 	// Generate SIC codes in parallel
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		g.logger.Printf("🔄 Starting SIC code generation...")
+		g.logger.Printf("🔄 Starting SIC code generation (hybrid: industry + keywords)...")
 
-		// Get industry object first (same as NAICS and MCC)
-		industryObj, err := g.repo.GetIndustryByName(ctx, detectedIndustry)
-		if err != nil {
-			g.logger.Printf("⚠️ Failed to get industry for SIC: %v", err)
-			errorChan <- fmt.Errorf("SIC industry lookup: %w", err)
-			return
+		// Get industry-based codes from all industries
+		industryCodes := g.generateCodesForMultipleIndustries(ctx, industries, "SIC")
+		
+		// Use primary industry confidence for keyword matching
+		primaryConfidence := 0.5
+		if len(industries) > 0 {
+			primaryConfidence = industries[0].Confidence
 		}
 
-		// Get codes for the industry
-		allCodes, err := g.repo.GetCachedClassificationCodes(ctx, industryObj.ID)
+		// Get keyword-based codes
+		keywordMatches, err := g.generateCodesFromKeywords(ctx, keywordsLower, "SIC", primaryConfidence)
 		if err != nil {
-			g.logger.Printf("⚠️ Failed to get SIC codes from database: %v", err)
-			errorChan <- fmt.Errorf("SIC codes: %w", err)
-			return
+			g.logger.Printf("⚠️ Failed to get SIC codes from keywords: %v", err)
 		}
 
-		// Filter SIC codes by type and convert
-		var sicResults []SICCode
-		for _, code := range allCodes {
-			if code.CodeType == "SIC" {
-				// Use industry-based codes directly (no keyword filtering needed)
-				sicResults = append(sicResults, SICCode{
-					Code:        code.Code,
-					Description: code.Description,
-					Confidence:  confidence * 0.9,
-				})
+		// Merge results using primary industry confidence
+		rankedCodes := g.mergeCodeResults(industryCodes, keywordMatches, primaryConfidence, "SIC")
+
+		// Convert to SICCode format
+		sicResults := make([]SICCode, 0, len(rankedCodes))
+		for _, rankedCode := range rankedCodes {
+			// Extract keywords from match details
+			keywordsMatched := make([]string, 0)
+			for _, match := range rankedCode.MatchDetails {
+				if match.Source == "keyword" {
+					keywordsMatched = append(keywordsMatched, "keyword_match")
+				}
 			}
+
+				sicResults = append(sicResults, SICCode{
+				Code:        rankedCode.Code.Code,
+				Description: rankedCode.Code.Description,
+				Confidence:  rankedCode.CombinedConfidence,
+				Keywords:    keywordsMatched,
+				})
 		}
 
 		// Thread-safe update of shared codes
@@ -200,42 +452,51 @@ func (g *ClassificationCodeGenerator) generateCodesInParallel(ctx context.Contex
 		codes.SIC = sicResults
 		mu.Unlock()
 
-		g.logger.Printf("✅ SIC code generation completed: %d codes", len(sicResults))
+		g.logger.Printf("✅ SIC code generation completed: %d codes (industries: %d, keyword: %d)",
+			len(sicResults), len(industries), len(keywordMatches))
 	}()
 
 	// Generate NAICS codes in parallel
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		g.logger.Printf("🔄 Starting NAICS code generation...")
+		g.logger.Printf("🔄 Starting NAICS code generation (hybrid: industry + keywords)...")
 
-		// Get industry object for NAICS generation
-		industryObj, err := g.repo.GetIndustryByName(ctx, detectedIndustry)
-		if err != nil {
-			g.logger.Printf("⚠️ Failed to get industry for NAICS: %v", err)
-			errorChan <- fmt.Errorf("NAICS industry lookup: %w", err)
-			return
+		// Get industry-based codes from all industries
+		industryCodes := g.generateCodesForMultipleIndustries(ctx, industries, "NAICS")
+		
+		// Use primary industry confidence for keyword matching
+		primaryConfidence := 0.5
+		if len(industries) > 0 {
+			primaryConfidence = industries[0].Confidence
 		}
 
-		// Get NAICS codes for the industry
-		naicsCodes, err := g.repo.GetCachedClassificationCodes(ctx, industryObj.ID)
+		// Get keyword-based codes
+		keywordMatches, err := g.generateCodesFromKeywords(ctx, keywordsLower, "NAICS", primaryConfidence)
 		if err != nil {
-			g.logger.Printf("⚠️ Failed to get NAICS codes from database: %v", err)
-			errorChan <- fmt.Errorf("NAICS codes: %w", err)
-			return
+			g.logger.Printf("⚠️ Failed to get NAICS codes from keywords: %v", err)
 		}
 
-		// Filter NAICS codes by type (no keyword filtering needed - industry match is sufficient)
-		var naicsResults []NAICSCode
-		for _, code := range naicsCodes {
-			if code.CodeType == "NAICS" {
-				// Use industry-based codes directly (no keyword filtering needed)
-				naicsResults = append(naicsResults, NAICSCode{
-					Code:        code.Code,
-					Description: code.Description,
-					Confidence:  confidence * 0.9,
-				})
+		// Merge results using primary industry confidence
+		rankedCodes := g.mergeCodeResults(industryCodes, keywordMatches, primaryConfidence, "NAICS")
+
+		// Convert to NAICSCode format
+		naicsResults := make([]NAICSCode, 0, len(rankedCodes))
+		for _, rankedCode := range rankedCodes {
+			// Extract keywords from match details
+			keywordsMatched := make([]string, 0)
+			for _, match := range rankedCode.MatchDetails {
+				if match.Source == "keyword" {
+					keywordsMatched = append(keywordsMatched, "keyword_match")
+				}
 			}
+
+				naicsResults = append(naicsResults, NAICSCode{
+				Code:        rankedCode.Code.Code,
+				Description: rankedCode.Code.Description,
+				Confidence:  rankedCode.CombinedConfidence,
+				Keywords:    keywordsMatched,
+				})
 		}
 
 		// Thread-safe update of shared codes
@@ -243,7 +504,8 @@ func (g *ClassificationCodeGenerator) generateCodesInParallel(ctx context.Contex
 		codes.NAICS = naicsResults
 		mu.Unlock()
 
-		g.logger.Printf("✅ NAICS code generation completed: %d codes", len(naicsResults))
+		g.logger.Printf("✅ NAICS code generation completed: %d codes (industries: %d, keyword: %d)",
+			len(naicsResults), len(industries), len(keywordMatches))
 	}()
 
 	// Wait for all goroutines to complete

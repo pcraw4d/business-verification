@@ -73,6 +73,14 @@ export interface ClassificationData {
       websiteContent?: 'primary' | 'secondary' | 'none';
       businessName?: 'primary' | 'secondary' | 'none';
     };
+    codeGeneration?: {
+      method: 'industry_only' | 'keyword_only' | 'hybrid';
+      sources: string[];
+      industriesAnalyzed: string[];
+      keywordMatches: number;
+      industryMatches: number;
+      totalCodesGenerated: number;
+    };
   };
 }
 
@@ -80,6 +88,12 @@ export interface IndustryCode {
   code: string;
   description: string;
   confidence: number;
+  // New optional fields for hybrid code generation:
+  source?: ('industry' | 'keyword' | 'both')[];
+  matchType?: 'exact' | 'partial' | 'synonym';
+  relevanceScore?: number;
+  industries?: string[];
+  isPrimary?: boolean;
 }
 
 export interface SecurityData {

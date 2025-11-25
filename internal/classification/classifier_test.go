@@ -78,6 +78,18 @@ func TestGenerateClassificationCodes(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected no error with nil keywords, got: %v", err)
 	}
+
+	// Test with additional industries (multi-industry support)
+	additionalIndustries := []IndustryResult{
+		{IndustryName: "Software", Confidence: 0.75},
+	}
+	codes, err = generator.GenerateClassificationCodes(ctx, keywords, detectedIndustry, confidence, additionalIndustries...)
+	if err != nil {
+		t.Errorf("Expected no error with additional industries, got: %v", err)
+	}
+	if codes == nil {
+		t.Error("Expected codes to be generated with additional industries")
+	}
 }
 
 // TestGenerateMCCCodes tests MCC code generation
@@ -92,7 +104,8 @@ func TestGenerateMCCCodes(t *testing.T) {
 	financialKeywords := []string{"bank", "finance", "credit"}
 	codes := &ClassificationCodesInfo{}
 
-	generator.generateCodesInParallel(ctx, codes, financialKeywords, "Financial Services", confidence)
+	industries := []IndustryResult{{IndustryName: "Financial Services", Confidence: confidence}}
+	generator.generateCodesInParallel(ctx, codes, financialKeywords, industries)
 
 	if len(codes.MCC) == 0 {
 		t.Error("Expected MCC codes to be generated for financial keywords")
@@ -102,7 +115,8 @@ func TestGenerateMCCCodes(t *testing.T) {
 	techKeywords := []string{"software", "platform", "digital"}
 	codes = &ClassificationCodesInfo{}
 
-	generator.generateCodesInParallel(ctx, codes, techKeywords, "Technology", confidence)
+	industries := []IndustryResult{{IndustryName: "Technology", Confidence: confidence}}
+	generator.generateCodesInParallel(ctx, codes, techKeywords, industries)
 
 	if len(codes.MCC) == 0 {
 		t.Error("Expected MCC codes to be generated for technology keywords")
@@ -112,7 +126,8 @@ func TestGenerateMCCCodes(t *testing.T) {
 	noMatchKeywords := []string{"xyz", "abc", "def"}
 	codes = &ClassificationCodesInfo{}
 
-	generator.generateCodesInParallel(ctx, codes, noMatchKeywords, "Unknown", confidence)
+	industries = []IndustryResult{{IndustryName: "Unknown", Confidence: confidence}}
+	generator.generateCodesInParallel(ctx, codes, noMatchKeywords, industries)
 
 	if len(codes.MCC) != 0 {
 		t.Error("Expected no MCC codes for non-matching keywords")
@@ -130,7 +145,8 @@ func TestGenerateSICCodes(t *testing.T) {
 
 	// Test Technology industry
 	codes := &ClassificationCodesInfo{}
-	generator.generateCodesInParallel(ctx, codes, keywords, "Technology", confidence)
+	industries := []IndustryResult{{IndustryName: "Technology", Confidence: confidence}}
+	generator.generateCodesInParallel(ctx, codes, keywords, industries)
 
 	if len(codes.SIC) == 0 {
 		t.Error("Expected SIC codes to be generated for Technology industry")
@@ -138,7 +154,8 @@ func TestGenerateSICCodes(t *testing.T) {
 
 	// Test Financial Services industry
 	codes = &ClassificationCodesInfo{}
-	generator.generateCodesInParallel(ctx, codes, keywords, "Financial Services", confidence)
+	industries = []IndustryResult{{IndustryName: "Financial Services", Confidence: confidence}}
+	generator.generateCodesInParallel(ctx, codes, keywords, industries)
 
 	if len(codes.SIC) == 0 {
 		t.Error("Expected SIC codes to be generated for Financial Services industry")
@@ -146,7 +163,8 @@ func TestGenerateSICCodes(t *testing.T) {
 
 	// Test unknown industry
 	codes = &ClassificationCodesInfo{}
-	generator.generateCodesInParallel(ctx, codes, keywords, "Unknown Industry", confidence)
+	industries = []IndustryResult{{IndustryName: "Unknown Industry", Confidence: confidence}}
+	generator.generateCodesInParallel(ctx, codes, keywords, industries)
 
 	if len(codes.SIC) != 0 {
 		t.Error("Expected no SIC codes for unknown industry")
@@ -164,7 +182,8 @@ func TestGenerateNAICSCodes(t *testing.T) {
 
 	// Test Technology industry
 	codes := &ClassificationCodesInfo{}
-	generator.generateCodesInParallel(ctx, codes, keywords, "Technology", confidence)
+	industries := []IndustryResult{{IndustryName: "Technology", Confidence: confidence}}
+	generator.generateCodesInParallel(ctx, codes, keywords, industries)
 
 	if len(codes.NAICS) == 0 {
 		t.Error("Expected NAICS codes to be generated for Technology industry")
@@ -172,7 +191,8 @@ func TestGenerateNAICSCodes(t *testing.T) {
 
 	// Test Manufacturing industry
 	codes = &ClassificationCodesInfo{}
-	generator.generateCodesInParallel(ctx, codes, keywords, "Manufacturing", confidence)
+	industries = []IndustryResult{{IndustryName: "Manufacturing", Confidence: confidence}}
+	generator.generateCodesInParallel(ctx, codes, keywords, industries)
 
 	if len(codes.NAICS) == 0 {
 		t.Error("Expected NAICS codes to be generated for Manufacturing industry")
@@ -180,7 +200,8 @@ func TestGenerateNAICSCodes(t *testing.T) {
 
 	// Test unknown industry
 	codes = &ClassificationCodesInfo{}
-	generator.generateCodesInParallel(ctx, codes, keywords, "Unknown Industry", confidence)
+	industries = []IndustryResult{{IndustryName: "Unknown Industry", Confidence: confidence}}
+	generator.generateCodesInParallel(ctx, codes, keywords, industries)
 
 	if len(codes.NAICS) != 0 {
 		t.Error("Expected no NAICS codes for unknown industry")

@@ -177,9 +177,14 @@ type ClassificationResult struct {
 
 // IndustryCode represents an industry classification code
 type IndustryCode struct {
-	Code        string  `json:"code"`
-	Description string  `json:"description"`
-	Confidence  float64 `json:"confidence"`
+	Code            string   `json:"code"`
+	Description     string   `json:"description"`
+	Confidence      float64  `json:"confidence"`
+	Source          []string `json:"source,omitempty"`          // ["industry", "keyword", "both"]
+	MatchType       string   `json:"matchType,omitempty"`       // "exact", "partial", "synonym"
+	RelevanceScore  float64  `json:"relevanceScore,omitempty"`  // From code_keywords table
+	Industries      []string `json:"industries,omitempty"`      // Industries that contributed this code
+	IsPrimary       bool     `json:"isPrimary,omitempty"`      // From classification_codes.is_primary
 }
 
 // WebsiteContent represents website content analysis
@@ -350,14 +355,23 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 		Success:            true,
 		Timestamp:          time.Now(),
 		ProcessingTime:     time.Since(startTime),
-		Metadata: map[string]interface{}{
+		Metadata: func() map[string]interface{} {
+			metadata := map[string]interface{}{
 			"service":                  "classification-service",
 			"version":                  "2.0.0",
 			"classification_reasoning": enhancedResult.ClassificationReasoning,
 			"website_analysis":         enhancedResult.WebsiteAnalysis,
 			"method_weights":           enhancedResult.MethodWeights,
 			"smart_crawling_enabled":   true,
-		},
+			}
+			// Include code generation metadata if present
+			if enhancedResult.Metadata != nil {
+				if codeGen, ok := enhancedResult.Metadata["codeGeneration"]; ok {
+					metadata["codeGeneration"] = codeGen
+				}
+			}
+			return metadata
+		}(),
 	}
 
 	return response, nil
@@ -842,20 +856,21 @@ func (h *ClassificationHandler) generateVerificationStatus(req *ClassificationRe
 
 // EnhancedClassificationResult represents the result of enhanced classification
 type EnhancedClassificationResult struct {
-	BusinessName            string               `json:"business_name"`
-	PrimaryIndustry         string               `json:"primary_industry"`
-	IndustryConfidence      float64              `json:"industry_confidence"`
-	BusinessType            string               `json:"business_type"`
-	BusinessTypeConfidence  float64              `json:"business_type_confidence"`
-	MCCCodes                []IndustryCode       `json:"mcc_codes"`
-	SICCodes                []IndustryCode       `json:"sic_codes"`
-	NAICSCodes              []IndustryCode       `json:"naics_codes"`
-	Keywords                []string             `json:"keywords"`
-	ConfidenceScore         float64              `json:"confidence_score"`
-	ClassificationReasoning string               `json:"classification_reasoning"`
-	MethodWeights           map[string]float64   `json:"method_weights"`
-	WebsiteAnalysis         *WebsiteAnalysisData `json:"website_analysis,omitempty"`
-	Timestamp               time.Time            `json:"timestamp"`
+	BusinessName            string                 `json:"business_name"`
+	PrimaryIndustry         string                 `json:"primary_industry"`
+	IndustryConfidence      float64                `json:"industry_confidence"`
+	BusinessType            string                 `json:"business_type"`
+	BusinessTypeConfidence  float64                `json:"business_type_confidence"`
+	MCCCodes                []IndustryCode         `json:"mcc_codes"`
+	SICCodes                []IndustryCode         `json:"sic_codes"`
+	NAICSCodes              []IndustryCode         `json:"naics_codes"`
+	Keywords                []string               `json:"keywords"`
+	ConfidenceScore         float64                `json:"confidence_score"`
+	ClassificationReasoning string                 `json:"classification_reasoning"`
+	MethodWeights           map[string]float64     `json:"method_weights"`
+	WebsiteAnalysis         *WebsiteAnalysisData   `json:"website_analysis,omitempty"`
+	Metadata                map[string]interface{} `json:"metadata,omitempty"`
+	Timestamp               time.Time              `json:"timestamp"`
 }
 
 // WebsiteAnalysisData represents aggregated data from website analysis
@@ -943,33 +958,77 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 			zap.Int("naics_count", len(codesInfo.NAICS)))
 	}
 
-	// Step 3: Convert classification codes to handler format
+	// Step 3: Convert classification codes to handler format with enhanced metadata
 	mccCodes := make([]IndustryCode, 0, len(codesInfo.MCC))
+	keywordMatchCount := 0
+	industryMatchCount := 0
+	
 	for _, code := range codesInfo.MCC {
-		mccCodes = append(mccCodes, IndustryCode{
+		industryCode := IndustryCode{
 			Code:        code.Code,
 			Description: code.Description,
 			Confidence:  code.Confidence,
-		})
+		}
+		
+		// Infer source from keywords presence
+		if len(code.Keywords) > 0 {
+			industryCode.Source = []string{"keyword"}
+			keywordMatchCount++
+		} else {
+			industryCode.Source = []string{"industry"}
+			industryMatchCount++
+		}
+		
+		mccCodes = append(mccCodes, industryCode)
 	}
 
 	sicCodes := make([]IndustryCode, 0, len(codesInfo.SIC))
 	for _, code := range codesInfo.SIC {
-		sicCodes = append(sicCodes, IndustryCode{
+		industryCode := IndustryCode{
 			Code:        code.Code,
 			Description: code.Description,
 			Confidence:  code.Confidence,
-		})
+		}
+		
+		if len(code.Keywords) > 0 {
+			industryCode.Source = []string{"keyword"}
+			keywordMatchCount++
+		} else {
+			industryCode.Source = []string{"industry"}
+			industryMatchCount++
+		}
+		
+		sicCodes = append(sicCodes, industryCode)
 	}
 
 	naicsCodes := make([]IndustryCode, 0, len(codesInfo.NAICS))
 	for _, code := range codesInfo.NAICS {
-		naicsCodes = append(naicsCodes, IndustryCode{
+		industryCode := IndustryCode{
 			Code:        code.Code,
 			Description: code.Description,
 			Confidence:  code.Confidence,
-		})
+		}
+		
+		if len(code.Keywords) > 0 {
+			industryCode.Source = []string{"keyword"}
+			keywordMatchCount++
+		} else {
+			industryCode.Source = []string{"industry"}
+			industryMatchCount++
+		}
+		
+		naicsCodes = append(naicsCodes, industryCode)
 	}
+	
+	// Determine code generation method
+	codeGenMethod := "hybrid"
+	if keywordMatchCount == 0 {
+		codeGenMethod = "industry_only"
+	} else if industryMatchCount == 0 {
+		codeGenMethod = "keyword_only"
+	}
+	
+	totalCodesGenerated := len(mccCodes) + len(sicCodes) + len(naicsCodes)
 
 	// Step 4: Build website analysis data (simplified for now)
 	websiteAnalysis := &WebsiteAnalysisData{
@@ -1004,8 +1063,8 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 		reasoning += fmt.Sprintf(" Keywords matched: %s.", strings.Join(industryResult.Keywords, ", "))
 	}
 
-	// Step 7: Build result
-	return &EnhancedClassificationResult{
+	// Step 7: Build result with code generation metadata
+	result := &EnhancedClassificationResult{
 		BusinessName:            req.BusinessName,
 		PrimaryIndustry:         industryResult.IndustryName,
 		IndustryConfidence:      industryResult.Confidence,
@@ -1020,7 +1079,22 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 		WebsiteAnalysis:         websiteAnalysis,
 		MethodWeights:           methodWeights,
 		Timestamp:               time.Now(),
-	}, nil
+	}
+	
+	// Add code generation metadata
+	if result.Metadata == nil {
+		result.Metadata = make(map[string]interface{})
+	}
+	result.Metadata["codeGeneration"] = map[string]interface{}{
+		"method":              codeGenMethod,
+		"sources":             []string{"industry", "keyword"},
+		"industriesAnalyzed":  []string{industryResult.IndustryName},
+		"keywordMatches":     keywordMatchCount,
+		"industryMatches":    industryMatchCount,
+		"totalCodesGenerated": totalCodesGenerated,
+	}
+	
+	return result, nil
 }
 
 // determineBusinessType determines business type from keywords and industry

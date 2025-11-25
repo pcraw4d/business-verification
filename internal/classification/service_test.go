@@ -153,9 +153,35 @@ func (m *MockKeywordRepository) GetBatchKeywords(ctx context.Context, industryID
 }
 
 func (m *MockKeywordRepository) GetCachedClassificationCodes(ctx context.Context, industryID int) ([]*repository.ClassificationCode, error) {
-	return []*repository.ClassificationCode{
-		{ID: 1, Code: "541511", Description: "Custom Computer Programming Services", CodeType: "NAICS"},
-	}, nil
+	if m.getClassificationCodesError != nil {
+		return nil, m.getClassificationCodesError
+	}
+	return m.GetClassificationCodesByIndustry(ctx, industryID)
+}
+
+func (m *MockKeywordRepository) GetClassificationCodesByKeywords(
+	ctx context.Context,
+	keywords []string,
+	codeType string,
+	minRelevance float64,
+) ([]*repository.ClassificationCodeWithMetadata, error) {
+	// Return mock codes based on keywords
+	result := make([]*repository.ClassificationCodeWithMetadata, 0)
+	for i, keyword := range keywords {
+		if keyword != "" && minRelevance <= 0.8 {
+			result = append(result, &repository.ClassificationCodeWithMetadata{
+				ClassificationCode: repository.ClassificationCode{
+					ID:          i + 100,
+					Code:        "123" + string(rune('0'+i)),
+					CodeType:    codeType,
+					Description: "Code for " + keyword,
+				},
+				RelevanceScore: 0.8,
+				MatchType:      "exact",
+			})
+		}
+	}
+	return result, nil
 }
 
 func (m *MockKeywordRepository) GetCachedClassificationCodesByType(ctx context.Context, codeType string) ([]*repository.ClassificationCode, error) {

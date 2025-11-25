@@ -76,6 +76,31 @@ func (m *MockKeywordRepository) DeleteClassificationCode(ctx context.Context, id
 	return nil
 }
 
+func (m *MockKeywordRepository) GetClassificationCodesByKeywords(
+	ctx context.Context,
+	keywords []string,
+	codeType string,
+	minRelevance float64,
+) ([]*repository.ClassificationCodeWithMetadata, error) {
+	// Return mock codes based on keywords
+	result := make([]*repository.ClassificationCodeWithMetadata, 0)
+	for i, keyword := range keywords {
+		if keyword != "" && minRelevance <= 0.8 {
+			result = append(result, &repository.ClassificationCodeWithMetadata{
+				ClassificationCode: repository.ClassificationCode{
+					ID:          i + 100,
+					Code:        "123" + string(rune('0'+i)),
+					CodeType:    codeType,
+					Description: "Code for " + keyword,
+				},
+				RelevanceScore: 0.8,
+				MatchType:      "exact",
+			})
+		}
+	}
+	return result, nil
+}
+
 func (m *MockKeywordRepository) GetKeywordWeights(ctx context.Context, industryID int) ([]*repository.KeywordWeight, error) {
 	return []*repository.KeywordWeight{}, nil
 }

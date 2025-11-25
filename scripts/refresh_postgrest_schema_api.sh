@@ -14,13 +14,18 @@ NC='\033[0m' # No Color
 echo -e "${BLUE}Refreshing PostgREST Schema Cache via Supabase API${NC}"
 echo ""
 
-# Load environment variables from railway.env if it exists
-if [ -f "railway.env" ]; then
+# Load environment variables from config files (check multiple locations)
+if [ -f "scripts/setup_test_env.sh" ]; then
+    source scripts/setup_test_env.sh > /dev/null 2>&1
+fi
+
+# Also check railway.env for backwards compatibility
+if [ -f "railway.env" ] && [ -z "$SUPABASE_URL" ]; then
     echo -e "${YELLOW}Loading configuration from railway.env...${NC}"
     export $(grep -E '^SUPABASE_URL=|^SUPABASE_SERVICE_ROLE_KEY=' railway.env | grep -v '^#' | xargs)
 fi
 
-# Set defaults from railway.env values
+# Set defaults
 SUPABASE_URL="${SUPABASE_URL:-https://qpqhuqqmkjxsltzshfam.supabase.co}"
 SUPABASE_SERVICE_ROLE_KEY="${SUPABASE_SERVICE_ROLE_KEY:-}"
 

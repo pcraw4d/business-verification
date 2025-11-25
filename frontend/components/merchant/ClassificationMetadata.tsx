@@ -1,6 +1,6 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Info, Database, Building2, Globe } from 'lucide-react';
+import { Info, Database, Building2, Globe, Code2, Layers, TrendingUp } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -56,6 +56,22 @@ export function ClassificationMetadata({ metadata, compact = false }: Classifica
             <Database className="h-3 w-3 mr-1" />
             Structured Data
           </Badge>
+        )}
+        {metadata.codeGeneration && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="outline" className="cursor-help">
+                  <Code2 className="h-3 w-3 mr-1" />
+                  {metadata.codeGeneration.method}
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Method: {metadata.codeGeneration.method}</p>
+                <p>Total codes: {metadata.codeGeneration.totalCodesGenerated}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
       </div>
     );
@@ -141,6 +157,61 @@ export function ClassificationMetadata({ metadata, compact = false }: Classifica
                 <Badge variant={metadata.dataSourcePriority.businessName === 'primary' ? 'default' : 'outline'}>
                   {metadata.dataSourcePriority.businessName}
                 </Badge>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Code Generation Metadata */}
+      {metadata.codeGeneration && (
+        <div className="space-y-2 border-t pt-2">
+          <div className="flex items-center gap-2">
+            <Code2 className="h-4 w-4 text-purple-600" />
+            <span className="text-sm font-medium">Code Generation</span>
+          </div>
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Method</span>
+              <Badge variant={
+                metadata.codeGeneration.method === 'hybrid' ? 'default' :
+                metadata.codeGeneration.method === 'keyword_only' ? 'secondary' : 'outline'
+              }>
+                {metadata.codeGeneration.method === 'hybrid' && 'Hybrid'}
+                {metadata.codeGeneration.method === 'keyword_only' && 'Keyword Only'}
+                {metadata.codeGeneration.method === 'industry_only' && 'Industry Only'}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Total Codes</span>
+              <span className="text-sm font-medium">
+                {metadata.codeGeneration.totalCodesGenerated}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Industry Matches</span>
+              <Badge variant="outline">
+                <Layers className="h-3 w-3 mr-1" />
+                {metadata.codeGeneration.industryMatches}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Keyword Matches</span>
+              <Badge variant="outline">
+                <TrendingUp className="h-3 w-3 mr-1" />
+                {metadata.codeGeneration.keywordMatches}
+              </Badge>
+            </div>
+            {metadata.codeGeneration.industriesAnalyzed && metadata.codeGeneration.industriesAnalyzed.length > 0 && (
+              <div className="space-y-1">
+                <span className="text-sm text-muted-foreground">Industries Analyzed</span>
+                <div className="flex flex-wrap gap-1">
+                  {metadata.codeGeneration.industriesAnalyzed.map((industry, idx) => (
+                    <Badge key={idx} variant="outline" className="text-xs">
+                      {industry}
+                    </Badge>
+                  ))}
+                </div>
               </div>
             )}
           </div>

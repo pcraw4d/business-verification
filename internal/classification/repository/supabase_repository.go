@@ -1007,6 +1007,192 @@ func (r *SupabaseKeywordRepository) GetClassificationCodesByIndustry(ctx context
 	return codes, nil
 }
 
+// GetClassificationCodesByKeywords retrieves classification codes directly from keywords
+// This bypasses industry detection and matches keywords to codes via code_keywords table
+func (r *SupabaseKeywordRepository) GetClassificationCodesByKeywords(
+	ctx context.Context,
+	keywords []string,
+	codeType string, // "MCC", "SIC", or "NAICS"
+	minRelevance float64, // Minimum relevance_score threshold (default 0.5)
+) ([]*ClassificationCodeWithMetadata, error) {
+	if len(keywords) == 0 {
+		return []*ClassificationCodeWithMetadata{}, nil
+	}
+
+	r.logger.Printf("🔍 Getting classification codes by keywords: %d keywords, type: %s, minRelevance: %.2f",
+		len(keywords), codeType, minRelevance)
+
+	// Check if client is available
+	if r.client == nil {
+		return nil, fmt.Errorf("database client not available")
+	}
+	postgrestClient := r.client.GetPostgrestClient()
+	if postgrestClient == nil {
+		return nil, fmt.Errorf("postgrest client not available")
+	}
+
+	// Step 1: Query code_keywords table to find matching keywords and get code_ids
+	// Convert keywords to lowercase for case-insensitive matching
+	keywordsLower := make([]string, len(keywords))
+	for i, kw := range keywords {
+		keywordsLower[i] = strings.ToLower(strings.TrimSpace(kw))
+	}
+
+	// Query code_keywords - we'll need to query for each keyword or use IN clause
+	// Since PostgREST may not support array matching directly, we'll query for each keyword
+	// and combine results, or use a single query if possible
+
+	// Query all code_keywords and filter in memory by relevance and keywords
+	// This is not ideal for large datasets, but works for the MVP
+	// TODO: Optimize with proper PostgREST array matching or database function
+	// Note: We don't filter by relevance_score in the query since we need >= minRelevance,
+	// and we filter in memory anyway. This ensures we get all potential matches.
+	codeKeywordsResponse, _, err := postgrestClient.
+		From("code_keywords").
+		Select("id,code_id,keyword,relevance_score,match_type", "", false).
+		Order("relevance_score", &postgrest.OrderOpts{Ascending: false}).
+		Limit(10000, ""). // Large limit to get all matches, then filter
+		Execute()
+
+	if err != nil {
+		r.logger.Printf("⚠️ Failed to query code_keywords: %v", err)
+		// Fallback: return empty result instead of error
+		return []*ClassificationCodeWithMetadata{}, nil
+	}
+
+	// Parse code_keywords results
+	type CodeKeywordRow struct {
+		ID             int     `json:"id"`
+		CodeID         int     `json:"code_id"`
+		Keyword        string  `json:"keyword"`
+		RelevanceScore float64 `json:"relevance_score"`
+		MatchType      string  `json:"match_type"`
+	}
+
+	var codeKeywordRows []CodeKeywordRow
+	if err := json.Unmarshal(codeKeywordsResponse, &codeKeywordRows); err != nil {
+		return nil, fmt.Errorf("failed to parse code_keywords response: %w", err)
+	}
+
+	// Filter by keywords (case-insensitive) and collect unique code_ids
+	keywordSet := make(map[string]bool)
+	for _, kw := range keywordsLower {
+		keywordSet[kw] = true
+	}
+
+	codeIDToMetadata := make(map[int][]struct {
+		RelevanceScore float64
+		MatchType      string
+		Keyword        string
+	})
+
+	for _, row := range codeKeywordRows {
+		rowKeywordLower := strings.ToLower(strings.TrimSpace(row.Keyword))
+		
+		// Check if this keyword matches any of our search keywords
+		matches := false
+		for searchKeyword := range keywordSet {
+			// Exact match or contains match
+			if rowKeywordLower == searchKeyword || 
+			   strings.Contains(rowKeywordLower, searchKeyword) ||
+			   strings.Contains(searchKeyword, rowKeywordLower) {
+				matches = true
+				break
+			}
+		}
+
+		if matches && row.RelevanceScore >= minRelevance {
+			if codeIDToMetadata[row.CodeID] == nil {
+				codeIDToMetadata[row.CodeID] = []struct {
+					RelevanceScore float64
+					MatchType      string
+					Keyword        string
+				}{}
+			}
+			codeIDToMetadata[row.CodeID] = append(codeIDToMetadata[row.CodeID], struct {
+				RelevanceScore float64
+				MatchType      string
+				Keyword        string
+			}{
+				RelevanceScore: row.RelevanceScore,
+				MatchType:      row.MatchType,
+				Keyword:        row.Keyword,
+			})
+		}
+	}
+
+	if len(codeIDToMetadata) == 0 {
+		r.logger.Printf("⚠️ No code_keywords matches found for keywords: %v", keywords)
+		return []*ClassificationCodeWithMetadata{}, nil
+	}
+
+	// Step 2: Query classification_codes for the matched code_ids
+	codeIDs := make([]int, 0, len(codeIDToMetadata))
+	for codeID := range codeIDToMetadata {
+		codeIDs = append(codeIDs, codeID)
+	}
+
+	// Query classification_codes - we'll need to query each code_id or use IN clause
+	// For now, query all codes and filter by code_id and code_type
+	allCodesResponse, _, err := postgrestClient.
+		From("classification_codes").
+		Select("id,industry_id,code_type,code,description,is_active", "", false).
+		Eq("code_type", codeType).
+		Eq("is_active", "true").
+		Order("code", &postgrest.OrderOpts{Ascending: true}).
+		Limit(10000, "").
+		Execute()
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to query classification_codes: %w", err)
+	}
+
+	var allCodes []*ClassificationCode
+	if err := json.Unmarshal(allCodesResponse, &allCodes); err != nil {
+		return nil, fmt.Errorf("failed to parse classification_codes response: %w", err)
+	}
+
+	// Step 3: Combine results - filter codes by code_id and attach metadata
+	codeIDSet := make(map[int]bool)
+	for _, id := range codeIDs {
+		codeIDSet[id] = true
+	}
+
+	var results []*ClassificationCodeWithMetadata
+	for _, code := range allCodes {
+		if codeIDSet[code.ID] {
+			// Get the best metadata (highest relevance score) for this code
+			metadataList := codeIDToMetadata[code.ID]
+			if len(metadataList) > 0 {
+				// Sort by relevance score (highest first)
+				bestMetadata := metadataList[0]
+				for _, meta := range metadataList {
+					if meta.RelevanceScore > bestMetadata.RelevanceScore {
+						bestMetadata = meta
+					}
+				}
+
+				results = append(results, &ClassificationCodeWithMetadata{
+					ClassificationCode: *code,
+					RelevanceScore:      bestMetadata.RelevanceScore,
+					MatchType:           bestMetadata.MatchType,
+				})
+			}
+		}
+	}
+
+	// Sort results by relevance_score descending, then by code
+	sort.Slice(results, func(i, j int) bool {
+		if results[i].RelevanceScore != results[j].RelevanceScore {
+			return results[i].RelevanceScore > results[j].RelevanceScore
+		}
+		return results[i].Code < results[j].Code
+	})
+
+	r.logger.Printf("✅ Retrieved %d classification codes by keywords (type: %s)", len(results), codeType)
+	return results, nil
+}
+
 // GetClassificationCodesByType retrieves classification codes by type (NAICS, MCC, SIC)
 func (r *SupabaseKeywordRepository) GetClassificationCodesByType(ctx context.Context, codeType string) ([]*ClassificationCode, error) {
 	r.logger.Printf("🔍 Getting classification codes by type: %s", codeType)

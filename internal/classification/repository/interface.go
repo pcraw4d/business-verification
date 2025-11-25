@@ -39,6 +39,13 @@ type ClassificationCode struct {
 	UpdatedAt   string `json:"updated_at"`
 }
 
+// ClassificationCodeWithMetadata represents a classification code with keyword matching metadata
+type ClassificationCodeWithMetadata struct {
+	ClassificationCode
+	RelevanceScore float64 `json:"relevance_score"` // From code_keywords table
+	MatchType      string  `json:"match_type"`        // "exact", "partial", "synonym"
+}
+
 // IndustryPattern represents phrase patterns for industry detection
 type IndustryPattern struct {
 	ID              int     `json:"id"`
@@ -104,6 +111,7 @@ type KeywordRepository interface {
 	// Classification Codes
 	GetClassificationCodesByIndustry(ctx context.Context, industryID int) ([]*ClassificationCode, error)
 	GetClassificationCodesByType(ctx context.Context, codeType string) ([]*ClassificationCode, error)
+	GetClassificationCodesByKeywords(ctx context.Context, keywords []string, codeType string, minRelevance float64) ([]*ClassificationCodeWithMetadata, error)
 	AddClassificationCode(ctx context.Context, code *ClassificationCode) error
 	UpdateClassificationCode(ctx context.Context, code *ClassificationCode) error
 	DeleteClassificationCode(ctx context.Context, id int) error
