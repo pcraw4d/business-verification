@@ -1137,13 +1137,45 @@ func (r *SupabaseKeywordRepository) GetClassificationCodesByKeywords(
 		// Check if this keyword matches any of our search keywords
 		matches := false
 		for searchKeyword := range keywordSet {
-			// Exact match or contains match
-			if rowKeywordLower == searchKeyword || 
-			   strings.Contains(rowKeywordLower, searchKeyword) ||
-			   strings.Contains(searchKeyword, rowKeywordLower) {
+			// Strategy 1: Exact match (most accurate)
+			if rowKeywordLower == searchKeyword {
 				matches = true
 				break
 			}
+			
+			// Strategy 2: For multi-word database keywords, check if search keyword is a complete word
+			// This allows "wine" to match "wine shop" but prevents "air" from matching "hair" or "fair"
+			if strings.Contains(rowKeywordLower, " ") {
+				words := strings.Fields(rowKeywordLower)
+				for _, word := range words {
+					if word == searchKeyword {
+						matches = true
+						break
+					}
+				}
+				if matches {
+					break
+				}
+			}
+			
+			// Strategy 3: For multi-word search keywords, check if database keyword is a complete word
+			// This allows "wine shop" to match "wine" in the database
+			if strings.Contains(searchKeyword, " ") {
+				words := strings.Fields(searchKeyword)
+				for _, word := range words {
+					if word == rowKeywordLower {
+						matches = true
+						break
+					}
+				}
+				if matches {
+					break
+				}
+			}
+			
+			// Strategy 4: Single-word exact match only (most restrictive to prevent false positives)
+			// We skip substring matching for single words to prevent "air" matching "hair", "fair", etc.
+			// This is intentionally restrictive - exact matches and word-boundary matches are handled above
 		}
 
 		if matches && row.RelevanceScore >= minRelevance {
