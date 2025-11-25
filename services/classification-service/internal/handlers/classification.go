@@ -14,8 +14,8 @@ import (
 	"go.uber.org/zap"
 
 	"kyb-platform/internal/classification"
-	"kyb-platform/services/classification-service/internal/errors"
 	"kyb-platform/services/classification-service/internal/config"
+	"kyb-platform/services/classification-service/internal/errors"
 	"kyb-platform/services/classification-service/internal/supabase"
 )
 
@@ -135,6 +135,7 @@ type ClassificationResponse struct {
 	RequestID          string                 `json:"request_id"`
 	BusinessName       string                 `json:"business_name"`
 	Description        string                 `json:"description"`
+	PrimaryIndustry    string                 `json:"primary_industry,omitempty"` // Added for merchant service compatibility
 	Classification     *ClassificationResult  `json:"classification"`
 	RiskAssessment     *RiskAssessmentResult  `json:"risk_assessment"`
 	VerificationStatus *VerificationStatus    `json:"verification_status"`
@@ -271,8 +272,12 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 		w.Header().Set("X-Cache", "MISS")
 	}
 
-	// Create context with timeout
-	ctx, cancel := context.WithTimeout(r.Context(), h.config.Classification.RequestTimeout)
+	// Create context with timeout (use OverallTimeout if available, otherwise RequestTimeout)
+	requestTimeout := h.config.Classification.RequestTimeout
+	if h.config.Classification.OverallTimeout > 0 {
+		requestTimeout = h.config.Classification.OverallTimeout
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
 	defer cancel()
 
 	// Process classification
@@ -291,16 +296,18 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 		h.setCachedResponse(cacheKey, response)
 	}
 
-	// Set cache headers for browser caching
+	// Set cache headers for browser caching (before encoding to avoid WriteHeader issues)
 	if h.config.Classification.CacheEnabled {
 		w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d", int(h.config.Classification.CacheTTL.Seconds())))
 		w.Header().Set("ETag", fmt.Sprintf(`"%s"`, req.RequestID))
 	}
 
-	// Send response
+	// Send response - ensure headers are set before encoding
+	// Set status code explicitly before encoding to avoid WriteHeader issues
+	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		h.logger.Error("Failed to encode response", zap.Error(err))
-		errors.WriteInternalError(w, r, "Failed to encode response")
+		// Response encoding failed, but header already written - can't send error response
 		return
 	}
 
@@ -346,6 +353,7 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 		RequestID:          req.RequestID,
 		BusinessName:       req.BusinessName,
 		Description:        req.Description,
+		PrimaryIndustry:    enhancedResult.PrimaryIndustry, // Add at top level for merchant service compatibility
 		Classification:     classification,
 		RiskAssessment:     riskAssessment,
 		VerificationStatus: verificationStatus,

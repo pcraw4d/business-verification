@@ -67,7 +67,7 @@ func Load() (*Config, error) {
 			Port:         getEnvAsString("PORT", "8081"),
 			Host:         getEnvAsString("HOST", "0.0.0.0"),
 			ReadTimeout:  getEnvAsDuration("READ_TIMEOUT", 30*time.Second),
-			WriteTimeout: getEnvAsDuration("WRITE_TIMEOUT", 30*time.Second),
+			WriteTimeout: getEnvAsDuration("WRITE_TIMEOUT", 120*time.Second), // Increased to 120s for long-running classifications
 			IdleTimeout:  getEnvAsDuration("IDLE_TIMEOUT", 60*time.Second),
 		},
 		Supabase: SupabaseConfig{

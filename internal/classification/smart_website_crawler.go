@@ -2,6 +2,7 @@ package classification
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -13,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"golang.org/x/net/html"
 )
@@ -133,12 +135,15 @@ func NewSmartWebsiteCrawler(logger *log.Logger) *SmartWebsiteCrawler {
 	dnsResolver := &net.Resolver{
 		PreferGo: true,
 		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			// Force IPv4 UDP connection to our custom DNS server
+			// Ignore the network and address parameters to prevent system DNS fallback
 			// Try each DNS server with retry logic
 			var lastErr error
 			for _, server := range dnsServers {
 				d := net.Dialer{
 					Timeout: 5 * time.Second,
 				}
+				// Always use udp4 to force IPv4, ignore the network parameter
 				conn, err := d.DialContext(ctx, "udp4", server)
 				if err == nil {
 					return conn, nil
@@ -855,46 +860,286 @@ func (c *SmartWebsiteCrawler) extractMetaTags(content string) map[string]string 
 		metaTags["og:description"] = strings.TrimSpace(ogDescMatches[1])
 	}
 	
+	// Extract Open Graph type (Phase 6.3)
+	ogTypeRegex := regexp.MustCompile(`(?i)<meta[^>]*property=["']og:type["'][^>]*content=["']([^"']+)["']`)
+	ogTypeMatches := ogTypeRegex.FindStringSubmatch(content)
+	if len(ogTypeMatches) > 1 {
+		metaTags["og:type"] = strings.TrimSpace(ogTypeMatches[1])
+	}
+	
+	// Extract Open Graph site name
+	ogSiteNameRegex := regexp.MustCompile(`(?i)<meta[^>]*property=["']og:site_name["'][^>]*content=["']([^"']+)["']`)
+	ogSiteNameMatches := ogSiteNameRegex.FindStringSubmatch(content)
+	if len(ogSiteNameMatches) > 1 {
+		metaTags["og:site_name"] = strings.TrimSpace(ogSiteNameMatches[1])
+	}
+	
+	// Extract Twitter Card title (Phase 6.3)
+	twitterTitleRegex := regexp.MustCompile(`(?i)<meta[^>]*name=["']twitter:title["'][^>]*content=["']([^"']+)["']`)
+	twitterTitleMatches := twitterTitleRegex.FindStringSubmatch(content)
+	if len(twitterTitleMatches) > 1 {
+		metaTags["twitter:title"] = strings.TrimSpace(twitterTitleMatches[1])
+	}
+	
+	// Extract Twitter Card description
+	twitterDescRegex := regexp.MustCompile(`(?i)<meta[^>]*name=["']twitter:description["'][^>]*content=["']([^"']+)["']`)
+	twitterDescMatches := twitterDescRegex.FindStringSubmatch(content)
+	if len(twitterDescMatches) > 1 {
+		metaTags["twitter:description"] = strings.TrimSpace(twitterDescMatches[1])
+	}
+	
+	// Extract Twitter Card type
+	twitterCardRegex := regexp.MustCompile(`(?i)<meta[^>]*name=["']twitter:card["'][^>]*content=["']([^"']+)["']`)
+	twitterCardMatches := twitterCardRegex.FindStringSubmatch(content)
+	if len(twitterCardMatches) > 1 {
+		metaTags["twitter:card"] = strings.TrimSpace(twitterCardMatches[1])
+	}
+	
 	return metaTags
 }
 
 func (c *SmartWebsiteCrawler) extractStructuredData(content string) map[string]interface{} {
 	structuredData := make(map[string]interface{})
 	
-	// Extract JSON-LD structured data
-	jsonLdRegex := regexp.MustCompile(`(?i)<script[^>]*type=["']application/ld\+json["'][^>]*>([^<]+)</script>`)
+	// Extract JSON-LD structured data with proper parsing
+	jsonLdRegex := regexp.MustCompile(`(?i)<script[^>]*type=["']application/ld\+json["'][^>]*>([\s\S]*?)</script>`)
 	jsonLdMatches := jsonLdRegex.FindAllStringSubmatch(content, -1)
 	
 	for i, match := range jsonLdMatches {
 		if len(match) > 1 {
 			jsonContent := strings.TrimSpace(match[1])
-			// Store JSON-LD content (parsing would require JSON library)
-			structuredData[fmt.Sprintf("json-ld-%d", i)] = jsonContent
+			
+			// Skip empty JSON-LD content
+			if jsonContent == "" {
+				continue
+			}
+			
+			// Parse JSON-LD content
+			var jsonData interface{}
+			if err := json.Unmarshal([]byte(jsonContent), &jsonData); err == nil {
+				// Successfully parsed - extract business information
+				c.extractBusinessInfoFromJSONLD(jsonData, structuredData)
+				structuredData[fmt.Sprintf("json-ld-%d", i)] = jsonData
+			} else {
+				// Store raw content if parsing fails
+				structuredData[fmt.Sprintf("json-ld-raw-%d", i)] = jsonContent
+				if c.logger != nil {
+					c.logger.Printf("⚠️ [StructuredData] Failed to parse JSON-LD block %d: %v", i, err)
+				}
+			}
 		}
 	}
 	
-	// Extract microdata (basic extraction)
-	// Look for itemscope attributes
-	itemScopeRegex := regexp.MustCompile(`(?i)itemscope[^>]*itemtype=["']([^"']+)["']`)
+	// Extract microdata (enhanced extraction)
+	c.extractMicrodata(content, structuredData)
+	
+	return structuredData
+}
+
+// extractBusinessInfoFromJSONLD extracts business information from parsed JSON-LD data
+func (c *SmartWebsiteCrawler) extractBusinessInfoFromJSONLD(data interface{}, result map[string]interface{}) {
+	switch v := data.(type) {
+	case map[string]interface{}:
+		c.processJSONLDObject(v, result)
+	case []interface{}:
+		// Handle arrays of objects
+		for _, item := range v {
+			c.extractBusinessInfoFromJSONLD(item, result)
+		}
+	}
+}
+
+// processJSONLDObject processes a single JSON-LD object
+func (c *SmartWebsiteCrawler) processJSONLDObject(obj map[string]interface{}, result map[string]interface{}) {
+	// Get the @type to identify Schema.org type
+	typeValue, hasType := obj["@type"]
+	if !hasType {
+		// Try without @ prefix (some implementations use "type")
+		typeValue, hasType = obj["type"]
+	}
+	
+	if hasType {
+		schemaType := fmt.Sprintf("%v", typeValue)
+		// Only set schema_type if not already set, or if this is a business type (prefer business types)
+		if existingType, exists := result["schema_type"]; !exists || !c.isBusinessType(fmt.Sprintf("%v", existingType)) {
+			result["schema_type"] = schemaType
+		}
+		
+		// Extract business-relevant information based on type
+		if c.isBusinessType(schemaType) {
+			// Extract business name
+			if name, ok := c.extractStringValue(obj, "name"); ok {
+				result["business_name"] = name
+			}
+			
+			// Extract description
+			if desc, ok := c.extractStringValue(obj, "description"); ok {
+				result["description"] = desc
+			}
+			
+			// Extract industry/industry code
+			if industry, ok := c.extractStringValue(obj, "industry"); ok {
+				result["industry"] = industry
+			}
+			
+			// Extract services
+			if services := c.extractArrayValue(obj, "service", "services"); len(services) > 0 {
+				result["services"] = services
+			}
+			
+			// Extract products
+			if products := c.extractArrayValue(obj, "product", "products"); len(products) > 0 {
+				result["products"] = products
+			}
+			
+			// Extract address information
+			if address, ok := obj["address"].(map[string]interface{}); ok {
+				if street, ok := c.extractStringValue(address, "streetAddress"); ok {
+					result["address_street"] = street
+				}
+				if city, ok := c.extractStringValue(address, "addressLocality"); ok {
+					result["address_city"] = city
+				}
+				if state, ok := c.extractStringValue(address, "addressRegion"); ok {
+					result["address_state"] = state
+				}
+			}
+			
+			// Extract contact information
+			if phone, ok := c.extractStringValue(obj, "telephone"); ok {
+				result["phone"] = phone
+			}
+			if email, ok := c.extractStringValue(obj, "email"); ok {
+				result["email"] = email
+			}
+		}
+	}
+	
+	// Recursively process nested objects
+	for key, value := range obj {
+		if key == "@type" || key == "type" || key == "@context" {
+			continue
+		}
+		if nestedObj, ok := value.(map[string]interface{}); ok {
+			c.processJSONLDObject(nestedObj, result)
+		} else if nestedArray, ok := value.([]interface{}); ok {
+			for _, item := range nestedArray {
+				if nestedObj, ok := item.(map[string]interface{}); ok {
+					c.processJSONLDObject(nestedObj, result)
+				}
+			}
+		}
+	}
+}
+
+// isBusinessType checks if a Schema.org type is business-related
+func (c *SmartWebsiteCrawler) isBusinessType(schemaType string) bool {
+	businessTypes := []string{
+		"LocalBusiness", "Store", "Restaurant", "FoodEstablishment",
+		"WineShop", "LiquorStore", "RetailStore", "ClothingStore",
+		"ElectronicsStore", "BookStore", "ToyStore", "GroceryStore",
+		"AutoDealer", "BicycleStore", "HardwareStore", "JewelryStore",
+		"PetStore", "SportingGoodsStore", "TireShop", "WholesaleStore",
+		"ProfessionalService", "LegalService", "AccountingService",
+		"FinancialService", "RealEstateAgent", "InsuranceAgency",
+		"TravelAgency", "AutomatedTeller", "BankOrCreditUnion",
+		"Organization", "Corporation", "NGO", "GovernmentOrganization",
+	}
+	
+	schemaTypeLower := strings.ToLower(schemaType)
+	for _, bt := range businessTypes {
+		if strings.Contains(schemaTypeLower, strings.ToLower(bt)) {
+			return true
+		}
+	}
+	return false
+}
+
+// extractStringValue safely extracts a string value from a map
+func (c *SmartWebsiteCrawler) extractStringValue(obj map[string]interface{}, keys ...string) (string, bool) {
+	for _, key := range keys {
+		if val, ok := obj[key]; ok {
+			if str, ok := val.(string); ok {
+				return str, true
+			}
+			// Try to convert to string
+			return fmt.Sprintf("%v", val), true
+		}
+	}
+	return "", false
+}
+
+// extractArrayValue extracts array values, handling both single objects and arrays
+func (c *SmartWebsiteCrawler) extractArrayValue(obj map[string]interface{}, keys ...string) []string {
+	var results []string
+	for _, key := range keys {
+		if val, ok := obj[key]; ok {
+			switch v := val.(type) {
+			case []interface{}:
+				for _, item := range v {
+					if itemMap, ok := item.(map[string]interface{}); ok {
+						if name, ok := c.extractStringValue(itemMap, "name", "title"); ok {
+							results = append(results, name)
+						}
+					} else if str, ok := item.(string); ok {
+						results = append(results, str)
+					}
+				}
+			case map[string]interface{}:
+				if name, ok := c.extractStringValue(v, "name", "title"); ok {
+					results = append(results, name)
+				}
+			case string:
+				results = append(results, v)
+			}
+		}
+	}
+	return results
+}
+
+// extractMicrodata extracts microdata with enhanced parsing
+func (c *SmartWebsiteCrawler) extractMicrodata(content string, result map[string]interface{}) {
+	// Look for itemscope attributes with itemtype
+	itemScopeRegex := regexp.MustCompile(`(?i)<[^>]*itemscope[^>]*itemtype=["']([^"']+)["'][^>]*>`)
 	itemScopeMatches := itemScopeRegex.FindAllStringSubmatch(content, -1)
 	for i, match := range itemScopeMatches {
 		if len(match) > 1 {
-			structuredData[fmt.Sprintf("microdata-type-%d", i)] = strings.TrimSpace(match[1])
+			itemType := strings.TrimSpace(match[1])
+			result[fmt.Sprintf("microdata-type-%d", i)] = itemType
+			
+			// Check if it's a business type
+			if c.isBusinessType(itemType) {
+				result["has_business_microdata"] = true
+			}
 		}
 	}
 	
-	// Extract itemprop values
-	itemPropRegex := regexp.MustCompile(`(?i)itemprop=["']([^"']+)["'][^>]*content=["']([^"']+)["']`)
-	itemPropMatches := itemPropRegex.FindAllStringSubmatch(content, -1)
+	// Extract itemprop values with better pattern matching
+	// Pattern 1: itemprop="name" content="value"
+	itemPropContentRegex := regexp.MustCompile(`(?i)itemprop=["']([^"']+)["'][^>]*content=["']([^"']+)["']`)
+	itemPropMatches := itemPropContentRegex.FindAllStringSubmatch(content, -1)
 	for _, match := range itemPropMatches {
 		if len(match) >= 3 {
 			prop := strings.TrimSpace(match[1])
 			value := strings.TrimSpace(match[2])
-			structuredData[prop] = value
+			result[fmt.Sprintf("microdata-%s", prop)] = value
 		}
 	}
 	
-	return structuredData
+	// Pattern 2: <span itemprop="name">value</span>
+	itemPropTagRegex := regexp.MustCompile(`(?i)<[^>]*itemprop=["']([^"']+)["'][^>]*>([^<]+)</[^>]*>`)
+	itemPropTagMatches := itemPropTagRegex.FindAllStringSubmatch(content, -1)
+	for _, match := range itemPropTagMatches {
+		if len(match) >= 3 {
+			prop := strings.TrimSpace(match[1])
+			value := strings.TrimSpace(match[2])
+			// Only add if not already set (content attribute takes precedence)
+			key := fmt.Sprintf("microdata-%s", prop)
+			if _, exists := result[key]; !exists {
+				result[key] = value
+			}
+		}
+	}
 }
 
 func (c *SmartWebsiteCrawler) extractBusinessInfo(content string, pageType string) BusinessInfo {
@@ -926,13 +1171,19 @@ func (c *SmartWebsiteCrawler) extractTextFromHTML(htmlContent string) string {
 	return strings.TrimSpace(htmlContent)
 }
 
-// extractStructuredKeywords extracts keywords from structured HTML elements
-// (title, meta description, headings h1-h6)
-func (c *SmartWebsiteCrawler) extractStructuredKeywords(content string) []string {
-	var keywords []string
+// structuredKeyword represents a keyword with its source and position weight
+type structuredKeyword struct {
+	keyword string
+	weight  float64 // Position-based weight (title=1.0, meta=0.9, h1=0.9, h2=0.8, etc.)
+}
+
+// extractStructuredKeywords extracts keywords from structured HTML elements with position weighting
+// Returns keywords with their position-based weights
+func (c *SmartWebsiteCrawler) extractStructuredKeywords(content string) []structuredKeyword {
+	var keywords []structuredKeyword
 	seen := make(map[string]bool)
 	
-	// Extract from title (highest weight)
+	// Extract from title (highest weight = 1.0)
 	titleRegex := regexp.MustCompile(`(?i)<title[^>]*>([^<]+)</title>`)
 	titleMatches := titleRegex.FindStringSubmatch(content)
 	if len(titleMatches) > 1 {
@@ -942,12 +1193,12 @@ func (c *SmartWebsiteCrawler) extractStructuredKeywords(content string) []string
 			wordLower := strings.ToLower(word)
 			if !seen[wordLower] && len(wordLower) > 2 {
 				seen[wordLower] = true
-				keywords = append(keywords, wordLower)
+				keywords = append(keywords, structuredKeyword{keyword: wordLower, weight: 1.0})
 			}
 		}
 	}
 	
-	// Extract from meta description
+	// Extract from meta description (weight = 0.9)
 	metaDescRegex := regexp.MustCompile(`(?i)<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']`)
 	metaDescMatches := metaDescRegex.FindStringSubmatch(content)
 	if len(metaDescMatches) > 1 {
@@ -957,23 +1208,105 @@ func (c *SmartWebsiteCrawler) extractStructuredKeywords(content string) []string
 			wordLower := strings.ToLower(word)
 			if !seen[wordLower] && len(wordLower) > 2 {
 				seen[wordLower] = true
-				keywords = append(keywords, wordLower)
+				keywords = append(keywords, structuredKeyword{keyword: wordLower, weight: 0.9})
+			}
+		}
+	}
+	
+	// Extract from Open Graph title (weight = 0.92) - Phase 6.3
+	ogTitleRegex := regexp.MustCompile(`(?i)<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']`)
+	ogTitleMatches := ogTitleRegex.FindStringSubmatch(content)
+	if len(ogTitleMatches) > 1 {
+		ogTitleText := strings.TrimSpace(ogTitleMatches[1])
+		ogTitleWords := c.extractWordsFromText(ogTitleText)
+		for _, word := range ogTitleWords {
+			wordLower := strings.ToLower(word)
+			if !seen[wordLower] && len(wordLower) > 2 {
+				seen[wordLower] = true
+				keywords = append(keywords, structuredKeyword{keyword: wordLower, weight: 0.92})
+			}
+		}
+	}
+	
+	// Extract from Open Graph description (weight = 0.88) - Phase 6.3
+	ogDescRegex := regexp.MustCompile(`(?i)<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']+)["']`)
+	ogDescMatches := ogDescRegex.FindStringSubmatch(content)
+	if len(ogDescMatches) > 1 {
+		ogDescText := strings.TrimSpace(ogDescMatches[1])
+		ogDescWords := c.extractWordsFromText(ogDescText)
+		for _, word := range ogDescWords {
+			wordLower := strings.ToLower(word)
+			if !seen[wordLower] && len(wordLower) > 2 {
+				seen[wordLower] = true
+				keywords = append(keywords, structuredKeyword{keyword: wordLower, weight: 0.88})
+			}
+		}
+	}
+	
+	// Extract from Twitter Card title (weight = 0.90) - Phase 6.3
+	twitterTitleRegex := regexp.MustCompile(`(?i)<meta[^>]*name=["']twitter:title["'][^>]*content=["']([^"']+)["']`)
+	twitterTitleMatches := twitterTitleRegex.FindStringSubmatch(content)
+	if len(twitterTitleMatches) > 1 {
+		twitterTitleText := strings.TrimSpace(twitterTitleMatches[1])
+		twitterTitleWords := c.extractWordsFromText(twitterTitleText)
+		for _, word := range twitterTitleWords {
+			wordLower := strings.ToLower(word)
+			if !seen[wordLower] && len(wordLower) > 2 {
+				seen[wordLower] = true
+				keywords = append(keywords, structuredKeyword{keyword: wordLower, weight: 0.90})
+			}
+		}
+	}
+	
+	// Extract from Twitter Card description (weight = 0.86) - Phase 6.3
+	twitterDescRegex := regexp.MustCompile(`(?i)<meta[^>]*name=["']twitter:description["'][^>]*content=["']([^"']+)["']`)
+	twitterDescMatches := twitterDescRegex.FindStringSubmatch(content)
+	if len(twitterDescMatches) > 1 {
+		twitterDescText := strings.TrimSpace(twitterDescMatches[1])
+		twitterDescWords := c.extractWordsFromText(twitterDescText)
+		for _, word := range twitterDescWords {
+			wordLower := strings.ToLower(word)
+			if !seen[wordLower] && len(wordLower) > 2 {
+				seen[wordLower] = true
+				keywords = append(keywords, structuredKeyword{keyword: wordLower, weight: 0.86})
 			}
 		}
 	}
 	
 	// Extract from headings (h1-h6) - weighted by importance
+	// h1=0.9, h2=0.8, h3=0.7, h4=0.65, h5=0.6, h6=0.55
 	headingRegex := regexp.MustCompile(`(?i)<h([1-6])[^>]*>([^<]+)</h[1-6]>`)
 	headingMatches := headingRegex.FindAllStringSubmatch(content, -1)
 	for _, match := range headingMatches {
 		if len(match) >= 3 {
+			headingLevel := match[1]
 			headingText := strings.TrimSpace(match[2])
 			headingWords := c.extractWordsFromText(headingText)
+			
+			// Calculate weight based on heading level
+			var weight float64
+			switch headingLevel {
+			case "1":
+				weight = 0.9
+			case "2":
+				weight = 0.8
+			case "3":
+				weight = 0.7
+			case "4":
+				weight = 0.65
+			case "5":
+				weight = 0.6
+			case "6":
+				weight = 0.55
+			default:
+				weight = 0.6
+			}
+			
 			for _, word := range headingWords {
 				wordLower := strings.ToLower(word)
 				if !seen[wordLower] && len(wordLower) > 2 {
 					seen[wordLower] = true
-					keywords = append(keywords, wordLower)
+					keywords = append(keywords, structuredKeyword{keyword: wordLower, weight: weight})
 				}
 			}
 		}
@@ -1129,37 +1462,74 @@ type keywordScore struct {
 	score   float64
 }
 
-// combineAndRankKeywords combines keywords from different sources and ranks them by relevance
-func (c *SmartWebsiteCrawler) combineAndRankKeywords(structuredKeywords, bodyKeywords, phrases []string, pageType string) []keywordScore {
+// combineAndRankKeywordsEnhanced combines keywords with enhanced relevance scoring
+// Implements Phase 4.2 and 4.3: Context-aware extraction and relevance scoring
+func (c *SmartWebsiteCrawler) combineAndRankKeywordsEnhanced(structuredKeywords []structuredKeyword, bodyKeywords, phrases []string, pageType string, textContent string) []keywordScore {
 	keywordScores := make(map[string]float64)
 	
-	// Weight keywords by source and position
-	// Structured keywords (title, meta, headings) get highest weight
-	for _, kw := range structuredKeywords {
-		// Title keywords get 1.0, meta gets 0.9, headings get 0.8
-		// For simplicity, we'll use 0.9 for all structured keywords
-		keywordScores[kw] += 0.9
+	// Weight structured keywords by their position (title=1.0, meta=0.9, h1=0.9, h2=0.8, etc.)
+	for _, skw := range structuredKeywords {
+		keywordScores[skw.keyword] += skw.weight
 	}
 	
-	// Body keywords get medium weight
+	// Body keywords get medium weight (0.6) with frequency boost
+	textLower := strings.ToLower(textContent)
 	for _, kw := range bodyKeywords {
-		keywordScores[kw] += 0.6
+		// Base weight for body keywords
+		baseWeight := 0.6
+		
+		// Count frequency in content using word boundaries to avoid substring matches
+		freq := c.countKeywordFrequency(textLower, kw)
+		frequencyBoost := float64(freq) * 0.05 // 5% boost per occurrence, capped at 0.2
+		if frequencyBoost > 0.2 {
+			frequencyBoost = 0.2
+		}
+		
+		keywordScores[kw] += baseWeight + frequencyBoost
 	}
 	
-	// Phrases get weight based on length (longer phrases = more specific = higher weight)
+	// Phrases get weight based on length and frequency
 	for _, phrase := range phrases {
 		wordCount := len(strings.Fields(phrase))
-		weight := 0.5 + float64(wordCount-2)*0.1 // 2-word: 0.5, 3-word: 0.6
-		if weight > 0.8 {
-			weight = 0.8 // Cap at 0.8
+		baseWeight := 0.5 + float64(wordCount-2)*0.1 // 2-word: 0.5, 3-word: 0.6
+		if baseWeight > 0.8 {
+			baseWeight = 0.8 // Cap at 0.8
 		}
-		keywordScores[phrase] += weight
+		
+		// Frequency boost for phrases (use word boundaries for multi-word phrases)
+		freq := c.countPhraseFrequency(textLower, phrase)
+		frequencyBoost := float64(freq) * 0.03 // 3% boost per occurrence, capped at 0.15
+		if frequencyBoost > 0.15 {
+			frequencyBoost = 0.15
+		}
+		
+		keywordScores[phrase] += baseWeight + frequencyBoost
 	}
 	
-	// Boost keywords based on page type relevance
+	// Boost keywords based on page type relevance (Phase 4.2)
 	pageTypeBoost := c.getPageTypeBoost(pageType)
 	for kw := range keywordScores {
 		keywordScores[kw] *= pageTypeBoost
+	}
+	
+	// Co-occurrence boost: keywords that appear together get a small boost
+	// (This is simplified - full co-occurrence analysis would be more complex)
+	coOccurrenceBoost := c.calculateCoOccurrenceBoost(keywordScores, textLower)
+	for kw, boost := range coOccurrenceBoost {
+		keywordScores[kw] += boost
+	}
+	
+	// Normalize scores to 0-1 range
+	maxScore := 0.0
+	for _, score := range keywordScores {
+		if score > maxScore {
+			maxScore = score
+		}
+	}
+	if maxScore > 0 {
+		for kw := range keywordScores {
+			keywordScores[kw] /= maxScore
+		}
 	}
 	
 	// Convert to slice and sort
@@ -1174,6 +1544,120 @@ func (c *SmartWebsiteCrawler) combineAndRankKeywords(structuredKeywords, bodyKey
 	})
 	
 	return scoredKeywords
+}
+
+// countKeywordFrequency counts keyword occurrences using word boundaries to avoid substring matches
+func (c *SmartWebsiteCrawler) countKeywordFrequency(text, keyword string) int {
+	// Use word boundaries to avoid counting substrings (e.g., "wine" in "winery")
+	pattern := `\b` + regexp.QuoteMeta(keyword) + `\b`
+	matches := regexp.MustCompile(pattern).FindAllString(text, -1)
+	return len(matches)
+}
+
+// countPhraseFrequency counts phrase occurrences in text
+func (c *SmartWebsiteCrawler) countPhraseFrequency(text, phrase string) int {
+	// For phrases, use simple count but escape special regex characters
+	escapedPhrase := regexp.QuoteMeta(phrase)
+	matches := regexp.MustCompile(escapedPhrase).FindAllString(text, -1)
+	return len(matches)
+}
+
+// calculateCoOccurrenceBoost calculates a small boost for keywords that appear near each other
+// Optimized to limit computation for large keyword sets
+func (c *SmartWebsiteCrawler) calculateCoOccurrenceBoost(keywordScores map[string]float64, text string) map[string]float64 {
+	boosts := make(map[string]float64)
+	
+	// Limit co-occurrence analysis to top 20 keywords to avoid O(n²) performance issues
+	keywords := make([]string, 0, len(keywordScores))
+	for kw := range keywordScores {
+		keywords = append(keywords, kw)
+	}
+	
+	// If too many keywords, only analyze top ones
+	maxKeywords := 20
+	if len(keywords) > maxKeywords {
+		// Sort by score and take top N
+		type kwScore struct {
+			keyword string
+			score   float64
+		}
+		scored := make([]kwScore, 0, len(keywords))
+		for _, kw := range keywords {
+			scored = append(scored, kwScore{keyword: kw, score: keywordScores[kw]})
+		}
+		sort.Slice(scored, func(i, j int) bool {
+			return scored[i].score > scored[j].score
+		})
+		keywords = make([]string, 0, maxKeywords)
+		for i := 0; i < maxKeywords && i < len(scored); i++ {
+			keywords = append(keywords, scored[i].keyword)
+		}
+	}
+	
+	// Check pairs of keywords (limited set)
+	for i, kw1 := range keywords {
+		for j, kw2 := range keywords {
+			if i >= j || len(kw1) < 3 || len(kw2) < 3 {
+				continue
+			}
+			
+			// Find all positions of both keywords using word boundaries
+			pattern1 := `\b` + regexp.QuoteMeta(kw1) + `\b`
+			pattern2 := `\b` + regexp.QuoteMeta(kw2) + `\b`
+			
+			indices1 := regexp.MustCompile(pattern1).FindAllStringIndex(text, -1)
+			indices2 := regexp.MustCompile(pattern2).FindAllStringIndex(text, -1)
+			
+			// Check if any occurrences are within 50 characters
+			foundCoOccurrence := false
+			for _, idx1 := range indices1 {
+				for _, idx2 := range indices2 {
+					pos1 := idx1[0]
+					pos2 := idx2[0]
+					distance := pos1 - pos2
+					if distance < 0 {
+						distance = -distance
+					}
+					
+					// If keywords appear within 50 characters, give small boost
+					if distance < 50 {
+						boosts[kw1] += 0.02
+						boosts[kw2] += 0.02
+						foundCoOccurrence = true
+						break
+					}
+				}
+				if foundCoOccurrence {
+					break
+				}
+			}
+		}
+	}
+	
+	return boosts
+}
+
+// limitToTopKeywordsWithThreshold filters keywords by relevance threshold and returns top N
+func (c *SmartWebsiteCrawler) limitToTopKeywordsWithThreshold(scoredKeywords []keywordScore, limit int, threshold float64) []string {
+	// Filter by threshold first
+	var filtered []keywordScore
+	for _, kw := range scoredKeywords {
+		if kw.score >= threshold {
+			filtered = append(filtered, kw)
+		}
+	}
+	
+	// Limit to top N
+	if len(filtered) > limit {
+		filtered = filtered[:limit]
+	}
+	
+	keywords := make([]string, len(filtered))
+	for i, kw := range filtered {
+		keywords[i] = kw.keyword
+	}
+	
+	return keywords
 }
 
 // getPageTypeBoost returns a boost multiplier based on page type
@@ -1208,24 +1692,196 @@ func (c *SmartWebsiteCrawler) limitToTopKeywords(scoredKeywords []keywordScore, 
 
 // extractPageKeywords extracts keywords from HTML page content
 // Returns top 30 keywords sorted by relevance
+// Phase 6: Enhanced with structured data keyword extraction
 func (c *SmartWebsiteCrawler) extractPageKeywords(content string, pageType string) []string {
 	// 1. Extract clean text from HTML
 	textContent := c.extractTextFromHTML(content)
 	
-	// 2. Extract from structured elements (title, meta, headings)
+	// 2. Extract from structured elements (title, meta, headings) with position weights
 	structuredKeywords := c.extractStructuredKeywords(content)
 	
-	// 3. Extract from body text using business patterns
+	// 3. Extract from structured data (JSON-LD, microdata) - Phase 6
+	structuredData := c.extractStructuredData(content)
+	structuredDataKeywords := c.extractKeywordsFromStructuredData(structuredData)
+	
+	// 4. Extract from body text using business patterns
 	bodyKeywords := c.extractBusinessKeywordsFromText(textContent)
 	
-	// 4. Extract phrases (2-word, 3-word)
+	// 5. Extract phrases (2-word, 3-word)
 	phrases := c.extractPhrases(textContent, 2, 3)
 	
-	// 5. Combine, deduplicate, and rank
-	allKeywords := c.combineAndRankKeywords(structuredKeywords, bodyKeywords, phrases, pageType)
+	// 6. Combine structured data keywords with other structured keywords (high weight)
+	allStructuredKeywords := append(structuredKeywords, structuredDataKeywords...)
 	
-	// 6. Return top 30
-	return c.limitToTopKeywords(allKeywords, 30)
+	// 7. Combine, deduplicate, and rank with enhanced relevance scoring
+	allKeywords := c.combineAndRankKeywordsEnhanced(allStructuredKeywords, bodyKeywords, phrases, pageType, textContent)
+	
+	// 8. Filter by relevance threshold (0.3) and return top 30
+	return c.limitToTopKeywordsWithThreshold(allKeywords, 30, 0.3)
+}
+
+// extractKeywordsFromStructuredData extracts keywords from structured data (JSON-LD, microdata)
+// Phase 6.1 and 6.2: Extract keywords from parsed structured data
+func (c *SmartWebsiteCrawler) extractKeywordsFromStructuredData(structuredData map[string]interface{}) []structuredKeyword {
+	var keywords []structuredKeyword
+	seen := make(map[string]bool)
+	
+	// Extract from business name (high weight)
+	if name, ok := structuredData["business_name"].(string); ok && name != "" {
+		words := c.extractWordsFromText(name)
+		for _, word := range words {
+			wordLower := strings.ToLower(word)
+			if len(wordLower) >= 3 && !seen[wordLower] {
+				seen[wordLower] = true
+				keywords = append(keywords, structuredKeyword{
+					keyword: wordLower,
+					weight:  0.95, // Very high weight for structured data business name
+				})
+			}
+		}
+	}
+	
+	// Extract from description (high weight)
+	if desc, ok := structuredData["description"].(string); ok && desc != "" {
+		words := c.extractWordsFromText(desc)
+		for _, word := range words {
+			wordLower := strings.ToLower(word)
+			if len(wordLower) >= 3 && !seen[wordLower] {
+				seen[wordLower] = true
+				keywords = append(keywords, structuredKeyword{
+					keyword: wordLower,
+					weight:  0.90, // High weight for structured data description
+				})
+			}
+		}
+	}
+	
+	// Extract from industry (very high weight)
+	if industry, ok := structuredData["industry"].(string); ok && industry != "" {
+		words := c.extractWordsFromText(industry)
+		for _, word := range words {
+			wordLower := strings.ToLower(word)
+			if len(wordLower) >= 3 && !seen[wordLower] {
+				seen[wordLower] = true
+				keywords = append(keywords, structuredKeyword{
+					keyword: wordLower,
+					weight:  1.0, // Maximum weight for industry from structured data
+				})
+			}
+		}
+	}
+	
+	// Extract from services (medium-high weight)
+	if services, ok := structuredData["services"].([]string); ok && len(services) > 0 {
+		for _, service := range services {
+			if service == "" {
+				continue
+			}
+			words := c.extractWordsFromText(service)
+			for _, word := range words {
+				wordLower := strings.ToLower(word)
+				if len(wordLower) >= 3 && !seen[wordLower] {
+					seen[wordLower] = true
+					keywords = append(keywords, structuredKeyword{
+						keyword: wordLower,
+						weight:  0.85, // High weight for services
+					})
+				}
+			}
+		}
+	}
+	
+	// Extract from products (medium-high weight)
+	if products, ok := structuredData["products"].([]string); ok && len(products) > 0 {
+		for _, product := range products {
+			if product == "" {
+				continue
+			}
+			words := c.extractWordsFromText(product)
+			for _, word := range words {
+				wordLower := strings.ToLower(word)
+				if len(wordLower) >= 3 && !seen[wordLower] {
+					seen[wordLower] = true
+					keywords = append(keywords, structuredKeyword{
+						keyword: wordLower,
+						weight:  0.85, // High weight for products
+					})
+				}
+			}
+		}
+	}
+	
+	// Extract from Schema.org type (high weight for business type keywords)
+	if schemaType, ok := structuredData["schema_type"].(string); ok && schemaType != "" {
+		// Extract meaningful parts from Schema.org type (e.g., "WineShop" -> "wine", "shop")
+		typeWords := c.splitCamelCase(schemaType)
+		for _, word := range typeWords {
+			wordLower := strings.ToLower(word)
+			if len(wordLower) >= 3 && !seen[wordLower] {
+				seen[wordLower] = true
+				keywords = append(keywords, structuredKeyword{
+					keyword: wordLower,
+					weight:  0.88, // High weight for Schema.org type
+				})
+			}
+		}
+	}
+	
+	// Extract from microdata properties
+	for key, value := range structuredData {
+		if strings.HasPrefix(key, "microdata-") {
+			if strValue, ok := value.(string); ok && strValue != "" {
+				words := c.extractWordsFromText(strValue)
+				for _, word := range words {
+					wordLower := strings.ToLower(word)
+					if len(wordLower) >= 3 && !seen[wordLower] {
+						seen[wordLower] = true
+						keywords = append(keywords, structuredKeyword{
+							keyword: wordLower,
+							weight:  0.80, // Medium-high weight for microdata
+						})
+					}
+				}
+			}
+		}
+	}
+	
+	return keywords
+}
+
+// splitCamelCase splits camelCase or PascalCase strings into words
+// Handles edge cases: empty strings, single characters, all caps, etc.
+func (c *SmartWebsiteCrawler) splitCamelCase(s string) []string {
+	if s == "" {
+		return []string{}
+	}
+	
+	var words []string
+	var currentWord strings.Builder
+	
+	for i, r := range s {
+		// If we encounter an uppercase letter and we have a current word, start a new word
+		if i > 0 && unicode.IsUpper(r) && currentWord.Len() > 0 {
+			word := currentWord.String()
+			if len(word) >= 2 { // Only add words with 2+ characters
+				words = append(words, word)
+			}
+			currentWord.Reset()
+		}
+		currentWord.WriteRune(unicode.ToLower(r))
+	}
+	
+	// Add the last word
+	if currentWord.Len() >= 2 {
+		words = append(words, currentWord.String())
+	}
+	
+	// If no words were split (e.g., all lowercase or single word), return the lowercase version
+	if len(words) == 0 && len(s) >= 2 {
+		words = append(words, strings.ToLower(s))
+	}
+	
+	return words
 }
 
 // extractIndustryIndicators extracts industry-specific indicators from page content
