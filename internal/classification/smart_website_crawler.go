@@ -132,31 +132,35 @@ func NewSmartWebsiteCrawler(logger *log.Logger) *SmartWebsiteCrawler {
 	// Create custom DNS resolver with multiple fallback servers
 	// DNS servers in order of preference: Google DNS, Cloudflare, Google DNS secondary
 	dnsServers := []string{"8.8.8.8:53", "1.1.1.1:53", "8.8.4.4:53"}
-	dnsResolver := &net.Resolver{
-		PreferGo: true,
-		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-			// Force IPv4 UDP connection to our custom DNS server
-			// Ignore the network and address parameters to prevent system DNS fallback
-			// Try each DNS server with retry logic
-			var lastErr error
-			for _, server := range dnsServers {
-				d := net.Dialer{
-					Timeout: 5 * time.Second,
+		dnsResolver := &net.Resolver{
+			PreferGo: true,
+			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+				// Force IPv4 UDP connection to our custom DNS server
+				// CRITICAL: Ignore the network and address parameters to prevent system DNS fallback
+				// The system DNS (e.g., [fd12::10]:53 in Railway) will fail, so we must use our custom servers
+				var lastErr error
+				for _, server := range dnsServers {
+					d := net.Dialer{
+						Timeout: 10 * time.Second, // Longer timeout for retry
+					}
+					// Always use udp4 to force IPv4, completely ignore the network and address parameters
+					conn, err := d.DialContext(ctx, "udp4", server)
+					if err == nil {
+						if logger != nil {
+							logger.Printf("✅ [DNS] Successfully connected to DNS server %s", server)
+						}
+						return conn, nil
+					}
+					lastErr = err
+					// Log DNS server failure (if logger is available)
+					if logger != nil {
+						logger.Printf("⚠️ [DNS] Failed to connect to DNS server %s: %v", server, err)
+					}
 				}
-				// Always use udp4 to force IPv4, ignore the network parameter
-				conn, err := d.DialContext(ctx, "udp4", server)
-				if err == nil {
-					return conn, nil
-				}
-				lastErr = err
-				// Log DNS server failure (if logger is available)
-				if logger != nil {
-					logger.Printf("⚠️ [DNS] Failed to connect to DNS server %s: %v", server, err)
-				}
-			}
-			return nil, fmt.Errorf("all DNS servers failed, last error: %w", lastErr)
-		},
-	}
+				// Return error instead of allowing system DNS fallback
+				return nil, fmt.Errorf("all DNS servers failed, last error: %w", lastErr)
+			},
+		}
 
 	// Custom DialContext that forces IPv4 resolution
 	customDialContext := func(ctx context.Context, network, addr string) (net.Conn, error) {

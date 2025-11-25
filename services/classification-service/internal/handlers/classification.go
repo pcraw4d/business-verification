@@ -1071,6 +1071,18 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 	}
 	
 	totalCodesGenerated := len(mccCodes) + len(sicCodes) + len(naicsCodes)
+	
+	// Log code generation for debugging
+	h.logger.Info("Code generation completed",
+		zap.String("request_id", req.RequestID),
+		zap.Int("mcc_codes", len(mccCodes)),
+		zap.Int("sic_codes", len(sicCodes)),
+		zap.Int("naics_codes", len(naicsCodes)),
+		zap.Int("total_codes", totalCodesGenerated),
+		zap.Int("max_codes_per_type", maxCodesPerType),
+		zap.Int("mcc_codes_available", len(codesInfo.MCC)),
+		zap.Int("sic_codes_available", len(codesInfo.SIC)),
+		zap.Int("naics_codes_available", len(codesInfo.NAICS)))
 
 	// Step 4: Build website analysis data (simplified for now)
 	websiteAnalysis := &WebsiteAnalysisData{
