@@ -127,15 +127,29 @@ func NewSmartWebsiteCrawler(logger *log.Logger) *SmartWebsiteCrawler {
 		KeepAlive: 30 * time.Second,
 	}
 
-	// Create custom DNS resolver using Google DNS (8.8.8.8) with IPv4
+	// Create custom DNS resolver with multiple fallback servers
+	// DNS servers in order of preference: Google DNS, Cloudflare, Google DNS secondary
+	dnsServers := []string{"8.8.8.8:53", "1.1.1.1:53", "8.8.4.4:53"}
 	dnsResolver := &net.Resolver{
 		PreferGo: true,
 		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-			d := net.Dialer{
-				Timeout: 5 * time.Second,
+			// Try each DNS server with retry logic
+			var lastErr error
+			for _, server := range dnsServers {
+				d := net.Dialer{
+					Timeout: 5 * time.Second,
+				}
+				conn, err := d.DialContext(ctx, "udp4", server)
+				if err == nil {
+					return conn, nil
+				}
+				lastErr = err
+				// Log DNS server failure (if logger is available)
+				if logger != nil {
+					logger.Printf("⚠️ [DNS] Failed to connect to DNS server %s: %v", server, err)
+				}
 			}
-			// Force IPv4 DNS lookup using Google DNS
-			return d.DialContext(ctx, "udp4", "8.8.8.8:53")
+			return nil, fmt.Errorf("all DNS servers failed, last error: %w", lastErr)
 		},
 	}
 
@@ -152,10 +166,28 @@ func NewSmartWebsiteCrawler(logger *log.Logger) *SmartWebsiteCrawler {
 			return nil, fmt.Errorf("failed to split host:port: %w", err)
 		}
 
-		// Resolve host using custom DNS resolver (Google DNS)
-		ips, err := dnsResolver.LookupIPAddr(ctx, host)
-		if err != nil {
-			return nil, fmt.Errorf("DNS lookup failed for %s: %w", host, err)
+		// Resolve host using custom DNS resolver with retry logic
+		var ips []net.IPAddr
+		var dnsErr error
+		maxRetries := 3
+		for attempt := 1; attempt <= maxRetries; attempt++ {
+			ips, dnsErr = dnsResolver.LookupIPAddr(ctx, host)
+			if dnsErr == nil {
+				break
+			}
+			// Exponential backoff: 1s, 2s, 4s
+			if attempt < maxRetries {
+				backoff := time.Duration(attempt) * time.Second
+				select {
+				case <-ctx.Done():
+					return nil, ctx.Err()
+				case <-time.After(backoff):
+					// Retry after backoff
+				}
+			}
+		}
+		if dnsErr != nil {
+			return nil, fmt.Errorf("DNS lookup failed for %s after %d attempts: %w", host, maxRetries, dnsErr)
 		}
 
 		// Use first IPv4 address
@@ -636,8 +668,39 @@ func (c *SmartWebsiteCrawler) analyzePage(ctx context.Context, pageURL string) P
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
 	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
 
-	resp, err := c.client.Do(req)
+	// Retry logic for HTTP requests (up to 3 attempts with exponential backoff)
+	var resp *http.Response
+	maxRetries := 3
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		resp, err = c.client.Do(req)
+		if err == nil {
+			break
+		}
+		
+		// Distinguish between DNS errors, network errors, and HTTP errors
+		if dnsErr, ok := err.(*net.DNSError); ok {
+			c.logger.Printf("⚠️ [PageAnalysis] DNS error for %s (attempt %d/%d): %v", pageURL, attempt, maxRetries, dnsErr)
+		} else if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+			c.logger.Printf("⚠️ [PageAnalysis] Timeout error for %s (attempt %d/%d): %v", pageURL, attempt, maxRetries, netErr)
+		} else {
+			c.logger.Printf("⚠️ [PageAnalysis] Network error for %s (attempt %d/%d): %v", pageURL, attempt, maxRetries, err)
+		}
+		
+		// Exponential backoff: 1s, 2s, 4s
+		if attempt < maxRetries {
+			backoff := time.Duration(attempt) * time.Second
+			select {
+			case <-reqCtx.Done():
+				analysis.RelevanceScore = 0.0
+				return analysis
+			case <-time.After(backoff):
+				// Retry after backoff
+			}
+		}
+	}
+	
 	if err != nil {
+		c.logger.Printf("❌ [PageAnalysis] Failed to fetch %s after %d attempts: %v", pageURL, maxRetries, err)
 		analysis.RelevanceScore = 0.0
 		return analysis
 	}
@@ -763,13 +826,74 @@ func (c *SmartWebsiteCrawler) extractTitle(content string) string {
 
 func (c *SmartWebsiteCrawler) extractMetaTags(content string) map[string]string {
 	metaTags := make(map[string]string)
-	// Implementation for extracting meta tags
+	
+	// Extract meta description
+	metaDescRegex := regexp.MustCompile(`(?i)<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']`)
+	metaDescMatches := metaDescRegex.FindStringSubmatch(content)
+	if len(metaDescMatches) > 1 {
+		metaTags["description"] = strings.TrimSpace(metaDescMatches[1])
+	}
+	
+	// Extract meta keywords
+	metaKeywordsRegex := regexp.MustCompile(`(?i)<meta[^>]*name=["']keywords["'][^>]*content=["']([^"']+)["']`)
+	metaKeywordsMatches := metaKeywordsRegex.FindStringSubmatch(content)
+	if len(metaKeywordsMatches) > 1 {
+		metaTags["keywords"] = strings.TrimSpace(metaKeywordsMatches[1])
+	}
+	
+	// Extract Open Graph title
+	ogTitleRegex := regexp.MustCompile(`(?i)<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']`)
+	ogTitleMatches := ogTitleRegex.FindStringSubmatch(content)
+	if len(ogTitleMatches) > 1 {
+		metaTags["og:title"] = strings.TrimSpace(ogTitleMatches[1])
+	}
+	
+	// Extract Open Graph description
+	ogDescRegex := regexp.MustCompile(`(?i)<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']+)["']`)
+	ogDescMatches := ogDescRegex.FindStringSubmatch(content)
+	if len(ogDescMatches) > 1 {
+		metaTags["og:description"] = strings.TrimSpace(ogDescMatches[1])
+	}
+	
 	return metaTags
 }
 
 func (c *SmartWebsiteCrawler) extractStructuredData(content string) map[string]interface{} {
 	structuredData := make(map[string]interface{})
-	// Implementation for extracting structured data
+	
+	// Extract JSON-LD structured data
+	jsonLdRegex := regexp.MustCompile(`(?i)<script[^>]*type=["']application/ld\+json["'][^>]*>([^<]+)</script>`)
+	jsonLdMatches := jsonLdRegex.FindAllStringSubmatch(content, -1)
+	
+	for i, match := range jsonLdMatches {
+		if len(match) > 1 {
+			jsonContent := strings.TrimSpace(match[1])
+			// Store JSON-LD content (parsing would require JSON library)
+			structuredData[fmt.Sprintf("json-ld-%d", i)] = jsonContent
+		}
+	}
+	
+	// Extract microdata (basic extraction)
+	// Look for itemscope attributes
+	itemScopeRegex := regexp.MustCompile(`(?i)itemscope[^>]*itemtype=["']([^"']+)["']`)
+	itemScopeMatches := itemScopeRegex.FindAllStringSubmatch(content, -1)
+	for i, match := range itemScopeMatches {
+		if len(match) > 1 {
+			structuredData[fmt.Sprintf("microdata-type-%d", i)] = strings.TrimSpace(match[1])
+		}
+	}
+	
+	// Extract itemprop values
+	itemPropRegex := regexp.MustCompile(`(?i)itemprop=["']([^"']+)["'][^>]*content=["']([^"']+)["']`)
+	itemPropMatches := itemPropRegex.FindAllStringSubmatch(content, -1)
+	for _, match := range itemPropMatches {
+		if len(match) >= 3 {
+			prop := strings.TrimSpace(match[1])
+			value := strings.TrimSpace(match[2])
+			structuredData[prop] = value
+		}
+	}
+	
 	return structuredData
 }
 
@@ -779,15 +903,414 @@ func (c *SmartWebsiteCrawler) extractBusinessInfo(content string, pageType strin
 	return businessInfo
 }
 
-func (c *SmartWebsiteCrawler) extractPageKeywords(content string, pageType string) []string {
+// extractTextFromHTML extracts clean text content from HTML
+func (c *SmartWebsiteCrawler) extractTextFromHTML(htmlContent string) string {
+	// Remove script and style tags completely
+	htmlContent = regexp.MustCompile(`(?i)<script[^>]*>.*?</script>`).ReplaceAllString(htmlContent, "")
+	htmlContent = regexp.MustCompile(`(?i)<style[^>]*>.*?</style>`).ReplaceAllString(htmlContent, "")
+	
+	// Remove HTML tags
+	htmlContent = regexp.MustCompile(`<[^>]*>`).ReplaceAllString(htmlContent, " ")
+	
+	// Decode HTML entities (basic)
+	htmlContent = strings.ReplaceAll(htmlContent, "&nbsp;", " ")
+	htmlContent = strings.ReplaceAll(htmlContent, "&amp;", "&")
+	htmlContent = strings.ReplaceAll(htmlContent, "&lt;", "<")
+	htmlContent = strings.ReplaceAll(htmlContent, "&gt;", ">")
+	htmlContent = strings.ReplaceAll(htmlContent, "&quot;", "\"")
+	htmlContent = strings.ReplaceAll(htmlContent, "&#39;", "'")
+	
+	// Clean up whitespace
+	htmlContent = regexp.MustCompile(`\s+`).ReplaceAllString(htmlContent, " ")
+	
+	return strings.TrimSpace(htmlContent)
+}
+
+// extractStructuredKeywords extracts keywords from structured HTML elements
+// (title, meta description, headings h1-h6)
+func (c *SmartWebsiteCrawler) extractStructuredKeywords(content string) []string {
 	var keywords []string
-	// Implementation for extracting page-specific keywords
+	seen := make(map[string]bool)
+	
+	// Extract from title (highest weight)
+	titleRegex := regexp.MustCompile(`(?i)<title[^>]*>([^<]+)</title>`)
+	titleMatches := titleRegex.FindStringSubmatch(content)
+	if len(titleMatches) > 1 {
+		titleText := strings.TrimSpace(titleMatches[1])
+		titleWords := c.extractWordsFromText(titleText)
+		for _, word := range titleWords {
+			wordLower := strings.ToLower(word)
+			if !seen[wordLower] && len(wordLower) > 2 {
+				seen[wordLower] = true
+				keywords = append(keywords, wordLower)
+			}
+		}
+	}
+	
+	// Extract from meta description
+	metaDescRegex := regexp.MustCompile(`(?i)<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']`)
+	metaDescMatches := metaDescRegex.FindStringSubmatch(content)
+	if len(metaDescMatches) > 1 {
+		metaText := strings.TrimSpace(metaDescMatches[1])
+		metaWords := c.extractWordsFromText(metaText)
+		for _, word := range metaWords {
+			wordLower := strings.ToLower(word)
+			if !seen[wordLower] && len(wordLower) > 2 {
+				seen[wordLower] = true
+				keywords = append(keywords, wordLower)
+			}
+		}
+	}
+	
+	// Extract from headings (h1-h6) - weighted by importance
+	headingRegex := regexp.MustCompile(`(?i)<h([1-6])[^>]*>([^<]+)</h[1-6]>`)
+	headingMatches := headingRegex.FindAllStringSubmatch(content, -1)
+	for _, match := range headingMatches {
+		if len(match) >= 3 {
+			headingText := strings.TrimSpace(match[2])
+			headingWords := c.extractWordsFromText(headingText)
+			for _, word := range headingWords {
+				wordLower := strings.ToLower(word)
+				if !seen[wordLower] && len(wordLower) > 2 {
+					seen[wordLower] = true
+					keywords = append(keywords, wordLower)
+				}
+			}
+		}
+	}
+	
 	return keywords
 }
 
+// extractWordsFromText extracts meaningful words from text (filters stop words)
+func (c *SmartWebsiteCrawler) extractWordsFromText(text string) []string {
+	// Common stop words to filter
+	stopWords := map[string]bool{
+		"the": true, "a": true, "an": true, "and": true, "or": true, "but": true,
+		"in": true, "on": true, "at": true, "to": true, "for": true, "of": true,
+		"with": true, "by": true, "from": true, "as": true, "is": true, "are": true,
+		"was": true, "were": true, "be": true, "been": true, "being": true,
+		"have": true, "has": true, "had": true, "do": true, "does": true, "did": true,
+		"will": true, "would": true, "should": true, "could": true, "may": true, "might": true,
+		"this": true, "that": true, "these": true, "those": true, "it": true, "its": true,
+		"we": true, "you": true, "they": true, "he": true, "she": true, "him": true, "her": true,
+		"our": true, "your": true, "their": true, "my": true, "me": true, "us": true,
+		"about": true, "into": true, "through": true, "during": true, "before": true,
+		"after": true, "above": true, "below": true, "up": true, "down": true, "out": true,
+		"off": true, "over": true, "under": true, "again": true, "further": true,
+		"then": true, "once": true, "here": true, "there": true, "when": true, "where": true,
+		"why": true, "how": true, "all": true, "each": true, "few": true, "more": true,
+		"most": true, "other": true, "some": true, "such": true, "no": true, "nor": true,
+		"not": true, "only": true, "own": true, "same": true, "so": true, "than": true,
+		"too": true, "very": true, "can": true, "just": true, "don": true,
+	}
+	
+	// Split text into words
+	words := regexp.MustCompile(`\b[a-zA-Z]{3,}\b`).FindAllString(text, -1)
+	var filteredWords []string
+	
+	for _, word := range words {
+		wordLower := strings.ToLower(word)
+		if !stopWords[wordLower] && len(wordLower) >= 3 {
+			filteredWords = append(filteredWords, wordLower)
+		}
+	}
+	
+	return filteredWords
+}
+
+// extractBusinessKeywordsFromText extracts business-relevant keywords from text using patterns
+func (c *SmartWebsiteCrawler) extractBusinessKeywordsFromText(textContent string) []string {
+	var keywords []string
+	seen := make(map[string]bool)
+	
+	// Convert to lowercase for processing
+	text := strings.ToLower(textContent)
+	
+	// Business-relevant keyword patterns (expanded from plan)
+	businessPatterns := []string{
+		// Food & Beverage (expanded) - single words first, then phrases
+		`\b(wine|wines|winery|vineyard|vintner|sommelier|tasting|cellar|bottle|vintage|grape|grapes|grapevine|oenology|alcohol|spirits|liquor|beer|brewery|distillery|beverage|beverages|restaurant|cafe|coffee|food|dining|kitchen|catering|bakery|bar|pub)\b`,
+		`\b(wine shop|wine store|wine bar|wine merchant|wine retailer)\b`,
+		
+		// Retail (expanded) - single words first, then phrases
+		`\b(retail|retailer|storefront|merchandise|inventory|POS|checkout|showroom|boutique|outlet|marketplace|vendor|seller|selling|commerce|store|shop)\b`,
+		`\b(retail store|retail shop|brick and mortar|brick-and-mortar|physical store|point of sale|cash register|sales floor)\b`,
+		
+		// E-commerce (new) - single words first, then phrases
+		`\b(ecommerce|e-commerce)\b`,
+		`\b(online store|online shop|digital storefront|web store|internet retailer|online marketplace|digital commerce|online sales|web sales|internet sales|online retail)\b`,
+		
+		// Technology
+		`\b(technology|software|tech|app|digital|web|mobile|cloud|ai|ml|data|cyber|security|programming|development|IT|computer|internet|online|platform|api|database|saas)\b`,
+		
+		// Healthcare
+		`\b(healthcare|medical|clinic|hospital|doctor|dentist|therapy|wellness|pharmacy|medicine|patient|treatment|health|care|nurse|physician)\b`,
+		
+		// Legal
+		`\b(legal|law|attorney|lawyer|court|litigation|patent|trademark|copyright|legal services|advocacy|justice|legal advice|law firm)\b`,
+		
+		// Finance
+		`\b(finance|banking|investment|insurance|accounting|tax|financial|credit|loan|money|capital|funding|payment|transaction|wealth)\b`,
+		
+		// Real Estate - single words first, then phrases
+		`\b(property|construction|building|architecture|design|interior|home|house|apartment|rental|mortgage)\b`,
+		`\b(real estate|property management)\b`,
+		
+		// Education
+		`\b(education|school|university|training|learning|course|academy|institute|student|teacher|teaching|academic|degree|certification)\b`,
+		
+		// Consulting
+		`\b(consulting|advisory|strategy|management|business|corporate|professional|services|expert|specialist|consultant)\b`,
+		
+		// Manufacturing
+		`\b(manufacturing|production|factory|industrial|automotive|machinery|equipment|assembly)\b`,
+		
+		// Transportation
+		`\b(transportation|logistics|shipping|delivery|freight|warehouse|supply chain|trucking)\b`,
+		
+		// Entertainment
+		`\b(entertainment|media|marketing|advertising|design|creative|art|music|film)\b`,
+		
+		// Energy
+		`\b(energy|utilities|renewable|solar|wind|oil|gas|power|electricity)\b`,
+		
+		// Agriculture
+		`\b(agriculture|farming|food production|crop|livestock|organic|sustainable)\b`,
+		
+		// Travel
+		`\b(travel|tourism|hospitality|hotel|accommodation|vacation|booking|trip)\b`,
+	}
+	
+	// Extract keywords using patterns
+	for _, pattern := range businessPatterns {
+		matches := regexp.MustCompile(pattern).FindAllString(text, -1)
+		for _, match := range matches {
+			// Normalize match (remove extra spaces)
+			match = strings.TrimSpace(strings.ToLower(match))
+			if !seen[match] && len(match) >= 3 {
+				seen[match] = true
+				keywords = append(keywords, match)
+			}
+		}
+	}
+	
+	return keywords
+}
+
+// extractPhrases extracts multi-word phrases from text
+func (c *SmartWebsiteCrawler) extractPhrases(textContent string, minWords, maxWords int) []string {
+	var phrases []string
+	seen := make(map[string]bool)
+	
+	// Extract words from text
+	words := c.extractWordsFromText(textContent)
+	
+	// Generate phrases of different lengths
+	for i := 0; i < len(words); i++ {
+		for length := minWords; length <= maxWords && i+length <= len(words); length++ {
+			phrase := strings.Join(words[i:i+length], " ")
+			phraseLower := strings.ToLower(phrase)
+			
+			// Filter out phrases that are too short or too long
+			if len(phraseLower) >= 4 && len(phraseLower) <= 50 && !seen[phraseLower] {
+				seen[phraseLower] = true
+				phrases = append(phrases, phraseLower)
+			}
+		}
+	}
+	
+	return phrases
+}
+
+// keywordScore represents a keyword with its relevance score
+type keywordScore struct {
+	keyword string
+	score   float64
+}
+
+// combineAndRankKeywords combines keywords from different sources and ranks them by relevance
+func (c *SmartWebsiteCrawler) combineAndRankKeywords(structuredKeywords, bodyKeywords, phrases []string, pageType string) []keywordScore {
+	keywordScores := make(map[string]float64)
+	
+	// Weight keywords by source and position
+	// Structured keywords (title, meta, headings) get highest weight
+	for _, kw := range structuredKeywords {
+		// Title keywords get 1.0, meta gets 0.9, headings get 0.8
+		// For simplicity, we'll use 0.9 for all structured keywords
+		keywordScores[kw] += 0.9
+	}
+	
+	// Body keywords get medium weight
+	for _, kw := range bodyKeywords {
+		keywordScores[kw] += 0.6
+	}
+	
+	// Phrases get weight based on length (longer phrases = more specific = higher weight)
+	for _, phrase := range phrases {
+		wordCount := len(strings.Fields(phrase))
+		weight := 0.5 + float64(wordCount-2)*0.1 // 2-word: 0.5, 3-word: 0.6
+		if weight > 0.8 {
+			weight = 0.8 // Cap at 0.8
+		}
+		keywordScores[phrase] += weight
+	}
+	
+	// Boost keywords based on page type relevance
+	pageTypeBoost := c.getPageTypeBoost(pageType)
+	for kw := range keywordScores {
+		keywordScores[kw] *= pageTypeBoost
+	}
+	
+	// Convert to slice and sort
+	var scoredKeywords []keywordScore
+	for kw, score := range keywordScores {
+		scoredKeywords = append(scoredKeywords, keywordScore{keyword: kw, score: score})
+	}
+	
+	// Sort by score descending
+	sort.Slice(scoredKeywords, func(i, j int) bool {
+		return scoredKeywords[i].score > scoredKeywords[j].score
+	})
+	
+	return scoredKeywords
+}
+
+// getPageTypeBoost returns a boost multiplier based on page type
+func (c *SmartWebsiteCrawler) getPageTypeBoost(pageType string) float64 {
+	switch pageType {
+	case "about", "services", "products":
+		return 1.0 // Highest relevance
+	case "homepage":
+		return 0.95
+	case "contact":
+		return 0.85
+	case "blog", "news":
+		return 0.7
+	default:
+		return 0.8
+	}
+}
+
+// limitToTopKeywords returns the top N keywords from scored keywords
+func (c *SmartWebsiteCrawler) limitToTopKeywords(scoredKeywords []keywordScore, limit int) []string {
+	if len(scoredKeywords) > limit {
+		scoredKeywords = scoredKeywords[:limit]
+	}
+	
+	keywords := make([]string, len(scoredKeywords))
+	for i, kw := range scoredKeywords {
+		keywords[i] = kw.keyword
+	}
+	
+	return keywords
+}
+
+// extractPageKeywords extracts keywords from HTML page content
+// Returns top 30 keywords sorted by relevance
+func (c *SmartWebsiteCrawler) extractPageKeywords(content string, pageType string) []string {
+	// 1. Extract clean text from HTML
+	textContent := c.extractTextFromHTML(content)
+	
+	// 2. Extract from structured elements (title, meta, headings)
+	structuredKeywords := c.extractStructuredKeywords(content)
+	
+	// 3. Extract from body text using business patterns
+	bodyKeywords := c.extractBusinessKeywordsFromText(textContent)
+	
+	// 4. Extract phrases (2-word, 3-word)
+	phrases := c.extractPhrases(textContent, 2, 3)
+	
+	// 5. Combine, deduplicate, and rank
+	allKeywords := c.combineAndRankKeywords(structuredKeywords, bodyKeywords, phrases, pageType)
+	
+	// 6. Return top 30
+	return c.limitToTopKeywords(allKeywords, 30)
+}
+
+// extractIndustryIndicators extracts industry-specific indicators from page content
 func (c *SmartWebsiteCrawler) extractIndustryIndicators(content string) []string {
 	var indicators []string
-	// Implementation for extracting industry indicators
+	seen := make(map[string]bool)
+	
+	// Convert to lowercase for processing
+	text := strings.ToLower(content)
+	
+	// Industry-specific patterns with high confidence signals
+	industryPatterns := map[string][]string{
+		"food_beverage": {
+			"wine", "wines", "winery", "vineyard", "vintner", "sommelier", "tasting", "cellar",
+			"bottle", "vintage", "grape", "grapes", "grapevine", "oenology", "wine shop", "wine store",
+			"wine bar", "wine merchant", "wine retailer", "alcohol", "spirits", "liquor", "beer",
+			"brewery", "distillery", "beverage", "beverages", "restaurant", "cafe", "coffee", "food",
+			"dining", "kitchen", "catering", "bakery", "bar", "pub",
+		},
+		"technology": {
+			"technology", "software", "tech", "app", "digital", "web", "mobile", "cloud", "ai",
+			"machine learning", "ml", "data", "cyber", "security", "programming", "development",
+			"IT", "computer", "internet", "online", "platform", "api", "database", "saas",
+		},
+		"healthcare": {
+			"healthcare", "medical", "clinic", "hospital", "doctor", "dentist", "therapy", "wellness",
+			"pharmacy", "medicine", "patient", "treatment", "health", "care", "nurse", "physician",
+		},
+		"legal": {
+			"legal", "law", "attorney", "lawyer", "court", "litigation", "patent", "trademark",
+			"copyright", "legal services", "advocacy", "justice", "legal advice", "law firm",
+		},
+		"retail": {
+			"retail", "retailer", "retail store", "retail shop", "brick and mortar", "brick-and-mortar",
+			"physical store", "storefront", "merchandise", "inventory", "point of sale", "POS",
+			"checkout", "cash register", "sales floor", "showroom", "boutique", "outlet",
+			"marketplace", "vendor", "seller", "selling", "commerce", "store", "shop",
+			"ecommerce", "e-commerce", "online store", "online shop", "digital storefront",
+		},
+		"finance": {
+			"finance", "banking", "investment", "insurance", "accounting", "tax", "financial",
+			"credit", "loan", "money", "capital", "funding", "payment", "transaction", "wealth",
+		},
+		"real_estate": {
+			"real estate", "property", "construction", "building", "architecture", "design",
+			"interior", "home", "house", "apartment", "rental", "mortgage", "property management",
+		},
+		"education": {
+			"education", "school", "university", "training", "learning", "course", "academy",
+			"institute", "student", "teacher", "teaching", "academic", "degree", "certification",
+		},
+		"consulting": {
+			"consulting", "advisory", "strategy", "management", "business", "corporate", "professional",
+			"services", "expert", "specialist", "consultant",
+		},
+		"manufacturing": {
+			"manufacturing", "production", "factory", "industrial", "automotive", "machinery",
+			"equipment", "assembly",
+		},
+		"transportation": {
+			"transportation", "logistics", "shipping", "delivery", "freight", "warehouse",
+			"supply chain", "trucking",
+		},
+		"entertainment": {
+			"entertainment", "media", "marketing", "advertising", "design", "creative", "art",
+			"music", "film",
+		},
+	}
+	
+	// Extract industry indicators using patterns
+	for industry, patterns := range industryPatterns {
+		for _, pattern := range patterns {
+			// Use word boundary matching for better accuracy
+			patternRegex := regexp.MustCompile(`\b` + regexp.QuoteMeta(pattern) + `\b`)
+			if patternRegex.MatchString(text) {
+				indicator := industry + ":" + pattern
+				indicatorLower := strings.ToLower(indicator)
+				if !seen[indicatorLower] {
+					seen[indicatorLower] = true
+					indicators = append(indicators, indicator)
+				}
+			}
+		}
+	}
+	
 	return indicators
 }
 

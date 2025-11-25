@@ -1894,8 +1894,8 @@ func (r *SupabaseKeywordRepository) extractKeywords(businessName, websiteURL str
 				analysisMethod = "single_page"
 				r.logger.Printf("✅ Extracted %d keywords from single-page website analysis (fallback): %v", len(singlePageKeywords), singlePageKeywords)
 			} else {
-				// Step 3: Final fallback to URL text extraction
-				urlKeywords := r.extractKeywordsFromText(websiteURL, "website_url")
+				// Step 3: Final fallback to enhanced URL text extraction
+				urlKeywords := r.extractKeywordsFromURLEnhanced(websiteURL)
 				for _, keyword := range urlKeywords {
 					if !seen[keyword.Keyword] {
 						seen[keyword.Keyword] = true
@@ -1903,7 +1903,7 @@ func (r *SupabaseKeywordRepository) extractKeywords(businessName, websiteURL str
 					}
 				}
 				analysisMethod = "url_only"
-				r.logger.Printf("⚠️ Website scraping failed, using URL text extraction (final fallback)")
+				r.logger.Printf("⚠️ Website scraping failed, using enhanced URL text extraction (final fallback)")
 			}
 		}
 		
@@ -2551,6 +2551,311 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromText(text, context string
 				Keyword: phrase,
 				Context: context,
 			})
+		}
+	}
+
+	return keywords
+}
+
+// extractKeywordsFromURLEnhanced extracts keywords from URL with enhanced domain parsing
+// Extracts compound domain names, TLD hints, and industry inference
+func (r *SupabaseKeywordRepository) extractKeywordsFromURLEnhanced(websiteURL string) []ContextualKeyword {
+	var keywords []ContextualKeyword
+	seen := make(map[string]bool)
+
+	// 1. Parse domain name
+	parsedURL, err := url.Parse(websiteURL)
+	if err != nil {
+		// If URL parsing fails, try adding https://
+		if !strings.HasPrefix(websiteURL, "http://") && !strings.HasPrefix(websiteURL, "https://") {
+			parsedURL, err = url.Parse("https://" + websiteURL)
+		}
+		if err != nil {
+			r.logger.Printf("⚠️ [URL] Failed to parse URL: %s, error: %v", websiteURL, err)
+			return keywords
+		}
+	}
+
+	domain := parsedURL.Host
+	if domain == "" {
+		// If Host is empty, try to extract from Path
+		domain = strings.TrimPrefix(parsedURL.Path, "/")
+		if domain == "" {
+			r.logger.Printf("⚠️ [URL] Empty domain for URL: %s", websiteURL)
+			return keywords
+		}
+	}
+	
+	// Remove port if present
+	if strings.Contains(domain, ":") {
+		domain = strings.Split(domain, ":")[0]
+	}
+
+	// 2. Extract domain name parts (split by common separators)
+	domainParts := r.splitDomainName(domain)
+	if len(domainParts) == 0 {
+		r.logger.Printf("⚠️ [URL] No domain parts extracted from: %s", domain)
+		return keywords
+	}
+	
+	// 3. Extract individual words (filter stop words)
+	words := r.filterStopWords(domainParts)
+	for _, word := range words {
+		if len(word) >= 3 && !seen[word] {
+			seen[word] = true
+			keywords = append(keywords, ContextualKeyword{
+				Keyword: word,
+				Context: "website_url",
+			})
+		}
+	}
+
+	// 4. Extract 2-word phrases
+	phrases2 := r.generatePhrases(domainParts, 2)
+	for _, phrase := range phrases2 {
+		phraseLower := strings.ToLower(phrase)
+		if !seen[phraseLower] && len(phraseLower) >= 4 {
+			seen[phraseLower] = true
+			keywords = append(keywords, ContextualKeyword{
+				Keyword: phraseLower,
+				Context: "website_url",
+			})
+		}
+	}
+
+	// 5. Extract 3-word phrases for longer domains
+	if len(domainParts) > 3 {
+		phrases3 := r.generatePhrases(domainParts, 3)
+		for _, phrase := range phrases3 {
+			phraseLower := strings.ToLower(phrase)
+			if !seen[phraseLower] && len(phraseLower) >= 6 {
+				seen[phraseLower] = true
+				keywords = append(keywords, ContextualKeyword{
+					Keyword: phraseLower,
+					Context: "website_url",
+				})
+			}
+		}
+	}
+
+	// 6. Add TLD-based hints
+	tldKeywords := r.extractTLDHints(parsedURL)
+	for _, kw := range tldKeywords {
+		if !seen[kw] {
+			seen[kw] = true
+			keywords = append(keywords, ContextualKeyword{
+				Keyword: kw,
+				Context: "website_url",
+			})
+		}
+	}
+
+	// 7. Add industry inference from domain
+	industryKeywords := r.inferIndustryFromDomain(domain)
+	for _, kw := range industryKeywords {
+		if !seen[kw] {
+			seen[kw] = true
+			keywords = append(keywords, ContextualKeyword{
+				Keyword: kw,
+				Context: "website_url",
+			})
+		}
+	}
+
+	return keywords
+}
+
+// splitDomainName splits a domain name into meaningful parts
+// Handles compound domain names like "thegreenegrape" → ["the", "green", "grape"]
+func (r *SupabaseKeywordRepository) splitDomainName(domain string) []string {
+	if domain == "" {
+		return []string{}
+	}
+	
+	// Remove TLD (everything after the last dot)
+	parts := strings.Split(domain, ".")
+	if len(parts) == 0 {
+		return []string{}
+	}
+	domainName := parts[0]
+	
+	// If domainName is empty, try the whole domain
+	if domainName == "" && len(parts) > 1 {
+		domainName = parts[len(parts)-2] // Use second-to-last part
+	}
+
+	// Split by common separators (hyphens, underscores)
+	domainName = strings.ReplaceAll(domainName, "-", " ")
+	domainName = strings.ReplaceAll(domainName, "_", " ")
+	
+	// Try to split camelCase or compound words
+	// This is a simple heuristic - for production, consider using a proper word segmentation library
+	// See plan: plan-keyword-extraction-improvements-b60b8a1a.plan.md - Future Enhancement #5: Word Segmentation Library
+	var words []string
+	
+	// First, split by spaces (from hyphens/underscores)
+	spaceParts := strings.Fields(domainName)
+	for _, part := range spaceParts {
+		// Try to split camelCase words
+		camelWords := r.splitCamelCase(part)
+		words = append(words, camelWords...)
+	}
+
+	return words
+}
+
+// splitCamelCase splits camelCase words into individual words
+// Simple heuristic: split on uppercase letters
+func (r *SupabaseKeywordRepository) splitCamelCase(word string) []string {
+	if len(word) == 0 {
+		return []string{}
+	}
+
+	var words []string
+	var currentWord strings.Builder
+	currentWord.WriteByte(word[0])
+
+	for i := 1; i < len(word); i++ {
+		char := word[i]
+		// If we encounter an uppercase letter and current word has content, start new word
+		if char >= 'A' && char <= 'Z' && currentWord.Len() > 0 {
+			words = append(words, strings.ToLower(currentWord.String()))
+			currentWord.Reset()
+		}
+		currentWord.WriteByte(char)
+	}
+
+	// Add the last word
+	if currentWord.Len() > 0 {
+		words = append(words, strings.ToLower(currentWord.String()))
+	}
+
+	// If no camelCase detected, return the whole word as lowercase
+	if len(words) == 0 {
+		return []string{strings.ToLower(word)}
+	}
+
+	return words
+}
+
+// filterStopWords filters out common stop words from domain parts
+func (r *SupabaseKeywordRepository) filterStopWords(parts []string) []string {
+	stopWords := map[string]bool{
+		"the": true, "a": true, "an": true, "and": true, "or": true, "but": true,
+		"in": true, "on": true, "at": true, "to": true, "for": true, "of": true,
+		"with": true, "by": true, "from": true, "as": true, "is": true, "are": true,
+		"www": true, "com": true, "net": true, "org": true, "io": true,
+		"co": true, "uk": true, "us": true, "ca": true, "au": true,
+	}
+
+	var filtered []string
+	for _, part := range parts {
+		partLower := strings.ToLower(part)
+		if !stopWords[partLower] && len(partLower) >= 2 {
+			filtered = append(filtered, partLower)
+		}
+	}
+	return filtered
+}
+
+// generatePhrases generates N-word phrases from domain parts
+func (r *SupabaseKeywordRepository) generatePhrases(parts []string, n int) []string {
+	var phrases []string
+	if len(parts) < n {
+		return phrases
+	}
+
+	for i := 0; i <= len(parts)-n; i++ {
+		phrase := strings.Join(parts[i:i+n], " ")
+		phrases = append(phrases, phrase)
+	}
+
+	return phrases
+}
+
+// extractTLDHints extracts industry hints from TLD
+func (r *SupabaseKeywordRepository) extractTLDHints(parsedURL *url.URL) []string {
+	var hints []string
+	host := parsedURL.Host
+	
+	// Extract TLD
+	parts := strings.Split(host, ".")
+	if len(parts) < 2 {
+		return hints
+	}
+	tld := strings.ToLower(parts[len(parts)-1])
+
+	// TLD to industry mapping
+	tldHints := map[string][]string{
+		"shop":    {"retail", "ecommerce", "store", "shop"},
+		"store":   {"retail", "ecommerce", "store", "shop"},
+		"restaurant": {"restaurant", "food", "dining"},
+		"cafe":    {"cafe", "coffee", "food", "dining"},
+		"bar":     {"bar", "beverage", "alcohol", "drinks"},
+		"wine":    {"wine", "beverage", "alcohol", "winery"},
+		"beer":    {"beer", "beverage", "alcohol", "brewery"},
+		"tech":    {"technology", "tech", "software"},
+		"app":     {"app", "application", "software", "technology"},
+		"dev":     {"development", "software", "technology"},
+		"design":  {"design", "creative", "art"},
+		"photo":   {"photography", "photo", "creative"},
+		"art":     {"art", "creative", "design"},
+		"music":   {"music", "entertainment", "creative"},
+		"film":    {"film", "entertainment", "media"},
+		"news":    {"news", "media", "journalism"},
+		"blog":    {"blog", "content", "media"},
+		"edu":     {"education", "school", "learning"},
+		"health":  {"health", "healthcare", "medical"},
+		"law":     {"law", "legal", "attorney"},
+		"finance": {"finance", "financial", "banking"},
+		"realestate": {"real estate", "property", "realty"},
+	}
+
+	if hintsList, ok := tldHints[tld]; ok {
+		hints = append(hints, hintsList...)
+	}
+
+	return hints
+}
+
+// inferIndustryFromDomain infers industry from domain name patterns
+func (r *SupabaseKeywordRepository) inferIndustryFromDomain(domain string) []string {
+	var keywords []string
+	domainLower := strings.ToLower(domain)
+
+	// Industry inference patterns
+	industryPatterns := map[string][]string{
+		// Wine & Beverage
+		"wine":     {"wine", "beverage", "alcohol", "retail"},
+		"grape":    {"wine", "grape", "beverage", "retail"},
+		"vineyard": {"vineyard", "wine", "winery", "beverage"},
+		"vintner":  {"vintner", "wine", "winery", "beverage"},
+		"brewery":  {"brewery", "beer", "beverage", "alcohol"},
+		"distillery": {"distillery", "spirits", "alcohol", "beverage"},
+
+		// Retail
+		"shop":     {"shop", "retail", "store", "commerce"},
+		"store":    {"store", "retail", "shop", "commerce"},
+		"market":   {"market", "retail", "commerce", "store"},
+		"boutique": {"boutique", "retail", "shop", "fashion"},
+
+		// Technology
+		"tech":     {"technology", "tech", "software"},
+		"software": {"software", "technology", "tech"},
+		"app":      {"app", "application", "software", "technology"},
+		"digital":  {"digital", "technology", "tech"},
+
+		// Food & Dining
+		"restaurant": {"restaurant", "food", "dining"},
+		"cafe":       {"cafe", "coffee", "food", "dining"},
+		"food":       {"food", "restaurant", "dining"},
+		"dining":     {"dining", "restaurant", "food"},
+	}
+
+	// Check for industry patterns in domain
+	for pattern, keywordsList := range industryPatterns {
+		if strings.Contains(domainLower, pattern) {
+			keywords = append(keywords, keywordsList...)
 		}
 	}
 
