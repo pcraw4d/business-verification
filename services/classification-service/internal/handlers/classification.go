@@ -302,18 +302,47 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 		w.Header().Set("ETag", fmt.Sprintf(`"%s"`, req.RequestID))
 	}
 
-	// Send response - ensure headers are set before encoding
-	// Set status code explicitly before encoding to avoid WriteHeader issues
+	// Marshal JSON response to bytes first (optimize for large responses and better error handling)
+	responseBytes, err := json.Marshal(response)
+	if err != nil {
+		h.logger.Error("Failed to marshal response", 
+			zap.String("request_id", req.RequestID),
+			zap.Error(err))
+		errors.WriteInternalError(w, r, fmt.Sprintf("Failed to marshal response: %v", err))
+		return
+	}
+
+	// Log response size for monitoring
+	responseSize := len(responseBytes)
+	h.logger.Info("Response prepared for sending",
+		zap.String("request_id", req.RequestID),
+		zap.Int("response_size_bytes", responseSize),
+		zap.String("response_size_kb", fmt.Sprintf("%.2f", float64(responseSize)/1024)))
+
+	// Set Content-Length header for better HTTP/1.1 keep-alive handling
+	// This helps the client know the response size and prevents connection issues
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", responseSize))
+	
+	// Set status code before writing body
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Error("Failed to encode response", zap.Error(err))
-		// Response encoding failed, but header already written - can't send error response
+	
+	// Write response bytes directly (more efficient than streaming encoder)
+	// This approach allows us to detect encoding errors before committing the response
+	// and provides better control over the write operation
+	if _, err := w.Write(responseBytes); err != nil {
+		h.logger.Error("Failed to write response",
+			zap.String("request_id", req.RequestID),
+			zap.Int("response_size_bytes", responseSize),
+			zap.Error(err))
+		// Response write failed, but header already written - can't send error response
+		// The WriteTimeout in the server config should handle slow writes
 		return
 	}
 
 	h.logger.Info("Classification completed successfully",
 		zap.String("request_id", req.RequestID),
-		zap.Duration("processing_time", time.Since(startTime)))
+		zap.Duration("processing_time", time.Since(startTime)),
+		zap.Int("response_size_bytes", responseSize))
 }
 
 // processClassification processes a classification request
