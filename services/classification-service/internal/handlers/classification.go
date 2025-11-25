@@ -318,6 +318,21 @@ func (h *ClassificationHandler) HandleClassification(w http.ResponseWriter, r *h
 		zap.String("request_id", req.RequestID),
 		zap.Int("response_size_bytes", responseSize),
 		zap.String("response_size_kb", fmt.Sprintf("%.2f", float64(responseSize)/1024)))
+	
+	// Log the actual JSON response structure for debugging frontend issues
+	h.logger.Info("Response JSON structure (first 2000 chars)",
+		zap.String("request_id", req.RequestID),
+		zap.String("response_preview", func() string {
+			if responseSize > 2000 {
+				return string(responseBytes[:2000]) + "... (truncated)"
+			}
+			return string(responseBytes)
+		}()),
+		zap.String("primary_industry", response.PrimaryIndustry),
+		zap.Int("mcc_codes_count", len(response.Classification.MCCCodes)),
+		zap.Int("sic_codes_count", len(response.Classification.SICCodes)),
+		zap.Int("naics_codes_count", len(response.Classification.NAICSCodes)),
+		zap.String("classification_industry", response.Classification.Industry))
 
 	// Set Content-Length header for better HTTP/1.1 keep-alive handling
 	// This helps the client know the response size and prevents connection issues
