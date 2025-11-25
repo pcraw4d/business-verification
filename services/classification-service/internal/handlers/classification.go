@@ -365,12 +365,12 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 		ProcessingTime:     time.Since(startTime),
 		Metadata: func() map[string]interface{} {
 			metadata := map[string]interface{}{
-			"service":                  "classification-service",
-			"version":                  "2.0.0",
-			"classification_reasoning": enhancedResult.ClassificationReasoning,
-			"website_analysis":         enhancedResult.WebsiteAnalysis,
-			"method_weights":           enhancedResult.MethodWeights,
-			"smart_crawling_enabled":   true,
+				"service":                  "classification-service",
+				"version":                  "2.0.0",
+				"classification_reasoning": enhancedResult.ClassificationReasoning,
+				"website_analysis":         enhancedResult.WebsiteAnalysis,
+				"method_weights":           enhancedResult.MethodWeights,
+				"smart_crawling_enabled":   true,
 			}
 			// Include code generation metadata if present
 			if enhancedResult.Metadata != nil {
@@ -381,6 +381,13 @@ func (h *ClassificationHandler) processClassification(ctx context.Context, req *
 			return metadata
 		}(),
 	}
+	
+	// Log the final response for debugging
+	h.logger.Info("Classification response prepared",
+		zap.String("request_id", req.RequestID),
+		zap.String("primary_industry", response.PrimaryIndustry),
+		zap.Float64("confidence", response.ConfidenceScore),
+		zap.Bool("success", response.Success))
 
 	return response, nil
 }
@@ -967,11 +974,22 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 	}
 
 	// Step 3: Convert classification codes to handler format with enhanced metadata
-	mccCodes := make([]IndustryCode, 0, len(codesInfo.MCC))
+	// Limit to top 3 codes per type as requested
+	const maxCodesPerType = 3
+	
+	mccLimit := len(codesInfo.MCC)
+	if mccLimit > maxCodesPerType {
+		mccLimit = maxCodesPerType
+	}
+	mccCodes := make([]IndustryCode, 0, mccLimit)
 	keywordMatchCount := 0
 	industryMatchCount := 0
 	
-	for _, code := range codesInfo.MCC {
+	// Process MCC codes (limit to top 3)
+	for i, code := range codesInfo.MCC {
+		if i >= maxCodesPerType {
+			break
+		}
 		industryCode := IndustryCode{
 			Code:        code.Code,
 			Description: code.Description,
@@ -990,8 +1008,16 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 		mccCodes = append(mccCodes, industryCode)
 	}
 
-	sicCodes := make([]IndustryCode, 0, len(codesInfo.SIC))
-	for _, code := range codesInfo.SIC {
+	sicLimit := len(codesInfo.SIC)
+	if sicLimit > maxCodesPerType {
+		sicLimit = maxCodesPerType
+	}
+	sicCodes := make([]IndustryCode, 0, sicLimit)
+	// Process SIC codes (limit to top 3)
+	for i, code := range codesInfo.SIC {
+		if i >= maxCodesPerType {
+			break
+		}
 		industryCode := IndustryCode{
 			Code:        code.Code,
 			Description: code.Description,
@@ -1009,8 +1035,16 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 		sicCodes = append(sicCodes, industryCode)
 	}
 
-	naicsCodes := make([]IndustryCode, 0, len(codesInfo.NAICS))
-	for _, code := range codesInfo.NAICS {
+	naicsLimit := len(codesInfo.NAICS)
+	if naicsLimit > maxCodesPerType {
+		naicsLimit = maxCodesPerType
+	}
+	naicsCodes := make([]IndustryCode, 0, naicsLimit)
+	// Process NAICS codes (limit to top 3)
+	for i, code := range codesInfo.NAICS {
+		if i >= maxCodesPerType {
+			break
+		}
 		industryCode := IndustryCode{
 			Code:        code.Code,
 			Description: code.Description,
@@ -1072,11 +1106,35 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 	}
 
 	// Step 7: Build result with code generation metadata
+	// Ensure we use the industry from DetectIndustry, not from ClassifyBusiness
+	// DetectIndustry uses expanded keywords and correctly identifies the industry (e.g., "Wineries")
+	// ClassifyBusiness may return "General Business" if only URL keywords are available
+	primaryIndustry := industryResult.IndustryName
+	
+	// Log the industry detection result for debugging
+	h.logger.Info("Industry detection result",
+		zap.String("request_id", req.RequestID),
+		zap.String("detected_industry", primaryIndustry),
+		zap.Float64("confidence", industryResult.Confidence),
+		zap.Int("keywords_count", len(industryResult.Keywords)),
+		zap.String("reasoning", industryResult.Reasoning))
+	
+	if primaryIndustry == "" || primaryIndustry == "General Business" {
+		// Log warning if we're falling back to General Business when we shouldn't
+		if len(industryResult.Keywords) > 0 && industryResult.Confidence > 0.5 {
+			h.logger.Warn("Industry detection returned General Business despite having keywords and confidence",
+				zap.String("request_id", req.RequestID),
+				zap.Int("keywords_count", len(industryResult.Keywords)),
+				zap.Float64("confidence", industryResult.Confidence),
+				zap.String("reasoning", industryResult.Reasoning))
+		}
+	}
+	
 	result := &EnhancedClassificationResult{
 		BusinessName:            req.BusinessName,
-		PrimaryIndustry:         industryResult.IndustryName,
+		PrimaryIndustry:         primaryIndustry, // Use industry from DetectIndustry (e.g., "Wineries")
 		IndustryConfidence:      industryResult.Confidence,
-		BusinessType:            h.determineBusinessType(industryResult.Keywords, industryResult.IndustryName),
+		BusinessType:            h.determineBusinessType(industryResult.Keywords, primaryIndustry),
 		BusinessTypeConfidence:  industryResult.Confidence * 0.9, // Slightly lower than industry confidence
 		MCCCodes:                mccCodes,
 		SICCodes:                sicCodes,
@@ -1088,6 +1146,15 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 		MethodWeights:           methodWeights,
 		Timestamp:               time.Now(),
 	}
+	
+	// Log the final result for debugging
+	h.logger.Info("Enhanced classification result",
+		zap.String("request_id", req.RequestID),
+		zap.String("primary_industry", result.PrimaryIndustry),
+		zap.Float64("confidence", result.ConfidenceScore),
+		zap.Int("mcc_codes", len(result.MCCCodes)),
+		zap.Int("sic_codes", len(result.SICCodes)),
+		zap.Int("naics_codes", len(result.NAICSCodes)))
 	
 	// Add code generation metadata
 	if result.Metadata == nil {

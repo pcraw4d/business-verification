@@ -414,11 +414,16 @@ func (j *ClassificationJob) extractClassificationFromResponse(response map[strin
 		Metadata: make(map[string]interface{}),
 	}
 
-	// Extract primary industry
+	// Extract primary industry (check multiple possible locations)
 	if industry, ok := response["primary_industry"].(string); ok {
 		result.PrimaryIndustry = industry
 	} else if industry, ok := response["industry"].(string); ok {
 		result.PrimaryIndustry = industry
+	} else if classification, ok := response["classification"].(map[string]interface{}); ok {
+		// Check nested classification.industry field
+		if industry, ok := classification["industry"].(string); ok {
+			result.PrimaryIndustry = industry
+		}
 	} else if enhanced, ok := response["enhanced_classification"].(map[string]interface{}); ok {
 		if industry, ok := enhanced["primary_industry"].(string); ok {
 			result.PrimaryIndustry = industry

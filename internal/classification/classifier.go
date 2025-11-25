@@ -205,7 +205,7 @@ func (g *ClassificationCodeGenerator) mergeCodeResults(
 	// Configuration constants
 	const (
 		confidenceThreshold = 0.6  // Minimum confidence to include
-		maxCodesPerType     = 10    // Maximum codes to return per type
+		maxCodesPerType     = 3    // Maximum codes to return per type (top 3 as requested)
 		primaryCodeBoost    = 1.2    // Boost multiplier for is_primary codes
 	)
 	// Create a map to track codes by their ID for deduplication

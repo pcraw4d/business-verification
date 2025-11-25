@@ -99,6 +99,9 @@ func (s *IndustryDetectionService) DetectIndustry(ctx context.Context, businessN
 // extractKeywordsFromDatabase extracts keywords using database-driven approach
 func (s *IndustryDetectionService) extractKeywordsFromDatabase(ctx context.Context, businessName, websiteURL string) ([]string, error) {
 	// Use the repository's classification method to get keywords
+	// Note: ClassifyBusiness may return "General Business" if only URL keywords are available,
+	// but it will still return the expanded keywords from the fallback chain.
+	// The actual industry classification happens in classifyByKeywords which uses these expanded keywords.
 	result, err := s.repo.ClassifyBusiness(ctx, businessName, websiteURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to classify business: %w", err)
@@ -108,6 +111,10 @@ func (s *IndustryDetectionService) extractKeywordsFromDatabase(ctx context.Conte
 		return []string{}, nil
 	}
 
+	// Return the keywords - these should be the expanded keywords from extractKeywords
+	// The industry from ClassifyBusiness may be "General Business" if only 4 URL keywords were found,
+	// but classifyByKeywords will use these keywords (which may be expanded by keyword index matching)
+	// to correctly identify the industry (e.g., "Wineries")
 	return result.Keywords, nil
 }
 
