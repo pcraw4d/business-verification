@@ -132,35 +132,41 @@ func NewSmartWebsiteCrawler(logger *log.Logger) *SmartWebsiteCrawler {
 	// Create custom DNS resolver with multiple fallback servers
 	// DNS servers in order of preference: Google DNS, Cloudflare, Google DNS secondary
 	dnsServers := []string{"8.8.8.8:53", "1.1.1.1:53", "8.8.4.4:53"}
-		dnsResolver := &net.Resolver{
-			PreferGo: true,
-			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-				// Force IPv4 UDP connection to our custom DNS server
-				// CRITICAL: Ignore the network and address parameters to prevent system DNS fallback
-				// The system DNS (e.g., [fd12::10]:53 in Railway) will fail, so we must use our custom servers
-				var lastErr error
-				for _, server := range dnsServers {
-					d := net.Dialer{
-						Timeout: 10 * time.Second, // Longer timeout for retry
-					}
-					// Always use udp4 to force IPv4, completely ignore the network and address parameters
-					conn, err := d.DialContext(ctx, "udp4", server)
-					if err == nil {
-						if logger != nil {
-							logger.Printf("✅ [DNS] Successfully connected to DNS server %s", server)
-						}
-						return conn, nil
-					}
-					lastErr = err
-					// Log DNS server failure (if logger is available)
-					if logger != nil {
-						logger.Printf("⚠️ [DNS] Failed to connect to DNS server %s: %v", server, err)
-					}
+	dnsResolver := &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			// Force IPv4 UDP connection to our custom DNS server
+			// CRITICAL: Ignore the network and address parameters to prevent system DNS fallback
+			// The system DNS (e.g., [fd12::10]:53 in Railway) will fail, so we must use our custom servers
+			if logger != nil {
+				logger.Printf("🔍 [DNS] Resolver.Dial called with network=%s, address=%s (ignoring, using custom servers)", network, address)
+			}
+			var lastErr error
+			for _, server := range dnsServers {
+				d := net.Dialer{
+					Timeout: 10 * time.Second, // Longer timeout for retry
 				}
-				// Return error instead of allowing system DNS fallback
-				return nil, fmt.Errorf("all DNS servers failed, last error: %w", lastErr)
-			},
-		}
+				// Always use udp4 to force IPv4, completely ignore the network and address parameters
+				conn, err := d.DialContext(ctx, "udp4", server)
+				if err == nil {
+					if logger != nil {
+						logger.Printf("✅ [DNS] Successfully connected to DNS server %s for query", server)
+					}
+					return conn, nil
+				}
+				lastErr = err
+				// Log DNS server failure (if logger is available)
+				if logger != nil {
+					logger.Printf("⚠️ [DNS] Failed to connect to DNS server %s: %v", server, err)
+				}
+			}
+			// Return error instead of allowing system DNS fallback
+			if logger != nil {
+				logger.Printf("❌ [DNS] All DNS servers failed, last error: %v", lastErr)
+			}
+			return nil, fmt.Errorf("all DNS servers failed, last error: %w", lastErr)
+		},
+	}
 
 	// Custom DialContext that forces IPv4 resolution
 	customDialContext := func(ctx context.Context, network, addr string) (net.Conn, error) {
@@ -179,14 +185,37 @@ func NewSmartWebsiteCrawler(logger *log.Logger) *SmartWebsiteCrawler {
 		var ips []net.IPAddr
 		var dnsErr error
 		maxRetries := 3
+		if logger != nil {
+			logger.Printf("🔍 [DNS] Starting DNS lookup for %s using custom resolver", host)
+		}
 		for attempt := 1; attempt <= maxRetries; attempt++ {
+			if logger != nil {
+				logger.Printf("🔄 [DNS] DNS lookup attempt %d/%d for %s", attempt, maxRetries, host)
+			}
 			ips, dnsErr = dnsResolver.LookupIPAddr(ctx, host)
 			if dnsErr == nil {
+				if logger != nil {
+					logger.Printf("✅ [DNS] DNS lookup successful for %s: found %d IP addresses", host, len(ips))
+					for i, ip := range ips {
+						logger.Printf("   [DNS] IP %d: %s (IPv4: %v)", i+1, ip.IP.String(), ip.IP.To4() != nil)
+					}
+				}
 				break
+			}
+			// Log the specific DNS error
+			if logger != nil {
+				if dnsErr2, ok := dnsErr.(*net.DNSError); ok {
+					logger.Printf("❌ [DNS] DNS lookup failed for %s (attempt %d/%d): %v (server: %s)", host, attempt, maxRetries, dnsErr2, dnsErr2.Server)
+				} else {
+					logger.Printf("❌ [DNS] DNS lookup failed for %s (attempt %d/%d): %v (type: %T)", host, attempt, maxRetries, dnsErr, dnsErr)
+				}
 			}
 			// Exponential backoff: 1s, 2s, 4s
 			if attempt < maxRetries {
 				backoff := time.Duration(attempt) * time.Second
+				if logger != nil {
+					logger.Printf("⏳ [DNS] Waiting %v before retry for %s", backoff, host)
+				}
 				select {
 				case <-ctx.Done():
 					return nil, ctx.Err()
@@ -196,6 +225,9 @@ func NewSmartWebsiteCrawler(logger *log.Logger) *SmartWebsiteCrawler {
 			}
 		}
 		if dnsErr != nil {
+			if logger != nil {
+				logger.Printf("❌ [DNS] DNS lookup failed for %s after %d attempts: %v", host, maxRetries, dnsErr)
+			}
 			return nil, fmt.Errorf("DNS lookup failed for %s after %d attempts: %w", host, maxRetries, dnsErr)
 		}
 

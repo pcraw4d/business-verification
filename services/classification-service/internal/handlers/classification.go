@@ -941,6 +941,14 @@ func (h *ClassificationHandler) generateEnhancedClassification(ctx context.Conte
 			zap.String("industry", industryResult.IndustryName),
 			zap.Float64("confidence", industryResult.Confidence),
 			zap.Int("keywords_count", len(industryResult.Keywords)))
+		
+		// Detailed logging for debugging "General Business" issue
+		h.logger.Info("Industry detection result",
+			zap.String("request_id", req.RequestID),
+			zap.String("industry_name", industryResult.IndustryName),
+			zap.Float64("confidence", industryResult.Confidence),
+			zap.Int("keywords_count", len(industryResult.Keywords)),
+			zap.String("reasoning", industryResult.Reasoning))
 	}
 
 	// Step 2: Generate classification codes using ClassificationCodeGenerator
