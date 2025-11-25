@@ -1137,6 +1137,17 @@ func (r *SupabaseKeywordRepository) GetClassificationCodesByKeywords(
 		// Check if this keyword matches any of our search keywords
 		matches := false
 		for searchKeyword := range keywordSet {
+			// Filter out very short keywords (1-2 chars) that are likely noise
+			// These can cause false matches (e.g., "ai" matching "air", "hair", "fair")
+			if len(searchKeyword) <= 2 && len(rowKeywordLower) > 2 {
+				// Only allow exact match for very short search keywords
+				if rowKeywordLower == searchKeyword {
+					matches = true
+					break
+				}
+				continue // Skip other matching strategies for short keywords
+			}
+			
 			// Strategy 1: Exact match (most accurate)
 			if rowKeywordLower == searchKeyword {
 				matches = true
