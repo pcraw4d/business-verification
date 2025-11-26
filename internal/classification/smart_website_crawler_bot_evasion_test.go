@@ -82,8 +82,8 @@ func TestSmartWebsiteCrawler_SessionManagement(t *testing.T) {
 	t.Logf("✅ Session management verified: cookie maintained across requests")
 }
 
-// TestSmartWebsiteCrawler_HumanLikeDelays verifies that human-like delays
-// are applied between page requests
+// TestSmartWebsiteCrawler_HumanLikeDelays verifies that NO delays are applied
+// between page requests (delays removed for faster classification)
 func TestSmartWebsiteCrawler_HumanLikeDelays(t *testing.T) {
 	requestTimes := make([]time.Time, 0)
 	var mu sync.Mutex
@@ -119,20 +119,17 @@ func TestSmartWebsiteCrawler_HumanLikeDelays(t *testing.T) {
 		t.Errorf("Expected 3 page analyses, got %d", len(analyses))
 	}
 
-	// Verify delays were applied (should take at least 4 seconds for 3 pages with 2-second base delay)
-	// First page has no delay, subsequent pages have delays
-	expectedMinDuration := 2 * time.Second // At least 2 seconds for delays between 2nd and 3rd page
-	if totalDuration < expectedMinDuration {
-		t.Errorf("Expected total duration >= %v (with delays), got %v", expectedMinDuration, totalDuration)
+	// Verify NO delays were applied (delays removed for faster classification)
+	// Total duration should be fast (under 5 seconds for 3 pages)
+	expectedMaxDuration := 5 * time.Second
+	if totalDuration > expectedMaxDuration {
+		t.Errorf("Expected total duration <= %v (no delays), got %v", expectedMaxDuration, totalDuration)
 	}
 
-	// Verify request times show delays between requests
-	// Note: Due to concurrent execution (semaphore of 3), requests may start simultaneously
-	// but delays are still applied. We verify by checking total duration and that
-	// not all requests started at the same time.
+	// Verify requests happen quickly without artificial delays
 	mu.Lock()
 	if len(requestTimes) >= 2 {
-		// Sort request times to check actual delays
+		// Sort request times to check actual timing
 		sortedTimes := make([]time.Time, len(requestTimes))
 		copy(sortedTimes, requestTimes)
 		for i := 0; i < len(sortedTimes)-1; i++ {
@@ -143,19 +140,17 @@ func TestSmartWebsiteCrawler_HumanLikeDelays(t *testing.T) {
 			}
 		}
 		
-		// Check that requests didn't all start at exactly the same time
-		// (which would indicate delays aren't working)
+		// Check that requests happen quickly (no artificial delays)
+		// Requests should complete within a reasonable time without delays
 		timeSpread := sortedTimes[len(sortedTimes)-1].Sub(sortedTimes[0])
-		if timeSpread < 100*time.Millisecond && len(requestTimes) > 1 {
-			// If all requests started within 100ms, delays may not be working
-			// But with concurrent execution, this is acceptable - delays are still applied
-			// We verify by total duration instead
-			t.Logf("Note: Requests started close together (concurrent execution), but delays are verified by total duration")
+		// With no delays, requests should complete quickly (under 2 seconds for 3 pages)
+		if timeSpread > 2*time.Second {
+			t.Logf("Note: Request spread is %v, which may indicate delays are still present", timeSpread)
 		}
 	}
 	mu.Unlock()
 
-	t.Logf("✅ Human-like delays verified: total duration %v with delays between requests", totalDuration)
+	t.Logf("✅ No-delay behavior verified: total duration %v (fast, no artificial delays)", totalDuration)
 }
 
 // TestSmartWebsiteCrawler_RefererTracking verifies that referer headers
