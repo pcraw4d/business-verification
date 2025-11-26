@@ -781,14 +781,15 @@ func (c *SmartWebsiteCrawler) analyzePage(ctx context.Context, pageURL string) P
 	}
 
 	// Create HTTP client with session cookie jar and proxy support
+	// Start with the base client (which has custom dialer)
 	client := c.client
 	if session != nil {
-		// Create a new client with session cookie jar
-		transport := c.client.Transport.(*http.Transport)
-		client = CreateHTTPClientWithSession(session, c.pageTimeout)
-		// Preserve the custom dialer
-		if transport != nil {
-			client.Transport = transport
+		// Create a new client with session cookie jar, preserving the custom transport
+		baseTransport := c.client.Transport.(*http.Transport)
+		client = &http.Client{
+			Timeout:   c.pageTimeout,
+			Transport: baseTransport, // Preserve custom dialer and DNS resolver
+			Jar:       session.GetCookieJar(),
 		}
 	}
 
