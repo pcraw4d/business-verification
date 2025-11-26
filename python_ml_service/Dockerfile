@@ -70,9 +70,10 @@ USER mluser
 # Expose port
 EXPOSE 8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+# Health check (Railway uses its own healthcheck, but we include this for local testing)
+# Note: Railway's healthcheck is configured in railway.json
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()" || exit 1
 
 # Production command
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]

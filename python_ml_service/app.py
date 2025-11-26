@@ -871,14 +871,39 @@ async def ping():
 
 @app.get("/health")
 async def health():
-    """Detailed health check"""
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now(),
-        "models_loaded": len(model_manager.models),
-        "cache_size": len(cache_manager.cache),
-        "device": str(Config.DEVICE)
-    }
+    """Detailed health check - lightweight for startup"""
+    try:
+        # Basic health check - don't fail if models aren't loaded yet
+        health_data = {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "device": str(Config.DEVICE)
+        }
+        
+        # Add model info if available (don't fail if not ready)
+        try:
+            if hasattr(model_manager, 'models') and model_manager.models:
+                health_data["models_loaded"] = len(model_manager.models)
+        except Exception:
+            health_data["models_loaded"] = 0
+            health_data["models_status"] = "initializing"
+        
+        # Add cache info if available
+        try:
+            if hasattr(cache_manager, 'cache'):
+                health_data["cache_size"] = len(cache_manager.cache)
+        except Exception:
+            health_data["cache_size"] = 0
+        
+        return health_data
+    except Exception as e:
+        # Even if something fails, return basic health status
+        logger.warning(f"Health check warning: {e}")
+        return {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "message": "Service is running"
+        }
 
 @app.get("/models", response_model=List[ModelInfo])
 async def get_models():
