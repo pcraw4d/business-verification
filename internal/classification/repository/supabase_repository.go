@@ -1565,7 +1565,7 @@ func (r *SupabaseKeywordRepository) GetClassificationCodesByKeywords(
 			
 			// Strategy 2: For multi-word database keywords, check if search keyword is a complete word
 			// This allows "wine" to match "wine shop" but prevents "air" from matching "hair" or "fair"
-			if !bestMatch.Matched && strings.Contains(rowKeywordLower, " ") {
+			if (bestMatch == nil || !bestMatch.Matched) && strings.Contains(rowKeywordLower, " ") {
 				words := strings.Fields(rowKeywordLower)
 				for _, word := range words {
 					wordMatch := r.keywordMatcher.MatchKeyword(searchKeyword, word)
@@ -1578,7 +1578,7 @@ func (r *SupabaseKeywordRepository) GetClassificationCodesByKeywords(
 			
 			// Strategy 3: For multi-word search keywords, check if database keyword is a complete word
 			// This allows "wine shop" to match "wine" in the database
-			if !bestMatch.Matched && strings.Contains(searchKeyword, " ") {
+			if (bestMatch == nil || !bestMatch.Matched) && strings.Contains(searchKeyword, " ") {
 				words := strings.Fields(searchKeyword)
 				for _, word := range words {
 					wordMatch := r.keywordMatcher.MatchKeyword(word, rowKeywordLower)
