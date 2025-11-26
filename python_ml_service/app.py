@@ -1635,18 +1635,25 @@ async def get_real_time_monitoring():
 if __name__ == "__main__":
     logger.info("🚀 Starting Python ML Service...")
     logger.info(f"📱 Device: {Config.DEVICE}")
-    logger.info("📚 Models will be loaded asynchronously on startup")
+    logger.info("📚 Models will be loaded lazily on first request")
     
-    # Initialize risk detection models (non-blocking)
-    try:
-        risk_detection_manager.initialize_models()
-        logger.info("✅ Risk detection models initialized")
-    except Exception as e:
-        logger.warning(f"⚠️ Risk detection models initialization failed: {e}")
+    # Get port from environment (Railway sets this automatically)
+    port = int(os.getenv("PORT", "8000"))
+    logger.info(f"🌐 Starting server on port {port}")
+    
+    # Initialize risk detection models (non-blocking, optional)
+    if risk_detection_manager is not None:
+        try:
+            risk_detection_manager.initialize_models()
+            logger.info("✅ Risk detection models initialized")
+        except Exception as e:
+            logger.warning(f"⚠️ Risk detection models initialization failed: {e}")
+    else:
+        logger.warning("⚠️ Risk detection manager not available - skipping initialization")
     
     uvicorn.run(
         app,
         host="0.0.0.0",
-        port=8000,
+        port=port,
         log_level="info"
     )
