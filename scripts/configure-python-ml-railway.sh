@@ -29,19 +29,23 @@ echo ""
 
 # Link to the service (creates railway.json link if needed)
 echo "🔗 Linking to python-ml-service..."
-railway link --service python-ml-service --non-interactive || {
+if railway link --service python-ml-service --non-interactive 2>&1; then
+    echo "✅ Service linked successfully"
+else
     echo "⚠️  Service might already be linked or doesn't exist"
     echo "   If service doesn't exist, create it in Railway dashboard first"
-}
+fi
 
 echo ""
-echo "✅ Configuration complete!"
+echo "📝 IMPORTANT: Railway CLI cannot set root directory"
+echo "   You MUST configure this in Railway Dashboard:"
 echo ""
-echo "📝 Next steps:"
 echo "   1. Go to Railway Dashboard → python-ml-service → Settings"
-echo "   2. Set Root Directory to: python_ml_service"
-echo "   3. Set Dockerfile Path to: Dockerfile"
-echo "   4. Save and redeploy"
+echo "   2. Go to 'Service Settings' section"
+echo "   3. Set 'Root Directory' to: python_ml_service"
+echo "   4. Set 'Dockerfile Path' to: Dockerfile"
+echo "   5. Save and redeploy"
 echo ""
-echo "   Or trigger a new deployment with: railway up"
+echo "   After setting root directory, trigger deployment:"
+echo "   railway up --detach"
 
