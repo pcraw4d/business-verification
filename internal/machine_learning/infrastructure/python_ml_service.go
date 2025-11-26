@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"sync"
@@ -318,6 +319,96 @@ func (pms *PythonMLService) DetectRisk(ctx context.Context, req *RiskDetectionRe
 	riskResp.ProcessingTime = processingTime
 
 	return &riskResp, nil
+}
+
+// ClassifyEnhanced performs enhanced classification with summarization and explanation
+func (pms *PythonMLService) ClassifyEnhanced(
+	ctx context.Context,
+	req *EnhancedClassificationRequest,
+) (*EnhancedClassificationResponse, error) {
+	start := time.Now()
+
+	pms.mu.Lock()
+	if pms.metrics == nil {
+		pms.metrics = &ServiceMetrics{}
+	}
+	pms.metrics.RequestCount++
+	pms.mu.Unlock()
+
+	// Prepare request
+	requestBody, err := json.Marshal(req)
+	if err != nil {
+		pms.mu.Lock()
+		pms.metrics.ErrorCount++
+		pms.mu.Unlock()
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	// Make HTTP request
+	httpReq, err := http.NewRequestWithContext(
+		ctx,
+		"POST",
+		pms.endpoint+"/classify-enhanced",
+		bytes.NewBuffer(requestBody),
+	)
+	if err != nil {
+		pms.mu.Lock()
+		pms.metrics.ErrorCount++
+		pms.mu.Unlock()
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	// Execute request
+	resp, err := pms.httpClient.Do(httpReq)
+	if err != nil {
+		pms.mu.Lock()
+		pms.metrics.ErrorCount++
+		pms.mu.Unlock()
+		return nil, fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		// Read error response body for better error messages
+		body, _ := io.ReadAll(resp.Body)
+		errorMsg := fmt.Sprintf("Python service returned status %d", resp.StatusCode)
+		if len(body) > 0 {
+			errorMsg += fmt.Sprintf(": %s", string(body))
+		}
+		
+		pms.mu.Lock()
+		pms.metrics.ErrorCount++
+		pms.mu.Unlock()
+		return nil, fmt.Errorf(errorMsg)
+	}
+
+	// Parse response
+	var enhancedResp EnhancedClassificationResponse
+	if err := json.NewDecoder(resp.Body).Decode(&enhancedResp); err != nil {
+		pms.mu.Lock()
+		pms.metrics.ErrorCount++
+		pms.mu.Unlock()
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	// Update metrics
+	processingTime := time.Since(start)
+	pms.mu.Lock()
+	if enhancedResp.Success {
+		pms.metrics.SuccessCount++
+	} else {
+		pms.metrics.ErrorCount++
+	}
+	pms.updateLatencyMetrics(processingTime)
+	pms.mu.Unlock()
+
+	// Convert processing_time from float64 to time.Duration for consistency
+	// (The response already has processing_time as float64, so we keep it)
+	enhancedResp.ProcessingTime = float64(processingTime.Seconds())
+
+	return &enhancedResp, nil
 }
 
 // GetAvailableModels returns available models in the Python service

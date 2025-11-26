@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Progress } from '@/components/ui/progress';
 import { ChartContainer } from '@/components/dashboards/ChartContainer';
 import { BarChart, PieChart } from '@/components/charts/lazy';
 import { getMerchant, getMerchantAnalytics, getWebsiteAnalysis, triggerAnalyticsRefresh } from '@/lib/api';
@@ -208,6 +209,22 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
   }, [analytics]);
 
   const industryCodeDistributionData = useMemo(() => {
+    // Use codeDistribution if available, otherwise fallback to counts
+    if (analytics?.classification?.codeDistribution) {
+      const dist = analytics.classification.codeDistribution;
+      const data = [];
+      if (dist.mcc && dist.mcc.count > 0) {
+        data.push({ name: 'MCC', value: dist.mcc.count });
+      }
+      if (dist.sic && dist.sic.count > 0) {
+        data.push({ name: 'SIC', value: dist.sic.count });
+      }
+      if (dist.naics && dist.naics.count > 0) {
+        data.push({ name: 'NAICS', value: dist.naics.count });
+      }
+      return data;
+    }
+    // Fallback to top codes length
     const data = [];
     if (topMccCodes.length > 0) {
       data.push({ name: 'MCC', value: topMccCodes.length });
@@ -219,7 +236,7 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
       data.push({ name: 'NAICS', value: topNaicsCodes.length });
     }
     return data;
-  }, [topMccCodes, topSicCodes, topNaicsCodes]);
+  }, [analytics?.classification?.codeDistribution, topMccCodes, topSicCodes, topNaicsCodes]);
 
   const getExportData = async () => {
     return {
@@ -296,19 +313,63 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
+              {/* 1. Primary Industry with Confidence Level */}
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Primary Industry</p>
-                <p className="text-lg">{analytics.classification?.primaryIndustry || 'N/A'}</p>
+                <p className="text-sm font-medium text-muted-foreground mb-2">Primary Industry</p>
+                <p className="text-lg font-semibold mb-2">{analytics.classification?.primaryIndustry || 'N/A'}</p>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Confidence</span>
+                    <span className="font-medium">{formatPercent(analytics.classification?.confidenceScore)}</span>
+                  </div>
+                  <Progress 
+                    value={(analytics.classification?.confidenceScore ?? 0) * 100} 
+                    className="h-2"
+                  />
+                </div>
               </div>
+
+              {/* 5. Risk Level */}
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Confidence Score</p>
-                <p>{formatPercent(analytics.classification?.confidenceScore)}</p>
+                <p className="text-sm font-medium text-muted-foreground mb-2">Risk Level</p>
+                <Badge 
+                  variant={
+                    analytics.classification?.riskLevel === 'high' ? 'destructive' :
+                    analytics.classification?.riskLevel === 'medium' ? 'secondary' :
+                    'default'
+                  }
+                >
+                  {analytics.classification?.riskLevel || 'N/A'}
+                </Badge>
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Risk Level</p>
-                <Badge variant="outline">{analytics.classification?.riskLevel || 'N/A'}</Badge>
+
+              {/* 4. Explanation */}
+              {analytics.classification?.explanation && (
+                <div className="border rounded-lg p-4 bg-muted/50">
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Classification Explanation</p>
+                  <p className="text-sm leading-relaxed">{analytics.classification.explanation}</p>
+                </div>
+              )}
+
+              {/* Website Summary (if available) */}
+              {analytics.classification?.contentSummary && (
+                <div className="border rounded-lg p-4 bg-muted/30">
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Website Summary</p>
+                  <p className="text-sm leading-relaxed">{analytics.classification.contentSummary}</p>
+                </div>
+              )}
+
+              {/* Quantization indicator */}
+              {analytics.classification?.quantizationEnabled && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Badge variant="outline" className="text-xs">Quantized Model</Badge>
+                  {analytics.classification?.modelVersion && (
+                    <span>v{analytics.classification.modelVersion}</span>
+                  )}
               </div>
+              )}
+
               {/* Classification Metadata */}
               <ClassificationMetadata metadata={analytics.classification?.metadata} />
             </CardContent>
@@ -333,14 +394,17 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {topMccCodes.map((code, index) => (
+                        {topMccCodes.slice(0, 3).map((code, index) => (
                           <TableRow key={index}>
                             <TableCell className="font-mono text-sm">{code.code}</TableCell>
                             <TableCell className="max-w-[200px] truncate" title={code.description}>
                               {code.description}
                             </TableCell>
                             <TableCell className="text-right">
-                              {formatPercent(code.confidence)}
+                              <div className="space-y-1">
+                                <span className="text-sm font-medium">{formatPercent(code.confidence)}</span>
+                                <Progress value={code.confidence * 100} className="h-1.5" />
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -366,14 +430,17 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {topSicCodes.map((code, index) => (
+                        {topSicCodes.slice(0, 3).map((code, index) => (
                           <TableRow key={index}>
                             <TableCell className="font-mono text-sm">{code.code}</TableCell>
                             <TableCell className="max-w-[200px] truncate" title={code.description}>
                               {code.description}
                             </TableCell>
                             <TableCell className="text-right">
-                              {formatPercent(code.confidence)}
+                              <div className="space-y-1">
+                                <span className="text-sm font-medium">{formatPercent(code.confidence)}</span>
+                                <Progress value={code.confidence * 100} className="h-1.5" />
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -399,14 +466,17 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {topNaicsCodes.map((code, index) => (
+                        {topNaicsCodes.slice(0, 3).map((code, index) => (
                           <TableRow key={index}>
                             <TableCell className="font-mono text-sm">{code.code}</TableCell>
                             <TableCell className="max-w-[200px] truncate" title={code.description}>
                               {code.description}
                             </TableCell>
                             <TableCell className="text-right">
-                              {formatPercent(code.confidence)}
+                              <div className="space-y-1">
+                                <span className="text-sm font-medium">{formatPercent(code.confidence)}</span>
+                                <Progress value={code.confidence * 100} className="h-1.5" />
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -440,13 +510,34 @@ export function BusinessAnalyticsTab({ merchantId }: BusinessAnalyticsTabProps) 
                 description="Number of codes per classification type"
                 isLoading={false}
               >
-                <BarChart
+                <PieChart
                   data={industryCodeDistributionData}
-                  dataKey="value"
-                  bars={[{ key: 'value', name: 'Codes', color: '#8884d8' }]}
                   height={250}
                   isLoading={false}
                 />
+                {/* Summary counts */}
+                {analytics?.classification?.codeDistribution && (
+                  <div className="mt-4 grid grid-cols-3 gap-4 text-center text-sm">
+                    {analytics.classification.codeDistribution.mcc && (
+                      <div>
+                        <p className="font-medium">{analytics.classification.codeDistribution.mcc.count}</p>
+                        <p className="text-muted-foreground">MCC Codes</p>
+                      </div>
+                    )}
+                    {analytics.classification.codeDistribution.sic && (
+                      <div>
+                        <p className="font-medium">{analytics.classification.codeDistribution.sic.count}</p>
+                        <p className="text-muted-foreground">SIC Codes</p>
+                      </div>
+                    )}
+                    {analytics.classification.codeDistribution.naics && (
+                      <div>
+                        <p className="font-medium">{analytics.classification.codeDistribution.naics.count}</p>
+                        <p className="text-muted-foreground">NAICS Codes</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </ChartContainer>
             )}
           </div>

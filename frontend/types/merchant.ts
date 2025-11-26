@@ -58,6 +58,12 @@ export interface ClassificationData {
   mccCodes?: IndustryCode[];
   sicCodes?: IndustryCode[];
   naicsCodes?: IndustryCode[];
+  // DistilBART enhancement fields
+  explanation?: string;
+  contentSummary?: string;
+  codeDistribution?: CodeDistribution;
+  quantizationEnabled?: boolean;
+  modelVersion?: string;
   metadata?: {
     pageAnalysis?: {
       pagesAnalyzed?: number;
@@ -119,6 +125,25 @@ export interface IntelligenceData {
   businessAge?: number;
   employeeCount?: number;
   annualRevenue?: number;
+}
+
+export interface CodeDistribution {
+  mcc?: CodeDistributionStats;
+  sic?: CodeDistributionStats;
+  naics?: CodeDistributionStats;
+  total: number;
+}
+
+export interface CodeDistributionStats {
+  count: number;
+  topCodes?: CodeWithConfidence[];
+  averageConfidence?: number;
+}
+
+export interface CodeWithConfidence {
+  code: string;
+  description: string;
+  confidence: number;
 }
 
 export interface WebsiteAnalysisData {

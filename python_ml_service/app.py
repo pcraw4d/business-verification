@@ -50,6 +50,9 @@ from risk_detection_models import (
     risk_detection_manager
 )
 
+# Import DistilBART classifier
+from distilbart_classifier import DistilBARTBusinessClassifier
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -451,6 +454,28 @@ class ModelMetrics(BaseModel):
     error_count: int = Field(..., description="Failed requests")
     last_updated: datetime = Field(..., description="Last metrics update")
 
+class EnhancedClassificationRequest(BaseModel):
+    business_name: str = Field(..., description="Business name to classify")
+    description: Optional[str] = Field(None, description="Business description")
+    website_url: Optional[str] = Field(None, description="Business website URL")
+    website_content: Optional[str] = Field(None, description="Website content for analysis")
+    max_results: int = Field(5, description="Maximum number of classification results")
+    max_content_length: Optional[int] = Field(1024, description="Maximum content length for processing")
+
+class EnhancedClassificationResponse(BaseModel):
+    request_id: str = Field(..., description="Unique request ID")
+    model_id: str = Field(..., description="Model ID used")
+    model_version: str = Field(..., description="Model version")
+    classifications: List[ClassificationPrediction] = Field(..., description="Classification results")
+    confidence: float = Field(..., description="Overall confidence")
+    summary: str = Field(..., description="Content summary")
+    explanation: str = Field(..., description="Classification explanation")
+    processing_time: float = Field(..., description="Processing time in seconds")
+    quantization_enabled: bool = Field(False, description="Whether quantization was used")
+    timestamp: datetime = Field(..., description="Response timestamp")
+    success: bool = Field(..., description="Success status")
+    error: Optional[str] = Field(None, description="Error message if any")
+
 # Global model manager
 class ModelManager:
     def __init__(self):
@@ -776,6 +801,30 @@ class ModelManager:
 # Initialize model manager
 model_manager = ModelManager()
 
+# Initialize DistilBART classifier (replaces BERT for classification)
+# Quantization enabled by default in production (can be overridden via USE_QUANTIZATION env var)
+use_quantization = os.getenv('USE_QUANTIZATION', 'true').lower() == 'true'
+quantization_dtype_str = os.getenv('QUANTIZATION_DTYPE', 'qint8')
+quantization_dtype = getattr(torch, quantization_dtype_str, torch.qint8)
+
+distilbart_classifier = DistilBARTBusinessClassifier({
+    'model_save_path': os.getenv('MODEL_SAVE_PATH', 'models/distilbart'),
+    'quantized_models_path': os.getenv('QUANTIZED_MODELS_PATH', 'models/quantized'),
+    'use_quantization': use_quantization,  # Enabled by default, configurable via env var
+    'quantization_dtype': quantization_dtype,
+    'industry_labels': [
+        "Technology", "Healthcare", "Financial Services",
+        "Retail", "Food & Beverage", "Manufacturing",
+        "Construction", "Real Estate", "Transportation",
+        "Education", "Professional Services", "Agriculture",
+        "Mining & Energy", "Utilities", "Wholesale Trade",
+        "Arts & Entertainment", "Accommodation & Hospitality",
+        "Administrative Services", "Other Services"
+    ]
+})
+logger.info(f"✅ DistilBART classifier initialized with quantization: {use_quantization}")
+logger.info("✅ DistilBART classifier initialized")
+
 # Cache management
 class CacheManager:
     def __init__(self, max_size: int = Config.CACHE_SIZE, ttl: int = Config.CACHE_TTL):
@@ -836,6 +885,20 @@ async def get_models():
     """Get available models"""
     return model_manager.get_available_models()
 
+@app.get("/model-info")
+async def get_model_info():
+    """Get information about loaded DistilBART models"""
+    try:
+        model_info = distilbart_classifier.get_model_info()
+        return {
+            "status": "success",
+            "model_info": model_info,
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        logger.error(f"Failed to get model info: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/models/{model_id}/metrics", response_model=ModelMetrics)
 async def get_model_metrics(model_id: str):
     """Get model metrics"""
@@ -860,21 +923,11 @@ async def get_model_metrics(model_id: str):
 
 @app.post("/classify", response_model=ClassificationResponse)
 async def classify(request: ClassificationRequest):
-    """Classify business using ML models"""
+    """Classify business using DistilBART model (replaces BERT)"""
     start_time = time.time()
     request_id = f"req_{int(time.time() * 1000)}"
     
     try:
-        # Get model
-        model = model_manager.get_model(request.model_type)
-        if not model:
-            raise HTTPException(status_code=404, detail=f"Model {request.model_type} not found")
-        
-        # Get tokenizer
-        tokenizer = model_manager.get_tokenizer(request.model_type)
-        if not tokenizer:
-            raise HTTPException(status_code=500, detail=f"Tokenizer for {request.model_type} not found")
-        
         # Prepare input text
         input_text = f"{request.business_name}"
         if request.description:
@@ -883,53 +936,36 @@ async def classify(request: ClassificationRequest):
             input_text += f" {request.website_url}"
         
         # Check cache first
-        cache_key = f"classify_{hash(input_text)}_{request.model_type}"
+        cache_key = f"classify_{hash(input_text)}_distilbart"
         cached_result = cache_manager.get(cache_key)
         if cached_result:
             cached_result["request_id"] = request_id
             cached_result["processing_time"] = time.time() - start_time
             return ClassificationResponse(**cached_result)
         
-        # Tokenize input
-        inputs = tokenizer(
-            input_text,
-            max_length=Config.MAX_SEQUENCE_LENGTH,
-            padding=True,
-            truncation=True,
-            return_tensors="pt"
-        )
+        # Use DistilBART for classification
+        result = distilbart_classifier.classify_only(input_text)
         
-        # Move to device
-        inputs = {k: v.to(Config.DEVICE) for k, v in inputs.items()}
-        
-        # Make prediction
-        with torch.no_grad():
-            outputs = model(**inputs)
-            logits = outputs.logits
-            probabilities = torch.softmax(logits, dim=-1)
-            predictions = torch.topk(probabilities, k=request.max_results, dim=-1)
-        
-        # Prepare response
+        # Convert to ClassificationResponse format
         classifications = []
-        for i, (prob, idx) in enumerate(zip(predictions.values[0], predictions.indices[0])):
-            if prob.item() >= request.confidence_threshold:
-                label = model_manager._get_industry_labels()[idx.item()]
+        all_scores = result.get('all_scores', {})
+        sorted_scores = sorted(all_scores.items(), key=lambda x: x[1], reverse=True)
+        
+        for i, (label, score) in enumerate(sorted_scores):
+            if score >= request.confidence_threshold and i < request.max_results:
                 classifications.append(ClassificationPrediction(
                     label=label,
-                    confidence=prob.item(),
-                    probability=prob.item(),
+                    confidence=score,
+                    probability=score,
                     rank=i + 1
                 ))
         
-        # Calculate overall confidence
-        overall_confidence = max([c.confidence for c in classifications]) if classifications else 0.0
-        
         response_data = {
             "request_id": request_id,
-            "model_id": request.model_type,
-            "model_version": "1.0.0",
+            "model_id": result.get('model', 'distilbart'),
+            "model_version": "2.0.0",
             "classifications": [c.dict() for c in classifications],
-            "confidence": overall_confidence,
+            "confidence": result['confidence'],
             "processing_time": time.time() - start_time,
             "timestamp": datetime.now(),
             "success": True,
@@ -945,11 +981,76 @@ async def classify(request: ClassificationRequest):
         logger.error(f"Classification error: {e}")
         return ClassificationResponse(
             request_id=request_id,
-            model_id=request.model_type,
-            model_version="1.0.0",
+            model_id="distilbart",
+            model_version="2.0.0",
             classifications=[],
             confidence=0.0,
             processing_time=time.time() - start_time,
+            timestamp=datetime.now(),
+            success=False,
+            error=str(e)
+        )
+
+@app.post("/classify-enhanced", response_model=EnhancedClassificationResponse)
+async def classify_enhanced(request: EnhancedClassificationRequest):
+    """Classify business with full enhancement (classification + summarization + explanation)"""
+    start_time = time.time()
+    request_id = f"req_{int(time.time() * 1000)}"
+    
+    try:
+        # Prepare content
+        content = request.website_content or ""
+        if not content and request.description:
+            content = request.description
+        
+        # Get enhanced classification (uses quantized models if enabled)
+        result = distilbart_classifier.classify_with_enhancement(
+            content=content,
+            business_name=request.business_name,
+            max_length=request.max_content_length or 1024
+        )
+        
+        # Convert to response format
+        classifications = []
+        all_scores = result.get('all_scores', {})
+        sorted_scores = sorted(all_scores.items(), key=lambda x: x[1], reverse=True)
+        
+        for i, (label, score) in enumerate(sorted_scores):
+            if i < (request.max_results or 5):  # Top 5
+                classifications.append(ClassificationPrediction(
+                    label=label,
+                    confidence=score,
+                    probability=score,
+                    rank=i + 1
+                ))
+        
+        return EnhancedClassificationResponse(
+            request_id=request_id,
+            model_id=result.get('model', 'distilbart'),
+            model_version="2.0.0",
+            classifications=classifications,
+            confidence=result['confidence'],
+            summary=result.get('summary', ''),
+            explanation=result.get('explanation', ''),
+            processing_time=result.get('processing_time', time.time() - start_time),
+            quantization_enabled=result.get('quantization_enabled', False),
+            timestamp=datetime.now(),
+            success=True,
+            error=None
+        )
+        
+    except Exception as e:
+        logger.error(f"Enhanced classification error: {e}")
+        return EnhancedClassificationResponse(
+            request_id=request_id,
+            model_id="distilbart",
+            model_version="2.0.0",
+            classifications=[],
+            confidence=0.0,
+            summary="",
+            explanation="",
+            processing_time=time.time() - start_time,
+            quantization_enabled=False,
             timestamp=datetime.now(),
             success=False,
             error=str(e)

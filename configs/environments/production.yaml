@@ -134,6 +134,17 @@ ml:
   model_update_interval: "6h"
   enable_model_validation: true
   validation_threshold: 0.9
+  # Quantization Configuration (Production Defaults)
+  quantization:
+    enabled: true
+    dtype: "qint8"
+    model_save_path: "./models/distilbart"
+    quantized_models_path: "./models/quantized"
+    # Performance targets from benchmark
+    expected_speed_improvement: 36.14  # 36% faster inference
+    expected_model_size_reduction: 75.0  # 75% smaller models
+    expected_memory_reduction: 67.0  # 67% less memory
+    expected_accuracy_impact: -1.12  # Only 1.12% confidence drop
 
 # External APIs Configuration
 external_apis:

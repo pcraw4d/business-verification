@@ -188,6 +188,32 @@ type RiskDetectionResponse struct {
 	Error          string         `json:"error,omitempty"`
 }
 
+// EnhancedClassificationRequest represents a request for enhanced classification
+type EnhancedClassificationRequest struct {
+	BusinessName     string `json:"business_name"`
+	Description      string `json:"description,omitempty"`
+	WebsiteURL       string `json:"website_url,omitempty"`
+	WebsiteContent   string `json:"website_content,omitempty"`
+	MaxResults       int    `json:"max_results,omitempty"`
+	MaxContentLength int    `json:"max_content_length,omitempty"`
+}
+
+// EnhancedClassificationResponse represents an enhanced classification response
+type EnhancedClassificationResponse struct {
+	RequestID          string                  `json:"request_id"`
+	ModelID            string                  `json:"model_id"`
+	ModelVersion       string                  `json:"model_version"`
+	Classifications    []ClassificationPrediction `json:"classifications"`
+	Confidence         float64                 `json:"confidence"`
+	Summary            string                  `json:"summary"`
+	Explanation        string                  `json:"explanation"`
+	ProcessingTime     float64                 `json:"processing_time"`
+	QuantizationEnabled bool                   `json:"quantization_enabled"`
+	Timestamp          time.Time               `json:"timestamp"`
+	Success            bool                    `json:"success"`
+	Error              string                  `json:"error,omitempty"`
+}
+
 // RuleEngineClassificationRequest represents a classification request for the rule engine
 type RuleEngineClassificationRequest struct {
 	BusinessName string `json:"business_name"`

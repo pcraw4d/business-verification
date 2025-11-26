@@ -18,6 +18,9 @@ type MLIntegrationManager struct {
 	mlClassifier     *machine_learning.ContentClassifier
 	methodRegistry   *MethodRegistry
 	confidenceRouter *ConfidenceBasedRouter
+	websiteScraper   *EnhancedWebsiteScraper
+	codeGenerator    *ClassificationCodeGenerator
+	pythonMLService  interface{} // *infrastructure.PythonMLService - using interface to avoid import cycle
 
 	// Configuration
 	config MLIntegrationConfig
@@ -116,11 +119,28 @@ func NewMLIntegrationManager(
 		mlClassifier:     mlClassifier,
 		methodRegistry:   methodRegistry,
 		confidenceRouter: confidenceRouter,
+		websiteScraper:   NewEnhancedWebsiteScraper(logger),
+		codeGenerator:    nil, // Will be set via SetCodeGenerator if available
+		pythonMLService:  nil, // Will be set via SetPythonMLService if available
 		config:           config,
 		logger:           logger,
 		ctx:              ctx,
 		cancel:           cancel,
 	}
+}
+
+// SetCodeGenerator sets the code generator for ML method
+func (mim *MLIntegrationManager) SetCodeGenerator(codeGenerator *ClassificationCodeGenerator) {
+	mim.mutex.Lock()
+	defer mim.mutex.Unlock()
+	mim.codeGenerator = codeGenerator
+}
+
+// SetPythonMLService sets the Python ML service for enhanced classification
+func (mim *MLIntegrationManager) SetPythonMLService(pythonMLService interface{}) {
+	mim.mutex.Lock()
+	defer mim.mutex.Unlock()
+	mim.pythonMLService = pythonMLService
 }
 
 // NewConfidenceBasedRouter creates a new confidence-based router
@@ -145,8 +165,33 @@ func (mim *MLIntegrationManager) RegisterMLMethod(ctx context.Context) error {
 		return nil
 	}
 
-	// Create ML classification method
-	mlMethod := methods.NewMLClassificationMethod(mim.mlClassifier, mim.logger)
+	// Create ML classification method with dependencies
+	// Extract Python ML service if available
+	var pythonMLService interface{}
+	mim.mutex.RLock()
+	pythonMLService = mim.pythonMLService
+	codeGenerator := mim.codeGenerator
+	websiteScraper := mim.websiteScraper
+	mim.mutex.RUnlock()
+
+	// Create adapters to convert concrete types to interfaces
+	var websiteScraperAdapter methods.WebsiteScraper
+	if websiteScraper != nil {
+		websiteScraperAdapter = NewWebsiteScraperAdapter(websiteScraper)
+	}
+	
+	var codeGeneratorAdapter methods.CodeGenerator
+	if codeGenerator != nil {
+		codeGeneratorAdapter = NewCodeGeneratorAdapter(codeGenerator)
+	}
+
+	mlMethod := methods.NewMLClassificationMethod(
+		mim.mlClassifier,
+		pythonMLService, // Will be nil if not set
+		websiteScraperAdapter,
+		codeGeneratorAdapter,
+		mim.logger,
+	)
 
 	// Set method weight and priority
 	mlMethod.SetWeight(mim.config.MLMethodWeight)

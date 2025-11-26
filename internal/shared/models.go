@@ -1,6 +1,7 @@
 package shared
 
 import (
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -59,13 +60,28 @@ type BusinessClassificationResponse struct {
 type IndustryClassification struct {
 	IndustryCode         string                 `json:"industry_code"`
 	IndustryName         string                 `json:"industry_name"`
-	ConfidenceScore      float64                `json:"confidence_score"`
+	PrimaryIndustry      string                 `json:"primary_industry,omitempty"`      // 1. Primary Industry
+	ConfidenceScore      float64                `json:"confidence_score"`                 // 1. Confidence Level
 	ClassificationMethod string                 `json:"classification_method"`
 	Keywords             []string               `json:"keywords,omitempty"`
 	Description          string                 `json:"description,omitempty"`
 	Evidence             string                 `json:"evidence,omitempty"`
 	ProcessingTime       time.Duration          `json:"processing_time,omitempty"`
 	Metadata             map[string]interface{} `json:"metadata,omitempty"`
+	
+	// DistilBART enhancement fields
+	ContentSummary       string                 `json:"content_summary,omitempty"`       // Website content summary
+	Explanation          string                 `json:"explanation,omitempty"`          // 4. Explanation
+	ClassificationReasoning string               `json:"classification_reasoning,omitempty"`
+	AllIndustryScores    map[string]float64     `json:"all_industry_scores,omitempty"`
+	QuantizationEnabled  bool                   `json:"quantization_enabled,omitempty"`
+	ModelVersion         string                 `json:"model_version,omitempty"`
+	
+	// Risk level (5. Risk Level)
+	RiskLevel            string                 `json:"risk_level,omitempty"`
+	
+	// Code distribution (3. Industry code distribution)
+	CodeDistribution     *CodeDistribution     `json:"code_distribution,omitempty"`
 }
 
 // ModuleResult represents the result from a specific classification module
@@ -586,6 +602,203 @@ type ClassificationCodes struct {
 	MCC   []MCCCode   `json:"mcc,omitempty"`
 	SIC   []SICCode   `json:"sic,omitempty"`
 	NAICS []NAICSCode `json:"naics,omitempty"`
+}
+
+// GetTopMCC returns top N MCC codes sorted by confidence (default 3)
+func (cc *ClassificationCodes) GetTopMCC(limit int) []MCCCode {
+	if limit <= 0 {
+		limit = 3
+	}
+	if len(cc.MCC) == 0 {
+		return []MCCCode{}
+	}
+	
+	// Sort by confidence (descending)
+	sorted := make([]MCCCode, len(cc.MCC))
+	copy(sorted, cc.MCC)
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].Confidence > sorted[j].Confidence
+	})
+	
+	if len(sorted) > limit {
+		return sorted[:limit]
+	}
+	return sorted
+}
+
+// GetTopSIC returns top N SIC codes sorted by confidence (default 3)
+func (cc *ClassificationCodes) GetTopSIC(limit int) []SICCode {
+	if limit <= 0 {
+		limit = 3
+	}
+	if len(cc.SIC) == 0 {
+		return []SICCode{}
+	}
+	
+	// Sort by confidence (descending)
+	sorted := make([]SICCode, len(cc.SIC))
+	copy(sorted, cc.SIC)
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].Confidence > sorted[j].Confidence
+	})
+	
+	if len(sorted) > limit {
+		return sorted[:limit]
+	}
+	return sorted
+}
+
+// GetTopNAICS returns top N NAICS codes sorted by confidence (default 3)
+func (cc *ClassificationCodes) GetTopNAICS(limit int) []NAICSCode {
+	if limit <= 0 {
+		limit = 3
+	}
+	if len(cc.NAICS) == 0 {
+		return []NAICSCode{}
+	}
+	
+	// Sort by confidence (descending)
+	sorted := make([]NAICSCode, len(cc.NAICS))
+	copy(sorted, cc.NAICS)
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].Confidence > sorted[j].Confidence
+	})
+	
+	if len(sorted) > limit {
+		return sorted[:limit]
+	}
+	return sorted
+}
+
+// CodeDistribution represents the distribution of codes across types
+type CodeDistribution struct {
+	MCC    CodeDistributionStats `json:"mcc,omitempty"`
+	SIC    CodeDistributionStats `json:"sic,omitempty"`
+	NAICS  CodeDistributionStats `json:"naics,omitempty"`
+	Total  int                   `json:"total"`
+}
+
+// CodeDistributionStats provides statistics for a code type
+type CodeDistributionStats struct {
+	Count            int                `json:"count"`
+	TopCodes         []CodeWithConfidence `json:"top_codes,omitempty"`
+	AverageConfidence float64            `json:"average_confidence,omitempty"`
+}
+
+// CodeWithConfidence represents a code with its confidence
+type CodeWithConfidence struct {
+	Code        string  `json:"code"`
+	Description string  `json:"description"`
+	Confidence  float64 `json:"confidence"`
+}
+
+// CalculateCodeDistribution calculates distribution statistics
+func (cc *ClassificationCodes) CalculateCodeDistribution() CodeDistribution {
+	dist := CodeDistribution{
+		MCC: CodeDistributionStats{
+			Count:    len(cc.MCC),
+			TopCodes: make([]CodeWithConfidence, 0),
+		},
+		SIC: CodeDistributionStats{
+			Count:    len(cc.SIC),
+			TopCodes: make([]CodeWithConfidence, 0),
+		},
+		NAICS: CodeDistributionStats{
+			Count:    len(cc.NAICS),
+			TopCodes: make([]CodeWithConfidence, 0),
+		},
+	}
+	
+	// Calculate MCC distribution
+	if len(cc.MCC) > 0 {
+		// Sort by confidence (descending) before taking top 3
+		sortedMCC := make([]MCCCode, len(cc.MCC))
+		copy(sortedMCC, cc.MCC)
+		sort.Slice(sortedMCC, func(i, j int) bool {
+			return sortedMCC[i].Confidence > sortedMCC[j].Confidence
+		})
+		
+		totalConfidence := 0.0
+		topCount := 3
+		if len(sortedMCC) < topCount {
+			topCount = len(sortedMCC)
+		}
+		
+		for i := 0; i < topCount; i++ {
+			dist.MCC.TopCodes = append(dist.MCC.TopCodes, CodeWithConfidence{
+				Code:        sortedMCC[i].Code,
+				Description: sortedMCC[i].Description,
+				Confidence:  sortedMCC[i].Confidence,
+			})
+		}
+		
+		for _, code := range cc.MCC {
+			totalConfidence += code.Confidence
+		}
+		dist.MCC.AverageConfidence = totalConfidence / float64(len(cc.MCC))
+	}
+	
+	// Calculate SIC distribution
+	if len(cc.SIC) > 0 {
+		// Sort by confidence (descending) before taking top 3
+		sortedSIC := make([]SICCode, len(cc.SIC))
+		copy(sortedSIC, cc.SIC)
+		sort.Slice(sortedSIC, func(i, j int) bool {
+			return sortedSIC[i].Confidence > sortedSIC[j].Confidence
+		})
+		
+		totalConfidence := 0.0
+		topCount := 3
+		if len(sortedSIC) < topCount {
+			topCount = len(sortedSIC)
+		}
+		
+		for i := 0; i < topCount; i++ {
+			dist.SIC.TopCodes = append(dist.SIC.TopCodes, CodeWithConfidence{
+				Code:        sortedSIC[i].Code,
+				Description: sortedSIC[i].Description,
+				Confidence:  sortedSIC[i].Confidence,
+			})
+		}
+		
+		for _, code := range cc.SIC {
+			totalConfidence += code.Confidence
+		}
+		dist.SIC.AverageConfidence = totalConfidence / float64(len(cc.SIC))
+	}
+	
+	// Calculate NAICS distribution
+	if len(cc.NAICS) > 0 {
+		// Sort by confidence (descending) before taking top 3
+		sortedNAICS := make([]NAICSCode, len(cc.NAICS))
+		copy(sortedNAICS, cc.NAICS)
+		sort.Slice(sortedNAICS, func(i, j int) bool {
+			return sortedNAICS[i].Confidence > sortedNAICS[j].Confidence
+		})
+		
+		totalConfidence := 0.0
+		topCount := 3
+		if len(sortedNAICS) < topCount {
+			topCount = len(sortedNAICS)
+		}
+		
+		for i := 0; i < topCount; i++ {
+			dist.NAICS.TopCodes = append(dist.NAICS.TopCodes, CodeWithConfidence{
+				Code:        sortedNAICS[i].Code,
+				Description: sortedNAICS[i].Description,
+				Confidence:  sortedNAICS[i].Confidence,
+			})
+		}
+		
+		for _, code := range cc.NAICS {
+			totalConfidence += code.Confidence
+		}
+		dist.NAICS.AverageConfidence = totalConfidence / float64(len(cc.NAICS))
+	}
+	
+	dist.Total = dist.MCC.Count + dist.SIC.Count + dist.NAICS.Count
+	
+	return dist
 }
 
 // =============================================================================

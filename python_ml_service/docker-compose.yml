@@ -18,6 +18,11 @@ services:
       - INFERENCE_TIMEOUT=5
       - METRICS_ENABLED=true
       - PERFORMANCE_TRACKING=true
+      # Quantization Configuration (Production Defaults)
+      - USE_QUANTIZATION=true
+      - QUANTIZATION_DTYPE=qint8
+      - MODEL_SAVE_PATH=/app/models/distilbart
+      - QUANTIZED_MODELS_PATH=/app/models/quantized
     volumes:
       - ./models:/app/models
       - ./data:/app/data
