@@ -12,7 +12,6 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 	"unicode"
 
@@ -320,6 +319,35 @@ func (c *SmartWebsiteCrawler) CrawlWebsite(ctx context.Context, websiteURL strin
 	// Prioritize pages based on relevance
 	prioritizedPages := c.prioritizePages(discoveredPages, baseURL)
 	c.logger.Printf("📊 [SmartCrawler] Discovered %d pages, prioritizing %d", len(discoveredPages), len(prioritizedPages))
+
+	// Ensure homepage is first to establish session
+	homepageFirst := []string{baseURL}
+	seen := make(map[string]bool)
+	seen[baseURL] = true
+	for _, page := range prioritizedPages {
+		if !seen[page] {
+			homepageFirst = append(homepageFirst, page)
+			seen[page] = true
+		}
+	}
+	prioritizedPages = homepageFirst
+
+	// Add initial warm-up delay before starting crawl (simulate user arriving at site)
+	if len(prioritizedPages) > 0 {
+		parsedURL, err := url.Parse(baseURL)
+		if err == nil {
+			domain := parsedURL.Hostname()
+			warmupDelay := GetHumanLikeDelay(3*time.Second, domain)
+			c.logger.Printf("⏳ [SmartCrawler] Initial warm-up delay: %v", warmupDelay)
+			select {
+			case <-ctx.Done():
+				result.Error = "Context cancelled during warm-up"
+				return result, ctx.Err()
+			case <-time.After(warmupDelay):
+				// Continue after warm-up
+			}
+		}
+	}
 
 	// Analyze prioritized pages
 	pageAnalyses := c.analyzePages(ctx, prioritizedPages)
@@ -658,14 +686,10 @@ func (c *SmartWebsiteCrawler) detectPageType(pageURL string) PageType {
 	return PageTypeOther
 }
 
-// analyzePages analyzes multiple pages concurrently
+// analyzePages analyzes multiple pages sequentially with human-like delays
+// Sequential processing reduces bot detection by avoiding concurrent requests
 func (c *SmartWebsiteCrawler) analyzePages(ctx context.Context, pages []string) []PageAnalysis {
-	var wg sync.WaitGroup
-	var mu sync.Mutex
 	var analyses []PageAnalysis
-
-	// Limit concurrent requests to avoid overwhelming the server
-	semaphore := make(chan struct{}, 3) // Reduced to 3 concurrent requests for better bot evasion
 
 	// Extract base domain for session management
 	var baseDomain string
@@ -675,35 +699,46 @@ func (c *SmartWebsiteCrawler) analyzePages(ctx context.Context, pages []string) 
 		}
 	}
 
+	// Process pages sequentially (one at a time) to avoid bot detection
 	for i, page := range pages {
-		wg.Add(1)
-		go func(pageURL string, pageIndex int) {
-			defer wg.Done()
+		// Check context cancellation
+		select {
+		case <-ctx.Done():
+			return analyses
+		default:
+		}
 
-			// Acquire semaphore
-			semaphore <- struct{}{}
-			defer func() { <-semaphore }()
-
-			// Add human-like delay between requests (except first one)
-			if pageIndex > 0 && baseDomain != "" {
-				delay := GetHumanLikeDelay(2*time.Second, baseDomain)
-				select {
-				case <-ctx.Done():
-					return
-				case <-time.After(delay):
-					// Continue after delay
-				}
+		// Add human-like delay between requests (longer delays for better evasion)
+		// First request has no delay, subsequent requests have increasing delays
+		if i > 0 && baseDomain != "" {
+			// Use longer base delay (5-8 seconds) for better bot evasion
+			baseDelay := 5 * time.Second
+			if i > 5 {
+				// Increase delay for later requests (simulating user getting tired)
+				baseDelay = 8 * time.Second
 			}
+			delay := GetHumanLikeDelay(baseDelay, baseDomain)
+			c.logger.Printf("⏳ [SmartCrawler] Waiting %v before next request (page %d/%d)", delay, i+1, len(pages))
+			
+			select {
+			case <-ctx.Done():
+				return analyses
+			case <-time.After(delay):
+				// Continue after delay
+			}
+		}
 
-			analysis := c.analyzePage(ctx, pageURL)
+		// Analyze page
+		analysis := c.analyzePage(ctx, page)
+		analyses = append(analyses, analysis)
 
-			mu.Lock()
-			analyses = append(analyses, analysis)
-			mu.Unlock()
-		}(page, i)
+		// If we got a 403, stop immediately to avoid further blocks
+		if analysis.StatusCode == 403 {
+			c.logger.Printf("🚫 [SmartCrawler] Received 403 for %s - stopping crawl to avoid further blocks", page)
+			break
+		}
 	}
 
-	wg.Wait()
 	return analyses
 }
 
