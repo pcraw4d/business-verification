@@ -78,4 +78,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
 # Production command
 # Railway sets PORT env var automatically
 # Use 1 worker to reduce memory usage and startup time
-CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1"]
+# Note: Railway's startCommand in railway.json overrides this
+CMD ["python", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

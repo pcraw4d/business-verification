@@ -43,6 +43,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import uvicorn
 
+# Configure logging FIRST (before any imports that might use logger)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 # Import enhanced risk detection models (optional - don't fail if missing)
 try:
     from risk_detection_models import (
@@ -60,13 +67,6 @@ try:
 except ImportError as e:
     logger.error(f"❌ Could not import DistilBART classifier: {e}")
     DistilBARTBusinessClassifier = None  # Will be handled in startup
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
 
 # Configuration
 class Config:
