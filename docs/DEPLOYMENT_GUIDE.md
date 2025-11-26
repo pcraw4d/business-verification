@@ -116,13 +116,42 @@ BI_SERVICE_URL=https://bi-service-production.up.railway.app
 
 ```bash
 PORT=8081
+
+# Caching Configuration
 CACHE_ENABLED=true
 CACHE_TTL=5m
+
+# Multi-Strategy Classifier Configuration (v3.0+)
+# The service now uses a multi-strategy classifier combining:
+# - Keyword-based classification (40% weight)
+# - Entity-based classification (25% weight)
+# - Topic-based classification (20% weight)
+# - Co-occurrence-based classification (15% weight)
+MULTI_STRATEGY_ENABLED=true
+CONFIDENCE_CALIBRATION_ENABLED=true
+
+# Legacy Feature Flags (for backward compatibility)
 ML_ENABLED=true
 KEYWORD_METHOD_ENABLED=true
 ENSEMBLE_ENABLED=true
+
+# Performance Configuration
 MAX_CONCURRENT_REQUESTS=100
 REQUEST_TIMEOUT=10s
+CLASSIFICATION_OVERALL_TIMEOUT=60s
+
+# Multi-Page Analysis Configuration
+ENABLE_MULTI_PAGE_ANALYSIS=true
+CLASSIFICATION_MAX_PAGES_TO_ANALYZE=15
+CLASSIFICATION_PAGE_ANALYSIS_TIMEOUT=15s
+CLASSIFICATION_CONCURRENT_PAGES=5
+
+# Structured Data Extraction
+ENABLE_STRUCTURED_DATA_EXTRACTION=true
+
+# Brand Matching
+CLASSIFICATION_BRAND_MATCH_ENABLED=true
+CLASSIFICATION_BRAND_MATCH_MCC_RANGE=3000-3831
 ```
 
 #### Merchant Service
@@ -590,12 +619,30 @@ supabase db dump -f backup.sql
 - **Rate Limiting**: 1000 requests/hour per IP
 - **Request Timeout**: 30 seconds (configurable)
 
+### Classification Service Performance (v3.0+)
+
+The Classification Service now uses a **multi-strategy classifier** with the following performance characteristics:
+
+- **Average Response Time**: ~1.4 seconds (72% faster than 5s target)
+- **Max Response Time**: ~4.8 seconds (under 5s target)
+- **Simple Classification**: ~100µs (name only)
+- **Complex Classification**: 1.2-1.6s (with website scraping)
+
+**Performance Breakdown**:
+- Website scraping: ~500ms-1.1s (60-70% of total time)
+- Multi-strategy classification: ~200-300ms
+- Database queries: ~50-100ms
+- NLP processing: ~50-100ms
+
+For detailed performance metrics and optimization recommendations, see [Classification Service Deployment Guide](./classification-service-deployment-guide.md).
+
 ### Monitoring
 
 - Monitor response times via Prometheus metrics
 - Set up alerts for slow queries (> 1 second)
 - Monitor error rates
 - Track cache hit rates
+- **Classification Service**: Monitor response times (< 5s target), success rate (> 99%), error rate (< 1%)
 
 ---
 
@@ -609,7 +656,17 @@ For deployment issues:
 
 ---
 
-**Last Updated**: 2025-01-27  
-**Version**: 1.0  
+---
+
+## Additional Documentation
+
+- **[Classification Service Deployment Guide](./classification-service-deployment-guide.md)** - Detailed guide for multi-strategy classifier (v3.0+)
+- **[Performance Benchmark Results](../.cursor/plans/performance-benchmark-results.md)** - Performance test results and metrics
+- **[Frontend Integration Test Results](../.cursor/plans/frontend-integration-test-results.md)** - Frontend compatibility verification
+
+---
+
+**Last Updated**: 2025-11-26  
+**Version**: 1.1  
 **Status**: ✅ Production Ready
 
