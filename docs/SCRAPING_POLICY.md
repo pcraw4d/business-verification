@@ -21,13 +21,13 @@ We respect the `robots.txt` standard and implement comprehensive parsing:
 
 We use a clearly identifiable User-Agent string that includes:
 
-- **Bot Identification**: `KYBPlatformBot/1.0`
+- **Bot Identification**: `KYBPlatform/1.0`
 - **Contact Information**: URL to our bot information page
 - **Purpose Statement**: "Business Verification"
 
 **Format**:
 ```
-Mozilla/5.0 (compatible; KYBPlatformBot/1.0; +https://kyb-platform.com/bot-info; Business Verification)
+Mozilla/5.0 (compatible; KYBPlatform/1.0; +https://kyb-platform.com/bot-info; Business Verification)
 ```
 
 The contact URL can be customized via the `SCRAPING_USER_AGENT_CONTACT_URL` environment variable.
@@ -49,7 +49,7 @@ While maintaining full legal compliance and identifiable User-Agent, we implemen
 
 #### Header Randomization
 
-- **User-Agent**: Always remains identifiable (`KYBPlatformBot/1.0`) - **never randomized**
+- **User-Agent**: Always remains identifiable (`KYBPlatform/1.0`) - **never randomized**
 - **Other Headers**: We randomize Accept-Language, Accept-Encoding, Sec-Fetch-* headers, and other browser headers to appear more like a real browser
 - **Purpose**: Reduces detection while maintaining transparency through our identifiable User-Agent
 - **Configuration**: Can be disabled via `SCRAPING_HEADER_RANDOMIZATION_ENABLED` (default: true)
@@ -166,7 +166,7 @@ If you are a website owner and have concerns about our scraping:
 
 ### Bot Information
 
-- **Bot Name**: KYBPlatformBot
+- **Bot Name**: KYBPlatform
 - **Version**: 1.0
 - **Purpose**: Business verification and industry classification
 - **Contact URL**: [https://kyb-platform.com/bot-info](https://kyb-platform.com/bot-info)
@@ -205,7 +205,7 @@ Website owners can request exclusion from our scraping:
 
 2. **Robots.txt**: Add the following to your robots.txt:
    ```
-   User-agent: KYBPlatformBot
+   User-agent: KYBPlatform
    Disallow: /
    ```
 

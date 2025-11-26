@@ -25,7 +25,7 @@ func TestGetUserAgent(t *testing.T) {
 			envVar:   "",
 			envValue: "",
 			checkFunc: func(ua string) bool {
-				return strings.Contains(ua, "KYBPlatformBot") &&
+				return strings.Contains(ua, "KYBPlatform") &&
 					strings.Contains(ua, "Business Verification") &&
 					strings.Contains(ua, "kyb-platform.com/bot-info")
 			},
@@ -36,7 +36,7 @@ func TestGetUserAgent(t *testing.T) {
 			envVar:   "SCRAPING_USER_AGENT_CONTACT_URL",
 			envValue: "https://example.com/bot-info",
 			checkFunc: func(ua string) bool {
-				return strings.Contains(ua, "KYBPlatformBot") &&
+				return strings.Contains(ua, "KYBPlatform") &&
 					strings.Contains(ua, "example.com/bot-info")
 			},
 			description: "should use custom contact URL from environment variable",

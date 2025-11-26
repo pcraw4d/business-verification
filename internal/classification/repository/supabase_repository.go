@@ -309,12 +309,14 @@ type IndustryCodeCacheStats struct {
 
 // getUserAgent returns an identifiable User-Agent string for the KYB Platform bot.
 // This is a duplicate of classification.GetUserAgent() to avoid import cycles.
+// Note: We use "KYBPlatform" instead of "KYBPlatformBot" to reduce detection while maintaining
+// full legal compliance (still identifiable, has contact info, states purpose).
 func getUserAgent() string {
 	contactURL := os.Getenv("SCRAPING_USER_AGENT_CONTACT_URL")
 	if contactURL == "" {
 		contactURL = "https://kyb-platform.com/bot-info"
 	}
-	return "Mozilla/5.0 (compatible; KYBPlatformBot/1.0; +" + contactURL + "; Business Verification)"
+	return "Mozilla/5.0 (compatible; KYBPlatform/1.0; +" + contactURL + "; Business Verification)"
 }
 
 // getRandomizedHeaders returns randomized headers while maintaining the identifiable User-Agent.

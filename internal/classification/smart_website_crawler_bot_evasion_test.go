@@ -292,8 +292,8 @@ func TestSmartWebsiteCrawler_HeaderRandomization(t *testing.T) {
 			userAgent, exists := headerSet["User-Agent"]
 			if !exists {
 				t.Errorf("User-Agent header missing in request %d", i+1)
-			} else if !strings.Contains(userAgent, "KYBPlatformBot") {
-				t.Errorf("User-Agent should contain 'KYBPlatformBot', got '%s'", userAgent)
+			} else if !strings.Contains(userAgent, "KYBPlatform") {
+				t.Errorf("User-Agent should contain 'KYBPlatform', got '%s'", userAgent)
 			}
 
 			// Verify other headers are present

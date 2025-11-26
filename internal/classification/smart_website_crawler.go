@@ -1018,8 +1018,17 @@ func (c *SmartWebsiteCrawler) checkRobotsTxt(ctx context.Context, baseURL, path 
 	// Get our User-Agent string
 	userAgent := GetUserAgent()
 	// Extract just the bot name from User-Agent for matching
-	// Format: "Mozilla/5.0 (compatible; KYBPlatformBot/1.0; ...)"
-	botName := "KYBPlatformBot"
+	// Format: "Mozilla/5.0 (compatible; KYBPlatform/1.0; ...)"
+	// Dynamically extract the identifier to avoid hardcoding
+	botName := "KYBPlatform" // Default fallback
+	parts := strings.Split(userAgent, ";")
+	if len(parts) >= 2 {
+		identifierPart := strings.TrimSpace(parts[1])
+		// Extract "KYBPlatform" from "KYBPlatform/1.0"
+		if slashIdx := strings.Index(identifierPart, "/"); slashIdx > 0 {
+			botName = identifierPart[:slashIdx]
+		}
+	}
 
 	// Check rules for our specific User-Agent first, then wildcard
 	var group *robotstxt.Group

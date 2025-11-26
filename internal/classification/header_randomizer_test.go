@@ -6,7 +6,7 @@ import (
 )
 
 func TestGetRandomizedHeaders(t *testing.T) {
-	baseUserAgent := "Mozilla/5.0 (compatible; KYBPlatformBot/1.0; +https://kyb-platform.com/bot-info; Business Verification)"
+	baseUserAgent := "Mozilla/5.0 (compatible; KYBPlatform/1.0; +https://kyb-platform.com/bot-info; Business Verification)"
 
 	t.Run("maintains_user_agent", func(t *testing.T) {
 		hr := NewHeaderRandomizer()

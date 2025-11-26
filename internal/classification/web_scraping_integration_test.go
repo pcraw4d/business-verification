@@ -222,7 +222,7 @@ func TestUserAgentInRequests(t *testing.T) {
 		}
 
 		// Verify User-Agent format
-		if !contains(userAgent, "KYBPlatformBot") {
+		if !contains(userAgent, "KYBPlatform") {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("Invalid User-Agent format"))
 			return
