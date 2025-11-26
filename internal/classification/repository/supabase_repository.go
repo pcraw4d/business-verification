@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -17,6 +18,8 @@ import (
 	"time"
 
 	"kyb-platform/internal/cache"
+	"kyb-platform/internal/classification/nlp"
+	"kyb-platform/internal/classification/word_segmentation"
 	"kyb-platform/internal/database"
 
 	postgrest "github.com/supabase-community/postgrest-go"
@@ -126,7 +129,17 @@ type SupabaseKeywordRepository struct {
 	regexMutex sync.RWMutex
 
 	// Phase 9.1: Content size limit for processing (50KB)
+
+	// Word segmentation for compound domain names
+	segmenter *word_segmentation.Segmenter
 	maxContentSize int64
+
+	// NLP components for enhanced keyword extraction
+	entityRecognizer *nlp.EntityRecognizer
+	topicModeler     *nlp.TopicModeler
+
+	// Enhanced keyword matching (synonyms, stemming, fuzzy)
+	keywordMatcher *KeywordMatcher
 
 	// Phase 9.2: DNS resolution cache (TTL-based)
 	dnsCache map[string]dnsCacheEntry
@@ -209,6 +222,13 @@ func NewSupabaseKeywordRepository(client *database.SupabaseClient, logger *log.L
 		rateLimiter: make(map[string]time.Time),
 		rateMutex:   sync.Mutex{},
 		minDelay:    1 * time.Second, // Minimum 1 second between requests to same domain
+		// Word segmentation for compound domain names
+		segmenter: word_segmentation.NewSegmenter(),
+		// NLP components for enhanced keyword extraction
+		entityRecognizer: nlp.NewEntityRecognizer(),
+		topicModeler:     nlp.NewTopicModeler(),
+		// Enhanced keyword matching
+		keywordMatcher: NewKeywordMatcher(),
 	}
 }
 
@@ -265,6 +285,13 @@ func NewSupabaseKeywordRepositoryWithInterface(client SupabaseClientInterface, l
 		rateLimiter: make(map[string]time.Time),
 		rateMutex:   sync.Mutex{},
 		minDelay:    1 * time.Second, // Minimum 1 second between requests to same domain
+		// Word segmentation for compound domain names
+		segmenter: word_segmentation.NewSegmenter(),
+		// NLP components for enhanced keyword extraction
+		entityRecognizer: nlp.NewEntityRecognizer(),
+		topicModeler:     nlp.NewTopicModeler(),
+		// Enhanced keyword matching
+		keywordMatcher: NewKeywordMatcher(),
 	}
 }
 
@@ -1134,78 +1161,89 @@ func (r *SupabaseKeywordRepository) GetClassificationCodesByKeywords(
 	for _, row := range codeKeywordRows {
 		rowKeywordLower := strings.ToLower(strings.TrimSpace(row.Keyword))
 		
-		// Check if this keyword matches any of our search keywords
-		matches := false
+		// Check if this keyword matches any of our search keywords using enhanced matching
+		var bestMatch *MatchResult
+		
 		for searchKeyword := range keywordSet {
 			// Filter out very short keywords (1-2 chars) that are likely noise
 			// These can cause false matches (e.g., "ai" matching "air", "hair", "fair")
 			if len(searchKeyword) <= 2 && len(rowKeywordLower) > 2 {
 				// Only allow exact match for very short search keywords
 				if rowKeywordLower == searchKeyword {
-					matches = true
+					bestMatch = &MatchResult{
+						Matched:         true,
+						MatchType:       "exact",
+						RelevancePenalty: 1.0,
+					}
 					break
 				}
 				continue // Skip other matching strategies for short keywords
 			}
 			
-			// Strategy 1: Exact match (most accurate)
-			if rowKeywordLower == searchKeyword {
-				matches = true
-				break
+			// Strategy 1: Enhanced matching (exact, synonym, stem, fuzzy)
+			matchResult := r.keywordMatcher.MatchKeyword(searchKeyword, rowKeywordLower)
+			if matchResult.Matched {
+				// Prefer exact matches, then synonym, then stem, then fuzzy
+				if bestMatch == nil || 
+					(matchResult.MatchType == "exact") ||
+					(matchResult.MatchType == "synonym" && bestMatch.MatchType != "exact") ||
+					(matchResult.MatchType == "stem" && bestMatch.MatchType != "exact" && bestMatch.MatchType != "synonym") ||
+					(matchResult.MatchType == "fuzzy" && bestMatch.MatchType == "fuzzy" && matchResult.RelevancePenalty > bestMatch.RelevancePenalty) {
+					bestMatch = &matchResult
+				}
 			}
 			
 			// Strategy 2: For multi-word database keywords, check if search keyword is a complete word
 			// This allows "wine" to match "wine shop" but prevents "air" from matching "hair" or "fair"
-			if strings.Contains(rowKeywordLower, " ") {
+			if !bestMatch.Matched && strings.Contains(rowKeywordLower, " ") {
 				words := strings.Fields(rowKeywordLower)
 				for _, word := range words {
-					if word == searchKeyword {
-						matches = true
+					wordMatch := r.keywordMatcher.MatchKeyword(searchKeyword, word)
+					if wordMatch.Matched {
+						bestMatch = &wordMatch
 						break
 					}
-				}
-				if matches {
-					break
 				}
 			}
 			
 			// Strategy 3: For multi-word search keywords, check if database keyword is a complete word
 			// This allows "wine shop" to match "wine" in the database
-			if strings.Contains(searchKeyword, " ") {
+			if !bestMatch.Matched && strings.Contains(searchKeyword, " ") {
 				words := strings.Fields(searchKeyword)
 				for _, word := range words {
-					if word == rowKeywordLower {
-						matches = true
+					wordMatch := r.keywordMatcher.MatchKeyword(word, rowKeywordLower)
+					if wordMatch.Matched {
+						bestMatch = &wordMatch
 						break
 					}
 				}
-				if matches {
-					break
-				}
 			}
-			
-			// Strategy 4: Single-word exact match only (most restrictive to prevent false positives)
-			// We skip substring matching for single words to prevent "air" matching "hair", "fair", etc.
-			// This is intentionally restrictive - exact matches and word-boundary matches are handled above
 		}
 
-		if matches && row.RelevanceScore >= minRelevance {
-			if codeIDToMetadata[row.CodeID] == nil {
-				codeIDToMetadata[row.CodeID] = []struct {
+		// Apply match result with adjusted relevance score
+		if bestMatch != nil && bestMatch.Matched {
+			// Calculate adjusted relevance score
+			adjustedRelevance := row.RelevanceScore * bestMatch.RelevancePenalty
+			
+			// Only include if adjusted relevance meets minimum threshold
+			if adjustedRelevance >= minRelevance {
+				if codeIDToMetadata[row.CodeID] == nil {
+					codeIDToMetadata[row.CodeID] = []struct {
+						RelevanceScore float64
+						MatchType      string
+						Keyword        string
+					}{}
+				}
+				codeIDToMetadata[row.CodeID] = append(codeIDToMetadata[row.CodeID], struct {
 					RelevanceScore float64
 					MatchType      string
 					Keyword        string
-				}{}
+				}{
+					RelevanceScore: adjustedRelevance, // Use adjusted relevance
+					MatchType:      bestMatch.MatchType, // Use enhanced match type
+					Keyword:        row.Keyword,
+				})
 			}
-			codeIDToMetadata[row.CodeID] = append(codeIDToMetadata[row.CodeID], struct {
-				RelevanceScore float64
-				MatchType      string
-				Keyword        string
-			}{
-				RelevanceScore: row.RelevanceScore,
-				MatchType:      row.MatchType,
-				Keyword:        row.Keyword,
-			})
 		}
 	}
 
@@ -2244,6 +2282,54 @@ func (r *SupabaseKeywordRepository) extractKeywords(businessName, websiteURL str
 		r.logger.Printf("   - Level 4 (URL-only): %v, keywords: %d, success: %v", metrics.level4Time, metrics.level4Keywords, metrics.level4Success)
 		r.logger.Printf("   - Note: Errors are logged in individual extraction methods with categorization (DNS, HTTP, Parsing)")
 		
+		// Phase 3.3: Integrate NER and topic modeling with keyword extraction
+		// Apply NER to extract entities from collected keywords and enhance with entity-based keywords
+		if len(keywords) > 0 {
+			// Combine all keyword text for entity recognition
+			combinedText := r.combineKeywordsForNER(keywords)
+			if combinedText != "" {
+				r.logger.Printf("🔍 [KeywordExtraction] [NLP] Applying Named Entity Recognition to extracted keywords")
+				entities := r.entityRecognizer.ExtractEntities(combinedText)
+				
+				// Extract keywords from entities
+				entityKeywords := r.entityRecognizer.GetEntityKeywords(entities)
+				for _, entityKw := range entityKeywords {
+					if !seen[entityKw] {
+						seen[entityKw] = true
+						keywords = append(keywords, ContextualKeyword{
+							Keyword: entityKw,
+							Context: "ner_entity",
+						})
+					}
+				}
+				
+				if len(entities) > 0 {
+					r.logger.Printf("✅ [KeywordExtraction] [NLP] Extracted %d entities, added %d entity-based keywords", len(entities), len(entityKeywords))
+				}
+			}
+			
+			// Apply topic modeling to identify industry topics and enhance keyword relevance
+			keywordStrings := make([]string, 0, len(keywords))
+			for _, kw := range keywords {
+				keywordStrings = append(keywordStrings, kw.Keyword)
+			}
+			
+			r.logger.Printf("🔍 [KeywordExtraction] [NLP] Applying topic modeling to identify industry topics")
+			topicScores := r.topicModeler.IdentifyTopics(keywordStrings)
+			
+			if len(topicScores) > 0 {
+				// Log top industry topics
+				topIndustries := make([]int, 0, min(3, len(topicScores)))
+				for industryID := range topicScores {
+					topIndustries = append(topIndustries, industryID)
+					if len(topIndustries) >= 3 {
+						break
+					}
+				}
+				r.logger.Printf("📊 [KeywordExtraction] [NLP] Topic modeling identified %d industries with scores: %v", len(topicScores), topicScores)
+			}
+		}
+		
 		r.logger.Printf("📊 [KeywordExtraction] Final result: method=%s, confidence=%s, total_unique_keywords=%d", analysisMethod, confidenceLevel, len(keywords))
 		
 		// Log top keywords for observability
@@ -2284,15 +2370,34 @@ func (r *SupabaseKeywordRepository) extractKeywords(businessName, websiteURL str
 	return keywords
 }
 
+// combineKeywordsForNER combines keywords into text for entity recognition
+func (r *SupabaseKeywordRepository) combineKeywordsForNER(keywords []ContextualKeyword) string {
+	if len(keywords) == 0 {
+		return ""
+	}
+	
+	var builder strings.Builder
+	for i, kw := range keywords {
+		if i > 0 {
+			builder.WriteString(" ")
+		}
+		builder.WriteString(kw.Keyword)
+	}
+	return builder.String()
+}
+
 // extractKeywordsFromHomepageWithRetry attempts to extract keywords from homepage with enhanced retry logic
 // Uses different DNS servers, longer timeout, and multiple retry attempts (Phase 5.1)
 // Phase 8: Enhanced with detailed logging and error tracking
+// Phase 10: Increased timeout to 60s and use fresh context to avoid parent context expiration
 func (r *SupabaseKeywordRepository) extractKeywordsFromHomepageWithRetry(ctx context.Context, websiteURL string) []string {
 	startTime := time.Now()
 	r.logger.Printf("🔄 [KeywordExtraction] [HomepageRetry] Starting homepage extraction with enhanced retry for: %s", websiteURL)
 
-	// Create context with longer timeout (30 seconds for retry attempts)
-	retryCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	// Create a fresh context with longer timeout (60 seconds for retry attempts)
+	// Use context.Background() instead of inheriting from parent to avoid expiration
+	// This ensures retry attempts have full 60 seconds even if parent context expires
+	retryCtx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	// Validate URL
@@ -2334,9 +2439,9 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromHomepageWithRetry(ctx con
 				},
 			}
 
-			// Create custom dialer with longer timeout
+			// Create custom dialer with longer timeout (increased to 45s for slow websites)
 			baseDialer := &net.Dialer{
-				Timeout:   30 * time.Second,
+				Timeout:   45 * time.Second,
 				KeepAlive: 30 * time.Second,
 			}
 
@@ -2377,15 +2482,17 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromHomepageWithRetry(ctx con
 				return baseDialer.DialContext(ctx, network, net.JoinHostPort(ip.String(), port))
 			}
 
-			// Create HTTP client with custom dialer and longer timeout
+			// Create HTTP client with custom dialer and longer timeout (increased to 60s)
 			client := &http.Client{
-				Timeout: 30 * time.Second,
+				Timeout: 60 * time.Second,
 				Transport: &http.Transport{
 					DialContext:          customDialContext,
 					MaxIdleConns:        10,
 					IdleConnTimeout:     30 * time.Second,
 					DisableCompression:  false,
 					MaxIdleConnsPerHost: 2,
+					TLSHandshakeTimeout: 15 * time.Second,
+					ResponseHeaderTimeout: 30 * time.Second,
 				},
 			}
 
@@ -2403,8 +2510,17 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromHomepageWithRetry(ctx con
 				continue
 			}
 
-			req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-			req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+			// Enhanced headers to avoid blocking by websites that detect automated requests
+			req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+			req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
+			req.Header.Set("Accept-Language", "en-US,en;q=0.9")
+			req.Header.Set("Accept-Encoding", "gzip, deflate, br")
+			req.Header.Set("Connection", "keep-alive")
+			req.Header.Set("Upgrade-Insecure-Requests", "1")
+			req.Header.Set("Sec-Fetch-Dest", "document")
+			req.Header.Set("Sec-Fetch-Mode", "navigate")
+			req.Header.Set("Sec-Fetch-Site", "none")
+			req.Header.Set("Cache-Control", "max-age=0")
 
 			// Make request
 			resp, err := client.Do(req)
@@ -2465,9 +2581,11 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromHomepageWithRetry(ctx con
 			r.logger.Printf("⚠️ [KeywordExtraction] [HomepageRetry] WARNING: Got response but no keywords extracted (attempt %d, DNS %s), trying next DNS server", attempt, dnsServer)
 		}
 
-		// Exponential backoff before next retry
+		// Exponential backoff before next retry (with jitter to avoid thundering herd)
 		if attempt < maxRetries {
-			backoff := time.Duration(attempt) * time.Second
+			baseBackoff := time.Duration(attempt) * 2 * time.Second // Increased base backoff
+			jitter := time.Duration(rand.Intn(1000)) * time.Millisecond // Random jitter 0-1s
+			backoff := baseBackoff + jitter
 			r.logger.Printf("⏳ [KeywordExtraction] [HomepageRetry] Waiting %v before retry %d/%d", backoff, attempt+1, maxRetries)
 			select {
 			case <-retryCtx.Done():
@@ -2582,12 +2700,14 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 	}
 
 	client := &http.Client{
-		Timeout: 15 * time.Second,
+		Timeout: 45 * time.Second, // Increased from 15s to 45s for slow websites
 		Transport: &http.Transport{
 			DialContext:         customDialContext,
 			MaxIdleConns:       10,
 			IdleConnTimeout:    30 * time.Second,
 			DisableCompression: false,
+			TLSHandshakeTimeout: 15 * time.Second,
+			ResponseHeaderTimeout: 30 * time.Second,
 		},
 	}
 
@@ -2620,8 +2740,8 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 
 	r.logger.Printf("📡 [KeywordExtraction] [SinglePage] Making HTTP request to: %s", websiteURL)
 
-	// Make request with timeout context
-	reqCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	// Make request with timeout context (increased to 45s for slow websites)
+	reqCtx, cancel := context.WithTimeout(ctx, 45*time.Second)
 	defer cancel()
 	req = req.WithContext(reqCtx)
 
@@ -2663,15 +2783,54 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromWebsite(ctx context.Conte
 		r.logger.Printf("⚠️ [KeywordExtraction] [SinglePage] WARNING: Unexpected content type for %s: %s", websiteURL, contentType)
 	}
 
-	// Read response body with size limit
+	// Read response body with size limit and handle decompression
 	maxSize := int64(5 * 1024 * 1024) // 5MB limit
-	body, err := io.ReadAll(io.LimitReader(resp.Body, maxSize))
+	var reader io.Reader = io.LimitReader(resp.Body, maxSize)
+	
+	// Handle content encoding (gzip, deflate, br)
+	contentEncoding := resp.Header.Get("Content-Encoding")
+	if contentEncoding != "" {
+		r.logger.Printf("📦 [KeywordExtraction] [SinglePage] Content-Encoding: %s", contentEncoding)
+	}
+	
+	switch contentEncoding {
+	case "gzip":
+		gzipReader, err := gzip.NewReader(reader)
+		if err != nil {
+			r.logger.Printf("⚠️ [KeywordExtraction] [SinglePage] Failed to create gzip reader: %v, reading uncompressed", err)
+		} else {
+			defer gzipReader.Close()
+			reader = gzipReader
+			r.logger.Printf("📦 [KeywordExtraction] [SinglePage] Decompressing gzip content")
+		}
+	case "deflate":
+		// Go's http package handles deflate automatically, but we'll log it
+		r.logger.Printf("📦 [KeywordExtraction] [SinglePage] Deflate compression detected (handled by http.Client)")
+	case "br":
+		// Brotli compression - Go's http package doesn't handle this automatically
+		r.logger.Printf("⚠️ [KeywordExtraction] [SinglePage] Brotli compression detected but not supported, may result in garbled text")
+	}
+	
+	body, err := io.ReadAll(reader)
 	if err != nil {
 		r.logger.Printf("❌ [KeywordExtraction] [SinglePage] PARSING ERROR: Failed to read response body from %s: %v (type: %T)", websiteURL, err, err)
 		return []string{}
 	}
 
-	r.logger.Printf("📄 [KeywordExtraction] [SinglePage] Read %d bytes from %s", len(body), websiteURL)
+	r.logger.Printf("📄 [KeywordExtraction] [SinglePage] Read %d bytes from %s (decompressed: %v)", len(body), websiteURL, contentEncoding != "")
+
+	// Check if body appears to be binary/garbled (contains null bytes or high percentage of non-printable chars)
+	if len(body) > 0 {
+		nonPrintableCount := 0
+		for i := 0; i < min(1000, len(body)); i++ {
+			if body[i] < 32 && body[i] != 9 && body[i] != 10 && body[i] != 13 {
+				nonPrintableCount++
+			}
+		}
+		if nonPrintableCount > 100 {
+			r.logger.Printf("⚠️ [KeywordExtraction] [SinglePage] WARNING: Response body appears to be binary/garbled (%d non-printable chars in first 1000 bytes). Content-Encoding: %s", nonPrintableCount, contentEncoding)
+		}
+	}
 
 	// Extract text content from HTML
 	textContent := r.extractTextFromHTML(string(body))
@@ -3049,6 +3208,7 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromPageData(page PageAnalysi
 
 // extractTextFromHTML extracts clean text content from HTML
 // Phase 9.1: Optimized with cached regex patterns and content size limiting
+// Enhanced: Added HTML entity decoding for better keyword extraction
 func (r *SupabaseKeywordRepository) extractTextFromHTML(htmlContent string) string {
 	// Phase 9.1: Limit content size for processing (first 50KB)
 	if int64(len(htmlContent)) > r.maxContentSize {
@@ -3068,6 +3228,21 @@ func (r *SupabaseKeywordRepository) extractTextFromHTML(htmlContent string) stri
 
 	// Remove HTML tags
 	htmlContent = tagRegex.ReplaceAllString(htmlContent, " ")
+
+	// Decode HTML entities (basic ones) - CRITICAL for keyword extraction
+	htmlContent = strings.ReplaceAll(htmlContent, "&nbsp;", " ")
+	htmlContent = strings.ReplaceAll(htmlContent, "&amp;", "&")
+	htmlContent = strings.ReplaceAll(htmlContent, "&lt;", "<")
+	htmlContent = strings.ReplaceAll(htmlContent, "&gt;", ">")
+	htmlContent = strings.ReplaceAll(htmlContent, "&quot;", "\"")
+	htmlContent = strings.ReplaceAll(htmlContent, "&#39;", "'")
+	htmlContent = strings.ReplaceAll(htmlContent, "&apos;", "'")
+	htmlContent = strings.ReplaceAll(htmlContent, "&mdash;", "-")
+	htmlContent = strings.ReplaceAll(htmlContent, "&ndash;", "-")
+	htmlContent = strings.ReplaceAll(htmlContent, "&hellip;", "...")
+	htmlContent = strings.ReplaceAll(htmlContent, "&copy;", "(c)")
+	htmlContent = strings.ReplaceAll(htmlContent, "&reg;", "(r)")
+	htmlContent = strings.ReplaceAll(htmlContent, "&trade;", "(tm)")
 
 	// Clean up whitespace
 	htmlContent = whitespaceRegex.ReplaceAllString(htmlContent, " ")
@@ -3329,9 +3504,20 @@ func (r *SupabaseKeywordRepository) extractBusinessKeywords(textContent string) 
 		}
 	}
 
-	// Limit to top 20 keywords to avoid noise
-	if len(keywords) > 20 {
-		keywords = keywords[:20]
+	// Log extraction statistics for debugging
+	if len(keywords) == 0 {
+		r.logger.Printf("⚠️ [KeywordExtraction] No keywords extracted from %d characters of text", len(textContent))
+		// Log a sample of the text to help debug
+		if len(textContent) > 500 {
+			r.logger.Printf("📝 [KeywordExtraction] Sample text (first 500 chars): %s", textContent[:500])
+		}
+	} else {
+		r.logger.Printf("✅ [KeywordExtraction] Extracted %d keywords from %d characters of text", len(keywords), len(textContent))
+	}
+
+	// Limit to top 50 keywords to avoid noise (increased from 20 for better coverage)
+	if len(keywords) > 50 {
+		keywords = keywords[:50]
 	}
 
 	return keywords
@@ -3504,42 +3690,50 @@ func (r *SupabaseKeywordRepository) extractKeywordsFromURLEnhanced(websiteURL st
 }
 
 // splitDomainName splits a domain name into meaningful parts
-// Handles compound domain names like "thegreenegrape" → ["the", "green", "grape"]
+// Uses word segmentation library for compound domain names like "thegreenegrape" → ["the", "green", "grape"]
 func (r *SupabaseKeywordRepository) splitDomainName(domain string) []string {
 	if domain == "" {
 		return []string{}
 	}
-	
-	// Remove TLD (everything after the last dot)
-	parts := strings.Split(domain, ".")
-	if len(parts) == 0 {
-		return []string{}
-	}
-	domainName := parts[0]
-	
-	// If domainName is empty, try the whole domain
-	if domainName == "" && len(parts) > 1 {
-		domainName = parts[len(parts)-2] // Use second-to-last part
+
+	// Use word segmentation library for compound domain names
+	// This handles cases like "thegreenegrape", "techstartup", "wineshop", etc.
+	segments := r.segmenter.Segment(domain)
+
+	// If segmentation returned empty or single segment, try fallback to camelCase splitting
+	if len(segments) <= 1 {
+		// Remove TLD (everything after the last dot)
+		parts := strings.Split(domain, ".")
+		if len(parts) == 0 {
+			return segments
+		}
+		domainName := parts[0]
+
+		// If domainName is empty, try the whole domain
+		if domainName == "" && len(parts) > 1 {
+			domainName = parts[len(parts)-2] // Use second-to-last part
+		}
+
+		// Split by common separators (hyphens, underscores)
+		domainName = strings.ReplaceAll(domainName, "-", " ")
+		domainName = strings.ReplaceAll(domainName, "_", " ")
+
+		// Split by spaces (from hyphens/underscores) and camelCase
+		var words []string
+		spaceParts := strings.Fields(domainName)
+		for _, part := range spaceParts {
+			// Try to split camelCase words
+			camelWords := r.splitCamelCase(part)
+			words = append(words, camelWords...)
+		}
+
+		// If we got words from fallback, use them; otherwise use segments
+		if len(words) > 0 {
+			return words
+		}
 	}
 
-	// Split by common separators (hyphens, underscores)
-	domainName = strings.ReplaceAll(domainName, "-", " ")
-	domainName = strings.ReplaceAll(domainName, "_", " ")
-	
-	// Try to split camelCase or compound words
-	// This is a simple heuristic - for production, consider using a proper word segmentation library
-	// See plan: plan-keyword-extraction-improvements-b60b8a1a.plan.md - Future Enhancement #5: Word Segmentation Library
-	var words []string
-	
-	// First, split by spaces (from hyphens/underscores)
-	spaceParts := strings.Fields(domainName)
-	for _, part := range spaceParts {
-		// Try to split camelCase words
-		camelWords := r.splitCamelCase(part)
-		words = append(words, camelWords...)
-	}
-
-	return words
+	return segments
 }
 
 // splitCamelCase splits camelCase words into individual words

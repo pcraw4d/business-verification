@@ -37,7 +37,7 @@ func TestAdvancedMemoryMonitor_New(t *testing.T) {
 	monitor2.Stop()
 }
 
-func TestAdvancedMemoryMonitor_StartStop(t *testing.T) {
+func TestAdvancedMemoryMonitor_StartStop_Advanced(t *testing.T) {
 	logger := zaptest.NewLogger(t)
 	config := &MemoryMonitorConfig{
 		Enabled:            true,

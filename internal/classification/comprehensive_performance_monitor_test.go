@@ -174,13 +174,14 @@ func TestComprehensivePerformanceMonitor_GetPerformanceMetrics(t *testing.T) {
 
 	// Record some test metrics
 	now := time.Now()
-	metrics := []*PerformanceMetric{
+	metrics := []*ComprehensivePerformanceMetric{
 		{
 			ID:             "metric_1",
 			Timestamp:      now.Add(-2 * time.Hour),
 			MetricType:     "response_time",
 			ServiceName:    "test_service",
 			ResponseTimeMs: 100.0,
+			Metadata:       make(map[string]interface{}),
 		},
 		{
 			ID:             "metric_2",
@@ -188,6 +189,7 @@ func TestComprehensivePerformanceMonitor_GetPerformanceMetrics(t *testing.T) {
 			MetricType:     "response_time",
 			ServiceName:    "test_service",
 			ResponseTimeMs: 200.0,
+			Metadata:       make(map[string]interface{}),
 		},
 		{
 			ID:            "metric_3",
@@ -195,6 +197,7 @@ func TestComprehensivePerformanceMonitor_GetPerformanceMetrics(t *testing.T) {
 			MetricType:    "memory",
 			ServiceName:   "test_service",
 			MemoryUsageMB: 256.0,
+			Metadata:      make(map[string]interface{}),
 		},
 	}
 
@@ -245,7 +248,7 @@ func TestComprehensivePerformanceMonitor_GetPerformanceSummary(t *testing.T) {
 
 	// Record some test metrics
 	now := time.Now()
-	metrics := []*PerformanceMetric{
+	metrics := []*ComprehensivePerformanceMetric{
 		{
 			ID:             "metric_1",
 			Timestamp:      now.Add(-30 * time.Minute),
@@ -365,7 +368,7 @@ func TestResponseTimeTracker_TrackResponseTime(t *testing.T) {
 	}
 
 	// Track a slow request
-	slowMetric := &PerformanceMetric{
+	slowMetric := &ComprehensivePerformanceMetric{
 		ID:             "test_2",
 		Timestamp:      time.Now(),
 		MetricType:     "response_time",
@@ -373,6 +376,7 @@ func TestResponseTimeTracker_TrackResponseTime(t *testing.T) {
 		Endpoint:       "/slow",
 		Method:         "GET",
 		ResponseTimeMs: 1000.0,
+		Metadata:       make(map[string]interface{}),
 	}
 
 	// Note: TrackResponseTime method needs to be implemented in ResponseTimeTracker
@@ -603,7 +607,7 @@ func TestComprehensivePerformanceMonitor_ChannelFull(t *testing.T) {
 }
 
 // Benchmark tests
-func BenchmarkComprehensivePerformanceMonitor_RecordMetric(b *testing.B) {
+func BenchmarkComprehensivePerformanceMonitor_RecordMetric_Comprehensive(b *testing.B) {
 	// Create mock database
 	mockDB := createTestDB()
 	defer mockDB.Close()

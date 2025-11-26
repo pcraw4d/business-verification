@@ -5,6 +5,7 @@ import (
 	"log"
 	"testing"
 
+	"kyb-platform/internal/classification/repository"
 	"kyb-platform/internal/classification/testutil"
 )
 

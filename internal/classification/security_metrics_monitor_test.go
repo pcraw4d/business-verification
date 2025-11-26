@@ -329,7 +329,7 @@ func TestSecurityMetricsMonitor_DataCleanup(t *testing.T) {
 	}
 }
 
-func TestSecurityMetricsMonitor_ConcurrentAccess(t *testing.T) {
+func TestSecurityMetricsMonitor_ConcurrentAccess_Monitor(t *testing.T) {
 	logger := zap.NewNop()
 	config := &SecurityMetricsConfig{
 		Enabled: true,
@@ -380,7 +380,7 @@ func TestSecurityMetricsMonitor_ConcurrentAccess(t *testing.T) {
 	}
 }
 
-func TestSecurityMetricsMonitor_DisabledState(t *testing.T) {
+func TestSecurityMetricsMonitor_DisabledState_Monitor(t *testing.T) {
 	logger := zap.NewNop()
 	config := &SecurityMetricsConfig{
 		Enabled: false, // Disabled

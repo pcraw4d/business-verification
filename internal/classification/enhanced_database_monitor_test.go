@@ -102,10 +102,10 @@ func TestEnhancedDatabaseMonitor_NewEnhancedDatabaseMonitor(t *testing.T) {
 	}
 }
 
-func TestEnhancedDatabaseMonitor_StartStop(t *testing.T) {
+func TestEnhancedDatabaseMonitor_StartStop_Enhanced(b *testing.T) {
 	db := createEnhancedTestDB()
 	defer db.Close()
-	logger := zaptest.NewLogger(t)
+	logger := zaptest.NewLogger(b)
 	config := &EnhancedDatabaseConfig{
 		Enabled:            true,
 		CollectionInterval: 100 * time.Millisecond,

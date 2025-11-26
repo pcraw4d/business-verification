@@ -168,7 +168,6 @@ func testEndToEndClassification(t *testing.T, client *database.SupabaseClient) {
 
 	// Test business classification
 	result, err := repo.ClassifyBusiness(ctx, "TechCorp Solutions",
-		"We develop innovative software solutions for businesses using cloud technology",
 		"https://techcorp.com")
 
 	if err != nil {

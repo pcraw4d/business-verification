@@ -6,12 +6,15 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"kyb-platform/internal/classification/word_segmentation"
 )
 
 func TestExtractKeywordsFromURLEnhanced(t *testing.T) {
 	logger := log.New(os.Stdout, "", log.LstdFlags)
 	repo := &SupabaseKeywordRepository{
-		logger: logger,
+		logger:    logger,
+		segmenter: word_segmentation.NewSegmenter(),
 	}
 
 	tests := []struct {

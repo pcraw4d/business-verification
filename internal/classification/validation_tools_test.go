@@ -10,14 +10,14 @@ import (
 )
 
 // MockDB creates a mock database connection for testing
-func createMockDB() *sql.DB {
+func createMockDBForValidation() *sql.DB {
 	// In a real test, you would use a test database or mock
 	// For now, we'll return nil and skip tests that require DB
 	return nil
 }
 
 func TestValidationTools_TestKeywordClassification(t *testing.T) {
-	vt := NewValidationTools(createMockDB())
+	vt := NewValidationTools(createMockDBForValidation())
 	if vt.db == nil {
 		t.Skip("Skipping test - no database connection")
 	}
@@ -38,7 +38,7 @@ func TestValidationTools_TestKeywordClassification(t *testing.T) {
 }
 
 func TestValidationTools_ValidateKeywordCoverage(t *testing.T) {
-	vt := NewValidationTools(createMockDB())
+	vt := NewValidationTools(createMockDBForValidation())
 	if vt.db == nil {
 		t.Skip("Skipping test - no database connection")
 	}
@@ -60,7 +60,7 @@ func TestValidationTools_ValidateKeywordCoverage(t *testing.T) {
 }
 
 func TestValidationTools_FindDuplicateKeywords(t *testing.T) {
-	vt := NewValidationTools(createMockDB())
+	vt := NewValidationTools(createMockDBForValidation())
 	if vt.db == nil {
 		t.Skip("Skipping test - no database connection")
 	}
@@ -79,7 +79,7 @@ func TestValidationTools_FindDuplicateKeywords(t *testing.T) {
 }
 
 func TestValidationTools_TestKeywordPatterns(t *testing.T) {
-	vt := NewValidationTools(createMockDB())
+	vt := NewValidationTools(createMockDBForValidation())
 	if vt.db == nil {
 		t.Skip("Skipping test - no database connection")
 	}
@@ -99,7 +99,7 @@ func TestValidationTools_TestKeywordPatterns(t *testing.T) {
 }
 
 func TestValidationTools_AnalyzeKeywordEffectiveness(t *testing.T) {
-	vt := NewValidationTools(createMockDB())
+	vt := NewValidationTools(createMockDBForValidation())
 	if vt.db == nil {
 		t.Skip("Skipping test - no database connection")
 	}
@@ -118,7 +118,7 @@ func TestValidationTools_AnalyzeKeywordEffectiveness(t *testing.T) {
 }
 
 func TestValidationTools_SuggestKeywordImprovements(t *testing.T) {
-	vt := NewValidationTools(createMockDB())
+	vt := NewValidationTools(createMockDBForValidation())
 	if vt.db == nil {
 		t.Skip("Skipping test - no database connection")
 	}
@@ -137,7 +137,7 @@ func TestValidationTools_SuggestKeywordImprovements(t *testing.T) {
 }
 
 func TestValidationTools_ValidateClassificationConsistency(t *testing.T) {
-	vt := NewValidationTools(createMockDB())
+	vt := NewValidationTools(createMockDBForValidation())
 	if vt.db == nil {
 		t.Skip("Skipping test - no database connection")
 	}
@@ -156,7 +156,7 @@ func TestValidationTools_ValidateClassificationConsistency(t *testing.T) {
 }
 
 func TestValidationTools_GenerateKeywordTestReport(t *testing.T) {
-	vt := NewValidationTools(createMockDB())
+	vt := NewValidationTools(createMockDBForValidation())
 	if vt.db == nil {
 		t.Skip("Skipping test - no database connection")
 	}
@@ -188,7 +188,7 @@ func TestValidationTools_GenerateKeywordTestReport(t *testing.T) {
 }
 
 func TestValidationTools_MonitorKeywordPerformance(t *testing.T) {
-	vt := NewValidationTools(createMockDB())
+	vt := NewValidationTools(createMockDBForValidation())
 	if vt.db == nil {
 		t.Skip("Skipping test - no database connection")
 	}
@@ -207,7 +207,7 @@ func TestValidationTools_MonitorKeywordPerformance(t *testing.T) {
 }
 
 func TestValidationTools_OptimizeKeywordWeights(t *testing.T) {
-	vt := NewValidationTools(createMockDB())
+	vt := NewValidationTools(createMockDBForValidation())
 	if vt.db == nil {
 		t.Skip("Skipping test - no database connection")
 	}
@@ -226,7 +226,7 @@ func TestValidationTools_OptimizeKeywordWeights(t *testing.T) {
 }
 
 func TestValidationTools_ValidateKeywordCompleteness(t *testing.T) {
-	vt := NewValidationTools(createMockDB())
+	vt := NewValidationTools(createMockDBForValidation())
 	if vt.db == nil {
 		t.Skip("Skipping test - no database connection")
 	}
@@ -245,7 +245,7 @@ func TestValidationTools_ValidateKeywordCompleteness(t *testing.T) {
 }
 
 func TestValidationTools_TestKeywordEdgeCases(t *testing.T) {
-	vt := NewValidationTools(createMockDB())
+	vt := NewValidationTools(createMockDBForValidation())
 	if vt.db == nil {
 		t.Skip("Skipping test - no database connection")
 	}
@@ -264,7 +264,7 @@ func TestValidationTools_TestKeywordEdgeCases(t *testing.T) {
 }
 
 func TestValidationTools_GenerateKeywordStatistics(t *testing.T) {
-	vt := NewValidationTools(createMockDB())
+	vt := NewValidationTools(createMockDBForValidation())
 	if vt.db == nil {
 		t.Skip("Skipping test - no database connection")
 	}
@@ -283,7 +283,7 @@ func TestValidationTools_GenerateKeywordStatistics(t *testing.T) {
 }
 
 func TestValidationTools_ValidateKeywordTestingCompletion(t *testing.T) {
-	vt := NewValidationTools(createMockDB())
+	vt := NewValidationTools(createMockDBForValidation())
 	if vt.db == nil {
 		t.Skip("Skipping test - no database connection")
 	}
@@ -302,7 +302,7 @@ func TestValidationTools_ValidateKeywordTestingCompletion(t *testing.T) {
 }
 
 func TestValidationTools_RunComprehensiveKeywordTests(t *testing.T) {
-	vt := NewValidationTools(createMockDB())
+	vt := NewValidationTools(createMockDBForValidation())
 	if vt.db == nil {
 		t.Skip("Skipping test - no database connection")
 	}
@@ -322,7 +322,7 @@ func TestValidationTools_RunComprehensiveKeywordTests(t *testing.T) {
 }
 
 func TestValidationTools_ExecuteKeywordTest(t *testing.T) {
-	vt := NewValidationTools(createMockDB())
+	vt := NewValidationTools(createMockDBForValidation())
 	if vt.db == nil {
 		t.Skip("Skipping test - no database connection")
 	}
@@ -357,7 +357,7 @@ func TestValidationTools_ExecuteKeywordTest(t *testing.T) {
 }
 
 func TestValidationTools_GetTestingDashboard(t *testing.T) {
-	vt := NewValidationTools(createMockDB())
+	vt := NewValidationTools(createMockDBForValidation())
 	if vt.db == nil {
 		t.Skip("Skipping test - no database connection")
 	}
@@ -376,7 +376,7 @@ func TestValidationTools_GetTestingDashboard(t *testing.T) {
 }
 
 func TestValidationTools_LogKeywordTest(t *testing.T) {
-	vt := NewValidationTools(createMockDB())
+	vt := NewValidationTools(createMockDBForValidation())
 	if vt.db == nil {
 		t.Skip("Skipping test - no database connection")
 	}
@@ -393,7 +393,7 @@ func TestValidationTools_LogKeywordTest(t *testing.T) {
 
 // Benchmark tests for performance validation
 func BenchmarkValidationTools_TestKeywordClassification(b *testing.B) {
-	vt := NewValidationTools(createMockDB())
+	vt := NewValidationTools(createMockDBForValidation())
 	if vt.db == nil {
 		b.Skip("Skipping benchmark - no database connection")
 	}
@@ -411,7 +411,7 @@ func BenchmarkValidationTools_TestKeywordClassification(b *testing.B) {
 }
 
 func BenchmarkValidationTools_ValidateKeywordCoverage(b *testing.B) {
-	vt := NewValidationTools(createMockDB())
+	vt := NewValidationTools(createMockDBForValidation())
 	if vt.db == nil {
 		b.Skip("Skipping benchmark - no database connection")
 	}
@@ -428,7 +428,7 @@ func BenchmarkValidationTools_ValidateKeywordCoverage(b *testing.B) {
 }
 
 func BenchmarkValidationTools_FindDuplicateKeywords(b *testing.B) {
-	vt := NewValidationTools(createMockDB())
+	vt := NewValidationTools(createMockDBForValidation())
 	if vt.db == nil {
 		b.Skip("Skipping benchmark - no database connection")
 	}
@@ -489,7 +489,7 @@ func TestValidationTools_ErrorHandling(t *testing.T) {
 
 // Test data validation
 func TestValidationTools_DataValidation(t *testing.T) {
-	vt := NewValidationTools(createMockDB())
+	vt := NewValidationTools(createMockDBForValidation())
 	if vt.db == nil {
 		t.Skip("Skipping test - no database connection")
 	}

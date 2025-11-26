@@ -16,17 +16,21 @@ import (
 	"time"
 	"unicode"
 
+	"kyb-platform/internal/classification/nlp"
+
 	"golang.org/x/net/html"
 )
 
 // SmartWebsiteCrawler implements intelligent website crawling with page prioritization
 type SmartWebsiteCrawler struct {
-	logger        *log.Logger
-	client        *http.Client
-	maxPages      int
-	maxDepth      int
-	respectRobots bool
-	pageTimeout   time.Duration
+	logger          *log.Logger
+	client          *http.Client
+	maxPages        int
+	maxDepth        int
+	respectRobots   bool
+	pageTimeout     time.Duration
+	entityRecognizer *nlp.EntityRecognizer
+	topicModeler     *nlp.TopicModeler
 }
 
 // CrawlerCrawlResult represents the result of a smart crawl operation
@@ -260,10 +264,12 @@ func NewSmartWebsiteCrawler(logger *log.Logger) *SmartWebsiteCrawler {
 				MaxIdleConnsPerHost: 2,
 			},
 		},
-		maxPages:      20, // Maximum pages to crawl
-		maxDepth:      3,  // Maximum crawl depth
-		respectRobots: true,
-		pageTimeout:   15 * time.Second,
+		maxPages:        20, // Maximum pages to crawl
+		maxDepth:        3,  // Maximum crawl depth
+		respectRobots:   true,
+		pageTimeout:     15 * time.Second,
+		entityRecognizer: nlp.NewEntityRecognizer(),
+		topicModeler:     nlp.NewTopicModeler(),
 	}
 }
 
@@ -1752,7 +1758,52 @@ func (c *SmartWebsiteCrawler) extractPageKeywords(content string, pageType strin
 	// 7. Combine, deduplicate, and rank with enhanced relevance scoring
 	allKeywords := c.combineAndRankKeywordsEnhanced(allStructuredKeywords, bodyKeywords, phrases, pageType, textContent)
 	
-	// 8. Filter by relevance threshold (0.3) and return top 30
+	// 8. Phase 3.3: Apply NER and topic modeling to enhance keywords
+	if c.entityRecognizer != nil && c.topicModeler != nil && len(allKeywords) > 0 {
+		// Extract entities from text content
+		entities := c.entityRecognizer.ExtractEntities(textContent)
+		if len(entities) > 0 {
+			// Get keywords from entities
+			entityKeywords := c.entityRecognizer.GetEntityKeywords(entities)
+			// Add entity keywords with high weight
+			for _, entityKw := range entityKeywords {
+				allKeywords = append(allKeywords, keywordScore{
+					keyword: entityKw,
+					score:   0.85, // High weight for entity-based keywords
+				})
+			}
+		}
+		
+		// Apply topic modeling to identify industry topics
+		keywordStrings := make([]string, 0, len(allKeywords))
+		for _, kw := range allKeywords {
+			keywordStrings = append(keywordStrings, kw.keyword)
+		}
+		topicScores := c.topicModeler.IdentifyTopics(keywordStrings)
+		
+		// Boost keywords that align with identified topics
+		if len(topicScores) > 0 {
+			// Re-rank keywords based on topic alignment
+			for i := range allKeywords {
+				kwLower := strings.ToLower(allKeywords[i].keyword)
+				// Small boost for keywords in top industries
+				for industryID, score := range topicScores {
+					if score > 0.3 {
+						// Check if keyword is in industry topics
+						industryTopics := c.topicModeler.GetIndustryTopics(industryID)
+						for _, topicKw := range industryTopics {
+							if kwLower == strings.ToLower(topicKw) {
+								allKeywords[i].score *= (1.0 + score*0.1) // Boost by up to 10%
+								break
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	// 9. Filter by relevance threshold (0.3) and return top 30
 	return c.limitToTopKeywordsWithThreshold(allKeywords, 30, 0.3)
 }
 
