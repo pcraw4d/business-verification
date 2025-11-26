@@ -32,6 +32,8 @@ type SmartWebsiteCrawler struct {
 	pageTimeout     time.Duration
 	entityRecognizer *nlp.EntityRecognizer
 	topicModeler     *nlp.TopicModeler
+	sessionManager  *ScrapingSessionManager
+	proxyManager    *ProxyManager
 }
 
 // CrawlerCrawlResult represents the result of a smart crawl operation
@@ -271,6 +273,8 @@ func NewSmartWebsiteCrawler(logger *log.Logger) *SmartWebsiteCrawler {
 		pageTimeout:     15 * time.Second,
 		entityRecognizer: nlp.NewEntityRecognizer(),
 		topicModeler:     nlp.NewTopicModeler(),
+		sessionManager:  NewScrapingSessionManager(),
+		proxyManager:    NewProxyManager(),
 	}
 }
 
@@ -660,24 +664,43 @@ func (c *SmartWebsiteCrawler) analyzePages(ctx context.Context, pages []string) 
 	var mu sync.Mutex
 	var analyses []PageAnalysis
 
-	// Limit concurrent requests
-	semaphore := make(chan struct{}, 5) // Max 5 concurrent requests
+	// Limit concurrent requests to avoid overwhelming the server
+	semaphore := make(chan struct{}, 3) // Reduced to 3 concurrent requests for better bot evasion
 
-	for _, page := range pages {
+	// Extract base domain for session management
+	var baseDomain string
+	if len(pages) > 0 {
+		if parsedURL, err := url.Parse(pages[0]); err == nil {
+			baseDomain = parsedURL.Hostname()
+		}
+	}
+
+	for i, page := range pages {
 		wg.Add(1)
-		go func(pageURL string) {
+		go func(pageURL string, pageIndex int) {
 			defer wg.Done()
 
 			// Acquire semaphore
 			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
 
+			// Add human-like delay between requests (except first one)
+			if pageIndex > 0 && baseDomain != "" {
+				delay := GetHumanLikeDelay(2*time.Second, baseDomain)
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(delay):
+					// Continue after delay
+				}
+			}
+
 			analysis := c.analyzePage(ctx, pageURL)
 
 			mu.Lock()
 			analyses = append(analyses, analysis)
 			mu.Unlock()
-		}(page)
+		}(page, i)
 	}
 
 	wg.Wait()
@@ -703,6 +726,53 @@ func (c *SmartWebsiteCrawler) analyzePage(ctx context.Context, pageURL string) P
 		Priority:           c.calculatePagePriority(pageURL, ""),
 	}
 
+	// Parse URL to get domain for session management
+	parsedURL, err := url.Parse(pageURL)
+	if err != nil {
+		analysis.RelevanceScore = 0.0
+		return analysis
+	}
+	domain := parsedURL.Hostname()
+
+	// Get or create session for this domain
+	var session *ScrapingSession
+	if c.sessionManager != nil {
+		sess, err := c.sessionManager.GetOrCreateSession(domain)
+		if err != nil {
+			c.logger.Printf("⚠️ [PageAnalysis] Failed to get session for %s: %v", domain, err)
+		} else {
+			session = sess
+		}
+	}
+
+	// Create HTTP client with session cookie jar and proxy support
+	client := c.client
+	if session != nil {
+		// Create a new client with session cookie jar
+		transport := c.client.Transport.(*http.Transport)
+		client = CreateHTTPClientWithSession(session, c.pageTimeout)
+		// Preserve the custom dialer
+		if transport != nil {
+			client.Transport = transport
+		}
+	}
+
+	// Get proxy transport if enabled
+	if c.proxyManager != nil && c.proxyManager.IsEnabled() {
+		baseTransport := c.client.Transport.(*http.Transport)
+		proxyTransport, err := c.proxyManager.GetProxyTransport(domain, baseTransport)
+		if err == nil && proxyTransport != nil {
+			// Use proxy transport
+			client = &http.Client{
+				Timeout:   c.pageTimeout,
+				Transport: proxyTransport,
+			}
+			if session != nil {
+				client.Jar = session.GetCookieJar()
+			}
+		}
+	}
+
 	// Create request with timeout
 	reqCtx, cancel := context.WithTimeout(ctx, c.pageTimeout)
 	defer cancel()
@@ -713,8 +783,12 @@ func (c *SmartWebsiteCrawler) analyzePage(ctx context.Context, pageURL string) P
 		return analysis
 	}
 
-	// Set headers with randomization
-	headers := GetRandomizedHeaders(GetUserAgent())
+	// Set headers with randomization and referer
+	referer := ""
+	if session != nil && c.sessionManager != nil {
+		referer = c.sessionManager.GetReferer(domain)
+	}
+	headers := GetRandomizedHeadersWithReferer(GetUserAgent(), referer)
 	for key, value := range headers {
 		req.Header.Set(key, value)
 	}
@@ -723,7 +797,7 @@ func (c *SmartWebsiteCrawler) analyzePage(ctx context.Context, pageURL string) P
 	var resp *http.Response
 	maxRetries := 3
 	for attempt := 1; attempt <= maxRetries; attempt++ {
-		resp, err = c.client.Do(req)
+		resp, err = client.Do(req)
 		if err == nil {
 			break
 		}
@@ -759,6 +833,12 @@ func (c *SmartWebsiteCrawler) analyzePage(ctx context.Context, pageURL string) P
 
 	analysis.StatusCode = resp.StatusCode
 	analysis.ResponseTime = time.Since(startTime)
+
+	// Update session referer for next request (if session exists)
+	if session != nil && c.sessionManager != nil && resp.StatusCode == 200 {
+		c.sessionManager.UpdateReferer(domain, pageURL)
+		session.UpdateAccess()
+	}
 
 	// Handle specific HTTP status codes
 	if resp.StatusCode == 429 {
