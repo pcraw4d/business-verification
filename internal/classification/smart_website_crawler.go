@@ -332,22 +332,8 @@ func (c *SmartWebsiteCrawler) CrawlWebsite(ctx context.Context, websiteURL strin
 	}
 	prioritizedPages = homepageFirst
 
-	// Add initial warm-up delay before starting crawl (simulate user arriving at site)
-	if len(prioritizedPages) > 0 {
-		parsedURL, err := url.Parse(baseURL)
-		if err == nil {
-			domain := parsedURL.Hostname()
-			warmupDelay := GetHumanLikeDelay(3*time.Second, domain)
-			c.logger.Printf("⏳ [SmartCrawler] Initial warm-up delay: %v", warmupDelay)
-			select {
-			case <-ctx.Done():
-				result.Error = "Context cancelled during warm-up"
-				return result, ctx.Err()
-			case <-time.After(warmupDelay):
-				// Continue after warm-up
-			}
-		}
-	}
+	// Removed initial warm-up delay for faster classification (user preference)
+	// Original delay was 3+ seconds with human-like variation
 
 	// Analyze prioritized pages
 	pageAnalyses := c.analyzePages(ctx, prioritizedPages)
@@ -686,21 +672,13 @@ func (c *SmartWebsiteCrawler) detectPageType(pageURL string) PageType {
 	return PageTypeOther
 }
 
-// analyzePages analyzes multiple pages sequentially with human-like delays
-// Sequential processing reduces bot detection by avoiding concurrent requests
+// analyzePages analyzes multiple pages sequentially
+// Delays removed for faster classification (user preference)
 func (c *SmartWebsiteCrawler) analyzePages(ctx context.Context, pages []string) []PageAnalysis {
 	var analyses []PageAnalysis
 
-	// Extract base domain for session management
-	var baseDomain string
-	if len(pages) > 0 {
-		if parsedURL, err := url.Parse(pages[0]); err == nil {
-			baseDomain = parsedURL.Hostname()
-		}
-	}
-
-	// Process pages sequentially (one at a time) to avoid bot detection
-	for i, page := range pages {
+	// Process pages sequentially (one at a time)
+	for _, page := range pages {
 		// Check context cancellation
 		select {
 		case <-ctx.Done():
@@ -708,25 +686,8 @@ func (c *SmartWebsiteCrawler) analyzePages(ctx context.Context, pages []string) 
 		default:
 		}
 
-		// Add human-like delay between requests (longer delays for better evasion)
-		// First request has no delay, subsequent requests have increasing delays
-		if i > 0 && baseDomain != "" {
-			// Use longer base delay (5-8 seconds) for better bot evasion
-			baseDelay := 5 * time.Second
-			if i > 5 {
-				// Increase delay for later requests (simulating user getting tired)
-				baseDelay = 8 * time.Second
-			}
-			delay := GetHumanLikeDelay(baseDelay, baseDomain)
-			c.logger.Printf("⏳ [SmartCrawler] Waiting %v before next request (page %d/%d)", delay, i+1, len(pages))
-			
-			select {
-			case <-ctx.Done():
-				return analyses
-			case <-time.After(delay):
-				// Continue after delay
-			}
-		}
+		// Removed delays between requests for faster classification (user preference)
+		// Original delays were 5-8 seconds with human-like variation
 
 		// Analyze page
 		analysis := c.analyzePage(ctx, page)
@@ -1563,7 +1524,7 @@ func (c *SmartWebsiteCrawler) extractStructuredKeywords(content string) []struct
 	return keywords
 }
 
-// extractWordsFromText extracts meaningful words from text (filters stop words)
+// extractWordsFromText extracts meaningful words from text (filters stop words and gibberish)
 func (c *SmartWebsiteCrawler) extractWordsFromText(text string) []string {
 	// Common stop words to filter
 	stopWords := map[string]bool{
@@ -1586,18 +1547,91 @@ func (c *SmartWebsiteCrawler) extractWordsFromText(text string) []string {
 		"too": true, "very": true, "can": true, "just": true, "don": true,
 	}
 	
-	// Split text into words
-	words := regexp.MustCompile(`\b[a-zA-Z]{3,}\b`).FindAllString(text, -1)
+	// Split text into words - increased minimum length to 4 to filter out short gibberish
+	words := regexp.MustCompile(`\b[a-zA-Z]{4,}\b`).FindAllString(text, -1)
 	var filteredWords []string
 	
 	for _, word := range words {
 		wordLower := strings.ToLower(word)
-		if !stopWords[wordLower] && len(wordLower) >= 3 {
-			filteredWords = append(filteredWords, wordLower)
+		// Filter stop words
+		if stopWords[wordLower] {
+			continue
 		}
+		// Filter short words (minimum 4 characters)
+		if len(wordLower) < 4 {
+			continue
+		}
+		// Filter gibberish: words that don't look like English
+		// - Too many consecutive consonants (more than 3)
+		// - No vowels at all
+		// - Too high consonant-to-vowel ratio (more than 3:1 for short words)
+		if !c.isValidEnglishWord(wordLower) {
+			continue
+		}
+		filteredWords = append(filteredWords, wordLower)
 	}
 	
 	return filteredWords
+}
+
+// isValidEnglishWord checks if a word looks like a valid English word
+// Filters out gibberish like "ml", "fty", "ozx", "dku", etc.
+func (c *SmartWebsiteCrawler) isValidEnglishWord(word string) bool {
+	if len(word) < 4 {
+		return false
+	}
+	
+	// Count vowels and consonants
+	vowels := 0
+	consonants := 0
+	maxConsecutiveConsonants := 0
+	currentConsecutiveConsonants := 0
+	
+	vowelSet := map[rune]bool{'a': true, 'e': true, 'i': true, 'o': true, 'u': true, 'y': true}
+	
+	for _, char := range word {
+		if vowelSet[char] {
+			vowels++
+			currentConsecutiveConsonants = 0
+		} else {
+			consonants++
+			currentConsecutiveConsonants++
+			if currentConsecutiveConsonants > maxConsecutiveConsonants {
+				maxConsecutiveConsonants = currentConsecutiveConsonants
+			}
+		}
+	}
+	
+	// Must have at least one vowel
+	if vowels == 0 {
+		return false
+	}
+	
+	// For short words (4-5 chars), require reasonable vowel ratio
+	if len(word) <= 5 {
+		// At least 1 vowel for every 3 characters
+		if vowels < (len(word)+2)/3 {
+			return false
+		}
+		// No more than 3 consecutive consonants
+		if maxConsecutiveConsonants > 3 {
+			return false
+		}
+	}
+	
+	// For longer words, allow more flexibility but still require vowels
+	if len(word) > 5 {
+		// At least 1 vowel for every 4 characters
+		if vowels < (len(word)+3)/4 {
+			return false
+		}
+		// No more than 4 consecutive consonants
+		if maxConsecutiveConsonants > 4 {
+			return false
+		}
+	}
+	
+	return true
 }
 
 // extractBusinessKeywordsFromText extracts business-relevant keywords from text using patterns
