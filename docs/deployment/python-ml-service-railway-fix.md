@@ -41,15 +41,26 @@ If Option 1 doesn't work, configure the service manually:
 4. **Dockerfile Path**: `Dockerfile`
 5. **Build Context**: `.` (current directory)
 
-### Option 3: Use Railway CLI
+### Option 3: Use Railway CLI (Automated)
+
+Run the configuration script:
+
+```bash
+./scripts/configure-python-ml-railway.sh
+```
+
+Or manually:
 
 ```bash
 # Link to the service
 cd python_ml_service
 railway link --service python-ml-service
 
-# Set root directory
-railway variables set RAILWAY_SERVICE_ROOT=python_ml_service
+# Note: Root directory must be set in Railway dashboard
+# Railway CLI doesn't support setting root directory directly
+# After linking, go to dashboard and set:
+# - Root Directory: python_ml_service
+# - Dockerfile Path: Dockerfile
 
 # Deploy
 railway up
