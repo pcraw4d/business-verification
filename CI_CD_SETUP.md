@@ -15,6 +15,7 @@ The workflow automatically detects which services have changed:
 - **Merchant Service**: Changes in `services/merchant-service/`
 - **Risk Assessment Service**: Changes in `services/risk-assessment-service/`
 - **Frontend Service**: Changes in `frontend/` or `services/frontend-service/`
+- **Python ML Service**: Changes in `python_ml_service/`
 
 ### 2. Selective Deployment
 Only services with changes are deployed, saving time and resources.
@@ -64,6 +65,7 @@ After deployment, services are available at:
 - **Merchant Service**: https://merchant-service-production.up.railway.app
 - **Risk Assessment Service**: https://risk-assessment-service-production.up.railway.app
 - **Frontend Service**: https://frontend-service-production-b225.up.railway.app
+- **Python ML Service**: Check Railway dashboard for URL (or set `PYTHON_ML_SERVICE_URL` secret)
 
 ## Monitoring
 
