@@ -798,32 +798,60 @@ class ModelManager:
             models.append(model_info)
         return models
 
-# Initialize model manager
-model_manager = ModelManager()
+# Global model manager and classifier (initialized lazily)
+model_manager: Optional[ModelManager] = None
+distilbart_classifier: Optional[DistilBARTBusinessClassifier] = None
+_models_loading = False
+_models_loaded = False
 
-# Initialize DistilBART classifier (replaces BERT for classification)
-# Quantization enabled by default in production (can be overridden via USE_QUANTIZATION env var)
-use_quantization = os.getenv('USE_QUANTIZATION', 'true').lower() == 'true'
-quantization_dtype_str = os.getenv('QUANTIZATION_DTYPE', 'qint8')
-quantization_dtype = getattr(torch, quantization_dtype_str, torch.qint8)
-
-distilbart_classifier = DistilBARTBusinessClassifier({
-    'model_save_path': os.getenv('MODEL_SAVE_PATH', 'models/distilbart'),
-    'quantized_models_path': os.getenv('QUANTIZED_MODELS_PATH', 'models/quantized'),
-    'use_quantization': use_quantization,  # Enabled by default, configurable via env var
-    'quantization_dtype': quantization_dtype,
-    'industry_labels': [
-        "Technology", "Healthcare", "Financial Services",
-        "Retail", "Food & Beverage", "Manufacturing",
-        "Construction", "Real Estate", "Transportation",
-        "Education", "Professional Services", "Agriculture",
-        "Mining & Energy", "Utilities", "Wholesale Trade",
-        "Arts & Entertainment", "Accommodation & Hospitality",
-        "Administrative Services", "Other Services"
-    ]
-})
-logger.info(f"✅ DistilBART classifier initialized with quantization: {use_quantization}")
-logger.info("✅ DistilBART classifier initialized")
+# Startup event to load models asynchronously
+@app.on_event("startup")
+async def load_models_on_startup():
+    """Load models asynchronously after app starts"""
+    global model_manager, distilbart_classifier, _models_loading, _models_loaded
+    
+    if _models_loading or _models_loaded:
+        return
+    
+    _models_loading = True
+    logger.info("🚀 Starting model loading in background...")
+    
+    try:
+        # Load model manager (lightweight, doesn't load heavy models)
+        logger.info("📚 Initializing model manager...")
+        model_manager = ModelManager()
+        logger.info("✅ Model manager initialized")
+        
+        # Load DistilBART classifier (replaces BERT for classification)
+        # Quantization enabled by default in production (can be overridden via USE_QUANTIZATION env var)
+        use_quantization = os.getenv('USE_QUANTIZATION', 'true').lower() == 'true'
+        quantization_dtype_str = os.getenv('QUANTIZATION_DTYPE', 'qint8')
+        quantization_dtype = getattr(torch, quantization_dtype_str, torch.qint8)
+        
+        logger.info("📥 Loading DistilBART classifier (this may take 60-90 seconds)...")
+        distilbart_classifier = DistilBARTBusinessClassifier({
+            'model_save_path': os.getenv('MODEL_SAVE_PATH', 'models/distilbart'),
+            'quantized_models_path': os.getenv('QUANTIZED_MODELS_PATH', 'models/quantized'),
+            'use_quantization': use_quantization,  # Enabled by default, configurable via env var
+            'quantization_dtype': quantization_dtype,
+            'industry_labels': [
+                "Technology", "Healthcare", "Financial Services",
+                "Retail", "Food & Beverage", "Manufacturing",
+                "Construction", "Real Estate", "Transportation",
+                "Education", "Professional Services", "Agriculture",
+                "Mining & Energy", "Utilities", "Wholesale Trade",
+                "Arts & Entertainment", "Accommodation & Hospitality",
+                "Administrative Services", "Other Services"
+            ]
+        })
+        logger.info(f"✅ DistilBART classifier initialized with quantization: {use_quantization}")
+        _models_loaded = True
+        logger.info("✅ All models loaded successfully")
+    except Exception as e:
+        logger.error(f"❌ Failed to load models: {e}", exc_info=True)
+        # Don't fail startup - service can still respond to health checks
+    finally:
+        _models_loading = False
 
 # Cache management
 class CacheManager:
@@ -882,8 +910,11 @@ async def health():
         
         # Add model info if available (don't fail if not ready)
         try:
-            if hasattr(model_manager, 'models') and model_manager.models:
+            if model_manager is not None and hasattr(model_manager, 'models') and model_manager.models:
                 health_data["models_loaded"] = len(model_manager.models)
+            else:
+                health_data["models_loaded"] = 0
+                health_data["models_status"] = "initializing"
         except Exception:
             health_data["models_loaded"] = 0
             health_data["models_status"] = "initializing"
@@ -908,11 +939,15 @@ async def health():
 @app.get("/models", response_model=List[ModelInfo])
 async def get_models():
     """Get available models"""
+    if model_manager is None:
+        raise HTTPException(status_code=503, detail="Models are still loading. Please try again in a moment.")
     return model_manager.get_available_models()
 
 @app.get("/model-info")
 async def get_model_info():
     """Get information about loaded DistilBART models"""
+    if distilbart_classifier is None:
+        raise HTTPException(status_code=503, detail="DistilBART classifier is still loading. Please try again in a moment.")
     try:
         model_info = distilbart_classifier.get_model_info()
         return {
@@ -927,6 +962,8 @@ async def get_model_info():
 @app.get("/models/{model_id}/metrics", response_model=ModelMetrics)
 async def get_model_metrics(model_id: str):
     """Get model metrics"""
+    if model_manager is None:
+        raise HTTPException(status_code=503, detail="Models are still loading. Please try again in a moment.")
     if model_id not in model_manager.models:
         raise HTTPException(status_code=404, detail="Model not found")
     
@@ -967,6 +1004,13 @@ async def classify(request: ClassificationRequest):
             cached_result["request_id"] = request_id
             cached_result["processing_time"] = time.time() - start_time
             return ClassificationResponse(**cached_result)
+        
+        # Check if classifier is loaded
+        if distilbart_classifier is None:
+            raise HTTPException(
+                status_code=503,
+                detail="DistilBART classifier is still loading. Please try again in a moment."
+            )
         
         # Use DistilBART for classification
         result = distilbart_classifier.classify_only(input_text)
@@ -1027,6 +1071,13 @@ async def classify_enhanced(request: EnhancedClassificationRequest):
         content = request.website_content or ""
         if not content and request.description:
             content = request.description
+        
+        # Check if classifier is loaded
+        if distilbart_classifier is None:
+            raise HTTPException(
+                status_code=503,
+                detail="DistilBART classifier is still loading. Please try again in a moment."
+            )
         
         # Get enhanced classification (uses quantized models if enabled)
         result = distilbart_classifier.classify_with_enhancement(
@@ -1555,9 +1606,9 @@ async def get_real_time_monitoring():
 if __name__ == "__main__":
     logger.info("🚀 Starting Python ML Service...")
     logger.info(f"📱 Device: {Config.DEVICE}")
-    logger.info(f"📚 Models loaded: {len(model_manager.models)}")
+    logger.info("📚 Models will be loaded asynchronously on startup")
     
-    # Initialize risk detection models
+    # Initialize risk detection models (non-blocking)
     try:
         risk_detection_manager.initialize_models()
         logger.info("✅ Risk detection models initialized")
